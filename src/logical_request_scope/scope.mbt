@@ -5,7 +5,7 @@ struct LogicalRequestScope {
   authority_scope_cid : String
   caller_request_id : String
   cid : String
-}
+} derive(Eq, Debug)
 
 ///|
 pub(all) enum LogicalRequestScopeIssue {

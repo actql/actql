@@ -90,9 +90,9 @@ export function installNodeClientProgramPreparation({moon, environment}) {
   });
 }
 
-// Internal Effect preparation shares Client serialization and checked Program
-// admission. The public submit remains Effect-free until apply and final
-// publication are connected; this handle is not a send permit.
+// Effect preparation shares Client serialization and checked Program
+// admission. The installed Effectful submit supplies the separate durable
+// Run-start claim; this prepared handle is not a send permit.
 export function installNodeClientEffectProgramPreparation({moon, environment,
   evidence = []}) {
   if (!moon ||

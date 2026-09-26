@@ -75,10 +75,17 @@ pub fn issue_prepared_client_effect_compilation(
     @strategy.checked_effect_source_count(owner.graph) != count {
     return Err(UnsupportedProgram)
   }
+  let checked = @checked.effect_program_static_checked_computation(
+    owner.candidate,
+  )
   guard @strategy.graph_task_owner(graph, 0) is Some(first) &&
     @pipeline.starts_with_values(
       @lower.pipeline(@lower.bound_preparation(first)),
-    ) else {
+    ) &&
+    @checked.unit_pipeline(checked, 0) is Some(pipeline) &&
+    @pipeline.input_count(pipeline) == 0 &&
+    @checked.unit_result_import_count(checked, 0) == Some(0) &&
+    @checked.unit_import_cid_count(checked, 0) == Some(0) else {
     return Err(UnsupportedProgram)
   }
   // This private compiler view contains the same graph, source and Effects.

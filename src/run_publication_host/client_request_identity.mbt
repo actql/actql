@@ -4,7 +4,7 @@
 struct ClientRequestIdentity {
   authority_scope_cid : String
   caller_request_id : String
-  logical_request_scope_cid : String
+  scope : @request_scope.LogicalRequestScope
   intent_fingerprint_cid : String
   program_definition_cid : String
   parameter_values_cid : String
@@ -25,7 +25,32 @@ pub fn client_request_caller_id(value : ClientRequestIdentity) -> String {
 
 ///|
 pub fn client_request_scope_cid(value : ClientRequestIdentity) -> String {
-  value.logical_request_scope_cid
+  @request_scope.logical_request_scope_cid(value.scope)
+}
+
+///|
+/// Reuse the exact logical scope issued or re-admitted with Client intent.
+/// This transfers identity, not current authorization or a mutation permit.
+pub fn client_request_logical_scope(
+  value : ClientRequestIdentity,
+) -> @request_scope.LogicalRequestScope {
+  value.scope
+}
+
+///|
+/// An Effect caller may not pair a checked Program with another request's
+/// checked intent. Current authority and durable request admission remain
+/// Host obligations before execution.
+pub fn prepared_client_effect_request_scope(
+  prepared : PreparedClientEffectComputation,
+  request : ClientRequestIdentity,
+) -> Result[@request_scope.LogicalRequestScope, ClientRequestIdentityIssue] {
+  let identity = prepared_client_effect_identity(prepared)
+  if identity.program_definition_cid != request.program_definition_cid ||
+    identity.parameter_values_cid != request.parameter_values_cid {
+    return Err(IdentityMismatch)
+  }
+  Ok(request.scope)
 }
 
 ///|
@@ -74,7 +99,7 @@ pub fn client_request_identity_relation(
 ) -> ClientRequestIdentityRelation {
   if requested.authority_scope_cid != retained.authority_scope_cid ||
     requested.caller_request_id != retained.caller_request_id ||
-    requested.logical_request_scope_cid != retained.logical_request_scope_cid {
+    requested.scope != retained.scope {
     return DifferentRequest
   }
   if requested.intent_fingerprint_cid != retained.intent_fingerprint_cid ||
@@ -203,7 +228,7 @@ pub fn admit_client_request_identity_record(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if admitted.logical_request_scope_cid != logical_request_scope_cid ||
+  if client_request_scope_cid(admitted) != logical_request_scope_cid ||
     admitted.intent_fingerprint_cid != intent_fingerprint_cid {
     return Err(IdentityMismatch)
   }
@@ -228,7 +253,7 @@ fn derive_client_request_identity(
     return Err(InvalidCheckedIdentity)
   }
   let scope = match
-    @request_scope.prepare_scope_cid(
+    @request_scope.prepare_logical_request_scope(
       authority_scope_cid, caller_request_id, 256,
     ) {
     Ok(value) => value
@@ -257,7 +282,7 @@ fn derive_client_request_identity(
   Ok({
     authority_scope_cid,
     caller_request_id,
-    logical_request_scope_cid: scope,
+    scope,
     intent_fingerprint_cid: "sha256:" + @sha.hex(@utf8.encode(intent)),
     program_definition_cid: checked.program_definition_cid,
     parameter_values_cid: checked.parameter_values_cid,

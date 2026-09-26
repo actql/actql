@@ -4,7 +4,107 @@ Status: implementation interface proposal, not a completion claim.
 Initial baseline inspected: `311921b14d608617f715c531829c75139ac2f7a3`.
 Rechecked against `5217412b1e2bce5592b9dcfab0cb54fd75c111f7`.
 
-## Current product boundary
+## Current Client request handoff (2026-09-26)
+
+The dated development narrative below is historical. Use
+[the current Salesforce completion record](2026-09-25-salesforce-r2-status.md)
+for remaining work rather than restarting the already connected owners.
+
+The common `ClientRequestIdentity` now retains the same opaque
+`LogicalRequestScope` used by Effect dispatch, not only its CID.
+`clientProgramEffectRequestScope(prepared, request)` checks the request's
+Program Definition and effective parameters against the checked Effect owner.
+`clientRequestLogicalScope(request)` reuses an issued or re-admitted scope
+without generating another key or rehashing it. The canonical preimages and
+existing journal schema are unchanged.
+
+The installed internal Effect preparation accepts the normal Program request
+shape. The Salesforce integration path uses it, persists the Client request
+and exact Run Definition before Compute, and passes the request's scope into
+Preview and Effect dispatch. Fresh-process recovery uses
+`client-request-journal.lookupIdentity` after checking the saved Run Definition;
+an unrelated caller ID cannot create a new recovery scope. These are internal
+owner operations, not a new public Client endpoint or authorization grant.
+
+Distribution must supply the authenticated ingress authority and retain its
+normal admit-or-lookup/launch boundary. Current account authorization, claim,
+generation, lease, and send-time admission remain mandatory; a scope recovered
+from SQLite cannot override them. No canonical identity format or compatibility
+decoder is added by this connection.
+
+`entry.mjs::recoverAdmittedEffectRun` now owns the initial recovery handoff.
+The installed Host supplies its Client request journal, Store, exact
+tenant/authority/request/Run key, evidence-reading principal and authorization
+callback, and contract limits. The entry snapshots that binding before any
+await, authorizes evidence access before journal lookup, then re-admits the
+request and Run Definition from one journal observation before reading the
+encrypted capture. A mismatch is rejected before private capture access.
+It returns the recovered request scope, original Run Definition, and the
+existing recovered computation owner. It does not acquire write authority,
+restart Compute, or send an Effect. Resume continues through the existing
+current account/claim/generation/lease and whole-set apply admission.
+
+The Salesforce child-process fixture now invokes that standard entry rather
+than implementing the request-to-capture join itself. Its authorization
+callback is a test policy, not a public authentication service. Distribution
+must connect its current evidence-reading authorization when using the entry.
+
+The shared baseline is now `44f00eab0a73819b45a0f64627898f796717ea29`.
+Distribution's compiler, Plan, and Invocation issuance are present in this
+integration; do not import their historical commits again. Distribution owns
+any Effect-aware adaptation needed to retain the original checked owner.
+Connector owns Effect application and provider execution. Do not strip
+Effects, recheck as an Effect-free Program, or duplicate compiler issuance.
+The later Connector experiments `cf9177abb` and `78e73fe62` remain preserved
+on `feat/connector-salesforce-effects` and its backup ref; they have not been
+replayed onto the integration branch pending Distribution's decision.
+The existing local HTTPS Effect fixture still supplies compiler/Host policy
+evidence while that connection is pending; this is not formal compiler closure.
+
+Public Client Checkpoint integration remains under separate review. Neither
+this baseline nor the Connector replay constitutes its adoption or completion.
+
+## Current Effect source preparation handoff
+
+`effect-input-export.mjs::preparePinnedEffectSourceSet` prepares all live
+Effect input pins under one supplied retention and source-binding policy.
+It bounds grouping work before reserving Store capacity and asks the common
+MoonBit owner whether members share the same Result occurrence and producer.
+Equal values, logical CIDs, or similar field names never merge distinct owners.
+One exported source may feed multiple checked member proposals without another
+row scan. Each member still acquires its own durable holding at capture.
+
+The set retains one local Invocation owner per checked Unit and waits for all
+of that Unit's Result Artifacts before asking the existing complete-Manifest
+issuer to admit the inventory. The issuer's completeness and owner checks are
+unchanged. A missing declared Result is an error, not an invented entry or a
+partial Manifest. This source-free preparation port does not add acquired-Unit
+Invocation issuance or replace the pending compiler connection.
+
+The return value contains `payloads` (one owner per distinct view) and `members`
+(ordered member-to-payload bindings). The caller still owns the input pins and
+must commit or release each prepared payload. On preparation failure, existing
+publication cleanup releases already prepared objects and preserves unresolved
+custody in the error's retry handle. Cleanup retry does not export rows again.
+The Salesforce multi-member integration now uses this set entry rather than
+assuming in the fixture that both members share one particular source.
+
+`preparePinnedEffectSourceHoldings({sources, store, control, preview,
+invocation})` takes that exact prepared set. It admits every member's source
+and local evidence before any Store write, and returns immutable `holdings`
+plus `commit()`. The inventory exists before asynchronous work, including
+when a commit fails after its durable write. The caller must retain both this
+inventory and the prepared set until capture or explicit retirement; the
+records are responsibilities, not proof of current material availability.
+
+Concurrent commits on this owner join one physical flight. After failure,
+another commit rechecks and synchronizes the same Store records. It does not
+re-export inputs, authorize mutation, or restart Compute. Shared payloads use
+the existing Store's independent holding acquisition; no atomic transaction
+across members is claimed. Recovered capture continues through the existing
+durable inventory rather than reconstructing this in-memory preparation.
+
+## Historical product boundary at the initial baseline
 
 `src/program_check/source.mbt::audit_declarations` rejects every nonempty
 Stage `effects` object. `src/stage_results/local_program.mbt` rejects Receipt

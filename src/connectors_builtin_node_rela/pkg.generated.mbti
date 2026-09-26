@@ -157,6 +157,8 @@ pub fn client_program_effect_compilation_compiled_plan_wire(@run_publication_hos
 
 pub fn client_program_effect_compilation_fact_manifest_wire(@run_publication_host.ClientEffectCompilation) -> String
 
+pub fn client_program_effect_compilation_issue_code(Result[@run_publication_host.ClientEffectCompilation, ClientProgramEffectCompilationBridgeIssue]) -> String?
+
 pub fn client_program_effect_compilation_plan_wire(@run_publication_host.ClientEffectCompilation) -> String
 
 pub fn client_program_effect_compilation_result_names(@run_publication_host.ClientEffectCompilation) -> Array[String]
@@ -202,6 +204,8 @@ pub fn client_program_effect_input_export_row_count(@execution_relation.Complete
 pub fn client_program_effect_input_export_schema_cid(@execution_relation.CompletedRelationExportReceipt) -> String
 
 pub fn client_program_effect_input_export_start(@physical_strategy.CapturedEffectInput, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_effect_input_stage(@physical_strategy.CapturedEffectInput) -> Int
 
 pub fn client_program_effect_input_task(@physical_strategy.CapturedEffectInput) -> Int
 
@@ -296,6 +300,8 @@ pub fn client_program_issue_direct_values_result_root(@run_publication_host.Prep
 pub fn client_program_issue_effect_run_definition(@run_publication_host.ClientEffectAllowedRun, String, String, String, String) -> Result[@run_publication.PublicationContract, @run_publication_host.ClientEffectCompiledRunIssue]
 
 pub fn client_program_issue_effect_source_artifact(@physical_strategy.CapturedEffectInput, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.EffectSourceArtifactIssue]
+
+pub fn client_program_issue_effect_source_free_invocation(@run_publication_host.ClientEffectCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn client_program_issue_effect_values_fragment(@run_publication_host.PreparedClientEffectComputation, Int) -> Result[@run_publication_host.ClientValuesFragmentNode, @run_publication_host.ClientValuesFragmentIssue]
 
