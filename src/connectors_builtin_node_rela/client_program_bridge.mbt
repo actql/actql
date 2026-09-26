@@ -2784,6 +2784,15 @@ pub fn client_program_effect_input_task(
 }
 
 ///|
+/// Checked Unit coordinate for grouping a complete local Result Manifest.
+#export_name("clientProgramEffectInputStage")
+pub fn client_program_effect_input_stage(
+  value : @strategy.CapturedEffectInput,
+) -> Int {
+  @strategy.captured_effect_input_stage(value)
+}
+
+///|
 /// Release one member holding without revoking another borrow of the Result.
 #export_name("clientProgramReleaseEffectInput")
 pub fn client_program_release_effect_input(
