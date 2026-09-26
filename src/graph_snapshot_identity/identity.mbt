@@ -15,7 +15,7 @@ pub(all) enum Issue {
   InvalidEdgeOrder
   InvalidPropertyOrder
   EncodingLimit
-  ValueOrder(@value.CompleteOrderIssue)
+  KeyOrder(@value.KeyOrderIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -54,11 +54,31 @@ fn valid_hex(value : String) -> Bool {
 }
 
 ///|
+/// Canonical typed ID order: the declared type's non-null comparison, not
+/// the canonical key encoding. An edge label present under a nullable label
+/// contract is still ordered by its value.
 fn order_key(
   value : @value.CheckedValue,
+  _limits : @value.Limits,
+) -> Result[String, Issue] {
+  @value.typed_key_order_text(value).map_err(issue => KeyOrder(issue))
+}
+
+///|
+/// Absent and null labels sort before present labels.
+fn label_order_key(
+  label : @value.CheckedValue?,
   limits : @value.Limits,
 ) -> Result[String, Issue] {
-  @value.complete_order_key(value, limits).map_err(issue => ValueOrder(issue))
+  match label {
+    None => Ok("0")
+    Some(value) =>
+      if value.value is Null {
+        Ok("0")
+      } else {
+        order_key(value, limits).map(key => "1" + key)
+      }
+  }
 }
 
 ///|
@@ -236,13 +256,9 @@ pub fn begin_edge(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let label_key = match label {
-    Some(value) =>
-      match order_key(value, builder.limits.value_limits) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-    None => "[\"null\"]"
+  let label_key = match label_order_key(label, builder.limits.value_limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let key = (source_key, target_key, label_key)
   if builder.previous_edge is Some(previous) &&

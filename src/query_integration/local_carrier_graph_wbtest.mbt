@@ -9591,6 +9591,111 @@ test "Graph delta applies an empty exact diff with quantum one" {
 }
 
 ///|
+
+///|
+/// Diff emits actions in canonical typed ID order (9 before 10) and apply
+/// verifies that same order; the canonical key encoding would disagree.
+test "Graph delta round-trips numeric identities in typed order" {
+  let left_owner = carrier_graph_source_owner_with_rows(
+    "[{\"id\":10,\"src\":10,\"dst\":10," +
+    "\"node_name\":\"ten\",\"weight\":1}]",
+  )
+  let right_owner = carrier_graph_source_owner_with_rows(
+    "[{\"id\":9,\"src\":9,\"dst\":10,\"node_name\":\"nine\"," +
+    "\"weight\":2},{\"id\":10,\"src\":10,\"dst\":9," +
+    "\"node_name\":\"TEN\",\"weight\":3}]",
+  )
+  let left_rows = carrier_events_source_output(left_owner)
+  let right_rows = carrier_events_source_output(right_owner)
+  let diff_owner = carrier_graph_delta_owner(left_owner, right_owner)
+  let sequence = prepared_sequence(diff_owner)
+  let left_input = @execution.prepare_producer_read(
+    diff_owner,
+    @execution.bind_completed_input(diff_owner, 0, left_owner, left_rows).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let right_input = @execution.prepare_producer_read(
+    diff_owner,
+    @execution.bind_completed_input(diff_owner, 1, right_owner, right_rows).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let inputs = [left_input, right_input]
+  let left_execution = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [left_input, left_input],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let left = finish_rows_to_graph(left_execution)
+  let right_execution = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    1,
+    [right_input, right_input],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let right = finish_rows_to_graph(right_execution)
+  let diff_execution = @local_sga.start_graph_diff(
+    @bounded.control(),
+    task_test_completion(diff_owner),
+    sequence,
+    2,
+    @graphs.prepare_step_read(diff_owner, 2, 0, left).unwrap(),
+    @graphs.prepare_step_read(diff_owner, 2, 1, right).unwrap(),
+    1,
+    { max_nodes: 1000, max_text_bytes: 10000, max_depth: 20, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    inputs,
+  ).unwrap()
+  let delta = finish_graph_diff(diff_execution)
+  let apply_owner = carrier_graph_apply_owner(diff_owner)
+  let apply = @local_sga.start_graph_apply(
+    @bounded.control(),
+    prepared_sequence(apply_owner),
+    0,
+    @graphs.prepare_producer_read(apply_owner, 0, diff_owner, left).unwrap(),
+    @execution.prepare_producer_read(
+      apply_owner,
+      @execution.bind_completed_input(apply_owner, 1, diff_owner, delta).unwrap(),
+      100,
+      1000,
+    ).unwrap(),
+    carrier_graph_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut applied = None
+  let mut polls = 0
+  while applied is None {
+    polls += 1
+    assert_true(polls < 1000)
+    match @local_sga.advance_graph_apply(apply, 1).unwrap() {
+      @local_sga.GraphApplyContinue(..) => ()
+      @local_sga.GraphApplyComplete(output, ..) => applied = Some(output)
+      @local_sga.GraphApplyFailed(issue, ..) => {
+        assert_eq(Some(issue), None)
+        return
+      }
+      @local_sga.GraphApplyStopped(_, ..) => abort("graph apply stopped")
+    }
+  }
+  let storage = @graphs.completed_storage(applied.unwrap()).unwrap()
+  assert_eq(@graph_storage.node_count(storage), 2)
+  assert_eq(@graph_storage.edge_count(storage), 2)
+}
+
+///|
 test "Graph delta atomically applies node edge and property changes" {
   let left_owner = carrier_graph_source_owner()
   let right_owner = carrier_graph_source_owner_with_rows(

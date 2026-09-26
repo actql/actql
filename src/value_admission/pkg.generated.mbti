@@ -132,6 +132,8 @@ pub fn text_value(String, Int) -> Value?
 
 pub fn timestamp_epoch_milliseconds(String) -> Int64?
 
+pub fn typed_key_order_text(CheckedValue) -> Result[String, KeyOrderIssue]
+
 // Errors
 
 // Types and methods

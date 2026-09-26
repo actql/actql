@@ -18,6 +18,7 @@ import {
   "actql/actql/bounded_value_set" @value_set,
   "actql/actql/exact_binary64" @exact,
   "actql/actql/decode_scalar" @scalar,
+  "actql/actql/canonical_value" @canonical,
 }
 
 import {

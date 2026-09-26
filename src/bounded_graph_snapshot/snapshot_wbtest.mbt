@@ -145,3 +145,85 @@ test "snapshot cancellation releases partial preparation" {
   assert_true(advance(preparation, 1) is Err(Terminal))
   assert_true(cancel(preparation))
 }
+
+///|
+/// Nodes 10 and 9 and three edges are stored out of order. Snapshot identity
+/// sorts them by canonical typed ID order (9 before 10, absent labels first);
+/// the expected CID is the SHA-256 of the specified preimage computed
+/// outside this implementation.
+test "snapshot sorts numeric identities by typed value" {
+  let number_contract = @contract.primitive(
+    @contract.NumberType,
+    nullable=false,
+  )
+  let empty = @carrier.rows(
+    [],
+    field_set=@carrier.Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let graph = @carrier.graph(
+    number_contract,
+    empty,
+    empty,
+    labels=None,
+    max_labels=0,
+    max_label_bytes=0,
+    label_contract=Some(
+      @contract.primitive(@contract.StringType, nullable=true),
+    ),
+  ).unwrap()
+  let label_contract = @contract.primitive(@contract.StringType, nullable=true)
+  let null_label = @value.recheck_runtime_value(
+    @value.null_value(),
+    label_contract,
+    snapshot_limits(100).value_limits,
+  )
+  let builder = @storage.prepare(
+    graph,
+    @storage.DeclaredNodes,
+    storage_limits(),
+  ).unwrap()
+  @storage.append_node(builder, number(10.0), []).unwrap()
+  @storage.append_node(builder, number(9.0), []).unwrap()
+  @storage.append_edge(builder, number(10.0), number(9.0), null_label, []).unwrap()
+  @storage.append_edge(
+    builder,
+    number(9.0),
+    number(10.0),
+    @value.recheck_runtime_value(
+      text("a").value,
+      label_contract,
+      snapshot_limits(100).value_limits,
+    ),
+    [],
+  ).unwrap()
+  @storage.append_edge(builder, number(9.0), number(10.0), null_label, []).unwrap()
+  let input = @storage.finish(builder).unwrap()
+  let preparation = prepare(
+    input,
+    "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    snapshot_limits(100),
+  ).unwrap()
+  let mut result = None
+  while result is None {
+    match advance(preparation, 1) {
+      Ok(Continue(_)) => ()
+      Ok(Complete(snapshot, ..)) => result = Some(snapshot)
+      Err(issue) => {
+        assert_eq(Some(issue), None)
+        return
+      }
+    }
+  }
+  let snapshot = result.unwrap()
+  assert_eq(
+    cid(snapshot),
+    "sha256:58e79d832142c356f3d84c82aaefe02107299e2c35ad0ee4ea7f9b775462e8b2",
+  )
+  assert_eq(node_at(snapshot, 0), Some(1))
+  assert_eq(node_at(snapshot, 1), Some(0))
+  assert_eq(edge_at(snapshot, 0), Some(2))
+  assert_eq(edge_at(snapshot, 1), Some(1))
+  assert_eq(edge_at(snapshot, 2), Some(0))
+}

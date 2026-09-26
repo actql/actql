@@ -466,21 +466,38 @@ fn apply_value_key(
 }
 
 ///|
-fn apply_node_key(value : ApplyNodeRecord, limits : @value.Limits) -> String? {
-  apply_value_key(value.identity, limits)
+/// One identity component in canonical typed ID order, escaped so that joined
+/// components order as a tuple: U+0000 separates, U+0001 escapes.
+fn apply_identity_component(value : @value.CheckedValue?) -> String? {
+  let key = match value {
+    None => "0"
+    Some(present) if present.value is Null => "0"
+    Some(present) =>
+      match @value.typed_key_order_text(present) {
+        Ok(text) => "1" + text
+        Err(_) => return None
+      }
+  }
+  Some(
+    key
+    .replace_all(old="\u{1}", new="\u{1}\u{2}")
+    .replace_all(old="\u{0}", new="\u{1}\u{1}"),
+  )
 }
 
 ///|
-fn apply_edge_key(value : ApplyEdgeRecord, limits : @value.Limits) -> String? {
-  guard apply_value_key(value.source, limits) is Some(source) &&
-    apply_value_key(value.target, limits) is Some(target) else {
+fn apply_node_key(value : ApplyNodeRecord, _limits : @value.Limits) -> String? {
+  apply_identity_component(Some(value.identity))
+}
+
+///|
+fn apply_edge_key(value : ApplyEdgeRecord, _limits : @value.Limits) -> String? {
+  guard apply_identity_component(Some(value.source)) is Some(source) &&
+    apply_identity_component(Some(value.target)) is Some(target) &&
+    apply_identity_component(value.label) is Some(label) else {
     return None
   }
-  let label = match value.label {
-    Some(label) => apply_value_key(label, limits)
-    None => Some("null")
-  }
-  label.map(label => source + "\u{0}" + target + "\u{0}" + label)
+  Some(source + "\u{0}" + target + "\u{0}" + label)
 }
 
 ///|
@@ -679,7 +696,8 @@ fn apply_action_array(delta : @value.Value, list : Int) -> @value.Value? {
 
 ///|
 fn apply_ordered_key(state : GraphApplyState, key : String) -> Bool {
-  if state.previous_action_key is Some(previous) && previous >= key {
+  if state.previous_action_key is Some(previous) &&
+    @canonical.compare_utf16(previous, key) >= 0 {
     return false
   }
   state.previous_action_key = Some(key)
