@@ -176,7 +176,8 @@ const ownPreflight = (supplied, requireProofs = true) => {
 };
 
 const driveAdmittedFrontier = async ({control, frontier, members,
-  maxFrontierWork, dispatchRow, signal, beforeDispatch}) => {
+  maxFrontierWork, dispatchRow, signal, beforeDispatch,
+  currentPreflight}) => {
   const totalRows = members.reduce((sum, member) =>
     sum + member.claims.length, 0);
   let dispatched = 0;
@@ -192,7 +193,10 @@ const driveAdmittedFrontier = async ({control, frontier, members,
     const claim = members[memberIndex]?.claims[rowIndex];
     if (claim === undefined) fail('InvalidCapturedEffectFrontier');
     beforeDispatch?.();
-    await dispatchRow(Object.freeze({memberIndex, rowIndex, claim}));
+    // Keep physical dispatch bound to this invocation's refreshed facts.
+    // The callback cannot swap in a later refresh from another apply flight.
+    await dispatchRow(Object.freeze({memberIndex, rowIndex, claim,
+      currentPreflight}));
     dispatched++;
     const next = frontier(members, maxFrontierWork);
     for (let index = 0; index < control.setFrontierReadyCount(next);
@@ -264,8 +268,9 @@ export async function applyCapturedEffectSet({
         {subjectCid});
     }
   }
-  const current = noReadyRows ? preflight :
-    ownPreflight(await refreshPreflight({signal, preflight}));
+  const refreshed = noReadyRows ? undefined :
+    await refreshPreflight({signal, preflight});
+  const current = noReadyRows ? preflight : ownPreflight(refreshed);
   if (current.requirePartialApplication !== undefined &&
       typeof current.requirePartialApplication !== 'boolean') {
     fail('InvalidCapturedEffectApply');
@@ -307,7 +312,7 @@ export async function applyCapturedEffectSet({
   let entered;
   let prepared = false;
   const result = await driveAdmittedFrontier({control, members: ownedMembers,
-    maxFrontierWork, dispatchRow, signal,
+    maxFrontierWork, dispatchRow, signal, currentPreflight: refreshed,
     beforeDispatch: () => {
       if (authorized.admission !== undefined && entered === undefined) {
         entered = enterResumedAdmission(authorized.admission, identity);
@@ -438,6 +443,7 @@ export async function applyRecoveredEffectSet({
   let entered;
   const result = await driveAdmittedFrontier({control,
     members: recovered.members, maxFrontierWork, dispatchRow, signal,
+    currentPreflight: current,
     beforeDispatch: () => {
       if (authorized.admission !== undefined && entered === undefined) {
         entered = enterResumedAdmission(authorized.admission, identity);
