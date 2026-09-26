@@ -671,3 +671,70 @@ test('different requests cannot alias one Run and capacity rejects before commit
       lookupExpiresAt: expires,
     }, moon), {code: 'ClientRequestJournalCapacity'});
   });
+
+
+test('durable cancellation excludes physical start after restart', async t => {
+  const path = await directory(t);
+  let journal = openClientRequestJournal(path);
+  const requested = identity();
+  const accepted = journal.acceptDefinition(requested, {tenantId: 'tenant-a',
+    runDefinition: runDefinition(), lookupExpiresAt: expires,
+    resultNames: ['answer']}, moon, publicationControl);
+  journal.reserveDispatch(requested, {tenantId: 'tenant-a',
+    currentAuthorization: true}, moon, publicationControl);
+  assert.throws(() => journal.requestCancellation(accepted.ref, {
+    currentAuthorization: false, publicationCommitted: false,
+  }, moon, publicationControl), /ClientRunCancellationDenied/);
+  const cancelled = journal.requestCancellation(accepted.ref, {
+    currentAuthorization: true, publicationCommitted: false,
+  }, moon, publicationControl);
+  assert.equal(cancelled.kind, 'accepted');
+  journal.close();
+  journal = openClientRequestJournal(path);
+  t.after(() => journal.close());
+  assert.equal(claimPhysicalStart(journal, accepted.ref), false);
+  const repeated = journal.requestCancellation(accepted.ref, {
+    currentAuthorization: true, publicationCommitted: false,
+  }, moon, publicationControl);
+  assert.equal(repeated.kind, 'already_requested');
+  assert.equal(repeated.revision, cancelled.revision);
+  const retained = journal.lookupRunDefinition(accepted.ref, moon,
+    publicationControl);
+  assert.equal(retained.cancellationRequested, true);
+  assert.equal(retained.physicalStartReserved, false);
+  assert.deepEqual(JSON.parse(moon.clientRunControlObservation(
+    retained.revision, true, true, false, false)), {
+    cancellation_requested: true, physical_stop: 'confirmed',
+    revision: cancelled.revision,
+  });
+  assert.throws(() => journal.requestCancellation({...accepted.ref,
+    tenantId: 'other'}, {currentAuthorization: true,
+    publicationCommitted: false}, moon, publicationControl),
+  /ClientRunCancellationDenied/);
+});
+
+test('started cancellation never invents stop and terminal completion wins',
+  async t => {
+    const journal = openClientRequestJournal(await directory(t));
+    t.after(() => journal.close());
+    const requested = identity();
+    const accepted = journal.acceptDefinition(requested, {tenantId: 'tenant-a',
+      runDefinition: runDefinition(), lookupExpiresAt: expires,
+      resultNames: ['answer']}, moon, publicationControl);
+    journal.reserveDispatch(requested, {tenantId: 'tenant-a',
+      currentAuthorization: true}, moon, publicationControl);
+    assert.equal(claimPhysicalStart(journal, accepted.ref), true);
+    const cancelled = journal.requestCancellation(accepted.ref, {
+      currentAuthorization: true, publicationCommitted: false,
+    }, moon, publicationControl);
+    assert.equal(JSON.parse(moon.clientRunControlObservation(
+      cancelled.revision, true, false, false, false)).physical_stop, 'unknown');
+    assert.equal(claimPhysicalStart(journal, accepted.ref), false);
+    journal.markPhysicalClose(accepted.ref);
+    const retained = journal.lookupRunDefinition(accepted.ref, moon,
+      publicationControl);
+    assert.equal(retained.physicalCloseConfirmed, true);
+    assert.equal(journal.requestCancellation(accepted.ref, {
+      currentAuthorization: true, publicationCommitted: true,
+    }, moon, publicationControl).kind, 'already_terminal');
+  });

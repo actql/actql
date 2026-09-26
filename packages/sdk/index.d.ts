@@ -1,4 +1,4 @@
-import type {WireClientProfile, WireDeliveryAttemptLookup,
+import type {WireClientProfile, WireDeliveryAttemptLookup, WireCancellation,
   WireRequestLookup, WireRunRef, WireRunState} from '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
@@ -73,7 +73,7 @@ export interface Execution {
   readonly profile: ConfirmedProfile;
   status(options?: {signal?: AbortSignal}): Promise<RunState>;
   wait(options?: {until?: string; signal?: AbortSignal}): Promise<RunState>;
-  cancel(options?: {signal?: AbortSignal}): Promise<unknown>;
+  cancel(options?: {signal?: AbortSignal}): Promise<WireCancellation>;
   reconcile(options?: {signal?: AbortSignal}): Promise<unknown>;
   result(name: string): Result;
 }

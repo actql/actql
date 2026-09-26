@@ -117,6 +117,8 @@ const {client: installedLocal, execution, rows} = await runApplication(
 assert.equal(execution.profile.durability, 'durable');
 assert.equal((await execution.status()).status, 'succeeded');
 assert.deepEqual(rows, [{id: 1}, {id: 2}]);
+assert.equal((await execution.cancel()).kind, 'already_terminal');
+assert.equal((await execution.status()).control.physical_stop, 'confirmed');
 await assert.rejects(execution.result('answer').all({maxRows: 1}),
   {code: 'ResultRetainedLimit'});
 const reader = execution.result('answer').rows();
@@ -186,11 +188,25 @@ const waitAttempt = timingRun.wait({signal: abortedWait.signal});
 abortedWait.abort();
 await assert.rejects(waitAttempt);
 assert.equal((await timingRun.status()).status, 'running');
+const cancelledRun = await timingClient.aql(document, {format: 'json',
+  requestId: 'packed-cancel-before-dispatch'});
+assert.equal((await cancelledRun.cancel()).kind, 'accepted');
+const cancelledState = await cancelledRun.status();
+assert.equal(cancelledState.status, 'cancelled');
+assert.equal(cancelledState.control.cancellation_requested, true);
+assert.equal(cancelledState.control.physical_stop, 'confirmed');
+assert.equal((await cancelledRun.cancel()).kind, 'already_requested');
+assert.equal((await cancelledRun.wait()).status, 'cancelled');
 const release = await originalFetch(new URL('/__test/release-dispatch',
   remoteOptions.endpoint), {method: 'POST'});
 assert.equal(release.status, 200);
 assert.equal((await timingRun.wait()).status, 'succeeded');
 assert.deepEqual(await timingRun.result('answer').all(), rows);
+const cancelledResend = await timingClient.aql(document, {format: 'json',
+  requestId: 'packed-cancel-before-dispatch'});
+assert.deepEqual(cancelledResend.ref, cancelledRun.ref);
+assert.equal((await cancelledResend.wait()).status, 'cancelled');
+await assert.rejects(cancelledResend.result('answer').all());
 timingClient.close();
 const {client: installedRemote, execution: remoteExecution,
   rows: remoteRows} = await runApplication(remoteOptions,
@@ -350,6 +366,10 @@ for (let attempt = 0; attempt < 100; attempt++) {
 }
 assert.equal((await execution.status()).status, 'running');
 writeFileSync('restart-remote-ref.json', JSON.stringify(execution.ref));
+const cancelled = await client.aql(document, {format: 'json',
+  requestId: 'packed-cancel-before-restart'});
+assert.equal((await cancelled.cancel()).kind, 'accepted');
+writeFileSync('cancelled-remote-ref.json', JSON.stringify(cancelled.ref));
 client.close();
 `);
 await writeFile(join(root, 'resume-remote.mjs'), `
@@ -363,6 +383,15 @@ const document = readFileSync('values.json', 'utf8');
 const ref = JSON.parse(readFileSync('restart-remote-ref.json', 'utf8'));
 const attached = await client.attach(ref);
 assert.equal((await attached.status()).status, 'running');
+const cancelledRef = JSON.parse(readFileSync('cancelled-remote-ref.json', 'utf8'));
+const cancelled = await client.attach(cancelledRef);
+assert.equal((await cancelled.status()).status, 'cancelled');
+const cancelledResend = await client.aql(document, {format: 'json',
+  requestId: 'packed-cancel-before-restart'});
+assert.deepEqual(cancelledResend.ref, cancelledRef);
+assert.equal((await cancelledResend.wait()).status, 'cancelled');
+assert.equal((await cancelledResend.status()).control.physical_stop, 'confirmed');
+await assert.rejects(cancelledResend.result('answer').all());
 const execution = await client.aql(document, {format: 'json',
   requestId: 'packed-restart-before-physical-start'});
 assert.deepEqual(execution.ref, ref);

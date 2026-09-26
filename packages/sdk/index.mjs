@@ -1,7 +1,7 @@
 // The transport Client delegates admission, state and delivery to the Host.
 import {validClientAdmission, validClientConnection, validClientProfile,
   validDeliveryAttemptLookup, validRequestLookup, validRunRef,
-  validRunState} from
+  validRunState, validCancellation} from
   '@actql/client-wire';
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const maxControlResponseBytes = 1024 * 1024;
@@ -483,7 +483,14 @@ async function connectSelected(selected, port) {
         return state;
       },
       cancel: async ({signal} = {}) => {
-        return readControl('cancel', {}, signal);
+        const response = await readControl('cancel', {}, signal);
+        if (!validCancellation(response) ||
+            response.ref.tenantId !== ref.tenantId ||
+            response.ref.authorityScopeCid !== ref.authorityScopeCid ||
+            response.ref.runDefinitionCid !== ref.runDefinitionCid) {
+          fail('InvalidHostCancellation');
+        }
+        return response;
       },
       reconcile: async ({signal} = {}) => {
         return readControl('reconcile', {}, signal);

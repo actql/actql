@@ -123,7 +123,8 @@ const columns = `authority_scope_cid, caller_request_id,
   tenant_id, run_definition_cid, run_definition_wire, revision,
   lookup_expires_at, result_names_json`;
 const selectColumns = `${columns}, dispatch_reserved,
-  pre_dispatch_failure_confirmed, physical_start_reserved`;
+  pre_dispatch_failure_confirmed, physical_start_reserved,
+  cancellation_requested, physical_close_confirmed`;
 
 export function openClientRequestJournal(directory, {
   maxRecords = 100_000,
@@ -218,6 +219,12 @@ export function openClientRequestJournal(directory, {
         throw error;
       }
     }
+    for (const field of ['cancellation_requested', 'physical_close_confirmed']) {
+      if (!fields.some(item => item.name === field)) {
+        database.exec(`ALTER TABLE client_requests ADD COLUMN ${field} ` +
+          `INTEGER NOT NULL DEFAULT 0 CHECK (${field} IN (0, 1))`);
+      }
+    }
     if (!existed) syncDirectory(root);
   } catch (error) {
     database.close();
@@ -244,12 +251,14 @@ export function openClientRequestJournal(directory, {
     SET pre_dispatch_failure_confirmed = 1, revision = revision + 1
     WHERE tenant_id = ? AND authority_scope_cid = ? AND
       run_definition_cid = ? AND dispatch_reserved = 1 AND
-      pre_dispatch_failure_confirmed = 0 AND physical_start_reserved = 0`);
+      pre_dispatch_failure_confirmed = 0 AND physical_start_reserved = 0 AND
+      cancellation_requested = 0`);
   const reservePhysicalStart = database.prepare(`UPDATE client_requests
     SET physical_start_reserved = 1, revision = revision + 1
     WHERE tenant_id = ? AND authority_scope_cid = ? AND
       run_definition_cid = ? AND dispatch_reserved = 1 AND
-      pre_dispatch_failure_confirmed = 0 AND physical_start_reserved = 0`);
+      pre_dispatch_failure_confirmed = 0 AND physical_start_reserved = 0 AND
+      cancellation_requested = 0`);
 
   const acceptRecord = (identity, {tenantId, runDefinitionCid,
     runDefinitionWire, resultNames, revision = 0, lookupExpiresAt}, control) => {
@@ -402,6 +411,8 @@ export function openClientRequestJournal(directory, {
           retained.row, publicationControl, maxRunDefinitionWireBytes),
         resultNames: retained.row.result_names_json === null ? undefined :
           JSON.parse(retained.row.result_names_json),
+        cancellationRequested: retained.row.cancellation_requested === 1,
+        physicalCloseConfirmed: retained.row.physical_close_confirmed === 1,
         dispatchReserved: retained.row.dispatch_reserved === 1,
         preDispatchFailureConfirmed:
           retained.row.pre_dispatch_failure_confirmed === 1,
@@ -435,6 +446,8 @@ export function openClientRequestJournal(directory, {
         revision: accepted.revision,
         resultNames: row.result_names_json === null ? undefined :
           JSON.parse(row.result_names_json),
+        cancellationRequested: row.cancellation_requested === 1,
+        physicalCloseConfirmed: row.physical_close_confirmed === 1,
         dispatchReserved: row.dispatch_reserved === 1,
         preDispatchFailureConfirmed:
           row.pre_dispatch_failure_confirmed === 1,
@@ -470,6 +483,8 @@ export function openClientRequestJournal(directory, {
           retained.row, publicationControl, maxRunDefinitionWireBytes),
         resultNames: retained.row.result_names_json === null ? undefined :
           JSON.parse(retained.row.result_names_json),
+        cancellationRequested: retained.row.cancellation_requested === 1,
+        physicalCloseConfirmed: retained.row.physical_close_confirmed === 1,
         dispatchReserved: retained.row.dispatch_reserved === 1,
         preDispatchFailureConfirmed:
           retained.row.pre_dispatch_failure_confirmed === 1,
@@ -554,7 +569,7 @@ export function openClientRequestJournal(directory, {
       if (!text(tenantId) || !text(ref?.tenantId) ||
           !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid) ||
           typeof currentAuthorization !== 'boolean' ||
-          typeof requestControl?.clientRunPhysicalStartAction !==
+          typeof requestControl?.clientRunPhysicalStartWithCancellationAction !==
             'function') {
         fail('InvalidClientRunPhysicalStart');
       }
@@ -571,12 +586,12 @@ export function openClientRequestJournal(directory, {
         const retained = retainedIdentity(row, requestControl);
         const definition = retainedRunDefinition(row, publicationControl,
           maxRunDefinitionWireBytes);
-        const action = requestControl.clientRunPhysicalStartAction(
+        const action = requestControl.clientRunPhysicalStartWithCancellationAction(
           identity, retained, definition, row.run_definition_cid,
           row.dispatch_reserved === 1,
           row.pre_dispatch_failure_confirmed === 0 &&
             row.physical_start_reserved === 0,
-          currentAuthorization);
+          currentAuthorization, row.cancellation_requested === 1);
         if (action === 0) {
           database.exec('COMMIT');
           return false;
@@ -600,6 +615,63 @@ export function openClientRequestJournal(directory, {
               error.code.startsWith('ClientRequest'))) throw error;
         fail('ClientRunPhysicalStartUnknown', error);
       }
+    },
+    // Persist the common cancellation decision under the physical-start lock.
+    // The Host observes publication separately; a racing commit can still win.
+    requestCancellation(ref, {currentAuthorization, publicationCommitted},
+      requestControl, publicationControl) {
+      ensureOpen();
+      if (!text(ref?.tenantId) || !cid(ref?.authorityScopeCid) ||
+          !cid(ref?.runDefinitionCid) ||
+          typeof currentAuthorization !== 'boolean' ||
+          typeof publicationCommitted !== 'boolean') {
+        fail('InvalidClientRunCancellation');
+      }
+      database.exec('BEGIN IMMEDIATE');
+      try {
+        const row = selectRef.get(ref.tenantId, ref.authorityScopeCid,
+          ref.runDefinitionCid);
+        if (row === undefined) fail('ClientRunCancellationDenied');
+        retainedIdentity(row, requestControl);
+        const definition = retainedRunDefinition(row, publicationControl,
+          maxRunDefinitionWireBytes);
+        const action = requestControl.clientRunCancellationAction(definition,
+          ref.runDefinitionCid, currentAuthorization,
+          publicationCommitted || row.pre_dispatch_failure_confirmed === 1,
+          row.cancellation_requested === 1);
+        if (![0, 1, 2].includes(action)) fail('ClientRunCancellationDenied');
+        if (action === 0) {
+          database.prepare(`UPDATE client_requests SET
+            cancellation_requested = 1, revision = revision + 1
+            WHERE tenant_id = ? AND authority_scope_cid = ? AND
+              run_definition_cid = ?`).run(ref.tenantId,
+            ref.authorityScopeCid, ref.runDefinitionCid);
+        }
+        database.exec('COMMIT');
+        return Object.freeze({ref: admission(row).ref,
+          kind: ['accepted', 'already_requested', 'already_terminal'][action],
+          revision: Number(row.revision) + (action === 0 ? 1 : 0)});
+      } catch (error) {
+        try { database.exec('ROLLBACK'); }
+        catch (rollback) { fail('ClientRunCancellationUnknown', rollback); }
+        if (error?.code === 'ClientRunCancellationDenied') throw error;
+        fail('ClientRunCancellationUnknown', error);
+      }
+    },
+    // Only the live execution owner may report a completed physical close.
+    // A restarted process cannot infer this from its empty worker map.
+    markPhysicalClose(ref) {
+      ensureOpen();
+      if (!text(ref?.tenantId) || !cid(ref?.authorityScopeCid) ||
+          !cid(ref?.runDefinitionCid)) {
+        fail('InvalidClientRunStopObservation');
+      }
+      database.prepare(`UPDATE client_requests SET
+        physical_close_confirmed = 1, revision = revision + 1
+        WHERE tenant_id = ? AND authority_scope_cid = ? AND
+          run_definition_cid = ? AND physical_start_reserved = 1 AND
+          physical_close_confirmed = 0`).run(ref.tenantId,
+        ref.authorityScopeCid, ref.runDefinitionCid);
     },
     // Physical Host evidence only: a failure before invoking Site execution
     // is confirmed. A lost reply or absent worker cannot call this method.

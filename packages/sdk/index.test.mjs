@@ -626,3 +626,23 @@ test('delivery attempt lookup binds the existing Host evidence to the request',
       item.body.resultName === 'answer'));
     assert(requests.every(item => item.operation !== 'read'));
   });
+
+
+test('cancel validates the response and exact requested Run', async t => {
+  let reply = {ref, kind: 'accepted', revision: 5};
+  t.mock.method(globalThis, 'fetch', async url => Response.json(
+    String(url).endsWith('/connect') ? profile :
+      String(url).endsWith('/attach') ? admission : reply));
+  const client = await connect(options);
+  t.after(() => client.close());
+  const execution = await client.attach(ref);
+  assert.deepEqual(await execution.cancel(), reply);
+  for (const invalid of [{}, {...reply, kind: 'stopped'},
+    {...reply, revision: -1},
+    ...['tenantId', 'authorityScopeCid', 'runDefinitionCid'].map(key =>
+      ({...reply, ref: {...ref, [key]: key === 'tenantId' ? 'foreign' :
+        `sha256:${'c'.repeat(64)}`}}))]) {
+    reply = invalid;
+    await assert.rejects(execution.cancel(), {code: 'InvalidHostCancellation'});
+  }
+});

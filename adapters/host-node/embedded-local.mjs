@@ -136,22 +136,56 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
         ref.authorityScopeCid !== authorityScopeCid) {
       throw new Error('RunStateAccessDenied');
     }
-    const retained = journal.lookupRunDefinition(ref, moon, control);
-    if (retained === undefined) throw new Error('RunStateAccessDenied');
-    if (await store.confirmCommittedIndex(ref) !== undefined) {
-      return inspectAuthorizedRunState(stateService, {
-        indexKey: ref, principalId: actual, purpose: 'inspect',
-      });
+    // Recheck the journal revision after asynchronous Store observation so
+    // control facts never combine observations from two journal revisions.
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const retained = journal.lookupRunDefinition(ref, moon, control);
+      if (retained === undefined) throw new Error('RunStateAccessDenied');
+      let state;
+      if (await store.confirmCommittedIndex(ref) !== undefined) {
+        state = await inspectAuthorizedRunState(stateService, {
+          indexKey: ref, principalId: actual, purpose: 'inspect',
+        });
+      } else {
+        if (!Array.isArray(retained.resultNames)) {
+          throw new Error('RunStateInventoryUnknown');
+        }
+        const wire = moon.clientProgramIssueControlledUnpublishedRunState(
+          control.runDefinitionRunId(retained.runDefinition), now(),
+          retained.resultNames, retained.dispatchReserved,
+          retained.preDispatchFailureConfirmed,
+          retained.cancellationRequested &&
+            retained.physicalStartReserved === false);
+        if (wire === undefined) throw new Error('InvalidRunStateProjection');
+        state = JSON.parse(wire);
+      }
+      const after = journal.lookupRunDefinition(ref, moon, control);
+      if (after?.revision !== retained.revision) continue;
+      const observation = moon.clientRunControlObservation(retained.revision,
+        retained.cancellationRequested,
+        retained.physicalStartReserved === false,
+        retained.preDispatchFailureConfirmed, retained.physicalCloseConfirmed);
+      if (observation === undefined) throw new Error('InvalidRunControl');
+      return {...state, control: JSON.parse(observation)};
     }
-    if (!Array.isArray(retained.resultNames)) {
-      throw new Error('RunStateInventoryUnknown');
+    throw new Error('RunStateObservationUnstable');
+  };
+  const cancel = async ({ref, principalId: actual, connection}) => {
+    if (!hostConnection({principalId: actual, connection, ref})) {
+      throw new Error('ClientRunCancellationDenied');
     }
-    const wire = moon.clientProgramIssueUnpublishedRunState(
-      control.runDefinitionRunId(retained.runDefinition), now(),
-      retained.resultNames, retained.dispatchReserved,
-      retained.preDispatchFailureConfirmed);
-    if (wire === undefined) throw new Error('InvalidRunStateProjection');
-    return JSON.parse(wire);
+    // Authorization precedes existence queries. A late publication remains a
+    // successful Run even if cancellation was accepted while it committed.
+    const publicationCommitted =
+      await store.confirmCommittedIndex(ref) !== undefined;
+    const accepted = journal.requestCancellation(ref, {
+      currentAuthorization: true, publicationCommitted,
+    }, moon, control);
+    if (accepted.kind !== 'already_terminal') {
+      activeDispatches.get(ref.runDefinitionCid)?.abort.abort(
+        new Error('ClientRunCancellationRequested'));
+    }
+    return accepted;
   };
   const wait = async ({ref, principalId: actual, until, signal}) => {
     if (until !== null && until !== 'terminal') {
@@ -210,8 +244,10 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
     const unstarted = accepted.dispatchReserved !== true ||
       accepted.physicalStartReserved === false &&
       !accepted.preDispatchFailureConfirmed;
-    if (!activeDispatches.has(accepted.ref.runDefinitionCid) && unstarted) {
+    if (!activeDispatches.has(accepted.ref.runDefinitionCid) && unstarted &&
+        !accepted.cancellationRequested) {
       const active = {promise: undefined, reserved: false,
+        abort: new AbortController(),
         physicalStarted: false, physicalStartClaimAttempted: false};
       activeDispatches.set(accepted.ref.runDefinitionCid, active);
       active.promise = Promise.resolve().then(async () => {
@@ -224,6 +260,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
               !accepted.preDispatchFailureConfirmed)) return;
         active.reserved = true;
         if (beforeDispatch !== undefined) await beforeDispatch(start.ref);
+        if (active.abort.signal.aborted) return;
         if (plan === undefined) {
           plan = sourceFreeValuesPlan({moon, control, preparedProgram,
             document: kind === 'aql' ? input.text : JSON.stringify(input),
@@ -244,19 +281,34 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
         }, moon, control)) return;
         active.physicalStarted = true;
         const published = await runPublishedCapturedStrategy(setup,
-          {store, plan});
+          {store, plan}, {}, active.abort.signal);
         await published.close();
         await published.cleanup();
+        if (!published.cleanupPending()) journal.markPhysicalClose(accepted.ref);
       }).catch(async cause => {
-        if (active.reserved && !active.physicalStartClaimAttempted) {
+        if (cause?.cleanupPending === true) active.cleanupOwner = cause;
+        if (active.reserved && !active.physicalStartClaimAttempted &&
+            !active.abort.signal.aborted) {
           try { journal.markPreDispatchFailure(accepted.ref); } catch {}
         }
         if (cause?.execution) {
-          try { await cause.execution.close(); } catch {}
-          try { await cause.execution.cleanup(); } catch {}
+          try {
+            await cause.execution.close();
+            await cause.execution.cleanup();
+            if (!cause.execution.cleanupPending()) {
+              journal.markPhysicalClose(accepted.ref);
+            }
+          } catch { active.cleanupOwner = cause.execution; }
+          if (cause.execution.cleanupPending()) {
+            active.cleanupOwner = cause.execution;
+          }
+          // Failed cleanup remains with its existing execution owner. It is
+          // never converted to physical stop by the cancellation request.
         }
       }).finally(() => {
-        activeDispatches.delete(accepted.ref.runDefinitionCid);
+        if (active.cleanupOwner === undefined) {
+          activeDispatches.delete(accepted.ref.runDefinitionCid);
+        }
       });
     }
     return {ref: accepted.ref, durability: accepted.durability,
@@ -275,7 +327,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
   const hostOperations = {
     authorizeConnection: hostConnection,
     negotiate, prepareSubmit, submit, attach, lookupRequest,
-    stateService, resultService, observeRun, wait,
+    stateService, resultService, observeRun, wait, cancel,
   };
   const port = createNodeInProcessClientHost({
     authenticate: () => principalId,
