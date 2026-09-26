@@ -442,7 +442,26 @@ pub fn emit_prepared_client_values_pipeline(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[String, ClientValuesPipelineIssue] {
-  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
+  emit_client_values_pipeline_graph(
+    value.graph,
+    task,
+    limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn emit_client_values_pipeline_graph(
+  graph : @strategy.CheckedDAG,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, ClientValuesPipelineIssue] {
+  guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
     return Err(MissingTask)
   }
   let sequence = match @lower.prepare_sequence(owner, limits) {
@@ -630,9 +649,28 @@ pub fn issue_prepared_client_values_aoa_identity(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientValuesAoAIdentity, ClientValuesAoAIdentityIssue] {
+  issue_client_values_aoa_identity_graph(
+    value.graph,
+    task,
+    limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn issue_client_values_aoa_identity_graph(
+  graph : @strategy.CheckedDAG,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientValuesAoAIdentity, ClientValuesAoAIdentityIssue] {
   let wire = match
-    emit_prepared_client_values_pipeline(
-      value, task, limits, max_wire_bytes, max_nodes, max_depth,
+    emit_client_values_pipeline_graph(
+      graph, task, limits, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(body) => body
     Err(issue) => return Err(Pipeline(issue))

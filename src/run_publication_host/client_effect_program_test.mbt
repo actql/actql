@@ -111,6 +111,103 @@ fn client_effect_fixture() -> (
 }
 
 ///|
+test "Effect compilation shares the checked Values Fragment issuer" {
+  let (document, environment, limits) = client_effect_fixture()
+  let prepared = prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  let graph = prepared_client_effect_computation_graph(prepared)
+  let owner = prepared_client_effect_computation_candidate(prepared)
+  let sequence_limits : @lower.SequenceLimits = {
+    max_steps: 10,
+    max_rows: 10,
+    max_cells: 10,
+    max_bindings: 10,
+    max_name_bytes: 1000,
+    expressions: {
+      max_nodes: 100,
+      max_work: 1000,
+      max_depth: 10,
+      max_literal_nodes: 100,
+      max_literal_text_bytes: 1000,
+    },
+  }
+  let fragment = issue_prepared_client_effect_values_fragment(
+    prepared, 0, sequence_limits, 20000, 2000, 100,
+  ).unwrap()
+  // Independent SHA-256 of the canonical Values pipeline for {value: 1}.
+  assert_eq(
+    client_values_fragment_logical_cid(fragment),
+    "sha256:dbbd1b8a7e0751ce96aece5ac9a85a67eaabfb1ec9e4cf5d86c5a40c64d5afc2",
+  )
+  assert_eq(client_values_fragment_node_id(fragment), "values_0")
+  assert_eq(
+    client_values_fragment_output_contract_wire(fragment),
+    "{\"additional_properties\":false,\"fields\":{\"value\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"}",
+  )
+  assert_eq(
+    client_values_fragment_wire(
+      admit_prepared_client_effect_values_fragment(
+        prepared,
+        0,
+        client_values_fragment_wire(fragment),
+        sequence_limits,
+        20000,
+        2000,
+        100,
+      ).unwrap(),
+    ),
+    client_values_fragment_wire(fragment),
+  )
+  let changed = prepare_client_effect_computation(
+    document.replace(old="\"value\":1", new="\"value\":2"),
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  assert_true(
+    admit_prepared_client_effect_values_fragment(
+      changed,
+      0,
+      client_values_fragment_wire(fragment),
+      sequence_limits,
+      20000,
+      2000,
+      100,
+    )
+    is Err(ClientValuesFragmentAdmissionIssue::MismatchedNode),
+  )
+  assert_true(
+    issue_prepared_client_effect_values_fragment(
+      prepared, 1, sequence_limits, 20000, 2000, 100,
+    )
+    is Err(_),
+  )
+  assert_true(
+    issue_prepared_client_effect_values_fragment(
+      prepared, 0, sequence_limits, 1, 2000, 100,
+    )
+    is Err(_),
+  )
+  assert_true(
+    physical_equal(@strategy.checked_effect_computation_owner(graph), owner),
+  )
+  assert_eq(@strategy.checked_effect_source_count(graph), 1)
+  assert_true(
+    @strategy.graph_program_has_effects(
+      @strategy.checked_effect_computation_graph(graph),
+    ),
+  )
+}
+
+///|
 test "standard Client preparation retains source-free Effect closure" {
   let (document, environment, limits) = client_effect_fixture()
   let prepared = match

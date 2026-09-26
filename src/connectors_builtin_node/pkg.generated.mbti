@@ -274,6 +274,8 @@ pub fn client_program_issue_direct_values_result_root(@run_publication_host.Prep
 
 pub fn client_program_issue_effect_source_artifact(@physical_strategy.CapturedEffectInput, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.EffectSourceArtifactIssue]
 
+pub fn client_program_issue_effect_values_fragment(@run_publication_host.PreparedClientEffectComputation, Int) -> Result[@run_publication_host.ClientValuesFragmentNode, @run_publication_host.ClientValuesFragmentIssue]
+
 pub fn client_program_issue_empty_invocation_bindings(@run_publication_host.PreparedClientProgram) -> Result[@run_publication.RunEvidenceValue, @run_publication_host.ClientEmptyInvocationBindingsIssue]
 
 pub fn client_program_issue_local_effect_result_definition(@run_publication_host.PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
@@ -483,6 +485,8 @@ pub fn client_program_task_fragment_wire(@run_publication_host.ClientTaskFragmen
 pub fn client_program_task_pipeline_wire(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskPipelineIssue]
 
 pub fn client_program_task_plan_graph_wire(@run_publication_host.ClientTaskPlanGraph) -> String
+
+pub fn client_program_values_fragment_logical_cid(@run_publication_host.ClientValuesFragmentNode) -> String
 
 pub fn client_request_admit_record(String, String, String, String, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 

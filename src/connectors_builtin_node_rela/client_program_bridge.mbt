@@ -758,6 +758,33 @@ pub fn client_program_local_values_aoa_wire(
 }
 
 ///|
+#export_name("clientProgramIssueEffectValuesFragment")
+pub fn client_program_issue_effect_values_fragment(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  task : Int,
+) -> Result[
+  @publication_host.ClientValuesFragmentNode,
+  @publication_host.ClientValuesFragmentIssue,
+] {
+  @publication_host.issue_prepared_client_effect_values_fragment(
+    prepared,
+    task,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramValuesFragmentLogicalCid")
+pub fn client_program_values_fragment_logical_cid(
+  fragment : @publication_host.ClientValuesFragmentNode,
+) -> String {
+  @publication_host.client_values_fragment_logical_cid(fragment)
+}
+
+///|
 #export_name("clientProgramLocalValuesAoACid")
 pub fn client_program_local_values_aoa_cid(
   value : @publication_host.ClientValuesAoAIdentity,

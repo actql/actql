@@ -1447,11 +1447,14 @@ test(`two-member captured Effect Run ${
     assert.equal(JSON.parse(moon.clientProgramLocalEffectInvocationJson(
       semanticInvocation)).self_cid,
       moon.clientProgramLocalEffectInvocationCid(semanticInvocation));
+    const computationFragment = checked(
+      moon.clientProgramIssueEffectValuesFragment(prepared, 0));
     const evidence = publicationEvidence(
       moon.clientProgramEffectDefinitionCid(prepared),
       moon.clientRequestParametersCid(clientRequest),
       moon.clientProgramEffectSemanticsCid(prepared),
-      moon.clientProgramEffectEnvironmentCid(prepared));
+      moon.clientProgramEffectEnvironmentCid(prepared),
+      moon.clientProgramValuesFragmentLogicalCid(computationFragment));
     const admission = moon.clientProgramAdmitEffectPublication(
       prepared, ...evidence);
     const definition = checked(moon.strategyIssueRunDefinition(
