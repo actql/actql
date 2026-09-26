@@ -736,7 +736,9 @@ export async function installRemoteCheckpoints({root, tenantId,
     // Run acceptance approved for a Program that reads the installed
     // source: its read is decided now, before any Run or provider I/O. A
     // delegated read is held as this attempt's next Checkpoint (under the
-    // current claim) and resumes later on its own approval.
+    // current claim) and resumes later on its own approval. An immediate
+    // Host permit is kept for this attempt's start, as for a new request.
+    let readPermit = false;
     if (!readHeld && captured.acquisition !== undefined &&
         sourceGate !== undefined) {
       const read = await decideRead({prepareAttemptId, request,
@@ -756,6 +758,7 @@ export async function installRemoteCheckpoints({root, tenantId,
         end('failed');
         return 'done';
       }
+      readPermit = read.basis === 'host_permit';
     }
     const admission = decision.admission;
     const identity = request.subject.logical_request_scope_cid;
@@ -789,6 +792,15 @@ export async function installRemoteCheckpoints({root, tenantId,
             checkpointCid: claimed.checkpointCid,
             readTuple: captured.acquisition.readTuple,
             earlier: [...(continuation.earlier_approvals ?? [])],
+            prepareAttemptId}));
+        } else if (readPermit) {
+          // The Host's immediate read permit for this attempt: it holds
+          // only while the Run acceptance approval is current and the
+          // request is not cancelled, and ends with the dispatch.
+          admittedReads.set(captured.requestId, Object.freeze({
+            readTuple: captured.acquisition.readTuple,
+            earlier: [claimed.checkpointCid,
+              ...(continuation.earlier_approvals ?? [])],
             prepareAttemptId}));
         }
       },
