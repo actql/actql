@@ -304,6 +304,15 @@ const steps = {
       ['conflicting']);
   },
   async finished() { save('ref-' + requestId, await finished()); },
+  // Cancel the existing Run of a held request through the public Client.
+  async cancelRun() {
+    const owner = await as('owner-token');
+    const lookup = await owner.lookupRequest(requestId);
+    assert.equal(lookup.kind, 'found');
+    const execution = await owner.attach(lookup.ref);
+    await execution.cancel();
+    assert.equal((await execution.status()).status, 'cancelled');
+  },
   // The same request submitted again: the existing Run, which only the
   // Host's resumed authorization may start.
   async resubmitted() {
@@ -453,6 +462,15 @@ async function approvedAndStopped(name, requestId, extra = {}) {
     client(started, 'resumeWaiting', [requestId]);
   });
 }
+// Wait (bounded) until the running Host has released the held evidence.
+async function untilRetired(name) {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    try { await assertRetired(name); return; }
+    catch {}
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  await assertRetired(name);
+}
 // The continuation's private evidence is retired after a terminal Run and
 // held while the Run is not terminal.
 async function assertRetired(name, state = 'retired') {
@@ -546,6 +564,28 @@ for (const [name, crashAt, restart, extra, step] of [
   assert.equal(counted.physical_start_reserved, 0, name);
   assert.equal(counted.computed, 0, name);
   await assertRetired(name);
+}
+
+// 8. A Run defined before a crash is cancelled through the public Client
+// on a restarted Host whose resume is stalled; that Host is killed. The
+// next Host settles the held request as cancelled by itself: no physical
+// start, and its evidence is released.
+{
+  const name = 'cancel-restart';
+  await approvedAndStopped(name, name, {LEASE_MS: '2000'});
+  await crashed(name, {CRASH_AT: 'definition_admitted', LEASE_MS: '2000'});
+  const stalled = await startHost(name, {LEASE_MS: '2000',
+    STALL_AT: 'resume_claimed', STALL_MS: '600000'});
+  try { client(stalled, 'cancelRun', [name]); }
+  finally { await stopHost(stalled, 'SIGKILL'); }
+  // The running Host settles once the killed claimant's lease lapses.
+  await withHost(name, {LEASE_MS: '2000'}, async started => {
+    client(started, 'finished', [name], {EXPECT_STATUS: 'cancelled'});
+    await untilRetired(name);
+  });
+  const counted = await counts(name);
+  assert.equal(counted.physical_start_reserved, 0, name);
+  assert.equal(counted.computed, 0, name);
 }
 
 // 6. The Run-side duty: a Host that stopped after computing but before

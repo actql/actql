@@ -608,3 +608,87 @@ test('a held request resubmit is matched to its intent, whatever the evidence',
     // Nothing was started by any of these submits.
     assert.equal(host.dispatches(), 1);
   });
+
+// DCI-R9: a Run from a held request cancelled through the public Client
+// before its physical start ends the held request too: no start, no more
+// claims, retention released.
+async function cancelledBeforeStart(t, stallAt) {
+  const directory = await mkdtemp(join(scratch, 'cancel-'));
+  const steps = [];
+  let stall = true;
+  let released;
+  const stalled = new Promise(resolve => { released = resolve; });
+  const host = await remoteHost(t, protectedHost('delegate', {
+    leaseMs: 1000,
+    async observe(name) {
+      steps.push(name);
+      if (name === stallAt && stall) {
+        stall = false;
+        await stalled;
+      }
+    }}), {directory});
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const client = await host.as('owner-token');
+  const reviewer = await host.as('reviewer-token');
+  await heldRequests(client, ['cancel-a']);
+  await approveAll(reviewer, await allCheckpoints(reviewer));
+  await waitFor(() => steps.includes(stallAt));
+  const found = await waitFor(async () => {
+    const lookup = await client.lookupRequest('cancel-a');
+    return lookup.kind === 'found' ? lookup : undefined;
+  });
+  const execution = await client.attach(found.ref);
+  await execution.cancel();
+  released();
+  const state = await waitFor(async () => {
+    const current = await execution.status();
+    return current.status === 'cancelled' ? current : undefined;
+  });
+  assert.equal(state.status, 'cancelled');
+  // Claims stop: nothing is retried after the request settled.
+  await waitFor(async () => {
+    const database = new DatabaseSync(join(directory, 'state',
+      'checkpoints', 'journal', 'checkpoint-journal.sqlite3'),
+    {readOnly: true});
+    try {
+      return database.prepare('SELECT status FROM preparations').get()
+        .status === 'ended';
+    } finally { database.close(); }
+  });
+  const claims = steps.filter(name => name === 'resume_claimed').length;
+  await new Promise(resolve => setTimeout(resolve, 2500));
+  assert.equal(steps.filter(name => name === 'resume_claimed').length,
+    claims);
+  assert.equal(steps.filter(name =>
+    name === 'physical_start_reserved').length, 0);
+  assert.equal(host.dispatches(), stallAt === 'dispatch_reserved' ? 1 : 0);
+  await host.close();
+  const database = new DatabaseSync(join(directory, 'state', 'checkpoints',
+    'journal', 'checkpoint-journal.sqlite3'), {readOnly: true});
+  try {
+    assert.deepEqual({...database.prepare(
+      'SELECT status, end_reason FROM preparations').get()},
+    {status: 'ended', end_reason: 'cancelled'});
+    assert.deepEqual(database.prepare(
+      'SELECT state FROM resume_intents').all().map(row => row.state),
+    ['completed']);
+    assert.equal(database.prepare('SELECT COUNT(*) AS n FROM runs').get().n,
+      0);
+  } finally { database.close(); }
+  const ledgers = join(directory, 'state', 'checkpoints', 'attempts');
+  for (const file of await readdir(ledgers)) {
+    const ledger = JSON.parse(await readFile(join(ledgers, file), 'utf8'));
+    assert.ok(ledger.holdings.filter(item =>
+      item.name !== 'invocation_request').every(item =>
+      item.state === 'retired'), file);
+  }
+}
+
+test('a Run cancelled after its definition ends the held request', async t => {
+  await cancelledBeforeStart(t, 'definition_admitted');
+});
+
+test('a Run cancelled after its dispatch reservation ends the held request',
+  async t => {
+    await cancelledBeforeStart(t, 'dispatch_reserved');
+  });
