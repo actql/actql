@@ -418,7 +418,17 @@ export function openSqliteCheckpointJournal(root, {
       WHERE i.state != 'completed' AND p.status = 'resuming'
         AND i.rowid = (SELECT MAX(rowid) FROM resume_intents
           WHERE prepare_attempt_id = i.prepare_attempt_id)
+        AND i.prepare_attempt_id > ?
       ORDER BY i.prepare_attempt_id LIMIT ?`),
+    // Runs created by an approved preparation that are still `running`:
+    // the Run-side execution duty a Host start must carry on after the
+    // preparation's resume intent completed.
+    preparationRuns: database.prepare(`
+      SELECT p.prepare_attempt_id, p.run_id FROM preparations p
+        JOIN runs r ON r.run_id = p.run_id
+      WHERE p.status = 'run_created' AND r.status = 'running'
+        AND p.prepare_attempt_id > ?
+      ORDER BY p.prepare_attempt_id LIMIT ?`),
     resolution: database.prepare(
       'SELECT * FROM resolutions WHERE checkpoint_cid = ?'),
     insertResolution: database.prepare(`
@@ -893,13 +903,30 @@ export function openSqliteCheckpointJournal(root, {
     // Prepare attempts with an approved, not yet completed resume intent,
     // for a Host sweep on start and after answers. Claims still decide who
     // continues; this only names candidates.
-    listResumablePreparations({limit = 100} = {}) {
+    // Pages continue after the last prepare attempt ID of the previous page.
+    listResumablePreparations({after = '', limit = 100} = {}) {
       alive();
-      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000) {
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000 ||
+          typeof after !== 'string') {
         fail('InvalidResumableLimit');
       }
-      return statements.resumablePreparations.all(limit)
+      return statements.resumablePreparations.all(after, limit)
         .map(row => row.prepare_attempt_id);
+    },
+
+    // Runs created by approved preparations and still `running`, as
+    // {prepareAttemptId, runId}, one page after `after`. The Host that owns
+    // the Run's execution resumes or reconciles each on start; completing
+    // the preparation intent never drops this duty.
+    listPreparationRuns({after = '', limit = 100} = {}) {
+      alive();
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000 ||
+          typeof after !== 'string') {
+        fail('InvalidPreparationRunPage');
+      }
+      return statements.preparationRuns.all(after, limit).map(row =>
+        Object.freeze({prepareAttemptId: row.prepare_attempt_id,
+          runId: row.run_id}));
     },
 
     inspect(reference) {

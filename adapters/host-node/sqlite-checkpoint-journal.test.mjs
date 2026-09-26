@@ -1538,7 +1538,7 @@ test('a journal created before the requested-claims column is upgraded',
     }), {code: 'CheckpointConflict'});
   });
 
-test('pending Checkpoints page by a stable cursor and name resumable preparations',
+test('pending Checkpoints page by a stable cursor; resumable preparations and their Runs are listed',
   async t => {
     const {clock, open} = await workspace(t);
     const journal = open();
@@ -1579,9 +1579,21 @@ test('pending Checkpoints page by a stable cursor and name resumable preparation
     // A claimed but uncompleted intent stays a candidate (its claimant may
     // have died); the claim still decides who continues.
     assert.deepEqual(journal.listResumablePreparations(), ['attempt-1']);
+    // Pages continue after the previous page's last attempt.
+    assert.deepEqual(journal.listResumablePreparations({after: 'attempt-1'}),
+      []);
+    assert.deepEqual(journal.listPreparationRuns(), []);
     journal.completeResume(claimed.claim, {run: {runId: 'run-1',
       status: 'running'}});
     assert.deepEqual(journal.listResumablePreparations(), []);
+    // The created Run keeps a durable execution duty until it ends.
+    assert.deepEqual(journal.listPreparationRuns(),
+      [{prepareAttemptId: 'attempt-1', runId: 'run-1'}]);
+    assert.deepEqual(journal.listPreparationRuns({after: 'attempt-1'}), []);
+    journal.finishRun('run-1', {status: 'succeeded'});
+    assert.deepEqual(journal.listPreparationRuns(), []);
     assert.throws(() => journal.listResumablePreparations({limit: 0}),
       {code: 'InvalidResumableLimit'});
+    assert.throws(() => journal.listPreparationRuns({limit: 0}),
+      {code: 'InvalidPreparationRunPage'});
   });
