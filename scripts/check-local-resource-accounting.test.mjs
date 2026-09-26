@@ -103,6 +103,11 @@ test('Graph equality route requires exact limits and delivered cancellation', ()
 
 test('global count assurance requires its bounded product path and proofs', () => {
   for (const role of [
+    'count_if_work_workspace_exact_one_short',
+    'count_if_cancel_cleanup',
+    'count_if_two_consumers',
+    'count_if_same_stage_two_consumers',
+    'count_if_same_stage_cancel_cleanup',
     'keyed_count_long_output_exact_one_short',
     'keyed_count_long_output_cancel_cleanup',
     'keyed_count_long_output_two_consumers',
@@ -157,6 +162,12 @@ test('global count assurance requires its bounded product path and proofs', () =
     group.environment_tests = group.environment_tests.filter(item =>
       item.role !== 'global_count_host_timer');
   }), /RelA group: global_count_entrypoint in_flight_cancel lacks an executable fixture/u);
+  assert.match(run(undefined, routes => {
+    const group = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'group');
+    group.environment_tests = group.environment_tests.filter(item =>
+      item.role !== 'count_if_same_stage_timer');
+  }), /RelA group: count_if_same_stage_timer fixture is missing/u);
   assert.match(run(undefined, routes => {
     const group = routes.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'group');

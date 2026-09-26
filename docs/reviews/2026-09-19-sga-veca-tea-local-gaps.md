@@ -37,6 +37,18 @@ checks, and ownership rules are unchanged. Filtered, distinct, expression,
 and non-count aggregates remain outside this particular split decision;
 they are still required by the overall delivery goal.
 
+The direct-field `count_if` profile now uses that same bounded count route.
+It counts only Boolean true, retains false and NULL exclusion, and preserves
+the authored aggregate identity in canonical lowering. Separate-stage and
+same-Stage standard Host fixtures reach the selected provider with
+quantum-one advancement, two independent consumers, cancellation after
+positive work, and cleanup. An
+independent exact/one-short work and workspace fixture covers this profile;
+the fixed DuckDB realization executes the same true/false/NULL and empty
+corpus. Filtered or expression-valued `count_if` remains on the general group
+route and is not certified by this evidence. The strict whole-operation gate
+is still red, so this is a closed route, not a completed group operation.
+
 The strict gate still rejects unassured RelA whole-sequence entrypoints,
 eight SGA entrypoints, and the providerless synchronous computation.
 The selected top-k, binary same-Stage, VecA row-expression, and ranking

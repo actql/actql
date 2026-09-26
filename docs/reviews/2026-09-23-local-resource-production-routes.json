@@ -2434,6 +2434,41 @@
           "fixture": "Local managed bounded global count distinguishes null fields"
         },
         {
+          "role": "count_if_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
+          "fixture": "bounded count_if admits exact work and workspace limits"
+        },
+        {
+          "role": "count_if_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "standard Host cancels count_if after bounded work"
+        },
+        {
+          "role": "count_if_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "Local managed count_if uses bounded provider with two consumers"
+        },
+        {
+          "role": "count_if_same_stage_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "Local same-stage count_if uses bounded provider with two consumers"
+        },
+        {
+          "role": "count_if_same_stage_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "standard Host cancels same-stage count_if after bounded work"
+        },
+        {
           "role": "keyed_count_values_split_two_consumers",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -2604,6 +2639,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage-global-count-in-flight"
+        },
+        {
+          "role": "count_if_same_stage_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "same-stage-count-if-in-flight"
         },
         {
           "role": "keyed_count_host_timer",
