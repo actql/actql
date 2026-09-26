@@ -64,13 +64,18 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
     requirement, schema, table, ...contracts));
   // The Host-resolved physical target is part of what an approval covers:
   // the same checked source read from another schema or table is another
-  // read.
+  // read. Physical names are bound by their exact UTF-8 bytes (hex): the
+  // database distinguishes names that ActQL's logical text normalization
+  // treats as equal. The readable names are display only.
+  const exact = name => Buffer.from(name, 'utf8').toString('hex');
   const prepared = Object.freeze({checkedSource,
     readTuple: Object.freeze({connection: sourceAccess.connection ??
       'local-database', resource: sourceAccess.resource ?? database,
     operation: 'read'}),
     physicalBinding: Object.freeze({version:
-      'actql-installed-duckdb-target/0.1', database, schema, table})});
+      'actql-installed-duckdb-target/0.2', database, schema, table,
+      utf8_hex: Object.freeze({database: exact(database),
+        schema: exact(schema), table: exact(table)})})});
   preparations.set(prepared, Object.freeze({moon, preparedProgram, registry,
     values, fragment, ordered, database, schema, table, sourceAccess,
     requirement, evidenceContext, acquisition}));

@@ -360,10 +360,13 @@ test('A3: an approved read never reads a different physical target',
       const {items: [summary]} = await reviewer.checkpoints();
       const review = JSON.parse(new TextDecoder().decode((await (await first
         .as('reader-token')).reviewCheckpoint(summary)).bytes));
+      const database = join(directory, 'records.duckdb');
+      const hex = name => Buffer.from(name, 'utf8').toString('hex');
       assert.deepEqual(review.displayed_scope.physical_binding, {
-        version: 'actql-installed-duckdb-target/0.1',
-        database: join(directory, 'records.duckdb'), schema: 'main',
-        table: 'records'});
+        version: 'actql-installed-duckdb-target/0.2',
+        database, schema: 'main', table: 'records',
+        utf8_hex: {database: hex(database), schema: hex('main'),
+          table: hex('records')}});
       await reviewer.resolveCheckpoints([{checkpoint: summary,
         decision: 'approved'}], {signer});
       await first.close();
@@ -544,4 +547,57 @@ test('A8: held read evidence is kept while needed and released after',
       return states.length === 1 && states[0] === 'retired';
     });
     assert.equal(cancelled.count('acquisition_started'), 0);
+  });
+
+// Physical names are compared exactly: a table named with a combining
+// accent and one with the precomposed letter are different tables for the
+// database, though ActQL's logical text treats them as the same.
+test('A3: an approved read binds the exact physical name, not its NFC form',
+  async t => {
+    const decomposed = 'rec_e\u0301';
+    const composed = 'rec_\u00e9';
+    assert.equal(decomposed.normalize('NFC'), composed);
+    for (const [name, target, expected] of [
+      ['same', decomposed, 'result'],
+      ['composed', composed, 'ended'],
+    ]) {
+      const directory = await mkdtemp(join(scratch, `unicode-${name}-`));
+      t.after(() => rm(directory, {recursive: true, force: true}));
+      const source = await installedSource(directory, 'delegate');
+      const instance = await DuckDBInstance.create(join(directory,
+        'records.duckdb'));
+      const connection = await instance.connect();
+      try {
+        await connection.run(`CREATE TABLE "${decomposed}" AS ` +
+          'SELECT * FROM records');
+        await connection.run(`CREATE TABLE "${composed}"` +
+          '(id DOUBLE, amount DOUBLE)');
+        await connection.run(`INSERT INTO "${composed}" VALUES (99,30)`);
+      } finally {
+        connection.closeSync();
+        instance.closeSync();
+      }
+      await source.write('delegate', {table: decomposed});
+      const first = await acquiringHost(t, {directory, profile: source,
+        extra: {resumeAfterAnswer: false}});
+      const client = await first.as('owner-token');
+      const reviewer = await first.as('reviewer-token');
+      await held(client, `unicode-${name}`);
+      const {items: [summary]} = await reviewer.checkpoints();
+      await reviewer.resolveCheckpoints([{checkpoint: summary,
+        decision: 'approved'}], {signer});
+      await first.close();
+      await source.write('delegate', {table: target});
+      const second = await acquiringHost(t, {directory, profile: source});
+      const owner2 = await second.as('owner-token');
+      if (expected === 'result') {
+        await assertResults(owner2, `unicode-${name}`);
+        assert.equal(second.count('acquisition_started'), 1, name);
+      } else {
+        await waitFor(async () =>
+          (await owner2.lookupRequest(`unicode-${name}`)).state === 'ended');
+        assert.equal(second.count('dispatch_reserved'), 0, name);
+        assert.equal(second.count('acquisition_started'), 0, name);
+      }
+    }
   });
