@@ -11,9 +11,16 @@ import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
-import {installNodeClientProgramPreparation, installNodeClientEffectProgramPreparation} from './client-program-preparation.mjs';
-import {runCapturedStrategy, runPublishedCapturedStrategy, completeCapturedEffectRun, runCapturedEffectComputation, runCapturedInternalStrategy} from './entry.mjs';
-import {installNodeResultAccessService, installResultAccessAuthority} from './result-access.mjs';
+import {installNodeClientEffectProgramPreparation,
+  installNodeClientProgramPreparation} from
+  './client-program-preparation.mjs';
+import {completeCapturedEffectRun, recoverAdmittedEffectRun,
+  runCapturedEffectComputation,
+  runCapturedInternalStrategy,
+  runCapturedStrategy,
+  runPublishedCapturedStrategy} from './entry.mjs';
+import {installNodeResultAccessService,
+  installResultAccessAuthority} from './result-access.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {inspectAuthorizedRunState, installRunStateAuthority, installRunStateService} from '../host-common/run-state-access.mjs';
@@ -2551,6 +2558,39 @@ test('Host admits and retains the exact checked Effect Run Definition',
     assert.throws(() => reopened.resolveDefinition(changedRequest,
       {tenantId: 'tenant-a'}, moon, control),
     {code: 'ClientRequestIntentConflict'});
+    const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+      requestId: moon.clientRequestCallerId(request),
+      runDefinitionCid: definition.identity};
+    const retained = reopened.lookupOwnedDefinition(key, moon, control);
+    assert.equal(moon.clientRequestRelation(request,
+      retained.requestIdentity), 1);
+    assert.equal(retained.runDefinition.identity, definition.identity);
+    const forbidLookup = {lookupOwnedDefinition() {
+      assert.fail('Denied recovery must not read the request journal');
+    }};
+    const recoveryOptions = {requests: forbidLookup,
+      store: {storeAuthorityCid: cid('7')}, key,
+      principalId: 'evidence-reader', contractLimits: publicationLimits,
+      authorizeEvidenceRead: () => false};
+    await assert.rejects(recoverAdmittedEffectRun(recoveryOptions),
+      {code: 'EffectEvidenceAccessDenied'});
+    const foreignKey = {...key, runDefinitionCid: cid('f')};
+    await assert.rejects(recoverAdmittedEffectRun({...recoveryOptions,
+      requests: reopened, key: foreignKey,
+      authorizeEvidenceRead: async binding => {
+        assert.equal(binding.runDefinitionCid, cid('f'));
+        foreignKey.runDefinitionCid = definition.identity;
+        foreignKey.tenantId = 'foreign-tenant';
+        await Promise.resolve();
+        assert.equal(binding.tenantId, 'tenant-a');
+        return true;
+      }}), {code: 'EffectRecoveryRequestMismatch'});
+    const abort = new AbortController();
+    await assert.rejects(recoverAdmittedEffectRun({...recoveryOptions,
+      signal: abort.signal, authorizeEvidenceRead: () => {
+        abort.abort();
+        return true;
+      }}), {name: 'AbortError'});
   });
 
 test('admitted source-free Effect Run computes through the installed Host',

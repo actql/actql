@@ -462,6 +462,17 @@ export function openClientRequestJournal(directory, {
           row, publicationControl, maxRunDefinitionWireBytes),
       });
     },
+    // Recover identity and Definition from one physical journal observation.
+    // This internal owner must not be projected as a Client wire response.
+    lookupOwnedDefinition(key, requestControl, publicationControl) {
+      const retained = lookupRecord(key, requestControl);
+      if (retained === undefined) return undefined;
+      return Object.freeze({...retained.found,
+        requestIdentity: retained.identity,
+        runDefinition: retainedRunDefinition(
+          retained.row, publicationControl, maxRunDefinitionWireBytes),
+      });
+    },
     // A resend can resolve an already accepted request before issuing a new
     // plan or Run Definition. The shared owner compares the checked intent;
     // absence does not prove that a concurrent submission cannot still land.
