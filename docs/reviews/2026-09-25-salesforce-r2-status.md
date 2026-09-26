@@ -24,6 +24,13 @@ The common completion entry now rejects a foreign apply or Receipt Preview
 before any row send. Replaying a Set with no ready rows needs no fresh mutation
 grant or target refresh; current evidence-read admission still governs Receipt
 issuance. Neither change substitutes for the pending production Host caller.
+The Salesforce current-use Host operation now owns its member request inventory
+before I/O and returns an immutable preflight bound to the exact refreshed
+Catalogs and target versions. Physical dispatch receives that preflight from
+the common apply owner and cannot fetch a mutable "latest Catalog" selected by
+another refresh. PATCH rows require target observation; POST rows must not
+pretend to have a target guard. This closes the fixture's split-Catalog
+handoff, not the remaining capability-evidence issuance or public ingress.
 
 ## OSS main integration baseline
 
