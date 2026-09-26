@@ -79,6 +79,33 @@ and live-org acceptance remain open. Distribution owns the shared compiler
 dependency and public ingress, as detailed in the
 [current request handoff](2026-09-24-effect-run-shared-port.md).
 
+Effect input preparation now uses the common `preparePinnedEffectSourceSet`.
+It derives member sharing from exact MoonBit owners, exports a shared view
+once, and issues a complete local Manifest only after all of the Unit's
+Artifact owners are available. Distinct Results with equal rows stay distinct.
+Partial preparation failure uses existing publication cleanup and keeps
+failed Store custody retryable. This closes a fixture-authored input grouping
+step; initial compilation, the complete preparation/capture composition, and
+public ingress are still open.
+
+## Source-set preparation verification
+
+The source-set implementation (`3e92241af`) and its integration pass
+`check:salesforce-site` (169/169) and the
+combined common Client, Client request journal, and publication-control
+suite (42/42). The new real-Store regression distinguishes one shared Result
+from two separately named Results with identical rows. It checks the complete
+local Manifest, refusal before writer creation when grouping work is exhausted,
+and a second-source failure plus a failed first-owner release. Retrying that
+cleanup creates no new writer and returns stored/reserved bytes to zero.
+
+The Node bridge only exposes an existing checked Unit coordinate; no canonical
+preimage, schema, pin, or identity rule changed. Three-target interface
+generation, generated API consistency, formatting, document links, common
+connector dispatch boundary, and whitespace checks accompany this increment.
+These are local checks, not Linux CI, live Salesforce, or a completion claim
+for the pending initial compiler/public ingress connection.
+
 ## Client request connection verification
 
 The installed recovery entry (`c73fa072d`) is also exercised by the full

@@ -58,6 +58,31 @@ Effect-free Program, or copy this compiler evidence generator into Salesforce.
 The existing local HTTPS Effect fixture still supplies compiler/Host policy
 evidence while that connection is pending; this is not formal compiler closure.
 
+## Current Effect source preparation handoff
+
+`effect-input-export.mjs::preparePinnedEffectSourceSet` prepares all live
+Effect input pins under one supplied retention and source-binding policy.
+It bounds grouping work before reserving Store capacity and asks the common
+MoonBit owner whether members share the same Result occurrence and producer.
+Equal values, logical CIDs, or similar field names never merge distinct owners.
+One exported source may feed multiple checked member proposals without another
+row scan. Each member still acquires its own durable holding at capture.
+
+The set retains one local Invocation owner per checked Unit and waits for all
+of that Unit's Result Artifacts before asking the existing complete-Manifest
+issuer to admit the inventory. The issuer's completeness and owner checks are
+unchanged. A missing declared Result is an error, not an invented entry or a
+partial Manifest. This source-free preparation port does not add acquired-Unit
+Invocation issuance or replace the pending compiler connection.
+
+The return value contains `payloads` (one owner per distinct view) and `members`
+(ordered member-to-payload bindings). The caller still owns the input pins and
+must commit or release each prepared payload. On preparation failure, existing
+publication cleanup releases already prepared objects and preserves unresolved
+custody in the error's retry handle. Cleanup retry does not export rows again.
+The Salesforce multi-member integration now uses this set entry rather than
+assuming in the fixture that both members share one particular source.
+
 ## Historical product boundary at the initial baseline
 
 `src/program_check/source.mbt::audit_declarations` rejects every nonempty

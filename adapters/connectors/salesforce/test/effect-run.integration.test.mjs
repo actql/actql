@@ -42,7 +42,7 @@ import * as salesforceMoon from
 import {issueAuthorizedEffectSetReceipt} from
   '../../../host-node/effect-response-recovery.mjs';
 import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
-  preparePinnedEffectSourcePayload} from '../../../host-node/effect-input-export.mjs';
+  preparePinnedEffectSourceSet} from '../../../host-node/effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from '../../../host-node/effect-plan-verify.mjs';
 import {createClientHttpHandler} from '../../../host-node/client-http.mjs';
 import {installNodeClientEffectProgramPreparation,
@@ -1575,8 +1575,9 @@ test(`two-member captured Effect Run ${
       assert.equal(storedResults.results[0].occurrence.name, 'answer');
       inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
       const proposedRows = memberIds.map(() => []);
-      sourcePayload = await preparePinnedEffectSourcePayload({
-        moon, checkedOwner: prepared, execution, inputs, memberIndex: 0,
+      const sourceSet = await preparePinnedEffectSourceSet({
+        moon, checkedOwner: prepared, execution, inputs,
+        maxMembers: memberIds.length, maxGroupingWork: 4,
         limits: moon.clientProgramEffectInputExportLimits(
           ...effectInputExportArgs(outputLimits)),
         store, maxBytes: outputLimits.maxWireBytes, control,
@@ -1585,7 +1586,6 @@ test(`two-member captured Effect Run ${
         contractLimits: publicationLimits,
         localEvidenceContext,
         ...(siteRun ? {
-          proposalMemberIndexes: [0, 1],
           proposalLimits: {maxFields: 10, maxWork: 100,
             maxBytes: 20000, maxNodes: 1000, maxDepth: 20,
             maxUtf16Units: 20000},
@@ -1595,6 +1595,12 @@ test(`two-member captured Effect Run ${
           },
         } : {}),
       });
+      assert.equal(sourceSet.payloads.length, 1);
+      assert.equal(sourceSet.members.length, memberIds.length);
+      sourcePayload = sourceSet.payloads[0];
+      for (const member of sourceSet.members) {
+        assert.equal(member.payload, sourcePayload);
+      }
       const custodyInvocationCid = JSON.parse(
         sourcePayload.summary.artifact.wire).invocation_cid;
       assert.equal(custodyInvocationCid, runInvocation.identity);
