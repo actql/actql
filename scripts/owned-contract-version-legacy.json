@@ -1,0 +1,776 @@
+{
+  "version": 1,
+  "baseline": "0.1",
+  "source": "53d081ac72a950167ededbf632814362274ff924",
+  "description": "Frozen legacy occurrences, not a list of approved version upgrades. Do not regenerate to pass the gate. New versions require an explicit reviewed decision.",
+  "entries": [
+    {
+      "path": "adapters/connectors/duckdb/node/managed-column-codec.mjs",
+      "token": "actql-duckdb-managed-column-frames/0.2",
+      "contextSha256": "69e574d86bf16898c2a7b46d3c12128c40201941727bfa7582e1fd7b21c8100a",
+      "line": 9,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/connectors/salesforce/test/installed-salesforce-site.test.mjs",
+      "token": "actql-installed-salesforce-site/9",
+      "contextSha256": "3ad16c33e51c7a76d0aa087de6d235d890cd1e24c89a93039d363d85c4ca2ffd",
+      "line": 165,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "adapters/host-node/client-program-bridge.test.mjs",
+      "token": "actql/9.9",
+      "contextSha256": "78522b4ffef97e436bb8263e22bd24ce09d532003ab9467fc92fd98ea909d587",
+      "line": 1288,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+      "token": "actql-remote-coordinator-journal/0.5",
+      "contextSha256": "16a565416bdeeadaf358e3177eab76fcbdf408d182b6d936952382a376e9426c",
+      "line": 171,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+      "token": "actql-remote-coordinator-journal/0.5",
+      "contextSha256": "2658db555c934cc4bdb729b95b8bfc9282cb284a90608ef9db4f566eb90d19c9",
+      "line": 207,
+      "count": 3,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+      "token": "actql-remote-coordinator-journal/0.2",
+      "contextSha256": "5e3494e1bc5af52059d7c7183f8a643d97a7b27876ad7af6b27274f5f8d70fc0",
+      "line": 209,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+      "token": "actql-remote-coordinator-journal/0.3",
+      "contextSha256": "5dff058ba789587bd0b1df9e4e522608a34393ce8ad2ed16300c326c04885ffa",
+      "line": 224,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+      "token": "actql-remote-coordinator-journal/0.4",
+      "contextSha256": "c449af256faf30b7bfc2a307f50c114d59071bc0346295f31d2a0b1fb58a9e09",
+      "line": 242,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+      "token": "actql-remote-coordinator-journal/0.5",
+      "contextSha256": "e53671ec9cbfbaab9c27677e2aa088303f85c1263f56ba508452f3c67dc169af",
+      "line": 245,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+      "token": "actql-remote-coordinator-journal/0.5",
+      "contextSha256": "e50a1d39bc76ba2a0a2ee5eb44eca487e7b89f1720ad10070689a9b7b9451a0d",
+      "line": 247,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.6",
+      "contextSha256": "e9d3c441d74da1f0dcc584772ed50497f5e373230eb59ecfea4fb13485e0ccc6",
+      "line": 127,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.2",
+      "contextSha256": "ea30b815c38482a0c242301ddab2153e1e2403ea93420d61d5f7d74830504c56",
+      "line": 154,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.2",
+      "contextSha256": "a4584583fba69266e4068f810dbed52e9cddebcb24d4f2897ddd5a9fb82ea070",
+      "line": 155,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.3",
+      "contextSha256": "80eaf8e46420b731a2073331ad38bd4f0a11e732a4edea7937b08293ac3bdba1",
+      "line": 156,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.4",
+      "contextSha256": "657fbad87e46632223ca900523ff89a3e4eba07f3c03f6cd0df172c0ffce20b0",
+      "line": 157,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.5",
+      "contextSha256": "79f53dcfcd8fd738ab9a15d4ff9bff9b3b4a2e442fe993bdfaeb2bf8706f945c",
+      "line": 158,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.6",
+      "contextSha256": "bf4f8a13585409abf7cd2b0a611bd2d3f71f0397d8870d7a729eb5213cf5b31c",
+      "line": 159,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.2",
+      "contextSha256": "c19d1caec588815f1546fb292c4947d31a7285576bfd00a07ce4b8f6a0ab5f6c",
+      "line": 167,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.3",
+      "contextSha256": "4753ce86f14474b070e0f6479861e198a0299c82270873449565426ea89787bf",
+      "line": 187,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.3",
+      "contextSha256": "948dcf4f6bfe70de4b11e33694696729795ef8c7d5d0b90f48db0f1660120700",
+      "line": 188,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.4",
+      "contextSha256": "1c49ff9d5665d5105fe7e3bab9097a5700d045e5aa1bd2f9870a702871f71de8",
+      "line": 189,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.5",
+      "contextSha256": "9d3ab8d337c42f6d1a42d35eae34ed52021327c7545f05822f704403dc8d0641",
+      "line": 190,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.6",
+      "contextSha256": "3f73df9e0b6a37be9b32b03d85d752cfd1a352731be253402455a963e5ffb631",
+      "line": 191,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.3",
+      "contextSha256": "12e753f9921c803dc555f026861b393350498e6ed22db4c105ef63bdd96ed3aa",
+      "line": 197,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.4",
+      "contextSha256": "3ba8af7afde5819192dc6766327fd23dbaaa74ca6897ed666cce90c309d3f96f",
+      "line": 210,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.4",
+      "contextSha256": "0ba21e1af7800ca12dd5868db7e0652d148ab6256b44139e8eb4247296a48528",
+      "line": 215,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.5",
+      "contextSha256": "9f62f499320cb64c48d968d44bd7c7c2aef07db2b05c86dc0e57e48beed61c29",
+      "line": 230,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.5",
+      "contextSha256": "2dd94570af6045fe8cae9c7af3b7415e9781a8af24024329197c8ab362f46814",
+      "line": 232,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.6",
+      "contextSha256": "7ee7e10d85c3ab9e8598c6186cccaa3e78c449601e41b030bdaea927a697e728",
+      "line": 233,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.5",
+      "contextSha256": "ec29910e175fbb711f3a58c2a7f8b68e2b6b35a6bcdf51daae870961aacaae7f",
+      "line": 239,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.6",
+      "contextSha256": "0432a478ed24a2fc41ead347ea7dd940eb2979a7e4ccc24e72d476ebb805c359",
+      "line": 254,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-dispatch-journal.mjs",
+      "token": "actql-remote-site-journal/0.6",
+      "contextSha256": "cc5bc68e4f938b21d622e96f4fa9a7ccec5d633f77f2442f498add0d9c4586cc",
+      "line": 256,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-transfer-journal.mjs",
+      "token": "actql-remote-transfer-journal/0.2",
+      "contextSha256": "fc3a11b6a2b5548725e5e1e49470af7cbe93c01dcbb03433cf05ee5b366a5c2b",
+      "line": 136,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-transfer-journal.mjs",
+      "token": "actql-remote-transfer-journal/0.2",
+      "contextSha256": "42fa41c90cb26100de6bcaee6f46ac090783728d8d2465785bd4a17a504ea056",
+      "line": 145,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "adapters/site-node/sqlite-transfer-journal.mjs",
+      "token": "actql-remote-transfer-journal/0.2",
+      "contextSha256": "0e1f983294d3e92a35999d9b1076e4de7fa7feb5c947ade36936e6c31f3c605c",
+      "line": 146,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/coordinator-core/dist/remote_coordinator_abi.js",
+      "token": "actql-publication-payload-record/0.3",
+      "contextSha256": "067e243aacbd2a88f7199af341ea3baf2f5540f0276ed2336fae34b84b88e4f8",
+      "line": 14976,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/coordinator-core/dist/remote_coordinator_abi.js",
+      "token": "actql-publication-payload-record/0.2",
+      "contextSha256": "e6433edbfaf32b94f0a9aed22efd6c9ab4bde7d54484a99d744042c2f46f9d73",
+      "line": 15285,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/coordinator-core/dist/remote_coordinator_abi.js",
+      "token": "actql-publication-payload-record/0.3",
+      "contextSha256": "62c7e4a960eddbeb347bd7aa44e800bf2edf9e4117f88674658cc64cf5b96506",
+      "line": 15641,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/coordinator-core/dist/remote_coordinator_abi.js",
+      "token": "actql-publication-payload-record/0.2",
+      "contextSha256": "5b5095b3475f60e5ad25901724843d267510ed9d1dbcd207d3663a09b3f093e4",
+      "line": 15641,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/coordinator-core/dist/remote_coordinator_abi.js",
+      "token": "actql-remote-managed-output-subject/0.2",
+      "contextSha256": "4c3b0016c1a71cc9193b4c37671d9b280812ffbc3566b6336df4e27f7bf6e091",
+      "line": 19764,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/coordinator-core/dist/remote_coordinator_abi.js",
+      "token": "actql-remote-dispatch-request/0.2",
+      "contextSha256": "4df3fe8df1d865715b66f6246c578a1271bac8ffac3777be6c9a49739d6718ff",
+      "line": 20193,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/coordinator-core/dist/remote_coordinator_abi.js",
+      "token": "actql-remote-managed-output-subject/0.2",
+      "contextSha256": "b5d2b0df5186002b804600803dcfce3707a9a8a262788e488a5de6e2babfef60",
+      "line": 21328,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/coordinator-core/dist/remote_coordinator_abi.js",
+      "token": "actql-remote-poll-dispatch/0.2",
+      "contextSha256": "e00ef3811a251f9fa5283d2d171ac29077f117657268b6994da641b7c527b193",
+      "line": 22166,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/coordinator-core/dist/remote_coordinator_abi.js",
+      "token": "actql-remote-dispatch-request/0.2",
+      "contextSha256": "799ff987ef12d1d5cf9017a491c63944c09f2ba14672b1fc099216d8c29534e2",
+      "line": 23028,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/coordinator-core/payload.test.mjs",
+      "token": "actql-publication-payload-record/0.3",
+      "contextSha256": "161306380d814d1d79bd81b2869c7311ce9f4e00a55333d8a98f2149e7702f1f",
+      "line": 65,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "packages/local-node/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
+      "token": "actql-remote-managed-output-subject/0.2",
+      "contextSha256": "8731afff03245737ebadf403f6b1de1f56f9448776fd3e8256b030189031d4f9",
+      "line": 9,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/local-node/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
+      "token": "actql-remote-dispatch-request/0.2",
+      "contextSha256": "99c4b3e0064a0abea1d4fe9cec3c24dd1d393b663744fd09e20fbde2c9adedd3",
+      "line": 9,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/local-node/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
+      "token": "actql-remote-managed-output-subject/0.2",
+      "contextSha256": "f6ca97f4aafccd04279d884756d7fdd63741cc0118200bdb83c026d5846452fb",
+      "line": 9,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/local-node/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
+      "token": "actql-remote-poll-dispatch/0.2",
+      "contextSha256": "2cc6cf9f0a84c0f8f7a5d3081fb39fbf7c0f8df9679cc6ace469f35207adf9e8",
+      "line": 9,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/local-node/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
+      "token": "actql-remote-dispatch-request/0.2",
+      "contextSha256": "34244a7fe967c9b9a8f5c370e76542af2eaafba923a683ad277433dcf5ebfe4e",
+      "line": 9,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/local-node/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
+      "token": "actql-remote-poll-dispatch/0.2",
+      "contextSha256": "a3dbd899a2d0f48fe382ca8c99a9e5412271cef22267b36001a0302e70a7a7d4",
+      "line": 9,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "packages/run-host-core/dist/client_values_host_abi.js",
+      "token": "actql-remote-dispatch-request/0.2",
+      "contextSha256": "d0c79fa1a9e09b4ff98b8131875f6d3d1f4578dc7c52af22745bb2237293caf5",
+      "line": 6,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "portability/corpus/execution-account-config.json",
+      "token": "actql-execution-account-config/0.2",
+      "contextSha256": "f0cca616465326e80154b32c6c76f5b9d14d36e84a48b58557168cf92f89d8d6",
+      "line": 255,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "portability/corpus/local-contract-closure.json",
+      "token": "actql-local-contracts/1.0",
+      "contextSha256": "7c98166a1a12af889a1142f4159207d12d20d4dfa82570c8fcf6eb914cf79919",
+      "line": 29,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "portability/corpus/lookup-capacity.json",
+      "token": "actql-lookup-capacity/1.0",
+      "contextSha256": "ff7d09980d35a059fe38b8e807387ee0d7a085a9e74efdb4692fcfa08ac578e5",
+      "line": 21,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "scripts/bound-transfer-laws.test.mjs",
+      "token": "actql-bound-transfer-laws/9.9",
+      "contextSha256": "af971b3a588d28aa58b18d9c568c93527131fac04b715288e99b114c74a8f220",
+      "line": 17,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "scripts/capacity-law-registry.test.mjs",
+      "token": "actql-bound-law-registry/1.0",
+      "contextSha256": "6d4b2a30c5c8d69c320fbc80677de4a4f355ed40fde42afc8c17810744a9f7ff",
+      "line": 380,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "scripts/check-environment.test.mjs",
+      "token": "actql-text-rank-selection/1.0",
+      "contextSha256": "a1320264dff34b7e5f7b8408e8ef40bf7091d78b1be2a8d321479749d2289b8e",
+      "line": 47,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "scripts/test-native-http-client.mjs",
+      "token": "actql-remote-dispatch-request/0.2",
+      "contextSha256": "13b6397b226587a985ecbffcc54e0e132ca7b9c4a7ac5d2d6167e941c47bcd16",
+      "line": 172,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "scripts/test-native-http-client.mjs",
+      "token": "actql-remote-poll-dispatch/0.2",
+      "contextSha256": "ff1702d289d8ceb3437178470f51a7f2812b9bbf9f5921a578d1307780bf2821",
+      "line": 456,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "scripts/test-native-http-client.mjs",
+      "token": "actql-remote-poll-dispatch/0.2",
+      "contextSha256": "aefd4624a4478c14c32141b80e83c67f94d42977b7768d4434e8a453e67545ba",
+      "line": 857,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "scripts/test-native-http-client.mjs",
+      "token": "actql-remote-poll-dispatch/0.2",
+      "contextSha256": "85360afe1764aa603f6a3139b83e8bd700db29f37f2daaed820aae3fc12195f0",
+      "line": 878,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "spec/dependencies/actql-text-time-unicode-data.json",
+      "token": "actql-unicode-data/16.0.0",
+      "contextSha256": "083a3e9d4568304f4560fc9fecce0986ec1620a626df99d16b7576c3fbcbc085",
+      "line": 2,
+      "count": 1,
+      "reason": "External Unicode data release, not the owned contract baseline."
+    },
+    {
+      "path": "src/canonical_json/identity_vectors.generated_test.mbt",
+      "token": "actql-unicode-data/16.0.0",
+      "contextSha256": "61023526f9cdca2f6134ffba41a0bc20da4caf01c8b9195bb5fec89e323a8278",
+      "line": 4782,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/canonical_json/identity_vectors.generated_test.mbt",
+      "token": "actql/0",
+      "contextSha256": "d091ee974711766acce11f40a72780256251ad7ab98c657436ad4a4d3c8d022c",
+      "line": 5041,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/capacity_law/registry_test.mbt",
+      "token": "actql.host.relation-output.v1",
+      "contextSha256": "6881025c86c505f4b15ec25bf907c02f8e2cf633238496ef6632e0e2a087d074",
+      "line": 42,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/capacity_witness/program_proof_test.mbt",
+      "token": "actql-bound-proof/1.0",
+      "contextSha256": "c3042cbe04a36d945e4a6bfb59d607ee3ea1e3c2bdb7dfd35f8307d3489dde84",
+      "line": 105,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/capacity_witness/witness_test.mbt",
+      "token": "actql-bound-witness/1.0",
+      "contextSha256": "6b136a47adca09a73887b75622b65aee1c4adeb0b93cbd18085ed0ded6bd85db",
+      "line": 308,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/check_environment/contracts_test.mbt",
+      "token": "actql.contract/1.0",
+      "contextSha256": "69879de6b508e00efc2ec20b18a9bcfa561ae9f1db8bfc874cc7398600b7c281",
+      "line": 155,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/check_environment/lookup_capacity.generated_test.mbt",
+      "token": "actql-lookup-capacity/1.0",
+      "contextSha256": "273f40f75b8c1bbaaf79ae0bd80164404c741c72b1327a621c837c3bf212d819",
+      "line": 55,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/check_environment/text_rank_test.mbt",
+      "token": "actql-text-rank-selection/1.0",
+      "contextSha256": "f5329ebbef42cb33de9ad470fa5f18ad87fbea89ca3c17c2db157dc583ae84fa",
+      "line": 60,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/execution_authorization/corpus.generated_test.mbt",
+      "token": "actql-execution-account-config/0.2",
+      "contextSha256": "1cab85c26f146c3fb6a874ab950c7e1db15dd7b2e57e5264e1650b0d1921996f",
+      "line": 60,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/physical_manifest/manifest_wbtest.mbt",
+      "token": "actql-managed-physical-manifest/0.2",
+      "contextSha256": "cd17120663bba3724a990798bc91c5076cce254064516bf0f6c12901dd7a2315",
+      "line": 146,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/physical_strategy/policy_consultation.mbt",
+      "token": "actql-policy-candidates/0.2",
+      "contextSha256": "32f077b9b4cf9dee4f6b53f312171bd38457ec7015329511f35aee9317330c8e",
+      "line": 13,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "src/program_check/public_diagnostic_test.mbt",
+      "token": "actql/9.9",
+      "contextSha256": "4f8a07bd59205f658730cfa2640f076ee53530b405113b25366c9718efbaf219",
+      "line": 158,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/publication_payload/payload.mbt",
+      "token": "actql-publication-payload-record/0.3",
+      "contextSha256": "3d0e407ba23514f9816e4ac397ea8836f4c18807d47a50ce85f37a434d79fed6",
+      "line": 806,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "src/publication_payload/payload.mbt",
+      "token": "actql-publication-payload-record/0.2",
+      "contextSha256": "645f50fc2c76b479d4c37fd70afdc3cda7e224e7aedce4ea9212c85c841e5864",
+      "line": 863,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "src/publication_payload/payload.mbt",
+      "token": "actql-publication-payload-record/0.3",
+      "contextSha256": "92af656eaad6ae098d4cc0e89cbbbd759c21e938793a891684826443462f91ce",
+      "line": 1060,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "src/publication_payload/payload.mbt",
+      "token": "actql-publication-payload-record/0.2",
+      "contextSha256": "f5896ac5996b09d6c2b9edc06039832078c5680d33640d8715221fec31132698",
+      "line": 1062,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "src/publication_payload/payload_wbtest.mbt",
+      "token": "actql-publication-payload-record/0.2",
+      "contextSha256": "35e459b78b7000fa31403a0d19021e044656612d9758d0679c9043f606303149",
+      "line": 62,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/publication_payload/payload_wbtest.mbt",
+      "token": "actql-publication-payload-record/0.2",
+      "contextSha256": "3574d18395606124fe9a1aaa54bbce4b642330e0b9adb158eea2150d4c5a0381",
+      "line": 67,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/publication_payload/payload_wbtest.mbt",
+      "token": "actql-publication-payload-record/0.3",
+      "contextSha256": "bb1950ed90e383fa08fd431726095e7ce886fc0e206da90c9018716839fa107d",
+      "line": 219,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/query_integration/physical_search_wbtest.mbt",
+      "token": "actql-policy-candidates/0.2",
+      "contextSha256": "c1965458dacb2a28d755d54753941fce63e39d4d16c59be8e7b85ab63c83ac51",
+      "line": 136,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/query_integration/physical_search_wbtest.mbt",
+      "token": "actql-policy-candidates/0.2",
+      "contextSha256": "13d7517d266a0ebc0bc426fb6ab1c01f9b642319536b201dfa2e0086c3f07093",
+      "line": 419,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/query_integration/physical_search_wbtest.mbt",
+      "token": "actql-policy-candidates/0.2",
+      "contextSha256": "3a26912b30b498bb8a7823b6217827ec9d1e21086415f28371a52c12834357b0",
+      "line": 422,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/remote_credential/credential_wbtest.mbt",
+      "token": "actql-remote-credential-grant-signature/0.2",
+      "contextSha256": "abf1a63713595184a1c51af8d802c49a82559dbfa222dbe3cb3d2e31766a870e",
+      "line": 90,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/remote_site_protocol/dispatch.mbt",
+      "token": "actql-remote-dispatch-request/0.2",
+      "contextSha256": "2fa3a4c6dda5198b43e408a208c16dd0a51f2791dad7ad87bbc61f8da53b8bf6",
+      "line": 361,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "src/remote_site_protocol/dispatch.mbt",
+      "token": "actql-remote-managed-output-subject/0.2",
+      "contextSha256": "b13fb0bdc8187c30ea1fd2f49048cc3713487f81de21730f2cd0a559f74bb5d4",
+      "line": 880,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "src/remote_site_protocol/dispatch_test.mbt",
+      "token": "actql-remote-managed-output-subject/0.2",
+      "contextSha256": "4119b134bdd764dcdbfe11d978d72628eed2b1debb09ba6f3dccc343bf5b5490",
+      "line": 517,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/remote_site_protocol/durable_record.mbt",
+      "token": "actql-remote-dispatch-request/0.2",
+      "contextSha256": "d7634a1917e0081c80a9ef3bdcc2cfc57890bd309e36bef0691001688722427c",
+      "line": 94,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "src/remote_site_protocol/durable_record_test.mbt",
+      "token": "actql-remote-dispatch-record/0.2",
+      "contextSha256": "d359e2c7610a14e127bf36215d43c73cf1176f183865fd1a138c5b0668e08fea",
+      "line": 43,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/remote_site_protocol/evidence_json.mbt",
+      "token": "actql-remote-managed-output-subject/0.2",
+      "contextSha256": "0e22abcbd9b4d3c19434e54a8f6c09ad48d7294e9a137a79238d6ac55cda65fd",
+      "line": 153,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "src/remote_site_protocol/poll.mbt",
+      "token": "actql-remote-poll-dispatch/0.2",
+      "contextSha256": "87b8b1d701db4f5f12eb30357af93ce3a8c956f90300f7e35067368647d19cd4",
+      "line": 120,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "src/remote_site_protocol/poll.mbt",
+      "token": "actql-remote-poll-dispatch/0.2",
+      "contextSha256": "11a350e2d1c56818c4056256bc12bff2d8e44a001e48430b00b18760333360fd",
+      "line": 241,
+      "count": 1,
+      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
+    },
+    {
+      "path": "src/run_publication_host/client_program_test.mbt",
+      "token": "actql/9.9",
+      "contextSha256": "b1179fd833f622a833ca2e5f689039e3ceff332ce33f37ad3330826738111aee",
+      "line": 1357,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "src/stage_syntax/stages_test.mbt",
+      "token": "actql/9.0",
+      "contextSha256": "9f66ee4f1a006aae37d37c7f064edc43f10e671df9bcb0d49e9c74a770883e81",
+      "line": 170,
+      "count": 1,
+      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    }
+  ]
+}
