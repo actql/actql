@@ -25,6 +25,56 @@ const policyCid = name => cid({version: 'actql-installed-local-policy/0.1',
   name});
 const instant = value => new Date(value).toISOString();
 
+function localPublicationPlan({control, admission, runDefinition, invocation,
+  observation, compiledPlanCid, programDefinitionCid, inputRelationCids,
+  sourceEvidence, authorityScopeCid, tenantId, storeAuthorityCid,
+  dataPolicyCid, createdAt, now, resultCount}) {
+  const at = Date.parse(now());
+  const availableUntil = instant(at + 60 * 60 * 1000);
+  const deleteBy = instant(at + 2 * 60 * 60 * 1000);
+  const metadataDeleteBy = instant(at + 7 * 24 * 60 * 60 * 1000);
+  const retention = control.seal('result_retention_policy', JSON.stringify({
+    version: 'actql-result-retention-policy/0.1',
+    retention_contract_cid: policyCid('local-result-retention'),
+    effective_data_policy_cid: dataPolicyCid,
+    available_until: availableUntil, delete_by: deleteBy,
+    extension_ceiling_at: metadataDeleteBy,
+    metadata_retention_policy_cid: policyCid('local-result-metadata'),
+    metadata_delete_by: metadataDeleteBy,
+    clock_contract_cid: policyCid('local-clock'),
+  }), limits);
+  const normalizationJournal = control.sealRunEvidence(
+    'normalization_journal', JSON.stringify({
+      version: 'actql-normalization-journal/0.1',
+      rule_catalog_cid: policyCid('local-normalization'), entries: [],
+    }), limits);
+  const authoringContext = control.sealRunEvidence('authoring_context',
+    JSON.stringify({version: 'actql-authoring-context/0.1',
+      program_definition_cid: programDefinitionCid,
+      annotations: []}), limits);
+  return Object.freeze({admission, runDefinition, invocation, observation,
+    normalizationJournal, authoringContext,
+    results: Object.freeze(Array.from({length: resultCount}, () =>
+      Object.freeze({retention, evidenceContext: Object.freeze({
+        computationContractCid: compiledPlanCid,
+        inputRelationCids, scopeCid: runDefinition.identity,
+        effectiveDataPolicyCid: dataPolicyCid, authorityScopeCid,
+      })}))),
+    receiptEvidence: Object.freeze({bindings: [], sourceEvidence,
+      modelEvidence: [], barrierAttemptReceiptCids: []}),
+    captureEvidence: Object.freeze({pendingSourceStateAdvances: [],
+      modelEvidence: []}),
+    request: Object.freeze({tenantId, authorityScopeCid,
+      publicationPolicyCid: policyCid('local-publication'),
+      publicationTargetCid: storeAuthorityCid, requestedAt: createdAt}),
+    attempt: Object.freeze({attemptId: randomUUID(),
+      fenceCid: cid({version: 'actql-local-run-fence/0.1',
+        run_definition_cid: runDefinition.identity}),
+      externalIdempotencyKey: undefined, startedAt: createdAt}),
+    outputLimits: localOutputLimits, contractLimits: limits, now,
+  });
+}
+
 export function sourceFreeValuesPlan({moon, control, preparedProgram,
   document, format, parameters, environmentWire, environmentCid,
   authorityScopeCid, tenantId, requestId, storeAuthorityCid, now,
@@ -36,9 +86,6 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
   const createdAt = retained?.created_at ?? instant(at);
   const validUntil = retained?.valid_until ??
     instant(at + 24 * 60 * 60 * 1000);
-  const availableUntil = instant(at + 60 * 60 * 1000);
-  const deleteBy = instant(at + 2 * 60 * 60 * 1000);
-  const metadataDeleteBy = instant(at + 7 * 24 * 60 * 60 * 1000);
   const coreEnvironment = run.admitEnvironment(environmentWire,
     environmentCid, {rela: true});
   const prepared = run.prepare(document, format, coreEnvironment,
@@ -95,49 +142,14 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
     issuedInvocation.observation.wire, limits);
   const invocation = control.admit('run_invocation',
     issuedInvocation.invocation.wire, limits);
-  const retention = control.seal('result_retention_policy', JSON.stringify({
-    version: 'actql-result-retention-policy/0.1',
-    retention_contract_cid: policyCid('local-result-retention'),
-    effective_data_policy_cid: dataPolicyCid,
-    available_until: availableUntil, delete_by: deleteBy,
-    extension_ceiling_at: metadataDeleteBy,
-    metadata_retention_policy_cid: policyCid('local-result-metadata'),
-    metadata_delete_by: metadataDeleteBy,
-    clock_contract_cid: policyCid('local-clock'),
-  }), limits);
-  const normalizationJournal = control.sealRunEvidence(
-    'normalization_journal', JSON.stringify({
-      version: 'actql-normalization-journal/0.1',
-      rule_catalog_cid: policyCid('local-normalization'), entries: [],
-    }), limits);
-  const authoringContext = control.sealRunEvidence('authoring_context',
-    JSON.stringify({version: 'actql-authoring-context/0.1',
-      program_definition_cid: run.requestFields(
-        run.prepareSourceFreeRequest(prepared, compilation,
-          authorityScopeCid, requestId)).programDefinitionCid,
-      annotations: []}), limits);
-  return Object.freeze({admission, runDefinition, invocation, observation,
-    normalizationJournal, authoringContext,
-    results: Object.freeze([Object.freeze({retention,
-      evidenceContext: Object.freeze({
-        computationContractCid: compiledPlan.identity,
-        inputRelationCids: [], scopeCid: runDefinition.identity,
-        effectiveDataPolicyCid: dataPolicyCid,
-        authorityScopeCid,
-      })})]),
-    receiptEvidence: Object.freeze({bindings: [], sourceEvidence: [],
-      modelEvidence: [], barrierAttemptReceiptCids: []}),
-    captureEvidence: Object.freeze({pendingSourceStateAdvances: [],
-      modelEvidence: []}),
-    request: Object.freeze({tenantId, authorityScopeCid,
-      publicationPolicyCid: policyCid('local-publication'),
-      publicationTargetCid: storeAuthorityCid, requestedAt: createdAt}),
-    attempt: Object.freeze({attemptId: randomUUID(),
-      fenceCid: cid({version: 'actql-local-run-fence/0.1',
-        run_definition_cid: runDefinition.identity}),
-      externalIdempotencyKey: undefined, startedAt: createdAt}),
-    outputLimits: localOutputLimits, contractLimits: limits, now,
-  });
+  return localPublicationPlan({control, admission, runDefinition, invocation,
+    observation, compiledPlanCid: compiledPlan.identity,
+    programDefinitionCid: run.requestFields(
+      run.prepareSourceFreeRequest(prepared, compilation,
+        authorityScopeCid, requestId)).programDefinitionCid,
+    inputRelationCids: [], sourceEvidence: [], authorityScopeCid,
+    tenantId, storeAuthorityCid, dataPolicyCid, createdAt,
+    now, resultCount: 1});
 }
 
 // Admit the complete checked task graph, including acquired sources, to the
@@ -204,5 +216,57 @@ export function acquiredTaskRunAdmission({moon, control, preparedProgram,
   control.checkClientRunDefinitionBinding(preparedProgram, admission,
     runDefinition);
   return Object.freeze({admission, runDefinition, compiledPlan, template,
-    preparedEvidence, authorization, compilation});
+    preparedEvidence, authorization, compilation, prepared,
+    sourceDefinition, ownerAdmission: issued.admission, createdAt});
+}
+
+// The connector/Acquisition owner supplies Source Evidence after completing
+// physical capture and current authorization. This Host binds that evidence to
+// the checked task Run and the captured relation before publication.
+export function acquiredTaskPublicationPlan({moon, control, acquired,
+  preparedProgram, captured, sourceEvidenceWire, authorityScopeCid,
+  effectiveDataPolicyCid, captureStartedAt, captureCompletedAt, tenantId,
+  requestId, storeAuthorityCid, now}) {
+  if (typeof sourceEvidenceWire !== 'string' ||
+      typeof effectiveDataPolicyCid !== 'string' ||
+      captured?.logicalInput === undefined ||
+      captured?.checkedSource === undefined ||
+      captured?.identity === undefined ||
+      captured?.capture === undefined ||
+      moon.clientProgramCapturedSourceMatches(preparedProgram,
+        captured.capture.source()) !== true) {
+    throw new TypeError('InvalidAcquiredTaskPublication');
+  }
+  const inputLogicalWire = moon.strategyRunEvidenceJson(
+    captured.logicalInput);
+  const source = captured.checkedSource;
+  run.admitCompletedSourceObservation({sourceEvidenceWire,
+    inputLogicalWire, sourceRef: source.sourceRef,
+    sourceContractCid: source.sourceContractCid,
+    authorityScopeCid, effectiveDataPolicyCid, limits});
+  const issued = run.issueTaskInvocation(acquired.prepared,
+    acquired.compilation, acquired.ownerAdmission, acquired.sourceDefinition,
+    {sourceEvidenceWire, inputLogicalWire,
+      sourceRef: source.sourceRef,
+      sourceContractCid: source.sourceContractCid,
+      authorityScopeCid, dataPolicyCid: effectiveDataPolicyCid,
+      captureStartedAt, captureCompletedAt}, limits);
+  const observation = control.admitRunEvidence('observation_set',
+    issued.observation.wire, limits);
+  const invocation = control.admit('run_invocation',
+    issued.invocation.wire, limits);
+  const sourceEvidence = control.admitRunEvidence('source_evidence',
+    sourceEvidenceWire, limits);
+  const request = run.prepareRequest(acquired.prepared,
+    authorityScopeCid, requestId,
+    moon.clientProgramSourceFreeInputIntentCid());
+  return localPublicationPlan({control, admission: acquired.admission,
+    runDefinition: acquired.runDefinition, invocation, observation,
+    compiledPlanCid: acquired.compiledPlan.identity,
+    programDefinitionCid: run.requestFields(request).programDefinitionCid,
+    inputRelationCids: [moon.clientProgramCapturedSourceLogicalCid(
+      captured.identity)], sourceEvidence: [sourceEvidence],
+    authorityScopeCid, tenantId, storeAuthorityCid,
+    dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
+    now, resultCount: run.taskResultNames(acquired.compilation).length});
 }

@@ -25,7 +25,8 @@ import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {connect as connectClient} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
-import {acquiredTaskRunAdmission} from './local-values-plan.mjs';
+import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan} from
+  './local-values-plan.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
 import {openCapturedDuckDBSource} from './captured-duckdb-source.mjs';
 import {fixtureSourceAccess} from './authorization-fixture.mjs';
@@ -230,17 +231,88 @@ test('checked acquired source and downstream task emit their input ports',
           completeness: 'complete',
           orderingEvidence: {stable: false, keys: []},
         }));
-        const execution = await runCapturedStrategy(opened.setup);
+        const control = runtimeCore(moon).publicationControl;
+        const authorityScopeCid = cid('a');
+        const dataPolicyCid = opened.checkedSource.sourceDataPolicyCid;
+        // The fixture issues source observations; the installed Host must
+        // receive these from the Connector/Acquisition authority.
+        const sourceEvidenceBody = {version: 'actql-source-evidence/0.1',
+            source_ref: opened.checkedSource.sourceRef,
+            input_logical_cid:
+              moon.strategyRunEvidenceIdentity(opened.logicalInput),
+            source_contract_cid: opened.checkedSource.sourceContractCid,
+            schema_evidence_cid: cid('e'),
+            capability_evidence_cid: cid('f'),
+            authority_scope_cid: authorityScopeCid,
+            source_data_policy_cid: dataPolicyCid,
+            effective_data_policy_cid: dataPolicyCid,
+            data_classification: opened.checkedSource.dataClassification,
+            source_view_contract_cid:
+              opened.checkedSource.sourceViewContractCid,
+            output_carrier: 'relation', read_mode: 'snapshot',
+            observed_at: '2026-09-26T00:00:01.000Z',
+            snapshot_ref: 'fixture-duckdb-read', completeness: 'complete',
+            ordering_evidence: {stable: false, keys: []},
+            consistency_level: 'snapshot'};
+        const sourceEvidence = control.sealRunEvidence('source_evidence',
+          JSON.stringify(sourceEvidenceBody), publicationLimits);
+        const admitted = acquiredTaskRunAdmission({moon, control,
+          preparedProgram: prepared, document, format: 'json',
+          parameters: JSON.parse(parameters),
+          environmentWire: JSON.parse(catalog[1]),
+          environmentCid: catalog[2], authorityScopeCid,
+          tenantId: 'local', now: () => '2026-09-26T00:00:02.000Z'});
+        const storeAuthorityCid = cid('7');
+        const plan = acquiredTaskPublicationPlan({moon, control,
+          acquired: admitted, preparedProgram: prepared, captured: opened,
+          sourceEvidenceWire: sourceEvidence.wire, authorityScopeCid,
+          effectiveDataPolicyCid: dataPolicyCid,
+          captureStartedAt: '2026-09-26T00:00:00.000Z',
+          captureCompletedAt: '2026-09-26T00:00:01.000Z',
+          tenantId: 'local', requestId: 'acquired-result-request',
+          storeAuthorityCid, now: () => '2026-09-26T00:00:02.000Z'});
+        assert.equal(plan.results.length, 2);
+        for (const changed of [
+          {...sourceEvidenceBody, input_logical_cid: cid('9')},
+          {...sourceEvidenceBody, completeness: 'partial'},
+        ]) {
+          const wire = control.sealRunEvidence('source_evidence',
+            JSON.stringify(changed), publicationLimits).wire;
+          assert.throws(() => acquiredTaskPublicationPlan({moon,
+            control, acquired: admitted, preparedProgram: prepared,
+            captured: opened, sourceEvidenceWire: wire,
+            authorityScopeCid, effectiveDataPolicyCid: dataPolicyCid,
+            captureStartedAt: '2026-09-26T00:00:00.000Z',
+            captureCompletedAt: '2026-09-26T00:00:01.000Z',
+            tenantId: 'local', requestId: 'acquired-result-request',
+            storeAuthorityCid,
+            now: () => '2026-09-26T00:00:02.000Z'}));
+        }
+        const store = await openLocalPublicationStore({
+          directory: join(directory, 'publication'), storeAuthorityCid,
+          capacityBytes: 512 * 1024 * 1024,
+          maxObjectBytes: 10 * 1024 * 1024,
+          maxObjects: 100, maxContractNodes: 10000,
+          maxContractDepth: 64,
+        }, control);
+        let published;
         try {
+          published = await runPublishedCapturedStrategy(opened.setup,
+            {store, plan});
+          const execution = published.execution;
           assert.equal(execution.status, 'host-tasks-completed');
           assert.deepEqual(execution.resultInventory.map(result =>
             result.name), ['b', 'c']);
           assert.equal(execution.completed.length, 3);
           assert.deepEqual(execution.completed.map(value => value.task),
             [1, 2, 3]);
+          assert.equal(published.publication.publication.state, 'succeeded');
         } finally {
-          await execution.close();
-          assert.equal(execution.cleanupPending(), false);
+          if (published !== undefined) {
+            await published.close();
+            assert.equal(published.cleanupPending(), false);
+          }
+          await store.close();
         }
       } finally {
         opened.close();
