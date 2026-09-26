@@ -27,12 +27,15 @@ fn drain_extremum(
   values : Array[Value],
   minimum : Bool,
   control : ControlBudget,
-) -> (Result[Value, RowIssue], Int) {
+) -> (Result[Value, RowIssue], Int) raise {
   let state = start_aggregate_extremum(values, minimum, control)
   let mut advances = 0
   while true {
     advances += 1
-    match advance_aggregate_extremum(state) {
+    let before = control.remaining
+    let step = advance_aggregate_extremum(state)
+    assert_true(before - control.remaining <= 1)
+    match step {
       Ok(None) => ()
       Ok(Some(value)) => break (Ok(value), advances)
       Err(issue) => break (Err(issue), advances)

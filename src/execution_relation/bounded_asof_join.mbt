@@ -966,7 +966,7 @@ pub fn start_bounded_asof_join(
     right_row: 0,
     key_index: 0,
     tie_index: 0,
-    comparison: { phase: -1, offset: 0, },
+    comparison: bounded_complete_value_comparison(),
     sort_pair_left: -1,
     sort_pair_right: -1,
     sort_compare_index: 0,

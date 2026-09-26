@@ -22,7 +22,7 @@ fn start_aggregate_extremum(
     values,
     minimum,
     control,
-    comparison: { phase: -1, offset: 0, },
+    comparison: bounded_complete_value_comparison(),
     index: 1,
     selected: if values.is_empty() {
       Null

@@ -250,6 +250,27 @@ fn runtime_value_identity(
   workspace : RowWorkspace,
   limits : ValueLimits,
 ) -> Result[String, RowIssue] {
+  match runtime_value_identity_usage(value, control, workspace, limits) {
+    Ok((cid, bytes)) =>
+      if !spend_control(control, bytes) {
+        Err(RowLimit)
+      } else {
+        Ok(cid)
+      }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Hash one runtime value under the identity limits and the remaining
+/// control budget, returning its CID and the encoded bytes to charge.
+/// The hash work is bounded by the per-value identity limits.
+fn runtime_value_identity_usage(
+  value : Value,
+  control : ControlBudget,
+  workspace : RowWorkspace,
+  limits : ValueLimits,
+) -> Result[(String, Int), RowIssue] {
   if limits.max_nodes < 0 ||
     limits.max_text_bytes < 0 ||
     limits.max_work < 0 ||
@@ -257,7 +278,7 @@ fn runtime_value_identity(
     !reserve_slots(workspace, limits.max_depth) {
     return Err(RowLimit)
   }
-  let result : Result[String, RowIssue] = try {
+  let result : Result[(String, Int), RowIssue] = try {
     let writer = @encode.hashing_writer(
       Int::min(control.remaining, limits.max_work),
       Int::min(Int::min(control.remaining, limits.max_work), limits.max_nodes),
@@ -265,11 +286,7 @@ fn runtime_value_identity(
     )
     emit_runtime_value(value, writer)
     let (cid, bytes, _) = @encode.finish_hash_usage(writer)
-    if !spend_control(control, bytes) {
-      Err(RowLimit)
-    } else {
-      Ok(cid)
-    }
+    Ok((cid, bytes))
   } catch {
     _ => Err(RowLimit)
   }
@@ -284,48 +301,18 @@ fn distinct_aggregate_values(
   workspace : RowWorkspace,
   identity_limits : ValueLimits,
 ) -> Result[Array[Value], RowIssue] {
-  let buckets : Map[String, Array[Value]] = Map([])
-  let output : Array[Value] = []
-  for value in values {
-    if !spend_control(control, 1) {
-      return Err(RowLimit)
+  let state = start_aggregate_distinct(
+    values, control, workspace, identity_limits,
+  )
+  while true {
+    match advance_aggregate_distinct(state) {
+      Ok(None) => ()
+      Ok(Some(output)) => break Ok(output)
+      Err(issue) => break Err(issue)
     }
-    let cid = match
-      runtime_value_identity(value, control, workspace, identity_limits) {
-      Ok(cid) => cid
-      Err(issue) => return Err(issue)
-    }
-    let bucket = match buckets.get(cid) {
-      Some(bucket) => bucket
-      None => {
-        if !reserve_slots(workspace, 1) || !spend_control_text(control, cid) {
-          return Err(RowLimit)
-        }
-        let bucket : Array[Value] = []
-        buckets[cid] = bucket
-        bucket
-      }
-    }
-    let mut duplicate = false
-    for previous in bucket {
-      let comparison = match compare_complete_value(previous, value, control) {
-        Ok(comparison) => comparison
-        Err(issue) => return Err(ordering_row_issue(issue))
-      }
-      if comparison == 0 {
-        duplicate = true
-        break
-      }
-    }
-    if !duplicate {
-      if !reserve_slots(workspace, 2) {
-        return Err(RowLimit)
-      }
-      bucket.push(value)
-      output.push(value)
-    }
+  } nobreak {
+    Err(InvalidRows)
   }
-  Ok(output)
 }
 
 ///|
@@ -372,24 +359,18 @@ fn[T : IndexedRows] ordered_aggregate_values(
     start: range.start,
     end: range.end,
   }
-  let ordered = match stable_order_indices(members, order, control, workspace) {
-    Ok(ordered) => ordered
-    Err(issue) => return Err(ordering_row_issue(issue))
-  }
-  let values : Array[Value] = []
-  for position in ordered {
-    if !spend_control(control, 1) {
-      return Err(RowLimit)
+  let state = start_aggregate_ordered_values(
+    members, order, column, control, workspace,
+  )
+  while true {
+    match advance_aggregate_ordered_values(state) {
+      Ok(None) => ()
+      Ok(Some(values)) => break Ok(values)
+      Err(issue) => break Err(issue)
     }
-    let value = IndexedRows::read_cell(members, position, column)
-    if !(value is Null) {
-      if !reserve_slots(workspace, 1) {
-        return Err(RowLimit)
-      }
-      values.push(value)
-    }
+  } nobreak {
+    Err(InvalidRows)
   }
-  Ok(values)
 }
 
 ///|
@@ -411,21 +392,19 @@ fn evaluate_array_aggregate(
     is Some(maximum) else {
     return Err(InvalidRows)
   }
-  if values.length().to_int64() > maximum ||
-    !spend_control(control, values.length()) ||
-    !reserve_slots(workspace, values.length()) {
+  if values.length().to_int64() > maximum {
     return Err(RowLimit)
   }
-  let admitted : Array[@admitted.Value] = []
-  for value in values {
-    let item = match admitted_aggregate_item(value, control) {
-      Ok(Some(item)) => item
-      Ok(None) => return Err(InvalidRows)
-      Err(issue) => return Err(issue)
+  let state = start_aggregate_array(values, control, workspace)
+  while true {
+    match advance_aggregate_array(state) {
+      Ok(None) => ()
+      Ok(Some(value)) => break Ok(value)
+      Err(issue) => break Err(issue)
     }
-    admitted.push(item)
+  } nobreak {
+    Err(InvalidRows)
   }
-  Ok(Captured(@admitted.array_value(admitted)))
 }
 
 ///|
@@ -455,25 +434,18 @@ fn evaluate_string_aggregate(
   if !reserve_slots(workspace, values.length()) {
     return Err(RowLimit)
   }
-  let strings : Array[String] = []
-  let mut total = 0L
-  for index, value in values {
-    guard value is Text(text) else { return Err(InvalidRows) }
-    let bytes = match @scalar.admit_utf8_length64(text, maximum) {
-      Ok(bytes) => bytes
-      Err(_) => return Err(RowLimit)
+  let state = start_aggregate_string(
+    values, delimiter, delimiter_bytes, maximum, control,
+  )
+  while true {
+    match advance_aggregate_string(state) {
+      Ok(None) => ()
+      Ok(Some(value)) => break Ok(value)
+      Err(issue) => break Err(issue)
     }
-    let separator = if index == 0 { 0L } else { delimiter_bytes }
-    if separator > maximum - total ||
-      bytes > maximum - total - separator ||
-      !spend_control_bytes(control, separator) ||
-      !spend_control_bytes(control, bytes) {
-      return Err(RowLimit)
-    }
-    total += separator + bytes
-    strings.push(text)
+  } nobreak {
+    Err(InvalidRows)
   }
-  Ok(Text(strings.join(delimiter)))
 }
 
 ///|

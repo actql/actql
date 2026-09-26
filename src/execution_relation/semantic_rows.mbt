@@ -127,11 +127,18 @@ fn advance_bounded_text_charge(
 priv struct BoundedCompleteValueComparison {
   mut phase : Int
   mut offset : Int
+  charge : BoundedTextCharge
+}
+
+///|
+fn bounded_complete_value_comparison() -> BoundedCompleteValueComparison {
+  { phase: -1, offset: 0, charge: { offset: 0, next: 0, remaining: 0, }, }
 }
 
 ///|
 /// Text uses the same complete-value charges and UTF-16 order as the atomic
-/// comparator. Other admitted kinds retain their existing comparison path.
+/// comparator, paying at most one UTF-8 byte unit per advance. Other admitted
+/// kinds retain their existing comparison path.
 fn bounded_complete_value_comparison_step(
   cursor : BoundedCompleteValueComparison,
   left : Value,
@@ -157,27 +164,23 @@ fn bounded_complete_value_comparison_step(
       Ok(None)
     }
     1 => {
-      if cursor.offset < a.length() {
-        cursor.offset = match
-          bounded_text_charge_step(control, a, cursor.offset) {
-          Ok(next) => next
-          Err(issue) => return Err(issue)
-        }
-        return Ok(None)
+      match advance_bounded_text_charge(cursor.charge, control, a) {
+        Ok(false) => return Ok(None)
+        Ok(true) => ()
+        Err(issue) => return Err(issue)
       }
+      reset_bounded_text_charge(cursor.charge)
       cursor.phase = 2
       cursor.offset = 0
       Ok(None)
     }
     2 => {
-      if cursor.offset < b.length() {
-        cursor.offset = match
-          bounded_text_charge_step(control, b, cursor.offset) {
-          Ok(next) => next
-          Err(issue) => return Err(issue)
-        }
-        return Ok(None)
+      match advance_bounded_text_charge(cursor.charge, control, b) {
+        Ok(false) => return Ok(None)
+        Ok(true) => ()
+        Err(issue) => return Err(issue)
       }
+      reset_bounded_text_charge(cursor.charge)
       cursor.phase = 3
       cursor.offset = 0
       Ok(None)

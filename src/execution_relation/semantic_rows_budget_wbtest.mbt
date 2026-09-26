@@ -46,7 +46,7 @@ test "bounded complete text comparison retains exact work and UTF-16 order" {
   let left = Text("x".repeat(128) + "\u{e000}")
   let right = Text("x".repeat(128) + "\u{10000}")
   let exact : ControlBudget = { remaining: 264, max_frames: 1, }
-  let cursor : BoundedCompleteValueComparison = { phase: -1, offset: 0, }
+  let cursor = bounded_complete_value_comparison()
   let mut result : Int? = None
   let mut steps = 0
   while result is None && steps < 800 {
@@ -63,7 +63,7 @@ test "bounded complete text comparison retains exact work and UTF-16 order" {
   assert_eq(cursor.phase, -1)
 
   let short : ControlBudget = { remaining: 263, max_frames: 1, }
-  let short_cursor : BoundedCompleteValueComparison = { phase: -1, offset: 0, }
+  let short_cursor = bounded_complete_value_comparison()
   let mut exhausted = false
   for _ in 0..<800 {
     if exhausted {
