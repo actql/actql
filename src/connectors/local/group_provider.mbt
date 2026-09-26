@@ -24,8 +24,7 @@ fn group_provider(
         @execution.generated_sequence_step_index_at(sequence, 0) is Some(step) &&
         @execution.generated_sequence_step_at(sequence, 0)
         is Some(@lower.RowStep(kernel)) &&
-        @lower.kernel_group(kernel) is Some(group) &&
-        @execution.bounded_group_supported_with_numeric(group) else {
+        @execution.bounded_group_step_supported(sequence, kernel) else {
         return false
       }
       @lower.node_at(

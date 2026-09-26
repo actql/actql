@@ -84,13 +84,21 @@ selected numeric reductions when the task supplies the numeric execution;
 the dispatcher seals the task's numeric occurrences when the provider
 completes, and a failed seal fails the attempt. Numeric groups inside a
 bounded chain (a following same-task filter, a second group) take the same
-provider. Its evidence is an independently derived exact/one-short work fixture
-(21 units for a one-row max group), managed direct, ordered, collection,
-nested distinct, statistics and numeric fixtures at quantum one with two
-consumers, Host cancellation after positive work, and a standard Node Host
-timer cancellation. Filtered and expression-argument group aggregates,
-pivot and analytic still use the synchronous route, so the strict group
-entrypoint assurance remains open.
+provider. Filtered and expression-argument aggregates also take it: the
+kernel derives the step's logical budget from its fragment runtime context,
+as the synchronous sequence does, and generation already rejects such a
+group without one. Their filter and argument frames advance with the same
+per-node granularity as the bounded filter and derive path: one frame
+advance pays its node entry, view entries and field-name bytes, and a
+returned value is measured within the fragment's value limits, so it is
+bounded by the program and fragment limits rather than one unit. Its
+evidence is independently derived exact/one-short work fixtures (21 units
+for a one-row max group; 28 and 40 for one filtered-out and one accepted
+row of a filtered expression max), managed direct, ordered, collection,
+nested distinct, statistics, numeric and filtered-expression fixtures at
+quantum one with two consumers, Host cancellation after positive work, and a
+standard Node Host timer cancellation. Pivot and analytic still use the
+synchronous route, so the strict group entrypoint assurance remains open.
 
 General aggregate execution is being converted at its existing evaluation
 boundaries. Source snapshots, filter/argument demand, contributor collection,

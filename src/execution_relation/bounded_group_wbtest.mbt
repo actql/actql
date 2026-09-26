@@ -4,6 +4,28 @@ fn bounded_group_fixture(
   max_work? : Int = 1000,
   max_entries? : Int = 1000,
 ) -> (@bounded.Control, BoundedGroupExecution, CompletedOutput) raise {
+  let (control, execution, source) = bounded_group_start(
+    rows,
+    "{\"m\":{\"fn\":\"max\",\"field\":\"k\"}}",
+    false,
+    max_work~,
+    max_entries~,
+  )
+  (control, execution.unwrap(), source)
+}
+
+///|
+fn bounded_group_start(
+  rows : String,
+  aggregates : String,
+  fragment : Bool,
+  max_work? : Int = 1000,
+  max_entries? : Int = 1000,
+) -> (
+  @bounded.Control,
+  Result[BoundedGroupExecution, BoundedGroupIssue],
+  CompletedOutput,
+) raise {
   let source_owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"k\":{\"type\":\"number\",\"nullable\":false}},\"rows\":" +
     rows +
@@ -27,7 +49,9 @@ fn bounded_group_fixture(
   ).unwrap()
   let checked = @pipeline.check_with_evidence(
     input_cursor(
-      "[{\"from\":\"seed\",\"group\":{\"by\":[\"k\"],\"aggregates\":{\"m\":{\"fn\":\"max\",\"field\":\"k\"}}}}]",
+      "[{\"from\":\"seed\",\"group\":{\"by\":[\"k\"],\"aggregates\":" +
+      aggregates +
+      "}}]",
     ),
     [("seed", @pipeline.ProducedInput(producer))],
     None,
@@ -52,10 +76,15 @@ fn bounded_group_fixture(
     max_parameters=0,
     max_name_bytes=0,
   ).unwrap()
+  let sequence = prepared_sequence(receiver)
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
-    prepared_sequence(receiver),
-    [],
+    sequence,
+    if fragment {
+      [sequence_fragment_context(sequence, 0, 10L)]
+    } else {
+      []
+    },
     ["group_0"],
     100000,
     10000,
@@ -79,7 +108,7 @@ fn bounded_group_fixture(
     100,
     max_entries,
     10000,
-  ).unwrap()
+  )
   (control, execution, source)
 }
 
@@ -131,6 +160,98 @@ test "bounded group stops after positive work without publishing" {
     "[{\"k\":3},{\"k\":1},{\"k\":3},{\"k\":2}]",
   )
   for _ in 0..<5 {
+    assert_true(
+      advance_bounded_group_execution(execution, 1)
+      is Ok(BoundedGroupContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_group_execution(execution, 1)
+    is Ok(BoundedGroupStopped(_, ..)),
+  )
+  assert_true(cleanup_bounded_group_execution(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
+/// Total work across quantum-one advances, or None on any non-completion or
+/// any advance that pays more than its quantum. Poll work is cumulative.
+fn bounded_group_total_work(execution : BoundedGroupExecution) -> Int64? {
+  let mut previous = 0L
+  for _ in 0..<10000 {
+    match advance_bounded_group_execution(execution, 1) {
+      Ok(BoundedGroupContinue(work~, ..)) => {
+        if work - previous > 1L {
+          return None
+        }
+        previous = work
+      }
+      Ok(BoundedGroupComplete(_, work~, ..)) =>
+        return if work - previous > 1L { None } else { Some(work) }
+      _ => return None
+    }
+  }
+  None
+}
+
+///|
+let bounded_group_filtered : String = "{\"m\":{\"fn\":\"max\",\"expr\":\"10 / k\",\"filter\":\"k > 0\"}}"
+
+///|
+test "bounded group evaluates filtered expression aggregates within exact work" {
+  // Shared parts (21): one input row charge (1); names: input k, key k,
+  // aggregate m, output k and m (10); stable order (3); one group boundary
+  // and one group (2); contributor row entry (1); filter snapshot entry and
+  // name byte (2); two output cells (2). Each `field op literal` frame costs
+  // 7. A filtered-out row adds only its filter frame (28). An accepted row
+  // adds both frames, its argument snapshot (2), one ordered index, one
+  // permutation copy and one max contributor (3): 21 + 14 + 5 = 40.
+  for case in [("[{\"k\":0}]", 28), ("[{\"k\":2}]", 40)] {
+    let (rows, exact_work) = case
+    let (_, measured, source) = bounded_group_start(
+      rows, bounded_group_filtered, true,
+    )
+    let measured = measured.unwrap()
+    // Every quantum-one advance pays at most one kernel step.
+    assert_true(bounded_group_total_work(measured) is Some(_))
+    assert_true(cleanup_bounded_group_execution(measured).unwrap())
+    let (_, exact, _) = bounded_group_start(
+      rows,
+      bounded_group_filtered,
+      true,
+      max_work=exact_work,
+    )
+    let exact = exact.unwrap()
+    match drive_bounded_group(exact) {
+      BoundedGroupComplete(output, ..) =>
+        assert_eq(completed_row_count(output), 1)
+      _ => fail("exact filtered group work rejected")
+    }
+    assert_true(cleanup_bounded_group_execution(exact).unwrap())
+    let (_, short, _) = bounded_group_start(
+      rows,
+      bounded_group_filtered,
+      true,
+      max_work=exact_work - 1,
+    )
+    let short = short.unwrap()
+    match drive_bounded_group(short) {
+      BoundedGroupFailed(Rows(RowLimit), ..) => ()
+      _ => fail("one-short filtered group work accepted")
+    }
+    assert_true(cleanup_bounded_group_execution(short).unwrap())
+    assert_true(completed_output_available(source))
+  }
+}
+
+///|
+test "bounded group stops a filtered aggregate after positive work" {
+  let (control, execution, source) = bounded_group_start(
+    "[{\"k\":3},{\"k\":1},{\"k\":3},{\"k\":2}]", bounded_group_filtered, true,
+  )
+  let execution = execution.unwrap()
+  for _ in 0..<30 {
     assert_true(
       advance_bounded_group_execution(execution, 1)
       is Ok(BoundedGroupContinue(..)),

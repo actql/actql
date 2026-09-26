@@ -2483,6 +2483,20 @@
           "fixture": "bounded group stops after positive work without publishing"
         },
         {
+          "role": "filtered_group_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_group_wbtest.mbt",
+          "fixture": "bounded group evaluates filtered expression aggregates within exact work"
+        },
+        {
+          "role": "filtered_group_stop_nonpublication",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_group_wbtest.mbt",
+          "fixture": "bounded group stops a filtered aggregate after positive work"
+        },
+        {
           "role": "direct_group_two_consumers",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -2518,6 +2532,13 @@
           "fixture": "Local managed numeric reductions reach two independent consumers"
         },
         {
+          "role": "filtered_group_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "Local managed filtered expressions reach two independent consumers"
+        },
+        {
           "role": "direct_group_cancel_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -2551,6 +2572,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "standard Host cancels a numeric group after bounded work"
+        },
+        {
+          "role": "filtered_group_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "standard Host cancels filtered expression aggregates after bounded work"
         },
         {
           "role": "keyed_count_values_split_two_consumers",

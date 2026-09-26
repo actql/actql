@@ -154,9 +154,7 @@ pub fn bounded_asof_join_cleanup_pending(BoundedAsOfJoinExecution) -> Bool
 
 pub fn bounded_binding_rows_cleanup_pending(BoundedBindingRowsExecution) -> Bool
 
-pub fn bounded_group_supported(@lowering_relation.PreparedGroup) -> Bool
-
-pub fn bounded_group_supported_with_numeric(@lowering_relation.PreparedGroup) -> Bool
+pub fn bounded_group_step_supported(GeneratedSequence, @lowering_relation.PreparedKernel) -> Bool
 
 pub fn bounded_independent_row_copy_cleanup_pending(BoundedIndependentRowCopy) -> Bool
 

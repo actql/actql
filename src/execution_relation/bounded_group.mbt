@@ -47,43 +47,56 @@ impl RelationRows for BoundedGroupInputRows with fn field_names(self) {
 }
 
 ///|
-/// Groups this bounded kernel executes without numeric callbacks: every
-/// aggregate is direct and needs no selected numeric reduction.
-pub fn bounded_group_supported(group : @lower.PreparedGroup) -> Bool {
-  if !group_execution_supported(group) {
-    return false
-  }
-  for index in 0..<@lower.group_aggregate_count(group) {
-    let aggregate = @lower.group_aggregate_at(group, index).unwrap()
-    if @lower.group_aggregate_filter(aggregate) is Some(_) ||
-      @lower.group_aggregate_argument(aggregate)
-      is @lower.AggregateExpression(_) ||
-      @lower.group_aggregate_requires_numeric_observation(aggregate) {
-      return false
-    }
-  }
-  true
-}
-
-///|
-/// Groups this bounded kernel executes when the task supplies its selected
-/// numeric reduction callbacks: every aggregate is direct (no filter and no
-/// expression argument); selected numeric reductions are allowed.
-pub fn bounded_group_supported_with_numeric(
-  group : @lower.PreparedGroup,
-) -> Bool {
-  if !group_execution_supported_with_numeric(group) {
-    return false
-  }
+/// Whether any aggregate needs expression evaluation: a filter or an
+/// expression argument.
+fn bounded_group_dynamic(group : @lower.PreparedGroup) -> Bool {
   for index in 0..<@lower.group_aggregate_count(group) {
     let aggregate = @lower.group_aggregate_at(group, index).unwrap()
     if @lower.group_aggregate_filter(aggregate) is Some(_) ||
       @lower.group_aggregate_argument(aggregate)
       is @lower.AggregateExpression(_) {
-      return false
+      return true
     }
   }
-  true
+  false
+}
+
+///|
+/// The logical budget for this kernel's expressions, derived from its one
+/// fragment runtime context exactly as the synchronous sequence does.
+fn bounded_group_logical(
+  generated : GeneratedSequence,
+  kernel : @lower.PreparedKernel,
+) -> LogicalBudget? {
+  let mut found : LogicalBudget? = None
+  for context in generated.contexts {
+    if physical_equal(context.kernel, kernel) {
+      if found is Some(_) {
+        return None
+      }
+      found = match fragment_runtime_for_kernel(context, kernel) {
+        Ok(value) => Some(value)
+        Err(_) => return None
+      }
+    }
+  }
+  found
+}
+
+///|
+/// Group steps this bounded kernel executes. Selected numeric reductions
+/// additionally need the task's numeric execution at start. Filtered and
+/// expression aggregates need the step's fragment runtime context.
+pub fn bounded_group_step_supported(
+  generated : GeneratedSequence,
+  kernel : @lower.PreparedKernel,
+) -> Bool {
+  guard @lower.kernel_group(kernel) is Some(group) &&
+    group_execution_supported_with_numeric(group) else {
+    return false
+  }
+  !bounded_group_dynamic(group) ||
+  bounded_group_logical(generated, kernel) is Some(_)
 }
 
 ///|
@@ -104,6 +117,7 @@ priv struct BoundedGroupState {
   output_sources : Array[Int?]
   control : ControlBudget
   workspace : RowWorkspace
+  scope : ExpressionRoots?
   input_values : ValueBudget
   admitted_limits : @admitted.Limits
   mut output : AdmittedOutput?
@@ -184,6 +198,9 @@ fn cleanup_bounded_group_state(state : BoundedGroupState) -> Bool {
   if state.charge_measure is Some(cursor) {
     clear_stepped_measure(cursor)
     state.charge_measure = None
+  }
+  if state.scope is Some(scope) {
+    cleanup_expression_roots(scope)
   }
   release_slots(state.workspace, state.workspace.live)
   if !state.accepted.val {
@@ -497,11 +514,8 @@ fn start_bounded_group_with_input(
     @lower.sequence_step(generated.sequence, step)
     is Some(@lower.RowStep(kernel)) &&
     @lower.kernel_group(kernel) is Some(group) &&
-    (if numeric is Some(_) {
-      bounded_group_supported_with_numeric(group)
-    } else {
-      bounded_group_supported(group)
-    }) &&
+    bounded_group_step_supported(generated, kernel) &&
+    (numeric is Some(_) || group_execution_supported(group)) &&
     global_count_input_matches(input, owner, step) &&
     global_count_input_available(input) else {
     return Err(InvalidExecution)
@@ -573,6 +587,9 @@ fn start_bounded_group_with_input(
   }
   let control : ControlBudget = { remaining: max_work, max_frames, }
   let workspace = row_workspace(max_entries)
+  let scope = bounded_group_logical(generated, kernel).map(budget => {
+    ({ budget, slots: [], free: [], limit: max_entries, } : ExpressionRoots)
+  })
   let rows_view : BoundedGroupInputRows = { input, owner, names, }
   let pending : Array[(Array[Value], Int)] = []
   let evaluation = start_bounded_group(
@@ -582,7 +599,7 @@ fn start_bounded_group_with_input(
     control,
     evaluation_output,
     workspace,
-    None,
+    scope,
     (row, representative, _names, _sources) => {
       pending.push((row, representative))
       Ok(())
@@ -599,6 +616,7 @@ fn start_bounded_group_with_input(
     output_sources,
     control,
     workspace,
+    scope,
     input_values: input_budget,
     admitted_limits: {
       max_nodes: output_values.max_nodes,

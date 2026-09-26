@@ -692,6 +692,7 @@ fn run_local_managed_group_case(
     variant == "ordered" ||
     variant == "collections" ||
     variant == "nested_distinct" ||
+    variant == "filtered_expression" ||
     variant == "statistics" ||
     // Selected numeric reductions run inside the bounded group provider.
     variant == "numeric" ||
@@ -1098,6 +1099,14 @@ test "standard Host cancels group statistics after bounded work" {
 ///|
 test "standard Host cancels a numeric group after bounded work" {
   assert_standard_host_cancels_bounded_count("numeric", before_cancel=20)
+}
+
+///|
+test "standard Host cancels filtered expression aggregates after bounded work" {
+  assert_standard_host_cancels_bounded_count(
+    "filtered_expression",
+    before_cancel=20,
+  )
 }
 
 ///|
