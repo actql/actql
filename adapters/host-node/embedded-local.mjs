@@ -582,17 +582,44 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     authorityScopeCid, requestId: captured.requestId}, moon, control);
   const terminal = status => ['succeeded', 'failed', 'cancelled']
     .includes(status);
+  // Recover only from the accepted Run and the committed publication owner.
+  // A reserved start without an available publication cannot be treated as
+  // an unstarted read or reconstructed by fetching the source again.
+  const inspectAcquisition = async ({requestId, principalId: actual,
+    connection}) => {
+    if (sourceProfile === undefined ||
+        !hostConnection({principalId: actual, connection})) {
+      throw new Error('AcquisitionInspectionDenied');
+    }
+    const accepted = journal.lookupDefinition({tenantId,
+      authorityScopeCid, requestId}, moon, control);
+    if (accepted === undefined || accepted.physicalStartReserved !== true) {
+      return {state: 'not_started'};
+    }
+    const current = await observeRun({ref: accepted.ref,
+      principalId: actual});
+    const availability = Object.values(current.result_availability);
+    if (current.status === 'succeeded' && availability.length > 0 &&
+        availability.every(result => result.state === 'available')) {
+      return {state: 'completed_retained', ref: accepted.ref,
+        resultNames: Object.keys(current.result_availability)};
+    }
+    return {state: 'started_unknown', ref: accepted.ref};
+  };
   // The physical state of a held request's Run: `absent` (no Run
   // Definition yet), `unstarted` (no physical start reserved), `cancelled`
   // (cancelled before any physical start), `abandoned` (failed before
   // dispatch), `started` (reserved: running, or unknown after a crash) or
   // `terminal`.
   const inspectHeld = async captured => {
+    const acquisition = captured.acquisition === undefined ? undefined :
+      await inspectAcquisition({requestId: captured.requestId,
+        principalId: captured.principalId, connection: captured.connection});
     const accepted = definitionOf(captured);
-    if (accepted === undefined) return {state: 'absent'};
+    if (accepted === undefined) return {state: 'absent', acquisition};
     const runId = runIdOf(accepted);
     if (accepted.preDispatchFailureConfirmed) {
-      return {state: 'abandoned', runId};
+      return {state: 'abandoned', runId, acquisition};
     }
     if (accepted.physicalStartReserved !== true) {
       // A Run cancelled before any physical start is terminal, not
@@ -600,15 +627,15 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       if (accepted.cancellationRequested) {
         const current = await observeRun({ref: accepted.ref, principalId});
         if (current.status === 'cancelled') {
-          return {state: 'cancelled', runId};
+          return {state: 'cancelled', runId, acquisition};
         }
       }
-      return {state: 'unstarted', runId};
+      return {state: 'unstarted', runId, acquisition};
     }
     const current = await observeRun({ref: accepted.ref, principalId});
     return terminal(current.status)
-      ? {state: 'terminal', runId, status: current.status}
-      : {state: 'started', runId, status: current.status};
+      ? {state: 'terminal', runId, status: current.status, acquisition}
+      : {state: 'started', runId, status: current.status, acquisition};
   };
   // After a held request's dispatch ends, its journal Run ends only with the
   // Run's observed terminal state; a Run whose physical stop is unknown (for
@@ -740,7 +767,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
   return {port, store, journal, hostOperations, checkpoints,
-    activeDispatches};
+    activeDispatches, inspectAcquisition};
 }
 
 // This HTTP ingress uses the installed Host's common owner and physical
@@ -769,6 +796,7 @@ export async function openInstalledRemoteHttpHost({directory,
     handler: createClientHttpHandler({
       ...host.hostOperations, authenticate, maxRequestBytes: 65536,
     }),
+    inspectAcquisition: host.inspectAcquisition,
     // Stop starting resumes, let running dispatches finish and record their
     // ends, settle retention, then release the journals and the Store owner.
     // Returns what remains for the next owner instead of hiding it.

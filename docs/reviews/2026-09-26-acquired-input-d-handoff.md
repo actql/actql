@@ -10,6 +10,9 @@ The committed route before this handoff is
 The checked acquisition preparation seam is committed at
 `9915c7d38cc955de78f4c33939a61d50fd1f5594`; D can adopt it after its
 seven acquired-input ancestors. No uncommitted source is needed.
+The D cancellation series `768141d84f9975a894adec4ee118b962ac5a2dce`
+was merged into this branch at `fe5e491b3`; the acquired preparation and
+held-request cancellation now have one committed Host call site.
 
 An installed Host source profile selects one DuckDB source and Check
 Environment. The public `@actql/node` Client uses the same `aql()` and
@@ -28,7 +31,7 @@ mode uses a fixture provider or a caller-supplied Source Evidence CID.
 | `prepareCapturedDuckDBSource()` | Checked Program and Host-installed source profile produce an opaque in-process preparation, checked source facts and the Host-configured read tuple `{connection, resource, operation:'read'}`. It performs no provider acquisition. `openCapturedDuckDBSource()` accepts only that exact preparation and profile. | Distribution owns `captured-duckdb-source.mjs` and calls it before `acceptRun()`. The serialized checked source and tuple are placed in the existing encrypted Checkpoint captured submission and re-derived and compared on resume. D owns the authorization/hold decision in `client-checkpoints.mjs`; a CID or serialized tuple alone is not a grant. |
 | `authorizeSourceAccess()` | The DuckDB grant and current account configuration decide `acquisition` for that tuple immediately before a provider session opens. Non-dispatch decisions prevent I/O. | Connector physical adapter owns `session.mjs`; Distribution wires the installed profile. D must add its pre-acquisition Checkpoint decision, cancellation and claim validation to the captured request before physical acquisition. The current Run-acceptance write decision is not a read decision. |
 | `openCapturedDuckDBSource().issueSourceEvidence()` | The exact checked requirement, native completed observation, actual schema/capability and current read grant yield formal Source Evidence. | Distribution owns the production DuckDB issuer in `host.mjs` and MoonBit `source_evidence_capture.mbt`. D consumes this output; it does not issue or reseal evidence. |
-| `client-request-journal.lookupRunDefinition()` and `inspectHeld()` | The durable Run owner distinguishes no physical start reservation from a reserved start. A reserved but nonterminal Run is reconciled and never automatically resent. | Distribution owns the request journal and acquired output custody. D owns its existing Checkpoint resume claim and sweep. |
+| `client-request-journal.lookupRunDefinition()`, `inspectHeld()` and Host-private `inspectAcquisition()` | The durable Run owner distinguishes `not_started`, `started_unknown` and `completed_retained`. The last state requires a successful formal publication and currently available named Results from the existing Store. | Distribution owns the request journal and acquired output custody. D owns its existing Checkpoint resume claim and sweep. No state permits an implicit refetch. |
 
 The prepared acquisition is a private handle, not wire authority. Its checked
 source facts and read tuple are carried as review and continuation facts only.
@@ -72,16 +75,18 @@ An unresolved decision must remain held without starting provider I/O. The
 Host must not represent the approval as a fabricated formal Invocation CID if
 that CID depends on the later source observation.
 
-The current source capture handle is process-local. After physical start is
-reserved, `inspectHeld()` can report `started`, but cannot yet distinguish a
-completed, durably held acquisition from a lost in-memory handle after a
-crash. Distribution must connect exact acquired output and Source Evidence to
-an existing durable physical holding owner, provide an authorized reopen
-entry, and classify `not_started`, `started_unknown`, and
-`completed_retained`. D's resume then reuses the exact completed observation
-or applies the Source contract's reconciliation rules to unknown work. It
-must never infer that a new fetch is the old observation. This holding and
-reopen work is not supplied by the request journal's start bit alone.
+The current source capture handle is process-local. The Host-private recovery
+projection returns `not_started` only before the common physical start
+reservation. After that reservation it returns `started_unknown` unless the
+existing publication owner confirms both formal success and currently
+available named Results. Only then does it return `completed_retained`; the
+packed test checks this again after a Host process restart. This recovers a
+finished Result from the existing Store without reacquiring the source.
+There is no durable reopen of an intermediate captured input before
+publication. A crash there remains `started_unknown`, and D must use the
+Source contract's reconciliation rules; neither D nor Distribution may infer
+that a fresh fetch is the old observation. The request journal's start bit
+alone is not a completed-acquisition proof.
 
 File ownership for the next shared edits: Distribution owns
 `embedded-local.mjs`, `captured-duckdb-source.mjs`,
@@ -115,3 +120,9 @@ at connect: `DEPTH_ZERO_SELF_SIGNED_CERT`. The identical single test also
 fails under the same local Node environment at clean `c12deddfb`; a
 diagnostic certificate bypass confirms the functional case but is not a
 valid TLS gate. No same-SHA hosted Linux CI has run for this acquired branch.
+The merged branch's local packed Checkpoint, packed standard Node
+Local/Remote, Checkpoint runtime and contract checks passed. Its full
+distribution gate did not pass: 21 Remote Checkpoint cases failed at the
+test fixture's self-signed TLS connection, while 111 other cases passed.
+The identical Remote Checkpoint fixture failure was reproduced at clean
+`c12deddfb`; this is not an all-gates or Linux CI success claim.

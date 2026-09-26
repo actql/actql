@@ -539,6 +539,18 @@ try {
   releaseDispatch();
   await new Promise(resolve => remoteServer.close(resolve));
 }
+const acquiredRecoveryRequest = {requestId: 'packed-acquired-remote',
+  principalId: userInfo().username,
+  connection: {mode: 'remote', owner: 'remote'}};
+assert.equal((await remoteHost.inspectAcquisition(
+  acquiredRecoveryRequest)).state, 'completed_retained');
+assert.equal((await remoteHost.inspectAcquisition({
+  ...acquiredRecoveryRequest, requestId: 'never-submitted'})).state,
+  'not_started');
+await assert.rejects(remoteHost.inspectAcquisition({
+  ...acquiredRecoveryRequest, principalId: 'other-principal'}),
+{message: 'AcquisitionInspectionDenied'});
+await remoteHost.close();
 await writeFile(join(root, 'restart-remote-host.mjs'), `
 import {readFileSync} from 'node:fs';
 import {createServer} from 'node:https';
@@ -553,6 +565,12 @@ const host = await openInstalledRemoteHttpHost({
   beforeDispatch: process.env.ACTQL_HOLD_DISPATCH === '1'
     ? async () => new Promise(() => {}) : undefined,
 });
+const recovery = await host.inspectAcquisition({
+  requestId: 'packed-acquired-restart-before-start',
+  principalId: userInfo().username,
+  connection: {mode: 'remote', owner: 'remote'},
+});
+console.log('RECOVERY:' + recovery.state);
 const server = createServer({key: readFileSync('remote.key'),
   cert: readFileSync('remote.crt')}, host.handler);
 server.listen(0, '127.0.0.1', () => {
@@ -644,7 +662,8 @@ async function startRestartHost(hold) {
     child.stdout.setEncoding('utf8').on('data', chunk => {
       output += chunk;
       const ready = output.match(/READY:(\d+)/u);
-      if (ready) resolve({child, port: Number(ready[1])});
+      if (ready) resolve({child, port: Number(ready[1]),
+        recovery: output.match(/RECOVERY:([a-z_]+)/u)?.[1]});
     });
     child.stderr.setEncoding('utf8').on('data', chunk => { output += chunk; });
     child.on('error', reject);
@@ -659,6 +678,7 @@ async function stopRestartHost(host) {
   await stopped;
 }
 const heldHost = await startRestartHost(true);
+assert.equal(heldHost.recovery, 'not_started');
 try {
   await runAsync(process.execPath, ['reserve-remote.mjs'], root, {
     ACTQL_TEST_REMOTE_ENDPOINT: `https://127.0.0.1:${heldHost.port}/`,
@@ -672,6 +692,10 @@ try {
     NODE_EXTRA_CA_CERTS: join(root, 'remote.crt'),
   });
 } finally { await stopRestartHost(resumedHost); }
+const recoveredHost = await startRestartHost(false);
+try {
+  assert.equal(recoveredHost.recovery, 'completed_retained');
+} finally { await stopRestartHost(recoveredHost); }
 await writeFile(join(root, 'restart.mjs'), `
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
