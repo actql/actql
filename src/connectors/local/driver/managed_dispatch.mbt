@@ -1061,7 +1061,7 @@ pub fn[T] start_local_managed_dispatch(
               return Err(Configuration(InvalidLimits))
             }
             execution_finished.val = true
-            Err(Configuration(InputUnavailable))
+            Err(Execution(Stopped))
           }
         }
       }
@@ -1098,7 +1098,7 @@ pub fn[T] start_local_managed_dispatch(
             }
             Ok(@execution.RowCopyStopped(_, ..)) => {
               execution_finished.val = true
-              Err(Configuration(InputUnavailable))
+              Err(Execution(Stopped))
             }
           }
         }

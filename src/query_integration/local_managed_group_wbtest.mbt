@@ -969,7 +969,7 @@ fn assert_standard_host_cancels_bounded_count(
     assert_eq(next.work, 1L)
   }
   assert_true((operations.request_cancel)())
-  assert_true((operations.advance)(1) is Err(_))
+  assert_true((operations.advance)(1) is Err(Execution(Stopped)))
   assert_true((operations.execution_stopped)())
   assert_true((operations.output_row)(0) is Err(_))
   assert_true(
