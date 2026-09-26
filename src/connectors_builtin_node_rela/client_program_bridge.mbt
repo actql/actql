@@ -4429,6 +4429,16 @@ pub fn client_program_bind_compiled_effect_run(
 }
 
 ///|
+#export_name("clientProgramEffectRunStartCurrent")
+pub fn client_program_effect_run_start_current(
+  allowed : @publication_host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  at : String,
+) -> Bool {
+  @publication_host.client_effect_run_start_current(allowed, definition, at)
+}
+
+///|
 #export_name("clientProgramEffectCompilationResultNames")
 pub fn client_program_effect_compilation_result_names(
   value : @publication_host.ClientEffectCompilation,
