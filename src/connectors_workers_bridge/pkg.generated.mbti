@@ -158,6 +158,8 @@ pub fn strategy_effect_preview_semantic_cid(@run_publication.EffectPreviewIdenti
 
 pub fn strategy_effect_preview_target_guards_check(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int) -> Bool raise NodeHostFailure
 
+pub fn strategy_effect_reconciliation_run_state(@run_publication.EffectPreviewIdentity, String, Array[String], String, String, Array[String], Int, Int, Int) -> String raise NodeHostFailure
+
 pub fn strategy_effect_recover_claims_from_heads(Array[Array[@effect_application.EffectRecoveryBinding]], Array[Array[@effect_application.EffectLedgerEntry?]], Int) -> Array[Array[@effect_application.EffectRecoveredClaim]] raise NodeHostFailure
 
 pub fn strategy_effect_recovered_claim_basis(@effect_application.EffectRecoveredClaim) -> @effect_application.EffectLedgerBasis

@@ -70,6 +70,7 @@ pub(all) enum RunStateIssue {
   ResultNotUnknown(String)
   InvalidRunId
   InvalidObservationTime(String)
+  EffectSetMismatch
   Encoding
 } derive(Eq, Debug)
 

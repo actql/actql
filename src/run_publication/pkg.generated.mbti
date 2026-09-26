@@ -245,6 +245,8 @@ pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContrac
 
 pub fn issue_effect_free_unpublished_run_state_wire(String, String, Array[String], Bool, Bool, Int, Int, Int, cancelled_before_start? : Bool) -> Result[String, RunStateIssue]
 
+pub fn issue_effect_reconciliation_run_state_wire(EffectPreviewIdentity, String, Array[String], String, String, Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
+
 pub fn issue_effect_row_outcome_receipt(EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
 
 pub fn issue_effect_row_outcome_receipt_from_response(EffectPreviewIdentity, Int, Int, String, EffectSavedResponseEvidence, String, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
@@ -1306,6 +1308,7 @@ pub(all) enum RunStateIssue {
   ResultNotUnknown(String)
   InvalidRunId
   InvalidObservationTime(String)
+  EffectSetMismatch
   Encoding
 } derive(Eq, @debug.Debug)
 

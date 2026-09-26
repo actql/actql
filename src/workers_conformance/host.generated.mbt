@@ -1009,6 +1009,29 @@ pub fn strategy_effect_set_receipt_run_disposition(
 }
 
 ///|
+#export_name("strategyEffectReconciliationRunState")
+pub fn strategy_effect_reconciliation_run_state(
+  preview : @publication.EffectPreviewIdentity,
+  set_wire : String,
+  member_wires : Array[String],
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise NodeHostFailure {
+  match
+    @publication.issue_effect_reconciliation_run_state_wire(
+      preview, set_wire, member_wires, run_id, updated_at, declared_results, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyPublicationContractName")
 pub fn strategy_publication_contract_name(
   contract : @publication.PublicationContract,
@@ -9383,6 +9406,29 @@ pub fn async_strategy_effect_set_receipt_run_disposition(
   match
     @publication.effect_set_receipt_run_disposition(
       preview, set_wire, member_wires, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyEffectReconciliationRunState")
+pub fn async_strategy_effect_reconciliation_run_state(
+  preview : @publication.EffectPreviewIdentity,
+  set_wire : String,
+  member_wires : Array[String],
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise AsyncHostFailure {
+  match
+    @publication.issue_effect_reconciliation_run_state_wire(
+      preview, set_wire, member_wires, run_id, updated_at, declared_results, max_wire_bytes,
+      max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
