@@ -4336,3 +4336,173 @@ fn reject_client_local_run(
   @strategy.refresh_captured_retention(run)
   None
 }
+
+///|
+pub(all) enum ClientProgramEffectCompilationBridgeIssue {
+  Manifests(@publication_host.ClientCompilationManifestIssue)
+  Compilation(@publication_host.ClientEffectCompilationIssue)
+}
+
+///|
+#export_name("clientProgramCompileLocalEffects")
+pub fn client_program_compile_local_effects(
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> Result[
+  @publication_host.ClientEffectCompilation,
+  ClientProgramEffectCompilationBridgeIssue,
+] {
+  let manifests = match
+    @publication_host.admit_client_compilation_manifests(
+      @check_environment.compiler_grammar_manifest_wire(),
+      @check_environment.compiler_barrier_contract_manifest_wire(),
+      100000,
+      10000,
+      100,
+    ) {
+    Ok(manifests) => manifests
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @publication_host.issue_prepared_client_effect_compilation(
+    prepared,
+    manifests,
+    client_local_sequence_limits(),
+    1000,
+    10000,
+    1000000,
+    100000,
+    100,
+  ).map_err(issue => Compilation(issue))
+}
+
+///|
+#export_name("clientProgramEffectCompilationPlanWire")
+pub fn client_program_effect_compilation_plan_wire(
+  value : @publication_host.ClientEffectCompilation,
+) -> String {
+  @publication_host.client_task_executable_plan_wire(
+    @publication_host.client_effect_compilation_plan(value),
+  )
+}
+
+///|
+#export_name("clientProgramEffectCompilationFactManifestWire")
+pub fn client_program_effect_compilation_fact_manifest_wire(
+  value : @publication_host.ClientEffectCompilation,
+) -> String {
+  @publication_host.client_task_executable_plan_fact_manifest_wire(
+    @publication_host.client_effect_compilation_plan(value),
+  )
+}
+
+///|
+#export_name("clientProgramEffectCompilationTemplateWire")
+pub fn client_program_effect_compilation_template_wire(
+  value : @publication_host.ClientEffectCompilation,
+) -> String {
+  @publication.run_evidence_value_json(
+    @publication_host.client_effect_compilation_template(value),
+  )
+}
+
+///|
+#export_name("clientProgramEffectCompilationCompiledPlanWire")
+pub fn client_program_effect_compilation_compiled_plan_wire(
+  value : @publication_host.ClientEffectCompilation,
+) -> String {
+  @publication.publication_contract_json(
+    @publication_host.client_effect_compilation_compiled_plan(value),
+  )
+}
+
+///|
+#export_name("clientProgramIssueAllowedEffectRun")
+pub fn client_program_issue_allowed_effect_run(
+  compilation : @publication_host.ClientEffectCompilation,
+  execution_context_cid : String,
+  host_policy_cid : String,
+  expires_at : String,
+) -> Result[
+  @publication_host.ClientEffectAllowedRun,
+  @publication_host.ClientEffectCompiledRunIssue,
+] {
+  @publication_host.issue_client_effect_allowed_run(
+    compilation, execution_context_cid, host_policy_cid, expires_at,
+  )
+}
+
+///|
+#export_name("clientProgramAdmitAllowedEffectRun")
+pub fn client_program_admit_allowed_effect_run(
+  compilation : @publication_host.ClientEffectCompilation,
+  prepared : @publication.RunEvidenceValue,
+  authorization : @publication.RunEvidenceValue,
+) -> Result[
+  @publication_host.ClientEffectAllowedRun,
+  @publication_host.ClientEffectCompiledRunIssue,
+] {
+  @publication_host.admit_client_effect_allowed_run(
+    compilation, prepared, authorization,
+  )
+}
+
+///|
+#export_name("clientProgramIssueEffectRunDefinition")
+pub fn client_program_issue_effect_run_definition(
+  allowed : @publication_host.ClientEffectAllowedRun,
+  scope_id : String,
+  run_id : String,
+  created_at : String,
+  valid_until : String,
+) -> Result[
+  @publication.PublicationContract,
+  @publication_host.ClientEffectCompiledRunIssue,
+] {
+  @publication_host.issue_client_effect_run_definition(
+    allowed, scope_id, run_id, created_at, valid_until,
+  )
+}
+
+///|
+#export_name("clientProgramBindCompiledEffectRun")
+pub fn client_program_bind_compiled_effect_run(
+  owner : @publication_host.PreparedClientEffectComputation,
+  allowed : @publication_host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+) -> Result[
+  @publication_host.PreparedClientEffectRun,
+  @publication_host.ClientEffectCompiledRunIssue,
+] {
+  @publication_host.bind_client_effect_compiled_run(owner, allowed, definition)
+}
+
+///|
+#export_name("clientProgramEffectCompilationResultNames")
+pub fn client_program_effect_compilation_result_names(
+  value : @publication_host.ClientEffectCompilation,
+) -> Array[String] {
+  @publication_host.client_effect_compilation_result_names(value)
+}
+
+///|
+#export_name("clientProgramAllowedEffectRunPrepared")
+pub fn client_program_allowed_effect_run_prepared(
+  value : @publication_host.ClientEffectAllowedRun,
+) -> @publication.RunEvidenceValue {
+  @publication_host.client_effect_allowed_run_prepared(value)
+}
+
+///|
+#export_name("clientProgramAllowedEffectRunAuthorization")
+pub fn client_program_allowed_effect_run_authorization(
+  value : @publication_host.ClientEffectAllowedRun,
+) -> @publication.RunEvidenceValue {
+  @publication_host.client_effect_allowed_run_authorization(value)
+}
+
+///|
+#export_name("clientProgramAllowedEffectRunAdmission")
+pub fn client_program_allowed_effect_run_admission(
+  value : @publication_host.ClientEffectAllowedRun,
+) -> @publication.RunPublicationAdmission {
+  @publication_host.client_effect_allowed_run_admission(value)
+}

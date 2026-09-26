@@ -9,6 +9,7 @@ import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import * as moon from
   '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {installNodeClientEffectRun} from '../../../host-node/client-effect-run.mjs';
 import {openClientRequestJournal} from '../../../host-node/client-request-journal.mjs';
 import {openEffectLedger} from '../../../host-node/effect-ledger.mjs';
 import {captureClaimedEffectResponse} from '../../../host-node/effect-physical-dispatch.mjs';
@@ -286,6 +287,7 @@ async function effectFixture({splitSource = false,
     }
   }
   return {document: JSON.stringify(document), environment,
+    environmentWire: canonicalJson(environmentDocument),
     mappingCid: mapping.mapping_contract_cid};
 }
 
@@ -1447,14 +1449,19 @@ test(`two-member captured Effect Run ${
     assert.equal(JSON.parse(moon.clientProgramLocalEffectInvocationJson(
       semanticInvocation)).self_cid,
       moon.clientProgramLocalEffectInvocationCid(semanticInvocation));
-    const computationFragment = checked(
-      moon.clientProgramIssueEffectValuesFragment(prepared, 0));
-    const evidence = publicationEvidence(
-      moon.clientProgramEffectDefinitionCid(prepared),
-      moon.clientRequestParametersCid(clientRequest),
-      moon.clientProgramEffectSemanticsCid(prepared),
-      moon.clientProgramEffectEnvironmentCid(prepared),
-      moon.clientProgramValuesFragmentLogicalCid(computationFragment));
+    const effectCompilation = checked(moon.clientProgramCompileLocalEffects(prepared));
+    const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
+      effectCompilation, cid('a'), cid('b'), '2099-01-01T00:00:00.000Z'));
+    const evidence = [
+      checked(moon.strategyRunEvidenceAdmit('bound_invocation_template',
+        moon.clientProgramEffectCompilationTemplateWire(effectCompilation),
+        1000000, 100000, 100)),
+      moon.clientProgramAllowedEffectRunPrepared(allowed),
+      moon.clientProgramAllowedEffectRunAuthorization(allowed),
+      checked(moon.strategyPublicationAdmit('compiled_plan',
+        moon.clientProgramEffectCompilationCompiledPlanWire(effectCompilation),
+        1000000, 100000, 100)),
+    ];
     const admission = moon.clientProgramAdmitEffectPublication(
       prepared, ...evidence);
     const definition = checked(moon.strategyIssueRunDefinition(
@@ -3983,3 +3990,122 @@ function checkedValuesPublicationPlan(prepared, control) {
     now: () => '2026-09-24T00:02:00.000Z',
   });
 }
+
+
+test('shared Effect Client admission and physical claim survive races and restart', async t => {
+  await mkdir(scratch, {recursive: true});
+  const directory = await mkdtemp(join(scratch.pathname, 'effect-client-owner-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const {document, environment, environmentWire} = await effectFixture({memberIds: ['save', 'save_again']});
+  const prepare = text => {
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      text, 'json', environment, undefined, []);
+    const value = moon.clientProgramEffectPreparationReady(outcome);
+    assert.ok(value, moon.clientProgramEffectPreparationIssueCode(outcome));
+    return value;
+  };
+  const prepared = prepare(document);
+  const [registry, contract] = await Promise.all([
+    readFile(new URL('../../../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8'),
+    readFile(new URL('../../../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'),
+  ]);
+  const values = JSON.stringify(JSON.parse(contract).execution_contracts['REL.values']);
+  const control = runtimeCore(moon).publicationControl;
+  let starts = 0;
+  let failAfterCapture = false;
+  let currentAuthorization = true;
+  const install = journal => installNodeClientEffectRun({moon,
+    publicationControl: control, journal,
+    authorizeRequest: async () => currentAuthorization ? {
+      executionContextCid: cid('a'), hostPolicyCid: cid('b'),
+      createdAt: '2026-09-26T00:00:00.000Z',
+      expiresAt: '2098-01-01T00:00:00.000Z',
+    } : undefined,
+    authorizeRunStart: async () => currentAuthorization,
+    async execute({owner, prepared: actual, compilation}) {
+      assert.equal(actual, prepared);
+      assert.ok(JSON.parse(moon.clientProgramEffectCompilationPlanWire(
+        compilation)).root_refs.some(root => root.role === 'effect_result'));
+      starts++;
+      const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
+        owner, registry, values, 1n, 0n, 0n, 0n);
+      assert.ok(setup);
+      const execution = await runCapturedEffectComputation(setup);
+      await execution.close();
+      assert.equal(execution.cleanupPending(), false);
+      if (failAfterCapture) throw new Error('LostEffectExecutionReply');
+      return 'captured';
+    },
+  });
+  const request = id => ({prepared, authorityScopeCid: cid('a'), requestId: id,
+    tenantId: 'tenant-a', principalId: 'caller', connection: {owner: 'local'},
+    lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
+  let journal = openClientRequestJournal(directory);
+  let other = openClientRequestJournal(directory);
+  let host = install(journal);
+  let competing = install(other);
+  const [first, second] = await Promise.all([
+    host.accept(request('race')), competing.accept(request('race')),
+  ]);
+  assert.deepEqual(first.ref, second.ref);
+  assert.equal(starts, 0, 'acceptance never starts capture');
+  assert.deepEqual((await Promise.all([host.start(first), competing.start(second)]))
+    .map(value => value.kind).sort(), ['reconcile', 'started']);
+  assert.equal(starts, 1);
+  assert.equal((await host.start(first)).kind, 'reconcile');
+  const changed = JSON.parse(document);
+  changed.id = 'changed-effect-intent';
+  await assert.rejects(host.accept({...request('race'), prepared: prepare(JSON.stringify(changed))}),
+    {code: 'ClientRequestIntentConflict'});
+  const unstarted = await host.accept(request('unstarted'));
+  // Reserve dispatch, crash before the separate physical-start claim.
+  const identity = moon.clientProgramEffectRequestIdentity(prepared, cid('a'),
+    'unstarted', moon.clientProgramSourceFreeInputIntentCid());
+  journal.reserveDispatch(identity, {tenantId: 'tenant-a', currentAuthorization: true}, moon, control);
+  other.close(); journal.close();
+  journal = openClientRequestJournal(directory);
+  host = install(journal);
+  const resumed = await host.accept(request('unstarted'));
+  assert.deepEqual(resumed.ref, unstarted.ref);
+  assert.equal((await host.start(resumed)).kind, 'started');
+  assert.equal(starts, 2);
+  failAfterCapture = true;
+  const unknown = await host.accept(request('unknown'));
+  await assert.rejects(host.start(unknown), /LostEffectExecutionReply/);
+  assert.equal(starts, 3);
+  journal.close();
+  journal = openClientRequestJournal(directory);
+  t.after(() => journal.close());
+  host = install(journal);
+  const recovered = await host.accept(request('unknown'));
+  assert.deepEqual(recovered.ref, unknown.ref);
+  assert.equal((await host.start(recovered)).kind, 'reconcile');
+  assert.equal(starts, 3, 'unknown Effect outcome never retries capture/apply');
+  const pendingProcess = await host.accept(request('process-unstarted'));
+  journal.close();
+  const child = spawnSync(process.execPath, [fileURLToPath(new URL(
+    './fixtures/resume-client-effect-run.mjs', import.meta.url))], {
+    input: JSON.stringify({directory, document, environmentWire, registry, values,
+      requestId: 'process-unstarted'}), encoding: 'utf8', timeout: 20000,
+  });
+  assert.equal(child.status, 0, child.stderr);
+  const childResult = JSON.parse(child.stdout);
+  assert.equal(childResult.kind, 'started');
+  assert.equal(childResult.captures, 1);
+  assert.deepEqual(childResult.ref, pendingProcess.ref);
+  const replayChild = spawnSync(process.execPath, [fileURLToPath(new URL(
+    './fixtures/resume-client-effect-run.mjs', import.meta.url))], {
+    input: JSON.stringify({directory, document, environmentWire, registry, values,
+      requestId: 'unknown'}), encoding: 'utf8', timeout: 20000,
+  });
+  assert.equal(replayChild.status, 0, replayChild.stderr);
+  assert.deepEqual(JSON.parse(replayChild.stdout), {
+    kind: 'reconcile', captures: 0, ref: unknown.ref,
+  });
+  journal = openClientRequestJournal(directory);
+  host = install(journal);
+  const attached = await host.accept(request('unknown'));
+  currentAuthorization = false;
+  await assert.rejects(host.start(attached), {code: 'ClientRunStartDenied'});
+  await assert.rejects(host.accept(request('unknown')), {code: 'ClientEffectRunDenied'});
+});

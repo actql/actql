@@ -1016,45 +1016,13 @@ fn client_values_host_issue_allowed_run_with_compilation(
   host_policy_cid : String,
   expires_at : String,
 ) -> Result[ClientValuesHostAllowedRun, ClientValuesHostRunAdmissionIssue] {
-  let prepared_value = match
-    @publication.seal_run_evidence_value(
-      "prepared_invocation",
-      "{\"version\":\"actql-prepared-invocation/0.1\"," +
-      "\"invocation_template_cid\":\"" +
-      @publication.run_evidence_value_identity(template) +
-      "\",\"compiled_plan_cid\":\"" +
-      @publication.publication_contract_identity(plan) +
-      "\",\"execution_context_cid\":\"" +
-      execution_context_cid +
-      "\",\"host_policy_cid\":\"" +
-      host_policy_cid +
-      "\",\"policy_decision\":\"allow\",\"expires_at\":\"" +
-      expires_at +
-      "\"}",
-      100000,
-      10000,
-      100,
+  let (prepared_value, authorization) = match
+    @host.issue_client_allowed_run_evidence(
+      template, plan, execution_context_cid, host_policy_cid, expires_at,
     ) {
-    Ok(value) => value
-    Err(issue) => return Err(Prepared(issue))
-  }
-  let authorization = match
-    @publication.seal_run_evidence_value(
-      "run_authorization",
-      "{\"version\":\"actql-run-authorization/0.1\"," +
-      "\"prepared_invocation_cid\":\"" +
-      @publication.run_evidence_value_identity(prepared_value) +
-      "\",\"execution_context_cid\":\"" +
-      execution_context_cid +
-      "\",\"host_policy_cid\":\"" +
-      host_policy_cid +
-      "\",\"decision\":\"allowed\"}",
-      100000,
-      10000,
-      100,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Authorization(issue))
+    Ok(values) => values
+    Err(Prepared(issue)) => return Err(Prepared(issue))
+    Err(Authorization(issue)) => return Err(Authorization(issue))
   }
   let admission = match
     @host.admit_prepared_client_run_publication(
