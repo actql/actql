@@ -23,7 +23,8 @@ pub fn capture_native_host_source(
   let source = if retained {
     native_host_retained_source(run, observation, max_entries, max_name_bytes)
   } else {
-    let material = match native_host_output(run, observation, max_rows, values) {
+    let material = match
+      native_host_output(run, observation, max_rows, values) {
       Ok(material) => material
       Err(_) => return Err(Unavailable)
     }
@@ -82,7 +83,8 @@ pub struct NativeSourceEvidenceContext {
 pub fn prepare_native_source_evidence_context(
   requirement : @planning.QueryRequirement,
 ) -> Result[NativeSourceEvidenceContext, NativeSourceEvidenceIssue] {
-  let members = match @planning.query_requirement_source_evidence_members(requirement) {
+  let members = match
+    @planning.query_requirement_source_evidence_members(requirement) {
     Ok(members) => members
     Err(issue) => return Err(Member(issue))
   }
@@ -114,8 +116,9 @@ pub fn issue_native_host_source_evidence(
   }
   let members = context.members
   let facts = context.facts
-  if !@environment.connector_source_evidence_supports(members,
-    [capture.run.capability_contract_cid]) {
+  if !@environment.connector_source_evidence_supports(members, [
+      capture.run.capability_contract_cid,
+    ]) {
     return Err(Member(@environment.CapabilityMismatch))
   }
   // This profile has no policy transformation. It cannot weaken the checked
@@ -123,39 +126,51 @@ pub fn issue_native_host_source_evidence(
   if effective_data_policy_cid != facts.source_data_policy_cid {
     return Err(InvalidPolicy)
   }
-  let logical = match @publication.admit_completed_source_input_logical(
-    logical_input, @query.captured_source_relation_logical_cid(identity),
-    @query.captured_source_relation_schema_cid(identity),
-    facts.source_contract_cid, "{\"stable\":false,\"keys\":[]}", 4096, 128, 16,
-  ) {
+  let logical = match
+    @publication.admit_completed_source_input_logical(
+      logical_input,
+      @query.captured_source_relation_logical_cid(identity),
+      @query.captured_source_relation_schema_cid(identity),
+      facts.source_contract_cid,
+      "{\"stable\":false,\"keys\":[]}",
+      4096,
+      128,
+      16,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(LogicalInput(issue))
   }
-  let (schema_cid, capability_cid) =
-    @environment.connector_source_evidence_member_cids(members)
+  let (schema_cid, capability_cid) = @environment.connector_source_evidence_member_cids(
+    members,
+  )
   let writer = @encode.writer(16384, 256, 16) catch {
     issue => return Err(Encoding(issue))
   }
   let body = try {
     @encode.begin_object(writer)
-    for (key, value) in [
-      ("version", "actql-source-evidence/0.1"),
-      ("source_ref", facts.source_ref),
-      ("input_logical_cid", logical),
-      ("source_contract_cid", facts.source_contract_cid),
-      ("schema_evidence_cid", schema_cid),
-      ("capability_evidence_cid", capability_cid),
-      ("authority_scope_cid", authority_scope_cid),
-      ("source_data_policy_cid", facts.source_data_policy_cid),
-      ("effective_data_policy_cid", effective_data_policy_cid),
-      ("data_classification", facts.data_classification),
-      ("source_view_contract_cid", facts.source_view_contract_cid),
-      ("output_carrier", "relation"), ("read_mode", "snapshot"),
-      ("observed_at", observed_at),
-      ("snapshot_ref", @duckdb_query.duckdb_native_observation_cid(
-        capture.observation)),
-      ("completeness", "complete"), ("consistency_level", "snapshot"),
-    ] {
+    for
+      (key, value) in [
+        ("version", "actql-source-evidence/0.1"),
+        ("source_ref", facts.source_ref),
+        ("input_logical_cid", logical),
+        ("source_contract_cid", facts.source_contract_cid),
+        ("schema_evidence_cid", schema_cid),
+        ("capability_evidence_cid", capability_cid),
+        ("authority_scope_cid", authority_scope_cid),
+        ("source_data_policy_cid", facts.source_data_policy_cid),
+        ("effective_data_policy_cid", effective_data_policy_cid),
+        ("data_classification", facts.data_classification),
+        ("source_view_contract_cid", facts.source_view_contract_cid),
+        ("output_carrier", "relation"),
+        ("read_mode", "snapshot"),
+        ("observed_at", observed_at),
+        (
+          "snapshot_ref",
+          @duckdb_query.duckdb_native_observation_cid(capture.observation),
+        ),
+        ("completeness", "complete"),
+        ("consistency_level", "snapshot"),
+      ] {
       @encode.key(writer, key)
       @encode.string_value(writer, value)
     }
@@ -172,8 +187,10 @@ pub fn issue_native_host_source_evidence(
   } catch {
     issue => return Err(Encoding(issue))
   }
-  @publication.seal_run_evidence_value("source_evidence", body, 16384, 256, 16)
-  .map_err(issue => Evidence(issue))
+  @publication.seal_run_evidence_value("source_evidence", body, 16384, 256, 16).map_err(issue => {
+      Evidence(issue)
+    },
+  )
 }
 
 ///|

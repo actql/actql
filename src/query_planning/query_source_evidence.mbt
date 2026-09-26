@@ -97,15 +97,21 @@ pub fn query_source_evidence_fact_values(
 /// A caller cannot substitute an unrelated environment with matching names.
 pub fn query_requirement_source_evidence_members(
   requirement : QueryRequirement,
-) -> Result[@environment.ConnectorSourceEvidenceMembers,
-  @environment.SourceEvidenceMemberIssue] {
+) -> Result[
+  @environment.ConnectorSourceEvidenceMembers,
+  @environment.SourceEvidenceMemberIssue,
+] {
   guard query_requirement_source_evidence_facts(requirement) is Some(facts) else {
     return Err(@environment.ContractMismatch("checked_source"))
   }
-  let acquisition = @query.query_sequence_requirement(requirement.material.owner)
+  let acquisition = @query.query_sequence_requirement(
+    requirement.material.owner,
+  )
   let requests = @acquisition.query_acquisition_owner(acquisition)
-  guard @acquisition.pipeline_request_at(requests,
-    @acquisition.query_acquisition_source_index(acquisition))
+  guard @acquisition.pipeline_request_at(
+      requests,
+      @acquisition.query_acquisition_source_index(acquisition),
+    )
     is Some(@acquisition.Direct(mode, _)) else {
     return Err(@environment.ContractMismatch("checked_source"))
   }
