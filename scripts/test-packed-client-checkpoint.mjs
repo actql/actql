@@ -138,7 +138,7 @@ const host = await openInstalledRemoteHttpHost({
     ...(decide === undefined ? {} :
       {decide, answeringAuthorities: ['host-policy']}),
     resumeAfterAnswer: process.env.RESUME_AFTER_ANSWER !== '0',
-    leaseMs: Number(process.env.LEASE_MS ?? 2000),
+    leaseMs: Number(process.env.LEASE_MS ?? 10000),
     checkpointTtlMs: Number(process.env.TTL_MS ?? 86400000),
     observe: mark,
   },
@@ -304,6 +304,19 @@ const steps = {
       ['conflicting']);
   },
   async finished() { save('ref-' + requestId, await finished()); },
+  // The same request submitted again: the existing Run, which only the
+  // Host's resumed authorization may start.
+  async resubmitted() {
+    const owner = await as('owner-token');
+    const execution = await owner.aql(text, {format: 'json', requestId});
+    let state;
+    for (let attempt = 0; attempt < 400; attempt++) {
+      state = await execution.wait();
+      if (['succeeded', 'failed', 'cancelled'].includes(state.status)) break;
+      await new Promise(resolve => setTimeout(resolve, 25));
+    }
+    assert.equal(state.status, process.env.EXPECT_STATUS);
+  },
   async resumeWaiting() {
     const owner = await as('owner-token');
     const lookup = await owner.lookupRequest(requestId);
@@ -401,6 +414,16 @@ async function counts(name) {
 const none = Object.fromEntries(STEPS.map(step => [step, 0]));
 const ran = (extra = {}) => ({...none, dispatch_reserved: 1, hook: 1,
   physical_start_reserved: 1, computed: 1, ...extra});
+// The answer deadline of a request's Checkpoint, from its listed summary.
+const expiresAt = async requestId => Date.parse(JSON.parse(await readFile(
+  join(root, `summary-${requestId}.json`), 'utf8')).expiresAt);
+// Wait until a wall-clock instant has passed (plus a margin).
+const untilPast = async instant => {
+  const remaining = instant + 500 - Date.now();
+  if (remaining > 0) {
+    await new Promise(resolve => setTimeout(resolve, remaining));
+  }
+};
 async function withHost(name, options, work) {
   const started = await startHost(name, options);
   try { return await work(started); }
@@ -485,11 +508,12 @@ for (const [step, expectStatus, expected] of [
   ['hook', 'succeeded', ran({dispatch_reserved: 2, hook: 2})],
   ['physical_start_reserved', 'running', ran({computed: 0})],
 ]) {
+  // A short lease: the crashed claimant's lease must lapse for the restart.
   const name = `crash-${step}`;
-  await approvedAndStopped(name, name);
-  await crashed(name, {CRASH_AT: step});
-  await withHost(name, {}, started => client(started, 'finished', [name],
-    {EXPECT_STATUS: expectStatus}));
+  await approvedAndStopped(name, name, {LEASE_MS: '2000'});
+  await crashed(name, {CRASH_AT: step, LEASE_MS: '2000'});
+  await withHost(name, {LEASE_MS: '2000'}, started => client(started,
+    'finished', [name], {EXPECT_STATUS: expectStatus}));
   assert.deepEqual(await counts(name), expected,
     `${step}: ${(await events(name)).join(',')}`);
   await assertRetired(name, expectStatus === 'succeeded' ? 'retired'
@@ -500,18 +524,24 @@ for (const [step, expectStatus, expected] of [
 // again before its physical start: a configuration changed to deny, or an
 // approval that expired meanwhile, starts nothing; the Run fails before
 // dispatch.
-for (const [name, crashAt, restart, extra] of [
-  ['deny-defined', 'definition_admitted', {OUTCOME: 'deny'}, {}],
-  ['deny-reserved', 'hook', {OUTCOME: 'deny'}, {}],
-  ['expired-defined', 'definition_admitted', {}, {TTL_MS: '4000'}],
+for (const [name, crashAt, restart, extra, step] of [
+  ['deny-defined', 'definition_admitted', {OUTCOME: 'deny'},
+    {LEASE_MS: '2000'}, 'finished'],
+  ['deny-reserved', 'hook', {OUTCOME: 'deny'}, {LEASE_MS: '2000'},
+    'finished'],
+  ['expired-defined', 'definition_admitted', {},
+    {TTL_MS: '10000', LEASE_MS: '2000'}, 'finished'],
+  // The owner submits the same request again after the restart: it is
+  // the existing Run, still started only under the resumed authorization.
+  ['expired-resubmit', 'definition_admitted', {},
+    {TTL_MS: '10000', LEASE_MS: '2000'}, 'resubmitted'],
 ]) {
   await approvedAndStopped(name, name, extra);
   await crashed(name, {CRASH_AT: crashAt, ...extra});
-  if (name.startsWith('expired')) {
-    await new Promise(resolve => setTimeout(resolve, 4500));
-  }
+  // Past the Checkpoint's answer deadline, which bounds the approval.
+  if (extra.TTL_MS !== undefined) await untilPast(await expiresAt(name));
   await withHost(name, {...restart, ...extra}, started => client(started,
-    'finished', [name], {EXPECT_STATUS: 'failed'}));
+    step, [name], {EXPECT_STATUS: 'failed'}));
   const counted = await counts(name);
   assert.equal(counted.physical_start_reserved, 0, name);
   assert.equal(counted.computed, 0, name);
@@ -553,8 +583,8 @@ assert.deepEqual(await counts('lease'), ran());
 
 // 5. An approval whose own permission expired before the Host resumed
 // starts nothing; the request ends without a Run.
-await approvedAndStopped('expired', 'expired-a', {TTL_MS: '3000'});
-await new Promise(resolve => setTimeout(resolve, 3500));
+await approvedAndStopped('expired', 'expired-a', {TTL_MS: '10000'});
+await untilPast(await expiresAt('expired-a'));
 await withHost('expired', {}, started => client(started, 'ended',
   ['expired-a'], {END_REASON: 'failed'}));
 assert.deepEqual(await counts('expired'), none);

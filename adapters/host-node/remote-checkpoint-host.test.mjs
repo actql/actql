@@ -452,3 +452,72 @@ test('closing during a resumed dispatch records its end before releasing',
         item.state === 'retired'), file);
     }
   });
+
+// DCI-R7: submitting a held request again never starts it outside the
+// resumed authorization. The Host's resume is stalled after the Run
+// Definition exists and before its physical start; meanwhile the owner
+// submits the same request.
+async function resubmittedWhileStalled(t, {leaseMs = 60_000,
+  checkpointTtlMs, wait = 0}) {
+  const steps = [];
+  let stall = true;
+  let released;
+  const stalled = new Promise(resolve => { released = resolve; });
+  const host = await remoteHost(t, protectedHost('delegate', {
+    leaseMs, ...(checkpointTtlMs === undefined ? {} : {checkpointTtlMs}),
+    async observe(name) {
+      steps.push(name);
+      if (name === 'definition_admitted' && stall) {
+        stall = false;
+        await stalled;
+      }
+    }}));
+  const client = await host.as('owner-token');
+  const reviewer = await host.as('reviewer-token');
+  await heldRequests(client, ['again-a']);
+  await approveAll(reviewer, await allCheckpoints(reviewer));
+  await waitFor(() => steps.includes('definition_admitted'));
+  await new Promise(resolve => setTimeout(resolve, wait));
+  const changed = JSON.parse(document);
+  changed.id = 'again-a';
+  const again = await client.aql(JSON.stringify(changed), {format: 'json',
+    requestId: 'again-a'});
+  // The resubmit returns the existing Run and starts nothing by itself.
+  await new Promise(resolve => setTimeout(resolve, 200));
+  assert.equal(steps.filter(name => name === 'physical_start_reserved')
+    .length, 0);
+  assert.equal(host.dispatches(), 0);
+  released();
+  const state = await waitFor(async () => {
+    const current = await again.wait();
+    return ['succeeded', 'failed', 'cancelled'].includes(current.status)
+      ? current : undefined;
+  });
+  return {state, starts: steps.filter(name =>
+    name === 'physical_start_reserved').length, steps};
+}
+
+test('a resubmit of a held request after its approval expired starts nothing',
+  async t => {
+    const {state, starts} = await resubmittedWhileStalled(t,
+      {checkpointTtlMs: 2000, wait: 2300});
+    assert.equal(starts, 0);
+    assert.equal(state.status, 'failed');
+  });
+
+test('a resubmit during a valid resume starts the Run at most once',
+  async t => {
+    const {state, starts} = await resubmittedWhileStalled(t, {});
+    assert.equal(starts, 1);
+    assert.equal(state.status, 'succeeded');
+  });
+
+test('a resubmit while the resuming claim lapses starts the Run once',
+  async t => {
+    const {state, starts, steps} = await resubmittedWhileStalled(t,
+      {leaseMs: 1000, wait: 1300});
+    assert.equal(starts, 1);
+    assert.equal(state.status, 'succeeded');
+    // The lapsed claim started nothing; a later claim did.
+    assert.ok(steps.filter(name => name === 'resume_claimed').length >= 2);
+  });
