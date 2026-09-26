@@ -505,7 +505,7 @@ export function privateRunDefinition(definition) {
 // observation. A state wire is a projection, never Run or read authority.
 export function issueUnpublishedRunStateWire(prepared, compilation,
   admission, definition, observedAt, dispatchReserved,
-  preDispatchFailureConfirmed) {
+  preDispatchFailureConfirmed, cancelledBeforeStart = false) {
   const compiled = requireHandle(compilations, compilation);
   const admitted = requireHandle(admissions, admission);
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
@@ -513,13 +513,14 @@ export function issueUnpublishedRunStateWire(prepared, compilation,
   }
   if (typeof observedAt !== 'string' ||
       typeof dispatchReserved !== 'boolean' ||
-      typeof preDispatchFailureConfirmed !== 'boolean') {
+      typeof preDispatchFailureConfirmed !== 'boolean' ||
+      typeof cancelledBeforeStart !== 'boolean') {
     throw new TypeError('InvalidRunHostStateObservation');
   }
   checkRunBinding(prepared, admission, definition);
   const wire = owner.clientValuesHostIssueUnpublishedRunStateWire(
     requireHandle(definitions, definition), compiled.value, observedAt,
-    dispatchReserved, preDispatchFailureConfirmed);
+    dispatchReserved, preDispatchFailureConfirmed, cancelledBeforeStart);
   if (typeof wire !== 'string') {
     throw Object.assign(new Error('RunHostStateProjectionRejected'),
       {code: 'RunHostStateProjectionRejected'});
@@ -1451,22 +1452,56 @@ export function openResultDeliveryControl() {
 
 /** Project an admitted durable Site record bound to this checked Run. */
 export function projectSiteRun(prepared, compilation, admission, definition,
-  authority, durableWire, observedAt) {
+  authority, durableWire, observedAt, cancellationRequested = false) {
   const compiled = requireHandle(compilations, compilation);
   const admitted = requireHandle(admissions, admission);
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
     throw new TypeError('ForeignRunHostCompilation');
   }
   if ([authority, durableWire, observedAt].some(value =>
-      typeof value !== 'string')) throw new TypeError('InvalidSiteObservation');
+      typeof value !== 'string') || typeof cancellationRequested !== 'boolean') {
+    throw new TypeError('InvalidSiteObservation');
+  }
   checkRunBinding(prepared, admission, definition);
   const fields = checked(owner.clientValuesHostProjectSiteRun(
     requireHandle(definitions, definition), compiled.value,
-    authority, durableWire, observedAt), 'RunHostSiteProjectionRejected');
+    authority, durableWire, observedAt, cancellationRequested),
+  'RunHostSiteProjectionRejected');
   if (fields === undefined) {
     throw Object.assign(new Error('RunHostSiteProjectionRejected'),
       {code: 'RunHostSiteProjectionRejected'});
   }
   return Object.freeze({stateWire: fields[0], execution: fields[1],
     cleanup: fields[2], revision: Number(fields[3]), nextWork: fields[4]});
+}
+
+export function prepareRunPhysicalStart(requested, retained, definition,
+  definitionCid, reserved, unstarted, authorized, cancelled) {
+  if (typeof definitionCid !== 'string' ||
+      [reserved, unstarted, authorized, cancelled].some(value =>
+        typeof value !== 'boolean')) throw new TypeError('InvalidRunHostStart');
+  return checked(owner.clientValuesHostPreparePhysicalStart(
+    requireHandle(requests, requested), requireHandle(requests, retained),
+    requireHandle(definitions, definition), definitionCid, reserved,
+    unstarted, authorized, cancelled), 'RunHostStartRejected');
+}
+
+export function prepareRunCancellation(definition, definitionCid,
+  authorized, terminal, requested) {
+  if (typeof definitionCid !== 'string' ||
+      [authorized, terminal, requested].some(value =>
+        typeof value !== 'boolean')) throw new TypeError('InvalidRunCancellation');
+  return checked(owner.clientValuesHostPrepareCancellation(
+    requireHandle(definitions, definition), definitionCid, authorized,
+    terminal, requested), 'RunHostCancellationRejected');
+}
+
+export function issueRunControlObservation(revision, requested, unstarted,
+  stopped) {
+  if (!Number.isSafeInteger(revision) || revision < 0 || revision > 2147483647 ||
+      [requested, unstarted, stopped].some(value => typeof value !== 'boolean')) {
+    throw new TypeError('InvalidRunControlObservation');
+  }
+  return JSON.parse(checked(owner.clientValuesHostRunControlObservation(
+    revision, requested, unstarted, stopped), 'RunHostControlRejected'));
 }

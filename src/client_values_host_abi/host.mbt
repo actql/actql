@@ -1426,6 +1426,7 @@ pub fn client_values_host_issue_unpublished_run_state_wire(
   observed_at : String,
   dispatch_reserved : Bool,
   pre_dispatch_failure_confirmed : Bool,
+  cancelled_before_start : Bool,
 ) -> String? {
   let run_id = match @publication.run_definition_run_id(definition) {
     Ok(value) => value
@@ -1434,8 +1435,15 @@ pub fn client_values_host_issue_unpublished_run_state_wire(
   let names = @host.client_values_compilation_result_names(compilation)
   match
     @publication.issue_effect_free_unpublished_run_state_wire(
-      run_id, observed_at, names, dispatch_reserved, pre_dispatch_failure_confirmed,
-      100000, 10000, 64,
+      run_id,
+      observed_at,
+      names,
+      dispatch_reserved,
+      pre_dispatch_failure_confirmed,
+      100000,
+      10000,
+      64,
+      cancelled_before_start~,
     ) {
     Ok(wire) => Some(wire)
     Err(_) => None
@@ -2158,6 +2166,7 @@ pub fn client_values_host_project_site_run(
   authority : String,
   durable_wire : String,
   observed_at : String,
+  cancellation_requested : Bool,
 ) -> Result[Array[String], Unit] {
   let durable = match
     @remote.admit_durable_coordinator_dispatch_record(
@@ -2193,6 +2202,9 @@ pub fn client_values_host_project_site_run(
     Some(@remote.ExecutionFailed) => Some(@publication.RunOutcomeStatus::Failed)
     Some(@remote.ExecutionCancelled) =>
       Some(@publication.RunOutcomeStatus::Cancelled)
+    Some(@remote.NativeSettled) if cancellation_requested &&
+      observation.cleanup_complete =>
+      Some(@publication.RunOutcomeStatus::Cancelled)
     _ => None
   }
   let state = match
@@ -2224,6 +2236,12 @@ pub fn client_values_host_project_site_run(
     } else {
       "cleanup"
     }
+  } else if cancellation_requested {
+    if observation.execution_terminal {
+      "release"
+    } else {
+      "cancel"
+    }
   } else if observation.execution is Some(@remote.NativeSettled) {
     "publication"
   } else {
@@ -2240,4 +2258,61 @@ pub fn client_values_host_project_site_run(
     observation.revision.to_string(),
     work,
   ])
+}
+
+///|
+#export_name("clientValuesHostPreparePhysicalStart")
+pub fn client_values_host_prepare_physical_start(
+  requested : @host.ClientRequestIdentity,
+  retained : @host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  definition_cid : String,
+  reserved : Bool,
+  unstarted : Bool,
+  authorized : Bool,
+  cancellation_requested : Bool,
+) -> Result[Bool, @host.ClientRunStartIssue] {
+  @host.prepare_client_run_physical_start(
+    requested,
+    retained,
+    definition,
+    definition_cid,
+    reserved,
+    unstarted,
+    authorized,
+    cancellation_requested~,
+  )
+}
+
+///|
+#export_name("clientValuesHostPrepareCancellation")
+pub fn client_values_host_prepare_cancellation(
+  definition : @publication.PublicationContract,
+  definition_cid : String,
+  authorized : Bool,
+  terminal : Bool,
+  requested : Bool,
+) -> Result[String, @host.ClientRunStartIssue] {
+  match
+    @host.prepare_client_run_cancellation(
+      definition, definition_cid, authorized, terminal, requested,
+    ) {
+    Ok(@host.AcceptCancellation) => Ok("accepted")
+    Ok(@host.AlreadyRequested) => Ok("already_requested")
+    Ok(@host.AlreadyTerminal) => Ok("already_terminal")
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+#export_name("clientValuesHostRunControlObservation")
+pub fn client_values_host_run_control_observation(
+  revision : Int,
+  requested : Bool,
+  unstarted : Bool,
+  stopped : Bool,
+) -> Result[String, @publication.RunStateIssue] {
+  @publication.issue_run_control_observation_wire(
+    revision, requested, unstarted, false, stopped,
+  )
 }

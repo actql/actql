@@ -44,7 +44,8 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   issueTaskInvocation,
   issueUnpublishedRunStateWire, issueSucceededRunStateWire, projectSiteRun,
   resultReadAvailability,
-  prepareRunStart,
+  prepareRunStart, prepareRunPhysicalStart, prepareRunCancellation,
+  issueRunControlObservation,
   prepareSourceFreeRequest,
   privateCompilationWires, compiledPlanCid,
   privateRunDefinition, requestFields, requestRelation} from './index.mjs';
@@ -1068,6 +1069,33 @@ test('accepted unpublished Run state uses the common owner', () => {
   const definition = issueSourceFreeRunDefinition(prepared, compilation,
     admission, 'site-scope', 'state-run', '2026-09-25T00:00:00.000Z',
     '2027-01-01T00:00:00.000Z');
+  const request = prepareSourceFreeRequest(prepared, compilation,
+    `sha256:${'a'.repeat(64)}`, 'cancel-request');
+  const definitionCid = privateRunDefinition(definition).cid;
+  assert.equal(prepareRunCancellation(definition, definitionCid,
+    true, false, false), 'accepted');
+  assert.equal(prepareRunCancellation(definition, definitionCid,
+    true, false, true), 'already_requested');
+  assert.equal(prepareRunCancellation(definition, definitionCid,
+    true, true, true), 'already_terminal');
+  assert.throws(() => prepareRunCancellation(definition, definitionCid,
+    false, false, false), {code: 'RunHostCancellationRejected'});
+  assert.throws(() => prepareRunCancellation(definition,
+    `sha256:${'f'.repeat(64)}`, true, false, false),
+  {code: 'RunHostCancellationRejected'});
+  assert(prepareRunPhysicalStart(request, request, definition,
+    definitionCid, true, true, true, false));
+  for (const [reserved, unstarted, cancelled] of [
+    [true, true, true], [true, false, false], [false, true, false],
+  ]) assert.equal(prepareRunPhysicalStart(request, request, definition,
+    definitionCid, reserved, unstarted, true, cancelled), false);
+  assert.deepEqual(issueRunControlObservation(3, true, false, false),
+    {revision: 3, cancellation_requested: true, physical_stop: 'unknown'});
+  assert.equal(issueRunControlObservation(4, true, true, false).physical_stop,
+    'confirmed');
+  assert.equal(JSON.parse(issueUnpublishedRunStateWire(prepared,
+    compilation, admission, definition, '2026-09-25T00:00:01.000Z', false,
+    false, true)).status, 'cancelled');
   const at = '2026-09-25T00:00:01.000Z';
   const projection = (reserved, failed) => JSON.parse(
     issueUnpublishedRunStateWire(prepared, compilation, admission,
