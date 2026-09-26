@@ -879,41 +879,24 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
       numeric_occurrence >= 0 else {
       return Err(InvalidRows)
     }
-    if !reserve_slots(workspace, values.length()) {
-      return Err(RowLimit)
-    }
-    let contributors : Array[Double] = []
-    for value in values {
-      guard value is Number(number) else { return Err(InvalidRows) }
-      contributors.push(number)
-    }
-    let name = @lower.group_aggregate_name(aggregate)
-    let outcome = match
-      run_numeric_aggregate(
-        execution,
-        numeric_step,
-        name,
-        numeric_occurrence,
-        contributors,
-        contributors.length(),
-        control.remaining,
-      ) {
-      None => return Err(InvalidRows)
-      Some(Err(InvalidLimits | ContributorLimit | WorkLimit)) =>
-        return Err(RowLimit)
-      Some(Err(NonfiniteContributor(_) | NonfiniteIntermediate)) =>
-        return Err(Aggregation(ArithmeticFailure))
-      Some(Ok(value)) => value
-    }
-    if !spend_control(control, @numeric.outcome_work(outcome)) {
-      return Err(RowLimit)
-    }
-    return Ok(
-      match @numeric.outcome_value(outcome) {
-        None => Null
-        Some(value) => Number(value)
-      },
+    let reduction = start_aggregate_numeric(
+      values,
+      execution,
+      numeric_step,
+      @lower.group_aggregate_name(aggregate),
+      numeric_occurrence,
+      control,
+      workspace,
     )
+    return while true {
+      match advance_aggregate_numeric(reduction) {
+        Ok(None) => ()
+        Ok(Some(value)) => break Ok(value)
+        Err(issue) => break Err(issue)
+      }
+    } nobreak {
+      Err(InvalidRows)
+    }
   }
   match function {
     @relation.Count => {
