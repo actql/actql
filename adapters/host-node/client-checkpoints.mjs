@@ -366,6 +366,7 @@ export async function installRemoteCheckpoints({root, tenantId,
     captured_submission_cid: contentCid(captured),
     checked_source: captured.acquisition.checkedSource,
     read_tuple: captured.acquisition.readTuple,
+    physical_binding: captured.acquisition.physicalBinding,
   });
 
   // The durable deferral of a request's source read (`read_access`,
@@ -407,6 +408,7 @@ export async function installRemoteCheckpoints({root, tenantId,
             parameters: captured.parameters,
             source: captured.acquisition.checkedSource,
             read_tuple: captured.acquisition.readTuple,
+            physical_binding: captured.acquisition.physicalBinding,
           },
           displayed_authoring_context: [{principal: captured.principalId}],
         };
@@ -575,7 +577,8 @@ export async function installRemoteCheckpoints({root, tenantId,
   const PERMANENT = new Set(['ArtifactIntegrityFailed',
     'ContinuationEvidenceNotHeld', 'ContinuationEvidenceRetired',
     'PrivateEvidenceKeyMismatch', 'HeldRunDefinitionMissing',
-    'HeldRequestChanged', 'InvalidContinuationLedger']);
+    'HeldRequestChanged', 'HeldAcquisitionChanged',
+    'InvalidContinuationLedger']);
   const retryable = error => !PERMANENT.has(error?.code ?? error?.message);
   // Observe Runs created from approved preparations. The intent completes
   // only after the physical start is reserved, so these Runs are started

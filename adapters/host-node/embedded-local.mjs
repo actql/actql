@@ -541,7 +541,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         parameters, resultNames,
         ...(preparedSource === undefined ? {} : {acquisition: {
           checkedSource: preparedSource.checkedSource,
-          readTuple: preparedSource.readTuple}})};
+          readTuple: preparedSource.readTuple,
+          physicalBinding: preparedSource.physicalBinding}})};
       let decided = await checkpoints.acceptRun({requested: requestedFacts,
         captured});
       // Run acceptance allowed or permitted: a Program that reads the
@@ -590,7 +591,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       ? await prepareAcquisition(submission.preparedProgram) : undefined;
     const acquisition = preparedSource === undefined ? undefined : {
       checkedSource: preparedSource.checkedSource,
-      readTuple: preparedSource.readTuple};
+      readTuple: preparedSource.readTuple,
+      physicalBinding: preparedSource.physicalBinding};
     // Compared as canonical JSON: the held submission is stored in its
     // canonical form, so key order carries no meaning here.
     if (canonicalJson(acquisition ?? null) !==
@@ -695,8 +697,19 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   };
   const resumeHeld = async ({captured, beforePhysicalStart, started,
     step, renew, preparationCancelled}) => {
-    const {submission, requested, resultNames, preparedSource} =
-      await heldSubmission(captured);
+    // A request whose physical target or result inventory differs from the
+    // one held is refused before anything is admitted or read: the earlier
+    // approval does not cover it.
+    let resolved;
+    try { resolved = await heldSubmission(captured); }
+    catch (error) {
+      if (['HeldAcquisitionChanged', 'HeldRequestChanged']
+        .includes(error?.message)) {
+        return {refused: Object.assign(error, {code: error.message})};
+      }
+      throw error;
+    }
+    const {submission, requested, resultNames, preparedSource} = resolved;
     const held = {preparedSource,
       preparedSourceAccess: sourceProfile?.sourceAccess};
     const accepted = await admitDefinition(submission, requested,

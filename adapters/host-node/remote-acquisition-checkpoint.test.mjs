@@ -82,9 +82,9 @@ async function installedSource(root, readOutcome) {
     instance.closeSync();
   }
   const path = join(root, 'source-profile.json');
-  const write = outcome => writeFile(path, JSON.stringify({
+  const write = (outcome, target = {}) => writeFile(path, JSON.stringify({
     version: 'actql-installed-duckdb-source/0.1',
-    database, schema: 'main', table: 'records',
+    database, schema: 'main', table: 'records', ...target,
     sourceRef: selector.source_ref,
     checkEnvironmentWire: canonicalText(sourceEnvironment),
     accountConfigurationWire: accountConfiguration(outcome, 'read',
@@ -337,4 +337,56 @@ test('A3: Run acceptance and the read are held and answered in turn',
       decision: 'approved'}], {signer});
     await assertResults(client, 'both-a');
     assert.equal(host.count('acquisition_started'), 1);
+  });
+
+test('A3: an approved read never reads a different physical target',
+  async t => {
+    for (const [name, change, setup] of [
+      ['table', {table: 'other_records'},
+        'CREATE TABLE other_records(id DOUBLE, amount DOUBLE); ' +
+        'INSERT INTO other_records VALUES (99,30)'],
+      ['schema', {schema: 'other'},
+        'CREATE SCHEMA other; ' +
+        'CREATE TABLE other.records(id DOUBLE, amount DOUBLE); ' +
+        'INSERT INTO other.records VALUES (99,30)'],
+    ]) {
+      const directory = await mkdtemp(join(scratch, `target-${name}-`));
+      t.after(() => rm(directory, {recursive: true, force: true}));
+      const first = await acquiringHost(t, {directory,
+        extra: {resumeAfterAnswer: false}});
+      const client = await first.as('owner-token');
+      const reviewer = await first.as('reviewer-token');
+      await held(client, `target-${name}`);
+      const {items: [summary]} = await reviewer.checkpoints();
+      const review = JSON.parse(new TextDecoder().decode((await (await first
+        .as('reader-token')).reviewCheckpoint(summary)).bytes));
+      assert.deepEqual(review.displayed_scope.physical_binding, {
+        version: 'actql-installed-duckdb-target/0.1',
+        database: join(directory, 'records.duckdb'), schema: 'main',
+        table: 'records'});
+      await reviewer.resolveCheckpoints([{checkpoint: summary,
+        decision: 'approved'}], {signer});
+      await first.close();
+      // The Host's source profile now resolves the same checked source to
+      // another schema or table holding other rows.
+      const instance = await DuckDBInstance.create(join(directory,
+        'records.duckdb'));
+      const connection = await instance.connect();
+      try { await connection.run(setup); }
+      finally {
+        connection.closeSync();
+        instance.closeSync();
+      }
+      await first.source.write('delegate', change);
+      const second = await acquiringHost(t, {directory,
+        profile: first.source});
+      const owner2 = await second.as('owner-token');
+      const ended = await waitFor(async () => {
+        const lookup = await owner2.lookupRequest(`target-${name}`);
+        return lookup.state === 'ended' ? lookup : undefined;
+      });
+      assert.equal(ended.kind, 'held', name);
+      assert.equal(second.count('dispatch_reserved'), 0, name);
+      assert.equal(second.count('acquisition_started'), 0, name);
+    }
   });

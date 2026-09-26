@@ -62,10 +62,15 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
     readFile(new URL(name, contractRoot), 'utf8')));
   const acquisition = checked(moon.clientProgramPrepareDuckDBAcquisition(
     requirement, schema, table, ...contracts));
+  // The Host-resolved physical target is part of what an approval covers:
+  // the same checked source read from another schema or table is another
+  // read.
   const prepared = Object.freeze({checkedSource,
     readTuple: Object.freeze({connection: sourceAccess.connection ??
       'local-database', resource: sourceAccess.resource ?? database,
-    operation: 'read'})});
+    operation: 'read'}),
+    physicalBinding: Object.freeze({version:
+      'actql-installed-duckdb-target/0.1', database, schema, table})});
   preparations.set(prepared, Object.freeze({moon, preparedProgram, registry,
     values, fragment, ordered, database, schema, table, sourceAccess,
     requirement, evidenceContext, acquisition}));
