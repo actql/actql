@@ -92,13 +92,17 @@ fn bounded_binding_input_admitted_cell(
 }
 
 ///|
-/// Text has no recursive contract children, so this equality check is bounded
-/// independently of the size of the retained value.
-fn bounded_binding_same_text_contract(
+/// An identical checked contract can reuse an admitted source cell without
+/// recursively rechecking a large value. Separately allocated Text contracts
+/// retain the bounded shallow equivalence used by existing projections.
+fn bounded_binding_same_admitted_contract(
   source : @contract.Contract,
   output : @contract.Contract,
 ) -> Bool {
-  if source.shape is @contract.Text(_) && output.shape is @contract.Text(_) {
+  if physical_equal(source, output) {
+    true
+  } else if source.shape is @contract.Text(_) &&
+    output.shape is @contract.Text(_) {
     @contract.type_equal(source, output, 1) catch {
       _ => false
     }
@@ -1939,7 +1943,7 @@ fn bounded_binding_rows_step(
                     source_column,
                   ) {
                   Some(source_field) =>
-                    if bounded_binding_same_text_contract(
+                    if bounded_binding_same_admitted_contract(
                         source_field.contract,
                         field.contract,
                       ) {
@@ -1958,21 +1962,12 @@ fn bounded_binding_rows_step(
           None => None
         }
         let checked = match exact_admitted {
-          Some(@admitted.Text(_) as admitted) =>
-            match state.output_row[state.column] {
-              Text(_) if !bounded_small_output_value(
-                  state.output_row[state.column],
-                ) => {
-                state.output_requires_steps = true
-                Some(ExactAdmittedOutputCell(admitted))
-              }
-              _ =>
-                checked_ordered_output_value(
-                  state.output_row[state.column],
-                  field.contract,
-                  state.admitted_limits,
-                ).map(value => CheckedOutputCell(value))
-            }
+          Some(admitted) if !bounded_small_output_value(
+              state.output_row[state.column],
+            ) => {
+            state.output_requires_steps = true
+            Some(ExactAdmittedOutputCell(admitted))
+          }
           None =>
             checked_ordered_output_value(
               state.output_row[state.column],

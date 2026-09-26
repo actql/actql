@@ -420,6 +420,149 @@ test "bounded supplied projection stops during admitted output retention" {
 }
 
 ///|
+fn nested_supplied_projection_fixture(
+  count : Int,
+  output_nodes : Int,
+) -> (@bounded.Control, BoundedBindingRowsExecution, SuppliedRelationRead) raise {
+  let seed_owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"items\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}},\"rows\":[{\"items\":[1]}]},\"as\":\"seed\"}]",
+  )
+  let seed = capture_values(seed_owner, 0, max_rows=1, {
+    max_nodes: 20,
+    max_text_bytes: 100,
+    max_depth: 10,
+    max_work: 100,
+  }).unwrap()
+  let pipeline = @pipeline.check(
+    input_cursor("[{\"select\":[\"items\"]}]"),
+    [("rows", captured_schema(seed))],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let owner = @lower.bind_parameters(
+    @lower.prepare(pipeline, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let limits : ValueLimits = {
+    max_nodes: count + 10,
+    max_text_bytes: 100,
+    max_depth: 10,
+    max_work: count + 100,
+  }
+  let captured = capture_input(
+    owner,
+    0,
+    [input_cursor("{\"items\":[" + Array::make(count, "1").join(",") + "]}")],
+    max_rows=1,
+    limits,
+  ).unwrap()
+  let read = prepare_supplied_relation_read(owner, 0, captured, fn() { true }).unwrap()
+  let sequence = prepared_sequence(owner)
+  let node = @lower.node_at(@lower.bound_preparation(owner), 0).unwrap()
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [],
+    [@lower.node_id(node)],
+    10000,
+    1000,
+  ).unwrap()
+  let control = @bounded.control()
+  let active = start_bounded_binding_rows_supplied(
+    control,
+    generated,
+    read,
+    1,
+    limits,
+    {
+      max_nodes: output_nodes,
+      max_text_bytes: 100,
+      max_depth: 10,
+      max_work: count + 100,
+    },
+    10000,
+    100,
+    100,
+    1000,
+  ).unwrap()
+  (control, active, read)
+}
+
+///|
+test "bounded supplied projection reuses exact nested admission" {
+  let (control, active, read) = nested_supplied_projection_fixture(256, 300)
+  let mut measuring = false
+  for _ in 0..<1000 {
+    if !measuring {
+      match advance_bounded_binding_rows(active, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        _ => fail("nested projection ended before output measurement")
+      }
+      measuring = active.state.phase is ChargeOutputRow &&
+        active.state.output_charge_measure is Some(_)
+    }
+  }
+  assert_true(measuring)
+  assert_true(
+    active.state.checked_row.any(value => {
+      value is ExactAdmittedOutputCell(@admitted.Array(_))
+    }),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(active, 1).unwrap()
+    is BoundedBindingRowsStopped(_, ..),
+  )
+  assert_true(cleanup_bounded_binding_rows(active).unwrap())
+  assert_true(supplied_relation_read_available(read))
+}
+
+///|
+test "bounded supplied nested projection charges exact output nodes" {
+  // The output row, array and eight elements account for ten value nodes.
+  for (nodes, succeeds) in [(10, true), (9, false)] {
+    let (_, active, read) = nested_supplied_projection_fixture(8, nodes)
+    let mut terminal = false
+    for _ in 0..<200 {
+      if !terminal {
+        match advance_bounded_binding_rows(active, 1).unwrap() {
+          BoundedBindingRowsContinue(..) => ()
+          BoundedBindingRowsComplete(output, ..) => {
+            assert_true(succeeds)
+            assert_eq(completed_row_count(output), 1)
+            terminal = true
+          }
+          BoundedBindingRowsFailed(Rows(RowLimit), ..)
+          | BoundedBindingRowsFailed(Capture(CaptureLimit), ..) => {
+            assert_false(succeeds)
+            terminal = true
+          }
+          _ => fail("nested projection had another terminal outcome")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_binding_rows(active).unwrap())
+    assert_true(supplied_relation_read_available(read))
+  }
+}
+
+///|
 test "bounded supplied projection charges exact admitted output text" {
   // One 4,096-byte value and two one-byte output field names are retained.
   for (text_bytes, succeeds) in [(4098, true), (4097, false)] {

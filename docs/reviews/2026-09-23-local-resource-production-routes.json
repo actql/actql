@@ -386,6 +386,34 @@
           "fixture": "bounded supplied projection reserves long capture overlap"
         },
         {
+          "role": "admitted_nested_copy_in_flight_stop_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/supplied_input_wbtest.mbt",
+          "fixture": "bounded supplied projection reuses exact nested admission"
+        },
+        {
+          "role": "admitted_nested_copy_value_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/supplied_input_wbtest.mbt",
+          "fixture": "bounded supplied nested projection charges exact output nodes"
+        },
+        {
+          "role": "admitted_nested_copy_host_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_values_wbtest.mbt",
+          "fixture": "standard Host retains two consumers of an admitted nested projection"
+        },
+        {
+          "role": "admitted_nested_copy_host_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_values_wbtest.mbt",
+          "fixture": "standard Host cancels a nested supplied projection after work begins"
+        },
+        {
           "role": "supplied_relation_chain_two_consumers",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],

@@ -540,7 +540,18 @@ test "standard Host executes independent bounded Relation branches" {
 }
 
 ///|
-fn local_supplied_relation_program() -> String {
+fn local_supplied_relation_program(variant : String) -> String {
+  if variant == "nested" {
+    let nested =
+      #|{"version":"actql/0.1","id":"supplied-nested","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"rows","inputs":{"x":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false},"items":{"type":"array","nullable":false,"items":{"type":"number","nullable":false}}}}},"from":"x","steps":[{"sort":[{"id":"asc"}],"as":"ordered"},{"from":"ordered","select":["id","items"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","items"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"rows","result":"r"}}},"steps":[{"select":["id","items"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","items"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"rows","result":"r"}}},"steps":[{"select":["id","items"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","items"]}}}],"results":{"out":{"from":{"stage":"consumer_a","result":"r"}}}}
+    return nested.replace(
+      old="\"steps\":[{\"sort\"",
+      new="\"steps\":[{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"unique\"},{\"from\":\"unique\",\"sort\"",
+    )
+  }
+  guard variant == "baseline" else {
+    abort("unknown supplied Relation fixture")
+  }
   let program =
     #|{"version":"actql/0.1","id":"supplied-relation","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"rows","inputs":{"x":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false},"label":{"type":"string","nullable":false}}}},"from":"x","steps":[{"filter":"id > 0","as":"positive"},{"from":"positive","sort":[{"id":"desc"}],"as":"ordered"},{"from":"ordered","take":1,"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"rows","result":"r"}}},"steps":[{"select":["id","label"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"rows","result":"r"}}},"steps":[{"select":["label","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["label","id"]}}}],"results":{"out":{"from":{"stage":"consumer_a","result":"r"}}}}
   program.replace(
@@ -804,6 +815,195 @@ test "standard Host bounds supplied Relation chains and retains two consumers" {
   }
   @strategy.stop_captured_dag(run)
   @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "standard Host retains two consumers of an admitted nested projection" {
+  let items = "[" + Array::make(16, "1").join(",") + "]"
+  let expected = "{\"id\":1,\"items\":" + items + "}"
+  let (run, issuer) = captured_graph_fixture(
+    local_supplied_relation_chain=true,
+    local_supplied_relation_variant="nested",
+    ledger_limits=Some({
+      planning_work: 10000,
+      attempts: 20,
+      holdings: 20,
+      transfer_bytes: 300000L,
+      retained_bytes: 134217728L,
+      execution_bytes: 536870912L,
+    }),
+    supplied_local_rows=[(1, 0, [expected])],
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: 2048,
+        max_nodes: 512,
+      },
+      row: {
+        max_bytes: 2048,
+        max_nodes: 512,
+        max_depth: 10,
+        max_text_bytes: 2048,
+      },
+      max_batch_bytes: 2048,
+    },
+    None,
+  ).unwrap()
+  let task_count = @strategy.graph_task_count(@strategy.captured_dag_graph(run))
+  assert_true(task_count >= 4)
+  let operations : Array[@local_driver.LocalManagedDispatchOperations[Int]] = []
+  let outputs : Array[@execution.ManagedCompletedOutput[Int]] = []
+  let lives : Array[Ref[Bool]] = []
+  for task in 1..<task_count {
+    let producers = @strategy.captured_next_managed_producers(run)
+    let inputs = producers
+      .filter(producer => producer >= 0)
+      .map(producer => outputs[producer - 1])
+    let rows = producers
+      .filter(producer => producer >= 0)
+      .map(producer => local_managed_test_rows(operations[producer - 1]))
+    let live = Ref(true)
+    let (task_ops, output) = run_local_managed_test_task(
+      installed,
+      run,
+      task,
+      inputs,
+      rows,
+      task,
+      live,
+      execution_quantum=1,
+      require_provider=true,
+    )
+    assert_eq(local_managed_test_rows(task_ops), [expected])
+    operations.push(task_ops)
+    outputs.push(output)
+    lives.push(live)
+  }
+  let first_task = task_count - 2
+  let second_task = task_count - 1
+  lives[first_task - 1].val = false
+  @strategy.close_captured_task_output(run, first_task)
+  (operations[first_task - 1].close)()
+  ignore((operations[first_task - 1].cleanup_refresh)())
+  assert_false(
+    @execution.managed_completed_output_available(outputs[first_task - 1]),
+  )
+  assert_true(
+    @execution.managed_completed_output_available(outputs[second_task - 1]),
+  )
+  assert_true(@execution.managed_completed_output_available(outputs[0]))
+  for offset in 0..<(task_count - 1) {
+    let task = task_count - 1 - offset
+    if task != first_task {
+      lives[task - 1].val = false
+      @strategy.close_captured_task_output(run, task)
+      (operations[task - 1].close)()
+      ignore((operations[task - 1].cleanup_refresh)())
+    }
+  }
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "standard Host cancels a nested supplied projection after work begins" {
+  let items = "[" + Array::make(256, "1").join(",") + "]"
+  let (run, issuer) = captured_graph_fixture(
+    local_supplied_relation_chain=true,
+    local_supplied_relation_variant="nested",
+    supplied_local_rows=[(1, 0, ["{\"id\":1,\"items\":" + items + "}"])],
+    ledger_limits=Some({
+      planning_work: 10000,
+      attempts: 20,
+      holdings: 20,
+      transfer_bytes: 300000L,
+      retained_bytes: 134217728L,
+      execution_bytes: 536870912L,
+    }),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: 4096,
+        max_nodes: 1024,
+      },
+      row: {
+        max_bytes: 4096,
+        max_nodes: 1024,
+        max_depth: 10,
+        max_text_bytes: 4096,
+      },
+      max_batch_bytes: 4096,
+    },
+    None,
+  ).unwrap()
+  let operations = start_local_managed_test_task_operations(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    require_provider=true,
+  )
+  for _ in 0..<32 {
+    let observation = (operations.advance)(1).unwrap()
+    assert_false(observation.complete)
+    assert_eq(observation.work, 1L)
+  }
+  assert_true((operations.request_cancel)())
+  assert_true((operations.advance)(1) is Err(_))
+  assert_true((operations.execution_stopped)())
+  assert_true((operations.output_row)(0) is Err(_))
+  (operations.settle)().unwrap()
+  assert_true((operations.cleanup_refresh)())
+  @strategy.stop_captured_dag(run)
+  let task_count = @strategy.graph_task_count(@strategy.captured_dag_graph(run))
+  for task in 0..<task_count {
+    @strategy.close_captured_task_output(run, task)
+  }
   @strategy.refresh_captured_retention(run)
   let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
   assert_eq(usage.reserved_execution_bytes, 0L)

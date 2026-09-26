@@ -81,13 +81,16 @@ sorted-row value, retaining a long selected output value, and charging
 that value into the unpublished result buffer. Quantum-one cancellation,
 nonpublication, and independently calculated exact/one-short value and
 workspace limits cover these phases on three targets. This does not yet
-close the entire route: exact admitted Text copied under an equal typed
-contract now bypasses the redundant synchronous recheck, while both output
-budgets are still charged in bounded steps. A supplied-input fixture checks
-the exact proof branch, a 4,096-byte value, cancellation, exact/one-short
-text and work, and the overlapping workspace boundary. Raw RowTable values
-and recursive checked values can still recheck synchronously. The normal
-Host sort/take composition
+close the entire route: exact admitted Text and nested Array values copied
+under the same checked contract bypass the redundant synchronous recheck,
+while both output budgets are still charged in bounded steps. Supplied-input
+fixtures check the exact proof branch, a 4,096-byte Text, a 256-member Array,
+cancellation, exact/one-short value limits, and overlapping workspace. The
+nested projection also reaches the standard Host with two consumers,
+managed cancellation after positive work, and final cleanup. This fixture
+does not test external JS timer delivery. Raw RowTable values and
+separately constructed recursive contracts can still recheck synchronously.
+The normal Host sort/take composition
 now includes a 512-byte selected value feeding two real downstream Computes
 and final cleanup. A separate normal-Host timer now cancels the downstream
 take after positive work while that long intermediate value is retained,
