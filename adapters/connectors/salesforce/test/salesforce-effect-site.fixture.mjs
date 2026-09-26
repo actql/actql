@@ -69,6 +69,27 @@ export async function openSalesforceEffectSiteFixture(t, {
       return;
     }
     const prefix = '/services/data/v62.0/';
+    if (request.method === 'GET' && request.url?.startsWith(`${prefix}query?q=`)) {
+      // Three stored records answer a bounded preview query.
+      const soql = decodeURIComponent(request.url.slice(
+        `${prefix}query?q=`.length));
+      const match = /^SELECT ([A-Za-z_,]+) FROM Test_Record__c LIMIT ([0-9]+)$/u
+        .exec(soql);
+      if (match === null) {
+        response.writeHead(400, {'content-type': 'application/json'});
+        response.end('[{"errorCode":"MALFORMED_QUERY"}]');
+        return;
+      }
+      const stored = [1, 2, 3].map(index => ({Id: `a0000000000000${index}`,
+        Name: `record-${index}`, External_Key__c: `key-${index}`}));
+      const records = stored.slice(0, Number(match[2])).map(record =>
+        Object.fromEntries([['attributes', {type: 'Test_Record__c'}],
+          ...match[1].split(',').map(name => [name, record[name]])]));
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end(JSON.stringify({totalSize: records.length, done: true,
+        records}));
+      return;
+    }
     if (request.method === 'GET' && request.url ===
         `${prefix}sobjects/`) {
       response.writeHead(200, {'content-type': 'application/json'});

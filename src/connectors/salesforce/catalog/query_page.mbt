@@ -264,6 +264,12 @@ pub fn query_page_cell(
 }
 
 ///|
+/// The projected field names, in the order of each row's cells.
+pub fn query_page_field_names(page : QueryPage) -> Array[String] {
+  read_projection_fields(page.projection)
+}
+
+///|
 pub fn query_page_done(page : QueryPage) -> Bool {
   page.done
 }

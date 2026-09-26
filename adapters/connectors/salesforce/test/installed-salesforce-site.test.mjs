@@ -193,3 +193,44 @@ test('installed Salesforce profile refuses incomplete or foreign settings',
     assert.equal(site.credential.resolveSecret.connectionOrgId,
       setup.org.orgId);
   });
+
+test('installed Salesforce peek reads a bounded prefix under its own grant',
+  async t => {
+    const setup = await installed(t);
+    const site = await setup.load();
+    const read = {connection: site.connection, resource: 'Test_Record__c',
+      operation: 'read'};
+    const decision = await site.authorization.authorize('acquisition', read,
+      {subjectCid: cid('8')});
+    const queries = () => setup.org.seen.filter(item =>
+      item.path.startsWith('/services/data/v62.0/query'));
+    const preview = await site.peek({decision, resource: 'Test_Record__c',
+      fields: ['Id', 'Name'], maxRows: 2});
+    assert.deepEqual(preview.rows, [
+      {Id: 'a00000000000001', Name: 'record-1'},
+      {Id: 'a00000000000002', Name: 'record-2'},
+    ]);
+    assert.equal(preview.limited, true);
+    assert.match(preview.observationCid, /^sha256:[0-9a-f]{64}$/u);
+    assert.deepEqual(queries().map(item => decodeURIComponent(item.path)), [
+      '/services/data/v62.0/query?q=SELECT Id,Name FROM Test_Record__c LIMIT 2',
+    ]);
+    const all = await site.peek({decision, resource: 'Test_Record__c',
+      fields: ['Id'], maxRows: 5});
+    assert.equal(all.rows.length, 3);
+    assert.equal(all.limited, false);
+    // Only the installed gate's read dispatch for this Resource reads rows.
+    const sent = queries().length;
+    for (const forged of [undefined, {...decision}]) {
+      await assert.rejects(site.peek({decision: forged,
+        resource: 'Test_Record__c', fields: ['Id'], maxRows: 1}),
+      {code: 'SalesforcePeekNotAuthorized'});
+    }
+    await assert.rejects(site.peek({decision, resource: 'Account',
+      fields: ['Id'], maxRows: 1}), {code: 'SalesforcePeekNotAuthorized'});
+    await assert.rejects(site.peek({decision, resource: 'Test_Record__c',
+      fields: ['Missing__c'], maxRows: 1}));
+    await assert.rejects(site.peek({decision, resource: 'Test_Record__c',
+      fields: ['Id'], maxRows: 201}), {code: 'InvalidSalesforcePeek'});
+    assert.equal(queries().length, sent);
+  });

@@ -21,6 +21,7 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   BroadAttempt(@salesforce_host.SalesforceBroadAttemptIssue)
   BroadHost(@salesforce_host.SalesforceBroadHostIssue)
   InvalidResource
+  PreviewRows
 }
 
 ///|
@@ -573,6 +574,52 @@ pub fn salesforce_read_projection_soql(
   plan : @catalog.ReadProjection,
 ) -> String {
   @catalog.read_projection_soql(plan)
+}
+
+///|
+/// A row-limited preview of one read projection. It fails rather than
+/// dropping the limit when the query budget cannot hold it.
+#export_name("salesforceReadProjectionWithRowLimit")
+pub fn salesforce_read_projection_with_row_limit(
+  plan : @catalog.ReadProjection,
+  limit : Int,
+) -> @catalog.ReadProjection raise SalesforceCatalogBridgeIssue {
+  match @catalog.with_row_limit(plan, limit) {
+    Some(value) => value
+    None => raise ReadProjection(@catalog.QueryLimit)
+  }
+}
+
+///|
+/// The admitted rows of one page as a JSON array of objects keyed by the
+/// projected field names, within the given budget. This is display material
+/// for an authorized preview, not an Acquisition receipt or Result evidence.
+#export_name("salesforceQueryPageRowsJson")
+pub fn salesforce_query_page_rows_json(
+  page : @catalog.QueryPage,
+  max_bytes : Int,
+  max_nodes : Int,
+) -> String raise SalesforceCatalogBridgeIssue {
+  let names = @catalog.query_page_field_names(page)
+  try {
+    let writer = @encode.writer(max_bytes, max_nodes, 8)
+    @encode.begin_array(writer)
+    for row in 0..<@catalog.query_page_row_count(page) {
+      @encode.begin_object(writer)
+      for column in 0..<names.length() {
+        @encode.key(writer, names[column])
+        match @catalog.query_page_cell(page, row, column) {
+          Some(value) => @admitted.emit_checked_wire_value(value, writer)
+          None => @encode.null_value(writer)
+        }
+      }
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => raise PreviewRows
+  }
 }
 
 ///|

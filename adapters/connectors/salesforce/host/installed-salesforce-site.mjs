@@ -15,7 +15,9 @@ import {signRemoteCredentialGrant} from
   '../../../site-node/remote-credential-signature.mjs';
 import {createSalesforceCliSecretResolver} from
   '../site/salesforce-cli-secret.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
 import {syncSalesforceCatalog} from '../site/salesforce-catalog-sync.mjs';
+import {readSalesforceQuery} from '../site/salesforce-query-read.mjs';
 
 export const INSTALLED_SALESFORCE_SITE_VERSION =
   'actql-installed-salesforce-site/0.1';
@@ -206,11 +208,12 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   }
 
   let syncSequence = 0;
-  // One bounded Catalog observation under this Site's own metadata grants.
-  // A Run's current Catalog is bound to its dispatch (`runInvocationCid`,
-  // `dispatchRequestCid`, `taskAttempt`); otherwise the sync is the Site's own.
-  async function refreshCatalog({occurrence, retainResponses = false,
-    maxRetainedBytes = 0, limits = defaultCatalogLimits, signal,
+  // The request for one bounded Catalog observation under this Site's own
+  // metadata grants. A Run's current Catalog is bound to its dispatch
+  // (`runInvocationCid`, `dispatchRequestCid`, `taskAttempt`); otherwise the
+  // sync is the Site's own.
+  function catalogSyncRequest({occurrence, retainResponses = false,
+    maxRetainedBytes = 0, limits = defaultCatalogLimits,
     runInvocationCid: runCid, dispatchRequestCid: dispatchCid,
     taskAttempt = 1, grantUses} = {}) {
     const sequence = syncSequence++;
@@ -234,19 +237,98 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     };
     const list = grant('salesforce:catalog:list');
     const describe = grant('salesforce:catalog:describe');
-    const catalog = await syncSalesforceCatalog({
-      moon: salesforceMoon, apiVersion: profile.apiVersion,
+    const request = Object.freeze({
+      apiVersion: profile.apiVersion,
       connectionRevision: profile.connectionRevision, orgId: profile.orgId,
       syncOccurrence, maxObservationBytes: limits.maxObservationBytes,
       retainResponses, maxRetainedBytes,
       listAuthorization: {...list, useId: `${syncOccurrence}-list`},
       authorizationForDescribe: async name => ({...describe,
         useId: `${syncOccurrence}-describe-${name}`}),
-      credential, listLimits: limits.list, describeLimits: limits.describe,
-      signal,
+      listLimits: limits.list, describeLimits: limits.describe,
     });
+    return Object.freeze({request, grants: Object.freeze({list, describe})});
+  }
+
+  // One bounded Catalog observation under this Site's own metadata grants.
+  async function refreshCatalog({signal, ...options} = {}) {
+    const {request, grants} = catalogSyncRequest(options);
+    const catalog = await syncSalesforceCatalog({...request,
+      moon: salesforceMoon, credential, signal});
     // The metadata grants stay with the observation for its recovery.
-    return Object.freeze({...catalog, grants: Object.freeze({list, describe})});
+    return Object.freeze({...catalog, grants});
+  }
+
+  let peekSequence = 0;
+  // One authorized preview of at most `maxRows` rows of `resource`. The
+  // decision must be the installed gate's read dispatch for this exact
+  // Resource. The preview syncs its own current Catalog, reads one page
+  // under a one-use query grant, and returns a provider-order prefix for
+  // display only: never complete-read evidence or a Result.
+  async function peek({decision, resource, fields, maxRows,
+    maxBytes = 65536, maxNodes = 10000, signal} = {}) {
+    if (!issuedDecisions.has(decision) || decision.action !== 'dispatch' ||
+        decision.boundary !== 'acquisition' ||
+        decision.contextCid !== context.contextCid ||
+        decision.tuple?.connection !== connection ||
+        decision.tuple?.resource !== resource ||
+        decision.tuple?.operation !== 'read') {
+      fail('SalesforcePeekNotAuthorized');
+    }
+    if (!Array.isArray(fields) || fields.length === 0 || fields.length > 100 ||
+        !fields.every(text) || new Set(fields).size !== fields.length ||
+        !Number.isSafeInteger(maxRows) || maxRows < 1 || maxRows > 200 ||
+        !Number.isSafeInteger(maxBytes) || maxBytes < 1 ||
+        maxBytes > 4_000_000 || !Number.isSafeInteger(maxNodes) ||
+        maxNodes < 1 || maxNodes > 1_000_000) {
+      fail('InvalidSalesforcePeek');
+    }
+    const occurrence = `peek-${now()}-${peekSequence++}`;
+    const runInvocationCid = cid({version: 'actql-salesforce-peek/0.1',
+      subjectCid: decision.subjectCid, resource, fields, maxRows,
+      occurrence});
+    const dispatchRequestCid = cid({version:
+      'actql-salesforce-peek-dispatch/0.1', runInvocationCid});
+    // The first sync plans the query; the query read rechecks it once under
+    // its own occurrence and the same dispatch.
+    const sync = suffix => catalogSyncRequest({
+      occurrence: `${occurrence}-${suffix}`, runInvocationCid,
+      dispatchRequestCid, grantUses: 2}).request;
+    const catalog = await syncSalesforceCatalog({...sync('plan'),
+      moon: salesforceMoon, credential, signal});
+    if (catalog.status === 'interrupted') {
+      fail('SalesforceCatalogRefreshInterrupted');
+    }
+    const binding = JSON.parse(catalog.observationJson).binding;
+    const plan = checked(salesforceMoon.salesforceReadProjectionWithRowLimit(
+      checked(salesforceMoon.salesforcePrepareReadProjection(
+        catalog.observation, binding.tenant, binding.principal,
+        binding.environment, binding.connection_revision, binding.org_id,
+        binding.site_key, binding.site_generation,
+        binding.connector_registration, binding.connector_revision,
+        binding.resource_origin, binding.run_invocation_cid,
+        binding.dispatch_request_cid, binding.sync_occurrence, resource,
+        fields, 4096)), maxRows));
+    const query = sign({operation: 'salesforce:query:read', runInvocationCid,
+      taskAttempt: 1, dispatchRequestCid, maxUses: 1});
+    const rows = [];
+    const result = await readSalesforceQuery({moon: salesforceMoon, plan,
+      apiVersion: profile.apiVersion,
+      limits: {maxBytes, maxNodes, maxDepth: 16, maxRows,
+        maxLocatorUnits: 2048, maxPages: 1, maxTotalRows: maxRows},
+      initialAuthorization: {...query, useId: `${occurrence}-query`},
+      authorizationForPage: async () => fail('SalesforcePeekPageLimit'),
+      credential, refreshCatalog: sync('recheck'),
+      consumePage: async page => {
+        rows.push(...JSON.parse(checked(
+          salesforceMoon.salesforceQueryPageRowsJson(page, maxBytes,
+            maxNodes))));
+      }, signal});
+    return Object.freeze({
+      observationCid: result.currentCatalog.observationCid, resource,
+      fields: Object.freeze([...fields]), rows: Object.freeze(rows),
+      limited: rows.length === maxRows,
+    });
   }
 
   return Object.freeze({
@@ -256,7 +338,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     environment: profile.environment,
     connectionRevision: profile.connectionRevision,
     principal: principalId, context, authorization, credential,
-    issueGrant, refreshCatalog,
+    issueGrant, refreshCatalog, peek,
     close() { journal.close(); },
   });
 }

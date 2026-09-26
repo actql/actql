@@ -165,6 +165,8 @@ pub fn salesforce_query_page_response_sha256(@catalog.QueryPage) -> String
 
 pub fn salesforce_query_page_row_count(@catalog.QueryPage) -> Int
 
+pub fn salesforce_query_page_rows_json(@catalog.QueryPage, Int, Int) -> String raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_query_read_accept_page(@catalog.QueryRead, String, Bytes) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_query_read_acknowledge_page(@catalog.QueryRead, @catalog.QueryPage) -> Unit raise SalesforceCatalogBridgeIssue
@@ -184,6 +186,8 @@ pub fn salesforce_read_projection_observation_cid(@catalog.ReadProjection) -> St
 pub fn salesforce_read_projection_scope_matches(@catalog.ReadProjection, String, String, String, String, Int, String, String, String, String, String) -> Bool
 
 pub fn salesforce_read_projection_soql(@catalog.ReadProjection) -> String
+
+pub fn salesforce_read_projection_with_row_limit(@catalog.ReadProjection, Int) -> @catalog.ReadProjection raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_recheck_collection_write_request(@catalog.WriteCollectionRequest, @catalog.CatalogObservation) -> Bool raise SalesforceCatalogBridgeIssue
 
@@ -276,6 +280,7 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   BroadAttempt(@host.SalesforceBroadAttemptIssue)
   BroadHost(@host.SalesforceBroadHostIssue)
   InvalidResource
+  PreviewRows
 }
 
 // Types and methods
