@@ -9,7 +9,7 @@
 // Client. No second approval state machine lives here.
 import {createHash, createPublicKey, createPrivateKey, randomUUID, sign,
   verify} from 'node:crypto';
-import {mkdir, open as openFile, readFile, readdir, rename} from
+import {mkdir, open as openFile, readFile, rename} from
   'node:fs/promises';
 import {join} from 'node:path';
 import {ExecutionAuthorizationError} from
@@ -24,6 +24,7 @@ import {loadCheckpointRuntime, openSqliteCheckpointJournal} from
 const IDENTIFIER = /^[A-Za-z0-9._:-]{1,128}$/u;
 const MAX_REVIEW_BYTES = 256 * 1024;
 const MAX_PAGE = 100;
+const PAGE = 100;
 const LOOKUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const TERMINAL_RUNS = new Set(['succeeded', 'failed', 'cancelled']);
 
@@ -78,7 +79,7 @@ export async function installRemoteCheckpoints({root, tenantId,
   const {accountConfig, accountConfiguration, reviewers, reviewReaders,
     hostKey, decide, answeringAuthorities, checkpointTtlMs = 24 * 60 * 60 * 1000,
     leaseMs = 60_000, maxReviewBytes = MAX_REVIEW_BYTES,
-    resumeAfterAnswer = true} = authorization;
+    resumeAfterAnswer = true, observe, sweepPage = PAGE} = authorization;
   const trusted = trustedReviewers(reviewers);
   const readers = principals(reviewReaders, 'InvalidReviewReaders');
   const answerers = new Set([...trusted.values()].map(item => item.principalId));
@@ -88,7 +89,9 @@ export async function installRemoteCheckpoints({root, tenantId,
       !Number.isSafeInteger(leaseMs) || leaseMs < 1000 ||
       !Number.isSafeInteger(maxReviewBytes) || maxReviewBytes < 1 ||
       maxReviewBytes > 1024 * 1024 ||
-      typeof resumeAfterAnswer !== 'boolean') {
+      typeof resumeAfterAnswer !== 'boolean' ||
+      observe !== undefined && typeof observe !== 'function' ||
+      !Number.isSafeInteger(sweepPage) || sweepPage < 1 || sweepPage > 1000) {
     fail('InvalidRemoteHostAuthorization');
   }
   const state = join(root, 'checkpoints');
@@ -121,31 +124,33 @@ export async function installRemoteCheckpoints({root, tenantId,
   await mkdir(heldIndex, {recursive: true, mode: 0o700});
   const indexPath = id => join(heldIndex, `${id}.json`);
   // The request ID of a held prepare attempt (not private: lookups are keyed
-  // by it). Written durably before the Checkpoint is persisted.
-  // After the resumed Run exists the record also names its Run id and
-  // RunRef, so a later Host can settle the journal Run and its evidence.
-  async function recordHeld(prepareAttemptId, requestId, created) {
+  // by it), written durably (file and directory) before its Checkpoint is
+  // persisted. It is only an index: a missing or unreadable entry is
+  // rebuilt from the attempt's captured submission.
+  const syncDirectory = async path => {
+    const handle = await openFile(path, 'r');
+    try { await handle.sync(); } finally { await handle.close(); }
+  };
+  async function recordHeld(prepareAttemptId, requestId) {
     const temporary = `${indexPath(prepareAttemptId)}.${process.pid}.tmp`;
     const handle = await openFile(temporary, 'w', 0o600);
     try {
       await handle.writeFile(JSON.stringify({version:
         'actql-remote-held-request/0.1', prepare_attempt_id: prepareAttemptId,
-      request_id: requestId, ...(created === undefined ? {} :
-        {run_id: created.runId, ref: created.ref})}));
+      request_id: requestId}));
       await handle.sync();
     } finally { await handle.close(); }
     await rename(temporary, indexPath(prepareAttemptId));
+    await syncDirectory(heldIndex);
   }
-  async function heldRecord(prepareAttemptId) {
+  async function indexedRequestId(prepareAttemptId) {
     try {
       const record = JSON.parse(await readFile(indexPath(prepareAttemptId),
         'utf8'));
       return record.prepare_attempt_id === prepareAttemptId &&
-        typeof record.request_id === 'string' ? record : undefined;
+        typeof record.request_id === 'string' ? record.request_id : undefined;
     } catch { return undefined; }
   }
-  const heldRequestId = async prepareAttemptId =>
-    (await heldRecord(prepareAttemptId))?.request_id;
 
   const journal = openSqliteCheckpointJournal(join(state, 'journal'), {
     runtime: await loadCheckpointRuntime(),
@@ -326,6 +331,43 @@ export async function installRemoteCheckpoints({root, tenantId,
     };
   }
 
+  // The exact held evidence of one prepare attempt, from its ledger: the
+  // continuation record, the captured submission and the request, checked
+  // against each other.
+  async function continuationOf(prepareAttemptId, continuationStateCid) {
+    const opened = await evidence.open(prepareAttemptId);
+    const [anchor, ...others] = continuationStateCid === undefined
+      ? opened.held('continuation_record') : [continuationStateCid];
+    if (anchor === undefined || others.length !== 0) {
+      fail('ContinuationEvidenceNotHeld');
+    }
+    const continuation = await opened.record('continuation_record', anchor);
+    const references = new Map(continuation.evidence.map(item =>
+      [item.name, item.semantic_cid]));
+    const captured = await opened.record('captured_input',
+      references.get('captured_input'));
+    const request = await opened.record('invocation_request',
+      references.get('invocation_request'));
+    const invocation = await opened.record('prepared_invocation',
+      references.get('prepared_invocation'));
+    if (contentCid(invocation) !== continuation.invocation_cid ||
+        invocation.captured_submission_cid !== contentCid(captured) ||
+        invocation.request_cid !== opened.requestCid ||
+        contentCid(request) !== opened.requestCid ||
+        continuation.prepare_attempt_id !== prepareAttemptId) {
+      fail('ArtifactIntegrityFailed');
+    }
+    return {continuation, captured, request};
+  }
+  async function heldRequestId(prepareAttemptId) {
+    const indexed = await indexedRequestId(prepareAttemptId);
+    if (indexed !== undefined) return indexed;
+    const {captured} = await continuationOf(prepareAttemptId);
+    await recordHeld(prepareAttemptId, captured.requestId);
+    return captured.requestId;
+  }
+  const step = async (name, detail) => { await observe?.(name, detail); };
+
   const heldCheckpoint = checkpointCid => {
     const view = checkpointCid === null ? undefined
       : journal.inspect(checkpointCid);
@@ -376,22 +418,31 @@ export async function installRemoteCheckpoints({root, tenantId,
   let retry;
   let closed = false;
   let resumeContinuation;
-  let observeRun;
-  // Settle journal Runs of resumed requests whose Run already ended (for
-  // example when the Host stopped before recording the end).
-  async function settleRuns() {
-    if (observeRun === undefined) return;
-    let names;
-    try { names = await readdir(heldIndex); } catch { return; }
-    for (const name of names.filter(item => item.endsWith('.json'))) {
-      const record = await heldRecord(name.slice(0, -'.json'.length));
-      if (record?.run_id === undefined ||
-          journal.getRunState(record.run_id)?.status !== 'running') continue;
-      let state;
-      try { state = await observeRun(record.ref); } catch { continue; }
-      if (TERMINAL_RUNS.has(state?.status)) {
-        journal.finishRun(record.run_id, {status: state.status});
+  let recoverRun;
+  // Carry on the execution of Runs created by approved preparations. The
+  // Host resumes a Run whose physical start is not reserved, reconciles one
+  // whose start is reserved without sending again, and ends the journal Run
+  // once the Run is terminal.
+  async function recoverRuns() {
+    if (recoverRun === undefined) return;
+    let after = '';
+    for (;;) {
+      const page = journal.listPreparationRuns({after, limit: sweepPage});
+      for (const {prepareAttemptId, runId} of page) {
+        if (closed) return;
+        try {
+          const {captured} = await continuationOf(prepareAttemptId);
+          const state = await recoverRun({captured, runId});
+          if (TERMINAL_RUNS.has(state)) {
+            journal.finishRun(runId, {status: state});
+          }
+        } catch (error) {
+          await step('recovery_failed', {prepareAttemptId, runId,
+            code: error?.code ?? error?.message});
+        }
       }
+      if (page.length < sweepPage) return;
+      after = page.at(-1).prepareAttemptId;
     }
   }
   async function resumeOne(prepareAttemptId) {
@@ -407,6 +458,8 @@ export async function installRemoteCheckpoints({root, tenantId,
     if (claimed.action === 'busy') return 'busy';
     if (claimed.action !== 'claimed') return 'done';
     const claim = claimed.claim;
+    await step('resume_claimed', {prepareAttemptId,
+      generation: claim.generation});
     const end = status => {
       try { journal.completeResume(claim, {status}); }
       catch (error) { if (error?.code !== 'ResumeClaimStale') throw error; }
@@ -415,24 +468,9 @@ export async function installRemoteCheckpoints({root, tenantId,
     let captured;
     let request;
     try {
-      const opened = await evidence.open(prepareAttemptId);
-      continuation = await opened.record('continuation_record',
-        claimed.continuationStateCid);
-      const references = new Map(continuation.evidence.map(item =>
-        [item.name, item.semantic_cid]));
-      captured = await opened.record('captured_input',
-        references.get('captured_input'));
-      request = await opened.record('invocation_request',
-        references.get('invocation_request'));
-      const invocation = await opened.record('prepared_invocation',
-        references.get('prepared_invocation'));
-      if (contentCid(invocation) !== continuation.invocation_cid ||
-          invocation.captured_submission_cid !== contentCid(captured) ||
-          invocation.request_cid !== opened.requestCid ||
-          contentCid(request) !== opened.requestCid) {
-        fail('ArtifactIntegrityFailed');
-      }
-    } catch (error) {
+      ({continuation, captured, request} = await continuationOf(
+        prepareAttemptId, claimed.continuationStateCid));
+    } catch {
       end('failed');
       return 'done';
     }
@@ -446,7 +484,9 @@ export async function installRemoteCheckpoints({root, tenantId,
       resumption: {claim: {checkpointCid: claimed.checkpointCid, claim}},
     });
     if (decision.action !== 'dispatch' || decision.admission === undefined) {
-      if (decision.detail === 'ResumeClaimStale') return 'done';
+      // A claim that lapsed or was superseded sends nothing and ends
+      // nothing: the durable intent is continued by a later claim.
+      if (decision.detail === 'ResumeClaimStale') return 'busy';
       end('failed');
       return 'done';
     }
@@ -466,19 +506,17 @@ export async function installRemoteCheckpoints({root, tenantId,
             return admission.reconcile(identity);
           }
         },
-        // Completes the intent with the created Run (synchronously, so the
-        // caller starts its dispatch without an intervening await) and
-        // returns the durable record write of its RunRef.
-        complete(runId, ref) {
+        // Completes the intent together with the created Run. From here the
+        // Run's execution is the Run-side duty (listPreparationRuns), which
+        // every Host start carries on.
+        complete(runId) {
           journal.completeResume(claim, {run: {runId, status: 'running'}});
-          return recordHeld(prepareAttemptId, captured.requestId,
-            {runId, ref});
         },
-        renew() { journal.renewResume(claim, leaseMs); },
+        step,
       });
     } catch (error) {
-      if (error?.code === 'ResumeClaimStale' ||
-          error?.code === 'PriorAdmissionUnresolved') return 'done';
+      if (error?.code === 'ResumeClaimStale') return 'busy';
+      if (error?.code === 'PriorAdmissionUnresolved') return 'done';
       // Nothing was admitted: the continuation ends without a Run. After an
       // admitted entry the intent stays for reconciliation.
       if (error?.admitted !== true) end('failed');
@@ -487,19 +525,53 @@ export async function installRemoteCheckpoints({root, tenantId,
     return 'done';
   }
 
-  async function sweep() {
-    if (closed || resumeContinuation === undefined) return;
+  // One drain: every resumable preparation, page by page (a busy page never
+  // starves later ones), then the Run-side duties and evidence retention.
+  async function drain() {
+    journal.expire();
+    let busy = false;
+    let after = '';
+    for (;;) {
+      const page = journal.listResumablePreparations({after,
+        limit: sweepPage});
+      for (const id of page) {
+        if (closed) return busy;
+        let outcome;
+        try { outcome = await resumeOne(id); }
+        catch (error) {
+          outcome = 'busy';
+          await step('resume_failed', {prepareAttemptId: id,
+            code: error?.code ?? error?.message});
+        }
+        if (outcome === 'busy') busy = true;
+      }
+      if (page.length < sweepPage) break;
+      after = page.at(-1);
+    }
+    await recoverRuns();
+    await evidence.settle();
+    return busy;
+  }
+
+  // Single-flight, but never lossy: a wake during a drain marks another
+  // pass, and busy or failed work is retried after the lease. Failures stay
+  // in the durable intents; nothing is dropped with a rejected promise.
+  let wake = false;
+  function sweep() {
+    if (closed || resumeContinuation === undefined) return Promise.resolve();
+    wake = true;
     if (sweeping !== undefined) return sweeping;
     sweeping = (async () => {
       let busy = false;
       try {
-        journal.expire();
-        for (const id of journal.listResumablePreparations({limit: 100})) {
-          if (closed) break;
-          if (await resumeOne(id) === 'busy') busy = true;
+        while (wake && !closed) {
+          wake = false;
+          try { busy = await drain() || busy; }
+          catch (error) {
+            busy = true;
+            await step('sweep_failed', {code: error?.code ?? error?.message});
+          }
         }
-        await settleRuns();
-        await evidence.settle();
       } finally {
         sweeping = undefined;
       }
@@ -699,11 +771,10 @@ export async function installRemoteCheckpoints({root, tenantId,
     },
 
     // Install the continuation that re-enters Run acceptance for an approved
-    // held request and the Run observation used to settle ended Runs, then
-    // sweep once (Host start).
-    start(continue_, observe) {
+    // held request and the Run-side recovery, then sweep once (Host start).
+    start(continue_, recover) {
       resumeContinuation = continue_;
-      observeRun = observe;
+      recoverRun = recover;
       return sweep();
     },
     sweep,

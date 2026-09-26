@@ -269,6 +269,9 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   };
   // Start the admitted Run's single physical dispatch unless it is already
   // active or started; `finished(status)` reports its end.
+  // Host instrumentation of the protected steps (a Host-supplied observer;
+  // it never changes a decision).
+  const observed = (name, detail) => authorization?.observe?.(name, detail);
   const startDispatch = (submission, requested, accepted, held,
     finished) => {
     const {preparedProgram, principalId: actual, connection} = submission;
@@ -292,6 +295,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
             accepted.physicalStartReserved === false &&
             !accepted.preDispatchFailureConfirmed)) return;
       active.reserved = true;
+      await observed('dispatch_reserved', {ref: start.ref});
       if (beforeDispatch !== undefined) await beforeDispatch(start.ref);
       if (active.abort.signal.aborted) return;
       if (held.plan === undefined) {
@@ -308,8 +312,10 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
           connection, ref: accepted.ref}),
       }, moon, control)) return;
       active.physicalStarted = true;
+      await observed('physical_start_reserved', {ref: accepted.ref});
       const published = await runPublishedCapturedStrategy(setup,
         {store, plan: held.plan}, {}, active.abort.signal);
+      await observed('computed', {ref: accepted.ref});
       await published.close();
       await published.cleanup();
       if (!published.cleanupPending()) journal.markPhysicalClose(accepted.ref);
@@ -383,7 +389,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   // the captured submission and the claim's admission). The admission is
   // entered synchronously immediately before the Run Definition is
   // admitted; the resume intent completes with the created Run.
-  const resumeHeld = async ({captured, enter, complete}) => {
+  const heldSubmission = async captured => {
     const submission = {principalId: captured.principalId,
       connection: captured.connection, requestId: captured.requestId,
       kind: captured.kind, input: captured.input,
@@ -394,6 +400,11 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         JSON.stringify(captured.resultNames)) {
       throw new Error('HeldRequestChanged');
     }
+    return {submission, requested, resultNames};
+  };
+  const resumeHeld = async ({captured, enter, complete, step}) => {
+    const {submission, requested, resultNames} =
+      await heldSubmission(captured);
     const held = {};
     enter();
     let accepted;
@@ -403,11 +414,32 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     } catch (error) {
       throw Object.assign(error, {admitted: true});
     }
+    await step('definition_admitted', {ref: accepted.ref});
     const runId = runIdOf(accepted);
-    const recorded = complete(runId, accepted.ref);
+    complete(runId);
+    await step('intent_completed', {ref: accepted.ref, runId});
     startDispatch(submission, requested, accepted, held,
       status => checkpoints.runFinished(runId, status));
-    await recorded;
+  };
+  // The Run-side duty of a Run created from a held request, at Host start:
+  // report a terminal Run; start one whose physical start is not reserved
+  // (the request journal's start reservation fences a second physical
+  // attempt); leave one whose start is reserved and unfinished unknown,
+  // without sending again. Returns the Run status.
+  const recoverHeldRun = async ({captured}) => {
+    const {submission, requested, resultNames} =
+      await heldSubmission(captured);
+    const accepted = journal.lookupDefinition({tenantId, authorityScopeCid,
+      requestId: captured.requestId}, moon, control);
+    if (accepted === undefined) throw new Error('HeldRunDefinitionMissing');
+    const state = await observeRun({ref: accepted.ref, principalId});
+    if (['succeeded', 'failed', 'cancelled'].includes(state.status)) {
+      return state.status;
+    }
+    const runId = runIdOf(accepted);
+    startDispatch(submission, requested, {...accepted, ref: accepted.ref},
+      {}, status => checkpoints.runFinished(runId, status));
+    return state.status;
   };
   const negotiate = () => ({version: 'actql-client-host/0.1',
     mode, owner: mode, durability: 'durable', scopeRef: principalId,
@@ -454,14 +486,14 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     ...checkpointOperations,
   };
   if (checkpoints !== undefined) {
-    await checkpoints.start(resumeHeld, ref =>
-      observeRun({ref, principalId}));
+    await checkpoints.start(resumeHeld, recoverHeldRun);
   }
   const port = createNodeInProcessClientHost({
     authenticate: () => principalId,
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
-  return {port, store, journal, hostOperations, checkpoints};
+  return {port, store, journal, hostOperations, checkpoints,
+    activeDispatches};
 }
 
 // This HTTP ingress uses the installed Host's common owner and physical
@@ -471,9 +503,11 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
 // {accountConfig | accountConfiguration, reviewers: [{keyId, reviewerId,
 // principalId, publicKey}], reviewReaders: [principal], hostKey: {keyId,
 // privateKey}, siteKey?, decide?, answeringAuthorities?, checkpointTtlMs?,
-// leaseMs?, maxReviewBytes?, resumeAfterAnswer?}. Approved requests are
-// resumed at Host start and, unless `resumeAfterAnswer` is false, after an
-// answer is stored. Without a configuration the Missing account
+// leaseMs?, maxReviewBytes?, resumeAfterAnswer?, sweepPage?, observe?}.
+// Approved requests are resumed at Host start and, unless
+// `resumeAfterAnswer` is false, after an answer is stored; each sweep step
+// handles at most `sweepPage` items and continues until none remain.
+// `observe(step, detail)` is Host instrumentation of the protected steps. Without a configuration the Missing account
 // denies every request; nothing defaults to allow.
 export async function openInstalledRemoteHttpHost({directory,
   authenticate, beforeDispatch, authorization}) {
@@ -488,8 +522,19 @@ export async function openInstalledRemoteHttpHost({directory,
     handler: createClientHttpHandler({
       ...host.hostOperations, authenticate, maxRequestBytes: 65536,
     }),
+    // Stop resuming, then release the journals and the Store owner. Active
+    // dispatches are left to their durable records.
     async close() {
       await host.checkpoints?.close();
+      await Promise.allSettled([...host.activeDispatches.values()]
+        .map(active => active.promise));
+      host.journal.close();
+      // A Store with a pending deletion keeps its durable deletion record;
+      // the next owner recovers it.
+      try { await host.store.close(); }
+      catch (error) {
+        if (error?.code !== 'PublicationStoreCleanupPending') throw error;
+      }
     },
   });
 }
