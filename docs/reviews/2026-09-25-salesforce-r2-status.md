@@ -45,8 +45,10 @@ HEAD and its shared commit SHAs did not change. At that check, `origin/main`
 pointed to `ac3fbce57947a05db99289f52294fd6bd6017799`.
 
 The September 26 fetch confirmed `origin/main` at
-`826fc49188cc184f5a9bedcfcd2b49ad6ae3e658`, containing the reviewed D
-head `784280db7cec1d498aaab3cd396c308462c858fd`. It was already an
+`826fc49188cc184f5a9bedcfcd2b49ad6ae3e658`. This SHA is not a
+descendant of the reviewed D head
+`784280db7cec1d498aaab3cd396c308462c858fd`, but their complete Git
+trees are identical. The integrated main commit was already an
 ancestor of the Salesforce branch. Rebase made no changes and produced no
 conflicts. The D Effect connection, including the mandatory resume-admission
 guard, was already present on this branch; the corresponding handoff patch
