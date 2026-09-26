@@ -465,24 +465,42 @@ and checked by `check:local-resource-accounting`.
 |---|---:|
 | Production routes | 68 |
 | Operation-specific boundary records | 68 |
-| Four-role lifecycle assurance | 31 |
-| Full route work/workspace assurance | 31 |
-| Path-scoped work/workspace assurance | 70 |
-| Selected-only assurance | 6 |
+| Four-role lifecycle assurance | 48 |
+| Full route work/workspace assurance | 48 |
+| Path-scoped work/workspace assurance | 87 |
+| Selected-only assurance | 4 |
 <!-- local-resource-accounting-summary:end -->
 
-### Remaining path triage after the bounded count-group slice
+### Remaining path triage after the retained Store bounded lane
 
-The 37 unresolved path obligations below are paths, not 37 missing
-operations. They are whole-operation entrypoints. The categories identify the next
-engineering action; they do not turn a registered route into proof of every
-formal variant.
+The 24 unresolved path obligations below are paths, not 24 missing
+operations. The strict gate reports each path twice (lifecycle and
+work/workspace), which is its 48 lines.
 
-| Category | Paths | Product limitation and next proof |
+Every ordinary Local task now runs a bounded provider: managed dispatch and
+the materializing lane (including a retained Store output) start the same
+provider, and the Node driver has no synchronous execute fallback. The
+synchronous whole-sequence evaluator `execute_generated_sequence` is reached
+only by conformance fixtures and whitebox tests, so it is no longer an
+ordinary Local route. For 17 RelA operations the whole-sequence entrypoint
+is therefore bound to the bounded executor its tasks actually reach, and the
+existing ordinary, selected, external-input or zero-input proofs are reused
+through `shared_proof_reuse`. Multi-step tasks reach that executor through
+`bounded_relation_chain_execution`, whose step dispatch selects the same
+single-step provider; that selection, not the representative fixture, is the
+evidence that the ordinary entry chooses it. `row_window`, `unpivot`,
+`json_pick` and `unnest` keep their separate selected proofs and remain open.
+
+| Category | Paths | Next action |
 | --- | ---: | --- |
-| Bounded implementation exists, ordinary connection is incomplete | 20 | RelA `filter`, `select`, `rename`, `drop`, `derive`, `sort`, `take`, `top_k`, `top_k_by`, `row_window`, `lag`, `watermark_rows`, `unpivot`, `json_pick`, `unnest`, `distinct`, `assert_rows`, `append`, `values`, and `cross_join` retain an unassured whole-sequence route. Their selected, zero-input, or external-input bounded paths are not evidence that every ordinary sequence avoids the synchronous fallback. Connect the remaining checked shapes through the common selection and dispatch path, then prove exact inputs, limits, timer cancellation and cleanup there. |
-| Computation itself still needs bounded implementation | 9 | RelA `window_group`, `pivot`, `join`, `nest`, `group` beyond count-only cases, multi-step `dedupe_rows`, `except`, `intersect`, and `analytic` retain reachable whole-sequence synchronous computation. Single-step dedupe now has a bounded provider, but its whole-sequence entrypoint remains unassured. Split the remaining shared work phases into resumable steps before treating a bounded output copy as cancellation evidence. |
-| Bounded product connection exists, route evidence is incomplete | 8 | Eight SGA entrypoints (`traverse`, `shortest_path`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `apply_graph_delta`, `mean_graphs`) need their exact production bindings tied to independent work/workspace, delivered cancel and cleanup fixtures. If a formal shape misses the registered provider, move that shape to the connection category rather than borrowing the representative fixture. |
+| Implementation gap | 0 route paths | A Host with configured import limits and a retained Store routes Local through the materializing lane. That lane still rejects zero-input tasks (the common request builder needs an input) and obligations outside its legacy allowance (for example cross product, set, nest, pivot and analytic checks), although bounded providers exist for them. Those tasks fall to another realization or fail. Widening the lane needs its completion obligations reviewed; it is not a route-evidence change. |
+| Existing evidence was not referenced | 0 | Closed for the 17 RelA entrypoints above. |
+| Required tests are missing | 24 | RelA `entrypoint` for `row_window`, `unpivot`, `json_pick`, `unnest`, `window_group`, `pivot`, `join`, `nest`, `group` beyond count, `except`, `intersect` and `analytic`; `pivot` selected; `join` selected, external-input and same-stage. Bounded providers exist for all of them. Missing are independent workspace exact/one-short fixtures for the bounded pivot, analytic, nest, set and window-group executions, and standard Host in-flight cases for pivot, window group, analytic, standalone nest, except and intersect. The eight SGA entrypoints (`traverse`, `shortest_path`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `apply_graph_delta`, `mean_graphs`) have representative fixtures only; per-variant predicate, selector, value-width and nonempty merge budgets still need independent proofs, and `graph_diff` and `apply_graph_delta` have no standard Host in-flight case. |
+
+Native Host in-flight cancellation is outside this unit's acceptance
+boundary, which requires standard Host cancellation and JS, Wasm and native
+semantics. The native Host drains the same bounded attempt within one call;
+no native event loop is added here.
 
 An ordinary remote Relation predecessor is a concrete connection gap: its
 downstream multi-step Relation Stage remains one task and can enter the

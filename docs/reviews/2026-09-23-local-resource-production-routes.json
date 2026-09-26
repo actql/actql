@@ -84,10 +84,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "Filter("
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/selected_relation_provider.mbt", "symbol": "selected_binding_rows_execution"},
       "selected_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_binding_rows_execution"
@@ -185,6 +182,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "filter_input_exact",
+          "one_short_limit": "filter_input_one_short",
+          "in_flight_cancel": "ordinary_filter_in_flight_host_timer",
+          "cleanup": "filter_cancel_cleanup"
+        },
         "selected_entrypoint": {
           "exact_limit": "filter_input_exact",
           "one_short_limit": "filter_input_one_short",
@@ -199,6 +202,16 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "filter_comparison_work_exact_one_short",
+            "one_short_limit": "filter_comparison_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "filter_comparison_workspace_exact_one_short",
+            "one_short_limit": "filter_comparison_workspace_exact_one_short"
+          }
+        },
         "selected_entrypoint": {
           "work": {
             "exact_limit": "filter_comparison_work_exact_one_short",
@@ -247,29 +260,30 @@
       "shared_proof_reuse": [
         {
           "role": "filter_input_exact",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths call selected_binding_rows_execution and admit the same checked external Relation input through the same bounded filter evaluator."
         },
         {
           "role": "filter_input_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths call selected_binding_rows_execution and admit the same checked external Relation input through the same bounded filter evaluator."
         },
         {
           "role": "filter_cancel_cleanup",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths own the same bounded filter session and cleanup scope; distinct Host timers establish actual cancellation delivery."
         },
         {
           "role": "filter_comparison_work_exact_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths execute the same charged filter comparison phases through selected_binding_rows_execution with the same budget scope."
         },
         {
           "role": "filter_comparison_workspace_exact_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths allocate the same filter input and expression workspace through selected_binding_rows_execution."
-        }
+        },
+        {"role": "ordinary_filter_in_flight_host_timer", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence filter tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."}
       ]
     },
     {
@@ -281,10 +295,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "Select("
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/selected_relation_provider.mbt", "symbol": "selected_binding_rows_execution"},
       "selected_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_binding_rows_execution"
@@ -452,6 +463,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "select_input_exact",
+          "one_short_limit": "select_input_one_short",
+          "in_flight_cancel": "ordinary_select_in_flight_host_timer",
+          "cleanup": "select_cancel_cleanup"
+        },
         "selected_entrypoint": {
           "exact_limit": "select_input_exact",
           "one_short_limit": "select_input_one_short",
@@ -466,6 +483,16 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "select_work_exact_one_short",
+            "one_short_limit": "select_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "select_workspace_exact_one_short",
+            "one_short_limit": "select_workspace_exact_one_short"
+          }
+        },
         "selected_entrypoint": {
           "work": {
             "exact_limit": "select_work_exact_one_short",
@@ -490,29 +517,30 @@
       "shared_proof_reuse": [
         {
           "role": "select_input_exact",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths call selected_binding_rows_execution with the same checked external Relation input admission and the same bounded select evaluator."
         },
         {
           "role": "select_input_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths call selected_binding_rows_execution with the same checked external Relation input admission and the same bounded select evaluator."
         },
         {
           "role": "select_cancel_cleanup",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths own the same bounded select session and cleanup scope; distinct Host timers establish delivery for each route."
         },
         {
           "role": "select_work_exact_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths execute the same select work phases with the same limit scope through selected_binding_rows_execution."
         },
         {
           "role": "select_workspace_exact_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths allocate the same select workspace and output row buffers through selected_binding_rows_execution."
-        }
+        },
+        {"role": "ordinary_select_in_flight_host_timer", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence select tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."}
       ]
     },
     {
@@ -524,10 +552,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "Select("
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/selected_relation_provider.mbt", "symbol": "selected_binding_rows_execution"},
       "ordinary_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_binding_rows_execution"
@@ -586,6 +611,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "rename_input_exact",
+          "one_short_limit": "rename_input_one_short",
+          "in_flight_cancel": "ordinary_rename_in_flight_host_timer",
+          "cleanup": "rename_cancel_cleanup"
+        },
         "ordinary_entrypoint": {
           "exact_limit": "rename_input_exact",
           "one_short_limit": "rename_input_one_short",
@@ -594,6 +625,16 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "rename_work_exact_one_short",
+            "one_short_limit": "rename_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "rename_workspace_exact_one_short",
+            "one_short_limit": "rename_workspace_exact_one_short"
+          }
+        },
         "ordinary_entrypoint": {
           "work": {
             "exact_limit": "rename_work_exact_one_short",
@@ -604,7 +645,15 @@
             "one_short_limit": "rename_workspace_exact_one_short"
           }
         }
-      }
+      },
+      "shared_proof_reuse": [
+        {"role": "rename_input_exact", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence rename tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "rename_input_one_short", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence rename tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "ordinary_rename_in_flight_host_timer", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence rename tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "rename_cancel_cleanup", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence rename tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "rename_work_exact_one_short", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence rename tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "rename_workspace_exact_one_short", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence rename tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."}
+      ]
     },
     {
       "inventory": "rela",
@@ -615,10 +664,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "Select("
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/selected_relation_provider.mbt", "symbol": "selected_binding_rows_execution"},
       "ordinary_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_binding_rows_execution"
@@ -677,6 +723,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "drop_input_exact",
+          "one_short_limit": "drop_input_one_short",
+          "in_flight_cancel": "ordinary_drop_in_flight_host_timer",
+          "cleanup": "drop_cancel_cleanup"
+        },
         "ordinary_entrypoint": {
           "exact_limit": "drop_input_exact",
           "one_short_limit": "drop_input_one_short",
@@ -685,6 +737,16 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "drop_work_exact_one_short",
+            "one_short_limit": "drop_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "drop_workspace_exact_one_short",
+            "one_short_limit": "drop_workspace_exact_one_short"
+          }
+        },
         "ordinary_entrypoint": {
           "work": {
             "exact_limit": "drop_work_exact_one_short",
@@ -695,7 +757,15 @@
             "one_short_limit": "drop_workspace_exact_one_short"
           }
         }
-      }
+      },
+      "shared_proof_reuse": [
+        {"role": "drop_input_exact", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence drop tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "drop_input_one_short", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence drop tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "ordinary_drop_in_flight_host_timer", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence drop tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "drop_cancel_cleanup", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence drop tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "drop_work_exact_one_short", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence drop tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "drop_workspace_exact_one_short", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence drop tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."}
+      ]
     },
     {
       "inventory": "rela",
@@ -706,10 +776,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "SnapshotMap("
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/selected_relation_provider.mbt", "symbol": "selected_binding_rows_execution"},
       "selected_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_binding_rows_execution"
@@ -779,6 +846,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "derive_input_exact_one_short",
+          "one_short_limit": "derive_input_exact_one_short",
+          "in_flight_cancel": "ordinary_derive_in_flight_host_timer",
+          "cleanup": "derive_cancel_cleanup"
+        },
         "selected_entrypoint": {
           "exact_limit": "derive_input_exact_one_short",
           "one_short_limit": "derive_input_exact_one_short",
@@ -793,6 +866,16 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "derive_scalar_work_exact_one_short",
+            "one_short_limit": "derive_scalar_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "derive_scalar_workspace_exact_one_short",
+            "one_short_limit": "derive_scalar_workspace_exact_one_short"
+          }
+        },
         "selected_entrypoint": {
           "work": {
             "exact_limit": "derive_scalar_work_exact_one_short",
@@ -817,24 +900,25 @@
       "shared_proof_reuse": [
         {
           "role": "derive_input_exact_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both registered paths enter the same selected_binding_rows_execution symbol, so their checked ProducerRead input admission and input-value limits are identical."
         },
         {
           "role": "derive_cancel_cleanup",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both registered paths enter the same selected_binding_rows_execution symbol and use the same bounded scalar-expression session and unpublished-output cleanup owner."
         },
         {
           "role": "derive_scalar_work_exact_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "The selected and ordinary routes have the same registered bounded execution symbol and the same scalar derive work accounting; distinct Host timer fixtures reach both routes."
         },
         {
           "role": "derive_scalar_workspace_exact_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "The selected and ordinary routes have the same registered bounded execution symbol and the same scalar derive workspace ownership; distinct Host timer fixtures reach both routes."
-        }
+        },
+        {"role": "ordinary_derive_in_flight_host_timer", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence derive tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."}
       ]
     },
     {
@@ -846,10 +930,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "StableSort("
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/selected_relation_provider.mbt", "symbol": "selected_binding_rows_execution"},
       "selected_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_binding_rows_execution"
@@ -947,6 +1028,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "selected_sort_workspace_exact",
+          "one_short_limit": "selected_sort_workspace_one_short",
+          "in_flight_cancel": "ordinary_sort_in_flight_host_timer",
+          "cleanup": "selected_sort_cancel_cleanup"
+        },
         "selected_entrypoint": {
           "exact_limit": "selected_sort_workspace_exact",
           "one_short_limit": "selected_sort_workspace_one_short",
@@ -961,6 +1048,30 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "variants": {
+            "ordered": {
+              "work": {
+                "exact_limit": "sort_ordered_work_exact_one_short",
+                "one_short_limit": "sort_ordered_work_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "sort_ordered_workspace_exact",
+                "one_short_limit": "sort_ordered_workspace_one_short"
+              }
+            },
+            "empty": {
+              "work": {
+                "exact_limit": "sort_empty_work_exact_one_short",
+                "one_short_limit": "sort_empty_work_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "sort_empty_workspace_exact_one_short",
+                "one_short_limit": "sort_empty_workspace_exact_one_short"
+              }
+            }
+          }
+        },
         "selected_entrypoint": {
           "variants": {
             "ordered": {
@@ -1011,14 +1122,15 @@
         }
       },
       "shared_proof_reuse": [
-        {"role": "selected_sort_workspace_exact", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths call selected_binding_rows_execution with the same checked sort preparation and admitted workspace scope."},
-        {"role": "selected_sort_workspace_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths call selected_binding_rows_execution with the same checked sort preparation and admitted workspace scope."},
-        {"role": "selected_sort_cancel_cleanup", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths own the same bounded sort session and cleanup scope; separate Host timers prove delivery for each route."},
-        {"role": "sort_ordered_work_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths execute the same ordered sort work phases through selected_binding_rows_execution."},
-        {"role": "sort_ordered_workspace_exact", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths allocate the same ordered sort workspace through selected_binding_rows_execution."},
-        {"role": "sort_ordered_workspace_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths allocate the same ordered sort workspace through selected_binding_rows_execution."},
-        {"role": "sort_empty_work_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths execute the same empty sort work phases through selected_binding_rows_execution."},
-        {"role": "sort_empty_workspace_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths allocate the same empty sort workspace through selected_binding_rows_execution."}
+        {"role": "selected_sort_workspace_exact", "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"], "reason": "Both paths call selected_binding_rows_execution with the same checked sort preparation and admitted workspace scope."},
+        {"role": "selected_sort_workspace_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"], "reason": "Both paths call selected_binding_rows_execution with the same checked sort preparation and admitted workspace scope."},
+        {"role": "selected_sort_cancel_cleanup", "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"], "reason": "Both paths own the same bounded sort session and cleanup scope; separate Host timers prove delivery for each route."},
+        {"role": "sort_ordered_work_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"], "reason": "Both paths execute the same ordered sort work phases through selected_binding_rows_execution."},
+        {"role": "sort_ordered_workspace_exact", "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"], "reason": "Both paths allocate the same ordered sort workspace through selected_binding_rows_execution."},
+        {"role": "sort_ordered_workspace_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"], "reason": "Both paths allocate the same ordered sort workspace through selected_binding_rows_execution."},
+        {"role": "sort_empty_work_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"], "reason": "Both paths execute the same empty sort work phases through selected_binding_rows_execution."},
+        {"role": "sort_empty_workspace_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"], "reason": "Both paths allocate the same empty sort workspace through selected_binding_rows_execution."},
+        {"role": "ordinary_sort_in_flight_host_timer", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence sort tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."}
       ]
     },
     {
@@ -1030,10 +1142,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "Limit("
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/selected_relation_provider.mbt", "symbol": "selected_binding_rows_execution"},
       "selected_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_binding_rows_execution"
@@ -1145,6 +1254,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "take_unkeyed_work_exact_one_short",
+          "one_short_limit": "take_unkeyed_workspace_exact_one_short",
+          "in_flight_cancel": "ordinary_take_in_flight_host_timer",
+          "cleanup": "mixed_stage_sort_cancel_and_cleanup"
+        },
         "selected_entrypoint": {
           "exact_limit": "key_completion_work_exact_one_short",
           "one_short_limit": "key_completion_workspace_exact_one_short",
@@ -1159,6 +1274,30 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "variants": {
+            "unkeyed": {
+              "work": {
+                "exact_limit": "take_unkeyed_work_exact_one_short",
+                "one_short_limit": "take_unkeyed_work_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "take_unkeyed_workspace_exact_one_short",
+                "one_short_limit": "take_unkeyed_workspace_exact_one_short"
+              }
+            },
+            "keyed": {
+              "work": {
+                "exact_limit": "take_keyed_work_exact_one_short",
+                "one_short_limit": "take_keyed_work_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "take_keyed_workspace_exact_one_short",
+                "one_short_limit": "take_keyed_workspace_exact_one_short"
+              }
+            }
+          }
+        },
         "selected_entrypoint": {
           "variants": {
             "unkeyed": {
@@ -1209,11 +1348,12 @@
         }
       },
       "shared_proof_reuse": [
-        {"role": "mixed_stage_sort_cancel_and_cleanup", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths own the same bounded take session and cleanup scope; separate Host timers prove cancellation delivery."},
-        {"role": "take_unkeyed_work_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths execute the same unkeyed take work phases through selected_binding_rows_execution."},
-        {"role": "take_unkeyed_workspace_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths allocate the same unkeyed take workspace through selected_binding_rows_execution."},
-        {"role": "take_keyed_work_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths execute the same keyed take work phases through selected_binding_rows_execution."},
-        {"role": "take_keyed_workspace_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint"], "reason": "Both paths allocate the same keyed take workspace through selected_binding_rows_execution."}
+        {"role": "mixed_stage_sort_cancel_and_cleanup", "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"], "reason": "Both paths own the same bounded take session and cleanup scope; separate Host timers prove cancellation delivery."},
+        {"role": "take_unkeyed_work_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"], "reason": "Both paths execute the same unkeyed take work phases through selected_binding_rows_execution."},
+        {"role": "take_unkeyed_workspace_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"], "reason": "Both paths allocate the same unkeyed take workspace through selected_binding_rows_execution."},
+        {"role": "take_keyed_work_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"], "reason": "Both paths execute the same keyed take work phases through selected_binding_rows_execution."},
+        {"role": "take_keyed_workspace_exact_one_short", "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"], "reason": "Both paths allocate the same keyed take workspace through selected_binding_rows_execution."},
+        {"role": "ordinary_take_in_flight_host_timer", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence take tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."}
       ]
     },
     {
@@ -1225,10 +1365,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "TopK("
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/selected_relation_provider.mbt", "symbol": "selected_binding_rows_execution"},
       "selected_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_binding_rows_execution"
@@ -1270,6 +1407,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "top_k_work_workspace_exact_one_short",
+          "one_short_limit": "top_k_work_workspace_exact_one_short",
+          "in_flight_cancel": "ordinary_top_k_host_timer",
+          "cleanup": "top_k_cancel_cleanup"
+        },
         "ordinary_entrypoint": {
           "exact_limit": "top_k_work_workspace_exact_one_short",
           "one_short_limit": "top_k_work_workspace_exact_one_short",
@@ -1284,6 +1427,16 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "top_k_work_workspace_exact_one_short",
+            "one_short_limit": "top_k_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "top_k_work_workspace_exact_one_short",
+            "one_short_limit": "top_k_work_workspace_exact_one_short"
+          }
+        },
         "ordinary_entrypoint": {
           "work": {
             "exact_limit": "top_k_work_workspace_exact_one_short",
@@ -1306,9 +1459,9 @@
         }
       },
       "shared_proof_reuse": [
-        {"role": "top_k_work_workspace_exact_one_short", "paths": ["ordinary_entrypoint", "selected_entrypoint"], "reason": "Both checked paths enter selected_binding_rows_execution with the exact top-k kernel and the same bounded work and workspace state."},
-        {"role": "ordinary_top_k_host_timer", "paths": ["ordinary_entrypoint", "selected_entrypoint"], "reason": "The ordinary Host fixture splits its checked assertion and top-k into selected tasks, then delivers cancellation after positive top-k work."},
-        {"role": "top_k_cancel_cleanup", "paths": ["ordinary_entrypoint", "selected_entrypoint"], "reason": "Both checked paths use the same bounded top-k session stop and cleanup owner; the Host fixture reaches that exact provider."}
+        {"role": "top_k_work_workspace_exact_one_short", "paths": ["ordinary_entrypoint", "selected_entrypoint", "entrypoint"], "reason": "Both checked paths enter selected_binding_rows_execution with the exact top-k kernel and the same bounded work and workspace state."},
+        {"role": "ordinary_top_k_host_timer", "paths": ["ordinary_entrypoint", "selected_entrypoint", "entrypoint"], "reason": "The ordinary Host fixture splits its checked assertion and top-k into selected tasks, then delivers cancellation after positive top-k work."},
+        {"role": "top_k_cancel_cleanup", "paths": ["ordinary_entrypoint", "selected_entrypoint", "entrypoint"], "reason": "Both checked paths use the same bounded top-k session stop and cleanup owner; the Host fixture reaches that exact provider."}
       ]
     },
     {
@@ -1320,10 +1473,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "PartitionedTopK("
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/selected_relation_provider.mbt", "symbol": "selected_binding_rows_execution"},
       "selected_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_binding_rows_execution"
@@ -1365,6 +1515,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "top_k_by_work_workspace_exact_one_short",
+          "one_short_limit": "top_k_by_work_workspace_exact_one_short",
+          "in_flight_cancel": "ordinary_top_k_by_host_timer",
+          "cleanup": "top_k_by_bounded_cancel_cleanup"
+        },
         "ordinary_entrypoint": {
           "exact_limit": "top_k_by_work_workspace_exact_one_short",
           "one_short_limit": "top_k_by_work_workspace_exact_one_short",
@@ -1379,6 +1535,16 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "top_k_by_work_workspace_exact_one_short",
+            "one_short_limit": "top_k_by_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "top_k_by_work_workspace_exact_one_short",
+            "one_short_limit": "top_k_by_work_workspace_exact_one_short"
+          }
+        },
         "ordinary_entrypoint": {
           "work": {
             "exact_limit": "top_k_by_work_workspace_exact_one_short",
@@ -1401,9 +1567,9 @@
         }
       },
       "shared_proof_reuse": [
-        {"role": "top_k_by_work_workspace_exact_one_short", "paths": ["ordinary_entrypoint", "selected_entrypoint"], "reason": "Both checked paths enter selected_binding_rows_execution with the exact partitioned top-k kernel and the same bounded work and workspace state."},
-        {"role": "ordinary_top_k_by_host_timer", "paths": ["ordinary_entrypoint", "selected_entrypoint"], "reason": "The ordinary Host fixture splits its checked assertion and partitioned top-k into selected tasks, then delivers cancellation after positive work."},
-        {"role": "top_k_by_bounded_cancel_cleanup", "paths": ["ordinary_entrypoint", "selected_entrypoint"], "reason": "Both checked paths use the same bounded partitioned top-k session stop and cleanup owner; the Host fixture reaches that provider."}
+        {"role": "top_k_by_work_workspace_exact_one_short", "paths": ["ordinary_entrypoint", "selected_entrypoint", "entrypoint"], "reason": "Both checked paths enter selected_binding_rows_execution with the exact partitioned top-k kernel and the same bounded work and workspace state."},
+        {"role": "ordinary_top_k_by_host_timer", "paths": ["ordinary_entrypoint", "selected_entrypoint", "entrypoint"], "reason": "The ordinary Host fixture splits its checked assertion and partitioned top-k into selected tasks, then delivers cancellation after positive work."},
+        {"role": "top_k_by_bounded_cancel_cleanup", "paths": ["ordinary_entrypoint", "selected_entrypoint", "entrypoint"], "reason": "Both checked paths use the same bounded partitioned top-k session stop and cleanup owner; the Host fixture reaches that provider."}
       ]
     },
     {
@@ -1565,10 +1731,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "Lag("
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/selected_relation_provider.mbt", "symbol": "selected_relation_provider"},
       "selected_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_relation_provider"
@@ -1621,6 +1784,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "lag_selected_workspace_exact_one_short",
+          "one_short_limit": "lag_selected_work_exact_one_short",
+          "in_flight_cancel": "lag_selected_in_flight_host_timer",
+          "cleanup": "lag_selected_cancel_cleanup"
+        },
         "selected_entrypoint": {
           "exact_limit": "lag_selected_workspace_exact_one_short",
           "one_short_limit": "lag_selected_work_exact_one_short",
@@ -1629,6 +1798,16 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "lag_selected_work_exact_one_short",
+            "one_short_limit": "lag_selected_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "lag_selected_workspace_exact_one_short",
+            "one_short_limit": "lag_selected_workspace_exact_one_short"
+          }
+        },
         "selected_entrypoint": {
           "work": {
             "exact_limit": "lag_selected_work_exact_one_short",
@@ -1639,7 +1818,13 @@
             "one_short_limit": "lag_selected_workspace_exact_one_short"
           }
         }
-      }
+      },
+      "shared_proof_reuse": [
+        {"role": "lag_selected_workspace_exact_one_short", "paths": ["selected_entrypoint", "entrypoint"], "reason": "Whole-sequence lag tasks reach selected_relation_provider through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "lag_selected_work_exact_one_short", "paths": ["selected_entrypoint", "entrypoint"], "reason": "Whole-sequence lag tasks reach selected_relation_provider through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "lag_selected_in_flight_host_timer", "paths": ["selected_entrypoint", "entrypoint"], "reason": "Whole-sequence lag tasks reach selected_relation_provider through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "lag_selected_cancel_cleanup", "paths": ["selected_entrypoint", "entrypoint"], "reason": "Whole-sequence lag tasks reach selected_relation_provider through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."}
+      ]
     },
     {
       "inventory": "rela",
@@ -1650,10 +1835,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "Watermark("
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/selected_relation_provider.mbt", "symbol": "selected_relation_provider"},
       "selected_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_relation_provider"
@@ -1714,6 +1896,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "watermark_selected_work_workspace_exact_one_short",
+          "one_short_limit": "watermark_selected_work_workspace_exact_one_short",
+          "in_flight_cancel": "watermark_fixed_in_flight_host_timer",
+          "cleanup": "watermark_selected_cancel_cleanup"
+        },
         "selected_entrypoint": {
           "exact_limit": "watermark_selected_work_workspace_exact_one_short",
           "one_short_limit": "watermark_selected_work_workspace_exact_one_short",
@@ -1722,6 +1910,16 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "watermark_selected_work_workspace_exact_one_short",
+            "one_short_limit": "watermark_selected_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "watermark_selected_work_workspace_exact_one_short",
+            "one_short_limit": "watermark_selected_work_workspace_exact_one_short"
+          }
+        },
         "selected_entrypoint": {
           "work": {
             "exact_limit": "watermark_selected_work_workspace_exact_one_short",
@@ -1732,7 +1930,12 @@
             "one_short_limit": "watermark_selected_work_workspace_exact_one_short"
           }
         }
-      }
+      },
+      "shared_proof_reuse": [
+        {"role": "watermark_selected_work_workspace_exact_one_short", "paths": ["selected_entrypoint", "entrypoint"], "reason": "Whole-sequence watermark_rows tasks reach selected_relation_provider through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "watermark_fixed_in_flight_host_timer", "paths": ["selected_entrypoint", "entrypoint"], "reason": "Whole-sequence watermark_rows tasks reach selected_relation_provider through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "watermark_selected_cancel_cleanup", "paths": ["selected_entrypoint", "entrypoint"], "reason": "Whole-sequence watermark_rows tasks reach selected_relation_provider through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."}
+      ]
     },
     {
       "inventory": "rela",
@@ -2897,10 +3100,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "DistinctRows"
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/selected_relation_provider.mbt", "symbol": "selected_binding_rows_execution"},
       "selected_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_binding_rows_execution"
@@ -3012,6 +3212,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "distinct_unkeyed_workspace_exact_one_short",
+          "one_short_limit": "distinct_unkeyed_workspace_exact_one_short",
+          "in_flight_cancel": "ordinary_distinct_in_flight_host_timer",
+          "cleanup": "selected_distinct_kernel_cancel_cleanup"
+        },
         "selected_entrypoint": {
           "exact_limit": "distinct_unkeyed_workspace_exact_one_short",
           "one_short_limit": "distinct_unkeyed_workspace_exact_one_short",
@@ -3026,6 +3232,30 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "variants": {
+            "unkeyed": {
+              "work": {
+                "exact_limit": "distinct_unkeyed_work_exact_one_short",
+                "one_short_limit": "distinct_unkeyed_work_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "distinct_unkeyed_workspace_exact_one_short",
+                "one_short_limit": "distinct_unkeyed_workspace_exact_one_short"
+              }
+            },
+            "keyed": {
+              "work": {
+                "exact_limit": "distinct_keyed_work_exact_one_short",
+                "one_short_limit": "distinct_keyed_work_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "distinct_keyed_workspace_exact_one_short",
+                "one_short_limit": "distinct_keyed_workspace_exact_one_short"
+              }
+            }
+          }
+        },
         "selected_entrypoint": {
           "variants": {
             "unkeyed": {
@@ -3078,29 +3308,30 @@
       "shared_proof_reuse": [
         {
           "role": "distinct_unkeyed_workspace_exact_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths use selected_binding_rows_execution with the same unkeyed distinct workspace and checked output construction."
         },
         {
           "role": "distinct_unkeyed_work_exact_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths use selected_binding_rows_execution and the same unkeyed distinct work phases."
         },
         {
           "role": "distinct_keyed_workspace_exact_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths use selected_binding_rows_execution with the same keyed distinct workspace and checked output construction."
         },
         {
           "role": "distinct_keyed_work_exact_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths use selected_binding_rows_execution and the same keyed distinct work phases."
         },
         {
           "role": "selected_distinct_kernel_cancel_cleanup",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths own the same bounded distinct session and cleanup scope; separate Host timers prove cancellation delivery."
-        }
+        },
+        {"role": "ordinary_distinct_in_flight_host_timer", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence distinct tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."}
       ]
     },
     {
@@ -3112,10 +3343,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "DedupeRows"
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/selected_relation_provider.mbt", "symbol": "selected_binding_rows_execution"},
       "selected_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_binding_rows_execution"
@@ -3178,6 +3406,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "dedupe_bounded_work_workspace_exact_one_short",
+          "one_short_limit": "dedupe_bounded_work_workspace_exact_one_short",
+          "in_flight_cancel": "dedupe_ordinary_in_flight_host_timer",
+          "cleanup": "dedupe_bounded_cancel_cleanup"
+        },
         "selected_entrypoint": {
           "exact_limit": "dedupe_bounded_work_workspace_exact_one_short",
           "one_short_limit": "dedupe_bounded_work_workspace_exact_one_short",
@@ -3192,6 +3426,16 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "dedupe_bounded_work_workspace_exact_one_short",
+            "one_short_limit": "dedupe_bounded_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "dedupe_bounded_work_workspace_exact_one_short",
+            "one_short_limit": "dedupe_bounded_work_workspace_exact_one_short"
+          }
+        },
         "selected_entrypoint": {
           "work": {
             "exact_limit": "dedupe_bounded_work_workspace_exact_one_short",
@@ -3216,17 +3460,17 @@
       "shared_proof_reuse": [
         {
           "role": "dedupe_ordinary_in_flight_host_timer",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "The selected and ordinary paths invoke the same bounded provider; the ordinary Host timer exercises its exact production start and stop path."
         },
         {
           "role": "dedupe_bounded_work_workspace_exact_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both routes select selected_binding_rows_execution and share its typed dedupe term admission, merge, output, and resource budgets."
         },
         {
           "role": "dedupe_bounded_cancel_cleanup",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both routes own the same bounded dedupe session and unpublished builder; the Host timer demonstrates real cancellation delivery."
         }
       ]
@@ -3244,10 +3488,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "AssertUnique("
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/selected_relation_provider.mbt", "symbol": "selected_binding_rows_execution"},
       "selected_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "selected_binding_rows_execution"
@@ -3415,6 +3656,22 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "variants": {
+            "where": {
+              "exact_limit": "assert_where_input_exact",
+              "one_short_limit": "assert_where_input_one_short",
+              "in_flight_cancel": "assert_where_ordinary_in_flight_host_timer",
+              "cleanup": "assert_where_cancel_cleanup"
+            },
+            "unique_by": {
+              "exact_limit": "assert_unique_exact_one_short_workspace",
+              "one_short_limit": "assert_unique_exact_one_short_workspace",
+              "in_flight_cancel": "assert_unique_ordinary_in_flight_host_timer",
+              "cleanup": "assert_unique_sort_failure_cleanup"
+            }
+          }
+        },
         "selected_entrypoint": {
           "variants": {
             "where": {
@@ -3449,6 +3706,30 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "variants": {
+            "where": {
+              "work": {
+                "exact_limit": "assert_where_work_workspace_exact_one_short",
+                "one_short_limit": "assert_where_work_workspace_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "assert_where_work_workspace_exact_one_short",
+                "one_short_limit": "assert_where_work_workspace_exact_one_short"
+              }
+            },
+            "unique_by": {
+              "work": {
+                "exact_limit": "assert_unique_work_workspace_exact_one_short",
+                "one_short_limit": "assert_unique_work_workspace_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "assert_unique_work_workspace_exact_one_short",
+                "one_short_limit": "assert_unique_work_workspace_exact_one_short"
+              }
+            }
+          }
+        },
         "selected_entrypoint": {
           "variants": {
             "where": {
@@ -3501,39 +3782,41 @@
       "shared_proof_reuse": [
         {
           "role": "assert_where_input_exact",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths enter the same bounded assertion evaluator with the identical checked input admission and scope."
         },
         {
           "role": "assert_where_input_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both paths enter the same bounded assertion evaluator with the identical checked input admission and scope."
         },
         {
           "role": "assert_where_cancel_cleanup",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both routes own the same bounded where-assertion session and cleanup state; their Host timer delivery fixtures remain separate."
         },
         {
           "role": "assert_where_work_workspace_exact_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both routes call selected_binding_rows_execution with the same where-assertion work phases and workspace ownership."
         },
         {
           "role": "assert_unique_exact_one_short_workspace",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both routes execute the same unique-key sort and output workspace phases through selected_binding_rows_execution."
         },
         {
           "role": "assert_unique_sort_failure_cleanup",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both routes own the same bounded unique-assertion child sort and retryable cleanup scope; Host timer delivery is separate."
         },
         {
           "role": "assert_unique_work_workspace_exact_one_short",
-          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "paths": ["selected_entrypoint", "ordinary_entrypoint", "entrypoint"],
           "reason": "Both routes call selected_binding_rows_execution with the same unique-key comparison work and overlapping output workspace."
-        }
+        },
+        {"role": "assert_where_ordinary_in_flight_host_timer", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence assert_rows tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "assert_unique_ordinary_in_flight_host_timer", "paths": ["ordinary_entrypoint", "entrypoint"], "reason": "Whole-sequence assert_rows tasks reach selected_binding_rows_execution through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."}
       ]
     },
     {
@@ -3545,10 +3828,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "AppendStep("
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/append_provider.mbt", "symbol": "append_provider"},
       "external_input_entrypoint": {
         "path": "src/connectors/local/append_provider.mbt",
         "symbol": "append_provider"
@@ -3723,6 +4003,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "append_external_work_workspace_exact_one_short",
+          "one_short_limit": "append_external_work_workspace_exact_one_short",
+          "in_flight_cancel": "append_external_node_timer_cancel_cleanup",
+          "cleanup": "append_external_cancel_cleanup"
+        },
         "external_input_entrypoint": {
           "exact_limit": "append_external_work_workspace_exact_one_short",
           "one_short_limit": "append_external_work_workspace_exact_one_short",
@@ -3737,6 +4023,16 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "append_external_work_workspace_exact_one_short",
+            "one_short_limit": "append_external_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "append_external_work_workspace_exact_one_short",
+            "one_short_limit": "append_external_work_workspace_exact_one_short"
+          }
+        },
         "external_input_entrypoint": {
           "work": {
             "exact_limit": "append_external_work_workspace_exact_one_short",
@@ -3761,9 +4057,11 @@
       "shared_proof_reuse": [
         {
           "role": "append_external_work_workspace_exact_one_short",
-          "paths": ["external_input_entrypoint", "same_stage_entrypoint"],
+          "paths": ["external_input_entrypoint", "same_stage_entrypoint", "entrypoint"],
           "reason": "Both normal entrypoints select append_provider for a single checked AppendStep and pass two exact ProducerRead inputs into start_bounded_append. The direct values/append Host fixture verifies that the same-stage producer handoff selects this provider; input origin does not change the kernel's cumulative work and workspace accounting."
-        }
+        },
+        {"role": "append_external_node_timer_cancel_cleanup", "paths": ["external_input_entrypoint", "entrypoint"], "reason": "Whole-sequence append tasks reach append_provider through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "append_external_cancel_cleanup", "paths": ["external_input_entrypoint", "entrypoint"], "reason": "Whole-sequence append tasks reach append_provider through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."}
       ]
     },
     {
@@ -3775,10 +4073,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "ValuesStep("
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/values_provider.mbt", "symbol": "values_provider"},
       "zero_input_entrypoint": {
         "path": "src/connectors/local/values_provider.mbt",
         "symbol": "values_provider"
@@ -3879,6 +4174,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "zero_input_work_and_workspace",
+          "one_short_limit": "zero_input_work_and_workspace",
+          "in_flight_cancel": "zero_input_node_timer_cancel_cleanup",
+          "cleanup": "zero_input_cancel_cleanup"
+        },
         "zero_input_entrypoint": {
           "exact_limit": "zero_input_work_and_workspace",
           "one_short_limit": "zero_input_work_and_workspace",
@@ -3887,6 +4188,16 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "zero_input_work_and_workspace",
+            "one_short_limit": "zero_input_work_and_workspace"
+          },
+          "workspace": {
+            "exact_limit": "zero_input_work_and_workspace",
+            "one_short_limit": "zero_input_work_and_workspace"
+          }
+        },
         "zero_input_entrypoint": {
           "work": {
             "exact_limit": "zero_input_work_and_workspace",
@@ -3897,7 +4208,12 @@
             "one_short_limit": "zero_input_work_and_workspace"
           }
         }
-      }
+      },
+      "shared_proof_reuse": [
+        {"role": "zero_input_work_and_workspace", "paths": ["zero_input_entrypoint", "entrypoint"], "reason": "Whole-sequence values tasks reach values_provider through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "zero_input_node_timer_cancel_cleanup", "paths": ["zero_input_entrypoint", "entrypoint"], "reason": "Whole-sequence values tasks reach values_provider through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."},
+        {"role": "zero_input_cancel_cleanup", "paths": ["zero_input_entrypoint", "entrypoint"], "reason": "Whole-sequence values tasks reach values_provider through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."}
+      ]
     },
     {
       "inventory": "rela",
@@ -3954,10 +4270,7 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "CrossJoinStep("
       },
-      "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
-      },
+      "entrypoint": {"path": "src/connectors/local/cross_join_provider.mbt", "symbol": "cross_join_provider"},
       "external_input_entrypoint": {
         "path": "src/connectors/local/cross_join_provider.mbt",
         "symbol": "cross_join_provider"
@@ -4125,6 +4438,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "external_product_work_exact_one_short",
+          "one_short_limit": "external_product_work_exact_one_short",
+          "in_flight_cancel": "external_product_node_timer_cancel_cleanup",
+          "cleanup": "external_product_host_in_flight_cancel_cleanup"
+        },
         "external_input_entrypoint": {
           "exact_limit": "external_product_work_exact_one_short",
           "one_short_limit": "external_product_work_exact_one_short",
@@ -4139,6 +4458,16 @@
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "external_product_work_exact_one_short",
+            "one_short_limit": "external_product_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "external_product_workspace_exact_one_short",
+            "one_short_limit": "external_product_workspace_exact_one_short"
+          }
+        },
         "external_input_entrypoint": {
           "work": {
             "exact_limit": "external_product_work_exact_one_short",
@@ -4163,19 +4492,20 @@
       "shared_proof_reuse": [
         {
           "role": "external_product_work_exact_one_short",
-          "paths": ["external_input_entrypoint", "same_stage_entrypoint"],
+          "paths": ["external_input_entrypoint", "same_stage_entrypoint", "entrypoint"],
           "reason": "Both admitted paths select cross_join_provider for one checked CrossJoinStep and call start_bounded_cross_join with two exact ProducerRead inputs. The direct values/cross-join Host fixture asserts provider selection and quantum-one progress, so the common pair-work accounting applies to either producer origin."
         },
         {
           "role": "external_product_workspace_exact_one_short",
-          "paths": ["external_input_entrypoint", "same_stage_entrypoint"],
+          "paths": ["external_input_entrypoint", "same_stage_entrypoint", "entrypoint"],
           "reason": "Both admitted paths construct the identical bounded cross-join state after the common selected provider receives two ProducerRead views. The direct same-stage Host fixture proves that source splitting reaches this provider; temporary pair workspace is charged inside that shared state."
         },
         {
           "role": "external_product_host_in_flight_cancel_cleanup",
-          "paths": ["external_input_entrypoint", "same_stage_entrypoint"],
+          "paths": ["external_input_entrypoint", "same_stage_entrypoint", "entrypoint"],
           "reason": "The two paths call the same bounded cross-join cleanup callback through cross_join_provider after stopping. The direct-path Node timer separately proves delivered in-flight cancellation, and the shared MoonBit cleanup fixture proves that the exact state owner releases unpublished pair work."
-        }
+        },
+        {"role": "external_product_node_timer_cancel_cleanup", "paths": ["external_input_entrypoint", "entrypoint"], "reason": "Whole-sequence cross_join tasks reach cross_join_provider through bounded_relation_chain_execution, which runs each step with the same single-step provider; the synchronous whole-sequence evaluator is no longer a production Local route."}
       ]
     },
     {

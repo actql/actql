@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 31 with four-role boundary evidence, 31 with full work\/workspace assurance, 70 with path-scoped work\/workspace evidence, 6 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 48 with four-role boundary evidence, 48 with full work\/workspace assurance, 87 with path-scoped work\/workspace evidence, 4 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('same-stage equality join requires its bounded route and evidence', () => {
@@ -865,7 +865,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 70 |',
+    '| Path-scoped work/workspace assurance | 87 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);
@@ -1979,6 +1979,16 @@ test('managed dispatch has no synchronous providerless lane', () => {
   assert.doesNotMatch(driver, /execute_local_managed_fixed_compute\(/);
 });
 
+test('ordinary and retained Store Local have no synchronous lane', () => {
+  const result = run(undefined, undefined, ['--require-boundary-complete']);
+  assert.doesNotMatch(result,
+    /ordinary Local dispatch keeps a synchronous computation lane/);
+  assert.doesNotMatch(result,
+    /Node Local driver keeps a synchronous execute fallback/);
+  assert.doesNotMatch(result,
+    /retained Store Local lacks standard Host in-flight evidence/);
+});
+
 test('selected Relation provider has no synchronous row fallback', () => {
   const provider = readFileSync(join(
     root, 'src/connectors/local/selected_relation_provider.mbt',
@@ -1991,7 +2001,7 @@ test('strict gate recognizes cross join after positive pair work', () => {
   const result = run(undefined, undefined, ['--require-boundary-complete']);
   assert.doesNotMatch(result,
     /RelA cross_join: in-flight Host cancellation evidence is missing/);
-  assert.match(result,
+  assert.doesNotMatch(result,
     /RelA cross_join: entrypoint boundary assurance is missing/);
 });
 
@@ -2093,7 +2103,25 @@ test('resource gate keeps assertion work proofs variant-specific', () => {
 
 test('resource completion rejects every unassured operation', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /RelA filter: entrypoint boundary assurance is missing/);
+    /RelA analytic: entrypoint boundary assurance is missing/);
+});
+
+test('whole-sequence take owes both keyed and unkeyed resource branches', () => {
+  assert.match(run(undefined, value => {
+    const take = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'take');
+    delete take.resource_assurance.entrypoint.variants.keyed;
+  }), /RelA take: entrypoint needs unkeyed and keyed resource variants/);
+});
+
+test('whole-sequence filter proof reuse needs its shared entrypoint grant', () => {
+  assert.match(run(undefined, value => {
+    const filter = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'filter');
+    for (const grant of filter.shared_proof_reuse) {
+      grant.paths = grant.paths.filter(path => path !== 'entrypoint');
+    }
+  }), /RelA filter: shared proof reuse lacks an exact common entrypoint/);
 });
 
 test('resource completion also rejects an unassured SGA route', () => {

@@ -1105,8 +1105,11 @@ for (const [index, route] of routeEntries.entries()) {
       const countGroup = route.family === 'RelA' &&
         route.operation === 'group' &&
         pathName === 'global_count_entrypoint';
+      // The whole-sequence entrypoint reaches the same bounded row executor
+      // as the selected and ordinary paths, so it owes the same variants.
       const rowVariants = route.family === 'RelA' &&
-        ['selected_entrypoint', 'ordinary_entrypoint'].includes(pathName)
+        ['selected_entrypoint', 'ordinary_entrypoint', 'entrypoint']
+          .includes(pathName)
           ? {take: ['unkeyed', 'keyed'], sort: ['ordered', 'empty'],
             distinct: ['unkeyed', 'keyed']}[
             route.operation
@@ -1903,6 +1906,34 @@ if (requireBoundaryComplete) {
   } else if (!driver.slice(fallbackAt, fallbackAt + 200)
     .includes('Err(Configuration(ComputeUnsupported))')) {
     fail('providerless managed execution must be rejected');
+  }
+}
+
+// Ordinary Local dispatch, including a retained Store output, runs the same
+// bounded provider in a materializing attempt. Neither the MoonBit plan nor
+// the Node driver may keep a synchronous whole-task lane, and the standard
+// Host suite must execute that route with an in-flight abort.
+if (requireBoundaryComplete) {
+  const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+  const plan = read('src/connectors/local/driver/dispatch.mbt');
+  const attempt = read('src/connectors/local/materializing.mbt');
+  const driver = read('adapters/local-node/strategy-bundle.mjs');
+  const host = read(
+    'adapters/connectors/duckdb/node/test/standard-host.test.mjs',
+  );
+  if (/\bSynchronous\(/u.test(plan) ||
+    !attempt.includes('start_managed_provider_with_inputs_and_execution(') ||
+    attempt.includes('execute_local_fixed_compute')) {
+    fail('ordinary Local dispatch keeps a synchronous computation lane');
+  }
+  if (driver.includes('operations.execute(') ||
+    !driver.includes("throw new Error('MissingBoundedLocalExecution')")) {
+    fail('Node Local driver keeps a synchronous execute fallback');
+  }
+  if (!host.includes('fixture.strategyFixtureRetainedLocalSubset(') ||
+    !host.includes("assert.fail('retained Local ran synchronously')") ||
+    !host.includes('stoppedAfterAbort')) {
+    fail('retained Store Local lacks standard Host in-flight evidence');
   }
 }
 
