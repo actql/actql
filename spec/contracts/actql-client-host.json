@@ -13,7 +13,8 @@
     "delivery-attempt": ["connection", "ref", "resultName", "attemptId"],
     "checkpoints": ["connection", "after", "limit"],
     "checkpoint-review": ["connection", "checkpointCid", "maxBytes"],
-    "resolve": ["connection", "items"]
+    "resolve": ["connection", "items"],
+    "cancel-request": ["connection", "requestId"]
   },
   "schemas": {
     "cancellation": {
@@ -208,6 +209,17 @@
         "decision": {"enum": ["approved", "rejected"]},
         "resolutionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "reason": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}
+      }
+    },
+    "request_cancellation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requestId", "kind"],
+      "properties": {
+        "requestId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "kind": {"enum": ["accepted", "already_requested", "already_terminal"]},
+        "ref": {"type": "object", "additionalProperties": false, "required": ["tenantId", "authorityScopeCid", "runDefinitionCid"], "properties": {"tenantId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}, "authorityScopeCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "runDefinitionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}},
+        "revision": {"type": "integer", "minimum": 0, "maximum": 2147483647}
       }
     },
     "submit_preparation_error": {

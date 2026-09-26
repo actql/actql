@@ -336,11 +336,25 @@ directory sync and rebuilt from the captured submission when it is missing
 or unreadable. `observe(step)` is Host instrumentation of the protected
 steps; it never changes a decision.
 
+The request owner cancels a request by its ID (`cancel-request`), with or
+without a Run:
+- The cancellation is recorded durably on the held request's prepare attempt
+  before it is acknowledged.
+- A waiting request ends cancelled at once, with its Checkpoint closed; a
+  later answer is `cancelled`.
+- A resuming request is left for its resume owner. The resume re-reads the
+  durable cancellation after its claim, after admitting the Run Definition,
+  and synchronously immediately before the physical start.
+- When the request has a Run, created before or concurrently, the
+  cancellation is applied to that Run through its own cancellation, which
+  the physical start reservation observes atomically.
+- A Run whose physical start was reserved first keeps its stop and cleanup
+  owners. The held request's journal Run ends, and its evidence is released,
+  only once the Run is observed terminal.
+- Reviewers and review readers cannot cancel. Aborting a review read is not a
+  cancel.
+
 This profile has these limits:
-- A held request cannot be cancelled through the public Client. This is
-  outside the unit of completion: there is no public cancel for a request
-  without a Run yet. Rejecting its Checkpoint or aborting a review read is not
-  a cancel by the request owner.
 - Only Run acceptance of source-free Programs is connected. The preparation
   source read of Programs with input and `run_unit` Checkpoints on this
   Host are not connected here.

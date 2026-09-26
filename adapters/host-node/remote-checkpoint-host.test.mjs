@@ -692,3 +692,196 @@ test('a Run cancelled after its dispatch reservation ends the held request',
   async t => {
     await cancelledBeforeStart(t, 'dispatch_reserved');
   });
+
+// D-next-1: cancelling a held request by its ID through the public Client.
+function journalRows(directory, sql) {
+  const database = new DatabaseSync(join(directory, 'state', 'checkpoints',
+    'journal', 'checkpoint-journal.sqlite3'), {readOnly: true});
+  try { return database.prepare(sql).all().map(row => ({...row})); }
+  finally { database.close(); }
+}
+async function holdingStates(directory) {
+  const ledgers = join(directory, 'state', 'checkpoints', 'attempts');
+  const states = [];
+  // Ledgers are replaced by atomic rename; a temporary file is not one.
+  for (const file of (await readdir(ledgers)).filter(name =>
+    name.endsWith('.json'))) {
+    const ledger = JSON.parse(await readFile(join(ledgers, file), 'utf8'));
+    states.push(...ledger.holdings.filter(item =>
+      item.name !== 'invocation_request').map(item => item.state));
+  }
+  return [...new Set(states)];
+}
+async function stalledHost(t, {stallAt, extra = {}} = {}) {
+  const directory = await mkdtemp(join(scratch, 'cancel-request-'));
+  const steps = [];
+  let stall = stallAt !== undefined;
+  let released;
+  const stalled = new Promise(resolve => { released = resolve; });
+  const host = await remoteHost(t, protectedHost('delegate', {leaseMs: 1000,
+    ...extra,
+    async observe(name) {
+      steps.push(name);
+      if (name === stallAt && stall) {
+        stall = false;
+        await stalled;
+      }
+    }}), {directory});
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  return {directory, steps, host, release: () => released(),
+    client: await host.as('owner-token'),
+    reviewer: await host.as('reviewer-token')};
+}
+
+test('C1/C2: a held request is cancelled by its owner and resends match',
+  async t => {
+    const x = await stalledHost(t);
+    await heldRequests(x.client, ['cancel-a']);
+    const [summary] = await allCheckpoints(x.reviewer);
+    // C2: not the owner, not a request of this scope, or no such request.
+    await assert.rejects(x.reviewer.cancelRequest('cancel-a'),
+      {code: 'ClientConnectionDenied'});
+    await assert.rejects(x.client.cancelRequest('no-such-request'),
+      {code: 'ClientRequestNotFound'});
+    assert.equal((await x.client.lookupRequest('cancel-a')).state,
+      'waiting_checkpoint');
+    // C1: durable cancellation; a lost reply is resent and matched.
+    const real = globalThis.fetch;
+    let dropped = false;
+    globalThis.fetch = async (url, init) => {
+      const response = await real(url, init);
+      if (!dropped && String(url).endsWith('/cancel-request')) {
+        dropped = true;
+        await response.body?.cancel();
+        throw new TypeError('reply lost');
+      }
+      return response;
+    };
+    try {
+      await assert.rejects(x.client.cancelRequest('cancel-a'), error =>
+        error.code === 'CancellationUnknown' &&
+          error.requestId === 'cancel-a');
+    } finally { globalThis.fetch = real; }
+    assert.deepEqual(await x.client.cancelRequest('cancel-a'),
+      {requestId: 'cancel-a', kind: 'already_requested'});
+    const lookup = await x.client.lookupRequest('cancel-a');
+    assert.equal(lookup.state, 'ended');
+    assert.equal(lookup.endReason, 'cancelled');
+    // A late answer does not resume it.
+    const late = await x.reviewer.resolveCheckpoints([{checkpoint: summary,
+      decision: 'approved'}], {signer});
+    assert.equal(late.results[0].status, 'cancelled');
+    await waitFor(async () => (await holdingStates(x.directory))
+      .every(state => state === 'retired'));
+    assert.equal(x.steps.filter(name => name === 'resume_claimed').length, 0);
+    assert.equal(x.host.dispatches(), 0);
+  });
+
+// C3: cancellation racing the resume: after the claim (no Run yet), after
+// the Run Definition exists, and after the dispatch reservation.
+for (const [label, stallAt, withRun] of [
+  ['after the claim', 'resume_claimed', false],
+  ['after the Run Definition', 'definition_admitted', true],
+  ['after the dispatch reservation', 'dispatch_reserved', true],
+]) {
+  test(`C3: a request cancelled ${label} never starts`, async t => {
+    const x = await stalledHost(t, {stallAt});
+    await heldRequests(x.client, ['race-a']);
+    await approveAll(x.reviewer, await allCheckpoints(x.reviewer));
+    await waitFor(() => x.steps.includes(stallAt));
+    const cancelled = await x.client.cancelRequest('race-a');
+    assert.equal(cancelled.kind, 'accepted');
+    // With a Run the cancellation names it: the same Run is cancelled.
+    assert.equal(cancelled.ref !== undefined, withRun);
+    x.release();
+    await waitFor(() => journalRows(x.directory,
+      'SELECT status FROM preparations')[0].status === 'ended');
+    assert.deepEqual(journalRows(x.directory,
+      'SELECT status, end_reason FROM preparations'),
+    [{status: 'ended', end_reason: 'cancelled'}]);
+    const claims = x.steps.filter(name => name === 'resume_claimed').length;
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    assert.equal(x.steps.filter(name => name === 'resume_claimed').length,
+      claims);
+    assert.equal(x.steps.filter(name =>
+      name === 'physical_start_reserved').length, 0);
+    if (withRun) {
+      const execution = await x.client.attach(cancelled.ref);
+      assert.equal((await execution.status()).status, 'cancelled');
+    }
+    await waitFor(async () => (await holdingStates(x.directory))
+      .every(state => state === 'retired'));
+  });
+}
+
+test('C4: a cancellation recorded before a restart settles on the next start',
+  async t => {
+    const directory = await mkdtemp(join(scratch, 'cancel-restart-'));
+    const answering = await remoteHost(t, protectedHost('delegate',
+      {resumeAfterAnswer: false, leaseMs: 1000}), {directory});
+    const client = await answering.as('owner-token');
+    const reviewer = await answering.as('reviewer-token');
+    await heldRequests(client, ['restart-a']);
+    await approveAll(reviewer, await allCheckpoints(reviewer));
+    assert.equal((await client.cancelRequest('restart-a')).kind, 'accepted');
+    // Resuming and cancel-requested: recorded, not yet settled.
+    assert.deepEqual(journalRows(directory,
+      'SELECT status, cancel_requested FROM preparations'),
+    [{status: 'resuming', cancel_requested: 1}]);
+    await answering.close();
+    const steps = [];
+    const restarted = await remoteHost(t, protectedHost('delegate', {
+      leaseMs: 1000, observe: name => { steps.push(name); }}), {directory});
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    await waitFor(() => journalRows(directory,
+      'SELECT status FROM preparations')[0].status === 'ended');
+    assert.deepEqual(journalRows(directory,
+      'SELECT end_reason FROM preparations'), [{end_reason: 'cancelled'}]);
+    assert.deepEqual(journalRows(directory,
+      'SELECT state FROM resume_intents').map(row => row.state),
+    ['completed']);
+    await waitFor(async () => (await holdingStates(directory))
+      .every(state => state === 'retired'));
+    const claims = steps.filter(name => name === 'resume_claimed').length;
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    assert.equal(steps.filter(name => name === 'resume_claimed').length,
+      claims);
+    assert.equal(restarted.dispatches(), 0);
+  });
+
+test('C5: a cancellation after the physical start reservation releases nothing early',
+  async t => {
+    const x = await stalledHost(t, {stallAt: 'physical_start_reserved'});
+    await heldRequests(x.client, ['started-a']);
+    await approveAll(x.reviewer, await allCheckpoints(x.reviewer));
+    await waitFor(() => x.steps.includes('physical_start_reserved'));
+    const cancelled = await x.client.cancelRequest('started-a');
+    assert.equal(cancelled.kind, 'accepted');
+    assert.ok(cancelled.ref !== undefined);
+    // The start was reserved first: the Run is not settled or released by
+    // the request alone.
+    await new Promise(resolve => setTimeout(resolve, 300));
+    assert.deepEqual(journalRows(x.directory,
+      'SELECT status FROM preparations'), [{status: 'run_created'}]);
+    assert.deepEqual(journalRows(x.directory, 'SELECT status FROM runs'),
+      [{status: 'running'}]);
+    assert.deepEqual(await holdingStates(x.directory), ['held']);
+    x.release();
+    // The existing stop and publication owners decide its end. The held
+    // request's journal Run ends and its evidence is released only when the
+    // Run is observed terminal; with its physical stop unknown both stay.
+    const execution = await x.client.attach(cancelled.ref);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    const current = await execution.status();
+    const [run] = journalRows(x.directory, 'SELECT status FROM runs');
+    if (['succeeded', 'failed', 'cancelled'].includes(current.status)) {
+      await waitFor(async () => (await holdingStates(x.directory))
+        .every(item => item === 'retired'));
+      assert.equal(journalRows(x.directory, 'SELECT status FROM runs')[0]
+        .status, current.status);
+    } else {
+      assert.equal(current.control.physical_stop, 'unknown');
+      assert.equal(run.status, 'running');
+      assert.deepEqual(await holdingStates(x.directory), ['held']);
+    }
+  });

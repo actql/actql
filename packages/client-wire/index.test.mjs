@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {checkpointLimits, clientHostOperations, validCheckpointPage,
   validCheckpointReview, validClientAdmission, validClientBody,
   validClientConnection, validClientProfile, validDeliveryAttemptLookup,
-  validHeldRequest, validRequestLookup, validResolveResults, validRunRef,
+  validHeldRequest, validRequestCancellation, validRequestLookup, validResolveResults, validRunRef,
   validRunState, validSubmitPreparationError,
   validSubmitReply} from './index.mjs';
 
@@ -15,7 +15,7 @@ const ref = Object.freeze({tenantId: 'tenant-a',
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});
 
 test('public wire accepts the exact connected request shapes', () => {
-  assert.equal(clientHostOperations.length, 13);
+  assert.equal(clientHostOperations.length, 14);
   assert.equal(validClientConnection(connection), true);
   assert.equal(validRunRef(ref), true);
   assert.equal(validClientBody('connect', {connection}), true);
@@ -318,3 +318,21 @@ test('Checkpoint replies bind page bounds, exact review bytes and each item',
       {checkpointCid, status: 'invalid', reason: 'x'}]}, items), false);
     assert.equal(validResolveResults({results: []}, items), false);
   });
+
+test('a request cancellation names its request and, with a Run, that Run', () => {
+  assert.equal(validClientBody('cancel-request', {connection,
+    requestId: 'saved-a'}), true);
+  assert.equal(validClientBody('cancel-request', {connection,
+    requestId: 'saved-a', ref}), false);
+  assert.equal(validRequestCancellation({requestId: 'saved-a',
+    kind: 'accepted'}, 'saved-a'), true);
+  assert.equal(validRequestCancellation({requestId: 'saved-a',
+    kind: 'accepted', ref, revision: 2}, 'saved-a'), true);
+  assert.equal(validRequestCancellation({requestId: 'saved-b',
+    kind: 'accepted'}, 'saved-a'), false);
+  // A Run reference comes with its revision, and only known kinds.
+  assert.equal(validRequestCancellation({requestId: 'saved-a',
+    kind: 'accepted', ref}, 'saved-a'), false);
+  assert.equal(validRequestCancellation({requestId: 'saved-a',
+    kind: 'not_found'}, 'saved-a'), false);
+});

@@ -10,11 +10,12 @@ const runStateSource = 'spec/contracts/actql-protocol-schemas.json';
 const names = ['run_ref', 'connection', 'profile', 'admission',
   'lookup_found', 'lookup_not_found', 'lookup_unknown', 'held',
   'checkpoint_summary', 'checkpoint_review', 'resolve_item',
-  'resolve_result', 'submit_preparation_error', 'cancellation'];
+  'resolve_result', 'submit_preparation_error', 'cancellation',
+  'request_cancellation'];
 const exports = ['RunRef', 'Connection', 'Profile', 'Admission',
   'LookupFound', 'LookupNotFound', 'LookupUnknown', 'Held',
   'CheckpointSummary', 'CheckpointReview', 'ResolveItem', 'ResolveResult',
-  'SubmitPreparationError', 'Cancellation'];
+  'SubmitPreparationError', 'Cancellation', 'RequestCancellation'];
 
 export function buildClientHostWire(registry, protocol) {
   if (registry.version !== 'actql-client-host/0.1' ||

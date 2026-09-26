@@ -1,4 +1,5 @@
 import type {WireCancellation, WireCheckpointSummary, WireClientProfile,
+  WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
   WireRunState} from '@actql/client-wire';
@@ -36,6 +37,7 @@ export type RunState = WireRunState;
 export type DeliveryAttemptLookup = WireDeliveryAttemptLookup;
 
 export type HeldRequest = WireHeldRequest;
+export type RequestCancellation = WireRequestCancellation;
 export type CheckpointSummary = WireCheckpointSummary;
 export type SignedCheckpointAnswer = WireResolveItem;
 export type CheckpointAnswerResult = WireResolveResult;
@@ -121,6 +123,8 @@ export interface Client {
   attach(ref: RunReference, options?: {signal?: AbortSignal}): Promise<Execution>;
   lookupRequest(requestId: string,
     options?: {signal?: AbortSignal}): Promise<RequestLookup>;
+  cancelRequest(requestId: string, options?: {signal?: AbortSignal}):
+    Promise<RequestCancellation>;
   checkpoints(options?: {after?: string; limit?: number;
     signal?: AbortSignal}): Promise<Readonly<{
       items: readonly CheckpointSummary[]; next?: string}>>;

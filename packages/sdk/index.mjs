@@ -1,7 +1,8 @@
 // The transport Client delegates admission, state and delivery to the Host.
 import {checkpointLimits, validCancellation, validCheckpointPage,
   validCheckpointReview, validClientAdmission, validClientConnection,
-  validClientProfile, validDeliveryAttemptLookup, validRequestLookup,
+  validClientProfile, validDeliveryAttemptLookup, validRequestCancellation,
+  validRequestLookup,
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validSubmitReply} from
   '@actql/client-wire';
@@ -584,6 +585,34 @@ async function connectSelected(selected, port) {
         return Object.freeze({...answer, ref: Object.freeze({...answer.ref})});
       }
       return Object.freeze(answer);
+    },
+    // Cancel a request by its ID, before or after its Run exists; a Run is
+    // cancelled through its own cancellation. `accepted` means the Host
+    // durably recorded it, not that anything stopped or was cleaned up
+    // (follow lookupRequest, or status() once there is a Run). When the
+    // reply is lost or the Host fails, the error is CancellationUnknown with
+    // the requestId: call cancelRequest again with the same ID; it is
+    // matched to the existing cancellation. Aborting the call never
+    // withdraws a cancellation the Host already recorded.
+    cancelRequest: async (requestId, {signal} = {}) => {
+      if (typeof requestId !== 'string' || !requestId) fail('InvalidRequestId');
+      let answer;
+      try {
+        const response = await exchange('cancel-request', {requestId},
+          signal);
+        answer = await controlValue(response);
+      } catch (cause) {
+        if (cause instanceof ClientError &&
+            cause.code !== 'ClientTransportUnknown' &&
+            !(cause.status >= 500)) throw cause;
+        throw new ClientError('CancellationUnknown', {requestId, cause});
+      }
+      if (!validRequestCancellation(answer, requestId)) {
+        throw new ClientError('CancellationUnknown', {requestId,
+          cause: new ClientError('InvalidHostRequestCancellation')});
+      }
+      return Object.freeze({...answer, ...(answer.ref === undefined ? {} :
+        {ref: Object.freeze({...answer.ref})})});
     },
     // One authorized page of waiting Checkpoints: safe metadata only, never
     // review contents. `next` continues the listing.

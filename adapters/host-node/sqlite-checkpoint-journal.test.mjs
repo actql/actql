@@ -1597,3 +1597,52 @@ test('pending Checkpoints page by a stable cursor; resumable preparations and th
     assert.throws(() => journal.listPreparationRuns({limit: 0}),
       {code: 'InvalidPreparationRunPage'});
   });
+
+test('a request cancellation is durable and ends or marks the preparation',
+  async t => {
+    const {clock, open} = await workspace(t);
+    const journal = open();
+    const [waiting, resuming, rejected] = ['a', 'b', 'c'].map(id => {
+      clock.ms += 1000;
+      return persistPreparation(journal, prepareBody({
+        attemptId: `attempt-${id}`, checkpointId: `cp-${id}`}));
+    });
+    // Waiting: the Checkpoint closes as cancelled and the preparation ends
+    // cancelled; a later answer is `cancelled`, never a resume.
+    const first = journal.requestPreparationCancellation('attempt-a');
+    assert.equal(first.outcome, 'accepted');
+    assert.equal(first.preparation.status, 'ended');
+    assert.equal(first.preparation.endReason, 'cancelled');
+    assert.equal(first.preparation.cancelRequested, true);
+    assert.equal(journal.inspect(waiting.checkpointCid).closure, 'cancelled');
+    const late = await journal.submitResolutions([{
+      checkpointCid: waiting.checkpointCid,
+      ...resolvePreparation(storedWire(journal, waiting.checkpointCid),
+        'approved')}]);
+    assert.equal(late[0].status, 'cancelled');
+    assert.deepEqual(journal.listResumablePreparations(), []);
+    // Repeating it is idempotent.
+    assert.equal(journal.requestPreparationCancellation('attempt-a').outcome,
+      'already_requested');
+    // Resuming (approved first): the durable request stays for the resume
+    // owner; nothing else changes.
+    await journal.submitResolution({checkpointCid: resuming.checkpointCid,
+      ...resolvePreparation(storedWire(journal, resuming.checkpointCid),
+        'approved')});
+    const marked = journal.requestPreparationCancellation('attempt-b');
+    assert.equal(marked.outcome, 'accepted');
+    assert.equal(marked.preparation.status, 'resuming');
+    assert.equal(marked.preparation.cancelRequested, true);
+    assert.equal(journal.getPreparation('attempt-b').cancelRequested, true);
+    assert.equal(journal.requestPreparationCancellation('attempt-b').outcome,
+      'already_requested');
+    // Ended otherwise: already terminal, unchanged.
+    await journal.submitResolution({checkpointCid: rejected.checkpointCid,
+      ...resolvePreparation(storedWire(journal, rejected.checkpointCid),
+        'rejected')});
+    const terminal = journal.requestPreparationCancellation('attempt-c');
+    assert.equal(terminal.outcome, 'already_terminal');
+    assert.equal(terminal.preparation.cancelRequested, false);
+    assert.throws(() => journal.requestPreparationCancellation('attempt-x'),
+      {code: 'PreparationNotFound'});
+  });
