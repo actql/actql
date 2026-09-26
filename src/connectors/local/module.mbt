@@ -187,6 +187,10 @@ pub fn local_module_managed_provider(
   if managed_provider_accepts(global_count, sequence) {
     return Some(global_count)
   }
+  let group = group_provider(installed.execution, installed.measurement)
+  if managed_provider_accepts(group, sequence) {
+    return Some(group)
+  }
   let row_window = row_window_provider(
     installed.execution,
     installed.measurement,

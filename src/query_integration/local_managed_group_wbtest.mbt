@@ -686,7 +686,13 @@ fn run_local_managed_group_case(
     variant == "keyed_same_stage" ||
     variant == "compound" ||
     variant == "empty_keyed" ||
-    variant == "counts"
+    variant == "counts" ||
+    // General direct aggregates use the bounded group provider.
+    variant == "direct" ||
+    variant == "ordered" ||
+    variant == "collections" ||
+    variant == "nested_distinct" ||
+    variant == "statistics"
   let execution_advances = Ref(0)
   let (group_ops, groups) = run_local_managed_test_task(
     installed,
@@ -901,6 +907,10 @@ fn assert_standard_host_cancels_bounded_count(
   ).unwrap()
   let large_payload = variant == "global_counts_payload" ||
     variant == "long_text_key"
+  let expanded = variant == "direct" ||
+    variant == "ordered" ||
+    variant == "collections" ||
+    variant == "statistics"
   @local_driver.configure_local_retained_inputs(
     installed,
     {
@@ -910,35 +920,52 @@ fn assert_standard_host_cancels_bounded_count(
         ..retained_attempt_wire_limits(),
         max_bytes: if large_payload {
           2048
+        } else if expanded {
+          512
         } else {
           256
         },
         max_nodes: if large_payload {
           512
+        } else if expanded {
+          100
         } else {
           20
+        },
+        max_columns: if expanded {
+          6
+        } else {
+          4
         },
       },
       row: {
         max_bytes: if large_payload {
           2048
+        } else if expanded {
+          1000
         } else {
           100
         },
         max_nodes: if large_payload {
           512
+        } else if expanded {
+          100
         } else {
           20
         },
         max_depth: 4,
         max_text_bytes: if large_payload {
           2048
+        } else if expanded {
+          1000
         } else {
           100
         },
       },
       max_batch_bytes: if large_payload {
         2048
+      } else if expanded {
+        512
       } else {
         256
       },
@@ -1041,6 +1068,26 @@ test "standard Host cancels count inside unused nested input" {
 ///|
 test "standard Host cancels a long keyed count after positive work" {
   assert_standard_host_cancels_bounded_count("long_text_key", before_cancel=30)
+}
+
+///|
+test "standard Host cancels direct aggregates after bounded work" {
+  assert_standard_host_cancels_bounded_count("direct", before_cancel=20)
+}
+
+///|
+test "standard Host cancels ordered aggregates after bounded work" {
+  assert_standard_host_cancels_bounded_count("ordered", before_cancel=20)
+}
+
+///|
+test "standard Host cancels collection aggregates after bounded work" {
+  assert_standard_host_cancels_bounded_count("collections", before_cancel=20)
+}
+
+///|
+test "standard Host cancels group statistics after bounded work" {
+  assert_standard_host_cancels_bounded_count("statistics", before_cancel=20)
 }
 
 ///|
