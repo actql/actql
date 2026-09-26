@@ -51,6 +51,21 @@ is still red, so this is a closed route, not a completed group operation.
 
 The strict gate still rejects unassured RelA whole-sequence entrypoints,
 eight SGA entrypoints, and the providerless synchronous computation.
+The providerless route is reachable when the installed product module finds
+no matching managed provider but the checked sequence passes
+`local_managed_sequence_supported()`. The managed driver then calls
+`execute_local_managed_fixed_compute()` before starting its bounded output
+copy. This is computation before the first cancellable copy step, not a
+missing timer assertion on an otherwise bounded calculation. The current
+provider search covers selected Relation steps, finite count groups, row
+windows, unpivot, unnest, cross join, append, values, and installed family
+providers. Its Relation-chain reader requires a linear sequence: the first
+step consumes all declared external inputs, and each later step is unary on
+the immediately preceding output. A supported sequence outside those shapes,
+or a single supported operation without a bounded provider (including
+general groups, analytic, and pivot), can therefore reach the synchronous
+fallback. These are distinct implementation gaps; adding a route assertion
+for a selected step does not make the fallback cancellable.
 The selected top-k, binary same-Stage, VecA row-expression, and ranking
 paths now have separate evidence, but that does not certify an unrelated
 whole-sequence or formal variant. Multiple rows below share one
