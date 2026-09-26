@@ -224,6 +224,84 @@ fn start_bounded_relation_step(
 }
 
 ///|
+/// Preserve each checked operation port when a bounded chain combines a
+/// previous private completion with an external input. Repeated targets remain
+/// separate input occurrences; the child provider checks their exact binding.
+fn relation_chain_step_inputs(
+  sequence : @execution.GeneratedSequence,
+  position : Int,
+  inputs : Array[ManagedProviderInput],
+  previous : @execution.CompletedOutput?,
+  max_entries : Int,
+  max_value_bytes : Int,
+) -> Result[Array[ManagedProviderInput], @connector.FixedComputeIssue] {
+  let owner = @execution.generated_sequence_owner(sequence)
+  guard @execution.generated_sequence_step_index_at(sequence, position)
+    is Some(step) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) else {
+    return Err(@connector.Execution(@execution.InputSet))
+  }
+  let prior = if position > 0 {
+    @execution.generated_sequence_step_index_at(sequence, position - 1)
+  } else {
+    None
+  }
+  let selected : Array[ManagedProviderInput] = []
+  for port in 0..<@lower.node_input_count(node) {
+    match @lower.node_input_target(node, port) {
+      Some(@pipeline.Input(_)) => {
+        let mut matched : ManagedProviderInput? = None
+        for input in inputs {
+          let exact = match input {
+            RelationInput(read) =>
+              @execution.producer_read_matches_operation_input(
+                read, owner, step, port,
+              )
+            SuppliedRelationInput(read) =>
+              @execution.supplied_relation_read_matches_operation_input(
+                read, owner, step, port,
+              )
+            CarrierInput(_) => false
+          }
+          if exact {
+            if matched is Some(_) {
+              return Err(@connector.Execution(@execution.InputSet))
+            }
+            matched = Some(input)
+          }
+        }
+        guard matched is Some(input) else {
+          return Err(@connector.Execution(@execution.InputSet))
+        }
+        selected.push(input)
+      }
+      Some(@pipeline.Step(producer_step)) => {
+        guard prior == Some(producer_step) && previous is Some(output) else {
+          return Err(@connector.Execution(@execution.InputSet))
+        }
+        let bound = match
+          @execution.bind_completed_operation_input(
+            owner, step, port, owner, output,
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(@connector.Execution(@execution.InputSet))
+        }
+        let read = match
+          @execution.prepare_producer_read(
+            owner, bound, max_entries, max_value_bytes,
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(@connector.Execution(@execution.InputSet))
+        }
+        selected.push(RelationInput(read))
+      }
+      None => return Err(@connector.Execution(@execution.InputSet))
+    }
+  }
+  Ok(selected)
+}
+
+///|
 /// Chain children remain owned until the parent is reclaimed. Their private
 /// scratch and provisional outputs can therefore overlap even though only one
 /// child advances at a time.
@@ -278,7 +356,6 @@ fn bounded_relation_chain_execution(
   measurement : @execution.FixedInputGuardMeasureLimits,
   max_value_bytes : Int,
 ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
-  let owner = @execution.generated_sequence_owner(sequence)
   let count = @execution.generated_sequence_step_count(sequence)
   guard count > 1 &&
     @execution.generated_sequence_step_index_at(sequence, 0) is Some(first_step) &&
@@ -286,10 +363,22 @@ fn bounded_relation_chain_execution(
     is Some(first) else {
     return Err(@connector.Execution(@execution.InputSet))
   }
+  let first_inputs = match
+    relation_chain_step_inputs(
+      sequence,
+      0,
+      inputs,
+      None,
+      execution.rows.operation_entries,
+      max_value_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let initial = match
     start_bounded_relation_step(
       first,
-      inputs,
+      first_inputs,
       execution,
       measurement,
       max_value_bytes,
@@ -318,20 +407,17 @@ fn bounded_relation_chain_execution(
       is Some(selected) else {
       return Err(@connector.Execution(@execution.InputSet))
     }
-    let bound = match
-      @execution.bind_completed_operation_input(owner, step, 0, owner, output) {
-      Ok(value) => value
-      Err(_) => return Err(@connector.Execution(@execution.InputSet))
-    }
-    let read = match
-      @execution.prepare_producer_read(
-        owner,
-        bound,
+    let next_inputs = match
+      relation_chain_step_inputs(
+        sequence,
+        position.val,
+        inputs,
+        Some(output),
         execution.rows.operation_entries,
         max_value_bytes,
       ) {
       Ok(value) => value
-      Err(_) => return Err(@connector.Execution(@execution.InputSet))
+      Err(issue) => return Err(issue)
     }
     let remaining = execution.max_work.to_int64() - used.val
     if remaining < 1L {
@@ -340,7 +426,7 @@ fn bounded_relation_chain_execution(
     let next = match
       start_bounded_relation_step(
         selected,
-        [RelationInput(read)],
+        next_inputs,
         execution,
         measurement,
         max_value_bytes,
@@ -593,39 +679,39 @@ fn selected_relation_provider(
         } else {
           false
         }
-        let input_count = match operation {
-          @lower.JoinStep(_) | @lower.AppendStep(_) => 2
-          _ => 1
-        }
-        if count > 1 &&
-          index == 0 &&
-          @lower.preparation_input_count(prepared) != input_count {
+        let input_count = @lower.node_input_count(node)
+        if single_unsupported || chain_unsupported {
           return false
         }
-        if single_unsupported ||
-          chain_unsupported ||
-          @lower.node_input_count(node) != input_count {
-          return false
+        let previous = if index > 0 {
+          @execution.generated_sequence_step_index_at(sequence, index - 1)
+        } else {
+          None
         }
+        let mut prior_inputs = 0
         for port in 0..<input_count {
           if !@lower.node_accepts_managed_relation_view(node, port) {
             return false
           }
           if count > 1 {
-            let target = if index == 0 {
-              @pipeline.Input(port)
-            } else {
-              if input_count != 1 {
-                return false
+            match @lower.node_input_target(node, port) {
+              Some(@pipeline.Input(source)) =>
+                if source < 0 ||
+                  source >= @lower.preparation_input_count(prepared) {
+                  return false
+                }
+              Some(@pipeline.Step(producer_step)) => {
+                if previous != Some(producer_step) {
+                  return false
+                }
+                prior_inputs += 1
               }
-              @pipeline.Step(
-                @execution.generated_sequence_step_index_at(sequence, index - 1).unwrap(),
-              )
-            }
-            if @lower.node_input_target(node, port) != Some(target) {
-              return false
+              None => return false
             }
           }
+        }
+        if count > 1 && index > 0 && prior_inputs == 0 {
+          return false
         }
       }
       match

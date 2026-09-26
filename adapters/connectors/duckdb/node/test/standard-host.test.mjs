@@ -5224,6 +5224,16 @@ async function exerciseStrategyGraph(
     {from: 'appended', filter: 'id > 1', as: 'out'},
   ];
   appendFilterProgram.stages.splice(1, 0, ...appendSources);
+  const filterThenAppendProgram = structuredClone(appendFilterProgram);
+  filterThenAppendProgram.stages = filterThenAppendProgram.stages.filter(
+    stage => stage.id !== 'append_source_0');
+  const filterThenAppendStage = filterThenAppendProgram.stages.find(
+    stage => stage.id === 'append_a');
+  filterThenAppendStage.inputs.l.result.stage = 'a';
+  filterThenAppendStage.steps = [
+    {from: 'l', filter: 'id > 1', as: 'filtered'},
+    {from: 'filtered', append: {with: 'r'}, as: 'out'},
+  ];
   const nestProgram = structuredClone(zeroInputProgram);
   nestProgram.stages.splice(1, 3, {
     id: 'nest_parents',
@@ -6316,6 +6326,8 @@ async function exerciseStrategyGraph(
     ['partitioned top k', partitionedTopKProgram, [1, 2, 3, 4, 5]],
     ['append', appendProgram, [1, 2, 3, 4, 5]],
     ['append filter chain', appendFilterProgram, [1, 2, 3, 4, 5]],
+    ['filter then append captured input', filterThenAppendProgram,
+      [1, 2, 3, 4]],
     ['direct cross join', directCrossJoinProgram, [1, 2, 3, 4, 5]],
     ['nest', nestProgram, [1, 2, 3, 4, 5]],
     ['nest then unnest/filter', nestUnwrapProgram, [1, 2, 3, 4, 5, 6]],
@@ -7308,6 +7320,8 @@ async function exerciseStrategyGraph(
       program: sameStageKeyedCountProgram, cancelAtStart: 2},
     {name: 'append-filter-in-flight',
       program: appendFilterProgram, cancelAtStart: 3},
+    {name: 'filter-append-in-flight',
+      program: filterThenAppendProgram, cancelAtStart: 3},
     {name: 'split-values-fixed-watermark-in-flight',
       program: fixedWatermarkProgram, cancelAtStart: 2},
     {name: 'split-values-prefix-watermark-in-flight',
@@ -7387,7 +7401,8 @@ async function exerciseStrategyGraph(
       'same-stage-json-pick-filter-in-flight';
     const valuesStage = cancellableValuesProgram.stages.find(
       stage => stage.id === (cancellationName === 'append-filter-in-flight'
-        ? 'append_source_0' : sameStageGlobalCountCancellation
+        ? 'append_source_0' : cancellationName === 'filter-append-in-flight'
+        ? 'append_source_1' : sameStageGlobalCountCancellation
         ? 'group_a' : globalCountCancellation
         ? 'group_values' : lagCancellation
         ? 'lagged' : rowWindowCancellation
@@ -7421,7 +7436,8 @@ async function exerciseStrategyGraph(
             ? {id: index, payload: {inner: {leaf: index}}}
         : cancellationName === 'same-stage-count-if-in-flight'
           ? {flag: index % 3 === 0 ? null : index % 2 === 0}
-        : globalCountCancellation || cancellationName === 'append-filter-in-flight'
+        : globalCountCancellation || cancellationName === 'append-filter-in-flight' ||
+            cancellationName === 'filter-append-in-flight'
           ? {id: index}
         : {id: index, label: `row${index}`});
     }
@@ -7492,7 +7508,8 @@ async function exerciseStrategyGraph(
                       unnestCancellation || jsonPickCancellation ||
                       sameStageJsonFilterCancellation)
                     ? Math.min(quantum, 7)
-                    : cancellationName === 'append-filter-in-flight'
+                    : cancellationName === 'append-filter-in-flight' ||
+                      cancellationName === 'filter-append-in-flight'
                       ? 1 : quantum;
                   const result = operation.advance(stepQuantum);
                   const observation = checked(result);
