@@ -452,7 +452,8 @@ fn shortest_compare_edge_identities_step(
     _ => None
   }
   guard pair is Some((a, b)) else { return Err(ShortestInputUnavailable) }
-  match shortest_compare_values_step(state, a, b) {
+  match
+    shortest_compare_values_step(state, a, b, present=state.key_component == 2) {
     Ok(Some(order)) =>
       shortest_finish_key_component(state, order, state.key_component == 2)
     other => other
@@ -519,7 +520,7 @@ fn shortest_compare_nodes_step(
     @storage.node_identity(state.source, right) is Some(right_id) else {
     return Err(ShortestInputUnavailable)
   }
-  shortest_compare_values_step(state, left_id, right_id)
+  shortest_compare_values_step(state, left_id, right_id, present=false)
 }
 
 ///|
@@ -555,11 +556,17 @@ fn shortest_compare_values_step(
   state : ShortestState,
   left : @value.CheckedValue,
   right : @value.CheckedValue,
+  present~ : Bool,
 ) -> Result[Int?, ShortestIssue] {
   let comparison = match state.key_comparison {
     Some(value) => value
     None => {
-      let value = match @value.start_bounded_key_comparison(left, right) {
+      let started = if present {
+        @value.start_bounded_present_key_comparison(left, right)
+      } else {
+        @value.start_bounded_key_comparison(left, right)
+      }
+      let value = match started {
         Ok(value) => value
         Err(issue) => return Err(ShortestKeyOrder(issue))
       }
@@ -608,7 +615,8 @@ fn shortest_compare_edges_step(
     return Err(ShortestInputUnavailable)
   }
   if state.key_component == 0 {
-    return match shortest_compare_values_step(state, left_id, right_id) {
+    return match
+      shortest_compare_values_step(state, left_id, right_id, present=false) {
       Ok(Some(order)) => shortest_finish_key_component(state, order, false)
       other => other
     }
@@ -640,7 +648,8 @@ fn shortest_compare_edges_step(
     _ => None
   }
   guard pair is Some((a, b)) else { return Err(ShortestInputUnavailable) }
-  match shortest_compare_values_step(state, a, b) {
+  match
+    shortest_compare_values_step(state, a, b, present=state.key_component == 3) {
     Ok(Some(order)) =>
       shortest_finish_key_component(state, order, state.key_component == 3)
     other => other

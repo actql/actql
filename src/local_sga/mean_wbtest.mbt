@@ -945,3 +945,56 @@ test "graph mean canonical ordering scales below quadratic work" {
   assert_true(large > small * 2L)
   assert_true(large < small * 3L)
 }
+
+///|
+test "graph mean orders parallel edges by present labels of a nullable contract" {
+  let first_owner = mean_source_owner()
+  let second_owner = mean_source_owner()
+  let owner = mean_owner(first_owner, second_owner)
+  let build = fn(graph_owner : @lower.BoundPrepared) -> @graph.Completed {
+    let output = @graph.prepare_output(
+      graph_owner,
+      @pipeline.Step(0),
+      @storage.DeclaredNodes,
+      storage_limits(),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    @graph.append_node(output, number(1.0), []).unwrap()
+    @graph.append_node(output, number(2.0), []).unwrap()
+    for label in ["b", "a"] {
+      @graph.append_edge(
+        output,
+        number(1.0),
+        number(2.0),
+        Some(text(label, nullable=true)),
+        [],
+      ).unwrap()
+    }
+    @graph.finish_output(output).unwrap()
+  }
+  let first = build(first_owner)
+  let second = build(second_owner)
+  let execution = start_mean_views(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    mean_views(owner, first_owner, second_owner, first, second),
+    storage_limits(),
+    4096L,
+    4096,
+    fn() { true },
+  ).unwrap()
+  while true {
+    match advance_mean(execution, 1).unwrap() {
+      MeanContinue(_) => ()
+      MeanComplete(output, ..) => {
+        let storage = @graph.completed_storage(output).unwrap()
+        assert_eq(@storage.edge_count(storage), 2)
+        return
+      }
+      MeanFailed(issue, ..) => assert_eq(Some(issue), None)
+      MeanStopped(_, ..) => fail("mean stopped")
+    }
+  }
+}

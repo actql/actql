@@ -272,11 +272,17 @@ fn compare_mean_values_step(
   state : MeanState,
   left : @value.CheckedValue,
   right : @value.CheckedValue,
+  present? : Bool = false,
 ) -> Result[Int?, MeanIssue] {
   let comparison = match state.sort_key_comparison {
     Some(value) => value
     None => {
-      let value = match @value.start_bounded_key_comparison(left, right) {
+      let started = if present {
+        @value.start_bounded_present_key_comparison(left, right)
+      } else {
+        @value.start_bounded_key_comparison(left, right)
+      }
+      let value = match started {
         Ok(value) => value
         Err(issue) => return Err(MeanKey(issue))
       }
@@ -311,7 +317,8 @@ fn compare_mean_edges_step(
         (None, None) => Ok(Some(0))
         (None, Some(_)) => Ok(Some(-1))
         (Some(_), None) => Ok(Some(1))
-        (Some(a), Some(b)) => compare_mean_values_step(state, a, b)
+        (Some(a), Some(b)) =>
+          compare_mean_values_step(state, a, b, present=true)
       }
   }
   match comparison {

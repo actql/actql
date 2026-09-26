@@ -277,7 +277,7 @@ fn compare_traversal_edges(
     (None, Some(_)) => Ok(-1)
     (Some(_), None) => Ok(1)
     (Some(left), Some(right)) =>
-      @value.compare_key_values(left, right).map_err(issue => {
+      @value.compare_present_key_values(left, right).map_err(issue => {
         TraversePathsKeyOrder(issue)
       })
   }

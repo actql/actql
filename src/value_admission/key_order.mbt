@@ -113,6 +113,17 @@ pub fn compare_key_values(
 }
 
 ///|
+/// Compare two present components, such as Graph edge labels, whose declared
+/// contract may admit null while these values are not null. The absent case
+/// is decided by the caller; a null value is not a key.
+pub fn compare_present_key_values(
+  left : CheckedValue,
+  right : CheckedValue,
+) -> Result[Int, KeyOrderIssue] {
+  compare_nonnull_order_values(left, right)
+}
+
+///|
 /// Compare grouping keys in canonical ascending order with nulls first.
 pub fn compare_group_key_values(
   left : CheckedValue,

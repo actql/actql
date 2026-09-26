@@ -271,7 +271,12 @@ fn compare_selected_edges_step(
               _ => return Err(MatchEdgesInputUnavailable)
             }
         }
-        let value = match @value.start_bounded_key_comparison(a, b) {
+        let started = if state.key_component < 2 {
+          @value.start_bounded_key_comparison(a, b)
+        } else {
+          @value.start_bounded_present_key_comparison(a, b)
+        }
+        let value = match started {
           Ok(value) => value
           Err(issue) => return Err(MatchEdgesKeyOrder(issue))
         }

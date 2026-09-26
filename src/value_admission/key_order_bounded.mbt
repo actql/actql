@@ -26,6 +26,25 @@ pub fn start_bounded_key_comparison(
   if left.contract.nullable || right.contract.nullable {
     return Err(InvalidKey)
   }
+  start_bounded_nonnull_comparison(left, right)
+}
+
+///|
+/// Start comparing two present components, such as Graph edge labels, whose
+/// declared contract may admit null while these values are not null. The
+/// absent case is decided by the caller; a null value is not a key.
+pub fn start_bounded_present_key_comparison(
+  left : CheckedValue,
+  right : CheckedValue,
+) -> Result[BoundedKeyComparison, KeyOrderIssue] {
+  start_bounded_nonnull_comparison(left, right)
+}
+
+///|
+fn start_bounded_nonnull_comparison(
+  left : CheckedValue,
+  right : CheckedValue,
+) -> Result[BoundedKeyComparison, KeyOrderIssue] {
   let kind = match
     (left.value, right.value, left.contract.shape, right.contract.shape) {
     (Text(a), Text(b), @contract.Text(_), @contract.Text(_))
@@ -55,7 +74,7 @@ pub fn start_bounded_key_comparison(
       TextOrder(reference_identity_cid(a), reference_identity_cid(b))
     }
     _ =>
-      match compare_key_values(left, right) {
+      match compare_nonnull_order_values(left, right) {
         Ok(order) => FixedOrder(order)
         Err(issue) => return Err(issue)
       }
