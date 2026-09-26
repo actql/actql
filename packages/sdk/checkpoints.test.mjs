@@ -233,3 +233,33 @@ test('answers are per item and a lost reply returns the exact signed items',
     assert.equal(requests.some(item =>
       JSON.stringify(item.body).includes('PRIVATE')), false);
   });
+
+test('a request cancellation is typed and an unknown result is resent',
+  async t => {
+    let reply = body => Response.json({requestId: body.requestId,
+      kind: 'accepted'});
+    const requests = host(t, {'cancel-request': body => reply(body)});
+    const client = await connect(options);
+    assert.deepEqual(await client.cancelRequest('saved-a'),
+      {requestId: 'saved-a', kind: 'accepted'});
+    // Transport loss or a Host failure is unknown; the same ID is resent.
+    reply = () => { throw new TypeError('connection reset'); };
+    await assert.rejects(client.cancelRequest('saved-a'), error =>
+      error.code === 'CancellationUnknown' && error.requestId === 'saved-a');
+    reply = () => new Response(JSON.stringify({code: 'ClientHostFailure'}),
+      {status: 500});
+    await assert.rejects(client.cancelRequest('saved-a'),
+      {code: 'CancellationUnknown'});
+    // A refusal or a missing request stays a typed error, never a success.
+    for (const [code, status] of [['ClientRequestNotFound', 404],
+      ['ClientRequestCancellationDenied', 403]]) {
+      reply = () => new Response(JSON.stringify({code}), {status});
+      await assert.rejects(client.cancelRequest('saved-a'), {code});
+    }
+    // A reply for another request is not accepted.
+    reply = () => Response.json({requestId: 'saved-b', kind: 'accepted'});
+    await assert.rejects(client.cancelRequest('saved-a'),
+      {code: 'CancellationUnknown'});
+    assert.ok(requests.filter(item => item.operation === 'cancel-request')
+      .every(item => item.body.requestId === 'saved-a'));
+  });
