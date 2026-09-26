@@ -417,6 +417,8 @@ pub fn client_program_preparation_ready(ClientProgramBridgeOutcome) -> @run_publ
 
 pub fn client_program_prepare_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@host.NativeHostConfiguration, @client_local_host.ClientDuckDBAcquisitionIssue]
 
+pub fn client_program_prepare_duckdb_source_evidence_context(@query_planning.QueryRequirement) -> Result[@host.NativeSourceEvidenceContext, @host.NativeSourceEvidenceIssue]
+
 pub fn client_program_prepare_effect_computation_with_parameters(String, String, @program_check.CheckEnvironment, String?, Array[@pipeline_check_context.StageCapacityInput]) -> ClientEffectProgramBridgeOutcome
 
 pub fn client_program_prepare_effect_free(String, String, @program_check.CheckEnvironment) -> @run_publication_host.PreparedClientProgram?

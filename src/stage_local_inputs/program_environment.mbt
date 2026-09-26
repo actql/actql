@@ -8,6 +8,7 @@ pub enum ProgramEnvironmentIssue {
   DuplicateStage(Int)
   DuplicateMember(Int)
   UncheckedSnapshot(Int)
+  ConnectorSnapshot(Int, @environment.SourceEvidenceMemberIssue)
 }
 
 ///|
@@ -92,6 +93,12 @@ pub fn assemble_environment(
     }
   }
   for i in 0..<members {
+    let entry = @environment.member_at(environment, @environment.SchemaSnapshots, i).unwrap()
+    match @environment.connector_source_snapshot_selector(entry) {
+      Ok(Some(_)) => continue
+      Ok(None) => ()
+      Err(issue) => return Err(ConnectorSnapshot(i, issue))
+    }
     if !covered[i] {
       return Err(UncheckedSnapshot(i))
     }

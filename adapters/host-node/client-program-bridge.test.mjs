@@ -39,6 +39,12 @@ import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {canonicalJson} from '../host-common/publication-contract-control.fixture.mjs';
 import {issueCompletedEffectfulComputationEvidence, prepareCompletedEffectfulPublication, publishCompletedEffectfulRun, recoverCompletedEffectfulComputation, releaseCompletedRunPreparedPayloads, storeCompletedRunResultSet} from '../host-common/completed-run-publication.mjs';
 
+import {nativeSourceIdentityMatches, runNativeHostQuery, issueNativeSourceEvidence} from
+  '../connectors/duckdb/node/host.mjs';
+import {authorizeLocalDatabase, revokeLocalDatabase} from
+  '../connectors/duckdb/node/session.mjs';
+import {machineCid} from '../../scripts/actql-spec-family.mjs';
+import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 
 const {DuckDBInstance} = createRequire(new URL(
   '../connectors/duckdb/node/package.json', import.meta.url))(
@@ -96,9 +102,32 @@ test('checked acquired source and downstream task emit their input ports',
       'fn query_amount_nullable_catalog')).match(
       /query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/u);
     assert.ok(catalog);
+    const environmentBody = JSON.parse(JSON.parse(catalog[1]));
+    const sourceSelector = {
+      source_ref: 'connector://crm/main/r#v',
+      source_contract_cid:
+        'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+      source_view_contract_cid:
+        'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+      read_mode: 'snapshot',
+    };
+    environmentBody.schema_snapshots = [{...sourceSelector,
+      output_carrier: 'relation',
+      carrier_schema_contract_cid:
+        'sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4',
+      source_data_policy_cid:
+        'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf',
+      data_classification: 'unknown',
+    }];
+    environmentBody.connector_capabilities = [{...sourceSelector,
+      capability_contract_cids: [
+        'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8'],
+    }];
+    delete environmentBody.evidence_bundle_cid;
+    environmentBody.evidence_bundle_cid = machineCid(environmentBody);
     const environment = moon.clientProgramCheckEnvironment(
-      JSON.parse(catalog[1]), catalog[2], false, false, true,
-      false, false, false, false);
+      canonicalText(environmentBody), environmentBody.evidence_bundle_cid,
+      false, false, true, false, false, false, false);
     assert.ok(environment);
     const [document, parameters] = await Promise.all([
       readFile(new URL(
@@ -175,7 +204,7 @@ test('checked acquired source and downstream task emit their input ports',
           'ACTQL.expression_fragment/0.1']),
         ordered: JSON.stringify(aoa.execution_contracts[
           'REL.derive.ordered']), database: path,
-        sourceAccess: fixtureSourceAccess,
+        sourceAccess: {...fixtureSourceAccess, sourceRef: sourceSelector.source_ref},
         schema: 'main', table: 'records', transportLimits: {
           maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
           maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
@@ -206,6 +235,40 @@ test('checked acquired source and downstream task emit their input ports',
         assert.equal(moon.clientProgramCapturedSourceMatches(prepared,
           opened.capture.source()), true);
         const observed = opened.identity;
+        assert.equal(nativeSourceIdentityMatches(opened.capture, observed), true);
+        assert.equal(nativeSourceIdentityMatches({...opened.capture}, observed),
+          false);
+        assert.equal(opened.capture.source(), capturedSource);
+        const otherGrant = await authorizeLocalDatabase(path,
+          {...fixtureSourceAccess, sourceRef: sourceSelector.source_ref});
+        const other = await runNativeHostQuery(
+          otherGrant,
+          nativeSetup, {
+            maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
+            maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
+            memoryBytes: 128 * 1024 * 1024, threads: 1,
+          });
+        try {
+          const otherIdentity = checked(
+            moon.clientProgramIdentifyCapturedSourceRelation(other.source()));
+          assert.equal(moon.clientProgramCapturedSourceLogicalCid(otherIdentity),
+            moon.clientProgramCapturedSourceLogicalCid(observed));
+          assert.equal(nativeSourceIdentityMatches(other, otherIdentity), true);
+          assert.equal(nativeSourceIdentityMatches(opened.capture, otherIdentity),
+            false);
+          assert.equal(nativeSourceIdentityMatches(other, observed), false);
+          const context = checked(
+            moon.clientProgramPrepareDuckDBSourceEvidenceContext(requirement));
+          const logicalInput = checked(moon.clientProgramIssueCapturedSourceLogical(
+            prepared, other.source(), otherIdentity, requirement));
+          assert.equal(revokeLocalDatabase(otherGrant), true);
+          await assert.rejects(issueNativeSourceEvidence(other, {
+            context, identity: otherIdentity, logicalInput,
+            authorityScopeCid: cid('a'),
+            effectiveDataPolicyCid: opened.checkedSource.sourceDataPolicyCid,
+          }), {code: 'UnauthorizedSourceEvidence'});
+        } finally { other.close(); }
+        assert.equal(nativeSourceIdentityMatches(other, observed), false);
         assert.equal(moon.clientProgramCapturedSourceRowCount(observed), 3);
         assert.match(moon.clientProgramCapturedSourceLogicalCid(observed),
           /^sha256:[0-9a-f]{64}$/u);
@@ -241,38 +304,40 @@ test('checked acquired source and downstream task emit their input ports',
         const control = runtimeCore(moon).publicationControl;
         const authorityScopeCid = cid('a');
         const dataPolicyCid = opened.checkedSource.sourceDataPolicyCid;
-        // The fixture issues source observations; the installed Host must
-        // receive these from the Connector/Acquisition authority.
-        const sourceEvidenceBody = {version: 'actql-source-evidence/0.1',
-            source_ref: opened.checkedSource.sourceRef,
-            input_logical_cid:
-              moon.strategyRunEvidenceIdentity(opened.logicalInput),
-            source_contract_cid: opened.checkedSource.sourceContractCid,
-            schema_evidence_cid: cid('e'),
-            capability_evidence_cid: cid('f'),
-            authority_scope_cid: authorityScopeCid,
-            source_data_policy_cid: dataPolicyCid,
-            effective_data_policy_cid: dataPolicyCid,
-            data_classification: opened.checkedSource.dataClassification,
-            source_view_contract_cid:
-              opened.checkedSource.sourceViewContractCid,
-            output_carrier: 'relation', read_mode: 'snapshot',
-            observed_at: '2026-09-26T00:00:01.000Z',
-            snapshot_ref: 'fixture-duckdb-read', completeness: 'complete',
-            ordering_evidence: {stable: false, keys: []},
-            consistency_level: 'snapshot'};
-        const sourceEvidence = control.sealRunEvidence('source_evidence',
-          JSON.stringify(sourceEvidenceBody), publicationLimits);
+        const sourceEvidenceWire = await opened.issueSourceEvidence({
+          authorityScopeCid, effectiveDataPolicyCid: dataPolicyCid});
+        const {source_evidence_cid: sourceEvidenceCid,
+          ...sourceEvidenceBody} = JSON.parse(sourceEvidenceWire);
+        assert.equal(sourceEvidenceBody.schema_evidence_cid,
+          machineCid(environmentBody.schema_snapshots[0]));
+        assert.equal(sourceEvidenceBody.capability_evidence_cid,
+          machineCid(environmentBody.connector_capabilities[0]));
+        assert.equal(sourceEvidenceBody.snapshot_ref,
+          `sha256:${createHash('sha256').update(opened.capture.document()).digest('hex')}`);
+        assert.equal(sourceEvidenceBody.completeness, 'complete');
+        assert.equal(machineCid(sourceEvidenceBody), sourceEvidenceCid);
+        await assert.rejects(issueNativeSourceEvidence({...opened.capture}, {
+          identity: opened.identity, logicalInput: opened.logicalInput,
+          authorityScopeCid, effectiveDataPolicyCid: dataPolicyCid}));
+        await assert.rejects(opened.issueSourceEvidence({authorityScopeCid,
+          effectiveDataPolicyCid: cid('9')}));
+        const foreignContext = checked(
+          moon.clientProgramPrepareDuckDBSourceEvidenceContext(requirement));
+        await assert.rejects(issueNativeSourceEvidence(opened.capture, {
+          context: foreignContext, identity: opened.identity,
+          logicalInput: opened.logicalInput, authorityScopeCid,
+          effectiveDataPolicyCid: dataPolicyCid,
+        }), {code: 'MoonBitHostFailure'});
         const admitted = acquiredTaskRunAdmission({moon, control,
           preparedProgram: prepared, document, format: 'json',
           parameters: JSON.parse(parameters),
-          environmentWire: JSON.parse(catalog[1]),
-          environmentCid: catalog[2], authorityScopeCid,
+          environmentWire: canonicalText(environmentBody),
+          environmentCid: environmentBody.evidence_bundle_cid, authorityScopeCid,
           tenantId: 'local', now: () => '2026-09-26T00:00:02.000Z'});
         const storeAuthorityCid = cid('7');
         const plan = acquiredTaskPublicationPlan({moon, control,
           acquired: admitted, preparedProgram: prepared, captured: opened,
-          sourceEvidenceWire: sourceEvidence.wire, authorityScopeCid,
+          sourceEvidenceWire, authorityScopeCid,
           effectiveDataPolicyCid: dataPolicyCid,
           captureStartedAt: '2026-09-26T00:00:00.000Z',
           captureCompletedAt: '2026-09-26T00:00:01.000Z',
@@ -411,8 +476,8 @@ test('checked acquired source and downstream task emit their input ports',
     const admissionOptions = {moon,
       control: runtimeCore(moon).publicationControl,
       preparedProgram: prepared, document, format: 'json',
-      parameters: JSON.parse(parameters), environmentWire: JSON.parse(catalog[1]),
-      environmentCid: catalog[2], authorityScopeCid: cid('a'),
+      parameters: JSON.parse(parameters), environmentWire: canonicalText(environmentBody),
+      environmentCid: environmentBody.evidence_bundle_cid, authorityScopeCid: cid('a'),
       tenantId: 'local', now: () => '2026-09-26T00:00:00.000Z'};
     const admitted = acquiredTaskRunAdmission(admissionOptions);
     const restored = acquiredTaskRunAdmission({...admissionOptions,

@@ -8,4 +8,7 @@ import {
   "actql/actql/execution_query" @query,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/decode_core" @decode,
+  "actql/actql/check_environment" @environment,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/encode_core" @encode,
 }

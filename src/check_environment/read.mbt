@@ -34,6 +34,8 @@ pub(all) enum Issue {
 priv struct Entry {
   cursor : @decode.Cursor
   cid : String
+  bytes : Int
+  nodes : Int
 }
 
 ///|
@@ -226,7 +228,7 @@ pub fn read(
         if @decode.object_length(cursor) is None {
           raise Stop(InvalidEnvelope)
         }
-        let (cid, _, _) = hash(cursor, limits, false)
+        let (cid, member_bytes, member_nodes) = hash(cursor, limits, false)
         if previous is Some(p) {
           if cid < p {
             raise Stop(UnsortedEvidence(section))
@@ -249,7 +251,7 @@ pub fn read(
           }
           snapshots[source_ref] = true
         }
-        entries.push({ cursor, cid, })
+        entries.push({ cursor, cid, bytes: member_bytes, nodes: member_nodes, })
       }
       sections.push(entries)
     }
@@ -327,4 +329,10 @@ pub fn emit_member(
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   emit_cursor(v.entry.cursor, writer, false)
+}
+
+///|
+/// Reuse the exact canonical member measurement from envelope admission.
+pub fn member_usage(value : Member) -> (Int, Int) {
+  (value.entry.bytes, value.entry.nodes)
 }

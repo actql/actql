@@ -1548,6 +1548,103 @@
       "authority": "static_contract_not_current_resource_permission_or_apply_permit"
     }
   },
+  "connector_source_evidence_members": {
+    "schema_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_ref",
+        "source_contract_cid",
+        "source_view_contract_cid",
+        "read_mode",
+        "output_carrier",
+        "carrier_schema_contract_cid",
+        "source_data_policy_cid",
+        "data_classification"
+      ],
+      "properties": {
+        "source_ref": {
+          "type": "string",
+          "pattern": "^connector://.+/.+#.+$"
+        },
+        "source_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_view_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "read_mode": {
+          "const": "snapshot"
+        },
+        "output_carrier": {
+          "const": "relation"
+        },
+        "carrier_schema_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_data_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "data_classification": {
+          "enum": [
+            "public",
+            "internal",
+            "confidential",
+            "restricted",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "connector_capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_ref",
+        "source_contract_cid",
+        "source_view_contract_cid",
+        "read_mode",
+        "capability_contract_cids"
+      ],
+      "properties": {
+        "source_ref": {
+          "type": "string",
+          "pattern": "^connector://.+/.+#.+$"
+        },
+        "source_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_view_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "read_mode": {
+          "const": "snapshot"
+        },
+        "capability_contract_cids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "semantics": {
+      "identity": "full_canonical_member_body_no_self_cid_no_exclusions",
+      "selection": "unique_exact_checked_source_contract_view_and_read_mode",
+      "capability_order": "strict_ascending_full_contract_cid",
+      "runtime": "issuer_verifies_observed_schema_and_used_contracts",
+      "authority": "current_read_grant_completion_and_order_verified_separately",
+      "scope": "connector_snapshot_relation_source_evidence_issuance"
+    }
+  },
   "contract_bodies": {
     "carrier_facts": {
       "type": "object",

@@ -1,0 +1,705 @@
+{
+  "version": "actql-source-evidence-member-vectors/0.1",
+  "provenance": "Independent Python hashlib SHA-256 over sorted ASCII JSON bodies; no product output.",
+  "schema_evidence_cid": "sha256:d46240ea5d2e49c1b6f21ba31aafb9a702effba5c99bfd5119411d346c93930d",
+  "capability_evidence_cid": "sha256:5fb04839ee89af2dd06828dd53d12049a64640e0d46d12848732fdcec663e34a",
+  "used_contract_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+  "missing_contract_cid": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+  "cases": [
+    {
+      "name": "complete-member-bodies",
+      "environment": {
+        "schema_snapshots": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "data_classification": "internal",
+            "read_mode": "snapshot",
+            "output_carrier": "relation"
+          }
+        ],
+        "connector_capabilities": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "read_mode": "snapshot",
+            "capability_contract_cids": [
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+            ]
+          }
+        ],
+        "mapping_contracts": [],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [],
+        "version": "actql-check-environment/0.1",
+        "host_policy_profile": {},
+        "evidence_bundle_cid": "sha256:cd319323da2f2f14b529154fe4840addf88f8e270cd86f3db7118dbd2254ca3c"
+      },
+      "selector": {
+        "source_ref": "connector://duckdb/local/orders#snapshot",
+        "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "data_classification": "internal"
+      },
+      "expected": "ok"
+    },
+    {
+      "name": "missing-snapshot",
+      "environment": {
+        "schema_snapshots": [],
+        "connector_capabilities": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "read_mode": "snapshot",
+            "capability_contract_cids": [
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+            ]
+          }
+        ],
+        "mapping_contracts": [],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [],
+        "version": "actql-check-environment/0.1",
+        "host_policy_profile": {},
+        "evidence_bundle_cid": "sha256:eae209592194000536ad02a789e7d5784b8070bca5c6f95e785b3ffdcfab24d3"
+      },
+      "selector": {
+        "source_ref": "connector://duckdb/local/orders#snapshot",
+        "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "data_classification": "internal"
+      },
+      "expected": "MissingMember"
+    },
+    {
+      "name": "missing-capability",
+      "environment": {
+        "schema_snapshots": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "data_classification": "internal",
+            "read_mode": "snapshot",
+            "output_carrier": "relation"
+          }
+        ],
+        "connector_capabilities": [],
+        "mapping_contracts": [],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [],
+        "version": "actql-check-environment/0.1",
+        "host_policy_profile": {},
+        "evidence_bundle_cid": "sha256:99778cf5c6dcd950b3f5ed0e14495fb23e3946005e1a99fcb32991a5edd14e66"
+      },
+      "selector": {
+        "source_ref": "connector://duckdb/local/orders#snapshot",
+        "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "data_classification": "internal"
+      },
+      "expected": "MissingMember"
+    },
+    {
+      "name": "foreign-resource",
+      "environment": {
+        "schema_snapshots": [
+          {
+            "source_ref": "connector://duckdb/local/other#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "data_classification": "internal",
+            "read_mode": "snapshot",
+            "output_carrier": "relation"
+          }
+        ],
+        "connector_capabilities": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "read_mode": "snapshot",
+            "capability_contract_cids": [
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+            ]
+          }
+        ],
+        "mapping_contracts": [],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [],
+        "version": "actql-check-environment/0.1",
+        "host_policy_profile": {},
+        "evidence_bundle_cid": "sha256:3efac7600c58ee1a76e83a488326b3b2bdabebf7d1267dd70eea888df013ef2c"
+      },
+      "selector": {
+        "source_ref": "connector://duckdb/local/orders#snapshot",
+        "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "data_classification": "internal"
+      },
+      "expected": "MissingMember"
+    },
+    {
+      "name": "foreign-source-contract",
+      "environment": {
+        "schema_snapshots": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "data_classification": "internal",
+            "read_mode": "snapshot",
+            "output_carrier": "relation"
+          }
+        ],
+        "connector_capabilities": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "read_mode": "snapshot",
+            "capability_contract_cids": [
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+            ]
+          }
+        ],
+        "mapping_contracts": [],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [],
+        "version": "actql-check-environment/0.1",
+        "host_policy_profile": {},
+        "evidence_bundle_cid": "sha256:a7a95154477c271ea81c00688142575d59979f894d04bb22f23f0e53a1ef0bc2"
+      },
+      "selector": {
+        "source_ref": "connector://duckdb/local/orders#snapshot",
+        "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "data_classification": "internal"
+      },
+      "expected": "ContractMismatch"
+    },
+    {
+      "name": "foreign-view",
+      "environment": {
+        "schema_snapshots": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "data_classification": "internal",
+            "read_mode": "snapshot",
+            "output_carrier": "relation"
+          }
+        ],
+        "connector_capabilities": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+            "read_mode": "snapshot",
+            "capability_contract_cids": [
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+            ]
+          }
+        ],
+        "mapping_contracts": [],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [],
+        "version": "actql-check-environment/0.1",
+        "host_policy_profile": {},
+        "evidence_bundle_cid": "sha256:e3744a95710e58fe139de16b19c52573797c2ce86fe45de05e4a9ac09878554c"
+      },
+      "selector": {
+        "source_ref": "connector://duckdb/local/orders#snapshot",
+        "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "data_classification": "internal"
+      },
+      "expected": "ContractMismatch"
+    },
+    {
+      "name": "foreign-profile",
+      "environment": {
+        "schema_snapshots": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "data_classification": "internal",
+            "read_mode": "snapshot",
+            "output_carrier": "relation"
+          }
+        ],
+        "connector_capabilities": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "read_mode": "changes",
+            "capability_contract_cids": [
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+            ]
+          }
+        ],
+        "mapping_contracts": [],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [],
+        "version": "actql-check-environment/0.1",
+        "host_policy_profile": {},
+        "evidence_bundle_cid": "sha256:b1af9a1c9252c3df9ac8f6e0e76a91d798b4660fa9e183d42ab0fe9b5272ae10"
+      },
+      "selector": {
+        "source_ref": "connector://duckdb/local/orders#snapshot",
+        "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "data_classification": "internal"
+      },
+      "expected": "ContractMismatch"
+    },
+    {
+      "name": "schema-drift",
+      "environment": {
+        "schema_snapshots": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "carrier_schema_contract_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+            "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "data_classification": "internal",
+            "read_mode": "snapshot",
+            "output_carrier": "relation"
+          }
+        ],
+        "connector_capabilities": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "read_mode": "snapshot",
+            "capability_contract_cids": [
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+            ]
+          }
+        ],
+        "mapping_contracts": [],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [],
+        "version": "actql-check-environment/0.1",
+        "host_policy_profile": {},
+        "evidence_bundle_cid": "sha256:8f13960269624a43f1c6decaa2a28a5ef1adc403648e48e65d4e0df66d58a76e"
+      },
+      "selector": {
+        "source_ref": "connector://duckdb/local/orders#snapshot",
+        "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "data_classification": "internal"
+      },
+      "expected": "ContractMismatch"
+    },
+    {
+      "name": "policy-drift",
+      "environment": {
+        "schema_snapshots": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "source_data_policy_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+            "data_classification": "internal",
+            "read_mode": "snapshot",
+            "output_carrier": "relation"
+          }
+        ],
+        "connector_capabilities": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "read_mode": "snapshot",
+            "capability_contract_cids": [
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+            ]
+          }
+        ],
+        "mapping_contracts": [],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [],
+        "version": "actql-check-environment/0.1",
+        "host_policy_profile": {},
+        "evidence_bundle_cid": "sha256:84f4ab76c955cdeb017b05c31d5dbd0b164a54f672b8289f2595d3f2b8567ab8"
+      },
+      "selector": {
+        "source_ref": "connector://duckdb/local/orders#snapshot",
+        "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "data_classification": "internal"
+      },
+      "expected": "ContractMismatch"
+    },
+    {
+      "name": "classification-drift",
+      "environment": {
+        "schema_snapshots": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "data_classification": "public",
+            "read_mode": "snapshot",
+            "output_carrier": "relation"
+          }
+        ],
+        "connector_capabilities": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "read_mode": "snapshot",
+            "capability_contract_cids": [
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+            ]
+          }
+        ],
+        "mapping_contracts": [],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [],
+        "version": "actql-check-environment/0.1",
+        "host_policy_profile": {},
+        "evidence_bundle_cid": "sha256:0f6870ac104f8074c5786dfd873197e01e5c256e680967747eef9778fa6c2574"
+      },
+      "selector": {
+        "source_ref": "connector://duckdb/local/orders#snapshot",
+        "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "data_classification": "internal"
+      },
+      "expected": "ContractMismatch"
+    },
+    {
+      "name": "self-cid-rejected",
+      "environment": {
+        "schema_snapshots": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "data_classification": "internal",
+            "read_mode": "snapshot",
+            "output_carrier": "relation",
+            "schema_evidence_cid": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+          }
+        ],
+        "connector_capabilities": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "read_mode": "snapshot",
+            "capability_contract_cids": [
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+            ]
+          }
+        ],
+        "mapping_contracts": [],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [],
+        "version": "actql-check-environment/0.1",
+        "host_policy_profile": {},
+        "evidence_bundle_cid": "sha256:658dd615d0d993a860f9deb45cbda4073c86e6d64a91cc642a8dd1560081da1a"
+      },
+      "selector": {
+        "source_ref": "connector://duckdb/local/orders#snapshot",
+        "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "data_classification": "internal"
+      },
+      "expected": "InvalidMember"
+    },
+    {
+      "name": "capability-extra-field",
+      "environment": {
+        "schema_snapshots": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "data_classification": "internal",
+            "read_mode": "snapshot",
+            "output_carrier": "relation"
+          }
+        ],
+        "connector_capabilities": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "read_mode": "snapshot",
+            "capability_contract_cids": [
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+            ],
+            "unused": true
+          }
+        ],
+        "mapping_contracts": [],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [],
+        "version": "actql-check-environment/0.1",
+        "host_policy_profile": {},
+        "evidence_bundle_cid": "sha256:002e4d6b4d02135ac01ddaea6ec069534a342d3414d21da53638ddafb5795d68"
+      },
+      "selector": {
+        "source_ref": "connector://duckdb/local/orders#snapshot",
+        "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "data_classification": "internal"
+      },
+      "expected": "InvalidMember"
+    },
+    {
+      "name": "capability-unsorted",
+      "environment": {
+        "schema_snapshots": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "data_classification": "internal",
+            "read_mode": "snapshot",
+            "output_carrier": "relation"
+          }
+        ],
+        "connector_capabilities": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "read_mode": "snapshot",
+            "capability_contract_cids": [
+              "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+            ]
+          }
+        ],
+        "mapping_contracts": [],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [],
+        "version": "actql-check-environment/0.1",
+        "host_policy_profile": {},
+        "evidence_bundle_cid": "sha256:9bd476179574f2d64810a9e1d108b6a0fd5eb667fcafab11a75b623c933881e0"
+      },
+      "selector": {
+        "source_ref": "connector://duckdb/local/orders#snapshot",
+        "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "data_classification": "internal"
+      },
+      "expected": "InvalidMember"
+    },
+    {
+      "name": "capability-duplicate",
+      "environment": {
+        "schema_snapshots": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "data_classification": "internal",
+            "read_mode": "snapshot",
+            "output_carrier": "relation"
+          }
+        ],
+        "connector_capabilities": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "read_mode": "snapshot",
+            "capability_contract_cids": [
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+            ]
+          }
+        ],
+        "mapping_contracts": [],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [],
+        "version": "actql-check-environment/0.1",
+        "host_policy_profile": {},
+        "evidence_bundle_cid": "sha256:fed1f086c58577952a681a6944ef845a3ad0b350ad1c1d246f40bdf42980bf7d"
+      },
+      "selector": {
+        "source_ref": "connector://duckdb/local/orders#snapshot",
+        "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "data_classification": "internal"
+      },
+      "expected": "InvalidMember"
+    },
+    {
+      "name": "ambiguous-capability",
+      "environment": {
+        "schema_snapshots": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "data_classification": "internal",
+            "read_mode": "snapshot",
+            "output_carrier": "relation"
+          }
+        ],
+        "connector_capabilities": [
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "read_mode": "snapshot",
+            "capability_contract_cids": [
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+            ]
+          },
+          {
+            "source_ref": "connector://duckdb/local/orders#snapshot",
+            "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "read_mode": "snapshot",
+            "capability_contract_cids": [
+              "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+            ]
+          }
+        ],
+        "mapping_contracts": [],
+        "source_views": [],
+        "command_contracts": [],
+        "model_task_contracts": [],
+        "contract_registry": [],
+        "connector_catalogs": [],
+        "version": "actql-check-environment/0.1",
+        "host_policy_profile": {},
+        "evidence_bundle_cid": "sha256:e93ebb710e3ecc64caf592c7a1b7fff20aec506892086583abcfbf0f4edc641a"
+      },
+      "selector": {
+        "source_ref": "connector://duckdb/local/orders#snapshot",
+        "source_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_view_contract_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "carrier_schema_contract_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "source_data_policy_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "data_classification": "internal"
+      },
+      "expected": "AmbiguousMember"
+    }
+  ]
+}

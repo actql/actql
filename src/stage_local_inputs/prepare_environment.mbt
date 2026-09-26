@@ -9,6 +9,7 @@ pub enum PrepareEnvironmentIssue {
   Environment(Int, EnvironmentIssue)
   Collection(ProgramEnvironmentIssue)
   ForeignSourceViews
+  ConnectorSnapshot(Int, @environment.SourceEvidenceMemberIssue)
 }
 
 ///|
@@ -70,6 +71,20 @@ pub fn prepare_environment(
       @environment.SchemaSnapshots,
       i,
     ).unwrap()
+    match @environment.connector_source_snapshot_selector(entry) {
+      Ok(Some(_)) => {
+        let (bytes, n) = @environment.member_usage(entry)
+        if bytes > text || n > nodes || n > work {
+          return Err(BudgetExceeded)
+        }
+        text -= bytes
+        nodes -= n
+        work -= n
+        continue
+      }
+      Ok(None) => ()
+      Err(issue) => return Err(ConnectorSnapshot(i, issue))
+    }
     let admitted = match
       @snapshot.read_member(entry, {
         max_bytes: text,

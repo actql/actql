@@ -144,6 +144,37 @@ SourceView CID. A local-input schema snapshot MUST bind its input source
 reference, Carrier, and schema contract; it requires no SourceView CID.
 Rehashing only the aggregate Check Environment after changing an inner body is invalid.
 
+For Connector snapshot Relation Source Evidence, `schema_evidence_cid` and
+`capability_evidence_cid` identify the complete canonical bodies of the
+corresponding `schema_snapshots` and `connector_capabilities` members.
+The closed bodies are specified by `connector_source_evidence_members` in
+`actql-check-environment.json`. They have no self-CID field and exclude no
+fields from hashing. The existing canonical JSON normalization, key order,
+number encoding and UTF-8 rules apply; admission does not repair bytes.
+
+Both members bind the exact full `source_ref` (including connector,
+connection, resource and view), checked `source_contract_cid`,
+`source_view_contract_cid`, and `read_mode`. Selection requires one matching
+member per section from the checked Query's own environment. A matching name
+alone is insufficient, and ambiguous capability members are rejected.
+The schema member additionally binds `output_carrier`,
+`carrier_schema_contract_cid`, `source_data_policy_cid`, and
+`data_classification`. Capability members contain a strictly ascending,
+duplicate-free `capability_contract_cids` array. These refer to admitted
+capability contracts, including their pinned dependencies, not provider names
+or a caller's assertions about features.
+
+The acquisition issuer verifies the actual source schema against the checked
+Carrier contract and verifies each used capability against the selected
+member. Static capability membership is not completion evidence. For the
+DuckDB native two-receipt profile, the retained exact native observation
+proves the checked full-input validation and native result belong to the
+same completed acquisition. Its admitted two-receipt contract includes the
+acquisition and process-evidence dependencies. Schema and capability CIDs do
+not replace current read authorization, complete acquisition, or ordering
+observations. No second row traversal or payload hash is required.
+
+
 <!-- requirement-block: check-environment.source-data-policy-body -->
 Each `data_policy` Contract Envelope body MUST be a closed object containing
 exactly `version: "actql-source-data-policy/0.1"`, a nonempty string `source_ref`,
@@ -1563,7 +1594,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:123b23f425df95044e74f4fd4773e790f45a8443ebee5741fb0dabc76de24761
+../../../spec/contracts/actql-check-environment.json# sha256:ce96d2dd879fc6ef10be73ca086d0dcff0bfbe83e9aebb2f0ec979aa6145c69d
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:b59aff026e4853a370475e7b25c7fa6ddf0890aacbd57af0a3ec4b7aa14b65b5
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2

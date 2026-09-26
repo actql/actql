@@ -5,7 +5,7 @@ import {setImmediate as yieldToHost} from 'node:timers/promises';
 import { runNativeQuery } from './native-query.mjs';
 import { runBroadQuery } from './broad-query.mjs';
 import { runFixedCompute, runResidentFixedCompute, matchesFixedCompute, releaseFixedCompute } from './fixed-compute.mjs';
-import { DuckDBTransportError, provisionComputeDatabase, validateLimits } from './session.mjs';
+import { DuckDBTransportError, provisionComputeDatabase, validateLimits, withCurrentSourceEvidenceRead } from './session.mjs';
 import { computePhysicalCapacity } from './physical-capacity.mjs';
 import {boundedTransport} from './transport-bounds.mjs';
 import {createImportBatch} from './import-batch.mjs';
@@ -36,6 +36,22 @@ let runtime;
 const loadRuntime = () => runtime ??= import(runtimeUrl.href);
 const residentEnvironments = new WeakMap();
 const retainedComputations = new WeakMap();
+const nativeSourceCaptures = new WeakMap();
+
+// Only a completed acquisition from this adapter has issuer custody. The
+// common owner checks exact source identity and liveness without rehashing.
+export function nativeSourceIdentityMatches(capture, identity) {
+  const owned = nativeSourceCaptures.get(capture);
+  return owned === undefined ? false : owned.matches(identity);
+}
+
+// Only connector-owned captures can issue evidence. The grant is never exposed
+// as a JSON authority token; the current read decision is checked at issuance.
+export async function issueNativeSourceEvidence(capture, options) {
+  const owned = nativeSourceCaptures.get(capture);
+  if (owned === undefined) throw new DuckDBTransportError('UnknownSourceCapture');
+  return owned.issue(options);
+}
 
 function logicalComparisonAccounting(values) {
   if (values == null) return Object.freeze({
@@ -1295,7 +1311,14 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
   const acquisitionComparison = logicalComparisonAccounting(
     moon.nativeHostComparisonUsage(captured.observation),
   );
-  return Object.freeze({
+  const observedAt = new Date().toISOString();
+  let sourceCapture;
+  const retainedSourceCapture = () => {
+    liveRun();
+    return sourceCapture ??= checked(moon.nativeHostSourceCapture(
+      capturedRun, captured.observation));
+  };
+  const result = Object.freeze({
     observation: captured.observation,
     usage: captured.usage,
     diagnostics: Object.freeze({
@@ -1316,7 +1339,8 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
     cleanupHandle: retained ? retainedCleanup : undefined,
     ...(capacity === undefined ? {
       output,
-      source: () => checked(moon.nativeHostCapturedSource(liveRun(), captured.observation)),
+      source: () => checked(moon.nativeHostSourceCaptureSource(
+        retainedSourceCapture())),
     } : {
       openDAG: graph => checked(moon.nativeHostOpenDAG(liveRun(), graph, captured.observation)),
     }),
@@ -1329,6 +1353,28 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
       captured.close();
     },
   });
+  if (capacity === undefined) {
+    nativeSourceCaptures.set(result, Object.freeze({
+      issue: ({context, identity, logicalInput, authorityScopeCid,
+        effectiveDataPolicyCid, signal: issuanceSignal}) => {
+        const held = retainedSourceCapture();
+        const sourceRef = moon.nativeHostSourceCaptureSourceRef(held);
+        if (sourceRef === undefined) {
+          throw new DuckDBTransportError('ClosedSourceCapture');
+        }
+        return withCurrentSourceEvidenceRead(grant, sourceRef, () => {
+          liveRun();
+          return checked(moon.nativeHostIssueSourceEvidence(held, context, identity,
+            logicalInput, authorityScopeCid, effectiveDataPolicyCid,
+            observedAt));
+        }, issuanceSignal);
+      },
+      matches: identity => !closed &&
+        moon.nativeHostSourceCaptureIdentityMatches(
+          retainedSourceCapture(), identity),
+    }));
+  }
+  return result;
 }
 
 // The broad result binds directly to an owned consumer through the existing

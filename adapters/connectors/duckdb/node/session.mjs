@@ -31,7 +31,9 @@ export async function authorizeLocalDatabase(path, access = {}) {
   if (typeof authorization?.authorize !== 'function' ||
       (access.connection !== undefined && typeof access.connection !== 'string') ||
       (access.resource !== undefined && typeof access.resource !== 'string') ||
-      (access.subjectCid !== undefined && typeof access.subjectCid !== 'string')) {
+      (access.subjectCid !== undefined && typeof access.subjectCid !== 'string') ||
+      (access.sourceRef !== undefined && (typeof access.sourceRef !== 'string' ||
+        access.sourceRef.length === 0))) {
     throw new DuckDBTransportError('InvalidSourceAccess');
   }
   const resolved = await realpath(path);
@@ -46,6 +48,7 @@ export async function authorizeLocalDatabase(path, access = {}) {
       operation: 'read',
     }),
     subjectCid: access.subjectCid,
+    sourceRef: access.sourceRef,
   }));
   return grant;
 }
@@ -717,4 +720,26 @@ export async function withComputeDatabase(limits, body, signal, accounting, supp
   const inputFiles = Object.freeze([...new Set(suppliedFiles)]);
   return cancellationBoundary(fixedLimits => usingSession(':memory:', false, fixedLimits, body, signal, accounting,
     undefined, inputFiles), limits, signal, accounting);
+}
+
+// Explicit Host revocation affects both future reads and evidence issuance.
+// It does not report a currently executing native operation as stopped.
+export function revokeLocalDatabase(grant) {
+  return files.delete(grant);
+}
+
+// Issuance uses the same opaque file grant and exact configured logical source
+// as acquisition. Recheck after the async authority decision to cover revocation
+// while delegate policy is answering. The body runs synchronously after admission.
+export async function withCurrentSourceEvidenceRead(grant, sourceRef, body,
+  signal) {
+  const source = files.get(grant);
+  if (!source || source.sourceRef !== sourceRef) {
+    throw new DuckDBTransportError('UnauthorizedSourceEvidence');
+  }
+  await authorizeSourceAccess(source, signal);
+  if (files.get(grant) !== source) {
+    throw new DuckDBTransportError('RevokedSourceEvidenceGrant');
+  }
+  return body();
 }

@@ -5,7 +5,7 @@ import {readFile} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {authorizeLocalDatabase} from
   '../connectors/duckdb/node/session.mjs';
-import {runNativeHostQuery} from
+import {runNativeHostQuery, nativeSourceIdentityMatches, issueNativeSourceEvidence} from
   '../connectors/duckdb/node/host.mjs';
 
 const contractRoot = new URL('../../spec/contracts/', import.meta.url);
@@ -40,6 +40,9 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   const [sourceRef, sourceContractCid, carrierSchemaContractCid,
     sourceDataPolicyCid, dataClassification, sourceViewContractCid] =
     sourceFacts;
+  if (sourceRef !== sourceAccess?.sourceRef) {
+    throw new Error('InstalledSourceProgramMismatch');
+  }
   const checkedSource = Object.freeze({
     requirementCid: moon.clientProgramQueryRequirementCid(requirement),
     sourceRef, sourceContractCid, carrierSchemaContractCid,
@@ -49,6 +52,8 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
     outputContractCid:
       moon.clientProgramQueryRequirementOutputContractCid(requirement),
   });
+  const evidenceContext = checked(
+    moon.clientProgramPrepareDuckDBSourceEvidenceContext(requirement));
   const contracts = await Promise.all(contractFiles.map(name =>
     readFile(new URL(name, contractRoot), 'utf8')));
   const acquisition = checked(moon.clientProgramPrepareDuckDBAcquisition(
@@ -64,6 +69,9 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
     }
     const identity = checked(moon.clientProgramIdentifyCapturedSourceRelation(
       capturedSource));
+    if (!nativeSourceIdentityMatches(capture, identity)) {
+      throw new Error('InstalledSourceObservationMismatch');
+    }
     const logicalInput = checked(moon.clientProgramIssueCapturedSourceLogical(
       preparedProgram, capturedSource, identity, requirement));
     const setup = moon.clientProgramOpenCapturedLocalHost(preparedProgram,
@@ -71,6 +79,8 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
       fragment, ordered);
     if (setup === undefined) throw new Error('InstalledSourceHostUnavailable');
     return Object.freeze({capture, identity, logicalInput, checkedSource, setup,
+      issueSourceEvidence: options => issueNativeSourceEvidence(capture,
+        {...options, context: evidenceContext, identity, logicalInput}),
       close: () => capture.close()});
   } catch (cause) {
     capture.close();
