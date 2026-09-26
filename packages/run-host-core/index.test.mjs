@@ -45,6 +45,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   issueUnpublishedRunStateWire, issueSucceededRunStateWire, projectSiteRun,
   resultReadAvailability,
   prepareRunStart, prepareRunPhysicalStart, prepareRunCancellation,
+  prepareRunPreStartFailure,
   issueRunControlObservation,
   prepareSourceFreeRequest,
   privateCompilationWires, compiledPlanCid,
@@ -1096,6 +1097,18 @@ test('accepted unpublished Run state uses the common owner', () => {
   {code: 'RunHostCancellationRejected'});
   assert(prepareRunPhysicalStart(request, request, definition,
     definitionCid, true, true, true, false));
+  assert(prepareRunPreStartFailure(request, request, definition,
+    definitionCid, true, true, true, false));
+  assert.equal(prepareRunPhysicalStart(request, request, definition,
+    definitionCid, true, true, true, false, true), false);
+  for (const [reserved, unstarted, denied, cancelled] of [
+    [false, true, true, false], [true, false, true, false],
+    [true, true, false, false], [true, true, true, true],
+  ]) assert.equal(prepareRunPreStartFailure(request, request, definition,
+    definitionCid, reserved, unstarted, denied, cancelled), false);
+  assert.throws(() => prepareRunPreStartFailure(request, request, definition,
+    `sha256:${'f'.repeat(64)}`, true, true, true, false),
+  {code: 'RunHostStartRejected'});
   for (const [reserved, unstarted, cancelled] of [
     [true, true, true], [true, false, false], [false, true, false],
   ]) assert.equal(prepareRunPhysicalStart(request, request, definition,

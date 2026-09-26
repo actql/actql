@@ -62,6 +62,7 @@ pub fn prepare_client_run_physical_start(
   physically_unstarted : Bool,
   current_authorization : Bool,
   cancellation_requested? : Bool = false,
+  pre_start_failure_confirmed? : Bool = false,
 ) -> Result[Bool, ClientRunStartIssue] {
   match
     prepare_client_run_start(
@@ -69,7 +70,37 @@ pub fn prepare_client_run_physical_start(
       current_authorization,
     ) {
     Ok(ReconcileReservedDispatch) =>
-      Ok(physically_unstarted && !cancellation_requested)
+      Ok(
+        physically_unstarted &&
+        !cancellation_requested &&
+        !pre_start_failure_confirmed,
+      )
+    Ok(ReserveDispatch) => Ok(false)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// A known denial can settle only a reserved Run with durable proof that no
+/// physical start claim exists. Missing policy observations are not denials.
+/// Persist the returned failure in the same CAS domain as physical start.
+pub fn prepare_client_run_pre_start_failure(
+  requested : ClientRequestIdentity,
+  retained : ClientRequestIdentity,
+  run_definition : @publication.PublicationContract,
+  retained_run_definition_cid : String,
+  dispatch_reserved : Bool,
+  physically_unstarted : Bool,
+  admission_denied : Bool,
+  cancellation_requested : Bool,
+) -> Result[Bool, ClientRunStartIssue] {
+  match
+    prepare_client_run_start(
+      requested, retained, run_definition, retained_run_definition_cid, dispatch_reserved,
+      true,
+    ) {
+    Ok(ReconcileReservedDispatch) =>
+      Ok(physically_unstarted && admission_denied && !cancellation_requested)
     Ok(ReserveDispatch) => Ok(false)
     Err(issue) => Err(issue)
   }

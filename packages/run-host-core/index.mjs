@@ -1476,14 +1476,25 @@ export function projectSiteRun(prepared, compilation, admission, definition,
 }
 
 export function prepareRunPhysicalStart(requested, retained, definition,
-  definitionCid, reserved, unstarted, authorized, cancelled) {
+  definitionCid, reserved, unstarted, authorized, cancelled, failed = false) {
   if (typeof definitionCid !== 'string' ||
-      [reserved, unstarted, authorized, cancelled].some(value =>
+      [reserved, unstarted, authorized, cancelled, failed].some(value =>
         typeof value !== 'boolean')) throw new TypeError('InvalidRunHostStart');
   return checked(owner.clientValuesHostPreparePhysicalStart(
     requireHandle(requests, requested), requireHandle(requests, retained),
     requireHandle(definitions, definition), definitionCid, reserved,
-    unstarted, authorized, cancelled), 'RunHostStartRejected');
+    unstarted, authorized, cancelled, failed), 'RunHostStartRejected');
+}
+
+export function prepareRunPreStartFailure(requested, retained, definition,
+  definitionCid, reserved, unstarted, admissionDenied, cancelled) {
+  if (typeof definitionCid !== 'string' ||
+      [reserved, unstarted, admissionDenied, cancelled].some(value =>
+        typeof value !== 'boolean')) throw new TypeError('InvalidRunHostStart');
+  return checked(owner.clientValuesHostPreparePreStartFailure(
+    requireHandle(requests, requested), requireHandle(requests, retained),
+    requireHandle(definitions, definition), definitionCid, reserved,
+    unstarted, admissionDenied, cancelled), 'RunHostStartRejected');
 }
 
 export function prepareRunCancellation(definition, definitionCid,

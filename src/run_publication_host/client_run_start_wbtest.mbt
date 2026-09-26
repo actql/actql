@@ -112,6 +112,72 @@ test "Client Run physical start requires exact retained and unstarted evidence" 
   let definition = start_test_definition()
   let run_cid = @publication.publication_contract_identity(definition)
   assert_eq(
+    prepare_client_run_pre_start_failure(
+      request, request, definition, run_cid, true, true, true, false,
+    ),
+    Ok(true),
+  )
+  for
+    flags in [
+      (false, true, true, false),
+      (true, false, true, false),
+      (true, true, false, false),
+      (true, true, true, true),
+    ] {
+    assert_eq(
+      prepare_client_run_pre_start_failure(
+        request,
+        request,
+        definition,
+        run_cid,
+        flags.0,
+        flags.1,
+        flags.2,
+        flags.3,
+      ),
+      Ok(false),
+    )
+  }
+  assert_eq(
+    prepare_client_run_pre_start_failure(
+      request,
+      { ..request, caller_input_intent_cid: start_test_cid("0"), },
+      definition,
+      run_cid,
+      true,
+      true,
+      true,
+      false,
+    ),
+    Err(ChangedIntent),
+  )
+  assert_eq(
+    prepare_client_run_pre_start_failure(
+      request,
+      request,
+      definition,
+      start_test_cid("0"),
+      true,
+      true,
+      true,
+      false,
+    ),
+    Err(ForeignRunDefinition),
+  )
+  assert_eq(
+    prepare_client_run_physical_start(
+      request,
+      request,
+      definition,
+      run_cid,
+      true,
+      true,
+      true,
+      pre_start_failure_confirmed=true,
+    ),
+    Ok(false),
+  )
+  assert_eq(
     prepare_client_run_physical_start(
       request, request, definition, run_cid, true, true, true,
     ),

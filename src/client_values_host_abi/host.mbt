@@ -2271,6 +2271,7 @@ pub fn client_values_host_prepare_physical_start(
   unstarted : Bool,
   authorized : Bool,
   cancellation_requested : Bool,
+  pre_start_failure_confirmed : Bool,
 ) -> Result[Bool, @host.ClientRunStartIssue] {
   @host.prepare_client_run_physical_start(
     requested,
@@ -2281,6 +2282,25 @@ pub fn client_values_host_prepare_physical_start(
     unstarted,
     authorized,
     cancellation_requested~,
+    pre_start_failure_confirmed~,
+  )
+}
+
+///|
+#export_name("clientValuesHostPreparePreStartFailure")
+pub fn client_values_host_prepare_pre_start_failure(
+  requested : @host.ClientRequestIdentity,
+  retained : @host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  definition_cid : String,
+  reserved : Bool,
+  unstarted : Bool,
+  admission_denied : Bool,
+  cancellation_requested : Bool,
+) -> Result[Bool, @host.ClientRunStartIssue] {
+  @host.prepare_client_run_pre_start_failure(
+    requested, retained, definition, definition_cid, reserved, unstarted, admission_denied,
+    cancellation_requested,
   )
 }
 

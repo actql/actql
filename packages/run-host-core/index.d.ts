@@ -612,6 +612,10 @@ export function projectSiteRun(prepared: PreparedProgram,
 export function prepareRunPhysicalStart(requested: RequestIdentity,
   retained: RequestIdentity, definition: RunDefinition, definitionCid: string,
   reserved: boolean, unstarted: boolean, authorized: boolean,
+  cancelled: boolean, failed?: boolean): boolean;
+export function prepareRunPreStartFailure(requested: RequestIdentity,
+  retained: RequestIdentity, definition: RunDefinition, definitionCid: string,
+  reserved: boolean, unstarted: boolean, admissionDenied: boolean,
   cancelled: boolean): boolean;
 export function prepareRunCancellation(definition: RunDefinition,
   definitionCid: string, authorized: boolean, terminal: boolean,
