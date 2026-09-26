@@ -46,9 +46,10 @@ implementation while retaining separate input bindings and route evidence.
 
 General aggregate execution is being converted at its existing evaluation
 boundaries. Source snapshots, filter/argument demand, contributor collection,
-stable ordering, and permutation now share private resumable states. The
-selected common numeric reduction also advances admission, arithmetic, and
-finalization incrementally. Task ownership prevents a pending occurrence from
+stable ordering, group-boundary discovery, and permutation now share private
+resumable states. The selected common numeric reduction also advances
+admission, arithmetic, and finalization incrementally. Task ownership prevents
+a pending occurrence from
 being sealed or captured before terminal success. Cancellation can release
 these private states without releasing borrowed inputs or refunding work.
 The existing synchronous group evaluator drains the same states, and Local
@@ -56,14 +57,15 @@ installs the task-owned numeric step callback. Stable merge copies and scalar
 comparison charges, including long UTF-8 text and DECIMAL coefficients, are
 split across advances. Independent exact/one-short and partial-cleanup tests
 cover these internal boundaries. The latest relevant package regression passed
-1,048 tests on each of JS, Wasm, and native; generated interfaces were updated.
+1,051 tests on each of JS, Wasm, and native; generated interfaces were updated.
 The same-source standard Node Host regression passed. Its ordinary mixed-stage
 sort fixture now uses a long equal UTF-8 key beginning with a supplementary
 scalar; quantum-one advancement reached positive work, delivered a timer
 cancellation, observed stop, and reclaimed the attempt. That evidence does not
-prove in-flight interruption inside the group evaluator. The enclosing
-group sort/range loop, direct aggregate folds, output construction, and any
-remaining multi-work expression steps must expose bounded Host advancement.
+prove in-flight interruption inside the group evaluator. The enclosing group
+evaluator still drains its private sort and range states synchronously. Direct
+aggregate folds, output construction, and any remaining multi-work expression
+steps must expose bounded Host advancement.
 Adversarial pending-slot tests and a real Host timer cancellation remain
 required. No coverage completion is inferred from these intermediate changes.
 
