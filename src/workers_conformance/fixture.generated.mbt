@@ -2364,7 +2364,7 @@ fn local_values_cross_external_program() -> String {
 fn local_values_group_program(variant : String) -> String {
   let (schema, rows, by, aggregates, input_fields, fields, reversed) = match
     variant {
-    "keyed" =>
+    "keyed" | "keyed_same_stage" =>
       (
         "{\"id\":{\"type\":\"number\",\"nullable\":true}}", "[{\"id\":null},{\"id\":1},{\"id\":1}]",
         "[\"id\"]", "{\"n\":{\"fn\":\"count\"}}", "[\"id\"]", "[\"id\",\"n\"]", "[\"n\",\"id\"]",
@@ -2525,6 +2525,25 @@ fn local_values_group_program(variant : String) -> String {
       "\"mean\":{\"fn\":\"avg\",\"field\":\"mean\"}," +
       "\"total\":{\"fn\":\"sum\",\"field\":\"total\"}}},\"as\":\"out\"}"
     _ => ""
+  }
+  if variant == "keyed_same_stage" {
+    return "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
+      remote +
+      ",{\"id\":\"compute_b\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":" +
+      schema +
+      ",\"rows\":" +
+      rows +
+      "},\"as\":\"source\"},{\"from\":\"source\",\"group\":{\"by\":" +
+      by +
+      ",\"aggregates\":" +
+      aggregates +
+      "},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+      fields +
+      "}}}," +
+      consumer("compute_c", fields) +
+      "," +
+      consumer("compute_d", reversed) +
+      "],\"results\":{\"c\":{\"from\":{\"stage\":\"compute_c\",\"result\":\"r\"}}}}"
   }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
   remote +

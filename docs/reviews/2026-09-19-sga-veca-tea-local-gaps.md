@@ -28,6 +28,15 @@ prove these properties; a normal gate result or an operation count does not.
 
 ### Remaining product work and its acceptance tests
 
+The selected count split decision now includes keyed count profiles already
+supported by the bounded count provider. An internal Values producer can
+feed keyed count and a following take in the same Stage, with exact internal
+bindings rather than a providerless whole-sequence fallback. The existing
+count kernel, canonical key order, nullable-field semantics, activation
+checks, and ownership rules are unchanged. Filtered, distinct, expression,
+and non-count aggregates remain outside this particular split decision;
+they are still required by the overall delivery goal.
+
 The strict gate still rejects unassured RelA whole-sequence entrypoints,
 eight SGA entrypoints, and the providerless synchronous computation.
 The selected top-k, binary same-Stage, VecA row-expression, and ranking
@@ -133,6 +142,26 @@ The same-Stage join follow-up was validated locally on 2026-09-26:
   The ordinary gate passed with 31 full-route and 70 path-scoped records;
   strict completion still failed on the remaining routes and synchronous
   fallback. The follow-up does not relabel those routes as complete.
+
+The keyed-count split follow-up was validated locally on 2026-09-26:
+
+- The final lowering, physical-DAG, and managed-group fixtures passed 61
+  tests on each of JS, Wasm, and native. The DAG fixture checks the Values
+  prefix separately from the selected count step and verifies both consumer
+  edges. The managed fixture requires activation and reversed-column output
+  from the second consumer.
+- Resource gate regressions passed 198 tests, including rejection when any
+  required keyed-count split, cancellation, or publication proof is removed.
+  The ordinary gate remains at 31 full-route and 70 path-scoped records.
+  The strict gate still rejects the remaining routes; this connection does
+  not promote general aggregate variants to complete.
+- The final standard Node/native Host suite passed with real acquisition,
+  two consumers, independently expected Named Result retrieval, and timer
+  cancellation after at least 100 count work units. Stop, nonpublication,
+  and cleanup checks remain enabled. This is local product-path evidence,
+  not a same-SHA Linux CI result.
+- Workers fixtures were regenerated from source; freshness and pinned
+  formatting checks passed.
 
 The preceding join-kernel and chain validation passed on 2026-09-26:
 

@@ -468,6 +468,8 @@ for (const [index, route] of routeEntries.entries()) {
       'global_count_work_workspace_exact_one_short',
       'global_count_cancel_cleanup',
       'global_count_two_consumers',
+      'keyed_count_values_split_two_consumers',
+      'keyed_count_values_split_cancel_cleanup',
       'keyed_count_work_workspace_exact_one_short',
       'keyed_count_cancel_cleanup',
       'keyed_count_two_consumers',
@@ -835,6 +837,9 @@ for (const [index, route] of routeEntries.entries()) {
       'global_count_same_stage_two_consumers',
       'global_count_same_stage_timer',
       'keyed_count_host_timer',
+      'keyed_count_values_split_two_consumers',
+      'keyed_count_values_split_timer',
+      'keyed_count_values_split_publication',
       'keyed_count_same_stage_two_consumers',
       'keyed_count_same_stage_timer',
     ]) {

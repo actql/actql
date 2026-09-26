@@ -5590,6 +5590,19 @@ async function exerciseStrategyGraph(
   ];
   sameStageGlobalCountProgram.stages = sameStageGlobalCountProgram.stages
     .filter(stage => stage.id !== 'group_values');
+  const sameStageKeyedCountProgram = structuredClone(sameStageGlobalCountProgram);
+  const sameStageKeyedCount = sameStageKeyedCountProgram.stages.find(
+    stage => stage.id === 'group_a');
+  sameStageKeyedCount.steps[1].group.by = ['id'];
+  sameStageKeyedCount.results.r.fields = ['id', 'n', 'present'];
+  for (const stage of sameStageKeyedCountProgram.stages.filter(
+    stage => stage.id.startsWith('group_consumer_'),
+  )) {
+    const fields = stage.id.endsWith('_a')
+      ? ['id', 'n', 'present'] : ['present', 'n', 'id'];
+    stage.steps[0].select = fields;
+    stage.results.r.fields = fields;
+  }
   const watermarkProgram = (threshold, latePolicy) => {
     const variant = structuredClone(zeroInputProgram);
     const fields = [
@@ -6270,6 +6283,8 @@ async function exerciseStrategyGraph(
     ['global count', globalCountProgram, [1, 2, 3, 4]],
     ['same-stage global count/take', sameStageGlobalCountProgram,
       [1, 2, 3, 4, 5]],
+    ['same-stage keyed count/take', sameStageKeyedCountProgram,
+      [1, 2, 3, 4, 5]],
     ['fixed parameter watermark', fixedWatermarkProgram, [1, 2, 3, 4]],
     ['prefix watermark', prefixWatermarkProgram, [1, 2, 3, 4]],
     ['fixed parameter row window', fixedRowWindowProgram, [1, 2, 3, 4]],
@@ -6355,6 +6370,10 @@ async function exerciseStrategyGraph(
           [2, 3, 3, 3, 3],
           'the unsplit equality join feeds two real downstream Computes',
         );
+      }
+      if (name === 'same-stage keyed count/take') {
+        assert.deepEqual(zeroInputExecution.completed.map(item => item.outputRows),
+          [3, 2, 1, 1, 1]);
       }
       if (name === 'captured Relation filter/select chain') {
         assert.deepEqual(
@@ -6597,6 +6616,12 @@ async function exerciseStrategyGraph(
     stage: 'crossed',
     tasks: 5,
     expected: [{id: 1, tag: 'a'}, {id: 1, tag: 'b'}, {id: 2, tag: 'c'}],
+  }, {
+    name: 'same-stage-keyed-count-publication',
+    program: structuredClone(sameStageKeyedCountProgram),
+    stage: 'group_a',
+    tasks: 5,
+    expected: [{id: null, n: 1, present: 0}],
   }, {
     name: 'same-stage-full-join-publication',
     program: structuredClone(joinProgram),
@@ -7227,6 +7252,8 @@ async function exerciseStrategyGraph(
       program: groupProgram, cancelAtStart: 2},
     {name: 'same-stage-global-count-in-flight',
       program: sameStageGlobalCountProgram, cancelAtStart: 2},
+    {name: 'same-stage-keyed-count-in-flight',
+      program: sameStageKeyedCountProgram, cancelAtStart: 2},
     {name: 'split-values-fixed-watermark-in-flight',
       program: fixedWatermarkProgram, cancelAtStart: 2},
     {name: 'split-values-prefix-watermark-in-flight',
@@ -7282,7 +7309,8 @@ async function exerciseStrategyGraph(
     const rowWindowCancellation = cancellationName ===
       'split-values-row-window-in-flight';
     const sameStageGlobalCountCancellation = cancellationName ===
-      'same-stage-global-count-in-flight';
+      'same-stage-global-count-in-flight' || cancellationName ===
+      'same-stage-keyed-count-in-flight';
     const globalCountCancellation = cancellationName ===
       'global-count-in-flight' ||
       nestedCountCancellation ||
@@ -7352,6 +7380,7 @@ async function exerciseStrategyGraph(
     let valuesManagedStarts = 0;
     let valuesWorkObserved = false;
     let nestedCountWork = 0n;
+    let splitKeyedCountWork = 0n;
     let longSelectedTakeWork = 0n;
     let valuesCancellationDeliveredAt;
     let valuesStopObservedAt;
@@ -7415,6 +7444,10 @@ async function exerciseStrategyGraph(
                       start === cancelAtStart) {
                     longSelectedTakeWork += observation.work;
                   }
+                  if (cancellationName === 'same-stage-keyed-count-in-flight' &&
+                      start === cancelAtStart) {
+                    splitKeyedCountWork += observation.work;
+                  }
                   if (start === cancelAtStart) {
                     assert(observation.work <= BigInt(stepQuantum));
                   }
@@ -7424,6 +7457,8 @@ async function exerciseStrategyGraph(
                       (!watermarkCancellation || observation.progress > 0n) &&
                       (cancellationName !== 'nested-global-count-in-flight' ||
                         nestedCountWork >= 100n) &&
+                      (cancellationName !== 'same-stage-keyed-count-in-flight' ||
+                        splitKeyedCountWork >= 100n) &&
                       (!longSelectedTakeCancellation ||
                         longSelectedTakeWork >= 10n) &&
                       !valuesWorkObserved) {

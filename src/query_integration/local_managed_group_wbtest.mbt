@@ -681,6 +681,7 @@ fn run_local_managed_group_case(
     variant == "global_counts_payload" ||
     variant == "long_text_key" ||
     variant == "keyed" ||
+    variant == "keyed_same_stage" ||
     variant == "compound" ||
     variant == "empty_keyed" ||
     variant == "counts"
@@ -769,6 +770,17 @@ test "Local managed group count orders nullable keys for two consumers" {
     ["{\"id\":null}", "{\"id\":1}", "{\"id\":1}"],
     ["{\"id\":null,\"n\":1}", "{\"id\":1,\"n\":2}"],
     ["{\"n\":1,\"id\":null}", "{\"n\":2,\"id\":1}"],
+  )
+}
+
+///|
+test "Local same-stage keyed count retains two independently ordered consumers" {
+  run_local_managed_group_case(
+    "keyed_same_stage",
+    ["{\"id\":null}", "{\"id\":1}", "{\"id\":1}"],
+    ["{\"id\":null,\"n\":1}", "{\"id\":1,\"n\":2}"],
+    ["{\"n\":1,\"id\":null}", "{\"n\":2,\"id\":1}"],
+    activation=true,
   )
 }
 
@@ -964,6 +976,14 @@ test "standard Host cancels global count after bounded work" {
 ///|
 test "standard Host cancels keyed count after bounded work" {
   assert_standard_host_cancels_bounded_count("keyed")
+}
+
+///|
+test "standard Host cancels same-stage keyed count after bounded work" {
+  assert_standard_host_cancels_bounded_count(
+    "keyed_same_stage",
+    before_cancel=12,
+  )
 }
 
 ///|

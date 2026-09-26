@@ -621,6 +621,34 @@ test "physical DAG selects both branches of a same-stage equality join" {
 }
 
 ///|
+test "physical DAG selects keyed count after an internal Values producer" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_group_chain=true,
+    local_values_group_variant="keyed_same_stage",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    5,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 5)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 1), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(1))
+  let edges = []
+  for index in 0..<@strategy.graph_data_count(graph) {
+    let edge = @strategy.graph_data_at(graph, index).unwrap()
+    edges.push((edge.producer, edge.consumer))
+  }
+  assert_eq(edges.length(), 3)
+  assert_true(edges.contains((1, 2)))
+  assert_true(edges.contains((2, 3)))
+  assert_true(edges.contains((2, 4)))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
 test "physical DAG admits Carrier segmentation before allocation" {
   let program = query_checked_program_fixture(
     dag=true,

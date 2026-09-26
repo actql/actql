@@ -2434,6 +2434,20 @@
           "fixture": "Local managed bounded global count distinguishes null fields"
         },
         {
+          "role": "keyed_count_values_split_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "Local same-stage keyed count retains two independently ordered consumers"
+        },
+        {
+          "role": "keyed_count_values_split_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "standard Host cancels same-stage keyed count after bounded work"
+        },
+        {
           "role": "keyed_count_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -2597,6 +2611,28 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "group-count-in-flight"
+        },
+        {
+          "role": "keyed_count_values_split_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "same-stage keyed count/take",
+          "case": "sameStageKeyedCountProgram"
+        },
+        {
+          "role": "keyed_count_values_split_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "same-stage-keyed-count-in-flight"
+        },
+        {
+          "role": "keyed_count_values_split_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "same-stage-keyed-count-publication"
         },
         {
           "role": "keyed_count_same_stage_two_consumers",

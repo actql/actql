@@ -107,7 +107,7 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     | Unpivot(_)
     | Unnest(_)
     | JsonPick(_) => true
-    CountGroup(checked) => checked_bounded_global_count(checked)
+    CountGroup(checked) => checked_bounded_count(checked)
     AssertRows(_) =>
       operation(node) == "REL.assert_all" ||
       operation(node) == "REL.assert_unique"
@@ -116,14 +116,11 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
 }
 
 ///|
-/// The selected global-count provider consumes only a zero-key count profile.
+/// The selected count provider consumes keyed and global count profiles.
 /// Keep the split decision narrower than general group eligibility so an
 /// unsupported aggregate cannot enter a selected task without a provider.
-fn checked_bounded_global_count(checked : @relation.CheckedOperation) -> Bool {
-  guard @relation.group(checked) is Some(group) &&
-    @relation.group_keys(group).is_empty() else {
-    return false
-  }
+fn checked_bounded_count(checked : @relation.CheckedOperation) -> Bool {
+  guard @relation.group(checked) is Some(group) else { return false }
   for index in 0..<@relation.aggregate_count(group) {
     guard @relation.aggregate_at(group, index) is Some(aggregate) &&
       @relation.aggregate_function(aggregate) == @relation.Count &&

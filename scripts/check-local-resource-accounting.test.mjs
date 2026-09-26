@@ -172,12 +172,25 @@ test('global count assurance requires its bounded product path and proofs', () =
   for (const role of [
     'global_count_same_stage_two_consumers',
     'global_count_same_stage_timer',
+    'keyed_count_values_split_two_consumers',
+    'keyed_count_values_split_timer',
+    'keyed_count_values_split_publication',
   ]) {
     assert.match(run(undefined, routes => {
       const group = routes.routes.find(entry => entry.family === 'RelA' &&
         entry.operation === 'group');
       group.environment_tests = group.environment_tests.filter(item =>
         item.role !== role);
+    }), new RegExp(`RelA group: ${role} fixture is missing`, 'u'));
+  }
+  for (const role of [
+    'keyed_count_values_split_two_consumers',
+    'keyed_count_values_split_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const group = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'group');
+      group.boundary_tests = group.boundary_tests.filter(item => item.role !== role);
     }), new RegExp(`RelA group: ${role} fixture is missing`, 'u'));
   }
 });
