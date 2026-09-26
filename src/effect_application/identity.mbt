@@ -14,13 +14,6 @@ pub(all) enum EffectIdentityIssue {
 } derive(Eq, Debug)
 
 ///|
-pub struct LogicalRequestScope {
-  authority_scope_cid : String
-  caller_request_id : String
-  cid : String
-}
-
-///|
 pub struct EffectDispatchKey {
   logical_request_scope_cid : String
   effect_preview_cid : String
@@ -95,20 +88,20 @@ pub fn prepare_logical_request_scope(
   max_caller_bytes : Int,
 ) -> Result[LogicalRequestScope, EffectIdentityIssue] {
   match
-    @request_scope.prepare_scope_cid(
+    @request_scope.prepare_logical_request_scope(
       authority_scope_cid, caller_request_id, max_caller_bytes,
     ) {
-    Ok(cid) => Ok({ authority_scope_cid, caller_request_id, cid, })
-    Err(InvalidLimits) => Err(InvalidLimits)
-    Err(InvalidAuthorityScope) => Err(InvalidAuthorityScope)
-    Err(InvalidCallerRequest) => Err(InvalidCallerRequest)
-    Err(Encoding) => Err(Encoding)
+    Ok(scope) => Ok(scope)
+    Err(@request_scope.InvalidAuthorityScope) => Err(InvalidAuthorityScope)
+    Err(@request_scope.InvalidCallerRequest) => Err(InvalidCallerRequest)
+    Err(@request_scope.InvalidLimits) => Err(InvalidLimits)
+    Err(@request_scope.Encoding) => Err(Encoding)
   }
 }
 
 ///|
 pub fn logical_request_scope_cid(scope : LogicalRequestScope) -> String {
-  scope.cid
+  @request_scope.logical_request_scope_cid(scope)
 }
 
 ///|
@@ -150,14 +143,14 @@ pub fn prepare_effect_dispatch_key(
     @encode.key(writer, "effect_preview_cid")
     @encode.string_value(writer, effect_preview_cid)
     @encode.key(writer, "logical_request_scope_cid")
-    @encode.string_value(writer, scope.cid)
+    @encode.string_value(writer, logical_request_scope_cid(scope))
     @encode.key(writer, "row_or_item_key")
     @json.emit_value(key, writer)
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-row-idempotency-key/0.1")
     @encode.end_object(writer)
     Ok({
-      logical_request_scope_cid: scope.cid,
+      logical_request_scope_cid: logical_request_scope_cid(scope),
       effect_preview_cid,
       row_or_item_key_wire,
       cid: "sha256:" + @encode.finish_hash(writer),
@@ -200,4 +193,12 @@ pub fn effect_batch_rows_share_member(
   first_locator.node_id == next_locator.node_id &&
   first_locator.effect_id == next_locator.effect_id &&
   first_key.effect_preview_cid == next_key.effect_preview_cid
+}
+
+///|
+pub type LogicalRequestScope = @request_scope.LogicalRequestScope
+
+///|
+pub fn logical_request_scope_authority(scope : LogicalRequestScope) -> String {
+  @request_scope.logical_request_scope_authority(scope)
 }

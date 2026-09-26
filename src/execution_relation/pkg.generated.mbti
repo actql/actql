@@ -290,6 +290,10 @@ pub fn completed_relation_export_schema_identity(CompletedRelationExportReceipt)
 
 pub fn completed_relation_export_snapshot(CompletedOutputExport, CompletedRelationExportReceipt, Int, Int, Int) -> Result[(String, Array[String]), CompletedExportIssue]
 
+pub fn completed_result_export_preparation_matches_owner(CompletedResultRelationExportPreparation, ManagedResultOccurrence, CompletedOutput) -> Bool
+
+pub fn completed_result_export_preparation_matches_receipt(CompletedResultRelationExportPreparation, CompletedRelationExportReceipt) -> Bool
+
 pub fn completed_row_count(CompletedOutput) -> Int
 
 pub fn completion_preparation_owner(CompletionPreparation) -> @lowering_relation.BoundPrepared
@@ -578,6 +582,8 @@ pub fn[T] managed_producer_read_same_binding(ManagedProducerRead[T], ManagedProd
 
 pub fn[T] managed_producer_read_schema(ManagedProducerRead[T]) -> @relation_schema.Schema
 
+pub fn[T] managed_publication_bridge_matches_result_export(ManagedPublicationBridge[T], ManagedCompletedOutput[T], CompletedResultRelationExportPreparation, ManagedResultOccurrence) -> Bool
+
 pub fn[T] managed_relation_input_binding(ManagedProducerRead[T]) -> ManagedInputBinding
 
 pub fn managed_result_occurrence_name(ManagedResultOccurrence) -> String
@@ -585,6 +591,8 @@ pub fn managed_result_occurrence_name(ManagedResultOccurrence) -> String
 pub fn managed_result_occurrence_owner(ManagedResultOccurrence) -> @lowering_relation.BoundPrepared
 
 pub fn managed_result_occurrence_port(ManagedResultOccurrence) -> @relation_results.ResultPort
+
+pub fn managed_result_occurrence_same(ManagedResultOccurrence, ManagedResultOccurrence) -> Bool
 
 pub fn[T] managed_retained_output_matches(ManagedRetainedOutput[T], ManagedOutputValueReceipt) -> Bool
 
@@ -613,6 +621,8 @@ pub fn nest_attached_bytes_output_unit() -> AggregateOutputUnit
 pub fn nest_grouped_bytes_output_unit() -> AggregateOutputUnit
 
 pub fn next_completed_output_export(CompletedOutputExport) -> Result[String?, CompletedExportIssue]
+
+pub fn next_completed_output_export_canonical_row(CompletedOutputExport, Int, Int, Int) -> Result[(Int, String, @canonical_json.CanonicalValue)?, CompletedExportIssue]
 
 pub fn numeric_aggregate_execution((Int, String, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?) -> NumericAggregateExecution
 
@@ -1076,6 +1086,7 @@ pub(all) enum CompletedExportIssue {
   Wire(RowWireIssue)
   Schema(RelationSchemaIdentityIssue)
   ResultView(CompletedResultViewIssue)
+  CanonicalRow
 }
 
 pub(all) enum CompletedImportIssue {

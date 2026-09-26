@@ -1,15 +1,15 @@
 ///|
 #export_name("salesforceIssuedBroadPlan")
 pub fn salesforce_issued_broad_plan(
-  attempt : @acquisition.SalesforceBroadAttempt,
+  attempt : @salesforce_host.SalesforceBroadAttempt,
 ) -> @catalog.ReadProjection {
-  @acquisition.salesforce_broad_attempt_plan(attempt)
+  @salesforce_host.salesforce_broad_attempt_plan(attempt)
 }
 
 ///|
 #export_name("salesforceIssuedBroadBegin")
 pub fn salesforce_issued_broad_begin(
-  attempt : @acquisition.SalesforceBroadAttempt,
+  attempt : @salesforce_host.SalesforceBroadAttempt,
   api_version : String,
   max_bytes : Int,
   max_nodes : Int,
@@ -25,7 +25,7 @@ pub fn salesforce_issued_broad_begin(
   max_capture_work : Int,
 ) -> Bool raise SalesforceCatalogBridgeIssue {
   match
-    @acquisition.begin_issued_salesforce_broad_read(
+    @salesforce_host.begin_issued_salesforce_broad_read(
       attempt,
       api_version,
       { max_bytes, max_nodes, max_depth, max_rows, max_locator_units, },
@@ -47,9 +47,9 @@ pub fn salesforce_issued_broad_begin(
 ///|
 #export_name("salesforceIssuedBroadNextPath")
 pub fn salesforce_issued_broad_next_path(
-  attempt : @acquisition.SalesforceBroadAttempt,
+  attempt : @salesforce_host.SalesforceBroadAttempt,
 ) -> String? raise SalesforceCatalogBridgeIssue {
-  match @acquisition.salesforce_broad_attempt_next_path(attempt) {
+  match @salesforce_host.salesforce_broad_attempt_next_path(attempt) {
     Ok(path) => path
     Err(issue) => raise BroadAttempt(issue)
   }
@@ -58,11 +58,12 @@ pub fn salesforce_issued_broad_next_path(
 ///|
 #export_name("salesforceIssuedBroadAcceptPage")
 pub fn salesforce_issued_broad_accept_page(
-  attempt : @acquisition.SalesforceBroadAttempt,
+  attempt : @salesforce_host.SalesforceBroadAttempt,
   path : String,
   body : Bytes,
 ) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue {
-  match @acquisition.accept_issued_salesforce_broad_page(attempt, path, body) {
+  match
+    @salesforce_host.accept_issued_salesforce_broad_page(attempt, path, body) {
     Ok(page) => page
     Err(issue) => raise BroadAttempt(issue)
   }
@@ -71,17 +72,17 @@ pub fn salesforce_issued_broad_accept_page(
 ///|
 #export_name("salesforceIssuedBroadComplete")
 pub fn salesforce_issued_broad_complete(
-  attempt : @acquisition.SalesforceBroadAttempt,
+  attempt : @salesforce_host.SalesforceBroadAttempt,
 ) -> Bool {
-  @acquisition.salesforce_broad_attempt_read_complete(attempt)
+  @salesforce_host.salesforce_broad_attempt_read_complete(attempt)
 }
 
 ///|
 #export_name("salesforceIssuedBroadRowCount")
 pub fn salesforce_issued_broad_row_count(
-  attempt : @acquisition.SalesforceBroadAttempt,
+  attempt : @salesforce_host.SalesforceBroadAttempt,
 ) -> Int64 raise SalesforceCatalogBridgeIssue {
-  match @acquisition.salesforce_broad_attempt_read_row_count(attempt) {
+  match @salesforce_host.salesforce_broad_attempt_read_row_count(attempt) {
     Ok(rows) => rows
     Err(issue) => raise BroadAttempt(issue)
   }
@@ -90,9 +91,9 @@ pub fn salesforce_issued_broad_row_count(
 ///|
 #export_name("salesforceIssuedBroadFinish")
 pub fn salesforce_issued_broad_finish(
-  attempt : @acquisition.SalesforceBroadAttempt,
+  attempt : @salesforce_host.SalesforceBroadAttempt,
 ) -> Bool raise SalesforceCatalogBridgeIssue {
-  match @acquisition.finish_issued_salesforce_broad_read(attempt) {
+  match @salesforce_host.finish_issued_salesforce_broad_read(attempt) {
     Ok(_) => true
     Err(issue) => raise BroadAttempt(issue)
   }
@@ -101,7 +102,7 @@ pub fn salesforce_issued_broad_finish(
 ///|
 #export_name("salesforceIssuedBroadAbort")
 pub fn salesforce_issued_broad_abort(
-  attempt : @acquisition.SalesforceBroadAttempt,
+  attempt : @salesforce_host.SalesforceBroadAttempt,
 ) -> Unit {
-  @acquisition.abort_salesforce_broad_attempt(attempt)
+  @salesforce_host.abort_salesforce_broad_attempt(attempt)
 }

@@ -264,6 +264,25 @@ fn contract_spec(name : String) -> ContractSpec? {
           required("provenance_evidence_cids", CidList),
         ],
       })
+    "effect_source_artifact" =>
+      Some({
+        name,
+        version: "actql-effect-source-artifact/0.1",
+        identity: "result_artifact_cid",
+        fields: [
+          required("source_binding_cid", Cid),
+          required("source_result", NonemptyText),
+          required("store_authority_cid", Cid),
+          required("invocation_cid", Cid),
+          required("logical_result_cid", Cid),
+          required("result_schema_cid", Cid),
+          required("actual_row_count", SafeCount),
+          required("actual_completeness", Choice(["complete", "partial"])),
+          required("effective_data_policy_cid", Cid),
+          required("effective_retention_policy_cid", Cid),
+          required("provenance_evidence_cids", CidList),
+        ],
+      })
     "result_manifest" =>
       Some({
         name,
@@ -300,6 +319,13 @@ fn contract_spec(name : String) -> ContractSpec? {
       Some({
         name,
         version: "actql-effect-apply-receipt/0.1",
+        identity: "receipt_cid",
+        fields: [],
+      })
+    "effect_row_outcome_receipt" =>
+      Some({
+        name,
+        version: "actql-effect-row-outcome-receipt/0.1",
         identity: "receipt_cid",
         fields: [],
       })

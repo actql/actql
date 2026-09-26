@@ -67,7 +67,7 @@ pub fn prepare_logical_item_locator(
     @encode.key(writer, "item_correlation")
     @json.emit_value(item, writer)
     @encode.key(writer, "logical_request_scope_cid")
-    @encode.string_value(writer, scope.cid)
+    @encode.string_value(writer, logical_request_scope_cid(scope))
     @encode.key(writer, "unit_namespace")
     @encode.begin_object(writer)
     @encode.key(writer, "node_id")
@@ -79,7 +79,7 @@ pub fn prepare_logical_item_locator(
     @encode.string_value(writer, "actql-logical-item/0.1")
     @encode.end_object(writer)
     Ok({
-      logical_request_scope_cid: scope.cid,
+      logical_request_scope_cid: logical_request_scope_cid(scope),
       program_id,
       node_id,
       effect_id,
@@ -128,12 +128,12 @@ pub fn prepare_effect_apply_key(
     @encode.key(writer, "effect_preview_cid")
     @encode.string_value(writer, effect_preview_cid)
     @encode.key(writer, "logical_request_scope_cid")
-    @encode.string_value(writer, scope.cid)
+    @encode.string_value(writer, logical_request_scope_cid(scope))
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-effect-apply-idempotency-key/0.1")
     @encode.end_object(writer)
     Ok({
-      logical_request_scope_cid: scope.cid,
+      logical_request_scope_cid: logical_request_scope_cid(scope),
       effect_preview_cid,
       effect_id,
       effect_member_preview_cid,

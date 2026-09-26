@@ -100,15 +100,13 @@ The static Mapping/Command close now returns one opaque
 complete Effect inventory. Downstream capture must consume this same owner;
 the static close does not satisfy conversion, current authority, or apply
 obligations.
-The shared Captured DAG now offers a bounded pin for a completed cell-backed
-task output. Closing the ordinary output port prevents new pins while an
-existing pin keeps the allocation charged and avoids revoking its borrowed
-view solely because of port close. The original completion must still be
-available. Managed and external resident outputs are rejected by this pin:
-their physical owner must supply an equivalent retention proof. The Effect
-source port can now bind that pin to the exact checked Result occurrence for
-cell-backed terminal outputs. It is not yet a complete Preview input or the
-standard Effect Run port.
+The shared Captured DAG now offers bounded pins for completed cell-backed and
+resident task outputs. Closing the ordinary output port prevents new pins
+while an existing pin keeps the allocation charged. The original completion
+must still be available. The Effect source port binds those pins to exact
+checked Result occurrences, but resident outputs still require the installed
+Host's representation-specific view and payload proof. This is not yet a
+complete Preview input or the standard Effect Run port.
 The Program check also retains the exact admitted Catalog role-reference
 closure. Downstream Command selection can reuse that proof without repeating
 Catalog hashing, while still checking the exact Program owner and current
@@ -126,6 +124,80 @@ Result Artifact CID. Static checked-Stage admission rejects a different
 source name, and the captured computation-chain check requires the exact
 Artifact in that Captured Run. These checks do not yet prove the captured
 rows' Effect Plan output or authorize apply.
+The common checked Result-set export sequence now serves Effect-free
+publication and is exercised with a real Effectful computation in a Host
+integration fixture. That fixture exports its complete Result inventory
+through the durable Store, and its private Preview references the issued
+Artifact rather than a placeholder CID. Partial export failure releases
+earlier prepared payloads; foreign occurrence evidence is rejected before it
+can be returned. The standard Effectful Host caller is still absent. This is
+a prepared, unpublished computation result set, not a Captured Run, final
+Receipt, mutation permit, or durable commit.
+MoonBit now issues the Effectful computation Captured Run from the admitted
+private Preview inventory and captured Result snapshots. It derives Effect
+member names and Plan CIDs rather than accepting a caller-authored Effect
+context, and rejects missing, duplicate, or foreign Plan entries. The Node
+Host bridge uses the same issuer and keeps Preview ownership opaque. Plan
+values remain bounded context observations; their physical payload match is
+still required before apply. This issuance does not commit publication.
+The checked `EFFECT.plan` terminal now projects selector and mapped values
+from one admitted canonical Result row under an explicit work bound. Missing
+selector or source fields fail instead of becoming null or omitted values.
+This pure projection is not yet bound to the captured Result view and does not
+merge checked literal changes, issue intent identity, or permit a mutation.
+The terminal can now be selected by authored member index from its own checked
+Mapping-rule inventory, then reached through the same live captured Preview
+input in the Node bridge. This prevents a caller-supplied Mapping rule or a
+separate Result-name lookup from choosing the Plan. It still does not prove
+that the values in a captured Result row equal the Preview's approved payload;
+the row iterator and payload comparison remain required before apply.
+The common Result exporter can now return each bounded canonical row together
+with the exact bytes it already hashes, without re-encoding a full Relation in
+Node. Its row order and finished logical CID remain those of the checked Result
+view. The captured Plan must still consume this cursor under the same owner;
+the existence of the generic cursor alone is not payload admission.
+The pure checked Plan row now emits the canonical intended-changes wrapper
+from projected Result fields and same-owner admitted literals, with bounded
+work, fields and output. A foreign literal owner and an incomplete change
+inventory are rejected. It still cannot authorize apply: the row must come
+from the live captured Result cursor and match the private Preview exactly.
+The admitted private Preview now exposes the complete intended-changes body
+in both member and dispatch order. It retains only the state alongside the
+existing canonical value, avoiding a second persistent copy of each payload.
+The captured-row cursor and equality check are still required before apply.
+The Node Host bridge can now issue the final Effectful Receipt from the same
+opaque Preview and an exact computation chain. MoonBit checks the complete
+computation and set/member receipt reference closure before returning it;
+foreign Preview handles and missing member receipts are rejected. This does
+not prove physical Effect outcomes, grant apply, or commit the final Receipt.
+
+The fixed-SHA review in `02-salesforce-effects (2).md` flagged logical Stage
+numbers being used as physical producer Tasks. Current code already separates
+`CheckedEffectSourcePort.stage` and `.task`: commit `261413bd3` binds the
+checked Result target through the expanded DAG mapping, and both pin paths use
+the mapped Task. Do not reintroduce a parallel resolver. A split Effect source
+pin/rollback/product-path regression remains necessary beyond the existing
+coordinate checks; the standard multi-member Run remains open.
+
+The remaining regression must distinguish two expansions: a source Stage
+whose own final or intermediate Result maps to a different Task, and an
+unchanged source Stage shifted by an earlier split Stage. It must also cover
+independent pins for members sharing a Result, late batch failure with no
+stranded earlier pin, use of an existing pin after the ordinary port closes,
+and rejection of new pins and foreign graph/owner/occurrence inputs. The
+existing source-free Host fixture covers shared pins, a capacity-failed batch,
+and exact checked Result export; it does not prove all split runtime cases.
+The local HTTPS standard-Run test must additionally assert zero physical
+writes on preflight rejection. These obligations cannot be discharged by the
+static Task-coordinate assertion alone.
+
+The retained Result exporter already applies the checked projection and order
+inside MoonBit before yielding canonical row batches. An Effect Plan consumer
+must derive typed rows from that same retained, live owner and correlate them
+with the admitted Preview before apply. Passing caller-created row objects to
+the pure `project_effect_plan_row` helper, or reconstructing all rows in the
+Node adapter, would not prove payload equality and must not become the
+product path.
 
 ## Required port and owners
 
@@ -312,11 +384,20 @@ still open.
 The five findings in the fixed-SHA review are assessed against the current product
 path, not treated as five unfixed defects at the reviewed SHA:
 
+The Salesforce Acquisition assembly now resides in its Host package rather
+than a provider-facing `acquisition` package. The provider `catalog` package
+retains Salesforce metadata, SOQL, page, and write semantics without importing
+Host custody or planning packages. Host owns the selected broad attempt,
+evidence issuance, capture, and managed output lifetime. This removes a
+misleading public package boundary; it is not a complete external Connector
+SPI. The Host API still exposes internal checked-owner types, so an off-tree
+Connector closure and a standard Effectful Run caller remain acceptance work.
+
 | Finding | Disposition | Product evidence |
 | --- | --- | --- |
 | COMMON-SF-01 | Addressed | The shared owned invocation context snapshots scalar scope and limits before I/O. Catalog and Query compare later authority with that binding; local HTTPS tests mutate the original scope during a request and reject a foreign continuation. |
 | COMMON-SF-02 | Addressed at physical custody | The common dispatch owner stores bounded raw single or Collections bytes before provider projection. Projection receives only the stored response. SQLite restart tests retain those bytes and never resend an uncertain write. Complete apply admission remains part of COMMON-SF-05. |
-| COMMON-SF-03 | Addressed for the two reviewed broad paths | Salesforce and DuckDB use one MoonBit `QueryEvidenceCustody` owner for issuance, exact verification and one-shot capture. Their physical page/native execution remains provider-owned. This does not assert every Acquisition implementation has migrated. |
+| COMMON-SF-03 | Partially addressed | Salesforce and DuckDB use one MoonBit `QueryEvidenceCustody` owner for issuance, exact verification and one-shot capture. They also use the same captured-evidence consumer binding, including liveness rechecks. Their Retained-to-Issued progression and some provider wrapper checks remain separate; the complete common owner is not yet proven. |
 | COMMON-SF-04 | Addressed for the reviewed calls | Shared invocation assembly and evidence-read recovery own scope matching, current read authorization, exact Ledger lookup and projection ordering. The provider supplies operation/request identity and typed interpretation. A local SQLite test also projects a stored response through the common recovery API after restart. |
 | COMMON-SF-05 | Open; completion blocker | The standard Host still rejects nonempty Effects. Checked/captured owner, complete multi-member apply permit, final receipt publication and restart-safe standard Run tests must be connected before Salesforce or the shared Effect port is complete. |
 
@@ -348,6 +429,7 @@ still require the captured execution and current authority.
 
 The initial `CapturedEffectInput` port now pins a completed cell-backed output
 through its exact checked member source, bound preparation and Result target.
+
 The common pin also rejects a foreign Program owner and retains the backing
 allocation after the ordinary output port closes. It does not copy cells or
 authorize a write. Nonterminal Result targets and managed/resident outputs
@@ -393,3 +475,235 @@ work ceilings. The earlier wire-plus-declared-inventory control remains for
 existing adapter callers, but is not the ownership proof for a standard Run.
 This check alone does not establish current authority, target freshness,
 captured row/payload equivalence, or mutation admission.
+
+## Integration review at 15904a32f
+
+The fixed-SHA review `01-salesforce-effects-review.md` identifies five
+integration concerns. The shared `logical_request_scope` package now owns the
+0.1 caller-ID admission and CID preimage. Effect dispatch uses that exact
+opaque owner; its ledger admits the caller ID before opening durable storage.
+The independent CID vector and NFC, control-character, and UTF-8 byte-limit
+tests run on JS, Wasm, and native. The Distribution Client branch must replace
+its separate `client_request_identity` rule with this owner before SF-2 can
+close across both product entries. The Client intent fingerprint remains
+distinct from an Effect dispatch key.
+
+SF-1 (external public SPI closure), SF-3 (source-free Effectful Run capture),
+SF-4 (managed and nonterminal Result borrowing), and SF-5 (standard multi-
+member Effect Run) remain open. The existing `CapturedEffectPreviewInputs`
+binding is a private input identity guard, not apply authority. No local
+fixture or this shared CID migration is live Salesforce verification.
+
+The SF-4 audit also found that Effect source pins used the authored Stage
+index as a physical task index. Carrier segmentation can move a Stage's Result
+Step to another task. The checked graph now retains the Stage-to-task mapping,
+binds each Effect source to the exact physical target, and passes that task to
+the common pin. A Carrier-segmented graph and a checked Effect source exercise
+the mapping separately; a connected segmented Effect Run fixture is still
+required. Managed/resident retention and the standard Effect Run remain open.
+
+The captured Named Result publication export now acquires the same checked
+consumer pin used by Effect input custody. Its pin remains live through the
+bounded export and durable replay, and `cancel` releases it exactly once.
+The common `CapturedResultBorrow` binds the checked occurrence and physical
+pin as one owner; both the cell-backed Effect input and publication consume
+this owner rather than pairing a loose output with a separate occurrence.
+A captured-graph fixture retains one Result for an Effect-like consumer and
+publication independently: closing the ordinary task port and releasing the
+first consumer do not revoke the publication view or prematurely return its
+held bytes. The two consumers produce identical checked rows and fields. A
+failed export preparation also releases its acquired pin.
+This closes the cell-backed shared-consumer lifetime gap, not all of SF-4.
+
+Salesforce broad acquisition no longer imports the Host's `connector_sdk` or
+physical cost model merely to construct a candidate. The selected candidate
+is assembled in `connectors/salesforce/host`; a dependency gate prevents the
+provider acquisition package from taking those two direct dependencies back.
+This is an SF-1 boundary reduction, not public SPI closure. The acquisition
+package still exposes checked query, lowering, and execution types. An
+off-tree provider facade and source-compatibility fixture remain required
+before declaring the external Connector SPI complete.
+The standard Effectful Host still must acquire a nonterminal Result before its
+ordinary port closes; managed and Carrier-managed Results need representation-
+specific physical holding and generation proofs. No implicit copy, reread,
+or recomputation is accepted as a substitute.
+
+The Salesforce managed query handle is now opaque to callers outside its
+package. Its previous public fields exposed mutable query state and the
+internal managed-output owner, allowing an external package to construct or
+alter a query without the preparation boundary. This removes one SF-1 type
+leak, but the public acquisition functions still mention Host-only query,
+lowering, and execution types. The external facade and off-tree vertical
+fixture remain open; this change must not be counted as SPI closure.
+
+The common Result borrow now exposes its own liveness check. Effect Preview
+binding and lookup use that check, and the ordinary Effect input lookup no
+longer returns an input whose individual borrow was released while the set
+owner remained live. A three-target captured-Result regression checks that
+releasing the Effect-like borrow makes only that borrow unavailable while an
+independent publication export can still finish. This tightens SF-4's
+cell-backed path; it does not add managed or nonterminal retention, a Preview
+payload proof, or standard Effect dispatch authority.
+
+### External SPI closure inventory
+
+The current package-public MoonBit surface is an internal composition API,
+not the promised external Connector SPI. Its generated signatures identify
+the exact split required before a provider can compile off-tree:
+
+| Provider requirement | Current exposure | Intended owner |
+| --- | --- | --- |
+| Resource, field, operation and scoped capability descriptions | Salesforce `catalog` projection and generic Catalog contracts | Stable provider facade and provider implementation |
+| Bounded query request, page order and typed cell admission | `ReadProjection`, `QueryPage`, `ManagedOutputValues` | Provider interpretation through a Host-created bounded sink |
+| Selected checked query and residual computation | `QueryRequirement`, `AcquisitionChoice`, `BoundPrepared` | Internal Host bridge, never an external provider constructor |
+| Attempt, issuer, retained output, capture and consumer binding | `QueryEvidenceRegistration`, `CapturedInputSource` | Shared Host custody and physical Site observation |
+| Effect request and stored response interpretation | Salesforce single/collection request projections | Provider semantics behind common apply and response custody |
+| Capacity, retry, cleanup and final completion | `connector_sdk` and common Engine owners | Internal Host/Engine authority |
+
+The next SPI change must define a source-stable provider-facing package and
+move one real Salesforce Catalog-to-read-to-capture path through it. A separate
+MoonBit project must then build an off-tree reference provider using only that
+package and its declared semantic dependencies. The generated `.mbti` closure
+must include callbacks and error payloads, not just nominal opaque types.
+An off-tree package that only registers a name is not the acceptance fixture.
+
+### Fixed-SHA Salesforce review disposition
+
+`01-salesforce-effects-review.md` at `15904a32` is an acceptance list, not a
+claim that every finding remains open at the current branch head:
+
+| Finding | Current disposition |
+| --- | --- |
+| SF-1 / SPI-01 | Partial. The Salesforce acquisition assembly now lives in the Host package while the provider Catalog has no Host or planning imports. `connector_sdk` still exposes internal checked-owner types; the external devkit, off-tree build, and source-compatibility test remain open. |
+| SF-2 / INT-01 | Addressed by the integrated common logical-request owner. Client intent fingerprint and Effect dispatch identity remain separate. |
+| SF-3 / INT-02 | Partial. The checked Effect Run owner has a source-free physical open through the ordinary private DAG lifecycle. The standard Values-to-Effect-to-final-Receipt Client/Host path remains open. |
+| SF-4 / INT-04 | Partial. Cell-backed and resident completed outputs support independent common pins. The checked Effect source inventory now acquires a mixed-representation pin set with rollback. The Host must still connect representation-specific export, physical payload equivalence and current authority. Nonterminal Result coverage remains unproven. Unsupported exports must fail before Effect send. |
+| SF-5 | Open. The ordinary checker and standard Client/Host still reject nonempty Effects. No Salesforce-specific submit path substitutes for a multi-member Run. |
+
+The Host-package move passes Salesforce conformance on JS, Wasm and native,
+the query integration JS suite, and the local Salesforce Site suite. These
+tests do not replace the off-tree SPI, four-way source/Effect Run matrix,
+managed Result borrowing, or standard multi-member Effect Run acceptance.
+
+The ordinary Values-to-Local managed path now exercises two independent
+resident Result borrows. Closing the producer port prevents new pins while
+both existing pins remain live; releasing one does not revoke the other.
+Closing the underlying physical output makes the remaining borrow unavailable,
+and final release leaves the ledger empty. This checks common physical custody
+only. It does not turn a managed Result into an Effect payload or publication
+view without the installed Host's exact representation-specific export.
+The Effect input port now uses this representation-neutral Result pin set.
+
+The fixed-SHA `02-salesforce-effects (2).md` review identified a logical
+Stage/physical Task mismatch. The current graph owner already records both
+coordinates and resolves the checked Result port through its own expansion;
+both single and batch pins use the physical Task. A mixed graph-to-Relation
+source fixture now asserts that an Effect source at logical Stage 1 binds the
+final physical Task rather than Task 1. This closes the coordinate defect,
+not the full review acceptance list. Split-source pin lifetime, rollback,
+local HTTPS write suppression, and the ordinary multi-member Effectful Run
+through final publication still require product-path evidence.
+
+A second checked Program fixture places a split Stage before the Effect source.
+It asserts the later logical Stage 2 resolves to physical Task 5 in the
+six-task graph. This covers both coordinate-shift directions at static graph
+binding; it does not substitute for executing either split topology.
+
+The installed Effect input exporter now derives its physical producer Task
+from the pinned MoonBit owner. Its Host caller no longer selects a Task.
+The Node integration control supplies a conflicting extra Task property and
+observes the checked producer instead. This prevents a Stage/Task coordinate
+regression at the Host boundary, but does not replace a split-source physical
+pin-and-release integration test.
+
+An installed source-free Local fixture now gives two Effect members distinct
+pins on one completed Result. A failed under-capacity batch leaves no pin;
+closing the ordinary port bars new pins, and releasing one member leaves the
+other available with the same exact two projected rows until its own release.
+This covers shared custody on a
+nonsegmented physical source. Split-source lifetime and rollback still need
+an execution fixture rather than an expanded-graph-only assertion.
+
+The common captured-Preview owner now checks the current target-version map
+only while all referenced Result pins remain live. The Host bridge accepts
+bounded row/version pairs, rejects a mismatched inventory, and calls the
+existing MoonBit whole-Preview guard rule. A zero-row product fixture covers
+the binding and release boundary; nonempty guard semantics remain covered by
+the independent Effect rule tests. This is one apply preflight obligation,
+not evidence of current authorization, physical payload equality, or a
+complete EffectApplyPermit.
+Its cell exporter rejects a resident representation explicitly; a resident
+input only proves exact physical custody until the Host presents the same
+concrete output and establishes its checked view and payload. Concrete
+resident use checks the committed generation and the checked owner and port;
+release or producer revocation invalidates that use. A failed later pin
+releases earlier member pins without rerunning the producer.
+
+The standard Client preparation package now has a separate Effectful
+computation path. It parses the ordinary document, retains the exact static
+Effect closure, and uses the same checked Stage lowering as the Effect-free
+path. A source-free Values fixture proves that the resulting graph retains
+its Effect source occurrence; the Effect-free Client entry still rejects it.
+The preparation can bind an admitted exact Run owner, but neither this
+preparation nor that binding admits a Preview, current grant, mutation send,
+final Receipt, or publication. The standard Host caller remains open.
+
+The internal Node Host bridge now exposes that prepared Effect computation
+through the same bounded document-format and supplied-Parameter admission as
+the Effect-free Client path. It retains the owned closure without promoting it
+to a public submit or apply permit. A Node fixture checks exact Mapping
+resolution and confirms that the public Effect-free submit still rejects the
+Effectful document. Standard multi-member execution, durable apply, and final
+publication remain open.
+
+The source-free Effect Run can now bind that prepared computation to the
+admitted exact Run Definition and open the same installed Local Host as an
+Effect-free computation. Shared task lowering and Local module configuration
+avoid a second physical execution path. The Host owner retains its captured
+Effect Run beside the ordinary compute handle; a foreign Program cannot bind
+to the admission. A Node product fixture executes a Values-to-Effect
+computation through the installed Host and checks the retained Effect source
+inventory. This is compute-only evidence. It does not yet issue the Captured
+Run, pin the completed source through Preview, authorize a write, or publish
+the final Effectful Receipt. The public submit remains Effect-free.
+
+The installed Host path now acquires the complete checked Effect source pin
+set after Compute. A common MoonBit operation permits closing the ordinary
+task port only through a live pinned Effect input; the pin remains available
+until its explicit release, while a new pin after port closure is rejected.
+The Node integration fixture checks the bounded pin, wrong-member rejection,
+single release, and absence of a second Compute. This establishes physical
+input custody, not row-to-payload equivalence, a Preview, apply authority, or
+the final Receipt.
+
+The Node Host bridge now drives the common MoonBit checked-Result exporter from
+that pinned Effect input. It advances the bounded projection and ordering
+preparation, emits canonical rows without a caller-supplied replacement, and
+finishes with the existing logical Relation identity and field inventory. The
+installed Local profile uses a resident representation, so the cell-only
+exporter correctly rejects it. Its Site adapter supplies the exact managed
+generation and bounded row stream to the existing managed-publication bridge;
+MoonBit checks that generation against the Effect pin before import and again
+before finishing. The fixture verifies two actual Values rows after the
+ordinary task port closes. This is one bounded re-admission into the common
+checked Result view, not a JavaScript cell-by-cell interpretation. It does not
+yet bind those rows to a private Preview's intended changes or physical
+Salesforce request, so it is not mutation admission.
+
+The installed Host now owns the physical-reader-to-MoonBit-exporter sequence
+in `effect-input-export.mjs`; the test no longer assembles that sequence in
+its own callback. It streams bounded canonical chunks to a caller callback,
+checks cancellation between charged preparation steps and writes, and closes
+the import, stream, and receipt on every exit. The caller still owns the
+captured input pin. This is reusable input transport, not a standard
+Effectful submit or an apply permit.
+
+The private Effect Preview input bridge now admits one canonical Preview under
+the Host's exact Run Definition and Invocation, checks the retained checked
+Effect inventory and whole-set footprint, and binds its source references to
+the pinned captured occurrence. The captured-input binder also compares the
+execution occurrence itself: two captures of one checked Run cannot exchange
+pins. A product-path fixture rejects a foreign Mapping contract and a second
+capture even when the checked Run owner is shared. The fixture's placeholder
+Artifact CID and zero-row Preview are identity controls only; this bridge
+does not assert captured row/payload equivalence or authorize apply.

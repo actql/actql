@@ -429,3 +429,60 @@ pub fn parse_effect_preview_shape(
   }
   Ok(value)
 }
+
+///|
+/// Canonicalize a complete Preview draft before semantic identities are
+/// issued. This does not admit its references or authorize an Effect apply.
+pub fn canonical_effect_preview_draft_wire(
+  wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, PublicationContractIssue] {
+  let value = match
+    parse_contract_wire(wire, max_wire_bytes, max_nodes, max_depth) {
+    Ok(parsed) => parsed
+    Err(issue) => return Err(issue)
+  }
+  if !validate_generated_protocol_shape(
+      "effect_preview", value, true, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    return Err(InvalidField("effect_preview"))
+  }
+  let canonical = @json.stringify_value(
+    value, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  Ok(canonical)
+}
+
+///|
+/// Admit the closed, canonical EffectOutcome value shape. This does not bind
+/// a provider response, Preview row, dispatch, or terminal Receipt.
+pub fn parse_effect_outcome_shape(
+  wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@json.CanonicalValue, PublicationContractIssue] {
+  let value = match
+    parse_contract_wire(wire, max_wire_bytes, max_nodes, max_depth) {
+    Ok(parsed) => parsed
+    Err(issue) => return Err(issue)
+  }
+  let canonical = @json.stringify_value(
+    value, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  if canonical != wire {
+    return Err(InvalidWire)
+  }
+  if !validate_generated_protocol_shape(
+      "effect_outcome", value, true, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    return Err(InvalidField("effect_outcome"))
+  }
+  Ok(value)
+}

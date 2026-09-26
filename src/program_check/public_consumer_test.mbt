@@ -83,6 +83,8 @@ fn public_effect_preview_member(
   source_name? : String? = None,
 ) -> String {
   let cid = "sha256:" + "a".repeat(64)
+  let effect_identity_cid = "sha256:" +
+    (if id == "first" { "b" } else { "c" }).repeat(64)
   "{\"effect_id\":\"" +
   id +
   "\",\"effect_kind\":\"create\",\"target\":\"Object\"," +
@@ -90,7 +92,7 @@ fn public_effect_preview_member(
   "\"resolved_mapping_contract_cid\":\"" +
   mapping_cid +
   "\",\"effect_identity_cid\":\"" +
-  cid +
+  effect_identity_cid +
   (if source_name is Some(source) {
     "\",\"source_result\":\"" + source + "\",\"result_artifact_cid\":\"" + cid
   } else {
@@ -550,8 +552,37 @@ test "Effect computation candidate retains owners without admitting execution" {
 }
 
 ///|
-fn public_effect_mapping_closure(generated : Bool) -> Unit raise {
-  let (plain, _, _, evidence, limits) = public_input_fixture(generated~)
+fn public_effect_mapping_closure(
+  generated : Bool,
+  split_source? : Bool = false,
+  split_intermediate? : Bool = false,
+  split_before? : Bool = false,
+) -> Unit raise {
+  let (plain, _, _, evidence, base_limits) = public_input_fixture(generated~)
+  let plain = if split_before {
+    plain.replace(
+      old="},{\"id\":\"consumer\",\"inputs\":{\"rows\":{\"result\":{\"stage\":\"producer\",\"result\":\"out\"}}}",
+      new="},{\"id\":\"middle\",\"inputs\":{\"rows\":{\"result\":{\"stage\":\"producer\",\"result\":\"out\"}}},\"steps\":[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"value\"]},\"edges\":{\"from\":\"rows\",\"source\":\"id\",\"target\":\"id\",\"fields\":[]}},\"as\":\"g\"},{\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{\"from\":\"normalized\",\"node_rows\":true,\"as\":\"projected\"},{\"from\":\"projected\",\"filter\":\"true\",\"as\":\"selected\"}],\"results\":{\"out\":{\"from\":\"selected\",\"fields\":[\"id\",\"value\"]}}},{\"id\":\"consumer\",\"inputs\":{\"rows\":{\"result\":{\"stage\":\"middle\",\"result\":\"out\"}}}",
+    )
+  } else {
+    plain
+  }
+  let limits : @program_check.CheckLimits = if split_before {
+    {
+      input: { ..base_limits.input, max_stages: 3, },
+      compilation: {
+        ..base_limits.compilation,
+        structure: {
+          ..base_limits.compilation.structure,
+          stages: 3,
+          steps: 10,
+          results: 3,
+        },
+      },
+    }
+  } else {
+    base_limits
+  }
   let program = @syntax.parse(
     plain
     .replace(
@@ -561,6 +592,22 @@ fn public_effect_mapping_closure(generated : Bool) -> Unit raise {
     .replace(
       old="\"results\":{\"out\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}",
       new="\"results\":{\"published\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}",
+    )
+    .replace(
+      old="{\"take\":1,\"as\":\"selected\"}",
+      new=if split_source {
+        "{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"value\"]},\"edges\":{\"from\":\"rows\",\"source\":\"id\",\"target\":\"id\",\"fields\":[]}},\"as\":\"g\"},{\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{\"from\":\"normalized\",\"node_rows\":true,\"as\":\"projected\"},{\"from\":\"projected\",\"filter\":\"true\",\"as\":\"selected\"}"
+      } else {
+        "{\"take\":1,\"as\":\"selected\"}"
+      },
+    )
+    .replace(
+      old="\"results\":{\"out\":{\"from\":\"selected\",\"fields\":[\"id\",\"value\"]}}}",
+      new=if split_intermediate {
+        "\"results\":{\"out\":{\"from\":\"projected\",\"fields\":[\"id\",\"value\"]}}}"
+      } else {
+        "\"results\":{\"out\":{\"from\":\"selected\",\"fields\":[\"id\",\"value\"]}}}"
+      },
     ),
     limits.input,
     format=Json,
@@ -581,7 +628,7 @@ fn public_effect_mapping_closure(generated : Bool) -> Unit raise {
     "\"," +
     mapping_after
   let prefix = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],"
-  let suffix = "\"host_policy_profile\":{\"capacity\":{\"max_aggregate_array_items\":1000,\"max_artifact_bytes\":1000,\"max_artifact_rows\":1000,\"max_effect_items\":1000,\"max_graph_input_edges\":1000,\"max_graph_input_nodes\":1000,\"max_graph_output_rows\":1000,\"max_graph_paths\":1000,\"max_infer_items\":1000,\"max_model_input_tokens_per_item\":1000,\"max_model_request_bytes_per_item\":1000,\"max_model_total_duration_ms\":1000,\"max_nested_value_bytes\":1000,\"max_nested_value_depth\":1000,\"max_relation_output_rows\":1000,\"max_temporal_matches_per_key\":1000,\"max_temporal_output_rows\":1000,\"version\":\"actql-capacity-host-policy/0.1\"}},\"mapping_contracts\":[" +
+  let suffix = "\"host_policy_profile\":{\"capacity\":{\"max_aggregate_array_items\":1000,\"max_artifact_bytes\":1000,\"max_artifact_rows\":1000,\"max_effect_items\":1000,\"max_graph_construction_edges\":1000,\"max_graph_construction_input_rows\":1000,\"max_graph_construction_nodes\":1000,\"max_graph_input_edges\":1000,\"max_graph_input_nodes\":1000,\"max_graph_output_rows\":1000,\"max_graph_paths\":1000,\"max_infer_items\":1000,\"max_model_input_tokens_per_item\":1000,\"max_model_request_bytes_per_item\":1000,\"max_model_total_duration_ms\":1000,\"max_nested_value_bytes\":1000,\"max_nested_value_depth\":1000,\"max_relation_output_rows\":1000,\"max_temporal_matches_per_key\":1000,\"max_temporal_output_rows\":1000,\"version\":\"actql-capacity-host-policy/0.1\"}},\"mapping_contracts\":[" +
     mapping_body +
     "],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
   let environment_cid = "sha256:" + @sha.hex(@utf8.encode(prefix + suffix))
@@ -595,7 +642,13 @@ fn public_effect_mapping_closure(generated : Bool) -> Unit raise {
   let environment = @program_check.checking_environment(
     wire,
     { text_time: false, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    {
+      rela: true,
+      sga: split_source || split_before,
+      tea: false,
+      calendar: false,
+      text_rank: false,
+    },
   )
   match
     @program_check.prepare_effect_computation_candidate(
@@ -671,7 +724,11 @@ fn public_effect_mapping_closure(generated : Bool) -> Unit raise {
   let graph_owner = @strategy.prepare_checked_effect_computation_dag(
     static_candidate,
     owners,
-    2,
+    if split_source || split_before {
+      8
+    } else {
+      2
+    },
     10000,
     source_free_root=generated,
   ).unwrap()
@@ -685,13 +742,48 @@ fn public_effect_mapping_closure(generated : Bool) -> Unit raise {
   assert_eq(@strategy.checked_effect_source_count(graph_owner), 2)
   let first_source = @strategy.checked_effect_source_at(graph_owner, 0).unwrap()
   assert_eq(@strategy.checked_effect_source_member(first_source), 0)
-  assert_eq(@strategy.checked_effect_source_stage(first_source), 1)
+  assert_eq(
+    @strategy.checked_effect_source_stage(first_source),
+    if split_before {
+      2
+    } else {
+      1
+    },
+  )
+  if split_source {
+    assert_eq(
+      @strategy.checked_effect_source_task(first_source),
+      if split_intermediate {
+        3
+      } else {
+        4
+      },
+    )
+  } else if split_before {
+    assert_eq(@strategy.checked_effect_source_task(first_source), 5)
+  } else {
+    assert_eq(@strategy.checked_effect_source_task(first_source), 1)
+  }
   let occurrence = @strategy.checked_effect_source_occurrence(first_source)
+  assert_eq(
+    @strategy.graph_stage_target_task(
+      @strategy.checked_effect_computation_graph(graph_owner),
+      if split_before {
+        2
+      } else {
+        1
+      },
+      @publication.port_target(
+        @execution.managed_result_occurrence_port(occurrence),
+      ),
+    ),
+    Some(@strategy.checked_effect_source_task(first_source)),
+  )
   assert_eq(@execution.managed_result_occurrence_name(occurrence), "out")
   assert_true(
     physical_equal(
       @execution.managed_result_occurrence_owner(occurrence),
-      owners[1],
+      owners[if split_before { 2 } else { 1 }],
     ),
   )
   assert_true(
@@ -710,6 +802,15 @@ fn public_effect_mapping_closure(generated : Bool) -> Unit raise {
     ),
   )
   assert_true(@strategy.checked_effect_source_at(graph_owner, 1) is None)
+  if split_before {
+    assert_eq(
+      @strategy.graph_task_count(
+        @strategy.checked_effect_computation_graph(graph_owner),
+      ),
+      6,
+    )
+    return
+  }
   assert_true(
     @strategy.prepare_checked_dag(computation, owners, 2, 10000)
     is Err(EffectGraphOwnerRequired),
@@ -724,7 +825,11 @@ fn public_effect_mapping_closure(generated : Bool) -> Unit raise {
     @strategy.graph_task_count(
       @strategy.checked_effect_computation_graph(graph_owner),
     ),
-    2,
+    if split_source {
+      5
+    } else {
+      2
+    },
   )
   assert_true(
     @strategy.graph_program_has_effects(
@@ -733,7 +838,13 @@ fn public_effect_mapping_closure(generated : Bool) -> Unit raise {
   )
   assert_true(
     @strategy.prepare_checked_effect_computation_dag(
-      static_candidate, owners, 1, 10000,
+      static_candidate,
+      owners,
+      @strategy.graph_task_count(
+        @strategy.checked_effect_computation_graph(graph_owner),
+      ) -
+      1,
+      10000,
     )
     is Err(TaskLimit),
   )
@@ -894,6 +1005,10 @@ fn public_effect_mapping_closure(generated : Bool) -> Unit raise {
     ).unwrap()
     assert_true(
       physical_equal(@strategy.captured_effect_run_owner(captured), run_owner),
+    )
+    assert_true(
+      @strategy.pin_captured_effect_sources(captured, 2)
+      is Err(@strategy.NotReady),
     )
     assert_true(
       physical_equal(
@@ -1681,4 +1796,23 @@ fn public_source_limits(stage_count : Int) -> @program_check.CompileLimits {
     policy: { bytes: 10000, nodes: 1000000, depth: 100, },
     patterns: { bytes: 1000000, nodes: 1000000, depth: 100, },
   }
+}
+
+///|
+test "Effect source binds the final physical task of a split Stage" {
+  public_effect_mapping_closure(false, split_source=true)
+}
+
+///|
+test "Effect source binds an intermediate physical task of a split Stage" {
+  public_effect_mapping_closure(
+    false,
+    split_source=true,
+    split_intermediate=true,
+  )
+}
+
+///|
+test "Effect source follows a preceding split Stage" {
+  public_effect_mapping_closure(false, split_before=true)
 }

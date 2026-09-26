@@ -311,6 +311,53 @@ test "durable ledger heads own Effect Set progress after restart" {
     64,
     3,
   ).unwrap()
+  let sequential = effect_set_frontier_from_ledger_entries(
+    ["first", "second"],
+    [1, 1],
+    [[first_locator, second_locator], [third_locator]],
+    [[first, foreign_second], [third]],
+    [[Some(unknown), Some(foreign_applied)], [None]],
+    [[false, false], [false]],
+    2,
+    3,
+    24,
+  ).unwrap()
+  assert_eq(sequential.ready, [(1, 0)])
+  assert_eq(sequential.outcome, SetRunning)
+  let prior_applied = issue_next_effect_ledger_entry(
+    sending,
+    "applied",
+    Some(ledger_test_cid("8")),
+    4096,
+    64,
+    3,
+  ).unwrap()
+  let later_active = effect_set_frontier_from_ledger_entries(
+    ["first", "second"],
+    [1, 1],
+    [[first_locator, second_locator], [third_locator]],
+    [[first, foreign_second], [third]],
+    [[Some(prior_applied), Some(foreign_sending)], [None]],
+    [[false, true], [false]],
+    2,
+    3,
+    24,
+  ).unwrap()
+  assert_eq(later_active.ready, [(1, 0)])
+  assert_eq(later_active.outcome, SetRunning)
+  let still_active = effect_set_frontier_from_ledger_entries(
+    ["first", "second"],
+    [1, 1],
+    [[first_locator, second_locator], [third_locator]],
+    [[first, second], [third]],
+    [[Some(unknown), None], [None]],
+    [[true, false], [false]],
+    2,
+    3,
+    24,
+  ).unwrap()
+  assert_eq(still_active.ready, [(1, 0)])
+  assert_eq(still_active.outcome, SetRunning)
   let halted = effect_set_frontier_from_ledger_entries(
     ["first", "second"],
     [0, 1],

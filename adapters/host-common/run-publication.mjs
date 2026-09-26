@@ -1,7 +1,9 @@
-// Common Host orchestration for one complete Effect-free Run publication.
+// Common Host orchestration for one complete Run publication.
 // MoonBit owns every contract body, identity, chain verdict and state
 // transition. This module sequences Store effects and reports uncertain I/O;
 // it never manufactures a semantic body or treats a write as publication.
+
+import {issuedEffectSetReceiptWires} from './effect-receipt-custody.mjs';
 
 export class RunPublicationError extends Error {
   constructor(code, cause) {
@@ -173,7 +175,7 @@ async function admittedCommittedIndex(store, control, key) {
 }
 
 async function validateExistingCommit(
-  store, control, evidence, request, key, limits,
+  store, control, evidence, request, key, limits, effectful,
 ) {
   const index = await admittedCommittedIndex(store, control, key);
   if (index === undefined) return undefined;
@@ -184,8 +186,11 @@ async function validateExistingCommit(
   const storedAttempt = await store.readPublicationContract(
     value.publication_attempt_cid, 'publication_attempt',
   );
-  if (storedRequest.identity !== request.identity ||
-      control.effectFreeCommitValid(
+  if (storedRequest.identity !== request.identity) {
+    fail('RunPublicationCommitConflict');
+  }
+  const valid = effectful === undefined
+    ? control.effectFreeCommitValid(
         evidence.runDefinition,
         evidence.invocation,
         evidence.definitions,
@@ -201,7 +206,12 @@ async function validateExistingCommit(
         storedAttempt,
         index,
         limits,
-      ) !== true) {
+      )
+    : control.effectfulCommitValid(
+      effectful.chain, effectful.preview, effectful.receipts,
+      storedRequest, storedAttempt, index, limits,
+    );
+  if (valid !== true) {
     fail('RunPublicationCommitConflict');
   }
   return Object.freeze({index, attempt: storedAttempt});
@@ -405,22 +415,27 @@ function uncertainFailure(
   return failure;
 }
 
-/// Persist and atomically publish one complete Effect-free Run chain.
-/// A repeated call with the same immutable request reconciles an existing
-/// commit before creating work. Internal Compute completion is never mutated.
-export async function publishEffectFreeRun(options) {
+// Both Run kinds share one publication progression. Only their exact chain
+// admission and Store commit differ; retry and unknown handling do not.
+async function publishRun(options, effectful) {
   const keys = ['store', 'control', 'evidence', 'request', 'attempt', 'limits',
     'now', 'signal'];
   if (!exactKeys(options, keys)) fail('InvalidRunPublicationOptions');
   const {store, control, evidence, request, attempt, limits, signal} = options;
   validateStore(store);
   validateControl(control);
+  if (effectful !== undefined &&
+      (typeof store.commitEffectfulIndex !== 'function' ||
+        typeof store.validateCommittedEffectfulEvidence !== 'function' ||
+        typeof control.effectfulCommitValid !== 'function')) {
+    fail('InvalidEffectfulRunPublicationBoundary');
+  }
   validateLimits(limits);
   const contracts = validateEvidence(evidence);
   validateRequest(request);
   validateAttempt(attempt);
   const now = validateClock(options.now);
-  if (control.effectFreeChainValid(
+  if (effectful === undefined && control.effectFreeChainValid(
     evidence.runDefinition,
     evidence.invocation,
     evidence.definitions,
@@ -439,6 +454,14 @@ export async function publishEffectFreeRun(options) {
     publicationRequest, evidence.runDefinition, attempt, limits,
   );
   const key = indexKey(request, evidence);
+  const validateCommit = index => effectful === undefined
+    ? store.validateCommittedEvidence(index, evidence)
+    : store.validateCommittedEffectfulEvidence({
+      ...effectful.preparation, index,
+    });
+  const lookupCommit = () => validateExistingCommit(
+    store, control, evidence, publicationRequest, key, limits, effectful,
+  );
   let existingChecked = false;
   let existing;
   let existingEvidenceValidated = false;
@@ -457,14 +480,12 @@ export async function publishEffectFreeRun(options) {
       attemptCreated,
     );
     if (action === 0) {
-      existing = await validateExistingCommit(
-        store, control, evidence, publicationRequest, key, limits,
-      );
+      existing = await lookupCommit();
       existingChecked = true;
       continue;
     }
     if (action === 1) {
-      await store.validateCommittedEvidence(existing.index, evidence);
+      await validateCommit(existing.index);
       existingEvidenceValidated = true;
       continue;
     }
@@ -491,7 +512,9 @@ export async function publishEffectFreeRun(options) {
       continue;
     }
     if (action === 5) {
-      await persistContracts(store, [...contracts, publicationRequest]);
+      await persistContracts(store, [
+        ...contracts, ...(effectful?.contracts ?? []), publicationRequest,
+      ]);
       contractsPersisted = true;
       continue;
     }
@@ -554,11 +577,16 @@ export async function publishEffectFreeRun(options) {
   }
   let committed;
   try {
-    committed = await store.commitIndex(
-      index.wire,
-      requiredInventory(contracts, publicationRequest, publicationAttempt),
-      commitEvidence(evidence),
-    );
+    const inventory = requiredInventory([
+      ...contracts, ...(effectful?.contracts ?? []),
+    ], publicationRequest, publicationAttempt);
+    committed = effectful === undefined
+      ? await store.commitIndex(
+        index.wire, inventory, commitEvidence(evidence),
+      )
+      : await store.commitEffectfulIndex({
+        ...effectful.preparation, index,
+      }, [...new Set([...inventory, ...effectful.sourceSchemaCids])]);
   } catch (primary) {
     let reconciliationAttempted = false;
     let reconciliationFailed = false;
@@ -576,9 +604,7 @@ export async function publishEffectFreeRun(options) {
       if (action === 0) {
         reconciliationAttempted = true;
         try {
-          reconciled = await validateExistingCommit(
-            store, control, evidence, publicationRequest, key, limits,
-          );
+          reconciled = await lookupCommit();
         } catch (error) {
           reconciliationFailed = true;
           reconciliationFailure = error;
@@ -597,16 +623,14 @@ export async function publishEffectFreeRun(options) {
       }
       if (action === 2) {
         const reconcile = async upstream => {
-          const resolved = await validateExistingCommit(
-            store, control, evidence, publicationRequest, key, limits,
-          );
+          const resolved = await lookupCommit();
           if (resolved === undefined) {
             if (typeof member(upstream, 'resolveConfirmed') === 'function') {
               upstream.resolveConfirmed(undefined);
             }
             return Object.freeze({outcome: 'uncommitted'});
           }
-          await store.validateCommittedEvidence(resolved.index, evidence);
+          await validateCommit(resolved.index);
           const resolution = await finishResolvedCommit(
             store,
             control,
@@ -645,7 +669,7 @@ export async function publishEffectFreeRun(options) {
         throw primary;
       }
       if (action !== 4) fail('InvalidRunPublicationCommitFailure');
-      await store.validateCommittedEvidence(reconciled.index, evidence);
+      await validateCommit(reconciled.index);
       committed = Object.freeze({
         entry: JSON.parse(reconciled.index.wire),
         committed: false,
@@ -674,4 +698,113 @@ export async function publishEffectFreeRun(options) {
     attempt: resolution.winner,
     index: committedIndex,
   }, resolution.cleanup);
+}
+
+/// Persist and atomically publish one complete Effect-free Run chain.
+/// A repeated immutable request reconciles the existing commit without
+/// changing the internal Compute outcome.
+export async function publishEffectFreeRun(options) {
+  return publishRun(options, undefined);
+}
+
+// The caller must first establish each physical row outcome from the saved
+// response and issue the complete set through the common MoonBit owner.
+// This boundary only sequences final publication and never sends an Effect.
+export async function publishEffectfulRun(options) {
+  if (!exactKeys(options, [
+    'store', 'control', 'chain', 'preview', 'ledger', 'issuedSet',
+    'effectSources', 'sourceArtifacts', 'request', 'attempt', 'limits',
+    'now', 'signal',
+  ])) fail('InvalidEffectfulRunPublicationOptions');
+  const {store, control, chain, preview, ledger, issuedSet, effectSources,
+    sourceArtifacts, limits} = options;
+  if (!chain || !Array.isArray(chain.definitions) ||
+      !Array.isArray(chain.artifacts) ||
+      !Array.isArray(chain.durableBindings) ||
+      !Array.isArray(effectSources) ||
+      !Array.isArray(sourceArtifacts) ||
+      effectSources.length !== sourceArtifacts.length ||
+      typeof control?.issueEffectfulFinalRunReceipt !== 'function' ||
+      typeof control?.effectSetReceiptRunDisposition !== 'function' ||
+      typeof control?.effectPrivateEvidenceBinding !== 'function' ||
+      typeof control?.capturedEffectSourceArtifactCid !== 'function' ||
+      !contractShape(chain.computationReceipt) ||
+      typeof store?.storeAuthorityCid !== 'string') {
+    fail('InvalidEffectfulRunPublicationEvidence');
+  }
+  validateLimits(limits);
+  const issuedWires = issuedEffectSetReceiptWires(
+    issuedSet, ledger, preview,
+  );
+  const disposition = control.effectSetReceiptRunDisposition(
+    preview, issuedWires, limits,
+  );
+  if (disposition === 1) fail('EffectfulRunNeedsReconciliation');
+  if (disposition === 2) fail('EffectfulRunFailed');
+  if (disposition !== 0) fail('InvalidEffectSetRunDisposition');
+  const issuedFinal = control.issueEffectfulFinalRunReceipt(
+    chain, preview, issuedWires, limits,
+  );
+  const receipts = Object.freeze({...issuedWires,
+    finalWire: issuedFinal.wire});
+  const setReceipt = control.admit(
+    'effect_set_apply_receipt', receipts.setWire, limits,
+  );
+  const memberReceipts = receipts.memberWires.map(wire =>
+    control.admit('effect_apply_receipt', wire, limits));
+  const sourceSchemaCids = [];
+  const admittedSourceArtifacts = [];
+  for (let index = 0; index < effectSources.length; index++) {
+    const artifact = sourceArtifacts[index];
+    if (!contractShape(artifact) ||
+        artifact.name !== 'effect_source_artifact' ||
+        artifact.identity !==
+          control.capturedEffectSourceArtifactCid(effectSources[index])) {
+      fail('InvalidEffectfulSourceInventory');
+    }
+    const admitted = control.admit(
+      'effect_source_artifact', artifact.wire, limits,
+    );
+    if (admitted.identity !== artifact.identity) {
+      fail('InvalidEffectfulSourceInventory');
+    }
+    admittedSourceArtifacts.push(admitted);
+    const body = JSON.parse(admitted.wire);
+    if (!cidPattern.test(body.result_schema_cid)) {
+      fail('InvalidEffectfulSourceInventory');
+    }
+    sourceSchemaCids.push(body.result_schema_cid);
+  }
+  const evidence = Object.freeze({
+    runDefinition: chain.runDefinition,
+    invocation: chain.invocation,
+    definitions: chain.definitions,
+    artifacts: chain.artifacts,
+    derivations: chain.derivations,
+    orderings: chain.orderings,
+    retentions: chain.retentions,
+    durableBindings: chain.durableBindings,
+    manifest: chain.manifest,
+    receipt: issuedFinal,
+    capturedRun: chain.capturedRun,
+  });
+  const privateBinding = control.effectPrivateEvidenceBinding(
+    preview, store.storeAuthorityCid,
+  );
+  const effectful = Object.freeze({
+    chain, preview, receipts,
+    contracts: Object.freeze([
+      chain.computationReceipt, setReceipt, ...memberReceipts,
+      ...admittedSourceArtifacts,
+    ]),
+    sourceSchemaCids: Object.freeze(sourceSchemaCids),
+    preparation: Object.freeze({
+      chain, preview, receipts, privateBinding, effectSources,
+    }),
+  });
+  return publishRun({
+    store, control, evidence, request: options.request,
+    attempt: options.attempt, limits, now: options.now,
+    signal: options.signal,
+  }, effectful);
 }

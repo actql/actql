@@ -71,6 +71,14 @@ pub fn managed_result_occurrence_name(
 }
 
 ///|
+pub fn managed_result_occurrence_same(
+  left : ManagedResultOccurrence,
+  right : ManagedResultOccurrence,
+) -> Bool {
+  physical_equal(left.identity, right.identity)
+}
+
+///|
 pub fn managed_result_occurrence_port(
   occurrence : ManagedResultOccurrence,
 ) -> @results.ResultPort {

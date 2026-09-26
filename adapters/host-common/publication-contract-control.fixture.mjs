@@ -277,6 +277,19 @@ export function createPublicationContractControlFixture() {
       return record.name === 'publication_record' &&
         token(record).state === 'committing';
     },
+    publicIndexSameCommittedContent(committed, candidate) {
+      if (committed?.name !== 'public_index_entry' ||
+          candidate?.name !== 'public_index_entry') return false;
+      const left = token(committed);
+      const right = token(candidate);
+      return [
+        'tenant_id', 'authority_scope_cid', 'run_definition_cid',
+        'invocation_cid', 'result_manifest_cid', 'run_receipt_cid',
+        'captured_run_cid', 'publication_request_cid',
+      ].every(field => left[field] === right[field]) &&
+        equal(left.durable_result_binding_cids,
+          right.durable_result_binding_cids);
+    },
     effectFreeCommitValid(
       runDefinition,
       invocation,

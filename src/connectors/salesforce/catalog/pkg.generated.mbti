@@ -42,6 +42,8 @@ pub fn catalog_sync_resource(CatalogSync, String) -> Result[ResourceMetadata, Re
 
 pub fn catalog_sync_unavailable(CatalogSync, String, DescribeFailure) -> Result[Unit, CatalogSyncIssue]
 
+pub fn check_write_capability_request(WriteCapabilityEvidence, SingleWriteRequest, String) -> Result[Unit, WriteCapabilityIssue]
+
 pub fn described_field(ResourceMetadata, String) -> FieldMetadata?
 
 pub fn finish_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
@@ -52,21 +54,31 @@ pub fn prepare_catalog_observation(CatalogSync, CatalogObservationBinding, Strin
 
 pub fn prepare_continue_write_collection(Array[WriteCollectionItem], String, WriteCollectionRequestLimits) -> Result[WriteCollectionRequest, WriteCollectionRequestIssue]
 
+pub fn prepare_observed_target_preview_row(SingleWriteRequest, TargetObservation, Int) -> Result[TargetPreviewRow, TargetObservationIssue]
+
 pub fn prepare_read_projection(CatalogObservation, CatalogObservationBinding, String, Array[String], Int) -> Result[ReadProjection, ReadProjectionIssue]
 
 pub fn prepare_single_write_request(WriteBody, String, WriteTargetValue, WriteRequestLimits) -> Result[SingleWriteRequest, WriteRequestIssue]
 
+pub fn prepare_target_observation(SingleWriteRequest, Int, Bytes, TargetObservationLimits) -> Result[TargetObservation, TargetObservationIssue]
+
 pub fn prepare_write_body(WriteProjection, Bytes, WriteBodyLimits) -> Result[WriteBody, WriteBodyIssue]
+
+pub fn prepare_write_capability_evidence(SingleWriteRequest, String, WriteCapabilityRoute, Int) -> Result[WriteCapabilityEvidence, WriteCapabilityIssue]
 
 pub fn prepare_write_projection(CatalogObservation, CatalogObservationBinding, String, WriteOperation, Array[String], Int) -> Result[WriteProjection, WriteProjectionIssue]
 
 pub fn prepare_write_target_identity(WriteProjection, WriteTargetValue, Int, Int) -> Result[WriteTargetIdentity, WriteCollectionRequestIssue]
+
+pub fn project_collection_effect_outcome_at(WriteCollectionResponse, Int, Int, Int, Int) -> Result[WriteRowEffectProjection, WriteCollectionResponseIssue]
 
 pub fn project_describe(Bytes, String, DescribeLimits) -> Result[ResourceMetadata, DescribeIssue]
 
 pub fn project_query_page(Bytes, ReadProjection, String, QueryPageLimits) -> Result[QueryPage, QueryPageIssue]
 
 pub fn project_resource_listing(Bytes, ListLimits) -> Result[ResourceListing, ListingIssue]
+
+pub fn project_single_effect_outcome(WriteSingleResponse, String, Int, Int, Int) -> Result[WriteRowEffectProjection, WriteCollectionResponseIssue]
 
 pub fn project_write_collection_response(Bytes, WriteCollectionKind, Int, WriteCollectionResponseLimits) -> Result[WriteCollectionResponse, WriteCollectionResponseIssue]
 
@@ -114,9 +126,15 @@ pub fn recheck_read_projection(ReadProjection, CatalogObservation) -> Result[Uni
 
 pub fn recheck_single_write_request(SingleWriteRequest, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
 
+pub fn recheck_write_capability(WriteCapabilityEvidence, CatalogObservation) -> Result[Unit, WriteCapabilityIssue]
+
 pub fn recheck_write_collection_request(WriteCollectionRequest, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
 
 pub fn recheck_write_projection(WriteProjection, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
+
+pub fn recover_catalog_observation(String, Bytes, Array[Bytes?], Array[Int], CatalogObservationBinding, String, Array[String?], Array[String?], ListLimits, DescribeLimits, Int) -> Result[CatalogObservation, CatalogObservationRecoveryIssue]
+
+pub fn recover_single_write_request(WriteProjection, String, String, String, WriteBodyLimits, WriteRequestLimits) -> Result[SingleWriteRequest, RecoveredWriteRequestIssue]
 
 pub fn require_create_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
 
@@ -129,6 +147,8 @@ pub fn require_update_fields(ResourceMetadata, Array[String]) -> Result[Array[Fi
 pub fn require_upsert_fields(ResourceMetadata, String, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
 
 pub fn select_described_resource(ResourceListing, String, ResourceMetadata?) -> Result[ResourceMetadata, ResourceSelectionIssue]
+
+pub fn single_write_member_footprint(Array[SingleWriteRequest], Int, Int) -> Result[(String, String, String, String, String, Array[String]), WriteCollectionRequestIssue]
 
 pub fn single_write_request_body(SingleWriteRequest) -> String
 
@@ -156,11 +176,35 @@ pub fn single_write_request_resource(SingleWriteRequest) -> String
 
 pub fn single_write_request_target_identity(SingleWriteRequest, Int) -> Result[WriteTargetIdentity?, WriteCollectionRequestIssue]
 
+pub fn target_observation_before_value_wire(TargetObservation) -> String
+
+pub fn target_observation_response_sha256(TargetObservation) -> String
+
+pub fn target_observation_version_cid(TargetObservation) -> String
+
+pub fn target_preview_row_after_wire(TargetPreviewRow) -> String
+
+pub fn target_preview_row_before_wire(TargetPreviewRow) -> String
+
+pub fn target_preview_row_changes_wire(TargetPreviewRow) -> String
+
+pub fn target_preview_row_guard_cid(TargetPreviewRow) -> String
+
+pub fn target_preview_row_target_wire(TargetPreviewRow) -> String
+
 pub fn with_exact_int_comparison(ReadProjection, String, ExactIntComparison, Int) -> ReadProjection?
 
 pub fn write_body_json(WriteBody) -> String
 
 pub fn write_body_projection(WriteBody) -> WriteProjection
+
+pub fn write_capability_body(WriteCapabilityEvidence) -> String
+
+pub fn write_capability_identity(WriteCapabilityEvidence) -> String
+
+pub fn write_capability_route(WriteCapabilityEvidence) -> WriteCapabilityRoute
+
+pub fn write_collection_bound_result_at(WriteCollectionResponse, Int) -> (String, WriteRowResult)?
 
 pub fn write_collection_request_body(WriteCollectionRequest) -> String
 
@@ -210,6 +254,12 @@ pub fn write_projection_operation(WriteProjection) -> WriteOperation
 
 pub fn write_projection_resource(WriteProjection) -> String
 
+pub fn write_row_effect_projection_response_sha256(WriteRowEffectProjection) -> String
+
+pub fn write_row_effect_projection_row_cid(WriteRowEffectProjection) -> String
+
+pub fn write_row_effect_projection_wire(WriteRowEffectProjection) -> String
+
 pub fn write_single_response_sha256(WriteSingleResponse) -> String
 
 pub fn write_single_result(WriteSingleResponse) -> WriteRowResult
@@ -257,6 +307,15 @@ pub(all) enum CatalogObservationIssue {
   ForeignBinding
   DescribeUnavailable(DescribeFailure)
   Resource(ResourceSelectionIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum CatalogObservationRecoveryIssue {
+  InvalidInventory
+  ResponseMismatch
+  ForeignObservation
+  Listing(ListingIssue)
+  Sync(CatalogSyncIssue)
+  Observation(CatalogObservationIssue)
 } derive(Eq, @debug.Debug)
 
 pub struct CatalogSync {
@@ -424,6 +483,11 @@ pub(all) enum ReadProjectionIssue {
   SchemaChanged(String)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum RecoveredWriteRequestIssue {
+  Body(WriteBodyIssue)
+  Request(WriteRequestIssue)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ResourceDescribeOutcome {
   Pending
   Described(ResourceMetadata)
@@ -468,6 +532,7 @@ pub(all) enum ResourceSelectionIssue {
 } derive(Eq, @debug.Debug)
 
 pub struct SingleWriteRequest {
+  api_version : String
   verb : String
   path : String
   body : String
@@ -475,6 +540,40 @@ pub struct SingleWriteRequest {
   projection : WriteProjection
   target : WriteTargetValue
   max_target_bytes : Int
+}
+
+pub struct TargetObservation {
+  version_cid : String
+  response_sha256 : String
+  before_value_wire : String
+  source_path : String
+  source_body : String
+  source_catalog_cid : String
+  source_boundary_cid : String
+  source_scheme_cid : String
+  source_object_cid : String
+}
+
+pub(all) enum TargetObservationIssue {
+  InvalidLimits
+  CapacityExceeded
+  InvalidRecord
+  ForeignTarget
+} derive(Eq, @debug.Debug)
+
+pub(all) struct TargetObservationLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_identity_bytes : Int
+}
+
+pub struct TargetPreviewRow {
+  target_row_identity_wire : String
+  target_guard_cid : String
+  before_value_wire : String
+  after_value_wire : String
+  intended_changes_wire : String
 }
 
 pub struct WriteBody {
@@ -497,6 +596,29 @@ pub(all) struct WriteBodyLimits {
   max_nodes : Int
   max_depth : Int
 }
+
+pub struct WriteCapabilityEvidence {
+  projection : WriteProjection
+  fields : Map[String, FieldMetadata]
+  api_version : String
+  runtime_bundle_cid : String
+  route : WriteCapabilityRoute
+  body : String
+  cid : String
+}
+
+pub(all) enum WriteCapabilityIssue {
+  InvalidLimits
+  InvalidRuntime
+  ForeignRequest
+  OutputLimit
+  CurrentCatalog(WriteProjectionIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum WriteCapabilityRoute {
+  SerialRows
+  ContinueCollection
+} derive(Eq, @debug.Debug)
 
 pub(all) struct WriteCollectionItem {
   row_preview_cid : String
@@ -546,6 +668,7 @@ pub(all) struct WriteCollectionRequestLimits {
 pub struct WriteCollectionResponse {
   results : Array[WriteRowResult]
   response_sha256 : String
+  row_preview_cids : Array[String]?
 }
 
 pub(all) enum WriteCollectionResponseIssue {
@@ -612,6 +735,12 @@ pub(all) struct WriteRequestLimits {
   max_path_bytes : Int
   max_target_bytes : Int
   max_body_bytes : Int
+}
+
+pub struct WriteRowEffectProjection {
+  row_preview_cid : String
+  outcome_wire : String
+  response_sha256 : String
 }
 
 pub(all) enum WriteRowResult {

@@ -6,15 +6,25 @@ import {
 }
 
 // Values
-pub fn prepare_scope_cid(String, String, Int) -> Result[String, ScopeIssue]
+pub fn logical_request_scope_authority(LogicalRequestScope) -> String
+
+pub fn logical_request_scope_caller_id(LogicalRequestScope) -> String
+
+pub fn logical_request_scope_cid(LogicalRequestScope) -> String
+
+pub fn prepare_logical_request_scope(String, String, Int) -> Result[LogicalRequestScope, LogicalRequestScopeIssue]
+
+pub fn prepare_scope_cid(String, String, Int) -> Result[String, LogicalRequestScopeIssue]
 
 // Errors
 
 // Types and methods
-pub(all) enum ScopeIssue {
-  InvalidLimits
+type LogicalRequestScope
+
+pub(all) enum LogicalRequestScopeIssue {
   InvalidAuthorityScope
   InvalidCallerRequest
+  InvalidLimits
   Encoding
 } derive(Eq, @debug.Debug)
 

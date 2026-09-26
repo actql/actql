@@ -1,21 +1,43 @@
 ///|
-/// The logical request scope is shared by Client admission and Effect
-/// dispatch. Its preimage contains no physical Run, Site, or attempt identity.
-pub(all) enum ScopeIssue {
-  InvalidLimits
+/// One canonical logical request key shared by Client ingress and Effect
+/// dispatch. Intent and physical attempts have separate identities.
+struct LogicalRequestScope {
+  authority_scope_cid : String
+  caller_request_id : String
+  cid : String
+}
+
+///|
+pub(all) enum LogicalRequestScopeIssue {
   InvalidAuthorityScope
   InvalidCallerRequest
+  InvalidLimits
   Encoding
 } derive(Eq, Debug)
 
 ///|
-fn valid_cid(value : String) -> Bool {
+pub fn logical_request_scope_cid(value : LogicalRequestScope) -> String {
+  value.cid
+}
+
+///|
+pub fn logical_request_scope_authority(value : LogicalRequestScope) -> String {
+  value.authority_scope_cid
+}
+
+///|
+pub fn logical_request_scope_caller_id(value : LogicalRequestScope) -> String {
+  value.caller_request_id
+}
+
+///|
+fn valid_scope_cid(value : String) -> Bool {
   if value.length() != 71 || !value.has_prefix("sha256:") {
     return false
   }
   for index = 7; index < 71; index = index + 1 {
-    let digit = value[index]
-    if !((digit >= '0' && digit <= '9') || (digit >= 'a' && digit <= 'f')) {
+    let unit = value[index].to_int()
+    if !((unit >= 48 && unit <= 57) || (unit >= 97 && unit <= 102)) {
       return false
     }
   }
@@ -23,35 +45,43 @@ fn valid_cid(value : String) -> Bool {
 }
 
 ///|
-/// Reject noncanonical caller IDs before an authority binds a durable key.
-/// The byte limit is supplied by the owning public profile.
-pub fn prepare_scope_cid(
+fn valid_caller_id(value : String, max_caller_bytes : Int) -> Bool {
+  if value.is_empty() ||
+    value.length() > max_caller_bytes ||
+    @utf8.encode(value).length() > max_caller_bytes {
+    return false
+  }
+  match @canonical.normalize_nfc_lf(value) {
+    Ok(normalized) if normalized == value => ()
+    _ => return false
+  }
+  for character in value.iter() {
+    let unit = character.to_int()
+    if unit < 32 || (unit >= 127 && unit <= 159) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// The 0.1 caller ID ceiling is 256 UTF-8 bytes. A caller may request a
+/// tighter limit, but no consumer may expand the shared accepted domain.
+pub fn prepare_logical_request_scope(
   authority_scope_cid : String,
   caller_request_id : String,
   max_caller_bytes : Int,
-) -> Result[String, ScopeIssue] {
-  if max_caller_bytes < 1 || max_caller_bytes > 1000000 {
+) -> Result[LogicalRequestScope, LogicalRequestScopeIssue] {
+  if max_caller_bytes < 1 || max_caller_bytes > 256 {
     return Err(InvalidLimits)
   }
-  if !valid_cid(authority_scope_cid) {
+  if !valid_scope_cid(authority_scope_cid) {
     return Err(InvalidAuthorityScope)
   }
-  if caller_request_id.is_empty() ||
-    caller_request_id.length() > max_caller_bytes ||
-    @utf8.encode(caller_request_id).length() > max_caller_bytes {
+  if !valid_caller_id(caller_request_id, max_caller_bytes) {
     return Err(InvalidCallerRequest)
   }
-  match @canonical.normalize_nfc_lf(caller_request_id) {
-    Ok(normalized) if normalized == caller_request_id => ()
-    _ => return Err(InvalidCallerRequest)
-  }
-  for index = 0; index < caller_request_id.length(); index = index + 1 {
-    let unit = caller_request_id[index].to_int()
-    if unit < 32 || unit == 127 {
-      return Err(InvalidCallerRequest)
-    }
-  }
-  let writer = @encode.hashing_writer(max_caller_bytes * 6 + 256, 4, 1) catch {
+  let writer = @encode.hashing_writer(1792, 4, 1) catch {
     _ => return Err(Encoding)
   }
   try {
@@ -63,8 +93,28 @@ pub fn prepare_scope_cid(
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-logical-request/0.1")
     @encode.end_object(writer)
-    Ok("sha256:" + @encode.finish_hash(writer))
+    Ok({
+      authority_scope_cid,
+      caller_request_id,
+      cid: "sha256:" + @encode.finish_hash(writer),
+    })
   } catch {
     _ => Err(Encoding)
+  }
+}
+
+///|
+/// The Client ingress uses the same owned scope admission and CID preimage.
+pub fn prepare_scope_cid(
+  authority_scope_cid : String,
+  caller_request_id : String,
+  max_caller_bytes : Int,
+) -> Result[String, LogicalRequestScopeIssue] {
+  match
+    prepare_logical_request_scope(
+      authority_scope_cid, caller_request_id, max_caller_bytes,
+    ) {
+    Ok(scope) => Ok(logical_request_scope_cid(scope))
+    Err(issue) => Err(issue)
   }
 }

@@ -134,6 +134,37 @@ test('credential journal stores no provider secret', async t => {
   assert.equal(bytes.includes(Buffer.from('provider-secret')), false);
 });
 
+test('admission checks authenticate current grants without consuming a use',
+  async t => {
+    const {open, sign} = await fixture(t);
+    const journal = open();
+    const grant = control.prepare(scope);
+    const id = control.identity(grant);
+    assert.throws(() => journal.checkGrant(id, 1n, scope, control),
+      {code: 'RemoteCredentialGrantMissing'});
+    journal.acceptGrant(sign(grant), control);
+    for (let i = 0; i < 3; i++) {
+      assert.equal(control.identity(journal.checkGrant(id, 1n, scope,
+        control)), id);
+    }
+    assert.deepEqual(journal.recover(), []);
+    assert.throws(() => journal.checkGrant(id,
+      scope.expiresUnixMilliseconds, scope, control));
+    assert.throws(() => journal.checkGrant(id, 1n,
+      {...scope, siteGeneration: scope.siteGeneration + 1}, control));
+    journal.claim(id, 'first', 1n, scope, control);
+    journal.claim(id, 'second', 1n, scope, control);
+    assert.throws(() => journal.checkGrant(id, 1n, scope, control));
+    assert.equal(journal.recover().length, 2);
+    const other = control.prepare({...scope, dispatchRequestCid: cid('d')});
+    const otherId = control.identity(other);
+    journal.acceptGrant(sign(other), control);
+    journal.revoke(otherId);
+    assert.throws(() => journal.checkGrant(otherId, 1n,
+      {...scope, dispatchRequestCid: cid('d')}, control));
+    assert.equal(journal.recover().length, 2);
+  });
+
 test('credential journal rejects an untrusted or altered issuer envelope',
   async t => {
     const {open, sign} = await fixture(t);

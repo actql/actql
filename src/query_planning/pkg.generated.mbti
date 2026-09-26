@@ -7,6 +7,7 @@ import {
   "actql/actql/encode_core",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
+  "actql/actql/lowering_relation",
   "actql/actql/physical_cost",
   "actql/actql/pipeline_check_context",
   "actql/actql/relation_schema",
@@ -30,6 +31,8 @@ pub fn admit_query_evidence_contracts(@canonical_json.CanonicalValue, @canonical
 pub fn admit_query_two_receipt_contract(QueryEvidenceContracts, @canonical_json.CanonicalValue, QueryEvidenceLimits) -> Result[QueryTwoReceiptContract, QueryEvidenceContractIssue]
 
 pub fn[T] bind_acquisition_candidate(@connector_sdk.CapabilityRegistration, QueryRequirement, T, @physical_cost.DurationEstimate, @connector_sdk.QueryQuantities) -> Result[PreparedAcquisition[T], QueryPlanningIssue]
+
+pub fn[I, A, R] bind_captured_query_evidence_input(QueryEvidenceCaptured[I, A, R], QueryEvidenceIssued[I, A, R], QueryEvidenceRegistration[A], QueryEvidenceAttemptAuthority[A], I, A, R, @lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, () -> Bool) -> Result[@execution_relation.BoundProducerInput, QueryEvidenceConsumerIssue]
 
 pub fn build_query_observation_artifact(QueryRecordArtifacts, QueryEvidenceLimits) -> Result[(@encode_core.EncodedDocument, String, Int, Int), QueryArtifactIssue]
 
@@ -182,6 +185,12 @@ pub struct QueryEvidenceCaptured[I, A, R] {
   cid : String
   bytes : Int
   nodes : Int
+}
+
+pub(all) enum QueryEvidenceConsumerIssue {
+  Evidence(QueryEvidenceCustodyIssue)
+  ForeignObservation
+  Consumer(@execution_relation.ProducerBindingIssue)
 }
 
 pub(all) enum QueryEvidenceContractIssue {

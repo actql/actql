@@ -3,6 +3,7 @@ package "actql/actql/stage_results"
 
 import {
   "actql/actql/calendar_profile",
+  "actql/actql/canonical_json",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
@@ -102,6 +103,12 @@ pub fn effect_command_targets_references(EffectCommandTargets) -> @check_environ
 
 pub fn effect_command_targets_work(EffectCommandTargets) -> Int
 
+pub fn effect_create_row_intended_changes_wire(EffectCreateRowTerminal, EffectMappingLiterals, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int) -> Result[String, EffectCreateRowIssue]
+
+pub fn effect_create_row_terminal_for_member(EffectMappingRules, Int, Int, Int) -> Result[EffectCreateRowTerminal?, EffectPlanBindingIssue]
+
+pub fn effect_create_row_terminal_source_result(EffectCreateRowTerminal) -> String
+
 pub fn effect_mapping_literal_at(EffectMappingLiterals, Int) -> EffectMappingLiteralBinding?
 
 pub fn effect_mapping_literal_count(EffectMappingLiterals) -> Int
@@ -167,6 +174,20 @@ pub fn effect_mapping_shapes_environment(EffectMappingShapes) -> @check_environm
 pub fn effect_mapping_shapes_work(EffectMappingShapes) -> Int
 
 pub fn effect_plan_pipeline_cid(EffectPlanTerminal, Int, Int, Int) -> String raise @encode_core.EncodeFailure
+
+pub fn effect_plan_row_field_at(EffectPlanRow, Int) -> (String, @canonical_json.CanonicalValue)?
+
+pub fn effect_plan_row_field_count(EffectPlanRow) -> Int
+
+pub fn effect_plan_row_intended_changes_wire(EffectPlanRow, EffectMappingLiterals, Int, Int, Int, Int, Int) -> Result[String, EffectPlanChangeIssue]
+
+pub fn effect_plan_row_selector(EffectPlanRow) -> @canonical_json.CanonicalValue
+
+pub fn effect_plan_row_source_index(EffectPlanRow) -> Int
+
+pub fn effect_plan_row_terminal(EffectPlanRow) -> EffectPlanTerminal
+
+pub fn effect_plan_terminal_for_member(EffectMappingRules, Int, Int, Int) -> Result[EffectPlanTerminal?, EffectPlanBindingIssue]
 
 pub fn effect_plan_terminal_rule(EffectPlanTerminal) -> EffectMappingRuleBinding
 
@@ -267,6 +288,8 @@ pub fn prepare_effect_static_candidate(@stage_syntax.EffectHeaders, Checked, @ch
 pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits, environment? : @stage_local_inputs.ProgramEnvironmentInputs?, sourceview_registrations? : Array[Array[(String, @pipeline_typing.InputContract)]]?, calendar_profile? : @calendar_profile.Profile?) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue]
 
 pub fn prepare_local_source(@stage_syntax.Program, @decode_core.Cursor?, max_parameters~ : Int, LocalProgramLimits, environment? : @check_environment.WireEnvironment?, calendar_profile? : @calendar_profile.Profile?) -> Result[PreparedLocalSource, LocalSourceIssue]
+
+pub fn project_effect_plan_row(EffectPlanTerminal, @canonical_json.CanonicalValue, Int, Int, Int) -> Result[EffectPlanRow, EffectPlanRowIssue]
 
 pub fn resolve_imports(@stage_parameters.Source, Int, Array[StagePorts], ImportLimits) -> Result[ResultImports, ImportIssue]
 
@@ -388,6 +411,23 @@ pub struct EffectCommandTargets {
   work : Int
 }
 
+pub(all) enum EffectCreateRowIssue {
+  InvalidLimits
+  InvalidRow
+  ForeignLiterals
+  WorkLimit
+  MissingSourceField(String)
+  RejectedNull(String)
+  MissingLiteral(String)
+  OutputLimit
+} derive(Eq, @debug.Debug)
+
+pub struct EffectCreateRowTerminal {
+  rule : EffectMappingRuleBinding
+  source_result : String
+  row_fields : @check_environment.MappingRowFields
+}
+
 pub struct EffectMappingLiteralBinding {
   rule : EffectMappingRuleBinding
   target_field : String
@@ -492,6 +532,22 @@ pub struct EffectMappingShapes {
   work : Int
 }
 
+pub(all) enum EffectPlanBindingIssue {
+  InvalidLimits
+  WorkLimit
+  InvalidMember
+  MissingRule
+  Terminal(EffectPlanTerminalIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectPlanChangeIssue {
+  InvalidLimits
+  ForeignLiterals
+  IncompleteChanges
+  WorkLimit
+  OutputLimit
+} derive(Eq, @debug.Debug)
+
 pub(all) struct EffectPlanIdentityLimits {
   max_work : Int
   max_fields : Int
@@ -509,6 +565,21 @@ pub(all) enum EffectPlanInventoryIssue {
   ForeignPlan(String)
   OutputLimit
   InvalidEncoding
+} derive(Eq, @debug.Debug)
+
+pub struct EffectPlanRow {
+  terminal : EffectPlanTerminal
+  source_row_index : Int
+  selector_value : @canonical_json.CanonicalValue
+  fields : Array[(String, @canonical_json.CanonicalValue)]
+}
+
+pub(all) enum EffectPlanRowIssue {
+  InvalidLimits
+  InvalidRow
+  WorkLimit
+  MissingSelector
+  MissingSourceField(String)
 } derive(Eq, @debug.Debug)
 
 pub struct EffectPlanTerminal {

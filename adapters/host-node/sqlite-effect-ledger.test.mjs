@@ -40,6 +40,10 @@ test('append-only Effect facts survive restart and exact retry', async t => {
   t.after(() => reopened.close());
   assert.equal(reopened.current(locator).revision, 2);
   assert.equal(reopened.current(locator).entryJson, secondJson);
+  assert.deepEqual(reopened.currentSnapshot([locator, cid('c')]),
+    [reopened.current(locator), undefined]);
+  assert.throws(() => reopened.currentSnapshot([locator, locator]),
+    {code: 'InvalidEffectLedgerSnapshot'});
   assert.deepEqual(reopened.history(locator, 2).map(value => value.entryJson),
     [firstJson, secondJson]);
   assert.equal(append(reopened, 1, cid('2'), secondJson).created, false);
@@ -302,6 +306,67 @@ test('bounded physical responses survive restart without becoming outcomes',
       response.responseBytes);
   });
 
+test('one logical row cannot acquire a second physical response', async t => {
+  const root = await fixture(t);
+  const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope});
+  t.after(() => ledger.close());
+  append(ledger, 0, cid('1'), firstJson);
+  append(ledger, 1, cid('2'), secondJson);
+  const response = {
+    logicalRequestScopeCid: scope,
+    logicalItemLocatorCid: locator,
+    dispatchEntryCid: cid('2'),
+    credentialUseCid: cid('c'),
+    statusCode: 201,
+    responseBytes: Buffer.from('first'),
+  };
+  assert.equal(ledger.recordResponse(response).created, true);
+  append(ledger, 2, cid('3'), '{"state":"dispatching-again"}');
+  assert.throws(() => ledger.recordResponse({
+    ...response, dispatchEntryCid: cid('3'),
+    responseBytes: Buffer.from('second'),
+  }), {code: 'EffectPhysicalResponseCollision'});
+  const secondLocator = cid('d');
+  ledger.append({logicalRequestScopeCid: scope,
+    logicalItemLocatorCid: secondLocator, expectedRevision: 0,
+    entryCid: cid('4'), entryJson: secondJson});
+  assert.throws(() => ledger.recordBatchResponse({
+    logicalRequestScopeCid: scope, credentialUseCid: cid('c'),
+    statusCode: 200, responseBytes: Buffer.from('batch'),
+    members: [
+      {logicalItemLocatorCid: locator, dispatchEntryCid: cid('3')},
+      {logicalItemLocatorCid: secondLocator, dispatchEntryCid: cid('4')},
+    ],
+  }), {code: 'EffectDispatchNotOwned'});
+  assert.equal(ledger.response(cid('3')), undefined);
+  assert.equal(ledger.response(cid('4')), undefined);
+  assert.deepEqual(ledger.response(cid('2')).responseBytes,
+    Buffer.from('first'));
+});
+
+test('a sealed batch row cannot be reused by a later single response',
+  async t => {
+    const root = await fixture(t);
+    const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope});
+    t.after(() => ledger.close());
+    append(ledger, 0, cid('1'), firstJson);
+    append(ledger, 1, cid('2'), secondJson);
+    assert.equal(ledger.recordBatchResponse({
+      logicalRequestScopeCid: scope, credentialUseCid: cid('c'),
+      statusCode: 200, responseBytes: Buffer.from('[{"success":true}]'),
+      members: [{logicalItemLocatorCid: locator,
+        dispatchEntryCid: cid('2')}],
+    }).created, true);
+    append(ledger, 2, cid('3'), '{"state":"dispatching-again"}');
+    assert.throws(() => ledger.recordResponse({
+      logicalRequestScopeCid: scope, logicalItemLocatorCid: locator,
+      dispatchEntryCid: cid('3'), credentialUseCid: cid('c'),
+      statusCode: 201, responseBytes: Buffer.from('second'),
+    }), {code: 'EffectPhysicalResponseCollision'});
+    assert.equal(ledger.response(cid('3')), undefined);
+    assert.equal(ledger.response(cid('2')).batchCount, 1);
+  });
+
 test('response metadata tampering fails physical integrity checks', async t => {
   const root = await fixture(t);
   const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope});
@@ -325,6 +390,163 @@ test('response metadata tampering fails physical integrity checks', async t => {
   assert.throws(() => ledger.response(cid('2')), {
     code: 'EffectLedgerIntegrityFailed',
   });
+});
+
+test('typed outcome custody binds one stored response across restart',
+  async t => {
+    const root = await fixture(t);
+    const ledger = openSqliteEffectLedger(root,
+      {authorityScopeCid: scope, maxEntries: 4});
+    t.after(() => ledger.close());
+    append(ledger, 0, cid('1'), firstJson);
+    append(ledger, 1, cid('2'), secondJson);
+    const draft = {
+      logicalRequestScopeCid: scope,
+      logicalItemLocatorCid: locator,
+      dispatchEntryCid: cid('2'),
+      responsePhysicalSha256: '0'.repeat(64),
+      outcomeCid: cid('3'),
+      outcomeJson: '{"state":"applied"}',
+    };
+    assert.throws(() => ledger.recordOutcome(draft),
+      {code: 'EffectPhysicalResponseNotOwned'});
+    ledger.recordResponse({
+      logicalRequestScopeCid: scope,
+      logicalItemLocatorCid: locator,
+      dispatchEntryCid: cid('2'),
+      credentialUseCid: cid('4'),
+      statusCode: 201,
+      responseBytes: Buffer.from('{"id":"001"}'),
+    });
+    const exact = {...draft, responsePhysicalSha256:
+      ledger.response(cid('2')).responsePhysicalSha256};
+    assert.throws(() => ledger.recordOutcome(draft),
+      {code: 'EffectPhysicalResponseNotOwned'});
+    const constrained = openSqliteEffectLedger(root,
+      {authorityScopeCid: scope, maxEntries: 3});
+    assert.throws(() => constrained.recordOutcome(exact),
+      {code: 'EffectLedgerCapacityExceeded'});
+    assert.equal(constrained.outcome(cid('2')), undefined);
+    constrained.close();
+    assert.equal(ledger.recordOutcome(exact).created, true);
+    assert.equal(ledger.recordOutcome(exact).created, false);
+    assert.throws(() => ledger.recordOutcome({...exact,
+      outcomeJson: '{"state":"failed"}'}),
+    {code: 'EffectPhysicalOutcomeCollision'});
+    ledger.close();
+    const restarted = openSqliteEffectLedger(root,
+      {authorityScopeCid: scope, maxEntries: 4});
+    t.after(() => restarted.close());
+    assert.equal(restarted.outcome(cid('2')).outcomeJson,
+      exact.outcomeJson);
+    assert.equal(restarted.outcome(cid('2')).responsePhysicalSha256,
+      exact.responsePhysicalSha256);
+    assert.equal(restarted.recordOutcome(exact).created, false);
+    assert.throws(() => openSqliteEffectLedger(root,
+      {authorityScopeCid: scope, maxEntries: 3}),
+    {code: 'EffectLedgerCapacityExceeded'});
+    const database = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
+    database.prepare(`
+      UPDATE effect_ledger_outcomes SET outcome_json = ?
+      WHERE dispatch_entry_cid = ?
+    `).run('{"state":"failed"}', cid('2'));
+    database.close();
+    assert.throws(() => restarted.outcome(cid('2')),
+      {code: 'EffectLedgerIntegrityFailed'});
+  });
+
+test('batch outcome custody keeps each row owner distinct', async t => {
+  const root = await fixture(t);
+  const ledger = openSqliteEffectLedger(root,
+    {authorityScopeCid: scope, maxEntries: 9});
+  t.after(() => ledger.close());
+  const secondLocator = cid('c');
+  const operations = [
+    {logicalItemLocatorCid: locator, ids: [cid('1'), cid('2')]},
+    {logicalItemLocatorCid: secondLocator, ids: [cid('3'), cid('4')]},
+  ].map(row => ({
+    logicalRequestScopeCid: scope,
+    logicalItemLocatorCid: row.logicalItemLocatorCid,
+    expectedRevision: 0,
+    expectedEntryCid: null,
+    entries: row.ids.map((entryCid, index) => ({entryCid,
+      entryJson: index === 0 ? firstJson : secondJson})),
+  }));
+  ledger.appendBatch(operations);
+  ledger.recordBatchResponse({
+    logicalRequestScopeCid: scope,
+    credentialUseCid: cid('d'),
+    statusCode: 200,
+    responseBytes: Buffer.from('[{"success":true},{"success":false}]'),
+    members: [
+      {logicalItemLocatorCid: locator, dispatchEntryCid: cid('2')},
+      {logicalItemLocatorCid: secondLocator, dispatchEntryCid: cid('4')},
+    ],
+  });
+  const first = {
+    logicalRequestScopeCid: scope,
+    logicalItemLocatorCid: locator,
+    dispatchEntryCid: cid('2'),
+    responsePhysicalSha256:
+      ledger.response(cid('2')).responsePhysicalSha256,
+    outcomeCid: cid('5'),
+    outcomeJson: '{"row":0}',
+  };
+  const second = {...first, logicalItemLocatorCid: secondLocator,
+    dispatchEntryCid: cid('4'), outcomeCid: cid('6'),
+    outcomeJson: '{"row":1}'};
+  const batchEvidence = ledger.response(cid('2'));
+  assert.equal(first.responsePhysicalSha256,
+    ledger.response(cid('4')).responsePhysicalSha256);
+  assert.throws(() => ledger.recordOutcome({...first,
+    batchEvidence: {...batchEvidence}}),
+  {code: 'EffectPhysicalResponseNotOwned'});
+  assert.equal(ledger.recordOutcome({...first, batchEvidence}).created, true);
+  assert.throws(() => ledger.recordOutcome({...second,
+    logicalItemLocatorCid: locator}),
+  {code: 'EffectPhysicalResponseNotOwned'});
+  assert.equal(ledger.recordOutcome({...second, batchEvidence}).created, true);
+  assert.equal(ledger.outcome(cid('2')).outcomeCid, cid('5'));
+  assert.equal(ledger.outcome(cid('4')).outcomeCid, cid('6'));
+  assert.throws(() => ledger.recordOutcome({...second, outcomeCid: cid('5')}),
+    {code: 'EffectPhysicalOutcomeCollision'});
+  ledger.close();
+  const reopened = openSqliteEffectLedger(root,
+    {authorityScopeCid: scope, maxEntries: 9});
+  t.after(() => reopened.close());
+  assert.equal(reopened.outcome(cid('2')).outcomeJson, '{"row":0}');
+  assert.equal(reopened.outcome(cid('4')).outcomeJson, '{"row":1}');
+});
+
+test('external batch mutation invalidates a verified response fact', async t => {
+  const root = await fixture(t);
+  const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope});
+  t.after(() => ledger.close());
+  append(ledger, 0, cid('1'), firstJson);
+  append(ledger, 1, cid('2'), secondJson);
+  ledger.recordBatchResponse({
+    logicalRequestScopeCid: scope, credentialUseCid: cid('c'),
+    statusCode: 200, responseBytes: Buffer.from('original'),
+    members: [{logicalItemLocatorCid: locator,
+      dispatchEntryCid: cid('2')}],
+  });
+  const batchEvidence = ledger.response(cid('2'));
+  const database = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
+  database.prepare(`
+    UPDATE effect_ledger_batch_responses SET response_bytes = ?
+    WHERE batch_owner_cid = ?
+  `).run(Buffer.from('changed'), cid('2'));
+  database.close();
+  assert.throws(() => ledger.recordOutcome({
+    logicalRequestScopeCid: scope, logicalItemLocatorCid: locator,
+    dispatchEntryCid: cid('2'),
+    responsePhysicalSha256: batchEvidence.responsePhysicalSha256,
+    outcomeCid: cid('3'), outcomeJson: '{"row":0}', batchEvidence,
+  }), {code: 'EffectLedgerIntegrityFailed'});
+  const inspect = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
+  assert.equal(inspect.prepare('SELECT COUNT(*) AS count FROM effect_ledger_outcomes')
+    .get().count, 0);
+  inspect.close();
 });
 
 test('response bytes reserve capacity before durable insertion', async t => {

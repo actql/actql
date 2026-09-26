@@ -189,7 +189,7 @@ any unknown additional exposure. Retry performs fresh authorization and egress
 admission from byte zero and may duplicate bytes; the protocol does not imply
 midstream resume or exactly-once delivery.
 
-<!-- requirement-block: result-artifacts.product-09af8ecc4189 -->
+<!-- requirement-block: result-artifacts.product-09af8ecc4189 result-artifacts.local-result-definition-reference result-artifacts.local-result-invocation-reference -->
 That Run-bound Manifest remains an audit/delivery index; its shape and CID law
 are unchanged. A local semantic dependency MUST instead use the registered
 `actql-local-result-manifest/0.1` projection: `{version, unit_definition_cid,
@@ -201,8 +201,17 @@ local contracts, complete observation set and policy. In this combination
 the Result Artifact's invocation_cid resolves to that local computation, never
 the Run-bound invocation wrapper. Result-definition, ordering, policy and
 provenance dependencies must also resolve to their typed semantic contracts.
+The local Result Definition is a distinct `actql-local-result-definition/0.1`
+contract with `{version, unit_definition_cid, result_name, self_cid}`. Its
+semantic preimage is exactly `{result_name, unit_definition_cid, version}`;
+`self_cid` hashes that canonical preimage. The checked Unit must declare that
+Stage Result name. Run ID, Invocation, physical placement and actual Result
+value are not members. A Run-bound `actql-result-definition/0.1` is not an
+admissible substitute, even though both identities use the same CID syntax.
 The Result Artifact shape above is registered as local_result_artifact in the
-stage registry. Result schema, order and retention fields come from authenticated
+stage registry; its `result_definition_cid` MUST resolve to the local Result
+Definition, and its `invocation_cid` MUST resolve to the local computation.
+Result schema, order and retention fields come from authenticated
 checked Result contracts/evidence, never guessed defaults. The artifact and
 local Manifest each bind their complete canonical body. Projection context and
 the source Run-bound Manifest are retained and authenticated; unavailable
@@ -924,7 +933,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_delivery_receipt sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21
 ../../../spec/contracts/actql-run-publication.json#/schemas/result_definition sha256:13d36d24b7adcd346f7719a513f6850260bd84738c897c5bd41def223daba973
 ../../../spec/contracts/actql-run-publication.json#/schemas/run_invocation sha256:6295e0fe2d2b066f39c3d5ecd7c16125018aa2d46d0cfa3537c213d109b96c81
-../../../spec/contracts/actql-run-publication.json#/schemas/result_retention_policy sha256:a9d44b6289099516bf9f01bb696691cb9d92ea39d9a2aaaf57d8e3b27fc69aeb
+../../../spec/contracts/actql-run-publication.json#/schemas/result_retention_policy sha256:61bc287aae5c6b626bf7bea99ff8d40dd932e4fdf00495cedc3868f633f831c4
 ../../../spec/contracts/actql-run-publication.json#/schemas/durable_result_binding sha256:f775ad3a57f76aa6fd0272d498e7c9045644874288f796b1d5daae3cbc15fed4
 ../../../spec/contracts/actql-run-publication.json#/schemas/publication_request sha256:ad979661e8eacccf11714411861325038f11192f6531dcc8093c480a359e9c82
 ../../../spec/contracts/actql-run-publication.json#/schemas/publication_attempt sha256:bd7b6a8ebf31e1c61c952fe2a5a5cf29813676f19777940fd771b573b86000a5
@@ -948,11 +957,12 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/model_slot_capture sha256:a9d707b52b274a066a3b30d196c2b2da4144db960b5eae9695ac86e1fd3f503a
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_manifest sha256:6cbac35670ed81677b720381efee43a8f1aeccff4fa331e0dde27e0f018d5098
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_computation sha256:22055f9d843378b5a5d98a9b882a69bcc4229a448f97e1022685613e4340cbd3
+../../../spec/contracts/actql-stage-contracts.json#/schemas/local_result_definition sha256:a4e97bbb8865697510ec0d0eff6664081da9cc5b7c1546c2af107b8d743392f4
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_effect_outcome sha256:8a56e3e7d5139fef571da480831e0df45c95beb96c228e737efdb12a1ef0b98d
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_result_artifact sha256:16f69bbc38782a3ea42fafcfbbd992f9d1356a68c70dd1182cb102e269db04f1
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/projection_attestation sha256:27c8c8a1215b705b6553f4db128f73c905b1c6a5f0c7d72c398e02541e7dc805
-../../../spec/contracts/actql-stage-contracts.json#/reference_roles sha256:cdf38f8510473a877acebbfc669df2751be489592e907ff37ba46a738da8b9d3
-../../../spec/contracts/actql-stage-contracts.json#/reference_graph sha256:b1ec06ac72a85bf1ee30f1a13800a8c285e33b7473fde15ef5f3c52d77a4c3c5
+../../../spec/contracts/actql-stage-contracts.json#/reference_roles sha256:e41dc737cbbdae6a41d7e7736964d66cfd7392d2435dec57c2561ac9880fd559
+../../../spec/contracts/actql-stage-contracts.json#/reference_graph sha256:f44b51b2a74b4234b43b6fa82823b6bd450b9f4163cff6b2cde6ec042eb5e490
 ```
 <!-- stage-contract-pins:end -->
 

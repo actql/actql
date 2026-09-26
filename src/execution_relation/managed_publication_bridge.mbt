@@ -11,6 +11,7 @@ struct ManagedPublicationBridge[T] {
   live : Ref[Bool]
   mut imported_rows : Int
   mut finished : Bool
+  mut completed : CompletedOutput?
 }
 
 ///|
@@ -76,6 +77,7 @@ pub fn[T] prepare_managed_publication_bridge(
     live,
     imported_rows: 0,
     finished: false,
+    completed: None,
   })
 }
 
@@ -146,12 +148,36 @@ pub fn[T] finish_managed_publication_bridge(
   }
   bridge.rows.val = Some(rows)
   match complete_trusted_output(bridge.port, ()) {
-    Ok(value) => Ok(value)
+    Ok(value) => {
+      bridge.completed = Some(value)
+      Ok(value)
+    }
     Err(issue) => {
       bridge.live.val = false
       Err(Completion(issue))
     }
   }
+}
+
+///|
+/// Match the exact re-admitted output owned by this bridge, not its value or
+/// logical CID. A closed bridge cannot issue new export evidence.
+pub fn[T] managed_publication_bridge_matches_result_export(
+  bridge : ManagedPublicationBridge[T],
+  output : ManagedCompletedOutput[T],
+  preparation : CompletedResultRelationExportPreparation,
+  occurrence : ManagedResultOccurrence,
+) -> Bool {
+  bridge.live.val &&
+  managed_completed_output_available(output) &&
+  managed_completed_same_occurrence(bridge.output, output) &&
+  (match bridge.completed {
+    Some(value) =>
+      completed_result_export_preparation_matches_owner(
+        preparation, occurrence, value,
+      )
+    None => false
+  })
 }
 
 ///|

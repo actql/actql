@@ -442,6 +442,32 @@ test('private evidence is encrypted, bound, and readable after restart',
       .objects[0].cid, prepared.physicalCid);
     await reopened.close();
 
+    let rejectConfirmationSync = false;
+    const durability = Object.freeze({
+      async syncDirectory(path) {
+        if (path === join(configuration.directory, 'physical-holdings') &&
+            rejectConfirmationSync) {
+          rejectConfirmationSync = false;
+          const error = new Error('injected private holding sync failure');
+          error.code = 'EIO';
+          throw error;
+        }
+        const handle = await open(path, 'r');
+        try { await handle.sync(); }
+        finally { await handle.close(); }
+      },
+    });
+    const uncertain = await openLocalPublicationStore({
+      ...configuration, privateEvidenceKey: Buffer.alloc(32, 7),
+    }, contractControl, durability);
+    t.after(async () => { await uncertain.close(); });
+    rejectConfirmationSync = true;
+    await assert.rejects(uncertain.confirmPrivateEvidence(binding),
+      code('EIO'));
+    assert.equal((await uncertain.confirmPrivateEvidence(binding))
+      .objects[0].cid, prepared.physicalCid);
+    await uncertain.close();
+
     const wrongKey = await openLocalPublicationStore({
       ...configuration, privateEvidenceKey: Buffer.alloc(32, 8),
     }, contractControl);
@@ -2556,6 +2582,27 @@ test('confirmed non-commit releases custody before prepared reclamation',
     const reconciled = await unknown.cleanupHandle.retry();
     assert.equal(reconciled.pending, false);
     assert.equal(reconciled.outcome, 'uncommitted');
+    const holdingCid = digest('uncommitted-effect-source-holding');
+    const heldBytes = Buffer.from('held effect source', 'utf8');
+    const heldWriter = store.createPreparedObjectWriter(heldBytes.length);
+    await heldWriter.append(heldBytes);
+    const held = await heldWriter.seal(digest(heldBytes));
+    await store.commitPhysicalHolding({
+      version: 'actql-local-physical-holding/0.1',
+      namespace: 'effect-source',
+      holding_cid: holdingCid,
+      manifest_cid: cids.manifest,
+      objects: [{cid: held.cid, byte_count: held.bytes}],
+    }, [held.prepared]);
+    // Model an Effectful commit's exact durable inventory at the fault edge.
+    const inventoryPath = join(directory, 'metadata-inventories',
+      `${entry.public_index_entry_cid.slice(7)}.json`);
+    const inventory = JSON.parse(await readFile(inventoryPath, 'utf8'));
+    inventory.physical_holding_cids = [holdingCid];
+    await writeFile(inventoryPath, JSON.stringify(inventory));
+    const inventoryHandle = await open(inventoryPath, 'r');
+    try { await inventoryHandle.sync(); }
+    finally { await inventoryHandle.close(); }
     const candidateCleanup = await store.retireUncommittedPublication(
       entry.public_index_entry_cid,
     );
@@ -2568,10 +2615,21 @@ test('confirmed non-commit releases custody before prepared reclamation',
     assert.equal((await readdir(
       join(directory, 'metadata-inventories'),
     )).length, 1);
+    await assert.rejects(store.close(),
+      code('PublicationStoreCleanupPending'));
+    assert.equal(store.status().closed, false);
     const cancelled = publicationRecord(
       attempt, 2, 'cancelled', prepared.committing,
     );
     await store.appendRecord(wire(cancelled), {uncommittedConfirmed: true});
+    await assert.rejects(candidateCleanup.cleanup.retry(),
+      code('PublicationPhysicalHoldingCleanupRequired'));
+    assert.notEqual(await store.inspectPhysicalHolding(holdingCid), undefined);
+    assert.equal((await readdir(
+      join(directory, 'metadata-inventories'),
+    )).length, 1);
+    assert.equal((await store.retirePhysicalHolding(holdingCid)).deleted,
+      true);
     assert.equal((await candidateCleanup.cleanup.retry()).pending, false);
     assert.deepEqual(await readdir(
       join(directory, 'metadata-inventories'),
@@ -2739,6 +2797,20 @@ test('same intent is idempotent while conflicting commit is rejected',
     assert.deepEqual(idempotent.entry, entry);
     assert.equal(retry.prepared.status().pending, false);
 
+    const otherReceiptCid = digest('different final receipt');
+    await store.putSemantic('different final receipt', otherReceiptCid);
+    const changedReceipt = indexEntry(request, retryAttempt,
+      invocationValue, {
+        durable_result_binding_cids: [retry.binding.identity],
+        run_receipt_cid: otherReceiptCid,
+      });
+    await assert.rejects(store.commitIndex(
+      wire(changedReceipt), [...retry.required, otherReceiptCid],
+      retry.evidence,
+    ), code('PublicationCommitConflict'));
+    assert.deepEqual(await store.confirmCommittedIndex(indexKeyFor(request)),
+      entry);
+
     const conflictingRequest = publicationRequest(
       resultDefinition('other'), invocationValue.invocation_cid,
     );
@@ -2820,15 +2892,103 @@ test('publication capacity preflight observes limits without reserving',
     assert.deepEqual(store.status(), before);
   });
 
-function physicalHolding(holdingCid, manifestCid, objects) {
+function physicalHolding(holdingCid, manifestCid, objects,
+  namespace = 'remote-transfer') {
   return Object.freeze({
     version: 'actql-local-physical-holding/0.1',
-    namespace: 'remote-transfer',
+    namespace,
     holding_cid: holdingCid,
     manifest_cid: manifestCid,
     objects: Object.freeze(objects.map(object => Object.freeze({...object}))),
   });
 }
+
+test('Effect source and other physical holdings release independently',
+  async t => {
+    const setup = await fixture(t);
+    const source = await preparePhysical(setup.store, 'source rows');
+    const sourceHolding = physicalHolding(
+      digest('effect source holding'), digest('effect source artifact'),
+      [{cid: source.cid, byte_count: source.bytes}], 'effect-source');
+    await setup.store.commitPhysicalHolding(sourceHolding,
+      [source.prepared]);
+    const otherHolding = physicalHolding(
+      digest('other holding'), sourceHolding.manifest_cid,
+      sourceHolding.objects);
+    await setup.store.sharePhysicalHolding(sourceHolding.holding_cid,
+      otherHolding);
+    assert.equal(setup.store.status().storedBytes, source.bytes);
+    await setup.store.close();
+    const reopened = await openLocalPublicationStore(setup.configuration,
+      contractControl);
+    t.after(async () => { await reopened.close(); });
+    assert.deepEqual(await reopened.inspectPhysicalHolding(
+      sourceHolding.holding_cid), sourceHolding);
+    assert.deepEqual(await reopened.inspectPhysicalHolding(
+      otherHolding.holding_cid), otherHolding);
+    assert.equal((await reopened.retirePhysicalHolding(
+      sourceHolding.holding_cid)).deleted, true);
+    assert.equal(reopened.status().storedBytes, source.bytes);
+    const chunks = [];
+    await reopened.consumePhysicalHolding(otherHolding.holding_cid,
+      0, chunk => chunks.push(Buffer.from(chunk)));
+    assert.equal(Buffer.concat(chunks).toString('utf8'), 'source rows');
+    assert.equal((await reopened.retirePhysicalHolding(
+      otherHolding.holding_cid)).deleted, true);
+    assert.equal(reopened.status().storedBytes, 0);
+  });
+
+test('capture holding borrows an exact allocation across manifest scopes',
+  async t => {
+    const setup = await fixture(t);
+    const shared = await preparePhysical(setup.store, 'shared rows');
+    const unique = await preparePhysical(setup.store, 'private output');
+    const source = physicalHolding(
+      digest('source custody'), digest('source manifest'),
+      [{cid: shared.cid, byte_count: shared.bytes}], 'effect-source');
+    await setup.store.commitPhysicalHolding(source, [shared.prepared]);
+    const capture = physicalHolding(
+      digest('capture custody'), digest('captured Run'), [
+        {cid: shared.cid, byte_count: shared.bytes},
+        {cid: unique.cid, byte_count: unique.bytes},
+      ], 'effect-capture');
+    await assert.rejects(setup.store.commitPhysicalHolding(
+      capture, [shared.prepared, unique.prepared],
+    ), code('InvalidPublicationPhysicalHoldingOwner'));
+    await setup.store.commitPhysicalHolding(
+      capture, [shared.prepared, unique.prepared], [source.holding_cid]);
+    assert.equal(unique.prepared.status().pending, false);
+    assert.equal((await setup.store.retirePhysicalHolding(
+      source.holding_cid)).deleted, true);
+    assert.equal(setup.store.status().storedBytes,
+      shared.bytes + unique.bytes);
+    const foreign = physicalHolding(
+      digest('foreign capture custody'), digest('foreign captured Run'),
+      [{cid: shared.cid, byte_count: shared.bytes}], 'effect-capture');
+    await assert.rejects(setup.store.commitPhysicalHolding(
+      foreign, [], [source.holding_cid],
+    ), code('PublicationPhysicalHoldingUnavailable'));
+    assert.equal(await setup.store.inspectPhysicalHolding(
+      foreign.holding_cid), undefined);
+    await setup.store.close();
+
+    const reopened = await openLocalPublicationStore(
+      setup.configuration, contractControl);
+    t.after(async () => { await reopened.close(); });
+    assert.deepEqual(await reopened.inspectPhysicalHolding(
+      capture.holding_cid), capture);
+    for (const [index, expected] of ['shared rows', 'private output']
+      .entries()) {
+      const chunks = [];
+      await reopened.consumePhysicalHolding(capture.holding_cid, index,
+        chunk => chunks.push(Buffer.from(chunk)));
+      assert.equal(Buffer.concat(chunks).toString('utf8'), expected);
+    }
+    assert.equal((await reopened.retirePhysicalHolding(
+      capture.holding_cid)).deleted, true);
+    assert.equal(reopened.status().storedBytes, 0);
+    assert.equal(reopened.status().objectCount, 0);
+  });
 
 async function preparePhysical(store, value) {
   const bytes = Buffer.from(value, 'utf8');

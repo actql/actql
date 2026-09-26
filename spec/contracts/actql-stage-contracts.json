@@ -209,6 +209,33 @@
       ],
       "additionalProperties": false
     },
+    "local_result_definition": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-local-result-definition/0.1"
+        },
+        "unit_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "unit_definition_cid",
+        "result_name",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
     "local_result_artifact": {
       "type": "object",
       "properties": {
@@ -3899,10 +3926,23 @@
       "observation_cids/*": "external:observation",
       "policy_cid": "external:policy"
     },
+    "local_result_definition": {
+      "unit_definition_cid": "local_dependencies"
+    },
+    "local_result_artifact": {
+      "result_definition_cid": "local_result_definition",
+      "invocation_cid": "local_computation",
+      "logical_result_cid": "external:relation-value",
+      "result_schema_cid": "external:value-contract",
+      "ordering_evidence_cid": "external:order",
+      "effective_data_policy_cid": "external:policy",
+      "effective_retention_policy_cid": "external:retention",
+      "provenance_evidence_cids/*": "external:observation"
+    },
     "local_manifest": {
       "unit_definition_cid": "local_dependencies",
       "local_invocation_cid": "local_computation",
-      "results/*": "external:result-artifact"
+      "results/*": "local_result_artifact"
     },
     "local_receipt": {
       "unit_definition_cid": "local_dependencies",
@@ -4009,6 +4049,60 @@
       "role": "semantic"
     },
     {
+      "source": "local_result_definition",
+      "slot": "unit_definition_cid",
+      "target": "local_dependencies",
+      "role": "semantic"
+    },
+    {
+      "source": "local_result_artifact",
+      "slot": "result_definition_cid",
+      "target": "local_result_definition",
+      "role": "semantic"
+    },
+    {
+      "source": "local_result_artifact",
+      "slot": "invocation_cid",
+      "target": "local_computation",
+      "role": "semantic"
+    },
+    {
+      "source": "local_result_artifact",
+      "slot": "logical_result_cid",
+      "target": "external:relation-value",
+      "role": "semantic"
+    },
+    {
+      "source": "local_result_artifact",
+      "slot": "result_schema_cid",
+      "target": "external:value-contract",
+      "role": "semantic"
+    },
+    {
+      "source": "local_result_artifact",
+      "slot": "ordering_evidence_cid",
+      "target": "external:order",
+      "role": "semantic"
+    },
+    {
+      "source": "local_result_artifact",
+      "slot": "effective_data_policy_cid",
+      "target": "external:policy",
+      "role": "semantic"
+    },
+    {
+      "source": "local_result_artifact",
+      "slot": "effective_retention_policy_cid",
+      "target": "external:retention",
+      "role": "semantic"
+    },
+    {
+      "source": "local_result_artifact",
+      "slot": "provenance_evidence_cids/*",
+      "target": "external:observation",
+      "role": "semantic"
+    },
+    {
       "source": "local_manifest",
       "slot": "unit_definition_cid",
       "target": "local_dependencies",
@@ -4023,7 +4117,7 @@
     {
       "source": "local_manifest",
       "slot": "results/*",
-      "target": "external:result-artifact",
+      "target": "local_result_artifact",
       "role": "semantic"
     },
     {
@@ -4413,6 +4507,7 @@
     "classification_derivation": "sha256:6820601d432bcc0fb61250cd021e140446ea33e9b4a1b4c0c90c839ae0a687a6",
     "stamp_capability": "sha256:53a6aa36eb0bfd9fa6df153fff563893435d56a7d5aad7d7adbd7cf8a90dbd03",
     "risk_facts": "sha256:df89b3058a2410355a01ecf90cf90756424fc3d7028f64ee825a60cf966961ec",
-    "result_import_interface": "sha256:81898e3b8eb76b16e59e0de4b38ed5d948e7752ae127b45ae432f39e0afd2431"
+    "result_import_interface": "sha256:81898e3b8eb76b16e59e0de4b38ed5d948e7752ae127b45ae432f39e0afd2431",
+    "local_result_definition": "sha256:a4e97bbb8865697510ec0d0eff6664081da9cc5b7c1546c2af107b8d743392f4"
   }
 }

@@ -338,6 +338,18 @@ Current target observations, authorization, and freshness checks still occur
 at their boundaries in [Checkpoints and Resolutions](#checkpoints) and [Effect preview, approval, and application](#effect-application); they bind Preview/apply evidence rather
 than replacing the computation's ObservationSet.
 
+<!-- requirement-block: capture-and-replay.effect-source-artifacts-have-an-independent-exact-inventory capture-and-replay.effect-source-holding-is-independent capture-and-replay.effect-source-current-authority-is-checked-at-use capture-and-replay.public-result-is-not-a-substitute-for-effect-source -->
+An Effectful Captured Run MUST retain an exact private inventory of the Stage
+Result Artifacts consumed by Effect members, separate from the Program Result
+Manifest inventory. Each entry binds the checked source Result occurrence,
+source binding, Invocation, logical Relation, schema, policies, and Store
+authority to the Preview member. Its holding is independent of publication
+holding even when both share one immutable physical allocation. The holding
+identity alone is not current availability or apply authority: durable Store
+custody and current authorization MUST be checked at their respective use
+boundaries. A differently named Program Result MUST NOT stand in for the
+Effect source, and a missing source MUST NOT be inferred from a public Result.
+
 Receipt dependencies are acyclic:
 
 ```text
@@ -1616,7 +1628,18 @@ intentional duplicate rows.
 `effect_identity_cid` binds the local Unit Definition CID and local Invocation,
 Effect ID, canonical Effect semantics, the exact Result Artifact
 CID when a Result is consumed, and the resolved Mapping or Command Contract
-CID. Physical Run identity is excluded. Recovery across workers or physical
+CID. Distinct Effect IDs in one Preview therefore require distinct Effect
+identities; admission rejects a repeated `effect_identity_cid` across members.
+For a source-free local Result-consuming Effect, the 0.1 identity preimage is
+the canonical object `{version: "actql-local-effect-identity/0.1", effect_id,
+effect_semantics, local_invocation_cid, resolved_contract_cid,
+result_artifact_cid, unit_definition_cid}`. `effect_semantics` contains the
+annotation-free authored body, failure policy, kind, and source Result name.
+The published identity body also carries `self_cid`, which is excluded from
+its own preimage. Issuance requires the exact checked member, captured Result
+view, local Invocation, and live local Result Artifact owner. A matching CID
+string without those owners is not an apply permit.
+Physical Run identity is excluded. Recovery across workers or physical
 attempts reuses logical request scope and the original ledger Preview/key.
 Create/store rows use only `{content_cid, occurrence}` as row identity;
 there is no second ordinal identity. Two conforming
@@ -1750,6 +1773,11 @@ not inherit earlier success; D6 is not cross-request event deduplication.
 The authenticated tenant/workspace plus caller request ID identifies one logical
 request. A CLI without a caller ID creates, persists and returns one; a new
 business request gets a new ID, while resume/recovery carries the original.
+The 0.1 caller ID is nonempty, NFC/LF-canonical, contains no C0/C1 control or
+DEL character, and is at most 256 UTF-8 bytes. A caller may impose a tighter
+limit before durable admission. Both Client ingress and Effect dispatch use
+the same logical-request owner and canonical preimage; a stored nonconforming
+key is rejected rather than silently normalized during recovery.
 The request fingerprint binds Program Definition, effective parameters and
 caller input intent, not physical workers, attempts, secrets or wall clocks.
 The same scoped ID with a different fingerprint MUST fail as a conflict.
@@ -1868,7 +1896,7 @@ target identity then canonical payload CID for command,
 and `(content_cid, occurrence)` order for create/store. `halt` and
 `continue` operate on that order. Their dispatch rules are:
 
-<!-- requirement-block: preview-strength.current-row-outcome-halt-continue -->
+<!-- requirement-block: preview-strength.current-row-outcome-halt-continue preview-strength.unknown-row-must-not-invent-terminal-receipt -->
 | Current row outcome | `halt` | `continue` |
 | --- | --- | --- |
 | `applied` or valid `accepted` | Dispatch next row | Dispatch next row |
@@ -1877,21 +1905,34 @@ and `(content_cid, occurrence)` order for create/store. `halt` and
 
 Admission/preflight failure dispatches no rows under either policy. Per-item
 continuation does not override whole-set preflight or the Effect Set's separate
-`attempt_all` member policy. Receipt partitions retain all five outcomes;
-`accepted` does not assert provider completion ([Outcomes and reconciliation](#reconciliation)).
+`attempt_all` member policy. A member receipt contains one ordered `rows`
+entry per Preview row. It binds the Run, Preview, and member identities;
+each entry binds a distinct Preview row CID and ordered index. Terminal rows
+(`applied`, `accepted`, `failed`) reference the exact dispatch, attempt, and
+durable typed Outcome Receipt. An `unknown` row references the exact durable
+Ledger head instead; it MUST NOT invent a terminal Outcome Receipt. An
+`unattempted` row has no dispatch. A `rolled_back` row references the failed
+typed Outcome Receipt and common provider-atomic batch result, never an
+independent success. Identical row content in distinct occurrences retains
+distinct row identities. `accepted` does not assert provider completion
+([Outcomes and reconciliation](#reconciliation)).
 
-<!-- requirement-block: preview-strength.effect-set-receipt-must-match-member-partitions preview-strength.repeated-member-outcome-must-match-exact-value -->
+<!-- requirement-block: preview-strength.effect-set-receipt-must-match-member-partitions -->
 An Effect Set apply receipt MUST agree with the referenced member receipts.
 Each entry's state reflects its member's row partition: `unknown` takes
-precedence; any failed row, or unattempted rows mixed with success, yields
-`failed`; only unattempted rows yield `unattempted`; otherwise any accepted
+precedence; any failed row, or unattempted/rolled-back rows mixed with success,
+yields `failed`; only unattempted rows yield `unattempted`, and only rolled-back
+rows yield `rolled_back`; otherwise any accepted
 row yields `accepted`, and the remaining case is `applied`.
 The set status is `unknown_outcome` if any row is unknown; otherwise it is
-`partial_failure` for both successful and failed/unattempted rows, `failed`
-for only failed/unattempted rows, `accepted` if any row is accepted, and
-`applied` otherwise. An entry that repeats its member's `outcome` MUST repeat
-the exact admitted value. This consistency check does not prove the physical
-row outcomes; their evidence remains a separate Host admission obligation.
+`partial_failure` for both successful and failed/unattempted/rolled-back rows,
+`failed` for only failed/unattempted/rolled-back rows, `accepted` if any row is accepted, and
+`applied` otherwise. The set receipt references every member receipt exactly
+once; it does not duplicate all rows or carry a singleton member outcome.
+These consistency checks do not prove physical row outcomes; their evidence
+remains a separate Host admission obligation. Reconciliation targets only
+unknown rows, leaves prior receipts immutable, and never resends a known
+successful row.
 
 <!-- requirement-block: preview-strength.the-host-must-not-silently-regenerate-a-new-preview-and -->
 Apply admission revalidates the exact source binding, resolved mapping
@@ -1958,6 +1999,22 @@ failed   final structured failure is known
 unknown  transport ended without a provable provider outcome
 ```
 
+<!-- requirement-block: reconciliation.effect-row-outcome-receipt-binds-saved-response -->
+For a physically observed row, `actql-effect-row-outcome-receipt/0.1` binds
+the exact private Preview, member and row CIDs, the durable dispatch entry,
+credential-use CID, HTTP status, response byte count and physical SHA-256,
+and the complete typed provider outcome with its independently computed CID.
+Its `receipt_cid` is the CID of the complete canonical body without that
+self field. The response digest identifies the saved bounded HTTP bytes; it
+is not a logical Result CID. The common Host MUST verify that the saved
+response belongs to the exact dispatch, issue and durably retain this receipt,
+and admit its Preview, response and typed-outcome bindings before recording
+that CID as a terminal row Ledger `outcome_receipt_cid`. A response that was
+possibly sent but not saved and admitted remains `unknown` without a terminal
+Outcome Receipt. Shape validation or a matching current provider value alone
+does not prove the earlier attempt succeeded. Evidence viewing and replay
+require their own current authorization and never permit another send.
+
 <!-- requirement-block: reconciliation.a-completed-operation-must-not-be-cancelled reconciliation.an-expired-operation-must-not-be-applied-or-cancelled reconciliation.a-runtime-must-not-turn-transport-timeout-into-failed-or -->
 `accepted` binds the OperationRef, poll contract, cancellation capability,
 result schema, optional expiration, and reconciliation contract. `unknown`
@@ -1997,6 +2054,8 @@ Each `actql-effect-reconciliation-receipt/0.1` has these closed fields:
 | --- | --- |
 | `version` | Exactly `actql-effect-reconciliation-receipt/0.1`. |
 | `effect_id` | Member of the original Effect Set. |
+| `run_identity_cid`, `effect_preview_cid`, `effect_member_preview_cid`, `row_preview_cid` | Exact original Run, Preview, member, and one unknown row. |
+| `dispatch_entry_cid`, `dispatch_attempt_sequence`, `prior_ledger_head_cid` | Original physical dispatch occurrence and latest unresolved Ledger head. |
 | `effect_set_receipt_cid` | Exact pending Effect Set receipt. |
 | `prior_receipt_cid` | Original member apply receipt, unchanged across attempts. |
 | `attempt_sequence` | Positive attempt number, beginning at 1. |
@@ -2005,12 +2064,14 @@ Each `actql-effect-reconciliation-receipt/0.1` has these closed fields:
 | `operation_ref` | Operation correlation; mutually exclusive with command correlation. |
 | `command_id`, `idempotency_key` | Command correlation; both required when `operation_ref` is absent. |
 | `outcome` | One fully validated closed `EffectOutcome`, not just a state name. |
+| `outcome_receipt_cid` | Required for terminal row resolution; absent while outcome remains unknown. |
 | `reconciliation_receipt_cid` | Self-CID of the receipt. |
 
 <!-- requirement-block: reconciliation.the-host-must-validate-the-original-member-and-effect-set reconciliation.subsequent-receipts-must-extend-the-latest-receipt-for-the-same -->
-The Host MUST validate the original member and Effect Set bindings before
-accepting a receipt. Exactly one correlation form is required. Subsequent
-receipts MUST extend the latest receipt for the same member, with
+The Host MUST validate the original member, Effect Set, and exact unknown
+Preview row and Ledger bindings before accepting a receipt. A known terminal
+row is not eligible for reconciliation. Exactly one correlation form is
+required. Subsequent receipts MUST extend the latest receipt for the same row, with
 `attempt_sequence` incremented by one and its exact CID as
 `previous_reconciliation_receipt_cid`.
 
@@ -2018,19 +2079,20 @@ receipts MUST extend the latest receipt for the same member, with
 Only a nonterminal `unknown` outcome permits a further attempt. `applied`,
 `accepted`, and `failed` close the chain. Exact receipt redelivery is
 idempotent; a different receipt after a terminal attempt MUST fail as a
-conflict. Thus `unknown → unknown → applied` is valid, but a terminal result
-cannot be replaced by a later attempt.
+conflict. Thus `unknown → unknown → applied` is valid for one row, but a
+terminal result cannot be replaced by a later attempt. Reconciliation is an
+observation of the old dispatch, not authority to re-send it.
 
 <!-- requirement-block: reconciliation.initial-application-and-each-reconciliation-must-determine-the-run-outcome -->
 Initial application and each reconciliation MUST determine the Run outcome
-from every member of the original Effect Set, using its latest validated
-outcome. The following table is evaluated from top to bottom:
+from every row of every member of the original Effect Set, using its latest
+validated outcome. The following table is evaluated from top to bottom:
 
 <!-- requirement-block: reconciliation.effective-member-outcomes-run-state-any -->
-| Effective member outcomes | Run state |
+| Effective row outcomes across all members | Run state |
 | --- | --- |
 | Any `unknown` | `needs_reconciliation` |
-| No `unknown`, but any `failed` or `unattempted` | `failed` |
+| No `unknown`, but any `failed`, `unattempted`, or `rolled_back` | `failed` |
 | Every member `applied` or validly `accepted` | `succeeded` |
 
 <!-- requirement-block: reconciliation.an-unknown-outcome-must-not-be-converted-to-cancellation-or -->

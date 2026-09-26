@@ -8,7 +8,11 @@ import {join} from 'node:path';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from './runtime-core.mjs';
-import {publishEffectFreeRun} from './run-publication.mjs';
+import {checked} from './runtime-result.mjs';
+import {publishEffectFreeRun, publishEffectfulRun} from
+  './run-publication.mjs';
+import {retainIssuedEffectSetReceipt} from
+  './effect-receipt-custody.mjs';
 import {publishCompletedEffectFreeRun} from
   './completed-run-publication.mjs';
 import {prepareCompletedEffectFreeRunPublication} from
@@ -941,6 +945,235 @@ test('portable control validates Receipt and Captured Run references',
     authoringContext,
     modelEvidence: [],
   }, limits);
+  const receiptBody = JSON.parse(receipt.wire);
+  const {result_definition_cid: ignoredDefinition,
+    ordering_evidence_cid: ignoredOrdering,
+    result_artifact_cid: ignoredIdentity, ...artifactBody} =
+    JSON.parse(artifact.wire);
+  const sourceArtifact = control.seal('effect_source_artifact',
+    JSON.stringify({...artifactBody,
+      version: 'actql-effect-source-artifact/0.1',
+      source_result: 'rows', source_binding_cid: cid('9'),
+      store_authority_cid: cid('a')}), limits);
+  const previewBody = {
+    version: 'actql-effect-preview/0.1', sensitivity: 'private',
+    retention_class: 'authority-evidence', encryption_required: true,
+    program_semantics_cid: receiptBody.program_semantics_cid,
+    program_definition_cid: receiptBody.program_definition_cid,
+    invocation_cid: invoked.identity, run_identity_cid: run.identity,
+    compiled_plan_cid: receiptBody.compiled_plan_cid,
+    check_environment_cid: receiptBody.check_environment_cid,
+    authoring_context: JSON.parse(authoringContext.wire),
+    barrier_provenance_cids: [], model_derived: false,
+    model_task_contract_cids: [], model_invocation_evidence_cids: [],
+    model_response_artifact_cids: [],
+    effects: [{
+      effect_id: 'WriteOne', effect_kind: 'update', target: 'Object',
+      mapping: 'mapping:fixture', resolved_mapping_contract_cid: cid('9'),
+      effect_identity_cid: cid('9'), effect_plan_logical_cid: cid('9'),
+      source_result: 'rows', result_artifact_cid: sourceArtifact.identity,
+      preview_strength: 'full_diff', source_binding_cid: cid('9'),
+      capability_evidence_cid: cid('9'), authority_scope_cid: cid('9'),
+      write_footprint: {kind: 'exact_targets',
+        resource_identity_scheme_cid: cid('9'),
+        provider_namespace: 'provider', provider_boundary_cid: cid('9'),
+        resource_kind: 'Object', provider_object_identity_cids: [cid('1')]},
+      count: 0, max_items: 1, required_permissions: ['write'],
+      approval: 'none', on_item_failure: 'halt', changes: [], row_order: [],
+      effect_member_preview_cid: cid('1'), executed: false,
+    }],
+    executed: false, effect_preview_cid: cid('2'),
+  };
+  const previewWire = () => JSON.stringify(canonical(previewBody));
+  previewBody.effects[0].effect_member_preview_cid =
+    checked(moon.strategyEffectPreviewIdentities(previewWire(),
+      limits.maxWireBytes, limits.maxNodes, limits.maxDepth))[1];
+  previewBody.effect_preview_cid =
+    checked(moon.strategyEffectPreviewIdentities(previewWire(),
+      limits.maxWireBytes, limits.maxNodes, limits.maxDepth))[0];
+  assert.equal(previewBody.authoring_context.authoring_context_cid,
+    authoringContext.identity);
+  assert.equal(previewBody.authoring_context.program_definition_cid,
+    previewBody.program_definition_cid);
+  assert.equal(previewBody.run_identity_cid, run.identity);
+  assert.deepEqual(checked(moon.strategyEffectPreviewIdentities(previewWire(),
+    limits.maxWireBytes, limits.maxNodes, limits.maxDepth)),
+  [previewBody.effect_preview_cid,
+    previewBody.effects[0].effect_member_preview_cid]);
+  const preview = control.admitEffectComputationPreview(
+    previewWire(), run, authoringContext, limits);
+  const privateBinding = control.effectPrivateEvidenceBinding(preview, cid('a'));
+  assert.deepEqual(Object.keys(privateBinding),
+    ['name', 'semanticCid', 'holdingCid', 'wire']);
+  assert.equal(privateBinding.name, 'effect_preview');
+  assert.equal(privateBinding.semanticCid, previewBody.effect_preview_cid);
+  assert.equal(privateBinding.wire, previewWire());
+  assert.match(privateBinding.holdingCid, /^sha256:[0-9a-f]{64}$/u);
+  assert.notEqual(control.effectPrivateEvidenceBinding(
+    preview, cid('b')).holdingCid, privateBinding.holdingCid);
+  assert.throws(() => control.effectPrivateEvidenceBinding(
+    Object.freeze({kind: 'effect-computation-preview'}), cid('a')),
+  /Foreign Effect computation Preview/u);
+  assert.throws(() => control.effectPrivateEvidenceBinding(
+    preview, 'foreign'), {code: 'MoonBitHostFailure'});
+  const computationChain = {
+    runDefinition: run, invocation: invoked, definitions: [definition],
+    artifacts: [artifact], manifest, receipt,
+  };
+  const computationEvidence = {snapshots: [snapshot],
+    effectSources: [control.admitCapturedEffectSourceArtifact(
+      preview, 0, invoked, sourceArtifact, cid('a'))],
+    pendingSourceStateAdvances: [], authoringContext, modelEvidence: []};
+  assert.throws(() => control.issueEffectfulCapturedRun(
+    computationChain, computationEvidence, preview,
+    [{name: 'WriteOne', wire: '{}'}], limits),
+  {name: 'TypeError', message: 'Invalid Effectful Captured Run request'});
+  const localDefinitionBody = {
+    version: 'actql-local-result-definition/0.1',
+    unit_definition_cid: cid('1'), result_name: 'rows',
+  };
+  const localDefinition = canonical({
+    ...localDefinitionBody,
+    self_cid: canonicalCid(localDefinitionBody),
+  });
+  const localInvocationBody = {
+    version: 'actql-local-computation-semantics/0.1',
+    unit_definition_cid: cid('1'), used_values_cid: cid('2'),
+    local_contracts_cid: cid('3'), observation_cids: [],
+    policy_cid: cid('a'),
+  };
+  const localInvocation = canonical({
+    ...localInvocationBody,
+    self_cid: canonicalCid(localInvocationBody),
+  });
+  const localDerivationBody = {...JSON.parse(derivation.wire),
+    producer_contract_cid: localDefinition.self_cid};
+  delete localDerivationBody[derivation.identityField];
+  const localDerivation = control.seal('derivation_evidence',
+    JSON.stringify(localDerivationBody), limits);
+  const localOrderingBody = {...JSON.parse(ordering.wire),
+    producer_contract_cid: localDefinition.self_cid,
+    witness_evidence: [{kind: 'derivation',
+      cid: localDerivation.identity}]};
+  delete localOrderingBody[ordering.identityField];
+  const localOrdering = control.seal('ordering_evidence',
+    JSON.stringify(localOrderingBody), limits);
+  const localArtifact = control.seal('result_artifact', JSON.stringify({
+    ...artifactBody,
+    version: 'actql-result-artifact/0.1',
+    result_definition_cid: localDefinition.self_cid,
+    invocation_cid: localInvocation.self_cid,
+    ordering_evidence_cid: localOrdering.identity,
+    provenance_evidence_cids: [localDerivation.identity],
+  }), limits);
+  const localManifestBody = {
+    version: 'actql-local-result-manifest/0.1',
+    unit_definition_cid: cid('1'),
+    local_invocation_cid: localInvocation.self_cid,
+    results: {rows: localArtifact.identity},
+  };
+  const localManifest = canonical({
+    ...localManifestBody,
+    self_cid: canonicalCid(localManifestBody),
+  });
+  const rawContract = value => checked(moon.strategyPublicationAdmit(
+    value.name, value.wire,
+    limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+  const rawPreview = checked(moon.strategyAdmitEffectComputationPreview(
+    previewWire(), run.identity, authoringContext.identity,
+    limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+  const rawSource = checked(moon.strategyAdmitCapturedEffectSourceArtifact(
+    rawPreview, 0, rawContract(invoked), rawContract(sourceArtifact), cid('a')));
+  const rawLocal = checked(moon.strategyAdmitCapturedLocalEffectSource(
+    rawSource, JSON.stringify(localDefinition),
+    JSON.stringify(localInvocation), JSON.stringify(localManifest),
+    rawContract(localArtifact), rawContract(localDerivation),
+    rawContract(localOrdering), rawContract(retention),
+    limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+  const issueDirect = plans => {
+    const rawCaptured = checked(moon.strategyIssueEffectfulCapturedRun(
+      rawContract(run), rawContract(invoked), [rawContract(definition)],
+      [rawContract(artifact)], rawContract(manifest), rawContract(receipt),
+      [checked(moon.strategyAdmitCapturedResultSnapshot(
+        rawContract(definition), rawContract(artifact),
+        JSON.stringify(resultRows), ['value'],
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth))],
+      [rawSource], [rawLocal], [],
+      checked(moon.strategyRunEvidenceAdmit('authoring_context',
+        authoringContext.wire, limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth)), [], rawPreview,
+      plans.map(value => value.name), plans.map(value => value.wire),
+      limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    return control.admit('captured_run',
+      moon.strategyPublicationContractJson(rawCaptured), limits);
+  };
+  const effectfulCaptured = issueDirect([{name: 'WriteOne', wire: '{}'}]);
+  assert.equal(effectfulCaptured.name, 'captured_run');
+  assert.deepEqual(Object.keys(JSON.parse(effectfulCaptured.wire)
+    .effect_context.effect_source_local_inventory), ['WriteOne']);
+  assert.deepEqual(Object.keys(JSON.parse(effectfulCaptured.wire)
+    .effect_context.effects), ['WriteOne']);
+  assert.throws(() => issueDirect([]),
+  {code: 'MoonBitHostFailure'});
+  assert.throws(() => issueDirect([{name: 'Foreign', wire: '{}'}]),
+  {code: 'MoonBitHostFailure'});
+  const memberReceipt = control.seal('effect_apply_receipt',
+    JSON.stringify({
+      version: 'actql-effect-apply-receipt/0.1',
+      run_identity_cid: previewBody.run_identity_cid,
+      effect_preview_cid: previewBody.effect_preview_cid,
+      effect_member_preview_cid:
+        previewBody.effects[0].effect_member_preview_cid,
+      rows: [], status: 'applied',
+    }), limits);
+  const setReceipt = control.seal('effect_set_apply_receipt',
+    JSON.stringify({
+      version: 'actql-effect-set-apply-receipt/0.1',
+      effect_preview_cid: previewBody.effect_preview_cid,
+      apply_policy: 'attempt_all',
+      effects: [{
+        effect_id: 'WriteOne',
+        effect_member_preview_cid:
+          previewBody.effects[0].effect_member_preview_cid,
+        state: 'applied', replayed: false,
+        member_receipt_cid: memberReceipt.identity,
+      }],
+      status: 'applied',
+    }), limits);
+  const issuedSet = control.issueEffectSetApplyReceiptFromMembers(
+    preview, [memberReceipt], [false], limits);
+  assert.equal(issuedSet.identity, setReceipt.identity);
+  assert.equal(control.effectSetReceiptRunDisposition(preview, {
+    setWire: issuedSet.wire, memberWires: [memberReceipt.wire],
+  }, limits), 0);
+  assert.throws(() => control.issueEffectSetApplyReceiptFromMembers(
+    preview, [memberReceipt], [], limits), {code: 'MoonBitHostFailure'});
+  const finalChain = {
+    runDefinition: run, invocation: invoked,
+    definitions: [definition], artifacts: [artifact], manifest,
+    computationReceipt: receipt, capturedRun: effectfulCaptured,
+  };
+  const finalReceipt = control.issueEffectfulFinalRunReceipt(
+    finalChain, preview, {setWire: setReceipt.wire,
+      memberWires: [memberReceipt.wire]}, limits);
+  assert.equal(JSON.parse(finalReceipt.wire).captured_run_cid,
+    effectfulCaptured.identity);
+  assert.equal(JSON.parse(finalReceipt.wire).effect_preview_cid,
+    previewBody.effect_preview_cid);
+  assert.notEqual(finalReceipt.identity, receipt.identity);
+  assert.throws(() => control.issueEffectfulFinalRunReceipt(
+    finalChain, {}, {setWire: setReceipt.wire,
+      memberWires: [memberReceipt.wire]}, limits),
+  {name: 'TypeError', message: 'Foreign Effect computation Preview'});
+  assert.throws(() => control.issueEffectfulFinalRunReceipt(
+    finalChain, preview, {setWire: setReceipt.wire,
+      memberWires: []}, limits),
+  {code: 'MoonBitHostFailure'});
+  assert.throws(() => control.issueEffectfulFinalRunReceipt(
+    {...finalChain, capturedRun: captured}, preview,
+    {setWire: setReceipt.wire,
+      memberWires: [memberReceipt.wire]}, limits),
+  {code: 'MoonBitHostFailure'});
   const payloadWire = JSON.stringify(resultRows);
   const payloadBytes = Buffer.byteLength(payloadWire, 'utf8');
   const physicalCid = `sha256:${createHash('sha256')
@@ -984,6 +1217,39 @@ test('portable control validates Receipt and Captured Run references',
     request,
     attempt,
   }, '2026-09-18T00:00:02.000Z', limits);
+  const effectfulIndex = control.issuePublicIndexEntry({
+    runDefinition: run,
+    invocation: invoked,
+    manifest,
+    receipt: finalReceipt,
+    capturedRun: effectfulCaptured,
+    durableBindings: [binding],
+    request,
+    attempt,
+  }, '2026-09-18T00:00:02.000Z', limits);
+  assert.equal(control.publicIndexSameCommittedContent(
+    indexEntry, indexEntry), true);
+  assert.equal(control.publicIndexSameCommittedContent(
+    indexEntry, effectfulIndex), false);
+  const effectfulEvidence = {
+    ...finalChain,
+    derivations: [derivation],
+    orderings: [ordering],
+    retentions: [retention],
+    durableBindings: [binding],
+  };
+  const effectfulReceipts = {setWire: setReceipt.wire,
+    memberWires: [memberReceipt.wire], finalWire: finalReceipt.wire};
+  assert.equal(control.effectfulCommitValid(effectfulEvidence, preview,
+    effectfulReceipts, request, attempt, effectfulIndex, limits), true);
+  assert.equal(control.effectfulCommitValid(effectfulEvidence, preview,
+    effectfulReceipts, request, attempt, indexEntry, limits), false);
+  assert.equal(control.effectfulCommitValid({...effectfulEvidence,
+    derivations: []}, preview, effectfulReceipts, request, attempt,
+  effectfulIndex, limits), false);
+  assert.throws(() => control.effectfulCommitValid(effectfulEvidence, {},
+    effectfulReceipts, request, attempt, effectfulIndex, limits),
+  {name: 'TypeError', message: 'Foreign Effect computation Preview'});
   assert.equal(control.effectFreeChainValid(
     run,
     invoked,
@@ -1105,8 +1371,27 @@ test('portable control validates Receipt and Captured Run references',
     maxObjects: 100,
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
+    privateEvidenceKey: Buffer.alloc(32, 4),
   }, control);
   t.after(async () => { await store.close(); });
+  const privatePrepared = await store.preparePrivateEvidence(
+    privateBinding.name, privateBinding.wire, privateBinding.semanticCid,
+  );
+  await store.commitPhysicalHolding({
+    version: 'actql-local-physical-holding/0.1',
+    namespace: 'publication-private',
+    holding_cid: privateBinding.holdingCid,
+    manifest_cid: privateBinding.semanticCid,
+    objects: [{cid: privatePrepared.physicalCid,
+      byte_count: privatePrepared.bytes}],
+  }, [privatePrepared.prepared]);
+  assert.equal((await store.readPrivateEvidence(
+    privateBinding.name,
+    privateBinding.semanticCid,
+    privateBinding.holdingCid,
+  )).toString('utf8'), privateBinding.wire);
+  assert.equal((await store.confirmPrivateEvidence(privateBinding))
+    .holding_cid, privateBinding.holdingCid);
   for (const contract of [
     run,
     invoked,
@@ -1120,6 +1405,11 @@ test('portable control validates Receipt and Captured Run references',
     receipt,
     captured,
     request,
+    sourceArtifact,
+    effectfulCaptured,
+    memberReceipt,
+    setReceipt,
+    finalReceipt,
     foreignDefinition,
   ]) {
     await store.putPublicationContract(contract.name, contract.wire);
@@ -1145,6 +1435,224 @@ test('portable control validates Receipt and Captured Run references',
   await store.appendRecord(committing.wire, {
     uncommittedConfirmed: false,
   });
+  const source = computationEvidence.effectSources[0];
+  const sourceWriter = store.createPreparedObjectWriter(payloadBytes);
+  await sourceWriter.append(Buffer.from(payloadWire, 'utf8'));
+  const sourcePrepared = await sourceWriter.seal(physicalCid);
+  const sourceHoldingCid = control.capturedEffectSourceHoldingCid(source);
+  await store.commitPhysicalHolding({
+    version: 'actql-local-physical-holding/0.1',
+    namespace: 'effect-source',
+    holding_cid: sourceHoldingCid,
+    manifest_cid: sourceArtifact.identity,
+    objects: [{cid: sourcePrepared.cid, byte_count: sourcePrepared.bytes}],
+  }, [sourcePrepared.prepared]);
+  const effectfulPreparation = {
+    index: effectfulIndex,
+    chain: effectfulEvidence,
+    preview,
+    receipts: effectfulReceipts,
+    privateBinding,
+    effectSources: [source],
+  };
+  const checkedPreparation = await store.inspectEffectfulStoredEvidence(
+    effectfulPreparation);
+  assert.equal(checkedPreparation.finalReceipt.identity,
+    finalReceipt.identity);
+  assert.equal(checkedPreparation.privateHoldingCid,
+    privateBinding.holdingCid);
+  assert.deepEqual(checkedPreparation.effectSourceHoldingCids,
+    [sourceHoldingCid]);
+  const effectfulDirectory = await mkdtemp(join(
+    tmpdir(), 'actql-effectful-publication-commit-',
+  ));
+  t.after(() => rm(effectfulDirectory, {recursive: true, force: true}));
+  const effectfulConfiguration = {
+    directory: effectfulDirectory,
+    storeAuthorityCid: cid('a'),
+    capacityBytes: 4 * 1024 * 1024,
+    maxObjectBytes: limits.maxWireBytes,
+    maxObjects: 100,
+    maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth,
+    privateEvidenceKey: Buffer.alloc(32, 4),
+  };
+  const effectfulStore = await openLocalPublicationStore(
+    effectfulConfiguration, control,
+  );
+  t.after(async () => { await effectfulStore.close(); });
+  const effectfulPrivate = await effectfulStore.preparePrivateEvidence(
+    privateBinding.name, privateBinding.wire, privateBinding.semanticCid,
+  );
+  await effectfulStore.commitPhysicalHolding({
+    version: 'actql-local-physical-holding/0.1',
+    namespace: 'publication-private',
+    holding_cid: privateBinding.holdingCid,
+    manifest_cid: privateBinding.semanticCid,
+    objects: [{cid: effectfulPrivate.physicalCid,
+      byte_count: effectfulPrivate.bytes}],
+  }, [effectfulPrivate.prepared]);
+  for (const contract of [
+    run, invoked, definition, artifact, derivation, ordering, retention,
+    binding, manifest, receipt, sourceArtifact, effectfulCaptured,
+    memberReceipt, setReceipt, finalReceipt, request, attempt,
+  ]) {
+    await effectfulStore.putPublicationContract(
+      contract.name, contract.wire,
+    );
+  }
+  await effectfulStore.putSemantic(resultSchemaWire, resultSchemaCid);
+  await effectfulStore.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
+  await effectfulStore.createAttempt(attempt.wire);
+  await effectfulStore.appendRecord(preparing.wire, {
+    uncommittedConfirmed: false,
+  });
+  await effectfulStore.appendRecord(committing.wire, {
+    uncommittedConfirmed: false,
+  });
+  const effectfulSourceWriter = effectfulStore.createPreparedObjectWriter(
+    payloadBytes,
+  );
+  await effectfulSourceWriter.append(Buffer.from(payloadWire, 'utf8'));
+  const effectfulSource = await effectfulSourceWriter.seal(physicalCid);
+  await effectfulStore.commitPhysicalHolding({
+    version: 'actql-local-physical-holding/0.1',
+    namespace: 'effect-source',
+    holding_cid: sourceHoldingCid,
+    manifest_cid: sourceArtifact.identity,
+    objects: [{cid: effectfulSource.cid,
+      byte_count: effectfulSource.bytes}],
+  }, [effectfulSource.prepared]);
+  const effectfulRequired = [...new Set([
+    run.identity, invoked.identity, definition.identity, artifact.identity,
+    derivation.identity, ordering.identity, retention.identity,
+    binding.identity, manifest.identity, receipt.identity,
+    sourceArtifact.identity, effectfulCaptured.identity,
+    memberReceipt.identity, setReceipt.identity, finalReceipt.identity,
+    request.identity, attempt.identity, resultSchemaCid,
+  ])];
+  await assert.rejects(effectfulStore.commitEffectfulIndex(
+    effectfulPreparation,
+    effectfulRequired.filter(cid => cid !== sourceArtifact.identity),
+  ), {code: 'IncompletePublicationCommitInventory'});
+  assert.equal(await effectfulStore.inspectCommittedIndex({
+    tenantId: 'tenant-a',
+    authorityScopeCid: cid('d'),
+    runDefinitionCid: run.identity,
+  }), undefined);
+  const effectfulFixtureLedger = Object.freeze({});
+  const effectfulPublication = {
+    store: effectfulStore,
+    control,
+    chain: effectfulEvidence,
+    preview,
+    ledger: effectfulFixtureLedger,
+    issuedSet: retainIssuedEffectSetReceipt({
+      set: setReceipt, members: [memberReceipt],
+      ledger: effectfulFixtureLedger, preview,
+    }),
+    effectSources: [source],
+    sourceArtifacts: [sourceArtifact],
+    request: {
+      tenantId: 'tenant-a',
+      authorityScopeCid: cid('d'),
+      publicationPolicyCid: cid('e'),
+      publicationTargetCid: cid('f'),
+      requestedAt: '2026-09-18T00:00:00.000Z',
+    },
+    attempt: {
+      attemptId: 'attempt-1',
+      fenceCid: cid('0'),
+      externalIdempotencyKey: undefined,
+      startedAt: '2026-09-18T00:00:01.000Z',
+    },
+    limits,
+    now: () => '2026-09-18T00:00:02.000Z',
+    signal: undefined,
+  };
+  await assert.rejects(publishEffectfulRun({
+    ...effectfulPublication, sourceArtifacts: [],
+  }), {code: 'InvalidEffectfulRunPublicationEvidence'});
+  await assert.rejects(publishEffectfulRun({
+    ...effectfulPublication,
+    issuedSet: {...effectfulPublication.issuedSet},
+  }), {code: 'EffectSetReceiptEvidenceNotOwned'});
+  await assert.rejects(publishEffectfulRun({
+    ...effectfulPublication, ledger: Object.freeze({}),
+  }), {code: 'EffectSetReceiptEvidenceNotOwned'});
+  assert.equal(await effectfulStore.inspectCommittedIndex({
+    tenantId: 'tenant-a',
+    authorityScopeCid: cid('d'),
+    runDefinitionCid: run.identity,
+  }), undefined);
+  let loseEffectfulCommitResponse = true;
+  const lostEffectfulStore = Object.freeze({
+    ...effectfulStore,
+    async commitEffectfulIndex(...args) {
+      const committed = await effectfulStore.commitEffectfulIndex(...args);
+      if (loseEffectfulCommitResponse) {
+        loseEffectfulCommitResponse = false;
+        throw new Error('LostEffectfulCommitResponse');
+      }
+      return committed;
+    },
+  });
+  const effectfulCommitted = await publishEffectfulRun({
+    ...effectfulPublication, store: lostEffectfulStore,
+  });
+  assert.equal(effectfulCommitted.committed, false);
+  assert.equal(effectfulCommitted.idempotent, true);
+  assert.equal(effectfulCommitted.state, 'succeeded');
+  assert.equal(effectfulCommitted.index.identity, effectfulIndex.identity);
+  const effectfulReplay = await publishEffectfulRun(effectfulPublication);
+  assert.equal(effectfulReplay.idempotent, true);
+  const effectfulKey = {
+    tenantId: 'tenant-a',
+    authorityScopeCid: cid('d'),
+    runDefinitionCid: run.identity,
+  };
+  assert.deepEqual(await effectfulStore.inspectCommittedIndex(effectfulKey),
+    JSON.parse(effectfulIndex.wire));
+  await effectfulStore.close();
+  const reopenedEffectfulStore = await openLocalPublicationStore(
+    {...effectfulConfiguration, privateEvidenceKey: Buffer.alloc(32, 4)},
+    control,
+  );
+  t.after(async () => { await reopenedEffectfulStore.close(); });
+  assert.deepEqual(
+    await reopenedEffectfulStore.inspectCommittedIndex(effectfulKey),
+    JSON.parse(effectfulIndex.wire),
+  );
+  assert.equal(await reopenedEffectfulStore
+    .validateCommittedEffectfulEvidence(effectfulPreparation), true);
+  assert.notEqual(await reopenedEffectfulStore.inspectPhysicalHolding(
+    privateBinding.holdingCid), undefined);
+  assert.notEqual(await reopenedEffectfulStore.inspectPhysicalHolding(
+    sourceHoldingCid), undefined);
+  const effectfulRetired =
+    await reopenedEffectfulStore.retireCommittedPublicationMetadata(
+      effectfulKey, '2026-09-18T00:00:08.000Z',
+    );
+  assert.equal(effectfulRetired.deleted, true);
+  assert.equal(await reopenedEffectfulStore.inspectPhysicalHolding(
+    privateBinding.holdingCid), undefined);
+  assert.equal(await reopenedEffectfulStore.inspectPhysicalHolding(
+    sourceHoldingCid), undefined);
+  await assert.rejects(store.inspectEffectfulStoredEvidence({
+    ...effectfulPreparation, index: indexEntry,
+  }), {code: 'InvalidEffectfulCommitChain'});
+  await assert.rejects(store.inspectEffectfulStoredEvidence({
+    ...effectfulPreparation,
+    privateBinding: {...privateBinding, wire: '{}'},
+  }), {code: 'EffectfulPrivateEvidenceUnavailable'});
+  await assert.rejects(store.inspectEffectfulStoredEvidence({
+    ...effectfulPreparation, effectSources: [],
+  }), {code: 'InvalidEffectfulSourceInventory'});
+  assert.equal((await store.retirePhysicalHolding(
+    privateBinding.holdingCid,
+  )).deleted, true);
+  await assert.rejects(store.inspectEffectfulStoredEvidence(
+    effectfulPreparation), {code: 'EffectfulPrivateEvidenceUnavailable'});
   const evidence = Object.freeze({
     runDefinition: run,
     invocation: invoked,

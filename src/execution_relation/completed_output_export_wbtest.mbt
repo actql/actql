@@ -304,6 +304,71 @@ test "Named Result export applies its exact projection and total order as views"
 }
 
 ///|
+test "checked Result rows reach a bounded canonical consumer in export order" {
+  let owner = result_export_owner()
+  let source = export_fixture(owner)
+  let occurrence = result_export_occurrence(
+    owner, "answer", "{\"answer\":{\"from\":\"selected\",\"fields\":[\"s\"],\"order_by\":[{\"n\":\"desc\"}]}}",
+  )
+  let stream = prepare_completed_result_relation_export(
+    source,
+    occurrence,
+    result_view_limits(),
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    { ..row_wire_limits(), max_bytes: 1000, max_nodes: 100, max_depth: 20, },
+    publication_schema_limits(),
+    64,
+  ).unwrap()
+  let chunks = StringBuilder()
+  assert_true(
+    next_completed_output_export_canonical_row(stream, 0, 2, 8)
+    is Err(CanonicalRow),
+  )
+  let first = next_completed_output_export_canonical_row(stream, 4, 2, 8)
+    .unwrap()
+    .unwrap()
+  assert_eq(first.0, 0)
+  assert_eq(@identity.stringify_value(first.2, 64, 4, 2), "{\"s\":\"😀\"}")
+  chunks.write_string(first.1)
+  let second = next_completed_output_export_canonical_row(stream, 4, 2, 8)
+    .unwrap()
+    .unwrap()
+  assert_eq(second.0, 1)
+  assert_eq(@identity.stringify_value(second.2, 64, 4, 2), "{\"s\":\"é\"}")
+  chunks.write_string(second.1)
+  assert_true(
+    next_completed_output_export_canonical_row(stream, 4, 2, 8) is Ok(None),
+  )
+  let (receipt, tail) = finish_completed_relation_export(stream).unwrap()
+  chunks.write_string(tail)
+  assert_eq(chunks.to_string(), "[{\"s\":\"😀\"},{\"s\":\"é\"}]")
+  assert_eq(
+    logical_relation_cid(completed_relation_export_identity(receipt)),
+    "sha256:f690ca53202a4e4fd0736d14fb759522c904e416982f72d2dbbdbb7a63332fbb",
+  )
+  cancel_completed_relation_export_receipt(receipt)
+
+  let limited = prepare_completed_result_relation_export(
+    source,
+    occurrence,
+    result_view_limits(),
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    { ..row_wire_limits(), max_bytes: 1000, max_nodes: 100, max_depth: 20, },
+    publication_schema_limits(),
+    64,
+  ).unwrap()
+  assert_true(
+    next_completed_output_export_canonical_row(limited, 1, 1, 1)
+    is Err(CanonicalRow),
+  )
+  assert_true(next_completed_output_export(limited) is Err(Closed))
+}
+
+///|
 test "Named Result view preparation advances and cancels in bounded steps" {
   let owner = result_export_owner()
   let source = export_fixture(owner)
@@ -345,7 +410,69 @@ test "Named Result view preparation advances and cancels in bounded steps" {
     logical_relation_cid(completed_relation_export_identity(receipt)),
     "sha256:f690ca53202a4e4fd0736d14fb759522c904e416982f72d2dbbdbb7a63332fbb",
   )
+  assert_true(
+    completed_result_export_preparation_matches_receipt(preparation, receipt),
+  )
+  assert_true(
+    completed_result_export_preparation_matches_owner(
+      preparation, occurrence, source,
+    ),
+  )
+  let same_value_occurrence = result_export_occurrence(
+    owner, "answer", "{\"answer\":{\"from\":\"selected\",\"fields\":[\"s\"],\"order_by\":[{\"n\":\"desc\"}]}}",
+  )
+  assert_false(
+    completed_result_export_preparation_matches_owner(
+      preparation, same_value_occurrence, source,
+    ),
+  )
+  let other_result = result_export_occurrence(
+    owner, "other", "{\"other\":{\"from\":\"selected\",\"fields\":[\"s\"],\"order_by\":[{\"n\":\"desc\"}]}}",
+  )
+  assert_false(
+    completed_result_export_preparation_matches_owner(
+      preparation, other_result, source,
+    ),
+  )
+  assert_false(
+    completed_result_export_preparation_matches_owner(
+      preparation,
+      occurrence,
+      export_fixture(owner),
+    ),
+  )
+  let other = start_completed_result_relation_export(
+    source,
+    occurrence,
+    result_view_limits(),
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    row_wire_limits(),
+    publication_schema_limits(),
+    64,
+  ).unwrap()
+  while true {
+    let (complete, _) = advance_completed_result_relation_export(other, 64).unwrap()
+    if complete {
+      break
+    }
+  }
+  let other_stream = finish_completed_result_relation_export_preparation(other).unwrap()
+  while next_completed_output_export(other_stream).unwrap() is Some(_) {
+
+  }
+  let (other_receipt, _) = finish_completed_relation_export(other_stream).unwrap()
+  assert_false(
+    completed_result_export_preparation_matches_receipt(
+      preparation, other_receipt,
+    ),
+  )
+  cancel_completed_relation_export_receipt(other_receipt)
   cancel_completed_relation_export_receipt(receipt)
+  assert_false(
+    completed_result_export_preparation_matches_receipt(preparation, receipt),
+  )
 
   let cancelled = start_completed_result_relation_export(
     source,

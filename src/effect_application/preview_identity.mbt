@@ -29,6 +29,21 @@ pub fn admit_effect_preview_apply_identity(
     Ok(value) => value
     Err(issue) => return Err(Preview(issue))
   }
+  match
+    check_admitted_effect_preview_apply_keys(identity, scope, expected_keys) {
+    Ok(_) => Ok(identity)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Check derived row keys against the already admitted private Preview. This
+/// retains its exact owner; no transported body is reparsed or renewed.
+pub fn check_admitted_effect_preview_apply_keys(
+  identity : @publication.EffectPreviewIdentity,
+  scope : LogicalRequestScope,
+  expected_keys : Array[Array[EffectDispatchKey]],
+) -> Result[Unit, EffectPreviewApplyIdentityIssue] {
   let preview_cid = @publication.effect_preview_semantic_identity(identity)
   if expected_keys.length() !=
     @publication.effect_preview_member_count(identity) {
@@ -46,7 +61,7 @@ pub fn admit_effect_preview_apply_identity(
     }
     for row_index in 0..<row_count {
       let key = expected_rows[row_index]
-      if key.logical_request_scope_cid != scope.cid {
+      if key.logical_request_scope_cid != logical_request_scope_cid(scope) {
         return Err(ForeignKeyScope(member_index, row_index))
       }
       if key.effect_preview_cid != preview_cid {
@@ -58,7 +73,81 @@ pub fn admit_effect_preview_apply_identity(
       }
     }
   }
-  Ok(identity)
+  Ok(())
+}
+
+///|
+pub(all) enum EffectPreviewRecoveryKeysIssue {
+  InvalidLimits
+  CapacityExceeded
+  MissingRow(Int, Int)
+  Dispatch(Int, Int, EffectIdentityIssue)
+  Mismatch(EffectPreviewApplyIdentityIssue)
+} derive(Debug)
+
+///|
+/// Recover opaque row keys from the admitted Preview and exact request scope.
+/// No transported key or prior process owner is accepted as authority.
+pub fn recover_effect_preview_apply_keys(
+  preview : @publication.EffectPreviewIdentity,
+  scope : LogicalRequestScope,
+  max_members : Int,
+  max_rows : Int,
+  max_work : Int,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> Result[Array[Array[EffectDispatchKey]], EffectPreviewRecoveryKeysIssue] {
+  if max_members < 1 ||
+    max_members > 1000 ||
+    max_rows < 1 ||
+    max_rows > 100000 ||
+    max_work < 1 {
+    return Err(InvalidLimits)
+  }
+  let count = @publication.effect_preview_member_count(preview)
+  if count < 1 || count > max_members || count > max_work {
+    return Err(CapacityExceeded)
+  }
+  let preview_cid = @publication.effect_preview_semantic_identity(preview)
+  let keys : Array[Array[EffectDispatchKey]] = []
+  let mut remaining_rows = max_rows
+  let mut remaining_work = max_work - count
+  for member_index in 0..<count {
+    let row_count = match
+      @publication.effect_preview_row_count(preview, member_index) {
+      Some(value) => value
+      None => return Err(MissingRow(member_index, 0))
+    }
+    if row_count > remaining_rows || row_count > remaining_work {
+      return Err(CapacityExceeded)
+    }
+    remaining_rows -= row_count
+    remaining_work -= row_count
+    let member_keys : Array[EffectDispatchKey] = []
+    for row_index in 0..<row_count {
+      let correlation = match
+        @publication.effect_preview_row_correlation_wire(
+          preview, member_index, row_index,
+        ) {
+        Some(value) => value
+        None => return Err(MissingRow(member_index, row_index))
+      }
+      let key = match
+        prepare_effect_dispatch_key(
+          scope, preview_cid, correlation, max_key_bytes, max_key_nodes, max_key_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Dispatch(member_index, row_index, issue))
+      }
+      member_keys.push(key)
+    }
+    keys.push(member_keys)
+  }
+  match check_admitted_effect_preview_apply_keys(preview, scope, keys) {
+    Ok(_) => Ok(keys)
+    Err(issue) => Err(Mismatch(issue))
+  }
 }
 
 ///|
@@ -134,14 +223,15 @@ fn admit_effect_member_slice(
     let index = @publication.effect_preview_row_index(
       preview, member_index, expected,
     ).unwrap()
-    if keys[offset].logical_request_scope_cid != scope.cid ||
+    if keys[offset].logical_request_scope_cid !=
+      logical_request_scope_cid(scope) ||
       keys[offset].effect_preview_cid != preview_cid ||
       @publication.effect_preview_row_key(preview, member_index, index) !=
       Some(keys[offset].cid) {
       return Err(ForeignKey(offset))
     }
     let locator = locators[offset]
-    if locator.logical_request_scope_cid != scope.cid ||
+    if locator.logical_request_scope_cid != logical_request_scope_cid(scope) ||
       locator.effect_id != effect_id ||
       @publication.effect_preview_row_correlation_wire(
         preview, member_index, index,

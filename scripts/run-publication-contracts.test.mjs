@@ -1,12 +1,192 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {createHash} from 'node:crypto';
 import {
   correctedContracts,
+  effectApplyReceiptSchema,
+  effectReconciliationReceiptSchema,
+  effectSetApplyReceiptSchema,
+  effectSourceArtifactSchema,
   resultArtifactSchema,
   runStateSchema,
 } from './run-publication-contracts.mjs';
 import {machineCid} from './actql-spec-family.mjs';
+import {canonicalText} from './check-canonical-json.mjs';
+
+test('independent local Effect source inventory binds its Stage Result', () => {
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  const stage = read('spec/contracts/actql-stage-contracts.json');
+  const context = registry.artifact_schemas.captured_run
+    .properties.effect_context;
+  assert.ok(context.required.includes('effect_source_local_inventory'));
+  const inventory = context.properties.effect_source_local_inventory;
+  assert.equal(inventory.type, 'object');
+  const entry = inventory.additionalProperties;
+  assert.equal(entry.additionalProperties, false);
+  assert.deepEqual(entry.required, [
+    'artifact', 'definition', 'derivation', 'invocation', 'manifest',
+    'ordering', 'retention',
+  ]);
+  for (const [field, schema] of [
+    ['definition', 'local_result_definition'],
+    ['invocation', 'local_computation'],
+    ['manifest', 'local_manifest'],
+    ['artifact', 'local_result_artifact'],
+  ]) {
+    assert.deepEqual(entry.properties[field], stage.schemas[schema]);
+  }
+  const definition = {
+    version: 'actql-local-result-definition/0.1',
+    unit_definition_cid: `sha256:${'1'.repeat(64)}`,
+    result_name: 'rows',
+  };
+  const hash = body => `sha256:${createHash('sha256')
+    .update(canonicalText(body)).digest('hex')}`;
+  assert.equal(hash(definition),
+    'sha256:11f4499c12a3a321755c1d23e74a849f0c11c3e314ed19c660a6d7eb8d41bd7d');
+  assert.notEqual(hash({...definition, result_name: 'answer'}),
+    hash(definition));
+  assert.notEqual(hash({...definition,
+    unit_definition_cid: `sha256:${'2'.repeat(64)}`}), hash(definition));
+});
+
+test('independent multi-row Effect receipt 0.1 vector and closed inventory', () => {
+  const cid = digit => `sha256:${digit.repeat(64)}`;
+  const hash = body => `sha256:${createHash('sha256')
+    .update(canonicalText(body)).digest('hex')}`;
+  const member = {
+    version: 'actql-effect-apply-receipt/0.1',
+    run_identity_cid: cid('1'), effect_preview_cid: cid('2'),
+    effect_member_preview_cid: cid('3'),
+    rows: [
+      {row_index: 0, row_preview_cid: cid('4'), state: 'applied',
+        dispatch_entry_cid: cid('6'), attempt_sequence: 1,
+        outcome_receipt_cid: cid('8')},
+      {row_index: 1, row_preview_cid: cid('5'), state: 'unknown',
+        dispatch_entry_cid: cid('7'), attempt_sequence: 1,
+        ledger_head_cid: cid('9')},
+    ], status: 'unknown_outcome',
+  };
+  const expected = 'sha256:ac602de3d5d17923ef77bf9416b20bb9e9c230009a08384fa3bf7d0ec45a27a4';
+  assert.equal(hash(member), expected);
+  assert.notEqual(hash({...member, rows: [...member.rows].reverse()}), expected);
+  assert.notEqual(hash({...member, run_identity_cid: cid('a')}), expected);
+  assert.notEqual(hash({...member, rows: [member.rows[0],
+    {...member.rows[1], ledger_head_cid: cid('a')}]}), expected);
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  assert.deepEqual(registry.artifact_schemas.effect_apply_receipt,
+    effectApplyReceiptSchema());
+  assert.equal(registry.artifact_schema_cids.effect_apply_receipt,
+    machineCid(effectApplyReceiptSchema()));
+  assert.deepEqual(registry.artifact_schemas.effect_set_apply_receipt,
+    effectSetApplyReceiptSchema(registry.artifact_schemas.effect_set_apply_receipt));
+  assert.ok(!('outcome' in registry.artifact_schemas.effect_set_apply_receipt
+    .properties.effects.items.properties));
+  const set = {
+    version: 'actql-effect-set-apply-receipt/0.1',
+    effect_preview_cid: cid('2'), apply_policy: 'attempt_all',
+    effects: [{effect_id: 'WriteOne',
+      effect_member_preview_cid: cid('3'), state: 'unknown',
+      replayed: false, member_receipt_cid: expected}],
+    status: 'unknown_outcome',
+  };
+  const setCid = 'sha256:ff1d2d85eb4e71ea996c6792e8c2669aee625dadaac8a625fa9cf1200b1ae0e4';
+  assert.equal(hash(set), setCid);
+  const reconciliation = {
+    version: 'actql-effect-reconciliation-receipt/0.1',
+    effect_id: 'WriteOne', effect_set_receipt_cid: setCid,
+    prior_receipt_cid: expected, run_identity_cid: cid('1'),
+    effect_preview_cid: cid('2'), effect_member_preview_cid: cid('3'),
+    row_preview_cid: cid('5'), dispatch_entry_cid: cid('7'),
+    dispatch_attempt_sequence: 1, prior_ledger_head_cid: cid('9'),
+    attempt_sequence: 1, terminal: false,
+    command_id: 'write-1', idempotency_key: 'key-1',
+    outcome: {state: 'unknown', command_id: 'write-1',
+      idempotency_key: 'key-1', reason: 'connection_lost',
+      reconciliation_contract: {id: 'lookup', version: '0.1', cid: cid('a')}},
+  };
+  const reconciliationCid = 'sha256:1130effbaa2a6f852ecccaa1105aa8c7b5aeb154ef0a26e73efa84724930592b';
+  assert.equal(hash(reconciliation), reconciliationCid);
+  assert.notEqual(hash({...reconciliation, row_preview_cid: cid('4')}),
+    reconciliationCid);
+  assert.notEqual(hash({...reconciliation, prior_ledger_head_cid: cid('8')}),
+    reconciliationCid);
+  assert.deepEqual(registry.artifact_schemas.effect_reconciliation_receipt,
+    effectReconciliationReceiptSchema(
+      registry.artifact_schemas.effect_reconciliation_receipt));
+});
+
+test('independent Effect-source Artifact and holding 0.1 vectors', () => {
+  const cid = digit => `sha256:${digit.repeat(64)}`;
+  const hash = body => `sha256:${createHash('sha256')
+    .update(JSON.stringify(body)).digest('hex')}`;
+  const body = {
+    actual_completeness: 'complete', actual_row_count: 2,
+    effective_data_policy_cid: cid('1'),
+    effective_retention_policy_cid: cid('2'),
+    invocation_cid: cid('3'), logical_result_cid: cid('4'),
+    provenance_evidence_cids: [], result_schema_cid: cid('5'),
+    source_binding_cid: cid('6'), source_result: 'rows',
+    store_authority_cid: cid('7'),
+    version: 'actql-effect-source-artifact/0.1',
+  };
+  const artifactCid =
+    'sha256:da81971101ba8f06a0255950099bd0328faada17ee200634ac6a27149052d0bc';
+  assert.equal(hash(body), artifactCid);
+  assert.notEqual(hash({...body, source_result: 'answer'}), artifactCid);
+  assert.notEqual(hash({...body, source_binding_cid: cid('9')}), artifactCid);
+  assert.notEqual(hash({...body, store_authority_cid: cid('9')}),
+    artifactCid);
+  const holdingBody = {
+    effect_id: 'WriteOne', result_artifact_cid: artifactCid,
+    run_identity_cid: cid('8'), store_authority_cid: cid('7'),
+    version: 'actql-effect-source-holding/0.1',
+  };
+  assert.equal(hash(holdingBody),
+    'sha256:9f02433c84d076d9e0ee3f99c347850248ac8632da29f411c1788ded9a40a073');
+  assert.notEqual(hash({...holdingBody, run_identity_cid: cid('9')}),
+    hash(holdingBody));
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  const schema = effectSourceArtifactSchema();
+  assert.deepEqual(schema.required.toSorted(),
+    [...Object.keys(body), 'result_artifact_cid'].toSorted());
+  assert.equal(registry.artifact_schema_cids.effect_source_artifact,
+    machineCid(schema));
+});
+
+test('independent Effect row Outcome Receipt 0.1 vector and schema pin', () => {
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  const outcome = {result: {id: '001'}, state: 'applied'};
+  const hash = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+  const body = {
+    credential_use_cid: `sha256:${'6'.repeat(64)}`,
+    dispatch_entry_cid: `sha256:${'5'.repeat(64)}`,
+    effect_member_preview_cid:
+      'sha256:099721c928770511d95faed4eaeef3fef768c4b573c714fc0af16c0b5439b5b6',
+    effect_preview_cid:
+      'sha256:2fe7f8e93988fcf4d7804e86b69a72d00e1c7bfd946c8fa29d6e91c706593409',
+    http_status_code: 201,
+    response_byte_count: 2,
+    response_physical_sha256:
+      '44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
+    row_preview_cid:
+      'sha256:4531682e916a81a555998f41de7fef4c505a841b83d794d09d95db899d6e55c8',
+    typed_outcome: outcome,
+    typed_outcome_cid:
+      'sha256:851bf9a054b70fc0435dd57569b77d0d21f16e090254b19b212602b00f171df0',
+    version: 'actql-effect-row-outcome-receipt/0.1',
+  };
+  assert.equal(hash(JSON.stringify(outcome)), body.typed_outcome_cid);
+  assert.equal(hash('{}').slice(7), body.response_physical_sha256);
+  assert.equal(hash(JSON.stringify(body)),
+    'sha256:0b54f40a3e03a7840f08737b5efd2380f006aea8c4161a6ffeea0af461fe076f');
+  const schema = registry.artifact_schemas.effect_row_outcome_receipt;
+  assert.deepEqual(schema.required.toSorted(),
+    [...Object.keys(body), 'receipt_cid'].toSorted());
+  assert.equal(registry.artifact_schema_cids.effect_row_outcome_receipt,
+    machineCid(schema));
+});
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 
@@ -40,12 +220,18 @@ test('every Run-bound Result Artifact embedding uses the normative 12 fields', (
     'result_artifact_cid',
   ]);
   const registry = read('spec/contracts/actql-protocol-schemas.json');
-  const visit = value => {
+  const localArtifact = read('spec/contracts/actql-stage-contracts.json')
+    .schemas.local_result_artifact;
+  const visit = (value, path = []) => {
     if (!value || typeof value !== 'object') return;
     if (value.properties?.version?.const === 'actql-result-artifact/0.1') {
-      assert.deepEqual(value, artifact);
+      assert.deepEqual(value,
+        path.includes('effect_source_local_inventory') ?
+          localArtifact : artifact);
     }
-    for (const child of Object.values(value)) visit(child);
+    for (const [key, child] of Object.entries(value)) {
+      visit(child, [...path, key]);
+    }
   };
   visit(registry.artifact_schemas);
 });
@@ -129,7 +315,7 @@ test('corrected schemas have independently fixed canonical identities', () => {
       run_state:
         'sha256:9c4e0ef67f6a3b7441cf1dc5cc8cafaec05dde6422a7628db027542cc0c808c6',
       captured_run:
-        'sha256:281c623866f1dfb4e2d44ed8d9d91e88b3afec3e9f10392703d4dd87dd661422',
+        'sha256:ac57820dd589db489f000eb80ff95ec9c9a95fec5b233add853293ed9c1dbc53',
     },
   );
 });

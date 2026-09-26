@@ -254,3 +254,49 @@ test "Effect Preview member schema keeps Command and Mapping branches distinct" 
     ),
   )
 }
+
+///|
+test "generated EffectOutcome shape keeps the four states closed" {
+  let cid = "sha256:" + "a".repeat(64)
+  let contract = "{\"cid\":\"" +
+    cid +
+    "\",\"id\":\"manual\",\"version\":\"0.1\"}"
+  let accepted = "{\"cancel_capability\":\"unsupported\",\"operation_ref\":{\"$actql_ref\":\"resource\",\"authority_scope_cid\":\"" +
+    cid +
+    "\",\"boundary_cid\":\"" +
+    cid +
+    "\",\"identity_cid\":\"" +
+    cid +
+    "\",\"provider_identity_cid\":\"" +
+    cid +
+    "\",\"provider_namespace\":\"salesforce\",\"resource_kind\":\"operation\",\"version\":\"actql-resource-ref/0.1\"},\"poll_contract\":" +
+    contract +
+    ",\"reconciliation_contract\":" +
+    contract +
+    ",\"result_schema\":" +
+    contract +
+    ",\"state\":\"accepted\"}"
+  let unknown = "{\"command_id\":\"write-a\",\"idempotency_key\":\"key-a\",\"reason\":\"connection_lost\",\"reconciliation_contract\":" +
+    contract +
+    ",\"state\":\"unknown\"}"
+  for
+    wire in [
+      "{\"result\":{\"record_id\":\"a001\"},\"state\":\"applied\"}", "{\"error\":{\"code\":\"INVALID_FIELD\",\"message\":\"Bad field\"},\"state\":\"failed\"}",
+      accepted, unknown,
+    ] {
+    assert_true(parse_effect_outcome_shape(wire, 4096, 128, 16) is Ok(_))
+  }
+  assert_true(
+    parse_effect_outcome_shape(
+      "{\"state\":\"applied\",\"result\":{}}", 4096, 128, 16,
+    )
+    is Err(InvalidWire),
+  )
+  for
+    wire in [
+      "{\"state\":\"applied\"}", "{\"error\":{\"code\":\"x\",\"message\":\"x\"},\"state\":\"failed\",\"extra\":1}",
+      "{\"command_id\":\"write-a\",\"idempotency_key\":\"key-a\",\"reason\":\"transport_timeout\",\"state\":\"unknown\"}",
+    ] {
+    assert_true(parse_effect_outcome_shape(wire, 4096, 128, 16) is Err(_))
+  }
+}

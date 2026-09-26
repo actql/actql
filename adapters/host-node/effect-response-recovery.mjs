@@ -1,4 +1,6 @@
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {retainIssuedEffectSetReceipt} from
+  '../host-common/effect-receipt-custody.mjs';
 import {snapshotEffectDispatchClaim,
   snapshotEffectDispatchClaims} from './effect-physical-dispatch.mjs';
 
@@ -81,4 +83,163 @@ export async function recoverProjectedEffectResponse({
   return Object.freeze({
     recovered: stored === undefined ? undefined : projectStored(stored),
   });
+}
+
+// Evidence viewing precedes exact physical outcome access. The returned
+// record is custody of a prior projection, not semantic admission or a
+// terminal Effect fact; no write credential or new send is available here.
+export async function readAuthorizedEffectOutcomes(options) {
+  const {ledger, claims, batch = false} = options;
+  const ownedClaims = batch && Array.isArray(claims)
+    ? snapshotEffectDispatchClaims(claims)
+    : !batch && claims ? snapshotEffectDispatchClaim(claims) : undefined;
+  const {stored, binding} = await readAuthorizedEffectResponse({
+    ...options, claims: ownedClaims,
+  });
+  if (stored === undefined) return Object.freeze({outcomes: undefined,
+    binding});
+  const read = batch ? ledger.readClaimedBatchOutcomes
+    : ledger.readClaimedOutcome;
+  if (typeof read !== 'function') fail('InvalidEffectOutcomeRead');
+  const outcomes = read.call(ledger, ownedClaims);
+  return Object.freeze({outcomes, binding});
+}
+
+// Member aggregation consumes only terminal receipts re-admitted from the
+// exact saved dispatch and response. An evidence-view grant is required even
+// when the caller also holds current mutation authority.
+export async function readAuthorizedEffectTerminalOutcome(options) {
+  const {ledger, claims, batch = false, batchRowIndex, preview,
+    memberIndex, previewRowIndex} = options;
+  const ownedClaims = batch && Array.isArray(claims)
+    ? snapshotEffectDispatchClaims(claims)
+    : !batch && claims ? snapshotEffectDispatchClaim(claims) : undefined;
+  const {stored, binding} = await readAuthorizedEffectResponse({
+    ...options, claims: ownedClaims,
+  });
+  if (stored === undefined) return Object.freeze({receipt: undefined,
+    binding});
+  if (typeof ledger.readAdmittedTerminalOutcome !== 'function') {
+    fail('InvalidEffectTerminalOutcomeRead');
+  }
+  const receipt = ledger.readAdmittedTerminalOutcome({
+    ...(batch ? {claims: ownedClaims, batchRowIndex} : {
+      claim: ownedClaims,
+    }),
+    preview, memberIndex, previewRowIndex,
+  });
+  return Object.freeze({receipt, binding});
+}
+
+// A member Receipt is not evidence by itself. Authorize the exact retained
+// dispatches first, then compare its row partition with one durable Store
+// snapshot and re-admit every terminal row Receipt from saved response bytes.
+async function authorizeMemberReceiptRows({
+  ledger,
+  rowOwners,
+  commonMoon,
+  authorizeEvidenceRead,
+  providerBinding = {},
+}) {
+  if (!Array.isArray(rowOwners) || rowOwners.length === 0) {
+    fail('InvalidEffectMemberReceiptEvidence');
+  }
+  const batches = new Map();
+  const ownedOwners = rowOwners.map(owner => {
+    if (owner?.claims === undefined) {
+      return Object.freeze({claim: snapshotEffectDispatchClaim(owner?.claim)});
+    }
+    if (!Array.isArray(owner.claims) ||
+        !Number.isSafeInteger(owner.batchRowIndex) ||
+        owner.batchRowIndex < 0 || owner.batchRowIndex >= owner.claims.length) {
+      fail('InvalidEffectMemberReceiptEvidence');
+    }
+    let claims = batches.get(owner.claims);
+    if (claims === undefined) {
+      claims = snapshotEffectDispatchClaims(owner.claims);
+      batches.set(owner.claims, claims);
+    }
+    return Object.freeze({claims, batchRowIndex: owner.batchRowIndex});
+  });
+  const authorizedBatches = new Set();
+  for (const owner of ownedOwners) {
+    if (owner.claim !== undefined) {
+      await readAuthorizedEffectResponse({ledger, claims: owner.claim,
+        commonMoon, expectedRequestCid: owner.claim.canonicalRequestCid,
+        providerBinding, authorizeEvidenceRead});
+    } else if (!authorizedBatches.has(owner.claims)) {
+      await readAuthorizedEffectResponse({ledger, claims: owner.claims,
+        commonMoon,
+        expectedRequestCid: owner.claims[0].canonicalRequestCid,
+        providerBinding, authorizeEvidenceRead, batch: true});
+      authorizedBatches.add(owner.claims);
+    }
+  }
+  return ownedOwners;
+}
+
+export async function checkAuthorizedEffectMemberReceiptRowPartition({
+  ledger, rowOwners, preview, memberIndex, memberReceiptWire, commonMoon,
+  authorizeEvidenceRead, providerBinding = {},
+}) {
+  if (typeof ledger?.checkMemberReceiptRowPartitionEvidence !== 'function') {
+    fail('InvalidEffectMemberReceiptEvidence');
+  }
+  const ownedOwners = await authorizeMemberReceiptRows({ledger, rowOwners,
+    commonMoon, authorizeEvidenceRead, providerBinding});
+  return ledger.checkMemberReceiptRowPartitionEvidence({
+    preview, memberIndex, rowOwners: ownedOwners, memberReceiptWire,
+  });
+}
+
+// Only the common owner issues a member Receipt. Authorization precedes the
+// durable head snapshot; the issuer then re-admits every terminal row fact.
+export async function issueAuthorizedEffectMemberReceipt({
+  ledger, rowOwners, preview, memberIndex, commonMoon,
+  authorizeEvidenceRead, providerBinding = {},
+}) {
+  if (typeof ledger?.issueMemberReceiptFromRowPartition !== 'function') {
+    fail('InvalidEffectMemberReceiptEvidence');
+  }
+  const ownedOwners = await authorizeMemberReceiptRows({ledger, rowOwners,
+    commonMoon, authorizeEvidenceRead, providerBinding});
+  return ledger.issueMemberReceiptFromRowPartition({
+    preview, memberIndex, rowOwners: ownedOwners,
+  });
+}
+
+// Set issuance reuses the physical evidence path of every member. For final
+// publication, MoonBit rechecks those rows against the separately owned
+// publication Preview before the exact Ledger/Preview pair is retained.
+// Replay flags remain explicit Host observations, not inferred row facts.
+export async function issueAuthorizedEffectSetReceipt({
+  ledger, members, preview, commonMoon, authorizeEvidenceRead,
+  providerBinding = {}, limits, publicationPreview,
+}) {
+  if (!Array.isArray(members) || members.length === 0 ||
+      members.some(member => !Array.isArray(member?.rowOwners) ||
+        typeof member.replayed !== 'boolean') ||
+      !limits || !['maxWireBytes', 'maxNodes', 'maxDepth'].every(key =>
+        Number.isSafeInteger(limits[key]) && limits[key] > 0)) {
+    fail('InvalidEffectSetReceiptEvidence');
+  }
+  const core = runtimeCore(commonMoon);
+  const issuedMembers = [];
+  for (let memberIndex = 0; memberIndex < members.length; memberIndex++) {
+    issuedMembers.push(await issueAuthorizedEffectMemberReceipt({
+      ledger, rowOwners: members[memberIndex].rowOwners, preview,
+      memberIndex, commonMoon, authorizeEvidenceRead, providerBinding,
+    }));
+  }
+  const set = publicationPreview === undefined
+    ? core.effectApplicationControl
+      .issueSetReceiptFromMembers(
+        preview, issuedMembers.map(member => member.wire),
+        members.map(member => member.replayed), limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth)
+    : core.publicationControl.issueEffectSetApplyReceiptFromMembers(
+      publicationPreview, issuedMembers,
+      members.map(member => member.replayed), limits);
+  return retainIssuedEffectSetReceipt({set, members: issuedMembers,
+    ledger, preview: publicationPreview ?? preview});
 }

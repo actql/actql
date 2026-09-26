@@ -80,12 +80,20 @@ test "continue collection preserves row order and exact response mapping" {
     Some(collection_request_test_cid("2")),
   )
   assert_true(write_collection_request_row_cid(request, 2) is None)
-  let response_result = project_write_collection_response(
-    @utf8.encode(
-      "[{\"id\":\"a001\",\"success\":true,\"errors\":[]},{\"id\":null,\"success\":false,\"errors\":[{\"statusCode\":\"REQUIRED_FIELD_MISSING\",\"message\":\"Missing Name\",\"fields\":[\"Name\"]}]}]",
-    ),
+  let response_bytes = @utf8.encode(
+    "[{\"id\":\"a001\",\"success\":true,\"errors\":[]},{\"id\":null,\"success\":false,\"errors\":[{\"statusCode\":\"REQUIRED_FIELD_MISSING\",\"message\":\"Missing Name\",\"fields\":[\"Name\"]}]}]",
+  )
+  let count_only = project_write_collection_response(
+    response_bytes,
     CollectionCreate,
     write_collection_request_row_count(request),
+    collection_response_limits(),
+  ).unwrap()
+  assert_true(write_collection_bound_result_at(count_only, 0) is None)
+  let response_result = project_write_collection_response_for_request(
+    200,
+    response_bytes,
+    request,
     collection_response_limits(),
   )
   let response = match response_result {
@@ -97,20 +105,14 @@ test "continue collection preserves row order and exact response mapping" {
     Err(CountMismatch) => abort("unexpected response count mismatch")
   }
   assert_eq(
-    (
-      write_collection_request_row_cid(request, 0),
-      write_collection_result_at(response, 0),
-    ),
-    (Some(collection_request_test_cid("1")), Some(RowApplied("a001", true))),
+    write_collection_bound_result_at(response, 0),
+    Some((collection_request_test_cid("1"), RowApplied("a001", true))),
   )
   assert_eq(
-    (
-      write_collection_request_row_cid(request, 1),
-      write_collection_result_at(response, 1),
-    ),
-    (
-      Some(collection_request_test_cid("2")),
-      Some(
+    write_collection_bound_result_at(response, 1),
+    Some(
+      (
+        collection_request_test_cid("2"),
         RowFailed([
           {
             status_code: "REQUIRED_FIELD_MISSING",
@@ -120,6 +122,40 @@ test "continue collection preserves row order and exact response mapping" {
         ]),
       ),
     ),
+  )
+  let applied = project_collection_effect_outcome_at(response, 0, 2000, 100, 8).unwrap()
+  assert_eq(
+    write_row_effect_projection_row_cid(applied),
+    collection_request_test_cid("1"),
+  )
+  assert_eq(
+    write_row_effect_projection_wire(applied),
+    "{\"result\":{\"created\":true,\"record_id\":\"a001\"},\"state\":\"applied\"}",
+  )
+  assert_eq(
+    write_row_effect_projection_response_sha256(applied),
+    @sha.hex(response_bytes),
+  )
+  let failed = project_collection_effect_outcome_at(response, 1, 2000, 100, 8).unwrap()
+  assert_eq(
+    write_row_effect_projection_row_cid(failed),
+    collection_request_test_cid("2"),
+  )
+  assert_eq(
+    write_row_effect_projection_wire(failed),
+    "{\"error\":{\"code\":\"SalesforceRowFailed\",\"details\":{\"errors\":[{\"fields\":[\"Name\"],\"message\":\"Missing Name\",\"status_code\":\"REQUIRED_FIELD_MISSING\"}]},\"message\":\"Salesforce row failed\"},\"state\":\"failed\"}",
+  )
+  assert_true(
+    project_collection_effect_outcome_at(count_only, 0, 2000, 100, 8)
+    is Err(InvalidResponse),
+  )
+  assert_true(
+    project_collection_effect_outcome_at(response, 2, 2000, 100, 8)
+    is Err(InvalidResponse),
+  )
+  assert_true(
+    project_collection_effect_outcome_at(response, 1, 16, 100, 8)
+    is Err(BudgetExceeded),
   )
 }
 

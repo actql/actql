@@ -307,6 +307,7 @@ pub fn expand_internal_carrier_tasks(
     program: graph.program,
     source_free_root: graph.source_free_root,
     owners,
+    stage_tasks,
     targets,
     input_counts,
     selected_steps,

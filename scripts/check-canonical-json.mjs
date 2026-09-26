@@ -153,6 +153,22 @@ function fixtures() {
       value: row.preimage, cid: row.expected_cid,
       text: row.expected_canonical_bytes});
   }
+  const localResultDefinitions = read('portability/corpus/local-result-definition.json');
+  assert.equal(localResultDefinitions.version, 'actql-local-result-definition-vectors/0.1');
+  for (const item of localResultDefinitions.cases) {
+    result.push({
+      id: 'local Result Definition ' + item.id,
+      value: item.preimage,
+      cid: item.expected_cid,
+    });
+  }
+  const localEffectIdentities = read('portability/corpus/local-effect-identity.json');
+  assert.equal(localEffectIdentities.version,
+    'actql-local-effect-identity-vectors/0.1');
+  for (const item of localEffectIdentities.cases) {
+    result.push({id: 'local Effect identity ' + item.id,
+      value: item.preimage, cid: item.expected_cid});
+  }
   assert.equal(localContracts.version, 'actql-local-contract-closure-vectors/0.1');
   for (const c of localContracts.cases) {
     result.push({id: 'local contract set ' + c.id, value: c.envelope, cid: c.expected_cid});

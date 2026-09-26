@@ -96,6 +96,16 @@ test "Effect apply admits semantic Preview and exact derived row keys" {
     )
     is Ok(_),
   )
+  let admitted = @publication.admit_effect_preview_identity(
+    wire, a, authoring, 8192, 256, 12,
+  ).unwrap()
+  assert_true(
+    check_admitted_effect_preview_apply_keys(admitted, scope, [[key]]) is Ok(_),
+  )
+  assert_true(
+    check_admitted_effect_preview_apply_keys(admitted, scope, [])
+    is Err(KeyInventoryMismatch),
+  )
   let wrong_key = wire.replace_all(
     old="\"row_idempotency_key\":\"" + key.cid + "\"",
     new="\"row_idempotency_key\":\"" + preview_footprint_test_cid("5") + "\"",
@@ -132,6 +142,10 @@ test "Effect apply admits semantic Preview and exact derived row keys" {
   )
   let other_scope = prepare_logical_request_scope(a, "request-2", 32).unwrap()
   assert_true(
+    check_admitted_effect_preview_apply_keys(admitted, other_scope, [[key]])
+    is Err(ForeignKeyScope(0, 0)),
+  )
+  assert_true(
     admit_effect_preview_apply_identity(
       wire,
       a,
@@ -143,6 +157,32 @@ test "Effect apply admits semantic Preview and exact derived row keys" {
       12,
     )
     is Err(ForeignKeyScope(0, 0)),
+  )
+}
+
+///|
+test "Effect recovery derives exact keys from the admitted Preview" {
+  let authority = preview_footprint_test_cid("a")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let scope = prepare_logical_request_scope(authority, "request-1", 32).unwrap()
+  let (wire, original) = preview_apply_test_wire(scope, "halt")
+  let preview = @publication.admit_effect_preview_identity(
+    wire, authority, authoring, 8192, 256, 12,
+  ).unwrap()
+  let recovered = recover_effect_preview_apply_keys(
+    preview, scope, 1, 1, 2, 128, 8, 3,
+  ).unwrap()
+  assert_eq(recovered.length(), 1)
+  assert_eq(recovered[0].length(), 1)
+  assert_eq(recovered[0][0].cid, original.cid)
+  assert_true(
+    recover_effect_preview_apply_keys(preview, scope, 1, 1, 1, 128, 8, 3)
+    is Err(CapacityExceeded),
+  )
+  let foreign = prepare_logical_request_scope(authority, "another-request", 32).unwrap()
+  assert_true(
+    recover_effect_preview_apply_keys(preview, foreign, 1, 1, 2, 128, 8, 3)
+    is Err(Mismatch(RowKeyMismatch(0, 0))),
   )
 }
 

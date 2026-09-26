@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:3d196518518b9164055a5dc7c9d5541c7a2abb45acac78c044e35e5536f6d0f7",
+  "artifact_registry_cid": "sha256:17abd39558483605349af79aa38b916f1dbc23a8faa2732221cb0b3da0222825",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10675,9 +10675,9 @@
     "effect_preview": "sha256:32dec306d694f6faddd5272895d5fa917f23dcd0e13fd3d1a9f142c760fe795b",
     "review_projection": "sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
-    "effect_apply_receipt": "sha256:3e636d16300f17ac4ce13bab71e8131985cb7422df1ab3bb507005580b2dd889",
-    "effect_set_apply_receipt": "sha256:ae7b45405ba8e504cc1fa4e7acf660395c3c0915451c26cf38d9373a183b2bdf",
-    "effect_reconciliation_receipt": "sha256:d28124575ba45a4fa25936a4200918d2208d5757f286c114051a46ba5e9f4fa4",
+    "effect_apply_receipt": "sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62",
+    "effect_set_apply_receipt": "sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb",
+    "effect_reconciliation_receipt": "sha256:abcfcc932af4c63ae91e9670d0cd41d2cd23a0e3bec25044cfa018cd2b5f3fb2",
     "run_receipt": "sha256:d017cd0e95bce341edd4fabf859fc521588ee8d12eadfa9fd2704d8d8a94f526",
     "runtime_error": "sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d",
     "execution_context": "sha256:bce481b86ddcbd958ab98c54df73a7040d21ab8115088f25cb7552928cfb30de",
@@ -10693,13 +10693,15 @@
     "result_manifest": "sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
     "plan_document": "sha256:6d77f736215cbf1379db11e4d793e66e19715bb28b8a6e737fae3bdd62590bbc",
-    "plan_result": "sha256:18640f4455f83a54ef5c7b89b08d65456d0b9de28765badb8ab1f38af0c68e3a",
+    "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:9c4e0ef67f6a3b7441cf1dc5cc8cafaec05dde6422a7628db027542cc0c808c6",
-    "captured_run": "sha256:281c623866f1dfb4e2d44ed8d9d91e88b3afec3e9f10392703d4dd87dd661422",
+    "captured_run": "sha256:ac57820dd589db489f000eb80ff95ec9c9a95fec5b233add853293ed9c1dbc53",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
     "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
-    "source_input_logical": "sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea"
+    "source_input_logical": "sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea",
+    "effect_row_outcome_receipt": "sha256:2a748936a4d4069cc1b801c8b3c5a179f64a538d77affeb5e68f6e53da42eb27",
+    "effect_source_artifact": "sha256:e11e51e73d3153c62314315f7f20682778e51c7a46791e87ee2bb5ac7f3f99ee"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -37658,20 +37660,20 @@
       "additionalProperties": false,
       "required": [
         "version",
+        "run_identity_cid",
         "effect_preview_cid",
         "effect_member_preview_cid",
-        "applied",
-        "accepted",
-        "unknown",
-        "failed",
-        "unattempted",
+        "rows",
         "status",
-        "outcome",
         "receipt_cid"
       ],
       "properties": {
         "version": {
           "const": "actql-effect-apply-receipt/0.1"
+        },
+        "run_identity_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
         },
         "effect_preview_cid": {
           "type": "string",
@@ -37689,58 +37691,247 @@
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
         },
-        "applied": {
+        "rows": {
           "type": "array",
           "items": {
-            "type": "string",
-            "pattern": "^sha256:[0-9a-f]{64}$"
-          },
-          "uniqueItems": true
-        },
-        "accepted": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^sha256:[0-9a-f]{64}$"
-          },
-          "uniqueItems": true
-        },
-        "unknown": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^sha256:[0-9a-f]{64}$"
-          },
-          "uniqueItems": true
-        },
-        "failed": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "row_preview_cid",
-              "error_cid"
-            ],
-            "properties": {
-              "row_preview_cid": {
-                "type": "string",
-                "pattern": "^sha256:[0-9a-f]{64}$"
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "row_index",
+                  "row_preview_cid",
+                  "state"
+                ],
+                "properties": {
+                  "state": {
+                    "const": "unattempted"
+                  },
+                  "row_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "row_preview_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
               },
-              "error_cid": {
-                "type": "string",
-                "pattern": "^sha256:[0-9a-f]{64}$"
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "row_index",
+                  "row_preview_cid",
+                  "state",
+                  "dispatch_entry_cid",
+                  "attempt_sequence",
+                  "ledger_head_cid"
+                ],
+                "properties": {
+                  "state": {
+                    "const": "unknown"
+                  },
+                  "row_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "row_preview_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "dispatch_entry_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "attempt_sequence": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "ledger_head_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "row_index",
+                  "row_preview_cid",
+                  "state",
+                  "dispatch_entry_cid",
+                  "attempt_sequence",
+                  "outcome_receipt_cid"
+                ],
+                "properties": {
+                  "state": {
+                    "const": "applied"
+                  },
+                  "row_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "row_preview_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "dispatch_entry_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "attempt_sequence": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "outcome_receipt_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "batch_result_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "row_index",
+                  "row_preview_cid",
+                  "state",
+                  "dispatch_entry_cid",
+                  "attempt_sequence",
+                  "outcome_receipt_cid"
+                ],
+                "properties": {
+                  "state": {
+                    "const": "accepted"
+                  },
+                  "row_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "row_preview_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "dispatch_entry_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "attempt_sequence": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "outcome_receipt_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "batch_result_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "row_index",
+                  "row_preview_cid",
+                  "state",
+                  "dispatch_entry_cid",
+                  "attempt_sequence",
+                  "outcome_receipt_cid"
+                ],
+                "properties": {
+                  "state": {
+                    "const": "failed"
+                  },
+                  "row_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "row_preview_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "dispatch_entry_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "attempt_sequence": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "outcome_receipt_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "batch_result_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "row_index",
+                  "row_preview_cid",
+                  "state",
+                  "dispatch_entry_cid",
+                  "attempt_sequence",
+                  "outcome_receipt_cid",
+                  "batch_result_cid"
+                ],
+                "properties": {
+                  "state": {
+                    "const": "rolled_back"
+                  },
+                  "row_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "row_preview_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "dispatch_entry_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "attempt_sequence": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "outcome_receipt_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "batch_result_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
               }
-            }
+            ]
           }
-        },
-        "unattempted": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^sha256:[0-9a-f]{64}$"
-          },
-          "uniqueItems": true
         },
         "status": {
           "enum": [
@@ -37750,252 +37941,6 @@
             "partial_failure",
             "failed",
             "stale_preview"
-          ]
-        },
-        "outcome": {
-          "oneOf": [
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "state",
-                "result"
-              ],
-              "properties": {
-                "state": {
-                  "const": "applied"
-                },
-                "result": {}
-              }
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "state",
-                "operation_ref",
-                "poll_contract",
-                "cancel_capability",
-                "result_schema",
-                "reconciliation_contract"
-              ],
-              "properties": {
-                "state": {
-                  "const": "accepted"
-                },
-                "operation_ref": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "$actql_ref",
-                    "version",
-                    "resource_kind",
-                    "provider_namespace",
-                    "provider_identity_cid",
-                    "authority_scope_cid",
-                    "boundary_cid",
-                    "identity_cid"
-                  ],
-                  "properties": {
-                    "$actql_ref": {
-                      "const": "resource"
-                    },
-                    "version": {
-                      "const": "actql-resource-ref/0.1"
-                    },
-                    "resource_kind": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "provider_namespace": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "provider_identity_cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    },
-                    "authority_scope_cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    },
-                    "boundary_cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    },
-                    "identity_cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    }
-                  }
-                },
-                "poll_contract": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "id",
-                    "version",
-                    "cid"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "version": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    }
-                  }
-                },
-                "cancel_capability": {
-                  "enum": [
-                    "supported",
-                    "unsupported"
-                  ]
-                },
-                "result_schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "id",
-                    "version",
-                    "cid"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "version": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    }
-                  }
-                },
-                "expiration": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "reconciliation_contract": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "id",
-                    "version",
-                    "cid"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "version": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    }
-                  }
-                }
-              }
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "state",
-                "error"
-              ],
-              "properties": {
-                "state": {
-                  "const": "failed"
-                },
-                "error": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "details": {}
-                  }
-                }
-              }
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "state",
-                "command_id",
-                "reconciliation_contract",
-                "idempotency_key",
-                "reason"
-              ],
-              "properties": {
-                "state": {
-                  "const": "unknown"
-                },
-                "command_id": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "reconciliation_contract": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "id",
-                    "version",
-                    "cid"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "version": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    }
-                  }
-                },
-                "idempotency_key": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "reason": {
-                  "enum": [
-                    "transport_timeout",
-                    "connection_lost",
-                    "provider_outcome_unknown"
-                  ]
-                }
-              }
-            }
           ]
         },
         "receipt_cid": {
@@ -38061,7 +38006,8 @@
                   "accepted",
                   "failed",
                   "unknown",
-                  "unattempted"
+                  "unattempted",
+                  "rolled_back"
                 ]
               },
               "dispatch_sequence": {
@@ -38079,252 +38025,6 @@
               "effect_apply_evidence_cid": {
                 "type": "string",
                 "pattern": "^sha256:[0-9a-f]{64}$"
-              },
-              "outcome": {
-                "oneOf": [
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "state",
-                      "result"
-                    ],
-                    "properties": {
-                      "state": {
-                        "const": "applied"
-                      },
-                      "result": {}
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "state",
-                      "operation_ref",
-                      "poll_contract",
-                      "cancel_capability",
-                      "result_schema",
-                      "reconciliation_contract"
-                    ],
-                    "properties": {
-                      "state": {
-                        "const": "accepted"
-                      },
-                      "operation_ref": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "$actql_ref",
-                          "version",
-                          "resource_kind",
-                          "provider_namespace",
-                          "provider_identity_cid",
-                          "authority_scope_cid",
-                          "boundary_cid",
-                          "identity_cid"
-                        ],
-                        "properties": {
-                          "$actql_ref": {
-                            "const": "resource"
-                          },
-                          "version": {
-                            "const": "actql-resource-ref/0.1"
-                          },
-                          "resource_kind": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "provider_namespace": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "provider_identity_cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          },
-                          "authority_scope_cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          },
-                          "boundary_cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          },
-                          "identity_cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          }
-                        }
-                      },
-                      "poll_contract": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "version",
-                          "cid"
-                        ],
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "version": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          }
-                        }
-                      },
-                      "cancel_capability": {
-                        "enum": [
-                          "supported",
-                          "unsupported"
-                        ]
-                      },
-                      "result_schema": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "version",
-                          "cid"
-                        ],
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "version": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          }
-                        }
-                      },
-                      "expiration": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "reconciliation_contract": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "version",
-                          "cid"
-                        ],
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "version": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "state",
-                      "error"
-                    ],
-                    "properties": {
-                      "state": {
-                        "const": "failed"
-                      },
-                      "error": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "code",
-                          "message"
-                        ],
-                        "properties": {
-                          "code": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "message": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "details": {}
-                        }
-                      }
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "state",
-                      "command_id",
-                      "reconciliation_contract",
-                      "idempotency_key",
-                      "reason"
-                    ],
-                    "properties": {
-                      "state": {
-                        "const": "unknown"
-                      },
-                      "command_id": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "reconciliation_contract": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "version",
-                          "cid"
-                        ],
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "version": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          }
-                        }
-                      },
-                      "idempotency_key": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "reason": {
-                        "enum": [
-                          "transport_timeout",
-                          "connection_lost",
-                          "provider_outcome_unknown"
-                        ]
-                      }
-                    }
-                  }
-                ]
               },
               "termination_evidence_cid": {
                 "type": "string",
@@ -38369,7 +38069,14 @@
         "attempt_sequence",
         "terminal",
         "outcome",
-        "reconciliation_receipt_cid"
+        "reconciliation_receipt_cid",
+        "run_identity_cid",
+        "effect_preview_cid",
+        "effect_member_preview_cid",
+        "row_preview_cid",
+        "dispatch_entry_cid",
+        "dispatch_attempt_sequence",
+        "prior_ledger_head_cid"
       ],
       "properties": {
         "version": {
@@ -38701,6 +38408,39 @@
         "reconciliation_receipt_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "run_identity_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effect_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effect_member_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "row_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "dispatch_entry_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "prior_ledger_head_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "outcome_receipt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "dispatch_attempt_sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
         }
       },
       "oneOf": [
@@ -38783,6 +38523,11 @@
               "terminal": {
                 "const": false
               }
+            },
+            "not": {
+              "required": [
+                "outcome_receipt_cid"
+              ]
             }
           },
           "else": {
@@ -38790,7 +38535,10 @@
               "terminal": {
                 "const": true
               }
-            }
+            },
+            "required": [
+              "outcome_receipt_cid"
+            ]
           }
         }
       ]
@@ -68040,6 +67788,8 @@
                       "author_guard",
                       "author_guard_binding",
                       "resolved_limit_cid",
+                      "contract_minimum_approval",
+                      "resolved_approval",
                       "executed"
                     ],
                     "properties": {
@@ -68133,6 +67883,19 @@
                         "type": "string",
                         "pattern": "^sha256:[0-9a-f]{64}$"
                       },
+                      "contract_minimum_approval": {
+                        "enum": [
+                          "none",
+                          "required",
+                          null
+                        ]
+                      },
+                      "resolved_approval": {
+                        "enum": [
+                          "none",
+                          "required"
+                        ]
+                      },
                       "executed": {
                         "const": false
                       }
@@ -68222,9 +67985,54 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
+                    "statically_required",
+                    "contract_required",
                     "policy_dependent"
                   ],
                   "properties": {
+                    "statically_required": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "reason"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "const": "effect_set"
+                          },
+                          "reason": {
+                            "const": "multi_effect_partial_application"
+                          }
+                        }
+                      }
+                    },
+                    "contract_required": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "effect",
+                          "reason"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "const": "effect_set"
+                          },
+                          "effect": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "reason": {
+                            "const": "contract_minimum"
+                          }
+                        }
+                      }
+                    },
                     "policy_dependent": {
                       "type": "array",
                       "items": {
@@ -70730,6 +70538,8 @@
                       "author_guard",
                       "author_guard_binding",
                       "resolved_limit_cid",
+                      "contract_minimum_approval",
+                      "resolved_approval",
                       "executed"
                     ],
                     "properties": {
@@ -70823,6 +70633,19 @@
                         "type": "string",
                         "pattern": "^sha256:[0-9a-f]{64}$"
                       },
+                      "contract_minimum_approval": {
+                        "enum": [
+                          "none",
+                          "required",
+                          null
+                        ]
+                      },
+                      "resolved_approval": {
+                        "enum": [
+                          "none",
+                          "required"
+                        ]
+                      },
                       "executed": {
                         "const": false
                       }
@@ -70912,9 +70735,54 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
+                    "statically_required",
+                    "contract_required",
                     "policy_dependent"
                   ],
                   "properties": {
+                    "statically_required": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "reason"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "const": "effect_set"
+                          },
+                          "reason": {
+                            "const": "multi_effect_partial_application"
+                          }
+                        }
+                      }
+                    },
+                    "contract_required": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "effect",
+                          "reason"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "const": "effect_set"
+                          },
+                          "effect": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "reason": {
+                            "const": "contract_minimum"
+                          }
+                        }
+                      }
+                    },
                     "policy_dependent": {
                       "type": "array",
                       "items": {
@@ -72346,7 +72214,10 @@
             "authoring_context",
             "model_invocation_evidence",
             "model_invocation_evidence_cids",
-            "effect_context_cid"
+            "effect_context_cid",
+            "effect_source_artifacts",
+            "effect_source_holding_cids",
+            "effect_source_local_inventory"
           ],
           "properties": {
             "version": {
@@ -72589,6 +72460,361 @@
             "effect_context_cid": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "effect_source_artifacts": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version",
+                  "source_binding_cid",
+                  "source_result",
+                  "invocation_cid",
+                  "logical_result_cid",
+                  "result_schema_cid",
+                  "actual_row_count",
+                  "actual_completeness",
+                  "effective_data_policy_cid",
+                  "effective_retention_policy_cid",
+                  "provenance_evidence_cids",
+                  "result_artifact_cid",
+                  "store_authority_cid"
+                ],
+                "properties": {
+                  "version": {
+                    "const": "actql-effect-source-artifact/0.1"
+                  },
+                  "invocation_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "logical_result_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "result_schema_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "actual_row_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "actual_completeness": {
+                    "enum": [
+                      "complete",
+                      "partial"
+                    ]
+                  },
+                  "effective_data_policy_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "effective_retention_policy_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "provenance_evidence_cids": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  },
+                  "result_artifact_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "source_binding_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "source_result": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "store_authority_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              }
+            },
+            "effect_source_holding_cids": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            },
+            "effect_source_local_inventory": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "artifact",
+                  "definition",
+                  "derivation",
+                  "invocation",
+                  "manifest",
+                  "ordering",
+                  "retention"
+                ],
+                "properties": {
+                  "artifact": {
+                    "type": "object",
+                    "properties": {
+                      "version": {
+                        "const": "actql-result-artifact/0.1"
+                      },
+                      "result_definition_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "invocation_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "logical_result_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "result_schema_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "ordering_evidence_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "actual_row_count": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "actual_completeness": {
+                        "enum": [
+                          "complete",
+                          "partial"
+                        ]
+                      },
+                      "effective_data_policy_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "effective_retention_policy_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "provenance_evidence_cids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        "minItems": 0
+                      },
+                      "result_artifact_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    },
+                    "required": [
+                      "version",
+                      "result_definition_cid",
+                      "invocation_cid",
+                      "logical_result_cid",
+                      "result_schema_cid",
+                      "ordering_evidence_cid",
+                      "actual_row_count",
+                      "actual_completeness",
+                      "effective_data_policy_cid",
+                      "effective_retention_policy_cid",
+                      "provenance_evidence_cids",
+                      "result_artifact_cid"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "definition": {
+                    "type": "object",
+                    "properties": {
+                      "version": {
+                        "const": "actql-local-result-definition/0.1"
+                      },
+                      "unit_definition_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "result_name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "self_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    },
+                    "required": [
+                      "version",
+                      "unit_definition_cid",
+                      "result_name",
+                      "self_cid"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "derivation": {
+                    "type": "object"
+                  },
+                  "invocation": {
+                    "type": "object",
+                    "properties": {
+                      "version": {
+                        "const": "actql-local-computation-semantics/0.1"
+                      },
+                      "unit_definition_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "used_values_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "local_contracts_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "observation_cids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        "minItems": 0
+                      },
+                      "policy_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "self_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    },
+                    "required": [
+                      "version",
+                      "unit_definition_cid",
+                      "used_values_cid",
+                      "local_contracts_cid",
+                      "observation_cids",
+                      "policy_cid",
+                      "self_cid"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "manifest": {
+                    "type": "object",
+                    "properties": {
+                      "version": {
+                        "const": "actql-local-result-manifest/0.1"
+                      },
+                      "unit_definition_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "local_invocation_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "results": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        }
+                      },
+                      "self_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    },
+                    "required": [
+                      "version",
+                      "unit_definition_cid",
+                      "local_invocation_cid",
+                      "results",
+                      "self_cid"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "ordering": {
+                    "type": "object"
+                  },
+                  "retention": {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "$id": "https://smooth.dev/schemas/actql-result-retention-policy-0.1.json",
+                    "title": "actql-result-retention-policy-0.1",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "version",
+                      "retention_contract_cid",
+                      "effective_data_policy_cid",
+                      "available_until",
+                      "delete_by",
+                      "extension_ceiling_at",
+                      "metadata_retention_policy_cid",
+                      "metadata_delete_by",
+                      "clock_contract_cid",
+                      "effective_retention_policy_cid"
+                    ],
+                    "properties": {
+                      "version": {
+                        "const": "actql-result-retention-policy/0.1"
+                      },
+                      "retention_contract_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "effective_data_policy_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "available_until": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                      },
+                      "delete_by": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                      },
+                      "extension_ceiling_at": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                      },
+                      "metadata_retention_policy_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "metadata_delete_by": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                      },
+                      "clock_contract_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "effective_retention_policy_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         },
@@ -72874,6 +73100,342 @@
           }
         },
         "input_logical_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "effect_row_outcome_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "effect_preview_cid",
+        "effect_member_preview_cid",
+        "row_preview_cid",
+        "dispatch_entry_cid",
+        "credential_use_cid",
+        "response_physical_sha256",
+        "response_byte_count",
+        "http_status_code",
+        "typed_outcome",
+        "typed_outcome_cid",
+        "receipt_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-effect-row-outcome-receipt/0.1"
+        },
+        "effect_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effect_member_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "row_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "dispatch_entry_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "credential_use_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "response_physical_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "response_byte_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "http_status_code": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "typed_outcome": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "result"
+              ],
+              "properties": {
+                "state": {
+                  "const": "applied"
+                },
+                "result": {}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "operation_ref",
+                "poll_contract",
+                "cancel_capability",
+                "result_schema",
+                "reconciliation_contract"
+              ],
+              "properties": {
+                "state": {
+                  "const": "accepted"
+                },
+                "operation_ref": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "$actql_ref",
+                    "version",
+                    "resource_kind",
+                    "provider_namespace",
+                    "provider_identity_cid",
+                    "authority_scope_cid",
+                    "boundary_cid",
+                    "identity_cid"
+                  ],
+                  "properties": {
+                    "$actql_ref": {
+                      "const": "resource"
+                    },
+                    "version": {
+                      "const": "actql-resource-ref/0.1"
+                    },
+                    "resource_kind": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "provider_namespace": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "provider_identity_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "authority_scope_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "boundary_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "identity_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                "poll_contract": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "cid"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "version": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                "cancel_capability": {
+                  "enum": [
+                    "supported",
+                    "unsupported"
+                  ]
+                },
+                "result_schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "cid"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "version": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                "expiration": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "reconciliation_contract": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "cid"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "version": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "error"
+              ],
+              "properties": {
+                "state": {
+                  "const": "failed"
+                },
+                "error": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "details": {}
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "typed_outcome_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "receipt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "effect_source_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "source_binding_cid",
+        "source_result",
+        "invocation_cid",
+        "logical_result_cid",
+        "result_schema_cid",
+        "actual_row_count",
+        "actual_completeness",
+        "effective_data_policy_cid",
+        "effective_retention_policy_cid",
+        "provenance_evidence_cids",
+        "result_artifact_cid",
+        "store_authority_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-effect-source-artifact/0.1"
+        },
+        "invocation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "logical_result_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "actual_row_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "actual_completeness": {
+          "enum": [
+            "complete",
+            "partial"
+          ]
+        },
+        "effective_data_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effective_retention_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "provenance_evidence_cids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "result_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_binding_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_result": {
+          "type": "string",
+          "minLength": 1
+        },
+        "store_authority_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
         }

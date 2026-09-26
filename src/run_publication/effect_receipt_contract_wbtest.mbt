@@ -14,6 +14,18 @@ fn effect_receipt_test_reconciliation_body(
   "{\"version\":\"actql-effect-reconciliation-receipt/0.1\"," +
   "\"effect_id\":\"WriteOne\",\"effect_set_receipt_cid\":\"" +
   cid +
+  "\",\"run_identity_cid\":\"" +
+  cid +
+  "\",\"effect_preview_cid\":\"" +
+  cid +
+  "\",\"effect_member_preview_cid\":\"" +
+  cid +
+  "\",\"row_preview_cid\":\"" +
+  cid +
+  "\",\"dispatch_entry_cid\":\"" +
+  cid +
+  "\",\"dispatch_attempt_sequence\":1,\"prior_ledger_head_cid\":\"" +
+  cid +
   "\",\"prior_receipt_cid\":\"" +
   cid +
   "\",\"attempt_sequence\":" +
@@ -37,16 +49,14 @@ test "Effect receipt schemas admit closed canonical bodies and self identities" 
   let row = effect_receipt_test_cid("b")
   let member_receipt = seal_publication_contract(
     "effect_apply_receipt",
-    "{\"version\":\"actql-effect-apply-receipt/0.1\"," +
-    "\"effect_preview_cid\":\"" +
-    cid +
-    "\",\"effect_member_preview_cid\":\"" +
-    cid +
-    "\",\"applied\":[\"" +
-    row +
-    "\"],\"accepted\":[],\"unknown\":[],\"failed\":[]," +
-    "\"unattempted\":[],\"status\":\"applied\"," +
-    "\"outcome\":{\"state\":\"applied\",\"result\":{\"id\":\"001\"}}}",
+    effect_receipt_test_member_body(
+      cid,
+      cid,
+      "[\"" + row + "\"]",
+      "[]",
+      "applied",
+      "",
+    ),
     8192,
     256,
     16,
@@ -54,7 +64,7 @@ test "Effect receipt schemas admit closed canonical bodies and self identities" 
   assert_eq(publication_contract_name(member_receipt), "effect_apply_receipt")
   assert_eq(
     publication_contract_identity(member_receipt),
-    "sha256:ad67e9df7e023c77e6e3c1db0ef11988ec651f31172801cb36dec71cdce731dc",
+    "sha256:85e86d08370b694b307bb91a610aa1a1ede5af76d819b14936e10779fafa14bc",
   )
   let admitted = admit_publication_contract(
     "effect_apply_receipt",
@@ -144,6 +154,62 @@ test "Effect receipt schemas admit closed canonical bodies and self identities" 
 }
 
 ///|
+test "Effect member receipt admits applied and unattempted partial failure" {
+  let preview = effect_receipt_test_cid("a")
+  let applied = effect_receipt_test_cid("b")
+  let unattempted = effect_receipt_test_cid("c")
+  let body = effect_receipt_test_member_body(
+    preview,
+    preview,
+    "[\"" + applied + "\"]",
+    "[]",
+    "applied",
+    "",
+  ).replace_all(
+    old="}],\"status\":\"applied\"",
+    new="},{\"row_index\":1,\"row_preview_cid\":\"" +
+      unattempted +
+      "\",\"state\":\"unattempted\"}],\"status\":\"partial_failure\"",
+  )
+  for variant in 0..<2 {
+    let candidate = if variant == 0 {
+      body
+    } else {
+      body.replace_all(
+        old="\"state\":\"applied\"",
+        new="\"state\":\"accepted\"",
+      )
+    }
+    let receipt = seal_publication_contract(
+      "effect_apply_receipt", candidate, 8192, 256, 16,
+    ).unwrap()
+    assert_true(
+      admit_publication_contract(
+        "effect_apply_receipt",
+        publication_contract_json(receipt),
+        8192,
+        256,
+        16,
+      )
+      is Ok(_),
+    )
+    assert_true(
+      seal_publication_contract(
+        "effect_apply_receipt",
+        candidate.replace_all(
+          old="\"status\":\"partial_failure\"",
+          new="\"status\":\"failed\"",
+        ),
+        8192,
+        256,
+        16,
+      )
+      is Err(ConditionalField("status")),
+    )
+  }
+}
+
+///|
 test "Effect reconciliation receipt enforces correlation and attempt conditions" {
   let command = "\"command_id\":\"request-1\",\"idempotency_key\":\"key-1\","
   let cid = effect_receipt_test_cid("a")
@@ -190,6 +256,136 @@ test "Effect reconciliation receipt enforces correlation and attempt conditions"
       is Err(_),
     )
   }
+}
+
+///|
+test "Effect reconciliation is scoped to one unknown Preview row" {
+  let preview = effect_receipt_test_preview()
+  let preview_cid = effect_preview_semantic_identity(preview)
+  let member_cid = effect_preview_member_identity(preview, 0).unwrap()
+  let row_cid = effect_preview_ordered_row_identity(preview, 0, 0).unwrap()
+  let cid = effect_receipt_test_cid("a")
+  let member_receipt = seal_publication_contract(
+    "effect_apply_receipt",
+    "{\"version\":\"actql-effect-apply-receipt/0.1\"," +
+    "\"run_identity_cid\":\"" +
+    effect_preview_run_identity(preview) +
+    "\",\"effect_preview_cid\":\"" +
+    preview_cid +
+    "\",\"effect_member_preview_cid\":\"" +
+    member_cid +
+    "\",\"rows\":[{\"row_index\":0,\"row_preview_cid\":\"" +
+    row_cid +
+    "\",\"state\":\"unknown\",\"dispatch_entry_cid\":\"" +
+    cid +
+    "\",\"attempt_sequence\":1,\"ledger_head_cid\":\"" +
+    cid +
+    "\"}],\"status\":\"unknown_outcome\"}",
+    8192,
+    256,
+    16,
+  ).unwrap()
+  let set = seal_publication_contract(
+    "effect_set_apply_receipt",
+    "{\"version\":\"actql-effect-set-apply-receipt/0.1\"," +
+    "\"effect_preview_cid\":\"" +
+    preview_cid +
+    "\",\"apply_policy\":\"attempt_all\",\"effects\":[{" +
+    "\"effect_id\":\"WriteOne\",\"effect_member_preview_cid\":\"" +
+    member_cid +
+    "\",\"state\":\"unknown\",\"replayed\":false," +
+    "\"member_receipt_cid\":\"" +
+    publication_contract_identity(member_receipt) +
+    "\"}],\"status\":\"unknown_outcome\"}",
+    8192,
+    256,
+    16,
+  ).unwrap()
+  assert_eq(
+    effect_set_receipt_run_disposition(
+      preview,
+      publication_contract_json(set),
+      [publication_contract_json(member_receipt)],
+      8192,
+      256,
+      16,
+    ).unwrap(),
+    1,
+  )
+  let wire = effect_receipt_test_reconciliation_body(
+      "false", "1", "", "\"command_id\":\"request-1\",\"idempotency_key\":\"key-1\",",
+    )
+    .replace_all(
+      old="\"effect_set_receipt_cid\":\"" + cid + "\"",
+      new="\"effect_set_receipt_cid\":\"" +
+        publication_contract_identity(set) +
+        "\"",
+    )
+    .replace_all(
+      old="\"prior_receipt_cid\":\"" + cid + "\"",
+      new="\"prior_receipt_cid\":\"" +
+        publication_contract_identity(member_receipt) +
+        "\"",
+    )
+    .replace_all(
+      old="\"run_identity_cid\":\"" + cid + "\"",
+      new="\"run_identity_cid\":\"" +
+        effect_preview_run_identity(preview) +
+        "\"",
+    )
+    .replace_all(
+      old="\"effect_preview_cid\":\"" + cid + "\"",
+      new="\"effect_preview_cid\":\"" + preview_cid + "\"",
+    )
+    .replace_all(
+      old="\"effect_member_preview_cid\":\"" + cid + "\"",
+      new="\"effect_member_preview_cid\":\"" + member_cid + "\"",
+    )
+    .replace_all(
+      old="\"row_preview_cid\":\"" + cid + "\"",
+      new="\"row_preview_cid\":\"" + row_cid + "\"",
+    )
+  assert_true(
+    admit_effect_reconciliation_receipt_for_row(
+      preview,
+      0,
+      0,
+      set,
+      member_receipt,
+      None,
+      publication_contract_json(
+        seal_publication_contract(
+          "effect_reconciliation_receipt", wire, 8192, 256, 16,
+        ).unwrap(),
+      ),
+      8192,
+      256,
+      16,
+    )
+    is Ok(_),
+  )
+  let foreign = wire.replace_all(
+    old="\"row_preview_cid\":\"" + row_cid + "\"",
+    new="\"row_preview_cid\":\"" + cid + "\"",
+  )
+  let foreign_receipt = seal_publication_contract(
+    "effect_reconciliation_receipt", foreign, 8192, 256, 16,
+  ).unwrap()
+  assert_true(
+    admit_effect_reconciliation_receipt_for_row(
+      preview,
+      0,
+      0,
+      set,
+      member_receipt,
+      None,
+      publication_contract_json(foreign_receipt),
+      8192,
+      256,
+      16,
+    )
+    is Err(ForeignRow),
+  )
 }
 
 ///|
@@ -270,6 +466,10 @@ fn effect_receipt_test_two_member_wire(
       new="\"effect_id\":\"WriteTwo\"",
     )
     .replace_all(
+      old="\"effect_identity_cid\":\"" + effect_receipt_test_cid("a") + "\"",
+      new="\"effect_identity_cid\":\"" + effect_receipt_test_cid("c") + "\"",
+    )
+    .replace_all(
       old="\"effect_member_preview_cid\":\"" + first_cid + "\"",
       new="\"effect_member_preview_cid\":\"" + second_cid + "\"",
     )
@@ -343,28 +543,285 @@ fn effect_receipt_test_two_member_preview() -> EffectPreviewIdentity {
 }
 
 ///|
+test "distinct Effect members cannot reuse one semantic identity" {
+  let run = effect_receipt_test_cid("b")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let placeholder = effect_receipt_test_cid("a")
+  let second_placeholder = effect_receipt_test_cid("d")
+  let original = effect_receipt_test_two_member_wire(
+    run, authoring, placeholder, second_placeholder, placeholder,
+  )
+  let changed = original.replace_all(
+    old="\"effect_identity_cid\":\"" + effect_receipt_test_cid("c") + "\"",
+    new="\"effect_identity_cid\":\"" + effect_receipt_test_cid("a") + "\"",
+  )
+  let original_rows = derive_effect_preview_row_identities(
+    original, 16384, 512, 16,
+  ).unwrap()
+  let changed_rows = derive_effect_preview_row_identities(
+    changed, 16384, 512, 16,
+  ).unwrap()
+  let duplicate_rows = changed.replace_all(
+    old=original_rows[1][0],
+    new=changed_rows[1][0],
+  )
+  let parsed = parse_effect_preview_shape(duplicate_rows, 16384, 512, 16).unwrap()
+  let effects = match @json.object_field(parsed, "effects") {
+    Some(@json.Array(items)) => @json.array_values(items)
+    _ => abort("Expected two Effect members")
+  }
+  let first_member = effect_member_semantic_cid(effects[0], 16384, 512, 16).unwrap()
+  let second_member = effect_member_semantic_cid(effects[1], 16384, 512, 16).unwrap()
+  let duplicate = duplicate_rows
+    .replace_all(
+      old="\"effect_member_preview_cid\":\"" + placeholder + "\"",
+      new="\"effect_member_preview_cid\":\"" + first_member + "\"",
+    )
+    .replace_all(
+      old="\"effect_member_preview_cid\":\"" + second_placeholder + "\"",
+      new="\"effect_member_preview_cid\":\"" + second_member + "\"",
+    )
+  assert_true(
+    derive_effect_preview_identities(duplicate, 16384, 512, 16)
+    is Err(InvalidMember),
+  )
+  assert_true(
+    admit_effect_preview_identity(duplicate, run, authoring, 16384, 512, 16)
+    is Err(InvalidMember),
+  )
+}
+
+///|
+test "typed Effect outcome stays bound to the exact Preview row" {
+  let preview = effect_receipt_test_two_member_preview()
+  let first = effect_preview_row_identity(preview, 0, 0).unwrap()
+  let second = effect_preview_row_identity(preview, 1, 0).unwrap()
+  let applied = "{\"result\":{\"record_id\":\"a001\"},\"state\":\"applied\"}"
+  assert_true(
+    check_effect_preview_row_outcome(
+      preview, 0, 0, first, applied, 4096, 128, 16,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    check_effect_preview_row_outcome(
+      preview, 1, 0, second, applied, 4096, 128, 16,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    check_effect_preview_row_outcome(
+      preview, 0, 0, second, applied, 4096, 128, 16,
+    )
+    is Err(ForeignRow),
+  )
+  assert_true(
+    check_effect_preview_row_outcome(
+      preview, 0, 1, first, applied, 4096, 128, 16,
+    )
+    is Err(InvalidRow),
+  )
+  assert_true(
+    check_effect_preview_row_outcome(
+      preview, 0, 0, first, "{\"state\":\"applied\"}", 4096, 128, 16,
+    )
+    is Err(Outcome(_)),
+  )
+}
+
+///|
 fn effect_receipt_test_member_body(
   preview_cid : String,
   member_cid : String,
   applied : String,
   failed : String,
   status : String,
-  outcome : String,
+  _outcome : String,
 ) -> String {
+  let applied_value = @json.from_source(
+    @source.parse_json(applied, {
+      max_input_bytes: 8192,
+      max_nodes: 256,
+      max_depth: 12,
+    }).unwrap(),
+    256,
+    12,
+    8192,
+  ) catch {
+    _ => abort("Expected applied rows")
+  }
+  let failed_value = @json.from_source(
+    @source.parse_json(failed, {
+      max_input_bytes: 8192,
+      max_nodes: 256,
+      max_depth: 12,
+    }).unwrap(),
+    256,
+    12,
+    8192,
+  ) catch {
+    _ => abort("Expected failed rows")
+  }
+  guard applied_value is @json.Array(applied_rows) &&
+    failed_value is @json.Array(failed_rows) else {
+    abort("Expected row arrays")
+  }
+  let mut rows = ""
+  let mut index = 0
+  for item in @json.array_values(applied_rows) {
+    guard item is @json.String(cid) else { abort("Expected applied row CID") }
+    if index > 0 {
+      rows += ","
+    }
+    rows += "{\"row_index\":" +
+      index.to_string() +
+      ",\"row_preview_cid\":\"" +
+      cid +
+      "\",\"state\":\"applied\",\"dispatch_entry_cid\":\"" +
+      effect_receipt_test_cid("e") +
+      "\",\"attempt_sequence\":1,\"outcome_receipt_cid\":\"" +
+      effect_receipt_test_cid("f") +
+      "\"}"
+    index += 1
+  }
+  for item in @json.array_values(failed_rows) {
+    guard @json.object_field(item, "row_preview_cid") is Some(@json.String(cid)) else {
+      abort("Expected failed row CID")
+    }
+    if index > 0 {
+      rows += ","
+    }
+    rows += "{\"row_index\":" +
+      index.to_string() +
+      ",\"row_preview_cid\":\"" +
+      cid +
+      "\",\"state\":\"failed\",\"dispatch_entry_cid\":\"" +
+      effect_receipt_test_cid("e") +
+      "\",\"attempt_sequence\":1,\"outcome_receipt_cid\":\"" +
+      effect_receipt_test_cid("f") +
+      "\"}"
+    index += 1
+  }
   "{\"version\":\"actql-effect-apply-receipt/0.1\"," +
+  "\"run_identity_cid\":\"" +
+  effect_receipt_test_cid("b") +
+  "\"," +
   "\"effect_preview_cid\":\"" +
   preview_cid +
   "\",\"effect_member_preview_cid\":\"" +
   member_cid +
-  "\",\"applied\":" +
-  applied +
-  ",\"accepted\":[],\"unknown\":[],\"failed\":" +
-  failed +
-  ",\"unattempted\":[],\"status\":\"" +
+  "\",\"rows\":[" +
+  rows +
+  "],\"status\":\"" +
   status +
-  "\",\"outcome\":" +
-  outcome +
-  "}"
+  "\"}"
+}
+
+///|
+test "Effect member receipt retains partial unknown and atomic rollback rows" {
+  let cid = effect_receipt_test_cid("a")
+  let first = effect_receipt_test_cid("b")
+  let second = effect_receipt_test_cid("c")
+  let terminal = "{\"row_index\":0,\"row_preview_cid\":\"" +
+    first +
+    "\",\"state\":\"applied\",\"dispatch_entry_cid\":\"" +
+    cid +
+    "\",\"attempt_sequence\":1,\"outcome_receipt_cid\":\"" +
+    cid +
+    "\"}"
+  let unknown = "{\"row_index\":1,\"row_preview_cid\":\"" +
+    second +
+    "\",\"state\":\"unknown\",\"dispatch_entry_cid\":\"" +
+    cid +
+    "\",\"attempt_sequence\":1,\"ledger_head_cid\":\"" +
+    cid +
+    "\"}"
+  let prefix = "{\"version\":\"actql-effect-apply-receipt/0.1\"," +
+    "\"run_identity_cid\":\"" +
+    cid +
+    "\",\"effect_preview_cid\":\"" +
+    cid +
+    "\",\"effect_member_preview_cid\":\"" +
+    cid +
+    "\",\"rows\":["
+  let mixed = prefix +
+    terminal +
+    "," +
+    unknown +
+    "],\"status\":\"unknown_outcome\"}"
+  assert_true(
+    seal_publication_contract("effect_apply_receipt", mixed, 8192, 256, 16)
+    is Ok(_),
+  )
+  assert_true(
+    seal_publication_contract(
+      "effect_apply_receipt",
+      mixed.replace_all(
+        old="\"status\":\"unknown_outcome\"",
+        new="\"status\":\"partial_failure\"",
+      ),
+      8192,
+      256,
+      16,
+    )
+    is Err(ConditionalField("status")),
+  )
+  assert_true(
+    seal_publication_contract(
+      "effect_apply_receipt",
+      mixed.replace_all(old=second, new=first),
+      8192,
+      256,
+      16,
+    )
+    is Err(ConditionalField("status")),
+  )
+  assert_true(
+    seal_publication_contract(
+      "effect_apply_receipt",
+      mixed.replace_all(old=",\"ledger_head_cid\":\"" + cid + "\"", new=""),
+      8192,
+      256,
+      16,
+    )
+    is Err(InvalidField("protocol_schema")),
+  )
+  let rolled = "{\"row_index\":0,\"row_preview_cid\":\"" +
+    first +
+    "\",\"state\":\"rolled_back\",\"dispatch_entry_cid\":\"" +
+    cid +
+    "\",\"attempt_sequence\":1,\"outcome_receipt_cid\":\"" +
+    cid +
+    "\",\"batch_result_cid\":\"" +
+    cid +
+    "\"}"
+  let failed = "{\"row_index\":1,\"row_preview_cid\":\"" +
+    second +
+    "\",\"state\":\"failed\",\"dispatch_entry_cid\":\"" +
+    cid +
+    "\",\"attempt_sequence\":1,\"outcome_receipt_cid\":\"" +
+    cid +
+    "\",\"batch_result_cid\":\"" +
+    cid +
+    "\"}"
+  let rollback = prefix + rolled + "," + failed + "],\"status\":\"failed\"}"
+  assert_true(
+    seal_publication_contract("effect_apply_receipt", rollback, 8192, 256, 16)
+    is Ok(_),
+  )
+  assert_true(
+    seal_publication_contract(
+      "effect_apply_receipt",
+      rollback.replace_all(
+        old="\"state\":\"failed\"",
+        new="\"state\":\"applied\"",
+      ),
+      8192,
+      256,
+      16,
+    )
+    is Err(ConditionalField("status")),
+  )
 }
 
 ///|
@@ -584,6 +1041,40 @@ test "Effect Set receipt references every exact Preview member receipt" {
     256,
     12,
   ).unwrap()
+  let issued = issue_effect_set_apply_receipt_from_members(
+    preview,
+    [member_receipt],
+    [false],
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_eq(
+    effect_set_receipt_run_disposition(
+      preview,
+      publication_contract_json(issued),
+      member_wires,
+      8192,
+      256,
+      12,
+    ).unwrap(),
+    0,
+  )
+  assert_eq(
+    publication_contract_identity(issued),
+    publication_contract_identity(set),
+  )
+  assert_true(
+    issue_effect_set_apply_receipt_from_members(
+      preview,
+      [member_receipt],
+      [],
+      8192,
+      256,
+      12,
+    )
+    is Err(InvalidInventory),
+  )
   assert_true(
     admit_effect_set_apply_receipt_references(
       preview,
@@ -700,6 +1191,46 @@ test "Effect Set receipt closes two members regardless of dispatch order" {
     ).unwrap(),
   ]
   let wires = receipts.map(publication_contract_json)
+  let issued = issue_effect_set_apply_receipt_from_members(
+    preview,
+    receipts,
+    [false, true],
+    16384,
+    512,
+    16,
+  ).unwrap()
+  assert_true(
+    admit_effect_set_apply_receipt_references(
+      preview,
+      publication_contract_json(issued),
+      wires,
+      16384,
+      512,
+      16,
+    )
+    is Ok(_),
+  )
+  guard @json.object_field(issued.value, "effects") is Some(@json.Array(items)) else {
+    fail("missing issued set inventory")
+  }
+  let effects = @json.array_values(items)
+  assert_true(
+    @json.object_field(effects[0], "replayed") is Some(@json.Bool(false)),
+  )
+  assert_true(
+    @json.object_field(effects[1], "replayed") is Some(@json.Bool(true)),
+  )
+  assert_true(
+    issue_effect_set_apply_receipt_from_members(
+      preview,
+      [receipts[1], receipts[0]],
+      [false, true],
+      16384,
+      512,
+      16,
+    )
+    is Err(MemberReceipt(0, _)),
+  )
   let first = effect_receipt_test_set_entry(
     "WriteOne",
     member_cids[0],
@@ -801,18 +1332,8 @@ test "Effect Set receipt closes two members regardless of dispatch order" {
     16384,
     512,
     16,
-  ).unwrap()
-  assert_true(
-    admit_effect_set_apply_receipt_references(
-      preview,
-      publication_contract_json(wrong_outcome),
-      wires,
-      16384,
-      512,
-      16,
-    )
-    is Err(MemberOutcomeMismatch(0)),
   )
+  assert_true(wrong_outcome is Err(InvalidField("protocol_schema")))
   let wrong_status = seal_publication_contract(
     "effect_set_apply_receipt",
     "{\"version\":\"actql-effect-set-apply-receipt/0.1\"," +
@@ -875,6 +1396,17 @@ test "Effect Set receipt closes two members regardless of dispatch order" {
     512,
     16,
   ).unwrap()
+  assert_eq(
+    effect_set_receipt_run_disposition(
+      preview,
+      publication_contract_json(mixed),
+      [wires[0], publication_contract_json(failed_second)],
+      16384,
+      512,
+      16,
+    ).unwrap(),
+    2,
+  )
   assert_true(
     admit_effect_set_apply_receipt_references(
       preview,

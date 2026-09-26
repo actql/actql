@@ -118,6 +118,79 @@ fn preview_identity_test_wire(
 }
 
 ///|
+test "Preview authoring seals row, member, set and late dispatch bindings" {
+  let a = preview_identity_test_cid("a")
+  let run = preview_identity_test_cid("b")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let template = preview_identity_test_wire(
+    run,
+    authoring,
+    preview_identity_test_cid("4"),
+    "001000000000001",
+    a,
+    a,
+  )
+  let (semantic_wire, semantic) = author_effect_preview_semantic_wire(
+    template, run, authoring, 8192, 256, 12,
+  ).unwrap()
+  assert_eq(
+    effect_preview_semantic_identity(semantic),
+    "sha256:2fe7f8e93988fcf4d7804e86b69a72d00e1c7bfd946c8fa29d6e91c706593409",
+  )
+  assert_eq(
+    effect_preview_row_key(semantic, 0, 0),
+    effect_preview_row_identity(semantic, 0, 0),
+  )
+  let final_wire = complete_effect_preview_dispatch_keys(
+    semantic_wire,
+    [[preview_identity_test_cid("4")]],
+    run,
+    authoring,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  let final_identity = admit_effect_preview_identity(
+    final_wire, run, authoring, 8192, 256, 12,
+  ).unwrap()
+  assert_eq(
+    effect_preview_member_effect_identity_cid(final_identity, 0),
+    Some(preview_identity_test_cid("a")),
+  )
+  assert_eq(
+    effect_preview_semantic_identity(final_identity),
+    effect_preview_semantic_identity(semantic),
+  )
+  assert_eq(
+    effect_preview_row_key(final_identity, 0, 0),
+    Some(preview_identity_test_cid("4")),
+  )
+  assert_true(
+    complete_effect_preview_dispatch_keys(
+      semantic_wire,
+      [[]],
+      run,
+      authoring,
+      8192,
+      256,
+      12,
+    )
+    is Err(InvalidMember),
+  )
+  assert_true(
+    author_effect_preview_semantic_wire(
+      template,
+      preview_identity_test_cid("c"),
+      authoring,
+      8192,
+      256,
+      12,
+    )
+    is Err(RunBindingMismatch),
+  )
+}
+
+///|
 test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" {
   let a = preview_identity_test_cid("a")
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
@@ -173,8 +246,47 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
     12,
   ).unwrap()
   assert_eq(effect_preview_semantic_identity(admitted), preview_cid)
+  assert_eq(
+    effect_preview_private_holding_cid(admitted, preview_identity_test_cid("c")),
+    Some(
+      "sha256:3a6b74ed61b92f77c62ac07d1a09e4f35b5952631374560d0da6c7235f21625b",
+    ),
+  )
+  assert_eq(effect_preview_private_holding_cid(admitted, "foreign"), None)
+  assert_true(
+    effect_preview_private_holding_cid(admitted, preview_identity_test_cid("d")) !=
+    effect_preview_private_holding_cid(admitted, preview_identity_test_cid("c")),
+  )
+  let another_run_wire = valid.replace_all(
+    old=preview_identity_test_cid("b"),
+    new=preview_identity_test_cid("d"),
+  )
+  let another_run = admit_effect_preview_identity(
+    another_run_wire,
+    preview_identity_test_cid("d"),
+    authoring,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_eq(effect_preview_semantic_identity(another_run), preview_cid)
+  assert_true(
+    effect_preview_private_holding_cid(
+      another_run,
+      preview_identity_test_cid("c"),
+    ) !=
+    effect_preview_private_holding_cid(admitted, preview_identity_test_cid("c")),
+  )
   assert_eq(effect_preview_member_identity(admitted, 0), Some(expected_member))
   assert_eq(effect_preview_member_identity(admitted, 1), None)
+  assert_eq(effect_preview_member_capability_evidence_cid(admitted, 0), Some(a))
+  assert_eq(effect_preview_member_authority_scope_cid(admitted, 0), Some(a))
+  assert_eq(effect_preview_member_source_binding_cid(admitted, 0), Some(a))
+  assert_eq(effect_preview_member_resolved_contract_cid(admitted, 0), Some(a))
+  assert_eq(effect_preview_member_capability_evidence_cid(admitted, 1), None)
+  assert_eq(effect_preview_member_authority_scope_cid(admitted, 1), None)
+  assert_eq(effect_preview_member_source_binding_cid(admitted, 1), None)
+  assert_eq(effect_preview_member_resolved_contract_cid(admitted, 1), None)
   let footprint = effect_preview_member_footprint(admitted, 0).unwrap()
   assert_eq(effect_preview_footprint_kind(footprint), "exact_targets")
   assert_eq(effect_preview_footprint_provider_namespace(footprint), "provider")
@@ -196,6 +308,15 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
     effect_preview_row_intended_value_wire(admitted, 0, 0),
     Some("{\"Name\":\"After\"}"),
   )
+  assert_eq(
+    effect_preview_row_intended_changes_wire(admitted, 0, 0),
+    Some("{\"state\":\"present\",\"value\":{\"Name\":\"After\"}}"),
+  )
+  assert_eq(
+    effect_preview_ordered_row_intended_changes_wire(admitted, 0, 0),
+    Some("{\"state\":\"present\",\"value\":{\"Name\":\"After\"}}"),
+  )
+  assert_eq(effect_preview_row_intended_changes_wire(admitted, 0, 1), None)
   assert_eq(effect_preview_ordered_row_identity(admitted, 0, 0), Some(row))
   assert_eq(effect_preview_row_identity(admitted, 0, 1), None)
   let wrong_count = valid.replace_all(old="\"count\":1", new="\"count\":2")
@@ -459,6 +580,157 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
     derive_effect_preview_identities(changed_operation, 8192, 256, 12)
     is Err(RowIdentityMismatch(0, 0)),
   )
+}
+
+///|
+test "Effect row Outcome Receipt binds Preview, dispatch and saved bytes" {
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let preview = admit_effect_preview_identity(
+    preview_identity_test_wire(
+      preview_identity_test_cid("b"),
+      authoring,
+      preview_identity_test_cid("4"),
+      "001000000000001",
+      "sha256:099721c928770511d95faed4eaeef3fef768c4b573c714fc0af16c0b5439b5b6",
+      "sha256:2fe7f8e93988fcf4d7804e86b69a72d00e1c7bfd946c8fa29d6e91c706593409",
+    ),
+    preview_identity_test_cid("b"),
+    authoring,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  let response = Bytes::from_array([0x7B, 0x7D])
+  let dispatch_entries = [preview_identity_test_cid("5")]
+  let saved_response = admit_effect_saved_response_evidence(
+    dispatch_entries,
+    preview_identity_test_cid("6"),
+    response,
+    201,
+    8192,
+  ).unwrap()
+  dispatch_entries[0] = preview_identity_test_cid("7")
+  assert_true(
+    issue_effect_row_outcome_receipt_from_response(
+      preview,
+      0,
+      0,
+      preview_identity_test_cid("5"),
+      saved_response,
+      "{\"result\":{\"id\":\"001\"},\"state\":\"applied\"}",
+      8192,
+      256,
+      12,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    issue_effect_row_outcome_receipt_from_response(
+      preview,
+      0,
+      0,
+      preview_identity_test_cid("7"),
+      saved_response,
+      "{\"result\":{\"id\":\"001\"},\"state\":\"applied\"}",
+      8192,
+      256,
+      12,
+    )
+    is Err(InvalidDispatch),
+  )
+  let first = issue_effect_row_outcome_receipt(
+    preview,
+    0,
+    0,
+    preview_identity_test_cid("5"),
+    preview_identity_test_cid("6"),
+    response,
+    201,
+    "{\"result\":{\"id\":\"001\"},\"state\":\"applied\"}",
+    8192,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_eq(first.name, "effect_row_outcome_receipt")
+  assert_eq(
+    first.identity,
+    "sha256:0b54f40a3e03a7840f08737b5efd2380f006aea8c4161a6ffeea0af461fe076f",
+  )
+  assert_eq(
+    contract_string(first, "row_preview_cid"),
+    effect_preview_row_identity(preview, 0, 0),
+  )
+  assert_eq(
+    contract_string(first, "response_physical_sha256"),
+    Some(@sha.hex(response)),
+  )
+  assert_true(
+    admit_effect_row_outcome_receipt(
+      preview,
+      0,
+      0,
+      preview_identity_test_cid("5"),
+      preview_identity_test_cid("6"),
+      response,
+      201,
+      first.wire,
+      8192,
+      8192,
+      256,
+      12,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    admit_effect_row_outcome_receipt(
+      preview,
+      0,
+      0,
+      preview_identity_test_cid("7"),
+      preview_identity_test_cid("6"),
+      response,
+      201,
+      first.wire,
+      8192,
+      8192,
+      256,
+      12,
+    )
+    is Err(ForeignResponse),
+  )
+  assert_true(
+    issue_effect_row_outcome_receipt(
+      preview,
+      0,
+      1,
+      preview_identity_test_cid("5"),
+      preview_identity_test_cid("6"),
+      response,
+      201,
+      "{\"result\":{},\"state\":\"applied\"}",
+      8192,
+      8192,
+      256,
+      12,
+    )
+    is Err(InvalidRow),
+  )
+  let changed = issue_effect_row_outcome_receipt(
+    preview,
+    0,
+    0,
+    preview_identity_test_cid("5"),
+    preview_identity_test_cid("6"),
+    Bytes::from_array([0x5B, 0x5D]),
+    201,
+    "{\"result\":{\"id\":\"001\"},\"state\":\"applied\"}",
+    8192,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_true(first.identity != changed.identity)
 }
 
 ///|

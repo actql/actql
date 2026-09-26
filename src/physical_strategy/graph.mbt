@@ -31,6 +31,7 @@ struct CheckedDAG {
   program : @checked.CheckedProgram
   source_free_root : Bool
   owners : Array[@lower.BoundPrepared]
+  stage_tasks : Array[Array[Int]]
   targets : Array[@pipeline.Target?]
   input_counts : Array[Int]
   selected_steps : Array[Int?]
@@ -58,6 +59,7 @@ struct CheckedEffectComputationDAG {
 struct CheckedEffectSourcePort {
   member_index : Int
   stage : Int
+  task : Int
   occurrence : @execution.ManagedResultOccurrence
 }
 
@@ -151,7 +153,15 @@ fn bind_checked_effect_source_ports(
           Ok(value) => value
           Err(_) => return Err(ForeignEffectSource(index))
         }
-        sources.push(Some({ member_index: index, stage, occurrence, }))
+        let target = @ports.port_target(port)
+        guard graph_stage_target_task(graph, stage, target) is Some(task) else {
+          return Err(UnsupportedEffectSource(index))
+        }
+        guard graph.owners.get(task) is Some(task_owner) &&
+          physical_equal(task_owner, owner) else {
+          return Err(ForeignEffectSource(index))
+        }
+        sources.push(Some({ member_index: index, stage, task, occurrence, }))
       }
     }
   }
@@ -297,6 +307,7 @@ pub(all) enum GraphIssue {
   InvalidLimits
   EffectGraphOwnerRequired
   ForeignEffectSource(Int)
+  UnsupportedEffectSource(Int)
   TaskLimit
   WorkLimit
   ForeignPipeline(Int)
@@ -694,6 +705,7 @@ fn prepare_checked_dag_owned(
     program,
     source_free_root,
     owners: owners.copy(),
+    stage_tasks: Array::makei(count, stage => [stage]),
     targets: Array::makei(count, task => {
       let pipeline = @lower.pipeline(@lower.bound_preparation(owners[task]))
       if (task == 0 && !source_free_root) || @pipeline.step_count(pipeline) == 0 {
@@ -911,4 +923,28 @@ pub fn graph_control_count(graph : CheckedDAG) -> Int {
 ///|
 pub fn graph_control_at(graph : CheckedDAG, index : Int) -> ControlEdge? {
   graph.control.get(index)
+}
+
+///|
+/// The physical producer task may differ from the authored Stage when a
+/// mixed Carrier sequence has been split into independently owned tasks.
+pub fn checked_effect_source_task(value : CheckedEffectSourcePort) -> Int {
+  value.task
+}
+
+///|
+/// Resolve a checked Stage target to its physical producer task. A split
+/// Carrier sequence retains the authored Stage but moves each Step to its
+/// own task; callers must still present the exact checked Result occurrence
+/// before they can borrow the output.
+pub fn graph_stage_target_task(
+  graph : CheckedDAG,
+  stage : Int,
+  target : @pipeline.Target,
+) -> Int? {
+  guard mapped_stage_target(graph.stage_tasks, stage, target) is Some(task) &&
+    graph.targets.get(task).bind(value => value) == Some(target) else {
+    return None
+  }
+  Some(task)
 }

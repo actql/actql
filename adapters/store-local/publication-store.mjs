@@ -27,10 +27,12 @@ import {
 import {resolve} from 'node:path';
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
-// Physical holdings: Transfer material, encrypted publication evidence and
-// the Local Host's encrypted continuation evidence.
+// Physical holdings: Transfer material, Effect source/capture custody,
+// encrypted publication evidence, and Local continuation evidence.
 const physicalHoldingNamespaces = Object.freeze([
-  'remote-transfer', 'publication-private', 'local-continuation-private',
+  'remote-transfer', 'effect-source', 'effect-capture',
+  'publication-private',
+  'local-continuation-private',
 ]);
 const localContinuationEvidenceNames = Object.freeze([
   'captured_input', 'invocation_request', 'prepared_invocation',
@@ -601,6 +603,7 @@ export async function openLocalPublicationStore(
     if (!exactKeys(value, [
       'version', 'tenant_id', 'authority_scope_cid', 'run_definition_cid',
       'public_index_entry_cid', 'publication_attempt_cid', 'contract_objects',
+      'physical_holding_cids',
     ]) ||
         value.version !== 'actql-local-publication-metadata-inventory/0.1' ||
         typeof value.tenant_id !== 'string' || value.tenant_id.length === 0 ||
@@ -623,13 +626,20 @@ export async function openLocalPublicationStore(
           .map(object => object.semantic_cid).join('\0') !==
           value.contract_objects.map(object => object.semantic_cid).join('\0') ||
         !value.contract_objects.some(object =>
-          object.semantic_cid === value.public_index_entry_cid)) {
+          object.semantic_cid === value.public_index_entry_cid) ||
+        !Array.isArray(value.physical_holding_cids) ||
+        value.physical_holding_cids.some(cid => !cidPattern.test(cid)) ||
+        new Set(value.physical_holding_cids).size !==
+          value.physical_holding_cids.length ||
+        [...value.physical_holding_cids].sort().join('\0') !==
+          value.physical_holding_cids.join('\0')) {
       fail('InvalidPublicationMetadataInventoryStore');
     }
     return Object.freeze({
       ...value,
       contract_objects: Object.freeze(value.contract_objects.map(object =>
         Object.freeze({...object}))),
+      physical_holding_cids: Object.freeze([...value.physical_holding_cids]),
     });
   };
 
@@ -694,7 +704,8 @@ export async function openLocalPublicationStore(
     }
     if (!exactKeys(value, [
       'version', 'tenant_id', 'authority_scope_cid', 'run_definition_cid',
-      'public_index_entry_cid', 'results', 'contract_objects', 'requested_at',
+      'public_index_entry_cid', 'results', 'contract_objects',
+      'physical_holding_cids', 'requested_at',
     ]) ||
         value.version !== 'actql-local-publication-metadata-deletion/0.1' ||
         typeof value.tenant_id !== 'string' || value.tenant_id.length === 0 ||
@@ -722,7 +733,13 @@ export async function openLocalPublicationStore(
           .sort((left, right) =>
             left.semantic_cid.localeCompare(right.semantic_cid))
           .map(object => object.semantic_cid).join('\0') !==
-          value.contract_objects.map(object => object.semantic_cid).join('\0') ||
+        value.contract_objects.map(object => object.semantic_cid).join('\0') ||
+        !Array.isArray(value.physical_holding_cids) ||
+        value.physical_holding_cids.some(cid => !cidPattern.test(cid)) ||
+        new Set(value.physical_holding_cids).size !==
+          value.physical_holding_cids.length ||
+        [...value.physical_holding_cids].sort().join('\0') !==
+          value.physical_holding_cids.join('\0') ||
         !timestampPattern.test(value.requested_at)) {
       fail('InvalidPublicationMetadataDeletionStore');
     }
@@ -2826,10 +2843,190 @@ export async function openLocalPublicationStore(
     return true;
   };
 
+  // This is stored-evidence inspection, not physical row-outcome admission
+  // or publication commit. The portable control admits the final reference
+  // chain; the Store confirms its public bodies and private physical holdings.
+  // A caller cannot use this result as an apply or commit permit.
+  const inspectEffectfulStoredEvidence = async ({index, chain, preview,
+    receipts, privateBinding, effectSources}) => {
+    active();
+    if (typeof contractControl.effectfulCommitValid !== 'function' ||
+        typeof contractControl.effectPrivateEvidenceBinding !== 'function' ||
+        typeof contractControl.capturedEffectSourceHoldingCid !== 'function' ||
+        typeof contractControl.capturedEffectSourceArtifactCid !== 'function' ||
+        typeof contractControl.capturedEffectSourceStoreAuthorityCid !==
+          'function' ||
+        !exactKeys(chain, [
+          'runDefinition', 'invocation', 'definitions', 'artifacts',
+          'derivations', 'orderings', 'retentions', 'durableBindings',
+          'manifest', 'computationReceipt', 'capturedRun',
+        ]) || !['definitions', 'artifacts', 'derivations', 'orderings',
+          'retentions', 'durableBindings'].every(name =>
+          Array.isArray(chain[name])) ||
+        !exactKeys(receipts, ['setWire', 'memberWires', 'finalWire']) ||
+        typeof receipts.setWire !== 'string' ||
+        typeof receipts.finalWire !== 'string' ||
+        !Array.isArray(receipts.memberWires) ||
+        receipts.memberWires.some(wire => typeof wire !== 'string') ||
+        !Array.isArray(effectSources) ||
+        !exactKeys(privateBinding, [
+          'name', 'semanticCid', 'holdingCid', 'wire',
+        ])) {
+      fail('InvalidEffectfulStoredEvidence');
+    }
+    const admittedIndex = admitContract('public_index_entry', index?.wire);
+    if (admittedIndex.identity !== index?.identity) {
+      fail('InvalidEffectfulStoredEvidence');
+    }
+    const entry = parseContract(admittedIndex);
+    const request = (await readContract(
+      entry.publication_request_cid, 'publication_request',
+    )).contract;
+    const attempt = (await readContract(
+      entry.publication_attempt_cid, 'publication_attempt',
+    )).contract;
+    const finalReceipt = admitContract('run_receipt', receipts.finalWire);
+    const setReceipt = admitContract(
+      'effect_set_apply_receipt', receipts.setWire,
+    );
+    const memberReceipts = receipts.memberWires.map(wire =>
+      admitContract('effect_apply_receipt', wire));
+    const publicContracts = [chain.runDefinition, chain.invocation,
+      ...chain.definitions, ...chain.artifacts, ...chain.derivations,
+      ...chain.orderings, ...chain.retentions, ...chain.durableBindings,
+      chain.manifest, chain.computationReceipt, chain.capturedRun,
+      finalReceipt, setReceipt, ...memberReceipts];
+    for (const contract of publicContracts) {
+      if (!exactKeys(contract, [
+        'name', 'identityField', 'identity', 'wire',
+      ]) || !cidPattern.test(contract.identity) ||
+          !(await readSemanticBytes(contract.identity)).equals(
+            Buffer.from(contract.wire, 'utf8'))) {
+        fail('EffectfulCommitEvidenceMismatch');
+      }
+    }
+    if (contractControl.effectfulCommitValid(
+      chain, preview, receipts, request, attempt, admittedIndex,
+      contractLimits,
+    ) !== true) {
+      fail('InvalidEffectfulCommitChain');
+    }
+    const expectedPrivate = contractControl.effectPrivateEvidenceBinding(
+      preview, configuration.storeAuthorityCid,
+    );
+    if (Object.keys(privateBinding).some(key =>
+      privateBinding[key] !== expectedPrivate[key]) ||
+        await confirmPrivateEvidence(privateBinding) === undefined) {
+      fail('EffectfulPrivateEvidenceUnavailable');
+    }
+    const context = parseContract(chain.capturedRun).effect_context;
+    const expectedHoldings = Object.values(
+      context?.effect_source_holding_cids ?? {},
+    );
+    if (new Set(expectedHoldings).size !== expectedHoldings.length ||
+        effectSources.length !== expectedHoldings.length) {
+      fail('InvalidEffectfulSourceInventory');
+    }
+    const seen = new Set();
+    const sourceArtifactCids = [];
+    const sourceSchemaCids = [];
+    for (const source of effectSources) {
+      const holdingCid = contractControl.capturedEffectSourceHoldingCid(source);
+      const artifactCid = contractControl.capturedEffectSourceArtifactCid(source);
+      if (seen.has(holdingCid) || !expectedHoldings.includes(holdingCid) ||
+          contractControl.capturedEffectSourceStoreAuthorityCid(source) !==
+            configuration.storeAuthorityCid) {
+        fail('InvalidEffectfulSourceInventory');
+      }
+      seen.add(holdingCid);
+      const holding = await inspectPhysicalHolding(holdingCid);
+      if (holding?.namespace !== 'effect-source' ||
+          holding.manifest_cid !== artifactCid) {
+        fail('EffectfulSourceHoldingUnavailable');
+      }
+      const artifact = (await readContract(
+        artifactCid, 'effect_source_artifact',
+      )).value;
+      await readSemanticBytes(artifact.result_schema_cid);
+      sourceArtifactCids.push(artifactCid);
+      sourceSchemaCids.push(artifact.result_schema_cid);
+      await commitPhysicalHolding(holding, []);
+    }
+    for (const binding of chain.durableBindings) {
+      await verifyDurableResultBinding(binding);
+    }
+    let captureHoldingCid;
+    let captureRecordHoldingCid;
+    if (typeof contractControl.effectComputationCaptureHoldingCid ===
+        'function') {
+      const candidate = contractControl.effectComputationCaptureHoldingCid(
+        chain.runDefinition, configuration.storeAuthorityCid,
+      );
+      const holding = await inspectPhysicalHolding(candidate);
+      if (holding !== undefined) {
+        const expected = new Map();
+        for (const binding of chain.durableBindings) {
+          const body = parseContract(binding);
+          const prior = expected.get(body.material_generation_cid);
+          if (prior !== undefined && prior !== body.byte_count) {
+            fail('InvalidEffectfulCaptureHolding');
+          }
+          expected.set(body.material_generation_cid, body.byte_count);
+        }
+        if (holding.namespace !== 'effect-capture' ||
+            holding.manifest_cid !== chain.capturedRun.identity ||
+            holding.objects.length !== expected.size ||
+            holding.objects.some(object =>
+              expected.get(object.cid) !== object.byte_count)) {
+          fail('InvalidEffectfulCaptureHolding');
+        }
+        await commitPhysicalHolding(holding, []);
+        captureHoldingCid = candidate;
+      }
+    }
+    if (typeof contractControl.effectComputationRecordHoldingCid ===
+        'function') {
+      const candidate = contractControl.effectComputationRecordHoldingCid(
+        chain.runDefinition, configuration.storeAuthorityCid,
+      );
+      const holding = await inspectPhysicalHolding(candidate);
+      if (holding !== undefined) {
+        if (holding.namespace !== 'publication-private' ||
+            holding.manifest_cid !== chain.capturedRun.identity ||
+            holding.objects.length !== 1) {
+          fail('InvalidEffectfulCaptureRecord');
+        }
+        let record;
+        try {
+          record = JSON.parse((await readPrivateEvidence(
+            'effect_capture', chain.capturedRun.identity, candidate,
+          )).toString('utf8'));
+        } catch (error) {
+          fail('InvalidEffectfulCaptureRecord', error);
+        }
+        if (record?.captured_run !== chain.capturedRun.wire ||
+            record?.run_definition !== chain.runDefinition.wire ||
+            record?.store_authority_cid !== configuration.storeAuthorityCid) {
+          fail('InvalidEffectfulCaptureRecord');
+        }
+        captureRecordHoldingCid = candidate;
+      }
+    }
+    return Object.freeze({index: admittedIndex, finalReceipt,
+      privateHoldingCid: privateBinding.holdingCid,
+      captureHoldingCid, captureRecordHoldingCid,
+      effectSourceHoldingCids: Object.freeze([...seen]),
+      publicContractCids: Object.freeze(publicContracts.map(contract =>
+        contract.identity)),
+      sourceArtifactCids: Object.freeze(sourceArtifactCids),
+      sourceSchemaCids: Object.freeze(sourceSchemaCids)});
+  };
+
   const commitIndexInternal = async (
     suppliedWire,
     requiredObjectCids,
     suppliedEvidence,
+    effectfulEvidence,
   ) => {
     active();
     const admitted = admitContract('public_index_entry', suppliedWire);
@@ -2861,9 +3058,42 @@ export async function openLocalPublicationStore(
       if (!required.has(cid)) fail('IncompletePublicationCommitInventory');
     }
     for (const cid of required) await readSemanticBytes(cid);
-    const boundPhysicalCids = await verifyCommitEvidence(
-      admitted, entry, suppliedEvidence, required,
-    );
+    let boundPhysicalCids;
+    let physicalHoldingCids = [];
+    if (effectfulEvidence === undefined) {
+      boundPhysicalCids = await verifyCommitEvidence(
+        admitted, entry, suppliedEvidence, required,
+      );
+    } else {
+      if (effectfulEvidence.index.identity !== admitted.identity) {
+        fail('InvalidEffectfulStoredEvidence');
+      }
+      const inspected = await inspectEffectfulStoredEvidence({
+        ...effectfulEvidence, index: admitted,
+      });
+      for (const cid of [
+        ...inspected.publicContractCids,
+        ...inspected.sourceArtifactCids,
+        ...inspected.sourceSchemaCids,
+      ]) {
+        if (!required.has(cid)) {
+          fail('IncompletePublicationCommitInventory');
+        }
+      }
+      boundPhysicalCids = [];
+      for (const binding of suppliedEvidence.durableBindings) {
+        const verified = await verifyDurableResultBinding(binding);
+        boundPhysicalCids.push(verified.binding.material_generation_cid);
+      }
+      physicalHoldingCids = [
+        inspected.privateHoldingCid,
+        ...inspected.effectSourceHoldingCids,
+        ...(inspected.captureHoldingCid === undefined ? [] :
+          [inspected.captureHoldingCid]),
+        ...(inspected.captureRecordHoldingCid === undefined ? [] :
+          [inspected.captureRecordHoldingCid]),
+      ].sort();
+    }
     const inventorySemanticCids = Object.freeze([...new Set([
       ...requiredObjectCids,
       admitted.identity,
@@ -2877,10 +3107,10 @@ export async function openLocalPublicationStore(
     }
     const existingCommit = await confirmCommittedIndex(key);
     if (existingCommit !== undefined) {
-      if (existingCommit.invocation_cid !== entry.invocation_cid ||
-          existingCommit.result_manifest_cid !== entry.result_manifest_cid ||
-          existingCommit.publication_request_cid !==
-            entry.publication_request_cid) {
+      if (contractControl.publicIndexSameCommittedContent(
+        (await readContract(existingCommit.public_index_entry_cid,
+          'public_index_entry')).contract, admitted,
+      ) !== true) {
         fail('PublicationCommitConflict');
       }
       const inventory = await readMetadataInventory(
@@ -2906,6 +3136,8 @@ export async function openLocalPublicationStore(
       if (inventory === undefined ||
           inventory.public_index_entry_cid !==
             existingCommit.public_index_entry_cid ||
+          inventory.physical_holding_cids.join('\0') !==
+            physicalHoldingCids.join('\0') ||
           directlyRequired.some(cid =>
             !inventory.contract_objects.some(object =>
               object.semantic_cid === cid))) {
@@ -2933,6 +3165,7 @@ export async function openLocalPublicationStore(
       public_index_entry_cid: admitted.identity,
       publication_attempt_cid: entry.publication_attempt_cid,
       contract_objects: inventoryContractObjects,
+      physical_holding_cids: physicalHoldingCids,
     }));
     const target = resolve(indexesDirectory, `${keyHash}.json`);
     const custody = beginPreparedCommit(
@@ -2961,9 +3194,16 @@ export async function openLocalPublicationStore(
         await custody.resolveConfirmed(undefined);
         throw error;
       }
-      if (existing.invocation_cid !== entry.invocation_cid ||
-          existing.result_manifest_cid !== entry.result_manifest_cid ||
-          existing.publication_request_cid !== entry.publication_request_cid) {
+      let sameContent;
+      try {
+        sameContent = contractControl.publicIndexSameCommittedContent(
+          (await readContract(existing.public_index_entry_cid,
+            'public_index_entry')).contract, admitted,
+        );
+      } catch (reconciliation) {
+        throw commitCustodyFailure(error, custody, reconciliation);
+      }
+      if (sameContent !== true) {
         await custody.resolveConfirmed(existing);
         fail('PublicationCommitConflict');
       }
@@ -2986,6 +3226,45 @@ export async function openLocalPublicationStore(
   // and installation of the inventory that acquires its durable ownership.
   const commitIndex = (...args) =>
     withSemanticCommit(() => commitIndexInternal(...args));
+
+  const commitEffectfulIndex = (preparation, requiredObjectCids) => {
+    if (!exactKeys(preparation, [
+      'index', 'chain', 'preview', 'receipts', 'privateBinding',
+      'effectSources',
+    ]) || typeof preparation.index?.wire !== 'string') {
+      fail('InvalidEffectfulStoredEvidence');
+    }
+    return withSemanticCommit(() => commitIndexInternal(
+      preparation.index.wire, requiredObjectCids, preparation.chain,
+      preparation,
+    ));
+  };
+
+  const validateCommittedEffectfulEvidence = async preparation => {
+    active();
+    const inspected = await inspectEffectfulStoredEvidence(preparation);
+    const entry = parseContract(inspected.index);
+    const committed = await confirmCommittedIndex({
+      tenantId: entry.tenant_id,
+      authorityScopeCid: entry.authority_scope_cid,
+      runDefinitionCid: entry.run_definition_cid,
+    });
+    if (committed?.public_index_entry_cid !== inspected.index.identity) {
+      fail('InvalidCommittedPublicationIndex');
+    }
+    const inventory = await readMetadataInventory(inspected.index.identity);
+    const expectedHoldings = [inspected.privateHoldingCid,
+      ...inspected.effectSourceHoldingCids,
+      ...(inspected.captureHoldingCid === undefined ? [] :
+        [inspected.captureHoldingCid]),
+      ...(inspected.captureRecordHoldingCid === undefined ? [] :
+        [inspected.captureRecordHoldingCid])].sort();
+    if (inventory?.physical_holding_cids.join('\0') !==
+        expectedHoldings.join('\0')) {
+      fail('InvalidPublicationMetadataInventoryStore');
+    }
+    return true;
+  };
 
   const consumeObject = async (cid, accept) => {
     active();
@@ -3519,6 +3798,25 @@ export async function openLocalPublicationStore(
     return false;
   };
 
+  const metadataHoldingHasOtherOwner = async (
+    holdingCid, excludedPublicIndexEntryCid,
+  ) => {
+    for (const name of await readdir(metadataInventoriesDirectory)) {
+      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
+        fail('InvalidPublicationMetadataInventoryStore');
+      }
+      const inventory = await readMetadataInventory(
+        `sha256:${name.slice(0, -5)}`,
+      );
+      if (inventory.public_index_entry_cid !==
+            excludedPublicIndexEntryCid &&
+          inventory.physical_holding_cids.includes(holdingCid)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   const reclaimMetadataContractInternal = async (
     excludedPublicIndexEntryCid,
     object,
@@ -3659,8 +3957,15 @@ export async function openLocalPublicationStore(
     return verified;
   };
 
-  const commitPhysicalHolding = async (value, prepared) => {
+  const commitPhysicalHoldingInternal = async (
+    value, prepared, borrowedHoldingCids,
+  ) => {
     active();
+    if (!Array.isArray(borrowedHoldingCids) ||
+        new Set(borrowedHoldingCids).size !== borrowedHoldingCids.length ||
+        borrowedHoldingCids.some(cid => !cidPattern.test(cid))) {
+      fail('InvalidPublicationPhysicalHoldingOwner');
+    }
     const admitted = admitPhysicalHolding(value);
     const record = admitted.record;
     if (await readPhysicalHoldingDeletion(record.holding_cid) !== undefined) {
@@ -3692,19 +3997,41 @@ export async function openLocalPublicationStore(
     const supplied = new Map();
     for (const handle of prepared) {
       const owner = preparedObjectOwners.get(handle);
-      if (owner === undefined || supplied.has(owner.cid) ||
-          handle.status().pending !== true) {
+      if (owner === undefined || supplied.has(owner.cid)) {
         fail('InvalidPublicationPhysicalHoldingOwner');
       }
-      supplied.set(owner.cid, owner.bytes);
+      if (handle.status().pending === true) {
+        supplied.set(owner.cid, owner.bytes);
+      } else if (borrowedHoldingCids.length === 0) {
+        fail('InvalidPublicationPhysicalHoldingOwner');
+      }
     }
-    if (supplied.size !== expected.size) {
-      fail('InvalidPublicationPhysicalHoldingOwner');
+    const borrowed = new Map();
+    for (const holdingCid of borrowedHoldingCids) {
+      if (await readPhysicalHoldingDeletion(holdingCid) !== undefined) {
+        fail('PublicationPhysicalHoldingRetiring');
+      }
+      const source = await readPhysicalHolding(holdingCid);
+      if (source === undefined) {
+        fail('PublicationPhysicalHoldingUnavailable');
+      }
+      await verifyPhysicalHoldingObjects(source);
+      for (const object of source.objects) {
+        if (expected.get(object.cid) === object.byte_count) {
+          borrowed.set(object.cid, object.byte_count);
+        }
+      }
+    }
+    if (borrowedHoldingCids.length !== 0) {
+      await syncDirectory(physicalHoldingsDirectory);
     }
     for (const [cid, bytes] of expected) {
-      if (supplied.get(cid) !== bytes) {
+      if (supplied.get(cid) !== bytes && borrowed.get(cid) !== bytes) {
         fail('InvalidPublicationPhysicalHoldingOwner');
       }
+    }
+    if ([...supplied].some(([cid, bytes]) => expected.get(cid) !== bytes)) {
+      fail('InvalidPublicationPhysicalHoldingOwner');
     }
     await verifyPhysicalHoldingObjects(record);
     try {
@@ -3727,13 +4054,21 @@ export async function openLocalPublicationStore(
     return Object.freeze({record, created: true});
   };
 
+  const commitPhysicalHolding = (value, prepared,
+    borrowedHoldingCids = []) => {
+    const operation = materialRetentionBusy.then(() =>
+      commitPhysicalHoldingInternal(value, prepared, borrowedHoldingCids));
+    materialRetentionBusy = operation.catch(() => {});
+    return operation;
+  };
+
   // Reconcile a private holding by exact admitted wire, then confirm its
   // directory durability. A visible link alone is not a committed holding.
   const confirmPrivateEvidence = async binding => {
     active();
     if (!exactKeys(binding, [
       'name', 'semanticCid', 'holdingCid', 'wire',
-    ]) || binding.name !== 'effect_preview' ||
+    ]) || !['effect_preview', 'effect_capture'].includes(binding.name) ||
         typeof binding.wire !== 'string') {
       fail('InvalidPublicationPrivateEvidence');
     }
@@ -4130,6 +4465,15 @@ export async function openLocalPublicationStore(
           if (!['failed', 'cancelled'].includes(attempt?.state)) {
             fail('PublicationUncommittedMetadataLive');
           }
+          for (const holdingCid of inventory.physical_holding_cids) {
+            if (await metadataHoldingHasOtherOwner(
+              holdingCid, inventoryCid,
+            )) continue;
+            if (await readPhysicalHolding(holdingCid) !== undefined ||
+                await readPhysicalHoldingDeletion(holdingCid) !== undefined) {
+              fail('PublicationPhysicalHoldingCleanupRequired');
+            }
+          }
           for (const object of inventory.contract_objects) {
             await reclaimMetadataContract(
               inventoryCid, object, unconfirmedObjects,
@@ -4471,6 +4815,13 @@ export async function openLocalPublicationStore(
             }
             if (retired.cleanup.status().pending) return;
           }
+          for (const holdingCid of marker.physical_holding_cids) {
+            if (await metadataHoldingHasOtherOwner(
+              holdingCid, marker.public_index_entry_cid,
+            )) continue;
+            const retired = await retirePhysicalHolding(holdingCid);
+            if (retired.cleanup.status().pending) return;
+          }
           await removeRunMetadataDirectories(
             marker.run_definition_cid, keyHash,
           );
@@ -4586,6 +4937,7 @@ export async function openLocalPublicationStore(
         public_index_entry_cid: entry.public_index_entry_cid,
         results: await metadataResultBindings(entry),
         contract_objects: await bindMetadataContractObjects(contractCids),
+        physical_holding_cids: inventory.physical_holding_cids,
         requested_at: requestedAt,
       }));
     }
@@ -4630,6 +4982,13 @@ export async function openLocalPublicationStore(
       if (inventory === undefined ||
           inventory.public_index_entry_cid !== index.identity) {
         fail('InvalidPublicationMetadataInventoryStore');
+      }
+      if (await readMetadataDeletion(keyHash) === undefined) {
+        for (const holdingCid of inventory.physical_holding_cids) {
+          if (await inspectPhysicalHolding(holdingCid) === undefined) {
+            fail('InvalidPublicationMetadataInventoryStore');
+          }
+        }
       }
     }
   };
@@ -4722,7 +5081,10 @@ export async function openLocalPublicationStore(
     confirmDeliveryRecord,
     appendDeliveryRecord,
     commitIndex,
+    commitEffectfulIndex,
     validateCommittedEvidence,
+    validateCommittedEffectfulEvidence,
+    inspectEffectfulStoredEvidence,
     inspectCommittedIndex,
     confirmCommittedIndex,
     lookupCommittedIndex,
@@ -4752,12 +5114,12 @@ export async function openLocalPublicationStore(
       });
     },
     close() {
-      closed = true;
       if (reservedObjects !== 0 || preparedObjects.size !== 0 ||
           preparedSchemas.size !== 0 ||
           reclaimableCustodies.size !== 0 ||
           pendingResultDeletions.size !== 0 ||
           pendingMetadataDeletions.size !== 0 ||
+          pendingUncommittedMetadataCleanups.size !== 0 ||
           pendingPhysicalHoldingDeletions.size !== 0 ||
           activeResultReaders.size !== 0 ||
           activePhysicalHoldingReaders.size !== 0) {
@@ -4765,6 +5127,7 @@ export async function openLocalPublicationStore(
           'PublicationStoreCleanupPending',
         ));
       }
+      closed = true;
       return Promise.resolve(ownership.release()).finally(() => {
         configuration.privateEvidenceKey?.fill(0);
       });

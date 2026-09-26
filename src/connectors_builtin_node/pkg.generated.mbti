@@ -2,6 +2,7 @@
 package "actql/actql/connectors_builtin_node"
 
 import {
+  "actql/actql/canonical_json",
   "actql/actql/client_local_host",
   "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/host",
@@ -12,6 +13,7 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
+  "actql/actql/logical_request_scope",
   "actql/actql/managed_carrier_runtime",
   "actql/actql/physical_host",
   "actql/actql/physical_manifest",
@@ -29,10 +31,18 @@ import {
   "actql/actql/run_publication_host",
   "actql/actql/source_value",
   "actql/actql/sourceview_resolution",
+  "actql/actql/stage_results",
+  "moonbitlang/core/debug",
 }
 
 // Values
 pub fn client_program_admit_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootAdmissionIssue]
+
+pub fn client_program_admit_effect_publication(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> @run_publication.RunPublicationAdmission?
+
+pub fn client_program_admit_effect_risk_acceptance_body(String, Int, Int, Int) -> Result[@effect_application.EffectRiskAcceptanceBody, @effect_application.EffectRiskAcceptanceIssue]
+
+pub fn client_program_admit_local_effect_source_evidence(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, Int, Int, Int) -> Result[@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedLocalEffectSourceIssue]
 
 pub fn client_program_admit_local_values_aoa_identity(@run_publication_host.PreparedClientProgram, Int, String, String) -> Result[Unit, @run_publication_host.ClientValuesAoAAdmissionIssue]
 
@@ -58,6 +68,14 @@ pub fn client_program_admit_result_plan(@run_publication_host.PreparedClientProg
 
 pub fn client_program_admit_task_plan_graph(@run_publication_host.PreparedClientProgram, String) -> Result[@run_publication_host.ClientTaskPlanGraph, @run_publication_host.ClientTaskPlanGraphAdmissionIssue]
 
+pub fn client_program_author_effect_preview(String, String, String, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[(String, Array[Array[@effect_application.EffectDispatchKey]]), ClientEffectPreviewAuthorIssue]
+
+pub fn client_program_bind_effect_preview_inputs(ClientLocalEffectHost, @physical_strategy.CapturedEffectInputs, @run_publication.PublicationContract, Int, String, String, ClientEffectPreviewInputLimits) -> Result[@physical_strategy.CapturedEffectPreviewInputs, ClientEffectPreviewInputIssue]
+
+pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> @run_publication_host.PreparedClientEffectRun?
+
+pub fn client_program_canonical_effect_preview_draft(String, Int, Int, Int) -> Result[String, @run_publication.PublicationContractIssue]
+
 pub fn client_program_captured_source_logical_cid(@execution_query.CapturedSourceRelationIdentity) -> String
 
 pub fn client_program_captured_source_matches(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource) -> Bool
@@ -66,13 +84,33 @@ pub fn client_program_captured_source_row_count(@execution_query.CapturedSourceR
 
 pub fn client_program_captured_source_schema_cid(@execution_query.CapturedSourceRelationIdentity) -> String
 
+pub fn client_program_check_effect_apply_preflight(@physical_strategy.CapturedEffectPreviewInputs, Array[@physical_strategy.CapturedEffectPlanProof], Array[String], Array[String], Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectApplyPreflightIssue]
+
+pub fn client_program_check_effect_plan_proofs(@physical_strategy.CapturedEffectPreviewInputs, Array[@physical_strategy.CapturedEffectPlanProof], Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectPlanInventoryIssue]
+
+pub fn client_program_check_effect_preview_apply_keys(@physical_strategy.CapturedEffectPreviewInputs, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectApplyKeyIssue]
+
+pub fn client_program_check_effect_preview_capabilities(@physical_strategy.CapturedEffectPreviewInputs, Array[@effect_application.EffectApplyCapabilityObservation], Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectCapabilityIssue]
+
+pub fn client_program_check_effect_preview_current_bindings(@physical_strategy.CapturedEffectPreviewInputs, Array[String], Array[String], Array[String], Array[String], Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectCurrentBindingIssue]
+
+pub fn client_program_check_effect_preview_target_guards(@physical_strategy.CapturedEffectPreviewInputs, Array[String], Array[String], Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectGuardIssue]
+
+pub fn client_program_check_effect_risk_acceptance_body(@physical_strategy.CapturedEffectPreviewInputs, @effect_application.EffectRiskAcceptanceBody, String, String, String, String, String, String, String, String, Bool) -> Result[Unit, @physical_strategy.CapturedEffectRiskIssue]
+
 pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
 
 pub fn client_program_check_environment_cid(@run_publication_host.PreparedClientProgram) -> String
 
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
+pub fn client_program_check_recovered_effect_apply_semantics(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectApplyPreflightIssue]
+
 pub fn client_program_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Bool
+
+pub fn client_program_check_source_free_local_effect_preview_identities(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[@run_publication_host.ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, @run_publication_host.ClientEffectLocalIdentityIssue]
+
+pub fn client_program_close_effect_source_port(@physical_strategy.CapturedEffectInputs, Int) -> Bool
 
 pub fn client_program_compilation_compiled_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
 
@@ -94,9 +132,133 @@ pub fn client_program_direct_values_result_root_row_contract_cid(@run_publicatio
 
 pub fn client_program_direct_values_result_root_wire(@run_publication_host.ClientDirectResultRoot) -> String
 
+pub fn client_program_effect_apply_capability_from_codes(String, Int, Int, Int, Bool, Bool, Int, Int) -> Result[@effect_application.EffectApplyCapabilityObservation, @effect_application.EffectApplyCapabilityIssue]
+
+pub fn client_program_effect_apply_capability_idempotency_mode(@effect_application.EffectApplyCapabilityObservation) -> String
+
+pub fn client_program_effect_apply_capability_reconciliation_mode(@effect_application.EffectApplyCapabilityObservation) -> String
+
+pub fn client_program_effect_apply_member_count(@physical_strategy.CapturedEffectPreviewInputs) -> Int?
+
+pub fn client_program_effect_apply_subject_cid(@physical_strategy.CapturedEffectPreviewInputs) -> String?
+
+pub fn client_program_effect_create_row_inventory(Array[String], Int, Int, Int, Int) -> Result[Array[(Int, String)], @run_publication.EffectPreviewIdentityIssue]
+
+pub fn client_program_effect_definition_cid(@run_publication_host.PreparedClientEffectComputation) -> String
+
+pub fn client_program_effect_environment_cid(@run_publication_host.PreparedClientEffectComputation) -> String
+
+pub fn client_program_effect_input_at(@physical_strategy.CapturedEffectInputs, Int) -> @physical_strategy.CapturedEffectInput?
+
+pub fn client_program_effect_input_available(@physical_strategy.CapturedEffectInputs, Int) -> Bool
+
+pub fn client_program_effect_input_count(@physical_strategy.CapturedEffectInputs) -> Int
+
+pub fn client_program_effect_input_export_advance(@execution_relation.CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), @execution_relation.CompletedExportIssue]
+
+pub fn client_program_effect_input_export_cancel(@execution_relation.CompletedOutputExport) -> Unit
+
+pub fn client_program_effect_input_export_cancel_preparation(@execution_relation.CompletedResultRelationExportPreparation) -> Bool
+
+pub fn client_program_effect_input_export_fields(@execution_relation.CompletedRelationExportReceipt) -> Array[String]
+
+pub fn client_program_effect_input_export_finish(@execution_relation.CompletedOutputExport) -> Result[(@execution_relation.CompletedRelationExportReceipt, String), @execution_relation.CompletedExportIssue]
+
+pub fn client_program_effect_input_export_limits(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @run_publication_host.PublicationOutputExportLimits?
+
+pub fn client_program_effect_input_export_logical_cid(@execution_relation.CompletedRelationExportReceipt) -> String
+
+pub fn client_program_effect_input_export_next(@execution_relation.CompletedOutputExport) -> Result[String?, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_effect_input_export_next_canonical_row(@execution_relation.CompletedOutputExport, Int, Int, Int) -> Result[(Int, String, @canonical_json.CanonicalValue)?, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_effect_input_export_ready(@execution_relation.CompletedResultRelationExportPreparation) -> Result[@execution_relation.CompletedOutputExport, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_effect_input_export_release_receipt(@execution_relation.CompletedRelationExportReceipt) -> Unit
+
+pub fn client_program_effect_input_export_row_count(@execution_relation.CompletedRelationExportReceipt) -> Int
+
+pub fn client_program_effect_input_export_schema_cid(@execution_relation.CompletedRelationExportReceipt) -> String
+
+pub fn client_program_effect_input_export_start(@physical_strategy.CapturedEffectInput, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_effect_input_task(@physical_strategy.CapturedEffectInput) -> Int
+
+pub fn client_program_effect_inputs_share_view(@physical_strategy.CapturedEffectInputs, Int, Int) -> Bool
+
+pub fn client_program_effect_managed_input_append(ClientEffectManagedInputImport, String) -> Result[Unit, ClientEffectManagedInputIssue]
+
+pub fn client_program_effect_managed_input_begin(@physical_strategy.CapturedEffectInput, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], @run_publication_host.PublicationOutputExportLimits) -> Result[ClientEffectManagedInputImport, ClientEffectManagedInputIssue]
+
+pub fn client_program_effect_managed_input_cancel(ClientEffectManagedInputImport) -> Unit
+
+pub fn client_program_effect_managed_input_finish(ClientEffectManagedInputImport) -> Result[@execution_relation.CompletedResultRelationExportPreparation, ClientEffectManagedInputIssue]
+
+pub fn client_program_effect_member_descriptor(@run_publication_host.PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String), @run_publication_host.ClientEffectMemberDescriptorIssue]
+
+pub fn client_program_effect_plan_advance(ClientEffectPlanPreparation, Int) -> Result[(Bool, Int), ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_plan_cancel(ClientEffectPlanCursor) -> Unit
+
+pub fn client_program_effect_plan_cancel_import(ClientEffectPlanImport) -> Unit
+
+pub fn client_program_effect_plan_cancel_preparation(ClientEffectPlanPreparation) -> Bool
+
+pub fn client_program_effect_plan_cid(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int, Int, Int, Int) -> Result[String?, ClientEffectPlanIdentityIssue]
+
+pub fn client_program_effect_plan_finish(ClientEffectPlanCursor) -> Result[(@execution_relation.CompletedRelationExportReceipt, String, @physical_strategy.CapturedEffectPlanProof), ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_plan_import_append(ClientEffectPlanImport, String) -> Result[Unit, ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_plan_import_begin(@physical_strategy.CapturedEffectPreviewInputs, Int, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], @run_publication_host.PublicationOutputExportLimits, Int, Int) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_plan_import_finish(ClientEffectPlanImport) -> Result[ClientEffectPlanPreparation, ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_plan_next(ClientEffectPlanCursor, Int, Int, Int, Int, Int, Int) -> Result[String?, ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_plan_proof_matches(@physical_strategy.CapturedEffectPlanProof, @physical_strategy.CapturedEffectPreviewInputs, Int) -> Bool
+
+pub fn client_program_effect_plan_ready(ClientEffectPlanPreparation) -> Result[ClientEffectPlanCursor, ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_preparation_issue(ClientEffectProgramBridgeOutcome) -> ClientEffectProgramBridgeIssue?
+
+pub fn client_program_effect_preparation_issue_code(ClientEffectProgramBridgeOutcome) -> String?
+
+pub fn client_program_effect_preparation_ready(ClientEffectProgramBridgeOutcome) -> @run_publication_host.PreparedClientEffectComputation?
+
+pub fn client_program_effect_preview_input_at(@physical_strategy.CapturedEffectPreviewInputs, Int) -> @physical_strategy.CapturedEffectInput?
+
+pub fn client_program_effect_preview_input_limits(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> ClientEffectPreviewInputLimits?
+
+pub fn client_program_effect_preview_ledger_identity(@physical_strategy.CapturedEffectPreviewInputs) -> @run_publication.EffectPreviewIdentity
+
+pub fn client_program_effect_preview_plan_terminal(@physical_strategy.CapturedEffectPreviewInputs, Int, Int, Int) -> Result[@stage_results.EffectPlanTerminal?, @physical_strategy.CapturedEffectPlanIssue]
+
+pub fn client_program_effect_proposal_begin(@physical_strategy.CapturedEffectInputs, Int, Int, Int) -> Result[@physical_strategy.CapturedEffectProposalPlan, @physical_strategy.CapturedEffectProposalIssue]
+
+pub fn client_program_effect_proposal_cancel(@physical_strategy.CapturedEffectProposalPlan) -> Unit
+
+pub fn client_program_effect_proposal_finish(@physical_strategy.CapturedEffectProposalPlan, Int) -> Result[Unit, @physical_strategy.CapturedEffectProposalIssue]
+
+pub fn client_program_effect_proposal_row(@physical_strategy.CapturedEffectProposalPlan, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[(String, String), @physical_strategy.CapturedEffectProposalIssue]
+
+pub fn client_program_effect_request_authority(@logical_request_scope.LogicalRequestScope) -> String
+
+pub fn client_program_effect_request_identity(@run_publication_host.PreparedClientEffectComputation, String, String, String) -> @run_publication_host.ClientRequestIdentity?
+
+pub fn client_program_effect_risk_unsigned_payload_cid(@effect_application.EffectRiskAcceptanceBody) -> String
+
+pub fn client_program_effect_semantics_cid(@run_publication_host.PreparedClientEffectComputation) -> String
+
+pub fn client_program_effect_source_artifact_preview_binding(@run_publication.PublicationContract, String, String, String) -> Result[(String, String), @run_publication.EffectSourceArtifactIssue]
+
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
 pub fn client_program_identify_captured_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
+
+pub fn client_program_issue_captured_effect_input_local_invocation(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalInvocationIssue]
+
+pub fn client_program_issue_captured_effect_input_local_result_definition(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
 
 pub fn client_program_issue_captured_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
 
@@ -106,7 +268,13 @@ pub fn client_program_issue_direct_task_result_root(@run_publication_host.Prepar
 
 pub fn client_program_issue_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
 
+pub fn client_program_issue_effect_source_artifact(@physical_strategy.CapturedEffectInput, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.EffectSourceArtifactIssue]
+
 pub fn client_program_issue_empty_invocation_bindings(@run_publication_host.PreparedClientProgram) -> Result[@run_publication.RunEvidenceValue, @run_publication_host.ClientEmptyInvocationBindingsIssue]
+
+pub fn client_program_issue_local_effect_result_definition(@run_publication_host.PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
+
+pub fn client_program_issue_local_effect_result_manifest(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectLocalInvocation, Array[@run_publication_host.ClientEffectLocalResultArtifact], Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalManifestIssue]
 
 pub fn client_program_issue_local_values_aoa_identity(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientValuesAoAIdentity, @run_publication_host.ClientValuesAoAIdentityIssue]
 
@@ -126,6 +294,12 @@ pub fn client_program_issue_result_plan(@run_publication_host.PreparedClientProg
 
 pub fn client_program_issue_result_row_contract(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@run_publication_host.ClientResultRowContractIdentity, @run_publication_host.ClientResultRowContractIssue]
 
+pub fn client_program_issue_source_free_local_effect_identity(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalIdentity, @run_publication_host.ClientEffectLocalIdentityIssue]
+
+pub fn client_program_issue_source_free_local_effect_invocation(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalInvocationIssue]
+
+pub fn client_program_issue_source_free_local_effect_result_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
+
 pub fn client_program_issue_task_executable_plan(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientTaskExecutablePlan, ClientProgramTaskPlanBridgeIssue]
 
 pub fn client_program_issue_task_fragment(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientTaskFragmentNode, @run_publication_host.ClientTaskFragmentIssue]
@@ -135,6 +309,38 @@ pub fn client_program_issue_task_plan_graph(@run_publication_host.PreparedClient
 pub fn client_program_issue_unpublished_run_state(String, String, Array[String], Bool, Bool) -> String?
 
 pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskAoAStepsIssue]
+
+pub fn client_program_local_effect_host_run(ClientLocalEffectHost) -> @physical_strategy.CapturedEffectRunDAG
+
+pub fn client_program_local_effect_host_runtime(ClientLocalEffectHost) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
+pub fn client_program_local_effect_identity_cid(@run_publication_host.ClientEffectLocalIdentity) -> String
+
+pub fn client_program_local_effect_identity_json(@run_publication_host.ClientEffectLocalIdentity) -> String
+
+pub fn client_program_local_effect_invocation_cid(@run_publication_host.ClientEffectLocalInvocation) -> String
+
+pub fn client_program_local_effect_invocation_json(@run_publication_host.ClientEffectLocalInvocation) -> String
+
+pub fn client_program_local_effect_result_artifact_cid(@run_publication_host.ClientEffectLocalResultArtifact) -> String
+
+pub fn client_program_local_effect_result_artifact_json(@run_publication_host.ClientEffectLocalResultArtifact) -> String
+
+pub fn client_program_local_effect_result_definition_cid(@run_publication_host.ClientEffectLocalResultDefinition) -> String
+
+pub fn client_program_local_effect_result_definition_json(@run_publication_host.ClientEffectLocalResultDefinition) -> String
+
+pub fn client_program_local_effect_result_derivation_json(@run_publication_host.ClientEffectLocalResultArtifact) -> String
+
+pub fn client_program_local_effect_result_manifest_cid(@run_publication_host.ClientEffectLocalManifest) -> String
+
+pub fn client_program_local_effect_result_manifest_json(@run_publication_host.ClientEffectLocalManifest) -> String
+
+pub fn client_program_local_effect_result_ordering_json(@run_publication_host.ClientEffectLocalResultArtifact) -> String
+
+pub fn client_program_local_effect_source_count(ClientLocalEffectHost) -> Int
+
+pub fn client_program_local_effect_source_matches(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact) -> Bool
 
 pub fn client_program_local_values_aoa_cid(@run_publication_host.ClientValuesAoAIdentity) -> String
 
@@ -164,7 +370,11 @@ pub fn client_program_local_values_unit_source_json(@run_publication_host.Prepar
 
 pub fn client_program_open_captured_local_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
+pub fn client_program_open_source_free_local_effect_host(@run_publication_host.PreparedClientEffectRun, String, String, Int64, Int64, Int64, Int64) -> ClientLocalEffectHost?
+
 pub fn client_program_open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
+
+pub fn client_program_pin_effect_sources(ClientLocalEffectHost, Int) -> Result[@physical_strategy.CapturedEffectInputs, @physical_strategy.RunIssue]
 
 pub fn client_program_plan_fact_manifest_cid(@run_publication_host.PlanFactManifestIdentity) -> String
 
@@ -177,6 +387,8 @@ pub fn client_program_preparation_issue_code(ClientProgramBridgeOutcome) -> Stri
 pub fn client_program_preparation_ready(ClientProgramBridgeOutcome) -> @run_publication_host.PreparedClientProgram?
 
 pub fn client_program_prepare_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@host.NativeHostConfiguration, @client_local_host.ClientDuckDBAcquisitionIssue]
+
+pub fn client_program_prepare_effect_computation_with_parameters(String, String, @program_check.CheckEnvironment, String?, Array[@pipeline_check_context.StageCapacityInput]) -> ClientEffectProgramBridgeOutcome
 
 pub fn client_program_prepare_effect_free(String, String, @program_check.CheckEnvironment) -> @run_publication_host.PreparedClientProgram?
 
@@ -217,6 +429,10 @@ pub fn client_program_query_requirement_source_contract_cid(@query_planning.Quer
 pub fn client_program_query_requirement_source_evidence_facts(@query_planning.QueryRequirement) -> Result[Array[String], String]
 
 pub fn client_program_query_requirement_source_ref(@query_planning.QueryRequirement) -> String
+
+pub fn client_program_release_effect_input(@physical_strategy.CapturedEffectInput) -> Bool
+
+pub fn client_program_release_effect_inputs(@physical_strategy.CapturedEffectInputs) -> Bool
 
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
@@ -362,7 +578,19 @@ pub fn reference_compute_managed_start(@actql/actql/connectors/reference_compute
 
 pub fn reference_compute_registration(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @connector_sdk.CapabilityRegistration
 
+pub fn strategy_admit_captured_effect_source_artifact(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> @run_publication.CapturedEffectSourceArtifact raise NodeHostFailure
+
+pub fn strategy_admit_captured_local_effect_source(@run_publication.CapturedEffectSourceArtifact, String, String, String, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> @run_publication.CapturedLocalEffectSourceEvidence raise NodeHostFailure
+
 pub fn strategy_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
+
+pub fn strategy_admit_effect_computation_preview(String, String, String, Int, Int, Int) -> @run_publication.EffectPreviewIdentity raise NodeHostFailure
+
+pub fn strategy_admit_effect_row_outcome_receipt(@run_publication.EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_admit_effect_row_outcome_receipt_from_response(@run_publication.EffectPreviewIdentity, Int, Int, String, @run_publication.EffectSavedResponseEvidence, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_admit_effect_saved_response_evidence(Array[String], String, Bytes, Int, Int) -> @run_publication.EffectSavedResponseEvidence raise NodeHostFailure
 
 pub fn strategy_admit_pending_source_state_advance(String, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PendingSourceStateAdvance raise NodeHostFailure
 
@@ -371,6 +599,16 @@ pub fn strategy_begin_result_access_progress() -> @run_publication.ResultAccessP
 pub fn strategy_begin_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
 
 pub fn strategy_cancel_durable_result_row_frames(@run_publication.DurableResultRowFrames) -> Unit
+
+pub fn strategy_captured_effect_source_artifact_cid(@run_publication.CapturedEffectSourceArtifact) -> String
+
+pub fn strategy_captured_effect_source_holding_cid(@run_publication.CapturedEffectSourceArtifact) -> String
+
+pub fn strategy_captured_effect_source_recovery_inventory_valid(@run_publication.EffectPreviewIdentity, Array[Int], Array[@run_publication.PublicationContract]) -> Bool
+
+pub fn strategy_captured_effect_source_store_authority_cid(@run_publication.CapturedEffectSourceArtifact) -> String
+
+pub fn strategy_check_effect_member_receipt_row_partition_evidence(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], String, Int, Int, Int, Int) -> Bool raise NodeHostFailure
 
 pub fn strategy_committed_publication_finalization_action(@run_publication.PublicationContract?) -> Int
 
@@ -388,15 +626,19 @@ pub fn strategy_durable_payload_failure_action(Bool, Bool, Bool, Bool, Bool, Boo
 
 pub fn strategy_effect_admit_ledger_entry(String, Int, Int, Int) -> @effect_application.EffectLedgerEntry raise NodeHostFailure
 
-pub fn strategy_effect_apply_key(@effect_application.LogicalRequestScope, String, String, String, Int) -> @effect_application.EffectApplyKey raise NodeHostFailure
+pub fn strategy_effect_apply_key(@logical_request_scope.LogicalRequestScope, String, String, String, Int) -> @effect_application.EffectApplyKey raise NodeHostFailure
 
 pub fn strategy_effect_apply_key_cid(@effect_application.EffectApplyKey) -> String
 
 pub fn strategy_effect_batch_rows_share_member(@effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey) -> Bool
 
-pub fn strategy_effect_collection_batch_admit(@run_publication.EffectPreviewIdentity, Int, Int, String, @effect_application.LogicalRequestScope, Array[String], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Int, Int) -> Bool raise NodeHostFailure
+pub fn strategy_effect_collection_batch_admit(@run_publication.EffectPreviewIdentity, Int, Int, String, @logical_request_scope.LogicalRequestScope, Array[String], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Int, Int) -> Bool raise NodeHostFailure
 
-pub fn strategy_effect_dispatch_key(@effect_application.LogicalRequestScope, String, String, Int, Int, Int) -> @effect_application.EffectDispatchKey raise NodeHostFailure
+pub fn strategy_effect_computation_capture_holding_cid(@run_publication.PublicationContract, String) -> String raise NodeHostFailure
+
+pub fn strategy_effect_computation_record_holding_cid(@run_publication.PublicationContract, String) -> String raise NodeHostFailure
+
+pub fn strategy_effect_dispatch_key(@logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int) -> @effect_application.EffectDispatchKey raise NodeHostFailure
 
 pub fn strategy_effect_dispatch_key_cid(@effect_application.EffectDispatchKey) -> String
 
@@ -408,9 +650,9 @@ pub fn strategy_effect_issue_next_ledger_entry(@effect_application.EffectLedgerE
 
 pub fn strategy_effect_issue_prepared_ledger_entry(@effect_application.EffectLedgerBasis, Int, Int, Int) -> @effect_application.EffectLedgerEntry raise NodeHostFailure
 
-pub fn strategy_effect_ledger_basis(@effect_application.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, String, String, String, String, String, String, String) -> @effect_application.EffectLedgerBasis raise NodeHostFailure
+pub fn strategy_effect_ledger_basis(@logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, String, String, String, String, String, String, String) -> @effect_application.EffectLedgerBasis raise NodeHostFailure
 
-pub fn strategy_effect_ledger_entry_admits_dispatch(@effect_application.EffectLedgerEntry, @effect_application.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String) -> Bool
+pub fn strategy_effect_ledger_entry_admits_dispatch(@effect_application.EffectLedgerEntry, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String) -> Bool
 
 pub fn strategy_effect_ledger_entry_cid(@effect_application.EffectLedgerEntry) -> String
 
@@ -422,29 +664,61 @@ pub fn strategy_effect_ledger_entry_matches_basis(@effect_application.EffectLedg
 
 pub fn strategy_effect_ledger_entry_scope_cid(@effect_application.EffectLedgerEntry) -> String
 
+pub fn strategy_effect_ledger_entry_state_code(@effect_application.EffectLedgerEntry) -> Int
+
 pub fn strategy_effect_ledger_entry_wire(@effect_application.EffectLedgerEntry) -> String
 
-pub fn strategy_effect_logical_item_locator(@effect_application.LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> @effect_application.LogicalItemLocator raise NodeHostFailure
+pub fn strategy_effect_logical_item_locator(@logical_request_scope.LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> @effect_application.LogicalItemLocator raise NodeHostFailure
 
 pub fn strategy_effect_logical_item_locator_cid(@effect_application.LogicalItemLocator) -> String
 
-pub fn strategy_effect_logical_request_scope(String, String, Int) -> @effect_application.LogicalRequestScope raise NodeHostFailure
+pub fn strategy_effect_logical_request_scope(String, String, Int) -> @logical_request_scope.LogicalRequestScope raise NodeHostFailure
 
-pub fn strategy_effect_logical_request_scope_cid(@effect_application.LogicalRequestScope) -> String
+pub fn strategy_effect_logical_request_scope_cid(@logical_request_scope.LogicalRequestScope) -> String
 
-pub fn strategy_effect_member_row_admit(@run_publication.EffectPreviewIdentity, Int, Int, String, @effect_application.LogicalRequestScope, String, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey) -> Bool raise NodeHostFailure
+pub fn strategy_effect_member_row_admit(@run_publication.EffectPreviewIdentity, Int, Int, String, @logical_request_scope.LogicalRequestScope, String, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey) -> Bool raise NodeHostFailure
 
-pub fn strategy_effect_preview_apply_identity(String, String, String, @effect_application.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int) -> @run_publication.EffectPreviewIdentity raise NodeHostFailure
+pub fn strategy_effect_preview_apply_identity(String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int) -> @run_publication.EffectPreviewIdentity raise NodeHostFailure
 
-pub fn strategy_effect_preview_apply_identity_admit(String, String, String, @effect_application.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int) -> String raise NodeHostFailure
+pub fn strategy_effect_preview_apply_identity_admit(String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int) -> String raise NodeHostFailure
 
 pub fn strategy_effect_preview_footprint_conflicts_check(String, Array[String], Array[Int], Array[String], Int, Int, Int, Int, Int, Int) -> Bool raise NodeHostFailure
 
 pub fn strategy_effect_preview_identities(String, Int, Int, Int) -> Array[String] raise NodeHostFailure
 
+pub fn strategy_effect_preview_member_kind(@run_publication.EffectPreviewIdentity, Int) -> String?
+
+pub fn strategy_effect_preview_ordered_row_cid(@run_publication.EffectPreviewIdentity, Int, Int) -> String?
+
+pub fn strategy_effect_preview_private_holding_cid(@run_publication.EffectPreviewIdentity, String) -> String raise NodeHostFailure
+
 pub fn strategy_effect_preview_row_identities(String, Int, Int, Int) -> Array[Array[String]] raise NodeHostFailure
 
+pub fn strategy_effect_preview_semantic_cid(@run_publication.EffectPreviewIdentity) -> String
+
 pub fn strategy_effect_preview_target_guards_check(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int) -> Bool raise NodeHostFailure
+
+pub fn strategy_effect_recover_claims_from_heads(Array[Array[@effect_application.EffectRecoveryBinding]], Array[Array[@effect_application.EffectLedgerEntry?]], Int) -> Array[Array[@effect_application.EffectRecoveredClaim]] raise NodeHostFailure
+
+pub fn strategy_effect_recovered_claim_basis(@effect_application.EffectRecoveredClaim) -> @effect_application.EffectLedgerBasis
+
+pub fn strategy_effect_recovered_claim_canonical_request_cid(@effect_application.EffectRecoveredClaim) -> String
+
+pub fn strategy_effect_recovered_claim_intent_fingerprint_cid(@effect_application.EffectRecoveredClaim) -> String
+
+pub fn strategy_effect_recovered_claim_key(@effect_application.EffectRecoveredClaim) -> @effect_application.EffectDispatchKey
+
+pub fn strategy_effect_recovered_claim_locator(@effect_application.EffectRecoveredClaim) -> @effect_application.LogicalItemLocator
+
+pub fn strategy_effect_recovered_claim_scope(@effect_application.EffectRecoveredClaim) -> @logical_request_scope.LogicalRequestScope
+
+pub fn strategy_effect_recovered_preview_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int) -> Array[Array[@effect_application.EffectDispatchKey]] raise NodeHostFailure
+
+pub fn strategy_effect_recovery_binding_locator_cid(@effect_application.EffectRecoveryBinding) -> String
+
+pub fn strategy_effect_recovery_bindings(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, String, String, Int, Int) -> Array[Array[@effect_application.EffectRecoveryBinding]] raise NodeHostFailure
+
+pub fn strategy_effect_row_outcome_receipt_terminal_state(@run_publication.PublicationContract) -> String?
 
 pub fn strategy_effect_row_recovery_action(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int
 
@@ -454,7 +728,7 @@ pub fn strategy_effect_set_footprint_conflicts_check(Array[String], Array[Int], 
 
 pub fn strategy_effect_set_frontier(Array[String], Array[Int], Array[Array[Int]], Int, Int, Int) -> @effect_application.EffectSetFrontier raise NodeHostFailure
 
-pub fn strategy_effect_set_frontier_from_ledger(@run_publication.EffectPreviewIdentity, Array[Array[@effect_application.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> @effect_application.EffectSetFrontier raise NodeHostFailure
+pub fn strategy_effect_set_frontier_from_ledger(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> @effect_application.EffectSetFrontier raise NodeHostFailure
 
 pub fn strategy_effect_set_frontier_outcome(@effect_application.EffectSetFrontier) -> Int
 
@@ -463,6 +737,12 @@ pub fn strategy_effect_set_frontier_ready_count(@effect_application.EffectSetFro
 pub fn strategy_effect_set_frontier_ready_member(@effect_application.EffectSetFrontier, Int) -> Int
 
 pub fn strategy_effect_set_frontier_ready_row(@effect_application.EffectSetFrontier, Int) -> Int
+
+pub fn strategy_effect_set_receipt_run_disposition(@run_publication.EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Int raise NodeHostFailure
+
+pub fn strategy_effectful_computation_evidence_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, Int, Int, Int) -> Bool
+
+pub fn strategy_effectful_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, String, Array[String], String, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn strategy_existing_delivery_attempt_action(@run_publication.PublicationContract?) -> Int
 
@@ -710,6 +990,22 @@ pub fn strategy_issue_effect_free_captured_run(@run_publication.PublicationContr
 
 pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
+pub fn strategy_issue_effect_member_receipt_from_row_partition(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_effect_row_outcome_receipt(@run_publication.EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_effect_row_outcome_receipt_from_response(@run_publication.EffectPreviewIdentity, Int, Int, String, @run_publication.EffectSavedResponseEvidence, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_effect_row_receipt_terminal_entry(@run_publication.EffectPreviewIdentity, Int, Int, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, @effect_application.EffectLedgerEntry, Array[@effect_application.EffectLedgerEntry], String, String, Bytes, Int, String, Int, Int, Int, Int) -> @effect_application.EffectLedgerEntry raise NodeHostFailure
+
+pub fn strategy_issue_effect_row_receipt_terminal_entry_from_response(@run_publication.EffectPreviewIdentity, Int, Int, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, @effect_application.EffectLedgerEntry, Array[@effect_application.EffectLedgerEntry], String, @run_publication.EffectSavedResponseEvidence, String, Int, Int, Int) -> @effect_application.EffectLedgerEntry raise NodeHostFailure
+
+pub fn strategy_issue_effect_set_apply_receipt_from_members(@run_publication.EffectPreviewIdentity, Array[String], Array[Bool], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_effectful_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_effectful_final_run_receipt(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
 pub fn strategy_issue_manifest_read_grant(@run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String, Int, Int, String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_issue_public_index_entry(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
@@ -745,6 +1041,8 @@ pub fn strategy_next_result_delivery_row(@run_publication.ResultDeliverySerializ
 pub fn strategy_prepare_durable_result_row_frames(Int, Int, Int, Int, Int) -> @run_publication.DurableResultRowFrames raise NodeHostFailure
 
 pub fn strategy_prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> @run_publication.ResultDeliverySerializer raise NodeHostFailure
+
+pub fn strategy_public_index_same_committed_content(@run_publication.PublicationContract, @run_publication.PublicationContract) -> Bool
 
 pub fn strategy_publication_admit(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
@@ -1530,6 +1828,7 @@ pub(all) suberror NodeHostFailure {
   EffectFootprint(@effect_application.EffectFootprintIssue)
   EffectPreviewFootprint(@effect_application.EffectPreviewFootprintIssue)
   EffectPreviewIdentity(@effect_application.EffectPreviewApplyIdentityIssue)
+  EffectPreviewRecoveryKeys(@effect_application.EffectPreviewRecoveryKeysIssue)
   EffectPreviewTargetGuard(@effect_application.EffectPreviewTargetGuardIssue)
   EffectCollectionBatch(@effect_application.EffectCollectionBatchIssue)
   EffectLedger(@effect_application.EffectLedgerIssue)
@@ -1558,6 +1857,68 @@ pub(all) enum ClientCapturedSourceLogicalIssue {
   Evidence(@run_publication.RunEvidenceValueIssue)
   Admission(@run_publication.SourceInputLogicalIssue)
 }
+
+pub(all) enum ClientEffectLocalArtifactBridgeIssue {
+  ForeignExport
+  Issuance(@run_publication_host.ClientEffectLocalResultArtifactIssue)
+} derive(Eq, @debug.Debug)
+
+type ClientEffectManagedInputImport
+
+pub(all) enum ClientEffectManagedInputIssue {
+  ForeignOutput
+  Closed
+  Bridge(@execution_relation.ManagedProducerBridgeIssue)
+  Export(@execution_relation.CompletedExportIssue)
+}
+
+type ClientEffectPlanCursor
+
+pub(all) enum ClientEffectPlanIdentityIssue {
+  Binding(@stage_results.EffectPlanBindingIssue)
+  Encoding
+} derive(@debug.Debug)
+
+type ClientEffectPlanImport
+
+type ClientEffectPlanPreparation
+
+pub(all) enum ClientEffectPlanStreamIssue {
+  InvalidMember
+  NotReady
+  Closed
+  Plan(@physical_strategy.CapturedEffectPlanVerifyIssue)
+  Import(ClientEffectManagedInputIssue)
+  Export(@execution_relation.CompletedExportIssue)
+}
+
+pub(all) enum ClientEffectPreviewAuthorIssue {
+  Preview(@run_publication.EffectPreviewIdentityIssue)
+  Dispatch(@effect_application.EffectIdentityIssue)
+  Keys(@effect_application.EffectPreviewApplyIdentityIssue)
+  CapacityExceeded
+} derive(@debug.Debug)
+
+pub(all) enum ClientEffectPreviewInputIssue {
+  Identity(@run_publication.EffectPreviewIdentityIssue)
+  Binding(@program_check.EffectProgramRunPreviewIssue)
+  Footprint(@effect_application.EffectFootprintIssue)
+  Captured(@physical_strategy.RunIssue)
+}
+
+type ClientEffectPreviewInputLimits
+
+pub(all) enum ClientEffectProgramBridgeIssue {
+  Input(ClientProgramBridgeIssue)
+  Preparation(@run_publication_host.ClientEffectComputationIssue)
+}
+
+pub(all) enum ClientEffectProgramBridgeOutcome {
+  EffectPrepared(@run_publication_host.PreparedClientEffectComputation)
+  EffectRejected(ClientEffectProgramBridgeIssue)
+}
+
+type ClientLocalEffectHost
 
 pub(all) enum ClientProgramBridgeIssue {
   InvalidFormat

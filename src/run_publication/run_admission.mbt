@@ -351,3 +351,62 @@ pub fn run_definition_has_empty_initial_input_artifact_set(
   contract_string(definition, "input_artifact_set_cid") ==
   Some(empty_initial_input_artifact_set_cid())
 }
+
+///|
+pub(all) enum RunLocalResultEvidenceIssue {
+  ForeignRun
+  ForeignInvocation
+  ForeignObservation
+  ForeignRetention
+  MissingScope
+} derive(Eq, Debug)
+
+///|
+/// Resolve local Result evidence references from the admitted Run, its exact
+/// observation, and the selected retention policy. The returned authority is
+/// the Run execution context, not a current Effect mutation grant.
+pub fn resolve_run_local_result_evidence_refs(
+  admission : RunPublicationAdmission,
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  observation : RunEvidenceValue,
+  retention : PublicationContract,
+) -> Result[(String, String, String), RunLocalResultEvidenceIssue] {
+  if run_definition.name != "run_definition" ||
+    contract_string(run_definition, "compiled_plan_cid") !=
+    Some(admission.compiled_plan_cid) ||
+    contract_string(run_definition, "invocation_template_cid") !=
+    Some(admission.template.identity) ||
+    contract_string(run_definition, "authorization_context_cid") !=
+    Some(admission.authorization_context_cid) {
+    return Err(ForeignRun)
+  }
+  if invocation.name != "run_invocation" ||
+    contract_string(invocation, "invocation_template_cid") !=
+    Some(admission.template.identity) ||
+    contract_string(invocation, "observation_set_cid") !=
+    Some(observation.identity) {
+    return Err(ForeignInvocation)
+  }
+  if observation.name != "observation_set" ||
+    contract_string_from_value(observation.value, "invocation_template_cid") !=
+    Some(admission.template.identity) {
+    return Err(ForeignObservation)
+  }
+  guard contract_string_from_value(
+      admission.template.value,
+      "invocation_bindings_cid",
+    )
+    is Some(scope_cid) else {
+    return Err(MissingScope)
+  }
+  guard contract_string_from_value(observation.value, "data_policy_cid")
+    is Some(policy_cid) else {
+    return Err(ForeignObservation)
+  }
+  if retention.name != "result_retention_policy" ||
+    contract_string(retention, "effective_data_policy_cid") != Some(policy_cid) {
+    return Err(ForeignRetention)
+  }
+  Ok((scope_cid, policy_cid, admission.authorization_context_cid))
+}

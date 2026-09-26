@@ -6,7 +6,7 @@ test "broad evidence custody keeps provider issuers independent" {
   let duckdb = broad_issuer_fixture()
   let salesforce_attempt = salesforce_issued_read(salesforce)
   let duckdb_attempt = broad_issued_attempt(duckdb)
-  let salesforce_identity = @salesforce_query.salesforce_broad_attempt_identity(
+  let salesforce_identity = @salesforce_host.salesforce_broad_attempt_identity(
     salesforce_attempt,
   )
   let duckdb_identity = @duckdb_query.duckdb_broad_attempt_identity(
@@ -26,17 +26,17 @@ test "broad evidence custody keeps provider issuers independent" {
     query_capture_limits(),
   ).unwrap()
   salesforce.settled.push(salesforce_attempt)
-  let salesforce_observation = @salesforce_query.complete_salesforce_broad_capture(
+  let salesforce_observation = @salesforce_host.complete_salesforce_broad_capture(
     salesforce.issuer,
     salesforce_attempt,
     salesforce_completion_limits(),
   ).unwrap()
   assert_true(
-    @salesforce_query.salesforce_broad_observation_cid(salesforce_observation) !=
+    @salesforce_host.salesforce_broad_observation_cid(salesforce_observation) !=
     @duckdb_query.duckdb_broad_observation_cid(duckdb_observation),
   )
   assert_true(
-    @salesforce_query.complete_salesforce_broad_capture(
+    @salesforce_host.complete_salesforce_broad_capture(
       salesforce.issuer,
       salesforce_attempt,
       salesforce_completion_limits(),
@@ -53,9 +53,9 @@ test "broad evidence custody keeps provider issuers independent" {
     is Err(AlreadyCaptured),
   )
 
-  @salesforce_query.close_salesforce_broad_issuer(salesforce.issuer)
+  @salesforce_host.close_salesforce_broad_issuer(salesforce.issuer)
   assert_true(
-    @salesforce_query.salesforce_broad_captured_source(
+    @salesforce_host.salesforce_broad_captured_source(
       salesforce.issuer,
       salesforce_attempt,
       salesforce_observation,

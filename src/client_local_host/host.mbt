@@ -108,9 +108,10 @@ fn open_checked_local_host(
     Ok(value) => value
     Err(_) => return None
   }
-  let generated = match prepare_client_local_sequences(
-    prepared, registry_body, values_body, fragment_body, ordered_body,
-  ) {
+  let generated = match
+    prepare_client_local_sequences(
+      prepared, registry_body, values_body, fragment_body, ordered_body,
+    ) {
     Some(value) => value
     None => return reject_client_local_run(run)
   }
@@ -248,7 +249,8 @@ fn open_checked_local_host(
     Err(_) => return reject_client_local_run(run)
   }
   let schedules = Array::make(
-    @strategy.graph_task_count(graph) - first_compute, schedule,
+    @strategy.graph_task_count(graph) - first_compute,
+    schedule,
   )
   let estimate = match
     @local_driver.prepare_local_estimate_module(installed, schedules, 1000) {
@@ -266,19 +268,21 @@ fn open_checked_local_host(
     Ok(value) => {
       if source is Some(_) {
         let fractions = Array::make(
-          @strategy.graph_task_count(graph) - 1, Some(1000),
+          @strategy.graph_task_count(graph) - 1,
+          Some(1000),
         )
-        match @host_driver.configure_compute_host_estimates(
-          @builtin.configured_host_runtime(value),
-          fractions,
-          {
-            max_offers: 100,
-            max_strategies: 100,
-            max_work: 10000,
-            max_revisions: 10,
-          },
-          1000,
-        ) {
+        match
+          @host_driver.configure_compute_host_estimates(
+            @builtin.configured_host_runtime(value),
+            fractions,
+            {
+              max_offers: 100,
+              max_strategies: 100,
+              max_work: 10000,
+              max_revisions: 10,
+            },
+            1000,
+          ) {
           Ok(_) => ()
           Err(_) => return reject_client_local_run(run)
         }

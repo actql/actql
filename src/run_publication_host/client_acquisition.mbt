@@ -33,11 +33,10 @@ pub fn prepare_client_query_acquisition(
     is Some(requests) else {
     return Err(MissingRequests)
   }
-  @acquisition.derive_query_acquisition(
-    requests,
-    source_index,
-    1000000,
-  ).map_err(issue => UnsupportedAcquisition(issue))
+  @acquisition.derive_query_acquisition(requests, source_index, 1000000).map_err(issue => {
+      UnsupportedAcquisition(issue)
+    },
+  )
 }
 
 ///|
@@ -68,7 +67,8 @@ pub fn prepare_client_query_requirement(
   let identity = @checked.source_identity(
     @strategy.graph_program(prepared.graph),
   )
-  @planning.prepare_query_requirement(
-    material, identity, guards, limits,
-  ).map_err(issue => Requirement(issue))
+  @planning.prepare_query_requirement(material, identity, guards, limits).map_err(issue => {
+      Requirement(issue)
+    },
+  )
 }

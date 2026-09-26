@@ -80,39 +80,27 @@ pub fn bind_captured_duckdb_broad_input(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  guard attempt.state is Captured(actual) && physical_equal(actual, observation) else {
-    return Err(ForeignObservation)
-  }
-  match
-    @planning.verify_query_evidence_captured(
-      observation.captured,
-      issuer.registration,
-      observation.records.authority.token,
-      issuer,
-      attempt,
-      observation.records.retention,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(duckdb_custody_issue(issue))
-  }
-  @execution.bind_live_completed_input(
+  @planning.bind_captured_query_evidence_input(
+    observation.captured,
+    observation.records.issued,
+    issuer.registration,
+    observation.records.authority.token,
+    issuer,
+    attempt,
+    observation.records.retention,
     receiver,
     input_index,
     expected_producer,
-    observation.records.retention.output,
     fn() {
       verify_duckdb_broad_records(issuer, attempt, observation.records) is Ok(_) &&
       attempt.state is Captured(actual) &&
-      physical_equal(actual, observation) &&
-      @planning.verify_query_evidence_captured(
-        observation.captured,
-        issuer.registration,
-        observation.records.authority.token,
-        issuer,
-        attempt,
-        observation.records.retention,
-      )
-      is Ok(_)
+      physical_equal(actual, observation)
     },
-  ).map_err(issue => Consumer(issue))
+  ).map_err(issue => {
+    match issue {
+      @planning.Evidence(issue) => duckdb_custody_issue(issue)
+      @planning.ForeignObservation => ForeignObservation
+      @planning.Consumer(issue) => Consumer(issue)
+    }
+  })
 }

@@ -14,6 +14,7 @@ pub fn client_program_check_environment(
   calendar : Bool,
   text_rank : Bool,
 ) -> @program_check.CheckEnvironment? {
+  // SELECTED_SGA_CAPABILITY
   let wire = match
     @check_environment.read(@utf8.encode(body), evidence_bundle_cid, {
       max_bytes: 65536,
@@ -62,39 +63,17 @@ pub fn client_program_prepare_effect_free_with_parameters(
   environment : @program_check.CheckEnvironment,
   parameters : String?,
 ) -> ClientProgramBridgeOutcome {
-  let selected = match format {
-    "json" => @stage_syntax.Json
-    "yaml" => @stage_syntax.Yaml
-    _ => return Rejected(InvalidFormat)
+  let (selected, supplied) = match client_program_input(format, parameters) {
+    Ok(value) => value
+    Err(issue) => return Rejected(issue)
   }
-  let supplied = match parameters {
-    None => None
-    Some(body) => {
-      let parsed = match
-        @source.parse_json_bytes(
-          @utf8.encode(body),
-          { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
-          source_path="Client Parameters",
-        ) {
-        Ok(value) => value
-        Err(issue) => return Rejected(SuppliedSyntax(issue))
-      }
-      match
-        @decode.admit(parsed, {
-          max_nodes: 8192,
-          max_depth: 64,
-          max_string_bytes: 65536,
-          max_total_string_bytes: 65536,
-        }) {
-        Ok(value) => Some(value)
-        Err(issue) => return Rejected(SuppliedAdmission(issue))
-      }
-    }
-  }
-  let limits = @publication_host.client_standard_program_preparation_limits()
   match
     @publication_host.prepare_effect_free_client_program(
-      document, selected, environment, supplied, limits,
+      document,
+      selected,
+      environment,
+      supplied,
+      client_program_standard_limits(),
     ) {
     Ok(value) => Prepared(value)
     Err(issue) => Rejected(Preparation(issue))
@@ -1849,4 +1828,2475 @@ pub fn client_program_open_captured_local_host(
     fragment_body~,
     ordered_body~,
   )
+}
+
+///|
+/// Document format and Parameter Values are admitted once for either
+/// computation kind. Neither branch may reinterpret the supplied JSON.
+fn client_program_input(
+  format : String,
+  parameters : String?,
+) -> Result[(@stage_syntax.Format, @decode.Cursor?), ClientProgramBridgeIssue] {
+  let selected = match format {
+    "json" => @stage_syntax.Json
+    "yaml" => @stage_syntax.Yaml
+    _ => return Err(InvalidFormat)
+  }
+  let supplied = match parameters {
+    None => None
+    Some(body) => {
+      let parsed = match
+        @source.parse_json_bytes(
+          @utf8.encode(body),
+          { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
+          source_path="Client Parameters",
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(SuppliedSyntax(issue))
+      }
+      match
+        @decode.admit(parsed, {
+          max_nodes: 8192,
+          max_depth: 64,
+          max_string_bytes: 65536,
+          max_total_string_bytes: 65536,
+        }) {
+        Ok(value) => Some(value)
+        Err(issue) => return Err(SuppliedAdmission(issue))
+      }
+    }
+  }
+  Ok((selected, supplied))
+}
+
+///|
+fn client_program_standard_limits() -> @publication_host.ClientProgramPreparationLimits {
+  @publication_host.client_standard_program_preparation_limits()
+}
+
+///|
+/// Internal Host preparation only. A prepared Effect computation is neither
+/// a checked Effect Run nor an apply permit, and the public submit adapter
+/// continues to reject nonempty Effects until the complete Run path exists.
+pub(all) enum ClientEffectProgramBridgeIssue {
+  Input(ClientProgramBridgeIssue)
+  Preparation(@publication_host.ClientEffectComputationIssue)
+}
+
+///|
+pub(all) enum ClientEffectProgramBridgeOutcome {
+  EffectPrepared(@publication_host.PreparedClientEffectComputation)
+  EffectRejected(ClientEffectProgramBridgeIssue)
+}
+
+///|
+fn client_program_effect_limits() -> @publication_host.ClientEffectComputationLimits {
+  {
+    program: client_program_standard_limits(),
+    max_members: 1024,
+    max_header_work: 1000000,
+    mapping: {
+      max_bytes: 65536,
+      max_nodes: 4096,
+      max_depth: 64,
+      max_members: 256,
+    },
+    max_mapping_work: 100000,
+    effects: {
+      max_members: 1024,
+      max_work: 1000000,
+      max_admission_nodes: 100000,
+      max_admission_depth: 64,
+      max_admission_text_bytes: 1000000,
+    },
+  }
+}
+
+///|
+#export_name("clientProgramPrepareEffectComputationWithParameters")
+pub fn client_program_prepare_effect_computation_with_parameters(
+  document : String,
+  format : String,
+  environment : @program_check.CheckEnvironment,
+  parameters : String?,
+  evidence : Array[@context.StageCapacityInput],
+) -> ClientEffectProgramBridgeOutcome {
+  let (selected, supplied) = match client_program_input(format, parameters) {
+    Ok(value) => value
+    Err(issue) => return EffectRejected(Input(issue))
+  }
+  match
+    @publication_host.prepare_client_effect_computation(
+      document,
+      selected,
+      environment,
+      supplied,
+      evidence,
+      client_program_effect_limits(),
+    ) {
+    Ok(value) => EffectPrepared(value)
+    Err(issue) => EffectRejected(Preparation(issue))
+  }
+}
+
+///|
+#export_name("clientProgramEffectPreparationReady")
+pub fn client_program_effect_preparation_ready(
+  outcome : ClientEffectProgramBridgeOutcome,
+) -> @publication_host.PreparedClientEffectComputation? {
+  match outcome {
+    EffectPrepared(value) => Some(value)
+    EffectRejected(_) => None
+  }
+}
+
+///|
+#export_name("clientProgramEffectPreparationIssue")
+pub fn client_program_effect_preparation_issue(
+  outcome : ClientEffectProgramBridgeOutcome,
+) -> ClientEffectProgramBridgeIssue? {
+  match outcome {
+    EffectPrepared(_) => None
+    EffectRejected(issue) => Some(issue)
+  }
+}
+
+///|
+#export_name("clientProgramEffectPreparationIssueCode")
+pub fn client_program_effect_preparation_issue_code(
+  outcome : ClientEffectProgramBridgeOutcome,
+) -> String? {
+  match outcome {
+    EffectPrepared(_) => None
+    EffectRejected(issue) =>
+      Some(
+        match issue {
+          Input(InvalidFormat) => "invalid_format"
+          Input(SuppliedSyntax(_)) => "supplied_syntax"
+          Input(SuppliedAdmission(_)) => "supplied_admission"
+          Input(Preparation(_)) => "invalid_input_owner"
+          Preparation(Syntax(_)) => "program_syntax"
+          Preparation(Candidate(_)) => "effect_candidate_rejected"
+          Preparation(Mapping(_)) => "effect_mapping_rejected"
+          Preparation(Static(_)) => "effect_static_rejected"
+          Preparation(Stage(_)) => "stage_rejected"
+          Preparation(Graph(_)) => "graph_rejected"
+        },
+      )
+  }
+}
+
+///|
+#export_name("clientProgramEffectDefinitionCid")
+pub fn client_program_effect_definition_cid(
+  value : @publication_host.PreparedClientEffectComputation,
+) -> String {
+  @publication_host.prepared_client_effect_computation_definition_cid(value)
+}
+
+///|
+/// One Effectful logical request before Run admission. An equal key with a
+/// changed checked Effect intent conflicts; neither this identity nor a
+/// prepared computation permits mutation dispatch.
+#export_name("clientProgramEffectRequestIdentity")
+pub fn client_program_effect_request_identity(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  authority_scope_cid : String,
+  caller_request_id : String,
+  caller_input_intent_cid : String,
+) -> @publication_host.ClientRequestIdentity? {
+  match
+    @publication_host.prepare_client_effect_request_identity(
+      prepared, authority_scope_cid, caller_request_id, caller_input_intent_cid,
+    ) {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
+#export_name("clientProgramEffectSemanticsCid")
+pub fn client_program_effect_semantics_cid(
+  value : @publication_host.PreparedClientEffectComputation,
+) -> String {
+  @publication_host.prepared_client_effect_computation_semantics_cid(value)
+}
+
+///|
+#export_name("clientProgramEffectEnvironmentCid")
+pub fn client_program_effect_environment_cid(
+  value : @publication_host.PreparedClientEffectComputation,
+) -> String {
+  @publication_host.prepared_client_effect_computation_environment_cid(value)
+}
+
+///|
+pub(all) enum ClientEffectPlanIdentityIssue {
+  Binding(@effect_results.EffectPlanBindingIssue)
+  Encoding
+} derive(Debug)
+
+///|
+/// Derive one Result-correlated member's Plan identity from the checked
+/// static owner before a private Preview is authored. This is neither a
+/// captured input nor authority to apply the Effect.
+#export_name("clientProgramEffectPlanCid")
+pub fn client_program_effect_plan_cid(
+  value : @publication_host.PreparedClientEffectComputation,
+  member_index : Int,
+  max_fields : Int,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String?, ClientEffectPlanIdentityIssue] {
+  let candidate = @publication_host.prepared_client_effect_computation_candidate(
+    value,
+  )
+  let effects = @program_check.effect_program_static_effects(candidate)
+  let rules = @effect_results.effect_static_candidate_mapping_rules(effects)
+  let terminal = match
+    @effect_results.effect_plan_terminal_for_member(
+      rules, member_index, max_fields, max_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Binding(issue))
+  }
+  match terminal {
+    None => Ok(None)
+    Some(terminal) =>
+      Ok(
+        Some(
+          @effect_results.effect_plan_pipeline_cid(
+            terminal, max_bytes, max_nodes, max_depth,
+          ),
+        ),
+      ) catch {
+        _ => Err(Encoding)
+      }
+  }
+}
+
+///|
+/// Read the authored member and its resolved Mapping through the portable
+/// checked owner. The Node bridge makes no independent identity decision.
+#export_name("clientProgramEffectMemberDescriptor")
+pub fn client_program_effect_member_descriptor(
+  value : @publication_host.PreparedClientEffectComputation,
+  stage_index : Int,
+  effect_id : String,
+  max_work : Int,
+) -> Result[
+  (Int, String, String, String, String, String, String?, String),
+  @publication_host.ClientEffectMemberDescriptorIssue,
+] {
+  @publication_host.client_effect_member_descriptor(
+    value, stage_index, effect_id, max_work,
+  )
+}
+
+///|
+/// The local semantic Invocation comes from the checked Unit owner. Its CID
+/// is not the physical Run Invocation and does not authorize Effect apply.
+#export_name("clientProgramIssueSourceFreeLocalEffectInvocation")
+pub fn client_program_issue_source_free_local_effect_invocation(
+  value : @publication_host.PreparedClientEffectComputation,
+  unit : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalInvocation,
+  @publication_host.ClientEffectLocalInvocationIssue,
+] {
+  @publication_host.issue_source_free_client_effect_local_invocation(
+    value, unit, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramIssueCapturedEffectInputLocalInvocation")
+pub fn client_program_issue_captured_effect_input_local_invocation(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalInvocation,
+  @publication_host.ClientEffectLocalInvocationIssue,
+] {
+  @publication_host.issue_source_free_captured_client_effect_local_invocation(
+    owner, inputs, member_index, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramLocalEffectInvocationCid")
+pub fn client_program_local_effect_invocation_cid(
+  value : @publication_host.ClientEffectLocalInvocation,
+) -> String {
+  @publication_host.client_effect_local_invocation_cid(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectInvocationJson")
+pub fn client_program_local_effect_invocation_json(
+  value : @publication_host.ClientEffectLocalInvocation,
+) -> String {
+  @publication_host.client_effect_local_invocation_json(value)
+}
+
+///|
+/// A Stage Result is resolved inside its checked local Unit, never through
+/// the Program Result publication inventory.
+#export_name("clientProgramIssueLocalEffectResultDefinition")
+pub fn client_program_issue_local_effect_result_definition(
+  value : @publication_host.PreparedClientEffectComputation,
+  unit : Int,
+  result_name : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultDefinition,
+  @publication_host.ClientEffectLocalResultDefinitionIssue,
+] {
+  @publication_host.issue_client_effect_local_result_definition(
+    value, unit, result_name, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Bind the definition to the exact captured Effect source pin used by the
+/// product input export, not to a copied Stage name.
+#export_name("clientProgramIssueCapturedEffectInputLocalResultDefinition")
+pub fn client_program_issue_captured_effect_input_local_result_definition(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultDefinition,
+  @publication_host.ClientEffectLocalResultDefinitionIssue,
+] {
+  @publication_host.issue_captured_client_effect_local_result_definition(
+    owner, inputs, member_index, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramLocalEffectResultDefinitionCid")
+pub fn client_program_local_effect_result_definition_cid(
+  value : @publication_host.ClientEffectLocalResultDefinition,
+) -> String {
+  @publication_host.client_effect_local_result_definition_cid(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectResultDefinitionJson")
+pub fn client_program_local_effect_result_definition_json(
+  value : @publication_host.ClientEffectLocalResultDefinition,
+) -> String {
+  @publication_host.client_effect_local_result_definition_json(value)
+}
+
+///|
+/// The checked source-free Unit, captured Result, and export receipt must
+/// remain paired. This does not grant publication or Effect mutation.
+pub(all) enum ClientEffectLocalArtifactBridgeIssue {
+  ForeignExport
+  Issuance(@publication_host.ClientEffectLocalResultArtifactIssue)
+} derive(Eq, Debug)
+
+///|
+#export_name("clientProgramIssueSourceFreeLocalEffectResultArtifact")
+pub fn client_program_issue_source_free_local_effect_result_artifact(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  importing : ClientEffectManagedInputImport,
+  definition : @publication_host.ClientEffectLocalResultDefinition,
+  invocation : @publication_host.ClientEffectLocalInvocation,
+  receipt : @execution.CompletedRelationExportReceipt,
+  retention : @publication.PublicationContract,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  run_invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultArtifact,
+  ClientEffectLocalArtifactBridgeIssue,
+] {
+  guard importing.preparation is Some(preparation) else {
+    return Err(ForeignExport)
+  }
+  @publication_host.issue_source_free_client_effect_local_result_artifact(
+    owner,
+    inputs,
+    member_index,
+    importing.input,
+    importing.output,
+    importing.bridge,
+    preparation,
+    definition,
+    invocation,
+    receipt,
+    retention,
+    admission,
+    run_definition,
+    run_invocation,
+    observation,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  ).map_err(issue => Issuance(issue))
+}
+
+///|
+#export_name("clientProgramLocalEffectResultArtifactCid")
+pub fn client_program_local_effect_result_artifact_cid(
+  value : @publication_host.ClientEffectLocalResultArtifact,
+) -> String {
+  @publication_host.client_effect_local_result_artifact_cid(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectResultArtifactJson")
+pub fn client_program_local_effect_result_artifact_json(
+  value : @publication_host.ClientEffectLocalResultArtifact,
+) -> String {
+  @publication_host.client_effect_local_result_artifact_json(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectResultDerivationJson")
+pub fn client_program_local_effect_result_derivation_json(
+  value : @publication_host.ClientEffectLocalResultArtifact,
+) -> String {
+  @publication_host.client_effect_local_result_derivation_json(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectResultOrderingJson")
+pub fn client_program_local_effect_result_ordering_json(
+  value : @publication_host.ClientEffectLocalResultArtifact,
+) -> String {
+  @publication_host.client_effect_local_result_ordering_json(value)
+}
+
+///|
+#export_name("clientProgramIssueLocalEffectResultManifest")
+pub fn client_program_issue_local_effect_result_manifest(
+  owner : @publication_host.PreparedClientEffectComputation,
+  invocation : @publication_host.ClientEffectLocalInvocation,
+  artifacts : Array[@publication_host.ClientEffectLocalResultArtifact],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalManifest,
+  @publication_host.ClientEffectLocalManifestIssue,
+] {
+  @publication_host.issue_client_effect_local_manifest(
+    owner, invocation, artifacts, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramLocalEffectResultManifestCid")
+pub fn client_program_local_effect_result_manifest_cid(
+  value : @publication_host.ClientEffectLocalManifest,
+) -> String {
+  @publication_host.client_effect_local_manifest_cid(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectResultManifestJson")
+pub fn client_program_local_effect_result_manifest_json(
+  value : @publication_host.ClientEffectLocalManifest,
+) -> String {
+  @publication_host.client_effect_local_manifest_json(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectSourceMatches")
+pub fn client_program_local_effect_source_matches(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  manifest : @publication_host.ClientEffectLocalManifest,
+  invocation : @publication_host.ClientEffectLocalInvocation,
+  artifact : @publication_host.ClientEffectLocalResultArtifact,
+  source : @publication.CapturedEffectSourceArtifact,
+) -> Bool {
+  @publication_host.client_effect_local_source_matches(
+    owner, inputs, member_index, manifest, invocation, artifact, source,
+  )
+}
+
+///|
+#export_name("clientProgramAdmitLocalEffectSourceEvidence")
+pub fn client_program_admit_local_effect_source_evidence(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  manifest : @publication_host.ClientEffectLocalManifest,
+  invocation : @publication_host.ClientEffectLocalInvocation,
+  artifact : @publication_host.ClientEffectLocalResultArtifact,
+  source : @publication.CapturedEffectSourceArtifact,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.CapturedLocalEffectSourceEvidence,
+  @publication.CapturedLocalEffectSourceIssue,
+] {
+  @publication_host.admit_client_effect_local_source_evidence(
+    owner, inputs, member_index, manifest, invocation, artifact, source, max_wire_bytes,
+    max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramIssueSourceFreeLocalEffectIdentity")
+pub fn client_program_issue_source_free_local_effect_identity(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  artifact : @publication_host.ClientEffectLocalResultArtifact,
+  max_work : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalIdentity,
+  @publication_host.ClientEffectLocalIdentityIssue,
+] {
+  @publication_host.issue_source_free_client_effect_local_identity(
+    owner, inputs, member_index, artifact, max_work, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramLocalEffectIdentityCid")
+pub fn client_program_local_effect_identity_cid(
+  value : @publication_host.ClientEffectLocalIdentity,
+) -> String {
+  @publication_host.client_effect_local_identity_cid(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectIdentityJson")
+pub fn client_program_local_effect_identity_json(
+  value : @publication_host.ClientEffectLocalIdentity,
+) -> String {
+  @publication_host.client_effect_local_identity_json(value)
+}
+
+///|
+#export_name("clientProgramCheckSourceFreeLocalEffectPreviewIdentities")
+pub fn client_program_check_source_free_local_effect_preview_identities(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  preview_wire : String,
+  run_identity_cid : String,
+  authoring_context_cid : String,
+  identities : Array[@publication_host.ClientEffectLocalIdentity],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @publication_host.ClientEffectLocalIdentityIssue] {
+  @publication_host.check_source_free_client_effect_preview_identities(
+    owner, inputs, preview_wire, run_identity_cid, authoring_context_cid, identities,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Keep the Effect closure paired with the exact admitted Run. The returned
+/// owner is still compute-only: it grants neither Preview nor apply.
+#export_name("clientProgramBindEffectRun")
+pub fn client_program_bind_effect_run(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+) -> @publication_host.PreparedClientEffectRun? {
+  match
+    @publication_host.bind_prepared_client_effect_run(
+      prepared, admission, definition,
+    ) {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
+/// Keep publication admission paired with the exact checked Effect Program.
+/// Generic evidence admission alone cannot substitute for this owner check.
+#export_name("clientProgramAdmitEffectPublication")
+pub fn client_program_admit_effect_publication(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  template : @publication.RunEvidenceValue,
+  invocation : @publication.RunEvidenceValue,
+  authorization : @publication.RunEvidenceValue,
+  plan : @publication.PublicationContract,
+) -> @publication.RunPublicationAdmission? {
+  match
+    @publication_host.admit_prepared_client_effect_run_publication(
+      prepared, template, invocation, authorization, plan,
+    ) {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
+fn client_local_contracts(
+  registry_body : String,
+  values_body : String,
+) -> @execution.RegisteredRelationContracts? {
+  if registry_body.length() > 100000 || values_body.length() > 100000 {
+    return None
+  }
+  let registry_value = @identity.from_json(
+    @json.parse(registry_body),
+    10000,
+    100,
+    100000,
+  ) catch {
+    _ => return None
+  }
+  let values_value = @identity.from_json(
+    @json.parse(values_body),
+    10000,
+    100,
+    100000,
+  ) catch {
+    _ => return None
+  }
+  match
+    @execution.admit_relation_registry(registry_value, values_value, {
+      max_body_bytes: 100000,
+      max_body_nodes: 10000,
+      max_body_depth: 100,
+    }) {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
+fn client_program_configure_local_host(
+  run : @strategy.CapturedDAG,
+  graph : @strategy.CheckedDAG,
+  generated : Array[@execution.GeneratedSequence],
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  let capacity : @connector.FixedComputeCapacity = {
+    contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+    max_rows: 100,
+    max_value_bytes: 10000,
+    common_fragment: None,
+  }
+  let values : @execution.ValueLimits = {
+    max_nodes: 10000,
+    max_text_bytes: 10000,
+    max_depth: 100,
+    max_work: 100000,
+  }
+  let execution : @execution.SequenceExecutionLimits = {
+    rows: {
+      max_rows: 100,
+      metadata_entries: 10000,
+      retained_entries: 10000,
+      operation_entries: 10000,
+      input_values: values,
+      output_values: values,
+    },
+    max_work: 100000,
+    max_frames: 100,
+  }
+  let measurement : @execution.FixedInputGuardMeasureLimits = {
+    max_work: 10000,
+    max_bytes: 10000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }
+  // SELECTED_SGA_PROVIDER_BEGIN
+  let graph_limits : @graph_storage.Limits = {
+    max_input_rows: 100,
+    max_nodes: 100,
+    max_edges: 100,
+    max_value_bytes: 10000,
+    max_total_value_bytes: 10000,
+    max_retained_value_bytes: 10000,
+    max_value_nodes: 10000,
+    max_value_depth: 100,
+    max_contract_work: 10000,
+    max_work: 100000,
+    max_workspace_slots: 10000,
+  }
+  let mut retained_bytes = 0L
+  let mut execution_bytes = 0L
+  for sequence in generated {
+    guard @execution.generated_sequence_capacity(
+        sequence, execution, measurement,
+      )
+      is Some(sequence_capacity) else {
+      return reject_client_local_run(run)
+    }
+    let retained = @execution.execution_capacity_retained_bytes(
+      sequence_capacity,
+    )
+    let executing = @execution.execution_capacity_execution_bytes(
+      sequence_capacity,
+    )
+    if retained > retained_bytes {
+      retained_bytes = retained
+    }
+    if executing > execution_bytes {
+      execution_bytes = executing
+    }
+  }
+  let providers = match
+    @execution.execution_capacity(retained_bytes, execution_bytes) {
+    Some(sequence_capacity) =>
+      [@local_sga_provider.provider(graph_limits, 10000L, sequence_capacity)]
+    None => return reject_client_local_run(run)
+  }
+  // SELECTED_SGA_PROVIDER_END
+  let local_configuration : @local_driver.LocalComputeConfiguration = {
+    sequences: generated,
+    managed_providers: providers,
+    managed_capacity: capacity,
+    execution,
+    measurement,
+    max_work: 100,
+  }
+  let bundle : @connector.CapabilityBundle[
+    Unit,
+    @local_driver.LocalComputeConfiguration,
+    Unit,
+  ] = {
+    name: "local",
+    acquisition: None,
+    fixed_compute: Some((_, _) => local_configuration),
+    effect: None,
+  }
+  let installed_bundles = match @connector.install_bundles([bundle], 1, 100) {
+    Ok(value) => value
+    Err(_) => return reject_client_local_run(run)
+  }
+  let registry = @connector.installed_bundle_registry(installed_bundles)
+  guard @connector.capability_registration_at(registry, 0)
+    is Some(local_registration) else {
+    return reject_client_local_run(run)
+  }
+  guard @connector.capability_implementation(
+      @connector.installed_compute_implementations(installed_bundles),
+      local_registration,
+    )
+    is Some(local_configuration) else {
+    return reject_client_local_run(run)
+  }
+  let modules = match
+    @builtin.configure_compute_modules(
+      @host_driver.open_dispatch_driver(run),
+      registry,
+      1,
+      _ => @strategy.RunIssue::ForeignCandidate,
+      with_local=Some(
+        (
+          local_registration,
+          local_configuration,
+          _ => @strategy.RunIssue::ForeignCandidate,
+          _ => @strategy.RunIssue::ForeignCandidate,
+        ),
+      ),
+    ) {
+    Ok(value) => value
+    Err(_) => return reject_client_local_run(run)
+  }
+  guard @builtin.configured_local_module(modules) is Some(installed) else {
+    return reject_client_local_run(run)
+  }
+  match
+    @local_driver.configure_local_retained_inputs(
+      installed,
+      {
+        max_rows: 100,
+        values,
+        wire: {
+          max_columns: 10,
+          max_order_work: 100,
+          max_bytes: 10000,
+          max_nodes: 1000,
+          max_depth: 20,
+        },
+        row: {
+          max_bytes: 100,
+          max_nodes: 20,
+          max_depth: 4,
+          max_text_bytes: 100,
+        },
+        max_batch_bytes: 64,
+      },
+      None,
+    ) {
+    Ok(_) => ()
+    Err(_) => return reject_client_local_run(run)
+  }
+  let slots = @local_driver.local_dispatch_work_slots()
+  let schedule = match
+    @cost.prepare_rate_schedule(
+      slots,
+      [
+        {
+          work_slots: Array::makei(slots, index => index),
+          fixed_ms: Some(fixed_ms),
+          per_row_ms: Some(per_row_ms),
+          per_wire_byte_ms: Some(per_wire_byte_ms),
+          per_pair_ms: Some(per_pair_ms),
+        },
+      ],
+      100,
+    ) {
+    Ok(value) => value
+    Err(_) => return reject_client_local_run(run)
+  }
+  let schedules = Array::make(@strategy.graph_task_count(graph), schedule)
+  let estimate = match
+    @local_driver.prepare_local_estimate_module(installed, schedules, 1000) {
+    Ok(value) => value
+    Err(_) => return reject_client_local_run(run)
+  }
+  match @local_driver.install_local_dispatch_estimates(installed, estimate) {
+    Ok(_) => ()
+    Err(_) => return reject_client_local_run(run)
+  }
+  match
+    @builtin.open_configured_compute_host(
+      modules, registry, capacity, 100, 10000, 1,
+    ) {
+    Ok(value) => Some(value)
+    Err(_) => reject_client_local_run(run)
+  }
+}
+
+///|
+/// Keep the exact captured Effect Run beside its installed compute Host.
+/// The Host cannot later reconstruct this owner from a graph or CID alone.
+struct ClientLocalEffectHost {
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue]
+  run : @strategy.CapturedEffectRunDAG
+}
+
+///|
+#export_name("clientProgramLocalEffectHostRuntime")
+pub fn client_program_local_effect_host_runtime(
+  value : ClientLocalEffectHost,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  value.host
+}
+
+///|
+#export_name("clientProgramLocalEffectHostRun")
+pub fn client_program_local_effect_host_run(
+  value : ClientLocalEffectHost,
+) -> @strategy.CapturedEffectRunDAG {
+  value.run
+}
+
+///|
+#export_name("clientProgramLocalEffectSourceCount")
+pub fn client_program_local_effect_source_count(
+  value : ClientLocalEffectHost,
+) -> Int {
+  @strategy.captured_effect_run_source_count(value.run)
+}
+
+///|
+/// Capture every checked Effect source as one consumer holding after Compute.
+/// The resulting owner is input custody only, never physical apply authority.
+#export_name("clientProgramPinEffectSources")
+pub fn client_program_pin_effect_sources(
+  value : ClientLocalEffectHost,
+  max_pins : Int,
+) -> Result[@strategy.CapturedEffectInputs, @strategy.RunIssue] {
+  @strategy.pin_captured_effect_sources(value.run, max_pins)
+}
+
+///|
+/// Revoke the ordinary task port only after its checked Effect consumer has
+/// acquired custody. Existing pins keep their own charged allocation.
+#export_name("clientProgramCloseEffectSourcePort")
+pub fn client_program_close_effect_source_port(
+  value : @strategy.CapturedEffectInputs,
+  member_index : Int,
+) -> Bool {
+  @strategy.close_captured_effect_source_port(value, member_index)
+}
+
+///|
+#export_name("clientProgramEffectInputCount")
+pub fn client_program_effect_input_count(
+  value : @strategy.CapturedEffectInputs,
+) -> Int {
+  @strategy.captured_effect_inputs_count(value)
+}
+
+///|
+#export_name("clientProgramEffectInputAvailable")
+pub fn client_program_effect_input_available(
+  value : @strategy.CapturedEffectInputs,
+  member_index : Int,
+) -> Bool {
+  @strategy.captured_effect_input_at(value, member_index) is Some(_)
+}
+
+///|
+#export_name("clientProgramEffectInputAt")
+pub fn client_program_effect_input_at(
+  value : @strategy.CapturedEffectInputs,
+  member_index : Int,
+) -> @strategy.CapturedEffectInput? {
+  @strategy.captured_effect_input_at(value, member_index)
+}
+
+///|
+/// Permit one checked export to feed multiple member proposals only for the
+/// same live producer and Result occurrence, not an equal serialized view.
+#export_name("clientProgramEffectInputsShareView")
+pub fn client_program_effect_inputs_share_view(
+  value : @strategy.CapturedEffectInputs,
+  first_index : Int,
+  second_index : Int,
+) -> Bool {
+  @strategy.captured_effect_inputs_share_view(value, first_index, second_index)
+}
+
+///|
+/// Physical source selection is fixed by the captured graph, not by JS.
+#export_name("clientProgramEffectInputTask")
+pub fn client_program_effect_input_task(
+  value : @strategy.CapturedEffectInput,
+) -> Int {
+  @strategy.captured_effect_input_task(value)
+}
+
+///|
+/// Release one member holding without revoking another borrow of the Result.
+#export_name("clientProgramReleaseEffectInput")
+pub fn client_program_release_effect_input(
+  value : @strategy.CapturedEffectInput,
+) -> Bool {
+  @strategy.release_captured_effect_input(value)
+}
+
+///|
+/// Private bounds for binding one admitted Preview to a captured Effect Run.
+/// These do not replace current authorization, payload proof, or apply.
+struct ClientEffectPreviewInputLimits {
+  max_wire_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_binding_work : Int
+  max_plan_fields : Int
+  max_plan_bytes : Int
+  max_plan_nodes : Int
+  max_plan_depth : Int
+  max_footprint_members : Int
+  max_footprint_targets : Int
+  max_footprint_work : Int
+  max_source_work : Int
+}
+
+///|
+#export_name("clientProgramEffectPreviewInputLimits")
+pub fn client_program_effect_preview_input_limits(
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_binding_work : Int,
+  max_plan_fields : Int,
+  max_plan_bytes : Int,
+  max_plan_nodes : Int,
+  max_plan_depth : Int,
+  max_footprint_members : Int,
+  max_footprint_targets : Int,
+  max_footprint_work : Int,
+  max_source_work : Int,
+) -> ClientEffectPreviewInputLimits? {
+  if max_wire_bytes < 0 ||
+    max_nodes < 1 ||
+    max_depth < 0 ||
+    max_binding_work < 0 ||
+    max_plan_fields < 0 ||
+    max_plan_bytes < 0 ||
+    max_plan_nodes < 1 ||
+    max_plan_depth < 0 ||
+    max_footprint_members < 0 ||
+    max_footprint_targets < 0 ||
+    max_footprint_work < 0 ||
+    max_source_work < 0 {
+    return None
+  }
+  Some({
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    max_binding_work,
+    max_plan_fields,
+    max_plan_bytes,
+    max_plan_nodes,
+    max_plan_depth,
+    max_footprint_members,
+    max_footprint_targets,
+    max_footprint_work,
+    max_source_work,
+  })
+}
+
+///|
+pub(all) enum ClientEffectPreviewInputIssue {
+  Identity(@publication.EffectPreviewIdentityIssue)
+  Binding(@program_check.EffectProgramRunPreviewIssue)
+  Footprint(@effect.EffectFootprintIssue)
+  Captured(@strategy.RunIssue)
+}
+
+///|
+/// Bind the private Preview to the exact execution occurrence and its live
+/// Result pins before a physical input can be proposed for mutation.
+#export_name("clientProgramBindEffectPreviewInputs")
+pub fn client_program_bind_effect_preview_inputs(
+  host : ClientLocalEffectHost,
+  inputs : @strategy.CapturedEffectInputs,
+  invocation : @publication.PublicationContract,
+  stage_index : Int,
+  preview_wire : String,
+  authoring_context_cid : String,
+  limits : ClientEffectPreviewInputLimits,
+) -> Result[
+  @strategy.CapturedEffectPreviewInputs,
+  ClientEffectPreviewInputIssue,
+] {
+  let owner = @strategy.captured_effect_run_owner(host.run)
+  let run_cid = @publication.publication_contract_identity(
+    @program_check.effect_program_run_definition(owner),
+  )
+  let preview = match
+    @publication.admit_effect_preview_identity(
+      preview_wire,
+      run_cid,
+      authoring_context_cid,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Identity(issue))
+  }
+  let bound = match
+    @program_check.bind_effect_program_run_preview(
+      owner,
+      invocation,
+      stage_index,
+      preview,
+      limits.max_binding_work,
+      {
+        max_work: limits.max_binding_work,
+        max_fields: limits.max_plan_fields,
+        max_bytes: limits.max_plan_bytes,
+        max_nodes: limits.max_plan_nodes,
+        max_depth: limits.max_plan_depth,
+      },
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Binding(issue))
+  }
+  match
+    @program_check.check_effect_program_run_preview_footprints(
+      bound,
+      limits.max_footprint_members,
+      limits.max_footprint_targets,
+      limits.max_footprint_work,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Footprint(issue))
+  }
+  @strategy.bind_captured_effect_preview_inputs(
+    host.run,
+    inputs,
+    bound,
+    limits.max_source_work,
+  ).map_err(issue => Captured(issue))
+}
+
+///|
+/// Supply durable Effect progress with the exact private Preview retained by
+/// this captured Run. Historical progress does not authorize another send.
+#export_name("clientProgramEffectPreviewLedgerIdentity")
+pub fn client_program_effect_preview_ledger_identity(
+  value : @strategy.CapturedEffectPreviewInputs,
+) -> @publication.EffectPreviewIdentity {
+  @strategy.captured_effect_preview_ledger_identity(value)
+}
+
+///|
+#export_name("clientProgramEffectPreviewInputAt")
+pub fn client_program_effect_preview_input_at(
+  value : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+) -> @strategy.CapturedEffectInput? {
+  @strategy.captured_effect_preview_input_at(value, preview_index)
+}
+
+///|
+/// Return the checked Plan associated with this live Preview input. The
+/// terminal is opaque to Node and cannot be replaced by a caller-authored
+/// Mapping rule or an equal-CID foreign Result.
+#export_name("clientProgramEffectPreviewPlanTerminal")
+pub fn client_program_effect_preview_plan_terminal(
+  value : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+  max_fields : Int,
+  max_work : Int,
+) -> Result[
+  @effect_results.EffectPlanTerminal?,
+  @strategy.CapturedEffectPlanIssue,
+] {
+  @strategy.captured_effect_preview_plan_terminal(
+    value, preview_index, max_fields, max_work,
+  )
+}
+
+///|
+/// The Site supplies current authorized observations for every guarded row.
+/// This checks the captured Preview but never issues mutation authority.
+#export_name("clientProgramCheckEffectPreviewTargetGuards")
+pub fn client_program_check_effect_preview_target_guards(
+  value : @strategy.CapturedEffectPreviewInputs,
+  row_cids : Array[String],
+  version_cids : Array[String],
+  max_rows : Int,
+  max_work : Int,
+) -> Result[Unit, @strategy.CapturedEffectGuardIssue] {
+  if max_rows < 0 ||
+    max_rows > 100000 ||
+    max_work < 0 ||
+    max_work > 100000000 ||
+    row_cids.length() != version_cids.length() {
+    return Err(@strategy.CapturedEffectGuardIssue::InvalidLimits)
+  }
+  if row_cids.length() > max_rows {
+    return Err(
+      @strategy.CapturedEffectGuardIssue::Current(
+        @effect.EffectPreviewTargetGuardIssue::CapacityExceeded,
+      ),
+    )
+  }
+  let observations = Array::makei(row_cids.length(), index => @effect.EffectTargetVersionObservation::{
+    row_preview_cid: row_cids[index],
+    version_cid: version_cids[index],
+  })
+  @strategy.check_captured_effect_preview_target_guards(
+    value, observations, max_rows, max_work,
+  )
+}
+
+///|
+/// The Host supplies current, authorized source, Contract, registration, and
+/// grant observations for every member. Equality with the Preview is not
+/// permission to mutate or evidence that the observations are authentic.
+#export_name("clientProgramCheckEffectPreviewCurrentBindings")
+pub fn client_program_check_effect_preview_current_bindings(
+  value : @strategy.CapturedEffectPreviewInputs,
+  source_binding_cids : Array[String],
+  resolved_contract_cids : Array[String],
+  capability_evidence_cids : Array[String],
+  authority_scope_cids : Array[String],
+  max_members : Int,
+  max_work : Int,
+) -> Result[Unit, @strategy.CapturedEffectCurrentBindingIssue] {
+  @strategy.check_captured_effect_preview_current_bindings(
+    value, source_binding_cids, resolved_contract_cids, capability_evidence_cids,
+    authority_scope_cids, max_members, max_work,
+  )
+}
+
+///|
+/// Project an already authenticated registered route observation. Raw codes
+/// supplied by a caller are not proof of a Connector capability or authority.
+#export_name("clientProgramEffectApplyCapabilityFromCodes")
+pub fn client_program_effect_apply_capability_from_codes(
+  evidence_cid : String,
+  route_code : Int,
+  atomicity_code : Int,
+  failure_code : Int,
+  row_error_identity : Bool,
+  request_order_preserved : Bool,
+  idempotency_code : Int,
+  reconciliation_code : Int,
+) -> Result[
+  @effect.EffectApplyCapabilityObservation,
+  @effect.EffectApplyCapabilityIssue,
+] {
+  @effect.prepare_effect_apply_capability_from_codes(
+    evidence_cid, route_code, atomicity_code, failure_code, row_error_identity, request_order_preserved,
+    idempotency_code, reconciliation_code,
+  )
+}
+
+///|
+#export_name("clientProgramEffectApplyCapabilityIdempotencyMode")
+pub fn client_program_effect_apply_capability_idempotency_mode(
+  value : @effect.EffectApplyCapabilityObservation,
+) -> String {
+  @effect.effect_apply_capability_idempotency_mode(value)
+}
+
+///|
+#export_name("clientProgramEffectApplyCapabilityReconciliationMode")
+pub fn client_program_effect_apply_capability_reconciliation_mode(
+  value : @effect.EffectApplyCapabilityObservation,
+) -> String {
+  @effect.effect_apply_capability_reconciliation_mode(value)
+}
+
+///|
+/// Verify the selected execution route of every member against the captured
+/// Preview's capability evidence and authored row policy before any send.
+#export_name("clientProgramCheckEffectPreviewCapabilities")
+pub fn client_program_check_effect_preview_capabilities(
+  value : @strategy.CapturedEffectPreviewInputs,
+  observations : Array[@effect.EffectApplyCapabilityObservation],
+  max_members : Int,
+  max_work : Int,
+) -> Result[Unit, @strategy.CapturedEffectCapabilityIssue] {
+  @strategy.check_captured_effect_preview_capabilities(
+    value, observations, max_members, max_work,
+  )
+}
+
+///|
+/// Admit the canonical 0.1 risk body. This does not authenticate its issuer.
+#export_name("clientProgramAdmitEffectRiskAcceptanceBody")
+pub fn client_program_admit_effect_risk_acceptance_body(
+  wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@effect.EffectRiskAcceptanceBody, @effect.EffectRiskAcceptanceIssue] {
+  @effect.admit_effect_risk_acceptance_body(
+    wire, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// The unsigned canonical payload CID used by detached authentication.
+#export_name("clientProgramEffectRiskUnsignedPayloadCid")
+pub fn client_program_effect_risk_unsigned_payload_cid(
+  body : @effect.EffectRiskAcceptanceBody,
+) -> String {
+  @effect.effect_risk_acceptance_unsigned_payload_cid(body)
+}
+
+///|
+/// Compare Host-verified risk facts with the same live captured Preview.
+/// The Host must first verify their authentication and current authority.
+/// `require_partial_application` is the Host-declared delegated-decision
+/// policy; member count alone never requires the risk claim.
+#export_name("clientProgramCheckEffectRiskAcceptanceBody")
+pub fn client_program_check_effect_risk_acceptance_body(
+  preview : @strategy.CapturedEffectPreviewInputs,
+  body : @effect.EffectRiskAcceptanceBody,
+  review_projection_cid : String,
+  authority_scope_cid : String,
+  policy_cid : String,
+  validity_evidence_cid : String,
+  issuer_evidence_cid : String,
+  authentication_evidence_cid : String,
+  issuer_kind : String,
+  decision : String,
+  require_partial_application : Bool,
+) -> Result[Unit, @strategy.CapturedEffectRiskIssue] {
+  @strategy.check_captured_effect_risk_acceptance_body(
+    preview, body, review_projection_cid, authority_scope_cid, policy_cid, validity_evidence_cid,
+    issuer_evidence_cid, authentication_evidence_cid, issuer_kind, decision, require_partial_application,
+  )
+}
+
+///|
+/// Verify the complete derived key inventory using this captured Preview,
+/// not another reading of its transported body. No mutation is authorized.
+#export_name("clientProgramCheckEffectPreviewApplyKeys")
+pub fn client_program_check_effect_preview_apply_keys(
+  value : @strategy.CapturedEffectPreviewInputs,
+  scope : @effect.LogicalRequestScope,
+  keys : Array[Array[@effect.EffectDispatchKey]],
+  max_rows : Int,
+  max_work : Int,
+) -> Result[Unit, @strategy.CapturedEffectApplyKeyIssue] {
+  @strategy.check_captured_effect_preview_apply_keys(
+    value, scope, keys, max_rows, max_work,
+  )
+}
+
+///|
+pub(all) enum ClientEffectPreviewAuthorIssue {
+  Preview(@publication.EffectPreviewIdentityIssue)
+  Dispatch(@effect.EffectIdentityIssue)
+  Keys(@effect.EffectPreviewApplyIdentityIssue)
+  CapacityExceeded
+} derive(Debug)
+
+///|
+/// Canonicalize a schema-closed draft before MoonBit seals its identities.
+/// This is an encoding operation, not Preview or apply admission.
+#export_name("clientProgramCanonicalEffectPreviewDraft")
+pub fn client_program_canonical_effect_preview_draft(
+  wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication.PublicationContractIssue] {
+  @publication.canonical_effect_preview_draft_wire(
+    wire, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Bind Preview authoring to the authority already owned by the logical
+/// request. This does not authenticate that authority or grant an apply permit.
+#export_name("clientProgramEffectRequestAuthority")
+pub fn client_program_effect_request_authority(
+  scope : @effect.LogicalRequestScope,
+) -> String {
+  @effect.logical_request_scope_authority(scope)
+}
+
+///|
+/// Derive the checked source Result's Preview binding from its issued
+/// Artifact, not from an unowned CID supplied to the Host adapter.
+#export_name("clientProgramEffectSourceArtifactPreviewBinding")
+pub fn client_program_effect_source_artifact_preview_binding(
+  artifact : @publication.PublicationContract,
+  invocation_cid : String,
+  source_result : String,
+  store_authority_cid : String,
+) -> Result[(String, String), @publication.EffectSourceArtifactIssue] {
+  @publication.effect_source_artifact_preview_binding(
+    artifact, invocation_cid, source_result, store_authority_cid,
+  )
+}
+
+///|
+/// Seal row, member and set identities before deriving non-semantic dispatch
+/// keys. This only authors a private Preview wire; checked Run binding,
+/// current authority and apply permission remain separate obligations.
+#export_name("clientProgramAuthorEffectPreview")
+pub fn client_program_author_effect_preview(
+  template_wire : String,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  request_scope : @effect.LogicalRequestScope,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_members : Int,
+  max_rows : Int,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> Result[
+  (String, Array[Array[@effect.EffectDispatchKey]]),
+  ClientEffectPreviewAuthorIssue,
+] {
+  let (semantic_wire, identity) = match
+    @publication.author_effect_preview_semantic_wire(
+      template_wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Preview(issue))
+  }
+  let count = @publication.effect_preview_member_count(identity)
+  if max_members < 1 || max_rows < 0 || count > max_members {
+    return Err(CapacityExceeded)
+  }
+  let preview_cid = @publication.effect_preview_semantic_identity(identity)
+  let keys : Array[Array[@effect.EffectDispatchKey]] = []
+  let key_cids : Array[Array[String]] = []
+  let mut remaining = max_rows
+  for member_index in 0..<count {
+    let row_count = @publication.effect_preview_row_count(
+      identity, member_index,
+    ).unwrap()
+    if row_count > remaining {
+      return Err(CapacityExceeded)
+    }
+    remaining -= row_count
+    let member_keys : Array[@effect.EffectDispatchKey] = []
+    let member_key_cids : Array[String] = []
+    for row_index in 0..<row_count {
+      let correlation = @publication.effect_preview_row_correlation_wire(
+        identity, member_index, row_index,
+      ).unwrap()
+      let key = match
+        @effect.prepare_effect_dispatch_key(
+          request_scope, preview_cid, correlation, max_key_bytes, max_key_nodes,
+          max_key_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Dispatch(issue))
+      }
+      member_key_cids.push(@effect.effect_dispatch_key_cid(key))
+      member_keys.push(key)
+    }
+    keys.push(member_keys)
+    key_cids.push(member_key_cids)
+  }
+  let wire = match
+    @publication.complete_effect_preview_dispatch_keys(
+      semantic_wire, key_cids, expected_run_identity_cid, expected_authoring_context_cid,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Preview(issue))
+  }
+  match
+    @effect.admit_effect_preview_apply_identity(
+      wire, expected_run_identity_cid, expected_authoring_context_cid, request_scope,
+      keys, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => Ok((wire, keys))
+    Err(issue) => Err(Keys(issue))
+  }
+}
+
+///|
+/// Return the common canonical create-row order and distinct correlation for
+/// every source row. This does not authorize a write or read a physical body.
+#export_name("clientProgramEffectCreateRowInventory")
+pub fn client_program_effect_create_row_inventory(
+  after_wires : Array[String],
+  max_rows : Int,
+  max_total_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Array[(Int, String)], @publication.EffectPreviewIdentityIssue] {
+  @publication.derive_effect_create_row_inventory(
+    after_wires, max_rows, max_total_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Sealed Effect Set Preview identity of the live captured Preview: the
+/// decision subject the Host binds at the Effect commit boundary.
+#export_name("clientProgramEffectApplySubjectCid")
+pub fn client_program_effect_apply_subject_cid(
+  preview : @strategy.CapturedEffectPreviewInputs,
+) -> String? {
+  @strategy.captured_effect_preview_subject_cid(preview)
+}
+
+///|
+/// Member count of the live captured Preview.
+#export_name("clientProgramEffectApplyMemberCount")
+pub fn client_program_effect_apply_member_count(
+  preview : @strategy.CapturedEffectPreviewInputs,
+) -> Int? {
+  @strategy.captured_effect_preview_member_count(preview)
+}
+
+///|
+/// Check the complete semantic preflight on one captured Preview owner.
+/// The Host must independently authenticate all current facts and claim the
+/// physical send through its durable Effect ledger before any mutation.
+/// `risk` is absent (`undefined`) when the Host holds no risk-acceptance
+/// body; it is required only under `require_partial_application`.
+#export_name("clientProgramCheckEffectApplyPreflight")
+pub fn client_program_check_effect_apply_preflight(
+  preview : @strategy.CapturedEffectPreviewInputs,
+  proofs : Array[@strategy.CapturedEffectPlanProof],
+  source_binding_cids : Array[String],
+  resolved_contract_cids : Array[String],
+  capability_evidence_cids : Array[String],
+  authority_scope_cids : Array[String],
+  guard_row_cids : Array[String],
+  guard_version_cids : Array[String],
+  routes : Array[@effect.EffectApplyCapabilityObservation],
+  risk : @effect.EffectRiskAcceptanceBody?,
+  require_partial_application : Bool,
+  review_projection_cid : String,
+  risk_authority_scope_cid : String,
+  policy_cid : String,
+  validity_evidence_cid : String,
+  issuer_evidence_cid : String,
+  authentication_evidence_cid : String,
+  issuer_kind : String,
+  decision : String,
+  request_scope : @effect.LogicalRequestScope,
+  keys : Array[Array[@effect.EffectDispatchKey]],
+  max_members : Int,
+  max_rows : Int,
+  max_targets : Int,
+  max_work : Int,
+) -> Result[Unit, @strategy.CapturedEffectApplyPreflightIssue] {
+  if guard_row_cids.length() != guard_version_cids.length() ||
+    guard_row_cids.length() > max_rows {
+    return Err(
+      @strategy.CapturedEffectApplyPreflightIssue::Guard(
+        @strategy.CapturedEffectGuardIssue::InvalidLimits,
+      ),
+    )
+  }
+  let guards = Array::makei(guard_row_cids.length(), index => @effect.EffectTargetVersionObservation::{
+    row_preview_cid: guard_row_cids[index],
+    version_cid: guard_version_cids[index],
+  })
+  @strategy.check_captured_effect_apply_preflight(
+    preview, proofs, source_binding_cids, resolved_contract_cids, capability_evidence_cids,
+    authority_scope_cids, guards, routes, risk, require_partial_application, review_projection_cid,
+    risk_authority_scope_cid, policy_cid, validity_evidence_cid, issuer_evidence_cid,
+    authentication_evidence_cid, issuer_kind, decision, request_scope, keys, max_members,
+    max_rows, max_targets, max_work,
+  )
+}
+
+///|
+/// Apply the same semantic checks to an admitted recovered Preview. The
+/// recovered capture, prior Plan proof, current Store holding, and Site
+/// authority must be established separately before any physical send.
+#export_name("clientProgramCheckRecoveredEffectApplySemantics")
+pub fn client_program_check_recovered_effect_apply_semantics(
+  preview : @publication.EffectPreviewIdentity,
+  source_binding_cids : Array[String],
+  resolved_contract_cids : Array[String],
+  capability_evidence_cids : Array[String],
+  authority_scope_cids : Array[String],
+  guard_row_cids : Array[String],
+  guard_version_cids : Array[String],
+  routes : Array[@effect.EffectApplyCapabilityObservation],
+  risk : @effect.EffectRiskAcceptanceBody?,
+  require_partial_application : Bool,
+  review_projection_cid : String,
+  risk_authority_scope_cid : String,
+  policy_cid : String,
+  validity_evidence_cid : String,
+  issuer_evidence_cid : String,
+  authentication_evidence_cid : String,
+  issuer_kind : String,
+  decision : String,
+  request_scope : @effect.LogicalRequestScope,
+  keys : Array[Array[@effect.EffectDispatchKey]],
+  max_members : Int,
+  max_rows : Int,
+  max_targets : Int,
+  max_work : Int,
+) -> Result[Unit, @strategy.CapturedEffectApplyPreflightIssue] {
+  if guard_row_cids.length() != guard_version_cids.length() ||
+    guard_row_cids.length() > max_rows {
+    return Err(
+      @strategy.CapturedEffectApplyPreflightIssue::Guard(
+        @strategy.CapturedEffectGuardIssue::InvalidLimits,
+      ),
+    )
+  }
+  let guards = Array::makei(guard_row_cids.length(), index => @effect.EffectTargetVersionObservation::{
+    row_preview_cid: guard_row_cids[index],
+    version_cid: guard_version_cids[index],
+  })
+  @strategy.check_effect_preview_apply_semantics(
+    preview, source_binding_cids, resolved_contract_cids, capability_evidence_cids,
+    authority_scope_cids, guards, routes, risk, require_partial_application, review_projection_cid,
+    risk_authority_scope_cid, policy_cid, validity_evidence_cid, issuer_evidence_cid,
+    authentication_evidence_cid, issuer_kind, decision, request_scope, keys, max_members,
+    max_rows, max_targets, max_work,
+  )
+}
+
+///|
+/// Exact Host limits for the checked Effect input stream, shared by cell and
+/// resident representations. These limits do not grant access or apply.
+#export_name("clientProgramEffectInputExportLimits")
+pub fn client_program_effect_input_export_limits(
+  max_result_fields : Int,
+  max_result_mapping_work : Int,
+  max_result_order_work : Int,
+  max_result_workspace_entries : Int,
+  max_rows : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_value_depth : Int,
+  max_value_work : Int,
+  max_wire_bytes : Int,
+  max_wire_nodes : Int,
+  max_wire_depth : Int,
+  max_columns : Int,
+  max_order_work : Int,
+  max_logical_wire_bytes : Int,
+  max_logical_wire_nodes : Int,
+  max_logical_wire_depth : Int,
+  max_schema_fields : Int,
+  max_schema_bytes : Int,
+  max_schema_nodes : Int,
+  max_schema_depth : Int,
+  max_batch_bytes : Int,
+) -> @publication_host.PublicationOutputExportLimits? {
+  if max_result_fields < 0 ||
+    max_result_mapping_work < 0 ||
+    max_result_order_work < 0 ||
+    max_result_workspace_entries < 0 ||
+    max_rows < 0 ||
+    max_value_nodes < 0 ||
+    max_value_text_bytes < 0 ||
+    max_value_depth < 0 ||
+    max_value_work < 0 ||
+    max_wire_bytes < 0 ||
+    max_wire_nodes < 0 ||
+    max_wire_depth < 0 ||
+    max_columns < 0 ||
+    max_order_work < 0 ||
+    max_logical_wire_bytes < 0 ||
+    max_logical_wire_nodes < 0 ||
+    max_logical_wire_depth < 0 ||
+    max_schema_fields < 0 ||
+    max_schema_bytes < 0 ||
+    max_schema_nodes < 0 ||
+    max_schema_depth < 0 ||
+    max_batch_bytes < 0 {
+    return None
+  }
+  Some({
+    max_result_fields,
+    max_result_mapping_work,
+    max_result_order_work,
+    max_result_workspace_entries,
+    max_rows,
+    values: {
+      max_nodes: max_value_nodes,
+      max_text_bytes: max_value_text_bytes,
+      max_depth: max_value_depth,
+      max_work: max_value_work,
+    },
+    payload_wire: {
+      max_columns,
+      max_order_work,
+      max_bytes: max_wire_bytes,
+      max_nodes: max_wire_nodes,
+      max_depth: max_wire_depth,
+    },
+    logical_wire: {
+      max_columns,
+      max_order_work,
+      max_bytes: max_logical_wire_bytes,
+      max_nodes: max_logical_wire_nodes,
+      max_depth: max_logical_wire_depth,
+    },
+    schema: {
+      max_fields: max_schema_fields,
+      max_bytes: max_schema_bytes,
+      max_nodes: max_schema_nodes,
+      max_depth: max_schema_depth,
+    },
+    max_batch_bytes,
+  })
+}
+
+///|
+/// Start the common bounded checked Result view. No caller-supplied rows,
+/// projection, order, or payload can replace this retained Effect source.
+#export_name("clientProgramEffectInputExportStart")
+pub fn client_program_effect_input_export_start(
+  input : @strategy.CapturedEffectInput,
+  limits : @publication_host.PublicationOutputExportLimits,
+) -> Result[
+  @execution.CompletedResultRelationExportPreparation,
+  @execution.CompletedExportIssue,
+] {
+  @strategy.start_captured_effect_input_export(
+    input,
+    {
+      max_fields: limits.max_result_fields,
+      max_mapping_work: limits.max_result_mapping_work,
+      max_order_work: limits.max_result_order_work,
+      max_workspace_entries: limits.max_result_workspace_entries,
+    },
+    limits.max_rows,
+    limits.values,
+    limits.payload_wire,
+    limits.logical_wire,
+    limits.schema,
+    limits.max_batch_bytes,
+  )
+}
+
+///|
+/// The installed Site supplies the exact resident generation and bounded row
+/// stream. This owner keeps its checked Effect pin and managed import paired.
+struct ClientEffectManagedInputImport {
+  input : @strategy.CapturedEffectInput
+  output : @execution.ManagedCompletedOutput[Int]
+  bridge : @execution.ManagedPublicationBridge[Int]
+  limits : @publication_host.PublicationOutputExportLimits
+  mut preparation : @execution.CompletedResultRelationExportPreparation?
+  mut open : Bool
+}
+
+///|
+/// Own scalar limits before the physical reader can await or call back.
+fn client_program_own_effect_export_limits(
+  limits : @publication_host.PublicationOutputExportLimits,
+) -> @publication_host.PublicationOutputExportLimits {
+  {
+    max_result_fields: limits.max_result_fields,
+    max_result_mapping_work: limits.max_result_mapping_work,
+    max_result_order_work: limits.max_result_order_work,
+    max_result_workspace_entries: limits.max_result_workspace_entries,
+    max_rows: limits.max_rows,
+    values: {
+      max_nodes: limits.values.max_nodes,
+      max_text_bytes: limits.values.max_text_bytes,
+      max_depth: limits.values.max_depth,
+      max_work: limits.values.max_work,
+    },
+    payload_wire: {
+      max_columns: limits.payload_wire.max_columns,
+      max_order_work: limits.payload_wire.max_order_work,
+      max_bytes: limits.payload_wire.max_bytes,
+      max_nodes: limits.payload_wire.max_nodes,
+      max_depth: limits.payload_wire.max_depth,
+    },
+    logical_wire: {
+      max_columns: limits.logical_wire.max_columns,
+      max_order_work: limits.logical_wire.max_order_work,
+      max_bytes: limits.logical_wire.max_bytes,
+      max_nodes: limits.logical_wire.max_nodes,
+      max_depth: limits.logical_wire.max_depth,
+    },
+    schema: {
+      max_fields: limits.schema.max_fields,
+      max_bytes: limits.schema.max_bytes,
+      max_nodes: limits.schema.max_nodes,
+      max_depth: limits.schema.max_depth,
+    },
+    max_batch_bytes: limits.max_batch_bytes,
+  }
+}
+
+///|
+pub(all) enum ClientEffectManagedInputIssue {
+  ForeignOutput
+  Closed
+  Bridge(@execution.ManagedProducerBridgeIssue)
+  Export(@execution.CompletedExportIssue)
+}
+
+///|
+#export_name("clientProgramEffectManagedInputBegin")
+pub fn client_program_effect_managed_input_begin(
+  input : @strategy.CapturedEffectInput,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  limits : @publication_host.PublicationOutputExportLimits,
+) -> Result[ClientEffectManagedInputImport, ClientEffectManagedInputIssue] {
+  if !@strategy.captured_effect_input_matches_managed(input, output) {
+    return Err(ForeignOutput)
+  }
+  let limits = client_program_own_effect_export_limits(limits)
+  let bridge = match
+    @execution.prepare_managed_publication_bridge(
+      output,
+      material,
+      limits.max_rows,
+      limits.values,
+      limits.max_result_workspace_entries,
+      limits.schema.max_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Bridge(issue))
+  }
+  Ok({ input, output, bridge, limits, preparation: None, open: true, })
+}
+
+///|
+#export_name("clientProgramEffectManagedInputAppend")
+pub fn client_program_effect_managed_input_append(
+  value : ClientEffectManagedInputImport,
+  row : String,
+) -> Result[Unit, ClientEffectManagedInputIssue] {
+  if !value.open {
+    return Err(Closed)
+  }
+  if !@strategy.captured_effect_input_matches_managed(value.input, value.output) {
+    return Err(ForeignOutput)
+  }
+  @execution.append_managed_publication_bridge_wire(value.bridge, row, {
+    max_bytes: value.limits.payload_wire.max_bytes,
+    max_nodes: value.limits.payload_wire.max_nodes,
+    max_depth: value.limits.payload_wire.max_depth,
+    max_text_bytes: value.limits.values.max_text_bytes,
+  }).map_err(issue => Bridge(issue))
+}
+
+///|
+#export_name("clientProgramEffectManagedInputFinish")
+pub fn client_program_effect_managed_input_finish(
+  value : ClientEffectManagedInputImport,
+) -> Result[
+  @execution.CompletedResultRelationExportPreparation,
+  ClientEffectManagedInputIssue,
+] {
+  if !value.open {
+    return Err(Closed)
+  }
+  value.open = false
+  if !@strategy.captured_effect_input_matches_managed(value.input, value.output) {
+    @execution.close_managed_publication_bridge(value.bridge)
+    return Err(ForeignOutput)
+  }
+  let output = match
+    @execution.finish_managed_publication_bridge(value.bridge) {
+    Ok(value) => value
+    Err(issue) => {
+      @execution.close_managed_publication_bridge(value.bridge)
+      return Err(Bridge(issue))
+    }
+  }
+  match
+    @execution.start_completed_result_relation_export(
+      output,
+      @strategy.captured_effect_input_occurrence(value.input),
+      {
+        max_fields: value.limits.max_result_fields,
+        max_mapping_work: value.limits.max_result_mapping_work,
+        max_order_work: value.limits.max_result_order_work,
+        max_workspace_entries: value.limits.max_result_workspace_entries,
+      },
+      value.limits.max_rows,
+      value.limits.values,
+      value.limits.payload_wire,
+      value.limits.logical_wire,
+      value.limits.schema,
+      value.limits.max_batch_bytes,
+    ) {
+    Ok(preparation) => {
+      value.preparation = Some(preparation)
+      Ok(preparation)
+    }
+    Err(issue) => {
+      @execution.close_managed_publication_bridge(value.bridge)
+      Err(Export(issue))
+    }
+  }
+}
+
+///|
+#export_name("clientProgramEffectManagedInputCancel")
+pub fn client_program_effect_managed_input_cancel(
+  value : ClientEffectManagedInputImport,
+) -> Unit {
+  value.open = false
+  value.preparation = None
+  @execution.close_managed_publication_bridge(value.bridge)
+}
+
+///|
+#export_name("clientProgramEffectInputExportAdvance")
+pub fn client_program_effect_input_export_advance(
+  value : @execution.CompletedResultRelationExportPreparation,
+  quantum : Int,
+) -> Result[(Bool, Int), @execution.CompletedExportIssue] {
+  @execution.advance_completed_result_relation_export(value, quantum)
+}
+
+///|
+#export_name("clientProgramEffectInputExportReady")
+pub fn client_program_effect_input_export_ready(
+  value : @execution.CompletedResultRelationExportPreparation,
+) -> Result[@execution.CompletedOutputExport, @execution.CompletedExportIssue] {
+  @execution.finish_completed_result_relation_export_preparation(value)
+}
+
+///|
+#export_name("clientProgramEffectInputExportNext")
+pub fn client_program_effect_input_export_next(
+  value : @execution.CompletedOutputExport,
+) -> Result[String?, @execution.CompletedExportIssue] {
+  @execution.next_completed_output_export(value)
+}
+
+///|
+/// Return one canonical checked Result row alongside the export's original
+/// bytes. The physical adapter must not reconstruct a separate row view.
+#export_name("clientProgramEffectInputExportNextCanonicalRow")
+pub fn client_program_effect_input_export_next_canonical_row(
+  value : @execution.CompletedOutputExport,
+  max_nodes : Int,
+  max_depth : Int,
+  max_utf16_units : Int,
+) -> Result[
+  (Int, String, @identity.CanonicalValue)?,
+  @execution.CompletedExportIssue,
+] {
+  @execution.next_completed_output_export_canonical_row(
+    value, max_nodes, max_depth, max_utf16_units,
+  )
+}
+
+///|
+/// Select one checked member Plan before authoring a private Preview. The
+/// caller must feed its canonical rows from the same bounded Result export.
+#export_name("clientProgramEffectProposalBegin")
+pub fn client_program_effect_proposal_begin(
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  max_fields : Int,
+  max_work : Int,
+) -> Result[
+  @strategy.CapturedEffectProposalPlan,
+  @strategy.CapturedEffectProposalIssue,
+] {
+  @strategy.prepare_captured_effect_proposal_plan(
+    inputs, member_index, max_fields, max_work,
+  )
+}
+
+///|
+/// The returned selector and changes are proposals, not a payload proof or
+/// Effect send permit; Preview binding later verifies the captured input.
+#export_name("clientProgramEffectProposalRow")
+pub fn client_program_effect_proposal_row(
+  value : @strategy.CapturedEffectProposalPlan,
+  row : @identity.CanonicalValue,
+  row_index : Int,
+  max_fields : Int,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(String, String), @strategy.CapturedEffectProposalIssue] {
+  @strategy.project_captured_effect_proposal_row(
+    value, row, row_index, max_fields, max_work, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramEffectProposalFinish")
+pub fn client_program_effect_proposal_finish(
+  value : @strategy.CapturedEffectProposalPlan,
+  row_count : Int,
+) -> Result[Unit, @strategy.CapturedEffectProposalIssue] {
+  @strategy.finish_captured_effect_proposal_plan(value, row_count)
+}
+
+///|
+#export_name("clientProgramEffectProposalCancel")
+pub fn client_program_effect_proposal_cancel(
+  value : @strategy.CapturedEffectProposalPlan,
+) -> Unit {
+  @strategy.cancel_captured_effect_proposal_plan(value)
+}
+
+///|
+#export_name("clientProgramEffectInputExportFinish")
+pub fn client_program_effect_input_export_finish(
+  value : @execution.CompletedOutputExport,
+) -> Result[
+  (@execution.CompletedRelationExportReceipt, String),
+  @execution.CompletedExportIssue,
+] {
+  @execution.finish_completed_relation_export(value)
+}
+
+///|
+#export_name("clientProgramEffectInputExportLogicalCid")
+pub fn client_program_effect_input_export_logical_cid(
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> String {
+  @execution.logical_relation_cid(
+    @execution.completed_relation_export_identity(receipt),
+  )
+}
+
+///|
+#export_name("clientProgramEffectInputExportFields")
+pub fn client_program_effect_input_export_fields(
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Array[String] {
+  @execution.completed_relation_export_field_names(receipt)
+}
+
+///|
+#export_name("clientProgramEffectInputExportSchemaCid")
+pub fn client_program_effect_input_export_schema_cid(
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> String {
+  @execution.relation_schema_cid(
+    @execution.completed_relation_export_schema_identity(receipt),
+  )
+}
+
+///|
+#export_name("clientProgramEffectInputExportRowCount")
+pub fn client_program_effect_input_export_row_count(
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Int {
+  @execution.completed_relation_export_measurement(receipt).row_count
+}
+
+///|
+/// Issue source evidence from the pinned checked occurrence and the completed
+/// export receipt. Store custody is still a separate adapter obligation.
+#export_name("clientProgramIssueEffectSourceArtifact")
+pub fn client_program_issue_effect_source_artifact(
+  input : @strategy.CapturedEffectInput,
+  receipt : @execution.CompletedRelationExportReceipt,
+  invocation : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  source_binding_cid : String,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.PublicationContract,
+  @publication.EffectSourceArtifactIssue,
+] {
+  @publication.issue_effect_source_artifact(
+    invocation,
+    retention,
+    @execution.managed_result_occurrence_name(
+      @strategy.captured_effect_input_occurrence(input),
+    ),
+    source_binding_cid,
+    store_authority_cid,
+    client_program_effect_input_export_logical_cid(receipt),
+    client_program_effect_input_export_schema_cid(receipt),
+    client_program_effect_input_export_row_count(receipt),
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramEffectInputExportReleaseReceipt")
+pub fn client_program_effect_input_export_release_receipt(
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Unit {
+  @execution.cancel_completed_relation_export_receipt(receipt)
+}
+
+///|
+#export_name("clientProgramEffectInputExportCancelPreparation")
+pub fn client_program_effect_input_export_cancel_preparation(
+  value : @execution.CompletedResultRelationExportPreparation,
+) -> Bool {
+  @execution.cancel_completed_result_relation_export(value)
+}
+
+///|
+#export_name("clientProgramEffectInputExportCancel")
+pub fn client_program_effect_input_export_cancel(
+  value : @execution.CompletedOutputExport,
+) -> Unit {
+  @execution.cancel_completed_output_export(value)
+}
+
+///|
+/// Keep the private Preview, checked Plan, and managed Result import under one
+/// owner. Physical rows enter through the same generation-checked bridge as
+/// publication. This owner cannot authorize an Effect send.
+struct ClientEffectPlanImport {
+  preview : @strategy.CapturedEffectPreviewInputs
+  preview_index : Int
+  verifier : @strategy.CapturedEffectPlanVerifier
+  importing : ClientEffectManagedInputImport
+  mut open : Bool
+}
+
+///|
+struct ClientEffectPlanPreparation {
+  owner : ClientEffectPlanImport
+  preparation : @execution.CompletedResultRelationExportPreparation
+}
+
+///|
+struct ClientEffectPlanCursor {
+  owner : ClientEffectPlanImport
+  stream : @execution.CompletedOutputExport
+  mut exhausted : Bool
+  mut closed : Bool
+}
+
+///|
+fn client_effect_plan_poison(value : ClientEffectPlanCursor) -> Unit {
+  value.closed = true
+  @strategy.cancel_captured_effect_plan_verifier(value.owner.verifier)
+  @execution.cancel_completed_output_export(value.stream)
+  client_program_effect_managed_input_cancel(value.owner.importing)
+}
+
+///|
+pub(all) enum ClientEffectPlanStreamIssue {
+  InvalidMember
+  NotReady
+  Closed
+  Plan(@strategy.CapturedEffectPlanVerifyIssue)
+  Import(ClientEffectManagedInputIssue)
+  Export(@execution.CompletedExportIssue)
+}
+
+///|
+/// A caller may choose which admitted Preview member to inspect, but cannot
+/// substitute a Plan, source Result, or physical generation.
+#export_name("clientProgramEffectPlanImportBegin")
+pub fn client_program_effect_plan_import_begin(
+  preview : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  limits : @publication_host.PublicationOutputExportLimits,
+  max_fields : Int,
+  max_work : Int,
+) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue] {
+  guard @strategy.captured_effect_preview_input_at(preview, preview_index)
+    is Some(input) else {
+    return Err(InvalidMember)
+  }
+  let verifier = match
+    @strategy.prepare_captured_effect_plan_verifier(
+      preview, preview_index, max_fields, max_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Plan(issue))
+  }
+  let importing = match
+    client_program_effect_managed_input_begin(input, output, material, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(Import(issue))
+  }
+  Ok({ preview, preview_index, verifier, importing, open: true, })
+}
+
+///|
+#export_name("clientProgramEffectPlanImportAppend")
+pub fn client_program_effect_plan_import_append(
+  value : ClientEffectPlanImport,
+  row : String,
+) -> Result[Unit, ClientEffectPlanStreamIssue] {
+  if !value.open {
+    return Err(Closed)
+  }
+  client_program_effect_managed_input_append(value.importing, row).map_err(issue => {
+    Import(issue)
+  })
+}
+
+///|
+#export_name("clientProgramEffectPlanImportFinish")
+pub fn client_program_effect_plan_import_finish(
+  value : ClientEffectPlanImport,
+) -> Result[ClientEffectPlanPreparation, ClientEffectPlanStreamIssue] {
+  if !value.open {
+    return Err(Closed)
+  }
+  value.open = false
+  client_program_effect_managed_input_finish(value.importing)
+  .map(preparation => { owner: value, preparation, })
+  .map_err(issue => Import(issue))
+}
+
+///|
+#export_name("clientProgramEffectPlanAdvance")
+pub fn client_program_effect_plan_advance(
+  value : ClientEffectPlanPreparation,
+  quantum : Int,
+) -> Result[(Bool, Int), ClientEffectPlanStreamIssue] {
+  @execution.advance_completed_result_relation_export(
+    value.preparation,
+    quantum,
+  ).map_err(issue => Export(issue))
+}
+
+///|
+#export_name("clientProgramEffectPlanReady")
+pub fn client_program_effect_plan_ready(
+  value : ClientEffectPlanPreparation,
+) -> Result[ClientEffectPlanCursor, ClientEffectPlanStreamIssue] {
+  let stream = match
+    @execution.finish_completed_result_relation_export_preparation(
+      value.preparation,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Export(issue))
+  }
+  Ok({ owner: value.owner, stream, exhausted: false, closed: false, })
+}
+
+///|
+/// Return publication bytes only after their checked Plan changes match the
+/// private Preview at the same source-row position. The cursor consumes one
+/// bounded canonical row at a time; Node never rebuilds the full Relation.
+#export_name("clientProgramEffectPlanNext")
+pub fn client_program_effect_plan_next(
+  value : ClientEffectPlanCursor,
+  max_nodes : Int,
+  max_depth : Int,
+  max_utf16_units : Int,
+  max_fields : Int,
+  max_work : Int,
+  max_bytes : Int,
+) -> Result[String?, ClientEffectPlanStreamIssue] {
+  if value.closed || value.exhausted {
+    return Err(Closed)
+  }
+  if @strategy.captured_effect_preview_input_at(
+      value.owner.preview,
+      value.owner.preview_index,
+    )
+    is None {
+    client_effect_plan_poison(value)
+    return Err(NotReady)
+  }
+  let next = match
+    @execution.next_completed_output_export_canonical_row(
+      value.stream,
+      max_nodes,
+      max_depth,
+      max_utf16_units,
+    ) {
+    Ok(Some(row)) => row
+    Ok(None) => {
+      value.exhausted = true
+      return Ok(None)
+    }
+    Err(issue) => {
+      client_effect_plan_poison(value)
+      return Err(Export(issue))
+    }
+  }
+  let (index, batch, row) = next
+  match
+    @strategy.check_captured_effect_plan_row(
+      value.owner.verifier,
+      row,
+      index,
+      max_fields,
+      max_work,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => {
+      client_effect_plan_poison(value)
+      return Err(Plan(issue))
+    }
+  }
+  Ok(Some(batch))
+}
+
+///|
+/// Exhaustion and exact row count are required before a relation receipt can
+/// be returned. Target correlation, current guards, and apply remain separate.
+#export_name("clientProgramEffectPlanFinish")
+pub fn client_program_effect_plan_finish(
+  value : ClientEffectPlanCursor,
+) -> Result[
+  (
+    @execution.CompletedRelationExportReceipt,
+    String,
+    @strategy.CapturedEffectPlanProof,
+  ),
+  ClientEffectPlanStreamIssue,
+] {
+  if value.closed || !value.exhausted {
+    return Err(Closed)
+  }
+  if @strategy.captured_effect_preview_input_at(
+      value.owner.preview,
+      value.owner.preview_index,
+    )
+    is None {
+    client_effect_plan_poison(value)
+    return Err(NotReady)
+  }
+  let proof = match
+    @strategy.finish_captured_effect_plan_verifier(value.owner.verifier) {
+    Ok(proof) => proof
+    Err(issue) => {
+      client_effect_plan_poison(value)
+      return Err(Plan(issue))
+    }
+  }
+  let pair = match @execution.finish_completed_relation_export(value.stream) {
+    Ok(pair) => pair
+    Err(issue) => {
+      client_effect_plan_poison(value)
+      return Err(Export(issue))
+    }
+  }
+  value.closed = true
+  guard @strategy.captured_effect_preview_input_at(
+      value.owner.preview,
+      value.owner.preview_index,
+    )
+    is Some(_) else {
+    @execution.cancel_completed_relation_export_receipt(pair.0)
+    return Err(NotReady)
+  }
+  Ok((pair.0, pair.1, proof))
+}
+
+///|
+#export_name("clientProgramEffectPlanProofMatches")
+pub fn client_program_effect_plan_proof_matches(
+  proof : @strategy.CapturedEffectPlanProof,
+  preview : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+) -> Bool {
+  @strategy.captured_effect_plan_proof_matches(proof, preview, preview_index)
+}
+
+///|
+#export_name("clientProgramCheckEffectPlanProofs")
+pub fn client_program_check_effect_plan_proofs(
+  preview : @strategy.CapturedEffectPreviewInputs,
+  proofs : Array[@strategy.CapturedEffectPlanProof],
+  max_members : Int,
+  max_work : Int,
+) -> Result[Unit, @strategy.CapturedEffectPlanInventoryIssue] {
+  @strategy.check_captured_effect_plan_proofs(
+    preview, proofs, max_members, max_work,
+  )
+}
+
+///|
+#export_name("clientProgramEffectPlanCancel")
+pub fn client_program_effect_plan_cancel(
+  value : ClientEffectPlanCursor,
+) -> Unit {
+  client_effect_plan_poison(value)
+}
+
+///|
+#export_name("clientProgramEffectPlanCancelPreparation")
+pub fn client_program_effect_plan_cancel_preparation(
+  value : ClientEffectPlanPreparation,
+) -> Bool {
+  @strategy.cancel_captured_effect_plan_verifier(value.owner.verifier)
+  client_program_effect_managed_input_cancel(value.owner.importing)
+  @execution.cancel_completed_result_relation_export(value.preparation)
+}
+
+///|
+#export_name("clientProgramEffectPlanCancelImport")
+pub fn client_program_effect_plan_cancel_import(
+  value : ClientEffectPlanImport,
+) -> Unit {
+  value.open = false
+  @strategy.cancel_captured_effect_plan_verifier(value.verifier)
+  client_program_effect_managed_input_cancel(value.importing)
+}
+
+///|
+#export_name("clientProgramReleaseEffectInputs")
+pub fn client_program_release_effect_inputs(
+  value : @strategy.CapturedEffectInputs,
+) -> Bool {
+  @strategy.release_captured_effect_inputs(value)
+}
+
+///|
+/// Compute-only opening for an admitted source-free Effect Run. It preserves
+/// the captured Effect owner; physical mutation still requires Preview and
+/// apply admission after the checked computation settles.
+#export_name("clientProgramOpenSourceFreeLocalEffectHost")
+pub fn client_program_open_source_free_local_effect_host(
+  prepared : @publication_host.PreparedClientEffectRun,
+  registry_body : String,
+  values_body : String,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+) -> ClientLocalEffectHost? {
+  if fixed_ms < 0L ||
+    per_row_ms < 0L ||
+    per_wire_byte_ms < 0L ||
+    per_pair_ms < 0L {
+    return None
+  }
+  guard client_local_contracts(registry_body, values_body) is Some(contracts) else {
+    return None
+  }
+  let run = match
+    @publication_host.open_prepared_source_free_client_effect_run(prepared, {
+      planning_work: 100000,
+      attempts: 10,
+      holdings: 10,
+      transfer_bytes: 500000L,
+      retained_bytes: 200000000L,
+      execution_bytes: 268435456L,
+    }) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  let captured = @strategy.captured_effect_run_dag(run)
+  let computation = @publication_host.prepared_client_effect_run_computation(
+    prepared,
+  )
+  let graph = @strategy.checked_effect_run_graph(
+    @publication_host.prepared_client_effect_run_graph(prepared),
+  )
+  let generated = []
+  for task in 0..<@strategy.graph_task_count(graph) {
+    let sequence = match
+      @publication_host.prepare_client_effect_task_sequence(
+        computation,
+        task,
+        contracts,
+        [],
+        client_local_sequence_limits(),
+        100000,
+        10000,
+      ) {
+      Ok(value) => value
+      Err(_) => {
+        ignore(reject_client_local_run(captured))
+        return None
+      }
+    }
+    generated.push(sequence)
+  }
+  match
+    client_program_configure_local_host(
+      captured, graph, generated, fixed_ms, per_row_ms, per_wire_byte_ms, per_pair_ms,
+    ) {
+    Some(host) => Some({ host, run, })
+    None => None
+  }
+}
+
+///|
+fn reject_client_local_run(
+  run : @strategy.CapturedDAG,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  @strategy.stop_captured_dag(run)
+  @strategy.refresh_captured_retention(run)
+  None
 }

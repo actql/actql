@@ -18,6 +18,29 @@ const resultNames = {
 };
 
 const clone = value => structuredClone(value);
+const stageSchemas = JSON.parse(readFileSync(
+  'spec/contracts/actql-stage-contracts.json', 'utf8')).schemas;
+const publicationSchemas = JSON.parse(readFileSync(
+  'spec/contracts/actql-run-publication.json', 'utf8')).schemas;
+
+function capturedLocalEffectSourceSchema() {
+  return {
+    type: 'object', additionalProperties: false,
+    required: [
+      'artifact', 'definition', 'derivation', 'invocation', 'manifest',
+      'ordering', 'retention',
+    ],
+    properties: {
+      artifact: clone(stageSchemas.local_result_artifact),
+      definition: clone(stageSchemas.local_result_definition),
+      derivation: {type: 'object'},
+      invocation: clone(stageSchemas.local_computation),
+      manifest: clone(stageSchemas.local_manifest),
+      ordering: {type: 'object'},
+      retention: clone(publicationSchemas.result_retention_policy),
+    },
+  };
+}
 
 export function resultArtifactSchema() {
   return {
@@ -60,6 +83,134 @@ export function resultArtifactSchema() {
       result_artifact_cid: clone(cid),
     },
   };
+}
+
+export function effectSourceArtifactSchema() {
+  const artifact = resultArtifactSchema();
+  artifact.required = artifact.required.map(field =>
+    field === 'result_definition_cid' ? 'source_binding_cid' : field);
+  artifact.required.splice(2, 0, 'source_result');
+  artifact.required.push('store_authority_cid');
+  artifact.required = artifact.required.filter(field =>
+    field !== 'ordering_evidence_cid');
+  artifact.properties.version = {const: 'actql-effect-source-artifact/0.1'};
+  delete artifact.properties.result_definition_cid;
+  delete artifact.properties.ordering_evidence_cid;
+  artifact.properties.source_binding_cid = clone(cid);
+  artifact.properties.source_result = {type: 'string', minLength: 1};
+  artifact.properties.store_authority_cid = clone(cid);
+  return artifact;
+}
+
+export function effectRowOutcomeReceiptSchema(outcome) {
+  return {
+    type: 'object',
+    additionalProperties: false,
+    required: [
+      'version', 'effect_preview_cid', 'effect_member_preview_cid',
+      'row_preview_cid', 'dispatch_entry_cid', 'credential_use_cid',
+      'response_physical_sha256', 'response_byte_count', 'http_status_code',
+      'typed_outcome', 'typed_outcome_cid', 'receipt_cid',
+    ],
+    properties: {
+      version: {const: 'actql-effect-row-outcome-receipt/0.1'},
+      effect_preview_cid: clone(cid),
+      effect_member_preview_cid: clone(cid),
+      row_preview_cid: clone(cid),
+      dispatch_entry_cid: clone(cid),
+      credential_use_cid: clone(cid),
+      response_physical_sha256: {type: 'string', pattern: '^[0-9a-f]{64}$'},
+      response_byte_count: {type: 'integer', minimum: 0, maximum: 9007199254740991},
+      http_status_code: {type: 'integer', minimum: 100, maximum: 599},
+      typed_outcome: {
+        oneOf: outcome.oneOf.filter(branch =>
+          branch.properties?.state?.const !== 'unknown').map(clone),
+      },
+      typed_outcome_cid: clone(cid),
+      receipt_cid: clone(cid),
+    },
+  };
+}
+
+export function effectApplyReceiptSchema() {
+  const rowIdentity = {
+    row_index: {type: 'integer', minimum: 0, maximum: 9007199254740991},
+    row_preview_cid: clone(cid),
+  };
+  const dispatched = {
+    ...rowIdentity,
+    dispatch_entry_cid: clone(cid),
+    attempt_sequence: {type: 'integer', minimum: 1, maximum: 9007199254740991},
+  };
+  const row = (state, extra, required) => ({
+    type: 'object', additionalProperties: false,
+    required: ['row_index', 'row_preview_cid', 'state', ...required],
+    properties: {state: {const: state}, ...extra},
+  });
+  return {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    $id: 'https://smooth.dev/schemas/actql-effect-apply-receipt-0.1.json',
+    title: 'actql-effect-apply-receipt-0.1',
+    type: 'object', additionalProperties: false,
+    required: ['version', 'run_identity_cid', 'effect_preview_cid',
+      'effect_member_preview_cid', 'rows', 'status', 'receipt_cid'],
+    properties: {
+      version: {const: 'actql-effect-apply-receipt/0.1'},
+      run_identity_cid: clone(cid),
+      effect_preview_cid: clone(cid),
+      effect_member_preview_cid: clone(cid),
+      approval_attestation_cid: clone(cid),
+      stale_error_cid: clone(cid),
+      rows: {type: 'array', items: {oneOf: [
+        row('unattempted', rowIdentity, []),
+        row('unknown', {...dispatched, ledger_head_cid: clone(cid)},
+          ['dispatch_entry_cid', 'attempt_sequence', 'ledger_head_cid']),
+        ...['applied', 'accepted', 'failed'].map(state =>
+          row(state, {...dispatched, outcome_receipt_cid: clone(cid),
+            batch_result_cid: clone(cid)},
+            ['dispatch_entry_cid', 'attempt_sequence', 'outcome_receipt_cid'])),
+        row('rolled_back', {...dispatched, outcome_receipt_cid: clone(cid),
+          batch_result_cid: clone(cid)},
+        ['dispatch_entry_cid', 'attempt_sequence', 'outcome_receipt_cid',
+          'batch_result_cid']),
+      ]}},
+      status: {enum: ['applied', 'accepted', 'unknown_outcome',
+        'partial_failure', 'failed', 'stale_preview']},
+      receipt_cid: clone(cid),
+    },
+  };
+}
+
+export function effectSetApplyReceiptSchema(previous) {
+  const schema = clone(previous);
+  const entry = schema.properties.effects.items;
+  delete entry.properties.outcome;
+  entry.properties.state.enum = [
+    'applied', 'accepted', 'failed', 'unknown', 'unattempted', 'rolled_back',
+  ];
+  return schema;
+}
+
+export function effectReconciliationReceiptSchema(previous) {
+  const schema = clone(previous);
+  for (const field of ['run_identity_cid', 'effect_preview_cid',
+    'effect_member_preview_cid', 'row_preview_cid',
+    'dispatch_entry_cid', 'dispatch_attempt_sequence',
+    'prior_ledger_head_cid']) {
+    if (!schema.required.includes(field)) schema.required.push(field);
+  }
+  for (const field of ['run_identity_cid', 'effect_preview_cid',
+    'effect_member_preview_cid', 'row_preview_cid',
+    'dispatch_entry_cid', 'prior_ledger_head_cid',
+    'outcome_receipt_cid']) {
+    schema.properties[field] = clone(cid);
+  }
+  schema.properties.dispatch_attempt_sequence = {
+    type: 'integer', minimum: 1, maximum: 9007199254740991,
+  };
+  schema.allOf[1].then.not = {required: ['outcome_receipt_cid']};
+  schema.allOf[1].else.required = ['outcome_receipt_cid'];
+  return schema;
 }
 
 export function runStateSchema(previous) {
@@ -215,6 +366,7 @@ function replaceNested(schema, replacements, root = true) {
 export function correctedContracts(registry, cli) {
   const next = clone(registry);
   const artifact = resultArtifactSchema();
+  const effectSourceArtifact = effectSourceArtifactSchema();
   const manifest = clone(next.artifact_schemas.result_manifest);
   manifest.properties.results.additionalProperties = clone(artifact);
   const receipt = clone(next.artifact_schemas.run_receipt);
@@ -263,9 +415,35 @@ export function correctedContracts(registry, cli) {
   next.artifact_schemas.result_manifest = manifest;
   next.artifact_schemas.run_receipt = receipt;
   next.artifact_schemas.run_state = state;
+  next.artifact_schemas.effect_row_outcome_receipt =
+    effectRowOutcomeReceiptSchema(next.schemas.effect_outcome);
+  next.artifact_schemas.effect_apply_receipt = effectApplyReceiptSchema();
+  next.artifact_schemas.effect_set_apply_receipt =
+    effectSetApplyReceiptSchema(next.artifact_schemas.effect_set_apply_receipt);
+  next.artifact_schemas.effect_reconciliation_receipt =
+    effectReconciliationReceiptSchema(
+      next.artifact_schemas.effect_reconciliation_receipt);
+  next.artifact_schemas.effect_source_artifact = effectSourceArtifact;
+  const effectContext = next.artifact_schemas.captured_run
+    .properties.effect_context;
+  for (const field of ['effect_source_artifacts',
+    'effect_source_holding_cids', 'effect_source_local_inventory']) {
+    if (!effectContext.required.includes(field)) effectContext.required.push(field);
+  }
+  effectContext.properties.effect_source_artifacts = {
+    type: 'object', additionalProperties: clone(effectSourceArtifact),
+  };
+  effectContext.properties.effect_source_holding_cids = {
+    type: 'object', additionalProperties: clone(cid),
+  };
   for (const [name, schema] of Object.entries(next.artifact_schemas)) {
     next.artifact_schemas[name] = replaceNested(schema, replacements);
   }
+  next.artifact_schemas.captured_run.properties.effect_context.properties
+    .effect_source_local_inventory = {
+      type: 'object',
+      additionalProperties: capturedLocalEffectSourceSchema(),
+    };
   for (const [name, schema] of Object.entries(next.artifact_schemas)) {
     next.artifact_schema_cids[name] = machineCid(schema);
   }
@@ -284,6 +462,8 @@ export function checkContracts(registry, cli) {
     registry.artifact_schemas.result_manifest.properties.results.additionalProperties,
     artifact,
   );
+  assert.deepEqual(registry.artifact_schemas.effect_source_artifact,
+    effectSourceArtifactSchema());
   assert.ok(registry.artifact_schemas.run_receipt.required.includes('compiler_version'));
   assert.ok(registry.artifact_schemas.run_receipt.required.includes('aoa_ir_version'));
   assert.deepEqual(registry.artifact_schemas.run_receipt.oneOf, [

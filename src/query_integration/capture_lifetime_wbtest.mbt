@@ -91,13 +91,19 @@ test "captured source logical export remains bound to issuer lifetime" {
   let attempt = broad_issued_attempt(f)
   broad_issued_run(f, attempt)
   let records = @duckdb_query.issue_duckdb_broad_records(
-    attempt, query_material_limits(),
+    attempt,
+    query_material_limits(),
   ).unwrap()
   let observation = @duckdb_query.capture_duckdb_broad_query(
-    f.issuer, attempt, records, query_capture_limits(),
+    f.issuer,
+    attempt,
+    records,
+    query_capture_limits(),
   ).unwrap()
   let source = @duckdb_query.broad_captured_source(
-    f.issuer, attempt, observation,
+    f.issuer,
+    attempt,
+    observation,
   ).unwrap()
   let stream = @query.prepare_captured_source_relation_export(
     source,
@@ -132,7 +138,8 @@ test "captured source logical export remains bound to issuer lifetime" {
       row_wire_limits(),
       { max_fields: 10, max_bytes: 10000, max_nodes: 1000, max_depth: 20, },
       128,
-    ) is Err(Unavailable),
+    )
+    is Err(Unavailable),
   )
 }
 

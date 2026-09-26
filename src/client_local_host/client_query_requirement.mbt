@@ -18,9 +18,14 @@ pub fn prepare_local_query_requirement(
   ordered_body : String?,
 ) -> Result[@planning.QueryRequirement, ClientLocalQueryIssue] {
   guard prepare_client_local_sequences(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+      prepared,
+      registry_body,
+      values_body,
+      fragment_body,
+      ordered_body,
       task_count=Some(stage + 1),
-    ) is Some(sequences) else {
+    )
+    is Some(sequences) else {
     return Err(Sequences)
   }
   guard stage >= 0 && stage < sequences.length() else {

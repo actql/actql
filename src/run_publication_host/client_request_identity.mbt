@@ -164,6 +164,24 @@ pub fn prepare_client_request_identity(
 }
 
 ///|
+/// Effectful requests use the same logical key and checked intent law as
+/// Effect-free requests. The static Effect closure remains attached to this
+/// owner; no Preview or apply authority is inferred from the request key.
+pub fn prepare_client_effect_request_identity(
+  prepared : PreparedClientEffectComputation,
+  authority_scope_cid : String,
+  caller_request_id : String,
+  caller_input_intent_cid : String,
+) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue] {
+  derive_client_request_identity(
+    prepared_client_effect_identity(prepared),
+    authority_scope_cid,
+    caller_request_id,
+    caller_input_intent_cid,
+  )
+}
+
+///|
 /// Readmission checks stored identity components against both claimed CIDs.
 /// It verifies identity, not the storage provenance or current authorization.
 pub fn admit_client_request_identity_record(

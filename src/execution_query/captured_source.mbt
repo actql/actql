@@ -101,7 +101,8 @@ pub fn captured_source_relation_identity_matches_source(
   identity : CapturedSourceRelationIdentity,
   source : CapturedInputSource,
 ) -> Bool {
-  (source.live)() && physical_equal(identity.origin.output, source.output) &&
+  (source.live)() &&
+  physical_equal(identity.origin.output, source.output) &&
   physical_equal(identity.origin.owner, source.owner) &&
   physical_equal(identity.origin.program, source.program)
 }
@@ -139,9 +140,9 @@ pub fn identify_captured_source_relation(
   schema_limits : @execution.RelationSchemaIdentityLimits,
   max_batch_bytes : Int,
 ) -> Result[CapturedSourceRelationIdentity, CapturedSourceIssue] {
-  let stream = match prepare_captured_source_relation_export(
-      source, max_rows, values, payload_wire, logical_wire, schema_limits,
-      max_batch_bytes,
+  let stream = match
+    prepare_captured_source_relation_export(
+      source, max_rows, values, payload_wire, logical_wire, schema_limits, max_batch_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

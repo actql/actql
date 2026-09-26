@@ -3,6 +3,7 @@ fn effect_plan_rules(
   effect : String,
   kind : String,
   selector : String,
+  write_fields? : String = "[\"Name\"]",
 ) -> EffectMappingRules {
   let (checked, headers) = effect_binding_inputs(effect)
   let bindings = bind_effect_results(headers, checked, 12).unwrap()
@@ -12,7 +13,9 @@ fn effect_plan_rules(
     kind +
     "\"],\"selector_class\":\"" +
     selector +
-    "\",\"write_fields\":[\"Name\"]}]"
+    "\",\"write_fields\":" +
+    write_fields +
+    "}]"
   let shapes = bind_effect_mapping_shapes(
     bindings,
     effect_mapping_shape_fixture_with_rules(permission),
@@ -33,6 +36,40 @@ fn effect_plan_rule(
 ///|
 fn effect_plan_test_limits(max_bytes? : Int = 1024) -> EffectPlanIdentityLimits {
   { max_work: 20, max_fields: 10, max_bytes, max_nodes: 40, max_depth: 8, }
+}
+
+///|
+test "Plan terminal selection retains the exact checked Result owner" {
+  let update = "{\"member\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"r\"},\"id\":\"amount\",\"set\":{\"Name\":{\"field\":\"amount\"}}}}}"
+  let rules = effect_plan_rules(update, "update", "id")
+  let terminal = match effect_plan_terminal_for_member(rules, 0, 1, 10) {
+    Ok(Some(value)) => value
+    Ok(None) => fail("missing checked Plan")
+    Err(InvalidLimits) => fail("invalid Plan limits")
+    Err(WorkLimit) => fail("Plan work limit")
+    Err(InvalidMember) => fail("invalid Plan member")
+    Err(MissingRule) => fail("missing Plan rule")
+    Err(Terminal(_)) => fail("invalid Plan terminal")
+  }
+  assert_eq(effect_plan_terminal_source_result(terminal), "r")
+  assert_true(
+    physical_equal(
+      effect_plan_terminal_rule(terminal),
+      effect_mapping_rule_at(rules, 0).unwrap(),
+    ),
+  )
+  assert_eq(
+    effect_plan_terminal_for_member(rules, 0, 1, 0).unwrap_err(),
+    WorkLimit,
+  )
+  assert_eq(
+    effect_plan_terminal_for_member(rules, 0, 0, 10).unwrap_err(),
+    Terminal(FieldLimit),
+  )
+  assert_eq(
+    effect_plan_terminal_for_member(rules, 10, 1, 10).unwrap_err(),
+    InvalidMember,
+  )
 }
 
 ///|
@@ -196,6 +233,20 @@ test "two member plans consume one aggregate identity budget" {
     effect_result_binding_count(bindings),
   ).unwrap()
   let rules = bind_effect_mapping_rules(shapes, 100).unwrap()
+  let first_plan = effect_plan_terminal_for_member(rules, 0, 1, 10)
+    .unwrap()
+    .unwrap()
+  let second_plan = effect_plan_terminal_for_member(rules, 1, 1, 10)
+    .unwrap()
+    .unwrap()
+  assert_eq(effect_plan_terminal_source_result(first_plan), "r")
+  assert_eq(effect_plan_terminal_source_result(second_plan), "r")
+  assert_true(
+    !physical_equal(
+      effect_plan_terminal_rule(first_plan),
+      effect_plan_terminal_rule(second_plan),
+    ),
+  )
   let preview = checked_preview_test_identity(
     "first",
     "second",

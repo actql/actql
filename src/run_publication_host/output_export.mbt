@@ -20,6 +20,7 @@ pub(all) struct PublicationOutputExportLimits {
 pub(all) enum PublicationOutputExportIssue {
   InvalidState
   UnknownResult
+  Retain(@strategy.RunIssue)
   Output(@execution.CompletedExportIssue)
   Evidence(@publication.ResultEvidenceIssuanceIssue)
   Artifact(@publication.ResultArtifactIssuanceIssue)
@@ -32,6 +33,7 @@ pub(all) enum PublicationOutputExportIssue {
 /// in this portable owner.
 struct PublicationOutputExport {
   stream : @execution.CompletedOutputExport
+  mut retained : @strategy.CapturedResultBorrow?
   replay_values : @execution.ValueLimits
   replay_wire : @execution.RowWireLimits
   max_batch_bytes : Int
@@ -67,6 +69,7 @@ pub fn prepare_publication_output_export(
   )
   .map(stream => {
     stream,
+    retained: None,
     replay_values: limits.values,
     replay_wire: limits.payload_wire,
     max_batch_bytes: limits.max_batch_bytes,
@@ -106,6 +109,7 @@ pub fn prepare_result_publication_export(
   )
   .map(stream => {
     stream,
+    retained: None,
     replay_values: limits.values,
     replay_wire: limits.payload_wire,
     max_batch_bytes: limits.max_batch_bytes,
@@ -125,6 +129,7 @@ pub fn prepare_captured_result_publication_export(
   result : Int,
   limits : PublicationOutputExportLimits,
   converted_output? : @execution.CompletedOutput,
+  max_pins? : Int = 0,
 ) -> Result[PublicationOutputExport, PublicationOutputExportIssue] {
   let graph = @strategy.captured_dag_graph(run)
   guard @strategy.graph_result_task(graph, result) is Some(task) else {
@@ -144,48 +149,45 @@ pub fn prepare_captured_result_publication_export(
     Ok(value) => @publication.result_definition_contract(value)
     Err(_) => return Err(UnknownResult)
   }
-  guard @strategy.captured_task_target(run, task) is Some(target) else {
-    return Err(UnknownResult)
+  // An export owns a separate checked consumer pin. Closing the ordinary
+  // task port cannot revoke this Result while persistence is in progress.
+  let ceiling = if max_pins == 0 {
+    @strategy.graph_result_count(graph) + 1
+  } else {
+    max_pins
   }
-  guard @strategy.captured_task_output(run, task, target) is Some(output) else {
-    return Err(UnknownResult)
+  let borrow = match
+    @strategy.borrow_captured_result_completion(run, task, occurrence, ceiling) {
+    Ok(value) => value
+    Err(issue) => return Err(Retain(issue))
   }
+  let materialized = @strategy.captured_result_borrow_output(borrow)
   let selected = match converted_output {
-    None => output
+    None => materialized
     Some(converted) => {
-      if !@execution.completed_output_same_occurrence(output, converted) {
+      if !@execution.completed_output_same_occurrence(materialized, converted) {
+        @strategy.release_captured_result_borrow(borrow) |> ignore
         return Err(Output(ForeignMaterial))
       }
       converted
     }
   }
-  @execution.prepare_completed_result_relation_export(
-    selected,
-    occurrence,
-    {
-      max_fields: limits.max_result_fields,
-      max_mapping_work: limits.max_result_mapping_work,
-      max_order_work: limits.max_result_order_work,
-      max_workspace_entries: limits.max_result_workspace_entries,
-    },
-    limits.max_rows,
-    limits.values,
-    limits.payload_wire,
-    limits.logical_wire,
-    limits.schema,
-    limits.max_batch_bytes,
-  )
-  .map(stream => {
-    stream,
-    replay_values: limits.values,
-    replay_wire: limits.payload_wire,
-    max_batch_bytes: limits.max_batch_bytes,
-    definition: Some(definition),
-    receipt: None,
-    evidence: None,
-    artifact: None,
-  })
-  .map_err(issue => Output(issue))
+  match
+    prepare_result_publication_export(
+      selected,
+      @strategy.captured_result_borrow_occurrence(borrow),
+      definition,
+      limits,
+    ) {
+    Ok(output_export) => {
+      output_export.retained = Some(borrow)
+      Ok(output_export)
+    }
+    Err(issue) => {
+      @strategy.release_captured_result_borrow(borrow) |> ignore
+      Err(issue)
+    }
+  }
 }
 
 ///|
@@ -196,6 +198,7 @@ pub fn prepare_all_captured_result_publication_exports(
   run : @strategy.CapturedDAG,
   limits : PublicationOutputExportLimits,
   converted_outputs? : Array[@execution.CompletedOutput?],
+  max_pins? : Int = 0,
 ) -> Result[Array[PublicationOutputExport], PublicationOutputExportIssue] {
   let graph = @strategy.captured_dag_graph(run)
   if converted_outputs is Some(values) &&
@@ -214,6 +217,7 @@ pub fn prepare_all_captured_result_publication_exports(
         result,
         limits,
         converted_output?=converted,
+        max_pins~,
       ) {
       Ok(output) => outputs.push(output)
       Err(issue) => {
@@ -579,5 +583,9 @@ pub fn PublicationOutputExport::cancel(self : PublicationOutputExport) -> Unit {
       self.artifact = None
     }
     None => @execution.cancel_completed_output_export(self.stream)
+  }
+  if self.retained is Some(borrow) {
+    @strategy.release_captured_result_borrow(borrow) |> ignore
+    self.retained = None
   }
 }

@@ -6,6 +6,7 @@ import {
   "actql/actql/physical_resources" @resources,
   "actql/actql/program_check" @checked,
   "actql/actql/run_publication" @publication,
+  "actql/actql/effect_application" @effect,
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/stage_results" @results,
@@ -24,6 +25,7 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
   "moonbitlang/core/encoding/utf8",
+  "actql/actql/canonical_json" @identity,
   "actql/actql/numeric_reduction" @numeric,
   "actql/actql/execution_authorization" @authorization,
 }

@@ -283,18 +283,29 @@ fn effect_set_frontier_from_ledger_entries(
           if !effect_ledger_entry_matches_basis(entry, bases[row_index]) {
             return Err(ForeignLedgerEntry(member_index, row_index))
           }
-          if active[row_index] && entry.state != Dispatching {
+          if active[row_index] &&
+            entry.state != Dispatching &&
+            entry.state != Unknown {
             return Err(InvalidHistory)
           }
+          // Historical rows may use another request. Only a live owner
+          // establishes the fence against later overlapping sends.
           match entry.state {
-            Dispatching =>
+            Dispatching if active[row_index] =>
               match sending_request {
                 None => sending_request = Some(entry.canonical_request_cid)
                 Some(cid) if cid != entry.canonical_request_cid =>
                   return Err(InvalidHistory)
                 _ => ()
               }
-            Applied | Accepted | Failed | Unknown =>
+            Unknown if active[row_index] =>
+              match sending_request {
+                None => sending_request = Some(entry.canonical_request_cid)
+                Some(cid) if cid != entry.canonical_request_cid =>
+                  return Err(InvalidHistory)
+                _ => ()
+              }
+            Applied | Accepted | Failed | Unknown | Dispatching =>
               match sending_request {
                 Some(cid) if cid != entry.canonical_request_cid =>
                   return Err(InvalidHistory)
@@ -304,12 +315,13 @@ fn effect_set_frontier_from_ledger_entries(
           }
           match entry.state {
             Prepared => ItemUnattempted
-            Dispatching =>
+            Dispatching | Unknown if active[row_index] =>
               if active[row_index] {
                 ItemSending
               } else {
                 ItemUnknown
               }
+            Dispatching => ItemUnknown
             Applied => ItemApplied
             Accepted => ItemAccepted
             Failed => ItemFailed
@@ -413,7 +425,7 @@ pub fn effect_set_frontier_from_preview_ledger_entries(
       let key = keys[member_index][row_index]
       let basis = expected_bases[member_index][row_index]
       if basis.effect_preview_cid != preview_cid ||
-        basis.logical_request_scope_cid != scope.cid ||
+        basis.logical_request_scope_cid != logical_request_scope_cid(scope) ||
         basis.dispatch_key_cid != key.cid ||
         basis.logical_item_locator_cid != locator.cid ||
         admit_effect_member_slice(

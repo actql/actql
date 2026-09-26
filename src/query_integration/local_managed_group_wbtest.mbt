@@ -73,10 +73,10 @@ fn run_local_managed_test_task(
       fail("Local managed start had a foreign candidate")
     Err(Execution(UnsupportedGraph)) =>
       fail("Local managed start had an unsupported graph")
+    Err(Execution(PreviewWorkLimit)) =>
+      fail("Local managed start exhausted preview work")
     Err(Execution(ForeignCapture)) =>
       fail("Local managed start had a foreign capture")
-    Err(Execution(PreviewWorkLimit)) =>
-      fail("Local managed start exceeded preview work")
     Err(Execution(Capture(_))) => fail("Local managed start capture failed")
     Err(Execution(Binding(_))) => fail("Local managed start binding failed")
     Err(Execution(Read(_))) => fail("Local managed start read failed")

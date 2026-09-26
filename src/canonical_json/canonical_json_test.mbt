@@ -40,6 +40,13 @@ test "strict source trees use the same canonical owner and object projection" {
     @canonical_json.stringify_value(value, 100, 4, 1),
     "{\"identity\":\"old\",\"z\":2,\"é\":\"x\\n\"}",
   )
+  assert_eq(@canonical_json.object_field_count(value), Some(3))
+  assert_eq(
+    @canonical_json.object_field_count(
+      @canonical_json.from_json(Json::null(), 1, 0, 0),
+    ),
+    None,
+  )
   guard @canonical_json.object_without_field(value, "identity")
     is Some(preimage) else {
     fail("missing preimage")

@@ -30,6 +30,8 @@ function effectApplicationControl(moon) {
     dispatchKey: (...args) =>
       checked(moon.strategyEffectDispatchKey(...args)),
     dispatchKeyCid: moon.strategyEffectDispatchKeyCid,
+    recoveredPreviewKeys: (...args) => checked(
+      moon.strategyEffectRecoveredPreviewKeys(...args)),
     batchRowsShareMember: moon.strategyEffectBatchRowsShareMember,
     logicalItemLocator: (...args) =>
       checked(moon.strategyEffectLogicalItemLocator(...args)),
@@ -73,11 +75,89 @@ function effectApplicationControl(moon) {
     admitMemberRow: (...args) => checked(
       moon.strategyEffectMemberRowAdmit(...args),
     ),
+    previewMemberKind: moon.strategyEffectPreviewMemberKind,
+    previewOrderedRowCid: moon.strategyEffectPreviewOrderedRowCid,
+    recoveryBindings: (...args) => checked(
+      moon.strategyEffectRecoveryBindings(...args)),
+    recoveryBindingLocatorCid:
+      moon.strategyEffectRecoveryBindingLocatorCid,
+    recoverClaimsFromHeads: (...args) => checked(
+      moon.strategyEffectRecoverClaimsFromHeads(...args)),
+    recoveredClaimScope: moon.strategyEffectRecoveredClaimScope,
+    recoveredClaimLocator: moon.strategyEffectRecoveredClaimLocator,
+    recoveredClaimKey: moon.strategyEffectRecoveredClaimKey,
+    recoveredClaimBasis: moon.strategyEffectRecoveredClaimBasis,
+    recoveredClaimIntentFingerprintCid:
+      moon.strategyEffectRecoveredClaimIntentFingerprintCid,
+    recoveredClaimCanonicalRequestCid:
+      moon.strategyEffectRecoveredClaimCanonicalRequestCid,
+    issueRowOutcomeReceipt: (...args) => {
+      const value = checked(moon.strategyIssueEffectRowOutcomeReceipt(...args));
+      return Object.freeze({
+        identity: moon.strategyPublicationContractIdentity(value),
+        wire: moon.strategyPublicationContractJson(value),
+        terminalState: moon.strategyEffectRowOutcomeReceiptTerminalState(value),
+      });
+    },
+    admitSavedResponseEvidence: (...args) => checked(
+      moon.strategyAdmitEffectSavedResponseEvidence(...args)),
+    issueRowOutcomeReceiptFromResponse: (...args) => {
+      const value = checked(
+        moon.strategyIssueEffectRowOutcomeReceiptFromResponse(...args));
+      return Object.freeze({
+        identity: moon.strategyPublicationContractIdentity(value),
+        wire: moon.strategyPublicationContractJson(value),
+        terminalState: moon.strategyEffectRowOutcomeReceiptTerminalState(value),
+      });
+    },
+    admitRowOutcomeReceipt: (...args) => {
+      const value = checked(moon.strategyAdmitEffectRowOutcomeReceipt(...args));
+      return Object.freeze({
+        identity: moon.strategyPublicationContractIdentity(value),
+        wire: moon.strategyPublicationContractJson(value),
+        terminalState: moon.strategyEffectRowOutcomeReceiptTerminalState(value),
+      });
+    },
+    admitRowOutcomeReceiptFromResponse: (...args) => {
+      const value = checked(
+        moon.strategyAdmitEffectRowOutcomeReceiptFromResponse(...args));
+      return Object.freeze({
+        identity: moon.strategyPublicationContractIdentity(value),
+        wire: moon.strategyPublicationContractJson(value),
+        terminalState: moon.strategyEffectRowOutcomeReceiptTerminalState(value),
+      });
+    },
+    issueRowReceiptTerminalEntry: (...args) => checked(
+      moon.strategyIssueEffectRowReceiptTerminalEntry(...args),
+    ),
+    issueRowReceiptTerminalEntryFromResponse: (...args) => checked(
+      moon.strategyIssueEffectRowReceiptTerminalEntryFromResponse(...args),
+    ),
+    checkMemberReceiptRowPartitionEvidence: (...args) => checked(
+      moon.strategyCheckEffectMemberReceiptRowPartitionEvidence(...args),
+    ),
+    issueMemberReceiptFromRowPartition: (...args) => {
+      const value = checked(
+        moon.strategyIssueEffectMemberReceiptFromRowPartition(...args));
+      return Object.freeze({
+        identity: moon.strategyPublicationContractIdentity(value),
+        wire: moon.strategyPublicationContractJson(value),
+      });
+    },
+    issueSetReceiptFromMembers: (...args) => {
+      const value = checked(
+        moon.strategyIssueEffectSetApplyReceiptFromMembers(...args));
+      return Object.freeze({
+        identity: moon.strategyPublicationContractIdentity(value),
+        wire: moon.strategyPublicationContractJson(value),
+      });
+    },
     admitLedgerEntry: (...args) => checked(
       moon.strategyEffectAdmitLedgerEntry(...args),
     ),
     ledgerEntryFollows: moon.strategyEffectLedgerEntryFollows,
     ledgerEntryCid: moon.strategyEffectLedgerEntryCid,
+    ledgerEntryStateCode: moon.strategyEffectLedgerEntryStateCode,
     ledgerEntryLocatorCid: moon.strategyEffectLedgerEntryLocatorCid,
     ledgerEntryScopeCid: moon.strategyEffectLedgerEntryScopeCid,
     ledgerEntryWire: moon.strategyEffectLedgerEntryWire,
@@ -1584,7 +1664,14 @@ function publicationControl(moon) {
   const evidenceTokens = new WeakMap();
   const admissionTokens = new WeakMap();
   const snapshotTokens = new WeakMap();
+  const effectSourceTokens = new WeakMap();
+  const localEffectSourceTokens = new WeakMap();
+  const localEffectArtifactTokens = new WeakMap();
+  const localEffectIdentityTokens = new WeakMap();
+  const localEffectManifestTokens = new WeakMap();
   const sourceAdvanceTokens = new WeakMap();
+  const computationPreviewTokens = new WeakMap();
+  const computationPreviewWires = new WeakMap();
   const inspect = contract => {
     const value = Object.freeze({
       name: moon.strategyPublicationContractName(contract),
@@ -1637,6 +1724,25 @@ function publicationControl(moon) {
     const result = snapshotTokens.get(value);
     if (result === undefined) {
       throw new TypeError('Foreign captured Result snapshot');
+    }
+    return result;
+  };
+  const inspectEffectSource = source => {
+    const value = Object.freeze({kind: 'captured-effect-source-artifact'});
+    effectSourceTokens.set(value, source);
+    return value;
+  };
+  const effectSourceToken = value => {
+    const result = effectSourceTokens.get(value);
+    if (result === undefined) {
+      throw new TypeError('Foreign captured Effect source artifact');
+    }
+    return result;
+  };
+  const localEffectSourceToken = value => {
+    const result = localEffectSourceTokens.get(value);
+    if (result === undefined) {
+      throw new TypeError('Foreign local Effect source evidence');
     }
     return result;
   };
@@ -1745,6 +1851,35 @@ function publicationControl(moon) {
         throw new TypeError('Run Definition differs from checked Program');
       }
     },
+    admitCheckedClientEffectRunPublication(
+      checkedEffect, template, prepared, authorization, compiledPlan,
+    ) {
+      if (typeof moon.clientProgramAdmitEffectPublication !== 'function') {
+        throw new TypeError('Client Effect admission is unavailable');
+      }
+      const admission = moon.clientProgramAdmitEffectPublication(
+        checkedEffect,
+        evidenceToken(template),
+        evidenceToken(prepared),
+        evidenceToken(authorization),
+        token(compiledPlan),
+      );
+      if (admission === undefined) {
+        throw new TypeError('Publication evidence differs from checked Effect');
+      }
+      return inspectAdmission(admission);
+    },
+    bindCheckedClientEffectRun(checkedEffect, admission, runDefinition) {
+      if (typeof moon.clientProgramBindEffectRun !== 'function') {
+        throw new TypeError('Client Effect Run binding is unavailable');
+      }
+      const bound = moon.clientProgramBindEffectRun(
+        checkedEffect, admissionToken(admission), token(runDefinition));
+      if (bound === undefined) {
+        throw new TypeError('Run Definition differs from checked Effect');
+      }
+      return bound;
+    },
     issueRunDefinition(admission, definition, limits) {
       issuanceLimits(limits, 'Run Definition');
       if (definition === null || typeof definition !== 'object') {
@@ -1812,6 +1947,171 @@ function publicationControl(moon) {
         ),
       ));
     },
+    admitCapturedEffectSourceArtifact(preview, memberIndex, invocation,
+      artifact, storeAuthorityCid) {
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined ||
+          !Number.isSafeInteger(memberIndex) || memberIndex < 0 ||
+          typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid captured Effect source artifact');
+      }
+      return inspectEffectSource(checked(
+        moon.strategyAdmitCapturedEffectSourceArtifact(
+          ownedPreview, memberIndex, token(invocation), token(artifact),
+          storeAuthorityCid,
+        ),
+      ));
+    },
+    issueEffectSourceArtifactFromExport(input, receipt, invocation,
+      retention, sourceBindingCid, storeAuthorityCid, limits) {
+      issuanceLimits(limits, 'Effect source Artifact');
+      if (typeof moon.clientProgramIssueEffectSourceArtifact !== 'function' ||
+          typeof sourceBindingCid !== 'string' ||
+          typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid Effect source Artifact export');
+      }
+      return inspect(checked(moon.clientProgramIssueEffectSourceArtifact(
+        input, receipt, token(invocation), token(retention),
+        sourceBindingCid, storeAuthorityCid, limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth,
+      )));
+    },
+    issueSourceFreeLocalEffectResultArtifact(owner, inputs, memberIndex,
+      importing, definition, localInvocation, receipt, retention, context,
+      limits) {
+      issuanceLimits(limits, 'local Effect Result Artifact');
+      if (!Number.isSafeInteger(memberIndex) || memberIndex < 0 ||
+          context === null || typeof context !== 'object' ||
+          !['admission', 'runDefinition', 'runInvocation', 'observation']
+            .every(key => context[key] !== undefined)) {
+        throw new TypeError('Invalid local Effect Result Artifact');
+      }
+      const issued = checked(
+        moon.clientProgramIssueSourceFreeLocalEffectResultArtifact(
+          owner, inputs, memberIndex, importing, definition, localInvocation,
+          receipt, token(retention), admissionToken(context.admission),
+          token(context.runDefinition), token(context.runInvocation),
+          evidenceToken(context.observation),
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      const value = Object.freeze({
+        identity: moon.clientProgramLocalEffectResultArtifactCid(issued),
+        wire: moon.clientProgramLocalEffectResultArtifactJson(issued),
+        derivationWire:
+          moon.clientProgramLocalEffectResultDerivationJson(issued),
+        orderingWire: moon.clientProgramLocalEffectResultOrderingJson(issued),
+      });
+      localEffectArtifactTokens.set(value, issued);
+      return value;
+    },
+    issueLocalEffectResultManifest(owner, invocation, artifacts, limits) {
+      issuanceLimits(limits, 'local Effect Result Manifest');
+      if (!Array.isArray(artifacts) || artifacts.length === 0) {
+        throw new TypeError('Invalid local Effect Result Manifest');
+      }
+      const owned = artifacts.map(artifact => {
+        const token = localEffectArtifactTokens.get(artifact);
+        if (token === undefined) {
+          throw new TypeError('Foreign local Effect Result Artifact');
+        }
+        return token;
+      });
+      const issued = checked(moon.clientProgramIssueLocalEffectResultManifest(
+        owner, invocation, owned, limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth));
+      const value = Object.freeze({
+        identity: moon.clientProgramLocalEffectResultManifestCid(issued),
+        wire: moon.clientProgramLocalEffectResultManifestJson(issued),
+      });
+      localEffectManifestTokens.set(value, issued);
+      return value;
+    },
+    localEffectSourceMatches(owner, inputs, memberIndex, manifest,
+      invocation, artifact, source) {
+      const ownedManifest = localEffectManifestTokens.get(manifest);
+      const ownedArtifact = localEffectArtifactTokens.get(artifact);
+      if (ownedManifest === undefined || ownedArtifact === undefined ||
+          !Number.isSafeInteger(memberIndex) || memberIndex < 0) {
+        throw new TypeError('Foreign local Effect source evidence');
+      }
+      return moon.clientProgramLocalEffectSourceMatches(
+        owner, inputs, memberIndex, ownedManifest, invocation,
+        ownedArtifact, effectSourceToken(source));
+    },
+    admitLocalEffectSourceEvidence(owner, inputs, memberIndex, manifest,
+      invocation, artifact, source, limits) {
+      issuanceLimits(limits, 'local Effect source evidence');
+      const ownedManifest = localEffectManifestTokens.get(manifest);
+      const ownedArtifact = localEffectArtifactTokens.get(artifact);
+      if (ownedManifest === undefined || ownedArtifact === undefined ||
+          !Number.isSafeInteger(memberIndex) || memberIndex < 0) {
+        throw new TypeError('Foreign local Effect source evidence');
+      }
+      const issued = checked(moon.clientProgramAdmitLocalEffectSourceEvidence(
+        owner, inputs, memberIndex, ownedManifest, invocation,
+        ownedArtifact, effectSourceToken(source), limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth));
+      const value = Object.freeze({kind: 'captured-local-effect-source'});
+      localEffectSourceTokens.set(value, issued);
+      return value;
+    },
+    issueSourceFreeLocalEffectIdentity(owner, inputs, memberIndex, artifact,
+      limits) {
+      issuanceLimits(limits, 'local Effect identity');
+      const ownedArtifact = localEffectArtifactTokens.get(artifact);
+      if (ownedArtifact === undefined ||
+          !Number.isSafeInteger(memberIndex) || memberIndex < 0 ||
+          !Number.isSafeInteger(limits.maxWork) || limits.maxWork < 1) {
+        throw new TypeError('Invalid local Effect identity owner');
+      }
+      const issued = checked(
+        moon.clientProgramIssueSourceFreeLocalEffectIdentity(
+          owner, inputs, memberIndex, ownedArtifact, limits.maxWork,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      const value = Object.freeze({
+        identity: moon.clientProgramLocalEffectIdentityCid(issued),
+        wire: moon.clientProgramLocalEffectIdentityJson(issued),
+      });
+      localEffectIdentityTokens.set(value, issued);
+      return value;
+    },
+    checkSourceFreeLocalEffectPreviewIdentities(owner, inputs, wire,
+      runIdentityCid, authoringContextCid, identities, limits) {
+      issuanceLimits(limits, 'local Effect Preview identities');
+      if (typeof wire !== 'string' ||
+          typeof runIdentityCid !== 'string' ||
+          typeof authoringContextCid !== 'string' ||
+          !Array.isArray(identities)) {
+        throw new TypeError('Invalid local Effect Preview identities');
+      }
+      const owned = identities.map(identity => {
+        const token = localEffectIdentityTokens.get(identity);
+        if (token === undefined) {
+          throw new TypeError('Foreign local Effect identity');
+        }
+        return token;
+      });
+      return checked(
+        moon.clientProgramCheckSourceFreeLocalEffectPreviewIdentities(
+          owner, inputs, wire, runIdentityCid, authoringContextCid, owned,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
+    effectSourceArtifactPreviewBinding(artifact, invocationCid, sourceResult,
+      storeAuthorityCid) {
+      return checked(moon.clientProgramEffectSourceArtifactPreviewBinding(
+        token(artifact), invocationCid, sourceResult, storeAuthorityCid));
+    },
+    capturedEffectSourceHoldingCid(source) {
+      return moon.strategyCapturedEffectSourceHoldingCid(
+        effectSourceToken(source));
+    },
+    capturedEffectSourceArtifactCid(source) {
+      return moon.strategyCapturedEffectSourceArtifactCid(
+        effectSourceToken(source));
+    },
+    capturedEffectSourceStoreAuthorityCid(source) {
+      return moon.strategyCapturedEffectSourceStoreAuthorityCid(
+        effectSourceToken(source));
+    },
     admitCompletedResultSnapshot(exportHandle, limits) {
       issuanceLimits(limits, 'completed Result snapshot');
       return inspectSnapshot(checked(
@@ -1864,6 +2164,192 @@ function publicationControl(moon) {
         limits.maxNodes,
         limits.maxDepth,
       )));
+    },
+    admitEffectComputationPreview(wire, runDefinition, authoring, limits) {
+      issuanceLimits(limits, 'Effect computation Preview');
+      if (typeof wire !== 'string' ||
+          typeof authoring?.identity !== 'string') {
+        throw new TypeError('Invalid Effect computation Preview');
+      }
+      token(runDefinition);
+      evidenceToken(authoring);
+      const preview = checked(moon.strategyAdmitEffectComputationPreview(
+        wire, runDefinition.identity,
+        authoring.identity,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+      ));
+      const owned = Object.freeze({kind: 'effect-computation-preview'});
+      computationPreviewTokens.set(owned, preview);
+      computationPreviewWires.set(owned, wire);
+      return owned;
+    },
+    effectComputationPreviewLedgerIdentity(preview) {
+      const admitted = computationPreviewTokens.get(preview);
+      if (admitted === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return admitted;
+    },
+    effectComputationPreviewSemanticCid(preview) {
+      const admitted = computationPreviewTokens.get(preview);
+      if (admitted === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return moon.strategyEffectPreviewSemanticCid(admitted);
+    },
+    effectComputationPreviewWire(preview) {
+      const wire = computationPreviewWires.get(preview);
+      if (wire === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return wire;
+    },
+    effectPrivateEvidenceBinding(preview, storeAuthorityCid) {
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return Object.freeze({
+        name: 'effect_preview',
+        semanticCid: moon.strategyEffectPreviewSemanticCid(ownedPreview),
+        holdingCid: checked(moon.strategyEffectPreviewPrivateHoldingCid(
+          ownedPreview, storeAuthorityCid,
+        )),
+        wire: computationPreviewWires.get(preview),
+      });
+    },
+    effectComputationCaptureHoldingCid(runDefinition, storeAuthorityCid) {
+      if (typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid Effect computation capture holding');
+      }
+      return checked(moon.strategyEffectComputationCaptureHoldingCid(
+        token(runDefinition), storeAuthorityCid,
+      ));
+    },
+    effectComputationRecordHoldingCid(runDefinition, storeAuthorityCid) {
+      if (typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid Effect computation record holding');
+      }
+      return checked(moon.strategyEffectComputationRecordHoldingCid(
+        token(runDefinition), storeAuthorityCid,
+      ));
+    },
+    effectfulComputationEvidenceChainValid(chain, preview, limits) {
+      issuanceLimits(limits, 'Effectful computation evidence chain');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Array.isArray(chain?.definitions) ||
+          !Array.isArray(chain.artifacts)) {
+        throw new TypeError('Invalid Effectful computation evidence chain');
+      }
+      return moon.strategyEffectfulComputationEvidenceChainValid(
+        token(chain.runDefinition), token(chain.invocation),
+        chain.definitions.map(token), chain.artifacts.map(token),
+        token(chain.manifest), token(chain.computationReceipt),
+        token(chain.capturedRun), ownedPreview,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+      );
+    },
+    capturedEffectSourceRecoveryInventoryValid(preview, sources) {
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Array.isArray(sources) ||
+          sources.some(value => !Number.isSafeInteger(value?.memberIndex))) {
+        throw new TypeError('Invalid recovered Effect source inventory');
+      }
+      return moon.strategyCapturedEffectSourceRecoveryInventoryValid(
+        ownedPreview, sources.map(value => value.memberIndex),
+        sources.map(value => token(value.artifact)),
+      );
+    },
+    issueEffectfulCapturedRun(chain, evidence, preview, plans, limits) {
+      issuanceLimits(limits, 'Effectful Captured Run');
+      if (chain === null || typeof chain !== 'object' ||
+          evidence === null || typeof evidence !== 'object' ||
+          !Array.isArray(chain.definitions) ||
+          !Array.isArray(chain.artifacts) ||
+          !Array.isArray(evidence.snapshots) ||
+          !Array.isArray(evidence.effectSources) ||
+          !Array.isArray(evidence.localEffectSources) ||
+          !Array.isArray(evidence.pendingSourceStateAdvances) ||
+          !Array.isArray(evidence.modelEvidence) ||
+          !Array.isArray(plans) ||
+          plans.some(value => !value || typeof value.name !== 'string' ||
+            typeof value.wire !== 'string')) {
+        throw new TypeError('Invalid Effectful Captured Run request');
+      }
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return inspect(checked(moon.strategyIssueEffectfulCapturedRun(
+        token(chain.runDefinition), token(chain.invocation),
+        chain.definitions.map(token), chain.artifacts.map(token),
+        token(chain.manifest), token(chain.receipt),
+        evidence.snapshots.map(snapshotToken),
+        evidence.effectSources.map(effectSourceToken),
+        evidence.localEffectSources.map(localEffectSourceToken),
+        evidence.pendingSourceStateAdvances.map(sourceAdvanceToken),
+        evidenceToken(evidence.authoringContext),
+        evidence.modelEvidence.map(evidenceToken), ownedPreview,
+        plans.map(value => value.name), plans.map(value => value.wire),
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+      )));
+    },
+    issueEffectfulFinalRunReceipt(chain, preview, receipts, limits) {
+      issuanceLimits(limits, 'final Effectful Run Receipt');
+      if (chain === null || typeof chain !== 'object' ||
+          !Array.isArray(chain.definitions) ||
+          !Array.isArray(chain.artifacts) ||
+          receipts === null || typeof receipts !== 'object' ||
+          typeof receipts.setWire !== 'string' ||
+          !Array.isArray(receipts.memberWires) ||
+          receipts.memberWires.some(wire => typeof wire !== 'string')) {
+        throw new TypeError('Invalid final Effectful Run Receipt');
+      }
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return inspect(checked(moon.strategyIssueEffectfulFinalRunReceipt(
+        token(chain.runDefinition), token(chain.invocation),
+        chain.definitions.map(token), chain.artifacts.map(token),
+        token(chain.manifest), token(chain.computationReceipt),
+        token(chain.capturedRun), ownedPreview, receipts.setWire,
+        receipts.memberWires, limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    issueEffectSetApplyReceiptFromMembers(preview, members, replayed, limits) {
+      issuanceLimits(limits, 'Effect Set Apply Receipt');
+      if (!Array.isArray(members) ||
+          members.some(member => typeof member?.wire !== 'string') ||
+          !Array.isArray(replayed) ||
+          replayed.some(value => typeof value !== 'boolean')) {
+        throw new TypeError('Invalid Effect Set Apply Receipt request');
+      }
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return inspect(checked(
+        moon.strategyIssueEffectSetApplyReceiptFromMembers(
+          ownedPreview, members.map(member => member.wire), replayed,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+        ),
+      ));
+    },
+    effectSetReceiptRunDisposition(preview, receipts, limits) {
+      issuanceLimits(limits, 'Effect Set Run disposition');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined ||
+          typeof receipts?.setWire !== 'string' ||
+          !Array.isArray(receipts.memberWires) ||
+          receipts.memberWires.some(wire => typeof wire !== 'string')) {
+        throw new TypeError('Invalid Effect Set Run disposition');
+      }
+      return checked(moon.strategyEffectSetReceiptRunDisposition(
+        ownedPreview, receipts.setWire, receipts.memberWires,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+      ));
     },
     recordTransition(previous, next, uncommittedConfirmed) {
       return moon.strategyPublicationRecordTransition(
@@ -2153,6 +2639,10 @@ function publicationControl(moon) {
         limits.maxDepth,
       )));
     },
+    publicIndexSameCommittedContent(committed, candidate) {
+      return moon.strategyPublicIndexSameCommittedContent(
+        token(committed), token(candidate));
+    },
     issuePublicationRecord(attempt, previous, update, limits) {
       issuanceLimits(limits, 'Publication Record');
       if (update === null || typeof update !== 'object') {
@@ -2209,6 +2699,36 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
+      );
+    },
+    effectfulCommitValid(chain, preview, receipts, request, attempt,
+      indexEntry, limits) {
+      issuanceLimits(limits, 'Effectful publication commit');
+      if (chain === null || typeof chain !== 'object' ||
+          !['definitions', 'artifacts', 'derivations', 'orderings',
+            'retentions', 'durableBindings'].every(name =>
+            Array.isArray(chain[name])) ||
+          receipts === null || typeof receipts !== 'object' ||
+          typeof receipts.setWire !== 'string' ||
+          typeof receipts.finalWire !== 'string' ||
+          !Array.isArray(receipts.memberWires) ||
+          receipts.memberWires.some(wire => typeof wire !== 'string')) {
+        throw new TypeError('Invalid Effectful publication commit');
+      }
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return moon.strategyEffectfulPublicationCommitValid(
+        token(chain.runDefinition), token(chain.invocation),
+        chain.definitions.map(token), chain.artifacts.map(token),
+        chain.derivations.map(token), chain.orderings.map(token),
+        chain.retentions.map(token), chain.durableBindings.map(token),
+        token(chain.manifest), token(chain.computationReceipt),
+        token(chain.capturedRun), ownedPreview, receipts.setWire,
+        receipts.memberWires, receipts.finalWire, token(request),
+        token(attempt), token(indexEntry), limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth,
       );
     },
     issueResultArtifact(exportHandle, invocation, retention, limits) {

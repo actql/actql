@@ -12,6 +12,7 @@ import {
   captureClaimedEffectResponse,
 } from './effect-physical-dispatch.mjs';
 import {readAuthorizedEffectResponse,
+  readAuthorizedEffectOutcomes,
   recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -32,12 +33,12 @@ async function fixture(t) {
   const basis = control.ledgerBasis(scope, locator, key,
     cid('c'), cid('d'), cid('e'), canonicalRequestCid, cid('0'),
     'unavailable', cid('1'), cid('2'));
-  return {open, claim: {scope, locator, key, basis,
+  return {root, open, claim: {scope, locator, key, basis,
     intentFingerprintCid: cid('e'), canonicalRequestCid}};
 }
 
 async function collectionFixture(t) {
-  const {open} = await fixture(t);
+  const {root, open} = await fixture(t);
   const scope = control.logicalRequestScope(authorityScopeCid,
     'request-1', 32);
   const claims = ['row-1', 'row-2'].map(row => {
@@ -52,8 +53,157 @@ async function collectionFixture(t) {
     return {scope, locator, key, basis,
       intentFingerprintCid: cid('e'), canonicalRequestCid};
   });
-  return {open, claims};
+  return {root, open, claims};
 }
+
+test('exact single claim reopens physical outcome custody without a send',
+  async t => {
+    const {open, claim} = await fixture(t);
+    const first = open();
+    let sends = 0;
+    const sent = await captureClaimedEffectResponse({
+      ledger: first, claim, requestCid: claim.canonicalRequestCid,
+      execute: async () => {
+        sends += 1;
+        return {observation: {useCid: cid('4'), statusCode: 201,
+          body: Buffer.from('{"success":true}')}};
+      },
+    });
+    assert.equal(first.readClaimedOutcome(claim), undefined);
+    const retained = {
+      claim, responsePhysicalSha256: sent.response.responsePhysicalSha256,
+      outcomeCid: cid('5'),
+      outcomeJson: '{"result":{"record_id":"a001"},"state":"applied"}',
+    };
+    assert.throws(() => first.recordClaimedOutcome({
+      ...retained, responsePhysicalSha256: '0'.repeat(64),
+    }), {code: 'EffectPhysicalResponseNotOwned'});
+    assert.equal(first.recordClaimedOutcome(retained).created, true);
+    assert.equal(first.recordClaimedOutcome(retained).created, false);
+    const applied = control.issueNextLedgerEntry(sent.ownership.dispatching,
+      'applied', cid('5'), 4096, 64, 4);
+    first.append(control.ledgerEntryWire(applied));
+    first.close();
+    const reopened = open();
+    t.after(() => reopened.close());
+    const outcome = reopened.readClaimedOutcome(claim);
+    assert.equal(outcome.outcomeCid, cid('5'));
+    assert.equal(reopened.readClaimedResponse(claim).dispatchEntryCid,
+      control.ledgerEntryCid(sent.ownership.dispatching));
+    assert.equal(outcome.responsePhysicalSha256,
+      sent.response.responsePhysicalSha256);
+    const authorized = await readAuthorizedEffectOutcomes({
+      ledger: reopened, claims: claim, commonMoon: moon,
+      expectedRequestCid: claim.canonicalRequestCid,
+      authorizeEvidenceRead: () => true,
+    });
+    assert.equal(authorized.outcomes.outcomeCid, cid('5'));
+    const mutableClaim = {...claim};
+    let releaseRead;
+    const readGate = new Promise(resolve => { releaseRead = resolve; });
+    const pendingRead = readAuthorizedEffectOutcomes({
+      ledger: reopened, claims: mutableClaim, commonMoon: moon,
+      expectedRequestCid: claim.canonicalRequestCid,
+      authorizeEvidenceRead: async () => {
+        await readGate;
+        return true;
+      },
+    });
+    mutableClaim.canonicalRequestCid = cid('9');
+    releaseRead();
+    assert.equal((await pendingRead).outcomes.outcomeCid, cid('5'));
+    await assert.rejects(readAuthorizedEffectOutcomes({
+      ledger: reopened, claims: claim, commonMoon: moon,
+      expectedRequestCid: claim.canonicalRequestCid,
+      authorizeEvidenceRead: () => false,
+    }), {code: 'EffectEvidenceAccessDenied'});
+    assert.throws(() => reopened.readClaimedOutcome({
+      ...claim, canonicalRequestCid: cid('9'),
+    }), {code: 'EffectDispatchBindingMismatch'});
+    const retry = await captureClaimedEffectResponse({
+      ledger: reopened, claim, requestCid: claim.canonicalRequestCid,
+      execute: async () => { sends += 1; },
+    });
+    assert.equal(retry.claimed, false);
+    assert.equal(sends, 1);
+  });
+
+test('exact Collections claim reopens distinct row outcome custody',
+  async t => {
+    const {open, claims} = await collectionFixture(t);
+    const first = open();
+    let sends = 0;
+    const sent = await captureClaimedEffectCollectionResponse({
+      ledger: first, claims, requestCid: claims[0].canonicalRequestCid,
+      execute: async () => {
+        sends += 1;
+        return {observation: {useCid: cid('4'), statusCode: 200,
+          body: Buffer.from('[{"success":true},{"success":false}]')}};
+      },
+    });
+    assert.deepEqual(first.readClaimedBatchOutcomes(claims),
+      [undefined, undefined]);
+    const stored = first.readClaimedBatchResponse(claims);
+    assert.throws(() => first.recordClaimedOutcome({
+      claims: [...claims].reverse(), rowIndex: 0,
+      responsePhysicalSha256: stored.responsePhysicalSha256,
+      outcomeCid: cid('5'), outcomeJson: '{"state":"applied"}',
+    }), {code: 'EffectCollectionResponseBindingMismatch'});
+    for (let index = 0; index < claims.length; index++) {
+      assert.equal(first.recordClaimedOutcome({
+        claims, rowIndex: index,
+        responsePhysicalSha256: stored.responsePhysicalSha256,
+        outcomeCid: cid(index === 0 ? '5' : '6'),
+        outcomeJson: index === 0
+          ? '{"result":{"record_id":"a001"},"state":"applied"}'
+          : '{"error":{"code":"INVALID_FIELD","message":"Bad field"},"state":"failed"}',
+      }).created, true);
+    }
+    for (let index = 0; index < claims.length; index++) {
+      const terminal = control.issueNextLedgerEntry(
+        sent.ownership.dispatching[index],
+        index === 0 ? 'applied' : 'failed',
+        cid(index === 0 ? '5' : '6'), 4096, 64, 4);
+      first.append(control.ledgerEntryWire(terminal));
+    }
+    first.close();
+    const reopened = open();
+    t.after(() => reopened.close());
+    assert.deepEqual(reopened.readClaimedBatchOutcomes(claims)
+      .map(outcome => outcome.outcomeCid), [cid('5'), cid('6')]);
+    assert.equal(reopened.readClaimedBatchResponse(claims).dispatchEntryCid,
+      control.ledgerEntryCid(sent.ownership.dispatching[0]));
+    const authorized = await readAuthorizedEffectOutcomes({
+      ledger: reopened, claims, batch: true, commonMoon: moon,
+      expectedRequestCid: claims[0].canonicalRequestCid,
+      authorizeEvidenceRead: () => true,
+    });
+    assert.deepEqual(authorized.outcomes.map(outcome => outcome.outcomeCid),
+      [cid('5'), cid('6')]);
+    const mutableClaims = [...claims];
+    let releaseRead;
+    const readGate = new Promise(resolve => { releaseRead = resolve; });
+    const pendingRead = readAuthorizedEffectOutcomes({
+      ledger: reopened, claims: mutableClaims, batch: true, commonMoon: moon,
+      expectedRequestCid: claims[0].canonicalRequestCid,
+      authorizeEvidenceRead: async () => {
+        await readGate;
+        return true;
+      },
+    });
+    mutableClaims.reverse();
+    releaseRead();
+    assert.deepEqual((await pendingRead).outcomes.map(outcome =>
+      outcome.outcomeCid), [cid('5'), cid('6')]);
+    assert.throws(() => reopened.readClaimedBatchOutcomes(
+      [...claims].reverse()), {code: 'EffectCollectionResponseBindingMismatch'});
+    const retry = await captureClaimedEffectCollectionResponse({
+      ledger: reopened, claims, requestCid: claims[0].canonicalRequestCid,
+      execute: async () => { sends += 1; },
+    });
+    assert.equal(retry.claimed, false);
+    assert.equal(sends, 1);
+  });
 
 test('single raw response is durable before provider projection', async t => {
   const {open, claim} = await fixture(t);

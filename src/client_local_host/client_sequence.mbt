@@ -122,9 +122,7 @@ pub fn prepare_client_local_sequences(
           if !required {
             continue
           }
-          guard fragment_contract is Some(contract) else {
-            return None
-          }
+          guard fragment_contract is Some(contract) else { return None }
           let fragment = match
             @lower.prepare_fragment_pipeline(sequence, step, {
               max_roots: 100,

@@ -71,6 +71,26 @@ pub fn unit_contracts_cid(program : CheckedProgram, index : Int) -> String? {
 }
 
 ///|
+/// The checked local used-value identity, not the Program-wide invocation
+/// value identity. A local Invocation must use the same Unit coordinate as
+/// its Unit Definition and contract closure.
+pub fn unit_used_values_cid(program : CheckedProgram, index : Int) -> String? {
+  @context.program_identity_stage_at(program.identity, index).map(stage => {
+    @context.stage_identity_parameter_values_cid(stage)
+  })
+}
+
+///|
+/// The policy selected during this Program check. It is not a current grant
+/// or proof that the checked computation has executed.
+pub fn checked_local_policy_cid(program : CheckedProgram) -> String {
+  let selected = checked_selected_policy(program)
+  let reconciled = @context.policy_context(selected)
+  let wired = @context.reconciled_wiring(reconciled)
+  @policy.cid(@context.stage_policy(@context.wired_stage_contexts(wired)))
+}
+
+///|
 pub fn unit_import_cid_count(program : CheckedProgram, unit : Int) -> Int? {
   program.units.get(unit).map(value => value.imports.length())
 }

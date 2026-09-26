@@ -2,28 +2,43 @@
 package "actql/actql/effect_application"
 
 import {
+  "actql/actql/logical_request_scope",
   "actql/actql/run_publication",
   "moonbitlang/core/debug",
 }
 
 // Values
-pub fn admit_effect_collection_batch(@run_publication.EffectPreviewIdentity, Int, Int, String, LogicalRequestScope, Array[String], Array[LogicalItemLocator], Array[EffectDispatchKey], Int, Int) -> Result[Unit, EffectCollectionBatchIssue]
+pub fn admit_effect_collection_batch(@run_publication.EffectPreviewIdentity, Int, Int, String, @logical_request_scope.LogicalRequestScope, Array[String], Array[LogicalItemLocator], Array[EffectDispatchKey], Int, Int) -> Result[Unit, EffectCollectionBatchIssue]
 
 pub fn admit_effect_ledger_entry(String, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
 
-pub fn admit_effect_preview_apply_identity(String, String, String, LogicalRequestScope, Array[Array[EffectDispatchKey]], Int, Int, Int) -> Result[@run_publication.EffectPreviewIdentity, EffectPreviewApplyIdentityIssue]
+pub fn admit_effect_preview_apply_identity(String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[EffectDispatchKey]], Int, Int, Int) -> Result[@run_publication.EffectPreviewIdentity, EffectPreviewApplyIdentityIssue]
 
-pub fn admit_effect_single_row(@run_publication.EffectPreviewIdentity, Int, Int, String, LogicalRequestScope, String, LogicalItemLocator, EffectDispatchKey) -> Result[Unit, EffectCollectionBatchIssue]
+pub fn admit_effect_risk_acceptance_body(String, Int, Int, Int) -> Result[EffectRiskAcceptanceBody, EffectRiskAcceptanceIssue]
+
+pub fn admit_effect_single_row(@run_publication.EffectPreviewIdentity, Int, Int, String, @logical_request_scope.LogicalRequestScope, String, LogicalItemLocator, EffectDispatchKey) -> Result[Unit, EffectCollectionBatchIssue]
+
+pub fn check_admitted_effect_preview_apply_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Array[Array[EffectDispatchKey]]) -> Result[Unit, EffectPreviewApplyIdentityIssue]
 
 pub fn check_admitted_effect_preview_footprint_conflicts(@run_publication.EffectPreviewIdentity, Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
+
+pub fn check_effect_member_receipt_row_partition_evidence(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[LogicalItemLocator], Array[EffectDispatchKey], Array[EffectLedgerBasis], Array[EffectLedgerEntry?], Array[Bool], Array[@run_publication.PublicationContract?], String, Int, Int, Int, Int) -> Result[Unit, EffectMemberReceiptEvidenceIssue]
+
+pub fn check_effect_preview_apply_capabilities(@run_publication.EffectPreviewIdentity, Array[EffectApplyCapabilityObservation], Int, Int) -> Result[Unit, EffectApplyCapabilityIssue]
 
 pub fn check_effect_preview_footprint_conflicts(String, Array[String], Array[Int], Array[String], Int, Int, Int, Int, Int, Int) -> Result[Unit, EffectPreviewFootprintIssue]
 
 pub fn check_effect_preview_target_guards(@run_publication.EffectPreviewIdentity, Array[EffectTargetVersionObservation], Int, Int) -> Result[Unit, EffectPreviewTargetGuardIssue]
 
+pub fn check_effect_risk_acceptance_body(@run_publication.EffectPreviewIdentity, EffectRiskAcceptanceBody, String, String, String, String, String, String, String, String, Bool) -> Result[Unit, EffectRiskAcceptanceIssue]
+
 pub fn check_effect_set_footprint_conflicts(Array[EffectMemberFootprint], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
 
 pub fn check_effect_set_footprint_conflicts_from_codes(Array[String], Array[Int], Array[String], Array[String], Array[String], Array[String], Array[Array[String]], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
+
+pub fn effect_apply_capability_idempotency_mode(EffectApplyCapabilityObservation) -> String
+
+pub fn effect_apply_capability_reconciliation_mode(EffectApplyCapabilityObservation) -> String
 
 pub fn effect_apply_key_cid(EffectApplyKey) -> String
 
@@ -35,7 +50,7 @@ pub fn effect_dispatch_key_preview_cid(EffectDispatchKey) -> String
 
 pub fn effect_dispatch_key_scope_cid(EffectDispatchKey) -> String
 
-pub fn effect_ledger_entry_admits_dispatch(EffectLedgerEntry, LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String) -> Bool
+pub fn effect_ledger_entry_admits_dispatch(EffectLedgerEntry, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String) -> Bool
 
 pub fn effect_ledger_entry_cid(EffectLedgerEntry) -> String
 
@@ -47,7 +62,25 @@ pub fn effect_ledger_entry_matches_basis(EffectLedgerEntry, EffectLedgerBasis) -
 
 pub fn effect_ledger_entry_scope_cid(EffectLedgerEntry) -> String
 
+pub fn effect_ledger_entry_state_code(EffectLedgerEntry) -> Int
+
 pub fn effect_ledger_entry_wire(EffectLedgerEntry) -> String
+
+pub fn effect_recovered_claim_basis(EffectRecoveredClaim) -> EffectLedgerBasis
+
+pub fn effect_recovered_claim_canonical_request_cid(EffectRecoveredClaim) -> String
+
+pub fn effect_recovered_claim_intent_fingerprint_cid(EffectRecoveredClaim) -> String
+
+pub fn effect_recovered_claim_key(EffectRecoveredClaim) -> EffectDispatchKey
+
+pub fn effect_recovered_claim_locator(EffectRecoveredClaim) -> LogicalItemLocator
+
+pub fn effect_recovered_claim_scope(EffectRecoveredClaim) -> @logical_request_scope.LogicalRequestScope
+
+pub fn effect_recovery_binding_locator_cid(EffectRecoveryBinding) -> String
+
+pub fn effect_risk_acceptance_unsigned_payload_cid(EffectRiskAcceptanceBody) -> String
 
 pub fn effect_row_action_code(EffectRowAction) -> Int
 
@@ -61,7 +94,7 @@ pub fn effect_set_frontier(Array[EffectMemberProgress], Int, Int, Int) -> Result
 
 pub fn effect_set_frontier_from_codes(Array[String], Array[Int], Array[Array[Int]], Int, Int, Int) -> Result[EffectSetFrontier, EffectSetProgressIssue]
 
-pub fn effect_set_frontier_from_preview_ledger_entries(@run_publication.EffectPreviewIdentity, Array[Array[LogicalRequestScope]], Array[Array[LogicalItemLocator]], Array[Array[EffectDispatchKey]], Array[Array[EffectLedgerBasis]], Array[Array[EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[EffectSetFrontier, EffectSetProgressIssue]
+pub fn effect_set_frontier_from_preview_ledger_entries(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[LogicalItemLocator]], Array[Array[EffectDispatchKey]], Array[Array[EffectLedgerBasis]], Array[Array[EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[EffectSetFrontier, EffectSetProgressIssue]
 
 pub fn effect_set_frontier_outcome_code(EffectSetFrontier) -> Int
 
@@ -71,27 +104,67 @@ pub fn effect_set_frontier_ready_member(EffectSetFrontier, Int) -> Int
 
 pub fn effect_set_frontier_ready_row(EffectSetFrontier, Int) -> Int
 
+pub fn issue_effect_member_receipt_from_row_partition(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[LogicalItemLocator], Array[EffectDispatchKey], Array[EffectLedgerBasis], Array[EffectLedgerEntry?], Array[Bool], Array[@run_publication.PublicationContract?], Int, Int, Int, Int) -> Result[@run_publication.PublicationContract, EffectMemberReceiptEvidenceIssue]
+
+pub fn issue_effect_row_receipt_terminal_entry(@run_publication.EffectPreviewIdentity, Int, Int, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, EffectLedgerEntry, Array[EffectLedgerEntry], String, String, Bytes, Int, String, Int, Int, Int, Int) -> Result[EffectLedgerEntry, EffectRowReceiptCommitIssue]
+
+pub fn issue_effect_row_receipt_terminal_entry_from_response(@run_publication.EffectPreviewIdentity, Int, Int, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, EffectLedgerEntry, Array[EffectLedgerEntry], String, @run_publication.EffectSavedResponseEvidence, String, Int, Int, Int) -> Result[EffectLedgerEntry, EffectRowReceiptCommitIssue]
+
 pub fn issue_next_effect_ledger_entry(EffectLedgerEntry, String, String?, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
 
 pub fn issue_prepared_effect_ledger_entry(EffectLedgerBasis, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
 
 pub fn logical_item_locator_cid(LogicalItemLocator) -> String
 
-pub fn logical_request_scope_cid(LogicalRequestScope) -> String
+pub fn logical_request_scope_authority(@logical_request_scope.LogicalRequestScope) -> String
 
-pub fn prepare_effect_apply_key(LogicalRequestScope, String, String, String, Int) -> Result[EffectApplyKey, EffectIdentityIssue]
+pub fn logical_request_scope_cid(@logical_request_scope.LogicalRequestScope) -> String
 
-pub fn prepare_effect_dispatch_key(LogicalRequestScope, String, String, Int, Int, Int) -> Result[EffectDispatchKey, EffectIdentityIssue]
+pub fn prepare_effect_apply_capability_from_codes(String, Int, Int, Int, Bool, Bool, Int, Int) -> Result[EffectApplyCapabilityObservation, EffectApplyCapabilityIssue]
 
-pub fn prepare_effect_ledger_basis(LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, String, String, String, String, String, String, String) -> Result[EffectLedgerBasis, EffectLedgerIssue]
+pub fn prepare_effect_apply_capability_observation(String, EffectApplyRoute, EffectMutationAtomicity, EffectFailureGranularity, Bool, Bool, EffectIdempotencySupport, EffectUnknownReconciliation) -> Result[EffectApplyCapabilityObservation, EffectApplyCapabilityIssue]
 
-pub fn prepare_logical_item_locator(LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> Result[LogicalItemLocator, EffectIdentityIssue]
+pub fn prepare_effect_apply_key(@logical_request_scope.LogicalRequestScope, String, String, String, Int) -> Result[EffectApplyKey, EffectIdentityIssue]
 
-pub fn prepare_logical_request_scope(String, String, Int) -> Result[LogicalRequestScope, EffectIdentityIssue]
+pub fn prepare_effect_dispatch_key(@logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int) -> Result[EffectDispatchKey, EffectIdentityIssue]
+
+pub fn prepare_effect_ledger_basis(@logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, String, String, String, String, String, String, String) -> Result[EffectLedgerBasis, EffectLedgerIssue]
+
+pub fn prepare_effect_recovery_bindings(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, String, String, Int, Int) -> Result[Array[Array[EffectRecoveryBinding]], EffectRecoveredClaimIssue]
+
+pub fn prepare_logical_item_locator(@logical_request_scope.LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> Result[LogicalItemLocator, EffectIdentityIssue]
+
+pub fn prepare_logical_request_scope(String, String, Int) -> Result[@logical_request_scope.LogicalRequestScope, EffectIdentityIssue]
+
+pub fn recover_effect_claims_from_heads(Array[Array[EffectRecoveryBinding]], Array[Array[EffectLedgerEntry?]], Int) -> Result[Array[Array[EffectRecoveredClaim]], EffectRecoveredClaimIssue]
+
+pub fn recover_effect_preview_apply_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int) -> Result[Array[Array[EffectDispatchKey]], EffectPreviewRecoveryKeysIssue]
 
 // Errors
 
 // Types and methods
+pub(all) enum EffectApplyCapabilityIssue {
+  InvalidEvidence
+  InvalidCode
+  InvalidLimits
+  InventoryMismatch
+  CapacityExceeded
+  ForeignEvidence(Int)
+  UnsupportedPolicy(Int)
+  UnknownWithoutReconciliation(Int)
+} derive(@debug.Debug)
+
+pub struct EffectApplyCapabilityObservation {
+  evidence_cid : String
+  route : EffectApplyRoute
+  atomicity : EffectMutationAtomicity
+  failure_granularity : EffectFailureGranularity
+  row_error_identity : Bool
+  request_order_preserved : Bool
+  idempotency : EffectIdempotencySupport
+  reconciliation : EffectUnknownReconciliation
+}
+
 pub struct EffectApplyKey {
   logical_request_scope_cid : String
   effect_preview_cid : String
@@ -99,6 +172,11 @@ pub struct EffectApplyKey {
   effect_member_preview_cid : String
   cid : String
 }
+
+pub(all) enum EffectApplyRoute {
+  SingleSerial
+  CollectionContinue
+} derive(Eq, @debug.Debug)
 
 pub(all) enum EffectCollectionBatchIssue {
   InvalidLimits
@@ -119,6 +197,12 @@ pub struct EffectDispatchKey {
   cid : String
 }
 
+pub(all) enum EffectFailureGranularity {
+  PerItemFailure
+  WholeRequestFailure
+  UnknownFailureGranularity
+} derive(Eq, @debug.Debug)
+
 pub(all) enum EffectFootprintIssue {
   InvalidLimits
   InvalidMember
@@ -132,6 +216,12 @@ pub(all) enum EffectFootprintKind {
   ExactTargets
   Collection
   Opaque
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectIdempotencySupport {
+  NativeIdempotency
+  EmulatedIdempotency
+  UnavailableIdempotency
 } derive(Eq, @debug.Debug)
 
 pub(all) enum EffectIdentityIssue {
@@ -224,6 +314,24 @@ pub(all) struct EffectMemberProgress {
   rows : Array[EffectItemProgress]
 }
 
+pub(all) enum EffectMemberReceiptEvidenceIssue {
+  InvalidInventory
+  ActivePhysicalOwner(Int)
+  ForeignLedgerHead(Int)
+  MissingTerminalReceipt(Int)
+  ForeignTerminalReceipt(Int)
+  RowPartitionMismatch(Int)
+  MemberReceipt(@run_publication.EffectApplyReceiptBindingIssue)
+  Receipt(@run_publication.PublicationContractIssue)
+  Encoding
+} derive(@debug.Debug)
+
+pub(all) enum EffectMutationAtomicity {
+  PerItem
+  ProviderBatchAtomic
+  UnknownAtomicity
+} derive(Eq, @debug.Debug)
+
 pub(all) enum EffectPreviewApplyIdentityIssue {
   Preview(@run_publication.EffectPreviewIdentityIssue)
   KeyInventoryMismatch
@@ -241,6 +349,14 @@ pub(all) enum EffectPreviewFootprintIssue {
   Conflict(EffectFootprintIssue)
 } derive(@debug.Debug)
 
+pub(all) enum EffectPreviewRecoveryKeysIssue {
+  InvalidLimits
+  CapacityExceeded
+  MissingRow(Int, Int)
+  Dispatch(Int, Int, EffectIdentityIssue)
+  Mismatch(EffectPreviewApplyIdentityIssue)
+} derive(@debug.Debug)
+
 pub(all) enum EffectPreviewTargetGuardIssue {
   InvalidLimits
   CapacityExceeded
@@ -250,6 +366,61 @@ pub(all) enum EffectPreviewTargetGuardIssue {
   StalePreview(Int, Int)
   ForeignObservation
 } derive(Eq, @debug.Debug)
+
+pub struct EffectRecoveredClaim {
+  binding : EffectRecoveryBinding
+  basis : EffectLedgerBasis
+  intent_fingerprint_cid : String
+  canonical_request_cid : String
+}
+
+pub(all) enum EffectRecoveredClaimIssue {
+  InvalidLimits
+  ForeignPreviewRow(Int, Int)
+  MissingHead(Int, Int)
+  ForeignHead(Int, Int)
+} derive(Eq, @debug.Debug)
+
+pub struct EffectRecoveryBinding {
+  scope : @logical_request_scope.LogicalRequestScope
+  locator : LogicalItemLocator
+  key : EffectDispatchKey
+}
+
+pub struct EffectRiskAcceptanceBody {
+  cid : String
+  unsigned_payload_cid : String
+  issuer_kind : String
+  decision : String
+  issuer_evidence_cid : String
+  policy_cid : String
+  effect_preview_cid : String
+  review_projection_cid : String
+  authority_scope_cid : String
+  validity_evidence_cid : String
+  authentication_evidence_cid : String
+  scope_approved : Bool
+  partial_application_accepted : Bool
+}
+
+pub(all) enum EffectRiskAcceptanceIssue {
+  InvalidLimits
+  InvalidWire
+  InvalidShape
+  InvalidIdentity
+  Encoding
+  ForeignPreview
+  ForeignReviewProjection
+  ForeignAuthority
+  ForeignPolicy
+  ForeignValidity
+  ForeignIssuer
+  ForeignIssuerKind
+  ForeignDecision
+  ForeignAuthentication
+  MissingScopeAcceptance
+  MissingPartialAcceptance
+} derive(@debug.Debug)
 
 pub(all) enum EffectRowAction {
   PersistPrepared
@@ -263,6 +434,12 @@ pub(all) enum EffectRowAction {
   RequestConflict
   InvalidRecord
 } derive(Eq, @debug.Debug)
+
+pub(all) enum EffectRowReceiptCommitIssue {
+  ForeignClaim
+  ForeignReceipt
+  InvalidTransition
+} derive(@debug.Debug)
 
 pub(all) struct EffectRowRecord {
   logical_item_locator_cid : String
@@ -307,6 +484,12 @@ pub(all) struct EffectTargetVersionObservation {
   version_cid : String
 } derive(Eq, @debug.Debug)
 
+pub(all) enum EffectUnknownReconciliation {
+  ExactReconciliation
+  ManualReconciliation
+  NoReconciliation
+} derive(Eq, @debug.Debug)
+
 pub struct LogicalItemLocator {
   logical_request_scope_cid : String
   program_id : String
@@ -316,12 +499,7 @@ pub struct LogicalItemLocator {
   cid : String
 }
 
-pub struct LogicalRequestScope {
-  authority_scope_cid : String
-  caller_request_id : String
-  cid : String
-}
-
 // Type aliases
+pub using @logical_request_scope {type LogicalRequestScope}
 
 // Traits

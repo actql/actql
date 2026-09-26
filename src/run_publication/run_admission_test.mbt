@@ -149,6 +149,104 @@ test "Run Definition is issued only from exact admitted allow authority" {
 }
 
 ///|
+test "local Result evidence refs come from one admitted Run" {
+  let template = admission_test_template()
+  let plan = admission_test_plan(admission_test_cid("1"))
+  let prepared = admission_test_prepared(template, plan, "allow")
+  let authorization = admission_test_authorization(prepared, "allowed", false)
+  let admission = admit_run_publication(template, prepared, authorization, plan).unwrap()
+  let definition = issue_run_definition(
+    admission,
+    "scope",
+    "run",
+    admission_test_cid("b"),
+    "2026-09-18T00:00:00.000Z",
+    "2026-09-18T02:00:00.000Z",
+    16384,
+    128,
+    8,
+  ).unwrap()
+  let observe = (policy : String) => {
+    seal_run_evidence_value(
+      "observation_set",
+      "{\"version\":\"actql-observation-set/0.1\",\"invocation_template_cid\":\"" +
+      run_evidence_value_identity(template) +
+      "\",\"source_evidence_cids\":[],\"captured_input_artifact_cids\":[]," +
+      "\"consistency\":\"no_external_sources\",\"capture_started_at\":null," +
+      "\"capture_completed_at\":null,\"replayability\":{" +
+      "\"materialized\":false,\"availability_evidence_cids\":[]}," +
+      "\"data_policy_cid\":\"" +
+      policy +
+      "\"}",
+      16384,
+      128,
+      8,
+    ).unwrap()
+  }
+  let observation = observe(admission_test_cid("d"))
+  let invocation = issue_run_invocation(template, observation, 16384, 128, 8).unwrap()
+  let retention = (policy : String) => {
+    seal_publication_contract(
+      "result_retention_policy",
+      "{\"version\":\"actql-result-retention-policy/0.1\"," +
+      "\"retention_contract_cid\":\"" +
+      admission_test_cid("e") +
+      "\",\"effective_data_policy_cid\":\"" +
+      policy +
+      "\",\"available_until\":\"2026-09-18T01:00:00.000Z\"," +
+      "\"delete_by\":\"2026-09-18T02:00:00.000Z\"," +
+      "\"extension_ceiling_at\":\"2026-09-18T02:00:00.000Z\"," +
+      "\"metadata_retention_policy_cid\":\"" +
+      admission_test_cid("f") +
+      "\",\"metadata_delete_by\":\"2026-09-18T03:00:00.000Z\"," +
+      "\"clock_contract_cid\":\"" +
+      admission_test_cid("0") +
+      "\"}",
+      16384,
+      128,
+      8,
+    ).unwrap()
+  }
+  assert_eq(
+    resolve_run_local_result_evidence_refs(
+      admission,
+      definition,
+      invocation,
+      observation,
+      retention(admission_test_cid("d")),
+    ),
+    Ok(
+      (
+        admission_test_cid("3"),
+        admission_test_cid("d"),
+        admission_test_cid("8"),
+      ),
+    ),
+  )
+  assert_true(
+    resolve_run_local_result_evidence_refs(
+      admission,
+      definition,
+      invocation,
+      observation,
+      retention(admission_test_cid("c")),
+    )
+    is Err(ForeignRetention),
+  )
+  let other_observation = observe(admission_test_cid("c"))
+  assert_true(
+    resolve_run_local_result_evidence_refs(
+      admission,
+      definition,
+      invocation,
+      other_observation,
+      retention(admission_test_cid("c")),
+    )
+    is Err(ForeignInvocation),
+  )
+}
+
+///|
 test "checked Run admission binds Program, Values, semantics, and environment" {
   let template = admission_test_template()
   let plan = admission_test_plan(admission_test_cid("1"))
