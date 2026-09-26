@@ -25,12 +25,12 @@ import {captureSalesforceCollectionEffectWrite,
   './salesforce-effect-write.mjs';
 import {authorObservedSalesforceEffectPreview} from
   './salesforce-effect-preview.mjs';
+import {installSalesforceEffectCurrentUse} from
+  './salesforce-effect-current-use.mjs';
 import {openSalesforceEffectSiteFixture} from
   '../site-node/salesforce-effect-site.fixture.mjs';
 import {recoverRetainedSalesforceCatalog} from
   '../site-node/salesforce-catalog-recovery.mjs';
-import {refreshSalesforceEffectWriteCatalogs} from
-  '../site-node/salesforce-effect-current-catalog.mjs';
 import {observeSalesforceTargetSet} from
   '../site-node/salesforce-target-observation.mjs';
 import * as salesforceMoon from
@@ -497,6 +497,35 @@ test('installed Effect preparation retains the checked Program owner',
       moon, environment,
     })({kind: 'program', input: JSON.parse(document), parameters: null}),
     {code: 'ClientProgramUnsupported'});
+  });
+
+test('Salesforce current-use catalogs belong to one exact refresh',
+  async () => {
+    const requests = ['first'];
+    const checkedRequests = [];
+    let revision = 0;
+    const currentUse = installSalesforceEffectCurrentUse({
+      moon: {salesforceSingleWriteRequestMethod() { return 'POST'; },
+        salesforceRecheckSingleWriteRequest(request, catalog) {
+        checkedRequests.push([request, catalog.revision]);
+        return {$tag: 1, _0: true};
+      }},
+      members: [{requests, refreshCatalog: async () => ({
+        observation: {revision: ++revision},
+      })}],
+      observedRows: [], maxMembers: 1, maxRows: 1,
+      maxTotalResponseBytes: 1024,
+    });
+    requests[0] = 'foreign';
+    assert.throws(() => currentUse.catalogAt({}, 0),
+      {code: 'InvalidSalesforceEffectCurrentUse'});
+    const first = await currentUse.refreshPreflight({preflight: {marker: 1}});
+    const second = await currentUse.refreshPreflight({preflight: {marker: 2}});
+    assert.deepEqual(checkedRequests, [['first', 1], ['first', 2]]);
+    assert.equal(currentUse.catalogAt(first, 0).revision, 1);
+    assert.equal(currentUse.catalogAt(second, 0).revision, 2);
+    assert.throws(() => currentUse.catalogAt({...first}, 0),
+      {code: 'InvalidSalesforceEffectCurrentUse'});
   });
 
 test('checked Effect member resolution is Stage-scoped', async () => {
@@ -3632,7 +3661,7 @@ test(`two-member captured Effect Run ${
             targets.map(target => salesforceMoon.salesforceWriteTargetObjectCid(
               checked(target)))};
       }) : undefined;
-      let currentCatalogs = sites?.map(site => site.catalog.observation);
+      const currentCatalogs = sites?.map(site => site.catalog.observation);
       let targetRead = 0;
       const observeCurrentTargets = ({signal} = {}) =>
         observeSalesforceTargetSet({moon: salesforceMoon,
@@ -4275,22 +4304,25 @@ test(`two-member captured Effect Run ${
         assert.equal(sites.flatMap(site => site.seen)
           .filter(item => item.method === 'PATCH').length, 0);
       }
-      if (siteRun) {
-        applyOptions.refreshPreflight = async ({signal, preflight}) => {
-          currentCatalogs = await refreshSalesforceEffectWriteCatalogs({
-            moon: salesforceMoon,
-            members: sites.map((site, index) => ({
-              requests: siteRequests[index],
-              collectionRequest: collectionMode && index === 0
-                ? collectionRequest : undefined,
-              refreshCatalog: site.refreshCatalog,
-            })), maxMembers: 2, maxRows: 4, signal,
-          });
-          return {...preflight, observedRows,
-            guardVersions: writeKind === 'create' ? [] :
-              (await observeCurrentTargets({signal})).flatMap(member =>
-                member.map(observed => observed.versionCid))};
-        };
+      const currentUse = siteRun ? installSalesforceEffectCurrentUse({
+        moon: salesforceMoon, observedRows,
+        members: sites.map((site, index) => ({
+          requests: siteRequests[index],
+          collectionRequest: collectionMode && index === 0
+            ? collectionRequest : undefined,
+          refreshCatalog: site.refreshCatalog,
+          target: writeKind === 'create' ? undefined : {
+            authorizationForRow: async () => ({...site.observe,
+              useId: `target-read-${targetRead++}`}),
+            credential: site.credential,
+            limits: {maxResponseBytes: 1024, maxNodes: 32,
+              maxDepth: 5, maxIdentityBytes: 1024},
+          },
+        })), maxMembers: 2, maxRows: 4,
+        maxTotalResponseBytes: 4096,
+      }) : undefined;
+      if (currentUse) {
+        applyOptions.refreshPreflight = currentUse.refreshPreflight;
       }
       if (physical === 'salesforce') {
         const foreignAuthored = checked(
@@ -4631,13 +4663,8 @@ test(`two-member captured Effect Run ${
           keyLimits: {maxBytes: 128, maxNodes: 8, maxDepth: 3,
             maxWork: 100},
           authorization: applyOptions.authorization,
-          refreshPreflight: async ({signal}) => {
-            const current = await applyOptions.refreshPreflight({signal,
-              preflight});
-            delete current.proofs;
-            delete current.keys;
-            return current;
-          },
+          refreshPreflight: async ({signal}) =>
+            applyOptions.refreshPreflight({signal, preflight}),
         };
         if (!processPreparedIntent) {
           await assert.rejects(applyRecoveredEffectSet({
@@ -4822,7 +4849,8 @@ test(`two-member captured Effect Run ${
       let collectionFaultPending = collectionRecovered;
       let terminalFaultPending = restartAfterTerminal;
       let unknownFaultPending = unknownAfterClaim && !loseHttpReply;
-      const dispatchRow = async ({memberIndex, rowIndex, claim}) => {
+      const dispatchRow = async ({memberIndex, rowIndex, claim,
+        currentPreflight}) => {
           sent.push([memberIndex, rowIndex]);
           if (sent.length === 1) {
             for (const pending of members.flatMap(member => member.claims)) {
@@ -4849,7 +4877,8 @@ test(`two-member captured Effect Run ${
                 admittedPreview: applyPreview, memberIndex: 0,
                 firstRow: 0, commonMoon: moon, moon: salesforceMoon,
                 request: collectionRequest,
-                currentObservation: currentCatalogs[memberIndex],
+                currentObservation: currentUse.catalogAt(currentPreflight,
+                  memberIndex),
                 authorization: {...site.write,
                   useId: 'partial-collection'},
                 credential: site.credential,
@@ -4881,7 +4910,8 @@ test(`two-member captured Effect Run ${
                 .changes[rowIndex].row_preview_cid,
               claim, moon: salesforceMoon,
               request: siteRequests[memberIndex][rowIndex],
-              currentObservation: currentCatalogs[memberIndex],
+              currentObservation: currentUse.catalogAt(currentPreflight,
+                memberIndex),
               authorization: {...site.write,
                 useId: `write-${memberIndex}-${rowIndex}`},
               credential: site.credential,
