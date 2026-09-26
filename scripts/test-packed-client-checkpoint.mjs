@@ -304,6 +304,39 @@ const steps = {
       ['conflicting']);
   },
   async finished() { save('ref-' + requestId, await finished()); },
+  // Cancel a held request by its ID (no Run yet); the first reply is lost
+  // and the same cancellation is resent and matched.
+  async cancelHeld() {
+    const owner = await as('owner-token');
+    const real = globalThis.fetch;
+    let dropped = false;
+    globalThis.fetch = async (url, init) => {
+      const response = await real(url, init);
+      if (!dropped && String(url).endsWith('/cancel-request')) {
+        dropped = true;
+        await response.body?.cancel();
+        throw new TypeError('reply lost');
+      }
+      return response;
+    };
+    let lost;
+    try { await owner.cancelRequest(requestId); }
+    catch (error) { lost = error; }
+    globalThis.fetch = real;
+    assert.equal(lost?.code, 'CancellationUnknown');
+    const again = await owner.cancelRequest(requestId);
+    assert.equal(again.kind, 'already_requested');
+    assert.equal('ref' in again, false);
+    await assert.rejects((await as('reviewer-token'))
+      .cancelRequest(requestId), {code: 'ClientConnectionDenied'});
+  },
+  // Cancel a request with no Run yet whose answer was already stored.
+  async cancelResuming() {
+    const owner = await as('owner-token');
+    const cancelled = await owner.cancelRequest(requestId);
+    assert.equal(cancelled.kind, 'accepted');
+    assert.equal('ref' in cancelled, false);
+  },
   // Cancel the existing Run of a held request through the public Client.
   async cancelRun() {
     const owner = await as('owner-token');
@@ -325,6 +358,15 @@ const steps = {
       await new Promise(resolve => setTimeout(resolve, 25));
     }
     assert.equal(state.status, process.env.EXPECT_STATUS);
+  },
+  // An answer after the request was cancelled is not resumed.
+  async lateApproval() {
+    const reviewer = await as('reviewer-token');
+    const summary = load('summary-' + requestId);
+    const answered = await reviewer.resolveCheckpoints([{checkpoint: summary,
+      decision: 'approved'}], {signer});
+    assert.deepEqual(answered.results.map(item => item.status),
+      ['cancelled']);
   },
   async resumeWaiting() {
     const owner = await as('owner-token');
@@ -587,6 +629,36 @@ for (const [name, crashAt, restart, extra, step] of [
   assert.equal(counted.physical_start_reserved, 0, name);
   assert.equal(counted.computed, 0, name);
 }
+
+// 8. The owner cancels a held request before any Run exists, from another
+// process; the lost reply is resent and matched; a late answer does not
+// resume it; nothing starts; its evidence is released.
+await withHost('cancel-held', {}, started => {
+  client(started, 'hold', ['cancel-held']);
+  client(started, 'review', ['cancel-held']);
+  client(started, 'cancelHeld', ['cancel-held']);
+  client(started, 'ended', ['cancel-held'], {END_REASON: 'cancelled'});
+  client(started, 'lateApproval', ['cancel-held']);
+});
+assert.deepEqual(await counts('cancel-held'), none);
+await assertRetired('cancel-held');
+
+// 8. A request answered on an answer-only Host is cancelled there; the next
+// Host start settles it by itself: no start, evidence released.
+await withHost('cancel-resuming', {}, started =>
+  client(started, 'hold', ['cancel-resuming']));
+// The answer and the cancellation reach the same answer-only Host, before
+// any Host start could resume the request.
+await withHost('cancel-resuming', {RESUME_AFTER_ANSWER: '0'}, started => {
+  client(started, 'review', ['cancel-resuming']);
+  client(started, 'approve', ['cancel-resuming']);
+  client(started, 'cancelResuming', ['cancel-resuming']);
+});
+await withHost('cancel-resuming', {}, async started => {
+  client(started, 'ended', ['cancel-resuming'], {END_REASON: 'cancelled'});
+  await untilRetired('cancel-resuming');
+});
+assert.deepEqual(await counts('cancel-resuming'), none);
 
 // 6. The Run-side duty: a Host that stopped after computing but before
 // recording the end. A transient failure of its recovery is retried by the
