@@ -351,3 +351,71 @@ pub fn NativeRemoteValuesSiteEndpoint::send_output_direct_json(
   }
   @transfer.remote_transfer_reply_json(record).map_err(issue => Transfer(issue))
 }
+
+///|
+/// The synchronous Values endpoint delegates stop and resource release to the
+/// existing runtime. Unconfirmed cleanup keeps its owner; this operation never
+/// starts a missing dispatch or changes an unknown execution into success.
+fn NativeRemoteValuesSiteEndpoint::settle_control(
+  self : NativeRemoteValuesSiteEndpoint,
+  body : String,
+  claimed_cid : String,
+) -> Result[@remote.DispatchRequest, NativeRemoteValuesSiteEndpointIssue] {
+  let request = match @remote.admit_dispatch_request_json(body, claimed_cid) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidEnvelope)
+  }
+  match self.check_dispatch(request, claimed_cid) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match self.journal.observation(request) {
+    Ok(_) => ()
+    Err(issue) => return Err(Journal(issue))
+  }
+  match self.runtime.cleanup(request) {
+    Ok(_) => ()
+    Err(issue) => return Err(Runtime(issue))
+  }
+  match self.runtime.release(request) {
+    Ok(_) => ()
+    Err(issue) => return Err(Runtime(issue))
+  }
+  Ok(request)
+}
+
+///|
+pub fn NativeRemoteValuesSiteEndpoint::cancel_json(
+  self : NativeRemoteValuesSiteEndpoint,
+  body : String,
+  claimed_cid : String,
+) -> Result[String, NativeRemoteValuesSiteEndpointIssue] {
+  let request = match self.settle_control(body, claimed_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let observed = match self.journal.observation(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  @remote.remote_dispatch_reply_json(
+    @journal.recovered_site_dispatch_record(observed),
+  ).map_err(issue => Protocol(issue))
+}
+
+///|
+pub fn NativeRemoteValuesSiteEndpoint::release_json(
+  self : NativeRemoteValuesSiteEndpoint,
+  body : String,
+  claimed_cid : String,
+) -> Result[String, NativeRemoteValuesSiteEndpointIssue] {
+  let request = match self.settle_control(body, claimed_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let query = match @remote.remote_poll_query_json(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  self.query_json(query, claimed_cid)
+}

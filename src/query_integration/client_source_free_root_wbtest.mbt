@@ -605,6 +605,27 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     foreign_endpoint.dispatch_json(body, second_cid)
     is Err(@native_remote_values.ForeignDispatch),
   )
+  let control_body = @remote.dispatch_request_json(second).unwrap()
+  assert_true(
+    endpoint.cancel_json(control_body, second_cid)
+    is Err(
+      @native_remote_values.Journal(@native_remote_journal.MissingDispatch)
+    ),
+  )
+  assert_true(
+    endpoint.release_json(control_body, second_cid)
+    is Err(
+      @native_remote_values.Journal(@native_remote_journal.MissingDispatch)
+    ),
+  )
+  assert_true(
+    foreign_endpoint.cancel_json(control_body, second_cid)
+    is Err(@native_remote_values.ForeignDispatch),
+  )
+  assert_true(
+    foreign_endpoint.release_json(control_body, second_cid)
+    is Err(@native_remote_values.ForeignDispatch),
+  )
   if @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_HTTPS_CERT") is Some(cert) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_HTTPS_KEY") is Some(key) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_HTTPS_CA") is Some(ca) &&
@@ -705,6 +726,10 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     // In either case the physical Site must have completed its cleanup.
     assert_true(observed[1] == 3 || observed[1] == 5)
     assert_eq(observed[3], 2)
+    let retained = endpoint.query_json(query, second_cid).unwrap()
+    endpoint.cancel_json(control_body, second_cid).unwrap() |> ignore
+    endpoint.release_json(control_body, second_cid).unwrap() |> ignore
+    assert_eq(endpoint.query_json(query, second_cid).unwrap(), retained)
     assert_true(runtime.close().unwrap())
     assert_true(journal.close())
     assert_true(bundles.close().unwrap())
