@@ -30,14 +30,18 @@ pub fn start_bounded_key_comparison(
 }
 
 ///|
-/// Start comparing two present components, such as Graph edge labels, whose
-/// declared contract may admit null while these values are not null. The
-/// absent case is decided by the caller; a null value is not a key.
+/// Start comparing two components of a declared-nullable domain, such as
+/// Graph edge labels, in canonical typed order with nulls first.
 pub fn start_bounded_present_key_comparison(
   left : CheckedValue,
   right : CheckedValue,
 ) -> Result[BoundedKeyComparison, KeyOrderIssue] {
-  start_bounded_nonnull_comparison(left, right)
+  match (left.value, right.value) {
+    (Null, Null) => Ok({ kind: FixedOrder(0), index: 0, terminal: false, })
+    (Null, _) => Ok({ kind: FixedOrder(-1), index: 0, terminal: false, })
+    (_, Null) => Ok({ kind: FixedOrder(1), index: 0, terminal: false, })
+    _ => start_bounded_nonnull_comparison(left, right)
+  }
 }
 
 ///|

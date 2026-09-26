@@ -172,11 +172,13 @@ test "present components of a nullable contract compare as keys" {
   // A key column that admits null is still not a key.
   assert_eq(compare_key_values(a, a), Err(InvalidKey))
   assert_eq(start_bounded_key_comparison(a, b).map(_ => ()), Err(InvalidKey))
-  // A present component compares by its value; a null value is not a key.
+  // A nullable component compares by its value, with nulls first.
   assert_eq(compare_present_key_values(a, b), Ok(-1))
   assert_eq(compare_present_key_values(b, a), Ok(1))
   assert_eq(compare_present_key_values(a, a), Ok(0))
-  assert_eq(compare_present_key_values(a, null), Err(InvalidKey))
+  assert_eq(compare_present_key_values(a, null), Ok(1))
+  assert_eq(compare_present_key_values(null, a), Ok(-1))
+  assert_eq(compare_present_key_values(null, null), Ok(0))
   let active = start_bounded_present_key_comparison(b, a).unwrap()
   let mut order = None
   while order is None {
@@ -186,8 +188,9 @@ test "present components of a nullable contract compare as keys" {
     }
   }
   assert_eq(order, Some(1))
-  assert_eq(
-    start_bounded_present_key_comparison(null, a).map(_ => ()),
-    Err(InvalidKey),
+  let first = start_bounded_present_key_comparison(null, a).unwrap()
+  assert_true(
+    advance_bounded_key_comparison(first, 1)
+    is Ok(KeyComparisonComplete(order=-1, ..)),
   )
 }

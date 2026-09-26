@@ -971,6 +971,20 @@ test "graph mean orders parallel edges by present labels of a nullable contract"
         [],
       ).unwrap()
     }
+    // A stored null label orders before the present labels.
+    @graph.append_edge(
+      output,
+      number(1.0),
+      number(2.0),
+      Some(
+        @value.admit(
+          @contract.primitive(@contract.StringType, nullable=true),
+          cursor("null"),
+          { max_nodes: 1, max_depth: 1, max_text_bytes: 0, },
+        ).unwrap(),
+      ),
+      [],
+    ).unwrap()
     @graph.finish_output(output).unwrap()
   }
   let first = build(first_owner)
@@ -990,7 +1004,7 @@ test "graph mean orders parallel edges by present labels of a nullable contract"
       MeanContinue(_) => ()
       MeanComplete(output, ..) => {
         let storage = @graph.completed_storage(output).unwrap()
-        assert_eq(@storage.edge_count(storage), 2)
+        assert_eq(@storage.edge_count(storage), 3)
         return
       }
       MeanFailed(issue, ..) => assert_eq(Some(issue), None)

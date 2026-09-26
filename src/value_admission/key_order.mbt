@@ -113,14 +113,19 @@ pub fn compare_key_values(
 }
 
 ///|
-/// Compare two present components, such as Graph edge labels, whose declared
-/// contract may admit null while these values are not null. The absent case
-/// is decided by the caller; a null value is not a key.
+/// Compare two components of a declared-nullable domain, such as Graph edge
+/// labels, in canonical typed order with nulls first. Unlike a key column,
+/// the contract may admit null; a stored null orders before every value.
 pub fn compare_present_key_values(
   left : CheckedValue,
   right : CheckedValue,
 ) -> Result[Int, KeyOrderIssue] {
-  compare_nonnull_order_values(left, right)
+  match (left.value, right.value) {
+    (Null, Null) => Ok(0)
+    (Null, _) => Ok(-1)
+    (_, Null) => Ok(1)
+    _ => compare_nonnull_order_values(left, right)
+  }
 }
 
 ///|
