@@ -1967,9 +1967,16 @@ test('shortest path cannot lose Host-delivered cancellation evidence', () => {
   }), /SGA shortest_path: shortest Host cancellation fixture is missing/);
 });
 
-test('resource completion cannot accept the synchronous providerless lane', () => {
-  assert.match(run(undefined, undefined, ['--require-boundary-complete']),
+test('managed dispatch has no synchronous providerless lane', () => {
+  const result = run(undefined, undefined, ['--require-boundary-complete']);
+  assert.doesNotMatch(result,
     /providerless managed execution still computes synchronously/);
+  assert.doesNotMatch(result, /providerless managed execution must be rejected/);
+  assert.doesNotMatch(result, /managed execution lane inventory must be reviewed/);
+  const driver = readFileSync(join(
+    root, 'src/connectors/local/driver/managed_dispatch.mbt',
+  ), 'utf8');
+  assert.doesNotMatch(driver, /execute_local_managed_fixed_compute\(/);
 });
 
 test('selected Relation provider has no synchronous row fallback', () => {

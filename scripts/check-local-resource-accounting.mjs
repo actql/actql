@@ -1880,25 +1880,29 @@ for (const [index, route] of routeEntries.entries()) {
   }
 }
 
-// Route fixtures cannot make a synchronous providerless resume interruptible.
-// Its independent copy is bounded, but the preceding compute remains a known
-// counterexample until it is replaced by bounded or stoppable work.
+// Managed Local work runs only through bounded providers. The providerless
+// branch must reject the task, and the managed driver may not reach any
+// synchronous whole-sequence evaluator.
 if (requireBoundaryComplete) {
   const driver = fs.readFileSync(path.join(
     root, 'src/connectors/local/driver/managed_dispatch.mbt',
   ), 'utf8');
   const switchAt = driver.indexOf('match setup.provider {');
-  const fallbackAt = driver.indexOf('None => {', switchAt);
-  const computeAt = driver.indexOf(
-    '@local.execute_local_managed_fixed_compute(', fallbackAt,
+  const fallbackAt = driver.indexOf(
+    '// Unreachable: preparation declines providerless sequences.',
+    switchAt,
   );
-  const boundedCopyAt = driver.indexOf(
-    '@execution.start_bounded_independent_row_copy(', fallbackAt,
-  );
-  if (switchAt < 0 || fallbackAt < 0 || boundedCopyAt < fallbackAt) {
+  if (switchAt < 0 || fallbackAt < 0) {
     fail('managed execution lane inventory must be reviewed');
-  } else if (fallbackAt < computeAt && computeAt < boundedCopyAt) {
+  } else if ([
+    '@local.execute_local_managed_fixed_compute(',
+    '@execution.execute_generated_sequence(',
+    '@execution.execute_fixed_producers_guarded(',
+  ].some(call => driver.includes(call))) {
     fail('providerless managed execution still computes synchronously');
+  } else if (!driver.slice(fallbackAt, fallbackAt + 200)
+    .includes('Err(Configuration(ComputeUnsupported))')) {
+    fail('providerless managed execution must be rejected');
   }
 }
 

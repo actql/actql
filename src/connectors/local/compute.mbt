@@ -63,7 +63,8 @@ pub fn[T] local_managed_fixed_compute_candidate(
   @connector.PreparedManagedCompute[T, @execution.GeneratedSequence],
   @connector.FixedComputeIssue,
 ] {
-  if !local_managed_sequence_supported(sequence) && !provider_supported {
+  // Managed Local work runs only through a bounded provider.
+  if !provider_supported {
     return Err(UnsupportedInputShape)
   }
   if !local_managed_identity_obligations_supported(
@@ -318,88 +319,6 @@ pub fn constrain_local_managed_sequence(
     }
   }
   Ok(constrained)
-}
-
-///|
-/// Execute the same checked Local evaluator after registered representation
-/// providers have produced scoped ordinary reads for every managed input.
-pub fn[T] execute_local_managed_fixed_compute(
-  choice : @connector.ManagedFixedComputeChoice[T],
-  prepared : @connector.PreparedManagedCompute[T, @execution.GeneratedSequence],
-  inputs : Array[@execution.ProducerRead],
-  limits : @execution.SequenceExecutionLimits,
-  measurement : @execution.FixedInputGuardMeasureLimits,
-  join_output_ceilings? : Array[(Int, Int64)] = [],
-  interval_search_ceilings? : Array[(Int, Int64)] = [],
-  asof_search_ceilings? : Array[(Int, Int64)] = [],
-  aggregate_output_ceilings? : Array[@connector.AggregateOutputCeiling] = [],
-  analytic_envelopes? : Array[@connector.AnalyticEnvelope] = [],
-  numeric? : @execution.NumericAggregateExecution? = None,
-) -> Result[@execution.CompletedOutput, @connector.FixedComputeIssue] {
-  guard @connector.managed_fixed_compute_choice_payload(choice, prepared)
-    is Some(sequence) else {
-    return Err(NotSelected)
-  }
-  let request = @connector.managed_fixed_compute_candidate_request(
-    @connector.prepared_managed_compute_candidate(prepared),
-  )
-  let bindings = @connector.managed_fixed_compute_request_bindings(request)
-  if bindings.length() != inputs.length() {
-    return Err(UnsupportedInputShape)
-  }
-  for index, input in inputs {
-    if !@execution.managed_input_binding_matches_input(
-        bindings[index],
-        @execution.producer_read_receiver(input),
-        index,
-      ) ||
-      !@execution.producer_read_available(input) {
-      return Err(ForeignPreparation)
-    }
-  }
-  let constrained = match
-    constrain_local_managed_sequence(
-      sequence,
-      join_output_ceilings~,
-      interval_search_ceilings~,
-      asof_search_ceilings~,
-      aggregate_output_ceilings~,
-      analytic_envelopes~,
-      numeric~,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  guard local_fixed_task_target(
-      constrained,
-      @connector.managed_fixed_compute_request_owner(request),
-    )
-    is Some(target) else {
-    return Err(UnsupportedInputShape)
-  }
-  match
-    @execution.execute_fixed_producers_guarded(
-      constrained,
-      inputs,
-      target,
-      limits,
-      max_rows=@connector.managed_fixed_compute_request_capacity(request).max_rows,
-      max_value_bytes=@connector.managed_fixed_compute_request_capacity(request).max_value_bytes,
-      measurement,
-    ) {
-    Err(issue) =>
-      Err(
-        match issue {
-          Execution(failure) => Execution(failure)
-          _ => Guard(issue)
-        },
-      )
-    Ok(completed) =>
-      match @execution.completed_output(completed, target) {
-        Some(output) => Ok(output)
-        None => Err(UnsupportedInputShape)
-      }
-  }
 }
 
 ///|

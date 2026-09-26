@@ -336,13 +336,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
       }
     }
   }
-  let retained_relation_input = relation_inputs.any(input => {
-    match input {
-      OrdinaryRelationInput(read) =>
-        !@execution.producer_read_has_cell_access(read)
-      ManagedRelationInput(_) | SuppliedRelationInput(_) => false
-    }
-  })
+
   guard @strategy.graph_task_owner(
       @strategy.captured_dag_graph(installed.run),
       task,
@@ -441,10 +435,10 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     installed.implementation,
     sequence,
   )
-  // A retained-only predecessor must finish its admitted import before an
-  // existing bounded provider can read cells. Never send it to the synchronous
-  // whole-sequence fallback as a managed candidate.
-  if retained_relation_input && provider is None {
+  // Managed Local work runs only through a bounded provider. A sequence no
+  // provider accepts is not a managed candidate; there is no synchronous
+  // whole-sequence fallback.
+  if provider is None {
     return Ok(None)
   }
   let base = match provider {
@@ -593,10 +587,6 @@ pub fn[T] start_local_managed_dispatch(
     None,
   )
   let provider_execution : Ref[@local.ManagedProviderExecution?] = Ref(None)
-  let row_copy_execution : Ref[@execution.BoundedIndependentRowCopy?] = Ref(
-    None,
-  )
-  let row_copy_work = Ref(0L)
   let execution_finished = Ref(false)
   let execution_failure : Ref[LocalDispatchIssue?] = Ref(None)
   let request = @connector.managed_fixed_compute_candidate_request(
@@ -719,11 +709,6 @@ pub fn[T] start_local_managed_dispatch(
             if provider_execution.val is Some(active) {
               @local.cancel_managed_provider(active) |> ignore
             }
-            if row_copy_execution.val is Some(active) {
-              ignore(
-                @execution.request_bounded_independent_row_copy_cancel(active),
-              )
-            }
             for bridge in bridges {
               @execution.close_managed_producer_bridge(bridge)
             }
@@ -737,11 +722,6 @@ pub fn[T] start_local_managed_dispatch(
             cancel_finalization()
             if provider_execution.val is Some(active) {
               @local.cancel_managed_provider(active) |> ignore
-            }
-            if row_copy_execution.val is Some(active) {
-              ignore(
-                @execution.request_bounded_independent_row_copy_cancel(active),
-              )
             }
             for bridge in bridges {
               @execution.close_managed_producer_bridge(bridge)
@@ -978,12 +958,9 @@ pub fn[T] start_local_managed_dispatch(
     // Disposal prevents starting work, but an already-started bounded
     // provider must still receive one final advance after cancellation so it
     // can report an actual stop. Cleanup cannot substitute for that report.
-    if (!live.val || disposed.val) &&
-      provider_execution.val is None &&
-      row_copy_execution.val is None {
+    if (!live.val || disposed.val) && provider_execution.val is None {
       return Err(Configuration(InputUnavailable))
     }
-    let exact = reads.filter_map(value => value)
     match setup.provider {
       Some(provider) => {
         let active = match provider_execution.val {
@@ -1089,100 +1066,10 @@ pub fn[T] start_local_managed_dispatch(
           }
         }
       }
+      // Unreachable: preparation declines providerless sequences.
       None => {
-        if row_copy_execution.val is Some(active) {
-          return match
-            @execution.advance_bounded_independent_row_copy(active, quantum) {
-            Err(issue) => Err(ManagedCopy(issue))
-            Ok(@execution.RowCopyContinue(progress~, work~)) => {
-              let delta = work - row_copy_work.val
-              row_copy_work.val = work
-              if delta <= 0L || delta > quantum.to_int64() {
-                Err(Configuration(InvalidLimits))
-              } else {
-                Ok({ complete: false, progress, work: delta, })
-              }
-            }
-            Ok(@execution.RowCopyComplete(output, progress~, work~)) => {
-              let delta = work - row_copy_work.val
-              row_copy_work.val = work
-              if delta < 0L || delta > quantum.to_int64() {
-                return Err(Configuration(InvalidLimits))
-              }
-              ordinary.val = Some(output)
-              execution_finished.val = true
-              for bridge in bridges {
-                @execution.close_managed_producer_bridge(bridge)
-              }
-              Ok({ complete: true, progress, work: delta, })
-            }
-            Ok(@execution.RowCopyFailed(issue, ..)) => {
-              execution_finished.val = true
-              Err(ManagedCopy(issue))
-            }
-            Ok(@execution.RowCopyStopped(_, ..)) => {
-              execution_finished.val = true
-              Err(Execution(Stopped))
-            }
-          }
-        }
-        if setup.provider_inputs.length() != exact.length() ||
-          setup.provider_inputs.any(input => {
-            input is PreparedSupplied(_) || input is PreparedCarrier(_)
-          }) {
-          execution_finished.val = true
-          return Err(Configuration(UnsupportedInputShape))
-        }
-        let output = match
-          @local.execute_local_managed_fixed_compute(
-            setup.choice,
-            setup.prepared,
-            exact,
-            setup.execution,
-            setup.measurement,
-            join_output_ceilings=setup.join_output_ceilings,
-            interval_search_ceilings=setup.interval_search_ceilings,
-            asof_search_ceilings=setup.asof_search_ceilings,
-            aggregate_output_ceilings=setup.aggregate_output_ceilings,
-            analytic_envelopes=setup.analytic_envelopes,
-            numeric~,
-          ) {
-          Ok(value) => value
-          Err(issue) => {
-            execution_finished.val = true
-            return Err(Configuration(issue))
-          }
-        }
-        if numeric_count > 0 &&
-          !@strategy.seal_task_numeric_reductions(setup.run, execution) {
-          execution_finished.val = true
-          return Err(Execution(ForeignCandidate))
-        }
-        let control = @bounded.control()
-        // Execution capacity reserves 256 bytes per structural slot.
-        // Clamp before converting the site allowance to the workspace unit.
-        let copy_entries = if setup.capacity.execution_bytes / 256L >
-          2147483647L {
-          2147483647
-        } else {
-          (setup.capacity.execution_bytes / 256L).to_int()
-        }
-        let copy = match
-          @execution.start_bounded_independent_row_copy(
-            control,
-            output,
-            setup.execution.rows.max_rows,
-            setup.imports.wire.max_columns,
-            copy_entries,
-          ) {
-          Ok(value) => value
-          Err(issue) => {
-            execution_finished.val = true
-            return Err(ManagedCopy(issue))
-          }
-        }
-        row_copy_execution.val = Some(copy)
-        Ok({ complete: false, progress: 0L, work: 1L, })
+        execution_finished.val = true
+        Err(Configuration(ComputeUnsupported))
       }
     }
   }
@@ -1224,21 +1111,13 @@ pub fn[T] start_local_managed_dispatch(
       let changed = live.val
       live.val = false
       cancel_finalization()
-      if row_copy_execution.val is Some(active) {
-        ignore(@execution.request_bounded_independent_row_copy_cancel(active))
-      }
       @strategy.close_task_execution(setup.run, execution)
       changed
     },
     execution_stopped: fn() {
       let compute_stopped = match provider_execution.val {
         Some(active) => @local.managed_provider_stopped(active)
-        None =>
-          match row_copy_execution.val {
-            Some(active) =>
-              @execution.bounded_independent_row_copy_stopped(active)
-            None => execution_finished.val || !live.val
-          }
+        None => execution_finished.val || !live.val
       }
       compute_stopped &&
       (
@@ -1832,31 +1711,12 @@ pub fn[T] start_local_managed_dispatch(
     close: fn() {
       live.val = false
       cancel_finalization()
-      if row_copy_execution.val is Some(active) {
-        ignore(@execution.request_bounded_independent_row_copy_cancel(active))
-      }
       if carrier.val is Some(material) {
         @carrier_runtime.reclaim_material(material) |> ignore
       }
       @strategy.close_task_execution(setup.run, execution)
     },
     cleanup_refresh: fn() {
-      let copy_reclaimed = match row_copy_execution.val {
-        None => true
-        Some(active) =>
-          if @execution.bounded_independent_row_copy_stopped(active) {
-            match @execution.cleanup_bounded_independent_row_copy(active) {
-              Ok(_) =>
-                !@execution.bounded_independent_row_copy_cleanup_pending(active)
-              Err(_) => false
-            }
-          } else {
-            false
-          }
-      }
-      if !copy_reclaimed {
-        return false
-      }
       let provider_reclaimed = match provider_execution.val {
         None => true
         Some(active) =>
