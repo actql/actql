@@ -798,7 +798,7 @@ pub fn[T] start_local_managed_dispatch(
     None
   } else {
     Some(
-      @execution.numeric_aggregate_execution_with_seal(
+      @execution.numeric_aggregate_execution_with_steps(
         fn(step, name, occurrence, contributors, expected_count, max_work) {
           @strategy.execute_task_numeric_reduction_for_slot(
             setup.run,
@@ -819,6 +819,27 @@ pub fn[T] start_local_managed_dispatch(
             name,
             occurrence_count,
           )
+        },
+        fn(step, name, occurrence, contributors, expected_count, max_work) {
+          @strategy.start_task_numeric_reduction_for_slot(
+            setup.run,
+            execution,
+            step,
+            name,
+            occurrence,
+            contributors,
+            expected_count,
+            max_work,
+          ).map(result => {
+            result.map(pending => {
+              @execution.numeric_aggregate_step(
+                () => {
+                  @strategy.advance_task_numeric_reduction(setup.run, pending)
+                },
+                () => @strategy.close_task_numeric_reduction(setup.run, pending),
+              )
+            })
+          })
         },
       ),
     )
