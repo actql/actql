@@ -38,7 +38,19 @@ pub fn physical_manifest_admit(String, String, String, String, Int, Array[String
 
 pub fn physical_representation_contracts(String, Array[Int], Int) -> Array[String]
 
+pub fn strategy_admit_captured_effect_source_artifact(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> @run_publication.CapturedEffectSourceArtifact raise NodeHostFailure
+
+pub fn strategy_admit_captured_local_effect_source(@run_publication.CapturedEffectSourceArtifact, String, String, String, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> @run_publication.CapturedLocalEffectSourceEvidence raise NodeHostFailure
+
 pub fn strategy_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
+
+pub fn strategy_admit_effect_computation_preview(String, String, String, Int, Int, Int) -> @run_publication.EffectPreviewIdentity raise NodeHostFailure
+
+pub fn strategy_admit_effect_row_outcome_receipt(@run_publication.EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_admit_effect_row_outcome_receipt_from_response(@run_publication.EffectPreviewIdentity, Int, Int, String, @run_publication.EffectSavedResponseEvidence, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_admit_effect_saved_response_evidence(Array[String], String, Bytes, Int, Int) -> @run_publication.EffectSavedResponseEvidence raise NodeHostFailure
 
 pub fn strategy_admit_pending_source_state_advance(String, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PendingSourceStateAdvance raise NodeHostFailure
 
@@ -47,6 +59,16 @@ pub fn strategy_begin_result_access_progress() -> @run_publication.ResultAccessP
 pub fn strategy_begin_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
 
 pub fn strategy_cancel_durable_result_row_frames(@run_publication.DurableResultRowFrames) -> Unit
+
+pub fn strategy_captured_effect_source_artifact_cid(@run_publication.CapturedEffectSourceArtifact) -> String
+
+pub fn strategy_captured_effect_source_holding_cid(@run_publication.CapturedEffectSourceArtifact) -> String
+
+pub fn strategy_captured_effect_source_recovery_inventory_valid(@run_publication.EffectPreviewIdentity, Array[Int], Array[@run_publication.PublicationContract]) -> Bool
+
+pub fn strategy_captured_effect_source_store_authority_cid(@run_publication.CapturedEffectSourceArtifact) -> String
+
+pub fn strategy_check_effect_member_receipt_row_partition_evidence(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], String, Int, Int, Int, Int) -> Bool raise NodeHostFailure
 
 pub fn strategy_committed_publication_finalization_action(@run_publication.PublicationContract?) -> Int
 
@@ -71,6 +93,10 @@ pub fn strategy_effect_apply_key_cid(@effect_application.EffectApplyKey) -> Stri
 pub fn strategy_effect_batch_rows_share_member(@effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey) -> Bool
 
 pub fn strategy_effect_collection_batch_admit(@run_publication.EffectPreviewIdentity, Int, Int, String, @logical_request_scope.LogicalRequestScope, Array[String], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Int, Int) -> Bool raise NodeHostFailure
+
+pub fn strategy_effect_computation_capture_holding_cid(@run_publication.PublicationContract, String) -> String raise NodeHostFailure
+
+pub fn strategy_effect_computation_record_holding_cid(@run_publication.PublicationContract, String) -> String raise NodeHostFailure
 
 pub fn strategy_effect_dispatch_key(@logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int) -> @effect_application.EffectDispatchKey raise NodeHostFailure
 
@@ -98,6 +124,8 @@ pub fn strategy_effect_ledger_entry_matches_basis(@effect_application.EffectLedg
 
 pub fn strategy_effect_ledger_entry_scope_cid(@effect_application.EffectLedgerEntry) -> String
 
+pub fn strategy_effect_ledger_entry_state_code(@effect_application.EffectLedgerEntry) -> Int
+
 pub fn strategy_effect_ledger_entry_wire(@effect_application.EffectLedgerEntry) -> String
 
 pub fn strategy_effect_logical_item_locator(@logical_request_scope.LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> @effect_application.LogicalItemLocator raise NodeHostFailure
@@ -118,9 +146,39 @@ pub fn strategy_effect_preview_footprint_conflicts_check(String, Array[String], 
 
 pub fn strategy_effect_preview_identities(String, Int, Int, Int) -> Array[String] raise NodeHostFailure
 
+pub fn strategy_effect_preview_member_kind(@run_publication.EffectPreviewIdentity, Int) -> String?
+
+pub fn strategy_effect_preview_ordered_row_cid(@run_publication.EffectPreviewIdentity, Int, Int) -> String?
+
+pub fn strategy_effect_preview_private_holding_cid(@run_publication.EffectPreviewIdentity, String) -> String raise NodeHostFailure
+
 pub fn strategy_effect_preview_row_identities(String, Int, Int, Int) -> Array[Array[String]] raise NodeHostFailure
 
+pub fn strategy_effect_preview_semantic_cid(@run_publication.EffectPreviewIdentity) -> String
+
 pub fn strategy_effect_preview_target_guards_check(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int) -> Bool raise NodeHostFailure
+
+pub fn strategy_effect_recover_claims_from_heads(Array[Array[@effect_application.EffectRecoveryBinding]], Array[Array[@effect_application.EffectLedgerEntry?]], Int) -> Array[Array[@effect_application.EffectRecoveredClaim]] raise NodeHostFailure
+
+pub fn strategy_effect_recovered_claim_basis(@effect_application.EffectRecoveredClaim) -> @effect_application.EffectLedgerBasis
+
+pub fn strategy_effect_recovered_claim_canonical_request_cid(@effect_application.EffectRecoveredClaim) -> String
+
+pub fn strategy_effect_recovered_claim_intent_fingerprint_cid(@effect_application.EffectRecoveredClaim) -> String
+
+pub fn strategy_effect_recovered_claim_key(@effect_application.EffectRecoveredClaim) -> @effect_application.EffectDispatchKey
+
+pub fn strategy_effect_recovered_claim_locator(@effect_application.EffectRecoveredClaim) -> @effect_application.LogicalItemLocator
+
+pub fn strategy_effect_recovered_claim_scope(@effect_application.EffectRecoveredClaim) -> @logical_request_scope.LogicalRequestScope
+
+pub fn strategy_effect_recovered_preview_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int) -> Array[Array[@effect_application.EffectDispatchKey]] raise NodeHostFailure
+
+pub fn strategy_effect_recovery_binding_locator_cid(@effect_application.EffectRecoveryBinding) -> String
+
+pub fn strategy_effect_recovery_bindings(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, String, String, Int, Int) -> Array[Array[@effect_application.EffectRecoveryBinding]] raise NodeHostFailure
+
+pub fn strategy_effect_row_outcome_receipt_terminal_state(@run_publication.PublicationContract) -> String?
 
 pub fn strategy_effect_row_recovery_action(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int
 
@@ -139,6 +197,12 @@ pub fn strategy_effect_set_frontier_ready_count(@effect_application.EffectSetFro
 pub fn strategy_effect_set_frontier_ready_member(@effect_application.EffectSetFrontier, Int) -> Int
 
 pub fn strategy_effect_set_frontier_ready_row(@effect_application.EffectSetFrontier, Int) -> Int
+
+pub fn strategy_effect_set_receipt_run_disposition(@run_publication.EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Int raise NodeHostFailure
+
+pub fn strategy_effectful_computation_evidence_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, Int, Int, Int) -> Bool
+
+pub fn strategy_effectful_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, String, Array[String], String, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn strategy_existing_delivery_attempt_action(@run_publication.PublicationContract?) -> Int
 
@@ -384,6 +448,22 @@ pub fn strategy_issue_effect_free_captured_run(@run_publication.PublicationContr
 
 pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
+pub fn strategy_issue_effect_member_receipt_from_row_partition(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_effect_row_outcome_receipt(@run_publication.EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_effect_row_outcome_receipt_from_response(@run_publication.EffectPreviewIdentity, Int, Int, String, @run_publication.EffectSavedResponseEvidence, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_effect_row_receipt_terminal_entry(@run_publication.EffectPreviewIdentity, Int, Int, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, @effect_application.EffectLedgerEntry, Array[@effect_application.EffectLedgerEntry], String, String, Bytes, Int, String, Int, Int, Int, Int) -> @effect_application.EffectLedgerEntry raise NodeHostFailure
+
+pub fn strategy_issue_effect_row_receipt_terminal_entry_from_response(@run_publication.EffectPreviewIdentity, Int, Int, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, @effect_application.EffectLedgerEntry, Array[@effect_application.EffectLedgerEntry], String, @run_publication.EffectSavedResponseEvidence, String, Int, Int, Int) -> @effect_application.EffectLedgerEntry raise NodeHostFailure
+
+pub fn strategy_issue_effect_set_apply_receipt_from_members(@run_publication.EffectPreviewIdentity, Array[String], Array[Bool], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_effectful_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_effectful_final_run_receipt(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
 pub fn strategy_issue_manifest_read_grant(@run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String, Int, Int, String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_issue_public_index_entry(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
@@ -419,6 +499,8 @@ pub fn strategy_next_result_delivery_row(@run_publication.ResultDeliverySerializ
 pub fn strategy_prepare_durable_result_row_frames(Int, Int, Int, Int, Int) -> @run_publication.DurableResultRowFrames raise NodeHostFailure
 
 pub fn strategy_prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> @run_publication.ResultDeliverySerializer raise NodeHostFailure
+
+pub fn strategy_public_index_same_committed_content(@run_publication.PublicationContract, @run_publication.PublicationContract) -> Bool
 
 pub fn strategy_publication_admit(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
@@ -1180,6 +1262,7 @@ pub(all) suberror NodeHostFailure {
   EffectFootprint(@effect_application.EffectFootprintIssue)
   EffectPreviewFootprint(@effect_application.EffectPreviewFootprintIssue)
   EffectPreviewIdentity(@effect_application.EffectPreviewApplyIdentityIssue)
+  EffectPreviewRecoveryKeys(@effect_application.EffectPreviewRecoveryKeysIssue)
   EffectPreviewTargetGuard(@effect_application.EffectPreviewTargetGuardIssue)
   EffectCollectionBatch(@effect_application.EffectCollectionBatchIssue)
   EffectLedger(@effect_application.EffectLedgerIssue)
