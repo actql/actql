@@ -516,7 +516,8 @@ test('installed Resource discovery filters current disclosure without provider I
     assert.deepEqual(await discovery.list(), {
       observationCid: catalog.observationCid,
       resources: [{name: 'Account', outcome: 'described'}],
-      snapshotTruncated: false, resultTruncated: false,
+      snapshotTruncated: false, snapshotComplete: true,
+      resultTruncated: false,
     });
     assert.deepEqual((await discovery.search('test')).resources, []);
     suppliedCatalog.observationCid = cid('f');
@@ -557,7 +558,8 @@ test('Resource discovery preserves snapshot and display truncation separately',
     assert.deepEqual(await discovery.list({maxResults: 1}), {
       observationCid: catalog.observationCid,
       resources: [{name: 'Account', outcome: 'described'}],
-      snapshotTruncated: false, resultTruncated: true,
+      snapshotTruncated: false, snapshotComplete: true,
+      resultTruncated: true,
     });
     const partial = await syncSalesforceCatalog(request(setup, {
       listLimits: {...listLimits, maxSelected: 1},
@@ -572,11 +574,56 @@ test('Resource discovery preserves snapshot and display truncation separately',
     });
     const listed = await partialDiscovery.list();
     assert.equal(listed.snapshotTruncated, true);
+    assert.equal(listed.snapshotComplete, false);
     assert.equal(listed.resultTruncated, false);
     assert.deepEqual(await partialDiscovery.inspect({
       resource: 'Test_Record__c',
     }), {status: 'catalog_required',
       observationCid: partial.observationCid, reason: 'listing_truncated'});
+  });
+
+test('recovered Resource discovery keeps partial metadata and current authority',
+  async t => {
+    const setup = await fixture(t, {customStatus: 403});
+    const observed = await syncSalesforceCatalog(request(setup, {
+      retainResponses: true, maxRetainedBytes: 20000,
+    }));
+    const recovered = recoverRetainedSalesforceCatalog({
+      moon: salesforceMoon, retained: observed.retainedResponses,
+      expectedObservationCid: observed.observationCid,
+      maxRetainedBytes: 20000,
+    });
+    const binding = JSON.parse(observed.observationJson).binding;
+    const authorization = await fixtureAuthorization([
+      accountEntry('account-read', 'allow', {resource: 'Account',
+        operation: 'read'}),
+      accountEntry('record-read', 'deny', {resource: 'Test_Record__c',
+        operation: 'read'}),
+    ], {context: {principal: binding.principal, contextCid: cid('d')}});
+    const discovery = installSalesforceResourceDiscovery({moon: salesforceMoon,
+      catalog: recovered,
+      binding, authorization, connection: `salesforce:${setup.orgId}`});
+    const requests = setup.seen.length;
+    const uses = setup.journal.recover().length;
+    const listed = await discovery.list();
+    assert.deepEqual(listed.resources,
+      [{name: 'Account', outcome: 'described'}]);
+    assert.equal(listed.snapshotTruncated, false);
+    assert.equal(listed.snapshotComplete, false);
+    assert.deepEqual(await discovery.inspect({resource: 'Account'}), {
+      status: 'ready', observationCid: observed.observationCid,
+      summary: {name: 'Account', queryable: true, createable: false,
+        updateable: false, fields: [{name: 'Id', native_type: 'id',
+          nullable: false, nullability_confirmed: true,
+          defaulted_on_create: false, default_on_create_confirmed: false,
+          createable: false, updateable: false, filterable: false,
+          sortable: false, external_id: false, unique: false,
+          case_sensitive: null, reference_to: []}]},
+    });
+    await assert.rejects(discovery.inspect({resource: 'Test_Record__c'}),
+      {code: 'ExecutionAuthorizationDenied'});
+    assert.equal(setup.seen.length, requests);
+    assert.equal(setup.journal.recover().length, uses);
   });
 
 test('Resource resolution keeps partial metadata as a typed requirement',

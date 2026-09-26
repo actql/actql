@@ -313,6 +313,24 @@ pub fn catalog_observation_matches_binding(
 }
 
 ///|
+/// Complete means the listing was not truncated and every listed Resource
+/// was described. Per-Resource use can still be possible when this is false.
+pub fn catalog_observation_is_complete(
+  observation : CatalogObservation,
+) -> Bool {
+  if observation.truncated {
+    return false
+  }
+  for outcome in observation.outcomes {
+    match outcome {
+      Described(_) => ()
+      _ => return false
+    }
+  }
+  true
+}
+
+///|
 /// Equal content in a different connection or Site generation is not the
 /// observation admitted for this execution. Current authority remains separate.
 pub fn catalog_observation_resource(

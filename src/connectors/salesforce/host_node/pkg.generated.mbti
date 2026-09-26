@@ -47,6 +47,8 @@ pub fn salesforce_catalog_next(@catalog.CatalogSync) -> String?
 
 pub fn salesforce_catalog_observation_cid(@catalog.CatalogObservation) -> String
 
+pub fn salesforce_catalog_observation_is_complete(@catalog.CatalogObservation) -> Bool
+
 pub fn salesforce_catalog_observation_json(@catalog.CatalogObservation) -> String
 
 pub fn salesforce_catalog_observation_matches_binding(@catalog.CatalogObservation, String, String, String, String, String, String, Int, String, String, String, String, String, String) -> Bool

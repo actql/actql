@@ -24,6 +24,8 @@ pub fn catalog_observation_first_unconfirmed_field(CatalogObservation, CatalogOb
 
 pub fn catalog_observation_identity(CatalogObservation) -> String
 
+pub fn catalog_observation_is_complete(CatalogObservation) -> Bool
+
 pub fn catalog_observation_json(CatalogObservation) -> String
 
 pub fn catalog_observation_matches_binding(CatalogObservation, CatalogObservationBinding) -> Bool

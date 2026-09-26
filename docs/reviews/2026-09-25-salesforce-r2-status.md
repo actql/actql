@@ -15,10 +15,13 @@ The provider-owned Resource discovery view now exposes list, search, inspect,
 and resolve over one exact MoonBit Catalog observation. It freezes the
 observation binding, checks current account disclosure per Resource, separates
 snapshot truncation from display truncation, and performs no provider request
-or credential use. Inspect returns bounded typed metadata, not execution
-authority. The local HTTPS test covers denied resources, exact binding,
-partial observations, and zero extra network uses. The view is not yet exposed
-through the public discovery endpoint, and business-row peek remains open.
+or credential use. MoonBit decides whether the entire observation is complete;
+an unavailable Describe stays incomplete even when the listing fits. Inspect
+returns bounded typed metadata, not execution authority. The local HTTPS test
+also reinstalls this view from an exact retained observation after recovery,
+then checks current disclosure without another network or credential use.
+The view is not yet exposed through a public discovery endpoint, and
+business-row peek remains open.
 
 An authorized Resource resolver now consumes one supplied exact Salesforce
 Catalog observation and the installed account gate. It checks current metadata

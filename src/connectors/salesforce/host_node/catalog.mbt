@@ -366,6 +366,14 @@ pub fn salesforce_catalog_observation_matches_binding(
 }
 
 ///|
+#export_name("salesforceCatalogObservationIsComplete")
+pub fn salesforce_catalog_observation_is_complete(
+  observation : @catalog.CatalogObservation,
+) -> Bool {
+  @catalog.catalog_observation_is_complete(observation)
+}
+
+///|
 #export_name("salesforceCatalogResourceSummaryJson")
 pub fn salesforce_catalog_resource_summary_json(
   observation : @catalog.CatalogObservation,

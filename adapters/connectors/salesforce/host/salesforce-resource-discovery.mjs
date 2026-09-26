@@ -52,6 +52,8 @@ export function installSalesforceResourceDiscovery({moon, catalog, binding,
         typeof entry?.outcome !== 'string') fail();
     return Object.freeze({name: entry.name, outcome: entry.outcome});
   }));
+  const snapshotComplete = moon.salesforceCatalogObservationIsComplete(
+    ownedCatalog.observation);
   const authorize = (resource, signal) => requireAuthorizedDispatch(
     authorization, 'acquisition', {connection, resource, operation: 'read'},
     {subjectCid: observationCid, signal});
@@ -80,7 +82,8 @@ export function installSalesforceResourceDiscovery({moon, catalog, binding,
     }
     return Object.freeze({observationCid,
       resources: Object.freeze(visible),
-      snapshotTruncated: projection.truncated, resultTruncated});
+      snapshotTruncated: projection.truncated, snapshotComplete,
+      resultTruncated});
   }
   async function inspect({resource, maxSummaryBytes = 100000, signal} = {}) {
     if (typeof resource !== 'string' || !resourceName.test(resource) ||
