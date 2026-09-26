@@ -31,6 +31,8 @@ test('a bounded evidence read refuses by recorded size before loading bytes',
         {name: 'captured_input', wire: large},
       ]);
     const opened = await evidence.open('attempt-1');
+    assert.deepEqual(opened.held('review_projection'), [smallCid]);
+    assert.deepEqual(opened.held('continuation_record'), []);
     // Within the bound: the exact bytes, verified against their CID.
     assert.equal((await opened.bytes('review_projection', smallCid,
       {maxBytes: 4096})).toString('utf8'), small);

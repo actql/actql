@@ -345,6 +345,11 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       };
       return Object.freeze({
         requestCid: ledger.request_cid,
+        // Semantic CIDs of the held items named `name` (the ledger is the
+        // exact reference list; nothing is inferred from Store contents).
+        held: name => Object.freeze(ledger.holdings
+          .filter(item => item.name === name && item.state === 'held')
+          .map(item => item.semantic_cid)),
         bytes,
         record: async (name, cid) => JSON.parse(
           (await bytes(name, cid)).toString('utf8')),
