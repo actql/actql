@@ -1361,6 +1361,7 @@ for (const physical of ['simulated', 'simulated-authorization',
   'salesforce-collection-partial', 'salesforce-collection-recovered',
   'salesforce-preapply-restart',
   'salesforce-prepared-intent-restart',
+  'salesforce-client-reply-lost',
   'salesforce-process-prepared-intent-restart',
   'salesforce-process-unknown-restart',
   'salesforce-process-saved-response-restart',
@@ -1371,6 +1372,7 @@ test(`two-member captured Effect Run ${
   physical === 'simulated-authorization'
     ? 'gates the Effect commit on the sealed Set Preview' :
   physical.startsWith('salesforce-unknown') ||
+    physical === 'salesforce-client-reply-lost' ||
     physical === 'salesforce-process-unknown-restart' ||
     physical === 'salesforce-rate-limit' ||
     physical.endsWith('lost-http-reply')
@@ -1410,9 +1412,10 @@ test(`two-member captured Effect Run ${
       processPublication;
     const loseHttpReply = physical.endsWith('lost-http-reply') ||
       processUnknownIntent;
+    const loseClientReply = physical === 'salesforce-client-reply-lost';
     const rateLimitWrite = physical === 'salesforce-rate-limit';
     const unknownAfterClaim = physical.startsWith('salesforce-unknown') ||
-      loseHttpReply;
+      loseHttpReply || loseClientReply;
     const continueAfterUnknown = physical === 'salesforce-unknown-continue';
     const collectionPartial = physical === 'salesforce-collection-partial';
     const collectionRecovered = physical === 'salesforce-collection-recovered';
@@ -1438,20 +1441,25 @@ test(`two-member captured Effect Run ${
     const prepareProgram = installNodeClientEffectProgramPreparation({
       moon, environment,
     });
-    const prepared = prepareProgram({kind: 'program',
-      input: JSON.parse(document), parameters: null});
-    const clientRequest = moon.clientProgramEffectRequestIdentity(
-      prepared, cid('e'), 'complete-two-effects-request', cid('b'));
-    assert.ok(clientRequest);
+    await mkdir(scratch, {recursive: true});
+    const directory = await mkdtemp(join(scratch.pathname,
+      'effect-two-published-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    let control = runtimeCore(moon).publicationControl;
+    const requestJournalRoot = join(directory, 'client-requests');
+    const requestJournal = openClientRequestJournal(requestJournalRoot);
+    let physicalStarts = 0;
+    let publishedRunDefinitionCid;
+    const executeEffectRun = async ({owner: bound, prepared,
+      compilation: effectCompilation, allowed, definition,
+      identity: clientRequest}) => {
+    physicalStarts++;
     const semanticInvocation = checked(
       moon.clientProgramIssueSourceFreeLocalEffectInvocation(
         prepared, 0, 4096, 64, 8));
     assert.equal(JSON.parse(moon.clientProgramLocalEffectInvocationJson(
       semanticInvocation)).self_cid,
       moon.clientProgramLocalEffectInvocationCid(semanticInvocation));
-    const effectCompilation = checked(moon.clientProgramCompileLocalEffects(prepared));
-    const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
-      effectCompilation, cid('a'), cid('b'), '2099-01-01T00:00:00.000Z'));
     const evidence = [
       checked(moon.strategyRunEvidenceAdmit('bound_invocation_template',
         moon.clientProgramEffectCompilationTemplateWire(effectCompilation),
@@ -1464,10 +1472,7 @@ test(`two-member captured Effect Run ${
     ];
     const admission = moon.clientProgramAdmitEffectPublication(
       prepared, ...evidence);
-    const definition = checked(moon.strategyIssueRunDefinition(
-      admission, 'tenant-a-scope', 'complete-two-effects', cid('c'),
-      '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
-      100000, 10000, 64));
+    assert.ok(admission);
     const observation = checked(moon.strategyRunEvidenceSeal(
       'observation_set', JSON.stringify({
         version: 'actql-observation-set/0.1',
@@ -1481,9 +1486,6 @@ test(`two-member captured Effect Run ${
       }), 100000, 10000, 64));
     const invocation = checked(moon.strategyIssueRunInvocation(
       evidence[0], observation, 100000, 10000, 64));
-    const bound = moon.clientProgramBindEffectRun(
-      prepared, admission, definition);
-    assert.ok(bound);
     const [registry, contract] = await Promise.all([
       readFile(new URL('../../../../spec/dependencies/aoa-pipeline-registry.json',
         import.meta.url), 'utf8'),
@@ -1495,23 +1497,6 @@ test(`two-member captured Effect Run ${
     const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
       bound, registry, values, 1n, 0n, 0n, 0n);
     assert.ok(owned);
-    await mkdir(scratch, {recursive: true});
-    const directory = await mkdtemp(join(scratch.pathname,
-      'effect-two-published-'));
-    t.after(() => rm(directory, {recursive: true, force: true}));
-    let control = runtimeCore(moon).publicationControl;
-    const requestJournalRoot = join(directory, 'client-requests');
-    const requestJournal = openClientRequestJournal(requestJournalRoot);
-    try {
-      assert.equal(requestJournal.acceptDefinition(clientRequest, {
-        tenantId: 'tenant-a',
-        runDefinition: control.admit('run_definition',
-          moon.strategyPublicationContractJson(definition), publicationLimits),
-        lookupExpiresAt: '2027-01-01T00:00:00.000Z',
-      }, moon, control).inserted, true);
-    } finally {
-      requestJournal.close();
-    }
     const execution = await runCapturedEffectComputation(owned);
     const configuration = {
       directory, storeAuthorityCid: cid('7'),
@@ -3375,6 +3360,7 @@ test(`two-member captured Effect Run ${
         await rejectPublicationAndRetire(uncertainSet,
           'EffectfulRunNeedsReconciliation',
           'unknown-two-effects-attempt');
+        if (loseClientReply) throw new Error('LostEffectExecutionReply');
         return;
       }
       const dispatchOptions = bindDispatch === undefined ? {dispatchRow} :
@@ -3807,6 +3793,7 @@ test(`two-member captured Effect Run ${
           undefined);
       }
       assert.equal(store.status().storedBytes, 0);
+      publishedRunDefinitionCid = definition.identity;
       published = true;
     } catch (error) {
       testFailure = error;
@@ -3828,6 +3815,81 @@ test(`two-member captured Effect Run ${
       assert.equal(execution.cleanupPending(), false);
     }
     assert.equal(published, true);
+    return published;
+    };
+    const runs = installNodeClientEffectRun({
+      moon, publicationControl: control, journal: requestJournal,
+      authorizeRequest: async ({principalId, connection}) =>
+        principalId === 'principal-before-restart' &&
+        connection.mode === 'local' && connection.owner === 'local'
+          ? {executionContextCid: cid('a'), hostPolicyCid: cid('b'),
+            createdAt: '2026-09-24T00:00:00.000Z',
+            expiresAt: '2027-01-01T00:00:00.000Z'} : undefined,
+      authorizeRunStart: async ({principalId, connection}) =>
+        principalId === 'principal-before-restart' &&
+        connection.mode === 'local' && connection.owner === 'local',
+      execute: executeEffectRun,
+    });
+    const clientServer = createServer(createClientHttpHandler({
+      authenticate: header => header === 'Bearer scoped-token'
+        ? 'principal-before-restart' : undefined,
+      authorizeConnection: facts => facts.connection.mode === 'local' &&
+        facts.connection.owner === 'local',
+      negotiate: () => ({
+        version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+        durability: 'durable', scopeRef: 'principal-before-restart',
+        capabilities: ['result-jsonl'],
+        limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+          maxRowRetainedValueBytes: 1024,
+          maxRetainedValueBytes: 4096, maxRows: 100,
+          maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
+      }),
+      prepareSubmit: prepareProgram,
+      submit: async ({preparedProgram, requestId, principalId,
+        connection}) => {
+        const accepted = await runs.accept({
+          prepared: preparedProgram, authorityScopeCid: cid('e'),
+          requestId, tenantId: 'tenant-a', principalId, connection,
+          lookupExpiresAt: '2027-01-01T00:00:00.000Z',
+        });
+        const started = await runs.start(accepted);
+        assert.ok(started.kind === 'started' ||
+          started.kind === 'reconcile');
+        return {ref: accepted.ref, durability: accepted.durability,
+          revision: accepted.revision};
+      },
+    }));
+    await new Promise(resolve => clientServer.listen(0, '127.0.0.1',
+      resolve));
+    try {
+      const client = await connectClient({mode: 'local', owner: 'local',
+        endpoint: `http://127.0.0.1:${clientServer.address().port}/`,
+        token: 'scoped-token', durability: 'durable'});
+      try {
+        let run;
+        if (loseClientReply) {
+          await assert.rejects(client.aql(document, {format: 'json',
+            requestId: 'complete-two-effects-request'}),
+          {code: 'SubmissionUnknown'});
+        } else {
+          run = await client.aql(document, {format: 'json',
+            requestId: 'complete-two-effects-request'});
+        }
+        run ??= await client.aql(document, {format: 'json',
+          requestId: 'complete-two-effects-request'});
+        assert.equal(run.ref.tenantId, 'tenant-a');
+        if (publishedRunDefinitionCid !== undefined) {
+          assert.equal(run.ref.runDefinitionCid, publishedRunDefinitionCid);
+        }
+        const replay = await client.aql(document, {format: 'json',
+          requestId: 'complete-two-effects-request'});
+        assert.deepEqual(replay.ref, run.ref);
+        assert.equal(physicalStarts, 1);
+      } finally { client.close(); }
+    } finally {
+      await new Promise(resolve => clientServer.close(resolve));
+      requestJournal.close();
+    }
   });
 }
 

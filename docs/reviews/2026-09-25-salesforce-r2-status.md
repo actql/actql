@@ -1,5 +1,34 @@
 # Salesforce Effect review R2 status
 
+## Current connection (2026-09-26)
+
+The Distributor-owned compiler and durable start handoff
+`e65664ebb415a80a0d80edf7f6b04038ced18709` is integrated with the
+Connector branch. Its `installNodeClientEffectRun` entry issues the formal
+Plan, Template, policy evidence and Run Definition from the original checked
+Effect owner. The public Client `submit` in the local HTTPS integration test
+now prepares the ordinary Program, durably accepts the request, takes the
+shared Run-start claim, and passes the bound owner to the existing
+capture, apply, Receipt, publication, read and retirement path. The same test
+covers two members with two rows each and an Effect source named `rows` while
+the public Result is named `answer`.
+
+A second submit of the same request returns the accepted Run reference without
+another physical start. A failed execute callback after an uncertain row makes
+the first public submit report an unknown response; resubmission reconciles
+the retained Run and does not call execute or resend the row. The existing
+fault matrix still exercises Store restart, saved response, partial failure,
+whole-set preflight, and private holding retirement through this entry.
+The compiler's initial single-Unit source-free Values profile explicitly
+rejects unsupported Programs before durable acceptance.
+
+This local connection uses test-configured authorization and an authenticated
+Salesforce-shaped HTTP resource. The isolated Salesforce org and write scope
+have not been supplied. Public Client Checkpoint projection, authorized
+resource discovery, live-provider behavior and hosted Linux CI remain open.
+The historical sections below describe earlier milestones; their statements
+that formal Plan issuance or public submit is pending are superseded here.
+
 ## Shared integration baseline
 
 Current work is on `feat/connector-salesforce-integration`, based on
@@ -48,8 +77,8 @@ rather than replace, the multi-member integration results above.
 | Required view | Current boundary |
 | --- | --- |
 | User capability at completion | Submit a normal Program with at least two multi-row Salesforce Effect members; inspect or reconcile uncertain rows without resending known writes; read its separately named published Result; release private and public holdings after the last user. |
-| Remaining implementation and acceptance | The installed Host has checked local Effect identities, exact captured source inventory, authenticated Site write capabilities, durable row claims, recovered apply, row/set Receipts, formal Store publication, authorized Result read, and holding retirement. Its completion entry joins apply, Receipt issuance, and publication on one captured owner; a fresh process exercises the recovered entry. The multi-member local HTTPS/SQLite fixture still composes the earlier preparation/capture steps and supplies the logical request scope authority. Join those steps and admitted request authority in one production Host caller and expose completed or uncertain state to public ingress. Preserve normal multi-member/multi-row execution, whole-set rejection with zero sends, response loss without resend, restart, publication uncertainty, Result read, and last-owner cleanup through that caller. The section 22.5 entrypoint-to-test inventory below exists; authorized discovery/resource resolution and live-org validation remain open. |
-| Cross-owner dependency | This branch owns the common checked Effect Run/Host caller, local Artifact/Manifest issuer, and Salesforce Site operations. Distribution owns public Client `submit`, attach/status/Checkpoint projection and must consume the same Host owner rather than implement an Effect scheduler; this remains an exact integration dependency, not evidence of completion here. The isolated Salesforce org, secret-manager reference, and write permission are not supplied, so live-provider acceptance is unverified. |
+| Remaining implementation and acceptance | The local standard Client path now runs from submit through formal publication and last-owner retirement, including the fault matrix described above. Finish the installed Host composition for configured, nonfixture authorization and expose uncertain Run state through the shared public Client Checkpoint projection. Complete the section 22.5 authorized discovery and resource resolver surface. Validate declared read and write behavior against the isolated org once it is supplied. |
+| Cross-owner dependency | Distribution owns the public Client Checkpoint projection and shared ingress contract. Connector owns the Salesforce Site operations and uses the shared compiler and Run-start owner already delivered. The isolated Salesforce org, secret-manager reference, and write permission are not supplied, so live-provider acceptance remains unverified. |
 | Existing plan outside this unit | New providers, Cloud OAuth management, Bulk API, unrelated frontends or optimizers, and fleet deployment remain separate. These exclusions do not shrink the current product-path acceptance or complete the original ten-Connector objective. |
 
 The installed Node Host now exports `completeCapturedEffectRun` and
