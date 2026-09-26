@@ -2,6 +2,22 @@
 
 ## Current connection (2026-09-26)
 
+The Salesforce Host now has one installed Effect route that owns the same
+request inventory for current Catalog/target rechecks and physical dispatch.
+The common Effect frontier still decides admission, retry, and completion.
+The route rejects a foreign Set Preview before Site I/O and is reinstalled
+from the reopened Ledger and re-admitted Preview after recovery; a route
+cannot carry an old physical Ledger into a new recovery flight. The local
+two-member public submit matrix exercises this route for ordinary single
+and Collections writes and restart/publication cases. Other fault-injection
+cases retain direct physical hooks so they can stop at exact boundaries.
+This improves the provider product composition but does not supply the
+missing live-org authority or Distribution-owned public Checkpoint entry.
+The route implementation at `da40e11bf` passed the local Salesforce Site
+suite (172/172), including public Client submit, saved-response recovery,
+process restart, Collections partial results, and last-owner retirement.
+It is not a live Salesforce or hosted Linux CI result.
+
 The source-free Observation Set and Run Invocation in the public Effect
 integration now come from the exact checked compiler owner through the shared
 Host issuer. The Salesforce test no longer constructs those bodies or supplies
