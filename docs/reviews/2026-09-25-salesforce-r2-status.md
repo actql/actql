@@ -6,8 +6,13 @@ Current work is on `feat/connector-salesforce-integration`, based on
 `44f00eab0a73819b45a0f64627898f796717ea29`. The nine post-baseline Connector
 request/recovery/source-holding/capture commits have been replayed. The original
 `feat/connector-salesforce-effects` remains at `78e73fe62`, preserving all eleven
-additions. Its last two shared-compiler experiments are not replayed; compiler,
-Plan, and Invocation issuance belong to Distribution. Public Client Checkpoint
+additions. Distribution's approved adaptation of its two compiler proposals,
+`4c583cacbf31abbfd707f8f826d87387c6907c0d`, is now merged without replaying
+the original proposals. Compiler, Plan, and Invocation issuance remain owned
+by Distribution. The shared Fragment issuer supplies the checked computation
+CID, but does not issue the full Plan or Bound Invocation Template. See the
+[compiler handoff](2026-09-26-effect-fragment-compiler-handoff.md).
+Public Client Checkpoint
 integration is separately reviewed and is not counted as complete here.
 Historical commit references below identify original changes, not their new
 replayed SHAs. Local tests of the old branch do not verify this integration.
@@ -20,6 +25,14 @@ and native (16/16 each). Generated API consistency, document links (1098), and
 the connector dispatch boundary also passed. No performance path was changed
 by this replay; the performance suite was not rerun. Linux CI, main integration,
 live Salesforce, and public Checkpoint completion remain unverified.
+
+After merging the approved Fragment series, the affected common packages pass
+17 tests on each of JS, Wasm and native. The combined Salesforce Effect,
+Client bridge, request journal and publication control regression passes 82/82.
+Regenerated local-node and run-host-core artifacts pass freshness checks;
+run-host-core and Connector boundary tests pass 25/25 together. Public APIs,
+formatting and document links pass. Full Plan/Invocation issuance is still
+fixture-backed and is not validated as a product path by these results.
 
 ## Current completion unit
 
