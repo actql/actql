@@ -6,7 +6,8 @@ import {join} from 'node:path';
 
 import test from 'node:test';
 import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';import {openClientRequestJournal} from './client-request-journal.mjs';
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
@@ -41,7 +42,9 @@ import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {applyCapturedEffectSet, applyRecoveredEffectSet} from './effect-run-apply.mjs';
 import {loadCheckpointRuntime, openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
 import {issueAuthorizedEffectSetReceipt} from './effect-response-recovery.mjs';
-import {commitPinnedEffectSourceHolding, exportPinnedEffectInput, preparePinnedEffectSourcePayload} from './effect-input-export.mjs';
+import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
+  preparePinnedEffectSourcePayload, preparePinnedEffectSourceSet} from
+  './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {canonicalJson} from '../host-common/publication-contract-control.fixture.mjs';
 import {issueCompletedEffectfulComputationEvidence, prepareCompletedEffectfulPublication, publishCompletedEffectfulRun, recoverCompletedEffectfulComputation, releaseCompletedRunPreparedPayloads, storeCompletedRunResultSet} from '../host-common/completed-run-publication.mjs';
@@ -4350,6 +4353,158 @@ test('owned update Plan matches approved rows and rejects altered intent',
       await store.close();
       await execution.close();
       assert.equal(execution.cleanupPending(), false);
+    }
+  });
+
+test('Effect source set shares exact owners and retains failed cleanup',
+  async t => {
+    for (const distinctResults of [false, true]) {
+      await t.test(distinctResults ? 'equal values, distinct Results' :
+        'one Result, two members', async t => {
+        const fixture = await effectFixture({writeKind: 'update',
+          memberIds: ['first', 'second']});
+        const document = JSON.parse(fixture.document);
+        if (distinctResults) {
+          document.stages[0].results.other = structuredClone(
+            document.stages[0].results.rows);
+          document.stages[0].effects.second.update.from.result = 'other';
+        }
+        const prepared = moon.clientProgramEffectPreparationReady(
+          moon.clientProgramPrepareEffectComputationWithParameters(
+            JSON.stringify(document), 'json', fixture.environment,
+            undefined, []));
+        assert.ok(prepared);
+        const evidence = publicationEvidence(
+          moon.clientProgramEffectDefinitionCid(prepared),
+          effectParametersCid(prepared),
+          moon.clientProgramEffectSemanticsCid(prepared),
+          moon.clientProgramEffectEnvironmentCid(prepared));
+        const admission = moon.clientProgramAdmitEffectPublication(
+          prepared, ...evidence);
+        const definition = checked(moon.strategyIssueRunDefinition(
+          admission, 'tenant-a-scope', 'source-set-run', cid('c'),
+          '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
+          100000, 10000, 64));
+        const observation = checked(moon.strategyRunEvidenceSeal(
+          'observation_set', JSON.stringify({
+            version: 'actql-observation-set/0.1',
+            invocation_template_cid: moon.strategyRunEvidenceIdentity(
+              evidence[0]), source_evidence_cids: [],
+            captured_input_artifact_cids: [],
+            consistency: 'no_external_sources', capture_started_at: null,
+            capture_completed_at: null,
+            replayability: {materialized: false,
+              availability_evidence_cids: []}, data_policy_cid: cid('d'),
+          }), 100000, 10000, 64));
+        const invocation = checked(moon.strategyIssueRunInvocation(
+          evidence[0], observation, 100000, 10000, 64));
+        const bound = moon.clientProgramBindEffectRun(
+          prepared, admission, definition);
+        const registry = await readFile(new URL(
+          '../../spec/dependencies/aoa-pipeline-registry.json',
+          import.meta.url), 'utf8');
+        const contract = JSON.parse(await readFile(new URL(
+          '../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'));
+        const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(bound,
+          registry, JSON.stringify(contract.execution_contracts['REL.values']),
+          1n, 0n, 0n, 0n);
+        assert.ok(owned);
+        const execution = await runCapturedEffectComputation(owned);
+        const inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
+        await mkdir(scratch, {recursive: true});
+        const directory = await mkdtemp(join(scratch.pathname, 'source-set-'));
+        t.after(() => rm(directory, {recursive: true, force: true}));
+        const control = runtimeCore(moon).publicationControl;
+        const physical = await openLocalPublicationStore({directory,
+          storeAuthorityCid: cid('7'), capacityBytes: 1024 * 1024,
+          maxObjectBytes: 100000, maxObjects: 10,
+          maxContractNodes: 10000, maxContractDepth: 64,
+        }, control);
+        let writers = 0;
+        let refuseRelease = false;
+        const store = Object.freeze({...physical,
+          createPreparedObjectWriter(...args) {
+            writers++;
+            const writer = physical.createPreparedObjectWriter(...args);
+            return Object.freeze({...writer, async seal(...args) {
+              const sealed = await writer.seal(...args);
+              return Object.freeze({...sealed, prepared: Object.freeze({
+                ...sealed.prepared,
+                async release() {
+                  if (refuseRelease) throw new Error('InjectedSourceRelease');
+                  return sealed.prepared.release();
+                },
+              })});
+            }});
+          },
+        });
+        const retention = control.seal('result_retention_policy',
+          JSON.stringify({version: 'actql-result-retention-policy/0.1',
+            retention_contract_cid: cid('e'), effective_data_policy_cid: cid('d'),
+            available_until: '2026-09-24T01:00:00.000Z',
+            delete_by: '2026-09-24T02:00:00.000Z',
+            extension_ceiling_at: '2026-09-24T03:00:00.000Z',
+            metadata_retention_policy_cid: cid('f'),
+            metadata_delete_by: '2026-09-24T04:00:00.000Z',
+            clock_contract_cid: cid('0')}), publicationLimits);
+        const options = {moon, checkedOwner: prepared, execution, inputs,
+          maxMembers: 2, maxGroupingWork: 3,
+          limits: moon.clientProgramEffectInputExportLimits(
+            ...effectInputExportArgs(outputLimits)),
+          store, maxBytes: 100000, control,
+          invocation: control.admit('run_invocation',
+            moon.strategyPublicationContractJson(invocation), publicationLimits),
+          retention, sourceBindingCid: cid('c'), contractLimits: publicationLimits,
+          localEvidenceContext: admittedLocalEffectEvidenceContext(control,
+            prepared, evidence, definition, invocation, observation),
+        };
+        try {
+          await assert.rejects(preparePinnedEffectSourceSet({...options,
+            maxGroupingWork: 0}), {message: 'EffectSourceGroupingLimit'});
+          assert.equal(writers, 0);
+          const sources = await preparePinnedEffectSourceSet(options);
+          assert.equal(sources.payloads.length, distinctResults ? 2 : 1);
+          assert.equal(writers, distinctResults ? 2 : 1);
+          assert.equal(sources.members[0].payload.summary.logicalCid,
+            sources.members[1].payload.summary.logicalCid);
+          assert.equal(sources.members[0].payload ===
+            sources.members[1].payload, !distinctResults);
+          assert.equal(sources.members[0].payload.localManifest,
+            sources.members[1].payload.localManifest);
+          assert.deepEqual(Object.keys(JSON.parse(
+            sources.members[0].payload.localManifest.wire).results),
+          distinctResults ? ['other', 'rows'] : ['rows']);
+          if (distinctResults) assert.notEqual(
+            sources.members[0].payload.localResultDefinition.identity,
+            sources.members[1].payload.localResultDefinition.identity);
+          for (const payload of sources.payloads) await payload.prepared.release();
+          if (distinctResults) {
+            refuseRelease = true;
+            let failure;
+            try {
+              await preparePinnedEffectSourceSet({...options,
+                proposalLimits: {...previewPlanLimits, maxUtf16Units: 20000},
+                onProposalRow(memberIndex) {
+                  if (memberIndex === 1) throw new Error('SecondSourceFailed');
+                }});
+            } catch (error) { failure = error; }
+            assert.equal(failure?.cleanupPending, true);
+            assert.equal(failure.primaryFailure.message, 'SecondSourceFailed');
+            assert.ok(physical.status().storedBytes > 0);
+            const beforeRetry = writers;
+            refuseRelease = false;
+            assert.equal((await failure.cleanupHandle.retry()).pending, false);
+            assert.equal(writers, beforeRetry);
+          }
+          assert.equal(physical.status().storedBytes, 0);
+          assert.equal(physical.status().reservedBytes, 0);
+        } finally {
+          moon.clientProgramReleaseEffectInputs(inputs);
+          await physical.close();
+          await execution.close();
+          assert.equal(execution.cleanupPending(), false);
+        }
+      });
     }
   });
 

@@ -110,7 +110,9 @@ function uniqueContracts(values) {
   });
 }
 
-async function releasePreparedResults(exported, primary, control) {
+// Shared failure cleanup for prepared public Results and private Effect
+// inputs. Always rethrow the primary failure, retaining retryable custody.
+export async function releasePreparedResults(exported, primary, control) {
   const prepared = [...new Set(exported
     .map(value => value?.prepared)
     .filter(value => value !== undefined))];

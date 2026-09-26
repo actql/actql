@@ -1,8 +1,97 @@
 import {createHash} from 'node:crypto';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
+import {releasePreparedResults} from
+  '../host-common/completed-run-publication.mjs';
 
 const preparedEffectSourceOwners = new WeakMap();
+
+// Prepare every pinned member under one retention and source-binding policy.
+// MoonBit alone decides whether two members own the same live Result view.
+// The caller retains the pins and receives every distinct physical owner;
+// durable holdings remain independent even when members share these bytes.
+export async function preparePinnedEffectSourceSet({
+  maxMembers, maxGroupingWork, ...options
+}) {
+  const {moon, inputs, control, signal} = options;
+  if (!Number.isSafeInteger(maxMembers) || maxMembers < 1 ||
+      !Number.isSafeInteger(maxGroupingWork) || maxGroupingWork < 0 ||
+      typeof moon?.clientProgramEffectInputCount !== 'function' ||
+      typeof moon?.clientProgramEffectInputsShareView !== 'function' ||
+      typeof moon?.clientProgramEffectInputStage !== 'function' ||
+      typeof control?.publicationPreparedReleaseAction !== 'function' ||
+      typeof control?.publicationCleanupOwnerAction !== 'function' ||
+      options.memberIndex !== undefined ||
+      options.proposalMemberIndexes !== undefined) {
+    throw new TypeError('InvalidEffectSourceSet');
+  }
+  const count = moon.clientProgramEffectInputCount(inputs);
+  if (!Number.isSafeInteger(count) || count < 1 || count > maxMembers) {
+    throw new RangeError('EffectSourceMemberLimit');
+  }
+  const groups = [];
+  let remaining = maxGroupingWork;
+  const shares = (left, right) => {
+    if (remaining === 0) throw new RangeError('EffectSourceGroupingLimit');
+    remaining--;
+    return moon.clientProgramEffectInputsShareView(inputs, left, right) ===
+      true;
+  };
+  // Finish bounded grouping before creating any Store reservation.
+  for (let index = 0; index < count; index++) {
+    signal?.throwIfAborted();
+    if (!shares(index, index)) throw new TypeError('UnavailableEffectSource');
+    const group = groups.find(value => shares(value[0], index));
+    if (group === undefined) groups.push([index]);
+    else group.push(index);
+  }
+  const owned = {...options,
+    contractLimits: Object.freeze({...options.contractLimits}),
+    localEvidenceContext: Object.freeze({...options.localEvidenceContext}),
+    proposalLimits: options.proposalLimits === undefined ? undefined :
+      Object.freeze({...options.proposalLimits}),
+  };
+  const payloads = [];
+  const members = new Array(count);
+  const manifestSet = new Map();
+  try {
+    for (const indexes of groups) {
+      const payload = await preparePinnedEffectSourcePayloadOwned({
+        ...owned, memberIndex: indexes[0],
+        ...(owned.onProposalRow === undefined ? {} : {
+          proposalMemberIndexes: indexes,
+        }),
+      }, manifestSet);
+      payloads.push(payload);
+      for (const memberIndex of indexes) {
+        members[memberIndex] = Object.freeze({memberIndex, payload});
+      }
+    }
+    for (const unit of manifestSet.values()) {
+      unit.manifest = control.issueLocalEffectResultManifest(
+        owned.checkedOwner, unit.invocation, unit.artifacts,
+        owned.contractLimits);
+    }
+    // Expose payloads only after every Unit's complete Manifest is admitted.
+    const finalized = new Map();
+    for (const payload of payloads) {
+      const owner = preparedEffectSourceOwners.get(payload);
+      const unit = manifestSet.get(owner.unitIndex);
+      const value = Object.freeze({...payload, localManifest: unit.manifest});
+      preparedEffectSourceOwners.set(value, owner);
+      finalized.set(payload, value);
+    }
+    signal?.throwIfAborted();
+    return Object.freeze({payloads: Object.freeze(payloads.map(value =>
+      finalized.get(value))), members: Object.freeze(members.map(member =>
+      Object.freeze({...member, payload: finalized.get(member.payload)})))});
+  } catch (error) {
+    // This is the existing MoonBit-controlled publication cleanup path, not
+    // a second Effect cleanup state machine. Pending owners escape on error.
+    await releasePreparedResults(payloads, error, control);
+    throw error;
+  }
+}
 
 /**
  * Stream one pinned Effect source through the shared checked Result view.
@@ -109,12 +198,16 @@ export async function exportPinnedEffectInput({
  * owner must be committed to an independent holding or explicitly released.
  * Neither sealing bytes nor this summary claims a completed Captured Run.
  */
-export async function preparePinnedEffectSourcePayload({
+export async function preparePinnedEffectSourcePayload(options) {
+  return preparePinnedEffectSourcePayloadOwned(options);
+}
+
+async function preparePinnedEffectSourcePayloadOwned({
   moon, checkedOwner, execution, inputs, memberIndex, limits, store, maxBytes,
   control, invocation, retention, sourceBindingCid, contractLimits, signal,
   localEvidenceContext,
   onProposalRow, proposalMemberIndexes, proposalLimits,
-}) {
+}, manifestSet) {
   if (typeof store?.createPreparedObjectWriter !== 'function' ||
       typeof store.storeAuthorityCid !== 'string' ||
       typeof moon?.clientProgramIssueCapturedEffectInputLocalResultDefinition !==
@@ -174,11 +267,17 @@ export async function preparePinnedEffectSourcePayload({
       localDefinition),
     wire: moon.clientProgramLocalEffectResultDefinitionJson(localDefinition),
   });
-  const localInvocationToken = checked(
+  const unitIndex = manifestSet === undefined ? undefined :
+    moon.clientProgramEffectInputStage(
+      moon.clientProgramEffectInputAt(inputs, memberIndex));
+  const localInvocationToken = manifestSet?.get(unitIndex)?.invocation ?? checked(
     moon.clientProgramIssueCapturedEffectInputLocalInvocation(
       checkedOwner, inputs, memberIndex,
       contractLimits.maxWireBytes, contractLimits.maxNodes,
       contractLimits.maxDepth));
+  if (manifestSet !== undefined && !manifestSet.has(unitIndex)) {
+    manifestSet.set(unitIndex, {invocation: localInvocationToken, artifacts: []});
+  }
   const localInvocation = Object.freeze({
     identity: moon.clientProgramLocalEffectInvocationCid(
       localInvocationToken),
@@ -263,9 +362,10 @@ export async function preparePinnedEffectSourcePayload({
       checked(moon.clientProgramEffectProposalFinish(plan,
         summary.rowCount));
     }
-    const localManifest = control.issueLocalEffectResultManifest(
-      checkedOwner, localInvocationToken, [localResultArtifact],
-      contractLimits);
+    const localManifest = manifestSet === undefined
+      ? control.issueLocalEffectResultManifest(checkedOwner,
+        localInvocationToken, [localResultArtifact], contractLimits)
+      : undefined;
     const physicalCid = `sha256:${digest.digest('hex')}`;
     sealed = await writer.seal(physicalCid);
     if (sealed.cid !== physicalCid || sealed.bytes !== byteCount) {
@@ -281,9 +381,10 @@ export async function preparePinnedEffectSourcePayload({
       prepared: sealed.prepared,
     });
     preparedEffectSourceOwners.set(payload, Object.freeze({
-      store, checkedOwner, inputs, memberIndex, localInvocationToken,
+      store, checkedOwner, inputs, memberIndex, localInvocationToken, unitIndex,
       contractLimits: Object.freeze({...contractLimits}),
     }));
+    manifestSet?.get(unitIndex).artifacts.push(localResultArtifact);
     return payload;
   } catch (failure) {
     const pendingOwners = [];

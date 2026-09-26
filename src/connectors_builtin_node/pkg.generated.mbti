@@ -182,6 +182,8 @@ pub fn client_program_effect_input_export_schema_cid(@execution_relation.Complet
 
 pub fn client_program_effect_input_export_start(@physical_strategy.CapturedEffectInput, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
+pub fn client_program_effect_input_stage(@physical_strategy.CapturedEffectInput) -> Int
+
 pub fn client_program_effect_input_task(@physical_strategy.CapturedEffectInput) -> Int
 
 pub fn client_program_effect_inputs_share_view(@physical_strategy.CapturedEffectInputs, Int, Int) -> Bool
