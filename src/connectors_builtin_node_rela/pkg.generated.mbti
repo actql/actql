@@ -157,6 +157,8 @@ pub fn client_program_effect_compilation_compiled_plan_wire(@run_publication_hos
 
 pub fn client_program_effect_compilation_fact_manifest_wire(@run_publication_host.ClientEffectCompilation) -> String
 
+pub fn client_program_effect_compilation_issue_code(Result[@run_publication_host.ClientEffectCompilation, ClientProgramEffectCompilationBridgeIssue]) -> String?
+
 pub fn client_program_effect_compilation_plan_wire(@run_publication_host.ClientEffectCompilation) -> String
 
 pub fn client_program_effect_compilation_result_names(@run_publication_host.ClientEffectCompilation) -> Array[String]
@@ -202,6 +204,8 @@ pub fn client_program_effect_input_export_row_count(@execution_relation.Complete
 pub fn client_program_effect_input_export_schema_cid(@execution_relation.CompletedRelationExportReceipt) -> String
 
 pub fn client_program_effect_input_export_start(@physical_strategy.CapturedEffectInput, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_effect_input_stage(@physical_strategy.CapturedEffectInput) -> Int
 
 pub fn client_program_effect_input_task(@physical_strategy.CapturedEffectInput) -> Int
 

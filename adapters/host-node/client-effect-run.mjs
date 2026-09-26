@@ -11,11 +11,15 @@ const limits = Object.freeze({maxWireBytes: 1000000, maxNodes: 100000,
   maxDepth: 100});
 const denied = () => Object.assign(new Error('ClientEffectRunDenied'),
   {code: 'ClientEffectRunDenied'});
+const unsupported = () => Object.assign(new Error('ClientProgramUnsupported'),
+  {code: 'ClientProgramUnsupported'});
 
 export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
   journal, authorizeRequest, authorizeRunStart, execute}) {
-  if (typeof authorizeRequest !== 'function' || typeof execute !== 'function' ||
+  if (typeof moon?.clientProgramEffectCompilationIssueCode !== 'function' ||
+      typeof authorizeRequest !== 'function' ||
+      typeof execute !== 'function' ||
       typeof journal?.reservePhysicalStart !== 'function') {
     throw new TypeError('InvalidClientEffectRunInstallation');
   }
@@ -40,8 +44,14 @@ export function installNodeClientEffectRun({moon,
         authorityScopeCid, requestId, moon.clientProgramSourceFreeInputIntentCid());
       if (identity === undefined) throw denied();
       let compilation;
-      const compile = () => compilation ??= checked(
-        moon.clientProgramCompileLocalEffects(prepared));
+      const compile = () => {
+        if (compilation !== undefined) return compilation;
+        const outcome = moon.clientProgramCompileLocalEffects(prepared);
+        if (moon.clientProgramEffectCompilationIssueCode(outcome) ===
+            'unsupported_program') throw unsupported();
+        compilation = checked(outcome);
+        return compilation;
+      };
       const accepted = await journal.admitOrLookupDefinition(identity, {
         tenantId, lookupExpiresAt,
         issueDefinition() {

@@ -4375,6 +4375,23 @@ pub fn client_program_compile_local_effects(
 }
 
 ///|
+/// Expose only the unsupported-profile decision to the Host. Other compiler
+/// failures retain their typed cause and must not be reported as a caller's
+/// unsupported Program.
+#export_name("clientProgramEffectCompilationIssueCode")
+pub fn client_program_effect_compilation_issue_code(
+  outcome : Result[
+    @publication_host.ClientEffectCompilation,
+    ClientProgramEffectCompilationBridgeIssue,
+  ],
+) -> String? {
+  match outcome {
+    Err(Compilation(UnsupportedProgram)) => Some("unsupported_program")
+    _ => None
+  }
+}
+
+///|
 #export_name("clientProgramEffectCompilationPlanWire")
 pub fn client_program_effect_compilation_plan_wire(
   value : @publication_host.ClientEffectCompilation,
