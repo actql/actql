@@ -2511,6 +2511,13 @@
           "fixture": "Local managed group statistics reach two independent consumers"
         },
         {
+          "role": "numeric_group_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "Local managed numeric reductions reach two independent consumers"
+        },
+        {
           "role": "direct_group_cancel_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -2537,6 +2544,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "standard Host cancels group statistics after bounded work"
+        },
+        {
+          "role": "numeric_group_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "standard Host cancels a numeric group after bounded work"
         },
         {
           "role": "keyed_count_values_split_two_consumers",

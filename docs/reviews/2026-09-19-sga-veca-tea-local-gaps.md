@@ -79,12 +79,16 @@ collection, distinct, array_agg and string_agg, selected numeric
 reduction, percentile, variance and standard deviation), the per-aggregate
 evaluation, and the whole group operation advance as resumable states whose
 steps pay at most one control unit; the synchronous evaluator drains the
-same states. The provider covers groups whose aggregates are all direct.
-Its evidence is an independently derived exact/one-short work fixture
+same states. The provider covers groups whose aggregates are all direct, and also
+selected numeric reductions when the task supplies the numeric execution;
+the dispatcher seals the task's numeric occurrences when the provider
+completes, and a failed seal fails the attempt. Numeric groups inside a
+bounded chain (a following same-task filter, a second group) take the same
+provider. Its evidence is an independently derived exact/one-short work fixture
 (21 units for a one-row max group), managed direct, ordered, collection,
-nested distinct and statistics fixtures at quantum one with two consumers,
-Host cancellation after positive work, and a standard Node Host timer
-cancellation. Filtered, expression and selected numeric group aggregates,
+nested distinct, statistics and numeric fixtures at quantum one with two
+consumers, Host cancellation after positive work, and a standard Node Host
+timer cancellation. Filtered and expression-argument group aggregates,
 pivot and analytic still use the synchronous route, so the strict group
 entrypoint assurance remains open.
 

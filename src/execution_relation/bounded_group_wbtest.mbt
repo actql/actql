@@ -138,7 +138,8 @@ test "bounded group stops after positive work without publishing" {
   }
   assert_true(@bounded.request_cancel(control))
   assert_true(
-    advance_bounded_group_execution(execution, 1) is Ok(BoundedGroupStopped(_, ..)),
+    advance_bounded_group_execution(execution, 1)
+    is Ok(BoundedGroupStopped(_, ..)),
   )
   assert_true(cleanup_bounded_group_execution(execution).unwrap())
   assert_true(completed_output_available(source))

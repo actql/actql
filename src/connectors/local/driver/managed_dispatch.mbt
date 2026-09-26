@@ -1008,6 +1008,7 @@ pub fn[T] start_local_managed_dispatch(
                 @connector.managed_fixed_compute_request_capacity(request).max_rows,
                 @connector.managed_fixed_compute_request_capacity(request).max_value_bytes,
                 setup.execution,
+                numeric~,
               ) {
               Ok(value) => value
               Err(issue) => return Err(Configuration(issue))
@@ -1027,6 +1028,13 @@ pub fn[T] start_local_managed_dispatch(
           Ok(@local.Complete(output, progress~, work~)) => {
             if progress < 0L || work < 0L || work > quantum.to_int64() {
               return Err(Configuration(InvalidLimits))
+            }
+            // As after synchronous computation, every selected numeric
+            // reduction slot of the task must be sealed before publication.
+            if numeric_count > 0 &&
+              !@strategy.seal_task_numeric_reductions(setup.run, execution) {
+              execution_finished.val = true
+              return Err(Execution(ForeignCandidate))
             }
             ordinary.val = Some(output)
             execution_finished.val = true

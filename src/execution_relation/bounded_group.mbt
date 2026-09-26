@@ -47,8 +47,8 @@ impl RelationRows for BoundedGroupInputRows with fn field_names(self) {
 }
 
 ///|
-/// Groups this bounded kernel executes: every aggregate is direct and
-/// needs no selected numeric reduction.
+/// Groups this bounded kernel executes without numeric callbacks: every
+/// aggregate is direct and needs no selected numeric reduction.
 pub fn bounded_group_supported(group : @lower.PreparedGroup) -> Bool {
   if !group_execution_supported(group) {
     return false
@@ -59,6 +59,27 @@ pub fn bounded_group_supported(group : @lower.PreparedGroup) -> Bool {
       @lower.group_aggregate_argument(aggregate)
       is @lower.AggregateExpression(_) ||
       @lower.group_aggregate_requires_numeric_observation(aggregate) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// Groups this bounded kernel executes when the task supplies its selected
+/// numeric reduction callbacks: every aggregate is direct (no filter and no
+/// expression argument); selected numeric reductions are allowed.
+pub fn bounded_group_supported_with_numeric(
+  group : @lower.PreparedGroup,
+) -> Bool {
+  if !group_execution_supported_with_numeric(group) {
+    return false
+  }
+  for index in 0..<@lower.group_aggregate_count(group) {
+    let aggregate = @lower.group_aggregate_at(group, index).unwrap()
+    if @lower.group_aggregate_filter(aggregate) is Some(_) ||
+      @lower.group_aggregate_argument(aggregate)
+      is @lower.AggregateExpression(_) {
       return false
     }
   }
@@ -461,6 +482,7 @@ fn start_bounded_group_with_input(
   max_frames : Int,
   max_entries : Int,
   max_name_bytes : Int,
+  numeric : NumericAggregateExecution?,
 ) -> Result[BoundedGroupExecution, BoundedGroupIssue] {
   if max_rows < 1 ||
     max_work < 0 ||
@@ -475,7 +497,11 @@ fn start_bounded_group_with_input(
     @lower.sequence_step(generated.sequence, step)
     is Some(@lower.RowStep(kernel)) &&
     @lower.kernel_group(kernel) is Some(group) &&
-    bounded_group_supported(group) &&
+    (if numeric is Some(_) {
+      bounded_group_supported_with_numeric(group)
+    } else {
+      bounded_group_supported(group)
+    }) &&
     global_count_input_matches(input, owner, step) &&
     global_count_input_available(input) else {
     return Err(InvalidExecution)
@@ -563,7 +589,7 @@ fn start_bounded_group_with_input(
     },
     [],
     identity_limits,
-    None,
+    numeric,
     step=@lower.kernel_step(kernel),
   )
   let state : BoundedGroupState = {
@@ -624,6 +650,7 @@ pub fn start_bounded_group_execution(
   max_frames : Int,
   max_entries : Int,
   max_name_bytes : Int,
+  numeric? : NumericAggregateExecution? = None,
 ) -> Result[BoundedGroupExecution, BoundedGroupIssue] {
   start_bounded_group_with_input(
     engine,
@@ -637,6 +664,7 @@ pub fn start_bounded_group_execution(
     max_frames,
     max_entries,
     max_name_bytes,
+    numeric,
   )
 }
 
@@ -653,6 +681,7 @@ pub fn start_bounded_group_execution_supplied(
   max_frames : Int,
   max_entries : Int,
   max_name_bytes : Int,
+  numeric? : NumericAggregateExecution? = None,
 ) -> Result[BoundedGroupExecution, BoundedGroupIssue] {
   start_bounded_group_with_input(
     engine,
@@ -666,6 +695,7 @@ pub fn start_bounded_group_execution_supplied(
     max_frames,
     max_entries,
     max_name_bytes,
+    numeric,
   )
 }
 

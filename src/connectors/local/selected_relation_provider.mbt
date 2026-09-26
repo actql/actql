@@ -203,6 +203,7 @@ fn start_bounded_relation_step(
   measurement : @execution.FixedInputGuardMeasureLimits,
   max_value_bytes : Int,
   remaining_work : Int,
+  numeric : @execution.NumericAggregateExecution?,
 ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
   guard remaining_work > 0 &&
     bounded_relation_step_provider(selected, execution, measurement)
@@ -221,6 +222,7 @@ fn start_bounded_relation_step(
     execution.rows.max_rows,
     max_value_bytes,
     limited,
+    numeric~,
   )
 }
 
@@ -356,6 +358,7 @@ fn bounded_relation_chain_execution(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   max_value_bytes : Int,
+  numeric : @execution.NumericAggregateExecution?,
 ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
   let count = @execution.generated_sequence_step_count(sequence)
   guard count > 1 &&
@@ -384,6 +387,7 @@ fn bounded_relation_chain_execution(
       measurement,
       max_value_bytes,
       execution.max_work,
+      numeric,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -432,6 +436,7 @@ fn bounded_relation_chain_execution(
         measurement,
         max_value_bytes,
         remaining.to_int(),
+        numeric,
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
@@ -638,7 +643,7 @@ fn selected_relation_provider(
   limits : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> ManagedProvider {
-  managed_provider_with_inputs(
+  managed_provider_with_numeric(
     sequence => {
       let count = @execution.generated_sequence_step_count(sequence)
       let owner = @execution.generated_sequence_owner(sequence)
@@ -726,10 +731,10 @@ fn selected_relation_provider(
       }
     },
     sequence => bounded_relation_chain_capacity(sequence, limits, measurement),
-    (sequence, inputs, _max_rows, max_value_bytes, execution) => {
+    (sequence, inputs, _max_rows, max_value_bytes, execution, numeric) => {
       if @execution.generated_sequence_step_count(sequence) > 1 {
         return bounded_relation_chain_execution(
-          sequence, inputs, execution, measurement, max_value_bytes,
+          sequence, inputs, execution, measurement, max_value_bytes, numeric,
         )
       }
       guard @execution.generated_sequence_step_index_at(sequence, 0)

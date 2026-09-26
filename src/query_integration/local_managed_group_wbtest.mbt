@@ -692,7 +692,11 @@ fn run_local_managed_group_case(
     variant == "ordered" ||
     variant == "collections" ||
     variant == "nested_distinct" ||
-    variant == "statistics"
+    variant == "statistics" ||
+    // Selected numeric reductions run inside the bounded group provider.
+    variant == "numeric" ||
+    variant == "numeric_filter" ||
+    variant == "numeric_regroup"
   let execution_advances = Ref(0)
   let (group_ops, groups) = run_local_managed_test_task(
     installed,
@@ -910,7 +914,8 @@ fn assert_standard_host_cancels_bounded_count(
   let expanded = variant == "direct" ||
     variant == "ordered" ||
     variant == "collections" ||
-    variant == "statistics"
+    variant == "statistics" ||
+    variant == "numeric"
   @local_driver.configure_local_retained_inputs(
     installed,
     {
@@ -1088,6 +1093,11 @@ test "standard Host cancels collection aggregates after bounded work" {
 ///|
 test "standard Host cancels group statistics after bounded work" {
   assert_standard_host_cancels_bounded_count("statistics", before_cancel=20)
+}
+
+///|
+test "standard Host cancels a numeric group after bounded work" {
+  assert_standard_host_cancels_bounded_count("numeric", before_cancel=20)
 }
 
 ///|

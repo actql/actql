@@ -18,14 +18,14 @@ fn group_provider(
   limits : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> ManagedProvider {
-  managed_provider_with_inputs(
+  managed_provider_with_numeric(
     sequence => {
       guard @execution.generated_sequence_step_count(sequence) == 1 &&
         @execution.generated_sequence_step_index_at(sequence, 0) is Some(step) &&
         @execution.generated_sequence_step_at(sequence, 0)
         is Some(@lower.RowStep(kernel)) &&
         @lower.kernel_group(kernel) is Some(group) &&
-        @execution.bounded_group_supported(group) else {
+        @execution.bounded_group_supported_with_numeric(group) else {
         return false
       }
       @lower.node_at(
@@ -38,7 +38,7 @@ fn group_provider(
     sequence => {
       @execution.generated_sequence_capacity(sequence, limits, measurement)
     },
-    (sequence, inputs, _max_rows, max_value_bytes, execution) => {
+    (sequence, inputs, _max_rows, max_value_bytes, execution, numeric) => {
       guard inputs is [input] &&
         @execution.generated_sequence_step_index_at(sequence, 0) is Some(step) else {
         return Err(@connector.Execution(@execution.InputSet))
@@ -58,6 +58,7 @@ fn group_provider(
             execution.max_frames,
             execution.rows.operation_entries,
             max_value_bytes,
+            numeric~,
           )
         SuppliedRelationInput(read) =>
           @execution.start_bounded_group_execution_supplied(
@@ -72,6 +73,7 @@ fn group_provider(
             execution.max_frames,
             execution.rows.operation_entries,
             max_value_bytes,
+            numeric~,
           )
         CarrierInput(_) => return Err(@connector.Execution(@execution.InputSet))
       }
