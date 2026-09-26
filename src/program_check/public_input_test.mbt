@@ -80,8 +80,10 @@ test "ordinary entries require no evidence inventory and reuse current Parameter
     )
     assert_true(
       @program_check.unit_used_values_cid(
-        value, @program_check.unit_count(value),
-      ) is None,
+        value,
+        @program_check.unit_count(value),
+      )
+      is None,
     )
     assert_true(
       @parameter_refs.used_value_at(used, 0).unwrap().value.value is Number(2.0),

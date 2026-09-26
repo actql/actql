@@ -75,9 +75,9 @@ pub fn unit_contracts_cid(program : CheckedProgram, index : Int) -> String? {
 /// value identity. A local Invocation must use the same Unit coordinate as
 /// its Unit Definition and contract closure.
 pub fn unit_used_values_cid(program : CheckedProgram, index : Int) -> String? {
-  @context.program_identity_stage_at(program.identity, index).map(stage =>
-    @context.stage_identity_parameter_values_cid(stage),
-  )
+  @context.program_identity_stage_at(program.identity, index).map(stage => {
+    @context.stage_identity_parameter_values_cid(stage)
+  })
 }
 
 ///|

@@ -2641,10 +2641,9 @@ pub fn client_program_check_effect_apply_preflight(
   @strategy.check_captured_effect_apply_preflight(
     preview, proofs, source_binding_cids, resolved_contract_cids, capability_evidence_cids,
     authority_scope_cids, guards, routes, risk, require_partial_application, review_projection_cid,
-    risk_authority_scope_cid,
-    policy_cid, validity_evidence_cid, issuer_evidence_cid, authentication_evidence_cid,
-    issuer_kind, decision, request_scope, keys, max_members, max_rows, max_targets,
-    max_work,
+    risk_authority_scope_cid, policy_cid, validity_evidence_cid, issuer_evidence_cid,
+    authentication_evidence_cid, issuer_kind, decision, request_scope, keys, max_members,
+    max_rows, max_targets, max_work,
   )
 }
 
@@ -2693,11 +2692,10 @@ pub fn client_program_check_recovered_effect_apply_semantics(
   })
   @strategy.check_effect_preview_apply_semantics(
     preview, source_binding_cids, resolved_contract_cids, capability_evidence_cids,
-    authority_scope_cids, guards, routes, risk, require_partial_application,
-    review_projection_cid, risk_authority_scope_cid,
-    policy_cid, validity_evidence_cid, issuer_evidence_cid, authentication_evidence_cid,
-    issuer_kind, decision, request_scope, keys, max_members, max_rows, max_targets,
-    max_work,
+    authority_scope_cids, guards, routes, risk, require_partial_application, review_projection_cid,
+    risk_authority_scope_cid, policy_cid, validity_evidence_cid, issuer_evidence_cid,
+    authentication_evidence_cid, issuer_kind, decision, request_scope, keys, max_members,
+    max_rows, max_targets, max_work,
   )
 }
 
