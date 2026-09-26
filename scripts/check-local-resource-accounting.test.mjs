@@ -1496,6 +1496,18 @@ for (const operation of ['node_rows', 'edge_rows', 'to_events', 'to_vectors']) {
 }
 
 test('append loses its boundary record when exact resource evidence is removed', () => {
+  for (const [field, roles] of [
+    ['boundary_tests', ['append_chain_two_consumers', 'append_chain_cancel_cleanup']],
+    ['environment_tests', ['append_chain_timer', 'append_chain_publication']],
+  ]) {
+    for (const role of roles) {
+      assert.match(run(undefined, routes => {
+        const append = routes.routes.find(entry => entry.family === 'RelA' &&
+          entry.operation === 'append');
+        append[field] = append[field].filter(item => item.role !== role);
+      }), new RegExp(`RelA append: ${role} fixture is missing`, 'u'));
+    }
+  }
   assert.match(run(undefined, routes => {
     const append = routes.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'append');

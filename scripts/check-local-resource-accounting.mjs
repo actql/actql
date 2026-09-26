@@ -529,6 +529,8 @@ for (const [index, route] of routeEntries.entries()) {
       'append_external_nullable_alignment',
       'append_external_cancel_cleanup',
       'append_same_stage_two_consumer_reclamation',
+      'append_chain_two_consumers',
+      'append_chain_cancel_cleanup',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);
@@ -825,6 +827,13 @@ for (const [index, route] of routeEntries.entries()) {
       'bounded_join_split_host_timer',
       'bounded_join_split_named_result',
     ]) {
+      if (!environmentRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+  }
+  if (route.family === 'RelA' && route.operation === 'append') {
+    for (const role of ['append_chain_timer', 'append_chain_publication']) {
       if (!environmentRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);
       }

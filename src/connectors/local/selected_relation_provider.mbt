@@ -181,6 +181,7 @@ fn bounded_relation_step_provider(
   for
     provider in [
       selected_relation_provider(execution, measurement),
+      append_provider(execution, measurement),
       global_count_provider(execution, measurement),
       row_window_provider(execution, measurement),
       unpivot_provider(execution, measurement),
@@ -592,7 +593,10 @@ fn selected_relation_provider(
         } else {
           false
         }
-        let input_count = if operation is @lower.JoinStep(_) { 2 } else { 1 }
+        let input_count = match operation {
+          @lower.JoinStep(_) | @lower.AppendStep(_) => 2
+          _ => 1
+        }
         if count > 1 &&
           index == 0 &&
           @lower.preparation_input_count(prepared) != input_count {

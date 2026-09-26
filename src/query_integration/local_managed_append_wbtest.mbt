@@ -85,6 +85,7 @@ fn run_local_managed_append_case(
     append_task,
     append_live,
     require_provider=true,
+    execution_quantum=1,
   )
   let rows = local_managed_test_rows(append_ops)
   assert_eq(rows, expected)
@@ -184,10 +185,63 @@ test "Local managed append consumes two imported producers" {
 }
 
 ///|
-test "standard Host stops external append after row work" {
+test "Local bounded append filter chain retains two consumers" {
+  run_local_managed_append_case("imported_filter", ["{\"id\":2}", "{\"id\":3}"])
+}
+
+///|
+test "ordinary append filter chain reserves both live children" {
   let (run, issuer) = captured_graph_fixture(
     local_values_append_chain=true,
-    local_values_append_variant="imported",
+    local_values_append_variant="imported_filter",
+  )
+  let sequence = dispatch_test_generated(run)[2]
+  assert_eq(@execution.generated_sequence_step_count(sequence), 2)
+  let limits = dispatch_test_limits()
+  let registry = search_registry()
+  let installed = @local_connector.prepare_local_compute_module(
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    [sequence],
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+    1,
+  ).unwrap()
+  let provider = @local_connector.local_module_managed_provider(
+    installed, sequence,
+  ).unwrap()
+  let capacity = @local_connector.managed_provider_capacity(provider, sequence).unwrap()
+  let base = @execution.generated_sequence_capacity(
+    sequence,
+    limits.local_execution,
+    limits.guards,
+  ).unwrap()
+  let mut children = 0L
+  for index in 0..<2 {
+    let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
+    let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
+    let child = @execution.generated_sequence_capacity(
+      selected,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap()
+    children += child.retained_bytes + child.execution_bytes
+  }
+  // Both private completions coexist until reverse-order chain cleanup.
+  // Each live child also owns the existing 256-byte handle allowance.
+  assert_true(children > base.execution_bytes)
+  assert_eq(capacity.retained_bytes, base.retained_bytes)
+  assert_eq(capacity.execution_bytes, children + 512L)
+  @strategy.stop_captured_dag(run)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+fn cancel_local_managed_append_case(variant : String) -> Unit raise {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_append_chain=true,
+    local_values_append_variant=variant,
     ledger_limits=Some({
       planning_work: 10000,
       attempts: 20,
@@ -285,4 +339,14 @@ test "standard Host stops external append after row work" {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "standard Host stops external append after row work" {
+  cancel_local_managed_append_case("imported")
+}
+
+///|
+test "standard Host stops append filter chain without releasing its inputs" {
+  cancel_local_managed_append_case("imported_filter")
 }

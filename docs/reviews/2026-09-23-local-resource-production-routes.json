@@ -3471,6 +3471,20 @@
           "fixture": "bounded append aligns nullable fields in authored left order"
         },
         {
+          "role": "append_chain_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_append_wbtest.mbt",
+          "fixture": "Local bounded append filter chain retains two consumers"
+        },
+        {
+          "role": "append_chain_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_append_wbtest.mbt",
+          "fixture": "standard Host stops append filter chain without releasing its inputs"
+        },
+        {
           "role": "append_external_cancel_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -3479,6 +3493,20 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "append_chain_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "append-filter-in-flight"
+        },
+        {
+          "role": "append_chain_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "append-filter-publication"
+        },
         {
           "role": "append_external_node_timer_cancel_cleanup",
           "suite": "node:duckdb_standard_host",

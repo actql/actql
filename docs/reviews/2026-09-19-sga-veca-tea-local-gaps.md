@@ -44,6 +44,24 @@ paths now have separate evidence, but that does not certify an unrelated
 whole-sequence or formal variant. Multiple rows below share one
 implementation while retaining separate input bindings and route evidence.
 
+The current append follow-up connects an unsplit two-input `append` followed
+by a unary Relation suffix to the existing bounded chain owner. Previously,
+the chain's provider set omitted append and assumed every non-join step had
+one input. The change preserves both first-step input positions and keeps
+child outputs private until reverse-order cleanup. The final managed fixtures
+pass 11 tests on each of JS, Wasm, and native, including quantum-one
+two-consumer success, cancellation with both producers still live, and
+overlapping child-capacity reservation. Workers freshness and the 198 resource
+gate regression tests pass. The final standard Node/native Host suite passes
+ordinary two-consumer execution, independent Named Result expectations, and
+timer cancellation during append work with stop, nonpublication, and cleanup.
+The cancellation fixture expands the exact input Stage using its declared
+schema; no product admission rule was weakened to accept fixture data.
+This is local product-path evidence, not a same-SHA Linux CI result.
+This is not whole-operation resource assurance: the chain's overlapping
+workspace and cumulative work still need their own exact/one-short evidence;
+the single-step append proof is not silently reused for the entire chain.
+
 | Ordinary entry and current limitation | Required connection and proof |
 | --- | --- |
 | A supported multi-step Relation Program can miss a selected provider and run its entire computation synchronously before the bounded copy. A JS timer cannot reach that computation in flight. | Inventory reachable `None` cases from standard Host selection; connect each long-running checked sequence to existing bounded step execution without changing exact input edges, evaluation/failure order, numeric occurrence seals, or Result identity. Run positive-work timer cancel, stop, nonpublication, cleanup, and two-consumer success through the normal Host. |

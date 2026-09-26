@@ -2276,6 +2276,12 @@ fn local_values_analytic_program(variant : String) -> String {
 ///|
 /// Fixture owner: query_integration/query_checked_program_wbtest.mbt
 fn local_values_append_program(variant : String) -> String {
+  if variant == "imported_filter" {
+    return local_values_append_program("imported").replace(
+      old="\"append\":{\"with\":\"r\"},\"as\":\"out\"}",
+      new="\"append\":{\"with\":\"r\"},\"as\":\"appended\"},{\"from\":\"appended\",\"filter\":\"id > 1\",\"as\":\"out\"}",
+    )
+  }
   let remote =
     #|{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}}
   let consumer = fn(id : String, producer : String, fields : String) {

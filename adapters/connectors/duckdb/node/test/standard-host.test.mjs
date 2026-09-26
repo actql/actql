@@ -5204,6 +5204,24 @@ async function exerciseStrategyGraph(
     steps: [{select: ['id'], as: 'out'}],
     results: {r: {from: 'out', fields: ['id']}},
   })));
+  const appendFilterProgram = structuredClone(appendProgram);
+  const appendFilterStage = appendFilterProgram.stages.find(
+    stage => stage.id === 'append_a');
+  const appendSources = appendFilterStage.steps.slice(0, 2).map((step, index) => ({
+    id: `append_source_${index}`,
+    inputs: {},
+    steps: [{...structuredClone(step), as: 'out'}],
+    results: {r: {from: 'out', fields: ['id']}},
+  }));
+  appendFilterStage.inputs = {
+    l: {result: {stage: 'append_source_0', result: 'r'}},
+    r: {result: {stage: 'append_source_1', result: 'r'}},
+  };
+  appendFilterStage.steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', filter: 'id > 1', as: 'out'},
+  ];
+  appendFilterProgram.stages.splice(1, 0, ...appendSources);
   const nestProgram = structuredClone(zeroInputProgram);
   nestProgram.stages.splice(1, 3, {
     id: 'nest_parents',
@@ -6276,6 +6294,7 @@ async function exerciseStrategyGraph(
     ['global top k', globalTopKProgram, [1, 2, 3, 4, 5]],
     ['partitioned top k', partitionedTopKProgram, [1, 2, 3, 4, 5]],
     ['append', appendProgram, [1, 2, 3, 4, 5]],
+    ['append filter chain', appendFilterProgram, [1, 2, 3, 4, 5]],
     ['direct cross join', directCrossJoinProgram, [1, 2, 3, 4, 5]],
     ['nest', nestProgram, [1, 2, 3, 4, 5]],
     ['nest then unnest/filter', nestUnwrapProgram, [1, 2, 3, 4, 5, 6]],
@@ -6374,6 +6393,10 @@ async function exerciseStrategyGraph(
       if (name === 'same-stage keyed count/take') {
         assert.deepEqual(zeroInputExecution.completed.map(item => item.outputRows),
           [3, 2, 1, 1, 1]);
+      }
+      if (name === 'append filter chain') {
+        assert.deepEqual(zeroInputExecution.completed.map(item => item.outputRows),
+          [1, 1, 1, 1, 1]);
       }
       if (name === 'captured Relation filter/select chain') {
         assert.deepEqual(
@@ -6622,6 +6645,12 @@ async function exerciseStrategyGraph(
     stage: 'group_a',
     tasks: 5,
     expected: [{id: null, n: 1, present: 0}],
+  }, {
+    name: 'append-filter-publication',
+    program: structuredClone(appendFilterProgram),
+    stage: 'append_a',
+    tasks: 5,
+    expected: [{id: 2}],
   }, {
     name: 'same-stage-full-join-publication',
     program: structuredClone(joinProgram),
@@ -7254,6 +7283,8 @@ async function exerciseStrategyGraph(
       program: sameStageGlobalCountProgram, cancelAtStart: 2},
     {name: 'same-stage-keyed-count-in-flight',
       program: sameStageKeyedCountProgram, cancelAtStart: 2},
+    {name: 'append-filter-in-flight',
+      program: appendFilterProgram, cancelAtStart: 3},
     {name: 'split-values-fixed-watermark-in-flight',
       program: fixedWatermarkProgram, cancelAtStart: 2},
     {name: 'split-values-prefix-watermark-in-flight',
@@ -7331,7 +7362,8 @@ async function exerciseStrategyGraph(
     const sameStageJsonFilterCancellation = cancellationName ===
       'same-stage-json-pick-filter-in-flight';
     const valuesStage = cancellableValuesProgram.stages.find(
-      stage => stage.id === (sameStageGlobalCountCancellation
+      stage => stage.id === (cancellationName === 'append-filter-in-flight'
+        ? 'append_source_0' : sameStageGlobalCountCancellation
         ? 'group_a' : globalCountCancellation
         ? 'group_values' : lagCancellation
         ? 'lagged' : rowWindowCancellation
@@ -7363,7 +7395,7 @@ async function exerciseStrategyGraph(
           ? {id: index, items: [index, index + 1]}
           : jsonPickCancellation || sameStageJsonFilterCancellation
             ? {id: index, payload: {inner: {leaf: index}}}
-        : globalCountCancellation
+        : globalCountCancellation || cancellationName === 'append-filter-in-flight'
           ? {id: index}
         : {id: index, label: `row${index}`});
     }
@@ -7433,7 +7465,9 @@ async function exerciseStrategyGraph(
                       unpivotCancellation ||
                       unnestCancellation || jsonPickCancellation ||
                       sameStageJsonFilterCancellation)
-                    ? Math.min(quantum, 7) : quantum;
+                    ? Math.min(quantum, 7)
+                    : cancellationName === 'append-filter-in-flight'
+                      ? 1 : quantum;
                   const result = operation.advance(stepQuantum);
                   const observation = checked(result);
                   if (cancellationName === 'nested-global-count-in-flight' &&
