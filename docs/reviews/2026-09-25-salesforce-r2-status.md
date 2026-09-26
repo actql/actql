@@ -2,6 +2,17 @@
 
 ## Current connection (2026-09-26)
 
+The source-free Observation Set and Run Invocation in the public Effect
+integration now come from the exact checked compiler owner through the shared
+Host issuer. The Salesforce test no longer constructs those bodies or supplies
+a test-authored Template CID. The compiler rejects imported or external inputs
+before this issuer can be used. The existing Effect-free Values Host uses the
+same issuer procedure without changing its wire contract. This does not grant
+apply authority: the installed Host still requires current authorization,
+the durable Run-start claim, and the Effect ledger's row claims. A callback
+failure or lost response is reconciled from those retained claims and cannot
+acquire a second physical start by resubmitting the public request.
+
 The Distributor-owned compiler and durable start handoff
 `e65664ebb415a80a0d80edf7f6b04038ced18709` is integrated with the
 Connector branch. Its `installNodeClientEffectRun` entry issues the formal

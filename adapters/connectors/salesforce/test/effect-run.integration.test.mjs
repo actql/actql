@@ -1480,19 +1480,13 @@ test(`two-member captured Effect Run ${
     const admission = moon.clientProgramAdmitEffectPublication(
       prepared, ...evidence);
     assert.ok(admission);
-    const observation = checked(moon.strategyRunEvidenceSeal(
-      'observation_set', JSON.stringify({
-        version: 'actql-observation-set/0.1',
-        invocation_template_cid: moon.strategyRunEvidenceIdentity(
-          evidence[0]),
-        source_evidence_cids: [], captured_input_artifact_cids: [],
-        consistency: 'no_external_sources', capture_started_at: null,
-        capture_completed_at: null,
-        replayability: {materialized: false, availability_evidence_cids: []},
-        data_policy_cid: cid('d'),
-      }), 100000, 10000, 64));
-    const invocation = checked(moon.strategyIssueRunInvocation(
-      evidence[0], observation, 100000, 10000, 64));
+    const sourceFree = checked(moon.clientProgramIssueEffectSourceFreeInvocation(
+      effectCompilation, cid('d'), 100000, 10000, 64));
+    const observation = sourceFree._0;
+    const invocation = sourceFree._1;
+    assert.equal(JSON.parse(moon.strategyRunEvidenceJson(observation))
+      .invocation_template_cid,
+    moon.strategyRunEvidenceIdentity(evidence[0]));
     const [registry, contract] = await Promise.all([
       readFile(new URL('../../../../spec/dependencies/aoa-pipeline-registry.json',
         import.meta.url), 'utf8'),

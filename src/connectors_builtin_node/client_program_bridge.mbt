@@ -4422,6 +4422,26 @@ pub fn client_program_effect_compilation_template_wire(
 }
 
 ///|
+/// Issue the source-free observation and Run Invocation from the exact
+/// checked Effect compilation. The Host supplies its data-policy identity;
+/// the Program cannot substitute a Template or observation body.
+#export_name("clientProgramIssueEffectSourceFreeInvocation")
+pub fn client_program_issue_effect_source_free_invocation(
+  value : @publication_host.ClientEffectCompilation,
+  data_policy_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  @publication_host.issue_client_effect_source_free_invocation(
+    value, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramEffectCompilationCompiledPlanWire")
 pub fn client_program_effect_compilation_compiled_plan_wire(
   value : @publication_host.ClientEffectCompilation,
