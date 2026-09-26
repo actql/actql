@@ -305,6 +305,17 @@ pub fn client_effect_allowed_run_admission(
 }
 
 ///|
+/// Use the saved policy and exact Run Definition at physical-start time.
+/// Current Host authorization remains an independent requirement.
+pub fn client_effect_run_start_current(
+  allowed : ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  at : String,
+) -> Bool {
+  @publication.run_publication_start_current(allowed.admission, definition, at)
+}
+
+///|
 /// A saved definition binds the original policy evidence, not a newly issued
 /// authorization. The Host retains those records in the same request custody.
 pub fn admit_client_effect_allowed_run(

@@ -473,6 +473,8 @@ pub fn run_publication_compiled_plan_cid(RunPublicationAdmission) -> String
 
 pub fn run_publication_prepared(RunPublicationAdmission) -> RunEvidenceValue
 
+pub fn run_publication_start_current(RunPublicationAdmission, PublicationContract, String) -> Bool
+
 pub fn run_publication_template_cid(RunPublicationAdmission) -> String
 
 pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]

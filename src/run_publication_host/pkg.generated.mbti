@@ -152,6 +152,8 @@ pub fn client_effect_local_source_matches(PreparedClientEffectComputation, @phys
 
 pub fn client_effect_member_descriptor(PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String), ClientEffectMemberDescriptorIssue]
 
+pub fn client_effect_run_start_current(ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Bool
+
 pub fn client_execution_material_template_cid(ClientExecutionMaterial) -> String
 
 pub fn client_execution_material_template_wire(ClientExecutionMaterial) -> String

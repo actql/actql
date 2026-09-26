@@ -96,6 +96,15 @@ atomically with the request in the existing SQLite journal and is never
 replaced with newly authorized evidence on resend. Old records lacking that
 evidence fail closed rather than being backfilled with invented authority.
 
+The Host also checks the saved Prepared Invocation and Run Definition deadlines
+against its current clock. New expired admissions are rejected. For an accepted
+but unstarted Run, this check runs after asynchronous current authorization and
+immediately before the one-time physical-start claim. At the exact deadline
+execution is denied and the confirmed pre-dispatch failure is retained. A Run
+whose physical start was already claimed remains a reconciliation case even if
+its saved admission subsequently expires; expiration never proves that its
+Effect did not run or releases its cleanup owner.
+
 `accept()` returns a local opaque handle plus `ref`, `durability`, `revision`
 and `lookupExpiresAt`. It returns only after durable admission and never starts
 capture. Existing lookup/attach operations remain read-only. An accepted handle

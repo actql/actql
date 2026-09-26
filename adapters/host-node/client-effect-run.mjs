@@ -11,12 +11,17 @@ const limits = Object.freeze({maxWireBytes: 1000000, maxNodes: 100000,
   maxDepth: 100});
 const denied = () => Object.assign(new Error('ClientEffectRunDenied'),
   {code: 'ClientEffectRunDenied'});
+const expired = ref => Object.assign(new Error('ClientEffectRunExpired'),
+  {code: 'ClientEffectRunExpired', ref});
 
 export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
-  journal, authorizeRequest, authorizeRunStart, execute}) {
+  journal, authorizeRequest, authorizeRunStart, execute,
+  now = () => new Date().toISOString()}) {
   if (typeof authorizeRequest !== 'function' || typeof execute !== 'function' ||
-      typeof journal?.reservePhysicalStart !== 'function') {
+      typeof journal?.reservePhysicalStart !== 'function' ||
+      typeof now !== 'function' ||
+      typeof moon?.clientProgramEffectRunStartCurrent !== 'function') {
     throw new TypeError('InvalidClientEffectRunInstallation');
   }
   const startRun = installNodeClientRunStart({journal, requestControl: moon,
@@ -50,6 +55,8 @@ export function installNodeClientEffectRun({moon,
             policy.expiresAt));
           const definition = checked(moon.clientProgramIssueEffectRunDefinition(
             allowed, tenantId, randomUUID(), policy.createdAt, policy.expiresAt));
+          if (!moon.clientProgramEffectRunStartCurrent(allowed,
+            definition, now())) throw expired();
           return {
             resultNames: moon.clientProgramEffectCompilationResultNames(compile()),
             runDefinition: control.admit('run_definition',
@@ -76,6 +83,10 @@ export function installNodeClientEffectRun({moon,
       const {prepared, identity, tenantId, principalId, connection, compile} = owned;
       const start = await startRun({identity, tenantId, principalId, connection});
       const retained = journal.resolveDefinition(identity, {tenantId}, moon, control);
+      if (retained.physicalStartReserved !== false ||
+          retained.preDispatchFailureConfirmed) {
+        return Object.freeze({kind: 'reconcile', ref: start.ref});
+      }
       const evidence = retained.runAdmissionEvidence;
       if (evidence === undefined) {
         throw Object.assign(new Error('ClientEffectRunEvidenceMissing'),
@@ -96,6 +107,22 @@ export function installNodeClientEffectRun({moon,
           principalId, connection, ref: retained.ref,
           runDefinition: retained.runDefinition}));
       } catch { /* A failed current authority observation fails closed. */ }
+      if (authorized === true &&
+          !moon.clientProgramEffectRunStartCurrent(allowed,
+            definition, now())) {
+        // This Run never crossed the physical boundary. A concurrent winner
+        // may have claimed it, in which case its unknown outcome is retained.
+        try { journal.markPreDispatchFailure(start.ref); }
+        catch (cause) {
+          const latest = journal.resolveDefinition(identity, {tenantId},
+            moon, control);
+          if (latest?.physicalStartReserved !== false) {
+            return Object.freeze({kind: 'reconcile', ref: start.ref});
+          }
+          throw cause;
+        }
+        throw expired(start.ref);
+      }
       if (!journal.reservePhysicalStart(identity, {tenantId, ref: start.ref,
         currentAuthorization: authorized === true}, moon, control)) {
         return Object.freeze({kind: 'reconcile', ref: start.ref});

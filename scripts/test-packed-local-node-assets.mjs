@@ -60,6 +60,7 @@ await writeFile(join(root, 'source.environment.json'),
   JSON.parse(catalog[1]));
 await writeFile(join(root, 'smoke.mjs'), `
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 globalThis.fetch = () => { throw new Error('NetworkOnPackedLocalRun'); };
@@ -99,6 +100,98 @@ try {
     ['answer']);
   assert.equal(executed.completed[0].outputRows, 2);
 } finally { await executed.close(); }
+const hashWithoutSelf = (body, name) => {
+  const copy = {...body};
+  delete copy[name];
+  return 'sha256:' + createHash('sha256')
+    .update(JSON.stringify(copy)).digest('hex');
+};
+const fixtureCid = digit => 'sha256:' + digit.repeat(64);
+const targetSchema = {additional_properties: false, fields: {
+  Id: {nullable: false, type: 'string'},
+  Name: {nullable: true, type: 'number'},
+}, nullable: false, type: 'object'};
+const mapping = {
+  connector_manifest_cid: fixtureCid('a'), conversions: [],
+  mapping_contract_cid: '', mapping_ref: 'mapping:crm.account.v1',
+  minimum_approval: 'none',
+  permission_rules: [{effect_kind: 'create', permissions: ['scope:create'],
+    selector_class: 'none', write_fields: ['Name']}],
+  primary_identity: 'Id', required_fields: [], required_permissions: [],
+  resource_identity_cid: fixtureCid('b'),
+  row_mapping: {Name: {field: 'id', null_behavior: 'reject'}},
+  schema: 'actql.mapping_contract/0.1',
+  target_ref: 'connector://crm/account', target_schema: targetSchema,
+  target_schema_identity: 'sha256:' + createHash('sha256')
+    .update(JSON.stringify(targetSchema)).digest('hex'),
+  version: 'salesforce-v1', writable_fields: ['Name'],
+};
+mapping.mapping_contract_cid = hashWithoutSelf(mapping,
+  'mapping_contract_cid');
+const effectEnvironmentBody = JSON.parse(wire);
+effectEnvironmentBody.mapping_contracts = [mapping];
+effectEnvironmentBody.evidence_bundle_cid = hashWithoutSelf(
+  effectEnvironmentBody, 'evidence_bundle_cid');
+const effectEnvironmentWire = JSON.stringify(effectEnvironmentBody);
+const effectEnvironment = owner.clientProgramCheckEnvironment(
+  effectEnvironmentWire, effectEnvironmentBody.evidence_bundle_cid,
+  false, false, true, false, false, false, false);
+assert(effectEnvironment);
+const effectDocument = JSON.parse(readFileSync('values.json', 'utf8'));
+effectDocument.stages[0].effects = {save: {create: {
+  target: mapping.target_ref, mapping: mapping.mapping_ref,
+  from: {result: 'rows'},
+}}};
+const effectOutcome = owner.clientProgramPrepareEffectComputationWithParameters(
+  JSON.stringify(effectDocument), 'json', effectEnvironment, undefined, []);
+const effectPrepared = owner.clientProgramEffectPreparationReady(effectOutcome);
+assert(effectPrepared, owner.clientProgramEffectPreparationIssueCode(effectOutcome));
+let effectStarts = 0;
+let clock = '2026-09-26T00:00:01.000Z';
+let effectExpiry = '2026-09-26T00:00:03.000Z';
+const openEffect = journal => effectHost.installNodeClientEffectRun({
+  moon: owner, journal, now: () => clock,
+  authorizeRequest: async () => ({executionContextCid: fixtureCid('a'),
+    hostPolicyCid: fixtureCid('b'),
+    createdAt: '2026-09-26T00:00:00.000Z', expiresAt: effectExpiry}),
+  authorizeRunStart: async () => true,
+  execute: async ({owner: effectRun}) => {
+    effectStarts++;
+    const effectSetup = owner.clientProgramOpenSourceFreeLocalEffectHost(
+      effectRun, registry, values, 1n, 0n, 0n, 0n);
+    assert(effectSetup);
+    const capture = await host.runCapturedEffectComputation(effectSetup);
+    try { assert.equal(capture.status, 'host-tasks-completed'); }
+    finally { await capture.close(); }
+    return 'captured';
+  },
+});
+const effectRequest = requestId => ({prepared: effectPrepared,
+  authorityScopeCid: fixtureCid('a'), requestId,
+  tenantId: 'packed-local', principalId: 'packed-user',
+  connection: {owner: 'local'},
+  lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
+let effectJournal = effectHost.openClientRequestJournal('./effect-journal');
+let effectRuns = openEffect(effectJournal);
+const effectAccepted = await effectRuns.accept(effectRequest('packed-effect'));
+assert.equal(effectStarts, 0);
+assert.equal((await effectRuns.start(effectAccepted)).kind, 'started');
+assert.equal(effectStarts, 1);
+effectJournal.close();
+effectJournal = effectHost.openClientRequestJournal('./effect-journal');
+effectRuns = openEffect(effectJournal);
+const effectResent = await effectRuns.accept(effectRequest('packed-effect'));
+assert.deepEqual(effectResent.ref, effectAccepted.ref);
+assert.equal((await effectRuns.start(effectResent)).kind, 'reconcile');
+assert.equal(effectStarts, 1);
+const expiring = await effectRuns.accept(effectRequest('packed-expiring'));
+clock = effectExpiry;
+await assert.rejects(effectRuns.start(expiring),
+  {code: 'ClientEffectRunExpired'});
+assert.equal(effectStarts, 1);
+await assert.rejects(effectRuns.accept(effectRequest('packed-expired-new')),
+  {code: 'ClientEffectRunExpired'});
+effectJournal.close();
 const {DuckDBInstance} = createRequire(new URL(
   './node_modules/@actql/local-node/package.json', import.meta.url))(
   '@duckdb/node-api');

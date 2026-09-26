@@ -4040,3 +4040,87 @@ test('shared Effect Client admission and physical claim survive races and restar
   await assert.rejects(host.start(attached), {code: 'ClientRunStartDenied'});
   await assert.rejects(host.accept(request('unknown')), {code: 'ClientEffectRunDenied'});
 });
+
+test('shared Effect start rejects expired saved admission before capture',
+  async t => {
+    await mkdir(scratch, {recursive: true});
+    const directory = await mkdtemp(join(scratch.pathname,
+      'effect-client-deadline-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const {document, environment} = await effectFixture({
+      memberIds: ['save', 'save_again'],
+    });
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      document, 'json', environment, undefined, []);
+    const prepared = moon.clientProgramEffectPreparationReady(outcome);
+    assert.ok(prepared, moon.clientProgramEffectPreparationIssueCode(outcome));
+    const control = runtimeCore(moon).publicationControl;
+    let clock = '2026-09-26T00:00:01.000Z';
+    let createdAt = '2026-09-26T00:00:00.000Z';
+    let expiresAt = '2026-09-26T00:00:02.000Z';
+    let expireDuringAuthorization = false;
+    let authorizationCalls = 0;
+    let physicalStarts = 0;
+    const install = journal => installNodeClientEffectRun({moon,
+      publicationControl: control, journal, now: () => clock,
+      authorizeRequest: async () => ({executionContextCid: cid('a'),
+        hostPolicyCid: cid('b'), createdAt, expiresAt}),
+      authorizeRunStart: async () => {
+        authorizationCalls++;
+        if (expireDuringAuthorization && authorizationCalls === 2) {
+          clock = expiresAt;
+        }
+        return true;
+      },
+      execute: async () => { physicalStarts++; return 'captured'; },
+    });
+    const request = requestId => ({prepared, authorityScopeCid: cid('a'),
+      requestId, tenantId: 'tenant-a', principalId: 'caller',
+      connection: {owner: 'local'},
+      lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
+    let journal = openClientRequestJournal(directory);
+    let host = install(journal);
+    createdAt = '2020-01-01T00:00:00.000Z';
+    expiresAt = '2021-01-01T00:00:00.000Z';
+    await assert.rejects(host.accept(request('expired-new')),
+      {code: 'ClientEffectRunExpired'});
+    createdAt = '2026-09-26T00:00:00.000Z';
+    expiresAt = '2026-09-26T00:00:02.000Z';
+    const delayed = await host.accept(request('expired-before-start'));
+    clock = expiresAt;
+    await assert.rejects(host.start(delayed),
+      {code: 'ClientEffectRunExpired'});
+    assert.equal(journal.resolveDefinition(
+      moon.clientProgramEffectRequestIdentity(prepared, cid('a'),
+        'expired-before-start', moon.clientProgramSourceFreeInputIntentCid()),
+      {tenantId: 'tenant-a'}, moon, control).physicalStartReserved, false);
+    clock = '2026-09-26T00:00:01.000Z';
+    authorizationCalls = 0;
+    expireDuringAuthorization = true;
+    const pending = await host.accept(request('expired-during-authority'));
+    await assert.rejects(host.start(pending),
+      {code: 'ClientEffectRunExpired'});
+    expireDuringAuthorization = false;
+    authorizationCalls = 0;
+    clock = '2026-09-26T00:00:01.000Z';
+    const restarting = await host.accept(request('expired-after-restart'));
+    journal.close();
+    journal = openClientRequestJournal(directory);
+    t.after(() => journal.close());
+    host = install(journal);
+    clock = '2026-09-26T00:00:03.000Z';
+    expiresAt = '2098-01-01T00:00:00.000Z';
+    const reaccepted = await host.accept(request('expired-after-restart'));
+    assert.deepEqual(reaccepted.ref, restarting.ref);
+    await assert.rejects(host.start(reaccepted),
+      {code: 'ClientEffectRunExpired'});
+    assert.equal(physicalStarts, 0);
+    clock = '2026-09-26T00:00:01.000Z';
+    expiresAt = '2026-09-26T00:00:03.000Z';
+    const valid = await host.accept(request('valid-control'));
+    assert.equal((await host.start(valid)).kind, 'started');
+    assert.equal(physicalStarts, 1);
+    clock = '2026-09-26T00:00:04.000Z';
+    assert.equal((await host.start(valid)).kind, 'reconcile');
+    assert.equal(physicalStarts, 1);
+  });
