@@ -41,7 +41,7 @@ async function discoveryHost(t) {
     type: 'pkcs8', format: 'pem'}));
   await writeFile(join(root, 'org-ca.crt'), org.credential.ca);
   const profilePath = join(root, 'salesforce-site.json');
-  await writeFile(profilePath, JSON.stringify({
+  const profile = {
     version: INSTALLED_SALESFORCE_SITE_VERSION, apiVersion: 'v62.0',
     cliAlias: 'actql-test', cliUsername: 'user@example.test',
     connectionRevision: 'connection-revision-a',
@@ -50,7 +50,7 @@ async function discoveryHost(t) {
     environment: 'test', instanceOrigin: org.origin,
     journalRoot: join(root, 'journal'), orgId: org.orgId, siteGeneration: 1,
     siteKey: 'salesforce-site', tenant: 'tenant-a',
-    caPath: join(root, 'org-ca.crt')}));
+    caPath: join(root, 'org-ca.crt')};
   const accountConfiguration = canonicalJson({
     version: 'actql-execution-account-config/0.1',
     account_id: 'discovery-account',
@@ -59,9 +59,11 @@ async function discoveryHost(t) {
       connection: {any_of: [`salesforce:${org.orgId}`]},
       resource: {any_of: ['Test_Record__c']},
       operation: {any_of: ['read']}}]});
-  const open = async () => {
+  // Each open plays one Host process with the profile as installed then.
+  const open = async ({changes = {}, principalId = 'owner-principal'} = {}) => {
+    await writeFile(profilePath, JSON.stringify({...profile, ...changes}));
     const authorization = await installSalesforceAuthorization({
-      accountConfiguration, principalId: 'owner-principal', root});
+      accountConfiguration, principalId, root});
     const site = await loadInstalledSalesforceSite(profilePath, {commonMoon,
       salesforceMoon, authorization, runtimeBundleCid: cid('b'),
       resolveSecret: async () => 'test-only-secret'});
@@ -159,6 +161,60 @@ test('a restarted Host restores discovery from the retained snapshot',
     assert.equal((await client.inspectResource(host.connection,
       'Test_Record__c')).status, 'ready');
     // Restoring and answering from the snapshot used no provider request.
+    assert.equal(host.org.seen.length, requests);
+    // A foreign restore is refused and the current view stays.
+    assert.throws(() => second.service.restore(host.connection, {
+      ...snapshot, observationCid: cid('9')}));
+    assert.equal((await client.resources(host.connection)).observationCid,
+      snapshot.observationCid);
+  });
+
+test('a snapshot of another Site installation never becomes current discovery',
+  async t => {
+    const host = await discoveryHost(t);
+    const first = await host.open();
+    const snapshot = await first.service.refresh(host.connection);
+    first.site.close();
+    for (const [name, options, field] of [
+      ['tenant', {changes: {tenant: 'tenant-other'}}, 'tenant'],
+      ['environment', {changes: {environment: 'staging'}}, 'environment'],
+      ['Site key', {changes: {siteKey: 'other-site'}}, 'site_key'],
+      ['Site generation', {changes: {siteGeneration: 99}}, 'site_generation'],
+      ['connection revision', {changes: {
+        connectionRevision: 'connection-revision-b'}}, 'connection_revision'],
+      ['origin', {changes: {instanceOrigin: 'https://127.0.0.1:1'}},
+        'resource_origin'],
+      ['principal', {principalId: 'other-principal'}, 'principal'],
+    ]) {
+      const reopened = await host.open(options);
+      const requests = host.org.seen.length;
+      assert.throws(() => reopened.service.restore(host.connection, snapshot),
+        error => error.code === 'ResourceCatalogBindingMismatch' &&
+          error.fields.includes(field), name);
+      assert.equal(host.org.seen.length, requests, name);
+      reopened.site.close();
+    }
+    // A different org is another connection: nothing to restore into.
+    const otherOrg = await host.open({changes: {orgId: '00D000000000009EAA'}});
+    assert.throws(() => otherOrg.service.restore(host.connection, snapshot),
+      {code: 'ResourceConnectionNotFound'});
+    otherOrg.site.close();
+    // A snapshot another generation observed is refused by the current
+    // installation, which keeps answering from its own observation.
+    const changed = await host.open({changes: {siteGeneration: 99}});
+    const foreign = await changed.service.refresh(host.connection);
+    changed.site.close();
+    const same = await host.open();
+    assert.equal(same.service.restore(host.connection, snapshot),
+      snapshot.observationCid);
+    const client = await same.client('owner-token');
+    t.after(() => client.close());
+    const requests = host.org.seen.length;
+    assert.throws(() => same.service.restore(host.connection, foreign),
+      error => error.code === 'ResourceCatalogBindingMismatch' &&
+        error.fields.includes('site_generation'));
+    assert.equal((await client.resources(host.connection)).observationCid,
+      snapshot.observationCid);
     assert.equal(host.org.seen.length, requests);
     assert.throws(() => second.service.restore(host.connection, {
       ...snapshot, observationCid: cid('9')}));

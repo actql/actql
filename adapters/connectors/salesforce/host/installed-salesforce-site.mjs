@@ -338,6 +338,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     siteGeneration: profile.siteGeneration, tenant: profile.tenant,
     environment: profile.environment,
     connectionRevision: profile.connectionRevision,
+    connectorRegistration: 'salesforce', connectorRevision: 'salesforce/0.1',
     principal: principalId, context, authorization, credential,
     issueGrant, refreshCatalog, peek,
     close() {
