@@ -3,6 +3,8 @@ import {spawnSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {machineCid} from './actql-spec-family.mjs';
+import {canonicalText} from './check-canonical-json.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -56,8 +58,28 @@ const catalog = catalogSource.slice(catalogSource.indexOf(
   'fn query_amount_nullable_catalog')).match(
   /query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/u);
 assert(catalog);
+const sourceEnvironment = JSON.parse(JSON.parse(catalog[1]));
+const sourceSelector = {source_ref: 'connector://crm/main/r#v',
+  source_contract_cid:
+    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+  source_view_contract_cid:
+    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+  read_mode: 'snapshot'};
+sourceEnvironment.schema_snapshots = [{...sourceSelector,
+  output_carrier: 'relation',
+  carrier_schema_contract_cid:
+    'sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4',
+  source_data_policy_cid:
+    'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf',
+  data_classification: 'unknown'}];
+sourceEnvironment.connector_capabilities = [{...sourceSelector,
+  capability_contract_cids: [
+    'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8'],
+}];
+delete sourceEnvironment.evidence_bundle_cid;
+sourceEnvironment.evidence_bundle_cid = machineCid(sourceEnvironment);
 await writeFile(join(root, 'source.environment.json'),
-  JSON.parse(catalog[1]));
+  canonicalText(sourceEnvironment));
 await writeFile(join(root, 'smoke.mjs'), `
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -234,7 +256,7 @@ const captured = await physical.openCapturedDuckDBSource({
     'REL.derive.ordered']),
   database: databasePath,
   sourceAccess: {authorization, connection: 'local-database',
-    resource: databasePath},
+    resource: databasePath, sourceRef: 'connector://crm/main/r#v'},
   schema: 'main', table: 'records',
   transportLimits: {maxRows: 100, maxCells: 1000,
     maxTransportBytes: 100000, maxSqlBytes: 10000,
