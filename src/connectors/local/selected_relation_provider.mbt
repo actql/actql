@@ -182,6 +182,7 @@ fn bounded_relation_step_provider(
     provider in [
       selected_relation_provider(execution, measurement),
       append_provider(execution, measurement),
+      set_provider(execution, measurement),
       global_count_provider(execution, measurement),
       group_provider(execution, measurement),
       row_window_provider(execution, measurement),

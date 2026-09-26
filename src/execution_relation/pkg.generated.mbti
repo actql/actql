@@ -62,6 +62,8 @@ pub fn advance_bounded_row_window(BoundedRowWindowExecution, Int) -> Result[Boun
 
 pub fn advance_bounded_sequence_match(BoundedSequenceMatchExecution, Int) -> Result[BoundedSequenceMatchPoll, BoundedSequenceMatchIssue]
 
+pub fn advance_bounded_set(BoundedSetExecution, Int) -> Result[BoundedSetPoll, BoundedSetIssue]
+
 pub fn advance_bounded_unnest(BoundedUnnestExecution, Int) -> Result[BoundedUnnestPoll, BoundedUnnestIssue]
 
 pub fn advance_bounded_unpivot(BoundedUnpivotExecution, Int) -> Result[BoundedUnpivotPoll, BoundedUnpivotIssue]
@@ -283,6 +285,8 @@ pub fn cleanup_bounded_join(BoundedJoinExecution) -> Result[Bool, BoundedJoinIss
 pub fn cleanup_bounded_row_window(BoundedRowWindowExecution) -> Result[Bool, BoundedRowWindowIssue]
 
 pub fn cleanup_bounded_sequence_match(BoundedSequenceMatchExecution) -> Result[Bool, BoundedSequenceMatchIssue]
+
+pub fn cleanup_bounded_set(BoundedSetExecution) -> Result[Bool, BoundedSetIssue]
 
 pub fn cleanup_bounded_unnest(BoundedUnnestExecution) -> Result[Bool, BoundedUnnestIssue]
 
@@ -964,6 +968,8 @@ pub fn start_bounded_sequence_match(@bounded_execution.Control, GeneratedSequenc
 
 pub fn start_bounded_sequence_match_events(@bounded_execution.Control, GeneratedSequence, @managed_carrier_runtime.ProducerView, Int, ValueLimits, Int, Int, Int, Int) -> Result[BoundedSequenceMatchExecution, BoundedSequenceMatchIssue]
 
+pub fn start_bounded_set(@bounded_execution.Control, GeneratedSequence, ProducerRead, ProducerRead, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedSetExecution, BoundedSetIssue]
+
 pub fn start_bounded_unnest(@bounded_execution.Control, GeneratedSequence, ProducerRead, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedUnnestExecution, BoundedUnnestIssue]
 
 pub fn start_bounded_unnest_supplied(@bounded_execution.Control, GeneratedSequence, SuppliedRelationRead, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedUnnestExecution, BoundedUnnestIssue]
@@ -1246,6 +1252,24 @@ pub enum BoundedSequenceMatchPoll {
   BoundedSequenceMatchComplete(CompletedOutput, progress~ : Int64, work~ : Int64)
   BoundedSequenceMatchFailed(BoundedSequenceMatchIssue, progress~ : Int64, work~ : Int64)
   BoundedSequenceMatchStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type BoundedSetExecution
+
+pub(all) enum BoundedSetIssue {
+  InvalidExecution
+  InputLimit
+  Rows(RowIssue)
+  Capture(CaptureIssue)
+  Completion(TrustedOutputIssue)
+  Execution(@bounded_execution.Issue)
+}
+
+pub enum BoundedSetPoll {
+  BoundedSetContinue(progress~ : Int64, work~ : Int64)
+  BoundedSetComplete(CompletedOutput, progress~ : Int64, work~ : Int64)
+  BoundedSetFailed(BoundedSetIssue, progress~ : Int64, work~ : Int64)
+  BoundedSetStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 type BoundedUnnestExecution

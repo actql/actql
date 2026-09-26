@@ -8,6 +8,14 @@ fn assert_local_managed_set_variant(
   let (run, issuer) = captured_graph_fixture(
     local_values_set_operation=operation,
     local_values_set_duplicates=duplicates,
+    ledger_limits=Some({
+      planning_work: 10000,
+      attempts: 10,
+      holdings: 10,
+      transfer_bytes: 300000L,
+      retained_bytes: 128000000L,
+      execution_bytes: 134217728L,
+    }),
   )
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -32,16 +40,45 @@ fn assert_local_managed_set_variant(
     None,
   ).unwrap()
 
-  let producer_live = Ref(true)
-  let (producer_ops, produced) = run_local_managed_test_task(
+  // Each input and the set run as separate selected tasks.
+  let graph = @strategy.captured_dag_graph(run)
+  assert_eq(@strategy.graph_task_count(graph), 6)
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(2))
+  let left_live = Ref(true)
+  let (left_ops, left) = run_local_managed_test_task(
     installed,
     run,
     1,
     [],
     [],
     1,
-    producer_live,
+    left_live,
   )
+  let right_live = Ref(true)
+  let (right_ops, right) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [],
+    [],
+    2,
+    right_live,
+  )
+  let producer_live = Ref(true)
+  let set_advances = Ref(0)
+  let (producer_ops, produced) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [left, right],
+    [local_managed_test_rows(left_ops), local_managed_test_rows(right_ops)],
+    3,
+    producer_live,
+    execution_quantum=1,
+    execution_advances=Some(set_advances),
+    require_provider=true,
+  )
+  assert_true(set_advances.val > 4)
   let rows = local_managed_test_rows(producer_ops)
   assert_eq(rows, expected)
 
@@ -49,27 +86,27 @@ fn assert_local_managed_set_variant(
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    2,
+    4,
     [produced],
     [rows],
-    2,
+    4,
     first_live,
   )
   let second_live = Ref(true)
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    5,
     [produced],
     [rows],
-    3,
+    5,
     second_live,
   )
   assert_eq(local_managed_test_rows(first_ops), rows)
   assert_eq(local_managed_test_rows(second_ops), expected_reordered)
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, 2)
+  @strategy.close_captured_task_output(run, 4)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
@@ -77,13 +114,20 @@ fn assert_local_managed_set_variant(
   assert_true(@execution.managed_completed_output_available(produced))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, 5)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
   producer_live.val = false
-  @strategy.close_captured_task_output(run, 1)
+  @strategy.close_captured_task_output(run, 3)
   (producer_ops.close)()
   (producer_ops.cleanup_refresh)() |> ignore
+  for pair in [(1, left_live, left_ops), (2, right_live, right_ops)] {
+    let (task, live, ops) = pair
+    live.val = false
+    @strategy.close_captured_task_output(run, task)
+    (ops.close)()
+    (ops.cleanup_refresh)() |> ignore
+  }
   @strategy.stop_captured_dag(run)
   @strategy.close_captured_task_output(run, 0)
   @strategy.refresh_captured_retention(run)

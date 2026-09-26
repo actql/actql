@@ -79,7 +79,8 @@ pub fn node_accepts_managed_carrier_view(
 /// fused; this rule does not depend on the neighboring operation's name.
 pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
   match node.payload {
-    Values(_) | InnerJoin(_) | CrossJoinRows(_) | AppendRows(_) => true
+    Values(_) | InnerJoin(_) | CrossJoinRows(_) | AppendRows(_) | SetRows(_) =>
+      true
     GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
     BasicGraph(_) => operation(node) == "SGA.normalize"
     VectorValue(_) => operation(node) == "BRIDGE.rows.to_vectors"
@@ -204,7 +205,7 @@ pub fn node_accepts_managed_relation_view(
 ) -> Bool {
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {
     return match node.payload {
-      InnerJoin(_) | CrossJoinRows(_) | AppendRows(_) => true
+      InnerJoin(_) | CrossJoinRows(_) | AppendRows(_) | SetRows(_) => true
       _ => false
     }
   }
