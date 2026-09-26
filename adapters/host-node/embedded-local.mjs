@@ -272,16 +272,24 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   // Host instrumentation of the protected steps (a Host-supplied observer;
   // it never changes a decision).
   const observed = (name, detail) => authorization?.observe?.(name, detail);
+  // `gate` (a resumed held request only): {beforePhysicalStart(), started()}
+  // called synchronously immediately before and after the physical start
+  // reservation. A throwing `beforePhysicalStart` starts nothing and leaves
+  // the Run unstarted for its owner. Returns a promise that settles once the
+  // physical start is reserved ('started'), refused by the gate
+  // ({refused: error}) or not reached ('not_started').
   const startDispatch = (submission, requested, accepted, held,
-    finished) => {
+    finished, gate) => {
     const {preparedProgram, principalId: actual, connection} = submission;
     const unstarted = accepted.dispatchReserved !== true ||
       accepted.physicalStartReserved === false &&
       !accepted.preDispatchFailureConfirmed;
     if (activeDispatches.has(accepted.ref.runDefinitionCid) || !unstarted ||
         accepted.cancellationRequested) {
-      return;
+      return Promise.resolve('not_started');
     }
+    let reached;
+    const physical = new Promise(resolve => { reached = resolve; });
     const active = {promise: undefined, reserved: false,
       abort: new AbortController(),
       physicalStarted: false, physicalStartClaimAttempted: false};
@@ -305,6 +313,14 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         preparedProgram, registry, values, 1n, 0n, 0n, 0n,
         fragment, ordered);
       if (setup === undefined) throw new Error('ClientProgramNeedsInputs');
+      // No await from the resumed admission to the start reservation.
+      if (gate !== undefined) {
+        try { gate.beforePhysicalStart(); }
+        catch (error) {
+          reached({refused: error});
+          return;
+        }
+      }
       active.physicalStartClaimAttempted = true;
       if (!journal.reservePhysicalStart(requested, {
         tenantId, ref: accepted.ref,
@@ -312,6 +328,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
           connection, ref: accepted.ref}),
       }, moon, control)) return;
       active.physicalStarted = true;
+      gate?.started();
+      reached('started');
       await observed('physical_start_reserved', {ref: accepted.ref});
       const published = await runPublishedCapturedStrategy(setup,
         {store, plan: held.plan}, {}, active.abort.signal);
@@ -340,12 +358,14 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         // Failed cleanup remains with its existing execution owner. It is
         // never converted to physical stop by the cancellation request.
       }
-      finished?.('failed');
+      if (active.physicalStarted) finished?.('failed');
     }).finally(() => {
+      reached('not_started');
       if (active.cleanupOwner === undefined) {
         activeDispatches.delete(accepted.ref.runDefinitionCid);
       }
     });
+    return physical;
   };
   const runIdOf = accepted => control.runDefinitionRunId(
     accepted.runDefinition?.wire === undefined
@@ -402,44 +422,67 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     }
     return {submission, requested, resultNames};
   };
-  const resumeHeld = async ({captured, enter, complete, step}) => {
+  const definitionOf = captured => journal.lookupDefinition({tenantId,
+    authorityScopeCid, requestId: captured.requestId}, moon, control);
+  const terminal = status => ['succeeded', 'failed', 'cancelled']
+    .includes(status);
+  // The physical state of a held request's Run: `absent` (no Run
+  // Definition yet), `unstarted` (no physical start reserved), `abandoned`
+  // (failed before dispatch), `started` (reserved: running, or unknown after
+  // a crash) or `terminal`.
+  const inspectHeld = async captured => {
+    const accepted = definitionOf(captured);
+    if (accepted === undefined) return {state: 'absent'};
+    const runId = runIdOf(accepted);
+    if (accepted.preDispatchFailureConfirmed) {
+      return {state: 'abandoned', runId};
+    }
+    if (accepted.physicalStartReserved !== true) {
+      return {state: 'unstarted', runId};
+    }
+    const current = await observeRun({ref: accepted.ref, principalId});
+    return terminal(current.status)
+      ? {state: 'terminal', runId, status: current.status}
+      : {state: 'started', runId, status: current.status};
+  };
+  // Continue one approved held request whose physical start is not
+  // reserved. The Run Definition is admitted (or looked up); the common
+  // resumed admission is entered synchronously immediately before the
+  // physical start reservation, and the resume intent completes with the
+  // Run right after it. Resolves with 'started', {refused} or 'not_started'.
+  const resumeHeld = async ({captured, beforePhysicalStart, started,
+    step}) => {
     const {submission, requested, resultNames} =
       await heldSubmission(captured);
     const held = {};
-    enter();
-    let accepted;
-    try {
-      accepted = await admitDefinition(submission, requested, resultNames,
-        held);
-    } catch (error) {
-      throw Object.assign(error, {admitted: true});
-    }
+    const accepted = await admitDefinition(submission, requested,
+      resultNames, held);
     await step('definition_admitted', {ref: accepted.ref});
     const runId = runIdOf(accepted);
-    complete(runId);
-    await step('intent_completed', {ref: accepted.ref, runId});
-    startDispatch(submission, requested, accepted, held,
-      status => checkpoints.runFinished(runId, status));
+    return startDispatch(submission, requested, accepted, held,
+      status => checkpoints.runFinished(runId, status),
+      {beforePhysicalStart, started: () => started(runId)});
   };
-  // The Run-side duty of a Run created from a held request, at Host start:
-  // report a terminal Run; start one whose physical start is not reserved
-  // (the request journal's start reservation fences a second physical
-  // attempt); leave one whose start is reserved and unfinished unknown,
-  // without sending again. Returns the Run status.
-  const recoverHeldRun = async ({captured}) => {
-    const {submission, requested, resultNames} =
-      await heldSubmission(captured);
-    const accepted = journal.lookupDefinition({tenantId, authorityScopeCid,
-      requestId: captured.requestId}, moon, control);
-    if (accepted === undefined) throw new Error('HeldRunDefinitionMissing');
-    const state = await observeRun({ref: accepted.ref, principalId});
-    if (['succeeded', 'failed', 'cancelled'].includes(state.status)) {
-      return state.status;
+  // A held request whose authorization no longer holds before any physical
+  // start: its Run (if already defined) fails before dispatch; nothing runs.
+  const abandonHeld = async captured => {
+    const accepted = definitionOf(captured);
+    if (accepted === undefined || accepted.physicalStartReserved === true ||
+        accepted.preDispatchFailureConfirmed) return;
+    if (accepted.dispatchReserved !== true) {
+      const start = await startRun({identity: (await heldSubmission(
+        captured)).requested, tenantId, principalId: captured.principalId,
+      connection: captured.connection});
+      if (start.kind !== 'reserved' && start.kind !== 'reconcile') return;
     }
-    const runId = runIdOf(accepted);
-    startDispatch(submission, requested, {...accepted, ref: accepted.ref},
-      {}, status => checkpoints.runFinished(runId, status));
-    return state.status;
+    journal.markPreDispatchFailure(accepted.ref);
+  };
+  // A Run whose physical start is reserved is only observed: a terminal Run
+  // ends its journal Run; an unknown one is never sent again.
+  const observeHeldRun = async ({captured}) => {
+    const accepted = definitionOf(captured);
+    if (accepted === undefined) throw new Error('HeldRunDefinitionMissing');
+    return (await observeRun({ref: accepted.ref, principalId})).status;
   };
   const negotiate = () => ({version: 'actql-client-host/0.1',
     mode, owner: mode, durability: 'durable', scopeRef: principalId,
@@ -486,7 +529,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     ...checkpointOperations,
   };
   if (checkpoints !== undefined) {
-    await checkpoints.start(resumeHeld, recoverHeldRun);
+    await checkpoints.start({inspect: inspectHeld, resume: resumeHeld,
+      abandon: abandonHeld, observe: observeHeldRun});
   }
   const port = createNodeInProcessClientHost({
     authenticate: () => principalId,
@@ -522,19 +566,33 @@ export async function openInstalledRemoteHttpHost({directory,
     handler: createClientHttpHandler({
       ...host.hostOperations, authenticate, maxRequestBytes: 65536,
     }),
-    // Stop resuming, then release the journals and the Store owner. Active
-    // dispatches are left to their durable records.
+    // Stop starting resumes, let running dispatches finish and record their
+    // ends, settle retention, then release the journals and the Store owner.
+    // Returns what remains for the next owner instead of hiding it.
     async close() {
-      await host.checkpoints?.close();
-      await Promise.allSettled([...host.activeDispatches.values()]
-        .map(active => active.promise));
+      await host.checkpoints?.stop();
+      // Each dispatch is awaited once; an entry kept for its cleanup owner
+      // stays with that owner.
+      const awaited = new Set();
+      for (;;) {
+        const next = [...host.activeDispatches.values()]
+          .filter(active => !awaited.has(active));
+        if (next.length === 0) break;
+        for (const active of next) awaited.add(active);
+        await Promise.all(next.map(active => active.promise));
+      }
+      const checkpoints = await host.checkpoints?.close();
       host.journal.close();
       // A Store with a pending deletion keeps its durable deletion record;
       // the next owner recovers it.
+      let storeCleanupPending = false;
       try { await host.store.close(); }
       catch (error) {
         if (error?.code !== 'PublicationStoreCleanupPending') throw error;
+        storeCleanupPending = true;
       }
+      return Object.freeze({storeCleanupPending,
+        pendingRetention: checkpoints?.pendingRetention ?? []});
     },
   });
 }

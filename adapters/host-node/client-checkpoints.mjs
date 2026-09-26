@@ -417,31 +417,40 @@ export async function installRemoteCheckpoints({root, tenantId,
   let sweeping;
   let retry;
   let closed = false;
-  let resumeContinuation;
-  let recoverRun;
-  // Carry on the execution of Runs created by approved preparations. The
-  // Host resumes a Run whose physical start is not reserved, reconciles one
-  // whose start is reserved without sending again, and ends the journal Run
-  // once the Run is terminal.
+  let host;
+  // Errors that a later attempt may clear (a busy Store, a transient read);
+  // anything else is permanent for this item and only observed.
+  const PERMANENT = new Set(['ArtifactIntegrityFailed',
+    'ContinuationEvidenceNotHeld', 'ContinuationEvidenceRetired',
+    'PrivateEvidenceKeyMismatch', 'HeldRunDefinitionMissing',
+    'HeldRequestChanged', 'InvalidContinuationLedger']);
+  const retryable = error => !PERMANENT.has(error?.code ?? error?.message);
+  // Observe Runs created from approved preparations. The intent completes
+  // only after the physical start is reserved, so these Runs are started
+  // (or unknown); they are never started or sent again here. A terminal Run
+  // ends its journal Run. Returns true when an item should be retried.
   async function recoverRuns() {
-    if (recoverRun === undefined) return;
+    let busy = false;
     let after = '';
     for (;;) {
       const page = journal.listPreparationRuns({after, limit: sweepPage});
       for (const {prepareAttemptId, runId} of page) {
-        if (closed) return;
+        if (closed) return busy;
         try {
           const {captured} = await continuationOf(prepareAttemptId);
-          const state = await recoverRun({captured, runId});
-          if (TERMINAL_RUNS.has(state)) {
-            journal.finishRun(runId, {status: state});
+          await step('run_observed', {prepareAttemptId, runId});
+          const status = await host.observe({captured, runId});
+          if (TERMINAL_RUNS.has(status)) {
+            journal.finishRun(runId, {status});
           }
         } catch (error) {
-          await step('recovery_failed', {prepareAttemptId, runId,
-            code: error?.code ?? error?.message});
+          const code = error?.code ?? error?.message;
+          await step('recovery_failed', {prepareAttemptId, runId, code,
+            retry: retryable(error)});
+          if (retryable(error)) busy = true;
         }
       }
-      if (page.length < sweepPage) return;
+      if (page.length < sweepPage) return busy;
       after = page.at(-1).prepareAttemptId;
     }
   }
@@ -456,6 +465,19 @@ export async function installRemoteCheckpoints({root, tenantId,
       throw error;
     }
     if (claimed.action === 'busy') return 'busy';
+    if (claimed.action === 'invalidated') {
+      // Revalidation failed (for example the configuration changed): the
+      // preparation ended without a Run. A Run already defined but not
+      // started fails before dispatch, so nothing starts later.
+      try {
+        const {captured} = await continuationOf(prepareAttemptId);
+        await host.abandon(captured);
+      } catch (error) {
+        await step('abandon_failed', {prepareAttemptId,
+          code: error?.code ?? error?.message});
+      }
+      return 'done';
+    }
     if (claimed.action !== 'claimed') return 'done';
     const claim = claimed.claim;
     await step('resume_claimed', {prepareAttemptId,
@@ -470,59 +492,81 @@ export async function installRemoteCheckpoints({root, tenantId,
     try {
       ({continuation, captured, request} = await continuationOf(
         prepareAttemptId, claimed.continuationStateCid));
-    } catch {
+    } catch (error) {
+      if (retryable(error)) return 'busy';
       end('failed');
       return 'done';
     }
-    // The common resumed-dispatch admission: the live claim, the committed
-    // approval still valid, the same configuration and the exact sealed
-    // artifact and decision subject. An account now allowing the tuple
-    // still passes the same ownership admission.
+    // A Run whose physical start an earlier claim already reserved (running,
+    // unknown or ended) is only reconciled: the intent completes with it and
+    // nothing is authorized or sent again.
+    const probe = await host.inspect(captured);
+    // A Run an earlier claim failed before dispatch (authorization no
+    // longer held) ends the request without a journal Run.
+    if (probe.state === 'abandoned') {
+      end('failed');
+      return 'done';
+    }
+    if (probe.state === 'started' || probe.state === 'terminal') {
+      journal.completeResume(claim, {run: {runId: probe.runId,
+        status: 'running'}});
+      if (probe.state === 'terminal') {
+        journal.finishRun(probe.runId, {status: probe.status});
+      }
+      return 'done';
+    }
+    // Otherwise the physical start is still ahead: the common resumed
+    // authorization holds now (current configuration, approval validity at
+    // trusted time, live claim), whether or not the Run Definition exists.
     const decision = await resumeGate.resume('preparation', tuple, {
       subjectCid: request.subject_cid,
       sealedSubjectCid: continuation.invocation_cid,
       resumption: {claim: {checkpointCid: claimed.checkpointCid, claim}},
     });
     if (decision.action !== 'dispatch' || decision.admission === undefined) {
-      // A claim that lapsed or was superseded sends nothing and ends
-      // nothing: the durable intent is continued by a later claim.
+      // A lapsed or superseded claim sends nothing and ends nothing.
       if (decision.detail === 'ResumeClaimStale') return 'busy';
+      await host.abandon(captured);
       end('failed');
       return 'done';
     }
     const admission = decision.admission;
     const identity = request.subject.logical_request_scope_cid;
-    try {
-      await resumeContinuation({
-        captured, requestCid: contentCid(request),
-        // Enter the admission synchronously immediately before the first
-        // protected action (Run definition admission). A generation whose
-        // predecessor already entered may only reconcile the same durable
-        // request identity, which the request journal deduplicates.
-        enter() {
-          try { return admission.enter(identity); }
-          catch (error) {
-            if (error?.code !== 'PriorAdmissionUnresolved') throw error;
-            return admission.reconcile(identity);
-          }
-        },
-        // Completes the intent together with the created Run. From here the
-        // Run's execution is the Run-side duty (listPreparationRuns), which
-        // every Host start carries on.
-        complete(runId) {
-          journal.completeResume(claim, {run: {runId, status: 'running'}});
-        },
-        step,
-      });
-    } catch (error) {
-      if (error?.code === 'ResumeClaimStale') return 'busy';
-      if (error?.code === 'PriorAdmissionUnresolved') return 'done';
-      // Nothing was admitted: the continuation ends without a Run. After an
-      // admitted entry the intent stays for reconciliation.
-      if (error?.admitted !== true) end('failed');
-      return 'done';
+    const outcome = await host.resume({
+      captured, step,
+      // Entered synchronously immediately before the physical start
+      // reservation (fence, approval validity, single start per claim
+      // generation). A later generation reconciles the same identity.
+      beforePhysicalStart() {
+        try { admission.enter(identity); }
+        catch (error) {
+          if (error?.code !== 'PriorAdmissionUnresolved') throw error;
+          admission.reconcile(identity);
+        }
+      },
+      // The intent completes with the Run right after its physical start is
+      // reserved; the Run is then only observed.
+      started(runId) {
+        journal.completeResume(claim, {run: {runId, status: 'running'}});
+      },
+    });
+    if (outcome === 'started') return 'done';
+    const refusal = outcome?.refused;
+    if (refusal?.code === 'ResumeClaimStale' || outcome === 'not_started') {
+      return 'busy';
+    }
+    if (refusal !== undefined) {
+      await host.abandon(captured);
+      end('failed');
     }
     return 'done';
+  }
+
+  async function stop() {
+    closed = true;
+    if (retry !== undefined) clearTimeout(retry);
+    retry = undefined;
+    await sweeping;
   }
 
   // One drain: every resumable preparation, page by page (a busy page never
@@ -548,7 +592,7 @@ export async function installRemoteCheckpoints({root, tenantId,
       if (page.length < sweepPage) break;
       after = page.at(-1);
     }
-    await recoverRuns();
+    if (await recoverRuns()) busy = true;
     await evidence.settle();
     return busy;
   }
@@ -558,7 +602,7 @@ export async function installRemoteCheckpoints({root, tenantId,
   // in the durable intents; nothing is dropped with a rejected promise.
   let wake = false;
   function sweep() {
-    if (closed || resumeContinuation === undefined) return Promise.resolve();
+    if (closed || host === undefined) return Promise.resolve();
     wake = true;
     if (sweeping !== undefined) return sweeping;
     sweeping = (async () => {
@@ -770,11 +814,10 @@ export async function installRemoteCheckpoints({root, tenantId,
         Object.freeze(item))});
     },
 
-    // Install the continuation that re-enters Run acceptance for an approved
-    // held request and the Run-side recovery, then sweep once (Host start).
-    start(continue_, recover) {
-      resumeContinuation = continue_;
-      recoverRun = recover;
+    // Install the Host's physical port for held requests ({inspect, resume,
+    // abandon, observe}), then sweep once (Host start).
+    start(port) {
+      host = port;
       return sweep();
     },
     sweep,
@@ -788,12 +831,20 @@ export async function installRemoteCheckpoints({root, tenantId,
       void evidence.settle().catch(() => {});
     },
 
+    // Stop starting new resumes; running work may still end its Runs.
+    stop,
+    // After the Host's running dispatches settled: settle retention, then
+    // release the evidence owner and the journal. Returns what is left for
+    // the next owner (retention that could not complete yet).
     async close() {
-      closed = true;
-      if (retry !== undefined) clearTimeout(retry);
-      try { await sweeping; } catch {}
-      await evidence.close();
-      journal.close();
+      await stop();
+      let retention;
+      try { retention = await evidence.settle(); }
+      finally {
+        await evidence.close();
+        journal.close();
+      }
+      return Object.freeze({pendingRetention: retention.pending});
     },
   });
 }
