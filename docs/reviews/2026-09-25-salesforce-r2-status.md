@@ -34,6 +34,15 @@ run-host-core and Connector boundary tests pass 25/25 together. Public APIs,
 formatting and document links pass. Full Plan/Invocation issuance is still
 fixture-backed and is not validated as a product path by these results.
 
+At `af13f6636d2b7c6b9ba25c7552ea25cc9e5ed646`, the additional Catalog,
+CLI credential, common Effect control, physical dispatch and durable Ledger
+suite passed 140/140. The packaged portable Host passed offline installation
+and its existing effect-free admission smoke. Salesforce Catalog, Host and
+conformance packages passed 79/79 on each of JS, Wasm and native. These tests
+cover the local provider-shaped resource and independent contract fixtures;
+the packed smoke does not prove public Effectful submit. They supplement,
+rather than replace, the multi-member integration results above.
+
 ## Current completion unit
 
 | Required view | Current boundary |
