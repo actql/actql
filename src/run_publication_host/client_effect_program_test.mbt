@@ -596,6 +596,26 @@ test "Effectful compiler issues owner-bound Plan and Template" {
   assert_true(
     template.contains(prepared_client_effect_computation_definition_cid(owner)),
   )
+  let policy = "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  let (observation, invocation) = issue_client_effect_source_free_invocation(
+    compiled, policy, 100000, 10000, 100,
+  ).unwrap()
+  assert_true(
+    @publication.run_evidence_value_json(observation).contains(
+      @publication.run_evidence_value_identity(
+        client_effect_compilation_template(compiled),
+      ),
+    ),
+  )
+  assert_true(
+    @publication.publication_contract_json(invocation).contains(
+      @publication.run_evidence_value_identity(observation),
+    ),
+  )
+  assert_true(
+    issue_client_effect_source_free_invocation(compiled, "", 100000, 10000, 100)
+    is Err(_),
+  )
   assert_true(envelope.contains(client_task_executable_plan_cid(plan)))
   let restored = admit_prepared_client_effect_compilation(
     owner, wire, facts, template, envelope, manifests, sequence, 1000, 10000, 1000000,
