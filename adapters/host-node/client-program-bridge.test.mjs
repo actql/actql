@@ -2427,6 +2427,13 @@ test('Effectful Client request identity binds checked intent before Run',
     assert.equal(moon.clientRequestRelation(request, replay), 1);
     assert.equal(moon.clientRequestRelation(request, conflict), 2);
     assert.equal(moon.clientRequestRelation(request, next), 0);
+    const effect = runtimeCore(moon).effectApplicationControl;
+    const scope = moon.clientProgramEffectRequestScope(original, request);
+    assert.ok(scope);
+    assert.equal(scope, moon.clientRequestLogicalScope(request));
+    assert.equal(effect.logicalRequestScopeCid(scope),
+      moon.clientRequestScopeCid(request));
+    assert.equal(moon.clientProgramEffectRequestScope(changed, request), undefined);
     assert.equal(moon.clientProgramEffectRequestIdentity(
       original, cid('a'), '', cid('b')), undefined);
     assert.equal(moon.clientProgramEffectRequestIdentity(
@@ -2448,6 +2455,14 @@ test('Effectful Client request identity binds checked intent before Run',
     assert.equal(reopened.lookup({tenantId: 'tenant-a',
       authorityScopeCid: cid('a'), requestId: 'write-request'}, moon)
       .ref.runDefinitionCid, cid('d'));
+    const retained = reopened.lookupIdentity({tenantId: 'tenant-a',
+      authorityScopeCid: cid('a'), requestId: 'write-request'}, moon);
+    assert.equal(moon.clientRequestRelation(request, retained), 1);
+    assert.equal(effect.logicalRequestScopeCid(
+      moon.clientProgramEffectRequestScope(original, retained)),
+    effect.logicalRequestScopeCid(scope));
+    assert.equal(reopened.lookupIdentity({tenantId: 'foreign',
+      authorityScopeCid: cid('a'), requestId: 'write-request'}, moon), undefined);
   });
 
 test('Host admits and retains the exact checked Effect Run Definition',

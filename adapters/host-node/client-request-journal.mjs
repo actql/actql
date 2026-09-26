@@ -358,7 +358,7 @@ export function openClientRequestJournal(directory, {
         row.logical_request_scope_cid) {
       fail('ClientRequestJournalCorrupt');
     }
-    return Object.freeze({row, found: Object.freeze({
+    return Object.freeze({row, identity, found: Object.freeze({
       requestId: row.caller_request_id,
       ...admission(row),
     })});
@@ -402,6 +402,11 @@ export function openClientRequestJournal(directory, {
     // exposing a found record. Physical lookup never starts Compute.
     lookup(key, control) {
       return lookupRecord(key, control)?.found;
+    },
+    // Internal owner recovery, not a wire credential or current permission.
+    // Both logical keys are re-admitted before the caller can reuse the scope.
+    lookupIdentity(key, control) {
+      return lookupRecord(key, control)?.identity;
     },
     lookupDefinition(key, requestControl, publicationControl) {
       const retained = lookupRecord(key, requestControl);

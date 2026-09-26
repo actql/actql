@@ -46,6 +46,27 @@ pub fn client_request_scope_cid(
 }
 
 ///|
+#export_name("clientRequestLogicalScope")
+pub fn client_request_logical_scope(
+  value : @publication_host.ClientRequestIdentity,
+) -> @effect.LogicalRequestScope {
+  @publication_host.client_request_logical_scope(value)
+}
+
+///|
+#export_name("clientProgramEffectRequestScope")
+pub fn client_program_effect_request_scope(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+) -> @effect.LogicalRequestScope? {
+  match
+    @publication_host.prepared_client_effect_request_scope(prepared, request) {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
 #export_name("clientRequestIntentCid")
 pub fn client_request_intent_cid(
   value : @publication_host.ClientRequestIdentity,

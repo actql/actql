@@ -405,6 +405,37 @@ test "Effectful Client request uses the common checked intent and scope" {
     prepared, scope, "write-request", input,
   ).unwrap()
   assert_true(client_request_identity_relation(request, replay) is SameRequest)
+  let effect_scope = prepared_client_effect_request_scope(prepared, request).unwrap()
+  assert_eq(
+    @request_scope.logical_request_scope_cid(effect_scope),
+    client_request_scope_cid(request),
+  )
+  assert_eq(effect_scope, client_request_logical_scope(replay))
+  let restored = admit_client_request_identity_record(
+    client_request_authority_scope_cid(request),
+    client_request_caller_id(request),
+    client_request_program_cid(request),
+    client_request_parameters_cid(request),
+    client_request_input_cid(request),
+    client_request_scope_cid(request),
+    client_request_intent_cid(request),
+  ).unwrap()
+  assert_eq(
+    prepared_client_effect_request_scope(prepared, restored).unwrap(),
+    effect_scope,
+  )
+  let other_program = prepare_client_effect_computation(
+    document.replace(old="client-effect", new="another-effect"),
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  assert_true(
+    prepared_client_effect_request_scope(other_program, request)
+    is Err(IdentityMismatch),
+  )
   let changed = prepare_client_effect_request_identity(
     prepared, scope, "write-request", "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
   ).unwrap()
