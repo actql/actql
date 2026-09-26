@@ -410,16 +410,6 @@ fn query_checked_program_fixture(
   } else {
     text
   }
-  let text = if local_values_join_chain &&
-    local_values_join_kind == "full" &&
-    !local_values_join_imported_full {
-    text.replace(
-      old="{\"select\":[\"r\",\"l\",\"id\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"r\",\"l\",\"id\"]}}}",
-      new="{\"select\":[\"id\",\"l\",\"r\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"l\",\"r\"]}}}",
-    )
-  } else {
-    text
-  }
   let text = if local_values_join_chain && local_values_join_kind != "inner" {
     text.replace(
       old="\"kind\":\"inner\"",

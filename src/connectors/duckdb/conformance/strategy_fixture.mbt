@@ -626,7 +626,13 @@ fn strategy_fixture_create_impl(
         300000L
       },
       retained_bytes: if extended {
-        64000000L
+        // Retain every internal output until the fixture closes the Run.
+        // Each selected Local output reserves 7,760,000 bytes under the
+        // fixed execution limits; include the captured source allowance.
+        Int64::max(
+          64000000L,
+          @strategy.graph_task_count(graph).to_int64() * 8000000L,
+        )
       } else {
         32000000L
       },

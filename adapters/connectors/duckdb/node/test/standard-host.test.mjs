@@ -6288,7 +6288,7 @@ async function exerciseStrategyGraph(
     ['same-stage json pick', sameStageJsonPickProgram, [1, 2, 3, 4]],
     ['same-stage json pick/filter', sameStageJsonFilterProgram,
       [1, 2, 3, 4, 5]],
-    ['full join', joinProgram, [1, 2, 3]],
+    ['full join', joinProgram, [1, 2, 3, 4, 5, 6, 7, 8, 9]],
     ['unrestricted cross join', unrestrictedCrossJoinProgram,
       [1, 2, 3, 4, 5, 6, 7]],
     ['singleton cross join', singletonCrossJoinProgram,
@@ -6555,7 +6555,7 @@ async function exerciseStrategyGraph(
       if (name === 'full join') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
-          [7, 7, 7],
+          [3, 3, 4, 4, 7, 7, 7, 7, 7],
           `${name} and both consumers publish complete retained outputs`,
         );
       }
@@ -6591,70 +6591,86 @@ async function exerciseStrategyGraph(
   }
   // The same bounded binary chain reaches formal publication and retrieval,
   // not just a private completion or a row-count assertion.
-  const equalityPublicationCase = {
+  for (const equalityPublicationCase of [{
     name: 'bounded-join-publication',
     program: structuredClone(boundedEqualityJoinProgram),
-  };
-  const equalityPublicationProgram = equalityPublicationCase.program;
-  equalityPublicationProgram.results = {
-    joined: {from: {stage: 'crossed', result: 'r'}},
-  };
-  const equalityPublicationFixture = fixture.strategyFixtureCreate(
-    ...args, JSON.stringify(equalityPublicationProgram));
-  const equalityPublicationCapture = await runNativeHostQuery(
-    grant, fixture.strategyFixtureAcquisition(equalityPublicationFixture),
-    suppliedLimits);
-  const equalityPublicationDirectory = await mkdtemp(join(
-    root, '_build/duckdb-fixtures/bounded-join-publication-'));
-  let equalityPublicationOwner;
-  let equalityPublicationStore;
-  try {
-    assert.equal(fixture.strategyFixtureOpen(
-      equalityPublicationFixture, equalityPublicationCapture.source()), true);
-    const setup = fixture.strategyFixtureModuleSubset(
-      equalityPublicationFixture, 0);
-    const runtime = runtimeCore(hostRuntime);
-    equalityPublicationStore = await openLocalPublicationStore({
-      directory: equalityPublicationDirectory,
-      storeAuthorityCid: hash('bounded-join-publication-store'),
-      capacityBytes: 4 * 1024 * 1024,
-      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
-      maxObjects: 100,
-      maxContractNodes: 10000,
-      maxContractDepth: 64,
-    }, runtime.publicationControl);
-    const plan = standardPublicationPlan(
-      runtime, runtime.programDefinitionCid(setup),
-      runtime.resultInventory(setup).length, equalityPublicationCase.name);
-    equalityPublicationOwner = await runPublishedCapturedStrategy(
-      setup, {store: equalityPublicationStore, plan}, {},
-      new AbortController().signal);
-    assert.equal(equalityPublicationOwner.status, 'published');
-    assert.deepEqual(equalityPublicationOwner.execution.completed.map(
-      value => value.realization), Array(5).fill('local-managed'));
-    const occurrence =
-      equalityPublicationOwner.execution.publicationInventory.occurrences[0];
-    const received = [];
-    await equalityPublicationStore.consumeCommittedResult({
-      tenantId: plan.request.tenantId,
-      authorityScopeCid: plan.request.authorityScopeCid,
-      runDefinitionCid: plan.runDefinition.identity,
-    }, occurrence.definitionContract.identity, () => true,
-    chunk => received.push(Buffer.from(chunk)));
-    assert.deepEqual(JSON.parse(Buffer.concat(received).toString('utf8')),
-      [{id: 1, tag: 'a'}, {id: 1, tag: 'b'}, {id: 2, tag: 'c'}]);
-  } finally {
-    if (equalityPublicationOwner !== undefined) {
-      await equalityPublicationOwner.close();
-      assert.equal(await equalityPublicationOwner.cleanup(), true);
-      assert.equal(equalityPublicationOwner.cleanupPending(), false);
-      assert.equal(equalityPublicationOwner.execution.usage().heldBytes, 0n);
-      assert.equal(equalityPublicationOwner.execution.usage()
-        .reservedExecutionBytes, 0n);
+    stage: 'crossed',
+    tasks: 5,
+    expected: [{id: 1, tag: 'a'}, {id: 1, tag: 'b'}, {id: 2, tag: 'c'}],
+  }, {
+    name: 'same-stage-full-join-publication',
+    program: structuredClone(joinProgram),
+    stage: 'joined',
+    tasks: 9,
+    expected: [
+      {id: 1, l: 'l1', r: 'r1'}, {id: 1, l: 'l1', r: 'r2'},
+      {id: 1, l: 'l2', r: 'r1'}, {id: 1, l: 'l2', r: 'r2'},
+      {id: 2, l: 'l3', r: null},
+      {id: null, l: null, r: 'r3'}, {id: null, l: null, r: 'r4'},
+    ],
+  }]) {
+    const equalityPublicationProgram = equalityPublicationCase.program;
+    equalityPublicationProgram.results = {
+      joined: {from: {stage: equalityPublicationCase.stage, result: 'r'}},
+    };
+    const equalityPublicationFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(equalityPublicationProgram));
+    const equalityPublicationCapture = await runNativeHostQuery(
+      grant, fixture.strategyFixtureAcquisition(equalityPublicationFixture),
+      suppliedLimits);
+    const equalityPublicationDirectory = await mkdtemp(join(
+      root, '_build/duckdb-fixtures/bounded-join-publication-'));
+    let equalityPublicationOwner;
+    let equalityPublicationStore;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        equalityPublicationFixture, equalityPublicationCapture.source()), true);
+      const setup = fixture.strategyFixtureModuleSubset(
+        equalityPublicationFixture, 0);
+      const runtime = runtimeCore(hostRuntime);
+      equalityPublicationStore = await openLocalPublicationStore({
+        directory: equalityPublicationDirectory,
+        storeAuthorityCid: hash('bounded-join-publication-store'),
+        capacityBytes: 4 * 1024 * 1024,
+        maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+        maxObjects: 100,
+        maxContractNodes: 10000,
+        maxContractDepth: 64,
+      }, runtime.publicationControl);
+      const plan = standardPublicationPlan(
+        runtime, runtime.programDefinitionCid(setup),
+        runtime.resultInventory(setup).length, equalityPublicationCase.name);
+      equalityPublicationOwner = await runPublishedCapturedStrategy(
+        setup, {store: equalityPublicationStore, plan}, {},
+        new AbortController().signal);
+      assert.equal(equalityPublicationOwner.status, 'published');
+      assert.deepEqual(equalityPublicationOwner.execution.completed.map(
+        value => value.realization),
+      Array(equalityPublicationCase.tasks).fill('local-managed'));
+      const occurrence =
+        equalityPublicationOwner.execution.publicationInventory.occurrences[0];
+      const received = [];
+      await equalityPublicationStore.consumeCommittedResult({
+        tenantId: plan.request.tenantId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, occurrence.definitionContract.identity, () => true,
+      chunk => received.push(Buffer.from(chunk)));
+      assert.deepEqual(JSON.parse(Buffer.concat(received).toString('utf8')),
+        equalityPublicationCase.expected);
+    } finally {
+      if (equalityPublicationOwner !== undefined) {
+        await equalityPublicationOwner.close();
+        assert.equal(await equalityPublicationOwner.cleanup(), true);
+        assert.equal(equalityPublicationOwner.cleanupPending(), false);
+        assert.equal(equalityPublicationOwner.execution.usage().heldBytes, 0n);
+        assert.equal(equalityPublicationOwner.execution.usage()
+          .reservedExecutionBytes, 0n);
+      }
+      equalityPublicationCapture.close();
+      await equalityPublicationStore?.close();
+      await rm(equalityPublicationDirectory, {recursive: true, force: true});
     }
-    equalityPublicationCapture.close();
-    await equalityPublicationStore?.close();
-    await rm(equalityPublicationDirectory, {recursive: true, force: true});
   }
   const retainedManagedRoot = await mkdtemp(join(
     root, '_build/duckdb-fixtures/local-retained-managed-',
@@ -7177,6 +7193,8 @@ async function exerciseStrategyGraph(
       program: capturedRelationChainProgram, cancelAtStart: 1},
     {name: 'equality-join-chain-in-flight',
       program: boundedEqualityJoinProgram, cancelAtStart: 3},
+    {name: 'same-stage-full-join-in-flight',
+      program: joinProgram, cancelAtStart: 5},
     {name: 'dedupe-filter-chain-in-flight',
       program: dedupeFilterProgram, cancelAtStart: 2},
     {name: 'captured-count-chain-in-flight',
@@ -7244,7 +7262,8 @@ async function exerciseStrategyGraph(
   ]) {
     const valuesCancellationCase = {name: cancellationName};
     const equalityJoinCancellation = cancellationName ===
-      'equality-join-chain-in-flight';
+      'equality-join-chain-in-flight' || cancellationName ===
+      'same-stage-full-join-in-flight';
     const cancellableValuesProgram = structuredClone(cancellationProgram);
     const capturedRelationChainCancellation = cancellationName ===
       'captured-relation-chain-in-flight' || cancellationName ===

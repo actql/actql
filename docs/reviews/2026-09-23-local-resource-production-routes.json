@@ -2239,6 +2239,10 @@
         "path": "src/connectors/local/selected_join_execution.mbt",
         "symbol": "selected_join_execution"
       },
+      "selected_entrypoint": {
+        "path": "src/connectors/local/selected_join_execution.mbt",
+        "symbol": "selected_join_execution"
+      },
       "same_stage_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
         "symbol": "bounded_relation_chain_execution"
@@ -2301,6 +2305,27 @@
           "fixture": "Local qualified select feeds two downstream Computes"
         },
         {
+          "role": "bounded_join_split_dag_edges",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/physical_graph_wbtest.mbt",
+          "fixture": "physical DAG selects both branches of a same-stage equality join"
+        },
+        {
+          "role": "bounded_join_split_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_join_wbtest.mbt",
+          "fixture": "Local managed full join retains stable identities for two consumers"
+        },
+        {
+          "role": "bounded_join_split_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_join_wbtest.mbt",
+          "fixture": "Local same-stage full join cancels without reclaiming its branches"
+        },
+        {
           "role": "join_empty_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -2322,6 +2347,20 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "bounded-join-publication"
+        },
+        {
+          "role": "bounded_join_split_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "same-stage-full-join-in-flight"
+        },
+        {
+          "role": "bounded_join_split_named_result",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "same-stage-full-join-publication"
         }
       ]
     },

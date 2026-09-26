@@ -79,7 +79,7 @@ pub fn node_accepts_managed_carrier_view(
 /// fused; this rule does not depend on the neighboring operation's name.
 pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
   match node.payload {
-    Values(_) | CrossJoinRows(_) | AppendRows(_) => true
+    Values(_) | InnerJoin(_) | CrossJoinRows(_) | AppendRows(_) => true
     GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
     BasicGraph(_) => operation(node) == "SGA.normalize"
     VectorValue(_) => operation(node) == "BRIDGE.rows.to_vectors"

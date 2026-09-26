@@ -584,6 +584,43 @@ test "physical DAG splits imported full join sources at distinct" {
 }
 
 ///|
+test "physical DAG selects both branches of a same-stage equality join" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_join_chain=true,
+    local_values_join_kind="full",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 10)
+  for step in 0..<7 {
+    assert_eq(@strategy.graph_task_selected_step(graph, step + 1), Some(step))
+  }
+  let sources = []
+  for edge in 0..<@strategy.graph_data_count(graph) {
+    let data = @strategy.graph_data_at(graph, edge).unwrap()
+    if data.consumer == 5 {
+      sources.push((data.input, data.producer))
+    }
+  }
+  assert_eq(sources, [(0, 2), (1, 4)])
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+  assert_true(
+    @strategy.prepare_checked_dag(
+      program,
+      physical_graph_owners(program),
+      9,
+      10000,
+    )
+    is Err(@strategy.TaskLimit),
+  )
+}
+
+///|
 test "physical DAG admits Carrier segmentation before allocation" {
   let program = query_checked_program_fixture(
     dag=true,

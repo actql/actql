@@ -81,10 +81,20 @@ The chain retains each child and its private output until reverse-order
 cleanup. Input acquisition is not replaced, and the supplied/producer
 authorities remain distinct.
 
-This closes the observed providerless `join → select` shape, not all joins
-embedded in arbitrary whole-Stage DAGs. A multi-source Values prefix that
-is not selected separately can still reach the generic evaluator. Raw
-RowTable projection can also require synchronous contract revalidation.
+The typed equality-join capability also permits the existing common DAG
+splitter to connect two Values/distinct branches to a full join and its
+distinct/sort suffix. The ordinary seven-step Stage becomes seven bounded
+tasks, followed by two independently retained consumers. Exact internal
+ports remain distinct, and cancellation at the join leaves both source
+branches live until their own release. No separate scheduler or provider
+is introduced. The resource gate requires these branch/merge fixtures and
+the standard-Host timer and publication cases; deleting one rejects the
+record even though whole-operation assurance remains incomplete.
+
+This closes the observed providerless `join → select` shape and the
+supported multi-source join DAG, not every arbitrary whole-Stage shape.
+A prefix containing a still-synchronous aggregate or pivot can remain
+unselected. Raw RowTable projection can also require synchronous revalidation.
 The strict whole-operation claim therefore remains open. Boundary evidence
 for the new path is registered separately: empty exact/one-short work and
 workspace, nonempty overlapping workspace, output value limits, obligation
@@ -100,7 +110,31 @@ so no additional rebase or individual authorization cherry-pick was needed.
 The common task activation and resume admission code is unchanged by this
 connection. Neither main nor another worktree was modified.
 
-Local validation of the integrated join source passed on 2026-09-26:
+The same-Stage join follow-up was validated locally on 2026-09-26:
+
+- `query_integration`, `physical_strategy`, and `lowering_relation` passed
+  943 tests on each of JS, Wasm, and native. After removing the fixture's
+  identical-consumer projection override, the four managed join tests passed
+  again on all three targets with independent reversed-column expectations.
+- The rebuilt standard Node/native Host suite passed, including the seven
+  selected branch/merge tasks, two downstream Computes, timer cancellation,
+  stop, cleanup, and independently expected Named Result retrieval.
+- The Host fixture retains all internal results until Run cleanup. Its
+  former fixed 64 MB allowance admitted eight Local outputs but not nine;
+  the fixture now budgets its checked task count using the fixed per-output
+  reservation. No product limit check or cleanup rule was weakened.
+- The Node conformance package passed its supported JS check. It is JS-only;
+  Wasm/native package checks are unsupported, not portability successes.
+- Workers fixtures were regenerated from source and passed freshness checks.
+  Local coverage and document links passed. Strict resource completion and
+  same-SHA Linux CI remain separate, open acceptance requirements.
+- Resource gate regressions passed 198 tests, including removal of the
+  selected join binding and each required branch/merge evidence role.
+  The ordinary gate passed with 31 full-route and 70 path-scoped records;
+  strict completion still failed on the remaining routes and synchronous
+  fallback. The follow-up does not relabel those routes as complete.
+
+The preceding join-kernel and chain validation passed on 2026-09-26:
 
 - `execution_relation` and `query_integration`: 1,675 tests on each of
   JS, Wasm, and native, including required task-activation rejection.

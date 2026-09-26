@@ -491,6 +491,22 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
+  if (route.family === 'RelA' && route.operation === 'join') {
+    if (route.selected_entrypoint?.symbol !== 'selected_join_execution') {
+      fail(`${label}: bounded selected join provider is missing`);
+    }
+    for (const role of [
+      'bounded_join_empty_work_workspace_exact_one_short',
+      'bounded_join_output_workspace_exact_one_short',
+      'bounded_join_split_dag_edges',
+      'bounded_join_split_two_consumers',
+      'bounded_join_split_cancel_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+  }
   if (route.family === 'RelA' && route.operation === 'append') {
     if (route.external_input_entrypoint?.symbol !== 'append_provider') {
       fail(`${label}: bounded external append provider is missing`);
@@ -800,6 +816,16 @@ for (const [index, route] of routeEntries.entries()) {
       sourceText.includes(`['${item.fixture}', ${item.case},`);
     if (!namedCase && !tupleCase) {
       fail(`${label}: missing environment fixture ${item.fixture}`);
+    }
+  }
+  if (route.family === 'RelA' && route.operation === 'join') {
+    for (const role of [
+      'bounded_join_split_host_timer',
+      'bounded_join_split_named_result',
+    ]) {
+      if (!environmentRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
     }
   }
   if (route.global_count_entrypoint !== undefined) {

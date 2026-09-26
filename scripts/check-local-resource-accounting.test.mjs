@@ -53,6 +53,37 @@ test('resource gate accepts every normative Local operation', () => {
   assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 31 with four-role boundary evidence, 31 with full work\/workspace assurance, 70 with path-scoped work\/workspace evidence, 6 with selected-only assurance; full boundary completion is not asserted/);
 });
 
+test('same-stage equality join requires its bounded route and evidence', () => {
+  const joinRoute = routes => routes.routes.find(entry =>
+    entry.family === 'RelA' && entry.operation === 'join');
+  assert.match(run(undefined, routes => {
+    delete joinRoute(routes).selected_entrypoint;
+  }), /RelA join: bounded selected join provider is missing/u);
+  for (const role of [
+    'bounded_join_empty_work_workspace_exact_one_short',
+    'bounded_join_output_workspace_exact_one_short',
+    'bounded_join_split_dag_edges',
+    'bounded_join_split_two_consumers',
+    'bounded_join_split_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = joinRoute(routes);
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA join: ${role} fixture is missing`, 'u'));
+  }
+  for (const role of [
+    'bounded_join_split_host_timer',
+    'bounded_join_split_named_result',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = joinRoute(routes);
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA join: ${role} fixture is missing`, 'u'));
+  }
+});
+
 test('Graph equality route requires exact limits and delivered cancellation', () => {
   const graphEqual = routes => routes.routes.find(entry =>
     entry.family === 'SGA' && entry.operation === 'graphs_equal');
