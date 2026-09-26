@@ -83,6 +83,21 @@ custody in the error's retry handle. Cleanup retry does not export rows again.
 The Salesforce multi-member integration now uses this set entry rather than
 assuming in the fixture that both members share one particular source.
 
+`preparePinnedEffectSourceHoldings({sources, store, control, preview,
+invocation})` takes that exact prepared set. It admits every member's source
+and local evidence before any Store write, and returns immutable `holdings`
+plus `commit()`. The inventory exists before asynchronous work, including
+when a commit fails after its durable write. The caller must retain both this
+inventory and the prepared set until capture or explicit retirement; the
+records are responsibilities, not proof of current material availability.
+
+Concurrent commits on this owner join one physical flight. After failure,
+another commit rechecks and synchronizes the same Store records. It does not
+re-export inputs, authorize mutation, or restart Compute. Shared payloads use
+the existing Store's independent holding acquisition; no atomic transaction
+across members is claimed. Recovered capture continues through the existing
+durable inventory rather than reconstructing this in-memory preparation.
+
 ## Historical product boundary at the initial baseline
 
 `src/program_check/source.mbt::audit_declarations` rejects every nonempty

@@ -87,8 +87,27 @@ Partial preparation failure uses existing publication cleanup and keeps
 failed Store custody retryable. This closes a fixture-authored input grouping
 step; initial compilation, the complete preparation/capture composition, and
 public ingress are still open.
+The following holding step now also uses the common Host entry
+`preparePinnedEffectSourceHoldings`: every source binding is admitted before
+Store I/O, and the caller receives the complete responsibility inventory before
+commit. Lost acknowledgements are reconciled against the same Store records,
+without another export or another Effect dispatch. Independent member holdings
+remain separate even when their immutable payload is shared.
 
 ## Source-set preparation verification
+
+The holding-set implementation (`b601f0097`) and integration pass the
+Salesforce suite (169/169)
+and common Client, request journal, and publication-control suite (42/42).
+Its real-Store test loses the second member's share acknowledgement after
+the record is durable. Both concurrent commit callers observe the same
+failure; all responsibility records remain available. Same-record retry
+does not create another writer or increase stored bytes. A copied set is
+rejected before Store I/O, and an unavailable sharing source remains rejected.
+The final inventory check reuses the existing MoonBit Preview/source rule.
+After adding that check, the normal Salesforce publication/SDK-read case
+also passed again against the final implementation.
+This increment does not change schemas, pins, generated APIs, or semantics.
 
 The source-set implementation (`3e92241af`) and its integration pass
 `check:salesforce-site` (169/169) and the

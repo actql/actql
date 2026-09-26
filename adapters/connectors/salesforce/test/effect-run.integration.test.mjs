@@ -41,7 +41,7 @@ import * as salesforceMoon from
   '../../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
 import {issueAuthorizedEffectSetReceipt} from
   '../../../host-node/effect-response-recovery.mjs';
-import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
+import {exportPinnedEffectInput, preparePinnedEffectSourceHoldings,
   preparePinnedEffectSourceSet} from '../../../host-node/effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from '../../../host-node/effect-plan-verify.mjs';
 import {createClientHttpHandler} from '../../../host-node/client-http.mjs';
@@ -2035,15 +2035,11 @@ test(`two-member captured Effect Run ${
       let admittedPreview = control.admitEffectComputationPreview(
         preview.wire, runDefinition, authoringContext,
         publicationLimits);
-      const firstHolding = await commitPinnedEffectSourceHolding({
-        payload: sourcePayload, store, control, preview: admittedPreview,
-        memberIndex: 0, invocation: runInvocation,
+      const holdingOwner = preparePinnedEffectSourceHoldings({
+        sources: sourceSet, store, control, preview: admittedPreview,
+        invocation: runInvocation,
       });
-      const secondHolding = await commitPinnedEffectSourceHolding({
-        payload: sourcePayload, store, control, preview: admittedPreview,
-        memberIndex: 1, invocation: runInvocation,
-        shareFromHoldingCid: firstHolding.holdingCid,
-      });
+      const [firstHolding, secondHolding] = await holdingOwner.commit();
       assert.notEqual(firstHolding.holdingCid, secondHolding.holdingCid);
       if (overlappingMembers) {
         const usesBefore = sites.map(site => site.journal.recover().length);
