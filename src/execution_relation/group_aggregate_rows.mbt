@@ -710,50 +710,19 @@ fn[T : IndexedRows] aggregate_group_ranges(
   control : ControlBudget,
   workspace : RowWorkspace,
 ) -> Result[Array[AggregateGroupRange], RowIssue] {
-  let groups : Array[AggregateGroupRange] = []
-  if indices.is_empty() {
-    if order.is_empty() {
-      if max_groups == 0 ||
-        !spend_control(control, 1) ||
-        !reserve_slots(workspace, 1) {
-        return Err(RowLimit)
-      }
-      groups.push({ representative: None, start: 0, end: 0, })
+  let state = start_aggregate_group_ranges(
+    input, indices, order, max_groups, control, workspace,
+  )
+  while true {
+    match advance_aggregate_group_ranges(state) {
+      Ok(None) => ()
+      Ok(Some(groups)) => return Ok(groups)
+      Err(issue) => return Err(issue)
     }
-    return Ok(groups)
+  } nobreak {
+    close_aggregate_group_ranges(state)
+    Err(InvalidRows)
   }
-  let mut start = 0
-  for position = 1; position <= indices.length(); position = position + 1 {
-    let boundary = if position == indices.length() {
-      true
-    } else {
-      match
-        compare_row_indices(
-          input,
-          indices[position - 1],
-          indices[position],
-          order,
-          control,
-        ) {
-        Ok(comparison) => comparison != 0
-        Err(issue) => return Err(ordering_row_issue(issue))
-      }
-    }
-    if boundary {
-      if groups.length() == max_groups ||
-        !spend_control(control, 1) ||
-        !reserve_slots(workspace, 1) {
-        return Err(RowLimit)
-      }
-      groups.push({
-        representative: Some(indices[start]),
-        start,
-        end: position,
-      })
-      start = position
-    }
-  }
-  Ok(groups)
 }
 
 ///|
