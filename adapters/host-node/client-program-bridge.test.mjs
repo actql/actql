@@ -2148,7 +2148,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
           authorization: {...effectAuthorization,
             gate: await fixtureAuthorization([accountEntry('read-only',
               'allow', {operation: 'read'})])},
-          dispatchRow: () => assert.fail('no-match commit sent a row'),
+          bindDispatch: () => assert.fail('no-match commit bound dispatch'),
         }), error => error.code === 'ExecutionAuthorizationDenied' &&
           error.authorization.boundary === 'effect_commit' &&
           error.authorization.tuple.operation === 'effect');
@@ -2156,7 +2156,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
           ...applyOptions, ledger: firstProgress,
           preflight: {...applyOptions.preflight,
             sources: [cid('c'), cid('f')]},
-          dispatchRow: () => assert.fail('stale preflight sent a row'),
+          bindDispatch: () => assert.fail('stale preflight bound dispatch'),
         }), {code: 'MoonBitHostFailure'});
         await assert.rejects(applyCapturedEffectSet({
           ...applyOptions, ledger: firstProgress,
@@ -2262,25 +2262,39 @@ test('owned update Plan matches approved rows and rejects altered intent',
           claim: savedClaim, preview: applyPreview, memberIndex: 1,
           previewRowIndex: 0,
         });
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions, ledger: resumedProgress,
+          bindDispatch: () => undefined,
+        }), {code: 'InvalidEffectDispatchBinding'});
+        assert.deepEqual(ready(resumedProgress), [[1, 1]]);
+        let bindings = 0;
         const advanced = await applyCapturedEffectSet({
           ...applyOptions, ledger: resumedProgress,
-          dispatchRow: async ({memberIndex, rowIndex, claim}) => {
-            assert.equal(memberIndex, 1);
-            assert.deepEqual(ready(resumedProgress), [[1, rowIndex]]);
-            const response = await sendRow(resumedProgress, claim);
-            assert.equal(response.claimed, true);
-            resumedProgress.recordAdmittedRowOutcome({
-              claim, preview: applyPreview, memberIndex,
-              previewRowIndex: rowIndex,
-              outcomeWire: canonicalJson({state: 'applied',
-                result: {record_id: `row-${rowIndex + 1}`}}),
-            });
-            resumedProgress.commitAdmittedRowOutcome({
-              claim, preview: applyPreview, memberIndex,
-              previewRowIndex: rowIndex,
-            });
+          bindDispatch: ({members, subjectCid}) => {
+            bindings++;
+            assert.equal(subjectCid,
+              JSON.parse(preview.wire).effect_preview_cid);
+            assert.equal(Object.isFrozen(members), true);
+            return async ({memberIndex, rowIndex, claim}) => {
+              assert.equal(claim, members[memberIndex].claims[rowIndex]);
+              assert.equal(memberIndex, 1);
+              assert.deepEqual(ready(resumedProgress), [[1, rowIndex]]);
+              const response = await sendRow(resumedProgress, claim);
+              assert.equal(response.claimed, true);
+              resumedProgress.recordAdmittedRowOutcome({
+                claim, preview: applyPreview, memberIndex,
+                previewRowIndex: rowIndex,
+                outcomeWire: canonicalJson({state: 'applied',
+                  result: {record_id: `row-${rowIndex + 1}`}}),
+              });
+              resumedProgress.commitAdmittedRowOutcome({
+                claim, preview: applyPreview, memberIndex,
+                previewRowIndex: rowIndex,
+              });
+            };
           },
         });
+        assert.equal(bindings, 1);
         assert.equal(advanced.dispatched, 1);
         assert.deepEqual(ready(resumedProgress), []);
         assert.deepEqual(seenRequests, progressMembers[1].claims.map(
@@ -2289,7 +2303,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
         const settled = await applyCapturedEffectSet({
           ...applyOptions, ledger: resumedProgress,
           authorization: undefined, refreshPreflight: undefined,
-          dispatchRow: () => assert.fail('settled or unknown row resent'),
+          bindDispatch: () => assert.fail('settled rows bound a dispatcher'),
         });
         assert.equal(settled.status, 'applied');
         assert.equal(settled.dispatched, 0);

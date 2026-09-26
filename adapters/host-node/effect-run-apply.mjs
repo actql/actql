@@ -12,6 +12,21 @@ const fail = code => {
 const text = value => typeof value === 'string' && value.length > 0 &&
   value.length <= 512;
 
+const validDispatch = (dispatchRow, bindDispatch) =>
+  (typeof dispatchRow === 'function' && bindDispatch === undefined) ||
+  (dispatchRow === undefined && typeof bindDispatch === 'function');
+
+// Bind physical requests to the exact claims retained by this apply owner.
+// Recovery creates new opaque claims; callers must not substitute claims from
+// an earlier ledger read. Binding is synchronous and performs no physical I/O.
+function bindOwnedDispatch(dispatchRow, bindDispatch, members, subjectCid,
+  signal) {
+  const dispatch = bindDispatch === undefined ? dispatchRow :
+    bindDispatch(Object.freeze({members, subjectCid, signal}));
+  if (typeof dispatch !== 'function') fail('InvalidEffectDispatchBinding');
+  return dispatch;
+}
+
 // Account operation of an Effect commit in the Read/Write/Effect operation
 // classification. The boundary kind (effect_commit) and the sealed Set
 // Preview stay in the decision subject.
@@ -215,14 +230,14 @@ const driveAdmittedFrontier = async ({control, frontier, members,
 // observation; this Host never infers an outcome from its return value.
 export async function applyCapturedEffectSet({
   moon, capturedInputs, preflight: suppliedPreflight, ledger, members,
-  dispatchRow,
+  dispatchRow, bindDispatch,
   maxFrontierWork, signal, refreshPreflight, authorization,
 }) {
   if (!moon || !capturedInputs || !suppliedPreflight || !ledger ||
       typeof ledger.frontierFromCapturedHeads !== 'function' ||
       typeof ledger.prepareCapturedSetIntents !== 'function' ||
       !Array.isArray(members) || members.length === 0 ||
-      typeof dispatchRow !== 'function' ||
+      !validDispatch(dispatchRow, bindDispatch) ||
       (refreshPreflight !== undefined &&
         typeof refreshPreflight !== 'function') ||
       !Number.isSafeInteger(maxFrontierWork) || maxFrontierWork < 1) {
@@ -311,8 +326,11 @@ export async function applyCapturedEffectSet({
     subjectCid);
   let entered;
   let prepared = false;
+  const dispatch = bindOwnedDispatch(dispatchRow, bindDispatch,
+    ownedMembers, subjectCid, signal);
   const result = await driveAdmittedFrontier({control, members: ownedMembers,
-    maxFrontierWork, dispatchRow, signal, currentPreflight: refreshed,
+    maxFrontierWork, dispatchRow: dispatch, signal,
+    currentPreflight: refreshed,
     beforeDispatch: () => {
       if (authorized.admission !== undefined && entered === undefined) {
         entered = enterResumedAdmission(authorized.admission, identity);
@@ -341,7 +359,7 @@ export async function applyRecoveredEffectSet({
   moon, store, publicationControl, computation, preview, ledger,
   requestScope, programId, nodeId, maxRows, maxFrontierWork,
   maxRecoveryWork, keyLimits,
-  reconcileStoredResponses, refreshPreflight, dispatchRow, signal,
+  reconcileStoredResponses, refreshPreflight, dispatchRow, bindDispatch, signal,
   authorization,
 }) {
   if (!moon || !store || !publicationControl || !computation || !preview ||
@@ -361,7 +379,7 @@ export async function applyRecoveredEffectSet({
       (reconcileStoredResponses !== undefined &&
         typeof reconcileStoredResponses !== 'function') ||
       typeof refreshPreflight !== 'function' ||
-      typeof dispatchRow !== 'function') {
+      !validDispatch(dispatchRow, bindDispatch)) {
     fail('InvalidRecoveredEffectApply');
   }
   signal?.throwIfAborted();
@@ -441,8 +459,10 @@ export async function applyRecoveredEffectSet({
   }
   const identity = effectSetApplyIdentity(control, requestScope, subjectCid);
   let entered;
+  const dispatch = bindOwnedDispatch(dispatchRow, bindDispatch,
+    recovered.members, subjectCid, signal);
   const result = await driveAdmittedFrontier({control,
-    members: recovered.members, maxFrontierWork, dispatchRow, signal,
+    members: recovered.members, maxFrontierWork, dispatchRow: dispatch, signal,
     currentPreflight: current,
     beforeDispatch: () => {
       if (authorized.admission !== undefined && entered === undefined) {
