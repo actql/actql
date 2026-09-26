@@ -59,9 +59,11 @@ copy. This is computation before the first cancellable copy step, not a
 missing timer assertion on an otherwise bounded calculation. The current
 provider search covers selected Relation steps, finite count groups, row
 windows, unpivot, unnest, cross join, append, values, and installed family
-providers. Its Relation-chain reader requires a linear sequence: the first
-step consumes all declared external inputs, and each later step is unary on
-the immediately preceding output. A supported sequence outside those shapes,
+providers. Its Relation-chain reader requires a linear sequence: each later
+step consumes the immediately preceding output, and any step may also bind
+declared external inputs, one input occurrence per checked operation port
+(for example a filter followed by an append of another captured input). A
+supported sequence outside those shapes,
 or a single supported operation without a bounded provider (including
 general groups, analytic, and pivot), can therefore reach the synchronous
 fallback. These are distinct implementation gaps; adding a route assertion
