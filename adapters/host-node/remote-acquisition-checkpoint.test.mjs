@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash, generateKeyPairSync, sign} from 'node:crypto';
-import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
 import {userInfo} from 'node:os';
@@ -389,4 +389,159 @@ test('A3: an approved read never reads a different physical target',
       assert.equal(second.count('dispatch_reserved'), 0, name);
       assert.equal(second.count('acquisition_started'), 0, name);
     }
+  });
+
+// Run acceptance and the read, each answered at once by the Host or later
+// by a reviewer. `permit` reaches the Results with one read; `reject`
+// ends with no protected read.
+test('A2: Run acceptance and the read combine immediate and later answers',
+  async t => {
+    for (const [name, preparation, acquisition, expected] of [
+      ['run-later-read-permit', 'defer', 'permit', 'result'],
+      ['run-later-read-reject', 'defer', 'reject', 'ended'],
+      ['run-permit-read-later', 'permit', 'defer', 'result'],
+      ['run-later-read-later', 'defer', 'defer', 'result'],
+    ]) {
+      const host = await acquiringHost(t, {runOutcome: 'delegate', extra: {
+        decide: view => ({decision: view.boundary === 'acquisition'
+          ? acquisition : preparation, subject: view.subject,
+        authority: 'host-policy'}),
+        answeringAuthorities: ['host-policy', 'reviewer']}});
+      const client = await host.as('owner-token');
+      const reviewer = await host.as('reviewer-token');
+      const approve = async kind => {
+        const checkpoint = await waitFor(async () => {
+          const {items} = await reviewer.checkpoints();
+          return items.find(item => item.kind === kind);
+        });
+        assert.equal(host.count('acquisition_started'), 0, name);
+        await reviewer.resolveCheckpoints([{checkpoint,
+          decision: 'approved'}], {signer});
+      };
+      const first = await held(client, name);
+      assert.equal(first.checkpoint.kind,
+        preparation === 'defer' ? 'run_scope' : 'read_access', name);
+      if (preparation === 'defer') await approve('run_scope');
+      if (acquisition === 'defer') await approve('read_access');
+      if (expected === 'result') {
+        await assertResults(client, name);
+        assert.equal(host.count('acquisition_started'), 1, name);
+      } else {
+        await waitFor(async () =>
+          (await client.lookupRequest(name)).state === 'ended');
+        assert.equal(host.count('dispatch_reserved'), 0, name);
+        assert.equal(host.count('acquisition_started'), 0, name);
+      }
+    }
+  });
+
+// The private evidence states of every held attempt of one Host directory.
+async function holdingStates(root) {
+  const ledgers = join(root, 'state', 'checkpoints', 'attempts');
+  const states = [];
+  for (const file of (await readdir(ledgers)).filter(name =>
+    name.endsWith('.json'))) {
+    const ledger = JSON.parse(await readFile(join(ledgers, file), 'utf8'));
+    states.push(...ledger.holdings.filter(item =>
+      item.name !== 'invocation_request').map(item => item.state));
+  }
+  return [...new Set(states)];
+}
+
+test('A4/A7: a held read keeps separate review rights and one answer',
+  async t => {
+    const host = await acquiringHost(t);
+    const client = await host.as('owner-token');
+    const reviewer = await host.as('reviewer-token');
+    const reader = await host.as('reader-token');
+    await held(client, 'answers-a');
+    const {items: [summary]} = await reviewer.checkpoints();
+    assert.equal(summary.kind, 'read_access');
+    // A7: only review readers read the body, within its bound; an aborted
+    // read is not a cancellation; a reader cannot answer.
+    for (const [who, target, options, code] of [
+      [reviewer, summary, {}, 'CheckpointReviewDenied'],
+      [client, summary, {}, 'CheckpointReviewDenied'],
+      [reader, `sha256:${'0'.repeat(64)}`, {}, 'CheckpointReviewDenied'],
+      [reader, summary, {maxBytes: 16}, 'CheckpointReviewTooLarge'],
+    ]) {
+      await assert.rejects(who.reviewCheckpoint(target, options), {code});
+    }
+    const controller = new AbortController();
+    controller.abort();
+    await assert.rejects(reader.reviewCheckpoint(summary,
+      {signal: controller.signal}));
+    assert.equal((await client.lookupRequest('answers-a')).state,
+      'waiting_checkpoint');
+    await assert.rejects(reader.resolveCheckpoints([{checkpoint: summary,
+      decision: 'approved'}], {signer}), {code: 'CheckpointAnswerDenied'});
+    assert.equal(host.count('acquisition_started'), 0);
+    // A4: the first reply is lost; the identical signed answer is resent
+    // and matched; a contradicting answer cannot replace it.
+    const real = globalThis.fetch;
+    let dropped = false;
+    globalThis.fetch = async (url, init) => {
+      const response = await real(url, init);
+      if (!dropped && String(url).endsWith('/resolve')) {
+        dropped = true;
+        await response.body?.cancel();
+        throw new TypeError('reply lost');
+      }
+      return response;
+    };
+    let lost;
+    try {
+      await reviewer.resolveCheckpoints([{checkpoint: summary,
+        decision: 'approved'}], {signer});
+    } catch (error) { lost = error; }
+    finally { globalThis.fetch = real; }
+    assert.equal(lost?.code, 'ResolutionUnknown');
+    const resent = await reviewer.resolveCheckpoints(lost.signed);
+    assert.deepEqual(resent.results.map(item => item.status), ['duplicate']);
+    const contradicted = await reviewer.resolveCheckpoints([{
+      checkpoint: summary, decision: 'rejected'}], {signer});
+    assert.deepEqual(contradicted.results.map(item => item.status),
+      ['conflicting']);
+    await assertResults(client, 'answers-a');
+    assert.equal(host.count('acquisition_started'), 1);
+  });
+
+test('A8: held read evidence is kept while needed and released after',
+  async t => {
+    // Run acceptance and then the read are held: the evidence stays held
+    // through both answers and is released once the Run is terminal.
+    const chain = await acquiringHost(t, {runOutcome: 'delegate'});
+    const client = await chain.as('owner-token');
+    const reviewer = await chain.as('reviewer-token');
+    await held(client, 'retain-a');
+    const answer = async kind => {
+      const checkpoint = await waitFor(async () => {
+        const {items} = await reviewer.checkpoints();
+        return items.find(item => item.kind === kind);
+      });
+      assert.deepEqual(await holdingStates(chain.root), ['held'], kind);
+      await reviewer.resolveCheckpoints([{checkpoint,
+        decision: 'approved'}], {signer});
+    };
+    await answer('run_scope');
+    await answer('read_access');
+    await assertResults(client, 'retain-a');
+    await waitFor(async () => {
+      const states = await holdingStates(chain.root);
+      return states.length === 1 && states[0] === 'retired';
+    });
+    // A read hold cancelled by its owner releases its evidence and never
+    // reads.
+    const cancelled = await acquiringHost(t);
+    const owner2 = await cancelled.as('owner-token');
+    await held(owner2, 'retain-b');
+    assert.deepEqual(await holdingStates(cancelled.root), ['held']);
+    assert.equal((await owner2.cancelRequest('retain-b')).kind, 'accepted');
+    await waitFor(async () =>
+      (await owner2.lookupRequest('retain-b')).state === 'ended');
+    await waitFor(async () => {
+      const states = await holdingStates(cancelled.root);
+      return states.length === 1 && states[0] === 'retired';
+    });
+    assert.equal(cancelled.count('acquisition_started'), 0);
   });
