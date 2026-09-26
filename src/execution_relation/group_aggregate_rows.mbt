@@ -277,27 +277,6 @@ fn runtime_value_identity_usage(
 }
 
 ///|
-fn distinct_aggregate_values(
-  values : Array[Value],
-  control : ControlBudget,
-  workspace : RowWorkspace,
-  identity_limits : ValueLimits,
-) -> Result[Array[Value], RowIssue] {
-  let state = start_aggregate_distinct(
-    values, control, workspace, identity_limits,
-  )
-  while true {
-    match advance_aggregate_distinct(state) {
-      Ok(None) => ()
-      Ok(Some(output)) => break Ok(output)
-      Err(issue) => break Err(issue)
-    }
-  } nobreak {
-    Err(InvalidRows)
-  }
-}
-
-///|
 fn admitted_aggregate_item(
   value : Value,
   control : ControlBudget,
@@ -326,108 +305,10 @@ fn admitted_aggregate_item(
 }
 
 ///|
-fn[T : IndexedRows] ordered_aggregate_values(
-  input : T,
-  indices : Array[Int],
-  range : AggregateGroupRange,
-  column : Int,
-  order : Array[ColumnOrder],
-  control : ControlBudget,
-  workspace : RowWorkspace,
-) -> Result[Array[Value], RowIssue] {
-  let members : AggregateRangeRows[T] = {
-    input,
-    indices,
-    start: range.start,
-    end: range.end,
-  }
-  let state = start_aggregate_ordered_values(
-    members, order, column, control, workspace,
-  )
-  while true {
-    match advance_aggregate_ordered_values(state) {
-      Ok(None) => ()
-      Ok(Some(values)) => break Ok(values)
-      Err(issue) => break Err(issue)
-    }
-  } nobreak {
-    Err(InvalidRows)
-  }
-}
-
-///|
 fn spend_control_bytes(control : ControlBudget, bytes : Int64) -> Bool {
   bytes >= 0L &&
   bytes <= control.remaining.to_int64() &&
   spend_control(control, bytes.to_int())
-}
-
-///|
-fn evaluate_array_aggregate(
-  aggregate : @lower.PreparedAggregate,
-  values : Array[Value],
-  selected : Array[SelectedAggregateOutput],
-  control : ControlBudget,
-  workspace : RowWorkspace,
-) -> Result[Value, RowIssue] {
-  guard selected_aggregate_output_limit(selected, aggregate, ArrayItems)
-    is Some(maximum) else {
-    return Err(InvalidRows)
-  }
-  if values.length().to_int64() > maximum {
-    return Err(RowLimit)
-  }
-  let state = start_aggregate_array(values, control, workspace)
-  while true {
-    match advance_aggregate_array(state) {
-      Ok(None) => ()
-      Ok(Some(value)) => break Ok(value)
-      Err(issue) => break Err(issue)
-    }
-  } nobreak {
-    Err(InvalidRows)
-  }
-}
-
-///|
-fn evaluate_string_aggregate(
-  aggregate : @lower.PreparedAggregate,
-  values : Array[Value],
-  selected : Array[SelectedAggregateOutput],
-  control : ControlBudget,
-  workspace : RowWorkspace,
-) -> Result[Value, RowIssue] {
-  if values.is_empty() {
-    return Ok(Null)
-  }
-  guard selected_aggregate_output_limit(selected, aggregate, StringBytes)
-    is Some(maximum) &&
-    @lower.group_aggregate_delimiter(aggregate) is Some(delimiter) else {
-    return Err(InvalidRows)
-  }
-  let delimiter_bytes = if values.length() > 1 {
-    match @scalar.admit_utf8_length64(delimiter, maximum) {
-      Ok(bytes) => bytes
-      Err(_) => return Err(RowLimit)
-    }
-  } else {
-    0L
-  }
-  if !reserve_slots(workspace, values.length()) {
-    return Err(RowLimit)
-  }
-  let state = start_aggregate_string(
-    values, delimiter, delimiter_bytes, maximum, control,
-  )
-  while true {
-    match advance_aggregate_string(state) {
-      Ok(None) => ()
-      Ok(Some(value)) => break Ok(value)
-      Err(issue) => break Err(issue)
-    }
-  } nobreak {
-    Err(InvalidRows)
-  }
 }
 
 ///|
@@ -436,74 +317,6 @@ fn finite_aggregate_number(value : Double) -> Result[Double, RowIssue] {
     Err(Aggregation(ArithmeticFailure))
   } else {
     Ok(if value == 0.0 { 0.0 } else { value })
-  }
-}
-
-///|
-fn evaluate_percentile_aggregate(
-  aggregate : @lower.PreparedAggregate,
-  values : Array[Value],
-  control : ControlBudget,
-  workspace : RowWorkspace,
-) -> Result[Value, RowIssue] {
-  if values.is_empty() {
-    return Ok(Null)
-  }
-  guard @lower.group_aggregate_fraction(aggregate) is Some(fraction) else {
-    return Err(InvalidRows)
-  }
-  let function = @lower.group_aggregate_function(aggregate)
-  if !(function is @relation.PercentileDisc) &&
-    !(function is @relation.PercentileCont) {
-    return Err(InvalidRows)
-  }
-  let state = start_aggregate_percentile(
-    values,
-    fraction,
-    function is @relation.PercentileDisc,
-    control,
-    workspace,
-  )
-  while true {
-    match advance_aggregate_percentile(state) {
-      Ok(None) => ()
-      Ok(Some(value)) => break Ok(value)
-      Err(issue) => break Err(issue)
-    }
-  } nobreak {
-    Err(InvalidRows)
-  }
-}
-
-///|
-fn evaluate_statistical_aggregate(
-  aggregate : @lower.PreparedAggregate,
-  values : Array[Value],
-  control : ControlBudget,
-  workspace : RowWorkspace,
-  identity_limits : ValueLimits,
-) -> Result[Value, RowIssue] {
-  let function = @lower.group_aggregate_function(aggregate)
-  let sample = function is @relation.VarSamp || function is @relation.StddevSamp
-  if values.is_empty() || (sample && values.length() < 2) {
-    return Ok(Null)
-  }
-  let state = start_aggregate_statistical(
-    values,
-    sample,
-    function is @relation.StddevPop || function is @relation.StddevSamp,
-    control,
-    workspace,
-    identity_limits,
-  )
-  while true {
-    match advance_aggregate_statistical(state) {
-      Ok(None) => ()
-      Ok(Some(value)) => break Ok(value)
-      Err(issue) => break Err(issue)
-    }
-  } nobreak {
-    Err(InvalidRows)
   }
 }
 
@@ -550,68 +363,26 @@ fn[T : IndexedRows] evaluate_dynamic_aggregate(
   numeric_step? : Int = -1,
   numeric_occurrence? : Int = -1,
 ) -> Result[Value, RowIssue] {
-  let preparation = start_aggregate_preparation(
-    input,
-    names,
-    indices,
-    range,
-    argument,
-    @lower.group_aggregate_filter(aggregate),
-    aggregate_index,
-    order,
-    control,
-    workspace,
-    scope,
+  let state = start_aggregate_evaluation(
+    aggregate, input, names, indices, range, argument, order, aggregate_index, control,
+    workspace, selected, identity_limits, scope, numeric, numeric_step, numeric_occurrence,
   )
-  let (sorted, local_indices) = while true {
-    match advance_aggregate_preparation(preparation) {
+  drain_aggregate_evaluation(state)
+}
+
+///|
+fn[T : IndexedRows] drain_aggregate_evaluation(
+  state : AggregateEvaluation[T],
+) -> Result[Value, RowIssue] {
+  while true {
+    match advance_aggregate_evaluation(state) {
       Ok(None) => ()
-      Ok(Some(values)) => break values
-      Err(issue) => return Err(issue)
+      Ok(Some(value)) => break Ok(value)
+      Err(issue) => break Err(issue)
     }
   } nobreak {
-    close_aggregate_preparation(preparation)
-    return Err(InvalidRows)
+    Err(InvalidRows)
   }
-  let rows : DynamicAggregateRows = { values: sorted, }
-  let ordered_function = match @lower.group_aggregate_function(aggregate) {
-    @relation.First
-    | @relation.Last
-    | @relation.ArrayAgg
-    | @relation.StringAgg => true
-    _ => false
-  }
-  evaluate_direct_aggregate(
-    aggregate,
-    rows,
-    local_indices,
-    {
-      representative: if local_indices.is_empty() {
-        None
-      } else {
-        Some(0)
-      },
-      start: 0,
-      end: local_indices.length(),
-    },
-    if argument is AggregateInputRows {
-      None
-    } else {
-      Some(0)
-    },
-    if ordered_function {
-      [{ column: 1, descending: false, nulls_first: true, }]
-    } else {
-      []
-    },
-    control,
-    workspace,
-    selected,
-    identity_limits,
-    numeric~,
-    numeric_step~,
-    numeric_occurrence~,
-  )
 }
 
 ///|
@@ -630,161 +401,18 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
   numeric_step? : Int = -1,
   numeric_occurrence? : Int = -1,
 ) -> Result[Value, RowIssue] {
-  let function = @lower.group_aggregate_function(aggregate)
-  if function is @relation.ArrayAgg || function is @relation.StringAgg {
-    guard argument is Some(column) && !order.is_empty() else {
-      return Err(InvalidRows)
-    }
-    let ordered = match
-      ordered_aggregate_values(
-        input, indices, range, column, order, control, workspace,
-      ) {
-      Ok(values) => values
-      Err(issue) => return Err(issue)
-    }
-    let values = if @lower.group_aggregate_distinct(aggregate) == Some(true) {
-      match
-        distinct_aggregate_values(ordered, control, workspace, identity_limits) {
-        Ok(values) => values
-        Err(issue) => return Err(issue)
-      }
-    } else {
-      ordered
-    }
-    return if function is @relation.ArrayAgg {
-      evaluate_array_aggregate(aggregate, values, selected, control, workspace)
-    } else {
-      evaluate_string_aggregate(aggregate, values, selected, control, workspace)
-    }
-  }
-  if function is @relation.First || function is @relation.Last {
-    guard argument is Some(column) && !order.is_empty() else {
-      return Err(InvalidRows)
-    }
-    let members : AggregateRangeRows[T] = {
-      input,
-      indices,
-      start: range.start,
-      end: range.end,
-    }
-    let endpoint = start_aggregate_endpoint(
-      members,
-      order,
-      column,
-      function is @relation.First,
-      control,
-      workspace,
-    )
-    return while true {
-      match advance_aggregate_endpoint(endpoint) {
-        Ok(None) => ()
-        Ok(Some(value)) => break Ok(value)
-        Err(issue) => break Err(issue)
-      }
-    } nobreak {
-      Err(InvalidRows)
-    }
-  }
-  let collection = start_aggregate_direct_collection(
-    input, indices, range, argument, function, control, workspace,
+  let state = start_aggregate_direct(
+    aggregate, input, indices, range, argument, order, control, workspace, selected,
+    identity_limits, numeric, numeric_step, numeric_occurrence,
   )
-  let (values, count) = while true {
-    match advance_aggregate_direct_collection(collection) {
+  while true {
+    match advance_aggregate_direct(state) {
       Ok(None) => ()
-      Ok(Some(result)) => break result
-      Err(issue) => return Err(issue)
+      Ok(Some(value)) => break Ok(value)
+      Err(issue) => break Err(issue)
     }
   } nobreak {
-    close_aggregate_direct_collection(collection)
-    return Err(InvalidRows)
-  }
-  let values = if @lower.group_aggregate_distinct(aggregate) == Some(true) {
-    match
-      distinct_aggregate_values(values, control, workspace, identity_limits) {
-      Ok(values) => values
-      Err(issue) => return Err(issue)
-    }
-  } else {
-    values
-  }
-  if @lower.group_aggregate_requires_numeric_observation(aggregate) {
-    guard numeric is Some(execution) &&
-      numeric_step >= 0 &&
-      numeric_occurrence >= 0 else {
-      return Err(InvalidRows)
-    }
-    let reduction = start_aggregate_numeric(
-      values,
-      execution,
-      numeric_step,
-      @lower.group_aggregate_name(aggregate),
-      numeric_occurrence,
-      control,
-      workspace,
-    )
-    return while true {
-      match advance_aggregate_numeric(reduction) {
-        Ok(None) => ()
-        Ok(Some(value)) => break Ok(value)
-        Err(issue) => break Err(issue)
-      }
-    } nobreak {
-      Err(InvalidRows)
-    }
-  }
-  match function {
-    @relation.Count => {
-      let total = if argument is None { count } else { values.length() }
-      Ok(Number(total.to_double()))
-    }
-    @relation.CountIf => Ok(Number(count.to_double()))
-    @relation.Min | @relation.Max => {
-      let extremum = start_aggregate_extremum(
-        values,
-        function is @relation.Min,
-        control,
-      )
-      while true {
-        match advance_aggregate_extremum(extremum) {
-          Ok(None) => ()
-          Ok(Some(value)) => break Ok(value)
-          Err(issue) => break Err(issue)
-        }
-      } nobreak {
-        Err(InvalidRows)
-      }
-    }
-    @relation.Sum => {
-      if values.is_empty() {
-        return Ok(Null)
-      }
-      guard @lower.group_aggregate_result(aggregate).shape
-        is @contract.Decimal(precision~, scale~) else {
-        return Err(InvalidRows)
-      }
-      let sum = start_aggregate_decimal_sum(
-        values, precision, scale, control, workspace,
-      )
-      while true {
-        match advance_aggregate_decimal_sum(sum) {
-          Ok(None) => ()
-          Ok(Some(value)) => break Ok(value)
-          Err(issue) => break Err(issue)
-        }
-      } nobreak {
-        Err(InvalidRows)
-      }
-    }
-    @relation.PercentileDisc | @relation.PercentileCont =>
-      evaluate_percentile_aggregate(aggregate, values, control, workspace)
-    @relation.VarPop
-    | @relation.VarSamp
-    | @relation.StddevPop
-    | @relation.StddevSamp =>
-      evaluate_statistical_aggregate(
-        aggregate, values, control, workspace, identity_limits,
-      )
-    _ => Err(InvalidRows)
+    Err(InvalidRows)
   }
 }
 
