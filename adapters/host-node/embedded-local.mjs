@@ -12,6 +12,9 @@ import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {openCapturedDuckDBSource} from './captured-duckdb-source.mjs';
+import {loadInstalledDuckDBSource} from './installed-duckdb-source.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {runPublishedCapturedStrategy} from './entry.mjs';
@@ -23,7 +26,8 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {localContractLimits, localOutputLimits,
-  sourceFreeValuesPlan} from './local-values-plan.mjs';
+  sourceFreeValuesPlan, acquiredTaskRunAdmission,
+  acquiredTaskPublicationPlan} from './local-values-plan.mjs';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
 const runtimeUrl = new URL('../../_build/js/release/build/' +
@@ -49,12 +53,17 @@ function localStateRoot() {
 const REALIZATION_KEY = 'source-free-values';
 
 async function openInstalledHost(root, mode = 'local', beforeDispatch,
-  authorization) {
+  authorization, sourceProfilePath) {
   await mkdir(root, {recursive: true, mode: 0o700});
   const moon = await import(runtimeUrl.href);
   const control = runtimeCore(moon).publicationControl;
-  const environmentWire = (await readFile(join(packageRoot,
-    'spec/local-check-environment.json'), 'utf8')).trimEnd();
+  const principalId = userInfo().username;
+  const sourceProfile = await loadInstalledDuckDBSource(
+    sourceProfilePath ?? process.env.ACTQL_LOCAL_SOURCE_PROFILE,
+    {root, principalId});
+  const environmentWire = sourceProfile?.environmentWire ??
+    (await readFile(join(packageRoot,
+      'spec/local-check-environment.json'), 'utf8')).trimEnd();
   const evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
   const environment = moon.clientProgramCheckEnvironment(environmentWire,
     evidenceCid, false, false, true, false, false, false, false);
@@ -70,7 +79,6 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
   const ordered = JSON.stringify(
     aoa.execution_contracts['REL.derive.ordered']);
-  const principalId = userInfo().username;
   const tenantId = 'local';
   const authorityScopeCid = cid({version: 'actql-local-owner-scope/0.1',
     root, principalId});
@@ -142,7 +150,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     checkpoints = await installRemoteCheckpoints({root, tenantId,
       authorityScopeCid, ownerPrincipal: principalId,
       siteKey: authorization?.siteKey ?? 'actql-remote-host',
-      realizationKey: REALIZATION_KEY, environmentCid: evidenceCid,
+      realizationKey: sourceProfile === undefined ? REALIZATION_KEY
+        : 'duckdb-acquired', environmentCid: evidenceCid,
       contractControl: control, authorization});
   } catch (error) {
     journal.close();
@@ -230,6 +239,21 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     return observeRun({ref, principalId: actual});
   };
   const requestOf = ({preparedProgram, requestId}) => {
+    const acquisition = moon.clientProgramPrepareQueryAcquisition(
+      preparedProgram, 0, 0);
+    const acquired = acquisition?.$tag === 1;
+    if (acquired) {
+      if (sourceProfile === undefined) {
+        throw new Error('ClientProgramNeedsInputs');
+      }
+      const requirement = checked(
+        moon.clientProgramPrepareLocalQueryRequirement(preparedProgram,
+          0, 0, registry, values, fragment, ordered));
+      if (moon.clientProgramQueryRequirementSourceRef(requirement) !==
+          sourceProfile.sourceRef) {
+        throw new Error('InstalledSourceProgramMismatch');
+      }
+    }
     const requested = moon.clientProgramRequestIdentity(preparedProgram,
       authorityScopeCid, requestId,
       moon.clientProgramSourceFreeInputIntentCid());
@@ -243,17 +267,23 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       if (name === undefined) throw new Error('ClientProgramResultMissing');
       resultNames.push(name);
     }
-    return {requested, resultNames};
+    return {requested, resultNames, acquired};
   };
   const planFor = ({preparedProgram, kind, input, parameters, requestId},
-    retainedDefinitionWire) => sourceFreeValuesPlan({moon, control,
-    preparedProgram,
-    document: kind === 'aql' ? input.text : JSON.stringify(input),
-    format: kind === 'aql' ? input.format : 'json', parameters,
-    environmentWire, environmentCid: evidenceCid,
-    authorityScopeCid, tenantId, requestId, storeAuthorityCid, now,
-    ...(retainedDefinitionWire === undefined ? {} :
-      {retainedDefinitionWire})});
+    retainedDefinitionWire) => {
+    const common = {moon, control, preparedProgram,
+      document: kind === 'aql' ? input.text : JSON.stringify(input),
+      format: kind === 'aql' ? input.format : 'json', parameters,
+      environmentWire, environmentCid: evidenceCid,
+      authorityScopeCid, tenantId, requestId, storeAuthorityCid, now,
+      ...(retainedDefinitionWire === undefined ? {} :
+        {retainedDefinitionWire})};
+    return sourceProfile !== undefined &&
+      moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0)?.$tag ===
+        1
+      ? acquiredTaskRunAdmission(common)
+      : sourceFreeValuesPlan(common);
+  };
   // Admit (or look up) the request's Run Definition: the durable Run.
   const admitDefinition = async (submission, requested, resultNames,
     held) => {
@@ -315,10 +345,16 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       if (held.plan === undefined) {
         held.plan = planFor(submission, accepted.runDefinition.wire);
       }
-      const setup = moon.clientProgramOpenSourceFreeLocalHost(
-        preparedProgram, registry, values, 1n, 0n, 0n, 0n,
-        fragment, ordered);
-      if (setup === undefined) throw new Error('ClientProgramNeedsInputs');
+      const acquiring = sourceProfile !== undefined &&
+        moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0)
+          ?.$tag === 1;
+      let setup;
+      if (!acquiring) {
+        setup = moon.clientProgramOpenSourceFreeLocalHost(
+          preparedProgram, registry, values, 1n, 0n, 0n, 0n,
+          fragment, ordered);
+        if (setup === undefined) throw new Error('ClientProgramNeedsInputs');
+      }
       // No await from the resumed admission to the start reservation.
       if (gate !== undefined) {
         try { gate.beforePhysicalStart(); }
@@ -337,12 +373,44 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       gate?.started();
       reached('started');
       await observed('physical_start_reserved', {ref: accepted.ref});
+      if (acquiring) {
+        const captureStartedAt = now();
+        active.sourceCapture = await openCapturedDuckDBSource({moon,
+          preparedProgram, registry, values, fragment, ordered,
+          database: sourceProfile.database, schema: sourceProfile.schema,
+          table: sourceProfile.table, sourceAccess: sourceProfile.sourceAccess,
+          transportLimits: sourceProfile.transportLimits,
+          signal: active.abort.signal});
+        const captureCompletedAt = now();
+        const sourceEvidenceWire = await active.sourceCapture.issueSourceEvidence({
+          authorityScopeCid,
+          effectiveDataPolicyCid:
+            active.sourceCapture.checkedSource.sourceDataPolicyCid});
+        held.plan = acquiredTaskPublicationPlan({moon, control,
+          acquired: held.plan, preparedProgram,
+          captured: active.sourceCapture, sourceEvidenceWire,
+          authorityScopeCid,
+          effectiveDataPolicyCid:
+            active.sourceCapture.checkedSource.sourceDataPolicyCid,
+          captureStartedAt, captureCompletedAt, tenantId,
+          requestId: submission.requestId, storeAuthorityCid, now});
+        setup = active.sourceCapture.setup;
+      }
       const published = await runPublishedCapturedStrategy(setup,
-        {store, plan: held.plan}, {}, active.abort.signal);
+        {store, plan: held.plan},
+        sourceProfile === undefined ? {} :
+          {authorization: sourceProfile.sourceAccess.authorization},
+        active.abort.signal);
       await observed('computed', {ref: accepted.ref});
       await published.close();
       await published.cleanup();
-      if (!published.cleanupPending()) journal.markPhysicalClose(accepted.ref);
+      if (published.cleanupPending()) {
+        active.cleanupOwner = published;
+      } else {
+        active.sourceCapture?.close();
+        active.sourceCapture = undefined;
+        journal.markPhysicalClose(accepted.ref);
+      }
       finished?.('succeeded');
     }).catch(async cause => {
       if (cause?.cleanupPending === true) active.cleanupOwner = cause;
@@ -368,6 +436,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     }).finally(() => {
       reached('not_started');
       if (active.cleanupOwner === undefined) {
+        active.sourceCapture?.close();
         activeDispatches.delete(accepted.ref.runDefinitionCid);
       }
     });
@@ -602,14 +671,14 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
 // `observe(step, detail)` is Host instrumentation of the protected steps. Without a configuration the Missing account
 // denies every request; nothing defaults to allow.
 export async function openInstalledRemoteHttpHost({directory,
-  authenticate, beforeDispatch, authorization}) {
+  authenticate, beforeDispatch, authorization, sourceProfilePath}) {
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
     throw new TypeError('InvalidInstalledRemoteHost');
   }
   const host = await openInstalledHost(resolve(directory), 'remote',
-    beforeDispatch, authorization);
+    beforeDispatch, authorization, sourceProfilePath);
   return Object.freeze({
     handler: createClientHttpHandler({
       ...host.hostOperations, authenticate, maxRequestBytes: 65536,

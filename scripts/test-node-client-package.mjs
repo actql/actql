@@ -3,9 +3,12 @@ import {spawn, spawnSync} from 'node:child_process';
 import {once} from 'node:events';
 import {mkdir, mkdtemp, readFile, readdir, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
+import {createRequire} from 'node:module';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
+import {machineCid} from './actql-spec-family.mjs';
+import {canonicalText} from './check-canonical-json.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -66,6 +69,63 @@ for (const name of ['host-port.mjs', 'host-port.d.ts']) {
 }
 await writeFile(join(root, 'values.json'), await readFile(join(repository,
   'packages/sdk/fixtures/values.json')));
+await writeFile(join(root, 'source-program.json'), await readFile(
+  join(repository, 'adapters/connectors/duckdb/node/examples/program.json')));
+const sourceCatalog = await readFile(join(repository,
+  'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
+const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
+  'fn query_amount_nullable_catalog')).match(
+  /query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/u);
+assert.ok(catalog);
+const sourceEnvironment = JSON.parse(JSON.parse(catalog[1]));
+const sourceSelector = {source_ref: 'connector://crm/main/r#v',
+  source_contract_cid:
+    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+  source_view_contract_cid:
+    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+  read_mode: 'snapshot'};
+sourceEnvironment.schema_snapshots = [{...sourceSelector,
+  output_carrier: 'relation',
+  carrier_schema_contract_cid:
+    'sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4',
+  source_data_policy_cid:
+    'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf',
+  data_classification: 'unknown'}];
+sourceEnvironment.connector_capabilities = [{...sourceSelector,
+  capability_contract_cids: [
+    'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8'],
+}];
+delete sourceEnvironment.evidence_bundle_cid;
+sourceEnvironment.evidence_bundle_cid = machineCid(sourceEnvironment);
+const databasePath = join(root, 'records.duckdb');
+const {DuckDBInstance} = createRequire(join(root, 'node_modules', '@actql',
+  'local-node', 'package.json'))('@duckdb/node-api');
+const sourceDatabase = await DuckDBInstance.create(databasePath);
+const sourceConnection = await sourceDatabase.connect();
+try {
+  await sourceConnection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+  await sourceConnection.run('INSERT INTO records VALUES (3,30),(1,NULL),'
+    + '(2,20),(3,30)');
+} finally {
+  sourceConnection.closeSync();
+  sourceDatabase.closeSync();
+}
+const sourceProfilePath = join(root, 'source-profile.json');
+await writeFile(sourceProfilePath, JSON.stringify({
+  version: 'actql-installed-duckdb-source/0.1',
+  database: databasePath, schema: 'main', table: 'records',
+  sourceRef: sourceSelector.source_ref,
+  checkEnvironmentWire: canonicalText(sourceEnvironment),
+  accountConfigurationWire: JSON.stringify({
+    version: 'actql-execution-account-config/0.1',
+    account_id: 'packed-source-account', entries: [{
+      entry_id: 'packed-source-allow', outcome: 'allow',
+      principal: {all: true}, connection: {all: true},
+      resource: {all: true}, operation: {all: true}, exclusions: [],
+    }],
+  }),
+}));
+environment.ACTQL_LOCAL_SOURCE_PROFILE = sourceProfilePath;
 
 await writeFile(join(root, 'smoke.mjs'), `
 import assert from 'node:assert/strict';
@@ -103,6 +163,7 @@ for (const selected of connected) {
   client.close();
 }
 const document = readFileSync('values.json', 'utf8');
+const acquiredDocument = readFileSync('source-program.json', 'utf8');
 async function runApplication(options, requestId) {
   const client = await connect(options);
   const execution = await client.aql(document, {format: 'json', requestId});
@@ -110,6 +171,17 @@ async function runApplication(options, requestId) {
   assert.equal(settled.status, 'succeeded');
   const rows = await execution.result('answer').all();
   return {client, execution, rows};
+}
+async function runAcquiredApplication(options, requestId) {
+  const client = await connect(options);
+  const execution = await client.aql(acquiredDocument, {format: 'json',
+    requestId, parameters: {minimum: 1}});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  const b = await execution.result('b').all();
+  const c = await execution.result('c').all();
+  assert.deepEqual(b.map(row => row.id).sort(), [2, 3, 3]);
+  assert.deepEqual(c.map(row => row.id).sort(), [3, 3]);
+  return {client, execution, b, c};
 }
 const {client: installedLocal, execution, rows} = await runApplication(
   {mode: 'local', owner: 'local', durability: 'durable'},
@@ -130,6 +202,12 @@ assert.deepEqual((await installedLocal.lookupRequest(
   'packed-standard-values')).ref, execution.ref);
 assert.deepEqual((await installedLocal.attach(execution.ref)).ref,
   execution.ref);
+const acquiredLocal = await runAcquiredApplication(
+  {mode: 'local', owner: 'local', durability: 'durable'},
+  'packed-acquired-local');
+assert.deepEqual((await acquiredLocal.client.attach(
+  acquiredLocal.execution.ref)).ref, acquiredLocal.execution.ref);
+acquiredLocal.client.close();
 writeFileSync('run-ref.json', JSON.stringify(execution.ref));
 const nullable = JSON.parse(document);
 nullable.id = 'client-nullable-values';
@@ -212,6 +290,11 @@ const {client: installedRemote, execution: remoteExecution,
   rows: remoteRows} = await runApplication(remoteOptions,
   'packed-remote-values');
 assert.deepEqual(remoteRows, rows);
+const acquiredRemote = await runAcquiredApplication(remoteOptions,
+  'packed-acquired-remote');
+assert.deepEqual(acquiredRemote.b, acquiredLocal.b);
+assert.deepEqual(acquiredRemote.c, acquiredLocal.c);
+acquiredRemote.client.close();
 const computedRemote = await installedRemote.aql(computedDocument,
   {format: 'json', requestId: 'packed-computed-remote'});
 assert.equal((await computedRemote.wait()).status, 'succeeded');
@@ -289,6 +372,7 @@ const heldDispatch = new Promise(resolve => { releaseDispatch = resolve; });
 let failNextDispatch = false;
 const remoteHost = await openInstalledRemoteHttpHost({
   directory: join(root, 'remote-state'),
+  sourceProfilePath,
   authenticate: header => header === 'Bearer packed-test-token'
     ? userInfo().username : undefined,
   beforeDispatch: async () => {
