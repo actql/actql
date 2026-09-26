@@ -363,7 +363,7 @@ test('A3: an approved read never reads a different physical target',
       const database = join(directory, 'records.duckdb');
       const hex = name => Buffer.from(name, 'utf8').toString('hex');
       assert.deepEqual(review.displayed_scope.physical_binding, {
-        version: 'actql-installed-duckdb-target/0.2',
+        version: 'actql-installed-duckdb-target/0.1',
         database, schema: 'main', table: 'records',
         utf8_hex: {database: hex(database), schema: hex('main'),
           table: hex('records')}});

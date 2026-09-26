@@ -73,7 +73,7 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
       'local-database', resource: sourceAccess.resource ?? database,
     operation: 'read'}),
     physicalBinding: Object.freeze({version:
-      'actql-installed-duckdb-target/0.2', database, schema, table,
+      'actql-installed-duckdb-target/0.1', database, schema, table,
       utf8_hex: Object.freeze({database: exact(database),
         schema: exact(schema), table: exact(table)})})});
   preparations.set(prepared, Object.freeze({moon, preparedProgram, registry,
