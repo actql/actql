@@ -112,7 +112,7 @@ export async function installSalesforceAuthorization({accountConfiguration,
 // never replaces the account gate, the credential authority or the org.
 export async function loadInstalledSalesforceSite(path, {commonMoon,
   salesforceMoon, authorization, runtimeBundleCid, resolveSecret,
-  now = () => Date.now()} = {}) {
+  now = () => Date.now(), grantLifetimeMs = 15 * 60 * 1000} = {}) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     fail('InvalidInstalledSalesforceSiteProfilePath');
   }
@@ -120,7 +120,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   if (issuedDecisions === undefined ||
       !cidPattern.test(runtimeBundleCid ?? '') ||
       commonMoon === undefined || salesforceMoon === undefined ||
-      typeof now !== 'function' ||
+      typeof now !== 'function' || !Number.isSafeInteger(grantLifetimeMs) ||
+      grantLifetimeMs < 1 || grantLifetimeMs > 24 * 60 * 60 * 1000 ||
       (resolveSecret !== undefined && typeof resolveSecret !== 'function')) {
     fail('InvalidInstalledSalesforceSiteOptions');
   }
@@ -157,7 +158,6 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   });
   const credential = Object.freeze({orgId: profile.orgId, control, journal,
     resolveSecret: secret, ca, now});
-  const grantLifetimeMs = 15 * 60 * 1000;
 
   function sign({operation, runInvocationCid, taskAttempt,
     dispatchRequestCid, maxUses}) {
@@ -207,26 +207,34 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
 
   let syncSequence = 0;
   // One bounded Catalog observation under this Site's own metadata grants.
+  // A Run's current Catalog is bound to its dispatch (`runInvocationCid`,
+  // `dispatchRequestCid`, `taskAttempt`); otherwise the sync is the Site's own.
   async function refreshCatalog({occurrence, retainResponses = false,
-    maxRetainedBytes = 0, limits = defaultCatalogLimits, signal} = {}) {
+    maxRetainedBytes = 0, limits = defaultCatalogLimits, signal,
+    runInvocationCid: runCid, dispatchRequestCid: dispatchCid,
+    taskAttempt = 1, grantUses} = {}) {
     const sequence = syncSequence++;
     const syncOccurrence = occurrence ?? `catalog-sync-${now()}-${sequence}`;
-    const runInvocationCid = cid({version: 'actql-salesforce-catalog-sync/0.1',
-      siteKey: profile.siteKey, siteGeneration: profile.siteGeneration,
-      syncOccurrence});
-    const dispatchRequestCid = cid({version:
+    if ((runCid === undefined) !== (dispatchCid === undefined)) {
+      fail('InvalidSalesforceCredentialGrantRequest');
+    }
+    const runInvocationCid = runCid ?? cid({version:
+      'actql-salesforce-catalog-sync/0.1', siteKey: profile.siteKey,
+      siteGeneration: profile.siteGeneration, syncOccurrence});
+    const dispatchRequestCid = dispatchCid ?? cid({version:
       'actql-salesforce-catalog-dispatch/0.1', runInvocationCid});
     const grant = operation => {
       if (!catalogOperations.has(operation)) {
         fail('InvalidSalesforceCredentialGrantRequest');
       }
-      return sign({operation, runInvocationCid, taskAttempt: 1,
-        dispatchRequestCid, maxUses: operation === 'salesforce:catalog:list'
-          ? 1 : limits.list.maxSelected});
+      return sign({operation, runInvocationCid, taskAttempt,
+        dispatchRequestCid, maxUses: grantUses ??
+          (operation === 'salesforce:catalog:list'
+            ? 1 : limits.list.maxSelected)});
     };
     const list = grant('salesforce:catalog:list');
     const describe = grant('salesforce:catalog:describe');
-    return await syncSalesforceCatalog({
+    const catalog = await syncSalesforceCatalog({
       moon: salesforceMoon, apiVersion: profile.apiVersion,
       connectionRevision: profile.connectionRevision, orgId: profile.orgId,
       syncOccurrence, maxObservationBytes: limits.maxObservationBytes,
@@ -237,6 +245,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       credential, listLimits: limits.list, describeLimits: limits.describe,
       signal,
     });
+    // The metadata grants stay with the observation for its recovery.
+    return Object.freeze({...catalog, grants: Object.freeze({list, describe})});
   }
 
   return Object.freeze({

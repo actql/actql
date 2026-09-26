@@ -37,7 +37,9 @@ import {installSalesforceEffectRoute} from
   '../host/salesforce-effect-route.mjs';
 import {issueSalesforceEffectCapability, inspectSalesforceEffectCapability} from
   '../site/salesforce-effect-capability.mjs';
-import {openSalesforceEffectSiteFixture} from
+import {installSalesforceAuthorization} from
+  '../host/installed-salesforce-site.mjs';
+import {openSalesforceEffectSiteFixture, salesforceSiteAccountConfiguration} from
   './salesforce-effect-site.fixture.mjs';
 import {recoverRetainedSalesforceCatalog} from
   '../site/salesforce-catalog-recovery.mjs';
@@ -1622,8 +1624,17 @@ test(`two-member captured Effect Run ${
         }
       }
       const effect = runtimeCore(moon).effectApplicationControl;
+      // One Host account gate for both installed Sites; it also decides the
+      // Effect commit below.
+      const siteAuthorization = siteRun
+        ? await installSalesforceAuthorization({
+          accountConfiguration: salesforceSiteAccountConfiguration([
+            '00D000000000001EAA', '00D000000000002EAA']),
+          principalId: 'principal-a', root: directory})
+        : undefined;
       const sites = siteRun ? await Promise.all(memberIds.map((_, index) =>
         openSalesforceEffectSiteFixture(t, {
+          authorization: siteAuthorization,
           commonMoon: moon, salesforceMoon,
           runInvocationCid: runInvocation.identity,
           dispatchRequestCid: cid('c'),
@@ -2346,7 +2357,7 @@ test(`two-member captured Effect Run ${
         preflight, ledger, members, maxFrontierWork: 64,
         refreshPreflight: async ({preflight}) => preflight,
         authorization: {
-          gate: await fixtureAuthorization([
+          gate: siteRun ? siteAuthorization : await fixtureAuthorization([
             accountEntry('effect-allow', 'allow', {operation: 'effect'}),
             accountEntry('target-read-allow', 'allow', {operation: 'read'}),
           ]),
