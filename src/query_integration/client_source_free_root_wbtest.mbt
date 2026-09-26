@@ -283,6 +283,18 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     1000,
     20,
   ).unwrap()
+  // The external Client may select another ordinary Values document. Recheck
+  // that same document here so the native issuer remains bound to its owner.
+  let native_document = @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_PROGRAM").unwrap_or(
+    document,
+  )
+  let prepared = @publication_host.prepare_effect_free_client_program(
+    native_document,
+    Json,
+    selected,
+    None,
+    preparation,
+  ).unwrap()
   let sequence_limits : @lower.SequenceLimits = {
     max_steps: 10,
     max_rows: 10,
@@ -803,7 +815,9 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   }
   assert_eq(
     @utf8.decode_lossy(Bytes::from_array(output)),
-    "[{\"id\":1},{\"id\":2}]",
+    @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_EXPECTED_ROWS").unwrap_or(
+      "[{\"id\":1},{\"id\":2}]",
+    ),
   )
   assert_true(reader.finish().unwrap())
   assert_true(runtime.release(second).unwrap())
