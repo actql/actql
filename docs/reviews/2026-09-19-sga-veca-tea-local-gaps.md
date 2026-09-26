@@ -73,6 +73,21 @@ paths now have separate evidence, but that does not certify an unrelated
 whole-sequence or formal variant. Multiple rows below share one
 implementation while retaining separate input bindings and route evidence.
 
+General direct groups now have a bounded Local provider. Every aggregate
+finishing state (min and max, Decimal sum, first and last, ordered
+collection, distinct, array_agg and string_agg, selected numeric
+reduction, percentile, variance and standard deviation), the per-aggregate
+evaluation, and the whole group operation advance as resumable states whose
+steps pay at most one control unit; the synchronous evaluator drains the
+same states. The provider covers groups whose aggregates are all direct.
+Its evidence is an independently derived exact/one-short work fixture
+(21 units for a one-row max group), managed direct, ordered, collection,
+nested distinct and statistics fixtures at quantum one with two consumers,
+Host cancellation after positive work, and a standard Node Host timer
+cancellation. Filtered, expression and selected numeric group aggregates,
+pivot and analytic still use the synchronous route, so the strict group
+entrypoint assurance remains open.
+
 General aggregate execution is being converted at its existing evaluation
 boundaries. Source snapshots, filter/argument demand, contributor collection,
 stable ordering, group-boundary discovery, and permutation now share private
