@@ -19,8 +19,19 @@ the first public submit report an unknown response; resubmission reconciles
 the retained Run and does not call execute or resend the row. The existing
 fault matrix still exercises Store restart, saved response, partial failure,
 whole-set preflight, and private holding retirement through this entry.
-The compiler's initial single-Unit source-free Values profile explicitly
-rejects unsupported Programs before durable acceptance.
+The compiler's initial single-Unit source-free Values profile rejects
+unsupported Programs before durable acceptance. A public ingress regression
+now checks the typed `ClientProgramUnsupported` response, zero accepted journal
+rows, and zero physical execution for a checked multi-Unit Program; it cannot
+silently fall back to another path.
+
+At `ada3f0033f5091944c564b9e03ca3d8831135239`, the local Salesforce
+gate passed 171/171, the shared `run_publication_host` package passed 15/15
+on each of JS, Wasm and native, the public Client gate passed 104/104, and
+`check:docs` passed after regenerating the RelA Effect bridge. The worktree
+was clean. These are local and fixture-backed results, not hosted Linux CI or
+live Salesforce evidence. The subsequent unsupported-Program regression and
+bridge projection must be included in the next fixed-SHA gate run.
 
 This local connection uses test-configured authorization and an authenticated
 Salesforce-shaped HTTP resource. The isolated Salesforce org and write scope
@@ -749,7 +760,7 @@ its exact Catalog observation, current grant, and selected Site capability.
 | Single create, ID update, external-ID upsert: `captureSalesforceSingleEffectWrite` | Same suite: exact target/request authority, physical response custody, restart without resend, rejected response, alias/footprint mismatch; MoonBit write-request fixtures. `adapters/connectors/salesforce/test/effect-run.integration.test.mjs` runs each operation as a checked two-member Program through local HTTPS writes, final publication, SDK read after restart, and holding retirement. The local Host authors the Preview from typed requests, current target observations, and authenticated capability handles, then refreshes selected Catalogs, guards, and capability authority before sending. Changed permission rejects the whole set with zero writes; a lost create reply remains unknown after Ledger reopen without resending POST. The separate local Artifact inventory is durable and re-admitted after restart. | Finish the admitted request-authority composition, then verify behavior against the isolated org, including required External ID, duplicate key, field omission versus NULL, permission changes, and provider failures. Live writes remain unauthorized and untested. |
 | Same-member Collections continue (`allOrNone=false`): `captureSalesforceCollectionEffectWrite` | Same suite: row order, shared response custody, target identity and operation authority. The Salesforce integration suite includes two-row Collections partial failure and saved-response recovery in the checked two-member Host Run, with Ledger reopen and no resend. Its authenticated capability distinguishes Collections from ordered single-record execution. | Validate actual provider limits and partial-result behavior in the isolated org. No cross-member atomicity is claimed. |
 | Provider-atomic Collections command (`allOrNone=true`) | Not declared or connected. The current request builder fixes `allOrNone=false`, and common apply admission rejects a provider-atomic collection as a `continue` route. | If declared under the agreed Command contract, add a distinct typed command, batch rollback evidence and a normal Host path. Do not count the existing continue collection as this capability. |
-| Effect Set completion and publication: `applyCapturedEffectSet` / `publishCompletedEffectfulRun` | Salesforce integration suite: checked two-member Program, credentialed local HTTPS Site writes, durable rows, final chain, lost index acknowledgement, public SDK attach/status/authorized Result read after Store reopen, and retirement; saved-response/terminal/claim fault cases, lost physical HTTP reply, halt/continue, unknown and partial failure; simulated response control remains. The common `client-program-bridge.test.mjs` keeps provider-independent contracts. | Install public Effectful `submit` and uncommitted unknown-state reporting with the Distribution owner. Local Site tests do not validate a live Salesforce org. |
+| Effect Set completion and publication: `applyCapturedEffectSet` / `publishCompletedEffectfulRun` | Salesforce integration suite: checked two-member Program, credentialed local HTTPS Site writes, durable rows, final chain, lost index acknowledgement, public SDK submit and later attach/status/authorized Result read after Store reopen, and retirement; saved-response/terminal/claim fault cases, lost physical HTTP reply, halt/continue, unknown and partial failure; simulated response control remains. The common `client-program-bridge.test.mjs` keeps provider-independent contracts. | The public submit path now enters the shared compiled Run owner and Connector completion. Distribution still owns public Checkpoint projection for an uncommitted unknown Run. The Site tests do not validate a live Salesforce org. |
 
 The org alias, instance, dedicated custom object, external-ID field, and
 write scope have not been supplied. No existing Smooth Cloud connection is

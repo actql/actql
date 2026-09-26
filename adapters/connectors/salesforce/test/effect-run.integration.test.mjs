@@ -3893,6 +3893,81 @@ test(`two-member captured Effect Run ${
   });
 }
 
+test('public Effect submit rejects an unsupported checked Program before acceptance',
+  async t => {
+    const unsupported = await effectFixture({splitSource: true,
+      writeKind: 'create', memberIds: ['save', 'save_again'],
+      sourceIds: ['001000000000001', '001000000000002']});
+    const prepare = installNodeClientEffectProgramPreparation({
+      moon, environment: unsupported.environment,
+    });
+    const prepared = prepare({kind: 'aql',
+      input: {text: unsupported.document, format: 'json'},
+      parameters: null});
+    assert.equal(moon.clientProgramEffectCompilationIssueCode(
+      moon.clientProgramCompileLocalEffects(prepared)),
+    'unsupported_program');
+    await mkdir(scratch, {recursive: true});
+    const directory = await mkdtemp(join(scratch.pathname,
+      'unsupported-effect-submit-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const journal = openClientRequestJournal(directory);
+    const runs = installNodeClientEffectRun({moon, journal,
+      authorizeRequest: async () => ({
+        executionContextCid: cid('a'), hostPolicyCid: cid('b'),
+        createdAt: '2026-09-24T00:00:00.000Z',
+        expiresAt: '2027-01-01T00:00:00.000Z',
+      }),
+      authorizeRunStart: async () => true,
+      execute: () => assert.fail('unsupported Program started execution'),
+    });
+    const server = createServer(createClientHttpHandler({
+      authenticate: header => header === 'Bearer scoped-token'
+        ? 'principal-a' : undefined,
+      authorizeConnection: () => true,
+      negotiate: () => ({
+        version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+        durability: 'durable', scopeRef: 'principal-a',
+        capabilities: ['result-jsonl'],
+        limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+          maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
+          maxRows: 100, maxBatchRows: 10,
+          maxBatchRetainedValueBytes: 2048},
+      }),
+      prepareSubmit: prepare,
+      submit: async ({preparedProgram, requestId, principalId,
+        connection}) => {
+        const accepted = await runs.accept({prepared: preparedProgram,
+          authorityScopeCid: cid('e'), requestId, tenantId: 'tenant-a',
+          principalId, connection,
+          lookupExpiresAt: '2027-01-01T00:00:00.000Z'});
+        await runs.start(accepted);
+        return {ref: accepted.ref, durability: accepted.durability,
+          revision: accepted.revision};
+      },
+    }));
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const client = await connectClient({mode: 'local', owner: 'local',
+        endpoint: `http://127.0.0.1:${server.address().port}/`,
+        token: 'scoped-token', durability: 'durable'});
+      try {
+        await assert.rejects(client.aql(unsupported.document,
+          {format: 'json', requestId: 'unsupported-effect-request'}),
+        {code: 'ClientProgramUnsupported'});
+      } finally { client.close(); }
+    } finally {
+      await new Promise(resolve => server.close(resolve));
+      journal.close();
+    }
+    const database = new DatabaseSync(join(directory,
+      'client-requests.sqlite3'), {readOnly: true});
+    try {
+      assert.equal(database.prepare('SELECT COUNT(*) AS n FROM client_requests')
+        .get().n, 0);
+    } finally { database.close(); }
+  });
+
 function publicationEvidence(program, parameters, semantics,
   checkEnvironmentCid, aoaLogicalCid = cid('9')) {
   const limits = [100000, 10000, 64];
