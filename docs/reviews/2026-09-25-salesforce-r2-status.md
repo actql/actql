@@ -96,6 +96,19 @@ remain separate even when their immutable payload is shared.
 
 ## Source-set preparation verification
 
+The common computation capture now admits every source holding and constructs
+the complete Receipt, Captured Run, and encrypted-record input before its first
+Store wait. A foreign later holding or missing required Plan is rejected before
+any holding synchronization. The normal two-member Salesforce integration also
+mutates caller-owned Plan and evidence arrays during that first wait; publication
+and public Result read must still use the already admitted capture. This ordering
+fix preserves exact-record synchronization and retryable cleanup ownership. It
+does not close the compiler evidence or public ingress dependencies above.
+The final local regression passed 61/61 across the Salesforce integration,
+common Client bridge, and publication-control tests. Document links (1097)
+and the connector dispatch boundary (3/3) also passed. No schema, generated
+API, or MoonBit implementation changed; this is not a Linux CI or live-org run.
+
 The holding-set implementation (`b601f0097`) and integration pass the
 Salesforce suite (169/169)
 and common Client, request journal, and publication-control suite (42/42).

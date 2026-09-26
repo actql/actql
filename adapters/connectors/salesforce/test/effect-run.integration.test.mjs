@@ -1513,7 +1513,14 @@ test(`two-member captured Effect Run ${
     let physicalStore = await openLocalPublicationStore(
       configuration, control);
     let commitCalls = 0;
+    let holdingCommitCalls = 0;
+    let onHoldingCommit;
     let store = Object.freeze({...physicalStore,
+      async commitPhysicalHolding(...args) {
+        holdingCommitCalls++;
+        await onHoldingCommit?.();
+        return physicalStore.commitPhysicalHolding(...args);
+      },
       async commitEffectfulIndex(...args) {
         commitCalls++;
         const result = await physicalStore.commitEffectfulIndex(...args);
@@ -2101,7 +2108,7 @@ test(`two-member captured Effect Run ${
           version: 'actql-normalization-journal/0.1',
           rule_catalog_cid: cid('1'), entries: [],
         }), publicationLimits);
-      let computation = await issueCompletedEffectfulComputationEvidence({
+      const captureOptions = {
         execution, store, storedResults, control,
         admission: runAdmission, runDefinition,
         invocation: runInvocation,
@@ -2130,7 +2137,38 @@ test(`two-member captured Effect Run ${
           }),
         })) : [],
         contractLimits: publicationLimits,
-      });
+      };
+      if (physical === 'salesforce') {
+        const before = holdingCommitCalls;
+        await assert.rejects(issueCompletedEffectfulComputationEvidence({
+          ...captureOptions,
+          effectSourceHoldings: [firstHolding, {...secondHolding,
+            record: {...secondHolding.record, manifest_cid: cid('9')},
+          }],
+        }), {code: 'InvalidCompletedEffectSourceHolding'});
+        assert.equal(holdingCommitCalls, before);
+        await assert.rejects(issueCompletedEffectfulComputationEvidence({
+          ...captureOptions, plans: [],
+        }));
+        assert.equal(holdingCommitCalls, before);
+        // Mutate caller containers during the first asynchronous Store sync.
+        // The admitted capture and its saved wire must already be owned.
+        onHoldingCommit = async () => {
+          onHoldingCommit = undefined;
+          await Promise.resolve();
+          captureOptions.plans.length = 0;
+          captureOptions.captureEvidence.pendingSourceStateAdvances
+            .push({foreign: true});
+          captureOptions.receiptEvidence.bindings.push({foreign: true});
+          captureOptions.connectorRecovery.length = 0;
+        };
+      }
+      let computation = await issueCompletedEffectfulComputationEvidence(
+        captureOptions);
+      if (physical === 'salesforce') {
+        assert.equal(onHoldingCommit, undefined);
+        assert.equal(captureOptions.plans.length, 0);
+      }
       assert.notEqual(control.effectComputationCaptureHoldingCid(
         runDefinition, store.storeAuthorityCid),
       control.effectComputationRecordHoldingCid(
