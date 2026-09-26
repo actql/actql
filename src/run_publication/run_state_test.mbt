@@ -364,3 +364,41 @@ test "unpublished Effect-free Run state preserves uncertainty and failure" {
     is Err(DuplicateDeclaredResult("first")),
   )
 }
+
+///|
+test "cancellation request and physical stop are independent observations" {
+  assert_eq(
+    issue_run_control_observation_wire(3, true, false, false, false),
+    Ok(
+      "{\"cancellation_requested\":true,\"physical_stop\":\"unknown\",\"revision\":3}",
+    ),
+  )
+  assert_eq(
+    issue_run_control_observation_wire(4, true, true, false, false),
+    Ok(
+      "{\"cancellation_requested\":true,\"physical_stop\":\"confirmed\",\"revision\":4}",
+    ),
+  )
+  assert_eq(
+    issue_run_control_observation_wire(5, false, false, false, true),
+    Ok(
+      "{\"cancellation_requested\":false,\"physical_stop\":\"confirmed\",\"revision\":5}",
+    ),
+  )
+  assert_true(
+    issue_run_control_observation_wire(-1, true, true, false, false) is Err(_),
+  )
+  let cancelled = issue_effect_free_unpublished_run_state_wire(
+    "cancelled-run",
+    "2026-09-26T00:00:00.000Z",
+    ["answer"],
+    true,
+    false,
+    8192,
+    128,
+    16,
+    cancelled_before_start=true,
+  ).unwrap()
+  assert_true(cancelled.contains("\"status\":\"cancelled\""))
+  assert_true(cancelled.contains("\"reason\":\"not_published\""))
+}

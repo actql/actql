@@ -5,7 +5,7 @@ import {validDeliveryAttempt, validDeliveryRecord,
 import {clientHostOperations, clientHostRequestKeys,
   validAdmissionShape, validConnectionShape, validLookupFoundShape,
   validLookupNotFoundShape, validLookupUnknownShape, validProfileShape,
-  validRunRefShape, validRunStateShape,
+  validRunRefShape, validRunStateShape, validCancellationShape,
   validSubmitPreparationErrorShape} from './client-host.generated.js';
 export {clientHostOperations} from './client-host.generated.js';
 const cid = /^sha256:[0-9a-f]{64}$/u;
@@ -135,3 +135,5 @@ export function validDeliveryAttemptLookup(value, expected) {
     'result_artifact_cid', 'serialization_contract_cid']
     .every(key => attempt[key] === receipt[key]);
 }
+
+export const validCancellation = value => validCancellationShape(value);

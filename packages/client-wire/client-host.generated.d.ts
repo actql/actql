@@ -69,6 +69,16 @@ export type WireSubmitPreparationErrorShape = Readonly<{
   code: "ClientProgramInvalidInput" | "ClientParametersInvalid" | "ClientParametersTooLarge" | "ClientProgramUnsupported" | "ClientProgramNeedsInputs" | "ClientProgramRejected";
 }>;
 
+export type WireCancellationShape = Readonly<{
+  ref: Readonly<{
+  tenantId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+}>;
+  kind: "accepted" | "already_requested" | "already_terminal";
+  revision: number;
+}>;
+
 export type WireRunStateShape = Readonly<{
   version: "actql-run-state/0.1";
   run_id: string;
@@ -105,4 +115,9 @@ export type WireRunStateShape = Readonly<{
   reason: "confirmed_present" | "retention_expired" | "deleted" | "policy_unavailable" | "integrity_failed" | "not_published" | "store_query_failed" | "clock_uncertain" | "verification_pending";
   cause_cid?: string;
 }>>>;
+  control?: Readonly<{
+  revision: number;
+  cancellation_requested: boolean;
+  physical_stop: "unknown" | "confirmed";
+}>;
 }>;

@@ -13,6 +13,54 @@
     "delivery-attempt": ["connection", "ref", "resultName", "attemptId"]
   },
   "schemas": {
+    "cancellation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "kind",
+        "revision"
+      ],
+      "properties": {
+        "ref": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tenantId",
+            "authorityScopeCid",
+            "runDefinitionCid"
+          ],
+          "properties": {
+            "tenantId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            },
+            "authorityScopeCid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "runDefinitionCid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "kind": {
+          "enum": [
+            "accepted",
+            "already_requested",
+            "already_terminal"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      }
+    },
     "run_ref": {
       "type": "object",
       "additionalProperties": false,

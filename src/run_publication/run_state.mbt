@@ -472,6 +472,7 @@ pub fn issue_effect_free_unpublished_run_state_wire(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  cancelled_before_start? : Bool = false,
 ) -> Result[String, RunStateIssue] {
   if run_id.is_empty() {
     return Err(InvalidRunId)
@@ -482,7 +483,9 @@ pub fn issue_effect_free_unpublished_run_state_wire(
   if pre_dispatch_failure_confirmed && !dispatch_reserved {
     return Err(ActionStatusMismatch)
   }
-  let status = if !dispatch_reserved {
+  let status = if cancelled_before_start && !pre_dispatch_failure_confirmed {
+    RunOutcomeStatus::Cancelled
+  } else if !dispatch_reserved {
     RunOutcomeStatus::Preparing
   } else if pre_dispatch_failure_confirmed {
     RunOutcomeStatus::Failed
@@ -535,6 +538,7 @@ pub fn issue_effect_free_unpublished_run_state_wire(
         RunOutcomeStatus::Preparing => "preparing"
         RunOutcomeStatus::Running => "running"
         RunOutcomeStatus::Failed => "failed"
+        RunOutcomeStatus::Cancelled => "cancelled"
         _ => return Err(Encoding)
       },
     )
@@ -551,6 +555,40 @@ pub fn issue_effect_free_unpublished_run_state_wire(
     @encode.string_value(writer, updated_at)
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-run-state/0.1")
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
+/// An independent, revisioned physical-control observation. Request acceptance
+/// alone is never stop evidence; missing workers and elapsed time are not
+/// inputs. A confirmed unstarted Run is stopped only after cancellation has
+/// durably excluded any later start claim.
+pub fn issue_run_control_observation_wire(
+  revision : Int,
+  cancellation_requested : Bool,
+  physically_unstarted : Bool,
+  pre_dispatch_failure_confirmed : Bool,
+  physical_close_confirmed : Bool,
+) -> Result[String, RunStateIssue] {
+  if revision < 0 {
+    return Err(ActionStatusMismatch)
+  }
+  let stopped = physical_close_confirmed ||
+    pre_dispatch_failure_confirmed ||
+    (cancellation_requested && physically_unstarted)
+  let writer = @encode.writer(1024, 16, 4) catch { _ => return Err(Encoding) }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "cancellation_requested")
+    @encode.bool_value(writer, cancellation_requested)
+    @encode.key(writer, "physical_stop")
+    @encode.string_value(writer, if stopped { "confirmed" } else { "unknown" })
+    @encode.key(writer, "revision")
+    @encode.number_value(writer, revision.to_double())
     @encode.end_object(writer)
     Ok(@encode.finish(writer))
   } catch {

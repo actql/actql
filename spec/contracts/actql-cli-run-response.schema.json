@@ -311,6 +311,31 @@
               }
             ]
           }
+        },
+        "control": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "revision",
+            "cancellation_requested",
+            "physical_stop"
+          ],
+          "properties": {
+            "revision": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            "cancellation_requested": {
+              "type": "boolean"
+            },
+            "physical_stop": {
+              "enum": [
+                "unknown",
+                "confirmed"
+              ]
+            }
+          }
         }
       },
       "allOf": [

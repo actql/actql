@@ -341,6 +341,54 @@ const schemas = {
       }
     }
   },
+  "cancellation": {
+    "type": "object",
+    "required": [
+      "ref",
+      "kind",
+      "revision"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "ref": {
+        "type": "object",
+        "required": [
+          "tenantId",
+          "authorityScopeCid",
+          "runDefinitionCid"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "authorityScopeCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "runDefinitionCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      },
+      "kind": {
+        "enum": [
+          "accepted",
+          "already_requested",
+          "already_terminal"
+        ]
+      },
+      "revision": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 2147483647
+      }
+    }
+  },
   "run_state": {
     "type": "object",
     "required": [
@@ -639,6 +687,31 @@ const schemas = {
         "propertyNames": {
           "minLength": 1
         }
+      },
+      "control": {
+        "type": "object",
+        "required": [
+          "revision",
+          "cancellation_requested",
+          "physical_stop"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "cancellation_requested": {
+            "type": "boolean"
+          },
+          "physical_stop": {
+            "enum": [
+              "unknown",
+              "confirmed"
+            ]
+          }
+        }
       }
     },
     "allOf": [
@@ -885,4 +958,5 @@ export const validLookupFoundShape = value => valid(value, schemas.lookup_found)
 export const validLookupNotFoundShape = value => valid(value, schemas.lookup_not_found);
 export const validLookupUnknownShape = value => valid(value, schemas.lookup_unknown);
 export const validSubmitPreparationErrorShape = value => valid(value, schemas.submit_preparation_error);
+export const validCancellationShape = value => valid(value, schemas.cancellation);
 export const validRunStateShape = value => valid(value, schemas.run_state);

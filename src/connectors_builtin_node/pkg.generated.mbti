@@ -100,6 +100,8 @@ pub fn client_program_identify_captured_source_relation(@execution_query.Capture
 
 pub fn client_program_issue_captured_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
 
+pub fn client_program_issue_controlled_unpublished_run_state(String, String, Array[String], Bool, Bool, Bool) -> String?
+
 pub fn client_program_issue_direct_task_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
 
 pub fn client_program_issue_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
@@ -280,7 +282,13 @@ pub fn client_request_relation(@run_publication_host.ClientRequestIdentity, @run
 
 pub fn client_request_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
 
+pub fn client_run_cancellation_action(@run_publication.PublicationContract, String, Bool, Bool, Bool) -> Int
+
+pub fn client_run_control_observation(Int, Bool, Bool, Bool, Bool) -> String?
+
 pub fn client_run_physical_start_action(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool) -> Int
+
+pub fn client_run_physical_start_with_cancellation_action(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, Bool) -> Int
 
 pub fn client_run_start_action(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Int
 

@@ -422,13 +422,68 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "72f1151a0a69dea41038140fc9b5905fcfb37d76ab5bab2ec0954d0c395eeced",
+      "statement_sha256": "971b5e56a6c4ab6b1d996ac0dc177dabec139dafcf23da116e702843e9f32d07",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
         "kind": "law"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/client-cancellation-observation",
+      "statement_sha256": "5ccee102fb448815c214cda63bef0ab48011cee2d0e8d1ed539337b81fb6b170",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "machine-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/client-cancellation-start-exclusion",
+      "statement_sha256": "a46d2cb61c442e2b21dec881a4ebbdc2817b36e612a2db6a9b85dacffab55b1c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "machine-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/client-cancellation-control-observation",
+      "statement_sha256": "1f8eeaeb270341d0dc976794154fcea5605fb9593ca3d32b29e6ceb0bb0a7d19",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "machine-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/client-cancellation-stop-evidence",
+      "statement_sha256": "1a20662fda06e0464ac3a3e20bf6864efc586e3c0fe98dc5b66f18a50a0bf0e5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "machine-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/client-cancellation-outcome",
+      "statement_sha256": "393a0ff6d7ae4187f44b8f920b09b3d7b818fb24dd7292fb0edcf06c656aede1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "machine-contracts",
+        "kind": "prose"
       }
     }
   ]

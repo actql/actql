@@ -1,4 +1,4 @@
-import type {ClientHostOperation, WireAdmissionShape,
+import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
   WireConnectionShape, WireLookupFoundShape, WireLookupNotFoundShape,
   WireLookupUnknownShape, WireProfileShape, WireRunRefShape,
   WireRunStateShape, WireSubmitPreparationErrorShape} from
@@ -99,3 +99,6 @@ export type WireDeliveryAttemptLookup =
 export declare function validDeliveryAttemptLookup(value: unknown,
   expected: Readonly<{attemptId: string; runDefinitionCid: string;
     resultName: string}>): value is WireDeliveryAttemptLookup;
+
+export type WireCancellation = WireCancellationShape;
+export declare function validCancellation(value: unknown): value is WireCancellation;

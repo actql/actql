@@ -9,10 +9,10 @@ const source = 'spec/contracts/actql-client-host.json';
 const runStateSource = 'spec/contracts/actql-protocol-schemas.json';
 const names = ['run_ref', 'connection', 'profile', 'admission',
   'lookup_found', 'lookup_not_found', 'lookup_unknown',
-  'submit_preparation_error'];
+  'submit_preparation_error', 'cancellation'];
 const exports = ['RunRef', 'Connection', 'Profile', 'Admission',
   'LookupFound', 'LookupNotFound', 'LookupUnknown',
-  'SubmitPreparationError'];
+  'SubmitPreparationError', 'Cancellation'];
 
 export function buildClientHostWire(registry, protocol) {
   if (registry.version !== 'actql-client-host/0.1' ||

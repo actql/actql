@@ -540,7 +540,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_checkpoint sha256:03fbd027709bbb7fae5563ec05ce56c899f9af21695f4e989b4b2e0306b91d2b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/checkpoint_resolution sha256:46a6fdc061fa09bfbed96bbaf438cf051d343ed304870db13d5893529238dba5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:c8304cef7cad5b5e0a8afd8a3f1a4e5b346147218bd2a46ac7994baeaa21a625
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:9c4e0ef67f6a3b7441cf1dc5cc8cafaec05dde6422a7628db027542cc0c808c6
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_account_config sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:281c623866f1dfb4e2d44ed8d9d91e88b3afec3e9f10392703d4dd87dd661422
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_evidence sha256:9aca3664e28a690ef22c34a577e2089631b01a45a3b80df92ebae276db47b596
@@ -565,3 +565,30 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-lookup-identities.json#/laws sha256:c56618640aa84af330359c39433472fcafb476bef1f94323c3934ff49a8d508f
 ```
 <!-- lookup-identity-pins:end -->
+
+
+### Client cancellation observations
+
+<!-- requirement-block: client-cancellation-observation -->
+A Client cancellation response reports request acceptance (`accepted`), an
+existing request (`already_requested`), or an observed terminal Run
+(`already_terminal`), bound to the exact Run reference and control revision.
+It MUST NOT assert physical stop merely because the request was accepted.
+
+<!-- requirement-block: client-cancellation-start-exclusion -->
+The Host MUST persist cancellation under the same exclusion boundary as a
+physical start claim. An accepted cancellation before that claim prevents a
+later start, including a resend or restart using the original request ID.
+
+<!-- requirement-block: client-cancellation-control-observation client-cancellation-stop-evidence -->
+The optional `control` member of `actql-run-state/0.1` contains the retained
+control `revision`, `cancellation_requested`, and `physical_stop` (`unknown`
+or `confirmed`). Absence means the Host does not supply this observation.
+The Host MUST preserve one control revision across asynchronous publication
+observation and MUST NOT infer physical stop from a missing worker or timeout.
+
+<!-- requirement-block: client-cancellation-outcome -->
+A cancellation confirmed before physical start can have outcome `cancelled`.
+An accepted request after physical start MUST NOT rewrite a committed success
+or an uncertain publication outcome. Physical stop confirmation remains
+independent of Result availability and delivery completion.

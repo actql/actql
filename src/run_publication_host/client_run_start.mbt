@@ -61,14 +61,51 @@ pub fn prepare_client_run_physical_start(
   dispatch_reserved : Bool,
   physically_unstarted : Bool,
   current_authorization : Bool,
+  cancellation_requested? : Bool = false,
 ) -> Result[Bool, ClientRunStartIssue] {
   match
     prepare_client_run_start(
       requested, retained, run_definition, retained_run_definition_cid, dispatch_reserved,
       current_authorization,
     ) {
-    Ok(ReconcileReservedDispatch) => Ok(physically_unstarted)
+    Ok(ReconcileReservedDispatch) =>
+      Ok(physically_unstarted && !cancellation_requested)
     Ok(ReserveDispatch) => Ok(false)
     Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub(all) enum ClientRunCancellationAction {
+  AcceptCancellation
+  AlreadyRequested
+  AlreadyTerminal
+} derive(Eq, Debug)
+
+///|
+/// Cancellation records intent independently of physical stop. A terminal
+/// observation wins over a late request. The adapter persists acceptance in
+/// the same transaction that excludes subsequent physical start claims.
+pub fn prepare_client_run_cancellation(
+  run_definition : @publication.PublicationContract,
+  retained_run_definition_cid : String,
+  current_authorization : Bool,
+  terminal_observed : Bool,
+  cancellation_requested : Bool,
+) -> Result[ClientRunCancellationAction, ClientRunStartIssue] {
+  if !current_authorization {
+    return Err(AuthorizationDenied)
+  }
+  if @publication.publication_contract_name(run_definition) != "run_definition" ||
+    @publication.publication_contract_identity(run_definition) !=
+    retained_run_definition_cid {
+    return Err(ForeignRunDefinition)
+  }
+  if terminal_observed {
+    Ok(AlreadyTerminal)
+  } else if cancellation_requested {
+    Ok(AlreadyRequested)
+  } else {
+    Ok(AcceptCancellation)
   }
 }

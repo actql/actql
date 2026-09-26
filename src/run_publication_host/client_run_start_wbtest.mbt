@@ -148,3 +148,35 @@ test "Client Run physical start requires exact retained and unstarted evidence" 
     Err(ChangedIntent),
   )
 }
+
+///|
+test "cancellation keeps exact Run authority and terminal outcome" {
+  let definition = start_test_definition()
+  let cid = @publication.publication_contract_identity(definition)
+  assert_eq(
+    prepare_client_run_cancellation(definition, cid, true, false, false),
+    Ok(AcceptCancellation),
+  )
+  assert_eq(
+    prepare_client_run_cancellation(definition, cid, true, false, true),
+    Ok(AlreadyRequested),
+  )
+  assert_eq(
+    prepare_client_run_cancellation(definition, cid, true, true, true),
+    Ok(AlreadyTerminal),
+  )
+  assert_eq(
+    prepare_client_run_cancellation(definition, cid, false, false, false),
+    Err(AuthorizationDenied),
+  )
+  assert_eq(
+    prepare_client_run_cancellation(
+      definition,
+      start_test_cid("0"),
+      true,
+      false,
+      false,
+    ),
+    Err(ForeignRunDefinition),
+  )
+}

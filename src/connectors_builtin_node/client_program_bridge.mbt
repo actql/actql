@@ -311,6 +311,55 @@ pub fn client_program_issue_unpublished_run_state(
 }
 
 ///|
+/// The installed Host reports an uncommitted Run through the portable
+/// validator. Only a durable confirmed failure before physical dispatch may
+/// make this projection terminal; missing worker observation cannot.
+#export_name("clientProgramIssueControlledUnpublishedRunState")
+pub fn client_program_issue_controlled_unpublished_run_state(
+  run_id : String,
+  observed_at : String,
+  result_names : Array[String],
+  dispatch_reserved : Bool,
+  pre_dispatch_failure_confirmed : Bool,
+  cancelled_before_start : Bool,
+) -> String? {
+  match
+    @publication.issue_effect_free_unpublished_run_state_wire(
+      run_id,
+      observed_at,
+      result_names,
+      dispatch_reserved,
+      pre_dispatch_failure_confirmed,
+      100000,
+      10000,
+      64,
+      cancelled_before_start~,
+    ) {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
+#export_name("clientRunControlObservation")
+pub fn client_run_control_observation(
+  revision : Int,
+  cancellation_requested : Bool,
+  physically_unstarted : Bool,
+  pre_dispatch_failure_confirmed : Bool,
+  physical_close_confirmed : Bool,
+) -> String? {
+  match
+    @publication.issue_run_control_observation_wire(
+      revision, cancellation_requested, physically_unstarted, pre_dispatch_failure_confirmed,
+      physical_close_confirmed,
+    ) {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
 /// The installed Local profile applies one bounded sequence definition to
 /// compiler material and the task that physically executes it.
 fn client_local_sequence_limits() -> @lower.SequenceLimits {

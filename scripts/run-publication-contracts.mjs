@@ -159,6 +159,15 @@ export function runStateSchema(previous) {
     'result_available',
     'result_availability',
   ];
+  state.properties.control = {
+    type: 'object', additionalProperties: false,
+    required: ['revision', 'cancellation_requested', 'physical_stop'],
+    properties: {
+      revision: {type: 'integer', minimum: 0, maximum: 2147483647},
+      cancellation_requested: {type: 'boolean'},
+      physical_stop: {enum: ['unknown', 'confirmed']},
+    },
+  };
   state.properties.next_action = nextAction;
   state.properties.result_available = {type: 'boolean'};
   state.properties.result_availability = availability;

@@ -145,3 +145,58 @@ pub fn client_run_physical_start_action(
     Err(AuthorizationDenied) => 5
   }
 }
+
+///|
+/// Return 1 only when the shared owner permits a durable physical-start
+/// claim for this exact request. Code 0 keeps an uncertain Run in reconcile.
+#export_name("clientRunPhysicalStartWithCancellationAction")
+pub fn client_run_physical_start_with_cancellation_action(
+  requested : @publication_host.ClientRequestIdentity,
+  retained : @publication_host.ClientRequestIdentity,
+  run_definition : @publication.PublicationContract,
+  retained_run_definition_cid : String,
+  dispatch_reserved : Bool,
+  physically_unstarted : Bool,
+  current_authorization : Bool,
+  cancellation_requested : Bool,
+) -> Int {
+  match
+    @publication_host.prepare_client_run_physical_start(
+      requested,
+      retained,
+      run_definition,
+      retained_run_definition_cid,
+      dispatch_reserved,
+      physically_unstarted,
+      current_authorization,
+      cancellation_requested~,
+    ) {
+    Ok(true) => 1
+    Ok(false) => 0
+    Err(DifferentRequest) => 2
+    Err(ChangedIntent) => 3
+    Err(ForeignRunDefinition) => 4
+    Err(AuthorizationDenied) => 5
+  }
+}
+
+///|
+#export_name("clientRunCancellationAction")
+pub fn client_run_cancellation_action(
+  run_definition : @publication.PublicationContract,
+  retained_run_definition_cid : String,
+  current_authorization : Bool,
+  terminal_observed : Bool,
+  cancellation_requested : Bool,
+) -> Int {
+  match
+    @publication_host.prepare_client_run_cancellation(
+      run_definition, retained_run_definition_cid, current_authorization, terminal_observed,
+      cancellation_requested,
+    ) {
+    Ok(AcceptCancellation) => 0
+    Ok(AlreadyRequested) => 1
+    Ok(AlreadyTerminal) => 2
+    Err(_) => -1
+  }
+}

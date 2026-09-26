@@ -285,7 +285,9 @@ pub fn prepare_client_query_requirement(PreparedClientProgram, @execution_relati
 
 pub fn prepare_client_request_identity(PreparedClientProgram, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
-pub fn prepare_client_run_physical_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool) -> Result[Bool, ClientRunStartIssue]
+pub fn prepare_client_run_cancellation(@run_publication.PublicationContract, String, Bool, Bool, Bool) -> Result[ClientRunCancellationAction, ClientRunStartIssue]
+
+pub fn prepare_client_run_physical_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, cancellation_requested? : Bool) -> Result[Bool, ClientRunStartIssue]
 
 pub fn prepare_client_run_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[ClientRunStartAction, ClientRunStartIssue]
 
@@ -570,6 +572,12 @@ pub(all) enum ClientResultRowContractIssue {
   UnrepresentableRowContract
   Encoding(@encode_core.EncodeFailure)
 }
+
+pub(all) enum ClientRunCancellationAction {
+  AcceptCancellation
+  AlreadyRequested
+  AlreadyTerminal
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ClientRunOpenIssue {
   Ledger(@physical_resources.LedgerIssue)

@@ -167,7 +167,7 @@ pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, 
 
 pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int) -> Result[PublicationContract, RunReceiptIssuanceIssue]
 
-pub fn issue_effect_free_unpublished_run_state_wire(String, String, Array[String], Bool, Bool, Int, Int, Int) -> Result[String, RunStateIssue]
+pub fn issue_effect_free_unpublished_run_state_wire(String, String, Array[String], Bool, Bool, Int, Int, Int, cancelled_before_start? : Bool) -> Result[String, RunStateIssue]
 
 pub fn issue_effectful_final_run_receipt(PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[PublicationContract, EffectfulFinalReceiptIssuanceIssue]
 
@@ -190,6 +190,8 @@ pub fn issue_result_occurrence_evidence(PublicationContract, String, String, Str
 pub fn issue_result_read_grant(PublicationContract, PublicationContract, Array[String], Array[String], String, String, String, Int, Int, String, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
 pub fn issue_result_retention_extension(PublicationContract, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
+
+pub fn issue_run_control_observation_wire(Int, Bool, Bool, Bool, Bool) -> Result[String, RunStateIssue]
 
 pub fn issue_run_definition(RunPublicationAdmission, String, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, RunPublicationAdmissionIssue]
 
