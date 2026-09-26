@@ -46,6 +46,7 @@ fn bounded_relation_start(
   fragment : Bool,
   max_work? : Int = 1000,
   max_entries? : Int = 1000,
+  constrain? : (GeneratedSequence) -> GeneratedSequence = generated => generated,
 ) -> (
   @bounded.Control,
   Result[BoundedGroupExecution, BoundedGroupIssue],
@@ -112,6 +113,7 @@ fn bounded_relation_start(
     100000,
     10000,
   ).unwrap()
+  let generated = constrain(generated)
   let read = prepare_producer_read(
     receiver,
     bind_completed_input(receiver, 0, source_owner, source).unwrap(),
@@ -362,4 +364,50 @@ test "bounded pivot stops after positive work without publishing" {
   )
   assert_true(cleanup_bounded_group_execution(execution).unwrap())
   assert_true(completed_output_available(source))
+}
+
+///|
+test "bounded group enforces the selected array item ceiling" {
+  let aggregate = "{\"items\":{\"fn\":\"array_agg\",\"field\":\"k\",\"max_items\":5,\"order_by\":[{\"k\":\"asc\"}]}}"
+  let rows = "[{\"k\":1},{\"k\":1}]"
+  let limited = (maximum : Int64) => {
+    (generated : GeneratedSequence) => {
+      constrain_generated_aggregate_output(
+        generated,
+        0,
+        "items",
+        ArrayItems,
+        maximum,
+      ).unwrap()
+    }
+  }
+  let (_, unconstrained, _) = bounded_group_start(rows, aggregate, false)
+  let unconstrained = unconstrained.unwrap()
+  // The authored max_items applies without a selected ceiling.
+  assert_true(drive_bounded_group(unconstrained) is BoundedGroupComplete(_, ..))
+  assert_true(cleanup_bounded_group_execution(unconstrained).unwrap())
+  let (_, fits, _) = bounded_relation_start(
+    "{\"k\":{\"type\":\"number\",\"nullable\":false}}",
+    rows,
+    "\"group\":{\"by\":[\"k\"],\"aggregates\":" + aggregate + "}",
+    "group_0",
+    false,
+    constrain=limited(2L),
+  )
+  let fits = fits.unwrap()
+  assert_true(drive_bounded_group(fits) is BoundedGroupComplete(_, ..))
+  assert_true(cleanup_bounded_group_execution(fits).unwrap())
+  let (_, exceeds, _) = bounded_relation_start(
+    "{\"k\":{\"type\":\"number\",\"nullable\":false}}",
+    rows,
+    "\"group\":{\"by\":[\"k\"],\"aggregates\":" + aggregate + "}",
+    "group_0",
+    false,
+    constrain=limited(1L),
+  )
+  let exceeds = exceeds.unwrap()
+  assert_true(
+    drive_bounded_group(exceeds) is BoundedGroupFailed(Rows(RowLimit), ..),
+  )
+  assert_true(cleanup_bounded_group_execution(exceeds).unwrap())
 }

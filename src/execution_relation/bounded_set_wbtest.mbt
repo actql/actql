@@ -209,8 +209,7 @@ test "bounded set admits exact work and rejects one unit short" {
   )
   let exact = exact.unwrap()
   match drive_bounded_set(exact) {
-    BoundedSetComplete(output, ..) =>
-      assert_eq(bounded_set_ids(output), ["1"])
+    BoundedSetComplete(output, ..) => assert_eq(bounded_set_ids(output), ["1"])
     _ => fail("exact set work rejected")
   }
   assert_true(cleanup_bounded_set(exact).unwrap())

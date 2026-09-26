@@ -650,7 +650,7 @@ fn start_bounded_group_with_input(
         workspace,
         scope,
         (row, representative, _names, _sources) => accept(row, representative),
-        [],
+        generated.aggregate_outputs,
         identity_limits,
         numeric,
         step=@lower.kernel_step(kernel),

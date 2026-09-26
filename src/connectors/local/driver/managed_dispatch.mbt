@@ -989,10 +989,26 @@ pub fn[T] start_local_managed_dispatch(
         let active = match provider_execution.val {
           Some(value) => value
           None => {
+            let constrained = match
+              @local.constrain_local_managed_sequence(
+                setup.sequence,
+                join_output_ceilings=setup.join_output_ceilings,
+                interval_search_ceilings=setup.interval_search_ceilings,
+                asof_search_ceilings=setup.asof_search_ceilings,
+                aggregate_output_ceilings=setup.aggregate_output_ceilings,
+                analytic_envelopes=setup.analytic_envelopes,
+                numeric~,
+              ) {
+              Ok(value) => value
+              Err(issue) => {
+                execution_finished.val = true
+                return Err(Configuration(issue))
+              }
+            }
             let started = match
               @local.start_managed_provider_with_inputs_and_execution(
                 provider,
-                setup.sequence,
+                constrained,
                 setup.provider_inputs.map(input => {
                   match input {
                     PreparedRelation(index) =>
