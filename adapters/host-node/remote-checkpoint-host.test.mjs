@@ -462,7 +462,7 @@ test('closing during a resumed dispatch records its end before releasing',
 // Definition exists and before its physical start; meanwhile the owner
 // submits the same request.
 async function resubmittedWhileStalled(t, {leaseMs = 60_000,
-  checkpointTtlMs, wait = 0}) {
+  checkpointTtlMs, wait = 0, untilExpired = false}) {
   const steps = [];
   let stall = true;
   let released;
@@ -479,9 +479,15 @@ async function resubmittedWhileStalled(t, {leaseMs = 60_000,
   const client = await host.as('owner-token');
   const reviewer = await host.as('reviewer-token');
   await heldRequests(client, ['again-a']);
-  await approveAll(reviewer, await allCheckpoints(reviewer));
+  const items = await allCheckpoints(reviewer);
+  await approveAll(reviewer, items);
   await waitFor(() => steps.includes('definition_admitted'));
-  await new Promise(resolve => setTimeout(resolve, wait));
+  // Past the Checkpoint's own answer deadline (which bounds the approval),
+  // measured from the Host's record rather than from test start.
+  const until = untilExpired ? Date.parse(items[0].expiresAt) + 300
+    : Date.now() + wait;
+  await new Promise(resolve => setTimeout(resolve,
+    Math.max(0, until - Date.now())));
   const changed = JSON.parse(document);
   changed.id = 'again-a';
   const again = await client.aql(JSON.stringify(changed), {format: 'json',
@@ -504,7 +510,7 @@ async function resubmittedWhileStalled(t, {leaseMs = 60_000,
 test('a resubmit of a held request after its approval expired starts nothing',
   async t => {
     const {state, starts} = await resubmittedWhileStalled(t,
-      {checkpointTtlMs: 2000, wait: 2300});
+      {checkpointTtlMs: 8000, untilExpired: true});
     assert.equal(starts, 0);
     assert.equal(state.status, 'failed');
   });
