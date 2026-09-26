@@ -1,4 +1,4 @@
-import {checked} from '../host-common/runtime-result.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});

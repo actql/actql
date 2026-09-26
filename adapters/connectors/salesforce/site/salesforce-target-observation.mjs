@@ -1,8 +1,8 @@
-import {checked} from '../host-common/runtime-result.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
 import {invokeScopedCredentialOperation, ownInvocationContext,
   ownInvocationLimits} from
-  '../host-common/owned-invocation-context.mjs';
-import {callHttpsCredentialResource} from './https-credential-resource.mjs';
+  '../../../host-common/owned-invocation-context.mjs';
+import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {matchesSalesforceCredentialOrg} from
   './salesforce-credential-binding.mjs';
 

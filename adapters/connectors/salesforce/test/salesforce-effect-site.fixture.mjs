@@ -5,13 +5,13 @@ import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {openSqliteCredentialJournal} from
-  './sqlite-credential-journal.mjs';
+  '../../../site-node/sqlite-credential-journal.mjs';
 import {signRemoteCredentialGrant} from
-  './remote-credential-signature.mjs';
+  '../../../site-node/remote-credential-signature.mjs';
 import {syncSalesforceCatalog} from
-  './salesforce-catalog-sync.mjs';
+  '../site/salesforce-catalog-sync.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 

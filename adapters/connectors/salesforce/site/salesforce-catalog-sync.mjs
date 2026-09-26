@@ -1,10 +1,10 @@
-import {checked} from '../host-common/runtime-result.mjs';
-import {callHttpsCredentialResource} from './https-credential-resource.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
+import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {matchesSalesforceCredentialOrg} from
   './salesforce-credential-binding.mjs';
 import {invocationBindingsMatch, invokeScopedCredentialOperation,
   ownInvocationAuthorization, ownInvocationContext, ownInvocationLimits} from
-  '../host-common/owned-invocation-context.mjs';
+  '../../../host-common/owned-invocation-context.mjs';
 
 const versionPattern = /^v[1-9][0-9]*\.[0-9]+$/;
 const namePattern = /^[A-Za-z_][A-Za-z0-9_]*$/;

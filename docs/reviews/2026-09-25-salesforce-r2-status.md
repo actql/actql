@@ -31,6 +31,18 @@ the common apply owner and cannot fetch a mutable "latest Catalog" selected by
 another refresh. PATCH rows require target observation; POST rows must not
 pretend to have a target guard. This closes the fixture's split-Catalog
 handoff, not the remaining capability-evidence issuance or public ingress.
+The ordinary local HTTPS case now passes the common frontier into an installed
+Salesforce physical dispatcher. It selects single-record or same-member
+Collections operations from owned requests, checks the frontier's exact claim
+before I/O, and derives the row CID from the admitted Preview. The Site write
+operations still enforce current grant, request, footprint, and Ledger custody.
+This removes a test-authored send callback from the normal two-member path;
+the fault-injection variants continue to exercise the same Site operations.
+Salesforce Host and Site adapters and their integration tests live under
+`adapters/connectors/salesforce/`. The common Client bridge test retains
+provider-independent checked-owner and public Client contracts. The Salesforce
+integration test still invokes that public Client entry for Run status and
+published Result access; this layout change does not claim public Effect submit.
 
 ## OSS main integration baseline
 

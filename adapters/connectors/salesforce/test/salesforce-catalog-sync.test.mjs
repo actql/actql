@@ -7,43 +7,43 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import * as commonMoon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+  '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as salesforceMoon from
-  '../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
+  '../../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
 import * as salesforceConformance from
-  '../../_build/js/release/build/connectors/salesforce/site_test/site_test.js';
-import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {checked} from '../host-common/runtime-result.mjs';
+  '../../../../_build/js/release/build/connectors/salesforce/site_test/site_test.js';
+import {runtimeCore} from '../../../host-common/runtime-core.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson} from
-  '../host-common/publication-contract-control.fixture.mjs';
-import {openEffectLedger} from '../host-node/effect-ledger.mjs';
+  '../../../host-common/publication-contract-control.fixture.mjs';
+import {openEffectLedger} from '../../../host-node/effect-ledger.mjs';
 import {checkAuthorizedEffectMemberReceiptRowPartition,
   readAuthorizedEffectTerminalOutcome} from
-  '../host-node/effect-response-recovery.mjs';
+  '../../../host-node/effect-response-recovery.mjs';
 import {captureClaimedSalesforceSingleResponse,
   captureSalesforceSingleEffectWrite,
   captureSalesforceCollectionEffectWrite,
   recoverStoredSalesforceSingleResponse,
   recoverStoredSalesforceCollectionResponse} from
-  '../host-node/salesforce-effect-write.mjs';
+  '../host/salesforce-effect-write.mjs';
 import {openSqliteCredentialJournal} from
-  './sqlite-credential-journal.mjs';
+  '../../../site-node/sqlite-credential-journal.mjs';
 import {callHttpsCredentialResource} from
-  './https-credential-resource.mjs';
+  '../../../site-node/https-credential-resource.mjs';
 import {signRemoteCredentialGrant} from
-  './remote-credential-signature.mjs';
-import {syncSalesforceCatalog} from './salesforce-catalog-sync.mjs';
+  '../../../site-node/remote-credential-signature.mjs';
+import {syncSalesforceCatalog} from '../site/salesforce-catalog-sync.mjs';
 import {recoverRetainedSalesforceCatalog} from
-  './salesforce-catalog-recovery.mjs';
-import {createSalesforceCliSecretResolver} from './salesforce-cli-secret.mjs';
+  '../site/salesforce-catalog-recovery.mjs';
+import {createSalesforceCliSecretResolver} from '../site/salesforce-cli-secret.mjs';
 import {readSalesforceIssuedBroad, readSalesforceManagedQuery,
   readSalesforceQuery} from
-  './salesforce-query-read.mjs';
-import {writeSalesforceSingleRecord} from './salesforce-single-write.mjs';
+  '../site/salesforce-query-read.mjs';
+import {writeSalesforceSingleRecord} from '../site/salesforce-single-write.mjs';
 import {observeSalesforceSingleTarget, observeSalesforceTargetSet} from
-  './salesforce-target-observation.mjs';
+  '../site/salesforce-target-observation.mjs';
 import {writeSalesforceContinueCollection} from
-  './salesforce-collection-write.mjs';
+  '../site/salesforce-collection-write.mjs';
 
 const control = runtimeCore(commonMoon).remoteCredentialControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;

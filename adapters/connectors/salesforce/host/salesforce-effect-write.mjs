@@ -1,22 +1,22 @@
-import {checked} from '../host-common/runtime-result.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
 import {projectSalesforceSingleObservation,
   sendRawSalesforceSingleRecord} from
-  '../site-node/salesforce-single-write.mjs';
+  '../site/salesforce-single-write.mjs';
 import {projectSalesforceCollectionObservation,
   sendRawSalesforceContinueCollection} from
-  '../site-node/salesforce-collection-write.mjs';
+  '../site/salesforce-collection-write.mjs';
 import {matchesSalesforceCredentialOrg} from
-  '../site-node/salesforce-credential-binding.mjs';
+  '../site/salesforce-credential-binding.mjs';
 import {captureClaimedEffectResponse,
   captureClaimedEffectCollectionResponse,
   snapshotEffectDispatchClaim,
-  snapshotEffectDispatchClaims} from './effect-physical-dispatch.mjs';
-import {runtimeCore} from '../host-common/runtime-core.mjs';
+  snapshotEffectDispatchClaims} from '../../../host-node/effect-physical-dispatch.mjs';
+import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {ownInvocationContext, ownInvocationLimits} from
-  '../host-common/owned-invocation-context.mjs';
-import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
+  '../../../host-common/owned-invocation-context.mjs';
+import {recoverProjectedEffectResponse} from '../../../host-node/effect-response-recovery.mjs';
 import {recoverRetainedSalesforceCatalog} from
-  '../site-node/salesforce-catalog-recovery.mjs';
+  '../site/salesforce-catalog-recovery.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});

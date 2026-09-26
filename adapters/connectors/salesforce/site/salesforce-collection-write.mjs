@@ -1,9 +1,9 @@
-import {checked} from '../host-common/runtime-result.mjs';
-import {callHttpsCredentialResource} from './https-credential-resource.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
+import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {matchesSalesforceCredentialOrg} from
   './salesforce-credential-binding.mjs';
 import {invokeScopedCredentialOperation, ownInvocationContext} from
-  '../host-common/owned-invocation-context.mjs';
+  '../../../host-common/owned-invocation-context.mjs';
 
 const count = value => Number.isSafeInteger(value) && value > 0;
 const fail = code => {

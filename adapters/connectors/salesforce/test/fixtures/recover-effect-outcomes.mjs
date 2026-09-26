@@ -4,34 +4,34 @@ import assert from 'node:assert/strict';
 import {createPublicKey} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import * as moon from
-  '../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+  '../../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as salesforceMoon from
-  '../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
+  '../../../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
 import {recoverCompletedEffectfulComputation} from
-  '../../host-common/completed-run-publication.mjs';
-import {runtimeCore} from '../../host-common/runtime-core.mjs';
-import {checked} from '../../host-common/runtime-result.mjs';
+  '../../../../host-common/completed-run-publication.mjs';
+import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
+import {checked} from '../../../../host-common/runtime-result.mjs';
 import {openLocalPublicationStore} from
-  '../../store-local/publication-store.mjs';
-import {openEffectLedger} from '../effect-ledger.mjs';
+  '../../../../store-local/publication-store.mjs';
+import {openEffectLedger} from '../../../../host-node/effect-ledger.mjs';
 import {issueAuthorizedEffectSetReceipt} from
-  '../effect-response-recovery.mjs';
+  '../../../../host-node/effect-response-recovery.mjs';
 import {recoverCapturedSalesforceSingleRequests} from
-  '../salesforce-effect-write.mjs';
+  '../../host/salesforce-effect-write.mjs';
 import {captureSalesforceSingleEffectWrite,
   reconcileStoredSalesforceSingleEffectWrite} from
-  '../salesforce-effect-write.mjs';
-import {applyRecoveredEffectSet} from '../effect-run-apply.mjs';
-import {completeRecoveredEffectRun} from '../entry.mjs';
-import {allowAllAuthorization} from '../authorization-fixture.mjs';
+  '../../host/salesforce-effect-write.mjs';
+import {applyRecoveredEffectSet} from '../../../../host-node/effect-run-apply.mjs';
+import {completeRecoveredEffectRun} from '../../../../host-node/entry.mjs';
+import {allowAllAuthorization} from '../../../../host-node/authorization-fixture.mjs';
 import {syncSalesforceCatalog} from
-  '../../site-node/salesforce-catalog-sync.mjs';
+  '../../site/salesforce-catalog-sync.mjs';
 import {refreshSalesforceEffectWriteCatalogs} from
-  '../../site-node/salesforce-effect-current-catalog.mjs';
+  '../../site/salesforce-effect-current-catalog.mjs';
 import {observeSalesforceTargetSet} from
-  '../../site-node/salesforce-target-observation.mjs';
+  '../../site/salesforce-target-observation.mjs';
 import {openSqliteCredentialJournal} from
-  '../../site-node/sqlite-credential-journal.mjs';
+  '../../../../site-node/sqlite-credential-journal.mjs';
 
 function restoreSiteConnection(connection, control, usePrefix) {
   const journal = openSqliteCredentialJournal(connection.journalRoot, {

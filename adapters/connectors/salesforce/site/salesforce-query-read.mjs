@@ -1,9 +1,9 @@
-import {checked} from '../host-common/runtime-result.mjs';
-import {callHttpsCredentialResource} from './https-credential-resource.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
+import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {syncSalesforceCatalog} from './salesforce-catalog-sync.mjs';
 import {invocationBindingsMatch, invokeScopedCredentialOperation,
   ownInvocationAuthorization, ownInvocationContext} from
-  '../host-common/owned-invocation-context.mjs';
+  '../../../host-common/owned-invocation-context.mjs';
 
 const operation = 'salesforce:query:read';
 const count = value => Number.isSafeInteger(value) && value >= 0;

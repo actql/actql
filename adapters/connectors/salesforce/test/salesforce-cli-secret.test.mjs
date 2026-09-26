@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createSalesforceCliSecretResolver,
-  inspectSalesforceCliConnection} from './salesforce-cli-secret.mjs';
+  inspectSalesforceCliConnection} from '../site/salesforce-cli-secret.mjs';
 
 const binding = Object.freeze({alias: 'actql-test', orgId: '00D-ONE',
   username: 'user@example.test', instanceOrigin: 'https://sf.example.test'});

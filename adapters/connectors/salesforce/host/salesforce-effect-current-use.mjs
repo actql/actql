@@ -1,7 +1,7 @@
 import {refreshSalesforceEffectWriteCatalogs} from
-  '../site-node/salesforce-effect-current-catalog.mjs';
+  '../site/salesforce-effect-current-catalog.mjs';
 import {observeSalesforceTargetSet} from
-  '../site-node/salesforce-target-observation.mjs';
+  '../site/salesforce-target-observation.mjs';
 
 const fail = () => {
   throw Object.assign(new Error('InvalidSalesforceEffectCurrentUse'), {
