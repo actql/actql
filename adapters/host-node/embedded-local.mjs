@@ -461,9 +461,10 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   const terminal = status => ['succeeded', 'failed', 'cancelled']
     .includes(status);
   // The physical state of a held request's Run: `absent` (no Run
-  // Definition yet), `unstarted` (no physical start reserved), `abandoned`
-  // (failed before dispatch), `started` (reserved: running, or unknown after
-  // a crash) or `terminal`.
+  // Definition yet), `unstarted` (no physical start reserved), `cancelled`
+  // (cancelled before any physical start), `abandoned` (failed before
+  // dispatch), `started` (reserved: running, or unknown after a crash) or
+  // `terminal`.
   const inspectHeld = async captured => {
     const accepted = definitionOf(captured);
     if (accepted === undefined) return {state: 'absent'};
@@ -472,6 +473,14 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       return {state: 'abandoned', runId};
     }
     if (accepted.physicalStartReserved !== true) {
+      // A Run cancelled before any physical start is terminal, not
+      // resumable: its public state is the Run's own projection.
+      if (accepted.cancellationRequested) {
+        const current = await observeRun({ref: accepted.ref, principalId});
+        if (current.status === 'cancelled') {
+          return {state: 'cancelled', runId};
+        }
+      }
       return {state: 'unstarted', runId};
     }
     const current = await observeRun({ref: accepted.ref, principalId});
@@ -494,6 +503,9 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     await step('definition_admitted', {ref: accepted.ref});
     try { renew(); }
     catch (error) { return {refused: error}; }
+    // A cancellation accepted meanwhile is read from the journal, not from
+    // the admitted snapshot: the Run is not dispatched.
+    if (definitionOf(captured)?.cancellationRequested) return 'not_started';
     const runId = runIdOf(accepted);
     return startDispatch(submission, requested, accepted, held,
       status => checkpoints.runFinished(runId, status),

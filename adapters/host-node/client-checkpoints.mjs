@@ -507,6 +507,12 @@ export async function installRemoteCheckpoints({root, tenantId,
       end('failed');
       return 'done';
     }
+    // A Run cancelled before its physical start ends the request the same
+    // way; nothing is retried or started.
+    if (probe.state === 'cancelled') {
+      end('cancelled');
+      return 'done';
+    }
     if (probe.state === 'started' || probe.state === 'terminal') {
       journal.completeResume(claim, {run: {runId: probe.runId,
         status: 'running'}});
@@ -556,9 +562,17 @@ export async function installRemoteCheckpoints({root, tenantId,
     });
     if (outcome === 'started') return 'done';
     const refusal = outcome?.refused;
-    if (refusal?.code === 'ResumeClaimStale' || outcome === 'not_started') {
+    // A start that did not happen may be a cancellation that arrived during
+    // the resume: settle it now rather than retrying.
+    if (outcome === 'not_started') {
+      const after = await host.inspect(captured);
+      if (after.state === 'cancelled') {
+        end('cancelled');
+        return 'done';
+      }
       return 'busy';
     }
+    if (refusal?.code === 'ResumeClaimStale') return 'busy';
     if (refusal !== undefined) {
       await host.abandon(captured);
       end('failed');
