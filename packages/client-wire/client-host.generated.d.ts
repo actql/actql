@@ -1,5 +1,5 @@
 // Generated from the registered Client–Host machine contract.
-export type ClientHostOperation = "connect" | "submit" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "reconcile" | "read" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve";
+export type ClientHostOperation = "connect" | "submit" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "reconcile" | "read" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request";
 export type WireRunRefShape = Readonly<{
   tenantId: string;
   authorityScopeCid: string;
@@ -141,6 +141,17 @@ export type WireCancellationShape = Readonly<{
 }>;
   kind: "accepted" | "already_requested" | "already_terminal";
   revision: number;
+}>;
+
+export type WireRequestCancellationShape = Readonly<{
+  requestId: string;
+  kind: "accepted" | "already_requested" | "already_terminal";
+  ref?: Readonly<{
+  tenantId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+}>;
+  revision?: number;
 }>;
 
 export type WireRunStateShape = Readonly<{

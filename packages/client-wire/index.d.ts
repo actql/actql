@@ -2,6 +2,7 @@ import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
   WireCheckpointReviewShape, WireCheckpointSummaryShape,
   WireConnectionShape, WireHeldShape, WireLookupFoundShape,
   WireLookupNotFoundShape, WireLookupUnknownShape, WireProfileShape,
+  WireRequestCancellationShape,
   WireResolveItemShape, WireResolveResultShape, WireRunRefShape,
   WireRunStateShape, WireSubmitPreparationErrorShape} from
   './client-host.generated.js';
@@ -59,6 +60,7 @@ export type WireClientBodyByOperation = Readonly<{
     maxBytes: number;
   }>;
   resolve: WireBodyBase & Readonly<{items: readonly WireResolveItem[]}>;
+  'cancel-request': WireBodyBase & Readonly<{requestId: string}>;
 }>;
 
 export type WireClientBody =
@@ -143,3 +145,7 @@ export declare function validDeliveryAttemptLookup(value: unknown,
 
 export type WireCancellation = WireCancellationShape;
 export declare function validCancellation(value: unknown): value is WireCancellation;
+
+export type WireRequestCancellation = WireRequestCancellationShape;
+export declare function validRequestCancellation(value: unknown,
+  expectedRequestId: string): value is WireRequestCancellation;

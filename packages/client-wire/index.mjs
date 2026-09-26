@@ -6,7 +6,8 @@ import {clientHostOperations, clientHostRequestKeys,
   validAdmissionShape, validCancellationShape, validCheckpointReviewShape,
   validCheckpointSummaryShape, validConnectionShape, validHeldShape,
   validLookupFoundShape, validLookupNotFoundShape, validLookupUnknownShape,
-  validProfileShape, validResolveItemShape, validResolveResultShape,
+  validProfileShape, validRequestCancellationShape, validResolveItemShape,
+  validResolveResultShape,
   validRunRefShape, validRunStateShape,
   validSubmitPreparationErrorShape} from './client-host.generated.js';
 export {clientHostOperations} from './client-host.generated.js';
@@ -68,7 +69,9 @@ export function validClientBody(operation, body) {
         body.kind === 'program' && body.input !== null &&
         typeof body.input === 'object' && !Array.isArray(body.input));
   }
-  if (operation === 'lookup-request') return boundedText(body.requestId);
+  if (operation === 'lookup-request' || operation === 'cancel-request') {
+    return boundedText(body.requestId);
+  }
   if (operation === 'checkpoints') {
     return Number.isSafeInteger(body.limit) && body.limit > 0 &&
       body.limit <= checkpointLimits.maxPageItems &&
@@ -237,3 +240,13 @@ export function validDeliveryAttemptLookup(value, expected) {
 }
 
 export const validCancellation = value => validCancellationShape(value);
+
+// The reply to a request cancellation. `accepted` means the cancellation is
+// durable, not that anything stopped or was cleaned up. A reply for a
+// request whose Run exists names that Run.
+export function validRequestCancellation(value, expectedRequestId) {
+  return boundedText(expectedRequestId) &&
+    validRequestCancellationShape(value) &&
+    value.requestId === expectedRequestId &&
+    (value.ref === undefined) === (value.revision === undefined);
+}

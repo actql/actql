@@ -728,6 +728,59 @@ const schemas = {
       }
     }
   },
+  "request_cancellation": {
+    "type": "object",
+    "required": [
+      "requestId",
+      "kind"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "requestId": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "kind": {
+        "enum": [
+          "accepted",
+          "already_requested",
+          "already_terminal"
+        ]
+      },
+      "ref": {
+        "type": "object",
+        "required": [
+          "tenantId",
+          "authorityScopeCid",
+          "runDefinitionCid"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "authorityScopeCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "runDefinitionCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      },
+      "revision": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 2147483647
+      }
+    }
+  },
   "run_state": {
     "type": "object",
     "required": [
@@ -1257,6 +1310,10 @@ const operationKeys = {
   "resolve": [
     "connection",
     "items"
+  ],
+  "cancel-request": [
+    "connection",
+    "requestId"
   ]
 };
 
@@ -1317,4 +1374,5 @@ export const validResolveItemShape = value => valid(value, schemas.resolve_item)
 export const validResolveResultShape = value => valid(value, schemas.resolve_result);
 export const validSubmitPreparationErrorShape = value => valid(value, schemas.submit_preparation_error);
 export const validCancellationShape = value => valid(value, schemas.cancellation);
+export const validRequestCancellationShape = value => valid(value, schemas.request_cancellation);
 export const validRunStateShape = value => valid(value, schemas.run_state);
