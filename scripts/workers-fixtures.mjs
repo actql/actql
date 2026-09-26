@@ -41,7 +41,22 @@ for (const name of [...selected].sort()) {
   source += '\n///|\n/// Fixture owner: query_integration/' + item.file + '\n' + item.block.trim() + '\n';
 }
 const aliases = new Set([...source.matchAll(/@(\w+)/g)].map(x => x[1]));
-const imports = packageImports(readFileSync(join(directory, 'moon.pkg'), 'utf8'))
+// The query package's native link options are not fixture imports. Only the
+// exact audited block is removed; any other directive still fails closed.
+const queryManifest = readFileSync(join(directory, 'moon.pkg'), 'utf8');
+const nativeOptions = `\noptions(
+  link: {
+    "native": {
+      "cc": "./scripts/native-cxx-link-driver.sh",
+      "stub-cc": "c++",
+      "cc-link-flags": "-lssl -lcrypto",
+    },
+  },
+)\n`;
+if (!queryManifest.endsWith(nativeOptions)) {
+  throw new Error('UnexpectedQueryIntegrationOptions');
+}
+const imports = packageImports(queryManifest.slice(0, -nativeOptions.length))
   .filter(x => aliases.has(x.alias));
 for (const entry of imports) {
   if (/duckdb|_node|connectors_builtin/.test(entry.path)) throw new Error(`Nonportable fixture dependency: ${entry.path}`);

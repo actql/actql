@@ -4558,6 +4558,9 @@ pub fn client_program_allowed_effect_run_admission(
 #export_name("clientProgramPrepareDuckDBSourceEvidenceContext")
 pub fn client_program_prepare_duckdb_source_evidence_context(
   requirement : @planning.QueryRequirement,
-) -> Result[@duckdb_host.NativeSourceEvidenceContext, @duckdb_host.NativeSourceEvidenceIssue] {
+) -> Result[
+  @duckdb_host.NativeSourceEvidenceContext,
+  @duckdb_host.NativeSourceEvidenceIssue,
+] {
   @duckdb_host.prepare_native_source_evidence_context(requirement)
 }

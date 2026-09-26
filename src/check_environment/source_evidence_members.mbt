@@ -39,9 +39,9 @@ fn evidence_member_text(body : @decode.Cursor, name : String) -> String? {
 
 ///|
 fn evidence_member_cid(value : String) -> Bool {
-  value.length() == 71 && value.has_prefix("sha256:") &&
-  value[7:].iter().all(c =>
-    (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))
+  value.length() == 71 &&
+  value.has_prefix("sha256:") &&
+  value[7:].iter().all(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))
 }
 
 ///|
@@ -60,11 +60,12 @@ fn select_evidence_member(
     if selected is Some(_) {
       return Err(AmbiguousMember)
     }
-    for (name, expected) in [
-      ("source_contract_cid", selector.source_contract_cid),
-      ("source_view_contract_cid", selector.source_view_contract_cid),
-      ("read_mode", "snapshot"),
-    ] {
+    for
+      (name, expected) in [
+        ("source_contract_cid", selector.source_contract_cid),
+        ("source_view_contract_cid", selector.source_view_contract_cid),
+        ("read_mode", "snapshot"),
+      ] {
       if evidence_member_text(body, name) != Some(expected) {
         return Err(ContractMismatch(name))
       }
@@ -85,8 +86,13 @@ pub fn select_connector_source_evidence_members(
   environment : WireEnvironment,
   selector : ConnectorSourceEvidenceSelector,
 ) -> Result[ConnectorSourceEvidenceMembers, SourceEvidenceMemberIssue] {
-  for cid in [selector.source_contract_cid, selector.source_view_contract_cid,
-    selector.carrier_schema_contract_cid, selector.source_data_policy_cid] {
+  for
+    cid in [
+      selector.source_contract_cid,
+      selector.source_view_contract_cid,
+      selector.carrier_schema_contract_cid,
+      selector.source_data_policy_cid,
+    ] {
     if !evidence_member_cid(cid) {
       return Err(InvalidMember)
     }
@@ -94,14 +100,16 @@ pub fn select_connector_source_evidence_members(
   if !selector.source_ref.has_prefix("connector://") {
     return Err(InvalidMember)
   }
-  let schema = match select_evidence_member(environment, SchemaSnapshots, selector) {
+  let schema = match
+    select_evidence_member(environment, SchemaSnapshots, selector) {
     Ok(item) => item
     Err(issue) => return Err(issue)
   }
   match connector_source_snapshot_selector(schema) {
-    Ok(Some(actual)) => {
-      if actual != selector { return Err(ContractMismatch("schema_snapshot")) }
-    }
+    Ok(Some(actual)) =>
+      if actual != selector {
+        return Err(ContractMismatch("schema_snapshot"))
+      }
     _ => return Err(InvalidMember)
   }
   let capability = match
@@ -110,9 +118,11 @@ pub fn select_connector_source_evidence_members(
     Err(issue) => return Err(issue)
   }
   let body = member_body(capability)
-  let object = match @decode.closed_object(body, ["source_ref",
-    "source_contract_cid", "source_view_contract_cid", "read_mode",
-    "capability_contract_cids"]) {
+  let object = match
+    @decode.closed_object(body, [
+      "source_ref", "source_contract_cid", "source_view_contract_cid", "read_mode",
+      "capability_contract_cids",
+    ]) {
     Ok(object) => object
     Err(_) => return Err(InvalidMember)
   }
@@ -162,38 +172,59 @@ pub fn connector_source_evidence_supports(
 pub fn connector_source_snapshot_selector(
   item : Member,
 ) -> Result[ConnectorSourceEvidenceSelector?, SourceEvidenceMemberIssue] {
-  if member_section(item) != SchemaSnapshots { return Err(InvalidMember) }
+  if member_section(item) != SchemaSnapshots {
+    return Err(InvalidMember)
+  }
   let body = member_body(item)
   guard evidence_member_text(body, "source_ref") is Some(source_ref) else {
     return Err(InvalidMember)
   }
-  if !source_ref.has_prefix("connector://") { return Ok(None) }
-  let object = match @decode.closed_object(body, ["source_ref", "source_contract_cid",
-    "source_view_contract_cid", "read_mode", "output_carrier",
-    "carrier_schema_contract_cid", "source_data_policy_cid",
-    "data_classification"]) {
+  if !source_ref.has_prefix("connector://") {
+    return Ok(None)
+  }
+  let object = match
+    @decode.closed_object(body, [
+      "source_ref", "source_contract_cid", "source_view_contract_cid", "read_mode",
+      "output_carrier", "carrier_schema_contract_cid", "source_data_policy_cid",
+      "data_classification",
+    ]) {
     Ok(value) => value
     Err(_) => return Err(InvalidMember)
   }
   let fields = []
-  for name in ["source_contract_cid", "source_view_contract_cid",
-    "carrier_schema_contract_cid", "source_data_policy_cid"] {
+  for
+    name in [
+      "source_contract_cid", "source_view_contract_cid", "carrier_schema_contract_cid",
+      "source_data_policy_cid",
+    ] {
     guard @decode.required(object, name) is Ok(raw) else {
       return Err(InvalidMember)
     }
     guard @decode.text(raw) is Ok(cid) else { return Err(InvalidMember) }
-    if !evidence_member_cid(cid) { return Err(InvalidMember) }
+    if !evidence_member_cid(cid) {
+      return Err(InvalidMember)
+    }
     fields.push(cid)
   }
-  guard evidence_member_text(body, "data_classification") is Some(classification) else {
+  guard evidence_member_text(body, "data_classification")
+    is Some(classification) else {
     return Err(InvalidMember)
   }
   if evidence_member_text(body, "output_carrier") != Some("relation") ||
     evidence_member_text(body, "read_mode") != Some("snapshot") ||
-    !["public", "internal", "confidential", "restricted", "unknown"].contains(classification) {
+    !["public", "internal", "confidential", "restricted", "unknown"].contains(
+      classification,
+    ) {
     return Err(InvalidMember)
   }
-  Ok(Some({ source_ref, source_contract_cid: fields[0],
-    source_view_contract_cid: fields[1], carrier_schema_contract_cid: fields[2],
-    source_data_policy_cid: fields[3], data_classification: classification, }))
+  Ok(
+    Some({
+      source_ref,
+      source_contract_cid: fields[0],
+      source_view_contract_cid: fields[1],
+      carrier_schema_contract_cid: fields[2],
+      source_data_policy_cid: fields[3],
+      data_classification: classification,
+    }),
+  )
 }

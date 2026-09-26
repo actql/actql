@@ -45,6 +45,10 @@ export function checkWorkersArtifact(metafile, source, allowedModules) {
 // The execution-authorization gate imported by the common strategy has no
 // imports and uses only crypto.subtle, TextEncoder and timers; account
 // interpretation stays in the bundled MoonBit runtime.
+// The Effect receipt custody imported by run publication has no imports and
+// keeps only a WeakMap of issued receipt sets. The private publication
+// holding imported by completed-run publication has no imports and only calls
+// the Store it is given.
 // No namespace-wide permission.
 export const conformanceModules = [
   '_build/workers/modules/bridge.mjs',
@@ -67,7 +71,9 @@ export const conformanceModules = [
   'adapters/host-common/managed-failure.mjs',
   'adapters/host-common/durable-result-payload.mjs',
   'adapters/host-common/completed-run-publication.mjs',
+  'adapters/host-common/private-publication-holding.mjs',
   'adapters/host-common/run-publication.mjs',
+  'adapters/host-common/effect-receipt-custody.mjs',
   'adapters/host-common/run-publication-preflight.mjs',
   'adapters/host-common/runtime-core.mjs',
   'adapters/host-common/runtime-result.mjs',
@@ -97,7 +103,9 @@ export const hostModules = [
   'adapters/host-common/managed-failure.mjs',
   'adapters/host-common/durable-result-payload.mjs',
   'adapters/host-common/completed-run-publication.mjs',
+  'adapters/host-common/private-publication-holding.mjs',
   'adapters/host-common/run-publication.mjs',
+  'adapters/host-common/effect-receipt-custody.mjs',
   'adapters/host-common/run-publication-preflight.mjs',
   'adapters/host-common/runtime-core.mjs',
   'adapters/host-common/runtime-result.mjs',

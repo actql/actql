@@ -93,7 +93,11 @@ pub fn assemble_environment(
     }
   }
   for i in 0..<members {
-    let entry = @environment.member_at(environment, @environment.SchemaSnapshots, i).unwrap()
+    let entry = @environment.member_at(
+      environment,
+      @environment.SchemaSnapshots,
+      i,
+    ).unwrap()
     match @environment.connector_source_snapshot_selector(entry) {
       Ok(Some(_)) => continue
       Ok(None) => ()

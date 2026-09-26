@@ -409,10 +409,16 @@ pub fn native_host_source_capture(
     raise Physical(InvalidCharge)
   }
   let limits = run.limits
-  match @acquisition_host.capture_native_host_source(
-    run.host, observation, run.streaming_output, limits.output_rows,
-    limits.retention, limits.output_entries, limits.output_name_bytes,
-  ) {
+  match
+    @acquisition_host.capture_native_host_source(
+      run.host,
+      observation,
+      run.streaming_output,
+      limits.output_rows,
+      limits.retention,
+      limits.output_entries,
+      limits.output_name_bytes,
+    ) {
     Ok(capture) => capture
     Err(issue) => raise CapturedSource(issue)
   }
@@ -435,7 +441,9 @@ pub fn native_host_source_capture_identity_matches(
   capture : @acquisition_host.NativeHostSourceCapture,
   identity : @query.CapturedSourceRelationIdentity,
 ) -> Bool {
-  @acquisition_host.native_host_source_capture_identity_matches(capture, identity)
+  @acquisition_host.native_host_source_capture_identity_matches(
+    capture, identity,
+  )
 }
 
 ///|
@@ -457,8 +465,11 @@ pub fn native_host_issue_source_evidence(
   effective_data_policy_cid : String,
   observed_at : String,
 ) -> String raise NodeHostFailure {
-  match @acquisition_host.issue_native_host_source_evidence(capture, context, identity,
-    logical_input, authority_scope_cid, effective_data_policy_cid, observed_at) {
+  match
+    @acquisition_host.issue_native_host_source_evidence(
+      capture, context, identity, logical_input, authority_scope_cid, effective_data_policy_cid,
+      observed_at,
+    ) {
     Ok(value) => @publication.run_evidence_value_json(value)
     Err(issue) => raise SourceEvidence(issue)
   }
