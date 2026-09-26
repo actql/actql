@@ -504,24 +504,36 @@ test('Salesforce current-use catalogs belong to one exact refresh',
     const requests = ['first'];
     const checkedRequests = [];
     let revision = 0;
+    let firstRefreshStarted;
+    let finishFirstRefresh;
+    const started = new Promise(resolve => { firstRefreshStarted = resolve; });
+    const firstGate = new Promise(resolve => { finishFirstRefresh = resolve; });
     const currentUse = installSalesforceEffectCurrentUse({
       moon: {salesforceSingleWriteRequestMethod() { return 'POST'; },
         salesforceRecheckSingleWriteRequest(request, catalog) {
         checkedRequests.push([request, catalog.revision]);
         return {$tag: 1, _0: true};
       }},
-      members: [{requests, refreshCatalog: async () => ({
-        observation: {revision: ++revision},
-      })}],
+      members: [{requests, refreshCatalog: async () => {
+        const current = ++revision;
+        if (current === 1) {
+          firstRefreshStarted();
+          await firstGate;
+        }
+        return {observation: {revision: current}};
+      }}],
       observedRows: [], maxMembers: 1, maxRows: 1,
       maxTotalResponseBytes: 1024,
     });
     requests[0] = 'foreign';
     assert.throws(() => currentUse.catalogAt({}, 0),
       {code: 'InvalidSalesforceEffectCurrentUse'});
-    const first = await currentUse.refreshPreflight({preflight: {marker: 1}});
+    const firstFlight = currentUse.refreshPreflight({preflight: {marker: 1}});
+    await started;
     const second = await currentUse.refreshPreflight({preflight: {marker: 2}});
-    assert.deepEqual(checkedRequests, [['first', 1], ['first', 2]]);
+    finishFirstRefresh();
+    const first = await firstFlight;
+    assert.deepEqual(checkedRequests, [['first', 2], ['first', 1]]);
     assert.equal(currentUse.catalogAt(first, 0).revision, 1);
     assert.equal(currentUse.catalogAt(second, 0).revision, 2);
     assert.throws(() => currentUse.catalogAt({...first}, 0),
