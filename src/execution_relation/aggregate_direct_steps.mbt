@@ -1,8 +1,7 @@
 ///|
-/// One aggregate over one group, in the order and with the checks of
-/// `evaluate_direct_aggregate`: collect or order contributors, remove distinct
-/// duplicates, then run the function's finishing state. Every phase advances
-/// with at most one control unit.
+/// One aggregate over one group or analytic frame: collect or order
+/// contributors, remove distinct duplicates, then run the function's
+/// finishing state. Every phase advances with at most one control unit.
 priv struct AggregateDirect[R] {
   aggregate : @lower.PreparedAggregate
   function : @relation.AggregateFunction

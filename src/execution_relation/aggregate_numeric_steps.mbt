@@ -2,7 +2,7 @@
 /// Run a selected common numeric reduction for one aggregate occurrence.
 /// Contributors are copied one per advance, the Host-owned reduction step
 /// advances one call at a time, and its reported work is then paid one
-/// control unit per advance, as `evaluate_direct_aggregate` charged it.
+/// control unit per advance, as the atomic direct aggregate charged it.
 /// Without a step form the selected reduction runs in one advance; product
 /// Local execution installs the step form.
 priv struct AggregateNumeric {

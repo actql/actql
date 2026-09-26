@@ -173,6 +173,7 @@ fn run_local_managed_analytic_case(
   ).unwrap()
 
   let producer_live = Ref(true)
+  let producer_advances = Ref(0)
   let (producer_ops, producer) = run_local_managed_test_task(
     installed,
     run,
@@ -181,7 +182,11 @@ fn run_local_managed_analytic_case(
     [],
     1,
     producer_live,
+    execution_quantum=1,
+    execution_advances=Some(producer_advances),
+    require_provider=true,
   )
+  assert_true(producer_advances.val > 4)
   let rows = local_managed_test_rows(producer_ops)
   assert_eq(rows, expected)
 

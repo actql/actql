@@ -166,6 +166,7 @@ pub fn node_supports_bounded_managed_prefix(
     | (Values(_), Watermark(_))
     | (Values(_), Lag(_))
     | (Values(_), Pivot(_))
+    | (Values(_), Analytic(_))
     | (Values(_), Unpivot(_))
     | (Values(_), Unnest(_))
     | (Values(_), JsonPick(_))
@@ -231,7 +232,7 @@ pub fn node_accepts_managed_relation_view(
     | Watermark(_)
     | Lag(_)
     | JsonPick(_) => true
-    Pivot(_) | Unpivot(_) | Unnest(_) | WindowGroup(_) => true
+    Pivot(_) | Unpivot(_) | Unnest(_) | WindowGroup(_) | Analytic(_) => true
     AssertRows(_) =>
       operation(node) == "REL.assert_all" ||
       operation(node) == "REL.assert_unique"

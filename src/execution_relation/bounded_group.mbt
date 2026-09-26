@@ -94,6 +94,9 @@ pub fn bounded_group_step_supported(
   if @lower.kernel_pivot(kernel) is Some(pivot) {
     return pivot_execution_supported_with_numeric(pivot)
   }
+  if @lower.kernel_analytic(kernel) is Some(analytic) {
+    return analytic_execution_supported_with_numeric(analytic)
+  }
   guard @lower.kernel_group(kernel) is Some(group) &&
     group_execution_supported_with_numeric(group) else {
     return false
@@ -107,9 +110,15 @@ pub fn bounded_group_step_supported(
 fn bounded_group_supported_without_numeric(
   kernel : @lower.PreparedKernel,
 ) -> Bool {
-  match (@lower.kernel_group(kernel), @lower.kernel_pivot(kernel)) {
-    (Some(group), _) => group_execution_supported(group)
-    (_, Some(pivot)) => pivot_execution_supported(pivot)
+  match
+    (
+      @lower.kernel_group(kernel),
+      @lower.kernel_pivot(kernel),
+      @lower.kernel_analytic(kernel),
+    ) {
+    (Some(group), _, _) => group_execution_supported(group)
+    (_, Some(pivot), _) => pivot_execution_supported(pivot)
+    (_, _, Some(analytic)) => analytic_execution_supported(analytic)
     _ => false
   }
 }
@@ -577,7 +586,18 @@ fn start_bounded_group_with_input(
       }
       (@lower.pivot_output_schema(pivot), index_names)
     }
-    _ => return Err(InvalidExecution)
+    _ =>
+      match @lower.kernel_analytic(kernel) {
+        // Input columns are copied from the row that produced the output.
+        Some(analytic) => {
+          let input_names : Map[String, Bool] = Map([])
+          for name in names {
+            input_names[name] = true
+          }
+          (@lower.analytic_output_schema(analytic), input_names)
+        }
+        None => return Err(InvalidExecution)
+      }
   }
   let output_sources : Array[Int?] = []
   for index in 0..<@schema.field_count(output_schema) {
@@ -650,7 +670,10 @@ fn start_bounded_group_with_input(
         workspace,
         scope,
         (row, representative, _names, _sources) => accept(row, representative),
-        generated.aggregate_outputs,
+        selected_aggregate_outputs_at(
+          generated.aggregate_outputs,
+          @lower.kernel_step(kernel),
+        ),
         identity_limits,
         numeric,
         step=@lower.kernel_step(kernel),
@@ -658,6 +681,35 @@ fn start_bounded_group_with_input(
       {
         advance: () => advance_bounded_group(state).map(done => done is Some(_)),
         close: () => close_bounded_group(state),
+      }
+    }
+    None if @lower.kernel_analytic(kernel) is Some(analytic) => {
+      let state = start_analytic_evaluation(
+        analytic,
+        rows_view,
+        max_rows,
+        control,
+        evaluation_output,
+        workspace,
+        scope,
+        selected_aggregate_outputs_at(
+          generated.aggregate_outputs,
+          @lower.kernel_step(kernel),
+        ),
+        selected_analytic_envelope_at(
+          generated.analytic_envelopes,
+          @lower.kernel_step(kernel),
+        ),
+        identity_limits,
+        numeric,
+        @lower.kernel_step(kernel),
+        accept,
+      )
+      {
+        advance: () => {
+          advance_analytic_evaluation(state).map(done => done is Some(_))
+        },
+        close: () => close_analytic_evaluation(state),
       }
     }
     None => {

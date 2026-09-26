@@ -10,6 +10,9 @@ priv struct AggregateExpressionExecution[T] {
   control : ControlBudget
   workspace : RowWorkspace
   scope : ExpressionRoots?
+  // Analytic evaluation runs without logical roots when no fragment context
+  // is bound; aggregate callers require one.
+  unscoped : Bool
   baseline : Int
   snapshot : Map[String, Value]
   mut column : Int
@@ -29,6 +32,7 @@ fn[T] start_aggregate_expression(
   control : ControlBudget,
   workspace : RowWorkspace,
   scope : ExpressionRoots?,
+  unscoped? : Bool = false,
 ) -> AggregateExpressionExecution[T] {
   {
     expression,
@@ -39,6 +43,7 @@ fn[T] start_aggregate_expression(
     control,
     workspace,
     scope,
+    unscoped,
     baseline: workspace.live,
     snapshot: Map([]),
     column: 0,
@@ -113,6 +118,37 @@ fn[T : IndexedRows] advance_aggregate_expression_impl(
     state.column_entry_charged = false
     reset_bounded_text_charge(state.name_charge)
     return Ok(None)
+  }
+  if state.scope is None && state.unscoped {
+    if state.frame is None {
+      state.frame = match
+        expression_frame(
+          state.expression,
+          state.snapshot,
+          [],
+          state.control,
+          state.workspace,
+          None,
+        ) {
+        Ok(frame) => Some(frame)
+        Err(issue) =>
+          return Err(evaluation_row_issue(state.row, state.aggregate, issue))
+      }
+      return Ok(None)
+    }
+    let evaluated = match advance_expression_frame(state.frame.unwrap()) {
+      Ok(None) => return Ok(None)
+      Ok(Some(value)) => Ok(value)
+      Err(issue) => Err(issue)
+    }
+    return match
+      release_expression_result(
+        state.expression,
+        check_expression_result(state.expression, evaluated, None),
+      ) {
+      Ok(value) => Ok(Some(value))
+      Err(issue) => Err(evaluation_row_issue(state.row, state.aggregate, issue))
+    }
   }
   guard state.scope is Some(scope) else {
     return Err(MissingOrderedResourceContext)

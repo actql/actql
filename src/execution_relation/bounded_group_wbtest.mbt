@@ -411,3 +411,100 @@ test "bounded group enforces the selected array item ceiling" {
   )
   assert_true(cleanup_bounded_group_execution(exceeds).unwrap())
 }
+
+///|
+let bounded_analytic_schema : String = "{\"id\":{\"type\":\"number\",\"nullable\":false},\"amount\":{\"type\":\"number\",\"nullable\":true}}"
+
+///|
+let bounded_analytic_operation : String = "\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":\"unbounded_preceding\",\"end\":\"current_row\"},\"functions\":{\"n\":{\"fn\":\"count\",\"field\":\"amount\"},\"position\":{\"fn\":\"row_number\"}}}"
+
+///|
+test "bounded analytic matches row order and counts through the kernel" {
+  let (_, started, source) = bounded_relation_start(
+    bounded_analytic_schema, "[{\"id\":2,\"amount\":5},{\"id\":1,\"amount\":null},{\"id\":3,\"amount\":7}]",
+    bounded_analytic_operation, "analytic_0", false,
+  )
+  let execution = started.unwrap()
+  match drive_bounded_group(execution) {
+    BoundedGroupComplete(output, ..) => {
+      assert_eq(completed_row_count(output), 3)
+      let names = Array::makei(completed_column_count(output), index => {
+        completed_column_name(output, index).unwrap()
+      })
+      let n = names.search("n").unwrap()
+      let position = names.search("position").unwrap()
+      // Source order is kept; id 1 sorts first and has a NULL amount.
+      assert_true(completed_cell(output, 0, position) is Some(Number(2)))
+      assert_true(completed_cell(output, 0, n) is Some(Number(1)))
+      assert_true(completed_cell(output, 1, position) is Some(Number(1)))
+      assert_true(completed_cell(output, 1, n) is Some(Number(0)))
+      assert_true(completed_cell(output, 2, n) is Some(Number(2)))
+    }
+    _ => fail("bounded analytic did not complete")
+  }
+  assert_true(cleanup_bounded_group_execution(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "bounded analytic stops after positive work without publishing" {
+  let (control, started, source) = bounded_relation_start(
+    bounded_analytic_schema, "[{\"id\":2,\"amount\":5},{\"id\":1,\"amount\":null},{\"id\":3,\"amount\":7}]",
+    bounded_analytic_operation, "analytic_0", false,
+  )
+  let execution = started.unwrap()
+  for _ in 0..<40 {
+    assert_true(
+      advance_bounded_group_execution(execution, 1)
+      is Ok(BoundedGroupContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_group_execution(execution, 1)
+    is Ok(BoundedGroupStopped(_, ..)),
+  )
+  assert_true(cleanup_bounded_group_execution(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "bounded analytic admits exact work and rejects one unit short" {
+  // Kernel input row charge (1); input names id and amount (10); order_by id
+  // resolved as a peer and a position term (4); stable order (3); one
+  // position entry (1); one failure-order source (1); call name position
+  // (8); output names amount, id and position (16); one output row entry and
+  // three cells (4); three kernel output cells (3). Total 51.
+  let exact_work = 51
+  let rows = "[{\"id\":1,\"amount\":5}]"
+  let operation = "\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"functions\":{\"position\":{\"fn\":\"row_number\"}}}"
+  let (_, exact, _) = bounded_relation_start(
+    bounded_analytic_schema,
+    rows,
+    operation,
+    "analytic_0",
+    false,
+    max_work=exact_work,
+  )
+  let exact = exact.unwrap()
+  match drive_bounded_group(exact) {
+    BoundedGroupComplete(output, ..) =>
+      assert_eq(completed_row_count(output), 1)
+    _ => fail("exact analytic work rejected")
+  }
+  assert_true(cleanup_bounded_group_execution(exact).unwrap())
+  let (_, short, _) = bounded_relation_start(
+    bounded_analytic_schema,
+    rows,
+    operation,
+    "analytic_0",
+    false,
+    max_work=exact_work - 1,
+  )
+  let short = short.unwrap()
+  match drive_bounded_group(short) {
+    BoundedGroupFailed(Rows(RowLimit), ..) => ()
+    _ => fail("one-short analytic work accepted")
+  }
+  assert_true(cleanup_bounded_group_execution(short).unwrap())
+}

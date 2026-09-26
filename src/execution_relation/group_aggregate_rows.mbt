@@ -321,37 +321,6 @@ fn finite_aggregate_number(value : Double) -> Result[Double, RowIssue] {
 }
 
 ///|
-fn[T : IndexedRows] evaluate_direct_aggregate(
-  aggregate : @lower.PreparedAggregate,
-  input : T,
-  indices : Array[Int],
-  range : AggregateGroupRange,
-  argument : Int?,
-  order : Array[ColumnOrder],
-  control : ControlBudget,
-  workspace : RowWorkspace,
-  selected : Array[SelectedAggregateOutput],
-  identity_limits : ValueLimits,
-  numeric? : NumericAggregateExecution? = None,
-  numeric_step? : Int = -1,
-  numeric_occurrence? : Int = -1,
-) -> Result[Value, RowIssue] {
-  let state = start_aggregate_direct(
-    aggregate, input, indices, range, argument, order, control, workspace, selected,
-    identity_limits, numeric, numeric_step, numeric_occurrence,
-  )
-  while true {
-    match advance_aggregate_direct(state) {
-      Ok(None) => ()
-      Ok(Some(value)) => break Ok(value)
-      Err(issue) => break Err(issue)
-    }
-  } nobreak {
-    Err(InvalidRows)
-  }
-}
-
-///|
 fn[T : RelationRows] evaluate_group_into(
   group : @lower.PreparedGroup,
   input : T,
