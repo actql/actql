@@ -1,5 +1,26 @@
 # Salesforce Effect review R2 status
 
+## Shared integration baseline
+
+Current work is on `feat/connector-salesforce-integration`, based on
+`44f00eab0a73819b45a0f64627898f796717ea29`. The nine post-baseline Connector
+request/recovery/source-holding/capture commits have been replayed. The original
+`feat/connector-salesforce-effects` remains at `78e73fe62`, preserving all eleven
+additions. Its last two shared-compiler experiments are not replayed; compiler,
+Plan, and Invocation issuance belong to Distribution. Public Client Checkpoint
+integration is separately reviewed and is not counted as complete here.
+Historical commit references below identify original changes, not their new
+replayed SHAs. Local tests of the old branch do not verify this integration.
+The replayed implementation at `2baaabdb7` passed the combined Salesforce,
+Client bridge, request-journal, and publication-control tests (82/82), after
+building the integrated DuckDB Host artifact. Two Run-start whitebox fixtures
+needed the retained opaque request scope instead of the removed CID-only field;
+with that test-only adaptation, the affected common packages passed JS, Wasm,
+and native (16/16 each). Generated API consistency, document links (1098), and
+the connector dispatch boundary also passed. No performance path was changed
+by this replay; the performance suite was not rerun. Linux CI, main integration,
+live Salesforce, and public Checkpoint completion remain unverified.
+
 ## Current completion unit
 
 | Required view | Current boundary |

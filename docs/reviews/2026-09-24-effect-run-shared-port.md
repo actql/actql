@@ -49,14 +49,20 @@ than implementing the request-to-capture join itself. Its authorization
 callback is a test policy, not a public authentication service. Distribution
 must connect its current evidence-reading authorization when using the entry.
 
-The remaining compiler dependency is concrete: Distribution's
-`client_values_compilation.mbt` was introduced by `c879e3caa`, extended by
-`f7e1b604a`, and its task compilation/run identities by `8e6cfd606`. Connector
-needs the adoptable shared dependency series and an Effect-aware adaptation
-that retains the original checked owner. Do not strip Effects, recheck as an
-Effect-free Program, or copy this compiler evidence generator into Salesforce.
+The shared baseline is now `44f00eab0a73819b45a0f64627898f796717ea29`.
+Distribution's compiler, Plan, and Invocation issuance are present in this
+integration; do not import their historical commits again. Distribution owns
+any Effect-aware adaptation needed to retain the original checked owner.
+Connector owns Effect application and provider execution. Do not strip
+Effects, recheck as an Effect-free Program, or duplicate compiler issuance.
+The later Connector experiments `cf9177abb` and `78e73fe62` remain preserved
+on `feat/connector-salesforce-effects` and its backup ref; they have not been
+replayed onto the integration branch pending Distribution's decision.
 The existing local HTTPS Effect fixture still supplies compiler/Host policy
 evidence while that connection is pending; this is not formal compiler closure.
+
+Public Client Checkpoint integration remains under separate review. Neither
+this baseline nor the Connector replay constitutes its adoption or completion.
 
 ## Current Effect source preparation handoff
 
