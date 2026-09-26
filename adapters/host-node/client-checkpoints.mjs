@@ -843,7 +843,9 @@ export async function installRemoteCheckpoints({root, tenantId,
       if (run === undefined || TERMINAL_RUNS.has(run.status) ||
           run.status !== 'running') return;
       journal.finishRun(runId, {status});
-      void evidence.settle().catch(() => {});
+      // Retention settles in the owned sweep (which stop() waits for), or in
+      // close(); never as a detached write.
+      void sweep();
     },
 
     // Stop starting new resumes; running work may still end its Runs.
