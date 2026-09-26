@@ -189,6 +189,7 @@ fn bounded_relation_step_provider(
       row_window_provider(execution, measurement),
       unpivot_provider(execution, measurement),
       unnest_provider(execution, measurement),
+      values_provider(execution, measurement),
     ] {
     if managed_provider_accepts(provider, selected) {
       return Some(provider)

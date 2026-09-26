@@ -231,7 +231,7 @@ pub fn node_accepts_managed_relation_view(
     | Watermark(_)
     | Lag(_)
     | JsonPick(_) => true
-    Pivot(_) | Unpivot(_) | Unnest(_) => true
+    Pivot(_) | Unpivot(_) | Unnest(_) | WindowGroup(_) => true
     AssertRows(_) =>
       operation(node) == "REL.assert_all" ||
       operation(node) == "REL.assert_unique"
