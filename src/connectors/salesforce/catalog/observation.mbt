@@ -319,6 +319,32 @@ pub fn catalog_observation_resource(
 }
 
 ///|
+/// A field omitted from an authorized describe remains unconfirmed. This
+/// check returns no field value and does not grant disclosure or execution.
+pub fn catalog_observation_first_unconfirmed_field(
+  observation : CatalogObservation,
+  current : CatalogObservationBinding,
+  resource_name : String,
+  field_names : Array[String],
+) -> Result[String?, CatalogObservationIssue] {
+  let resource = match
+    catalog_observation_resource(observation, current, resource_name) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let described : Map[String, Bool] = Map([])
+  for field in resource.fields {
+    described[field.name] = true
+  }
+  for name in field_names {
+    if !described.contains(name) {
+      return Ok(Some(name))
+    }
+  }
+  Ok(None)
+}
+
+///|
 /// A failed describe is an incomplete observation, not proof of absence.
 /// This accessor does not grant disclosure or current execution authority.
 pub fn catalog_observation_resource_outcome(

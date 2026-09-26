@@ -39,6 +39,8 @@ pub fn salesforce_catalog_describe(@catalog.CatalogSync, String, Bytes, Int, Int
 
 pub fn salesforce_catalog_finish(@catalog.CatalogSync) -> Bool raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_catalog_first_unconfirmed_field(@catalog.CatalogObservation, String, String, String, String, String, String, Int, String, String, String, String, String, String, String, Array[String]) -> String? raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_catalog_http_failure(Int, Bytes, Int) -> Int
 
 pub fn salesforce_catalog_next(@catalog.CatalogSync) -> String?

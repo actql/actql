@@ -386,6 +386,50 @@ pub fn salesforce_catalog_observed_resource_state(
 }
 
 ///|
+#export_name("salesforceCatalogFirstUnconfirmedField")
+pub fn salesforce_catalog_first_unconfirmed_field(
+  observation : @catalog.CatalogObservation,
+  tenant : String,
+  principal : String,
+  environment : String,
+  connection_revision : String,
+  org_id : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+  sync_occurrence : String,
+  resource_name : String,
+  field_names : Array[String],
+) -> String? raise SalesforceCatalogBridgeIssue {
+  let binding : @catalog.CatalogObservationBinding = {
+    tenant,
+    principal,
+    environment,
+    connection_revision,
+    org_id,
+    site_key,
+    site_generation,
+    connector_registration,
+    connector_revision,
+    resource_origin,
+    run_invocation_cid,
+    dispatch_request_cid,
+    sync_occurrence,
+  }
+  match
+    @catalog.catalog_observation_first_unconfirmed_field(
+      observation, binding, resource_name, field_names,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Observation(issue)
+  }
+}
+
+///|
 #export_name("salesforceCatalogResponseSha256")
 pub fn salesforce_catalog_response_sha256(bytes : Bytes) -> String {
   @catalog.catalog_response_sha256(bytes)
