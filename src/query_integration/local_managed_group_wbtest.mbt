@@ -678,6 +678,8 @@ fn run_local_managed_group_case(
   let group_live = Ref(true)
   let bounded_global = variant == "empty_global" ||
     variant == "global_counts" ||
+    variant == "global_count_if" ||
+    variant == "count_if_same_stage" ||
     variant == "global_counts_payload" ||
     variant == "long_text_key" ||
     variant == "keyed" ||
@@ -844,6 +846,30 @@ test "Local managed bounded global count distinguishes null fields" {
 }
 
 ///|
+test "Local managed count_if uses bounded provider with two consumers" {
+  run_local_managed_group_case(
+    "global_count_if",
+    [
+      "{\"flag\":true}", "{\"flag\":false}", "{\"flag\":null}", "{\"flag\":true}",
+    ],
+    ["{\"hits\":2,\"n\":4}"],
+    ["{\"n\":4,\"hits\":2}"],
+  )
+}
+
+///|
+test "Local same-stage count_if uses bounded provider with two consumers" {
+  run_local_managed_group_case(
+    "count_if_same_stage",
+    [
+      "{\"flag\":true}", "{\"flag\":false}", "{\"flag\":null}", "{\"flag\":true}",
+    ],
+    ["{\"hits\":2,\"n\":4}"],
+    ["{\"n\":4,\"hits\":2}"],
+  )
+}
+
+///|
 test "Local managed count with unused nested input reaches two consumers" {
   run_local_managed_group_case(
     "global_counts_payload",
@@ -971,6 +997,22 @@ fn assert_standard_host_cancels_bounded_count(
 ///|
 test "standard Host cancels global count after bounded work" {
   assert_standard_host_cancels_bounded_count("global_counts")
+}
+
+///|
+test "standard Host cancels count_if after bounded work" {
+  assert_standard_host_cancels_bounded_count(
+    "global_count_if",
+    before_cancel=20,
+  )
+}
+
+///|
+test "standard Host cancels same-stage count_if after bounded work" {
+  assert_standard_host_cancels_bounded_count(
+    "count_if_same_stage",
+    before_cancel=20,
+  )
 }
 
 ///|

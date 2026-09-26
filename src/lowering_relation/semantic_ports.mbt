@@ -123,13 +123,22 @@ fn checked_bounded_count(checked : @relation.CheckedOperation) -> Bool {
   guard @relation.group(checked) is Some(group) else { return false }
   for index in 0..<@relation.aggregate_count(group) {
     guard @relation.aggregate_at(group, index) is Some(aggregate) &&
-      @relation.aggregate_function(aggregate) == @relation.Count &&
+      (
+        @relation.aggregate_function(aggregate) == @relation.Count ||
+        @relation.aggregate_function(aggregate) == @relation.CountIf
+      ) &&
       @relation.aggregate_filter(aggregate) is None &&
       @relation.aggregate_distinct(aggregate) != Some(true) else {
       return false
     }
     match @relation.aggregate_argument(aggregate) {
-      Rows | Field(_) => ()
+      Rows =>
+        if @relation.aggregate_function(aggregate) is @relation.Count {
+          ()
+        } else {
+          return false
+        }
+      Field(_) => ()
       Expression(_) => return false
     }
   }

@@ -584,7 +584,27 @@ fn bounded_global_count_step(
                 is Some(value) else {
                 return global_count_failure(InvalidExecution, progress, used)
               }
-              !(value is Null)
+              guard @lower.count_group_aggregate_at(
+                  state.group,
+                  state.aggregate,
+                )
+                is Some(aggregate) else {
+                return global_count_failure(InvalidExecution, progress, used)
+              }
+              if aggregate.count_if {
+                match value {
+                  Boolean(true) => true
+                  Boolean(false) | Null => false
+                  _ =>
+                    return global_count_failure(
+                      Rows(InvalidRows),
+                      progress,
+                      used,
+                    )
+                }
+              } else {
+                !(value is Null)
+              }
             }
           }
           if counted {

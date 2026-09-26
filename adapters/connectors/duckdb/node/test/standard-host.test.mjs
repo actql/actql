@@ -5610,6 +5610,25 @@ async function exerciseStrategyGraph(
   ];
   sameStageGlobalCountProgram.stages = sameStageGlobalCountProgram.stages
     .filter(stage => stage.id !== 'group_values');
+  const sameStageCountIfProgram = structuredClone(sameStageGlobalCountProgram);
+  const sameStageCountIf = sameStageCountIfProgram.stages.find(
+    stage => stage.id === 'group_a');
+  sameStageCountIf.steps[0].values.schema = {
+    flag: {type: 'boolean', nullable: true},
+  };
+  sameStageCountIf.steps[0].values.rows = [
+    {flag: true}, {flag: false}, {flag: null}, {flag: true},
+  ];
+  sameStageCountIf.steps[1].group.aggregates = {
+    hits: {fn: 'count_if', field: 'flag'}, n: {fn: 'count'},
+  };
+  sameStageCountIf.results.r.fields = ['hits', 'n'];
+  for (const stage of sameStageCountIfProgram.stages.filter(
+    stage => stage.id.startsWith('group_consumer_'))) {
+    const fields = stage.id.endsWith('_a') ? ['hits', 'n'] : ['n', 'hits'];
+    stage.steps[0].select = fields;
+    stage.results.r.fields = fields;
+  }
   const sameStageKeyedCountProgram = structuredClone(sameStageGlobalCountProgram);
   const sameStageKeyedCount = sameStageKeyedCountProgram.stages.find(
     stage => stage.id === 'group_a');
@@ -7283,6 +7302,8 @@ async function exerciseStrategyGraph(
       program: groupProgram, cancelAtStart: 2},
     {name: 'same-stage-global-count-in-flight',
       program: sameStageGlobalCountProgram, cancelAtStart: 2},
+    {name: 'same-stage-count-if-in-flight',
+      program: sameStageCountIfProgram, cancelAtStart: 2},
     {name: 'same-stage-keyed-count-in-flight',
       program: sameStageKeyedCountProgram, cancelAtStart: 2},
     {name: 'append-filter-in-flight',
@@ -7343,6 +7364,7 @@ async function exerciseStrategyGraph(
       'split-values-row-window-in-flight';
     const sameStageGlobalCountCancellation = cancellationName ===
       'same-stage-global-count-in-flight' || cancellationName ===
+      'same-stage-count-if-in-flight' || cancellationName ===
       'same-stage-keyed-count-in-flight';
     const globalCountCancellation = cancellationName ===
       'global-count-in-flight' ||
@@ -7397,6 +7419,8 @@ async function exerciseStrategyGraph(
           ? {id: index, items: [index, index + 1]}
           : jsonPickCancellation || sameStageJsonFilterCancellation
             ? {id: index, payload: {inner: {leaf: index}}}
+        : cancellationName === 'same-stage-count-if-in-flight'
+          ? {flag: index % 3 === 0 ? null : index % 2 === 0}
         : globalCountCancellation || cancellationName === 'append-filter-in-flight'
           ? {id: index}
         : {id: index, label: `row${index}`});

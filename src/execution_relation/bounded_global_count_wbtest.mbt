@@ -2,6 +2,7 @@
 fn bounded_global_count_fixture(
   rows : String,
   keyed? : Bool = false,
+  count_if? : Bool = false,
   unused_payload? : Bool = false,
   unused_text? : Bool = false,
   text_key? : Bool = false,
@@ -12,7 +13,9 @@ fn bounded_global_count_fixture(
   max_work? : Int = 100,
   max_entries? : Int = 100,
 ) -> (@bounded.Control, BoundedGlobalCountExecution, CompletedOutput) raise {
-  let schema = if unused_payload {
+  let schema = if count_if {
+    "{\"flag\":{\"type\":\"boolean\",\"nullable\":true}}"
+  } else if unused_payload {
     "{\"id\":{\"type\":\"number\",\"nullable\":true},\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}"
   } else if unused_text {
     "{\"id\":{\"type\":\"number\",\"nullable\":true},\"payload\":{\"type\":\"string\",\"nullable\":false}}"
@@ -77,7 +80,9 @@ fn bounded_global_count_fixture(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
     @pipeline.Step(0),
   ).unwrap()
-  let group_text = if keyed {
+  let group_text = if count_if {
+    "[{\"from\":\"seed\",\"group\":{\"by\":[],\"aggregates\":{\"hits\":{\"fn\":\"count_if\",\"field\":\"flag\"},\"n\":{\"fn\":\"count\"}}}}]"
+  } else if keyed {
     "[{\"from\":\"seed\",\"group\":{\"by\":[\"id\"],\"aggregates\":{\"n\":{\"fn\":\"count\"},\"present\":{\"fn\":\"count\",\"field\":\"id\"}}}}]"
   } else {
     "[{\"from\":\"seed\",\"group\":{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"count\"},\"present\":{\"fn\":\"count\",\"field\":\"id\"}}}}]"
@@ -698,6 +703,58 @@ test "bounded global count admits exact work and workspace limits" {
           BoundedGlobalCountContinue(..) => ()
           BoundedGlobalCountFailed(Rows(RowLimit), ..) => rejected = true
           _ => fail("one-short global count budget accepted")
+        }
+      }
+    }
+    assert_true(rejected)
+    assert_true(cleanup_bounded_global_count(one_short).unwrap())
+    assert_true(completed_output_available(source))
+  }
+}
+
+///|
+test "bounded count_if admits exact work and workspace limits" {
+  // UTF-8 names: flag twice, hits twice, and n twice = 18 units.
+  // Resolution (3), input rows (3), row/call visits (9), output (2) = 17.
+  let rows = "[{\"flag\":true},{\"flag\":false},{\"flag\":null}]"
+  let (_, exact, source) = bounded_global_count_fixture(
+    rows,
+    count_if=true,
+    max_work=35,
+    max_entries=12,
+  )
+  let mut completed = false
+  for _ in 0..<100 {
+    if !completed {
+      match advance_bounded_global_count(exact, 1).unwrap() {
+        BoundedGlobalCountContinue(..) => ()
+        BoundedGlobalCountComplete(output, ..) => {
+          assert_true(completed_cell(output, 0, 0) is Some(Number(1)))
+          assert_true(completed_cell(output, 0, 1) is Some(Number(3)))
+          completed = true
+        }
+        _ => fail("exact count_if budget rejected")
+      }
+    }
+  }
+  assert_true(completed)
+  assert_true(cleanup_bounded_global_count(exact).unwrap())
+  assert_true(completed_output_available(source))
+
+  for (work, entries) in [(34, 12), (35, 11)] {
+    let (_, one_short, source) = bounded_global_count_fixture(
+      rows,
+      count_if=true,
+      max_work=work,
+      max_entries=entries,
+    )
+    let mut rejected = false
+    for _ in 0..<100 {
+      if !rejected {
+        match advance_bounded_global_count(one_short, 1).unwrap() {
+          BoundedGlobalCountContinue(..) => ()
+          BoundedGlobalCountFailed(Rows(RowLimit), ..) => rejected = true
+          _ => fail("one-short count_if budget accepted")
         }
       }
     }

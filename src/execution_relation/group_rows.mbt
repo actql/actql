@@ -39,8 +39,18 @@ fn[T : RelationRows] evaluate_count_group_into(
   }
   let key_count = @lower.count_group_key_count(group)
   let count_count = @lower.count_group_aggregate_count(group)
+  let mut has_count_if = false
+  for i in 0..<count_count {
+    if !spend_control(control, 1) {
+      return Err(RowLimit)
+    }
+    if @lower.count_group_aggregate_at(group, i).unwrap().count_if {
+      has_count_if = true
+    }
+  }
   if !reserve_slots(workspace, key_count) ||
     !reserve_slots(workspace, count_count) ||
+    (has_count_if && !reserve_slots(workspace, count_count)) ||
     !reserve_slots(workspace, count_count) {
     return Err(RowLimit)
   }
@@ -53,6 +63,7 @@ fn[T : RelationRows] evaluate_count_group_into(
     order.push({ column, descending: false, nulls_first: true, })
   }
   let columns : Array[Int?] = []
+  let count_if_columns : Array[Bool] = []
   let count_names : Map[String, Int] = Map([])
   for i in 0..<count_count {
     let count = @lower.count_group_aggregate_at(group, i).unwrap()
@@ -60,6 +71,9 @@ fn[T : RelationRows] evaluate_count_group_into(
       return Err(RowLimit)
     }
     count_names[count.name] = i
+    if has_count_if {
+      count_if_columns.push(count.count_if)
+    }
     columns.push(
       match count.field {
         None => None
@@ -96,7 +110,15 @@ fn[T : RelationRows] evaluate_count_group_into(
     }
   }
   let groups = match
-    count_groups(input, order, columns, max_rows, control, workspace) {
+    count_groups(
+      input,
+      order,
+      columns,
+      max_rows,
+      control,
+      workspace,
+      count_if_columns~,
+    ) {
     Ok(groups) => groups
     Err(issue) => return Err(ordering_row_issue(issue))
   }

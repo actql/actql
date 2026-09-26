@@ -1524,6 +1524,12 @@ fn local_values_group_program(variant : String) -> String {
         "[]", "{\"n\":{\"fn\":\"count\"},\"present\":{\"fn\":\"count\",\"field\":\"id\"}}",
         "[\"id\"]", "[\"n\",\"present\"]", "[\"present\",\"n\"]",
       )
+    "global_count_if" | "count_if_same_stage" =>
+      (
+        "{\"flag\":{\"type\":\"boolean\",\"nullable\":true}}", "[{\"flag\":true},{\"flag\":false},{\"flag\":null},{\"flag\":true}]",
+        "[]", "{\"hits\":{\"fn\":\"count_if\",\"field\":\"flag\"},\"n\":{\"fn\":\"count\"}}",
+        "[\"flag\"]", "[\"hits\",\"n\"]", "[\"n\",\"hits\"]",
+      )
     "global_counts_payload" =>
       (
         "{\"id\":{\"type\":\"number\",\"nullable\":true},\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}",
@@ -1648,7 +1654,7 @@ fn local_values_group_program(variant : String) -> String {
       "\"total\":{\"fn\":\"sum\",\"field\":\"total\"}}},\"as\":\"out\"}"
     _ => ""
   }
-  if variant == "keyed_same_stage" {
+  if variant == "keyed_same_stage" || variant == "count_if_same_stage" {
     return "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
       remote +
       ",{\"id\":\"compute_b\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":" +
