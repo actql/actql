@@ -4381,6 +4381,20 @@
       },
       "boundary_tests": [
         {
+          "role": "literal_empty_path_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "traversal empty simple-path work has exact boundaries"
+        },
+        {
+          "role": "literal_empty_node_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "traversal empty simple-path work has exact boundaries"
+        },
+        {
           "role": "exact_one_short_and_cancel_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -4407,6 +4421,22 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "path traversal charges overlapping start selector and indices"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "traverse_nodes_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "traverse-out"
+        },
+        {
+          "role": "traverse_paths_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "traverse-paths"
         }
       ]
     },

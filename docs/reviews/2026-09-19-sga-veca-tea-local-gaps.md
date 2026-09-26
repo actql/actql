@@ -106,6 +106,14 @@ the recorded append/filter route, not every unary suffix or formal variant.
 | Standard SGA Graph programs still have eight registered entrypoints without complete route assurance. | Connect each reachable entrypoint to its product kernel's exact/one-short work and workspace boundary, delivered cancellation and cleanup. Prove shared kernel equivalence only through an explicit production binding; retain separate predicate, path, identity and value-width variants where their loops differ. |
 | VecA ranking and row-expression paths have bounded entrypoint assurance, but the whole delivery unit still depends on the remaining RelA and SGA paths. | Retain their exact provider bindings, independent work/workspace fixtures, delivered Host cancellation, and cleanup as regression controls. Do not extend their proof to unsupported expression placements. |
 
+For `SGA.traverse`, the literal-start, one-node self-edge case now has fixed
+control-work exact/one-short limits for both node and path emission. Node
+emission also has an independently counted exact/one-short workspace bound.
+The existing standard Host timer cases reach the same production
+`start_traverse` entrypoint for nonempty node and path outputs. This is
+path-scoped evidence, not yet assurance for every predicate, selector, and
+value-width variant; the strict gate continues to reject the operation.
+
 At `90f193102`, a temporary read-only diagnostic in the standard managed
 Host fixture observed the actual provider decision while running the JS
 unary, group, binary-input, and values suites. It was removed after the

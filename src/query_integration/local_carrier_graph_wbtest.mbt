@@ -2304,6 +2304,7 @@ fn finish_reach(
 fn finish_traverse(
   execution : @local_sga.TraverseExecution,
   quantum? : Int = 1,
+  spent_work? : Ref[Int64]? = None,
 ) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] {
   while true {
     let poll = match @local_sga.advance_traverse(execution, quantum) {
@@ -2312,8 +2313,18 @@ fn finish_traverse(
     }
     match poll {
       @local_sga.TraverseContinue(..) => ()
-      @local_sga.TraverseComplete(output, ..) => return Ok(output)
-      @local_sga.TraverseFailed(issue, ..) => return Err(issue)
+      @local_sga.TraverseComplete(output, work~, ..) => {
+        if spent_work is Some(value) {
+          value.val = work
+        }
+        return Ok(output)
+      }
+      @local_sga.TraverseFailed(issue, work~, ..) => {
+        if spent_work is Some(value) {
+          value.val = work
+        }
+        return Err(issue)
+      }
       @local_sga.TraverseStopped(_, ..) =>
         return Err(
           @local_sga.TraverseReachIssue(
@@ -6508,6 +6519,8 @@ fn traverse_paths_result_for_source(
   attempts? : Ref[Int]? = None,
   quantum? : Int = 1,
   workspace_peak? : Ref[Int]? = None,
+  max_work? : Int = 10000,
+  spent_work? : Ref[Int64]? = None,
 ) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] raise {
   let source = carrier_events_source_output(source_owner)
   let owner = carrier_graph_traverse_owner(
@@ -6549,14 +6562,14 @@ fn traverse_paths_result_for_source(
       max_nodes: max_value_nodes,
       max_text_bytes: 1000,
       max_depth: 10,
-      max_work: 10000,
+      max_work,
     },
     workspace,
     1000,
     1000,
     [external],
   ).unwrap()
-  let result = finish_traverse(execution, quantum~)
+  let result = finish_traverse(execution, quantum~, spent_work~)
   if attempts is Some(attempts) {
     attempts.val = @local_sga.traverse_value_item_attempts(execution)
   }
@@ -6604,6 +6617,8 @@ fn traverse_nodes_result_for_source(
   max_rows? : Int = 4,
   workspace? : Int = 100,
   peak? : Ref[Int]? = None,
+  max_work? : Int = 10000,
+  spent_work? : Ref[Int64]? = None,
 ) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] raise {
   let source = carrier_events_source_output(source_owner)
   let owner = carrier_graph_traverse_owner(
@@ -6631,20 +6646,27 @@ fn traverse_nodes_result_for_source(
   ).unwrap()
   let graph = finish_rows_to_graph(construction)
   assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
-  let execution = @local_sga.start_traverse(
-    @bounded.control(),
-    task_test_completion(owner),
-    sequence,
-    1,
-    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
-    max_rows,
-    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-    workspace,
-    1000,
-    1000,
-    [external],
-  ).unwrap()
-  let result = finish_traverse(execution)
+  let execution = match
+    @local_sga.start_traverse(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+      max_rows,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work, },
+      workspace,
+      1000,
+      1000,
+      [external],
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      assert_true(@graphs.discard_completed(graph))
+      return Err(issue)
+    }
+  }
+  let result = finish_traverse(execution, spent_work~)
   if peak is Some(value) {
     value.val = @local_sga.traverse_private_workspace_usage(execution).1
   }
@@ -6885,6 +6907,103 @@ test "path traversal admits output and workspace before expansion" {
     homogeneous_traverse_paths_result(4, 20, workspace_peak=Some(peak)) is Ok(_),
   )
   assert_eq(peak.val, 20)
+}
+
+///|
+test "traversal empty simple-path work has exact boundaries" {
+  let source_owner = carrier_graph_source_owner_with_rows(
+    "[{\"id\":1,\"src\":1,\"dst\":1,\"node_name\":\"only\",\"weight\":1}]",
+  )
+  let path_work = Ref(0L)
+  assert_true(
+    traverse_paths_result_for_source(
+      source_owner,
+      2,
+      20,
+      minimum=1,
+      maximum=1,
+      spent_work=Some(path_work),
+    )
+    is Ok(_),
+  )
+  let node_work = Ref(0L)
+  assert_true(
+    traverse_nodes_result_for_source(
+      source_owner,
+      1,
+      1,
+      workspace=20,
+      spent_work=Some(node_work),
+    )
+    is Ok(_),
+  )
+  // Paths use one selection, resolution, and collection visit, then one
+  // edge scan, one simple-path membership rejection, and one finish visit.
+  assert_eq(path_work.val, 6L)
+  // Node emission also builds the one-node/one-edge adjacency: selection,
+  // resolution, collection, node initialization, degree scan, offsets,
+  // edge initialization, edge fill, depth reset, queue pop, edge scan,
+  // rejected neighbor, and finish each consume one control unit.
+  assert_eq(node_work.val, 13L)
+  match
+    traverse_paths_result_for_source(
+      source_owner,
+      2,
+      20,
+      minimum=1,
+      maximum=1,
+      max_work=6,
+    ) {
+    Ok(_) => ()
+    Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsWorkLimit)) =>
+      fail("path control work exceeded six")
+    Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsOutput(_))) =>
+      fail("path output work exceeded six")
+    Err(_) => fail("other path failure at six")
+  }
+  assert_true(
+    traverse_paths_result_for_source(
+      source_owner,
+      2,
+      20,
+      minimum=1,
+      maximum=1,
+      max_work=5,
+    )
+    is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsWorkLimit)),
+  )
+  assert_true(
+    traverse_nodes_result_for_source(
+      source_owner,
+      1,
+      1,
+      workspace=20,
+      max_work=13,
+    )
+    is Ok(_),
+  )
+  // One node needs thirteen slots, one edge needs two, the two offset
+  // sentinels need two, and the output schema has three fields: 20 total.
+  assert_true(
+    traverse_nodes_result_for_source(
+      source_owner,
+      1,
+      1,
+      workspace=19,
+      max_work=13,
+    )
+    is Err(@local_sga.TraverseReachIssue(@local_sga.ReachWorkspaceLimit)),
+  )
+  assert_true(
+    traverse_nodes_result_for_source(
+      source_owner,
+      1,
+      1,
+      workspace=20,
+      max_work=12,
+    )
+    is Err(@local_sga.TraverseReachIssue(@local_sga.ReachWorkLimit)),
+  )
 }
 
 ///|
