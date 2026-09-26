@@ -2,8 +2,8 @@
 /// Each input position is a separate logical occurrence, even when both
 /// positions borrow the same completed producer storage.
 priv struct BoundedBinaryInputScan {
-  left : ProducerRead
-  right : ProducerRead
+  left : BoundedBindingInput
+  right : BoundedBindingInput
   budget : ValueBudget
   control : ControlBudget
   workspace : RowWorkspace
@@ -35,6 +35,23 @@ priv enum BinaryInputScanIssue {
 fn binary_input_scan(
   left : ProducerRead,
   right : ProducerRead,
+  limits : ValueLimits,
+  control : ControlBudget,
+  workspace : RowWorkspace,
+) -> BoundedBinaryInputScan? {
+  binary_binding_input_scan(
+    CompletedBindingInput(left),
+    CompletedBindingInput(right),
+    limits,
+    control,
+    workspace,
+  )
+}
+
+///|
+fn binary_binding_input_scan(
+  left : BoundedBindingInput,
+  right : BoundedBindingInput,
   limits : ValueLimits,
   control : ControlBudget,
   workspace : RowWorkspace,
@@ -275,10 +292,10 @@ fn advance_binary_input_scan(
     return Ok(false)
   }
   let input = if scan.port == 0 { scan.left } else { scan.right }
-  if !producer_read_available(input) {
+  if !bounded_binding_input_available(input) {
     return Err(InputUnavailable)
   }
-  if scan.row == producer_read_row_count(input) {
+  if scan.row == bounded_binding_input_row_count(input) {
     scan.port += 1
     scan.row = 0
     scan.column = 0
@@ -292,7 +309,7 @@ fn advance_binary_input_scan(
     scan.row_open = true
     return Ok(false)
   }
-  let schema = producer_read_schema(input)
+  let schema = bounded_binding_input_schema(input)
   if scan.column == @schema.field_count(schema) {
     scan.row += 1
     scan.column = 0
@@ -300,7 +317,7 @@ fn advance_binary_input_scan(
     return Ok(false)
   }
   guard @schema.field_at(schema, scan.column) is Some(field) &&
-    producer_read_cell(input, scan.row, scan.column) is Some(value) else {
+    bounded_binding_input_cell(input, scan.row, scan.column) is Some(value) else {
     return Err(InputUnavailable)
   }
   match value {

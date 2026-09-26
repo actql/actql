@@ -125,12 +125,13 @@ fn bounded_binding_input_matches(
   input : BoundedBindingInput,
   owner : @lower.BoundPrepared,
   step : Int,
+  port? : Int = 0,
 ) -> Bool {
   match input {
     CompletedBindingInput(read) =>
-      producer_read_matches_operation_input(read, owner, step, 0)
+      producer_read_matches_operation_input(read, owner, step, port)
     SuppliedBindingInput(read) =>
-      supplied_relation_read_matches_operation_input(read, owner, step, 0)
+      supplied_relation_read_matches_operation_input(read, owner, step, port)
   }
 }
 

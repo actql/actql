@@ -54,6 +54,8 @@ pub fn advance_bounded_independent_row_copy(BoundedIndependentRowCopy, Int) -> R
 
 pub fn advance_bounded_interval_join(BoundedIntervalJoinExecution, Int) -> Result[BoundedIntervalJoinPoll, BoundedIntervalJoinIssue]
 
+pub fn advance_bounded_join(BoundedJoinExecution, Int) -> Result[BoundedJoinPoll, BoundedJoinIssue]
+
 pub fn advance_bounded_row_window(BoundedRowWindowExecution, Int) -> Result[BoundedRowWindowPoll, BoundedRowWindowIssue]
 
 pub fn advance_bounded_sequence_match(BoundedSequenceMatchExecution, Int) -> Result[BoundedSequenceMatchPoll, BoundedSequenceMatchIssue]
@@ -269,6 +271,8 @@ pub fn cleanup_bounded_global_count(BoundedGlobalCountExecution) -> Result[Bool,
 pub fn cleanup_bounded_independent_row_copy(BoundedIndependentRowCopy) -> Result[Bool, ManagedIndependentOutputIssue]
 
 pub fn cleanup_bounded_interval_join(BoundedIntervalJoinExecution) -> Result[Bool, BoundedIntervalJoinIssue]
+
+pub fn cleanup_bounded_join(BoundedJoinExecution) -> Result[Bool, BoundedJoinIssue]
 
 pub fn cleanup_bounded_row_window(BoundedRowWindowExecution) -> Result[Bool, BoundedRowWindowIssue]
 
@@ -936,6 +940,8 @@ pub fn start_bounded_independent_row_copy(@bounded_execution.Control, CompletedO
 
 pub fn start_bounded_interval_join(@bounded_execution.Control, GeneratedSequence, ProducerRead, ProducerRead, Int, ValueLimits, Int, Int, Int, Int) -> Result[BoundedIntervalJoinExecution, BoundedIntervalJoinIssue]
 
+pub fn start_bounded_join(@bounded_execution.Control, GeneratedSequence, TrustedOutputInput, TrustedOutputInput, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedJoinExecution, BoundedJoinIssue]
+
 pub fn start_bounded_row_window(@bounded_execution.Control, GeneratedSequence, ProducerRead, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedRowWindowExecution, BoundedRowWindowIssue]
 
 pub fn start_bounded_row_window_supplied(@bounded_execution.Control, GeneratedSequence, SuppliedRelationRead, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedRowWindowExecution, BoundedRowWindowIssue]
@@ -1154,6 +1160,24 @@ pub enum BoundedIntervalJoinPoll {
   BoundedIntervalJoinComplete(CompletedOutput, progress~ : Int64, work~ : Int64)
   BoundedIntervalJoinFailed(BoundedIntervalJoinIssue, progress~ : Int64, work~ : Int64)
   BoundedIntervalJoinStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type BoundedJoinExecution
+
+pub(all) enum BoundedJoinIssue {
+  InvalidExecution
+  InputLimit
+  Rows(RowIssue)
+  Capture(CaptureIssue)
+  Completion(TrustedOutputIssue)
+  Execution(@bounded_execution.Issue)
+}
+
+pub enum BoundedJoinPoll {
+  BoundedJoinContinue(progress~ : Int64, work~ : Int64)
+  BoundedJoinComplete(CompletedOutput, progress~ : Int64, work~ : Int64)
+  BoundedJoinFailed(BoundedJoinIssue, progress~ : Int64, work~ : Int64)
+  BoundedJoinStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 type BoundedRowWindowExecution
