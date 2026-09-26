@@ -10,11 +10,15 @@ pub fn admit(Bytes, String, Int) -> Result[Profile, Issue]
 
 pub fn admitted_bytes(Profile) -> Int
 
+pub fn advance_reduction(ReductionExecution) -> Result[Outcome?, ReductionIssue]
+
 pub fn algorithm(Reduction) -> Algorithm
 
 pub fn builtin_profile() -> Profile
 
 pub fn cid(Profile) -> String
+
+pub fn close_reduction(ReductionExecution) -> Unit
 
 pub fn execute(Reduction, Operation, Array[Double], Int, Int) -> Result[Outcome, ReductionIssue]
 
@@ -35,6 +39,8 @@ pub fn reduction_cid(Reduction) -> String
 pub fn reduction_profile(Reduction) -> Profile
 
 pub fn select(Profile, String) -> Result[Reduction, Issue]
+
+pub fn start_reduction(Reduction, Operation, Array[Double], Int, Int) -> Result[ReductionExecution, ReductionIssue]
 
 // Errors
 
@@ -66,6 +72,8 @@ pub struct Outcome {
 type Profile
 
 type Reduction
+
+type ReductionExecution
 
 pub(all) enum ReductionIssue {
   InvalidLimits
