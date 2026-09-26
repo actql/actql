@@ -1537,3 +1537,63 @@ test('a journal created before the requested-claims column is upgraded',
       authorities, binding, requestedClaims: ['effect_scope_approved'],
     }), {code: 'CheckpointConflict'});
   });
+
+test('pending Checkpoints page by a stable cursor; resumable preparations and their Runs are listed',
+  async t => {
+    const {clock, open} = await workspace(t);
+    const journal = open();
+    const waiting = [];
+    for (const index of [1, 2, 3]) {
+      clock.ms += 1000;
+      waiting.push(persistPreparation(journal, prepareBody({
+        attemptId: `attempt-${index}`, checkpointId: `cp-prep-${index}`})));
+    }
+    const first = journal.listPending({limit: 2});
+    assert.deepEqual(first.map(view => view.checkpointCid),
+      waiting.slice(0, 2).map(view => view.checkpointCid));
+    const second = journal.listPending({after: first.at(-1).cursor, limit: 2});
+    assert.deepEqual(second.map(view => view.checkpointCid),
+      [waiting[2].checkpointCid]);
+    assert.deepEqual(journal.listPending({after: second.at(-1).cursor,
+      limit: 2}), []);
+    // The unpaged listing is unchanged: every waiting one, no cursor.
+    assert.equal(journal.listPending().length, 3);
+    assert.equal('cursor' in journal.listPending()[0], false);
+    for (const bad of [{limit: 0}, {limit: 1001}, {after: 'x', limit: 1},
+      {after: first[0].cursor}]) {
+      assert.throws(() => journal.listPending(bad),
+        {code: 'InvalidCheckpointPage'});
+    }
+    // Only an approved preparation with an uncompleted intent is resumable.
+    assert.deepEqual(journal.listResumablePreparations(), []);
+    const [approved, rejected] = [0, 1].map(index =>
+      storedWire(journal, waiting[index].checkpointCid));
+    await journal.submitResolution({checkpointCid: approved.checkpoint_cid,
+      ...resolvePreparation(approved, 'approved')});
+    await journal.submitResolution({checkpointCid: rejected.checkpoint_cid,
+      ...resolvePreparation(rejected, 'rejected')});
+    assert.deepEqual(journal.listResumablePreparations(), ['attempt-1']);
+    assert.equal(journal.listPending().length, 1);
+    const claimed = journal.claimPreparationResume('attempt-1',
+      {claimant: 'host-a', leaseMs: 1000, binding});
+    // A claimed but uncompleted intent stays a candidate (its claimant may
+    // have died); the claim still decides who continues.
+    assert.deepEqual(journal.listResumablePreparations(), ['attempt-1']);
+    // Pages continue after the previous page's last attempt.
+    assert.deepEqual(journal.listResumablePreparations({after: 'attempt-1'}),
+      []);
+    assert.deepEqual(journal.listPreparationRuns(), []);
+    journal.completeResume(claimed.claim, {run: {runId: 'run-1',
+      status: 'running'}});
+    assert.deepEqual(journal.listResumablePreparations(), []);
+    // The created Run keeps a durable execution duty until it ends.
+    assert.deepEqual(journal.listPreparationRuns(),
+      [{prepareAttemptId: 'attempt-1', runId: 'run-1'}]);
+    assert.deepEqual(journal.listPreparationRuns({after: 'attempt-1'}), []);
+    journal.finishRun('run-1', {status: 'succeeded'});
+    assert.deepEqual(journal.listPreparationRuns(), []);
+    assert.throws(() => journal.listResumablePreparations({limit: 0}),
+      {code: 'InvalidResumableLimit'});
+    assert.throws(() => journal.listPreparationRuns({limit: 0}),
+      {code: 'InvalidPreparationRunPage'});
+  });

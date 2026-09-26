@@ -322,6 +322,345 @@ const schemas = {
       }
     }
   },
+  "held": {
+    "type": "object",
+    "required": [
+      "kind",
+      "requestId",
+      "prepareAttemptId",
+      "state",
+      "durability",
+      "lookupExpiresAt"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "kind": {
+        "const": "held"
+      },
+      "requestId": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "prepareAttemptId": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "state": {
+        "enum": [
+          "waiting_checkpoint",
+          "resuming",
+          "ended"
+        ]
+      },
+      "durability": {
+        "const": "durable"
+      },
+      "lookupExpiresAt": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "checkpoint": {
+        "type": "object",
+        "required": [
+          "checkpointId",
+          "checkpointCid",
+          "kind",
+          "expiresAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "checkpointId": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "checkpointCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "kind": {
+            "enum": [
+              "run_scope",
+              "read_access",
+              "data_egress",
+              "cost_scope",
+              "effect_set"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      },
+      "endReason": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "terminalErrorCode": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      }
+    }
+  },
+  "checkpoint_summary": {
+    "type": "object",
+    "required": [
+      "checkpointId",
+      "checkpointCid",
+      "kind",
+      "phase",
+      "subject",
+      "requiredArtifact",
+      "reviewProjectionCid",
+      "requirements",
+      "createdAt",
+      "expiresAt",
+      "humanSummary"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "checkpointId": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "checkpointCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "kind": {
+        "enum": [
+          "run_scope",
+          "read_access",
+          "data_egress",
+          "cost_scope",
+          "effect_set"
+        ]
+      },
+      "phase": {
+        "enum": [
+          "preflight",
+          "commit"
+        ]
+      },
+      "subject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "kind",
+              "prepareAttemptId",
+              "requestId"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "prepare_attempt"
+              },
+              "prepareAttemptId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "requestId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "kind",
+              "runId",
+              "runDefinitionCid"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "run_unit"
+              },
+              "runId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "runDefinitionCid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        ]
+      },
+      "requiredArtifact": {
+        "type": "object",
+        "required": [
+          "type",
+          "cid"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      },
+      "reviewProjectionCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "requirements": {
+        "type": "array",
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "createdAt": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "expiresAt": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "humanSummary": {
+        "type": "string",
+        "maxLength": 1024
+      }
+    }
+  },
+  "checkpoint_review": {
+    "type": "object",
+    "required": [
+      "kind",
+      "checkpointCid",
+      "artifactCid",
+      "byteLength",
+      "contentBase64"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "kind": {
+        "const": "review"
+      },
+      "checkpointCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "artifactCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "byteLength": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "contentBase64": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9+/]+={0,2}$",
+        "minLength": 1
+      }
+    }
+  },
+  "resolve_item": {
+    "type": "object",
+    "required": [
+      "checkpointCid",
+      "resolutionWire",
+      "approvalEvidenceWire"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "checkpointCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "resolutionWire": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 16384
+      },
+      "approvalEvidenceWire": {
+        "type": "string",
+        "maxLength": 16384
+      }
+    }
+  },
+  "resolve_result": {
+    "type": "object",
+    "required": [
+      "checkpointCid",
+      "status"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "checkpointCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "status": {
+        "enum": [
+          "committed",
+          "duplicate",
+          "conflicting",
+          "expired",
+          "cancelled",
+          "invalid"
+        ]
+      },
+      "decision": {
+        "enum": [
+          "approved",
+          "rejected"
+        ]
+      },
+      "resolutionCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "reason": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      }
+    }
+  },
   "submit_preparation_error": {
     "type": "object",
     "required": [
@@ -904,6 +1243,20 @@ const operationKeys = {
     "ref",
     "resultName",
     "attemptId"
+  ],
+  "checkpoints": [
+    "connection",
+    "after",
+    "limit"
+  ],
+  "checkpoint-review": [
+    "connection",
+    "checkpointCid",
+    "maxBytes"
+  ],
+  "resolve": [
+    "connection",
+    "items"
   ]
 };
 
@@ -957,6 +1310,11 @@ export const validAdmissionShape = value => valid(value, schemas.admission);
 export const validLookupFoundShape = value => valid(value, schemas.lookup_found);
 export const validLookupNotFoundShape = value => valid(value, schemas.lookup_not_found);
 export const validLookupUnknownShape = value => valid(value, schemas.lookup_unknown);
+export const validHeldShape = value => valid(value, schemas.held);
+export const validCheckpointSummaryShape = value => valid(value, schemas.checkpoint_summary);
+export const validCheckpointReviewShape = value => valid(value, schemas.checkpoint_review);
+export const validResolveItemShape = value => valid(value, schemas.resolve_item);
+export const validResolveResultShape = value => valid(value, schemas.resolve_result);
 export const validSubmitPreparationErrorShape = value => valid(value, schemas.submit_preparation_error);
 export const validCancellationShape = value => valid(value, schemas.cancellation);
 export const validRunStateShape = value => valid(value, schemas.run_state);

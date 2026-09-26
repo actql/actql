@@ -97,6 +97,10 @@ const holdingCidOf = (prepareAttemptId, name, semanticCid) => cidOf(
     prepare_attempt_id: prepareAttemptId, name, semantic_cid: semanticCid}),
   'utf8'));
 
+// The largest encrypted envelope (base64 ciphertext plus fixed JSON fields)
+// a plaintext of `maxBytes` can occupy in the private Store.
+const envelopeBound = maxBytes => Math.ceil(maxBytes / 3) * 4 + 256;
+
 // `preparation(id)` returns undefined when the journal has no preparation,
 // else {status, runStatus}. It is the only retention input.
 export function openContinuationEvidence({stateDirectory, key, keyId,
@@ -304,20 +308,48 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       const ledger = await readLedger(prepareAttemptId);
       if (ledger === undefined) fail('ContinuationEvidenceNotFound');
       sameKey(ledger);
-      const bytes = async (name, semanticCid) => {
+      // `maxBytes` bounds the read before any stored byte is loaded: a
+      // holding whose physical envelope could exceed it is refused from its
+      // recorded size, and the decrypted bytes are checked again.
+      const bytes = async (name, semanticCid, {maxBytes} = {}) => {
+        if (maxBytes !== undefined &&
+            (!Number.isSafeInteger(maxBytes) || maxBytes < 1)) {
+          fail('InvalidEvidenceReadLimit');
+        }
         const current = await readLedger(prepareAttemptId);
         const entry = current?.holdings.find(item => item.name === name &&
           item.semantic_cid === semanticCid);
         if (entry === undefined) fail('ContinuationEvidenceNotHeld');
         sameKey(entry);
         if (entry.state !== 'held') fail('ContinuationEvidenceRetired');
-        const stored = await withStore(store => store.readPrivateEvidence(
-          name, semanticCid, entry.holding_cid));
+        const stored = await withStore(async store => {
+          if (maxBytes !== undefined) {
+            const holding = await store.inspectPhysicalHolding(
+              entry.holding_cid);
+            const physical = holding?.objects?.[0]?.byte_count;
+            if (!Number.isSafeInteger(physical)) {
+              fail('ContinuationEvidenceNotHeld');
+            }
+            if (physical > envelopeBound(maxBytes)) {
+              fail('EvidenceReadLimitExceeded');
+            }
+          }
+          return store.readPrivateEvidence(name, semanticCid,
+            entry.holding_cid);
+        });
+        if (maxBytes !== undefined && stored.byteLength > maxBytes) {
+          fail('EvidenceReadLimitExceeded');
+        }
         if (cidOf(stored) !== semanticCid) fail('ArtifactIntegrityFailed');
         return stored;
       };
       return Object.freeze({
         requestCid: ledger.request_cid,
+        // Semantic CIDs of the held items named `name` (the ledger is the
+        // exact reference list; nothing is inferred from Store contents).
+        held: name => Object.freeze(ledger.holdings
+          .filter(item => item.name === name && item.state === 'held')
+          .map(item => item.semantic_cid)),
         bytes,
         record: async (name, cid) => JSON.parse(
           (await bytes(name, cid)).toString('utf8')),

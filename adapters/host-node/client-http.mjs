@@ -3,9 +3,10 @@
 import {inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {deliverAuthorizedResult,
   inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
-import {clientHostOperations, validClientAdmission, validClientBody,
-  validClientProfile, validDeliveryAttemptLookup, validRequestLookup,
-  validRunState} from
+import {clientHostOperations, validCheckpointPage, validCheckpointReview,
+  validClientAdmission, validClientBody, validClientProfile,
+  validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
+  validRunState, validSubmitReply} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -39,7 +40,15 @@ function responseCode(error) {
       error?.code === 'ClientConnectionDenied' ||
       error?.code === 'ClientRequestLookupDenied' ||
       error?.code === 'ClientRunStartDenied' ||
-      error?.code === 'ClientRunAttachDenied') return 403;
+      error?.code === 'ClientRunAttachDenied' ||
+      error?.code === 'CheckpointListDenied' ||
+      error?.code === 'CheckpointReviewDenied' ||
+      error?.code === 'CheckpointAnswerDenied' ||
+      /^ACTQL_E_(ACCOUNT_[A-Z_]+|DELEGATION_[A-Z_]+)$/u
+        .test(error?.code ?? '')) return 403;
+  if (error?.code === 'CheckpointReviewUnavailable') return 410;
+  if (error?.code === 'HeldRequestEvidenceUnavailable') return 503;
+  if (error?.code === 'CheckpointReviewTooLarge') return 413;
   if (error?.code === 'ClientRequestIntentConflict') return 409;
   if (error?.code === 'ResultUnavailable') return 410;
   if (error?.code === 'ClientRequestTooLarge' ||
@@ -48,7 +57,8 @@ function responseCode(error) {
       error?.code === 'ClientProgramInvalidInput' ||
       error?.code === 'ClientParametersInvalid' ||
       error?.code === 'InvalidRunStateRequest' ||
-      error?.code === 'InvalidResultAccessRequest') return 400;
+      error?.code === 'InvalidResultAccessRequest' ||
+      error?.code === 'InvalidCheckpointPage') return 400;
   if (error?.code === 'ClientProgramNeedsInputs' ||
       error?.code === 'ClientProgramRejected' ||
       error?.code === 'ClientProgramUnsupported') return 422;
@@ -109,8 +119,8 @@ function observationAttempt(response) {
 export function createClientHttpHandler({
   authenticate, authorizeConnection, stateService, resultService,
   negotiate, submit, attach, lookupRequest, observeRun, wait, cancel,
-  reconcile, deliveryAttempt, prepareSubmit,
-  maxRequestBytes = 65536,
+  reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
+  resolve, maxRequestBytes = 65536,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
@@ -179,7 +189,7 @@ export function createClientHttpHandler({
           invalid('InvalidClientHostPreparation');
         }
         const admission = await invoke(submit, undefined, preparedProgram);
-        if (!validClientAdmission(admission, connection)) {
+        if (!validSubmitReply(admission, connection, body.requestId)) {
           invalid('InvalidClientHostAdmission');
         }
         sendJson(admission);
@@ -217,6 +227,28 @@ export function createClientHttpHandler({
           sendJson(state);
         }
         finally { observer.release(); }
+      } else if (operation === 'checkpoints') {
+        const page = await invoke(checkpoints);
+        if (!validCheckpointPage(page, body.limit)) {
+          invalid('InvalidClientHostCheckpointPage');
+        }
+        sendJson(page);
+      } else if (operation === 'checkpoint-review') {
+        // Aborting this read ends only the read attempt.
+        const observer = observationAttempt(response);
+        try {
+          const review = await invoke(checkpointReview, observer.signal);
+          if (!validCheckpointReview(review, {
+            checkpointCid: body.checkpointCid, maxBytes: body.maxBytes,
+          })) invalid('InvalidClientHostCheckpointReview');
+          sendJson(review);
+        } finally { observer.release(); }
+      } else if (operation === 'resolve') {
+        const answered = await invoke(resolve);
+        if (!validResolveResults(answered, body.items)) {
+          invalid('InvalidClientHostResolveReply');
+        }
+        sendJson(answered);
       } else if (operation === 'cancel') {
         sendJson(await invoke(cancel));
       } else if (operation === 'reconcile') {

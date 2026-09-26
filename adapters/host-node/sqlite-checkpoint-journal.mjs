@@ -397,6 +397,38 @@ export function openSqliteCheckpointJournal(root, {
       WHERE c.closure = 'open' AND (r.status = 'waiting_checkpoint'
         OR p.status = 'waiting_checkpoint')
       ORDER BY c.persisted_at, c.checkpoint_cid`),
+    // One page of the same pending set, after a (persisted_at,
+    // checkpoint_cid) cursor.
+    pendingPage: database.prepare(`
+      SELECT c.* FROM checkpoints c
+        LEFT JOIN runs r
+          ON r.run_id = c.run_id AND r.checkpoint_cid = c.checkpoint_cid
+        LEFT JOIN preparations p
+          ON p.prepare_attempt_id = c.prepare_attempt_id
+          AND p.checkpoint_cid = c.checkpoint_cid
+      WHERE c.closure = 'open' AND (r.status = 'waiting_checkpoint'
+        OR p.status = 'waiting_checkpoint')
+        AND (c.persisted_at > ? OR c.persisted_at = ? AND c.checkpoint_cid > ?)
+      ORDER BY c.persisted_at, c.checkpoint_cid LIMIT ?`),
+    // Preparations whose current resume intent is not completed: an
+    // approved continuation a Host start or answer sweep must continue.
+    resumablePreparations: database.prepare(`
+      SELECT i.prepare_attempt_id FROM resume_intents i
+        JOIN preparations p ON p.prepare_attempt_id = i.prepare_attempt_id
+      WHERE i.state != 'completed' AND p.status = 'resuming'
+        AND i.rowid = (SELECT MAX(rowid) FROM resume_intents
+          WHERE prepare_attempt_id = i.prepare_attempt_id)
+        AND i.prepare_attempt_id > ?
+      ORDER BY i.prepare_attempt_id LIMIT ?`),
+    // Runs created by an approved preparation that are still `running`:
+    // the Run-side execution duty a Host start must carry on after the
+    // preparation's resume intent completed.
+    preparationRuns: database.prepare(`
+      SELECT p.prepare_attempt_id, p.run_id FROM preparations p
+        JOIN runs r ON r.run_id = p.run_id
+      WHERE p.status = 'run_created' AND r.status = 'running'
+        AND p.prepare_attempt_id > ?
+      ORDER BY p.prepare_attempt_id LIMIT ?`),
     resolution: database.prepare(
       'SELECT * FROM resolutions WHERE checkpoint_cid = ?'),
     insertResolution: database.prepare(`
@@ -835,13 +867,66 @@ export function openSqliteCheckpointJournal(root, {
       });
     },
 
-    listPending() {
+    // Safe metadata of the waiting Checkpoints, oldest first. With `limit`
+    // one bounded page is returned after the opaque `after` cursor (the
+    // `cursor` of the page's last item); without it, every waiting one.
+    listPending({after, limit} = {}) {
       alive();
-      return statements.pending.all().map(row => {
+      let rows;
+      if (limit === undefined) {
+        if (after !== undefined) fail('InvalidCheckpointPage');
+        rows = statements.pending.all();
+      } else {
+        if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000) {
+          fail('InvalidCheckpointPage');
+        }
+        let cursor = ['', ''];
+        if (after !== undefined) {
+          const parsed = typeof after === 'string' ? after.split('|') : [];
+          if (parsed.length !== 2 || !text(parsed[0]) || !text(parsed[1])) {
+            fail('InvalidCheckpointPage');
+          }
+          cursor = parsed;
+        }
+        rows = statements.pendingPage.all(cursor[0], cursor[0], cursor[1],
+          limit);
+      }
+      return rows.map(row => {
         core(runtime.checkpointAdmit(row.checkpoint_wire),
           'CheckpointJournalCorrupt');
-        return checkpointView(row.checkpoint_wire, row);
+        const view = checkpointView(row.checkpoint_wire, row);
+        return limit === undefined ? view : Object.freeze({...view,
+          cursor: `${row.persisted_at}|${row.checkpoint_cid}`});
       });
+    },
+
+    // Prepare attempts with an approved, not yet completed resume intent,
+    // for a Host sweep on start and after answers. Claims still decide who
+    // continues; this only names candidates.
+    // Pages continue after the last prepare attempt ID of the previous page.
+    listResumablePreparations({after = '', limit = 100} = {}) {
+      alive();
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000 ||
+          typeof after !== 'string') {
+        fail('InvalidResumableLimit');
+      }
+      return statements.resumablePreparations.all(after, limit)
+        .map(row => row.prepare_attempt_id);
+    },
+
+    // Runs created by approved preparations and still `running`, as
+    // {prepareAttemptId, runId}, one page after `after`. The Host that owns
+    // the Run's execution resumes or reconciles each on start; completing
+    // the preparation intent never drops this duty.
+    listPreparationRuns({after = '', limit = 100} = {}) {
+      alive();
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000 ||
+          typeof after !== 'string') {
+        fail('InvalidPreparationRunPage');
+      }
+      return statements.preparationRuns.all(after, limit).map(row =>
+        Object.freeze({prepareAttemptId: row.prepare_attempt_id,
+          runId: row.run_id}));
     },
 
     inspect(reference) {
