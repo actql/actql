@@ -47,6 +47,7 @@ function responseCode(error) {
       /^ACTQL_E_(ACCOUNT_[A-Z_]+|DELEGATION_[A-Z_]+)$/u
         .test(error?.code ?? '')) return 403;
   if (error?.code === 'CheckpointReviewUnavailable') return 410;
+  if (error?.code === 'HeldRequestEvidenceUnavailable') return 503;
   if (error?.code === 'CheckpointReviewTooLarge') return 413;
   if (error?.code === 'ClientRequestIntentConflict') return 409;
   if (error?.code === 'ResultUnavailable') return 410;

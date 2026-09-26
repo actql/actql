@@ -390,6 +390,18 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     // only wakes the durable resume owner, which starts it under the resumed
     // authorization. Other admitted requests are looked up, not decided
     // again.
+    // A held request whose Run exists is compared with the request
+    // journal's own identity (no side effect): another intent conflicts,
+    // whatever the state of the held evidence.
+    if (checkpoints?.heldOrigin(requestId)) {
+      const existing = journal.resolveDefinition(requested, {tenantId}, moon,
+        control);
+      if (existing !== undefined) {
+        void checkpoints.sweep();
+        return {ref: existing.ref, durability: existing.durability,
+          revision: existing.revision};
+      }
+    }
     if (checkpoints !== undefined &&
         (checkpoints.heldOrigin(requestId) ||
          journal.lookup({tenantId, authorityScopeCid, requestId}, moon) ===

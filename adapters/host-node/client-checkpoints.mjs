@@ -671,9 +671,13 @@ export async function installRemoteCheckpoints({root, tenantId,
       const requestCid = contentCid(request);
       const existing = journal.getPreparation(prepareAttemptId);
       if (existing !== undefined) {
-        const ledger = await evidence.open(prepareAttemptId)
-          .catch(() => undefined);
-        if (ledger !== undefined && ledger.requestCid !== requestCid) {
+        // The held request's durable fingerprint is its evidence ledger's
+        // request CID. Unavailable evidence is never a reason to skip the
+        // comparison.
+        let ledger;
+        try { ledger = await evidence.open(prepareAttemptId); }
+        catch (error) { fail('HeldRequestEvidenceUnavailable', error); }
+        if (ledger.requestCid !== requestCid) {
           fail('ClientRequestIntentConflict');
         }
         const reply = held(prepareAttemptId, captured.requestId);
