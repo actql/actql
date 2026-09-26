@@ -321,71 +321,6 @@ fn finite_aggregate_number(value : Double) -> Result[Double, RowIssue] {
 }
 
 ///|
-fn[T : IndexedRows] aggregate_group_ranges(
-  input : T,
-  indices : Array[Int],
-  order : Array[ColumnOrder],
-  max_groups : Int,
-  control : ControlBudget,
-  workspace : RowWorkspace,
-) -> Result[Array[AggregateGroupRange], RowIssue] {
-  let state = start_aggregate_group_ranges(
-    input, indices, order, max_groups, control, workspace,
-  )
-  while true {
-    match advance_aggregate_group_ranges(state) {
-      Ok(None) => ()
-      Ok(Some(groups)) => return Ok(groups)
-      Err(issue) => return Err(issue)
-    }
-  } nobreak {
-    close_aggregate_group_ranges(state)
-    Err(InvalidRows)
-  }
-}
-
-///|
-fn[T : IndexedRows] evaluate_dynamic_aggregate(
-  aggregate : @lower.PreparedAggregate,
-  input : T,
-  names : Array[String],
-  indices : Array[Int],
-  range : AggregateGroupRange,
-  argument : AggregateInput,
-  order : Array[ColumnOrder],
-  aggregate_index : Int,
-  control : ControlBudget,
-  workspace : RowWorkspace,
-  selected : Array[SelectedAggregateOutput],
-  identity_limits : ValueLimits,
-  scope : ExpressionRoots?,
-  numeric? : NumericAggregateExecution? = None,
-  numeric_step? : Int = -1,
-  numeric_occurrence? : Int = -1,
-) -> Result[Value, RowIssue] {
-  let state = start_aggregate_evaluation(
-    aggregate, input, names, indices, range, argument, order, aggregate_index, control,
-    workspace, selected, identity_limits, scope, numeric, numeric_step, numeric_occurrence,
-  )
-  drain_aggregate_evaluation(state)
-}
-
-///|
-fn[T : IndexedRows] drain_aggregate_evaluation(
-  state : AggregateEvaluation[T],
-) -> Result[Value, RowIssue] {
-  while true {
-    match advance_aggregate_evaluation(state) {
-      Ok(None) => ()
-      Ok(Some(value)) => break Ok(value)
-      Err(issue) => break Err(issue)
-    }
-  } nobreak {
-    Err(InvalidRows)
-  }
-}
-
-///|
 fn[T : IndexedRows] evaluate_direct_aggregate(
   aggregate : @lower.PreparedAggregate,
   input : T,
@@ -434,218 +369,27 @@ fn[T : RelationRows] evaluate_group_into(
   numeric : NumericAggregateExecution?,
   step~ : Int,
 ) -> Result[Array[String], RowIssue] {
-  if !group_execution_supported_with_profile(group, numeric is Some(_)) {
-    return Err(InvalidRows)
+  let state = start_bounded_group(
+    group,
+    input,
+    max_rows,
+    control,
+    output,
+    workspace,
+    scope,
+    accept_row,
+    aggregate_outputs,
+    identity_limits,
+    numeric,
+    step~,
+  )
+  while true {
+    match advance_bounded_group(state) {
+      Ok(None) => ()
+      Ok(Some(names)) => break Ok(names)
+      Err(issue) => break Err(issue)
+    }
+  } nobreak {
+    Err(InvalidRows)
   }
-  let names = input.field_names()
-  let ordinals : Map[String, Int] = Map([])
-  for i in 0..<names.length() {
-    if !spend_control(control, 1) ||
-      !spend_control_text(control, names[i]) ||
-      !reserve_slots(workspace, 1) {
-      return Err(RowLimit)
-    }
-    if ordinals.contains(names[i]) {
-      return Err(InvalidRows)
-    }
-    ordinals[names[i]] = i
-  }
-  let resolve = fn(field : @schema.FieldName) -> Result[Int, RowIssue] {
-    let name = @schema.reference_name(field)
-    if !spend_control(control, 1) || !spend_control_text(control, name) {
-      return Err(RowLimit)
-    }
-    match ordinals.get(name) {
-      Some(index) => Ok(index)
-      None => Err(InvalidRows)
-    }
-  }
-  let key_count = @lower.group_key_count(group)
-  let aggregate_count = @lower.group_aggregate_count(group)
-  if !reserve_slots(workspace, key_count) ||
-    !reserve_slots(workspace, aggregate_count) ||
-    !reserve_slots(workspace, aggregate_count) ||
-    !reserve_slots(workspace, aggregate_count) {
-    return Err(RowLimit)
-  }
-  let order : Array[ColumnOrder] = []
-  let key_by_name : Map[String, Int] = Map([])
-  for i in 0..<key_count {
-    let field = @lower.group_key_at(group, i).unwrap()
-    let column = match resolve(field) {
-      Ok(column) => column
-      Err(issue) => return Err(issue)
-    }
-    order.push({ column, descending: false, nulls_first: true, })
-    let name = @schema.reference_name(field)
-    if !key_by_name.contains(name) {
-      key_by_name[name] = column
-    }
-  }
-  let aggregate_by_name : Map[String, Int] = Map([])
-  let arguments : Array[AggregateInput] = []
-  let aggregate_orders : Array[Array[ColumnOrder]] = []
-  for i in 0..<aggregate_count {
-    let aggregate = @lower.group_aggregate_at(group, i).unwrap()
-    let name = @lower.group_aggregate_name(aggregate)
-    if !spend_control(control, 1) || !spend_control_text(control, name) {
-      return Err(RowLimit)
-    }
-    aggregate_by_name[name] = i
-    arguments.push(
-      match @lower.group_aggregate_argument(aggregate) {
-        @lower.AggregateRows => AggregateInputRows
-        @lower.AggregateField(field) =>
-          match resolve(field) {
-            Ok(column) => AggregateInputField(column)
-            Err(issue) => return Err(issue)
-          }
-        @lower.AggregateExpression(expression) =>
-          AggregateInputExpression(expression)
-      },
-    )
-    let term_count = @lower.group_aggregate_order_count(aggregate)
-    if !reserve_slots(workspace, term_count) {
-      return Err(RowLimit)
-    }
-    let aggregate_order : Array[ColumnOrder] = []
-    for j in 0..<term_count {
-      let (field, descending, nulls_first) = @lower.group_aggregate_order_term_at(
-        aggregate, j,
-      ).unwrap()
-      let column = match resolve(field) {
-        Ok(column) => column
-        Err(issue) => return Err(issue)
-      }
-      aggregate_order.push({ column, descending, nulls_first, })
-    }
-    aggregate_orders.push(aggregate_order)
-  }
-  let schema = @lower.group_output_schema(group)
-  let width = @schema.field_count(schema)
-  if !reserve_slots(workspace, width) || !reserve_slots(workspace, width) {
-    return Err(RowLimit)
-  }
-  let output_names : Array[String] = []
-  let projection : Array[(Bool, Int)] = []
-  for i in 0..<width {
-    let name = @schema.reference_name(@schema.field_at(schema, i).unwrap().name)
-    if !spend_control(control, 1) || !spend_control_text(control, name) {
-      return Err(RowLimit)
-    }
-    output_names.push(name)
-    match aggregate_by_name.get(name) {
-      Some(index) => projection.push((true, index))
-      None =>
-        match key_by_name.get(name) {
-          Some(column) => projection.push((false, column))
-          None => return Err(InvalidRows)
-        }
-    }
-  }
-  let indices = match stable_order_indices(input, order, control, workspace) {
-    Ok(indices) => indices
-    Err(issue) => return Err(ordering_row_issue(issue))
-  }
-  let groups = match
-    aggregate_group_ranges(input, indices, order, max_rows, control, workspace) {
-    Ok(groups) => groups
-    Err(issue) => return Err(issue)
-  }
-  for group_index, range in groups {
-    if !spend_control(control, 1) ||
-      !reserve_slots(workspace, aggregate_count) ||
-      !reserve_slots(workspace, 1) ||
-      !reserve_slots(workspace, width) {
-      return Err(RowLimit)
-    }
-    let aggregate_values : Array[Value] = []
-    for i in 0..<aggregate_count {
-      let baseline = workspace.live
-      let aggregate = @lower.group_aggregate_at(group, i).unwrap()
-      let dynamic = @lower.group_aggregate_filter(aggregate) is Some(_) ||
-        arguments[i] is AggregateInputExpression(_)
-      let evaluated = if dynamic {
-        evaluate_dynamic_aggregate(
-          aggregate,
-          input,
-          names,
-          indices,
-          range,
-          arguments[i],
-          aggregate_orders[i],
-          i,
-          control,
-          workspace,
-          aggregate_outputs,
-          identity_limits,
-          scope,
-          numeric~,
-          numeric_step=step,
-          numeric_occurrence=group_index,
-        )
-      } else {
-        evaluate_direct_aggregate(
-          aggregate,
-          input,
-          indices,
-          range,
-          match arguments[i] {
-            AggregateInputRows => None
-            AggregateInputField(column) => Some(column)
-            AggregateInputExpression(_) => None
-          },
-          aggregate_orders[i],
-          control,
-          workspace,
-          aggregate_outputs,
-          identity_limits,
-          numeric~,
-          numeric_step=step,
-          numeric_occurrence=group_index,
-        )
-      }
-      let value = match evaluated {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      release_slots(workspace, workspace.live - baseline)
-      aggregate_values.push(value)
-    }
-    let row : Array[Value] = []
-    for (aggregate, index) in projection {
-      if aggregate {
-        row.push(aggregate_values[index])
-      } else {
-        guard range.representative is Some(source) else {
-          return Err(InvalidRows)
-        }
-        row.push(IndexedRows::read_cell(input, source, index))
-      }
-    }
-    if !retain_row(row, output_names, output) {
-      return Err(RowLimit)
-    }
-    match
-      accept_row(row, range.representative.unwrap_or(-1), output_names, None) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    release_slots(workspace, aggregate_count)
-  }
-  if numeric is Some(execution) {
-    for i in 0..<aggregate_count {
-      let aggregate = @lower.group_aggregate_at(group, i).unwrap()
-      if @lower.group_aggregate_requires_numeric_observation(aggregate) &&
-        !seal_numeric_aggregate(
-          execution,
-          step,
-          @lower.group_aggregate_name(aggregate),
-          groups.length(),
-        ) {
-        return Err(InvalidRows)
-      }
-    }
-  }
-  Ok(output_names)
 }
