@@ -1001,6 +1001,7 @@ test('checked Run issues one source-free Site dispatch identity', () => {
   for (const [execution, cleanup, outcome, work] of [
     [4, 2, 'failed', 'none'], [4, 1, 'failed', 'cleanup'],
     [5, 2, 'cancelled', 'none'], [6, 3, 'running', 'reconcile'],
+    [3, 0, 'running', 'publication'], [3, 2, 'running', 'publication'],
   ]) {
     const dispatch = admitDispatchJson(issued.wire, issued.cid);
     const intent = prepareIntent(createJournal(scope), dispatch);
@@ -1019,6 +1020,16 @@ test('checked Run issues one source-free Site dispatch identity', () => {
     assert.equal(result.nextWork, work);
     assert.equal(JSON.parse(result.stateWire).status, outcome);
     assert(validRunState(JSON.parse(result.stateWire)));
+    const cancelled = projectSiteRun(prepared, compilation, admission,
+      definition, scope, saved, '2026-09-25T00:00:01.000Z', true);
+    if (execution === 3) {
+      assert.equal(cancelled.nextWork, cleanup === 2 ? 'none' : 'release');
+      assert.equal(JSON.parse(cancelled.stateWire).status,
+        cleanup === 2 ? 'cancelled' : 'running');
+    } else if (execution === 6) {
+      assert.equal(cancelled.nextWork, 'cancel');
+      assert.equal(cancelled.execution, 'unknown');
+    }
     assert.deepEqual(observe(scope), result);
     assert.throws(() => observe(`sha256:${'f'.repeat(64)}`),
       {code: 'RunHostSiteProjectionRejected'});
