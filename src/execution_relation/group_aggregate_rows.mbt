@@ -244,24 +244,6 @@ fn group_execution_supported_with_profile(
 }
 
 ///|
-fn runtime_value_identity(
-  value : Value,
-  control : ControlBudget,
-  workspace : RowWorkspace,
-  limits : ValueLimits,
-) -> Result[String, RowIssue] {
-  match runtime_value_identity_usage(value, control, workspace, limits) {
-    Ok((cid, bytes)) =>
-      if !spend_control(control, bytes) {
-        Err(RowLimit)
-      } else {
-        Ok(cid)
-      }
-    Err(issue) => Err(issue)
-  }
-}
-
-///|
 /// Hash one runtime value under the identity limits and the remaining
 /// control budget, returning its CID and the encoded bytes to charge.
 /// The hash work is bounded by the per-value identity limits.
@@ -458,35 +440,6 @@ fn finite_aggregate_number(value : Double) -> Result[Double, RowIssue] {
 }
 
 ///|
-fn sort_aggregate_values(
-  values : Array[Value],
-  control : ControlBudget,
-  workspace : RowWorkspace,
-) -> Result[Unit, RowIssue] {
-  if !reserve_slots(workspace, values.length()) {
-    return Err(RowLimit)
-  }
-  let mut issue : RowIssue? = None
-  values.sort_by((left, right) => {
-    if issue is Some(_) {
-      return 0
-    }
-    match compare_complete_value(left, right, control) {
-      Ok(comparison) => comparison
-      Err(value) => {
-        issue = Some(ordering_row_issue(value))
-        0
-      }
-    }
-  })
-  release_slots(workspace, values.length())
-  match issue {
-    Some(issue) => Err(issue)
-    None => Ok(())
-  }
-}
-
-///|
 fn evaluate_percentile_aggregate(
   aggregate : @lower.PreparedAggregate,
   values : Array[Value],
@@ -499,104 +452,27 @@ fn evaluate_percentile_aggregate(
   guard @lower.group_aggregate_fraction(aggregate) is Some(fraction) else {
     return Err(InvalidRows)
   }
-  match sort_aggregate_values(values, control, workspace) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
   let function = @lower.group_aggregate_function(aggregate)
-  if function is @relation.PercentileDisc {
-    if !spend_control(control, 2) {
-      return Err(RowLimit)
+  if !(function is @relation.PercentileDisc) &&
+    !(function is @relation.PercentileCont) {
+    return Err(InvalidRows)
+  }
+  let state = start_aggregate_percentile(
+    values,
+    fraction,
+    function is @relation.PercentileDisc,
+    control,
+    workspace,
+  )
+  while true {
+    match advance_aggregate_percentile(state) {
+      Ok(None) => ()
+      Ok(Some(value)) => break Ok(value)
+      Err(issue) => break Err(issue)
     }
-    let rank = Int::max(
-      1,
-      (fraction * values.length().to_double()).ceil().to_int(),
-    )
-    return Ok(values[rank - 1])
+  } nobreak {
+    Err(InvalidRows)
   }
-  guard function is @relation.PercentileCont else { return Err(InvalidRows) }
-  let numbers : Array[Double] = []
-  if !reserve_slots(workspace, values.length()) {
-    return Err(RowLimit)
-  }
-  for value in values {
-    guard value is Number(number) && !number.is_nan() && !number.is_inf() else {
-      return Err(InvalidRows)
-    }
-    numbers.push(number)
-  }
-  if !spend_control(control, 4) {
-    return Err(RowLimit)
-  }
-  let h = match
-    finite_aggregate_number((numbers.length() - 1).to_double() * fraction) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let index = h.floor().to_int()
-  let remainder = match finite_aggregate_number(h - index.to_double()) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  if remainder == 0.0 {
-    return Ok(Number(numbers[index]))
-  }
-  if !spend_control(control, 3) {
-    return Err(RowLimit)
-  }
-  let difference = match
-    finite_aggregate_number(numbers[index + 1] - numbers[index]) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let weighted = match finite_aggregate_number(remainder * difference) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  match finite_aggregate_number(numbers[index] + weighted) {
-    Ok(value) => Ok(Number(value))
-    Err(issue) => Err(issue)
-  }
-}
-
-///|
-fn canonical_numeric_values(
-  values : Array[Value],
-  control : ControlBudget,
-  workspace : RowWorkspace,
-  identity_limits : ValueLimits,
-) -> Result[Array[Double], RowIssue] {
-  let entries : Array[(String, Double)] = []
-  if !reserve_slots(workspace, values.length()) ||
-    !reserve_slots(workspace, values.length()) {
-    return Err(RowLimit)
-  }
-  for value in values {
-    guard value is Number(number) && !number.is_nan() && !number.is_inf() else {
-      return Err(InvalidRows)
-    }
-    let cid = match
-      runtime_value_identity(value, control, workspace, identity_limits) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    entries.push((cid, number))
-  }
-  let mut failed = false
-  entries.sort_by((left, right) => {
-    if failed ||
-      !spend_control_text(control, left.0) ||
-      !spend_control_text(control, right.0) {
-      failed = true
-      0
-    } else {
-      @canonical.compare_utf16(left.0, right.0)
-    }
-  })
-  if failed {
-    return Err(RowLimit)
-  }
-  Ok(entries.map(entry => entry.1))
 }
 
 ///|
@@ -612,64 +488,22 @@ fn evaluate_statistical_aggregate(
   if values.is_empty() || (sample && values.length() < 2) {
     return Ok(Null)
   }
-  let numbers = match
-    canonical_numeric_values(values, control, workspace, identity_limits) {
-    Ok(values) => values
-    Err(issue) => return Err(issue)
-  }
-  let mut sum = 0.0
-  for value in numbers {
-    if !spend_control(control, 1) {
-      return Err(RowLimit)
+  let state = start_aggregate_statistical(
+    values,
+    sample,
+    function is @relation.StddevPop || function is @relation.StddevSamp,
+    control,
+    workspace,
+    identity_limits,
+  )
+  while true {
+    match advance_aggregate_statistical(state) {
+      Ok(None) => ()
+      Ok(Some(value)) => break Ok(value)
+      Err(issue) => break Err(issue)
     }
-    sum = match finite_aggregate_number(sum + value) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-  }
-  if !spend_control(control, 1) {
-    return Err(RowLimit)
-  }
-  let mean = match finite_aggregate_number(sum / numbers.length().to_double()) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let mut squares = 0.0
-  for value in numbers {
-    if !spend_control(control, 3) {
-      return Err(RowLimit)
-    }
-    let difference = match finite_aggregate_number(value - mean) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    let square = match finite_aggregate_number(difference * difference) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    squares = match finite_aggregate_number(squares + square) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-  }
-  if !spend_control(control, 1) {
-    return Err(RowLimit)
-  }
-  let divisor = if sample { numbers.length() - 1 } else { numbers.length() }
-  let variance = match finite_aggregate_number(squares / divisor.to_double()) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  if function is @relation.StddevPop || function is @relation.StddevSamp {
-    if !spend_control(control, 1) {
-      return Err(RowLimit)
-    }
-    match finite_aggregate_number(variance.sqrt()) {
-      Ok(value) => Ok(Number(value))
-      Err(issue) => Err(issue)
-    }
-  } else {
-    Ok(Number(variance))
+  } nobreak {
+    Err(InvalidRows)
   }
 }
 

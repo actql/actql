@@ -1,4 +1,23 @@
 ///|
+/// Reference: identity hashing charged in one step, as before.
+fn runtime_value_identity(
+  value : Value,
+  control : ControlBudget,
+  workspace : RowWorkspace,
+  limits : ValueLimits,
+) -> Result[String, RowIssue] {
+  match runtime_value_identity_usage(value, control, workspace, limits) {
+    Ok((cid, bytes)) =>
+      if !spend_control(control, bytes) {
+        Err(RowLimit)
+      } else {
+        Ok(cid)
+      }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
 /// Reference: the atomic form before the step state.
 fn atomic_distinct_aggregate_values(
   values : Array[Value],
