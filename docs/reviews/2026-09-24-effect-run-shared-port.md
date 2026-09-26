@@ -32,6 +32,23 @@ generation, lease, and send-time admission remain mandatory; a scope recovered
 from SQLite cannot override them. No canonical identity format or compatibility
 decoder is added by this connection.
 
+`entry.mjs::recoverAdmittedEffectRun` now owns the initial recovery handoff.
+The installed Host supplies its Client request journal, Store, exact
+tenant/authority/request/Run key, evidence-reading principal and authorization
+callback, and contract limits. The entry snapshots that binding before any
+await, authorizes evidence access before journal lookup, then re-admits the
+request and Run Definition from one journal observation before reading the
+encrypted capture. A mismatch is rejected before private capture access.
+It returns the recovered request scope, original Run Definition, and the
+existing recovered computation owner. It does not acquire write authority,
+restart Compute, or send an Effect. Resume continues through the existing
+current account/claim/generation/lease and whole-set apply admission.
+
+The Salesforce child-process fixture now invokes that standard entry rather
+than implementing the request-to-capture join itself. Its authorization
+callback is a test policy, not a public authentication service. Distribution
+must connect its current evidence-reading authorization when using the entry.
+
 The remaining compiler dependency is concrete: Distribution's
 `client_values_compilation.mbt` was introduced by `c879e3caa`, extended by
 `f7e1b604a`, and its task compilation/run identities by `8e6cfd606`. Connector

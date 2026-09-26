@@ -22,6 +22,12 @@ The normal internal preparation now issues a checked Client request identity
 and durably accepts its Run Definition before Compute. Effect preparation
 reuses that request's opaque scope; fresh-process recovery re-admits the
 saved identity rather than deriving a replacement from caller strings.
+The installed `recoverAdmittedEffectRun` now owns the initial recovery join:
+current evidence-read authorization precedes one exact Client journal lookup,
+and request/Run matching precedes encrypted capture access. The fresh-process
+fixture uses this entry, including denial without Site traffic. It introduces
+no execution, credential, or retry authority; apply retains its independent
+current admission requirements.
 Authenticated ingress authority still comes from fixture configuration, and
 compiler/Host policy evidence is still fixture-supplied. Those origins and
 the preparation/capture composition remain product connection work; the
@@ -74,6 +80,16 @@ dependency and public ingress, as detailed in the
 [current request handoff](2026-09-24-effect-run-shared-port.md).
 
 ## Client request connection verification
+
+The installed recovery entry (`c73fa072d`) is also exercised by the full
+Salesforce suite (169/169) and common Client/request journal tests (28/28).
+The former now includes denial with zero Site requests and uses the same
+entry for prepared intent, lost response, saved response, and publication
+recovery in a fresh process. The latter checks denial before lookup,
+foreign-Run rejection, binding ownership across an authorization await, and
+cancellation before lookup. Connector boundary, links (1,097), and whitespace
+checks pass. This recovery increment changes JavaScript orchestration only;
+it does not change MoonBit, schema, pins, or generated interfaces.
 
 Shared implementation commit: `79e89a07f`. The existing Client request
 identity, canonical body, and journal schema are unchanged. The new internal

@@ -2475,6 +2475,13 @@ test(`two-member captured Effect Run ${
             },
           };
         if (processPreparedIntent) {
+          const beforeDenied = sites.map(site => site.seen.length);
+          const deniedRecovery = await runChildWithLiveSite(
+            './fixtures/recover-effect-outcomes.mjs',
+            {...childInput, denyEvidence: true});
+          assert.notEqual(deniedRecovery.status, 0);
+          assert.match(deniedRecovery.stderr, /EffectEvidenceAccessDenied/);
+          assert.deepEqual(sites.map(site => site.seen.length), beforeDenied);
           const foreignRequest = await runChildWithLiveSite(
             './fixtures/recover-effect-outcomes.mjs',
             {...childInput, callerRequestId: 'another-business-request'});

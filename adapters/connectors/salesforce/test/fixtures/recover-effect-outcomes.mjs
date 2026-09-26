@@ -7,8 +7,6 @@ import * as moon from
   '../../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as salesforceMoon from
   '../../../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
-import {recoverCompletedEffectfulComputation} from
-  '../../../../host-common/completed-run-publication.mjs';
 import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
 import {checked} from '../../../../host-common/runtime-result.mjs';
 import {openLocalPublicationStore} from
@@ -29,7 +27,8 @@ import {installSalesforceEffectDispatch} from
 import {issueSalesforceEffectCapability} from
   '../../site/salesforce-effect-capability.mjs';
 import {applyRecoveredEffectSet} from '../../../../host-node/effect-run-apply.mjs';
-import {completeRecoveredEffectRun} from '../../../../host-node/entry.mjs';
+import {completeRecoveredEffectRun, recoverAdmittedEffectRun} from
+  '../../../../host-node/entry.mjs';
 import {allowAllAuthorization} from '../../../../host-node/authorization-fixture.mjs';
 import {syncSalesforceCatalog} from
   '../../site/salesforce-catalog-sync.mjs';
@@ -89,29 +88,32 @@ let ledger;
 let failure;
 let activeSites = [];
 try {
-  const runDefinition = control.admit('run_definition',
+  const expectedDefinition = control.admit('run_definition',
     input.runDefinitionWire, input.limits);
-  const recovered = await recoverCompletedEffectfulComputation({
-    store, control, runDefinition, contractLimits: input.limits,
-  });
   const requests = openClientRequestJournal(input.requestJournalRoot);
-  let requestIdentity;
+  let recovery;
   try {
-    const key = {tenantId: 'tenant-a',
-      authorityScopeCid: input.authorityScopeCid,
-      requestId: input.callerRequestId};
-    const retained = requests.lookupDefinition(key, moon, control);
-    assert.equal(retained?.runDefinition.identity, runDefinition.identity);
-    requestIdentity = requests.lookupIdentity(key, moon);
-    assert.ok(requestIdentity);
+    recovery = await recoverAdmittedEffectRun({
+      requests, store, key: {tenantId: 'tenant-a',
+        authorityScopeCid: input.authorityScopeCid,
+        requestId: input.callerRequestId,
+        runDefinitionCid: expectedDefinition.identity},
+      principalId: 'recovery-principal', contractLimits: input.limits,
+      authorizeEvidenceRead: binding => {
+        assert.equal(binding.purpose, 'recover-effect-evidence');
+        assert.equal(binding.runDefinitionCid, expectedDefinition.identity);
+        return input.denyEvidence !== true;
+      },
+    });
   } finally {
     requests.close();
   }
+  const {requestIdentity, requestScope: scope, runDefinition,
+    computation: recovered} = recovery;
   ledger = openEffectLedger({moon, root: input.ledgerRoot,
     authorityScopeCid: moon.clientRequestAuthorityScopeCid(requestIdentity),
     callerRequestId: moon.clientRequestCallerId(requestIdentity),
     maxEntryBytes: 4096});
-  const scope = moon.clientRequestLogicalScope(requestIdentity);
   const admittedPreview = control.effectComputationPreviewLedgerIdentity(
     recovered.preview);
   let recorded = (input.prepared === true
