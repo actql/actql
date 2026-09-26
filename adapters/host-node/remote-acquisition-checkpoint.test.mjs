@@ -150,16 +150,41 @@ async function acquiringHost(t, {readOutcome = 'delegate',
   const as = token => connect({mode: 'remote', endpoint, token,
     durability: 'durable'});
   return {root, steps, close, source, as,
+    diagnose: () => journalState(root, steps),
     count: name => steps.filter(item => item === name).length};
 }
 
-async function waitFor(check) {
+// On a timeout, `describe` records what the Host had reached, so a slow or
+// stuck resume can be told apart.
+async function waitFor(check, describe) {
   for (let attempt = 0; attempt < 400; attempt++) {
     const value = await check();
     if (value) return value;
     await new Promise(resolve => setTimeout(resolve, 50));
   }
-  throw new Error('Timeout');
+  const detail = describe === undefined ? undefined : await describe();
+  throw Object.assign(new Error(detail === undefined ? 'Timeout'
+    : `Timeout ${JSON.stringify(detail)}`), {detail});
+}
+
+// The Checkpoint journal and Host progress of one Host directory.
+function journalState(root, steps) {
+  const database = new DatabaseSync(join(root, 'state', 'checkpoints',
+    'journal', 'checkpoint-journal.sqlite3'), {readOnly: true});
+  try {
+    const rows = sql => database.prepare(sql).all().map(row => ({...row}));
+    return {
+      now: Date.now(),
+      preparations: rows(`SELECT prepare_attempt_id, status, end_reason,
+        cancel_requested, checkpoint_cid FROM preparations`),
+      checkpoints: rows(`SELECT checkpoint_id, prepare_attempt_id,
+        expires_at, closure, closed_at FROM checkpoints`),
+      intents: rows(`SELECT prepare_attempt_id, state, generation,
+        claimant, lease_expires_ms, outcome_status, completed_at
+        FROM resume_intents`),
+      steps: steps.slice(-30),
+    };
+  } finally { database.close(); }
 }
 const submit = (client, requestId) => client.aql(program, {format: 'json',
   requestId, parameters: {minimum: 1}});
@@ -173,17 +198,17 @@ async function held(client, requestId) {
 }
 // The independent expectation: rows of `records` with amount >= minimum
 // (1): ids 3, 2, 3 for `b`, and those with id >= 3 for `c`.
-async function assertResults(client, requestId) {
+async function assertResults(client, requestId, describe) {
   const found = await waitFor(async () => {
     const lookup = await client.lookupRequest(requestId);
     return lookup.kind === 'found' ? lookup : undefined;
-  });
+  }, describe);
   const execution = await client.attach(found.ref);
   const state = await waitFor(async () => {
     const current = await execution.wait();
     return ['succeeded', 'failed', 'cancelled'].includes(current.status)
       ? current : undefined;
-  });
+  }, describe);
   assert.equal(state.status, 'succeeded');
   assert.deepEqual((await execution.result('b').all()).map(row => row.id)
     .sort(), [2, 3, 3]);
@@ -331,11 +356,11 @@ test('A3: Run acceptance and the read are held and answered in turn',
     const read = await waitFor(async () => {
       const {items} = await reviewer.checkpoints();
       return items.find(item => item.kind === 'read_access');
-    });
+    }, host.diagnose);
     assert.equal(host.count('acquisition_started'), 0);
     await reviewer.resolveCheckpoints([{checkpoint: read,
       decision: 'approved'}], {signer});
-    await assertResults(client, 'both-a');
+    await assertResults(client, 'both-a', host.diagnose);
     assert.equal(host.count('acquisition_started'), 1);
   });
 
@@ -416,7 +441,7 @@ test('A2: Run acceptance and the read combine immediate and later answers',
         const checkpoint = await waitFor(async () => {
           const {items} = await reviewer.checkpoints();
           return items.find(item => item.kind === kind);
-        });
+        }, host.diagnose);
         assert.equal(host.count('acquisition_started'), 0, name);
         await reviewer.resolveCheckpoints([{checkpoint,
           decision: 'approved'}], {signer});
@@ -427,11 +452,12 @@ test('A2: Run acceptance and the read combine immediate and later answers',
       if (preparation === 'defer') await approve('run_scope');
       if (acquisition === 'defer') await approve('read_access');
       if (expected === 'result') {
-        await assertResults(client, name);
+        await assertResults(client, name, host.diagnose);
         assert.equal(host.count('acquisition_started'), 1, name);
       } else {
         await waitFor(async () =>
-          (await client.lookupRequest(name)).state === 'ended');
+          (await client.lookupRequest(name)).state === 'ended',
+        host.diagnose);
         assert.equal(host.count('dispatch_reserved'), 0, name);
         assert.equal(host.count('acquisition_started'), 0, name);
       }
@@ -521,18 +547,18 @@ test('A8: held read evidence is kept while needed and released after',
       const checkpoint = await waitFor(async () => {
         const {items} = await reviewer.checkpoints();
         return items.find(item => item.kind === kind);
-      });
+      }, chain.diagnose);
       assert.deepEqual(await holdingStates(chain.root), ['held'], kind);
       await reviewer.resolveCheckpoints([{checkpoint,
         decision: 'approved'}], {signer});
     };
     await answer('run_scope');
     await answer('read_access');
-    await assertResults(client, 'retain-a');
+    await assertResults(client, 'retain-a', chain.diagnose);
     await waitFor(async () => {
       const states = await holdingStates(chain.root);
       return states.length === 1 && states[0] === 'retired';
-    });
+    }, chain.diagnose);
     // A read hold cancelled by its owner releases its evidence and never
     // reads.
     const cancelled = await acquiringHost(t);
