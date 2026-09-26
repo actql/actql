@@ -26,8 +26,35 @@ fn bounded_group_start(
   Result[BoundedGroupExecution, BoundedGroupIssue],
   CompletedOutput,
 ) raise {
+  bounded_relation_start(
+    "{\"k\":{\"type\":\"number\",\"nullable\":false}}",
+    rows,
+    "\"group\":{\"by\":[\"k\"],\"aggregates\":" + aggregates + "}",
+    "group_0",
+    fragment,
+    max_work~,
+    max_entries~,
+  )
+}
+
+///|
+fn bounded_relation_start(
+  schema : String,
+  rows : String,
+  operation : String,
+  retained : String,
+  fragment : Bool,
+  max_work? : Int = 1000,
+  max_entries? : Int = 1000,
+) -> (
+  @bounded.Control,
+  Result[BoundedGroupExecution, BoundedGroupIssue],
+  CompletedOutput,
+) raise {
   let source_owner = bound_pipeline(
-    "[{\"values\":{\"schema\":{\"k\":{\"type\":\"number\",\"nullable\":false}},\"rows\":" +
+    "[{\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":" +
     rows +
     "},\"as\":\"seed\"}]",
   )
@@ -48,11 +75,7 @@ fn bounded_group_start(
     @pipeline.Step(0),
   ).unwrap()
   let checked = @pipeline.check_with_evidence(
-    input_cursor(
-      "[{\"from\":\"seed\",\"group\":{\"by\":[\"k\"],\"aggregates\":" +
-      aggregates +
-      "}}]",
-    ),
+    input_cursor("[{\"from\":\"seed\"," + operation + "}]"),
     [("seed", @pipeline.ProducedInput(producer))],
     None,
     None,
@@ -85,7 +108,7 @@ fn bounded_group_start(
     } else {
       []
     },
-    ["group_0"],
+    [retained],
     100000,
     10000,
   ).unwrap()
@@ -249,6 +272,81 @@ test "bounded group evaluates filtered expression aggregates within exact work" 
 test "bounded group stops a filtered aggregate after positive work" {
   let (control, execution, source) = bounded_group_start(
     "[{\"k\":3},{\"k\":1},{\"k\":3},{\"k\":2}]", bounded_group_filtered, true,
+  )
+  let execution = execution.unwrap()
+  for _ in 0..<30 {
+    assert_true(
+      advance_bounded_group_execution(execution, 1)
+      is Ok(BoundedGroupContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_group_execution(execution, 1)
+    is Ok(BoundedGroupStopped(_, ..)),
+  )
+  assert_true(cleanup_bounded_group_execution(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
+let bounded_pivot_schema : String = "{\"id\":{\"type\":\"number\",\"nullable\":false},\"status\":{\"type\":\"string\",\"nullable\":true},\"amount\":{\"type\":\"number\",\"nullable\":true}}"
+
+///|
+let bounded_pivot_max : String = "\"pivot\":{\"index\":[\"id\"],\"column\":\"status\",\"values\":[\"open\"],\"value\":\"amount\",\"aggregate\":\"max\"}"
+
+///|
+test "bounded pivot admits exact work and rejects one unit short" {
+  // One input row charge (1); input names id, status and amount (17);
+  // index and axis metadata (2); index id, pivot column status and value
+  // amount (17); axis open (4); output id and open (8); stable order (3);
+  // one group boundary (1); identity group order (1); one group row (1);
+  // one max member without comparison (1); two output cells (2).
+  let exact_work = 58
+  let rows = "[{\"id\":1,\"status\":\"open\",\"amount\":5}]"
+  let (_, measured, source) = bounded_relation_start(
+    bounded_pivot_schema, rows, bounded_pivot_max, "pivot_0", false,
+  )
+  let measured = measured.unwrap()
+  assert_true(bounded_group_total_work(measured) is Some(_))
+  assert_true(cleanup_bounded_group_execution(measured).unwrap())
+  let (_, exact, _) = bounded_relation_start(
+    bounded_pivot_schema,
+    rows,
+    bounded_pivot_max,
+    "pivot_0",
+    false,
+    max_work=exact_work,
+  )
+  let exact = exact.unwrap()
+  match drive_bounded_group(exact) {
+    BoundedGroupComplete(output, ..) =>
+      assert_eq(completed_row_count(output), 1)
+    _ => fail("exact pivot work rejected")
+  }
+  assert_true(cleanup_bounded_group_execution(exact).unwrap())
+  let (_, short, _) = bounded_relation_start(
+    bounded_pivot_schema,
+    rows,
+    bounded_pivot_max,
+    "pivot_0",
+    false,
+    max_work=exact_work - 1,
+  )
+  let short = short.unwrap()
+  match drive_bounded_group(short) {
+    BoundedGroupFailed(Rows(RowLimit), ..) => ()
+    _ => fail("one-short pivot work accepted")
+  }
+  assert_true(cleanup_bounded_group_execution(short).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "bounded pivot stops after positive work without publishing" {
+  let (control, execution, source) = bounded_relation_start(
+    bounded_pivot_schema, "[{\"id\":2,\"status\":\"open\",\"amount\":5},{\"id\":1,\"status\":\"open\",\"amount\":7},{\"id\":2,\"status\":\"open\",\"amount\":9}]",
+    bounded_pivot_max, "pivot_0", false,
   )
   let execution = execution.unwrap()
   for _ in 0..<30 {

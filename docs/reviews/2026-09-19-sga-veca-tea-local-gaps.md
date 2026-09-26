@@ -97,8 +97,25 @@ for a one-row max group; 28 and 40 for one filtered-out and one accepted
 row of a filtered expression max), managed direct, ordered, collection,
 nested distinct, statistics, numeric and filtered-expression fixtures at
 quantum one with two consumers, Host cancellation after positive work, and a
-standard Node Host timer cancellation. Pivot and analytic still use the
-synchronous route, so the strict group entrypoint assurance remains open.
+standard Node Host timer cancellation. Analytic still uses the synchronous
+route, so the strict group entrypoint assurance remains open.
+
+`pivot` now runs as one resumable state with the charges of the previous
+atomic evaluator, which drains the same state: names and multi-unit
+metadata pay one unit per advance, index order and group boundaries reuse
+the resumable ordering and range owners, first-occurrence group order merges
+one element per advance, and each group row advances one member, one
+comparison unit (text compares one UTF-16 unit per advance after its
+prepaid operand charge), one Decimal charge unit or one selected numeric
+reduction step at a time. The bounded group kernel and provider drive it,
+and lowering routes `pivot` through selected tasks and the fused `values`
+prefix like `unpivot`. Evidence: an independently derived exact/one-short
+work fixture (58 units for one index row with one max bucket), a stop
+fixture, every managed pivot form (count, min with fill, empty axis,
+numeric, Decimal sum, parameter fill, max and first) at quantum one with a
+required provider and two consumers, and standard Host cancellation after
+positive work for count, numeric and Decimal pivots. No standard Node Host
+timer fixture covers pivot yet, so its route has no path assurance.
 
 General aggregate execution is being converted at its existing evaluation
 boundaries. Source snapshots, filter/argument demand, contributor collection,
@@ -191,8 +208,8 @@ above. A final route proof must come from persistent standard-Host fixtures
 with delivered cancellation, exact/one-short limits, and cleanup.
 
 The current selected and ordinary single-step `dedupe_rows` routes now use the
-bounded row provider. `pivot` and whole-sequence dedupe combinations still
-need a separate bounded connection; the historical probe is not current proof
+bounded row provider. `pivot` now has a bounded provider (see above);
+whole-sequence dedupe combinations still need a separate bounded connection; the historical probe is not current proof
 of a single-step dedupe fallback.
 
 The ordinary two-input equality join and its unary Relation suffix now
@@ -218,7 +235,7 @@ record even though whole-operation assurance remains incomplete.
 
 This closes the observed providerless `join → select` shape and the
 supported multi-source join DAG, not every arbitrary whole-Stage shape.
-A prefix containing a still-synchronous aggregate or pivot can remain
+A prefix containing a still-synchronous aggregate can remain
 unselected. Raw RowTable projection can also require synchronous revalidation.
 The strict whole-operation claim therefore remains open. Boundary evidence
 for the new path is registered separately: empty exact/one-short work and

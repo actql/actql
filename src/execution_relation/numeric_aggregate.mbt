@@ -70,43 +70,6 @@ pub fn numeric_aggregate_execution_with_seal(
 }
 
 ///|
-fn run_numeric_aggregate(
-  execution : NumericAggregateExecution,
-  step : Int,
-  name : String,
-  occurrence : Int,
-  contributors : Array[Double],
-  expected_count : Int,
-  max_work : Int,
-) -> Result[@numeric.Outcome, @numeric.ReductionIssue]? {
-  if execution.start is Some(start) {
-    let pending = match
-      start(step, name, occurrence, contributors, expected_count, max_work) {
-      None => return None
-      Some(Err(issue)) => return Some(Err(issue))
-      Some(Ok(value)) => value
-    }
-    while true {
-      match (pending.advance)() {
-        None => {
-          (pending.close)() |> ignore
-          return None
-        }
-        Some(Err(issue)) => {
-          (pending.close)() |> ignore
-          return Some(Err(issue))
-        }
-        Some(Ok(None)) => ()
-        Some(Ok(Some(outcome))) => return Some(Ok(outcome))
-      }
-    }
-  }
-  (execution.reduce)(
-    step, name, occurrence, contributors, expected_count, max_work,
-  )
-}
-
-///|
 /// Close one exact operation-owned slot after the evaluator has completed the
 /// occurrence domain. This is separate from task completion because later
 /// relational operations may change the task's final row count.

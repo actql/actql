@@ -1747,6 +1747,10 @@
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
       },
+      "selected_entrypoint": {
+        "path": "src/connectors/local/group_provider.mbt",
+        "symbol": "group_provider"
+      },
       "boundary_tests": [
         {
           "role": "pivot_fixed_sequence_work_exact_one_short",
@@ -1754,6 +1758,34 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/pivot_sequence_wbtest.mbt",
           "fixture": "pivot accepts exact shared work and rejects one-short execution"
+        },
+        {
+          "role": "pivot_bounded_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_group_wbtest.mbt",
+          "fixture": "bounded pivot admits exact work and rejects one unit short"
+        },
+        {
+          "role": "pivot_bounded_stop_nonpublication",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_group_wbtest.mbt",
+          "fixture": "bounded pivot stops after positive work without publishing"
+        },
+        {
+          "role": "pivot_managed_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "Local managed unary source forms feed two downstream Computes"
+        },
+        {
+          "role": "pivot_host_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "standard Host cancels pivot after bounded work"
         }
       ]
     },

@@ -91,12 +91,27 @@ pub fn bounded_group_step_supported(
   generated : GeneratedSequence,
   kernel : @lower.PreparedKernel,
 ) -> Bool {
+  if @lower.kernel_pivot(kernel) is Some(pivot) {
+    return pivot_execution_supported_with_numeric(pivot)
+  }
   guard @lower.kernel_group(kernel) is Some(group) &&
     group_execution_supported_with_numeric(group) else {
     return false
   }
   !bounded_group_dynamic(group) ||
   bounded_group_logical(generated, kernel) is Some(_)
+}
+
+///|
+/// Whether the kernel runs without the task's numeric execution.
+fn bounded_group_supported_without_numeric(
+  kernel : @lower.PreparedKernel,
+) -> Bool {
+  match (@lower.kernel_group(kernel), @lower.kernel_pivot(kernel)) {
+    (Some(group), _) => group_execution_supported(group)
+    (_, Some(pivot)) => pivot_execution_supported(pivot)
+    _ => false
+  }
 }
 
 ///|
@@ -126,7 +141,7 @@ priv struct BoundedGroupState {
   accepted : Ref[Bool]
   port : TrustedOutputPort[Unit]
   mut phase : BoundedGroupPhase
-  mut evaluation : BoundedGroup[BoundedGroupInputRows]?
+  mut evaluation : BoundedRowsEvaluation?
   pending : Array[(Array[Value], Int)]
   mut finished : Bool
   mut field : Int
@@ -138,6 +153,14 @@ priv struct BoundedGroupState {
   mut output_row : Array[@admitted.Value]
   mut output_measure : SteppedValueMeasure?
   mut output_pending : @admitted.Value?
+}
+
+///|
+/// The row-producing operation this kernel drives: a `group` or a `pivot`
+/// resumable state. `advance` returns true once every row was accepted.
+priv struct BoundedRowsEvaluation {
+  advance : () -> Result[Bool, RowIssue]
+  close : () -> Unit
 }
 
 ///|
@@ -181,7 +204,7 @@ fn bounded_group_failure(
 ///|
 fn cleanup_bounded_group_state(state : BoundedGroupState) -> Bool {
   if state.evaluation is Some(evaluation) {
-    close_bounded_group(evaluation)
+    (evaluation.close)()
     state.evaluation = None
   }
   if state.output is Some(output) {
@@ -344,13 +367,13 @@ fn bounded_group_step(
         guard state.evaluation is Some(evaluation) else {
           return bounded_group_failure(InvalidExecution, progress, used)
         }
-        match advance_bounded_group(evaluation) {
+        match (evaluation.advance)() {
           Err(issue) => {
             state.evaluation = None
             return bounded_group_failure(Rows(issue), progress, used + 1)
           }
-          Ok(None) => ()
-          Ok(Some(_)) => {
+          Ok(false) => ()
+          Ok(true) => {
             state.evaluation = None
             state.finished = true
           }
@@ -513,9 +536,8 @@ fn start_bounded_group_with_input(
     generated_sequence_step_index_at(generated, 1) is None &&
     @lower.sequence_step(generated.sequence, step)
     is Some(@lower.RowStep(kernel)) &&
-    @lower.kernel_group(kernel) is Some(group) &&
     bounded_group_step_supported(generated, kernel) &&
-    (numeric is Some(_) || group_execution_supported(group)) &&
+    (numeric is Some(_) || bounded_group_supported_without_numeric(kernel)) &&
     global_count_input_matches(input, owner, step) &&
     global_count_input_available(input) else {
     return Err(InvalidExecution)
@@ -524,17 +546,38 @@ fn start_bounded_group_with_input(
   let names = Array::makei(@schema.field_count(input_schema), i => {
     @schema.reference_name(@schema.field_at(input_schema, i).unwrap().name)
   })
-  let output_schema = @lower.group_output_schema(group)
-  let aggregate_names : Map[String, Bool] = Map([])
-  for index in 0..<@lower.group_aggregate_count(group) {
-    let aggregate_name = @lower.group_aggregate_name(
-      @lower.group_aggregate_at(group, index).unwrap(),
-    )
-    aggregate_names[aggregate_name] = true
-  }
-  let key_names : Map[String, Bool] = Map([])
-  for index in 0..<@lower.group_key_count(group) {
-    key_names[@schema.reference_name(@lower.group_key_at(group, index).unwrap())] = true
+  let (output_schema, sourced) = match
+    (@lower.kernel_group(kernel), @lower.kernel_pivot(kernel)) {
+    (Some(group), _) => {
+      let aggregate_names : Map[String, Bool] = Map([])
+      for index in 0..<@lower.group_aggregate_count(group) {
+        let aggregate_name = @lower.group_aggregate_name(
+          @lower.group_aggregate_at(group, index).unwrap(),
+        )
+        aggregate_names[aggregate_name] = true
+      }
+      let key_names : Map[String, Bool] = Map([])
+      for index in 0..<@lower.group_key_count(group) {
+        let name = @schema.reference_name(
+          @lower.group_key_at(group, index).unwrap(),
+        )
+        if !aggregate_names.contains(name) {
+          key_names[name] = true
+        }
+      }
+      (@lower.group_output_schema(group), key_names)
+    }
+    (_, Some(pivot)) => {
+      // Output columns named by an index field take its representative cell.
+      let index_names : Map[String, Bool] = Map([])
+      for index in 0..<@lower.pivot_index_count(pivot) {
+        index_names[@schema.reference_name(
+          @lower.pivot_index_at(pivot, index).unwrap(),
+        )] = true
+      }
+      (@lower.pivot_output_schema(pivot), index_names)
+    }
+    _ => return Err(InvalidExecution)
   }
   let output_sources : Array[Int?] = []
   for index in 0..<@schema.field_count(output_schema) {
@@ -542,10 +585,10 @@ fn start_bounded_group_with_input(
       @schema.field_at(output_schema, index).unwrap().name,
     )
     output_sources.push(
-      if aggregate_names.contains(name) || !key_names.contains(name) {
-        None
-      } else {
+      if sourced.contains(name) {
         names.search(name)
+      } else {
+        None
       },
     )
   }
@@ -592,23 +635,58 @@ fn start_bounded_group_with_input(
   })
   let rows_view : BoundedGroupInputRows = { input, owner, names, }
   let pending : Array[(Array[Value], Int)] = []
-  let evaluation = start_bounded_group(
-    group,
-    rows_view,
-    max_rows,
-    control,
-    evaluation_output,
-    workspace,
-    scope,
-    (row, representative, _names, _sources) => {
-      pending.push((row, representative))
-      Ok(())
-    },
-    [],
-    identity_limits,
-    numeric,
-    step=@lower.kernel_step(kernel),
-  )
+  let accept = (row : Array[Value], representative : Int) => {
+    pending.push((row, representative))
+    Ok(())
+  }
+  let evaluation : BoundedRowsEvaluation = match @lower.kernel_group(kernel) {
+    Some(group) => {
+      let state = start_bounded_group(
+        group,
+        rows_view,
+        max_rows,
+        control,
+        evaluation_output,
+        workspace,
+        scope,
+        (row, representative, _names, _sources) => accept(row, representative),
+        [],
+        identity_limits,
+        numeric,
+        step=@lower.kernel_step(kernel),
+      )
+      {
+        advance: () => advance_bounded_group(state).map(done => done is Some(_)),
+        close: () => close_bounded_group(state),
+      }
+    }
+    None => {
+      let state = match
+        start_pivot_evaluation(
+          kernel,
+          rows_view,
+          max_rows,
+          control,
+          evaluation_output,
+          workspace,
+          numeric,
+          @lower.kernel_step(kernel),
+          accept,
+        ) {
+        Ok(value) => value
+        Err(_) => {
+          cancel_admitted_output(output) |> ignore
+          return Err(InvalidExecution)
+        }
+      }
+      {
+        advance: () => {
+          advance_pivot_evaluation(state).map(done => done is Some(_))
+        },
+        close: () => close_pivot_evaluation(state),
+      }
+    }
+  }
   let state : BoundedGroupState = {
     input,
     rows_view,

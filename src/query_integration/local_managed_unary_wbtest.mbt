@@ -451,7 +451,15 @@ fn run_local_managed_unary_case(
     kind == "unnest_inner" ||
     kind == "unpivot" ||
     kind == "unpivot_unused_payload" ||
-    kind == "unpivot_empty"
+    kind == "unpivot_empty" ||
+    kind == "pivot" ||
+    kind == "pivot_min_fill" ||
+    kind == "pivot_empty_axis" ||
+    kind == "pivot_numeric" ||
+    kind == "pivot_decimal_sum" ||
+    kind == "pivot_parameter_fill" ||
+    kind == "pivot_max" ||
+    kind == "pivot_first"
   let bounded_advances = Ref(0)
   let (unary_ops, unary) = run_local_managed_test_task(
     installed,
@@ -625,7 +633,17 @@ test "standard Host cancels a unary kernel inside a nested input" {
 }
 
 ///|
-fn run_local_managed_nested_input_cancel(kind : String) -> Unit raise {
+test "standard Host cancels pivot after bounded work" {
+  for kind in ["pivot", "pivot_numeric", "pivot_decimal_sum"] {
+    run_local_managed_nested_input_cancel(kind, before_cancel=20)
+  }
+}
+
+///|
+fn run_local_managed_nested_input_cancel(
+  kind : String,
+  before_cancel? : Int = 100,
+) -> Unit raise {
   let (run, issuer) = if kind == "row_window_nested" {
     captured_graph_fixture(
       local_values_window_chain=true,
@@ -683,7 +701,7 @@ fn run_local_managed_nested_input_cancel(kind : String) -> Unit raise {
     [local_managed_test_rows(value_ops)],
     require_provider=true,
   )
-  for _ in 0..<100 {
+  for _ in 0..<before_cancel {
     let next = (operations.advance)(1).unwrap()
     assert_false(next.complete)
     assert_eq(next.work, 1L)
