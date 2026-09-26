@@ -1,12 +1,22 @@
 name: CI
 
+# Runs automatically for main, integration branches headed for main and
+# pull requests. A working branch is checked on demand:
+#   gh workflow run CI --ref <branch> [-f native_macos=true]
 on:
   push:
+    branches:
+      - main
+      - 'integration/**'
   pull_request:
   workflow_dispatch:
     inputs:
       performance_matrix:
         description: Run the registered performance matrix at this revision
+        type: boolean
+        default: false
+      native_macos:
+        description: Also run the macOS native job (billed at ten times Linux)
         type: boolean
         default: false
 
@@ -117,8 +127,14 @@ jobs:
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
       - run: npm run check:docs
+  # macOS minutes cost ten times Linux ones: run for main, pull requests to
+  # main, and on demand.
   native-macos:
-    if: ${{ !inputs.performance_matrix }}
+    if: >-
+      ${{ !inputs.performance_matrix && (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+        (github.event_name == 'workflow_dispatch' && inputs.native_macos)) }}
     runs-on: macos-14
     timeout-minutes: 20
     steps:
