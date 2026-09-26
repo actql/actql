@@ -177,10 +177,26 @@ async function runAcquiredApplication(options, requestId) {
   const execution = await client.aql(acquiredDocument, {format: 'json',
     requestId, parameters: {minimum: 1}});
   assert.equal((await execution.wait()).status, 'succeeded');
-  const b = await execution.result('b').all();
+  assert.equal((await execution.status()).control.physical_stop, 'confirmed');
+  const resultB = execution.result('b');
+  const b = await resultB.all();
   const c = await execution.result('c').all();
   assert.deepEqual(b.map(row => row.id).sort(), [2, 3, 3]);
   assert.deepEqual(c.map(row => row.id).sort(), [3, 3]);
+  await assert.rejects(resultB.all({maxRows: 1}),
+    {code: 'ResultRetainedLimit'});
+  const reader = resultB.rows();
+  assert.deepEqual(await Array.fromAsync(reader), b);
+  assert.equal(reader.state(), 'complete');
+  assert.equal((await resultB.deliveryAttempt(reader.attemptId)).kind,
+    'found');
+  assert.deepEqual((await client.lookupRequest(requestId)).ref,
+    execution.ref);
+  assert.deepEqual((await client.aql(acquiredDocument, {format: 'json',
+    requestId, parameters: {minimum: 1}})).ref, execution.ref);
+  await assert.rejects(client.aql(acquiredDocument, {format: 'json',
+    requestId, parameters: {minimum: 2}}),
+  {code: 'ClientRequestIntentConflict'});
   return {client, execution, b, c};
 }
 const {client: installedLocal, execution, rows} = await runApplication(
@@ -207,6 +223,14 @@ const acquiredLocal = await runAcquiredApplication(
   'packed-acquired-local');
 assert.deepEqual((await acquiredLocal.client.attach(
   acquiredLocal.execution.ref)).ref, acquiredLocal.execution.ref);
+const acquiredStarted = await acquiredLocal.client.start(
+  JSON.parse(acquiredDocument), {requestId: 'packed-acquired-start',
+    parameters: {minimum: 1}});
+assert.equal((await acquiredStarted.wait()).status, 'succeeded');
+assert.deepEqual(await acquiredStarted.result('b').all(), acquiredLocal.b);
+assert.equal((await acquiredStarted.cancel()).kind, 'already_terminal');
+writeFileSync('acquired-local-ref.json',
+  JSON.stringify(acquiredLocal.execution.ref));
 acquiredLocal.client.close();
 writeFileSync('run-ref.json', JSON.stringify(execution.ref));
 const nullable = JSON.parse(document);
@@ -275,6 +299,13 @@ assert.equal(cancelledState.control.cancellation_requested, true);
 assert.equal(cancelledState.control.physical_stop, 'confirmed');
 assert.equal((await cancelledRun.cancel()).kind, 'already_requested');
 assert.equal((await cancelledRun.wait()).status, 'cancelled');
+const cancelledAcquired = await timingClient.aql(acquiredDocument,
+  {format: 'json', requestId: 'packed-acquired-cancel-before-dispatch',
+    parameters: {minimum: 1}});
+assert.equal((await cancelledAcquired.cancel()).kind, 'accepted');
+assert.equal((await cancelledAcquired.wait()).status, 'cancelled');
+assert.equal((await cancelledAcquired.status()).control.physical_stop,
+  'confirmed');
 const release = await originalFetch(new URL('/__test/release-dispatch',
   remoteOptions.endpoint), {method: 'POST'});
 assert.equal(release.status, 200);
@@ -285,6 +316,12 @@ const cancelledResend = await timingClient.aql(document, {format: 'json',
 assert.deepEqual(cancelledResend.ref, cancelledRun.ref);
 assert.equal((await cancelledResend.wait()).status, 'cancelled');
 await assert.rejects(cancelledResend.result('answer').all());
+const cancelledAcquiredResend = await timingClient.aql(acquiredDocument,
+  {format: 'json', requestId: 'packed-acquired-cancel-before-dispatch',
+    parameters: {minimum: 1}});
+assert.deepEqual(cancelledAcquiredResend.ref, cancelledAcquired.ref);
+assert.equal((await cancelledAcquiredResend.wait()).status, 'cancelled');
+await assert.rejects(cancelledAcquiredResend.result('b').all());
 timingClient.close();
 const {client: installedRemote, execution: remoteExecution,
   rows: remoteRows} = await runApplication(remoteOptions,
@@ -294,7 +331,67 @@ const acquiredRemote = await runAcquiredApplication(remoteOptions,
   'packed-acquired-remote');
 assert.deepEqual(acquiredRemote.b, acquiredLocal.b);
 assert.deepEqual(acquiredRemote.c, acquiredLocal.c);
+assert.deepEqual((await acquiredRemote.client.attach(
+  acquiredRemote.execution.ref)).ref, acquiredRemote.execution.ref);
+const acquiredRemoteStarted = await acquiredRemote.client.start(
+  JSON.parse(acquiredDocument), {requestId: 'packed-acquired-remote-start',
+    parameters: {minimum: 1}});
+assert.equal((await acquiredRemoteStarted.wait()).status, 'succeeded');
+assert.deepEqual(await acquiredRemoteStarted.result('b').all(),
+  acquiredLocal.b);
 acquiredRemote.client.close();
+const orderedAcquired = JSON.parse(acquiredDocument);
+orderedAcquired.id = 'physical-example-ordered';
+orderedAcquired.stages[2].steps.push({from: 'out',
+  sort: [{id: 'desc'}], as: 'sorted'});
+orderedAcquired.stages[2].results.r.from = 'sorted';
+const orderedDocument = JSON.stringify(orderedAcquired);
+const variantLocal = await connect({mode: 'local', owner: 'local',
+  durability: 'durable'});
+const orderedLocal = await variantLocal.aql(orderedDocument,
+  {format: 'json', requestId: 'packed-acquired-ordered-local',
+    parameters: {minimum: 1}});
+assert.equal((await orderedLocal.wait()).status, 'succeeded');
+assert.deepEqual((await orderedLocal.result('b').all()).map(row => row.id),
+  [3, 3, 2]);
+const orderedRemote = await installedRemote.aql(orderedDocument,
+  {format: 'json', requestId: 'packed-acquired-ordered-remote',
+    parameters: {minimum: 1}});
+assert.equal((await orderedRemote.wait()).status, 'succeeded');
+assert.deepEqual((await orderedRemote.result('b').all()).map(row => row.id),
+  [3, 3, 2]);
+const emptyLocal = await variantLocal.aql(acquiredDocument,
+  {format: 'json', requestId: 'packed-acquired-empty-local',
+    parameters: {minimum: 9}});
+assert.equal((await emptyLocal.wait()).status, 'succeeded');
+assert.deepEqual(await emptyLocal.result('b').all(), []);
+const emptyRemote = await installedRemote.aql(acquiredDocument,
+  {format: 'json', requestId: 'packed-acquired-empty-remote',
+    parameters: {minimum: 9}});
+assert.equal((await emptyRemote.wait()).status, 'succeeded');
+assert.deepEqual(await emptyRemote.result('b').all(), []);
+const nullableAcquired = JSON.parse(acquiredDocument);
+nullableAcquired.id = 'physical-example-nullable';
+nullableAcquired.stages[0].steps[1].select = ['id', 'amount'];
+nullableAcquired.stages[0].results.r.fields = ['id', 'amount'];
+nullableAcquired.stages[2].steps[1].select = ['amount', 'id'];
+nullableAcquired.stages[2].results.r.fields = ['amount', 'id'];
+const nullableDocument = JSON.stringify(nullableAcquired);
+const expectedNullable = [{id: 1, amount: null}, {id: 2, amount: 20},
+  {id: 3, amount: 30}, {id: 3, amount: 30}];
+const nullableLocal = await variantLocal.aql(nullableDocument,
+  {format: 'json', requestId: 'packed-acquired-nullable-local',
+    parameters: {minimum: 0}});
+assert.equal((await nullableLocal.wait()).status, 'succeeded');
+assert.deepEqual((await nullableLocal.result('b').all())
+  .sort((left, right) => left.id - right.id), expectedNullable);
+const nullableRemote = await installedRemote.aql(nullableDocument,
+  {format: 'json', requestId: 'packed-acquired-nullable-remote',
+    parameters: {minimum: 0}});
+assert.equal((await nullableRemote.wait()).status, 'succeeded');
+assert.deepEqual((await nullableRemote.result('b').all())
+  .sort((left, right) => left.id - right.id), expectedNullable);
+variantLocal.close();
 const computedRemote = await installedRemote.aql(computedDocument,
   {format: 'json', requestId: 'packed-computed-remote'});
 assert.equal((await computedRemote.wait()).status, 'succeeded');
@@ -331,6 +428,34 @@ const resumedRemote = await installedRemote.aql(document, {format: 'json',
 assert.deepEqual(resumedRemote.ref, recoveredRemote.ref);
 assert.equal((await resumedRemote.wait()).status, 'succeeded');
 assert.deepEqual(await resumedRemote.result('answer').all(), rows);
+let acquiredReplyLost = false;
+globalThis.fetch = async (url, options) => {
+  const reply = await originalFetch(url, options);
+  if (!acquiredReplyLost && new URL(url).pathname.endsWith('/submit')) {
+    acquiredReplyLost = true;
+    await reply.arrayBuffer();
+    throw new Error('AcquiredAcceptanceReplyLost');
+  }
+  return reply;
+};
+try {
+  await assert.rejects(installedRemote.aql(acquiredDocument,
+    {format: 'json', requestId: 'packed-acquired-lost-ack',
+      parameters: {minimum: 1}}), error =>
+    error.code === 'SubmissionUnknown' &&
+    error.requestId === 'packed-acquired-lost-ack');
+} finally { globalThis.fetch = originalFetch; }
+assert.equal(acquiredReplyLost, true);
+const foundAcquired = await installedRemote.lookupRequest(
+  'packed-acquired-lost-ack');
+assert.equal(foundAcquired.kind, 'found');
+const recoveredAcquired = await installedRemote.aql(acquiredDocument,
+  {format: 'json', requestId: 'packed-acquired-lost-ack',
+    parameters: {minimum: 1}});
+assert.deepEqual(recoveredAcquired.ref, foundAcquired.ref);
+assert.equal((await recoveredAcquired.wait()).status, 'succeeded');
+assert.deepEqual(await recoveredAcquired.result('b').all(),
+  acquiredLocal.b);
 const failDispatch = await originalFetch(new URL(
   '/__test/fail-next-dispatch', remoteOptions.endpoint), {method: 'POST'});
 assert.equal(failDispatch.status, 200);
@@ -442,6 +567,7 @@ const client = await connect({mode: 'remote',
   endpoint: process.env.ACTQL_TEST_REMOTE_ENDPOINT,
   token: 'packed-test-token', durability: 'durable'});
 const document = readFileSync('values.json', 'utf8');
+const acquiredDocument = readFileSync('source-program.json', 'utf8');
 const execution = await client.aql(document, {format: 'json',
   requestId: 'packed-restart-before-physical-start'});
 for (let attempt = 0; attempt < 100; attempt++) {
@@ -450,6 +576,11 @@ for (let attempt = 0; attempt < 100; attempt++) {
 }
 assert.equal((await execution.status()).status, 'running');
 writeFileSync('restart-remote-ref.json', JSON.stringify(execution.ref));
+const acquired = await client.aql(acquiredDocument, {format: 'json',
+  requestId: 'packed-acquired-restart-before-start',
+  parameters: {minimum: 1}});
+assert.equal((await acquired.status()).status, 'running');
+writeFileSync('restart-acquired-ref.json', JSON.stringify(acquired.ref));
 const cancelled = await client.aql(document, {format: 'json',
   requestId: 'packed-cancel-before-restart'});
 assert.equal((await cancelled.cancel()).kind, 'accepted');
@@ -464,6 +595,7 @@ const client = await connect({mode: 'remote',
   endpoint: process.env.ACTQL_TEST_REMOTE_ENDPOINT,
   token: 'packed-test-token', durability: 'durable'});
 const document = readFileSync('values.json', 'utf8');
+const acquiredDocument = readFileSync('source-program.json', 'utf8');
 const ref = JSON.parse(readFileSync('restart-remote-ref.json', 'utf8'));
 const attached = await client.attach(ref);
 assert.equal((await attached.status()).status, 'running');
@@ -488,6 +620,19 @@ assert.deepEqual(repeated.ref, ref);
 assert.equal((await repeated.status()).status, 'succeeded');
 assert.deepEqual((await client.lookupRequest(
   'packed-restart-before-physical-start')).ref, ref);
+const acquiredRef = JSON.parse(readFileSync('restart-acquired-ref.json',
+  'utf8'));
+const acquiredAttached = await client.attach(acquiredRef);
+assert.equal((await acquiredAttached.status()).status, 'running');
+const acquiredResumed = await client.aql(acquiredDocument,
+  {format: 'json', requestId: 'packed-acquired-restart-before-start',
+    parameters: {minimum: 1}});
+assert.deepEqual(acquiredResumed.ref, acquiredRef);
+assert.equal((await acquiredResumed.wait()).status, 'succeeded');
+assert.deepEqual((await acquiredResumed.result('b').all())
+  .map(row => row.id).sort(), [2, 3, 3]);
+assert.deepEqual((await client.lookupRequest(
+  'packed-acquired-restart-before-start')).ref, acquiredRef);
 client.close();
 `);
 async function startRestartHost(hold) {
@@ -544,6 +689,14 @@ assert.deepEqual((await client.lookupRequest('packed-standard-values')).ref,
 const repeated = await client.aql(readFileSync('values.json', 'utf8'),
   {format: 'json', requestId: 'packed-standard-values'});
 assert.deepEqual(repeated.ref, ref);
+const acquiredRef = JSON.parse(readFileSync('acquired-local-ref.json',
+  'utf8'));
+const acquiredAttached = await client.attach(acquiredRef);
+assert.equal((await acquiredAttached.status()).status, 'succeeded');
+assert.deepEqual((await acquiredAttached.result('b').all())
+  .map(row => row.id).sort(), [2, 3, 3]);
+assert.deepEqual((await client.lookupRequest('packed-acquired-local')).ref,
+  acquiredRef);
 client.close();
 `);
 run(process.execPath, ['restart.mjs'], root);
