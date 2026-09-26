@@ -953,22 +953,20 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
     }
     @relation.CountIf => Ok(Number(count.to_double()))
     @relation.Min | @relation.Max => {
-      if values.is_empty() {
-        return Ok(Null)
-      }
-      let mut selected = values[0]
-      for i = 1; i < values.length(); i = i + 1 {
-        let comparison = match
-          compare_complete_value(values[i], selected, control) {
-          Ok(comparison) => comparison
-          Err(issue) => return Err(ordering_row_issue(issue))
+      let extremum = start_aggregate_extremum(
+        values,
+        function is @relation.Min,
+        control,
+      )
+      while true {
+        match advance_aggregate_extremum(extremum) {
+          Ok(None) => ()
+          Ok(Some(value)) => break Ok(value)
+          Err(issue) => break Err(issue)
         }
-        if (function is @relation.Min && comparison < 0) ||
-          (function is @relation.Max && comparison > 0) {
-          selected = values[i]
-        }
+      } nobreak {
+        Err(InvalidRows)
       }
-      Ok(selected)
     }
     @relation.Sum => {
       if values.is_empty() {
