@@ -181,6 +181,8 @@ fn bounded_binding_rows_fixture(
   input_limits? : ValueLimits? = None,
   max_work? : Int = 100000,
   max_entries? : Int = 10000,
+  max_frames? : Int = 100,
+  fragment_rows? : Int64 = 2L,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
   let (source_owner, source) = bounded_binding_rows_source(
     rows,
@@ -232,7 +234,7 @@ fn bounded_binding_rows_fixture(
       distinct_keyed {
       []
     } else {
-      [sequence_fragment_context(sequence, 0, 2L)]
+      [sequence_fragment_context(sequence, 0, fragment_rows)]
     },
     [@lower.node_id(first)],
     100000,
@@ -254,7 +256,7 @@ fn bounded_binding_rows_fixture(
     input_limits.unwrap_or_else(() => run_limits().input_values),
     run_limits().output_values,
     max_work,
-    100,
+    max_frames,
     max_entries,
     10000,
   ).unwrap()
@@ -3244,6 +3246,43 @@ test "bounded binding rows preserve authored binding dependencies" {
   )
   assert_true(completed_cell(output, 0, 2) is Some(Number(1.0)))
   assert_true(completed_cell(output, 1, 2) is Some(Number(1.0)))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+
+///|
+test "bounded selected filter retains more input rows than expression frames" {
+  // Admitted input rows stay live until output completes; their roots are
+  // bounded by workspace entries, not by the expression frame limit.
+  let rows = "[" +
+    Array::makei(8, i => {
+      "{\"id\":" +
+      (i + 1).to_string() +
+      ",\"left\":[1,0],\"right\":[0,1]}"
+    }).join(",") +
+    "]"
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    rows,
+    filter=true,
+    max_frames=4,
+    fragment_rows=8L,
+  )
+  let mut completed = None
+  for _ in 0..<100000 {
+    match advance_bounded_binding_rows(execution, 64) {
+      Ok(BoundedBindingRowsContinue(..)) => ()
+      Ok(BoundedBindingRowsComplete(output, ..)) => {
+        completed = Some(output)
+        break
+      }
+      _ => fail("bounded filter did not complete")
+    }
+  }
+  let output = completed.unwrap()
+  assert_eq(completed_row_count(output), 7)
+  assert_true(completed_cell(output, 0, 0) is Some(Number(2.0)))
+  assert_true(completed_cell(output, 6, 0) is Some(Number(8.0)))
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
   assert_true(producer_read_available(input))
 }
