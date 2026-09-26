@@ -354,10 +354,37 @@ without a Run:
 - Reviewers and review readers cannot cancel. Aborting a review read is not a
   cancel.
 
+A Program with real input on a Host with an installed source profile is
+also held before its source read, at the same prepare attempt and before any
+Run exists:
+- The read tuple comes from the Host's checked source, never from the
+  request: the source connection, the source resource and `read`. The source
+  profile's own account configuration and context decide it.
+- allow reads with no Checkpoint. deny refuses the request before anything is
+  read. delegate asks the Host decision; a permit is used once for this
+  attempt's exact tuple, a reject refuses, and a defer holds.
+- A deferral writes a `read_access` Checkpoint (`prepare_attempt`). Its
+  sealed artifact is an acquisition intent
+  (`actql-remote-acquisition-intent/0.1`) binding the request, the prepare
+  attempt, the checked source, the read tuple and the source configuration
+  CID. The review projection shows the same document with the source and the
+  tuple.
+- When the run itself was held first, the resumed `run_scope` approval takes
+  the read decision in the same resume and may write the `read_access`
+  Checkpoint next; the earlier approval is checked again when the read
+  resumes.
+- On resume the common admission is passed for the `acquisition` boundary.
+  The physical read's own authorization check is then answered only for the
+  exact admitted tuple, only while every approval is still current and the
+  request is not cancelled.
+- The read runs after the Run's physical start reservation. A Host that
+  stops after the read started leaves the Run unknown and never reads again.
+- Owner cancellation is the same as for a held run: a waiting read ends
+  cancelled and nothing is read.
+
 This profile has these limits:
-- Only Run acceptance of source-free Programs is connected. The preparation
-  source read of Programs with input and `run_unit` Checkpoints on this
-  Host are not connected here.
+- Only the installed DuckDB source profile (one captured source) is
+  connected. `run_unit` Checkpoints on this Host are not connected here.
 - One Host process owns a state directory. A second one is refused by the
   Store owner.
 
