@@ -288,6 +288,12 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         accepted.cancellationRequested) {
       return Promise.resolve('not_started');
     }
+    // Defense in depth: a Run from a held request starts only with its
+    // resumed admission. Its origin is read from the Host's own Checkpoint
+    // journal, never from the caller.
+    if (gate === undefined && checkpoints?.heldOrigin(submission.requestId)) {
+      return Promise.resolve('not_started');
+    }
     let reached;
     const physical = new Promise(resolve => { reached = resolve; });
     const active = {promise: undefined, reserved: false,
@@ -379,11 +385,15 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     }
     const {requested, resultNames} = requestOf(submission);
     // Run acceptance on the protected Site is decided before any Run
-    // Definition exists. A request already admitted (for example a resumed
-    // held request) is looked up, not decided again.
+    // Definition exists. A request that was held is never started from here:
+    // submitting it again returns its held state, or its existing Run, and
+    // only wakes the durable resume owner, which starts it under the resumed
+    // authorization. Other admitted requests are looked up, not decided
+    // again.
     if (checkpoints !== undefined &&
-        journal.lookup({tenantId, authorityScopeCid, requestId}, moon) ===
-          undefined) {
+        (checkpoints.heldOrigin(requestId) ||
+         journal.lookup({tenantId, authorityScopeCid, requestId}, moon) ===
+           undefined)) {
       const decided = await checkpoints.acceptRun({
         requested: {
           logicalRequestScopeCid: moon.clientRequestScopeCid(requested),
@@ -393,7 +403,19 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
           requestId, principalId: actual, connection, kind, input,
           parameters, resultNames},
       });
-      if (decided.kind === 'held') return decided.held;
+      if (decided.kind !== 'dispatch') {
+        const existing = journal.lookupDefinition({tenantId,
+          authorityScopeCid, requestId}, moon, control);
+        void checkpoints.sweep();
+        if (existing === undefined) {
+          if (decided.held === undefined) {
+            throw new Error('HeldRunDefinitionMissing');
+          }
+          return decided.held;
+        }
+        return {ref: existing.ref, durability: existing.durability,
+          revision: existing.revision};
+      }
     }
     const held = {};
     const accepted = await admitDefinition(submission, requested,
@@ -451,13 +473,15 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   // physical start reservation, and the resume intent completes with the
   // Run right after it. Resolves with 'started', {refused} or 'not_started'.
   const resumeHeld = async ({captured, beforePhysicalStart, started,
-    step}) => {
+    step, renew}) => {
     const {submission, requested, resultNames} =
       await heldSubmission(captured);
     const held = {};
     const accepted = await admitDefinition(submission, requested,
       resultNames, held);
     await step('definition_admitted', {ref: accepted.ref});
+    try { renew(); }
+    catch (error) { return {refused: error}; }
     const runId = runIdOf(accepted);
     return startDispatch(submission, requested, accepted, held,
       status => checkpoints.runFinished(runId, status),

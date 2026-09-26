@@ -534,10 +534,14 @@ export async function installRemoteCheckpoints({root, tenantId,
     const identity = request.subject.logical_request_scope_cid;
     const outcome = await host.resume({
       captured, step,
+      renew() { journal.renewResume(claim, leaseMs); },
       // Entered synchronously immediately before the physical start
       // reservation (fence, approval validity, single start per claim
       // generation). A later generation reconciles the same identity.
       beforePhysicalStart() {
+        // The claimant keeps its lease while it works; a lapsed or
+        // superseded claim throws here and nothing starts.
+        journal.renewResume(claim, leaseMs);
         try { admission.enter(identity); }
         catch (error) {
           if (error?.code !== 'PriorAdmissionUnresolved') throw error;
@@ -710,6 +714,13 @@ export async function installRemoteCheckpoints({root, tenantId,
       // remaining need.
       if (sealed !== undefined) await evidence.abandon(prepareAttemptId);
       throw refusal(decision);
+    },
+
+    // Whether this Host held the request (a prepare attempt exists): its Run
+    // may start only through the resumed authorization.
+    heldOrigin(requestId) {
+      return journal.getPreparation(prepareAttemptIdOf(requestId)) !==
+        undefined;
     },
 
     heldLookup(requestId) {
