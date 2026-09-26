@@ -114,6 +114,7 @@ fn run_local_managed_nest_case(unwrap : Bool) -> Unit raise {
   let child_rows = local_managed_test_rows(child_ops)
 
   let nest_live = Ref(true)
+  let nest_advances = Ref(0)
   let (nest_ops, nested) = run_local_managed_test_task(
     installed,
     run,
@@ -122,7 +123,11 @@ fn run_local_managed_nest_case(unwrap : Bool) -> Unit raise {
     [parent_rows, child_rows],
     3,
     nest_live,
+    execution_quantum=1,
+    execution_advances=Some(nest_advances),
+    require_provider=true,
   )
+  assert_true(nest_advances.val > 4)
   let nested_rows = local_managed_test_rows(nest_ops)
   let expected = [
     "{\"id\":1,\"items\":[{\"amount\":null},{\"amount\":10}],\"key\":1}", "{\"id\":2,\"items\":[{\"amount\":null},{\"amount\":10}],\"key\":1}",

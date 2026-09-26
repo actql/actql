@@ -221,6 +221,10 @@ pub fn local_module_managed_provider(
   if managed_provider_accepts(set, sequence) {
     return Some(set)
   }
+  let nest = nest_provider(installed.execution, installed.measurement)
+  if managed_provider_accepts(nest, sequence) {
+    return Some(nest)
+  }
   let values = values_provider(installed.execution, installed.measurement)
   if managed_provider_accepts(values, sequence) {
     return Some(values)
