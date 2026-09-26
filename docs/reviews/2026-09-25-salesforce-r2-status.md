@@ -1,6 +1,25 @@
 # Salesforce Effect review R2 status
 
+## Fixed completion unit at current HEAD
+
+| Required view | Current boundary |
+| --- | --- |
+| User capability at completion | Submit a normal Program with at least two multi-row Salesforce Effect members; inspect or reconcile uncertain rows without resending known writes; read its separately named published Result; release private and public holdings after the last user. |
+| Remaining implementation and acceptance | The local public Client path now reaches formal publication and last-owner retirement, including response-loss and restart faults. Connect configured, nonfixture Host authorization and the Distribution-owned public Checkpoint projection for uncertain Runs. Finish list/search/inspect/peek and connect the authorized resolver to the installed discovery surface and retained snapshots. Verify declared read/write behavior against the isolated org when access is supplied. |
+| Cross-owner dependency | Distribution owns public Client Checkpoint projection and shared ingress; Connector owns Salesforce Site operations and consumes the delivered common compiler and Run-start owner. The isolated org, secret-manager reference and write permission have not been supplied; live-provider acceptance is unverified. |
+| Existing plan outside this unit | New providers, Cloud OAuth management, Bulk API, unrelated frontends or optimizers, fleet deployment and the separately managed performance work remain separate. This does not complete the original ten-Connector objective. |
+
 ## Current connection (2026-09-26)
+
+An authorized Resource resolver now consumes one supplied exact Salesforce
+Catalog observation and the installed account gate. It checks current metadata
+disclosure before looking up the resource, derives read or write candidates in
+MoonBit without provider I/O, and reports partial Resource or field evidence as
+`catalog_required`. A write candidate is not Effect apply authority. This is
+one section 22.5 connection, not completion of list/search/inspect/peek or
+live-provider discovery. The local HTTPS regression verifies denied disclosure,
+foreign binding, partial describe, missing field, and zero additional HTTP or
+credential uses during resolution.
 
 The Salesforce Host now has one installed Effect route that owns the same
 request inventory for current Catalog/target rechecks and physical dispatch.
@@ -123,15 +142,6 @@ conformance packages passed 79/79 on each of JS, Wasm and native. These tests
 cover the local provider-shaped resource and independent contract fixtures;
 the packed smoke does not prove public Effectful submit. They supplement,
 rather than replace, the multi-member integration results above.
-
-## Current completion unit
-
-| Required view | Current boundary |
-| --- | --- |
-| User capability at completion | Submit a normal Program with at least two multi-row Salesforce Effect members; inspect or reconcile uncertain rows without resending known writes; read its separately named published Result; release private and public holdings after the last user. |
-| Remaining implementation and acceptance | The local standard Client path now runs from submit through formal publication and last-owner retirement, including the fault matrix described above. Finish the installed Host composition for configured, nonfixture authorization and expose uncertain Run state through the shared public Client Checkpoint projection. Complete the section 22.5 authorized discovery and resource resolver surface. Validate declared read and write behavior against the isolated org once it is supplied. |
-| Cross-owner dependency | Distribution owns the public Client Checkpoint projection and shared ingress contract. Connector owns the Salesforce Site operations and uses the shared compiler and Run-start owner already delivered. The isolated Salesforce org, secret-manager reference, and write permission are not supplied, so live-provider acceptance remains unverified. |
-| Existing plan outside this unit | New providers, Cloud OAuth management, Bulk API, unrelated frontends or optimizers, and fleet deployment remain separate. These exclusions do not shrink the current product-path acceptance or complete the original ten-Connector objective. |
 
 The installed Node Host now exports `completeCapturedEffectRun` and
 `completeRecoveredEffectRun`. These functions use the existing MoonBit frontier,
