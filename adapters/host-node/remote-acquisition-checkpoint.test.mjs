@@ -627,3 +627,36 @@ test('A3: an approved read binds the exact physical name, not its NFC form',
       }
     }
   });
+
+// The read decision after Run acceptance outlives the resume lease: its
+// Checkpoint is not persisted by the lapsed claim, and the next claim
+// decides and holds the read, which then resumes to the Results.
+test('A3: a read decided past its resume lease is held by the next claim',
+  async t => {
+    let slowReads = 1;
+    const host = await acquiringHost(t, {runOutcome: 'delegate', extra: {
+      decide: async view => {
+        if (view.boundary === 'acquisition' && slowReads-- > 0) {
+          await new Promise(resolve => setTimeout(resolve, 2500));
+        }
+        return {decision: 'defer', subject: view.subject,
+          authority: 'host-policy'};
+      },
+      answeringAuthorities: ['host-policy', 'reviewer']}});
+    const client = await host.as('owner-token');
+    const reviewer = await host.as('reviewer-token');
+    await held(client, 'lapsed-a');
+    const approve = async kind => {
+      const checkpoint = await waitFor(async () => {
+        const {items} = await reviewer.checkpoints();
+        return items.find(item => item.kind === kind);
+      }, host.diagnose);
+      await reviewer.resolveCheckpoints([{checkpoint,
+        decision: 'approved'}], {signer});
+    };
+    await approve('run_scope');
+    await approve('read_access');
+    await assertResults(client, 'lapsed-a', host.diagnose);
+    assert.equal(host.count('acquisition_started'), 1);
+    assert.equal(slowReads, -1);
+  });
