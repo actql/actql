@@ -121,7 +121,9 @@ async function acquiringHost(t, {readOutcome = 'delegate',
         publicKey: pem(reviewerKeys.publicKey)}],
       reviewReaders: ['reader-principal'],
       hostKey: {keyId: 'host-key', privateKey: pem(hostKeys.privateKey)},
-      leaseMs: 1000,
+      // Well below the Host default (60 s) and long enough for one resume
+      // step on a loaded machine; a test of a lapsed claim sets its own.
+      leaseMs: 10_000,
       ...extra,
       observe: async (name, detail) => {
         steps.push(name);
@@ -635,6 +637,7 @@ test('A3: a read decided past its resume lease is held by the next claim',
   async t => {
     let slowReads = 1;
     const host = await acquiringHost(t, {runOutcome: 'delegate', extra: {
+      leaseMs: 1000,
       decide: async view => {
         if (view.boundary === 'acquisition' && slowReads-- > 0) {
           await new Promise(resolve => setTimeout(resolve, 2500));
