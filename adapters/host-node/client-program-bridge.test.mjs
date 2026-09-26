@@ -43,7 +43,8 @@ import {applyCapturedEffectSet, applyRecoveredEffectSet} from './effect-run-appl
 import {loadCheckpointRuntime, openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
 import {issueAuthorizedEffectSetReceipt} from './effect-response-recovery.mjs';
 import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
-  preparePinnedEffectSourcePayload, preparePinnedEffectSourceSet} from
+  preparePinnedEffectSourcePayload, preparePinnedEffectSourceSet,
+  preparePinnedEffectSourceHoldings} from
   './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {canonicalJson} from '../host-common/publication-contract-control.fixture.mjs';
@@ -3539,7 +3540,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
     const control = runtimeCore(moon).publicationControl;
     const localEvidenceContext = admittedLocalEffectEvidenceContext(
       control, prepared, evidence, definition, invocation, observation);
-    const store = await openLocalPublicationStore({
+    const physicalStore = await openLocalPublicationStore({
       directory, storeAuthorityCid: cid('7'),
       capacityBytes: 4 * 1024 * 1024,
       maxObjectBytes: outputLimits.maxWireBytes,
@@ -3547,6 +3548,31 @@ test('owned update Plan matches approved rows and rejects altered intent',
       maxContractDepth: 64,
       privateEvidenceKey: Buffer.alloc(32, 4),
     }, control);
+    let commitCount = 0;
+    let shareCount = 0;
+    let writerCount = 0;
+    let releaseShare;
+    const shareGate = new Promise(resolve => { releaseShare = resolve; });
+    const lostShareReply = new Error('LostEffectSourceShareReply');
+    const store = Object.freeze({...physicalStore,
+      createPreparedObjectWriter(...args) {
+        writerCount++;
+        return physicalStore.createPreparedObjectWriter(...args);
+      },
+      async commitPhysicalHolding(...args) {
+        commitCount++;
+        return physicalStore.commitPhysicalHolding(...args);
+      },
+      async sharePhysicalHolding(...args) {
+        shareCount++;
+        const result = await physicalStore.sharePhysicalHolding(...args);
+        if (shareCount === 1) {
+          await shareGate;
+          throw lostShareReply;
+        }
+        return result;
+      },
+    });
     let storedResults, inputs, privateHoldingCid;
     const sourcePayloads = [];
     const sourceHoldings = [];
@@ -3583,8 +3609,9 @@ test('owned update Plan matches approved rows and rejects altered intent',
       const invocationContract = control.admit('run_invocation',
         moon.strategyPublicationContractJson(invocation),
         publicationLimits);
-      sourcePayloads.push(await preparePinnedEffectSourcePayload({
-        moon, checkedOwner: prepared, execution, inputs, memberIndex: 0,
+      const sourceSet = await preparePinnedEffectSourceSet({
+        moon, checkedOwner: prepared, execution, inputs,
+        maxMembers: 2, maxGroupingWork: 3,
         limits: moon.clientProgramEffectInputExportLimits(
           ...effectInputExportArgs(outputLimits)),
         store, maxBytes: outputLimits.maxWireBytes, control,
@@ -3592,7 +3619,8 @@ test('owned update Plan matches approved rows and rejects altered intent',
         sourceBindingCid: cid('c'),
         contractLimits: publicationLimits,
         localEvidenceContext,
-      }));
+      });
+      sourcePayloads.push(...sourceSet.payloads);
       assert.notEqual(sourcePayloads[0].summary.artifact.identity,
         storedResults.artifacts[0].identity);
       const requestScope = checked(moon.strategyEffectLogicalRequestScope(
@@ -3629,25 +3657,42 @@ test('owned update Plan matches approved rows and rejects altered intent',
         publicationLimits);
       privateHoldingCid = control.effectPrivateEvidenceBinding(
         admittedPreview, store.storeAuthorityCid).holdingCid;
-      for (let memberIndex = 0; memberIndex < memberIds.length;
-        memberIndex++) {
-        if (memberIndex === 1) {
-          await assert.rejects(commitPinnedEffectSourceHolding({
-            payload: sourcePayloads[0], store, control,
-            preview: admittedPreview, memberIndex,
-            invocation: invocationContract,
-            shareFromHoldingCid: cid('9'),
-          }), {code: 'PublicationPhysicalHoldingUnavailable'});
-        }
-        sourceHoldings.push(await commitPinnedEffectSourceHolding({
-          payload: sourcePayloads[0], store, control,
-          preview: admittedPreview, memberIndex,
-          invocation: invocationContract,
-          ...(memberIndex === 0 ? {} : {
-            shareFromHoldingCid: sourceHoldings[0].holdingCid,
-          }),
-        }));
+      assert.throws(() => preparePinnedEffectSourceHoldings({
+        sources: {...sourceSet}, store, control, preview: admittedPreview,
+        invocation: invocationContract,
+      }), {message: 'InvalidEffectSourceSetOwner'});
+      assert.equal(commitCount + shareCount, 0);
+      const holdingOwner = preparePinnedEffectSourceHoldings({
+        sources: sourceSet, store, control, preview: admittedPreview,
+        invocation: invocationContract,
+      });
+      sourceHoldings.push(...holdingOwner.holdings);
+      assert.equal(commitCount + shareCount, 0);
+      const firstCommit = holdingOwner.commit();
+      const joinedCommit = holdingOwner.commit();
+      assert.equal(firstCommit, joinedCommit);
+      releaseShare();
+      const settled = await Promise.allSettled([firstCommit, joinedCommit]);
+      assert.ok(settled.every(value => value.status === 'rejected' &&
+        value.reason === lostShareReply));
+      assert.equal(commitCount, 1);
+      assert.equal(shareCount, 1);
+      for (const holding of sourceHoldings) {
+        assert.deepEqual(await store.inspectPhysicalHolding(holding.holdingCid),
+          holding.record);
       }
+      const writersBeforeRetry = writerCount;
+      const bytesBeforeRetry = store.status().storedBytes;
+      assert.equal(await holdingOwner.commit(), holdingOwner.holdings);
+      assert.equal(commitCount, 2);
+      assert.equal(shareCount, 2);
+      assert.equal(writerCount, writersBeforeRetry);
+      assert.equal(store.status().storedBytes, bytesBeforeRetry);
+      await assert.rejects(commitPinnedEffectSourceHolding({
+        payload: sourcePayloads[0], store, control,
+        preview: admittedPreview, memberIndex: 1,
+        invocation: invocationContract, shareFromHoldingCid: cid('9'),
+      }), {code: 'PublicationPhysicalHoldingUnavailable'});
       assert.notEqual(sourceHoldings[0].holdingCid,
         sourceHoldings[1].holdingCid);
       assert.equal(sourceHoldings[0].localManifest,
