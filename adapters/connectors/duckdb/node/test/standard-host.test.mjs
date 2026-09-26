@@ -7254,6 +7254,9 @@ async function exerciseStrategyGraph(
     {name: 'ordinary-global-top-k-in-flight', kind: 'top-k'},
     {name: 'ordinary-partitioned-top-k-in-flight', kind: 'top-k-by'},
     {name: 'ordinary-take-in-flight', kind: 'take'},
+    {name: 'ordinary-pivot-in-flight', kind: 'pivot'},
+    {name: 'ordinary-analytic-in-flight', kind: 'analytic'},
+    {name: 'ordinary-window-group-in-flight', kind: 'window-group'},
   ]) {
     const ordinaryUnaryProgram = structuredClone(selectProgram);
     const hasPreliminary = ordinaryUnaryCase.kind === 'top-k' ||
@@ -7264,11 +7267,13 @@ async function exerciseStrategyGraph(
       {length: 80}, (_, index) => ({
         id: index + 1,
         amount: index,
-        ...(ordinaryUnaryCase.kind === 'top-k-by'
+        ...(ordinaryUnaryCase.kind === 'top-k-by' ||
+          ordinaryUnaryCase.kind === 'pivot'
           ? {group: index % 2 === 0 ? 'a' : 'b'} : {}),
       }),
     );
-    if (ordinaryUnaryCase.kind === 'top-k-by') {
+    if (ordinaryUnaryCase.kind === 'top-k-by' ||
+        ordinaryUnaryCase.kind === 'pivot') {
       source.steps[0].values.schema.group = {type: 'string', nullable: false};
       source.results.r.fields = ['id', 'amount', 'group'];
     }
@@ -7292,19 +7297,38 @@ async function exerciseStrategyGraph(
           partition_by: ['group'], k: 30, by: [{id: 'desc'}],
         }, as: 'out'},
         take: {take: 60, as: 'out'},
+        pivot: {pivot: {
+          index: ['id'], column: 'group', values: ['a', 'b'],
+          value: 'amount', aggregate: 'max',
+        }, as: 'out'},
+        analytic: {analytic: {
+          partition_by: [], order_by: [{id: 'asc'}],
+          functions: {position: {fn: 'row_number'}},
+        }, as: 'out'},
+        'window-group': [
+          {row_window: {kind: 'fixed', time: 'id', size: 10}, as: 'windowed'},
+          {from: 'windowed', window_group: {by: [], aggregates: {
+            lowest: {fn: 'min', field: 'amount'},
+          }}, as: 'out'},
+        ],
       }[ordinaryUnaryCase.kind];
       unary.steps = hasPreliminary
         ? [
           {assert_rows: {unique_by: ['id']}, as: 'unique'},
           {from: 'unique', ...unaryStep},
         ]
-        : [unaryStep];
+        : Array.isArray(unaryStep) ? unaryStep : [unaryStep];
       const fields = ordinaryUnaryCase.kind === 'derive'
         ? ['id', 'amount', 'next']
         : ordinaryUnaryCase.kind === 'rename' ? ['id', 'total']
           : ordinaryUnaryCase.kind === 'drop' ? ['id']
             : ordinaryUnaryCase.kind === 'top-k-by'
               ? ['id', 'amount', 'group']
+            : ordinaryUnaryCase.kind === 'pivot' ? ['a', 'b', 'id']
+            : ordinaryUnaryCase.kind === 'analytic'
+              ? ['amount', 'id', 'position']
+            : ordinaryUnaryCase.kind === 'window-group'
+              ? ['lowest', 'window_end', 'window_start']
             : ['id', 'amount'];
       unary.results.r.fields = fields;
       for (const consumer of ordinaryUnaryProgram.stages.filter(stage =>
