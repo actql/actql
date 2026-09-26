@@ -8,6 +8,7 @@ import {createHash, generateKeyPairSync, sign} from 'node:crypto';
 import {mkdir, mkdtemp, readdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
+import {Readable} from 'node:stream';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
@@ -151,7 +152,7 @@ async function acquiringHost(t, {readOutcome = 'delegate',
   const endpoint = `https://127.0.0.1:${server.address().port}/`;
   const as = token => connect({mode: 'remote', endpoint, token,
     durability: 'durable'});
-  return {root, steps, close, source, as,
+  return {root, steps, close, source, as, handler: host.handler,
     diagnose: () => journalState(root, steps),
     count: name => steps.filter(item => item === name).length};
 }
@@ -662,4 +663,74 @@ test('A3: a read decided past its resume lease is held by the next claim',
     await assertResults(client, 'lapsed-a', host.diagnose);
     assert.equal(host.count('acquisition_started'), 1);
     assert.equal(slowReads, -1);
+  });
+
+// A Result read records its delivery attempt only after the response ends.
+// With that end held, the Host's close must wait for the read, refuse a new
+// request, and complete once the read has recorded its attempt.
+test('Remote Host close waits for a read recording its delivery attempt',
+  async t => {
+    const directory = await mkdtemp(join(scratch, 'close-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const host = await acquiringHost(t, {directory, readOutcome: 'allow'});
+    const client = await host.as('owner-token');
+    const execution = await submit(client, 'close-a');
+    await waitFor(async () => (await execution.wait()).status ===
+      'succeeded', host.diagnose);
+    // The exact connection this Client sends, reused by a raw request.
+    let connection;
+    const real = globalThis.fetch;
+    globalThis.fetch = async (url, init) => {
+      connection ??= JSON.parse(init.body).connection;
+      return real(url, init);
+    };
+    try { await client.lookupRequest('close-a'); }
+    finally { globalThis.fetch = real; }
+    const raw = (operation, body) => Object.assign(Readable.from([
+      Buffer.from(JSON.stringify({connection, ...body}))]), {
+      method: 'POST', url: `/actql/client/0.1/${operation}`,
+      headers: {'content-type': 'application/json',
+        authorization: 'Bearer owner-token'}});
+    // A response that accepts every byte but holds its end.
+    const response = () => {
+      const sent = {status: undefined, chunks: [], release: undefined};
+      return Object.assign(sent, {
+        destroyed: false, writableEnded: false, headersSent: false,
+        writeHead(status) { sent.status = status; sent.headersSent = true; },
+        write(bytes, done) { sent.chunks.push(Buffer.from(bytes)); done?.(); },
+        end(bytes, done) {
+          if (typeof bytes === 'function') [bytes, done] = [undefined, bytes];
+          if (bytes !== undefined) sent.chunks.push(Buffer.from(bytes));
+          sent.writableEnded = true;
+          sent.release = done ?? (() => {});
+        },
+        on() {}, off() {}, destroy() { sent.destroyed = true; },
+      });
+    };
+    const held = response();
+    const reading = host.handler(raw('read', {ref: execution.ref,
+      resultName: 'b', format: 'jsonl', attemptId: 'close-read-a'}), held);
+    await waitFor(async () => held.release !== undefined, host.diagnose);
+    assert.equal(held.status, 200, Buffer.concat(held.chunks).toString());
+    assert.ok(Buffer.concat(held.chunks).length > 0);
+    let closed = false;
+    const closing = host.close().then(() => { closed = true; });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    assert.equal(closed, false);
+    // While closing, a new request is refused before it touches the Store.
+    const late = response();
+    await host.handler(raw('lookup-request', {requestId: 'close-a'}), late);
+    assert.equal(late.status, 503);
+    assert.deepEqual(JSON.parse(Buffer.concat(late.chunks).toString()),
+      {code: 'ClientHostClosing'});
+    held.release();
+    await reading;
+    await closing;
+    assert.equal(closed, true);
+    // The attempt was recorded before the Store closed.
+    const reopened = await acquiringHost(t, {directory,
+      profile: host.source});
+    const attempt = await (await (await reopened.as('owner-token'))
+      .attach(execution.ref)).result('b').deliveryAttempt('close-read-a');
+    assert.equal(attempt.record?.state, 'succeeded');
   });
