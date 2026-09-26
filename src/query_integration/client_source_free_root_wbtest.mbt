@@ -693,6 +693,23 @@ test "ordinary AQL values root reaches the installed Local kernel" {
       None => ()
     }
   }
+  if @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_CANCEL_ACCEPTANCE") is Some("1") {
+    let query = @remote.remote_poll_query_json(second).unwrap()
+    let response = @remote.admit_remote_dispatch_response_json(
+      endpoint.query_json(query, second_cid).unwrap(),
+      second,
+      @remote.StatusReply,
+    ).unwrap()
+    let observed = @remote.remote_dispatch_response_projection(response)
+    // The public Cloud cancel may arrive after native computation settled.
+    // In either case the physical Site must have completed its cleanup.
+    assert_true(observed[1] == 3 || observed[1] == 5)
+    assert_eq(observed[3], 2)
+    assert_true(runtime.close().unwrap())
+    assert_true(journal.close())
+    assert_true(bundles.close().unwrap())
+    return
+  }
   let reply = endpoint.dispatch_json(body, second_cid).unwrap()
   let accepted = @remote.admit_remote_dispatch_response_json(
     reply,
