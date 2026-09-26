@@ -530,6 +530,7 @@ for (const [index, route] of routeEntries.entries()) {
       'append_external_cancel_cleanup',
       'append_same_stage_two_consumer_reclamation',
       'append_chain_two_consumers',
+      'append_chain_work_workspace_exact_one_short',
       'append_chain_cancel_cleanup',
     ]) {
       if (!boundaryRoles.has(role)) {

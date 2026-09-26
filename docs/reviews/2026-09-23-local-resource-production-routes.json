@@ -3478,6 +3478,13 @@
           "fixture": "Local bounded append filter chain retains two consumers"
         },
         {
+          "role": "append_chain_work_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_append_wbtest.mbt",
+          "fixture": "ordinary append filter chain admits exact work and workspace"
+        },
+        {
           "role": "append_chain_cancel_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],

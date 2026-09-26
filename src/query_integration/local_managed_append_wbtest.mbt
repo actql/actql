@@ -350,3 +350,180 @@ test "standard Host stops external append after row work" {
 test "standard Host stops append filter chain without releasing its inputs" {
   cancel_local_managed_append_case("imported_filter")
 }
+
+///|
+fn verify_append_filter_resources(
+  max_work : Int,
+  max_entries : Int,
+  should_complete : Bool,
+) -> Unit raise {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_append_chain=true,
+    local_values_append_variant="imported_filter",
+    ledger_limits=Some({
+      planning_work: 10000,
+      attempts: 20,
+      holdings: 20,
+      transfer_bytes: 300000L,
+      retained_bytes: 134217728L,
+      execution_bytes: 536870912L,
+    }),
+  )
+  let registry = search_registry()
+  let defaults = dispatch_test_limits()
+  fn install(
+    execution : @execution.SequenceExecutionLimits,
+  ) -> @local_driver.LocalDispatchModule raise {
+    let installed = @local_driver.prepare_local_dispatch_module(
+      @host_driver.open_dispatch_driver(run),
+      registry,
+      @connector.capability_registration_at(registry, 0).unwrap(),
+      dispatch_test_generated(run),
+      execution,
+      defaults.guards,
+      defaults.candidate_work,
+    ).unwrap()
+    @local_driver.configure_local_retained_inputs(
+      installed,
+      {
+        max_rows: 100,
+        values: execution.rows.input_values,
+        wire: retained_attempt_wire_limits(),
+        row: {
+          max_bytes: 100,
+          max_nodes: 20,
+          max_depth: 4,
+          max_text_bytes: 100,
+        },
+        max_batch_bytes: 64,
+      },
+      None,
+    ).unwrap()
+    installed
+  }
+  let sources = install(defaults.local_execution)
+  let lives = [Ref(true), Ref(true)]
+  let (left_ops, left) = run_local_managed_test_task(
+    sources,
+    run,
+    1,
+    [],
+    [],
+    1,
+    lives[0],
+    require_provider=true,
+  )
+  let (right_ops, right) = run_local_managed_test_task(
+    sources,
+    run,
+    2,
+    [],
+    [],
+    2,
+    lives[1],
+    require_provider=true,
+  )
+  let limited = install({
+    ..defaults.local_execution,
+    rows: { ..defaults.local_execution.rows, operation_entries: max_entries, },
+    max_work,
+  })
+  let operations = start_local_managed_test_task_operations(
+    limited,
+    run,
+    3,
+    [left, right],
+    [local_managed_test_rows(left_ops), local_managed_test_rows(right_ops)],
+    require_provider=true,
+  )
+  let mut complete = false
+  let mut failed = false
+  let mut work = 0L
+  for _ in 0..<200 {
+    if !complete && !failed {
+      match (operations.advance)(1) {
+        Ok(observation) => {
+          assert_true(observation.work >= 0L && observation.work <= 1L)
+          work += observation.work
+          complete = observation.complete
+        }
+        Err(
+          @local_driver.Configuration(
+            @connector.Execution(@execution.InputLimit)
+          )
+        ) => failed = true
+        Err(
+          @local_driver.Configuration(
+            @connector.Execution(@execution.Rows(_, @execution.RowLimit))
+          )
+        ) => failed = true
+        Err(_) => fail("append chain rejected outside its resource boundary")
+      }
+    }
+  }
+  assert_eq(complete, should_complete)
+  assert_eq(failed, !should_complete)
+  if should_complete {
+    assert_eq(work, 69L)
+    assert_eq(local_managed_test_rows(operations), ["{\"id\":2}", "{\"id\":3}"])
+  } else {
+    assert_true((operations.output_row)(0) is Err(_))
+    assert_true((operations.advance)(1) is Err(_))
+  }
+  assert_false(@strategy.captured_task_completed(run, 3))
+  let live = Ref(true)
+  if should_complete {
+    (operations.prepare_finalization)(3, operations.storage_bytes, fn() {
+      live.val
+    }).unwrap()
+    let mut finalized = false
+    for _ in 0..<200 {
+      if !finalized {
+        finalized = (operations.advance_finalization)(1).unwrap().complete
+      }
+    }
+    assert_true(finalized)
+  }
+  (operations.settle)().unwrap()
+  if should_complete {
+    let output = (operations.complete)(3, operations.storage_bytes, fn() {
+      live.val
+    }).unwrap()
+    assert_true(@execution.managed_completed_output_available(output))
+    live.val = false
+    @strategy.close_captured_task_output(run, 3)
+  }
+  (operations.close)()
+  assert_true((operations.cleanup_refresh)())
+  assert_true(@execution.managed_completed_output_available(left))
+  assert_true(@execution.managed_completed_output_available(right))
+  for index, ops in [left_ops, right_ops] {
+    lives[index].val = false
+    @strategy.close_captured_task_output(run, index + 1)
+    (ops.close)()
+    (ops.cleanup_refresh)() |> ignore
+  }
+  @strategy.stop_captured_dag(run)
+  for task in 0..<6 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "ordinary append filter chain admits exact work and workspace" {
+  // Append: 17 input transitions, one field, three row/cell/commit triples,
+  // and finalization = 28 steps. One handoff precedes filter's 40 steps.
+  // Filter control costs 3 input rows + 3 * (1 row + 3 snapshot + 8
+  // predicate units) + 4 output-name units = 43. Thus 28 + 1 + 43 = 72.
+  // Workspace peaks at ten: append's metadata and rows, or filter's three
+  // metadata slots, three input roots, snapshot, frame and continuation.
+  verify_append_filter_resources(72, 10, true)
+  verify_append_filter_resources(71, 10, false)
+  verify_append_filter_resources(72, 9, false)
+}

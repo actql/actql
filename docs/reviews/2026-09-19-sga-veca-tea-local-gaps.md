@@ -58,9 +58,18 @@ timer cancellation during append work with stop, nonpublication, and cleanup.
 The cancellation fixture expands the exact input Stage using its declared
 schema; no product admission rule was weakened to accept fixture data.
 This is local product-path evidence, not a same-SHA Linux CI result.
-This is not whole-operation resource assurance: the chain's overlapping
-workspace and cumulative work still need their own exact/one-short evidence;
-the single-step append proof is not silently reused for the entire chain.
+The appended resource fixture derives its limits independently: 28 append
+steps and one handoff leave 43 filter control units, requiring 72 work units;
+the chain reports 69 bounded transitions. Peak per-child workspace is ten
+slots, with the separately checked overlapping byte reservation retaining
+both children. Work 71 and workspace nine fail without publishing a result,
+preserve both borrowed inputs, and release all reservations during cleanup.
+The final append suite passes 12 tests on each of JS, Wasm, and native. The
+ordinary resource gate and both append gate regressions pass, including
+removal of this boundary fixture. Product source is unchanged from the
+preceding standard-Host run. This is not whole-operation resource assurance:
+this fixture covers
+the recorded append/filter route, not every unary suffix or formal variant.
 
 | Ordinary entry and current limitation | Required connection and proof |
 | --- | --- |
