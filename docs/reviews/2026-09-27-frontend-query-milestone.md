@@ -217,6 +217,10 @@ reads the updated input snapshot and returns NULL-preserving adjusted values.
 The packed path now also reads independent DENSE_RANK, LEAD, FIRST_VALUE and
 LAST_VALUE rows. FIRST_VALUE retains the initial NULL within its explicit
 ROWS frame; LAST_VALUE advances to the later non-NULL row.
+The packed Local and HTTP Remote paths also execute MIN and MAX in one
+explicit ROWS frame over acquired rows with NULL and duplicate order keys.
+They retain the original row order, with the first NULL producing NULL bounds
+and later numeric rows producing running minimum and maximum values.
 The source-free packed Local and HTTP Hosts also evaluate RANK and DENSE_RANK
 against the same peer window: input rows with sort keys `2,1,1` retain their
 input order and yield ranks `3,1,1` versus dense ranks `2,1,1`. The peer rows

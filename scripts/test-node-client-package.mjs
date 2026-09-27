@@ -593,6 +593,14 @@ const analyticCases = [
       + 'ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running '
       + 'FROM records WHERE id < 3',
     [{id: 1, running: 1}, {id: 2, running: 2}]],
+  ['frame-min-max',
+    'SELECT id, MIN(amount) OVER (ORDER BY id '
+      + 'ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS lo, '
+      + 'MAX(amount) OVER (ORDER BY id '
+      + 'ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS hi '
+      + 'FROM records WHERE id > 0',
+    [{id: 3, lo: 20, hi: 30}, {id: 1, lo: null, hi: null},
+      {id: 2, lo: 20, hi: 20}, {id: 3, lo: 20, hi: 30}]],
   ['over-alias-scope',
     'SELECT amount AS id, ROW_NUMBER() OVER (ORDER BY id) AS pos '
       + 'FROM records WHERE id < 3 ORDER BY id DESC',
