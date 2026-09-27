@@ -5,7 +5,8 @@
 import {completeCapturedEffectRun, completeRecoveredEffectRun,
   completeInterruptedEffectRun} from
   './entry.mjs';
-import {suspendCompletedEffectfulComputation} from
+import {releaseCompletedRunPreparedPayloads,
+  suspendCompletedEffectfulComputation} from
   '../host-common/completed-run-publication.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
@@ -231,6 +232,28 @@ export function createInstalledEffectSite({environmentWire,
       checkContinuationBinding(facts, recovered.computation);
       const claimed = checkpointJournal.claimResume(view.runId, {
         claimant, leaseMs, binding: checkpointBinding});
+      if (claimed.action === 'invalidated') {
+        // The journal has durably failed this Run before any Effect send.
+        // Transfer the recovered capture's cleanup before reporting that
+        // stopped outcome to the common dispatch owner.
+        let released = false;
+        facts.retainExecution(Object.freeze({
+          async close() {},
+          async cleanup() {
+            if (!released) {
+              await releaseCompletedRunPreparedPayloads(
+                recovered.computation.storedResults, facts.control);
+              released = true;
+            }
+            return true;
+          },
+          cleanupPending() { return !released; },
+        }));
+        // The original Compute stop was already observed as nonterminal
+        // while waiting. Its earlier observation must not be rewritten to
+        // failed; the Checkpoint journal already owns the failed Run state.
+        return Object.freeze({status: 'failed'});
+      }
       if (claimed.action !== 'claimed') return claimed;
       const stage = await prepareRecovered(Object.freeze({
         ...facts, recovered}));

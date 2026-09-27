@@ -430,10 +430,10 @@ export function runAcceptanceConfiguration(outcome, {siteKey =
   });
 }
 
-function effectCommitConfiguration(targetRead = 'allow') {
+function effectCommitConfiguration(targetRead = 'allow', commit = 'delegate') {
   return canonicalJson({version: 'actql-execution-account-config/0.1',
     account_id: 'remote-effect-account', entries: [
-      {entry_id: 'effect-commit', outcome: 'delegate',
+      {entry_id: 'effect-commit', outcome: commit,
         principal: {all: true}, connection: {any_of: ['reference']},
         resource: {any_of: ['records']},
         operation: {any_of: ['effect']}, exclusions: []},
@@ -872,6 +872,64 @@ test('installed Effect factory resumes an approved captured Set',
       [{id: 1}, {id: 2}]);
     assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
     await finalHost.close();
+  });
+
+test('installed Effect rechecks account denial after an approved answer',
+  async t => {
+    const fixture = await effectFixture({twoMembers: true});
+    const directory = await mkdtemp(join(scratch, 'effect-current-deny-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const sends = [];
+    const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const effectInstallation = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 6),
+      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
+      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+    });
+    const account = (commit = 'delegate', extra = {}) =>
+      protectedHost(undefined, {...extra,
+        accountConfiguration: effectCommitConfiguration('allow', commit)});
+    const first = await remoteHost(t, account(), {directory,
+      effectInstallation});
+    const submitted = await (await first.as('owner-token'))
+      .aql(fixture.document, {format: 'json', requestId: 'current-deny-a'});
+    await waitFor(async () => (await submitted.status()).status ===
+      'waiting_checkpoint');
+    assert.deepEqual(sends, []);
+    await first.close();
+    const answering = await remoteHost(t, account('delegate', {
+      resumeAfterAnswer: false}), {directory, effectInstallation});
+    const [checkpoint] = (await (await answering.as('reviewer-token'))
+      .checkpoints()).items;
+    const answered = await (await answering.as('reviewer-token'))
+      .resolveCheckpoints([{checkpoint, decision: 'approved'}],
+        {signer: {...signer,
+          authorityScopeCid: submitted.ref.authorityScopeCid}});
+    assert.deepEqual(answered.results.map(item => item.status),
+      ['committed']);
+    await answering.close();
+    const denied = await remoteHost(t, account('deny'), {directory,
+      effectInstallation});
+    const resumed = await (await denied.as('owner-token'))
+      .attach(submitted.ref);
+    await waitFor(async () => (await resumed.status()).status === 'failed');
+    assert.deepEqual(sends, []);
+    assert.deepEqual((await (await denied.as('reviewer-token'))
+      .checkpoints()).items, []);
+    assert.equal((await denied.close()).storeCleanupPending, false);
+    const holdingRoot = join(directory, 'state', 'publication',
+      'physical-holdings');
+    const holdingFiles = await readdir(holdingRoot);
+    assert.deepEqual(await Promise.all(holdingFiles.map(async file =>
+      JSON.parse(await readFile(join(holdingRoot, file), 'utf8')))), []);
+    const restarted = await remoteHost(t, account('deny'), {directory,
+      effectInstallation});
+    const sameRun = await (await restarted.as('owner-token'))
+      .attach(submitted.ref);
+    assert.equal((await sameRun.status()).status, 'failed');
+    assert.deepEqual(sends, []);
+    await restarted.close();
   });
 
 test('installed Effect reply loss retains the unknown row after restart',

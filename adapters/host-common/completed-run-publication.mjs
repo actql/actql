@@ -412,6 +412,20 @@ function releaseCompletedResultOwner(storedResults, control, retainCapture) {
         throw error;
       }
     }
+    if (!retainCapture) {
+      for (const holdingCid of owner.effectSourceHoldingCids ?? []) {
+        const retired = await owner.store.retirePhysicalHolding(holdingCid);
+        if (retired.cleanup.status().pending) {
+          const error = new CompletedRunPublicationError(
+            'CompletedEffectSourceCleanupPending',
+          );
+          error.cleanupPending = true;
+          error.cleanupHandle = retired.cleanup;
+          owner.cleanupFailure = error;
+          throw error;
+        }
+      }
+    }
     owner.releaseComplete = true;
     return true;
   })().finally(() => {
@@ -629,6 +643,7 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
   // Retain responsibility before any fallible Store operation, including a
   // lost acknowledgement. Retry reconciles these exact records without export.
   owner.captureHolding = captureHolding;
+  owner.effectSourceHoldingCids = Object.freeze([...sourceHoldingCids]);
   for (const holding of ownedHoldings) {
     await commitHolding(holding.record, []);
   }
@@ -879,6 +894,8 @@ export async function recoverCompletedEffectfulComputation(options) {
     releaseComplete: false, releaseFlight: undefined,
     cleanupFailure: undefined, captureHolding, captureRecordOwner,
     captureRecordWire: recordBinding.wire, capturePublished: false,
+    effectSourceHoldingCids: Object.freeze(sourceHoldings.map(({source}) =>
+      control.capturedEffectSourceHoldingCid(source))),
   });
   completedEffectfulOwners.set(computation, Object.freeze({
     execution: null, store, storedResults, control, preview,
