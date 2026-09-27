@@ -125,7 +125,7 @@ explicit NULL, numeric, acquisition and failure semantics.
 | GROUP BY / aggregate call | Group keys and aggregate expressions | group | Not an analytic partition; canonical aggregate failure order retained |
 | Analytic partition / window frame | OVER partition, order and ROWS frame | analytic | Not TEA event-time windows; only adopted signatures/frames |
 | Final ORDER BY | Query output ordering | sort | Explicit ASC NULLS FIRST / DESC NULLS LAST; proof-driven tie completion |
-| INNER / LEFT / FULL / CROSS JOIN | Scoped relation join and equality keys | join / cross_join plus checked output bound | FULL needs stable row identity; no implicit representative row or key |
+| INNER / LEFT / FULL / CROSS JOIN | Scoped relation join and equality keys; USING exposes a merged unqualified key | join / cross_join plus checked output bound; FULL key through derive/coalesce | FULL needs stable row identity; no implicit representative row or key |
 | UNION / INTERSECT / EXCEPT | Positional or exact BY NAME alignment | projection plus append/distinct/row-set | No implicit type promotion or missing-column padding |
 | Nonrecursive CTE | Query-local dataflow binding | Shared Stage captured input and step references | No reacquisition per reference; no recursive CTE |
 | Parameter | Named query parameter | Existing parameter expression | New @name spelling; legacy $name remains unchanged |

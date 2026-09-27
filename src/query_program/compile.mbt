@@ -2322,9 +2322,6 @@ fn compile_cte_join_steps(
       is Some({ kind: Reference(path), .. }) else {
       raise Abort(UnsupportedCte)
     }
-    let resolved = join_projection_field(
-      path, part, left_qualifier, right_qualifier, fields, fields,
-    )
     let name = projection.name
       .map(value => value.value)
       .unwrap_or(path.last().unwrap().value)
@@ -2332,10 +2329,53 @@ fn compile_cte_join_steps(
       raise Abort(DuplicateOutput)
     }
     output.push(name)
-    select.push((name, construction.text(resolved.0 + "." + resolved.1)))
   }
   if output.is_empty() {
     raise Abort(UnsupportedCte)
+  }
+  let reserved = fields.copy()
+  for name in output {
+    reserved.push(name)
+  }
+  let merged : Array[(String, String, String)] = []
+  for index in 0..<projections.length() {
+    let projection = projections[index]
+    let expression = projection.expression.unwrap()
+    guard @query.expression_node(expression, @query.expression_root(expression))
+      is Some({ kind: Reference(path), .. }) else {
+      raise Abort(UnsupportedCte)
+    }
+    let name = output[index]
+    if part.kind == "full" &&
+      path.length() == 1 &&
+      part.using_columns.any(key => same_name(key, path[0])) {
+      let left = join_field(
+        [left_qualifier, path[0]],
+        left_qualifier,
+        right_qualifier,
+        fields,
+        fields,
+      )
+      let right = join_field(
+        [right_qualifier, path[0]],
+        left_qualifier,
+        right_qualifier,
+        fields,
+        fields,
+      )
+      let left_slot = pipe_physical_name(reserved, "aql_join_left_key_")
+      reserved.push(left_slot)
+      let right_slot = pipe_physical_name(reserved, "aql_join_right_key_")
+      reserved.push(right_slot)
+      select.push((left_slot, construction.text(left.0 + "." + left.1)))
+      select.push((right_slot, construction.text(right.0 + "." + right.1)))
+      merged.push((name, left_slot, right_slot))
+    } else {
+      let resolved = join_projection_field(
+        path, part, left_qualifier, right_qualifier, fields, fields,
+      )
+      select.push((name, construction.text(resolved.0 + "." + resolved.1)))
+    }
   }
   let operation = if part.kind == "cross" {
     (
@@ -2374,16 +2414,65 @@ fn compile_cte_join_steps(
       ]),
     )
   }
-  (
-    [
+  let steps : Array[@builder.Node] = []
+  steps.push(
+    construction.object([
+      ("from", construction.text("l")),
+      operation,
+      (
+        "as",
+        construction.text(
+          if merged.is_empty() {
+            "aql_join_output"
+          } else {
+            "aql_join_raw"
+          },
+        ),
+      ),
+    ]),
+  )
+  if !merged.is_empty() {
+    steps.push(
       construction.object([
-        ("from", construction.text("l")),
-        operation,
+        ("from", construction.text("aql_join_raw")),
+        (
+          "derive",
+          construction.object(
+            merged.map(entry => {
+              (
+                entry.0,
+                construction.object([
+                  (
+                    "coalesce",
+                    construction.array([
+                      construction.object([
+                        ("field", construction.text(entry.1)),
+                      ]),
+                      construction.object([
+                        ("field", construction.text(entry.2)),
+                      ]),
+                    ]),
+                  ),
+                ]),
+              )
+            }),
+          ),
+        ),
+        ("as", construction.text("aql_join_merged")),
+      ]),
+    )
+    steps.push(
+      construction.object([
+        ("from", construction.text("aql_join_merged")),
+        (
+          "select",
+          construction.array(output.map(name => construction.text(name))),
+        ),
         ("as", construction.text("aql_join_output")),
       ]),
-    ],
-    output,
-  )
+    )
+  }
+  (steps, output)
 }
 
 ///|

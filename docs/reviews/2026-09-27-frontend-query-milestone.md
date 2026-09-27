@@ -209,9 +209,14 @@ permits one join and direct selected fields. FULL JOIN is parsed but the
 Values compiler refuses it before issuing a Program: the checked FULL JOIN
 requires stable identity on both inputs, which the generated Values Stage
 Results do not carry. No representative row or synthetic key is inferred.
-A keyed captured-input CTE FULL JOIN passes the common checker, showing that
-the existing IR can represent that shape; packed runtime and FULL/USING
-merged-key projection remain open.
+A keyed captured-input CTE FULL JOIN passes the common checker. For
+`FULL JOIN ... USING`, the frontend now emits distinct left and right private
+key slots, derives the unqualified key with the existing typed `coalesce`
+expression, and selects only requested fields into the Result. The common
+checker accepts this shape. A packed Local attempt using a DISTINCT CTE
+failed during installed Host sequence preparation before Run acceptance;
+FULL JOIN runtime support through that profile remains unverified. The
+failing attempt is not part of the passing packed acceptance test.
 SQL source aliases with and without `AS` emit the same checked Program.
 The keyed FULL acceptance is paired with an unkeyed Values CTE rejection
 by the common checker; the frontend does not claim an identity witness from
@@ -229,8 +234,8 @@ remains open. Branching declarations, CTE joins inside the body and general
 subqueries still fail closed rather than being textually substituted.
 The same packed path accepts `JOIN ... USING(id)` and exposes one unqualified
 `id` Result column while retaining qualified left and right key bindings.
-This is not FULL JOIN's coalesced-key behavior; an unqualified FULL/USING key
-is refused rather than incorrectly taking only the left key.
+FULL JOIN uses the coalesced-key lowering described above instead of taking
+only the left key. Its installed Host runtime result remains open.
 Two sequential CTE declarations also execute with each later body referring
 to its immediate predecessor. A packed acquired-input example produces
 `3,2,3` after the second filter. The compiler currently requires a used

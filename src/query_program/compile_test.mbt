@@ -819,10 +819,25 @@ test "FULL CTE join retains keyed input identity for common closure" {
     "WITH chosen AS (SELECT id, customer_id FROM orders) SELECT customer_id FROM chosen AS l FULL JOIN chosen AS r USING (customer_id)",
     syntax_limits(),
   ).unwrap()
-  assert_true(
-    compile(using_query, fixture_context(), construction_limits())
-    is Err(UnsupportedJoin),
-  )
+  let using_program = compile(
+    using_query,
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  let using_wire = semantic(using_program)
+  assert_true(using_wire.contains("\"coalesce\""))
+  assert_true(using_wire.contains("\"fields\":[\"customer_id\"]"))
+  match
+    @check.check_parsed(
+      using_program,
+      check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("keyed FULL USING CTE should be statically closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
   let unkeyed = @query.parse_query(
     "WITH chosen AS (SELECT a, b FROM left_rows) SELECT l.a AS left_a, r.a AS right_a FROM chosen AS l FULL JOIN chosen AS r ON l.a = r.a",
     syntax_limits(),
