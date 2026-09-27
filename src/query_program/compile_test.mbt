@@ -803,7 +803,7 @@ test "CTE chain references prior declarations without source substitution" {
 }
 
 ///|
-test "CTE branches share one checked producer and skip unused declarations" {
+test "CTE branches share one checked producer and reject unchecked declarations" {
   let branched = @query.parse_query(
     "WITH base AS (SELECT a, b FROM left_rows), first AS (SELECT a FROM base WHERE a = 1), second AS (SELECT a FROM base WHERE a = 2) SELECT l.a AS left_a, r.a AS right_a FROM first AS l JOIN second AS r ON l.a = r.a",
     syntax_limits(),
@@ -820,14 +820,18 @@ test "CTE branches share one checked producer and skip unused declarations" {
     "WITH unused AS (SELECT a FROM left_rows), selected AS (SELECT a FROM left_rows WHERE a > 1) SELECT a FROM selected",
     syntax_limits(),
   ).unwrap()
-  let program = compile(unused, set_context(), construction_limits()).unwrap()
-  assert_eq(@program.stage_count(program), 2)
-  assert_true(!semantic(program).contains("\"id\":\"aql_cte_0\""))
-  match
-    @check.check_parsed(program, check_environment(), None, check_limits()) {
-    Checked(_) => ()
-    NeedsInputs(_) => fail("unused CTE should not create an input")
-    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  assert_true(
+    compile(unused, set_context(), construction_limits()) is Err(UnsupportedCte),
+  )
+  for
+    text in [
+      "WITH bad AS (SELECT a FROM bad), selected AS (SELECT a FROM left_rows) SELECT a FROM selected",
+      "WITH bad AS (SELECT a FROM missing), selected AS (SELECT a FROM left_rows) SELECT a FROM selected",
+      "WITH bad AS (SELECT a FROM selected), selected AS (SELECT a FROM left_rows) SELECT a FROM selected",
+      "WITH chosen AS (SELECT a FROM left_rows), CHOSEN AS (SELECT a FROM left_rows) SELECT a FROM chosen",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    assert_true(compile(query, set_context(), construction_limits()) is Err(_))
   }
 }
 

@@ -247,10 +247,11 @@ independent right-only key case. General multi-relation join chains remain
 open.
 Two sequential CTE declarations also execute with each later body referring
 to its immediate predecessor. A packed acquired-input example produces
-`3,2,3` after the second filter. The compiler now selects only declarations
-reachable from the outer query, so unused definitions do not create work.
-Two branches may refer to one prior Stage Result without copying its
-acquisition. A physical provider read counter is still pending.
+`3,2,3` after the second filter. Two branches may refer to one prior Stage
+Result without copying its acquisition. Unused declarations currently fail
+closed: admitting them without checking their fields and types would skip
+semantic validation, while materializing them could perform extra acquisition.
+A physical provider read counter is still pending.
 ARRAY_AGG requires the adopted `IGNORE NULLS` and explicit order spelling;
 STRING_AGG requires a literal delimiter and explicit order. Both lower to the
 existing group call. The independent checker accepts the bounded ARRAY_AGG

@@ -2043,6 +2043,29 @@ fn compile_cte_query(
         return Err(UnsupportedCte)
       }
     }
+    let body = cte.query
+    if @query.cte_count(body) != 0 ||
+      @query.set_part_count(body) != 0 ||
+      @query.join_part_count(body) != 0 {
+      return Err(UnsupportedCte)
+    }
+    let body_relation = @query.relation(body)
+    for future in index..<@query.cte_count(query) {
+      if same_path(body_relation, [@query.cte_at(query, future).unwrap().name]) {
+        return Err(UnsupportedCte)
+      }
+    }
+    let mut known_relation = context.inputs.any(input => {
+      same_path(body_relation, input.relation)
+    })
+    for earlier in 0..<index {
+      if same_path(body_relation, [@query.cte_at(query, earlier).unwrap().name]) {
+        known_relation = true
+      }
+    }
+    if !known_relation {
+      return Err(UnknownRelation)
+    }
     let joined = match joined_relation {
       Some(path) => same_path(path, [cte.name])
       None => false
@@ -2066,6 +2089,11 @@ fn compile_cte_query(
     }
     index -= 1
   }
+  // An unused declaration still needs full semantic checking. Until the
+  // frontend can check it without scheduling its acquisition, reject it.
+  if used.any(value => !value) {
+    return Err(UnsupportedCte)
+  }
   let document = @query.query_document(query)
   let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
   let builder = match @builder.create(document, limits.source) {
@@ -2080,9 +2108,6 @@ fn compile_cte_query(
     let cte_inputs : Array[Input] = []
     let mut captured_owner = false
     for index in 0..<@query.cte_count(query) {
-      if !used[index] {
-        continue
-      }
       let cte = @query.cte_at(query, index).unwrap()
       let body_relation = @query.relation(cte.query)
       let captures_source = context.inputs.any(input => {
@@ -2103,11 +2128,6 @@ fn compile_cte_query(
         raise Abort(InvalidContext)
       }
       used_stage_names.push(stage_name)
-      for future in index..<@query.cte_count(query) {
-        if same_path(body_relation, [@query.cte_at(query, future).unwrap().name]) {
-          raise Abort(UnsupportedCte)
-        }
-      }
       let (stage, binding) = compile_cte_stage(
         construction, cte, known, context, limits, stage_name,
       )
