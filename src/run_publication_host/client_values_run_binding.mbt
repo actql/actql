@@ -22,6 +22,9 @@ pub fn bind_source_free_client_values_run(
   admission : @publication.RunPublicationAdmission,
   run_definition : @publication.PublicationContract,
 ) -> Result[ClientValuesRunBinding, ClientValuesRunBindingIssue] {
+  if !physical_equal(prepared, compilation.owner) {
+    return Err(ForeignRun)
+  }
   let identity = prepared_client_identity(prepared)
   if @publication.check_run_publication_program_binding(
       admission,

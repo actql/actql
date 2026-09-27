@@ -10,6 +10,8 @@ const sha = text => 'sha256:' + createHash('sha256').update(text).digest('hex');
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 
 test('independent canonical manifest identity vectors', () => {
+  // Preserve the historical pre-structural vector; it is no longer a current
+  // schema-admissible manifest. Do not retarget its expected CID.
   const grammarPreimage = '{"expression_contract_cid":' +
     '"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",' +
     '"expression_text_grammar_sha256":' +
@@ -30,6 +32,31 @@ test('independent canonical manifest identity vectors', () => {
     'sha256:4cf406b9a5e56f04a82aca30597cdb9d4f874242a590ea1e3873e7cb204c5bf9');
   assert.equal(machineCid(JSON.parse(grammarPreimage)), sha(grammarPreimage));
   assert.equal(machineCid(JSON.parse(barrierPreimage)), sha(barrierPreimage));
+});
+
+test('structural grammar and rules have distinct bound identity inputs', () => {
+  const preimage = '{"expression_contract_cid":"sha256:' + 'a'.repeat(64) +
+    '","expression_text_grammar_sha256":"' + 'b'.repeat(64) +
+    '","expression_text_rules_sha256":"' + 'c'.repeat(64) +
+    '","operations":["filter","values"],"source_grammar_cid":"sha256:' +
+    'd'.repeat(64) + '","structural_text_grammar_sha256":"' + 'e'.repeat(64) +
+    '","structural_text_rules_sha256":"' + 'f'.repeat(64) +
+    '","version":"actql-grammar-manifest/0.1"}';
+  // Literal preimage independently hashed with Python hashlib, not generated
+  // by the product compiler or the manifest writer.
+  const expected = 'sha256:9668c7a7f243c5d1b894d656110dee14357ab81072b380dcaf072d29fc31812c';
+  assert.equal(sha(preimage), expected);
+  const body = JSON.parse(preimage);
+  assert.equal(machineCid(body), expected);
+  for (const key of ['structural_text_grammar_sha256', 'structural_text_rules_sha256']) {
+    assert.notEqual(machineCid({...body, [key]: '0'.repeat(64)}), expected);
+    const missing = {...body};
+    delete missing[key];
+    assert.notEqual(machineCid(missing), expected);
+    const schema = expectedCompilationManifests().contract.schemas.grammar_manifest;
+    assert.ok(schema.required.includes(key));
+    assert.deepEqual(schema.properties[key], {type: 'string', pattern: '^[0-9a-f]{64}$'});
+  }
 });
 
 test('pinned manifests close over their source contracts and exact schemas', () => {

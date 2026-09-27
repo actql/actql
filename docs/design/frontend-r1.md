@@ -61,9 +61,11 @@ significant according to their existing contracts. A changed Grammar Manifest
 can change dependent compilation identities; frontend equivalence is not a
 promise that all Plan identities survive a grammar change.
 
-The current Grammar Manifest is not changed just to announce this design.
-When an implemented frontend changes compilation obligations, its manifest,
-pins, dependent artifacts and independent vectors are updated together.
+The Grammar Manifest binds the structural EBNF and the structural source rules
+separately from the existing Program source grammar and expression contracts.
+This binds lexical, lowering and formatter obligations without changing the
+Program schema. Its pins, dependent artifacts and independent vectors change
+together with those obligations.
 All owned contracts remain on the initial 0.1 baseline.
 
 Pure checking performs no provider I/O. Execution uses the normal Host and

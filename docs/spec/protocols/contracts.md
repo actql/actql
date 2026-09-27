@@ -1242,8 +1242,14 @@ The manifest also binds the Program source schema CID, the complete expression
 contract CID, the raw UTF-8 expression EBNF SHA-256, and the SHA-256 of the
 UTF-8 language section starting at `<a id="expression-text"></a>` and ending
 immediately before `<a id="predicates"></a>`. That section contains the
-expression syntax, decoding and printer rules. The manifest CID hashes the
-canonical JSON of every member except `grammar_manifest_cid`.
+expression syntax, decoding and printer rules. It also binds
+`structural_text_grammar_sha256` to the raw UTF-8 bytes of
+`spec/grammar/actql-text-0.1.ebnf` and `structural_text_rules_sha256` to the
+complete raw UTF-8 bytes of [Structural text AQL](../structural-text.md).
+These fields bind source mapping, native DATA lowering, origins, bounds and
+structural formatting without replacing the existing Program schema identity.
+The manifest CID hashes canonical JSON of every member except
+`grammar_manifest_cid`.
 
 <!-- requirement-block: bound-template-wire.barrier-manifest-identity bound-template-wire.compilation-manifest-admission -->
 The pinned `actql-barrier-contract-manifest/0.1` MUST close over every registered
@@ -1256,10 +1262,10 @@ manifest bodies and their schema pins MUST be verified before issuing an
 Executable Plan; a bare source-grammar CID or an invented placeholder CID is
 not a manifest.
 
-<!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:8545024d32a770e6056edd4eb28cb42c75339b090d6234d7004d87671cb47b66 -->
-<!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:fce1a3d02d7f99742b001b700c6f103a4aa08237de0c9417bab20ea8931eb700 -->
+<!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:33cbb23a9775b51999205d281bef1daeef98245bf6e8716daeb957ca6401f1bb -->
+<!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:14155c10bf32ba92399382dc439afb64beadc38bc91f4a78c44d3677bfc19ce8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:7b3f095cbf7beda05c3baea6e74ccb7877dc123f0e9292c8729a280163d036a3 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:11d55ba5462a7dd83c21da5829385a536e6adc07cbcf6b17723b7a82d64762ba -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:ae28ef802697bf58df5d343f5a6f457bbcc0e7f814636086a640e12a1a1163e3 -->
 
 <a id="parameter-value-projection"></a>

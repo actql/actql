@@ -20,6 +20,9 @@ pub fn bind_client_task_run(
   admission : @publication.RunPublicationAdmission,
   run_definition : @publication.PublicationContract,
 ) -> Result[ClientTaskRunBinding, ClientTaskRunBindingIssue] {
+  if !physical_equal(prepared, compilation.owner) {
+    return Err(ForeignRun)
+  }
   let identity = prepared_client_identity(prepared)
   if @publication.check_run_publication_program_binding(
       admission,

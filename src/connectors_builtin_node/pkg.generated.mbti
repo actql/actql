@@ -38,6 +38,8 @@ import {
 // Values
 pub fn client_program_admit_allowed_effect_run(@run_publication_host.ClientEffectCompilation, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@run_publication_host.ClientEffectAllowedRun, @run_publication_host.ClientEffectCompiledRunIssue]
 
+pub fn client_program_admit_compiled_run_definition(@run_publication_host.ClientCompiledRun, String) -> Result[@run_publication.PublicationContract, @run_publication_host.ClientCompiledRunIssue]
+
 pub fn client_program_admit_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootAdmissionIssue]
 
 pub fn client_program_admit_effect_publication(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> @run_publication.RunPublicationAdmission?
@@ -135,6 +137,20 @@ pub fn client_program_compile_local_effects(@run_publication_host.PreparedClient
 pub fn client_program_compile_local_tasks(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientTaskCompilation, ClientProgramTaskCompilationBridgeIssue]
 
 pub fn client_program_compile_local_values(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientProgramValuesCompilationBridgeIssue]
+
+pub fn client_program_compiled_run_admission(@run_publication_host.ClientCompiledRun) -> @run_publication.RunPublicationAdmission
+
+pub fn client_program_compiled_run_authorization(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
+
+pub fn client_program_compiled_run_matches(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientProgram) -> Bool
+
+pub fn client_program_compiled_run_plan(@run_publication_host.ClientCompiledRun) -> @run_publication.PublicationContract
+
+pub fn client_program_compiled_run_prepared(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
+
+pub fn client_program_compiled_run_template(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
+
+pub fn client_program_definition_cid(@run_publication_host.PreparedClientProgram) -> String
 
 pub fn client_program_definition_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
@@ -294,6 +310,12 @@ pub fn client_program_issue_captured_effect_input_local_result_definition(@run_p
 
 pub fn client_program_issue_captured_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
 
+pub fn client_program_issue_compiled_run_definition(@run_publication_host.ClientCompiledRun, String, String, String, String) -> Result[@run_publication.PublicationContract, @run_publication_host.ClientCompiledRunIssue]
+
+pub fn client_program_issue_compiled_task_invocation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
+pub fn client_program_issue_compiled_values_invocation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
 pub fn client_program_issue_controlled_unpublished_run_state(String, String, Array[String], Bool, Bool, Bool, String, Bool) -> String raise ClientProgramRunStateIssue
 
 pub fn client_program_issue_direct_task_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
@@ -338,6 +360,8 @@ pub fn client_program_issue_source_free_local_effect_invocation(@run_publication
 
 pub fn client_program_issue_source_free_local_effect_result_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
 
+pub fn client_program_issue_task_compiled_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, String, String, String) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
+
 pub fn client_program_issue_task_executable_plan(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientTaskExecutablePlan, ClientProgramTaskPlanBridgeIssue]
 
 pub fn client_program_issue_task_fragment(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientTaskFragmentNode, @run_publication_host.ClientTaskFragmentIssue]
@@ -345,6 +369,8 @@ pub fn client_program_issue_task_fragment(@run_publication_host.PreparedClientPr
 pub fn client_program_issue_task_plan_graph(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientTaskPlanGraph, @run_publication_host.ClientTaskPlanGraphIssue]
 
 pub fn client_program_issue_unpublished_run_state(String, String, Array[String], Bool, Bool) -> String?
+
+pub fn client_program_issue_values_compiled_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String, String) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
 
 pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskAoAStepsIssue]
 
