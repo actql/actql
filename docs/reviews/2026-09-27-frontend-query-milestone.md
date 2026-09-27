@@ -118,6 +118,14 @@ from `FROM set_left AS l |> WHERE l.a > 1 |> LEFT JOIN set_right AS r ON
 l.a = r.c |> SELECT l.a AS a, r.d AS d`. A pre-join predicate cannot refer
 to the right relation. Other Pipe edits before JOIN still fail closed because
 their range snapshot has not yet been connected to JOIN lowering.
+The same pre-join filter over two named `FROM (SELECT ...)` sources emits a
+checked Program, but the installed Host currently rejects its task graph
+with `RunHostTaskCompilationRejected`. This source-free Stage Result case is
+not counted as an executed query. The frontend and Host/ABI owners need to
+identify whether a separate checked filter task or an existing task-pipeline
+capability closes this graph without weakening source or result evidence.
+The filter must stay before the join, and the packed Result case must be
+rerun after that connection.
 
 GQL patterns, VecA/TEA-specific surfaces, INFER/Artifact spelling, INSERT,
 installed raw-text routing, deployment and other owners' runtime redesigns
