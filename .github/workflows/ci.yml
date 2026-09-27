@@ -110,6 +110,8 @@ jobs:
         run: npm run check:transfer-core
       - name: Test portable Run Host compilation package
         run: npm run check:run-host-core
+      - name: Build runtime packages without prebuilt bundles
+        run: node scripts/test-runtime-package-build.mjs
       - name: Test packed Local runtime assets
         run: npm run check:local-node-assets
   # Public Client, packed distribution and the Salesforce Site.

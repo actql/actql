@@ -11,5 +11,8 @@
       "default": "./index.mjs"
     }
   },
-  "files": ["index.mjs", "index.d.ts", "dist/remote_transfer_abi.js"]
+  "files": ["index.mjs", "index.d.ts", "dist/remote_transfer_abi.js"],
+  "scripts": {
+    "prepack": "node ../../scripts/build-runtime-packages.mjs transfer-core"
+  }
 }

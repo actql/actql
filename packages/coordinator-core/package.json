@@ -11,5 +11,8 @@
       "default": "./index.mjs"
     }
   },
-  "files": ["index.mjs", "index.d.ts", "dist/remote_coordinator_abi.js"]
+  "files": ["index.mjs", "index.d.ts", "dist/remote_coordinator_abi.js"],
+  "scripts": {
+    "prepack": "node ../../scripts/build-runtime-packages.mjs coordinator-core"
+  }
 }

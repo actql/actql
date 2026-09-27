@@ -14,7 +14,7 @@ const environment = {...process.env,
 
 function run(command, args, cwd) {
   const result = spawnSync(command, args, {cwd, env: environment,
-    encoding: 'utf8', timeout: 30000});
+    encoding: 'utf8', timeout: command === 'npm' && args[0] === 'pack' ? 180000 : 30000});
   if (result.error || result.status !== 0) {
     throw new Error(`${command} ${args.join(' ')} failed:\n` +
       `${result.stdout}\n${result.stderr}`, {cause: result.error});
