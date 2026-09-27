@@ -35,10 +35,22 @@ pub fn validate_reuse(
   program : Program,
   limits : Limits,
 ) -> Result[Unit, SyntaxError] {
+  check_usage(
+    program_usage(program),
+    limits,
+    @wire.cursor_span(program.body).source_path,
+  )
+}
+
+///|
+fn check_usage(
+  usage : ProgramUsage,
+  limits : Limits,
+  source_path : String,
+) -> Result[Unit, SyntaxError] {
   if !valid_limits(limits) {
     return Err(InvalidLimits)
   }
-  let usage = program_usage(program)
   let exceeded = if usage.source.input_bytes > limits.source.max_input_bytes {
     Some(InputBytes)
   } else if usage.source.nodes > limits.source.max_nodes {
@@ -59,13 +71,7 @@ pub fn validate_reuse(
     None
   }
   match exceeded {
-    Some(kind) =>
-      Err(
-        RetentionLimit(
-          kind,
-          source_path=@wire.cursor_span(program.body).source_path,
-        ),
-      )
+    Some(kind) => Err(RetentionLimit(kind, source_path~))
     None => Ok(())
   }
 }

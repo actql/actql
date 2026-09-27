@@ -1,0 +1,82 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/program_source_builder"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/frontend_source_map",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn add(Builder, Value, @frontend_source_map.Origin) -> Result[Node, Issue]
+
+pub fn create(@frontend_source_map.Document, Limits) -> Result[Builder, Issue]
+
+pub fn cursor(Source) -> @decode_core.Cursor
+
+pub fn discard(Builder) -> Unit
+
+pub fn finish(Builder, Node) -> Result[Source, Issue]
+
+pub fn import_parsed(Builder, @source_value.ParsedSource) -> Result[Node, Issue]
+
+pub fn key_origin(Source, @decode_core.Cursor) -> @frontend_source_map.Origin?
+
+pub fn origin(Source, @decode_core.Cursor) -> @frontend_source_map.Origin?
+
+pub fn output_bytes(Source) -> Int
+
+pub fn usage(Source) -> @source_value.ParseUsage
+
+// Errors
+
+// Types and methods
+type Builder
+
+pub(all) struct Field {
+  key : String
+  origin : @frontend_source_map.Origin
+  value : Node
+}
+
+pub(all) enum Issue {
+  InvalidLimits
+  InputLimit
+  Closed
+  ForeignNode
+  ForeignOrigin
+  InvalidSpan
+  NodeLimit
+  DepthLimit
+  StringLimit
+  OriginLimit
+  OutputLimit
+  InvalidScalar
+  DuplicateKey(String)
+  Admission(@decode_core.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  source : @source_value.ParseLimits
+  tree : @decode_core.Limits
+  max_origin_entries : Int
+  max_output_bytes : Int
+} derive(Eq, @debug.Debug)
+
+type Node
+
+type Source
+
+pub(all) enum Value {
+  Null
+  Bool(Bool)
+  Number(Double)
+  String(String)
+  Array(Array[Node])
+  Object(Array[Field])
+}
+
+// Type aliases
+
+// Traits

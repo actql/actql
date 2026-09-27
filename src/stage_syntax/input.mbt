@@ -188,3 +188,26 @@ pub fn parse_bytes(
     Err(error) => Err(error)
   }
 }
+
+///|
+/// Generated input follows the same closed-envelope decoder. The builder owns
+/// admission and measurements; no caller-supplied usage is accepted here.
+pub fn admit_generated_source(
+  source : @builder.Source,
+  limits : Limits,
+) -> Result[Program, SyntaxError] {
+  let root = @builder.cursor(source)
+  let usage = @builder.usage(source)
+  match
+    check_usage(
+      { source: usage, tree: @wire.admission_usage(root), stages: 0, },
+      limits,
+      @wire.cursor_span(root).source_path,
+    ) {
+    Err(error) => return Err(error)
+    Ok(_) => ()
+  }
+  Ok(decode(root, limits.max_stages, usage)) catch {
+    Abort(error) => Err(error)
+  }
+}
