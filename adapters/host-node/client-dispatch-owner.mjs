@@ -4,6 +4,7 @@
 import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
 import {acquiredTaskPublicationPlan} from './local-values-plan.mjs';
+import {acquisitionOutcome} from '../host-common/acquisition-outcome.mjs';
 
 export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
@@ -183,11 +184,25 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         await observed('acquisition_started', {ref: accepted.ref});
         entry.physicalWorkMayHaveStarted = true;
         // The installed source's adapter owns the physical read; the
-        // returned capture is this entry's to close.
-        entry.sourceCapture = await sourceProfile.open({preparedProgram,
-          registry, values, fragment, ordered, sourceAccess,
-          signal: entry.abort.signal,
-          preparedSource: held.preparedSource});
+        // returned capture is this entry's to close. When it returns none,
+        // only the adapter's confirmed end (not started, or stopped) is
+        // observed as this Run's stop; an unknown end stays with its
+        // recovery owner, or unresolved, and is never inferred.
+        try {
+          entry.sourceCapture = await sourceProfile.open({preparedProgram,
+            registry, values, fragment, ordered, sourceAccess,
+            signal: entry.abort.signal,
+            preparedSource: held.preparedSource});
+        } catch (error) {
+          const ended = acquisitionOutcome(error);
+          if (ended.outcome === 'not_started' ||
+              ended.outcome === 'stopped') {
+            entry.stopObservationPending = true;
+          } else if (ended.recovery !== undefined) {
+            entry.cleanupOwner = ended.recovery;
+          }
+          throw error;
+        }
         const captureCompletedAt = now();
         await observed('acquisition_completed', {ref: accepted.ref});
         const sourceEvidenceWire =
