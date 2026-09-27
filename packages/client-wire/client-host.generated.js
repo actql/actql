@@ -875,6 +875,8 @@ const schemas = {
         "enum": [
           "listing_truncated",
           "not_visible",
+          "not_observed",
+          "not_found",
           "describe_unavailable"
         ]
       },

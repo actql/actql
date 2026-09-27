@@ -136,7 +136,8 @@ export interface Client {
     maxBytes?: number; signal?: AbortSignal}): Promise<Readonly<{
       resourceConnection: string; resource: string; observationCid: string;
       status: 'ready' | 'catalog_required';
-      reason?: 'listing_truncated' | 'not_visible' | 'describe_unavailable';
+      reason?: 'listing_truncated' | 'not_visible' | 'not_observed' |
+        'not_found' | 'describe_unavailable';
       summary?: unknown}>>;
   peekResource(resourceConnection: string, resource: string, options: {
     fields: readonly string[]; maxRows?: number; maxBytes?: number;

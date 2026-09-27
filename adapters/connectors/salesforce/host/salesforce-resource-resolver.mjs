@@ -2,6 +2,23 @@ import {requireAuthorizedDispatch} from
   '../../../host-common/authorization-gate.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 
+// Why an observation cannot answer for a Resource the caller may see. A
+// Resource the caller may not see is refused before this (never disclosed,
+// present or absent).
+// - `listing_truncated`: a provider listing was cut off by its limits.
+// - `not_visible`: a complete listing did not include it.
+// - `not_observed`: outside a targeted (describe-only) observation's names.
+// - `not_found`: an authorized describe was answered as not found for this
+//   principal. A permission failure is never reported as `not_found`.
+// - `describe_unavailable`: the describe failed, was refused by the provider
+//   or was interrupted; the Resource's state is unknown.
+export function catalogRequiredReason(state, named) {
+  if (state === -2) return named ? 'not_observed' : 'listing_truncated';
+  if (state === -1) return 'not_visible';
+  if (state === 8) return 'not_found';
+  return 'describe_unavailable';
+}
+
 const fields = Object.freeze([
   'tenant', 'principal', 'environment', 'connection_revision', 'org_id',
   'site_key', 'site_generation', 'connector_registration',
@@ -62,8 +79,10 @@ export async function resolveSalesforceResource({moon, catalog, binding,
     ...arguments_));
   if (state !== 1) {
     return Object.freeze({status: 'catalog_required',
-      reason: state === -2 ? 'listing_truncated' :
-        state === -1 ? 'not_visible' : 'describe_unavailable',
+      reason: catalogRequiredReason(state,
+        JSON.parse(catalog.observationJson ??
+          moon.salesforceCatalogObservationJson(catalog.observation))
+          .listing_use_cid === null),
       observationCid});
   }
   const requiredFields = operation === 'upsert'

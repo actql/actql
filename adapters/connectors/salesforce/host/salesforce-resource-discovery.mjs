@@ -1,7 +1,8 @@
 import {requireAuthorizedDispatch} from
   '../../../host-common/authorization-gate.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {resolveSalesforceResource} from './salesforce-resource-resolver.mjs';
+import {catalogRequiredReason, resolveSalesforceResource} from
+  './salesforce-resource-resolver.mjs';
 
 const bindingFields = Object.freeze([
   'tenant', 'principal', 'environment', 'connection_revision', 'org_id',
@@ -15,6 +16,7 @@ const fail = () => {
   });
 };
 const resourceName = /^[A-Za-z_][A-Za-z0-9_]{0,254}$/u;
+
 
 // An installed view of one exact observation. The view owns its binding;
 // current metadata disclosure is checked for each returned Resource. It does
@@ -52,6 +54,8 @@ export function installSalesforceResourceDiscovery({moon, catalog, binding,
         typeof entry?.outcome !== 'string') fail();
     return Object.freeze({name: entry.name, outcome: entry.outcome});
   }));
+  // A named observation carries no provider listing.
+  const named = projection.listing_use_cid === null;
   const snapshotComplete = moon.salesforceCatalogObservationIsComplete(
     ownedCatalog.observation);
   const authorize = (resource, signal) => requireAuthorizedDispatch(
@@ -96,13 +100,8 @@ export function installSalesforceResourceDiscovery({moon, catalog, binding,
     const state = checked(moon.salesforceCatalogObservedResourceState(
       ...arguments_));
     if (state !== 1) {
-      // The public reasons stay those of the Client–Host contract: a
-      // Resource outside a named observation's targets is `listing_truncated`
-      // (unobserved, not absent); a target the org did not find is
-      // `describe_unavailable` here and `not_found` in the listing outcome.
       return Object.freeze({status: 'catalog_required', observationCid,
-        reason: state === -2 ? 'listing_truncated' :
-          state === -1 ? 'not_visible' : 'describe_unavailable'});
+        reason: catalogRequiredReason(state, named)});
     }
     const summary = JSON.parse(checked(moon.salesforceCatalogResourceSummaryJson(
       ...arguments_, maxSummaryBytes)));

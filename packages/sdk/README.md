@@ -197,6 +197,21 @@ typed metadata, or `catalog_required` with a reason when the Catalog cannot
 answer yet. Neither call reads business rows or grants reading or running
 anything.
 
+A Resource the caller is not currently allowed to read is refused
+(`ResourceDiscoveryDenied`) and is left out of `resources`: nothing tells
+whether it exists. For a Resource the caller may read, the reasons are:
+
+| State | Listing `outcome` | Inspect `reason` |
+| --- | --- | --- |
+| Outside a targeted (published) observation: not checked | not listed | `not_observed` |
+| An authorized describe answered not found for this principal | `not_found` | `not_found` |
+| The describe failed or the provider refused it: state unknown | the failure, e.g. `permission_denied` | `describe_unavailable` |
+| A provider listing was cut off by its limits | not listed | `listing_truncated` |
+| A complete listing did not include it | not listed | `not_visible` |
+
+A provider permission failure is never reported as `not_found`, and
+`not_found` holds only for this principal at the time of the observation.
+
 `peekResource(resourceConnection, resource, {fields, maxRows, maxBytes})` is
 authorized separately. It returns at most `maxRows` rows with exactly the
 requested `fields`; `limited` is true when the reply reached `maxRows`, so

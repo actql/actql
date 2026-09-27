@@ -144,13 +144,13 @@ test('public Client discovers, inspects and previews a published org',
     assert.equal(inspected.status, 'ready');
     assert.deepEqual(inspected.summary.fields.map(field => field.name).sort(),
       ['External_Key__c', 'Id', 'Name']);
-    // A published name the org did not find (listed as `not_found`) and a
-    // readable Resource the publication did not target (not listed,
-    // unobserved) are different answers; neither is declared absent.
+    // A published name the org did not find and a readable Resource the
+    // publication did not target are different answers; a targeted
+    // publication is not a cut-off listing.
     assert.equal((await client.inspectResource(host.connection,
-      'Missing__c')).reason, 'describe_unavailable');
+      'Missing__c')).reason, 'not_found');
     assert.equal((await client.inspectResource(host.connection,
-      'Contact')).reason, 'listing_truncated');
+      'Contact')).reason, 'not_observed');
     const describes = host.org.seen.length;
     const preview = await client.peekResource(host.connection,
       'Test_Record__c', {fields: ['Id', 'Name'], maxRows: 2});
@@ -313,3 +313,36 @@ test('a published generation is replaced whole and checked against its targets',
     await remove(host.generationPath);
     await assert.rejects(first.load(), {code: 'SalesforcePublicationMissing'});
   });
+
+test('a non-disclosed target leaks neither existence nor absence',
+  async t => {
+    const host = await discoveryHost(t);
+    const first = await host.open();
+    await first.publish();
+    first.site.close();
+    // Missing__c was published as not found; the caller may no longer read
+    // it, so neither the listing nor inspection says anything about it.
+    const narrowed = await host.open({readable: ['Test_Record__c']});
+    await narrowed.load();
+    const client = await narrowed.client('owner-token');
+    t.after(() => client.close());
+    assert.deepEqual((await client.resources(host.connection)).resources, [
+      {name: 'Test_Record__c', outcome: 'described'}]);
+    await assert.rejects(client.inspectResource(host.connection,
+      'Missing__c'), {code: 'ResourceDiscoveryDenied'});
+  });
+
+test('catalog_required reasons map the five observation states', async () => {
+  const {catalogRequiredReason} = await import(
+    '../host/salesforce-resource-resolver.mjs');
+  // Named (targeted) observations never report a cut-off listing.
+  assert.equal(catalogRequiredReason(-2, true), 'not_observed');
+  assert.equal(catalogRequiredReason(-2, false), 'listing_truncated');
+  assert.equal(catalogRequiredReason(-1, false), 'not_visible');
+  assert.equal(catalogRequiredReason(8, true), 'not_found');
+  // Pending, permission denied (provider 403), rate limited, unavailable,
+  // interrupted, invalid metadata and cancelled are all unknown states.
+  for (const state of [0, 2, 3, 4, 5, 6, 7]) {
+    assert.equal(catalogRequiredReason(state, true), 'describe_unavailable');
+  }
+});
