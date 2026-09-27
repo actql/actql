@@ -40,6 +40,7 @@ struct LocalMaterializingAttempt {
   mut closed : Bool
   mut settled : Bool
   mut output : @execution.CompletedOutput?
+  mut publication_output : @execution.CompletedOutput?
   output_limits : LocalExportLimits?
   mut exported : Bool
   mut export_stream : @execution.CompletedOutputExport?
@@ -247,6 +248,7 @@ pub fn[E] prepare_local_materializing_execution(
         closed: false,
         settled: false,
         output: None,
+        publication_output: None,
         output_limits,
         exported: false,
         export_stream: None,
@@ -562,6 +564,23 @@ pub fn local_materializing_completed_output(
 }
 
 ///|
+/// The evaluator-owned cell view shares the exact completion occurrence with
+/// the retained file. Publication may borrow it only while this attempt and
+/// its verified retained output are both available.
+pub fn local_materializing_publication_output(
+  attempt : LocalMaterializingAttempt,
+) -> @execution.CompletedOutput? {
+  if attempt.closed ||
+    !attempt.settled ||
+    !attempt.exported ||
+    attempt.output is None {
+    None
+  } else {
+    attempt.publication_output
+  }
+}
+
+///|
 pub fn close_local_materializing_attempt(
   attempt : LocalMaterializingAttempt,
 ) -> Unit {
@@ -582,6 +601,7 @@ pub fn close_local_materializing_attempt(
     attempt.copies[index] = None
   }
   attempt.output = None
+  attempt.publication_output = None
   if attempt.provider_execution is Some(active) {
     // A started provider reports its stop on one final advance before its
     // workspace is reclaimed.

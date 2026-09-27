@@ -5,7 +5,7 @@
   "type": "module",
   "engines": {"node": ">=22"},
   "scripts": {
-    "prepack": "node ../../scripts/build-local-node-adapters.mjs && node ../../scripts/build-local-node-assets.mjs --check"
+    "prepack": "node ../../scripts/build-runtime-packages.mjs local-node && node ../../scripts/build-local-node-adapters.mjs"
   },
   "dependencies": {
     "@actql/client-wire": "0.0.0-development",

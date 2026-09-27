@@ -44,9 +44,7 @@ pub fn prepare_dispatch_inputs(
       Err(issue) => return Err(Run(issue))
     }
   }
-  let prepared = if count == 0 &&
-    task == 0 &&
-    @strategy.captured_compute_first_task(run) == 0 {
+  let prepared = if count == 0 {
     @connector.prepare_source_free_fixed_compute_request(owner, capacity)
   } else {
     @connector.prepare_fixed_compute_request(inputs, capacity)

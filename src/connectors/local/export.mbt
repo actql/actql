@@ -127,8 +127,10 @@ pub fn bind_local_output_export(
     attempt.export_receipt is Some(receipt) else {
     return Err(State)
   }
+  let source = attempt.output
   @execution.bind_completed_output_export(receipt, material)
   .map(output => {
+    attempt.publication_output = source
     attempt.output = Some(output)
     attempt.exported = true
     attempt.export_receipt = None

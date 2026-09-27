@@ -8,3 +8,8 @@ packages/local-node/spec/
 target/
 .toolchains/
 .moon/
+
+# Compiled runtime bundles are generated before tests and npm pack.
+/packages/run-host-core/dist/
+/packages/coordinator-core/dist/
+/packages/transfer-core/dist/
