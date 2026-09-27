@@ -1,6 +1,8 @@
 // Installed Local Client Host ingress. It shares public validation and Host
 // services with HTTP ingress while keeping control and Result rows in process.
 import {ClientError} from '../../packages/sdk/index.mjs';
+import {observeClientAuthorizationFailure} from
+  './client-authentication-observation.mjs';
 import {validClientAdmission, validClientBody, validClientProfile,
   validDeliveryAttemptLookup, validRequestLookup, validRunState} from
   '../../packages/client-wire/index.mjs';
@@ -15,7 +17,7 @@ const publicCode = /^[A-Za-z][A-Za-z0-9_]{0,79}$/u;
 export function createNodeInProcessClientHost({
   authenticate, authorizeConnection, negotiate, prepareSubmit, submit,
   attach, lookupRequest, stateService, resultService, observeRun, wait,
-  cancel, reconcile, maxRowBytes,
+  cancel, reconcile, maxRowBytes, observe,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
@@ -32,7 +34,11 @@ export function createNodeInProcessClientHost({
       }
       let principalId;
       try { principalId = await authenticate(); }
-      catch { fail('ClientAuthenticationDenied'); }
+      catch (cause) {
+        await observeClientAuthorizationFailure(observe, operation,
+          'authenticate', cause);
+        fail('ClientAuthenticationDenied');
+      }
       if (typeof principalId !== 'string' || !principalId) {
         fail('ClientAuthenticationDenied');
       }
@@ -43,7 +49,11 @@ export function createNodeInProcessClientHost({
         authorized = await authorizeConnection(Object.freeze({
           principalId, connection, ref, operation,
         }));
-      } catch { authorized = false; }
+      } catch (cause) {
+        await observeClientAuthorizationFailure(observe, operation,
+          'authorize_connection', cause);
+        authorized = false;
+      }
       if (authorized !== true) fail('ClientConnectionDenied');
       const invoke = async (handler, preparedProgram) => {
         if (typeof handler !== 'function') fail('ClientOperationUnavailable');
