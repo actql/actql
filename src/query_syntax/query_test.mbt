@@ -276,6 +276,24 @@ test "SQL JOIN retains qualifier and equality condition" {
 }
 
 ///|
+test "Pipe WHERE before JOIN remains a pre-join predicate" {
+  let query = parse_query(
+    "FROM left_rows AS l |> WHERE l.a > 1 |> LEFT JOIN right_rows AS r ON l.a = r.c |> SELECT l.a AS a, r.d AS d",
+    query_limits(),
+  ).unwrap()
+  assert_eq(join_part_count(query), 1)
+  assert_true(join_part_at(query, 0).unwrap().pre_join_filter is Some(_))
+  assert_eq(operation_count(query), 1)
+  assert_true(
+    parse_query(
+      "FROM left_rows AS l |> SET a = 2 |> JOIN right_rows AS r ON l.a = r.c |> SELECT a",
+      query_limits(),
+    )
+    is Err(_),
+  )
+}
+
+///|
 test "JOIN subquery is a named source with one synthetic CTE" {
   let sql = parse_query(
     "WITH base AS (SELECT id FROM orders) SELECT l.id AS left_id, r.id AS right_id FROM base AS l JOIN (SELECT id FROM base WHERE id = 'a') AS r ON l.id = r.id",

@@ -92,6 +92,7 @@ pub(all) struct JoinPart {
   source_alias : NamePart?
   on : Expression?
   using_columns : Array[NamePart]
+  pre_join_filter : Expression?
 }
 
 ///|
@@ -435,7 +436,14 @@ fn QueryParser::join_part(
   let (relation, source_alias, ctes) = self.query_source()
   if kind == "cross" {
     return (
-      { kind, relation, source_alias, on: None, using_columns: [], },
+      {
+        kind,
+        relation,
+        source_alias,
+        on: None,
+        using_columns: [],
+        pre_join_filter: None,
+      },
       ctes,
     )
   }
@@ -449,6 +457,7 @@ fn QueryParser::join_part(
         source_alias,
         on: Some(self.expression()),
         using_columns: [],
+        pre_join_filter: None,
       },
       ctes,
     )
@@ -469,7 +478,17 @@ fn QueryParser::join_part(
   if self.advance().value != Symbol(41) {
     raise QueryAbort("Expected USING closing parenthesis", self.peek().start)
   }
-  ({ kind, relation, source_alias, on: None, using_columns, }, ctes)
+  (
+    {
+      kind,
+      relation,
+      source_alias,
+      on: None,
+      using_columns,
+      pre_join_filter: None,
+    },
+    ctes,
+  )
 }
 
 ///|
@@ -1031,14 +1050,31 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
         self.peek().start,
       )
     } else if self.starts_join() {
-      if !operations.is_empty() || !sets.is_empty() {
+      if !sets.is_empty() ||
+        (!joins.is_empty() && !operations.is_empty()) ||
+        operations.length() > 1 {
         raise QueryAbort(
-          "Pipe JOIN must precede other operators",
+          "Pipe JOIN prefix must be one WHERE",
           self.peek().start,
         )
       }
+      let pre_join_filter = if operations.length() == 1 {
+        match operations[0] {
+          Where(expression) => Some(expression)
+          _ =>
+            raise QueryAbort(
+              "Pipe JOIN prefix must be one WHERE",
+              self.peek().start,
+            )
+        }
+      } else {
+        None
+      }
+      if pre_join_filter is Some(_) {
+        operations.clear()
+      }
       let (part, join_ctes) = self.join_part()
-      joins.push(part)
+      joins.push({ ..part, pre_join_filter, })
       for cte in join_ctes {
         ctes.push(cte)
       }

@@ -167,6 +167,7 @@ pub(all) struct JoinPart {
   source_alias : NamePart?
   on : Expression?
   using_columns : Array[NamePart]
+  pre_join_filter : Expression?
 }
 
 pub(all) enum Lexeme {

@@ -909,6 +909,33 @@ test "LEFT JOIN WHERE filters null-extended rows after matching" {
 }
 
 ///|
+test "Pipe WHERE before JOIN filters the left seed before null extension" {
+  let query = @query.parse_query(
+    "FROM left_rows AS l |> WHERE l.a > 1 |> LEFT JOIN right_rows AS r ON l.a = r.c |> SELECT l.a AS a, r.d AS d",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, set_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"aql_join_prefiltered\""))
+  assert_eq(wire.split("\"filter\":").length(), 2)
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("prefiltered joined Values should be closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+}
+
+///|
+test "Pipe WHERE before JOIN cannot see the right relation" {
+  let query = @query.parse_query(
+    "FROM left_rows AS l |> WHERE r.c > 1 |> LEFT JOIN right_rows AS r ON l.a = r.c |> SELECT l.a AS a",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(compile(query, set_context(), construction_limits()) is Err(_))
+}
+
+///|
 test "CTE JOIN body shares scalar projection and post-join filter lowering" {
   let query = @query.parse_query(
     "WITH base AS (SELECT a, b FROM left_rows), other AS (SELECT a, b FROM base), matched AS (SELECT l.a + r.a AS total FROM base AS l JOIN other AS r ON l.a = r.a WHERE r.a > 0) SELECT total FROM matched",

@@ -2510,6 +2510,39 @@ fn compile_cte_join_steps(
   let keys = join_keys(
     part, left_qualifier, right_qualifier, left_fields, right_fields,
   )
+  let pre_steps : Array[@builder.Node] = []
+  let mut join_from = "l"
+  match part.pre_join_filter {
+    Some(expression) => {
+      let resolve = fn(path : Array[@query.NamePart]) -> String? {
+        let selected = Some(
+          join_field(path, left_qualifier, right_qualifier, left_fields, []),
+        ) catch {
+          Abort(_) => None
+        }
+        selected.map(field => field.1)
+      }
+      let filter = match
+        @expression.append(
+          expression,
+          resolve,
+          construction.builder,
+          limits.max_expression_work,
+        ) {
+        Ok(value) => value
+        Err(error) => raise Abort(Expression(error))
+      }
+      pre_steps.push(
+        construction.object([
+          ("from", construction.text(join_from)),
+          ("filter", filter),
+          ("as", construction.text("aql_join_prefiltered")),
+        ]),
+      )
+      join_from = "aql_join_prefiltered"
+    }
+    None => ()
+  }
   let predicate = if @query.operation_count(query) == 2 {
     match @query.operation_at(query, 0) {
       Some(Where(expression)) => Some(expression)
@@ -2572,9 +2605,10 @@ fn compile_cte_join_steps(
         ]),
       )
     }
-    let steps = [
+    let steps = pre_steps +
+      [
         construction.object([
-          ("from", construction.text("l")),
+          ("from", construction.text(join_from)),
           operation,
           ("as", construction.text(joined)),
         ]),
@@ -2707,10 +2741,10 @@ fn compile_cte_join_steps(
       ]),
     )
   }
-  let steps : Array[@builder.Node] = []
+  let steps : Array[@builder.Node] = pre_steps.copy()
   steps.push(
     construction.object([
-      ("from", construction.text("l")),
+      ("from", construction.text(join_from)),
       operation,
       (
         "as",
@@ -3626,6 +3660,9 @@ fn join_seed_stage(
   input : Input,
   fields : Array[String],
   stage_name : String,
+  query : @query.Query,
+  filter : @query.Expression?,
+  max_work : Int,
 ) -> @builder.Node raise Abort {
   guard input.source is GeneratedValues(step) else {
     raise Abort(UnsupportedJoin)
@@ -3635,17 +3672,37 @@ fn join_seed_stage(
     Ok(value) => value
     Err(issue) => raise Abort(Construction(issue))
   }
+  let steps = [seed]
+  let mut result_from = input.name
+  match filter {
+    Some(expression) => {
+      steps.push(
+        construction.object([
+          ("from", construction.text(result_from)),
+          (
+            "filter",
+            append_expression(
+              construction, expression, query, input, fields, max_work,
+            ),
+          ),
+          ("as", construction.text("aql_join_prefiltered")),
+        ]),
+      )
+      result_from = "aql_join_prefiltered"
+    }
+    None => ()
+  }
   construction.object([
     ("id", construction.text(stage_name)),
     ("inputs", construction.object([])),
-    ("steps", construction.array([seed])),
+    ("steps", construction.array(steps)),
     (
       "results",
       construction.object([
         (
           stage_name,
           construction.object([
-            ("from", construction.text(input.name)),
+            ("from", construction.text(result_from)),
             (
               "fields",
               construction.array(fields.map(field => construction.text(field))),
@@ -4097,8 +4154,24 @@ fn compile_join_query(
       (
         "stages",
         construction.array([
-          join_seed_stage(construction, left, left_fields, left_stage),
-          join_seed_stage(construction, right, right_fields, right_stage),
+          join_seed_stage(
+            construction,
+            left,
+            left_fields,
+            left_stage,
+            query,
+            part.pre_join_filter,
+            limits.max_expression_work,
+          ),
+          join_seed_stage(
+            construction,
+            right,
+            right_fields,
+            right_stage,
+            query,
+            None,
+            limits.max_expression_work,
+          ),
           stage,
         ]),
       ),

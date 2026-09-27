@@ -365,6 +365,16 @@ const filteredPipeJoin = queryFrontend.compileTwoValuesSetQueryJson(
   'fixture.join_filtered_left');
 assert.deepEqual(JSON.parse(filteredPipeJoin), JSON.parse(filteredLeftJoin));
 await writeFile(join(root, 'join-filtered-left.json'), filteredLeftJoin);
+const prefilteredPipeJoin = queryFrontend.compileTwoValuesSetQueryJson(
+  'FROM set_left AS l |> WHERE l.a > 1 '
+    + '|> LEFT JOIN set_right AS r ON l.a = r.c '
+    + '|> SELECT l.a AS a, r.d AS d',
+  'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+  'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+  'fixture.join_prefiltered_left');
+assert.notEqual(prefilteredPipeJoin, '');
+await writeFile(join(root, 'join-prefiltered-left.json'),
+  prefilteredPipeJoin);
 const demandLeft = {values: {schema: {
   a: {type: 'number', nullable: false}},
 rows: [{a: 0}, {a: 1}]}, as: 'set_left'};
@@ -911,6 +921,12 @@ async function checkJoinCases(client, suffix) {
   assert.equal((await filteredLeft.wait()).status, 'succeeded');
   assert.deepEqual(await filteredLeft.result('answer').all(),
     [{a: 2}, {a: null}]);
+  const prefilteredLeft = await client.aql(
+    readFileSync('join-prefiltered-left.json', 'utf8'),
+    {format: 'json', requestId: 'packed-join-prefiltered-left-' + suffix});
+  assert.equal((await prefilteredLeft.wait()).status, 'succeeded');
+  assert.deepEqual(await prefilteredLeft.result('answer').all(),
+    [{a: 2, d: null}]);
   for (const [name, expected] of [
     ['filtered-demand', [{ratio: 10}]],
     ['case-demand', [{ratio: 0}, {ratio: 10}]],
