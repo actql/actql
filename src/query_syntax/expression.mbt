@@ -644,22 +644,48 @@ pub fn parse_expression(
     Ok(source) => source
     Err(error) => return Err(error)
   }
+  match parse_fragment(source, 0, limits) {
+    Ok((expression, offset)) =>
+      if source.tokens[offset].value == End {
+        Ok(expression)
+      } else {
+        Err({
+          issue: Syntax("Unexpected trailing expression token"),
+          span: Some(
+            @origin.span(
+              @origin.range(
+                source.document,
+                source.tokens[offset].start,
+                source.tokens[offset].start,
+              ).unwrap(),
+            ),
+          ),
+        })
+      }
+    Err(error) => Err(error)
+  }
+}
+
+///|
+// Query clauses consume this owner directly from the already admitted token
+// stream. No expression is serialized back to text for another parse pass.
+fn parse_fragment(
+  source : Tokens,
+  offset : Int,
+  limits : ExpressionLimits,
+) -> Result[(Expression, Int), Diagnostic] {
   let parser : ExpressionParser = {
     source,
     limits,
     nodes: [],
-    offset: 0,
+    offset,
     work: 0,
   }
   try {
     let root = parser.expression()
-    if parser.peek().value != End {
-      raise ExpressionAbort(
-        "Unexpected trailing expression token",
-        parser.peek().start,
-      )
-    }
-    Ok({ source, nodes: parser.nodes, root, work: parser.work, })
+    Ok(
+      ({ source, nodes: parser.nodes, root, work: parser.work, }, parser.offset),
+    )
   } catch {
     ExpressionAbort(message, at) =>
       Err({

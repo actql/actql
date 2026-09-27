@@ -10,6 +10,8 @@ import {
 }
 
 // Values
+pub fn append(@query_syntax.Expression, (Array[@query_syntax.NamePart]) -> String?, @program_source_builder.Builder, Int) -> Result[@program_source_builder.Node, Diagnostic]
+
 pub fn expression(Lowered) -> @expression_syntax.Expression
 
 pub fn lower(@query_syntax.Expression, (Array[@query_syntax.NamePart]) -> String?, Limits) -> Result[Lowered, Diagnostic]

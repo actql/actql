@@ -20,7 +20,21 @@ pub fn expression_root(Expression) -> Int
 
 pub fn expression_work(Expression) -> Int
 
+pub fn operation_at(Query, Int) -> QueryOperation?
+
+pub fn operation_count(Query) -> Int
+
 pub fn parse_expression(String, ExpressionLimits, source_path? : String) -> Result[Expression, Diagnostic]
+
+pub fn parse_query(String, QueryLimits, source_path? : String) -> Result[Query, Diagnostic]
+
+pub fn query_source(Query) -> Tokens
+
+pub fn query_work(Query) -> Int
+
+pub fn relation(Query) -> Array[NamePart]
+
+pub fn relation_alias(Query) -> NamePart?
 
 pub fn token_at(Tokens, Int) -> Token?
 
@@ -124,11 +138,40 @@ pub(all) struct NamePart {
   quoted : Bool
 } derive(Eq, @debug.Debug)
 
+pub(all) struct Projection {
+  expression : Expression?
+  name : NamePart?
+  star : String?
+}
+
+type Query
+
+pub(all) struct QueryLimits {
+  lexical : LexicalLimits
+  expression : ExpressionLimits
+  max_syntax_nodes : Int
+  max_cte_count : Int
+  max_work : Int
+}
+
+pub(all) enum QueryOperation {
+  Where(Expression)
+  Select(Array[Projection], Bool)
+  Order(Array[SortTerm])
+  Limit(Int, Int)
+}
+
 pub(all) enum Resource {
   Tokens
   LiteralBytes
   Work
 } derive(Eq, @debug.Debug)
+
+pub(all) struct SortTerm {
+  expression : Expression
+  direction : String
+  nulls : String
+}
 
 pub struct Token {
   value : Lexeme

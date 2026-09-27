@@ -177,20 +177,17 @@ fn scalar_call(path : Array[@query.NamePart]) -> (String, Int, Int) raise Abort 
 }
 
 ///|
-// Resolution is explicit: never infer a connector, range or property by
-// concatenating path spelling. The caller resolves an admitted scope slot.
-pub fn lower(
+// Append an expression to the caller's Program source owner. Clause lowering
+// can share one builder and retain original token origins without printing an
+// expression and sending it through another expression parser.
+pub fn append(
   ast : @query.Expression,
   resolve : (Array[@query.NamePart]) -> String?,
-  limits : Limits,
-) -> Result[Lowered, Diagnostic] {
-  if limits.max_work < 0 {
+  builder : @builder.Builder,
+  max_work : Int,
+) -> Result[@builder.Node, Diagnostic] {
+  if max_work < 0 {
     return Err({ issue: InvalidLimits, origin: None, })
-  }
-  let builder = match
-    @builder.create(@query.expression_document(ast), limits.construction) {
-    Ok(builder) => builder
-    Err(issue) => return Err({ issue: Construction(issue), origin: None, })
   }
   let nodes : Array[@builder.Node] = []
   let literals : Array[@builder.Node?] = []
@@ -198,7 +195,7 @@ pub fn lower(
   let mut work = 0
   try {
     for i in 0..<@query.expression_node_count(ast) {
-      if work >= limits.max_work {
+      if work >= max_work {
         raise Abort(WorkLimit)
       }
       work += 1
@@ -378,19 +375,38 @@ pub fn lower(
       nodes.push(result)
       literals.push(literal)
     }
-    let source = match
-      @builder.finish(builder, nodes[@query.expression_root(ast)]) {
-      Ok(source) => source
-      Err(issue) => raise Abort(Construction(issue))
-    }
-    match @expression.admit(@builder.cursor(source), limits.expression) {
-      Ok(expression) => Ok({ source, expression, })
-      Err(issue) => raise Abort(Admission(issue))
-    }
+    Ok(nodes[@query.expression_root(ast)])
   } catch {
-    Abort(issue) => {
+    Abort(issue) => Err({ issue, origin: current, })
+  }
+}
+
+///|
+// Resolution is explicit: never infer a connector, range or property by
+// concatenating path spelling. The caller resolves an admitted scope slot.
+pub fn lower(
+  ast : @query.Expression,
+  resolve : (Array[@query.NamePart]) -> String?,
+  limits : Limits,
+) -> Result[Lowered, Diagnostic] {
+  let builder = match
+    @builder.create(@query.expression_document(ast), limits.construction) {
+    Ok(builder) => builder
+    Err(issue) => return Err({ issue: Construction(issue), origin: None, })
+  }
+  let root = match append(ast, resolve, builder, limits.max_work) {
+    Ok(root) => root
+    Err(error) => {
       @builder.discard(builder)
-      Err({ issue, origin: current, })
+      return Err(error)
     }
+  }
+  let source = match @builder.finish(builder, root) {
+    Ok(source) => source
+    Err(issue) => return Err({ issue: Construction(issue), origin: None, })
+  }
+  match @expression.admit(@builder.cursor(source), limits.expression) {
+    Ok(expression) => Ok({ source, expression, })
+    Err(issue) => Err({ issue: Admission(issue), origin: None, })
   }
 }

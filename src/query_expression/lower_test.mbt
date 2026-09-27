@@ -123,3 +123,62 @@ test "signed literal normalization keeps negative IN values and rejects NULL com
   assert_true(lower(fixture("NULL = x"), _ => Some("x"), limits()) is Err(_))
   assert_true(lower(fixture("+'string'"), _ => None, limits()) is Err(_))
 }
+
+///|
+test "query clauses append to one source owner without expression reparse" {
+  let query = @query.parse_query("SELECT x, y + 1 FROM t", {
+    lexical: {
+      max_source_bytes: 10000,
+      max_tokens: 1000,
+      max_literal_bytes: 10000,
+      max_work: 20000,
+    },
+    expression: {
+      lexical: {
+        max_source_bytes: 10000,
+        max_tokens: 1000,
+        max_literal_bytes: 10000,
+        max_work: 20000,
+      },
+      max_nodes: 1000,
+      max_depth: 100,
+      max_work: 10000,
+    },
+    max_syntax_nodes: 100,
+    max_cte_count: 20,
+    max_work: 10000,
+  }).unwrap()
+  let projections = match @query.operation_at(query, 0) {
+    Some(@query.Select(items, false)) => items
+    _ => fail("expected SELECT")
+  }
+  let first = projections[0].expression.unwrap()
+  let second = projections[1].expression.unwrap()
+  let builder = @builder.create(
+    @query.expression_document(first),
+    limits().construction,
+  ).unwrap()
+  let resolve = (path : Array[@query.NamePart]) => {
+    if path.length() == 1 {
+      Some(path[0].value)
+    } else {
+      None
+    }
+  }
+  ignore(append(first, resolve, builder, 10000).unwrap())
+  let root = append(second, resolve, builder, 10000).unwrap()
+  let source = @builder.finish(builder, root).unwrap()
+  let admitted = @expression.admit(@builder.cursor(source), limits().expression).unwrap()
+  let writer = @encode.writer(100000, 10000, 100)
+  @expression.emit_source(admitted, writer)
+  assert_eq(
+    @encode.finish(writer),
+    "{\"add\":[{\"field\":\"y\"},{\"literal\":1}]}",
+  )
+  let other = @builder.create(
+    @query.expression_document(first),
+    limits().construction,
+  ).unwrap()
+  assert_true(append(fixture("z"), resolve, other, 10000) is Err(_))
+  @builder.discard(other)
+}
