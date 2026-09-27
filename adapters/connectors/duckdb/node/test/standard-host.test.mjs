@@ -7452,6 +7452,9 @@ async function exerciseStrategyGraph(
     {name: 'append-filter-select', source: retainedBinaryChain(
       externalAppendProgram, [{filter: 'id > 1'}, {select: ['id']}], ['id']),
     expected: [{id: 2}, {id: 3}, {id: 4}], fields: ['id']},
+    {name: 'append-filter-arithmetic-control', source: retainedBinaryChain(
+      externalAppendProgram, [{filter: 'id >= 1'}], ['id']),
+    expected: [1, 2, 3, 4].map(id => ({id})), fields: ['id']},
     {name: 'append-derive-select', source: retainedBinaryChain(
       externalAppendProgram,
       [{derive: {copy: 'id'}}, {select: ['id', 'copy']}],
@@ -7637,7 +7640,8 @@ async function exerciseStrategyGraph(
     }
   }
   for (const {name: mode} of [
-    {name: 'cancel'}, {name: 'compute-failure'},
+    {name: 'cancel'}, {name: 'cancel-after-filter'},
+    {name: 'compute-failure'},
     {name: 'store-failure'}, {name: 'finalize-failure'},
   ]) {
     const program = retainedBinaryChain(externalAppendProgram,
@@ -7648,10 +7652,19 @@ async function exerciseStrategyGraph(
       first: {from: {stage: 'external_cross_consumer_a', result: 'r'}},
       second: {from: {stage: 'external_cross_consumer_b', result: 'r'}},
     };
-    program.stages.find(stage => stage.id === 'cross_left').steps[0]
-      .values.rows = Array.from({length: 30}, (_, id) => ({id}));
-    program.stages.find(stage => stage.id === 'cross_right').steps[0]
-      .values.rows = Array.from({length: 30}, (_, index) => ({id: index + 30}));
+    if (mode === 'cancel-after-filter') {
+      // Three rows give the Append child exactly 28 work units. Its bounded
+      // handoff costs one more; work above 29 proves the filter has advanced.
+      program.stages.find(stage => stage.id === 'cross_left')
+        .steps[0].values.rows = [{id: 1}];
+      program.stages.find(stage => stage.id === 'cross_right')
+        .steps[0].values.rows = [{id: 2}, {id: 3}];
+    } else if (mode !== 'compute-failure') {
+      program.stages.find(stage => stage.id === 'cross_left').steps[0]
+        .values.rows = Array.from({length: 30}, (_, id) => ({id}));
+      program.stages.find(stage => stage.id === 'cross_right').steps[0]
+        .values.rows = Array.from({length: 30}, (_, index) => ({id: index + 30}));
+    }
     const binaryFixture = fixture.strategyFixtureCreate(
       ...args, JSON.stringify(program));
     const binaryCapture = await runNativeHostQuery(grant,
@@ -7697,7 +7710,8 @@ async function exerciseStrategyGraph(
           });
         },
         close() {
-          if (mode === 'cancel' && cancellation.signal.aborted) {
+          if ((mode === 'cancel' || mode === 'cancel-after-filter') &&
+              cancellation.signal.aborted) {
             assert.equal(sawStop, true, 'input release must follow confirmed stop');
           }
           closed = true;
@@ -7713,8 +7727,10 @@ async function exerciseStrategyGraph(
     });
     const cancellation = new AbortController();
     let sawWork = false, sawStop = false, scheduled = false;
+    let producerWork = 0n, sawFilterWork = false;
     let dispatches = 0;
-    const observedRuntime = mode === 'cancel' ? new Proxy(hostRuntime, {
+    const observedRuntime = (mode === 'cancel' ||
+      mode === 'cancel-after-filter') ? new Proxy(hostRuntime, {
       get(target, property, receiver) {
         if (property !== 'strategyModule_local_Dispatch') {
           return Reflect.get(target, property, receiver);
@@ -7744,12 +7760,18 @@ async function exerciseStrategyGraph(
                 const result = operation.advance(Math.min(quantum, 1));
                 if (dispatch === 3 && !cancellation.signal.aborted) {
                   const poll = checked(result);
+                  producerWork += poll.work;
+                  if (mode === 'cancel-after-filter' &&
+                      producerWork > 29n && !poll.complete) {
+                    sawFilterWork = true;
+                  }
                   if (!poll.complete && poll.progress > 0n) {
                     sawWork = true;
-                    if (!scheduled) {
-                      scheduled = true;
-                      setTimeout(() => cancellation.abort(), 0);
-                    }
+                  }
+                  if (!scheduled && (mode === 'cancel'
+                    ? sawWork : sawFilterWork)) {
+                    scheduled = true;
+                    setTimeout(() => cancellation.abort(), 0);
                   }
                 }
                 return result;
@@ -7796,15 +7818,20 @@ async function exerciseStrategyGraph(
       );
       assert.equal(execution.status, 'host-tasks-failed', mode);
       assert.deepEqual(execution.completed.map(item => item.task), [1, 2], mode);
-      if (mode === 'cancel') {
+      if (mode === 'cancel' || mode === 'cancel-after-filter') {
         assert.equal(dispatches, 3);
         assert.equal(sawWork, true);
+        if (mode === 'cancel-after-filter') {
+          assert.equal(sawFilterWork, true);
+        }
         assert.equal(sawStop, true);
         assert.equal(execution.failure?.name, 'AbortError');
         assert.equal(leases, 2);
       } else if (mode === 'compute-failure') {
         assert.equal(leases, 2);
         assert.equal(execution.failure?.code, 'MoonBitHostFailure');
+        assert.equal(fixture.strategyFixtureRetainedChainFilterArithmetic(
+          execution.failure.cause), true);
       } else {
         assert.equal(leases, 3);
         assert.equal(failedAppends, mode === 'store-failure' ? 1 : 0);
@@ -7823,6 +7850,9 @@ async function exerciseStrategyGraph(
       await execution?.close();
       if (execution) {
         assert.equal(await execution.cleanup(), true);
+        if (mode === 'cancel' || mode === 'cancel-after-filter') {
+          assert.equal(dispatches, 3, 'cleanup must not redispatch Compute');
+        }
         assert.equal(execution.cleanupPending(), false);
         assert.equal(execution.usage().heldBytes, 0n);
         assert.equal(execution.usage().reservedExecutionBytes, 0n);

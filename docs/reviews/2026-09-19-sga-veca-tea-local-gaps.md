@@ -606,8 +606,10 @@ independent consumer publications, empty and singleton variants, and repeated
 use of the same input occurrence. The chain work/workspace fixture uses the
 independent Append/filter kernel budgets (72/10 exact; 71/9 one short), rather
 than inferring a limit from a successful Host run. The same retained chain
-fixture delivers timer cancellation after positive producer work and exercises
-a later filter error, Store append/finalize errors, pending cleanup, and final
+fixture delivers timer cancellation after positive producer work and after
+the filter child has advanced. It checks the later filter's typed arithmetic
+failure, checked step and expression range against a successful expression
+control, as well as Store append/finalize errors, pending cleanup, and final
 reclamation. The memory-output chain uses the same owner and remains a
 regression control. No synchronous fallback or new Host state machine was
 added.

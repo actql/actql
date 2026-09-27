@@ -5048,6 +5048,13 @@
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "cancel-after-filter"
+        },
+        {
+          "role": "retained_append_chain_filter_arithmetic",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "compute-failure"
         },
         {
