@@ -272,8 +272,16 @@ unmatched left rows in packed Local and HTTP Remote. The Pipe spelling emits
 the same Program. Two packed zero-input cases preserve demand: the post-join
 WHERE excludes a division by zero before projection, and an unselected CASE
 branch does not divide by zero. General post-join grouping, order and multiple
-joins
-remain open. FULL JOIN is parsed but the
+joins remain open. An attempted `ORDER BY` after a checked JOIN also reached
+the standard Host but `run-host-core.compileTasks` rejected it with
+`RunHostTaskCompilationRejected`. This reproduced with source-free CROSS JOIN
+and with two DISTINCT CTE inputs and DISTINCT joined output; both Programs
+passed frontend admission and query checker. The tentative frontend lowering
+was removed, so this branch does not claim executable JOIN ordering. The
+Compute/Host owners need to identify the sort-order or task-compilation
+obligation on the joined result before the frontend can publish this surface.
+No candidate key or total-order witness is fabricated here. FULL JOIN is parsed
+but the
 Values compiler refuses it before issuing a Program: the checked FULL JOIN
 requires stable identity on both inputs, which the generated Values Stage
 Results do not carry. No representative row or synthetic key is inferred.
