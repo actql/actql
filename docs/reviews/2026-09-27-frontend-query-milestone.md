@@ -43,7 +43,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK, ROW_NUMBER, LAG and framed COUNT Results; Pipe EXTEND/SET before OVER preserves updated and prior alias snapshots; full negative and frame matrix pending |
 | Bounds, origin maps and Grammar Manifest | Existing owners | Before-allocation bounds, source diagnostics, pins/vectors | Partial: query grammar/rules now bind the 0.1 Grammar Manifest with schema, generated pin and independent vector; exact-limit and origin diagnostics matrix remains |
 | Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Partial: source-free and captured query, analytic, set and CTE examples run through packed Local and HTTP Remote Host; independent acquisition count remains |
-| Core isolation and SDK dependency boundary | Existing gates | No frontend production dependency or tracked runtime bundles | Pending |
+| Core isolation and SDK dependency boundary | Existing gates | No frontend production dependency or tracked runtime bundles | Partial: connector-free Core isolation passes; final SDK closure gate remains |
 
 The [architecture correspondence](../design/frontend-r1.md#shared-query-vocabulary-and-scope)
 uses reference terms and existing IR names. In this status table, an intentional
@@ -164,6 +164,13 @@ coordinate. It must retain the full owner and existing edge admission. This
 source-free Stage Result case is not counted as an executed query. The
 frontend should keep the filter before the join and rerun the packed Result
 case after the shared boundary is fixed.
+
+At the rebased source, the focused query MoonBit packages pass 80/80, the
+independent Program bridge passes 2/2, the source-free task Host owner test
+passes 3/3, the connector-free Core isolation gate passes, and document links
+pass. The full packed Client gate and fixed-SHA CI have not passed at this
+revision. These local results do not close the accepted SQL/Pipe matrix or
+justify a review-ready PR.
 
 GQL patterns, VecA/TEA-specific surfaces, INFER/Artifact spelling, INSERT,
 installed raw-text routing, deployment and other owners' runtime redesigns
