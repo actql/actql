@@ -403,7 +403,9 @@ pub fn prepare_client_request_identity(PreparedClientProgram, String, String, St
 
 pub fn prepare_client_run_cancellation(@run_publication.PublicationContract, String, Bool, Bool, Bool) -> Result[ClientRunCancellationAction, ClientRunStartIssue]
 
-pub fn prepare_client_run_physical_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, cancellation_requested? : Bool) -> Result[Bool, ClientRunStartIssue]
+pub fn prepare_client_run_physical_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, cancellation_requested? : Bool, pre_start_failure_confirmed? : Bool) -> Result[Bool, ClientRunStartIssue]
+
+pub fn prepare_client_run_pre_start_failure(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, Bool) -> Result[Bool, ClientRunStartIssue]
 
 pub fn prepare_client_run_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[ClientRunStartAction, ClientRunStartIssue]
 

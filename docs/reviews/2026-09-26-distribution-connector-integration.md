@@ -57,8 +57,6 @@ acceptance claims:
 3. Public Effect submit and Checkpoint resolution/resume still require the
    common owners to be connected through ingress. Connector owns physical
    apply; Distribution owns that public connection.
-4. Cloud is a separate repository. Updating its public OSS artifacts and
-   checking the Cloud-owned path is a subsequent, separately recorded step.
 
 The integration does not authorize merging main, publishing packages, or
 Cloud deployment. A common development base and merge-ready release status

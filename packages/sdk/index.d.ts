@@ -33,6 +33,7 @@ export type ConfirmedProfile = WireClientProfile;
 export type RequestLookup = WireRequestLookup;
 
 export type RunState = WireRunState;
+export type RunNextAction = WireRunState['next_action'];
 
 export type DeliveryAttemptLookup = WireDeliveryAttemptLookup;
 

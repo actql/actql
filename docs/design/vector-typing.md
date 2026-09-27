@@ -265,16 +265,12 @@ higher-is-better law permits omission or explicit true, never false. Weighted
 sum uses binary64 equality to one without the old adapter's epsilon tolerance.
 These are explicit decisions; source spelling is retained rather than repaired.
 
-Fixed Sketch `87dc7144138edfcba108cdc59dc485ac976ba976` decodes only two-input
-max/weighted_sum, requires nonempty by/tie_break and explicit higher_is_better.
-AoA `dbab4fe8c1d624d81ed967f90e2abe742163f84f` pipeline mapping also hashes
-semantic IDs and carries a representative payload through score fusion. The
-current Language instead preserves semantic identity domains, requires complete
+The current Language preserves semantic identity domains, requires complete
 input uniqueness, rejects conflicting business tie-break values and defines a
-closed output with new ranks. Those older behaviors are not imported. Searches
-of Smooth `55b83448ac44c66c992b2f1c33452b7849e6c3f8` Data Plane operator runtime
-and container found no merge_rankings/RRF implementation; this is not evidence
-of support elsewhere.
+closed output with new ranks. A lowering that hashes semantic IDs or carries an
+arbitrary representative payload through fusion would violate those rules.
+The checked ranking types and independent portability fixtures below establish
+the required behavior without relying on another implementation.
 
 `RankingInput` separates ordinary Relation contracts from `nearest` outputs.
 `ranking_from_nearest` binds the row contract, ordered composite identity domains
@@ -538,12 +534,9 @@ selected profile. An admitted profile cannot discharge evaluation, tokenizer or
 resource obligations. Profile admission has its own explicit budgets; sharing an
 already admitted profile across steps neither reparses nor rehashes its blobs.
 
-Fixed-revision searches found no text_rank implementation in Sketch
-`87dc7144138edfcba108cdc59dc485ac976ba976` (src and moonbit/src), no text_rank/BM25
-in AoA `dbab4fe8c1d624d81ed967f90e2abe742163f84f` packages, and none in Smooth
-`55b83448ac44c66c992b2f1c33452b7849e6c3f8` Data Plane operator-runtime/container.
-This operation follows the current normative language rather than borrowing
-external index statistics or a library-specific BM25 variant.
+The text-rank operation follows the current normative language and selected
+Text Rank Profile. External index statistics and library-specific BM25 variants
+cannot substitute for the profile's evidence and evaluation obligations.
 
 ## Existing vector preparation and scoring
 

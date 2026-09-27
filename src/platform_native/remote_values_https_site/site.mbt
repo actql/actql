@@ -7,6 +7,8 @@ struct NativeRemoteValuesHttpsSite {
   endpoint : @values.NativeRemoteValuesSiteEndpoint
   coordinator_fingerprint : String
   dispatch_path : String
+  cancel_path : String
+  release_path : String
   query_path : String
   output_plan_path : String
   output_execute_path : String
@@ -92,6 +94,8 @@ pub fn open_native_remote_values_https_site(
     coordinator_fingerprint,
     dispatch_path: path,
     query_path: path + "/query",
+    cancel_path: path + "/cancel",
+    release_path: path + "/release",
     output_plan_path: path + "/outputs/plan",
     output_execute_path: path + "/outputs/execute",
     direct_output: None,
@@ -153,6 +157,8 @@ pub fn NativeRemoteValuesHttpsSite::poll(
     (
       request.path() != self.dispatch_path &&
       request.path() != self.query_path &&
+      request.path() != self.cancel_path &&
+      request.path() != self.release_path &&
       request.path() != self.output_plan_path &&
       request.path() != self.output_execute_path
     ) {
@@ -181,6 +187,10 @@ pub fn NativeRemoteValuesHttpsSite::poll(
   }
   let response = if request.path() == self.dispatch_path {
     self.endpoint.dispatch_json(body, claimed_cid)
+  } else if request.path() == self.cancel_path {
+    self.endpoint.cancel_json(body, claimed_cid)
+  } else if request.path() == self.release_path {
+    self.endpoint.release_json(body, claimed_cid)
   } else if request.path() == self.output_plan_path {
     self.endpoint.output_plan_json(body, claimed_cid)
   } else if request.path() == self.output_execute_path {
@@ -210,6 +220,8 @@ pub fn NativeRemoteValuesHttpsSite::poll(
       self.reply(request, 400, "{\"error\":\"invalid_request\"}")
     Err(@values.Journal(@journal.MissingDispatch)) if request.path() ==
       self.query_path ||
+      request.path() == self.cancel_path ||
+      request.path() == self.release_path ||
       request.path() == self.output_execute_path =>
       self.reply(request, 404, "{\"error\":\"not_found\"}")
     Err(_) => self.reply(request, 503, "{\"error\":\"site_unavailable\"}")

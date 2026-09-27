@@ -36,10 +36,12 @@ pub(all) enum NativeRemoteValuesHostIssue {
 }
 
 type NativeRemoteValuesSiteEndpoint
+pub fn NativeRemoteValuesSiteEndpoint::cancel_json(Self, String, String) -> Result[String, NativeRemoteValuesSiteEndpointIssue]
 pub fn NativeRemoteValuesSiteEndpoint::dispatch_json(Self, String, String) -> Result[String, NativeRemoteValuesSiteEndpointIssue]
 pub fn NativeRemoteValuesSiteEndpoint::open_output_manifest_reader(Self, String, String, Int) -> Result[@remote_runtime.NativeRemoteOutputManifestReader, NativeRemoteValuesSiteEndpointIssue]
 pub fn NativeRemoteValuesSiteEndpoint::output_plan_json(Self, String, String) -> Result[String, NativeRemoteValuesSiteEndpointIssue]
 pub fn NativeRemoteValuesSiteEndpoint::query_json(Self, String, String) -> Result[String, NativeRemoteValuesSiteEndpointIssue]
+pub fn NativeRemoteValuesSiteEndpoint::release_json(Self, String, String) -> Result[String, NativeRemoteValuesSiteEndpointIssue]
 pub fn NativeRemoteValuesSiteEndpoint::route(Self) -> (String, Int)
 pub fn NativeRemoteValuesSiteEndpoint::send_output_direct(Self, @http_client.Client, @remote_transfer_journal.Journal, String, String, String, Int, Int, Int, Int64) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteValuesSiteEndpointIssue]
 pub fn NativeRemoteValuesSiteEndpoint::send_output_direct_json(Self, @http_client.Client, @remote_transfer_journal.Journal, String, String, String, Int, Int, Int, Int64) -> Result[String, NativeRemoteValuesSiteEndpointIssue]

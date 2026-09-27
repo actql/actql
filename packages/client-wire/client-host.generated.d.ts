@@ -208,6 +208,9 @@ export type WireRunStateShape = Readonly<{
   results: readonly string[];
 }> | Readonly<{
   kind: "none";
+}> | Readonly<{
+  kind: "reconcile_run";
+  reason: "execution_unknown";
 }>;
   result_available: boolean;
   terminal_error?: Readonly<{

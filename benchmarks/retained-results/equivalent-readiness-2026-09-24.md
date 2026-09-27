@@ -9,17 +9,18 @@ single comparator execution interval was 81,425.201 ms for
 `retained-large-output-downstream-reuse/numeric-64/100000`.
 
 ```sh
-TMPDIR=/Users/t14i/workspace/20260822/.codex-scratch \
+mkdir -p "$PWD/.artifacts"
+TMPDIR="$PWD/.artifacts" \
   node adapters/connectors/duckdb/node/bench/equivalent-matrix.mjs
 ```
 
-The raw summary is at
-`workspace/.codex-scratch/actql-equivalent-matrix-v67eHi/summary.json`
-(SHA-256 `3713af72213cccd8af3547b593f42a1ad381e546b1fccf9be8852d212cd57741`).
-The runner log is at
-`workspace/.codex-scratch/equivalent-matrix-a7dfa0b9c.log`
-(SHA-256 `b48864e796e3be477d34419b1078e9e257b8220612edfb8db7b1dbecc004f5cb`).
-Each case's full diagnostic record remains beside the summary.
+The historical raw summary has SHA-256
+`3713af72213cccd8af3547b593f42a1ad381e546b1fccf9be8852d212cd57741`;
+the runner log has SHA-256
+`b48864e796e3be477d34419b1078e9e257b8220612edfb8db7b1dbecc004f5cb`.
+These historical diagnostics are not distributed in this checkout. The command
+above produces a fresh summary and per-case records under its selected scratch
+root; it does not reproduce historical timing bytes.
 
 This proves execution readiness of the independent comparator, not matched
 obligation admission or performance acceptance. The retained product was not

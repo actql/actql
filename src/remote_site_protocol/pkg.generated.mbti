@@ -103,6 +103,8 @@ pub fn coordinator_dispatch_transition_projection(CoordinatorDispatchTransition)
 
 pub fn coordinator_exact_retransmission_eligible(CoordinatorDispatchIntentRecord, DispatchRequest) -> Bool
 
+pub fn coordinator_execution_observation(CoordinatorDispatchIntentRecord, String, String, String) -> Result[CoordinatorExecutionObservation, DispatchIssue]
+
 pub fn coordinator_managed_output_matches(CoordinatorDispatchIntentRecord, DispatchRequest, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Bool
 
 pub fn coordinator_output_admission_durable_json(RemotePollOutput, RemoteOutputPlan) -> Result[String, DispatchIssue]
@@ -555,6 +557,14 @@ pub(all) enum CoordinatorDispatchProgress {
 } derive(Eq, @debug.Debug)
 
 type CoordinatorDispatchTransition
+
+pub(all) struct CoordinatorExecutionObservation {
+  execution : RemoteExecutionState?
+  cleanup : RemoteCleanupState?
+  revision : Int
+  execution_terminal : Bool
+  cleanup_complete : Bool
+} derive(Eq, @debug.Debug)
 
 type CoordinatorOutputAdmission
 

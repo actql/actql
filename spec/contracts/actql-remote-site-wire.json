@@ -1,0 +1,208 @@
+{
+  "version": "actql-remote-site-wire/0.1",
+  "schemas": {
+    "dispatch_request": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "budget_cid",
+        "connector_registration",
+        "connector_revision",
+        "coordinator_authority",
+        "dispatch_id",
+        "evidence_issuer_capability_cid",
+        "grant_cid",
+        "input_binding_cid",
+        "obligations_cid",
+        "run_definition_cid",
+        "runtime_bundle_cid",
+        "site_generation",
+        "site_key",
+        "strategy_revision",
+        "task_attempt",
+        "task_key",
+        "version"
+      ],
+      "properties": {
+        "budget_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "connector_registration": {
+          "type": "string",
+          "minLength": 1
+        },
+        "connector_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinator_authority": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dispatch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_issuer_capability_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "grant_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_binding_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "obligations_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "run_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "runtime_bundle_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "site_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "site_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "strategy_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_attempt": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "task_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "const": "actql-remote-dispatch-request/0.1"
+        }
+      }
+    },
+    "managed_output_subject": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dispatch_request_cid",
+        "holding_evidence_cid",
+        "logical_view_cid",
+        "managed_profile_cid",
+        "material_generation",
+        "measurement_evidence_cid",
+        "physical_manifest_cid",
+        "representation_codec_cid",
+        "result_schema_cid",
+        "retained_bytes",
+        "row_count",
+        "version"
+      ],
+      "properties": {
+        "dispatch_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "holding_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "logical_view_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "managed_profile_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "material_generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "physical_manifest_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "representation_codec_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "retained_bytes": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 19
+        },
+        "row_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "version": {
+          "const": "actql-remote-managed-output-subject/0.1"
+        }
+      }
+    },
+    "poll_dispatch": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dispatch_request_cid",
+        "input_binding_cid",
+        "input_binding_json",
+        "request_json",
+        "version"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-remote-poll-dispatch/0.1"
+        },
+        "dispatch_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_binding_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_binding_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "request_json": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "schema_cids": {
+    "dispatch_request": "sha256:6625db4f9182af1d5b56e07227e194ac0665d198f5c17d4c5e36421d1f079e86",
+    "managed_output_subject": "sha256:26bc383f313192dfa296e2e298b2a3ae5fbfc3ac3eb2ea695bb87c3eb0ed692f",
+    "poll_dispatch": "sha256:ca7951b1ccab716fdf738573b94f402f92ccbdaeadbf4ab699b00a777003ab56"
+  }
+}

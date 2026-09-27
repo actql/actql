@@ -687,15 +687,6 @@ allow an authorized read, and release its last private and public holdings.
 The Host/Site tests below provide the physical fault cases, but they do not
 substitute for this public-Client test.
 
-Distribution rebase and Cloud handoff: `actql-cloud` is a separate repository
-and must not be rebased onto OSS main. After the Distribution OSS branch is
-rebased and verified, rebuild the public OSS package from that exact verified
-SHA. Update the Cloud tarball digest, lockfile and provenance from the rebuilt
-artifact, not by changing a SHA string alone. Preserve Cloud-owned changes,
-then run Cloud type checking and the affected Run, Site and Store tests. Record
-the verified OSS and Cloud SHAs together with the consumed artifact digest;
-neither Cloud package consumption nor Cloud tests are claimed by this branch.
-
 Outside this completion unit, but still part of the original broader plan,
 are new providers, Salesforce Bulk and unagreed APIs, Cloud OAuth operations,
 other distribution modes and frontends, and the separately managed performance
@@ -858,7 +849,7 @@ its exact Catalog observation, current grant, and selected Site capability.
 | Effect Set completion and publication: `applyCapturedEffectSet` / `publishCompletedEffectfulRun` | Salesforce integration suite: checked two-member Program, credentialed local HTTPS Site writes, durable rows, final chain, lost index acknowledgement, public SDK submit and later attach/status/authorized Result read after Store reopen, and retirement; saved-response/terminal/claim fault cases, lost physical HTTP reply, halt/continue, unknown and partial failure; simulated response control remains. The common `client-program-bridge.test.mjs` keeps provider-independent contracts. | The public submit path now enters the shared compiled Run owner and Connector completion. Distribution still owns public Checkpoint projection for an uncommitted unknown Run. The Site tests do not validate a live Salesforce org. |
 
 The org alias, instance, dedicated custom object, external-ID field, and
-write scope have not been supplied. No existing Smooth Cloud connection is
+write scope have not been supplied. No existing unrelated service connection is
 implicitly authorized. Until an isolated org is configured and explicit
 write permission is granted, every real-Salesforce cell above is unverified.
 

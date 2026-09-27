@@ -358,7 +358,7 @@ fn emit_dispatch_request_body(
     @encode.key(writer, "task_key")
     @encode.string_value(writer, request.task_key)
     @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-remote-dispatch-request/0.2")
+    @encode.string_value(writer, "actql-remote-dispatch-request/0.1")
     @encode.end_object(writer)
   } catch {
     _ => return Err(InvalidDispatch)
@@ -877,7 +877,7 @@ fn emit_remote_managed_output_subject_body(
     @encode.key(writer, "row_count")
     @encode.number_value(writer, subject.row_count.to_double())
     @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-remote-managed-output-subject/0.2")
+    @encode.string_value(writer, "actql-remote-managed-output-subject/0.1")
     @encode.end_object(writer)
   } catch {
     _ => return Err(InvalidDispatch)

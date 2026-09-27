@@ -402,3 +402,54 @@ test "cancellation request and physical stop are independent observations" {
   assert_true(cancelled.contains("\"status\":\"cancelled\""))
   assert_true(cancelled.contains("\"reason\":\"not_published\""))
 }
+
+///|
+test "Effect-free unknown execution uses Run reconciliation" {
+  let wire = issue_effect_free_unpublished_run_state_wire(
+    "run-unknown",
+    "2026-09-27T00:00:00.000Z",
+    ["answer"],
+    true,
+    false,
+    8192,
+    128,
+    16,
+    execution_unknown=true,
+  ).unwrap()
+  assert_true(wire.contains("\"status\":\"needs_reconciliation\""))
+  assert_true(
+    wire.contains(
+      "\"next_action\":{\"kind\":\"reconcile_run\",\"reason\":\"execution_unknown\"}",
+    ),
+  )
+  assert_false(wire.contains("\"effects\""))
+  assert_true(
+    issue_effect_free_unpublished_run_state_wire(
+      "run-unknown",
+      "2026-09-27T00:00:00.000Z",
+      ["answer"],
+      false,
+      false,
+      8192,
+      128,
+      16,
+      execution_unknown=true,
+    )
+    is Err(_),
+  )
+  assert_true(
+    issue_effect_free_unpublished_run_state_wire(
+      "run-unknown",
+      "2026-09-27T00:00:00.000Z",
+      ["answer"],
+      true,
+      false,
+      8192,
+      128,
+      16,
+      execution_unknown=true,
+      observed_terminal_outcome=Some(Failed),
+    )
+    is Err(_),
+  )
+}

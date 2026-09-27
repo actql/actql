@@ -1308,9 +1308,9 @@ states.
 | `running` | Admitted initial execution is in progress. | no |
 | `waiting_checkpoint` | A sealed Checkpoint prevents the protected continuation from executing. | no |
 | `resuming` | An approved Resolution has authorized continuation of the same Run. | no |
-| `needs_reconciliation` | One or more Effect outcomes remain unknown. | no |
+| `needs_reconciliation` | An execution outcome or one or more Effect outcomes remain unknown. | no |
 | `succeeded` | Required computation and Effect receipt aggregation completed successfully. | yes |
-| `failed` | The Run ended unsuccessfully, with no unresolved Effect outcome. | yes |
+| `failed` | The Run ended unsuccessfully, with no unresolved execution or Effect outcome. | yes |
 | `cancelled` | Preparation or a paused continuation ended without further dispatch. | yes |
 
 <!-- requirement-block: run-states.public-state-changes-must-follow-this-table-and-the-referenced -->
@@ -1330,6 +1330,21 @@ the public state does not require a new state name.
 | `preparing`, `waiting_checkpoint`, `resuming` | `cancelled` | Cancellation was admitted with no dispatch in flight or unresolved Effect outcome. |
 | `preparing`, `running`, `resuming` | `succeeded`, `failed`, `needs_reconciliation` | The continuation completed or failed; admission, publication, and Effect aggregation conditions determine the destination ([Capture, execution, and replay](#capture-and-replay), [Outcomes and reconciliation](#reconciliation)). |
 | `needs_reconciliation` | `needs_reconciliation`, `succeeded`, `failed` | A valid reconciliation receipt extended the sealed member history and all member outcomes were aggregated ([Outcomes and reconciliation](#reconciliation)). |
+| `needs_reconciliation` | `running`, `needs_reconciliation`, `succeeded`, `failed`, `cancelled` | For Run execution reconciliation, an authorized observation of the same retained execution establishes progress or its outcome. Success still requires formal publication; cancellation still requires confirmed stopping. No new execution is started. |
+
+<!-- requirement-block: run-states.execution-reconciliation-must-not-retransmit -->
+Run execution reconciliation uses the closed next action
+`{"kind":"reconcile_run","reason":"execution_unknown"}` in
+`actql-run-state/0.1`. Effect reconciliation retains its existing
+`{"kind":"reconcile","effects":["effect-name"]}` form and nonempty
+Effect inventory. Neither an invented Effect nor an empty inventory may
+stand for an unknown Effect-free execution. Both use the existing public
+`Execution.reconcile()` operation against the authorized retained Run.
+Run reconciliation only observes that execution: it MUST NOT submit or
+retransmit Compute, acquisition, Effect or Output, acquire a new start claim,
+or treat a missing observation as permission to retry. An unavailable or
+missing observation leaves the outcome unknown, not failed or cancelled.
+Current Result availability and physical-stop confirmation remain separate.
 
 <!-- requirement-block: run-states.a-resumed-continuation-must-not-return-to-running -->
 A resumed continuation MUST NOT return to `running`: it remains `resuming`

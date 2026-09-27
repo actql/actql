@@ -169,7 +169,7 @@ const remoteRequestBody = JSON.stringify({
   strategy_revision: 'strategy/1',
   task_attempt: 1,
   task_key: 'task-native-remote',
-  version: 'actql-remote-dispatch-request/0.2',
+  version: 'actql-remote-dispatch-request/0.1',
 });
 const remoteRequestCid = `sha256:${createHash('sha256')
   .update(remoteRequestBody).digest('hex')}`;
@@ -453,7 +453,7 @@ try {
       }
       try {
         let completion;
-        if (envelope.version === 'actql-remote-poll-dispatch/0.2') {
+        if (envelope.version === 'actql-remote-poll-dispatch/0.1') {
           const operation = remoteSiteControl.admitPollDispatch(body);
           const dispatch = remoteSiteControl.pollDispatchRequest(operation);
           completion = standardGateway.dispatch({
@@ -854,7 +854,7 @@ try {
         input_binding_cid: remoteInputBindingCid,
         input_binding_json: remoteInputBindingBody,
         request_json: remoteRequestBody,
-        version: 'actql-remote-poll-dispatch/0.2',
+        version: 'actql-remote-poll-dispatch/0.1',
       } : {
         dispatch_request_cid: remoteRequestCid,
         request_json: remoteRequestBody,
@@ -875,7 +875,7 @@ try {
         input_binding_cid: remoteInputBindingCid,
         input_binding_json: remoteInputBindingBody,
         request_json: staleRemoteRequestBody,
-        version: 'actql-remote-poll-dispatch/0.2',
+        version: 'actql-remote-poll-dispatch/0.1',
       }));
       return;
     }

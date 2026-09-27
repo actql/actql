@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:17abd39558483605349af79aa38b916f1dbc23a8faa2732221cb0b3da0222825",
+  "artifact_registry_cid": "sha256:cf8f6df574b401ceb5589c0a9c78ca57efbea3546cd5af795afa4fe7ba95225f",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10694,7 +10694,7 @@
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
     "plan_document": "sha256:6d77f736215cbf1379db11e4d793e66e19715bb28b8a6e737fae3bdd62590bbc",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
-    "run_state": "sha256:9c4e0ef67f6a3b7441cf1dc5cc8cafaec05dde6422a7628db027542cc0c808c6",
+    "run_state": "sha256:e61cdac45a5af98ca5362ee945511d705c373613cd4e9dc42009e036eb9fcb84",
     "captured_run": "sha256:ac57820dd589db489f000eb80ff95ec9c9a95fec5b233add853293ed9c1dbc53",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
@@ -71085,6 +71085,22 @@
                   "const": "none"
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "reason"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "reconcile_run"
+                },
+                "reason": {
+                  "const": "execution_unknown"
+                }
+              }
             }
           ]
         },
@@ -71301,16 +71317,46 @@
             },
             "properties": {
               "next_action": {
-                "type": "object",
-                "required": [
-                  "kind",
-                  "effects"
-                ],
-                "properties": {
-                  "kind": {
-                    "const": "reconcile"
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "effects"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "const": "reconcile"
+                      },
+                      "effects": {
+                        "type": "array",
+                        "minItems": 1,
+                        "uniqueItems": true,
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "reason"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "const": "reconcile_run"
+                      },
+                      "reason": {
+                        "const": "execution_unknown"
+                      }
+                    }
                   }
-                }
+                ]
               }
             }
           }

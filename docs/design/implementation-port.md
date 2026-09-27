@@ -38,29 +38,29 @@ closed fields, type validation and demand rules.
 ### Deployment and Host adapters
 
 The Host connects the core to environment-specific I/O, storage, credentials
-and resource controls; it is not necessarily a separate service. The deployment
-direction is:
+and resource controls; it is not necessarily a separate service. Possible
+adapter targets are:
 
 | Surface | Core target | Host adapter |
 | --- | --- | --- |
 | TypeScript library | JS | TypeScript |
 | Python library | Wasm | Python with an embedded Wasm runtime |
 | Cloudflare Workers | JS | TypeScript using Worker APIs |
-| Cloudflare Containers data plane | Wasm | Host with a Wasm runtime and native DuckDB; language remains undecided |
 | CLI | Native | MoonBit with environment-specific FFI where needed |
 
-These are integration targets, not claims of available distributions. Containers
-use DuckDB as a physical execution engine, not as the definition of ActQL
-semantics. Host resource limits also cover DuckDB work outside the Wasm runtime;
-container-local storage is not the sole durable home for recovery evidence.
+These are integration targets, not claims of available distributions or a
+service deployment plan. DuckDB is a physical execution engine, not the
+definition of ActQL semantics. A Host embedding a Wasm runtime must also account
+for native engine work outside it. Ephemeral storage alone cannot establish
+the durability required by a selected recovery profile.
 
 Shared semantics and execution rules remain in the MoonBit core. OSS Local Host
 and Cloud Host obey the same authorization, idempotency, failure and recovery
 contracts. Their storage, credential handling and scheduling adapters differ;
 Cloud additionally supplies tenant isolation and shared-resource controls.
 The shared Host interfaces and Local Host belong in OSS; Cloud-specific service
-integration belongs outside the portable core. Exact code/package boundaries
-and the Containers Host language are decided during implementation integration.
+integration belongs outside the portable core. These interfaces do not prescribe
+a service's deployment topology, storage product or implementation language.
 
 ## Bulk execution resource boundary
 

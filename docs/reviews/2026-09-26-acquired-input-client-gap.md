@@ -11,7 +11,7 @@ exist; the listed product connections do not.
 | Logical request identity | `prepare_client_request_identity` binds the checked Program Definition, Parameter Values, caller input intent, scope, and request ID. | A Program can acquire an external source while the caller selects no captured Run-start input. In that case the fixed `selection: "none"` caller intent is valid; the checked source declaration is already in the Program identity, while the actual acquisition belongs in the later Observation Set. Distribution must preserve the same request ID and intent across lookup, restart, and retry. |
 | Checked compilation and Run evidence | `run_publication_host`, `run_publication` | `issue_prepared_client_values_compilation` and `sourceFreeValuesPlan` issue only the direct Values plan, empty initial input set, and no-source ObservationSet. Distribution owns a shared acquired-input issuer built from the checked Program and actual capture evidence, with independent Run/Result binding tests. |
 | Physical capture and downstream computation | The installed DuckDB Host's `runStrategyNativeHostQuery` returns an `openDAG` operation backed by `nativeHostOpenDAG`. It binds the verified native observation and the captured source to the checked DAG on the same physical ledger. | `embedded-local.mjs` still opens only `clientProgramOpenSourceFreeLocalHost`; Distribution must select the installed acquisition from the checked source and pass its captured DAG to the existing `runPublishedCapturedStrategy`. A second generic capture owner is unnecessary. |
-| Remote mode of the same Program | Cloud-owned Run Host, common Run owner, native Site | Cloud submit currently calls `compileValues`; the native Site smoke also installs a fixed Values executor. Cloud must accept the same checked source and capture contract after the OSS shared issuer is available, without a TypeScript Run state machine. |
+| Remote mode of the same Program | Installed HTTP Host and common Run owner | The Remote Host must accept the same checked source and capture evidence as embedded Local. Exercise this with the packed OSS Host and the same application function; a second Run state machine is unnecessary. |
 
 The first acceptance fixture should use a real acquired relation, a checked
 subsequent computation, and a named Result with independent values and order.
@@ -35,5 +35,5 @@ At `aee02f6b42a159357f57c41d7d143c3a50c8ff3c`,
 `check:distribution-client` passed using the repository's pinned MoonBit
 installation. Its 88 Node tests and native Client mTLS smoke cover the current
 source-free and transport paths. The acquired-input acceptance above was not
-run and remains the Distribution product task. The Cloud live-Site/default-
-Worker/local-R2 combined gate remains a separate Cloud task.
+run and remains the Distribution product task. Source-free native Site tests
+do not establish acquired-input Client acceptance.
