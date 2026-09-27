@@ -9,9 +9,19 @@ Main subsequently advanced to `02c279a39567febbc11fb75a463bd6fbe92fb284`
 (Frontend PR #20). Integration retains its structural-AQL packed smoke and
 this branch's removal of the extra runtime package. Main's grammar pins change
 Plan identities independently of this refactor. Compatibility snapshots were
-refreshed against the standalone compiler under those exact pins; the Template
-expectation already reads the pinned manifests. The measurements below retain
-their original same-pin baseline and are not comparisons across grammar pins.
+refreshed against the standalone compiler under those exact pins. Specifically,
+the structural-text grammar and rules hashes changed the grammar manifest CID
+from `sha256:a203bf073a9d3ad122fd6e8428e713617a3ce812d8171e3d684c250d70aa0c7a`
+to `sha256:276726dc68f24e777b1421efc62b3f2518d9440530827b1f084f535e23d765ea`.
+The fixed Values and Task Plan CIDs changed from
+`sha256:5bb63ee040f2988dc694fc75b91bbab154053283588653a4f4bae0b4d1406dd4`
+and `sha256:88c46b0d0a30df30c7bb7efbbd7d2452a6b8baf183aa5203040d8900f4397e47`
+to the values in `local-values-plan.test.mjs`. That test now
+compiles each fixture through both the consolidated owner and the separately
+built standalone compiler under the same new Frontend pins and compares their
+full Plan CIDs. The Template expectation also reads the pinned manifests.
+The measurements below retain their original same-pin baseline and are not
+comparisons across grammar pins.
 
 This unit removes duplicate initial preparation and compilation in the
 installed Local Values and acquired Task paths. It does not add execution
@@ -55,16 +65,17 @@ See [Local adapter](../../adapters/host-node/local-values-plan.mjs),
 | --- | --- |
 | Initial Values and real-input Task prepare/compile | Each is called once in `local-values-plan.test.mjs`; the separate profiler probe also detects the former portable runtime calls |
 | Exact owner custody | Different preparation installation, copied handle, foreign control, and equal-content foreign prepared owner are rejected |
-| Identity | Template and Run Definition preimages are assembled independently from fixture context and pinned manifests; Plan CIDs match fixed pre-refactor compatibility snapshots |
+| Identity | Template and Run Definition preimages are assembled independently from fixture context and pinned manifests; Plan CIDs match both fixed snapshots and the test-only standalone compiler under identical Frontend pins |
 | Existing independent expectations | Standalone Core tests retain the independent logical Result Plan and output-contract vectors; shared compilation tests retain authored identity material |
 | Restoration | A retained Run Definition preserves identity; a rehashed definition naming a foreign Plan is rejected |
 | Product Values and acquisition | Standard Client bridge and packed Local exercise publication and Result reading, including real DuckDB input and downstream computation |
 | Standalone and restricted profiles | Standalone Core, packed package smoke and dependency-free module-subset checks pass |
 
 The complete Plan compatibility snapshots are baseline comparisons, not new
-independent reference-compiler vectors. This refactor changes no Plan identity
-algorithm. Existing independent lower-level identity expectations are retained;
-test output is not relabeled as an independent oracle.
+independent reference-compiler vectors. The test-only two-runtime comparison
+isolates the owner consolidation from the grammar-pin update. This refactor
+changes no Plan identity algorithm. Existing independent lower-level identity
+expectations are retained; test output is not relabeled as an independent oracle.
 
 ## Local verification
 

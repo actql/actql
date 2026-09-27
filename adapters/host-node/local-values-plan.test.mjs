@@ -11,6 +11,10 @@ import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {sourceFreeValuesPlan, acquiredTaskRunAdmission} from
   './local-values-plan.mjs';
+import {admitEnvironment as admitStandaloneEnvironment,
+  prepare as prepareStandalone, compileValues as compileStandaloneValues,
+  compileTasks as compileStandaloneTasks, compiledPlanCid,
+  privateTaskCompilationWires} from '../../packages/run-host-core/index.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const hash = body => `sha256:${createHash('sha256')
@@ -83,6 +87,22 @@ for (const kind of ['values', 'tasks']) {
 
       const compiled = control.prepareCheckedClientCompiledRun(
         preparedProgram, kind, policy);
+      // The separate runtime is test-only. Both compilers use this checkout's
+      // Frontend pins, so this comparison isolates the owner consolidation.
+      const standaloneEnvironment = admitStandaloneEnvironment(
+        canonicalText(JSON.parse(environmentWire)),
+        JSON.parse(environmentWire).evidence_bundle_cid, {rela: true});
+      const standalonePrepared = prepareStandalone(document, 'json',
+        standaloneEnvironment, parameters === null
+          ? undefined : canonicalText(parameters));
+      const standaloneCompilation = acquired
+        ? compileStandaloneTasks(standalonePrepared)
+        : compileStandaloneValues(standalonePrepared);
+      const standalonePlanCid = acquired
+        ? JSON.parse(privateTaskCompilationWires(standaloneCompilation)
+          .compiledPlan).compiled_plan_cid
+        : compiledPlanCid(standaloneCompilation);
+      assert.equal(compiled.compiledPlan.identity, standalonePlanCid);
       const grammar = JSON.parse(await read(
         '../../spec/manifests/actql-grammar-0.1.json'));
       const barriers = JSON.parse(await read(
