@@ -1,4 +1,5 @@
 import * as owner from './dist/client_values_host_abi.js';
+import {publicationAction} from './publication-action.mjs';
 
 const environments = new WeakMap();
 const preparations = new WeakMap();
@@ -504,15 +505,18 @@ export function privateRunDefinition(definition) {
 // The caller must retain the checked admission and the current physical
 // observation. A state wire is a projection, never Run or read authority.
 export function issueUnpublishedRunStateWire(prepared, compilation,
-  admission, definition, observedAt, dispatchReserved,
-  preDispatchFailureConfirmed, cancelledBeforeStart = false,
-  executionUnknown = false) {
+  admission, definition, observedAt, observation) {
   const compiled = requireHandle(compilations, compilation);
   const admitted = requireHandle(admissions, admission);
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
     throw new TypeError('ForeignRunHostCompilation');
   }
+  const {dispatchReserved, preDispatchFailureConfirmed,
+    cancelledBeforeStart = false, executionUnknown = false} =
+    observation ?? {};
   if (typeof observedAt !== 'string' ||
+      observation === null || typeof observation !== 'object' ||
+      Array.isArray(observation) ||
       typeof dispatchReserved !== 'boolean' ||
       typeof preDispatchFailureConfirmed !== 'boolean' ||
       typeof cancelledBeforeStart !== 'boolean' ||
@@ -1290,8 +1294,8 @@ export function openResultDeliveryControl() {
         'result-access-progress');
     },
     resultAccessProgressAction(progress) {
-      return owner.clientValuesHostResultAccessProgressAction(
-        progressToken(progress));
+      return publicationAction('resultAccess',
+        owner.clientValuesHostResultAccessProgressAction(progressToken(progress)));
     },
     recordResultAccessRequestAuthorization(progress, value) {
       return mark('clientValuesHostRecordResultAccessRequestAuthorization',
@@ -1379,14 +1383,17 @@ export function openResultDeliveryControl() {
         update.observedAt, update.cleanupOwnerCids, ...limitsOf(limits));
     },
     existingDeliveryAttemptAction(record) {
-      return owner.clientValuesHostExistingDeliveryAttemptAction(
-        record === undefined ? undefined : deliveryToken(record));
+      return publicationAction('existingDelivery',
+        owner.clientValuesHostExistingDeliveryAttemptAction(
+          record === undefined ? undefined : deliveryToken(record)));
     },
     deliveryFailureTerminalAction(observed) {
-      return owner.clientValuesHostDeliveryFailureTerminalAction(observed);
+      return publicationAction('failureTerminal',
+        owner.clientValuesHostDeliveryFailureTerminalAction(observed));
     },
     deliveryRecordRetryAction(next, count) {
-      return owner.clientValuesHostDeliveryRecordRetryAction(next, count);
+      return publicationAction('recordRetry',
+        owner.clientValuesHostDeliveryRecordRetryAction(next, count));
     },
     deliveryTransition(previous, next) {
       return owner.clientValuesHostDeliveryRecordTransition(
@@ -1513,9 +1520,11 @@ export function prepareRunCancellation(definition, definitionCid,
     terminal, requested), 'RunHostCancellationRejected');
 }
 
-export function issueRunControlObservation(revision, requested, unstarted,
-  stopped) {
+export function issueRunControlObservation(revision, observation) {
+  const {requested, unstarted, stopped} = observation ?? {};
   if (!Number.isSafeInteger(revision) || revision < 0 || revision > 2147483647 ||
+      observation === null || typeof observation !== 'object' ||
+      Array.isArray(observation) ||
       [requested, unstarted, stopped].some(value => typeof value !== 'boolean')) {
     throw new TypeError('InvalidRunControlObservation');
   }
