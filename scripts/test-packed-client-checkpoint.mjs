@@ -11,7 +11,6 @@ import {createRequire} from 'node:module';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {canonicalText} from './check-canonical-json.mjs';
-import {machineCid} from './actql-spec-family.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -65,31 +64,8 @@ await writeFile(join(root, 'expected.json'), JSON.stringify(expected));
 await writeFile(join(root, 'source-program.json'), await readFile(join(
   repository, 'adapters/connectors/duckdb/node/examples/program.json')));
 {
-  const catalogSource = await readFile(join(repository,
-    'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
-  const catalog = catalogSource.slice(catalogSource.indexOf(
-    'fn query_amount_nullable_catalog')).match(
-    /query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/u);
-  assert.ok(catalog);
-  const environment = JSON.parse(JSON.parse(catalog[1]));
-  const selector = {source_ref: 'connector://crm/main/r#v',
-    source_contract_cid:
-      'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
-    source_view_contract_cid:
-      'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
-    read_mode: 'snapshot'};
-  environment.schema_snapshots = [{...selector, output_carrier: 'relation',
-    carrier_schema_contract_cid:
-      'sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4',
-    source_data_policy_cid:
-      'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf',
-    data_classification: 'unknown'}];
-  environment.connector_capabilities = [{...selector,
-    capability_contract_cids: [
-      'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8'],
-  }];
-  delete environment.evidence_bundle_cid;
-  environment.evidence_bundle_cid = machineCid(environment);
+  const environment = JSON.parse(await readFile(join(repository,
+    'adapters/host-node/fixtures/query-amount-environment.json'), 'utf8'));
   const database = join(root, 'records.duckdb');
   const {DuckDBInstance} = createRequire(join(root, 'node_modules', '@actql',
     'local-node', 'package.json'))('@duckdb/node-api');
@@ -105,7 +81,7 @@ await writeFile(join(root, 'source-program.json'), await readFile(join(
   }
   await writeFile(join(root, 'source-profile.json'), JSON.stringify({
     version: 'actql-installed-duckdb-source/0.1', database, schema: 'main',
-    table: 'records', sourceRef: selector.source_ref,
+    table: 'records', sourceRef: 'connector://crm/main/r#v',
     checkEnvironmentWire: canonicalText(environment),
     accountConfigurationWire: canonicalText({
       version: 'actql-execution-account-config/0.1',
@@ -275,7 +251,8 @@ async function finished(id = requestId) {
   let state;
   for (let attempt = 0; attempt < 400; attempt++) {
     state = await execution.wait();
-    if (['succeeded', 'failed', 'cancelled'].includes(state.status)) break;
+    if (['succeeded', 'failed', 'cancelled', 'needs_reconciliation']
+      .includes(state.status)) break;
     await new Promise(resolve => setTimeout(resolve, 25));
   }
   assert.equal(state.status, process.env.EXPECT_STATUS ?? 'succeeded');
@@ -641,7 +618,7 @@ for (const [step, expectStatus, expected] of [
   ['definition_admitted', 'succeeded', ran()],
   ['dispatch_reserved', 'succeeded', ran({dispatch_reserved: 2})],
   ['hook', 'succeeded', ran({dispatch_reserved: 2, hook: 2})],
-  ['physical_start_reserved', 'running', ran({computed: 0})],
+  ['physical_start_reserved', 'needs_reconciliation', ran({computed: 0})],
 ]) {
   // A short lease: the crashed claimant's lease must lapse for the restart.
   const name = `crash-${step}`;
@@ -726,7 +703,7 @@ await crashed('acq-crash', {...readOnly, LEASE_MS: '2000',
   CRASH_AT: 'acquisition_started'});
 await withHost('acq-crash', {...readOnly, LEASE_MS: '2000'}, started =>
   client(started, 'finished', ['acq-crash'], {...readOnly,
-    EXPECT_STATUS: 'running'}));
+    EXPECT_STATUS: 'needs_reconciliation'}));
 assert.deepEqual(await counts('acq-crash'),
   ran({acquisition_started: 1, computed: 0}));
 await assertRetired('acq-crash', 'held');

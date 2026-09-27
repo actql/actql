@@ -12,7 +12,7 @@ import {Readable} from 'node:stream';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
-import test from 'node:test';
+import test, {after} from 'node:test';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath} from 'node:url';
 import {connect, RequestHeld} from '../../packages/sdk/index.mjs';
@@ -24,6 +24,17 @@ import {canonicalJson} from './local-account-config.mjs';
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const scratch = join(repository, '_build', 'remote-acquisition-checkpoint');
 await mkdir(scratch, {recursive: true});
+const tlsRoot = await mkdtemp(join(scratch, 'tls-'));
+execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+  '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
+  '-subj', '/CN=localhost',
+  '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
+{cwd: tlsRoot, stdio: 'ignore'});
+const tlsKey = await readFile(join(tlsRoot, 'remote.key'));
+const tlsCertificate = await readFile(join(tlsRoot, 'remote.crt'));
+setDefaultCACertificates([...getCACertificates('default'),
+  tlsCertificate.toString('utf8')]);
+after(() => rm(tlsRoot, {recursive: true, force: true}));
 const program = await readFile(join(repository,
   'adapters/connectors/duckdb/node/examples/program.json'), 'utf8');
 const owner = userInfo().username;
@@ -36,32 +47,16 @@ const signer = {keyId: 'reviewer-key', reviewerId: 'reviewer',
 const {DuckDBInstance} = createRequire(join(repository,
   'adapters/connectors/duckdb/node/package.json'))('@duckdb/node-api');
 
-// The installed source: a real DuckDB table and its checked Catalog view.
-const sourceCatalog = await readFile(join(repository,
-  'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
-const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
-  'fn query_amount_nullable_catalog')).match(
-  /query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/u);
-const sourceEnvironment = JSON.parse(JSON.parse(catalog[1]));
-const selector = {source_ref: 'connector://crm/main/r#v',
-  source_contract_cid:
-    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
-  source_view_contract_cid:
-    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
-  read_mode: 'snapshot'};
-sourceEnvironment.schema_snapshots = [{...selector,
-  output_carrier: 'relation',
-  carrier_schema_contract_cid:
-    'sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4',
-  source_data_policy_cid:
-    'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf',
-  data_classification: 'unknown'}];
-sourceEnvironment.connector_capabilities = [{...selector,
-  capability_contract_cids: [
-    'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8'],
-}];
-delete sourceEnvironment.evidence_bundle_cid;
-sourceEnvironment.evidence_bundle_cid = machineCid(sourceEnvironment);
+// This checked environment is an independent test fixture, not extracted
+// from another test's MoonBit source at runtime.
+const sourceEnvironment = JSON.parse(await readFile(join(repository,
+  'adapters/host-node/fixtures/query-amount-environment.json'), 'utf8'));
+test('acquisition fixture retains its independently pinned identity', () => {
+  const {evidence_bundle_cid: expected, ...body} = sourceEnvironment;
+  assert.equal(machineCid(body), expected);
+  assert.equal(expected,
+    'sha256:535c4c9bbefc918c4e1c67afcc8a7fae402d37b9113d039b3a03c758ae59a58e');
+});
 
 const accountConfiguration = (outcome, operation, accountId) =>
   canonicalJson({version: 'actql-execution-account-config/0.1',
@@ -86,7 +81,7 @@ async function installedSource(root, readOutcome) {
   const write = (outcome, target = {}) => writeFile(path, JSON.stringify({
     version: 'actql-installed-duckdb-source/0.1',
     database, schema: 'main', table: 'records', ...target,
-    sourceRef: selector.source_ref,
+    sourceRef: 'connector://crm/main/r#v',
     checkEnvironmentWire: canonicalText(sourceEnvironment),
     accountConfigurationWire: accountConfiguration(outcome, 'read',
       'source-account'),
@@ -103,12 +98,6 @@ async function acquiringHost(t, {readOutcome = 'delegate',
   runOutcome = 'allow', extra = {}, directory, profile} = {}) {
   const root = directory ?? await mkdtemp(join(scratch, 'host-'));
   const source = profile ?? await installedSource(root, readOutcome);
-  execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
-    '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
-    '-subj', '/CN=localhost',
-    '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
-  {cwd: root, stdio: 'ignore'});
-  const certificate = await readFile(join(root, 'remote.crt'));
   const steps = [];
   const host = await openInstalledRemoteHttpHost({
     directory: join(root, 'state'),
@@ -132,8 +121,8 @@ async function acquiringHost(t, {readOutcome = 'delegate',
       },
     },
   });
-  const server = createServer({key: await readFile(join(root, 'remote.key')),
-    cert: certificate}, host.handler);
+  const server = createServer({key: tlsKey, cert: tlsCertificate},
+    host.handler);
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   let closed = false;
   const close = async () => {
@@ -147,8 +136,6 @@ async function acquiringHost(t, {readOutcome = 'delegate',
     await close();
     if (directory === undefined) await rm(root, {recursive: true, force: true});
   });
-  setDefaultCACertificates([...getCACertificates('default'),
-    certificate.toString('utf8')]);
   const endpoint = `https://127.0.0.1:${server.address().port}/`;
   const as = token => connect({mode: 'remote', endpoint, token,
     durability: 'durable'});
