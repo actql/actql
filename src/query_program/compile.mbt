@@ -3470,7 +3470,8 @@ fn compile_join_query(
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
   if @query.join_part_count(query) != 1 ||
-    @query.operation_count(query) != 1 ||
+    @query.operation_count(query) < 1 ||
+    @query.operation_count(query) > 2 ||
     context.captured_stage is Some(_) ||
     context.program_id == "" ||
     context.stage_id == "" ||
@@ -3508,12 +3509,22 @@ fn compile_join_query(
     let keys = join_keys(
       part, left_qualifier, right_qualifier, left_fields, right_fields,
     )
-    guard @query.operation_at(query, 0) is Some(Select(projections, false)) else {
+    let predicate = if @query.operation_count(query) == 2 {
+      match @query.operation_at(query, 0) {
+        Some(Where(expression)) => Some(expression)
+        _ => raise Abort(UnsupportedJoin)
+      }
+    } else {
+      None
+    }
+    let select_index = if predicate is Some(_) { 1 } else { 0 }
+    guard @query.operation_at(query, select_index)
+      is Some(Select(projections, false)) else {
       raise Abort(UnsupportedJoin)
     }
     let select : Array[(String, @builder.Node)] = []
     let output : Array[String] = []
-    let mut computed = false
+    let mut computed = predicate is Some(_)
     for projection in projections {
       guard projection.expression is Some(expression) &&
         projection.aggregate is None &&
@@ -3565,6 +3576,18 @@ fn compile_join_query(
           }
         }
       }
+      match predicate {
+        Some(expression) =>
+          for path in join_reference_paths(expression) {
+            let field = join_projection_field(
+              path, part, left_qualifier, right_qualifier, left_fields, right_fields,
+            )
+            if !required.contains(field) {
+              required.push(field)
+            }
+          }
+        None => ()
+      }
       if required.is_empty() {
         if left_fields.is_empty() {
           raise Abort(UnsupportedJoin)
@@ -3601,6 +3624,30 @@ fn compile_join_query(
       }
       let derivations : Array[(String, @builder.Node)] = []
       let final_select : Array[@builder.Node] = []
+      let mut from = "aql_join_raw"
+      match predicate {
+        Some(expression) => {
+          let filter = match
+            @expression.append(
+              expression,
+              resolve,
+              builder,
+              limits.max_expression_work,
+            ) {
+            Ok(value) => value
+            Err(error) => raise Abort(Expression(error))
+          }
+          computed_steps.push(
+            construction.object([
+              ("from", construction.text(from)),
+              ("filter", filter),
+              ("as", construction.text("aql_join_filtered")),
+            ]),
+          )
+          from = "aql_join_filtered"
+        }
+        None => ()
+      }
       for index in 0..<projections.length() {
         let expression = projections[index].expression.unwrap()
         let name = output[index]
@@ -3634,15 +3681,16 @@ fn compile_join_query(
       if !derivations.is_empty() {
         computed_steps.push(
           construction.object([
-            ("from", construction.text("aql_join_raw")),
+            ("from", construction.text(from)),
             ("derive", construction.object(derivations)),
             ("as", construction.text("aql_join_derived")),
           ]),
         )
+        from = "aql_join_derived"
       }
       computed_steps.push(
         construction.object([
-          ("from", construction.text("aql_join_derived")),
+          ("from", construction.text(from)),
           ("select", construction.array(final_select)),
           ("as", construction.text("aql_join_output")),
         ]),

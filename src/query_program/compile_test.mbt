@@ -834,6 +834,34 @@ test "JOIN computes SELECT expressions once after matching rows" {
 }
 
 ///|
+test "LEFT JOIN WHERE filters null-extended rows after matching" {
+  let sql = @query.parse_query(
+    "SELECT l.a AS a FROM left_rows AS l LEFT JOIN right_rows AS r ON l.a = r.c WHERE r.c IS NULL",
+    syntax_limits(),
+  ).unwrap()
+  let pipe = @query.parse_query(
+    "FROM left_rows AS l |> LEFT JOIN right_rows AS r ON l.a = r.c |> WHERE r.c IS NULL |> SELECT l.a AS a",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(sql, set_context(), construction_limits()).unwrap()
+  assert_eq(
+    semantic(program),
+    semantic(compile(pipe, set_context(), construction_limits()).unwrap()),
+  )
+  let wire = semantic(program)
+  assert_true(wire.contains("\"join\":{\"kind\":\"left\""))
+  assert_true(wire.contains("\"filter\":{\"is_null\""))
+  assert_true(wire.contains("\"aql_join_filtered\""))
+  assert_true(wire.contains("\"from\":\"aql_join_filtered\",\"select\""))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("post-join filter should be statically closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+}
+
+///|
 test "FULL Values join refuses to invent stable row identities" {
   let query = @query.parse_query(
     "SELECT l.a AS a, r.d AS d FROM left_rows AS l FULL JOIN right_rows AS r ON l.a = r.c",

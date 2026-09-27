@@ -283,6 +283,21 @@ const computedLeftJoin = queryFrontend.compileTwoValuesSetQueryJson(
   'fixture.join_computed_left');
 assert.notEqual(computedLeftJoin, '');
 await writeFile(join(root, 'join-computed-left.json'), computedLeftJoin);
+const filteredLeftJoin = queryFrontend.compileTwoValuesSetQueryJson(
+  'SELECT l.a AS a FROM set_left AS l LEFT JOIN set_right AS r '
+    + 'ON l.a = r.c WHERE r.c IS NULL',
+  'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+  'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+  'fixture.join_filtered_left');
+assert.notEqual(filteredLeftJoin, '');
+const filteredPipeJoin = queryFrontend.compileTwoValuesSetQueryJson(
+  'FROM set_left AS l |> LEFT JOIN set_right AS r ON l.a = r.c '
+    + '|> WHERE r.c IS NULL |> SELECT l.a AS a',
+  'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+  'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+  'fixture.join_filtered_left');
+assert.deepEqual(JSON.parse(filteredPipeJoin), JSON.parse(filteredLeftJoin));
+await writeFile(join(root, 'join-filtered-left.json'), filteredLeftJoin);
 const capturedQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT id FROM records WHERE id > 1', 'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
@@ -699,6 +714,12 @@ async function checkJoinCases(client, suffix) {
   assert.deepEqual(await computedLeft.result('answer').all(),
     [{total: 2, label: 'x'}, {total: 2, label: 'x'},
       {total: null, label: null}, {total: null, label: null}]);
+  const filteredLeft = await client.aql(
+    readFileSync('join-filtered-left.json', 'utf8'),
+    {format: 'json', requestId: 'packed-join-filtered-left-' + suffix});
+  assert.equal((await filteredLeft.wait()).status, 'succeeded');
+  assert.deepEqual(await filteredLeft.result('answer').all(),
+    [{a: 2}, {a: null}]);
 }
 async function checkSetQueries(client, suffix) {
   for (const [name, expected] of setExpectations) {
