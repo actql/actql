@@ -52,7 +52,8 @@ Named noncorrelated SQL and Pipe `FROM (SELECT ...) AS source` now use the
 same checked Stage Result binding as a CTE. The bounded parser preserves
 the source alias and accumulates nested source stages without reparsing
 expressions or copying acquisition. A two-level captured-input subquery
-returns `id=3,2,3` through packed Local and HTTP Remote Named Results.
+applies DISTINCT, ORDER BY and LIMIT after acquisition and returns `id=2,3`
+through packed Local and HTTP Remote Named Results.
 Missing aliases and source-count overruns are rejected. JOIN subqueries,
 correlation and set operands containing subqueries remain outside the
 implemented path.

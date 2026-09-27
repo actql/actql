@@ -354,7 +354,17 @@ fn QueryParser::query_source(
   self.synthetic_sources += 1
   self.source_depth += 1
   ignore(self.advance())
-  let inner = self.sql_term()
+  let term = self.sql_term()
+  let tail : Array[QueryOperation] = []
+  if self.has("ORDER") {
+    self.keyword("ORDER")
+    self.keyword("BY")
+    tail.push(Order(self.order()))
+  }
+  if self.has("LIMIT") {
+    tail.push(self.limit())
+  }
+  let inner = { ..term, operations: term.operations + tail, }
   self.source_depth -= 1
   if self.advance().value != Symbol(41) {
     raise QueryAbort("Expected subquery closing parenthesis", self.peek().start)

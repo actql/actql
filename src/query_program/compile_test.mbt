@@ -876,6 +876,27 @@ test "SQL and Pipe FROM subqueries reuse the ordinary checked Stage Result" {
     NeedsInputs(_) => fail("nested CTE source should remain statically closed")
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
   }
+  let ordered = @query.parse_query(
+    "SELECT s.id FROM (SELECT id FROM orders ORDER BY id LIMIT 2) AS s",
+    syntax_limits(),
+  ).unwrap()
+  let ordered_program = compile(
+    ordered,
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_true(semantic(ordered_program).contains("\"take\":{\"count\":2"))
+  match
+    @check.check_parsed(
+      ordered_program,
+      check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("ordered subquery should remain statically closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
 }
 
 ///|

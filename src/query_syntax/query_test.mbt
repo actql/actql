@@ -84,6 +84,11 @@ test "noncorrelated FROM subqueries keep bounded dataflow and source alias" {
   assert_eq(relation(cte_at(sql, 0).unwrap().query), [
     { value: "orders", quoted: false, },
   ])
+  let ordered = parse_query(
+    "SELECT s.id FROM (SELECT id FROM orders ORDER BY id LIMIT 2) AS s",
+    query_limits(),
+  ).unwrap()
+  assert_eq(operation_count(cte_at(ordered, 0).unwrap().query), 3)
   let pipe = parse_query(
     "FROM (SELECT id FROM orders WHERE id > 1) AS s |> SELECT s.id",
     query_limits(),

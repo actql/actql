@@ -227,8 +227,9 @@ assert.notEqual(capturedCteQuery, '');
 await writeFile(join(root, 'captured-cte-query.json'), capturedCteQuery);
 const capturedSubquery = queryFrontend.compileCapturedQueryJson(
   'SELECT outer_rows.id FROM '
-    + '(SELECT inner_rows.id FROM '
-    + '(SELECT id FROM records WHERE id > 1) AS inner_rows) AS outer_rows',
+    + '(SELECT DISTINCT inner_rows.id FROM '
+    + '(SELECT id FROM records WHERE id > 1) AS inner_rows '
+    + 'ORDER BY id LIMIT 2) AS outer_rows',
   'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
   JSON.stringify(['id', 'amount']), 'fixture.captured_subquery');
@@ -592,7 +593,7 @@ async function checkCapturedSubquery(client, suffix) {
     {format: 'json', requestId: 'packed-captured-subquery-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.deepEqual(await execution.result('answer').all(),
-    [{id: 3}, {id: 2}, {id: 3}]);
+    [{id: 2}, {id: 3}]);
 }
 const distinctQueryDocument = readFileSync('distinct-query.json', 'utf8');
 const distinctExpressionDocument = readFileSync(
