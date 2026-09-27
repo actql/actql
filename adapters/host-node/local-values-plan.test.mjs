@@ -9,7 +9,8 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
-import {sourceFreeValuesPlan, acquiredTaskRunAdmission} from
+import {sourceFreeValuesPlan, sourceFreeTaskPlan,
+  acquiredTaskRunAdmission} from
   './local-values-plan.mjs';
 import {admitEnvironment as admitStandaloneEnvironment,
   prepare as prepareStandalone, compileValues as compileStandaloneValues,
@@ -24,12 +25,50 @@ const hash = body => `sha256:${createHash('sha256')
 // These supplement,
 // not replace, the independent logical-plan vectors in run-host-core tests.
 const planCids = {
-  values: 'sha256:41a2171a7444034d81ab545ac20bd21f7806c821ab077565b8ec7e0ab8228c81',
-  tasks: 'sha256:a9a4fabb9455df6f32a226c69e36650f82f6c971c8852c6bbd46d8d6136d6905',
+  values: 'sha256:7cc38419a13cdf3755d1b48d4e857a70b985878080719b2e7b3fa86438e9ee3e',
+  tasks: 'sha256:fd4bf67ab36f134160821492a3af1e70e31602ff5fa408cfa01ac6e9555a12e5',
 };
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 const policy = Object.freeze({executionContextCid: cid('a'),
   hostPolicyCid: cid('b'), expiresAt: '2027-01-01T00:00:00.000Z'});
+
+test('source-free task profile issues through the compiled Run owner',
+  async () => {
+    const document = await read('../../packages/sdk/fixtures/values.json');
+    const environmentWire = await read(
+      '../../packages/sdk/fixtures/values.environment.json');
+    const environmentBody = JSON.parse(environmentWire);
+    const environment = runtime.clientProgramCheckEnvironment(
+      canonicalText(environmentBody), environmentBody.evidence_bundle_cid,
+      false, false, true, false, false, false, false);
+    assert.ok(environment);
+    const prepare = installNodeClientProgramPreparation({moon: runtime,
+      environment});
+    const preparedProgram = prepare({kind: 'aql', input: {
+      text: document, format: 'json'}, parameters: null});
+    const control = runtimeCore(runtime).publicationControl;
+    const plan = sourceFreeTaskPlan({moon: runtime, control,
+      preparedProgram, authorityScopeCid: cid('a'), tenantId: 'local',
+      storeAuthorityCid: cid('c'),
+      now: () => '2026-09-27T00:00:00.000Z'});
+    assert.match(plan.runDefinition.identity, /^sha256:[0-9a-f]{64}$/u);
+    assert.match(plan.invocation.identity, /^sha256:[0-9a-f]{64}$/u);
+    assert.match(plan.observation.identity, /^sha256:[0-9a-f]{64}$/u);
+    assert.equal(plan.results.length, 1);
+    assert.deepEqual(plan.receiptEvidence.sourceEvidence, []);
+    const taskCompiled = control.prepareCheckedClientCompiledRun(
+      preparedProgram, 'tasks', policy);
+    const otherCompiled = control.prepareCheckedClientCompiledRun(
+      preparedProgram, 'values', policy);
+    const otherDefinition = control.defineCheckedClientCompiledRun(otherCompiled,
+      {tenantId: 'local', runId: 'other-run',
+        createdAt: '2026-09-27T00:00:00.000Z',
+        validUntil: policy.expiresAt});
+    assert.throws(() => control.issueCheckedClientCompiledInvocation(
+      taskCompiled, otherDefinition, {dataPolicyCid: cid('d')},
+      {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64}),
+    /Foreign Client compiled Run|RunHostInvocationRejected/);
+  });
 
 for (const kind of ['values', 'tasks']) {
   test(`Local ${kind} prepares and compiles once with exact owner custody`,

@@ -1915,9 +1915,13 @@ function publicationControl(moon) {
       }
       issuanceLimits(limits, 'Client Run Invocation');
       const issued = compiledRunResult(source === undefined
-        ? moon.clientProgramIssueCompiledValuesInvocation(value,
-          token(definition), dataPolicyCid,
-          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
+        ? (compiled.kind === 'tasks'
+          ? moon.clientProgramIssueCompiledSourceFreeTaskInvocation(value,
+            token(definition), dataPolicyCid,
+            limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
+          : moon.clientProgramIssueCompiledValuesInvocation(value,
+            token(definition), dataPolicyCid,
+            limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
         : moon.clientProgramIssueCompiledTaskInvocation(value,
           token(definition), source.sourceEvidenceWire,
           source.inputLogicalWire, source.sourceRef, source.sourceContractCid,

@@ -806,7 +806,9 @@ async function checkOrderScopes(client, suffix) {
 async function checkConcat(client, suffix) {
   await assert.rejects(client.aql(readFileSync('concat-query.json', 'utf8'),
     {format: 'json', requestId: 'packed-concat-' + suffix}),
-  {code: 'RunHostCompilationRejected'});
+  error => error.code === 'SubmissionUnknown' &&
+    error.requestId === 'packed-concat-' + suffix &&
+    error.cause?.code === 'RunHostCompilationRejected');
 }
 async function checkValuesCte(client, suffix) {
   const execution = await client.aql(

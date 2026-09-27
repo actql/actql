@@ -313,6 +313,8 @@ pub fn client_program_issue_captured_source_logical(@run_publication_host.Prepar
 
 pub fn client_program_issue_compiled_run_definition(@run_publication_host.ClientCompiledRun, String, String, String, String) -> Result[@run_publication.PublicationContract, @run_publication_host.ClientCompiledRunIssue]
 
+pub fn client_program_issue_compiled_source_free_task_invocation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
 pub fn client_program_issue_compiled_task_invocation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn client_program_issue_compiled_values_invocation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]

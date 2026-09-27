@@ -138,21 +138,14 @@ export function acquiredTaskRunAdmission({moon, control, preparedProgram,
 export function sourceFreeTaskPlan(options) {
   const acquired = acquiredTaskRunAdmission(options);
   const {moon, control, preparedProgram, authorityScopeCid, tenantId,
-    requestId, storeAuthorityCid, now} = options;
+    storeAuthorityCid, now} = options;
   const dataPolicyCid = policyCid('local-result-data');
-  const issued = run.issueSourceFreeTaskInvocation(acquired.prepared,
-    acquired.compilation, acquired.ownerAdmission, acquired.sourceDefinition,
-    dataPolicyCid, limits);
-  const observation = control.admitRunEvidence('observation_set',
-    issued.observation.wire, limits);
-  const invocation = control.admit('run_invocation',
-    issued.invocation.wire, limits);
-  const request = run.prepareRequest(acquired.prepared, authorityScopeCid,
-    requestId, moon.clientProgramSourceFreeInputIntentCid());
+  const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
+    acquired.compiled, acquired.runDefinition, {dataPolicyCid}, limits);
   return localPublicationPlan({control, admission: acquired.admission,
     runDefinition: acquired.runDefinition, invocation, observation,
     compiledPlanCid: acquired.compiledPlan.identity,
-    programDefinitionCid: run.requestFields(request).programDefinitionCid,
+    programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
     inputRelationCids: [], sourceEvidence: [], authorityScopeCid, tenantId,
     storeAuthorityCid, dataPolicyCid, createdAt: acquired.createdAt, now,
     resultCount: moon.clientProgramResultCount(preparedProgram)});

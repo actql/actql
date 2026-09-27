@@ -471,6 +471,24 @@ pub fn client_program_issue_compiled_values_invocation(
 }
 
 ///|
+#export_name("clientProgramIssueCompiledSourceFreeTaskInvocation")
+pub fn client_program_issue_compiled_source_free_task_invocation(
+  value : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  data_policy_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  @publication_host.issue_client_compiled_source_free_task_invocation(
+    value, definition, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramIssueCompiledTaskInvocation")
 pub fn client_program_issue_compiled_task_invocation(
   value : @publication_host.ClientCompiledRun,

@@ -327,6 +327,8 @@ pub fn issue_client_allowed_run_evidence(@run_publication.RunEvidenceValue, @run
 
 pub fn issue_client_compiled_run_definition(ClientCompiledRun, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientCompiledRunIssue]
 
+pub fn issue_client_compiled_source_free_task_invocation(ClientCompiledRun, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
 pub fn issue_client_compiled_task_invocation(ClientCompiledRun, @run_publication.PublicationContract, String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn issue_client_compiled_values_invocation(ClientCompiledRun, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
