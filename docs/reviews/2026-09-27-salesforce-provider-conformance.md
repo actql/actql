@@ -83,32 +83,50 @@ A Site generates its static declaration with `installed.declareCatalog({connecto
 - **Input:** a targeted sync of the selected Resources under the Site's own metadata grants.
 - **Output:**
   - one canonical `actql.connector_catalog/0.1` Catalog, with one SourceView `records` per Resource;
-  - one `actql.mapping_contract/0.1` Mapping per writable Resource;
+  - the connection's `actql-connectors/0.1` manifest entry and its CID;
+  - the writable fields of each Resource per operation;
   - the reason for everything left out.
 - **Identity:** `connectorId` is the Host's logical connection id (no org identifier), and `connector_version` is the installed revision (`salesforce/0.1`).
-- **Excluded from the Catalog:** the Site binding (tenant, org, Site, generation, origin). It stays with the Site-held declaration.
+- **Excluded from the Catalog and the entry:** the Site binding (tenant, org, Site, generation, origin). It stays with the Site-held declaration, together with the described field metadata.
 - **Determinism:** equal selected describes give equal bytes and CIDs, whatever the listing or selection order.
-- **Not authority:** generation and admission are not current authority and issue no grant.
+- **Not authority:** generation and admission are not current authority, not an installed implementation, and issue no grant.
 
 | Declared | Rule |
 | --- | --- |
 | Field types | Text types (`id`, `reference`, `string`, `textarea`, `email`, `phone`, `url`, `picklist`, `combobox`) as `string`, `boolean` as `boolean`, and 32-bit `int` as `number`, each only with confirmed nullability. |
 | Not declared | `double` (Salesforce Number, Currency and Percent are decimal): binary64 `number` does not carry them exactly and no existing conversion law admits them as `decimal`. Also `date`, `datetime` and other types, and fields with unconfirmed nullability. Each is listed with its reason. |
 | SourceView | `scan`, `read_content`, `snapshot`. Pushdown is `projection` and `filter`: only an exact `int` comparison is pushed as a prefilter and the checked filter always stays residual. `limit` and `order_by` are not declared, so no provider limit can precede a residual filter. |
-| Mapping rules | `create` (selector `none`), `update` (selector `id`) and `upsert` (selector `key`, only with a unique, createable and updateable external ID), each with its writable fields and permission `salesforce:record:<kind>`. A create rule is withheld when a required create field is not declarable or its requirement is unknown. `row_mapping` is empty, so the Program names every written field. There is no `delete` rule, no `allOrNone=true` and no Bulk. |
+| Writable fields | Per Resource: create, update-by-Id and upsert candidate fields, the upsert keys (unique, createable and updateable external IDs), and the required create fields. Create and upsert are withheld when a required create field is not declarable or its requirement is unknown. No delete, no `allOrNone=true`, no Bulk. This list is not a Mapping. |
 | Commands | None. Salesforce Effects use Mappings. Row versus Collections routing and per-item atomicity stay with the existing Connector write capability evidence. |
 
+**Manifest entry.** A Check Environment may carry the manifest as `connector_manifest`: `{version: "actql-connectors/0.1", connectors}` (contracts.md, "Connector manifest and authorization boundary").
+- Each entry is exactly `{connector, connector_id, connector_version}`. Its identity is the canonical CID of the entry alone. The entry deliberately has no Catalog CID, Host path or `auth_binding`, so adding a connection, regenerating a Catalog or rebinding authorization changes no Mapping.
+- Check admits a supplied manifest for every environment, whether or not any Mapping names it: strict CID order, unique connection ids, and each entry matching one Catalog of the same id and version. An environment without a manifest is unchanged.
+- Every Mapping's `connector_manifest_cid` must resolve to one entry whose connection owns its `target_ref`.
+- There is no cycle: a Mapping names an entry, an entry is matched to a Catalog, and a Catalog names neither.
+
+**Execution Mapping.** `installed.prepareExecutionMapping({declaration, resource, write})` builds the Mapping of one Effect's write. Its single permission rule is exactly that write, because the common Effect Check matches a rule's write fields exactly. The write kinds are:
+- `update` by Id of the named fields;
+- `upsert`, where the external ID selects the record, is not a body field, and is named in the target schema, so the Mapping identity carries the key;
+- `create` with an inline payload;
+- `create` from a Named Result, with an explicit `row_mapping` whose null behavior is checked against the declared fields. A nullable, non-required field may use `omit`: a row whose source is null leaves that field out of its body, and only such a field may be absent. A required or `reject` field is always present.
+
+The Mapping names the connection's manifest entry. Generated Mappings pass the existing Effect Check and compile for:
+- a Name-only update;
+- an external-ID upsert;
+- a Result-backed create.
+
+A two-member Run from a Named Result with a null and a present label, through a Site-generated Mapping that omits the null, also publishes. The provider receives the null row without the field and the other row with it.
+
+The same Mappings fail Check when used for another write, and when their manifest entry is missing.
+
 Before any I/O, the Site checks each use against its own declaration:
-- **Writes:** write capability issuance requires the declaration. It refuses a Resource, operation, field or upsert key that the declaration does not cover.
-- **Reads:** broad query preparation requires that the checked source is the declaration's SourceView, and that every planned field is declared and still exactly typed.
+- **Writes:** write capability issuance requires the execution Mapping. The request must be exactly its write (Resource, operation, fields, upsert key), and each row body may leave out only fields the Mapping omits on a null source.
+- **Reads:** broad query preparation requires that the checked source is the declaration's SourceView, and that every planned field is declared.
+- **Field meaning:** every field a read or write uses, including the upsert key, must still mean what was declared (type, nullability, create/update, external ID, uniqueness, case sensitivity, references). A schema change under the same Site binding is refused with `SchemaChanged` until the Resource is declared again, with no credential use and no request.
 - **Binding:** a declaration of another tenant, principal, environment, org, connection, Site, generation, origin or revision is refused, even when names and schema match.
-- **Tests:**
-  - a generated declaration passes the existing Check Environment chain;
-  - a Program is checked against it;
-  - an altered Catalog and a repeated connection id are rejected.
 
 Remaining concrete gaps:
-- `connector_manifest_cid` in each Mapping is the Catalog CID. No `actql-connectors/0.1` manifest entry is defined or admitted, and the checker validates only the CID's syntax.
 - Exact decimal and temporal reads and writes need conversion contracts.
 - The per-field pushdown limit (exact `int` only) is not expressible in the pushdown body. The residual rule keeps a declared `filter` legal.
 
@@ -120,12 +138,15 @@ Needed from the Host owner, with the provider entry points already present:
   - Case: another principal and an unknown connection are denied before provider I/O.
   - Case: restore after restart runs without provider I/O.
   - Case: a read revoked after restore discloses nothing.
-- Publish a connection's declaration explicitly with `site.declareCatalog({connectorId, resources})`, and put its Catalog, SourceViews, contracts and Mappings into the Check Environment.
+- Publish a connection's declaration explicitly with `site.declareCatalog({connectorId, resources})`.
+  - Put its Catalog, SourceViews and contracts, and its manifest entry (under `connector_manifest`), into the Check Environment.
   - Keep the returned `declaration` with the installed Site.
   - After reinstalling, declare again: the same selected schema gives the same CIDs.
   - Never describe during Check.
-- Pass that `declaration` to `issueSalesforceEffectCapability` and to Salesforce broad query preparation.
-  - Case: another Site's or org's declaration, an undeclared field, and a Resource outside the declaration are refused before any credential use.
+- For each Effect, publish the Mapping from `site.prepareExecutionMapping({declaration, resource, write})`.
+  - Pass that same `mapping` to `issueSalesforceEffectCapability`, and build row bodies with `salesforcePrepareExecutionWriteBody`.
+  - Pass the `declaration` to Salesforce broad query preparation.
+  - Case: another Site's or org's Mapping, another write's Mapping, a request whose fields or key differ, a row omitting a non-omitted field, and a schema change since declaring are refused before any credential use.
 - Issue Salesforce record grants from each `effect_commit` dispatch that the Host gate returns (`installed.issueGrant`), not once per Run as the test fixture does.
 - Decide whether Host account policy must be able to deny Catalog metadata I/O, and in which existing vocabulary.
 
@@ -161,11 +182,12 @@ Findings beyond the two fixes above:
 - `datetime` fields are neither readable nor writable yet; a write naming
   `Observed_At__c` is refused before I/O.
 
-Static declaration, 2026-09-27, read-only (5 calls; 114 of 200 in total):
-- **Generated:** a declaration of the dedicated object from its describe.
-- **Accepted:** the existing Check Environment admission accepted it, and a Program reading the declared fields passed Check.
-- **Rejected:** a Program naming `Amount__c` was rejected at Check.
+Static declaration, 2026-09-27, read-only, at the code of this change (119 of 200 calls in total):
+- **Generated:** a declaration, its manifest entry and three execution Mappings of the dedicated object from its describe.
+- **Accepted:** the existing Check Environment admitted them. Effect Check and compile passed for a Name-only update, an external-ID upsert, and a Result-backed create that omits a null optional text.
+- **Rejected:** using the update's Mapping for an upsert was rejected at Check.
 - **Left out:** `Amount__c` (`double`) and the `datetime` fields, including the object's system date fields, each with its reason.
+- **Not done:** no write was sent for this check.
 
 This covers that one object only. It is not a result for every org, type or capability.
 
