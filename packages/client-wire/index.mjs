@@ -35,6 +35,24 @@ export const resourceLimits = Object.freeze({
 const boundedText = (value, maximum = 256) => typeof value === 'string' &&
   value.length > 0 && value.length <= maximum &&
   !/[\u0000-\u001f\u007f]/u.test(value);
+
+// These are the installed submit boundary's explicit refusal contracts:
+// request validation, preparation, connection policy and admission checks.
+// A public-looking code, exception class, or an arbitrary 4xx response is not
+// evidence of refusal. In particular, journal and start uncertainty are absent.
+const submitRejections = new Set([
+  'InvalidClientRequest', 'ClientRequestTooLarge',
+  'ClientProgramInvalidInput', 'ClientParametersInvalid',
+  'ClientParametersTooLarge', 'ClientProgramNeedsInputs',
+  'ClientProgramRejected', 'ClientProgramUnsupported',
+  'ClientAuthenticationDenied', 'ClientConnectionDenied',
+  'ClientRunStartDenied', 'ClientRequestIntentConflict',
+  'ACTQL_E_ACCOUNT_DENIED', 'ACTQL_E_ACCOUNT_NO_MATCH',
+  'ACTQL_E_DELEGATION_REJECTED',
+]);
+export function isClientSubmitRejection(code) {
+  return submitRejections.has(code);
+}
 export function validRunRef(value) {
   return validRunRefShape(value);
 }

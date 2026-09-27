@@ -1,6 +1,7 @@
 // Client-Host HTTP ingress. Authentication and connection consent are installed
 // by the Host; Run meaning and read admission stay with the existing services.
 import {inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
+import {performClientSubmit} from './client-submit.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {deliverAuthorizedResult,
@@ -9,7 +10,7 @@ import {clientHostOperations, validCheckpointPage, validCheckpointReview,
   validClientAdmission, validClientBody, validClientProfile,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
   validRequestCancellation, validResourceInspection, validResourceListing,
-  validResourcePeek, validRunState, validSubmitReply} from
+  validResourcePeek, validRunState} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -201,15 +202,11 @@ export function createClientHttpHandler({
         }
         sendJson(profile);
       } else if (operation === 'submit') {
-        const preparedProgram = prepareSubmit === undefined ? undefined :
-          await invoke(prepareSubmit);
-        if (prepareSubmit !== undefined && preparedProgram === undefined) {
-          invalid('InvalidClientHostPreparation');
-        }
-        const admission = await invoke(submit, undefined, preparedProgram);
-        if (!validSubmitReply(admission, connection, body.requestId)) {
-          invalid('InvalidClientHostAdmission');
-        }
+        const admission = await performClientSubmit({connection,
+          requestId: body.requestId,
+          prepare: prepareSubmit === undefined ? undefined :
+            () => invoke(prepareSubmit),
+          submit: prepared => invoke(submit, undefined, prepared)});
         sendJson(admission);
       } else if (operation === 'attach') {
         const admission = await invoke(attach);

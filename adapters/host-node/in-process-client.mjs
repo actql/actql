@@ -1,6 +1,7 @@
 // Installed Local Client Host ingress. It shares public validation and Host
 // services with HTTP ingress while keeping control and Result rows in process.
 import {ClientError} from '../../packages/sdk/index.mjs';
+import {performClientSubmit} from './client-submit.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {validClientAdmission, validClientBody, validClientProfile,
@@ -73,16 +74,10 @@ export function createNodeInProcessClientHost({
         return profile;
       }
       if (operation === 'submit') {
-        const prepared = prepareSubmit === undefined ? undefined :
-          await invoke(prepareSubmit);
-        if (prepareSubmit !== undefined && prepared === undefined) {
-          fail('InvalidClientHostPreparation');
-        }
-        const admitted = await invoke(submit, prepared);
-        if (!validClientAdmission(admitted, connection)) {
-          fail('InvalidClientHostAdmission');
-        }
-        return admitted;
+        return await performClientSubmit({connection, requestId: body.requestId,
+          prepare: prepareSubmit === undefined ? undefined :
+            () => invoke(prepareSubmit),
+          submit: prepared => invoke(submit, prepared)});
       }
       if (operation === 'attach') {
         const admitted = await invoke(attach);

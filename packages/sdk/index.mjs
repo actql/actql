@@ -1,5 +1,5 @@
 // The transport Client delegates admission, state and delivery to the Host.
-import {checkpointLimits, validCancellation, validCheckpointPage,
+import {checkpointLimits, isClientSubmitRejection, validCancellation, validCheckpointPage,
   validCheckpointReview, validClientAdmission, validClientConnection,
   validClientProfile, validDeliveryAttemptLookup, validRequestCancellation,
   validRequestLookup,
@@ -215,16 +215,14 @@ async function connectSelected(selected, port) {
         return value;
       }
       catch (cause) {
-        if (cause instanceof ClientError) {
-          if (operation === 'submit' && cause.code ===
-              'SubmissionUnknown') {
-            throw new ClientError('SubmissionUnknown', {...submitContext,
-              cause});
-          }
-          throw cause;
-        }
         if (operation === 'submit') {
+          if (isClientSubmitRejection(cause?.code)) {
+            throw new ClientError(cause.code, {cause});
+          }
           throw new ClientError('SubmissionUnknown', {...submitContext, cause});
+        }
+        if (cause instanceof ClientError) {
+          throw cause;
         }
         throw new ClientError('ClientTransportUnknown', {cause});
       }
@@ -261,7 +259,8 @@ async function connectSelected(selected, port) {
       const code = typeof error?.code === 'string' &&
         /^[A-Za-z][A-Za-z0-9_]{0,79}$/u.test(error.code)
         ? error.code : `HostHTTP${response.status}`;
-      if (operation === 'submit' && response.status >= 500) {
+      if (operation === 'submit' && (response.status >= 500 ||
+          !isClientSubmitRejection(code))) {
         throw new ClientError('SubmissionUnknown', {...submitContext,
           cause: new ClientError(code)});
       }
