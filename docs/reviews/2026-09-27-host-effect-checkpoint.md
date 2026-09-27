@@ -46,6 +46,11 @@ Branch: `feat/host-effect-commit-checkpoint`.
   answer or restart. A simulated Site test covers the same Run, a durable
   claim, send-time admission, one send with an unknown reply, duplicate answer,
   request replay, and another restart. This is not publication acceptance.
+- Cancelling a waiting Effect Run now closes its exact open Checkpoint and
+  exposes a cancelled Run with no Effect send. After approval, cancellation
+  atomically fences an unsent resume against its dispatch admission. An
+  admitted send remains a reconciliation duty. The Host also reconciles a
+  cancellation recorded just before the Checkpoint became visible.
 
 ## Remaining product connections
 
@@ -54,9 +59,10 @@ Branch: `feat/host-effect-commit-checkpoint`.
    dispatch owner; a suspended computation is not a failed Run.
 2. Recover the exact durable capture and Effect ledger after an answer or
    restart, without reclaiming Run-start permission or rerunning Compute.
-3. Connect authoritative Checkpoint and reconciliation states to public Run
-   observation and cancellation. Complete or reclaim retained captures on the
-   appropriate existing terminal transitions.
+3. Connect admitted-send reconciliation and retained-capture cleanup to
+   public Run observation and cancellation. Do not mark an
+   admitted-but-unconfirmed send as cancelled. Complete or reclaim retained
+   captures on the appropriate existing terminal transitions.
 4. Run public Client / installed Host fault-injection acceptance, including
    unsupported read deferral's public state, zero sends and cleanup. Service
    admission tests alone are not evidence that the installed Program path works.

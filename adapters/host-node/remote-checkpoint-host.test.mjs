@@ -444,7 +444,8 @@ test('installed Effect commit resumes the same Run without resending',
     const values = JSON.stringify(aoa.execution_contracts['REL.values']);
     const directory = await mkdtemp(join(scratch, 'effect-commit-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
-    const subjectCid = contentCid({effect: 'save', request: 'effect-commit-a'});
+    const subjectFor = ref => contentCid({effect: 'save',
+      runDefinitionCid: ref.runDefinitionCid});
     const effectScope = {connection: 'reference', resource: 'records',
       operation: 'effect'};
     let computes = 0;
@@ -453,9 +454,10 @@ test('installed Effect commit resumes the same Run without resending',
     const diagnostics = [];
     const effectInstallation = {
       environmentWire: fixture.environmentWire,
-      async execute({owner: checkedOwner, moon, control, runDefinition,
+      async execute({owner: checkedOwner, moon, control, ref, runDefinition,
         effectAuthorization, retainExecution}) {
         computes++;
+        const subjectCid = subjectFor(ref);
         const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
           checkedOwner, registry, values, 1n, 0n, 0n, 0n);
         assert.ok(setup);
@@ -475,11 +477,12 @@ test('installed Effect commit resumes the same Run without resending',
         } finally { gate.close(); }
         return {status: 'waiting_checkpoint'};
       },
-      async resume({view, continuation, effectAuthorization,
+      async resume({ref, view, continuation, effectAuthorization,
         checkpointJournal, checkpointBinding, retainExecution}) {
         resumed++;
         retainExecution({async close() {}, async cleanup() { return true; },
           cleanupPending() { return false; }});
+        const subjectCid = subjectFor(ref);
         assert.equal(continuation.subjectCid, subjectCid);
         const claimed = checkpointJournal.claimResume(view.runId, {
           claimant: 'installed-effect-host', leaseMs: 60_000,
@@ -571,7 +574,49 @@ test('installed Effect commit resumes the same Run without resending',
       'needs_reconciliation');
     assert.equal(sends, 1);
     assert.equal(computes, 1);
+    const cancelledRun = await lastClient.aql(fixture.document,
+      {format: 'json', requestId: 'effect-cancel-a'});
+    await waitFor(async () => (await cancelledRun.status()).status ===
+      'waiting_checkpoint');
+    const waiting = (await (await fourth.as('reviewer-token'))
+      .checkpoints()).items;
+    assert.equal(waiting.length, 1);
+    await cancelledRun.cancel();
+    await waitFor(async () => (await cancelledRun.status()).status ===
+      'cancelled');
+    assert.deepEqual((await (await fourth.as('reviewer-token'))
+      .checkpoints()).items, []);
+    assert.equal(sends, 1);
+    assert.equal(computes, 2);
+    const approvedThenCancelled = await lastClient.aql(fixture.document,
+      {format: 'json', requestId: 'effect-approved-cancel-a'});
+    await waitFor(async () => (await approvedThenCancelled.status()).status ===
+      'waiting_checkpoint');
     await fourth.close();
+    const fifth = await remoteHost(t, {...authorization,
+      resumeAfterAnswer: false}, {directory, effectInstallation});
+    const fifthReviewer = await fifth.as('reviewer-token');
+    const [approvedCheckpoint] = (await fifthReviewer.checkpoints()).items;
+    const approval = await fifthReviewer.resolveCheckpoints([
+      {checkpoint: approvedCheckpoint, decision: 'approved'}],
+    {signer: {...signer, authorityScopeCid:
+      approvedThenCancelled.ref.authorityScopeCid}});
+    assert.deepEqual(approval.results.map(item => item.status),
+      ['committed']);
+    assert.equal(sends, 1);
+    const fifthOwner = await fifth.as('owner-token');
+    await (await fifthOwner.attach(approvedThenCancelled.ref)).cancel();
+    await waitFor(async () => (await (await fifthOwner.attach(
+      approvedThenCancelled.ref)).status()).status === 'cancelled');
+    await fifth.close();
+    const sixth = await remoteHost(t, authorization,
+      {directory, effectInstallation});
+    const sixthOwner = await sixth.as('owner-token');
+    assert.equal((await (await sixthOwner.attach(
+      approvedThenCancelled.ref)).status()).status, 'cancelled');
+    assert.equal(sends, 1);
+    assert.equal(computes, 3);
+    await sixth.close();
   });
 
 test('rejected answers end the request without a Run; answers are per item',

@@ -239,6 +239,28 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     }
     throw new Error('RunStateObservationUnstable');
   };
+  const cancelEffectContinuation = ref => {
+    if (checkpoints === undefined) return false;
+    const retained = journal.lookupRunDefinition(ref, moon, control);
+    if (retained === undefined || !retained.cancellationRequested) {
+      return false;
+    }
+    const runId = control.runDefinitionRunId(retained.runDefinition);
+    const view = checkpoints.journal.inspect(`${runId}-effect-commit`);
+    if (view?.kind !== 'effect_set' || view.runId !== runId ||
+        view.runDefinitionCid !== ref.runDefinitionCid ||
+        view.prepareAttemptId !== null) return false;
+    const state = checkpoints.journal.getRunState(runId)?.status;
+    if (state === 'waiting_checkpoint') {
+      return checkpoints.journal.cancelCheckpoint(view.checkpointCid)
+        .outcome === 'cancelled';
+    }
+    if (state === 'resuming') {
+      return checkpoints.journal.cancelUnsentResume(view.checkpointCid)
+        .outcome === 'cancelled';
+    }
+    return false;
+  };
   const cancel = async ({ref, principalId: actual, connection}) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
       throw new Error('ClientRunCancellationDenied');
@@ -252,6 +274,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     }, moon, control);
     if (accepted.kind !== 'already_terminal') {
       dispatchOwner.cancel(ref);
+      cancelEffectContinuation(ref);
+      void checkpoints?.sweep();
     }
     return accepted;
   };
@@ -831,12 +855,18 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     for (;;) {
       const page = checkpoints.journal.listRunCheckpoints({after, limit: 100});
       for (const view of page) {
-        if (view.kind !== 'effect_set' || view.prepareAttemptId !== null ||
-            checkpoints.journal.getRunState(view.runId)?.status !==
-              'resuming') continue;
+        if (view.kind !== 'effect_set' || view.prepareAttemptId !== null) {
+          continue;
+        }
         const key = view.runDefinitionCid;
         const ref = Object.freeze({tenantId, authorityScopeCid,
           runDefinitionCid: key});
+        if (cancelEffectContinuation(ref)) {
+          busy = true;
+          continue;
+        }
+        if (checkpoints.journal.getRunState(view.runId)?.status !==
+            'resuming') continue;
         if (effectResumeFlights.has(key) ||
             dispatchOwner.operation(ref) !== undefined) {
           busy = true;
