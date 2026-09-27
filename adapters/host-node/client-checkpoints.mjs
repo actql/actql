@@ -993,45 +993,53 @@ export async function installRemoteCheckpoints({root, tenantId,
           ? authorities.map(item => item.reviewerId)
           : [...answeringAuthorities]};
       const read = await createLocalAuthorizationGate(common);
-      const commit = await createLocalAuthorizationGate({...common,
-        requiredClaims: effectClaims,
-        deferral: {journal, authorities, binding,
-          async describe(view) {
-            if (view.boundary !== 'effect_commit' &&
-                view.subject.boundary !== 'effect_commit') {
-              fail('InvalidEffectCheckpointBoundary');
-            }
-            await beforeDefer();
-            const id = `effect-${runId}`;
-            const refs = await evidence.hold(id, runDefinitionCid, [
-              {name: 'review_projection', wire: reviewWire},
-              {name: 'continuation_record', wire: continuationWire},
-            ]);
-            const created = now();
-            return {priorStatus: 'running', declaredResults, body: {
-              checkpoint_id: `${runId}-effect-commit`, run_id: runId,
-              run_definition_cid: runDefinitionCid,
-              continuation_state_cid: refs[1],
-              subject: {kind: 'run_unit', run_id: runId, unit_id: unitId,
-                continuation: 'resume_unit'},
-              required_artifact: {artifact_cid: view.subject.subject_cid},
-              review_projection_cid: refs[0],
-              human_summary: 'Approve the complete Effect Set',
-              created_at: new Date(created).toISOString(),
-              expires_at: new Date(created + checkpointTtlMs).toISOString(),
-            }};
-          },
-        }});
-      if (read.configurationCid !== gate.configurationCid ||
-          commit.configurationCid !== gate.configurationCid) {
-        fail('EffectCheckpointConfigurationChanged');
+      let commit;
+      try {
+        commit = await createLocalAuthorizationGate({...common,
+          requiredClaims: effectClaims,
+          deferral: {journal, authorities, binding,
+            async describe(view) {
+              if (view.boundary !== 'effect_commit' &&
+                  view.subject.boundary !== 'effect_commit') {
+                fail('InvalidEffectCheckpointBoundary');
+              }
+              await beforeDefer();
+              const id = `effect-${runId}`;
+              const refs = await evidence.hold(id, runDefinitionCid, [
+                {name: 'review_projection', wire: reviewWire},
+                {name: 'continuation_record', wire: continuationWire},
+              ]);
+              const created = now();
+              return {priorStatus: 'running', declaredResults, body: {
+                checkpoint_id: `${runId}-effect-commit`, run_id: runId,
+                run_definition_cid: runDefinitionCid,
+                continuation_state_cid: refs[1],
+                subject: {kind: 'run_unit', run_id: runId, unit_id: unitId,
+                  continuation: 'resume_unit'},
+                required_artifact: {artifact_cid: view.subject.subject_cid},
+                review_projection_cid: refs[0],
+                human_summary: 'Approve the complete Effect Set',
+                created_at: new Date(created).toISOString(),
+                expires_at: new Date(created + checkpointTtlMs).toISOString(),
+              }};
+            },
+          }});
+        if (read.configurationCid !== gate.configurationCid ||
+            commit.configurationCid !== gate.configurationCid) {
+          fail('EffectCheckpointConfigurationChanged');
+        }
+        return Object.freeze({
+          authorize: (boundary, ...args) =>
+            (boundary === 'effect_commit' ? commit : read)
+              .authorize(boundary, ...args),
+          resume: (...args) => commit.resume(...args),
+          close() { read.close(); commit.close(); },
+        });
+      } catch (error) {
+        read.close();
+        commit?.close();
+        throw error;
       }
-      return Object.freeze({
-        authorize: (boundary, ...args) =>
-          (boundary === 'effect_commit' ? commit : read)
-            .authorize(boundary, ...args),
-        resume: (...args) => commit.resume(...args),
-      });
     },
     async effectContinuation(view) {
       if (view?.kind !== 'effect_set' || view.prepareAttemptId !== null) {

@@ -131,6 +131,11 @@ test('Effect review and signed answer survive installed service restart',
         resumption: {claim}});
     assert.notEqual(foreign.action, 'dispatch');
     assert.equal(retained, 1);
+    gate.close();
+    resumedGate.close();
+    await assert.rejects(gate.authorize('effect_commit',
+      {...scope, operation: 'effect'}, {subjectCid: cid('2')}),
+    {code: 'AuthorizationDecisionScopeClosed'});
   });
 
 test('only explicit Host policy requests partial-application acceptance',
@@ -146,6 +151,7 @@ test('only explicit Host policy requests partial-application acceptance',
       after: '', limit: 10});
     assert.deepEqual(page.items[0].requirements,
       ['effect_scope_approved', 'partial_application_accepted']);
+    gate.close();
   });
 
 test('deferred target read is unsupported, not denied or checkpointed',
@@ -162,4 +168,5 @@ test('deferred target read is unsupported, not denied or checkpointed',
     assert.equal(retained, 0);
     assert.deepEqual(installed.journal.listRunCheckpoints(), []);
     assert.deepEqual(installed.journal.listPending(), []);
+    gate.close();
   });
