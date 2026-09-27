@@ -388,6 +388,8 @@ pub fn async_strategy_host_result_names(@connectors_workers_async.ConfiguredComp
 
 pub fn async_strategy_host_result_output_export_begin(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> AsyncStrategyHostOutputExport raise AsyncHostFailure
 
+pub fn async_strategy_host_result_output_export_begin_converted(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.CompletedOutput?) -> AsyncStrategyHostOutputExport raise AsyncHostFailure
+
 pub fn async_strategy_host_result_tasks(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
 
 pub fn async_strategy_host_run(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_strategy.CapturedDAG
@@ -1657,6 +1659,8 @@ pub fn strategy_host_result_definitions(@connectors_workers.ConfiguredComputeHos
 pub fn strategy_host_result_names(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
 
 pub fn strategy_host_result_output_export_begin(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostOutputExport raise NodeHostFailure
+
+pub fn strategy_host_result_output_export_begin_converted(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.CompletedOutput?) -> StrategyHostOutputExport raise NodeHostFailure
 
 pub fn strategy_host_result_tasks(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
 
