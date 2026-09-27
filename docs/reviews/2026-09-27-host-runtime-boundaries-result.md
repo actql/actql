@@ -30,10 +30,10 @@ as a durable transition.
 ## Validation
 
 The original implementation was tested at
-`9cc15b9d8c86e61b19d1cec37e4dfc62281b6199`. The restacked tree at
-`d0dadf8e6eb1311ba2626813d70ba090bece8a8a` is identical. The Workers
+`9cc15b9d8c86e61b19d1cec37e4dfc62281b6199`. The restacked source tree
+at `61da9c2b2ad94fec430e04fa8164aed34412510d` is identical. The Workers
 allowlist fix and its direct verification are at
-`f39afbc74a57fe25011ba07e5a6e00e3be080273`.
+`b4cb86508cd2018a9d69ea7b28e99c975ee2cd03`.
 
 - `check:distribution-client`: passed. Node tests: 159/159; packed Node and
   browser Client smoke, packed Checkpoint acceptance, and native Client mTLS
