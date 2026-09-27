@@ -189,9 +189,9 @@ pub fn start_graft(@bounded_execution.Control, @lowering_relation.PreparedSequen
 
 pub fn start_graft_views(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_carrier_runtime.ProducerView], @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[GraftExecution, GraftIssue]
 
-pub fn start_graph_apply(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @execution_relation.ProducerRead, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[GraphApplyExecution, GraphApplyIssue]
+pub fn start_graph_apply(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @execution_relation.ProducerRead, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[GraphApplyExecution, GraphApplyIssue]
 
-pub fn start_graph_apply_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @execution_relation.ProducerRead, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[GraphApplyExecution, GraphApplyIssue]
+pub fn start_graph_apply_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @execution_relation.ProducerRead, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[GraphApplyExecution, GraphApplyIssue]
 
 pub fn start_graph_bounds(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphBoundsExecution, GraphBoundsIssue]
 
@@ -292,6 +292,7 @@ pub(all) enum GraphApplyIssue {
   GraphApplyPrecondition
   GraphApplyWorkspaceLimit
   GraphApplyScratchBytesLimit
+  GraphApplyWorkLimit
   GraphApplySnapshot(@bounded_graph_snapshot.Issue)
   GraphApplyOutput(@managed_graph_runtime.Issue)
   GraphApplyExecutionIssue(@bounded_execution.Issue)

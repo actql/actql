@@ -77,6 +77,8 @@ priv struct GraphApplyState {
   mut action_scratch_peak_slots : Int
   mut action_scratch_peak_bytes : Int
   base_snapshot_slots : Int
+  // Control work left under the task-wide ceiling.
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -107,6 +109,7 @@ pub(all) enum GraphApplyIssue {
   GraphApplyPrecondition
   GraphApplyWorkspaceLimit
   GraphApplyScratchBytesLimit
+  GraphApplyWorkLimit
   GraphApplySnapshot(@snapshot.Issue)
   GraphApplyOutput(@graph.Issue)
   GraphApplyExecutionIssue(@bounded.Issue)
@@ -905,12 +908,19 @@ fn graph_apply_step(
       !@execution.producer_read_available(state.delta_read) {
       return @bounded.Failed(GraphApplyInputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(GraphApplyWorkLimit, progress, used)
+    }
     match state.phase {
       SnapshotBase => {
         guard state.base_snapshot_preparation is Some(preparation) else {
           return @bounded.Failed(InvalidGraphApplyKernel, progress, used)
         }
-        match @snapshot.advance(preparation, quantum - used) {
+        match
+          @snapshot.advance(
+            preparation,
+            Int::min(quantum - used, state.control_work_remaining - used),
+          ) {
           Ok(@snapshot.Continue(progress=made, work~)) => {
             progress += made.to_int()
             used += work.to_int()
@@ -1154,7 +1164,11 @@ fn graph_apply_step(
         guard state.result_snapshot_preparation is Some(preparation) else {
           return @bounded.Failed(InvalidGraphApplyKernel, progress, used)
         }
-        match @snapshot.advance(preparation, quantum - used) {
+        match
+          @snapshot.advance(
+            preparation,
+            Int::min(quantum - used, state.control_work_remaining - used),
+          ) {
           Ok(@snapshot.Continue(progress=made, work~)) => {
             progress += made.to_int()
             used += work.to_int()
@@ -1180,6 +1194,7 @@ fn graph_apply_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -1280,8 +1295,13 @@ pub fn start_graph_apply(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit? : Int? = None,
 ) -> Result[GraphApplyExecution, GraphApplyIssue] {
   let owner = @lower.sequence_owner(sequence)
+  let control_work_remaining = control_work_limit.unwrap_or(limits.max_work)
+  if control_work_remaining < 0 {
+    return Err(InvalidGraphApplyKernel)
+  }
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphRelationStep(prepared)) &&
     @lower.graph_relation_kind(prepared) == @lower.ApplyGraphRelation &&
@@ -1377,6 +1397,7 @@ pub fn start_graph_apply(
     action_scratch_peak_slots: 0,
     action_scratch_peak_bytes: 0,
     base_snapshot_slots,
+    control_work_remaining,
   }
   let (session, token) = @bounded.start(
     control, state, graph_apply_step, cleanup_graph_apply_state, @graph.discard_completed,
@@ -1407,8 +1428,13 @@ pub fn start_graph_apply_view(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit? : Int? = None,
 ) -> Result[GraphApplyExecution, GraphApplyIssue] {
   let owner = @lower.sequence_owner(sequence)
+  let control_work_remaining = control_work_limit.unwrap_or(limits.max_work)
+  if control_work_remaining < 0 {
+    return Err(InvalidGraphApplyKernel)
+  }
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphRelationStep(prepared)) &&
     @lower.graph_relation_kind(prepared) == @lower.ApplyGraphRelation &&
@@ -1516,6 +1542,7 @@ pub fn start_graph_apply_view(
     action_scratch_peak_slots: 0,
     action_scratch_peak_bytes: 0,
     base_snapshot_slots,
+    control_work_remaining,
   }
   let (session, token) = @bounded.start(
     control, state, graph_apply_step, cleanup_graph_apply_state, @graph.discard_completed,

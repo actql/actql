@@ -872,6 +872,7 @@ fn advance_execution(
                 value.limits,
                 value.storage_bytes,
                 fn() { true },
+                control_work_limit=Some(value.limits.max_work),
               )
             } else {
               guard value.carrier_inputs.is_empty() &&
@@ -897,6 +898,7 @@ fn advance_execution(
                 value.limits,
                 value.storage_bytes,
                 fn() { true },
+                control_work_limit=Some(value.limits.max_work),
               )
             }
             match started {
