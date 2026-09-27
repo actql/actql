@@ -135,6 +135,59 @@ pub fn strategy_fixture_retained_row_limit(
 }
 
 ///|
+#export_name("strategyFixtureRetainedInputLimit")
+pub fn strategy_fixture_retained_input_limit(
+  issue : @local_driver.LocalDispatchIssue,
+) -> Bool {
+  issue
+  is @local_driver.Preparation(
+    @local_connector.Materializing(
+      @local_connector.Candidate(@connector.Execution(@execution.InputLimit))
+    )
+  )
+}
+
+///|
+/// Identify the authored filter's division failure, not merely an arbitrary
+/// managed task failure that happens before the retained output is published.
+#export_name("strategyFixtureRetainedChainFilterArithmetic")
+pub fn strategy_fixture_retained_chain_filter_arithmetic(
+  issue : @local_driver.LocalDispatchIssue,
+) -> Bool {
+  guard issue
+    is @local_driver.Preparation(
+      @local_connector.Materializing(
+        @local_connector.Candidate(
+          @connector.Execution(
+            @execution.Rows(1, @execution.Evaluation(0, 0, evaluation))
+          )
+        )
+      )
+    ) &&
+    evaluation.kind is @execution.Scalar(@execution.ArithmeticFailure) else {
+    return false
+  }
+  let location = @lower.expression_location(evaluation.expression)
+  guard @decode.text(location.source) is Ok("1 / (id - id) > 0") &&
+    location.range is Some(range) else {
+    return false
+  }
+  range.start == 0 && range.end == 13
+}
+
+///|
+/// The authored Stage must remain one physical task with all checked steps.
+#export_name("strategyFixtureTaskStepCount")
+pub fn strategy_fixture_task_step_count(
+  f : StrategyFixture,
+  task : Int,
+) -> Int? {
+  @strategy.graph_task_owner(f.graph, task).map(owner => {
+    @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner)))
+  })
+}
+
+///|
 /// Explicit SGA-enabled conformance artifact. The ordinary module subset does
 /// not import or install this family provider.
 #export_name("strategyFixtureSgaSubset")

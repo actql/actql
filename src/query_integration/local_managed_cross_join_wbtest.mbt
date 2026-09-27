@@ -394,7 +394,7 @@ test "standard Host splits direct values cross join for two consumers" {
 }
 
 ///|
-test "standard Host splits cross join and filter before two consumers" {
+test "standard Host keeps cross join and filter in one bounded task" {
   let (run, issuer) = captured_graph_fixture(
     local_values_cross_external_chain=true,
     local_values_cross_external_filter=true,
@@ -455,15 +455,8 @@ test "standard Host splits cross join and filter before two consumers" {
     2,
     right_live,
   )
-  let crossed_setup = @local_driver.prepare_local_managed_dispatch(
-      installed,
-      [left, right],
-      @strategy.captured_next_managed_obligations(run, 10).unwrap(),
-      0L,
-    )
-    .unwrap()
-    .unwrap()
-  assert_true(@local_driver.local_managed_dispatch_uses_provider(crossed_setup))
+  assert_eq(@strategy.captured_dag_graph(run) |> @strategy.graph_task_count, 6)
+  assert_eq(@local_driver.local_dispatch_rejection(installed, 3), None)
   let crossed_live = Ref(true)
   let crossed_advances = Ref(0)
   let (crossed_ops, crossed) = run_local_managed_test_task(
@@ -478,60 +471,42 @@ test "standard Host splits cross join and filter before two consumers" {
     execution_advances=Some(crossed_advances),
   )
   assert_true(crossed_advances.val > 1)
-  let crossed_rows = local_managed_test_rows(crossed_ops)
-  let filtered_live = Ref(true)
-  let filtered_advances = Ref(0)
-  let (filtered_ops, filtered) = run_local_managed_test_task(
-    installed,
-    run,
-    4,
-    [crossed],
-    [crossed_rows],
-    4,
-    filtered_live,
-    execution_quantum=1,
-    execution_advances=Some(filtered_advances),
-  )
-  assert_true(filtered_advances.val > 1)
-  let filtered_rows = local_managed_test_rows(filtered_ops)
-  assert_eq(filtered_rows, crossed_rows)
+  let filtered_rows = local_managed_test_rows(crossed_ops)
   let first_live = Ref(true)
   let (first_ops, _) = run_local_managed_test_task(
     installed,
     run,
-    5,
-    [filtered],
+    4,
+    [crossed],
     [filtered_rows],
-    5,
+    4,
     first_live,
   )
   let second_live = Ref(true)
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    6,
-    [filtered],
+    5,
+    [crossed],
     [filtered_rows],
-    6,
+    5,
     second_live,
   )
   assert_eq(local_managed_test_rows(first_ops), filtered_rows)
   assert_eq(local_managed_test_rows(second_ops).length(), 6)
   first_live.val = false
-  @strategy.close_captured_task_output(run, 5)
+  @strategy.close_captured_task_output(run, 4)
   (first_ops.close)()
   ignore((first_ops.cleanup_refresh)())
   assert_true(@execution.managed_completed_output_available(second))
-  assert_true(@execution.managed_completed_output_available(filtered))
+  assert_true(@execution.managed_completed_output_available(crossed))
   second_live.val = false
-  filtered_live.val = false
   crossed_live.val = false
   right_live.val = false
   left_live.val = false
   for
     (task, operations) in [
-      (6, second_ops),
-      (4, filtered_ops),
+      (5, second_ops),
       (3, crossed_ops),
       (2, right_ops),
       (1, left_ops),

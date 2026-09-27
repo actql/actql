@@ -1,5 +1,5 @@
 ///|
-test "Local retained offers exclude memory-only chains before predecessor execution" {
+test "Local retained offers select the exact bounded binary chain" {
   for retained in [false, true] {
     let (run, _) = captured_graph_fixture(
       local_values_append_chain=true,
@@ -43,15 +43,11 @@ test "Local retained offers exclude memory-only chains before predecessor execut
       [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
       100,
     )
-    if retained {
-      assert_true(offer is Err(Configuration(ComputeUnsupported)))
-      assert_eq(
-        @resources.ledger_usage(@strategy.captured_dag_ledger(run)),
-        before,
-      )
-    } else {
-      assert_true(offer is Ok(_))
-    }
+    assert_true(offer is Ok(_))
+    assert_true(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)).planning_work >
+      before.planning_work,
+    )
   }
 }
 
