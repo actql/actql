@@ -68,7 +68,9 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       (sourceProfilePath !== undefined ||
         typeof effectInstallation?.environmentWire !== 'string' ||
         typeof effectInstallation.execute !== 'function' ||
-        typeof effectInstallation.resume !== 'function')) {
+        typeof effectInstallation.resume !== 'function' ||
+        !(effectInstallation.privateEvidenceKey instanceof Uint8Array) ||
+        effectInstallation.privateEvidenceKey.byteLength !== 32)) {
     throw new TypeError('InvalidInstalledEffectSite');
   }
   await mkdir(root, {recursive: true, mode: 0o700});
@@ -119,6 +121,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       maxObjectBytes: localOutputLimits.maxWireBytes,
       maxObjects: 10000, maxContractNodes: 10000,
       maxContractDepth: 64,
+      ...(effectInstallation === undefined ? {} : {
+        privateEvidenceKey: effectInstallation.privateEvidenceKey}),
     }, control);
   const hostConnection = ({principalId: actual, connection, ref}) =>
     actual === principalId &&
@@ -482,7 +486,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
               if (setup === undefined) {
                 throw new Error('InstalledEffectProgramUnsupported');
               }
-              return runCapturedEffectComputation(setup, {}, signal);
+              return runCapturedEffectComputation(setup, {}, signal).then(
+                execution => Object.freeze({execution, checkedHost: setup}));
             },
             recoverCapture: ({signal: recoverySignal} = {}) =>
               recoverEffectCapture(facts.ref, recoverySignal),

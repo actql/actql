@@ -18,6 +18,18 @@ import {fileURLToPath} from 'node:url';
 import {connect, RequestHeld} from '../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
+import {createInstalledEffectSite} from './installed-effect-site.mjs';
+import {openEffectLedger} from './effect-ledger.mjs';
+import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
+import {localContractLimits, localOutputLimits} from './local-values-plan.mjs';
+import {exportPinnedEffectInput, preparePinnedEffectSourceHoldings,
+  preparePinnedEffectSourceSet} from './effect-input-export.mjs';
+import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {issueCompletedEffectfulComputationEvidence,
+  storeCompletedRunResultSet} from
+  '../host-common/completed-run-publication.mjs';
 import {withFixtureConnector} from
   '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson} from './local-account-config.mjs';
@@ -45,7 +57,7 @@ const withoutCid = (value, key) => {
   delete body[key];
   return contentCid(body);
 };
-async function effectFixture() {
+async function effectFixture({twoMembers = false} = {}) {
   const environment = JSON.parse(await readFile(join(repository,
     'packages/sdk/fixtures/values.environment.json'), 'utf8'));
   const target = 'connector://crm/account';
@@ -66,15 +78,333 @@ async function effectFixture() {
     version: 'fixture-v1', writable_fields: ['Name']};
   mapping.mapping_contract_cid = withoutCid(mapping,
     'mapping_contract_cid');
-  environment.mapping_contracts = [mapping];
+  const secondTarget = 'connector://crm/secondary';
+  const secondMapping = twoMembers ? {...mapping,
+    connector_manifest_cid: withFixtureConnector(environment, secondTarget),
+    mapping_ref: 'mapping:crm.secondary.v1',
+    resource_identity_cid: contentCid({resource: secondTarget}),
+    target_ref: secondTarget, mapping_contract_cid: ''} : undefined;
+  if (secondMapping !== undefined) {
+    secondMapping.mapping_contract_cid = withoutCid(secondMapping,
+      'mapping_contract_cid');
+  }
+  environment.mapping_contracts = secondMapping === undefined
+    ? [mapping] : [mapping, secondMapping];
   environment.evidence_bundle_cid = withoutCid(environment,
     'evidence_bundle_cid');
   const program = JSON.parse(document);
   program.stages[0].effects = {save: {update: {target,
     mapping: mapping.mapping_ref, from: {result: 'rows'}, id: 'id',
     set: {Name: {field: 'id'}}}}};
-  return {document: canonicalJson(program),
+  if (secondMapping !== undefined) {
+    program.stages[0].effects.save_again = {update: {
+      target: secondTarget, mapping: secondMapping.mapping_ref,
+      from: {result: 'rows'}, id: 'id',
+      set: {Name: {field: 'id'}}}};
+  }
+  return {document: canonicalJson(program), mappingCid:
+    mapping.mapping_contract_cid,
+    mappingCids: environment.mapping_contracts.map(value =>
+      value.mapping_contract_cid),
     environmentWire: canonicalJson(environment)};
+}
+const referenceCid = name => contentCid({reference_effect: name});
+const effectLimits = Object.freeze({maxMembers: 2, maxRows: 4,
+  maxWork: 100, maxFrontierWork: 64});
+const sourceExportLimits = limits => [limits.maxResultFields,
+  limits.maxResultMappingWork, limits.maxResultOrderWork,
+  limits.maxResultWorkspaceEntries, limits.maxRows, limits.maxValueNodes,
+  limits.maxValueTextBytes, limits.maxValueDepth, limits.maxValueWork,
+  limits.maxWireBytes, limits.maxWireNodes, limits.maxWireDepth,
+  limits.maxColumns, limits.maxOrderWork, limits.maxLogicalWireBytes,
+  limits.maxLogicalWireNodes, limits.maxLogicalWireDepth,
+  limits.maxSchemaFields, limits.maxSchemaBytes, limits.maxSchemaNodes,
+  limits.maxSchemaDepth, limits.maxBatchBytes];
+
+function referencePreview({moon, prepared, publicationPlan: plan},
+  artifactCid, mappingCids, requestScope) {
+  const programDefinitionCid = moon.clientProgramEffectDefinitionCid(prepared);
+  const authoring = JSON.parse(plan.authoringContext.wire);
+  const changes = () => [1, 2].map(id => ({target_row_identity: id,
+    target_guard: {state: 'version', version_cid: referenceCid('guard')},
+    intended_changes: {state: 'present', value: {Name: id}},
+    before: {state: 'present', value: {Name: 0}},
+    after: {state: 'present', value: {Name: id}},
+    row_preview_cid: referenceCid('placeholder-row'),
+    row_idempotency_key: referenceCid('placeholder-key')}));
+  const draft = {
+    version: 'actql-effect-preview/0.1', sensitivity: 'private',
+    retention_class: 'authority-evidence', encryption_required: true,
+    program_semantics_cid: moon.clientProgramEffectSemanticsCid(prepared),
+    program_definition_cid: programDefinitionCid,
+    invocation_cid: plan.invocation.identity,
+    run_identity_cid: plan.runDefinition.identity,
+    compiled_plan_cid:
+      plan.results[0].evidenceContext.computationContractCid,
+    check_environment_cid: moon.clientProgramEffectEnvironmentCid(prepared),
+    authoring_context: authoring, barrier_provenance_cids: [],
+    model_derived: false, model_task_contract_cids: [],
+    model_invocation_evidence_cids: [], model_response_artifact_cids: [],
+    effects: mappingCids.map((mappingCid, memberIndex) => ({
+      effect_id: memberIndex === 0 ? 'save' : 'save_again',
+      effect_kind: 'update',
+      target: memberIndex === 0 ? 'connector://crm/account'
+        : 'connector://crm/secondary',
+      mapping: memberIndex === 0 ? 'mapping:crm.account.v1'
+        : 'mapping:crm.secondary.v1',
+      resolved_mapping_contract_cid: mappingCid,
+      effect_identity_cid: referenceCid(`effect-identity-${memberIndex}`),
+      source_result: 'rows', result_artifact_cid: artifactCid,
+      preview_strength: 'full_diff',
+      source_binding_cid: referenceCid('source-binding'),
+      capability_evidence_cid: referenceCid('capability'),
+      authority_scope_cid: referenceCid('effect-authority'),
+      write_footprint: {kind: 'collection',
+        resource_identity_scheme_cid: referenceCid('scheme'),
+        provider_namespace: 'reference',
+        provider_boundary_cid: referenceCid(`boundary-${memberIndex}`),
+        resource_kind: memberIndex === 0 ? 'Account' : 'Secondary',
+        provider_object_identity_cids: []},
+      count: 2, max_items: 2, required_permissions: ['write'],
+      approval: 'none', on_item_failure: 'halt', changes: changes(),
+      row_order: [],
+      effect_member_preview_cid: referenceCid('placeholder-member'),
+      effect_plan_logical_cid: checked(moon.clientProgramEffectPlanCid(
+        prepared, memberIndex, 10, 100, 20000, 1000, 20)),
+      executed: false})),
+    executed: false, effect_preview_cid: referenceCid('placeholder-set'),
+  };
+  const authored = checked(moon.clientProgramAuthorEffectPreview(
+    canonicalJson(draft), plan.runDefinition.identity,
+    plan.authoringContext.identity, requestScope,
+    20000, 1000, 20, mappingCids.length,
+    mappingCids.length * 2, 128, 8, 3));
+  return {wire: authored._0, keys: authored._1,
+    authoringCid: plan.authoringContext.identity};
+}
+
+function referenceEffectClaims({moon, scope, preview, keys}) {
+  const effect = runtimeCore(moon).effectApplicationControl;
+  return JSON.parse(preview.wire).effects.map((member, memberIndex) => ({claims:
+    member.changes.map((change, rowIndex) => {
+      const key = keys[memberIndex][rowIndex];
+      const locator = effect.logicalItemLocator(scope, 'client-values',
+        'source', member.effect_id,
+        canonicalJson(change.target_row_identity), 64, 128, 8, 3);
+      const path = `/reference-effect/${member.effect_id}/${rowIndex}`;
+      const canonicalRequestCid = contentCid({path,
+        row: change.row_preview_cid});
+      const basis = effect.ledgerBasis(scope, locator, key,
+        referenceCid('target-policy'), member.effect_member_preview_cid,
+        change.row_preview_cid, canonicalRequestCid,
+        referenceCid('dispatch-fence'), 'unavailable',
+        referenceCid('request-authority'), referenceCid('request-use'));
+      return {scope, locator, key, basis,
+        intentFingerprintCid: change.row_preview_cid,
+        canonicalRequestCid, path};
+    })}));
+}
+
+function referencePreflight({moon, preview, mappingCids, requestScope,
+  keys, proofs = []}) {
+  const body = JSON.parse(preview.wire);
+  const effects = body.effects;
+  const routes = effects.map(effect => checked(
+    moon.clientProgramEffectApplyCapabilityFromCodes(
+      effect.capability_evidence_cid, 0, 0, 0, true, true, 2, 1)));
+  return {proofs,
+    sources: effects.map(effect => effect.source_binding_cid),
+    contracts: mappingCids,
+    capabilities: effects.map(effect => effect.capability_evidence_cid),
+    authorities: effects.map(effect => effect.authority_scope_cid),
+    observedRows: effects.flatMap(effect => effect.row_order),
+    guardVersions: effects.flatMap(effect => effect.changes.map(change =>
+      change.target_guard.version_cid)),
+    routes, risk: undefined,
+    reviewProjectionCid: referenceCid('review'),
+    authorityScopeCid: effects[0].authority_scope_cid,
+    policyCid: referenceCid('policy'),
+    validityCid: referenceCid('validity'),
+    issuerCid: referenceCid('issuer'),
+    authenticationCid: referenceCid('authentication'),
+    issuerKind: 'policy', decision: 'allow', requestScope, keys,
+    maxMembers: effects.length,
+    maxRows: effects.reduce((sum, effect) => sum + effect.changes.length, 0),
+    maxFootprintWork: 4, maxWork: effectLimits.maxWork};
+}
+
+function referenceDispatch({ledger, preview, sends}) {
+  return async ({memberIndex, rowIndex, claim}) => {
+    sends.push([memberIndex, rowIndex]);
+    await captureClaimedEffectResponse({ledger, claim,
+      requestCid: claim.canonicalRequestCid,
+      execute: async () => ({observation: {useCid: referenceCid('use'),
+        statusCode: 204, body: Buffer.alloc(0)}})});
+    ledger.recordAdmittedRowOutcome({claim, preview,
+      memberIndex, previewRowIndex: rowIndex,
+      outcomeWire: canonicalJson({state: 'applied',
+        result: {record_id: `reference-${rowIndex}`}})});
+    ledger.commitAdmittedRowOutcome({claim, preview,
+      memberIndex, previewRowIndex: rowIndex});
+  };
+}
+
+function referenceLedger(directory, moon, requestIdentity) {
+  return openEffectLedger({moon, root: join(directory, 'effect-ledger'),
+    authorityScopeCid: moon.clientRequestAuthorityScopeCid(requestIdentity),
+    callerRequestId: moon.clientRequestCallerId(requestIdentity),
+    maxEntryBytes: 4096});
+}
+
+async function prepareReferenceCapture(facts, {directory, mappingCids,
+  sends}) {
+  const {moon, control, store, execution, publicationPlan: plan,
+    prepared, checkedHost, identity} = facts;
+  const storedResults = await storeCompletedRunResultSet({execution,
+    store, control, runDefinition: plan.runDefinition,
+    invocation: plan.invocation, results: plan.results,
+    outputLimits: plan.outputLimits,
+    contractLimits: plan.contractLimits});
+  const inputs = checked(moon.clientProgramPinEffectSources(checkedHost, 2));
+  const sourceSet = await preparePinnedEffectSourceSet({moon,
+    checkedOwner: prepared, execution, inputs,
+    maxMembers: mappingCids.length,
+    maxGroupingWork: 4,
+    limits: moon.clientProgramEffectInputExportLimits(
+      ...sourceExportLimits(localOutputLimits)),
+    store, maxBytes: localOutputLimits.maxWireBytes, control,
+    invocation: plan.invocation, retention: plan.results[0].retention,
+    sourceBindingCid: referenceCid('source-binding'),
+    contractLimits: localContractLimits,
+    localEvidenceContext: plan.localEvidenceContext});
+  const requestScope = moon.clientProgramEffectRequestScope(prepared,
+    identity);
+  const authored = referencePreview(facts,
+    sourceSet.payloads[0].summary.artifact.identity, mappingCids,
+    requestScope);
+  const preview = control.admitEffectComputationPreview(authored.wire,
+    plan.runDefinition, plan.authoringContext, plan.contractLimits);
+  const holdings = await preparePinnedEffectSourceHoldings({sources:
+    sourceSet, store, control, preview, invocation: plan.invocation}).commit();
+  const previewInputs = checked(moon.clientProgramBindEffectPreviewInputs(
+    checkedHost, inputs, plan.invocationOwner, 0, authored.wire,
+    authored.authoringCid,
+    moon.clientProgramEffectPreviewInputLimits(
+      20000, 1000, 20, 1000, 100, 20000, 1000, 20,
+      mappingCids.length, mappingCids.length * 2, 100, 100)));
+  const plans = [];
+  for (let memberIndex = 0; memberIndex < mappingCids.length;
+    memberIndex++) {
+    const chunks = [];
+    const verified = await verifyPinnedEffectPlan({moon, execution,
+      previewInputs, previewIndex: memberIndex,
+      limits: moon.clientProgramEffectInputExportLimits(
+        ...sourceExportLimits(localOutputLimits)),
+      planLimits: {maxFields: 10, maxWork: 100, maxBytes: 20000,
+        maxNodes: 1000, maxDepth: 20, maxUtf16Units: 20000},
+      onChunk: chunk => chunks.push(chunk)});
+    plans.push({name: memberIndex === 0 ? 'save' : 'save_again',
+      wire: chunks.join(''), proof: verified.proof});
+  }
+  const computation = await issueCompletedEffectfulComputationEvidence({
+    execution, store, storedResults, control,
+    admission: plan.admission, runDefinition: plan.runDefinition,
+    invocation: plan.invocation, observation: plan.observation,
+    normalizationJournal: plan.normalizationJournal,
+    authoringContext: plan.authoringContext,
+    receiptEvidence: plan.receiptEvidence,
+    captureEvidence: plan.captureEvidence, preview,
+    plans: plans.map(({name, wire}) => ({name, wire})),
+    effectSourceHoldings: holdings, connectorRecovery: [],
+    contractLimits: plan.contractLimits});
+  if (sourceSet.payloads[0].prepared.status().pending) {
+    await sourceSet.payloads[0].prepared.release();
+  }
+  const ledger = referenceLedger(directory, moon, identity);
+  const effect = runtimeCore(moon).effectApplicationControl;
+  const applyPreview = effect.admitPreviewIdentity(authored.wire,
+    plan.runDefinition.identity, authored.authoringCid, requestScope,
+    authored.keys, plan.contractLimits.maxWireBytes,
+    plan.contractLimits.maxNodes, plan.contractLimits.maxDepth);
+  const members = referenceEffectClaims({moon, scope: requestScope,
+    preview: authored, keys: authored.keys});
+  const preflight = referencePreflight({moon, preview: authored,
+    mappingCids, requestScope, keys: authored.keys,
+    proofs: plans.map(plan => plan.proof)});
+  return {preview, computation, storedResults,
+    apply: {moon, capturedInputs: previewInputs, preflight,
+      ledger, members, maxFrontierWork: effectLimits.maxFrontierWork,
+      refreshPreflight: async () => preflight,
+      dispatchRow: referenceDispatch({ledger, preview: applyPreview,
+        sends})},
+    receipt: {ledger, preview: applyPreview, commonMoon: moon,
+      publicationPreview: preview,
+      authorizeEvidenceRead: async () => true,
+      members: members.map(member => ({rowOwners:
+        member.claims.map(claim => ({claim})), replayed: false})),
+      limits: plan.contractLimits},
+    publication: {execution, store, storedResults, control, computation,
+      preview, ledger, request: plan.request, attempt: plan.attempt,
+      contractLimits: plan.contractLimits, now: plan.now},
+    scopes: mappingCids.map(() => ({connection: 'reference',
+      resource: 'records'})),
+    continuationWire: canonicalJson({request: plan.request,
+      attempt: plan.attempt}),
+    dispose: () => ledger.close()};
+}
+
+function prepareReferenceRecovery(facts, {directory, mappingCids, sends}) {
+  const {moon, control, store, recovered, continuation} = facts;
+  const {requestIdentity, requestScope, computation: durable} = recovered;
+  const {computation, preview, storedResults} = durable;
+  const ledger = referenceLedger(directory, moon, requestIdentity);
+  const effect = runtimeCore(moon).effectApplicationControl;
+  const previewWire = control.effectComputationPreviewWire(preview);
+  const body = JSON.parse(previewWire);
+  const admitted = control.effectComputationPreviewLedgerIdentity(preview);
+  const keys = effect.recoveredPreviewKeys(admitted, requestScope,
+    effectLimits.maxMembers, effectLimits.maxRows, effectLimits.maxWork,
+    128, 8, 3);
+  const applyPreview = effect.admitPreviewIdentity(previewWire,
+    body.run_identity_cid,
+    body.authoring_context.authoring_context_cid, requestScope, keys,
+    localContractLimits.maxWireBytes, localContractLimits.maxNodes,
+    localContractLimits.maxDepth);
+  const recorded = ledger.recoverClaimFacts({preview: admitted,
+    scope: requestScope, programId: 'client-values', nodeId: 'source',
+    maxRows: effectLimits.maxRows, maxWork: effectLimits.maxWork});
+  const preflight = referencePreflight({moon, preview: {wire: previewWire},
+    mappingCids, requestScope, keys});
+  return {preview, computation, storedResults,
+    apply: {moon, store, publicationControl: control, computation, preview,
+      ledger, requestScope, programId: 'client-values', nodeId: 'source',
+      maxRows: effectLimits.maxRows,
+      maxFrontierWork: effectLimits.maxFrontierWork,
+      maxRecoveryWork: effectLimits.maxWork,
+      keyLimits: {maxBytes: 128, maxNodes: 8, maxDepth: 3,
+        maxWork: effectLimits.maxWork},
+      refreshPreflight: async () => preflight,
+      dispatchRow: referenceDispatch({ledger, preview: applyPreview,
+        sends})},
+    receipt: {ledger, preview: applyPreview, commonMoon: moon,
+      publicationPreview: preview,
+      authorizeEvidenceRead: async () => true,
+      members: recorded.members.map(member => ({rowOwners:
+        member.claims.map(claim => ({claim})), replayed: true})),
+      limits: localContractLimits},
+    publication: {execution: null, store, storedResults, control,
+      computation, preview, ledger, request: continuation.provider.request,
+      attempt: {...continuation.provider.attempt,
+        externalIdempotencyKey:
+          continuation.provider.attempt.externalIdempotencyKey},
+      contractLimits: localContractLimits,
+      now: () => new Date().toISOString()},
+    scopes: mappingCids.map(() => ({connection: 'reference',
+      resource: 'records'})),
+    continuationWire: canonicalJson(continuation.provider),
+    cleanupOwner: {async close() {}, async cleanup() { return true; },
+      cleanupPending: () => false},
+    dispose: () => ledger.close()};
 }
 const owner = userInfo().username;
 const reviewerKeys = generateKeyPairSync('ed25519');
@@ -391,6 +721,7 @@ test('installed Effect owner resumes one approved Run acceptance',
     let starts = 0;
     const effectInstallation = {
       environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 4),
       async execute({owner: checkedOwner, moon, retainExecution}) {
         starts++;
         const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
@@ -432,6 +763,109 @@ test('installed Effect owner resumes one approved Run acceptance',
       {format: 'json', requestId: 'effect-held-a'})).ref, found.ref);
     assert.equal(starts, 1);
     await restarted.close();
+});
+
+test('installed Effect factory resumes an approved captured Set',
+  async t => {
+    const fixture = await effectFixture({twoMembers: true});
+    const directory = await mkdtemp(join(scratch, 'effect-factory-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const sends = [];
+    const diagnostics = [];
+    const installed = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 4),
+      async prepareCaptured(facts) {
+        try {
+          return await prepareReferenceCapture(facts,
+            {directory, mappingCids: fixture.mappingCids, sends});
+        } catch (error) {
+          diagnostics.push({name: 'capture_stack', detail: error.stack});
+          throw error;
+        }
+      },
+      prepareRecovered: facts => prepareReferenceRecovery(facts,
+        {directory, mappingCids: fixture.mappingCids, sends}),
+    });
+    const effectInstallation = {...installed,
+      async resume(facts) {
+        try { return await installed.resume(facts); }
+        catch (error) {
+          diagnostics.push({name: 'resume_stack', detail: {
+            stack: error.stack, authorization: error.authorization}});
+          throw error;
+        }
+      }};
+    const host = await remoteHost(t, protectedHost(undefined,
+      {accountConfiguration: effectCommitConfiguration(),
+        observe: (name, detail) => diagnostics.push({name, detail})}),
+    {directory, effectInstallation});
+    const client = await host.as('owner-token');
+    const execution = await client.aql(fixture.document, {format: 'json',
+      requestId: 'effect-factory-a'});
+    await waitFor(async () => (await execution.status()).status ===
+      'waiting_checkpoint').catch(async error => {
+      error.message = JSON.stringify({state: await execution.status(),
+        diagnostics});
+      throw error;
+    });
+    assert.deepEqual(sends, []);
+    const reviewer = await host.as('reviewer-token');
+    const [checkpoint] = (await reviewer.checkpoints()).items;
+    assert.equal(checkpoint.kind, 'effect_set');
+    assert.equal(checkpoint.phase, 'commit');
+    await host.close();
+    const awaitingAnswer = await remoteHost(t, protectedHost(undefined,
+      {accountConfiguration: effectCommitConfiguration(),
+        resumeAfterAnswer: false,
+        observe: (name, detail) => diagnostics.push({name, detail})}),
+    {directory, effectInstallation});
+    const answerer = await awaitingAnswer.as('reviewer-token');
+    const [pending] = (await answerer.checkpoints()).items;
+    assert.equal(pending.checkpointCid, checkpoint.checkpointCid);
+    const answer = await answerer.resolveCheckpoints([
+      {checkpoint: pending, decision: 'approved'}],
+    {signer: {...signer,
+      authorityScopeCid: execution.ref.authorityScopeCid}});
+    assert.deepEqual(answer.results.map(item => item.status),
+      ['committed']);
+    assert.deepEqual(sends, []);
+    await awaitingAnswer.close();
+    const resumed = await remoteHost(t, protectedHost(undefined,
+      {accountConfiguration: effectCommitConfiguration(),
+        observe: (name, detail) => diagnostics.push({name, detail})}),
+    {directory, effectInstallation});
+    const resumedClient = await resumed.as('owner-token');
+    const attached = await resumedClient.attach(execution.ref);
+    await waitFor(async () => (await attached.status()).status ===
+      'succeeded').catch(async error => {
+      error.message = JSON.stringify({state: await attached.status(),
+        sends, diagnostics});
+      throw error;
+    });
+    assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
+    assert.deepEqual(await attached.result('answer').all(),
+      [{id: 1}, {id: 2}]);
+    assert.deepEqual((await resumedClient.aql(fixture.document,
+      {format: 'json', requestId: 'effect-factory-a'})).ref,
+    execution.ref);
+    assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
+    const duplicate = await (await resumed.as('reviewer-token'))
+      .resolveCheckpoints(answer.signed);
+    assert.deepEqual(duplicate.results.map(item => item.status),
+      ['duplicate']);
+    assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
+    await resumed.close();
+    const finalHost = await remoteHost(t, protectedHost(undefined,
+      {accountConfiguration: effectCommitConfiguration()}),
+    {directory, effectInstallation});
+    const finalExecution = await (await finalHost.as('owner-token'))
+      .attach(execution.ref);
+    assert.equal((await finalExecution.status()).status, 'succeeded');
+    assert.deepEqual(await finalExecution.result('answer').all(),
+      [{id: 1}, {id: 2}]);
+    assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
+    await finalHost.close();
   });
 
 test('installed Effect commit resumes the same Run without resending',
@@ -454,6 +888,7 @@ test('installed Effect commit resumes the same Run without resending',
     const diagnostics = [];
     const effectInstallation = {
       environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 4),
       async execute({owner: checkedOwner, moon, control, ref, runDefinition,
         publicationPlan, effectAuthorization, retainExecution}) {
         computes++;
@@ -635,6 +1070,7 @@ test('deferred target read starts no Effect and leaves no held Checkpoint',
     let sends = 0;
     const effectInstallation = {
       environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 4),
       async execute({control, runDefinition, effectAuthorization,
         retainExecution}) {
         retainExecution({async close() {}, async cleanup() { return true; },

@@ -17,7 +17,10 @@ function ownedStage(stage, code) {
       !stage.preview || !stage.computation || !stage.storedResults ||
       !stage.apply || !stage.receipt || !stage.publication ||
       !Array.isArray(stage.scopes) || stage.scopes.length === 0 ||
-      typeof stage.continuationWire !== 'string') fail(code);
+      typeof stage.continuationWire !== 'string' ||
+      stage.dispose !== undefined && typeof stage.dispose !== 'function') {
+    fail(code);
+  }
   return stage;
 }
 
@@ -88,6 +91,33 @@ function finishStatus(result) {
     ? 'failed_effect_set' : result.status, result});
 }
 
+function cleanupCustody(physical) {
+  let stage;
+  let disposed = false;
+  return Object.freeze({
+    attach(value) {
+      if (stage !== undefined) fail('InstalledEffectCleanupOwnerAlreadySet');
+      stage = value;
+    },
+    async close() { await physical?.close(); },
+    async cleanup() {
+      const cleaned = await physical?.cleanup() ?? true;
+      if (cleaned === false || physical?.cleanupPending() === true) {
+        return false;
+      }
+      if (!disposed && typeof stage?.dispose === 'function') {
+        await stage.dispose();
+      }
+      disposed = true;
+      return true;
+    },
+    cleanupPending() {
+      return physical?.cleanupPending() === true ||
+        !disposed && stage?.dispose !== undefined;
+    },
+  });
+}
+
 function recordUnknown(facts, result, stage) {
   if (result.status !== 'needs_reconciliation') return undefined;
   return facts.recordReconciliation(facts.ref, {issuedSet: result.issuedSet,
@@ -107,29 +137,41 @@ async function currentRunState(facts, result, stage) {
 // owners; neither hook may decide that an unknown send succeeded or restart
 // Compute. The recovered hook receives the exact durable capture only.
 export function createInstalledEffectSite({environmentWire,
-  prepareCaptured, prepareRecovered, claimant = 'installed-effect-host',
-  leaseMs = 60_000}) {
+  prepareCaptured, prepareRecovered, privateEvidenceKey,
+  claimant = 'installed-effect-host', leaseMs = 60_000}) {
   if (typeof environmentWire !== 'string' || !environmentWire ||
       typeof prepareCaptured !== 'function' ||
       typeof prepareRecovered !== 'function' ||
+      privateEvidenceKey !== undefined &&
+        (!(privateEvidenceKey instanceof Uint8Array) ||
+          privateEvidenceKey.byteLength !== 32) ||
       typeof claimant !== 'string' || !claimant ||
       !Number.isSafeInteger(leaseMs) || leaseMs < 1) {
     fail('InvalidInstalledEffectSiteFactory');
   }
   return Object.freeze({
     environmentWire,
+    privateEvidenceKey: privateEvidenceKey === undefined ? undefined :
+      Uint8Array.from(privateEvidenceKey),
     async execute(facts) {
       const {moon, retainExecution, signal} = facts;
       signal?.throwIfAborted();
       if (typeof facts.openComputation !== 'function') {
         fail('InvalidInstalledEffectComputationPort');
       }
-      const execution = await facts.openComputation();
+      const opened = await facts.openComputation();
+      const {execution, checkedHost} = opened ?? {};
+      if (execution === undefined || checkedHost === undefined) {
+        fail('InvalidInstalledEffectComputationPort');
+      }
       // A failed Preview or Store operation still belongs to the dispatch
       // cleanup owner. Retain before any provider callback can fail.
-      retainExecution(execution);
-      const stage = ownedStage(await prepareCaptured(Object.freeze({...facts,
-        execution})), 'InvalidInstalledEffectCapture');
+      const custody = cleanupCustody(execution);
+      retainExecution(custody);
+      const stage = await prepareCaptured(Object.freeze({...facts,
+        execution, checkedHost}));
+      custody.attach(stage);
+      ownedStage(stage, 'InvalidInstalledEffectCapture');
       if (stage.publication.execution !== execution ||
           stage.publication.store !== facts.store ||
           stage.publication.control !== facts.control ||
@@ -140,18 +182,27 @@ export function createInstalledEffectSite({environmentWire,
           stage.receipt.commonMoon !== moon) {
         fail('InvalidInstalledEffectCapture');
       }
-      const gate = await authorization(facts, stage, async () => {
-        await suspendCompletedEffectfulComputation({execution,
-          store: facts.store, storedResults: stage.storedResults,
-          control: facts.control, computation: stage.computation,
-          preview: stage.preview});
-      });
+      let gate;
       try {
+        gate = await authorization(facts, stage, async () => {
+          // The approved continuation must be able to reconstruct exact
+          // claims after process loss. These are durable intents, not send
+          // claims; the resumed path still repeats current admission.
+          stage.apply.ledger.prepareCapturedSetIntents(
+            stage.apply.capturedInputs, stage.apply.members,
+            stage.apply.maxFrontierWork);
+          await suspendCompletedEffectfulComputation({execution,
+            store: facts.store, storedResults: stage.storedResults,
+            control: facts.control, computation: stage.computation,
+            preview: stage.preview});
+        });
         const result = await completeCapturedEffectRun(
           completionOptions(stage, gate, signal));
         recordUnknown(facts, result, stage);
         return finishStatus(result);
-      } finally { gate.close(); }
+      } finally {
+        gate?.close();
+      }
     },
     async resume(facts) {
       const {signal, ref, view, checkpointJournal, checkpointBinding} = facts;
@@ -163,8 +214,9 @@ export function createInstalledEffectSite({environmentWire,
       const claimed = checkpointJournal.claimResume(view.runId, {
         claimant, leaseMs, binding: checkpointBinding});
       if (claimed.action !== 'claimed') return claimed;
-      const stage = ownedStage(await prepareRecovered(Object.freeze({
-        ...facts, recovered})), 'InvalidInstalledEffectRecovery');
+      const stage = await prepareRecovered(Object.freeze({
+        ...facts, recovered}));
+      ownedStage(stage, 'InvalidInstalledEffectRecovery');
       if (stage.publication.execution !== null ||
           stage.publication.store !== facts.store ||
           stage.publication.control !== facts.control ||
@@ -183,10 +235,23 @@ export function createInstalledEffectSite({environmentWire,
         fail('InvalidInstalledEffectRecovery');
       }
       checkContinuation(facts, stage);
-      const gate = await authorization(facts, stage, () => {
-        fail('InstalledEffectRepeatDeferralUnsupported');
-      });
+      const cleanupOwner = stage.cleanupOwner;
+      if (typeof facts.retainExecution !== 'function' ||
+          typeof cleanupOwner?.close !== 'function' ||
+          typeof cleanupOwner.cleanup !== 'function' ||
+          typeof cleanupOwner.cleanupPending !== 'function') {
+        fail('InvalidInstalledEffectRecoveryOwner');
+      }
+      // The resumed operation has no Compute owner. Its provider must still
+      // hand over physical stop and cleanup custody before any send.
+      const custody = cleanupCustody(cleanupOwner);
+      custody.attach(stage);
+      facts.retainExecution(custody);
+      let gate;
       try {
+        gate = await authorization(facts, stage, () => {
+          fail('InstalledEffectRepeatDeferralUnsupported');
+        });
         const result = await completeRecoveredEffectRun(completionOptions(
           stage, gate, signal, Object.freeze({claim: claimed})));
         if (result.status === 'waiting') {
@@ -201,7 +266,9 @@ export function createInstalledEffectSite({environmentWire,
           });
         }
         return finishStatus(result);
-      } finally { gate.close(); }
+      } finally {
+        gate?.close();
+      }
     },
   });
 }

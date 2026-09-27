@@ -12,17 +12,47 @@ test('installed Effect retains Compute before provider capture can fail',
     let retained;
     const site = createInstalledEffectSite({environmentWire: '{}',
       prepareCaptured() {
-        assert.equal(retained, execution);
+        assert.equal(typeof retained?.cleanup, 'function');
         throw new Error('CaptureFailed');
       }, prepareRecovered() {
         assert.fail('Recovery cannot run during first capture');
       }});
     await assert.rejects(site.execute({signal: undefined,
-      openComputation: async () => { opened++; return execution; },
+      openComputation: async () => { opened++; return {execution,
+        checkedHost: {}}; },
       retainExecution: owner => { retained = owner; }}),
     {message: 'CaptureFailed'});
     assert.equal(opened, 1);
-    assert.equal(retained, execution);
+    assert.equal(await retained.cleanup(), true);
+  });
+
+test('installed Effect custody retries provider cleanup without Compute',
+  async () => {
+    let opened = 0;
+    let disposeCalls = 0;
+    let retained;
+    const execution = {async close() {}, async cleanup() { return true; },
+      cleanupPending: () => false};
+    const site = createInstalledEffectSite({environmentWire: '{}',
+      prepareCaptured() {
+        return {dispose() {
+          disposeCalls++;
+          if (disposeCalls === 1) throw new Error('DisposeUnavailable');
+        }};
+      }, prepareRecovered() {
+        assert.fail('No recovery in a failed first capture');
+      }});
+    await assert.rejects(site.execute({openComputation: async () => {
+      opened++;
+      return {execution, checkedHost: {}};
+    }, retainExecution: owner => { retained = owner; }}),
+    {code: 'InvalidInstalledEffectCapture'});
+    await assert.rejects(retained.cleanup(), {message: 'DisposeUnavailable'});
+    assert.equal(retained.cleanupPending(), true);
+    assert.equal(await retained.cleanup(), true);
+    assert.equal(retained.cleanupPending(), false);
+    assert.equal(opened, 1);
+    assert.equal(disposeCalls, 2);
   });
 
 test('installed Effect continuation rejects a foreign Preview before claim',

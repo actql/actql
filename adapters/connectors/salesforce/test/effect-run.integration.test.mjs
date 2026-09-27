@@ -3315,7 +3315,8 @@ test(`two-member captured Effect Run ${
         const completed = await installed.execute({moon, control, store,
           ref: {runDefinitionCid: runDefinition.identity}, runDefinition,
           compilation: effectCompilation,
-          openComputation: async () => { opens++; return execution; },
+          openComputation: async () => { opens++; return {execution,
+            checkedHost: owned}; },
           retainExecution: owner => { retained = owner; },
           effectAuthorization: async ({reviewWire, declaredResults}) => {
             assert.equal(reviewWire, preview.wire);
@@ -3325,7 +3326,7 @@ test(`two-member captured Effect Run ${
           },
         });
         assert.equal(opens, 1);
-        assert.equal(retained, execution);
+        assert.equal(typeof retained?.cleanup, 'function');
         assert.equal(completed.status, 'published');
         assert.equal(completed.result.progress.dispatched, 4);
         assert.equal(completed.result.completed.publication.state,
@@ -3401,7 +3402,10 @@ test(`two-member captured Effect Run ${
                   startedAt: '2026-09-24T00:00:02.000Z'},
                 contractLimits: publicationLimits,
                 now: () => '2026-09-24T00:00:03.000Z'},
-              scopes: commitScopes, continuationWire: '{}'};
+              scopes: commitScopes, continuationWire: '{}',
+              cleanupOwner: {async close() {}, async cleanup() {
+                return true;
+              }, cleanupPending: () => false}};
           }});
         let claims = 0;
         let completedResume;
@@ -3416,6 +3420,7 @@ test(`two-member captured Effect Run ${
             run_definition_cid: runDefinition.identity,
             preview_cid: previewCid, provider: {}},
           recoverCapture: async () => recovered,
+          retainExecution() {},
           checkpointBinding: {}, checkpointJournal: {
             claimResume() { claims++; return {action: 'claimed',
               claim: {runId: control.runDefinitionRunId(runDefinition)}}; },
