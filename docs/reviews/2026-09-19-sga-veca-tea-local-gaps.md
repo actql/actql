@@ -500,7 +500,7 @@ the exact and one-short control limit.
 
 | Category | Paths | State |
 | --- | ---: | --- |
-| Implementation gap (recorded, separate unit) | 0 route paths | The retained Store materializing lane now admits a checked zero-input Values task and its Values publication obligation through the bounded Values provider. It can publish an exact retained Values Result, run two downstream Computes, and reclaim the output. Other formerly rejected obligations and SGA/TEA/VecA retained Store paths remain separate implementation work; the Values change is not a blanket obligation allowance. See the retained completion follow-up below. |
+| Implementation gap (recorded, separate unit) | 0 route paths | The retained Store materializing lane admits checked zero-input Values and exact one-step Append, EXCEPT, INTERSECT, and Cross Join tasks through their bounded providers. Their retained Relation outputs can be published, consumed twice, and reclaimed. Other checked Relation obligations and SGA/TEA/VecA retained Store paths remain separate implementation work; this is not a blanket obligation allowance. See the retained completion follow-up below. |
 | Existing evidence was not referenced | 0 | Closed. |
 | Required tests were missing | 0 | Closed by the harnesses and Host cases above. |
 
@@ -527,9 +527,24 @@ the same bounded provider; `retained-output.test.mjs` covers the shared Store
 seal, abort, and cleanup owner. These are reused implementation proofs, not
 claims that every retained Store obligation is complete.
 
+Exact one-step Append, EXCEPT, INTERSECT, and Cross Join now discharge their
+checked Relation obligations only when the corresponding built-in bounded
+provider owns the same source step. A family provider accepting the sequence
+does not count as evidence for those obligations. The ordinary Host fixture in
+`standard-host.test.mjs` retains all five tasks in each binary Program,
+publishes the producer and two consumer Named Results, and compares their
+ordered rows against independent expectations. The same fixture cancels a
+retained Append after positive producer work, observes stop without publishing
+that output, and injects a producer Store append failure before completion;
+both cases reclaim held and reserved resources. The existing bounded Append,
+Set, and Cross Join tests supply exact and one-short work and workspace
+evidence for those same providers. This does not admit a multi-step
+`append -> filter` task to retained Store output merely because its first step
+has an Append obligation.
+
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |
-| Relation obligations beyond one-step Values | Open | Classify each checked obligation against its bounded provider, then prove ordinary Host completion, retained publication where applicable, cancellation, and cleanup. |
+| Other Relation obligations, including multi-step tasks | Open | Bind each remaining checked obligation to its exact bounded execution path, then prove ordinary Host completion, retained publication where applicable, cancellation, and cleanup. |
 | SGA, TEA, and VecA retained outputs | Open | Connect their exact Carrier completion and retention obligations without widening the Relation-only allowance. |
 | Native Host in-flight cancellation | Separate completion unit | Do not count JS Host cancellation as native request delivery. |
 

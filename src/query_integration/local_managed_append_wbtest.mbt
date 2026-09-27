@@ -62,6 +62,17 @@ fn run_local_managed_append_case(
   let append_task = 3
   let consumer_a = 4
   let consumer_b = 5
+  if variant == "imported_filter" {
+    assert_eq(
+      @local_driver.local_dispatch_rejection(installed, append_task),
+      Some("unsupported_execution_obligation"),
+    )
+  } else {
+    assert_eq(
+      @local_driver.local_dispatch_rejection(installed, append_task),
+      None,
+    )
+  }
   let append_inputs = if variant == "self" {
     [producer_outputs[0], producer_outputs[0]]
   } else {

@@ -227,6 +227,28 @@ test "bounded set admits exact work and rejects one unit short" {
 }
 
 ///|
+test "bounded set admits exact structural workspace and rejects one short" {
+  // One field uses three metadata slots. Two left and one right rows keep
+  // three sort coordinates each, two left keep flags, and one output cell:
+  // 3 + 6 + 3 + 2 + 1 = 15 simultaneously live slots.
+  let (_, exact, _) = bounded_set_fixture(max_entries=15)
+  let exact = exact.unwrap()
+  match drive_bounded_set(exact) {
+    BoundedSetComplete(output, ..) =>
+      assert_eq(bounded_set_ids(output), ["1", "2"])
+    _ => fail("exact set workspace rejected")
+  }
+  assert_true(cleanup_bounded_set(exact).unwrap())
+  let (_, short, _) = bounded_set_fixture(max_entries=14)
+  let short = short.unwrap()
+  match drive_bounded_set(short) {
+    BoundedSetFailed(Rows(RowLimit), ..) => ()
+    _ => fail("one-short set workspace accepted")
+  }
+  assert_true(cleanup_bounded_set(short).unwrap())
+}
+
+///|
 test "bounded set stops after positive work without publishing" {
   let (control, started, reads) = bounded_set_fixture(
     left_rows="[{\"id\":3},{\"id\":1},{\"id\":2}]",

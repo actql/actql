@@ -29,6 +29,30 @@ pub fn local_dispatch_rejection(
             ) {
             return Some("unsupported_execution_obligation")
           }
+        AppendRows(_) =>
+          if !@local.local_module_bounded_append_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
+        SetRows(_) =>
+          if !@local.local_module_bounded_set_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
+        CrossJoinRows(_) | CrossJoinIdentity(_) =>
+          if !@local.local_module_bounded_cross_join_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
         _ => return Some("unsupported_execution_obligation")
       }
     }

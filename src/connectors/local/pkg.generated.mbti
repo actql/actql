@@ -67,6 +67,12 @@ pub fn local_materializing_publication_output(LocalMaterializingAttempt) -> @exe
 
 pub fn local_materializing_stopped(LocalMaterializingAttempt) -> Bool
 
+pub fn local_module_bounded_append_obligation(LocalComputeModule, Int, Int) -> Bool
+
+pub fn local_module_bounded_cross_join_obligation(LocalComputeModule, Int, Int) -> Bool
+
+pub fn local_module_bounded_set_obligation(LocalComputeModule, Int, Int) -> Bool
+
 pub fn local_module_bounded_values_publication(LocalComputeModule, Int) -> Bool
 
 pub fn local_module_capacity(LocalComputeModule, Int) -> @execution_relation.ExecutionCapacity?
