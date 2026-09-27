@@ -52,9 +52,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           typeof execution.cleanupPending !== 'function') {
         throw new Error('ClientDispatchCleanupOwnerInvalid');
       }
-      await execution.close();
-      await execution.cleanup();
-      if (execution.cleanupPending()) {
+      // close may permanently retain its first rejected Promise. Recovery is
+      // owned by cleanup, not by invoking close again or repeating Compute.
+      try { await execution.close(); }
+      catch (failure) { entry.closeFailure ??= failure; }
+      const recovered = await execution.cleanup();
+      if (recovered === false || execution.cleanupPending() !== false) {
         throw new Error('ClientDispatchCleanupPending');
       }
       entry.cleanupOwner = undefined;
@@ -273,6 +276,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         pendingRefs: [...entries.values()].map(entry => entry.ref),
         failures: [...entries.values()].map(entry => ({ref: entry.ref,
           primary: entry.primaryFailure,
+          close: entry.closeFailure,
           cleanup: entry.cleanupFailure,
           finish: entry.finishFailure,
           release: entry.releaseFailure})),
