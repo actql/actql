@@ -42,10 +42,13 @@ fn finish_session(execution : SessionExecution) -> @records.Completed {
           InvalidSessionKernel => abort("invalid session kernel")
           InvalidSessionLimits => abort("invalid session limits")
           SessionInputUnavailable => abort("session input unavailable")
+          EmptySessionInput => abort("empty session input")
           InvalidSessionRecord(_) => abort("invalid session record")
           InvalidSessionValue(_, _) => abort("invalid session value")
+          DuplicateSessionIdentity(_) => abort("duplicate session identity")
           SessionArithmetic(_) => abort("session arithmetic")
           SessionIdentityLimit => abort("session identity limit")
+          SessionControlWorkLimit => abort("session control work limit")
           SessionWorkspaceLimit => abort("session workspace limit")
           SessionOutput(@records.Storage(@storage.ValueLimit)) =>
             abort("session output value limit")
@@ -200,5 +203,228 @@ test "session identity construction can stop between scalar parts" {
     _ => fail("expected stopped session")
   }
   assert_true(cleanup_session(execution).unwrap())
+  assert_true(@records.discard_completed(source))
+}
+
+///|
+test "session scratch initialization advances within the resume quantum" {
+  let producer = event_window_producer()
+  let owner = session_owner(producer, "[\"payload\"]")
+  let live = Ref(true)
+  let source = event_window_source(
+    producer,
+    [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+    live,
+  )
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  assert_true(
+    start_session(
+      @bounded.control(),
+      event_window_sequence(owner),
+      0,
+      input,
+      { ..event_window_limits(), max_workspace_slots: 51, },
+      4096L,
+      fn() { live.val },
+    )
+    is Err(SessionWorkspaceLimit),
+  )
+  let control = @bounded.control()
+  let execution = start_session(
+    control,
+    event_window_sequence(owner),
+    0,
+    input,
+    { ..event_window_limits(), max_workspace_slots: 52, },
+    4096L,
+    fn() { live.val },
+  ).unwrap()
+  assert_eq(session_initialization_progress(execution), (0, 0))
+  for step in 1..<25 {
+    assert_true(
+      advance_session(execution, 1).unwrap() is SessionContinue(progress=0L, ..),
+    )
+    assert_eq(session_initialization_progress(execution), (step, 0))
+  }
+  assert_true(advance_session(execution, 1).unwrap() is SessionContinue(_))
+  assert_eq(session_initialization_progress(execution), (24, 0))
+  for step in 1..<9 {
+    assert_true(
+      advance_session(execution, 1).unwrap() is SessionContinue(progress=0L, ..),
+    )
+    assert_eq(session_initialization_progress(execution), (24, step))
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_session(execution, 1).unwrap()
+    is SessionStopped(@bounded.Cancelled, progress=0L, work=33L),
+  )
+  assert_true(cleanup_session(execution).unwrap())
+  assert_true(@records.producer_read_available(input))
+
+  let stopped_control = @bounded.control()
+  assert_true(@bounded.request_cancel(stopped_control))
+  let stopped_input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let stopped = start_session(
+    stopped_control,
+    event_window_sequence(owner),
+    0,
+    stopped_input,
+    { ..event_window_limits(), max_workspace_slots: 52, },
+    4096L,
+    fn() { live.val },
+  ).unwrap()
+  assert_eq(session_initialization_progress(stopped), (0, 0))
+  assert_true(
+    advance_session(stopped, 1).unwrap()
+    is SessionStopped(@bounded.Cancelled, progress=0L, work=0L),
+  )
+  assert_eq(session_initialization_progress(stopped), (0, 0))
+  assert_true(cleanup_session(stopped).unwrap())
+  assert_true(@records.discard_completed(source))
+}
+
+///|
+test "session output workspace includes scratch and temporary fields" {
+  let producer = event_window_producer()
+  let owner = session_owner(producer, "[\"payload\"]")
+  let live = Ref(true)
+  let source = event_window_source(producer, [0.0], live)
+  assert_eq(
+    @storage.record_field_count(@records.completed_storage(source).unwrap(), 0).unwrap(),
+    3,
+  )
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  // One record and one key retain 3 cells, 3 indices, and 4 metadata
+  // slots. Emitting its 3 source fields plus 3 session fields needs 12
+  // temporary slots, so the simultaneous boundary is 10 + 12 = 22.
+  for (budget, accepted) in [(22, true), (21, false)] {
+    let execution = start_session(
+      @bounded.control(),
+      event_window_sequence(owner),
+      0,
+      input,
+      { ..event_window_limits(fields=6), max_workspace_slots: budget, },
+      4096L,
+      fn() { live.val },
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<64 {
+      if terminal {
+        break
+      }
+      match advance_session(execution, 1).unwrap() {
+        SessionContinue(..) => ()
+        SessionComplete(output, ..) => {
+          assert_true(accepted)
+          assert_true(@records.discard_completed(output))
+          terminal = true
+        }
+        SessionFailed(SessionWorkspaceLimit, progress~, work~) => {
+          assert_false(accepted)
+          assert_eq(progress, 0L)
+          assert_true(work > 0L)
+          assert_true(session_cleanup_pending(execution))
+          terminal = true
+        }
+        _ => fail("unexpected session workspace outcome")
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_session(execution).unwrap())
+    assert_true(@records.producer_read_available(input))
+  }
+  assert_true(@records.discard_completed(source))
+}
+
+///|
+test "session admits exact and one-short cumulative control work" {
+  let producer = event_window_producer()
+  let owner = session_owner(producer, "[\"payload\"]")
+  let live = Ref(true)
+  let source = event_window_source(producer, [0.0], live)
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  // One row and one key take six scratch initialization steps, eighteen
+  // field-loading steps, five ordering steps, one group step, five identity
+  // steps, and nine output/finalization steps: 44 charged control units.
+  for (budget, accepted) in [(44, true), (43, false)] {
+    let execution = start_session(
+      @bounded.control(),
+      event_window_sequence(owner),
+      0,
+      input,
+      event_window_limits(fields=6),
+      4096L,
+      fn() { live.val },
+      control_work_limit=Some(budget),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<45 {
+      if terminal {
+        break
+      }
+      match advance_session(execution, 1).unwrap() {
+        SessionContinue(work~, ..) => assert_true(work <= budget.to_int64())
+        SessionComplete(output, progress~, work~) => {
+          assert_true(accepted)
+          assert_eq((progress, work), (1L, 44L))
+          assert_true(@records.discard_completed(output))
+          terminal = true
+        }
+        SessionFailed(SessionControlWorkLimit, progress~, work~) => {
+          assert_false(accepted)
+          assert_eq((progress, work), (1L, 43L))
+          assert_true(session_cleanup_pending(execution))
+          terminal = true
+        }
+        SessionFailed(issue, ..) => {
+          assert_eq(issue, SessionControlWorkLimit)
+          fail("unexpected session failure")
+        }
+        _ => fail("unexpected session control-work outcome")
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_session(execution).unwrap())
+    assert_true(@records.producer_read_available(input))
+  }
+  assert_true(
+    start_session(
+      @bounded.control(),
+      event_window_sequence(owner),
+      0,
+      input,
+      event_window_limits(fields=6),
+      4096L,
+      fn() { live.val },
+      control_work_limit=Some(0),
+    )
+    is Err(SessionControlWorkLimit),
+  )
+  assert_true(@records.discard_completed(source))
+}
+
+///|
+test "empty session input fails on the first bounded resume" {
+  let producer = event_window_producer()
+  let owner = session_owner(producer, "[\"payload\"]")
+  let live = Ref(true)
+  let source = event_window_source(producer, [], live)
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let execution = start_session(
+    @bounded.control(),
+    event_window_sequence(owner),
+    0,
+    input,
+    event_window_limits(),
+    4096L,
+    fn() { live.val },
+  ).unwrap()
+  assert_true(
+    advance_session(execution, 1).unwrap()
+    is SessionFailed(EmptySessionInput, progress=0L, work=1L),
+  )
+  assert_true(cleanup_session(execution).unwrap())
+  assert_true(@records.producer_read_available(input))
   assert_true(@records.discard_completed(source))
 }

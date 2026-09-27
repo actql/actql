@@ -111,6 +111,22 @@ fn empty_scored_source(owner : @lower.BoundPrepared) -> @records.Completed {
 }
 
 ///|
+fn single_scored_source(owner : @lower.BoundPrepared) -> @records.Completed {
+  let output = @records.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  @records.append_record(output, [
+    (@schema.Unqualified("id"), number(1.0)),
+    (@schema.Unqualified("embedding"), vector("[1,0]")),
+  ]).unwrap()
+  @records.finish_output(output).unwrap()
+}
+
+///|
 fn finish_score_execution(execution : ScoreExecution) -> @records.Completed {
   while true {
     match advance_score(execution, 1).unwrap() {
@@ -140,6 +156,130 @@ fn scored_field(
     }
   }
   abort("missing score field")
+}
+
+///|
+test "score enforces cumulative empty-input control work" {
+  let producer = producer_owner()
+  let source = empty_scored_source(producer)
+  let owner = score_owner(producer)
+  let zero_input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  assert_true(
+    start_score(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      zero_input,
+      limits(work=0),
+      4096L,
+      fn() { true },
+    )
+    is Err(ScoreWorkLimit),
+  )
+  // Two query components and one output finish are required even with no
+  // input records. Scratch and merge phases have no work on empty input.
+  for (ceiling, accepted) in [(3, true), (2, false)] {
+    let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+    let execution = start_score_with_control_work_limit(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      input,
+      limits(),
+      4096L,
+      fn() { true },
+      ceiling,
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<8 {
+      if !terminal {
+        match advance_score(execution, 1).unwrap() {
+          ScoreContinue(work=next, ..) => {
+            assert_true(next >= charged && next - charged <= 1L)
+            charged = next
+          }
+          ScoreComplete(output, work=next, ..) => {
+            assert_true(accepted)
+            assert_eq(next - charged, 1L)
+            guard @records.completed_storage(output) is Some(material) else {
+              fail("empty score output missing")
+            }
+            assert_eq(@storage.record_count(material), 0)
+            charged = next
+            terminal = true
+          }
+          ScoreFailed(ScoreWorkLimit, work=next, ..) => {
+            assert_false(accepted)
+            assert_eq(next, charged)
+            assert_true(score_cleanup_pending(execution))
+            terminal = true
+          }
+          _ => fail("empty score work boundary had another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(charged, ceiling.to_int64())
+    assert_eq(cleanup_score(execution), Ok(true))
+    assert_true(@records.producer_read_available(input))
+  }
+}
+
+///|
+test "score enforces cumulative one-record control work" {
+  let producer = producer_owner()
+  let source = single_scored_source(producer)
+  let owner = score_owner(producer)
+  // Query validation: 2; scratch: 1; record start, identity scratch,
+  // and field/identity scan: 8; score fold and finish: 3; emit fields,
+  // score, commit, and finish: 5.
+  for (ceiling, accepted) in [(19, true), (18, false)] {
+    let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+    let execution = start_score_with_control_work_limit(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      input,
+      limits(),
+      4096L,
+      fn() { true },
+      ceiling,
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<24 {
+      if !terminal {
+        match advance_score(execution, 1).unwrap() {
+          ScoreContinue(work=next, ..) => {
+            assert_true(next >= charged && next - charged <= 1L)
+            charged = next
+          }
+          ScoreComplete(output, work=next, ..) => {
+            assert_true(accepted)
+            assert_eq(next - charged, 1L)
+            guard @records.completed_storage(output) is Some(material) else {
+              fail("scored output missing")
+            }
+            assert_eq(@storage.record_count(material), 1)
+            charged = next
+            terminal = true
+          }
+          ScoreFailed(ScoreWorkLimit, work=next, ..) => {
+            assert_false(accepted)
+            assert_eq(next, charged)
+            assert_true(score_cleanup_pending(execution))
+            terminal = true
+          }
+          _ => fail("one-record score work boundary had another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(charged, ceiling.to_int64())
+    assert_eq(cleanup_score(execution), Ok(true))
+    assert_true(@records.producer_read_available(input))
+  }
 }
 
 ///|
@@ -305,6 +445,31 @@ test "score admits complete ordering workspace before execution" {
     )
     is Err(ScoreWorkspaceLimit),
   )
+}
+
+///|
+test "score completes at its exact ordering workspace boundary" {
+  let producer = producer_owner()
+  let source = scored_source(producer, Ref(true))
+  let owner = score_owner(producer)
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  // Three score slots and five retained slots per record, plus two query
+  // components, three output fields, and one identity slot total 30.
+  let execution = start_score(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    limits(workspace=30),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let completed = finish_score_execution(execution)
+  guard @records.completed_storage(completed) is Some(material) else {
+    fail("score output missing")
+  }
+  assert_eq(@storage.record_count(material), 3)
+  assert_eq(cleanup_score(execution), Ok(true))
 }
 
 ///|

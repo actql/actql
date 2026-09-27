@@ -12,6 +12,16 @@ struct ManagedProvider {
     Int,
     @execution.SequenceExecutionLimits,
   ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue]
+  /// A provider that runs selected common numeric reductions receives the
+  /// task-owned reduction callbacks at start; others never see them.
+  start_numeric : ((
+    @execution.GeneratedSequence,
+    Array[ManagedProviderInput],
+    Int,
+    Int,
+    @execution.SequenceExecutionLimits,
+    @execution.NumericAggregateExecution?,
+  ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue])?
 }
 
 ///|
@@ -153,7 +163,33 @@ pub fn managed_provider_with_inputs(
     @execution.SequenceExecutionLimits,
   ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue],
 ) -> ManagedProvider {
-  { accepts, capacity, start, }
+  { accepts, capacity, start, start_numeric: None, }
+}
+
+///|
+/// A provider whose kernel runs selected common numeric reductions. The
+/// driver passes the task-owned callbacks; without them the provider starts
+/// as if the task had no numeric reduction slots.
+pub fn managed_provider_with_numeric(
+  accepts : (@execution.GeneratedSequence) -> Bool,
+  capacity : (@execution.GeneratedSequence) -> @execution.ExecutionCapacity?,
+  start : (
+    @execution.GeneratedSequence,
+    Array[ManagedProviderInput],
+    Int,
+    Int,
+    @execution.SequenceExecutionLimits,
+    @execution.NumericAggregateExecution?,
+  ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue],
+) -> ManagedProvider {
+  {
+    accepts,
+    capacity,
+    start: (sequence, inputs, rows, bytes, execution) => {
+      start(sequence, inputs, rows, bytes, execution, None)
+    },
+    start_numeric: Some(start),
+  }
 }
 
 ///|
@@ -245,8 +281,20 @@ pub fn start_managed_provider_with_inputs_and_execution(
   max_rows : Int,
   max_value_bytes : Int,
   execution : @execution.SequenceExecutionLimits,
+  numeric? : @execution.NumericAggregateExecution? = None,
 ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
-  (provider.start)(sequence, inputs, max_rows, max_value_bytes, execution)
+  match provider.start_numeric {
+    Some(start) =>
+      start(sequence, inputs, max_rows, max_value_bytes, execution, numeric)
+    None =>
+      (provider.start)(sequence, inputs, max_rows, max_value_bytes, execution)
+  }
+}
+
+///|
+/// Whether the provider runs selected common numeric reductions itself.
+pub fn managed_provider_runs_numeric(provider : ManagedProvider) -> Bool {
+  provider.start_numeric is Some(_)
 }
 
 ///|

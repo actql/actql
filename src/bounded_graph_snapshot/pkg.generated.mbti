@@ -45,7 +45,7 @@ pub(all) enum Issue {
   InvalidLimits
   InvalidGraph
   WorkspaceLimit
-  ValueOrder(@value_admission.CompleteOrderIssue)
+  KeyOrder(@value_admission.KeyOrderIssue)
   Sort(@bounded_tuple_sort.Issue)
   Identity(@graph_snapshot_identity.Issue)
   Terminal

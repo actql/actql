@@ -234,6 +234,98 @@ fn source_graph(
 }
 
 ///|
+fn limited_normalize(
+  managed_view : Bool,
+  limits : @storage.Limits,
+) -> NormalizeExecution {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let read = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  if managed_view {
+    start_normalize_view(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      @graph.producer_read_view(read).unwrap(),
+      limits,
+      4096L,
+      fn() { true },
+    ).unwrap()
+  } else {
+    start_normalize(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      read,
+      limits,
+      4096L,
+      fn() { true },
+    ).unwrap()
+  }
+}
+
+///|
+fn check_normalize_work_workspace_limits(managed_view : Bool) -> Unit raise {
+  // Two one-property nodes require 5 slots each. The labeled,
+  // one-property edge requires 8. Wire-node work is 5 + 5 + 11.
+  let exact = limited_normalize(managed_view, {
+    ..storage_limits(),
+    max_work: 21,
+    max_workspace_slots: 18,
+  })
+  assert_true(advance_normalize(exact, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(exact, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(exact, 1).unwrap() is Continue(_))
+  assert_true(
+    advance_normalize(exact, 1).unwrap() is Complete(_, progress=3L, work=3L),
+  )
+  assert_eq(cleanup_normalize(exact), Ok(true))
+
+  let short_work = limited_normalize(managed_view, {
+    ..storage_limits(),
+    max_work: 20,
+    max_workspace_slots: 18,
+  })
+  assert_true(advance_normalize(short_work, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(short_work, 1).unwrap() is Continue(_))
+  assert_true(
+    advance_normalize(short_work, 1).unwrap()
+    is Failed(Output(@graph.Storage(@storage.WorkLimit)), progress=2L, work=2L),
+  )
+  assert_true(normalize_cleanup_pending(short_work))
+  assert_eq(cleanup_normalize(short_work), Ok(true))
+
+  let short_workspace = limited_normalize(managed_view, {
+    ..storage_limits(),
+    max_work: 21,
+    max_workspace_slots: 17,
+  })
+  assert_true(advance_normalize(short_workspace, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(short_workspace, 1).unwrap() is Continue(_))
+  assert_true(
+    advance_normalize(short_workspace, 1).unwrap()
+    is Failed(
+      Output(@graph.Storage(@storage.WorkspaceLimit)),
+      progress=2L,
+      work=2L
+    ),
+  )
+  assert_true(normalize_cleanup_pending(short_workspace))
+  assert_eq(cleanup_normalize(short_workspace), Ok(true))
+}
+
+///|
+test "normalize admits exact and one-short work and workspace" {
+  check_normalize_work_workspace_limits(false)
+}
+
+///|
+test "normalize managed view admits exact and one-short work and workspace" {
+  check_normalize_work_workspace_limits(true)
+}
+
+///|
 test "normalize advances in bounded steps and feeds two consumers" {
   let producer = source_owner()
   let source_live = Ref(true)
@@ -340,6 +432,208 @@ test "normalize confirms cancellation before reclaiming partial output" {
     sequence(owner),
     0,
     input,
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_normalize(execution, 1).unwrap()
+    is Stopped(@bounded.Cancelled, progress=1L, work=1L),
+  )
+  assert_true(normalize_stopped(execution))
+  assert_true(normalize_cleanup_pending(execution))
+  assert_eq(cleanup_normalize(execution), Ok(true))
+  assert_false(normalize_cleanup_pending(execution))
+}
+
+///|
+test "normalize accepts the exact node capacity" {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let input = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let execution = start_normalize(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    { ..storage_limits(), max_nodes: 2, max_edges: 1, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  guard advance_normalize(execution, 1).unwrap()
+    is Complete(completed, progress=3L, work=3L) else {
+    fail("exact node capacity must complete")
+  }
+  assert_eq(
+    @storage.node_count(@graph.completed_storage(completed).unwrap()),
+    2,
+  )
+  assert_eq(
+    @storage.edge_count(@graph.completed_storage(completed).unwrap()),
+    1,
+  )
+  assert_eq(cleanup_normalize(execution), Ok(true))
+}
+
+///|
+test "normalize rejects one node less than the required capacity" {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let input = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let execution = start_normalize(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    { ..storage_limits(), max_nodes: 1, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(
+    advance_normalize(execution, 1).unwrap()
+    is Failed(Output(@graph.Storage(@storage.NodeLimit)), progress=1L, work=1L),
+  )
+  assert_true(normalize_stopped(execution))
+  assert_true(normalize_cleanup_pending(execution))
+  assert_eq(cleanup_normalize(execution), Ok(true))
+  assert_false(normalize_cleanup_pending(execution))
+}
+
+///|
+test "normalize rejects one edge less than the required capacity" {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let input = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let execution = start_normalize(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    { ..storage_limits(), max_nodes: 2, max_edges: 0, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(
+    advance_normalize(execution, 1).unwrap()
+    is Failed(Output(@graph.Storage(@storage.EdgeLimit)), progress=2L, work=2L),
+  )
+  assert_true(normalize_stopped(execution))
+  assert_true(normalize_cleanup_pending(execution))
+  assert_eq(cleanup_normalize(execution), Ok(true))
+}
+
+///|
+test "normalize managed view accepts the exact node capacity" {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let read = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let view = @graph.producer_read_view(read).unwrap()
+  let execution = start_normalize_view(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    view,
+    { ..storage_limits(), max_nodes: 2, max_edges: 1, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  guard advance_normalize(execution, 1).unwrap()
+    is Complete(completed, progress=3L, work=3L) else {
+    fail("exact managed-view node capacity must complete")
+  }
+  assert_eq(
+    @storage.node_count(@graph.completed_storage(completed).unwrap()),
+    2,
+  )
+  assert_eq(
+    @storage.edge_count(@graph.completed_storage(completed).unwrap()),
+    1,
+  )
+  assert_eq(cleanup_normalize(execution), Ok(true))
+}
+
+///|
+test "normalize managed view rejects one node less than required" {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let read = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let view = @graph.producer_read_view(read).unwrap()
+  let execution = start_normalize_view(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    view,
+    { ..storage_limits(), max_nodes: 1, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(
+    advance_normalize(execution, 1).unwrap()
+    is Failed(Output(@graph.Storage(@storage.NodeLimit)), progress=1L, work=1L),
+  )
+  assert_true(normalize_stopped(execution))
+  assert_true(normalize_cleanup_pending(execution))
+  assert_eq(cleanup_normalize(execution), Ok(true))
+  assert_false(normalize_cleanup_pending(execution))
+}
+
+///|
+test "normalize managed view rejects one edge less than required" {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let read = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let view = @graph.producer_read_view(read).unwrap()
+  let execution = start_normalize_view(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    view,
+    { ..storage_limits(), max_nodes: 2, max_edges: 0, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(
+    advance_normalize(execution, 1).unwrap()
+    is Failed(Output(@graph.Storage(@storage.EdgeLimit)), progress=2L, work=2L),
+  )
+  assert_true(normalize_stopped(execution))
+  assert_true(normalize_cleanup_pending(execution))
+  assert_eq(cleanup_normalize(execution), Ok(true))
+}
+
+///|
+test "normalize managed view cancels and reclaims partial output" {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let read = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let view = @graph.producer_read_view(read).unwrap()
+  let control = @bounded.control()
+  let execution = start_normalize_view(
+    control,
+    sequence(owner),
+    0,
+    view,
     storage_limits(),
     4096L,
     fn() { true },

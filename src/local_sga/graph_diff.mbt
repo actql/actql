@@ -119,6 +119,10 @@ fn graph_diff_step(
         }
       }
       Emit => {
+        if state.remaining_work < 1 {
+          return @bounded.Failed(GraphDiffWorkLimit, progress, used)
+        }
+        state.remaining_work -= 1
         used += 1
         guard state.output is Some(output) && state.pending is Some(delta) else {
           return @bounded.Failed(InvalidGraphDiffKernel, progress, used)
@@ -134,6 +138,10 @@ fn graph_diff_step(
         }
       }
       Finish => {
+        if state.remaining_work < 1 {
+          return @bounded.Failed(GraphDiffWorkLimit, progress, used)
+        }
+        state.remaining_work -= 1
         used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidGraphDiffKernel, progress, used)
@@ -186,6 +194,9 @@ pub fn start_graph_diff(
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
 ) -> Result[GraphDiffExecution, GraphDiffIssue] {
+  if limits.max_work < 0 {
+    return Err(GraphDiffWorkLimit)
+  }
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),

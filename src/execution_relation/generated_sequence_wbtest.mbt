@@ -20,6 +20,17 @@ test "generated composition owns its selection and contexts and reuses no counte
   ).unwrap()
   contexts.clear()
   selected[0] = "missing"
+  let prefix = select_generated_sequence_prefix(generated, 2).unwrap()
+  assert_eq(generated_sequence_step_count(prefix), 3)
+  assert_eq(generated_sequence_step_index_at(prefix, 2), Some(2))
+  assert_true(generated_sequence_step_index_at(prefix, 3) is None)
+  assert_eq(
+    completion_preparation_terminal_step(
+      generated_completion_preparation(prefix),
+    ),
+    2,
+  )
+  assert_true(select_generated_sequence_prefix(generated, 3) is None)
   let limits : SequenceExecutionLimits = {
     rows: run_limits(),
     max_work: 100000,
@@ -29,6 +40,7 @@ test "generated composition owns its selection and contexts and reuses no counte
     execute_generated_sequence(generated, [], { ..limits, max_work: 0, })
     is Err(_),
   )
+  assert_true(execute_generated_sequence(prefix, [], limits) is Err(InputSet))
   for _i = 0; _i < 2; _i = _i + 1 {
     let completed = execute_generated_sequence(generated, [], limits).unwrap()
     let output = test_row_output(completed_output(completed, Step(3)).unwrap())

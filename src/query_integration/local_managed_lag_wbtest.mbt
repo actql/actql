@@ -49,6 +49,14 @@ fn run_local_managed_lag_case(variant : String) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_values_lag_chain=true,
     local_values_lag_variant=variant,
+    ledger_limits=Some({
+      planning_work: 10000,
+      attempts: 10,
+      holdings: 10,
+      transfer_bytes: 300000L,
+      retained_bytes: 134217728L,
+      execution_bytes: 134217728L,
+    }),
   )
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -85,7 +93,7 @@ fn run_local_managed_lag_case(variant : String) -> Unit raise {
   ).unwrap()
 
   let producer_live = Ref(true)
-  let (producer_ops, producer) = run_local_managed_test_task(
+  let (values_ops, values) = run_local_managed_test_task(
     installed,
     run,
     1,
@@ -94,6 +102,35 @@ fn run_local_managed_lag_case(variant : String) -> Unit raise {
     1,
     producer_live,
   )
+  let values_rows = local_managed_test_rows(values_ops)
+  let unique_live = Ref(true)
+  let (unique_ops, unique) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [values],
+    [values_rows],
+    2,
+    unique_live,
+    execution_quantum=1,
+    require_provider=true,
+  )
+  let unique_rows = local_managed_test_rows(unique_ops)
+  let lag_live = Ref(true)
+  let advances = Ref(0)
+  let (producer_ops, producer) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [unique],
+    [unique_rows],
+    3,
+    lag_live,
+    execution_quantum=1,
+    execution_advances=Some(advances),
+    require_provider=true,
+  )
+  assert_true(advances.val > 5)
   let rows = local_managed_test_rows(producer_ops)
   assert_eq(rows, [
     "{\"amount\":30,\"group\":\"a\",\"id\":3,\"previous\":null}", "{\"amount\":20,\"group\":null,\"id\":2,\"previous\":null}",
@@ -105,10 +142,10 @@ fn run_local_managed_lag_case(variant : String) -> Unit raise {
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    2,
+    4,
     [producer],
     [rows],
-    2,
+    4,
     first_live,
   )
   assert_eq(local_managed_test_rows(first_ops), rows)
@@ -116,10 +153,10 @@ fn run_local_managed_lag_case(variant : String) -> Unit raise {
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    5,
     [producer],
     [rows],
-    3,
+    5,
     second_live,
   )
   assert_eq(local_managed_test_rows(second_ops), [
@@ -129,7 +166,7 @@ fn run_local_managed_lag_case(variant : String) -> Unit raise {
   ])
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, 2)
+  @strategy.close_captured_task_output(run, 4)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
@@ -137,13 +174,21 @@ fn run_local_managed_lag_case(variant : String) -> Unit raise {
   assert_true(@execution.managed_completed_output_available(producer))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, 5)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
-  producer_live.val = false
-  @strategy.close_captured_task_output(run, 1)
+  lag_live.val = false
+  @strategy.close_captured_task_output(run, 3)
   (producer_ops.close)()
   (producer_ops.cleanup_refresh)() |> ignore
+  unique_live.val = false
+  @strategy.close_captured_task_output(run, 2)
+  (unique_ops.close)()
+  (unique_ops.cleanup_refresh)() |> ignore
+  producer_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (values_ops.close)()
+  (values_ops.cleanup_refresh)() |> ignore
   @strategy.stop_captured_dag(run)
   @strategy.close_captured_task_output(run, 0)
   @strategy.refresh_captured_retention(run)
@@ -165,7 +210,7 @@ test "Local managed parameter lag feeds two downstream Computes" {
 }
 
 ///|
-test "Local managed lag pre-execution cancellation rejects completion and reclaims" {
+test "Local lag chain pre-execution values cancellation reclaims" {
   let (run, issuer) = captured_graph_fixture(
     local_values_lag_chain=true,
     local_values_lag_variant="literal",
@@ -222,7 +267,7 @@ test "Local managed lag pre-execution cancellation rejects completion and reclai
   (operations.cleanup_refresh)() |> ignore
   assert_false(@strategy.captured_task_completed(run, 1))
   @strategy.stop_captured_dag(run)
-  for task in 0..<4 {
+  for task in 0..<6 {
     @strategy.close_captured_task_output(run, task)
   }
   @strategy.refresh_captured_retention(run)

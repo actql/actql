@@ -61,6 +61,10 @@ priv struct BoundedAsOfState {
   mut right_row : Int
   mut key_index : Int
   mut tie_index : Int
+  comparison : BoundedCompleteValueComparison
+  mut sort_pair_left : Int
+  mut sort_pair_right : Int
+  mut sort_compare_index : Int
   mut visited : Int64
   mut best : Int?
   mut best_distance : Int64
@@ -125,6 +129,11 @@ fn cleanup_bounded_asof_state(state : BoundedAsOfState) -> Bool {
   state.right_clocks = []
   state.output_row = []
   state.checked_row = []
+  state.comparison.phase = -1
+  state.comparison.offset = 0
+  state.sort_pair_left = -1
+  state.sort_pair_right = -1
+  state.sort_compare_index = 0
   state.workspace.live = 0
   if !state.accepted.val {
     state.rows.val = None
@@ -139,49 +148,74 @@ fn bounded_asof_inputs_available(state : BoundedAsOfState) -> Bool {
 }
 
 ///|
-fn bounded_asof_compare_columns(
-  input : ProducerRead,
+fn bounded_asof_compare_columns_step(
+  state : BoundedAsOfState,
   first : Int,
   second : Int,
   columns : Array[Int],
-  control : ControlBudget,
   nulls_last : Bool,
-) -> Result[Int, RowIssue] {
-  for column in columns {
-    guard producer_read_cell(input, first, column) is Some(left) &&
-      producer_read_cell(input, second, column) is Some(right) else {
-      return Err(InvalidRows)
+) -> Result[Int?, RowIssue] {
+  if state.sort_pair_left == -1 {
+    state.sort_pair_left = first
+    state.sort_pair_right = second
+    state.sort_compare_index = 0
+  } else if state.sort_pair_left != first || state.sort_pair_right != second {
+    return Err(InvalidRows)
+  }
+  if state.sort_compare_index == columns.length() {
+    state.sort_pair_left = -1
+    state.sort_pair_right = -1
+    return Ok(Some(0))
+  }
+  let column = columns[state.sort_compare_index]
+  guard producer_read_cell(state.left, first, column) is Some(left) &&
+    producer_read_cell(state.left, second, column) is Some(right) else {
+    return Err(InvalidRows)
+  }
+  let left_null = asof_null(left)
+  let right_null = asof_null(right)
+  if (left_null || right_null) && state.comparison.phase == -1 {
+    if !spend_control(state.control, 1) {
+      return Err(RowLimit)
     }
-    let left_null = asof_null(left)
-    let right_null = asof_null(right)
-    if left_null || right_null {
-      if !spend_control(control, 1) {
-        return Err(RowLimit)
-      }
-      if left_null != right_null {
-        return Ok(if left_null == nulls_last { 1 } else { -1 })
-      }
-    }
-    match compare_complete_value(left, right, control) {
-      Ok(0) => ()
-      Ok(value) => return Ok(value)
-      Err(issue) => return Err(ordering_row_issue(issue))
+    if left_null != right_null {
+      state.sort_pair_left = -1
+      state.sort_pair_right = -1
+      return Ok(Some(if left_null == nulls_last { 1 } else { -1 }))
     }
   }
-  Ok(0)
+  match
+    bounded_complete_value_comparison_step(
+      state.comparison,
+      left,
+      right,
+      state.control,
+    ) {
+    Ok(None) => Ok(None)
+    Ok(Some(0)) => {
+      state.sort_compare_index += 1
+      Ok(None)
+    }
+    Ok(Some(value)) => {
+      state.sort_pair_left = -1
+      state.sort_pair_right = -1
+      Ok(Some(value))
+    }
+    Err(issue) => Err(ordering_row_issue(issue))
+  }
 }
 
 ///|
 fn bounded_asof_start_sort(
   state : BoundedAsOfState,
-  compare : (Int, Int) -> Result[Int, RowIssue],
+  compare : (Int, Int) -> Result[Int?, RowIssue],
 ) -> Bool {
   let count = producer_read_row_count(state.left)
   if count > (state.workspace.limit - state.workspace.live) / 2 ||
     !reserve_slots(state.workspace, count * 2) {
     return false
   }
-  state.sort = start_bounded_index_sort(state.engine, count, compare)
+  state.sort = start_bounded_index_sort_stepped(state.engine, count, compare)
   state.sort is Some(_)
 }
 
@@ -258,12 +292,11 @@ fn bounded_asof_step(
       }
       StartIdentitySort => {
         if !bounded_asof_start_sort(state, fn(first, second) {
-            bounded_asof_compare_columns(
-              state.left,
+            bounded_asof_compare_columns_step(
+              state,
               first,
               second,
               state.identities,
-              state.control,
               true,
             )
           }) {
@@ -306,21 +339,25 @@ fn bounded_asof_step(
         let first = state.identity_order[state.unique_index - 1]
         let second = state.identity_order[state.unique_index]
         match
-          bounded_asof_compare_columns(
-            state.left,
+          bounded_asof_compare_columns_step(
+            state,
             first,
             second,
             state.identities,
-            state.control,
             true,
           ) {
-          Ok(0) =>
+          Ok(None) => {
+            used += 1
+            progress += 1
+            continue
+          }
+          Ok(Some(0)) =>
             return bounded_asof_failure(
               Rows(AssertionDuplicate(first, second)),
               progress,
               used + 1,
             )
-          Ok(_) => ()
+          Ok(Some(_)) => ()
           Err(issue) =>
             return bounded_asof_failure(Rows(issue), progress, used + 1)
         }
@@ -369,16 +406,15 @@ fn bounded_asof_step(
       StartOutputSort => {
         if !bounded_asof_start_sort(state, fn(first, second) {
             if state.left_clocks[first] < state.left_clocks[second] {
-              Ok(-1)
+              Ok(Some(-1))
             } else if state.left_clocks[first] > state.left_clocks[second] {
-              Ok(1)
+              Ok(Some(1))
             } else {
-              bounded_asof_compare_columns(
-                state.left,
+              bounded_asof_compare_columns_step(
+                state,
                 first,
                 second,
                 state.identities,
-                state.control,
                 true,
               )
             }
@@ -442,9 +478,20 @@ fn bounded_asof_step(
           state.key_index = 0
           progress += 1
         } else {
-          match compare_complete_value(left_value, right_value, state.control) {
-            Ok(0) => state.key_index += 1
-            Ok(_) => {
+          match
+            bounded_complete_value_comparison_step(
+              state.comparison,
+              left_value,
+              right_value,
+              state.control,
+            ) {
+            Ok(None) => {
+              used += 1
+              progress += 1
+              continue
+            }
+            Ok(Some(0)) => state.key_index += 1
+            Ok(Some(_)) => {
               state.visited += 1L
               state.right_row += 1
               state.key_index = 0
@@ -536,8 +583,19 @@ fn bounded_asof_step(
             -1
           }
         } else {
-          match compare_complete_value(candidate, prior, state.control) {
-            Ok(value) => value
+          match
+            bounded_complete_value_comparison_step(
+              state.comparison,
+              candidate,
+              prior,
+              state.control,
+            ) {
+            Ok(Some(value)) => value
+            Ok(None) => {
+              used += 1
+              progress += 1
+              continue
+            }
             Err(issue) =>
               return bounded_asof_failure(
                 Rows(ordering_row_issue(issue)),
@@ -613,9 +671,11 @@ fn bounded_asof_step(
             field.contract,
             state.admitted_limits,
           )
-          is Some(value) &&
-          reserve_slots(state.workspace, 1) else {
+          is Some(value) else {
           return bounded_asof_failure(InvalidExecution, progress, used)
+        }
+        if !reserve_slots(state.workspace, 1) {
+          return bounded_asof_failure(Rows(RowLimit), progress, used)
         }
         state.checked_row.push(value)
         state.column += 1
@@ -712,6 +772,38 @@ pub fn start_bounded_asof_join(
     left_count.to_int64() > search_ceiling / right_count.to_int64() {
     return Err(Rows(RowLimit))
   }
+  let key_count = @lower.asof_join_key_count(kernel)
+  let identity_count = @lower.asof_join_identity_count(kernel)
+  let tie_count = @lower.asof_join_tie_break_count(kernel)
+  let column_count = @lower.asof_join_field_count(kernel)
+  let mut available_entries = max_entries
+  if key_count < 0 ||
+    identity_count < 0 ||
+    tie_count < 0 ||
+    column_count < 0 ||
+    left_count > available_entries {
+    return Err(Rows(RowLimit))
+  }
+  available_entries -= left_count
+  if right_count > available_entries {
+    return Err(Rows(RowLimit))
+  }
+  available_entries -= right_count
+  if key_count > available_entries / 2 {
+    return Err(Rows(RowLimit))
+  }
+  available_entries -= key_count * 2
+  if column_count > available_entries / 2 {
+    return Err(Rows(RowLimit))
+  }
+  available_entries -= column_count * 2
+  if identity_count > available_entries {
+    return Err(Rows(RowLimit))
+  }
+  available_entries -= identity_count
+  if tie_count > available_entries {
+    return Err(Rows(RowLimit))
+  }
   let mut output_ceiling = max_rows
   if generated_join_output_ceiling(generated, 0) is Some(value) &&
     value < output_ceiling.to_int64() {
@@ -743,7 +835,7 @@ pub fn start_bounded_asof_join(
     return Err(InvalidExecution)
   }
   let keys : Array[(Int, Int)] = []
-  for index in 0..<@lower.asof_join_key_count(kernel) {
+  for index in 0..<key_count {
     guard @lower.asof_join_key_at(kernel, index) is Some(pair) &&
       resolve(left, pair.0) is Some(left_column) &&
       resolve(right, pair.1) is Some(right_column) else {
@@ -752,7 +844,7 @@ pub fn start_bounded_asof_join(
     keys.push((left_column, right_column))
   }
   let identities : Array[Int] = []
-  for index in 0..<@lower.asof_join_identity_count(kernel) {
+  for index in 0..<identity_count {
     guard @lower.asof_join_identity_at(kernel, index) is Some(field) &&
       resolve(left, field) is Some(column) else {
       return Err(InvalidExecution)
@@ -763,7 +855,7 @@ pub fn start_bounded_asof_join(
     return Err(InvalidExecution)
   }
   let ties : Array[Int] = []
-  for index in 0..<@lower.asof_join_tie_break_count(kernel) {
+  for index in 0..<tie_count {
     guard @lower.asof_join_tie_break_at(kernel, index) is Some(field) &&
       resolve(right, field) is Some(column) else {
       return Err(InvalidExecution)
@@ -771,7 +863,7 @@ pub fn start_bounded_asof_join(
     ties.push(column)
   }
   let columns : Array[(Bool, Int)] = []
-  for index in 0..<@lower.asof_join_field_count(kernel) {
+  for index in 0..<column_count {
     guard @lower.asof_join_field_at(kernel, index) is Some(field) else {
       return Err(InvalidExecution)
     }
@@ -874,6 +966,10 @@ pub fn start_bounded_asof_join(
     right_row: 0,
     key_index: 0,
     tie_index: 0,
+    comparison: bounded_complete_value_comparison(),
+    sort_pair_left: -1,
+    sort_pair_right: -1,
+    sort_compare_index: 0,
     visited: 0L,
     best: None,
     best_distance: 0L,

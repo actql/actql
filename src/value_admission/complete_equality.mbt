@@ -10,10 +10,20 @@ pub(all) enum CompleteEqualityIssue {
 ///|
 priv enum EqualityFrame {
   CompareValue(Value, Value, Int)
+  ChargeText(String, Int)
+  CompareText(String, String, Int)
+  CompareDecimal(DecimalValue, DecimalValue, Int)
   CompareArray(FrozenArray[Value], FrozenArray[Value], Int, Int)
   CompareObject(
     FrozenArray[(String, Value)],
     FrozenArray[(String, Value)],
+    Int,
+    Int
+  )
+  CompareObjectNames(
+    FrozenArray[(String, Value)],
+    FrozenArray[(String, Value)],
+    Int,
     Int,
     Int
   )
@@ -37,46 +47,45 @@ pub enum CompleteEqualityPoll {
 }
 
 ///|
-fn equality_text_charge(value : CompleteEquality, text : String) -> Bool {
-  guard value.text_bytes <= value.limits.max_text_bytes &&
-    @scalar.admit_utf8_length(
-      text,
-      value.limits.max_text_bytes - value.text_bytes,
-    )
-    is Ok(bytes) else {
-    return false
+fn equality_text_scalar(text : String, index : Int) -> (Int, Int)? {
+  if index < 0 || index >= text.length() {
+    return None
   }
-  value.text_bytes += bytes
-  true
+  let unit = text[index].to_int()
+  if unit < 0x80 {
+    Some((index + 1, 1))
+  } else if unit < 0x800 {
+    Some((index + 1, 2))
+  } else if unit >= 0xd800 && unit <= 0xdbff {
+    if index + 1 >= text.length() {
+      return None
+    }
+    let trailing = text[index + 1].to_int()
+    if trailing < 0xdc00 || trailing > 0xdfff {
+      None
+    } else {
+      Some((index + 2, 4))
+    }
+  } else if unit >= 0xdc00 && unit <= 0xdfff {
+    None
+  } else {
+    Some((index + 1, 3))
+  }
 }
 
 ///|
-fn decimal_values_equal(left : DecimalValue, right : DecimalValue) -> Bool {
-  let a = left.coefficient
-  let b = right.coefficient
-  let negative_a = a[0] == '-'
-  let negative_b = b[0] == '-'
-  if a == "0" || b == "0" {
-    return a == "0" && b == "0"
+fn equality_queue_text_comparison(
+  value : CompleteEquality,
+  left : String,
+  right : String,
+) -> Unit {
+  value.frames.push(CompareText(left, right, 0))
+  if right.length() > 0 {
+    value.frames.push(ChargeText(right, 0))
   }
-  if negative_a != negative_b {
-    return false
+  if left.length() > 0 {
+    value.frames.push(ChargeText(left, 0))
   }
-  let offset_a = if negative_a { 1 } else { 0 }
-  let offset_b = if negative_b { 1 } else { 0 }
-  let digits_a = a.length() - offset_a
-  let digits_b = b.length() - offset_b
-  if digits_a - left.scale != digits_b - right.scale {
-    return false
-  }
-  for index in 0..<Int::max(digits_a, digits_b) {
-    let digit_a = if index < digits_a { a[offset_a + index] } else { '0' }
-    let digit_b = if index < digits_b { b[offset_b + index] } else { '0' }
-    if digit_a != digit_b {
-      return false
-    }
-  }
-  true
 }
 
 ///|
@@ -104,6 +113,7 @@ fn equality_result(
   work : Int,
 ) -> CompleteEqualityPoll {
   value.terminal = true
+  value.frames.clear()
   EqualityComplete(equal~, work~)
 }
 
@@ -114,6 +124,7 @@ fn equality_failure(
   work : Int,
 ) -> CompleteEqualityPoll {
   value.terminal = true
+  value.frames.clear()
   EqualityFailed(issue, work~)
 }
 
@@ -157,22 +168,15 @@ pub fn advance_complete_equality(
             }
           (Text(a), Text(b))
           | (Date(a), Date(b))
-          | (Timestamp(a), Timestamp(b)) => {
-            if !equality_text_charge(value, a) ||
-              !equality_text_charge(value, b) {
-              return equality_failure(value, CompleteEqualityLimit, work)
-            }
-            if a != b {
-              return equality_result(value, false, work)
-            }
-          }
+          | (Timestamp(a), Timestamp(b)) =>
+            equality_queue_text_comparison(value, a, b)
           (Decimal(a), Decimal(b)) => {
-            if !equality_text_charge(value, a.coefficient) ||
-              !equality_text_charge(value, b.coefficient) {
-              return equality_failure(value, CompleteEqualityLimit, work)
+            value.frames.push(CompareDecimal(a, b, 0))
+            if b.coefficient.length() > 0 {
+              value.frames.push(ChargeText(b.coefficient, 0))
             }
-            if !decimal_values_equal(a, b) {
-              return equality_result(value, false, work)
+            if a.coefficient.length() > 0 {
+              value.frames.push(ChargeText(a.coefficient, 0))
             }
           }
           (Array(a), Array(b)) =>
@@ -197,15 +201,70 @@ pub fn advance_complete_equality(
             }
             let left_id = reference_identity_cid(a)
             let right_id = reference_identity_cid(b)
-            if !equality_text_charge(value, left_id) ||
-              !equality_text_charge(value, right_id) {
-              return equality_failure(value, CompleteEqualityLimit, work)
-            }
-            if left_id != right_id {
-              return equality_result(value, false, work)
-            }
+            equality_queue_text_comparison(value, left_id, right_id)
           }
           _ => return equality_result(value, false, work)
+        }
+      }
+      ChargeText(text, index) => {
+        guard equality_text_scalar(text, index) is Some((next, bytes)) &&
+          bytes <= value.limits.max_text_bytes - value.text_bytes else {
+          return equality_failure(value, CompleteEqualityLimit, work)
+        }
+        value.text_bytes += bytes
+        if next < text.length() {
+          value.frames.push(ChargeText(text, next))
+        }
+      }
+      CompareText(left, right, index) =>
+        if index >= left.length() || index >= right.length() {
+          if left.length() != right.length() {
+            return equality_result(value, false, work)
+          }
+        } else if left[index] != right[index] {
+          return equality_result(value, false, work)
+        } else if index + 1 < left.length() || index + 1 < right.length() {
+          value.frames.push(CompareText(left, right, index + 1))
+        }
+      CompareDecimal(left, right, index) => {
+        let a = left.coefficient
+        let b = right.coefficient
+        if a == "0" || b == "0" {
+          if a != "0" || b != "0" {
+            return equality_result(value, false, work)
+          }
+        } else {
+          let negative_a = a[0] == '-'
+          let negative_b = b[0] == '-'
+          if negative_a != negative_b {
+            return equality_result(value, false, work)
+          }
+          let offset_a = if negative_a { 1 } else { 0 }
+          let offset_b = if negative_b { 1 } else { 0 }
+          let digits_a = a.length() - offset_a
+          let digits_b = b.length() - offset_b
+          if digits_a - left.scale != digits_b - right.scale {
+            return equality_result(value, false, work)
+          }
+          let length = Int::max(digits_a, digits_b)
+          if index < length {
+            let digit_a = if index < digits_a {
+              a[offset_a + index]
+            } else {
+              '0'
+            }
+            let digit_b = if index < digits_b {
+              b[offset_b + index]
+            } else {
+              '0'
+            }
+            if digit_a != digit_b {
+              return equality_result(value, false, work)
+            }
+            if index + 1 < length {
+              value.frames.push(CompareDecimal(left, right, index + 1))
+            }
+          }
         }
       }
       CompareArray(left, right, index, depth) => {
@@ -232,18 +291,35 @@ pub fn advance_complete_equality(
           return equality_result(value, false, work)
         }
         if index < left_count {
-          let (left_name, left_value) = element_at(left, index).unwrap()
-          let (right_name, right_value) = element_at(right, index).unwrap()
-          if !equality_text_charge(value, left_name) ||
-            !equality_text_charge(value, right_name) {
-            return equality_failure(value, CompleteEqualityLimit, work)
+          let (left_name, _) = element_at(left, index).unwrap()
+          let (right_name, _) = element_at(right, index).unwrap()
+          value.frames.push(CompareObjectNames(left, right, index, depth, 0))
+          if right_name.length() > 0 {
+            value.frames.push(ChargeText(right_name, 0))
           }
-          if left_name != right_name {
+          if left_name.length() > 0 {
+            value.frames.push(ChargeText(left_name, 0))
+          }
+        }
+      }
+      CompareObjectNames(left, right, index, depth, position) => {
+        let (left_name, left_value) = element_at(left, index).unwrap()
+        let (right_name, right_value) = element_at(right, index).unwrap()
+        if position >= left_name.length() || position >= right_name.length() {
+          if left_name.length() != right_name.length() {
             return equality_result(value, false, work)
           }
-          value.frames.push(CompareObject(left, right, index + 1, depth))
-          value.frames.push(CompareValue(left_value, right_value, depth))
+        } else if left_name[position] != right_name[position] {
+          return equality_result(value, false, work)
+        } else if position + 1 < left_name.length() ||
+          position + 1 < right_name.length() {
+          value.frames.push(
+            CompareObjectNames(left, right, index, depth, position + 1),
+          )
+          continue
         }
+        value.frames.push(CompareObject(left, right, index + 1, depth))
+        value.frames.push(CompareValue(left_value, right_value, depth))
       }
       CompareVector(left, right, index) => {
         let left_count = element_count(left)

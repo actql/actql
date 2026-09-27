@@ -66,10 +66,9 @@ fn[T : IndexedRows] dedupe_key_identity(
 }
 
 ///|
-/// Group by scalar equality, choose only by authored order, then emit groups
-/// in canonical tuple-CID order. No hash match substitutes for key equality.
-/// All top ties are retained until canonical group ordering determines which
-/// failure comes first. No survivor index escapes on any failure.
+/// Group by typed scalar equality, choose only by authored order, then emit
+/// groups in canonical typed-key order. A CID is checked for collisions but
+/// never determines group order or equality. No survivor escapes on failure.
 fn[T : IndexedRows] dedupe_indices(
   table : T,
   by : Array[ColumnOrder],
@@ -91,7 +90,14 @@ fn[T : IndexedRows] dedupe_indices(
       !spend_control(control, order.length()) {
       return Err(Ordering(Limit))
     }
-    let combined = by.copy()
+    let combined : Array[ColumnOrder] = []
+    for key in by {
+      combined.push({
+        column: key.column,
+        descending: false,
+        nulls_first: true,
+      })
+    }
     for key in order {
       combined.push(key)
     }
@@ -100,9 +106,8 @@ fn[T : IndexedRows] dedupe_indices(
       Ok(v) => v
       Err(e) => return Err(Ordering(e))
     }
-    let leaders : Array[Int] = []
-    let ties : Array[Int?] = []
-    let identities : Array[Array[Value]] = []
+    let identities : Map[String, Bool] = Map([])
+    let result : Array[Int] = []
     let mut i = 0
     while i < sorted.length() {
       if !spend_control(control, 1) {
@@ -138,49 +143,18 @@ fn[T : IndexedRows] dedupe_indices(
         Ok(cid) => cid
         Err(e) => return Err(e)
       }
-      leaders.push(leader)
-      ties.push(tie)
-      identities.push([Text(cid)])
-      i = end
-    }
-    if !reserve_slots(workspace, 1) {
-      return Err(Ordering(Limit))
-    }
-    let groups : DedupeIdentities = { rows: identities, }
-    let ordered = match
-      stable_order_indices(
-        groups,
-        [{ column: 0, descending: false, nulls_first: false, }],
-        control,
-        workspace,
-      ) {
-      Ok(v) => v
-      Err(e) => return Err(Ordering(e))
-    }
-    let result : Array[Int] = []
-    for j = 0; j < ordered.length(); j = j + 1 {
-      if !spend_control(control, 1) {
-        return Err(Ordering(Limit))
+      if identities.contains(cid) {
+        return Err(IdentityCollision)
       }
-      let group = ordered[j]
-      if j > 0 {
-        if !spend_control(control, 129) {
-          return Err(Ordering(Limit))
-        }
-        let previous = ordered[j - 1]
-        match compare(groups.rows[previous][0], groups.rows[group][0]) {
-          Ok(0) => return Err(IdentityCollision)
-          Ok(_) => ()
-          Err(e) => return Err(Ordering(Scalar(e)))
-        }
-      }
-      if ties[group] is Some(other) {
-        return Err(TopTie(leaders[group], other))
+      identities[cid] = true
+      if tie is Some(other) {
+        return Err(TopTie(leader, other))
       }
       if !reserve_slots(workspace, 1) {
         return Err(Ordering(Limit))
       }
-      result.push(leaders[group])
+      result.push(leader)
+      i = end
     }
     Ok(result)
   }
@@ -191,30 +165,4 @@ fn[T : IndexedRows] dedupe_indices(
   }
   release_slots(workspace, workspace.live - baseline - retained)
   result
-}
-
-///|
-// Scratch keys are not a Relation and carry no fabricated checked owner.
-priv struct DedupeIdentities {
-  rows : Array[Array[Value]]
-}
-
-///|
-impl IndexedRows for DedupeIdentities with fn row_count(self) {
-  self.rows.length()
-}
-
-///|
-impl IndexedRows for DedupeIdentities with fn column_count(_self) {
-  1
-}
-
-///|
-impl IndexedRows for DedupeIdentities with fn row_width(self, row) {
-  self.rows[row].length()
-}
-
-///|
-impl IndexedRows for DedupeIdentities with fn read_cell(self, row, column) {
-  self.rows[row][column]
 }

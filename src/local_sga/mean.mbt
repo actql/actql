@@ -67,6 +67,9 @@ priv struct MeanState {
   mut sort_left_at : Int
   mut sort_right_at : Int
   mut sort_copy_at : Int
+  mut sort_key_component : Int
+  mut sort_key_comparison : @value.BoundedKeyComparison?
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -93,6 +96,7 @@ pub(all) enum MeanIssue {
   MeanPropertyConflict
   MeanPropertyValue
   MeanWorkspaceLimit
+  MeanWorkLimit
   MeanValue(@value.CompleteOrderIssue)
   MeanKey(@value.KeyOrderIssue)
   MeanNumeric(@exact.Issue)
@@ -264,46 +268,74 @@ fn collect_mean_edge(state : MeanState) -> Result[Unit, MeanIssue] {
 }
 
 ///|
-fn compare_mean_nodes(
+fn compare_mean_values_step(
+  state : MeanState,
   left : @value.CheckedValue,
   right : @value.CheckedValue,
-) -> Result[Int, MeanIssue] {
-  @value.compare_key_values(left, right).map_err(issue => MeanKey(issue))
-}
-
-///|
-fn compare_mean_labels(
-  left : @value.CheckedValue?,
-  right : @value.CheckedValue?,
-) -> Result[Int, MeanIssue] {
-  match (left, right) {
-    (None, None) => Ok(0)
-    (None, Some(_)) => Ok(-1)
-    (Some(_), None) => Ok(1)
-    (Some(left), Some(right)) => compare_mean_nodes(left, right)
+  present? : Bool = false,
+) -> Result[Int?, MeanIssue] {
+  let comparison = match state.sort_key_comparison {
+    Some(value) => value
+    None => {
+      let started = if present {
+        @value.start_bounded_present_key_comparison(left, right)
+      } else {
+        @value.start_bounded_key_comparison(left, right)
+      }
+      let value = match started {
+        Ok(value) => value
+        Err(issue) => return Err(MeanKey(issue))
+      }
+      state.sort_key_comparison = Some(value)
+      value
+    }
+  }
+  match @value.advance_bounded_key_comparison(comparison, 1) {
+    Ok(@value.KeyComparisonContinue(_)) => Ok(None)
+    Ok(@value.KeyComparisonComplete(order~, ..)) => {
+      state.sort_key_comparison = None
+      Ok(Some(order))
+    }
+    Err(issue) => {
+      state.sort_key_comparison = None
+      Err(MeanKey(issue))
+    }
   }
 }
 
 ///|
-fn compare_mean_edges(
+fn compare_mean_edges_step(
+  state : MeanState,
   left : MeanEdge,
   right : MeanEdge,
-) -> Result[Int, MeanIssue] {
-  let source = match compare_mean_nodes(left.source, right.source) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+) -> Result[Int?, MeanIssue] {
+  let comparison = match state.sort_key_component {
+    0 => compare_mean_values_step(state, left.source, right.source)
+    1 => compare_mean_values_step(state, left.target, right.target)
+    _ =>
+      match (left.label, right.label) {
+        (None, None) => Ok(Some(0))
+        (None, Some(_)) => Ok(Some(-1))
+        (Some(_), None) => Ok(Some(1))
+        (Some(a), Some(b)) =>
+          compare_mean_values_step(state, a, b, present=true)
+      }
   }
-  if source != 0 {
-    return Ok(source)
+  match comparison {
+    Ok(None) => Ok(None)
+    Ok(Some(0)) if state.sort_key_component < 2 => {
+      state.sort_key_component += 1
+      Ok(None)
+    }
+    Ok(Some(order)) => {
+      state.sort_key_component = 0
+      Ok(Some(order))
+    }
+    Err(issue) => {
+      state.sort_key_component = 0
+      Err(issue)
+    }
   }
-  let target = match compare_mean_nodes(left.target, right.target) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  if target != 0 {
-    return Ok(target)
-  }
-  compare_mean_labels(left.label, right.label)
 }
 
 ///|
@@ -673,6 +705,8 @@ fn advance_mean_state(
           } else {
             state.input += 1
             state.record = 0
+            used += 1
+            progress += 1
           }
         } else {
           if !begin_mean_sort(state, state.nodes.length()) {
@@ -697,12 +731,14 @@ fn advance_mean_state(
           }
           if state.sort_left_at < state.sort_middle &&
             state.sort_right_at < state.sort_right {
+            used += 1
             match
-              compare_mean_nodes(
+              compare_mean_values_step(
+                state,
                 state.nodes[state.sort_left_at],
                 state.nodes[state.sort_right_at],
               ) {
-              Ok(order) => {
+              Ok(Some(order)) => {
                 if order <= 0 {
                   state.node_sort_buffer.push(state.nodes[state.sort_left_at])
                   state.sort_left_at += 1
@@ -710,9 +746,9 @@ fn advance_mean_state(
                   state.node_sort_buffer.push(state.nodes[state.sort_right_at])
                   state.sort_right_at += 1
                 }
-                used += 1
                 progress += 1
               }
+              Ok(None) => ()
               Err(issue) => return @bounded.Failed(issue, progress, used)
             }
           } else if state.sort_left_at < state.sort_middle {
@@ -851,6 +887,8 @@ fn advance_mean_state(
           } else {
             state.input += 1
             state.record = 0
+            used += 1
+            progress += 1
           }
         } else {
           if !begin_mean_sort(state, state.edges.length()) {
@@ -875,12 +913,14 @@ fn advance_mean_state(
           }
           if state.sort_left_at < state.sort_middle &&
             state.sort_right_at < state.sort_right {
+            used += 1
             match
-              compare_mean_edges(
+              compare_mean_edges_step(
+                state,
                 state.edges[state.sort_left_at],
                 state.edges[state.sort_right_at],
               ) {
-              Ok(order) => {
+              Ok(Some(order)) => {
                 if order <= 0 {
                   state.edge_sort_buffer.push(state.edges[state.sort_left_at])
                   state.sort_left_at += 1
@@ -888,9 +928,9 @@ fn advance_mean_state(
                   state.edge_sort_buffer.push(state.edges[state.sort_right_at])
                   state.sort_right_at += 1
                 }
-                used += 1
                 progress += 1
               }
+              Ok(None) => ()
               Err(issue) => return @bounded.Failed(issue, progress, used)
             }
           } else if state.sort_left_at < state.sort_middle {
@@ -944,10 +984,25 @@ fn advance_mean_state(
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
           if retained {
-            state.retain_candidate = true
-            state.property = 0
-            state.properties.clear()
-            state.phase = BeginEdgeProperties
+            let edge = state.edges[state.candidate]
+            let source_key = match mean_value_key(state, edge.source) {
+              Ok(value) => value
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+            let target_key = match mean_value_key(state, edge.target) {
+              Ok(value) => value
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+            if state.retained_nodes.contains(source_key) &&
+              state.retained_nodes.contains(target_key) {
+              state.retain_candidate = true
+              state.property = 0
+              state.properties.clear()
+              state.phase = BeginEdgeProperties
+            } else {
+              state.candidate += 1
+              state.phase = BeginEdgeSupport
+            }
           } else {
             state.candidate += 1
             state.phase = BeginEdgeSupport
@@ -991,31 +1046,20 @@ fn advance_mean_state(
           return @bounded.Failed(InvalidMeanKernel, progress, used)
         }
         let edge = state.edges[state.candidate]
-        let source_key = match mean_value_key(state, edge.source) {
-          Ok(value) => value
-          Err(issue) => return @bounded.Failed(issue, progress, used)
+        guard state.output is Some(output) else {
+          return @bounded.Failed(InvalidMeanKernel, progress, used)
         }
-        let target_key = match mean_value_key(state, edge.target) {
-          Ok(value) => value
-          Err(issue) => return @bounded.Failed(issue, progress, used)
-        }
-        if state.retained_nodes.contains(source_key) &&
-          state.retained_nodes.contains(target_key) {
-          guard state.output is Some(output) else {
-            return @bounded.Failed(InvalidMeanKernel, progress, used)
-          }
-          match
-            @graph.append_edge(
-              output,
-              edge.source,
-              edge.target,
-              edge.label,
-              state.properties,
-            ) {
-            Ok(_) => ()
-            Err(issue) =>
-              return @bounded.Failed(MeanOutput(issue), progress, used)
-          }
+        match
+          @graph.append_edge(
+            output,
+            edge.source,
+            edge.target,
+            edge.label,
+            state.properties,
+          ) {
+          Ok(_) => ()
+          Err(issue) =>
+            return @bounded.Failed(MeanOutput(issue), progress, used)
         }
         state.retain_candidate = false
         state.properties.clear()
@@ -1025,6 +1069,7 @@ fn advance_mean_state(
         progress += 1
       }
       FinishMean => {
+        used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidMeanKernel, progress, used)
         }
@@ -1038,6 +1083,33 @@ fn advance_mean_state(
     }
   }
   @bounded.Continue(progress, used)
+}
+
+///|
+fn bounded_mean_step(
+  state : MeanState,
+  quantum : Int,
+  reader : @bounded.Reader,
+) -> @bounded.KernelStep[@graph.Completed, MeanIssue] {
+  if @bounded.stop_requested(reader) is Some(reason) {
+    return @bounded.Stopped(reason, 0, 0)
+  }
+  if state.control_work_remaining < 1 {
+    return @bounded.Failed(MeanWorkLimit, 0, 0)
+  }
+  let result = advance_mean_state(
+    state,
+    Int::min(quantum, state.control_work_remaining),
+    reader,
+  )
+  let charged = match result {
+    @bounded.Continue(_, work)
+    | @bounded.Complete(_, _, work)
+    | @bounded.Failed(_, _, work)
+    | @bounded.Stopped(_, _, work) => work
+  }
+  state.control_work_remaining -= charged
+  result
 }
 
 ///|
@@ -1058,6 +1130,8 @@ fn cleanup_mean_state(state : MeanState) -> Bool {
   state.edge_keys.clear()
   state.edges.clear()
   state.edge_sort_buffer.clear()
+  state.sort_key_component = 0
+  state.sort_key_comparison = None
   state.properties.clear()
   state.workspace_slots = 0
   if state.output is Some(output) {
@@ -1088,6 +1162,7 @@ pub fn start_mean_views(
     return Err(InvalidMeanKernel)
   }
   if exact_bits < 1 ||
+    limits.max_work < 0 ||
     limits.max_workspace_slots < 0 ||
     limits.max_value_nodes < 0 ||
     limits.max_value_nodes > (2147483647 - 1) / 2 ||
@@ -1191,9 +1266,12 @@ pub fn start_mean_views(
     sort_left_at: 0,
     sort_right_at: 0,
     sort_copy_at: 0,
+    sort_key_component: 0,
+    sort_key_comparison: None,
+    control_work_remaining: limits.max_work,
   }
   let (session, token) = @bounded.start(
-    control, state, advance_mean_state, cleanup_mean_state, @graph.discard_completed,
+    control, state, bounded_mean_step, cleanup_mean_state, @graph.discard_completed,
   )
   Ok({
     session,

@@ -117,6 +117,8 @@ export async function executeNativeDirectProduct(invocation, {root, timeoutMs}) 
   return Object.freeze({record, taskIntervals,
     selections: stdout.split('\n').filter(line => line.startsWith('selection:')),
     taskUsages: stdout.split('\n').filter(line => line.startsWith('task-usage:')),
+    taskMeasurementScopes: stdout.split('\n')
+      .filter(line => line.startsWith('task-measurement-scope:')),
     taskHoldings: stdout.split('\n').filter(line => line.startsWith('task-holding:')),
     taskResidents: stdout.split('\n').filter(line => line.startsWith('task-resident:')),
     processCycleMs, stderr});
@@ -150,6 +152,16 @@ export function admitNativeDirectProduct(fixture, invocation, execution) {
       record.acquisition[key] >= 0, `InvalidNativeProductAcquisition:${key}`);
   }
   assert.equal(record.acquisition.comparison_rows, fixture.rows);
+  // Each usage states its scope: DuckDB attempts measure input and output
+  // values; the bounded Local provider reports only its own work, with zero
+  // bytes and nodes. The two are never compared as the same quantity.
+  const scopes = new Map(execution.taskMeasurementScopes.map(line => {
+    const match = /^task-measurement-scope:([1-9][0-9]*):(input-output-values|provider-work)$/.exec(line);
+    assert(match, 'InvalidNativeProductMeasurementScope');
+    return [Number(match[1]), match[2]];
+  }));
+  assert.equal(scopes.size, execution.taskMeasurementScopes.length,
+    'InvalidNativeProductMeasurementScope');
   const taskUsages = execution.taskUsages.map(line => {
     const match = /^task-usage:([1-9][0-9]*):((?:0|[1-9][0-9]*):){5}(?:0|[1-9][0-9]*)$/.exec(line);
     assert(match, 'InvalidNativeProductTaskUsage');
@@ -159,8 +171,16 @@ export function admitNativeDirectProduct(fixture, invocation, execution) {
     assert([task, measurementWork, measurementBytes, measurementNodes,
       comparisonWork, comparisonBytes, comparisonNodes].every(value =>
       Number.isSafeInteger(value) && value >= 0), 'InvalidNativeProductTaskUsage');
-    return {task, measurementWork, measurementBytes, measurementNodes,
-      comparisonWork, comparisonBytes, comparisonNodes};
+    const measurementScope = scopes.get(task);
+    assert(measurementScope, 'InvalidNativeProductMeasurementScope');
+    if (measurementScope === 'provider-work') {
+      assert(measurementWork > 0 && measurementBytes === 0 &&
+        measurementNodes === 0 && comparisonWork === 0 &&
+        comparisonBytes === 0 && comparisonNodes === 0,
+      'InvalidNativeProductProviderWork');
+    }
+    return {task, measurementScope, measurementWork, measurementBytes,
+      measurementNodes, comparisonWork, comparisonBytes, comparisonNodes};
   });
   const taskHoldings = execution.taskHoldings.map(line => {
     const match = /^task-holding:([1-9][0-9]*):(0|[1-9][0-9]*):(sha256:[0-9a-f]{64}):(0|[1-9][0-9]*)$/.exec(line);

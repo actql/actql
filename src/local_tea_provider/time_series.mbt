@@ -125,7 +125,7 @@ pub fn time_series_provider(
         None
       }
     },
-    fn(sequence, inputs, max_rows, max_value_bytes, _execution) {
+    fn(sequence, inputs, max_rows, max_value_bytes, execution) {
       if !time_series_provider_accepts(sequence) ||
         !inputs.is_empty() ||
         max_rows < 0 ||
@@ -148,6 +148,7 @@ pub fn time_series_provider(
           },
           limits.max_workspace_slots,
           max_value_bytes,
+          control_work_limit=Some(execution.max_work),
         ) {
         Ok(value) => value
         Err(_) => return Err(@connector.Execution(@execution.InputSet))

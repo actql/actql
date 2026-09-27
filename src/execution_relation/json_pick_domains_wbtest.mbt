@@ -286,6 +286,60 @@ test "json pick accepts exact runtime budgets and rejects one-short limits" {
 }
 
 ///|
+test "json pick admits independently counted leaf work and workspace" {
+  let payload = json_pick_contract("{\"type\":\"number\",\"nullable\":false}")
+  let schema = @schema.from_fields(
+    [(@schema.Unqualified("payload"), payload)],
+    max_fields=1,
+    max_name_bytes=100,
+  ).unwrap()
+  let owner = checked_json_pick_operation(schema)
+  let object = @admitted.admit(payload, input_cursor("{\"leaf\":1}"), {
+      max_nodes: 10,
+      max_depth: 3,
+      max_text_bytes: 100,
+    }).unwrap().value
+  let input : CompletedTable = AdmittedTable({
+    owner,
+    id: @lower.input_id(@lower.bound_preparation(owner), 0).unwrap(),
+    names: ["payload"],
+    rows: [[object]],
+  })
+  // Three view entries, eight name-index units, eight output-name units,
+  // one row and one copy step, then five units for the leaf name probe.
+  let exact_work = 3 + 8 + 8 + 1 + 1 + 5
+  // Input schema/row/cell, three view entries, one name index, two output
+  // names, copied and picked cells, and the retained row container.
+  let exact_workspace = 1 + 1 + 1 + 3 + 1 + 2 + 1 + 1 + 1
+  for
+    (work, space, success) in [
+      (exact_work, exact_workspace, true),
+      (exact_work - 1, exact_workspace, false),
+      (exact_work, exact_workspace - 1, false),
+    ] {
+    let control = { remaining: work, max_frames: 10, }
+    let workspace = row_workspace(space)
+    let result = evaluate_completed_body(
+      PreparedBody(row_kernel(owner, 0)),
+      input,
+      "picked",
+      1,
+      control,
+      row_output(),
+      workspace,
+      None,
+    )
+    if success {
+      assert_true(result is Ok(_))
+      assert_eq(control.remaining, 0)
+      assert_eq(workspace.peak, exact_workspace)
+    } else {
+      assert_true(result is Err(RowLimit))
+    }
+  }
+}
+
+///|
 test "json pick rejects a retained object outside its checked path" {
   let payload = json_pick_contract("{\"type\":\"number\",\"nullable\":false}")
   let schema = @schema.from_fields(

@@ -77,8 +77,12 @@ export function admitNativeEquivalentPair({fixture, native, equivalent,
     for (const field of ['measurementWork', 'measurementBytes',
       'measurementNodes', 'comparisonWork', 'comparisonBytes',
       'comparisonNodes']) integer(usage[field], `task.${field}`);
-    assert(usage.measurementWork + usage.comparisonWork > 0,
-      'NativeEquivalentTaskWithoutLogicalCharge');
+    // A bounded Local task reports provider work only; a DuckDB task reports
+    // its input-plus-output value measurement and comparison work.
+    assert(usage.measurementScope === 'provider-work'
+      ? usage.measurementWork > 0
+      : usage.measurementWork + usage.comparisonWork > 0,
+    'NativeEquivalentTaskWithoutLogicalCharge');
   }
   assert.equal(native.record.usage.attempts, rows.length);
   assert.equal(native.record.usage.holdings, rows.length);

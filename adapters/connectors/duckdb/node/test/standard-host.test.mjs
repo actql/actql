@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { tmpdir } from 'node:os';
 import { chmod, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -22,6 +23,8 @@ import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
 import {duckdbStrategyContribution} from '../strategy-bundle.mjs';
 import {localStrategyContribution} from
   '../../../../local-node/strategy-bundle.mjs';
+import {installLocalRetainedStore} from
+  '../../../../local-node/retained-store.mjs';
 import {
   prepareManagedIdentityPolicy,
 } from '../../../../host-node/managed-identity-policy.mjs';
@@ -85,6 +88,77 @@ const publicationResultExportLimits = Object.freeze({
   maxSchemaDepth: 64,
   maxBatchBytes: 4096,
 });
+
+// Read a completed run's Named Result through the existing publication
+// export, which reads managed and captured outputs alike, and return its
+// rows in order. The temporary Store is removed afterwards.
+async function readPublishedResultRows(runtime, execution, result) {
+  const directory = await mkdtemp(join(root, '_build/duckdb-fixtures/result-read-'));
+  const store = await openLocalPublicationStore({
+    directory,
+    storeAuthorityCid: hash('result-read-store'),
+    capacityBytes: 4 * 1024 * 1024,
+    maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+    maxObjects: 100,
+    maxContractNodes: 10000,
+    maxContractDepth: 64,
+  }, runtime.publicationControl);
+  try {
+    const limits = {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64};
+    const seal = (kind, value) =>
+      runtime.publicationControl.seal(kind, JSON.stringify(value), limits);
+    const policy = hash('result-read-policy');
+    const stored = await execution.storePublicationResult(result, store, {
+      outputLimits: publicationResultExportLimits,
+      contractLimits: limits,
+      runDefinition: seal('run_definition', {
+        version: 'actql-run-definition/0.1',
+        scope_id: 'result-read-scope',
+        run_id: 'result-read-run',
+        compiled_plan_cid: hash('compiled-plan'),
+        invocation_template_cid: hash('invocation-template'),
+        authorization_context_cid: hash('authorization-context'),
+        input_artifact_set_cid: hash('input-artifact-set'),
+        created_at: '2026-09-18T00:00:00.000Z',
+        valid_until: '2026-09-18T04:00:00.000Z',
+      }),
+      invocation: seal('run_invocation', {
+        version: 'actql-run-invocation/0.1',
+        invocation_template_cid: hash('invocation-template'),
+        observation_set_cid: hash('observation-set'),
+      }),
+      retention: seal('result_retention_policy', {
+        version: 'actql-result-retention-policy/0.1',
+        retention_contract_cid: hash('retention-contract'),
+        effective_data_policy_cid: policy,
+        available_until: '2026-09-18T01:00:00.000Z',
+        delete_by: '2026-09-18T02:00:00.000Z',
+        extension_ceiling_at: '2026-09-18T03:00:00.000Z',
+        metadata_retention_policy_cid: hash('metadata-retention'),
+        metadata_delete_by: '2026-09-18T04:00:00.000Z',
+        clock_contract_cid: hash('clock-contract'),
+      }),
+      evidenceContext: {
+        computationContractCid: hash('checked-computation'),
+        inputRelationCids: [],
+        scopeCid: hash('result-scope'),
+        effectiveDataPolicyCid: policy,
+        authorityScopeCid: hash('authority-scope'),
+      },
+    });
+    const payload = [];
+    try {
+      await store.consumeObject(stored.physical.cid,
+        chunk => payload.push(Buffer.from(chunk)));
+    } finally {
+      assert.equal(await stored.prepared.release(), true);
+    }
+    return JSON.parse(Buffer.concat(payload).toString('utf8'));
+  } finally {
+    await store.close();
+    await rm(directory, {recursive: true, force: true});
+  }
+}
 
 function sgaEnvironmentArguments(args) {
   const environment = JSON.parse(args[0]);
@@ -872,11 +946,22 @@ async function exerciseStrategyGraph(
           assert.equal(execution.usage().attempts, 0n);
         } else {
           assert.deepEqual(execution.completed.map(item => item.realization),
-            Array(3).fill(mode === 0 ? 'local' : mode === 3 ? 'duckdb' : 'reference-numeric'));
-          assert.equal(fixture.strategyFixtureCid(f, 3), hash([{id:3}, {id:3}]));
-          if (mode === 3) assert.ok(execution.usage().transferredBytes > 0n);
-          else assert.equal(execution.usage().transferredBytes, 0n);
-          if (mode === 0 || mode === 3) {
+            Array(3).fill(mode === 0 || mode === 2 ? 'local-managed' :
+              mode === 3 ? 'duckdb' : 'reference-numeric'),
+            `mode=${mode}`);
+          // Managed completion is not mirrored into the legacy fixture's
+          // output slot. Its value is checked through publication below;
+          // legacy and DuckDB placements retain the CID assertion.
+          if (mode === 1 || mode === 3) {
+            assert.equal(fixture.strategyFixtureCid(f, 3),
+              hash([{id:3}, {id:3}]));
+          }
+          if (mode !== 1) {
+            assert.ok(execution.usage().transferredBytes > 0n);
+          } else {
+            assert.equal(execution.usage().transferredBytes, 0n);
+          }
+          if (mode !== 1) {
             const runtime = runtimeCore(hostRuntime);
             const publicationDirectory = await mkdtemp(join(
               root, '_build/duckdb-fixtures/publication-payload-',
@@ -1448,7 +1533,7 @@ async function exerciseStrategyGraph(
             }
           }
         }
-      } finally { execution?.close(); capture.close(); }
+      } finally { await execution?.close(); capture.close(); }
       assert.equal(execution.cleanupPending(), false);
       assert.equal(await execution.cleanup(), true);
       assert.equal(execution.usage().heldBytes, 0n);
@@ -1527,7 +1612,7 @@ async function exerciseStrategyGraph(
       );
       assert.deepEqual(
         publicationOwner.execution.completed.map(value => value.realization),
-        Array(3).fill(mode === 3 ? 'duckdb' : 'local'),
+        Array(3).fill(mode === 3 ? 'duckdb' : 'local-managed'),
       );
       assert.equal(
         publicationOwner.publication.publication.state,
@@ -1647,6 +1732,21 @@ async function exerciseStrategyGraph(
       {id: 1, node_name: 'first'},
       {id: 2, node_name: 'second'},
     ],
+  }, {
+    name: 'node-rows-filter-sort-take',
+    completedTasks: 9,
+    steps: [{
+      from: 'g', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', filter: 'id > 1', as: 'filtered',
+    }, {
+      from: 'filtered', sort: [{id: 'desc'}], as: 'ordered',
+    }, {
+      from: 'ordered', take: {count: 1, offset: 0}, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [{id: 2, node_name: 'second'}],
   }, {
     name: 'concise-edge-rows',
     concise: true,
@@ -1923,6 +2023,14 @@ async function exerciseStrategyGraph(
     graphProgram.stages[4].results.r.fields = publicationCase.secondFields;
     graphProgram.stages[5].steps[0].select = [publicationCase.fields[0]];
     graphProgram.stages[5].results.r.fields = [publicationCase.fields[0]];
+    if (publicationCase.name === 'node-rows-filter-sort-take') {
+      graphProgram.results.consumed_a = {
+        from: {stage: 'consumer_a', result: 'r'},
+      };
+      graphProgram.results.consumed_b = {
+        from: {stage: 'consumer_b', result: 'r'},
+      };
+    }
     const createSgaFixture = publicationCase.name.startsWith('components-')
       ? fixture.strategyFixtureSgaComponentsCreate
       : publicationCase.name.startsWith('reach-')
@@ -1951,7 +2059,10 @@ async function exerciseStrategyGraph(
       const setup = fixture.strategyFixtureSgaSubset(sgaFixture);
       const runtime = runtimeCore(hostRuntime);
       const resultCount = runtime.resultInventory(setup).length;
-      assert.equal(resultCount, 1);
+      assert.equal(
+        resultCount,
+        publicationCase.name === 'node-rows-filter-sort-take' ? 3 : 1,
+      );
       sgaPublicationStore = await openLocalPublicationStore({
         directory: sgaPublicationDirectory,
         storeAuthorityCid: hash('sga-publication-store'),
@@ -1980,22 +2091,37 @@ async function exerciseStrategyGraph(
       );
       assert.deepEqual(
         sgaPublicationOwner.execution.completed.map(value => value.realization),
-        Array(publicationCase.name === 'node-rows' ? 6 : 5)
+        Array(publicationCase.completedTasks ??
+          (publicationCase.name === 'node-rows' ? 6 : 5))
           .fill('local-managed'),
       );
-      const occurrence =
-        sgaPublicationOwner.execution.publicationInventory.occurrences[0];
-      const received = [];
-      await sgaPublicationStore.consumeCommittedResult({
-        tenantId: plan.request.tenantId,
-        authorityScopeCid: plan.request.authorityScopeCid,
-        runDefinitionCid: plan.runDefinition.identity,
-      }, occurrence.definitionContract.identity, () => true,
-      chunk => received.push(Buffer.from(chunk)));
-      assert.deepEqual(
-        JSON.parse(Buffer.concat(received).toString('utf8')),
-        publicationCase.expected,
-      );
+      if (publicationCase.name === 'node-rows-filter-sort-take') {
+        assert.deepEqual(
+          sgaPublicationOwner.execution.completed.map(value => value.task),
+          [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        );
+      }
+      const expectedResults = {
+        published: publicationCase.expected,
+        ...(publicationCase.name === 'node-rows-filter-sort-take' ? {
+          consumed_a: [{id: 2, node_name: 'second'}],
+          consumed_b: [{node_name: 'second'}],
+        } : {}),
+      };
+      for (const occurrence of
+        sgaPublicationOwner.execution.publicationInventory.occurrences) {
+        const received = [];
+        await sgaPublicationStore.consumeCommittedResult({
+          tenantId: plan.request.tenantId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, occurrence.definitionContract.identity, () => true,
+        chunk => received.push(Buffer.from(chunk)));
+        assert.deepEqual(
+          JSON.parse(Buffer.concat(received).toString('utf8')),
+          expectedResults[occurrence.name],
+        );
+      }
     } finally {
       if (sgaPublicationOwner !== undefined) {
         await sgaPublicationOwner.close();
@@ -2770,6 +2896,12 @@ async function exerciseStrategyGraph(
       force: true,
     });
   }
+  const stressSortKeys = Array.from(
+    {length: 5}, (_, index) => `sort_key_${index + 1}`,
+  );
+  const stressSortTextBytes = 660;
+  const stressSortText = '𠮷' + 'x'.repeat(stressSortTextBytes - 4);
+  assert.equal(Buffer.byteLength(stressSortText, 'utf8'), stressSortTextBytes);
   const graphCancellationCases = [{
     name: 'concise-graph-construction',
     concise: true,
@@ -2783,25 +2915,219 @@ async function exerciseStrategyGraph(
     name: 'node-rows',
     rows: 100,
     advanceQuantum: 16,
-    cancelAtBridgeStart: true,
-    constructionProgress: 100,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    constructionProgress: 200,
     step: {from: 'g', node_rows: true, as: 'out'},
     fields: ['id', 'node_name'],
   }, {
     name: 'edge-rows',
     rows: 100,
     advanceQuantum: 16,
-    cancelAtBridgeStart: true,
-    constructionProgress: 100,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    constructionProgress: 200,
     step: {from: 'g', edge_rows: true, as: 'out'},
     fields: ['src', 'dst', 'weight'],
   }, {
-    name: 'normalize',
+    name: 'normalize-fused-kernel',
     rows: 40,
+    advanceQuantum: 1,
+    // The first 80 steps construct 40 nodes and 40 edges.
+    constructionProgress: 80,
+    managedStarts: 2,
+    completedTasks: [1],
     steps: [{
       from: 'g', normalize_graph: true, as: 'normalized',
     }, {
       from: 'normalized', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'subgraph-fused-filter',
+    rows: 40,
+    advanceQuantum: 1,
+    // The prefix must remain active after graph construction completes.
+    constructionProgress: 80,
+    managedStarts: 2,
+    completedTasks: [1],
+    steps: [{
+      from: 'g',
+      subgraph: {
+        nodes: {ids: Array.from({length: 40}, (_, index) => index + 1)},
+      },
+      as: 'selected',
+    }, {
+      from: 'selected', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', filter: 'id > 0', as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'subgraph-selected-filter',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    steps: [{
+      from: 'g',
+      subgraph: {
+        nodes: {ids: Array.from({length: 40}, (_, index) => index + 1)},
+      },
+      as: 'selected',
+    }, {
+      from: 'selected', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', filter: 'id > 0', as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'normalize-filter',
+    rows: 40,
+    advanceQuantum: 1,
+    cancelOnManagedStart: 5,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', filter: 'id > 0', as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'normalize-selected-kernel',
+    rows: 40,
+    advanceQuantum: 1,
+    // Values, graph construction, then selected normalize-view execution.
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', filter: 'id > 0', as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'normalize-select',
+    rows: 40,
+    advanceQuantum: 1,
+    cancelOnManagedStart: 5,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', select: ['id', 'node_name'], as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'normalize-take',
+    rows: 40,
+    advanceQuantum: 1,
+    cancelOnManagedStart: 5,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', take: 1, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'normalize-sort',
+    rows: 40,
+    advanceQuantum: 1,
+    cancelOnManagedStart: 5,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', sort: [{id: 'desc'}], as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'normalize-filter-sort-take',
+    rows: 40,
+    advanceQuantum: 1,
+    cancelOnManagedStart: 6,
+    managedStarts: 6,
+    completedTasks: [1, 2, 3, 4, 5],
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', filter: 'id > 0', as: 'filtered',
+    }, {
+      from: 'filtered', sort: [{id: 'desc'}], as: 'ordered',
+    }, {
+      from: 'ordered', take: {count: 1, offset: 0}, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'normalize-sort-wide-comparison',
+    rows: 2,
+    sortStress: true,
+    cancelAfterSortAdvances: 70,
+    advanceQuantum: 1,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected',
+      sort: [
+        {node_name: 'asc'},
+        ...stressSortKeys.map(key => ({[key]: 'asc'})),
+        {id: 'asc'},
+      ],
+      as: 'out',
+    }],
+    fields: ['id', 'node_name', ...stressSortKeys],
+  }, {
+    name: 'normalize-assert',
+    rows: 40,
+    advanceQuantum: 1,
+    cancelOnManagedStart: 5,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', assert_rows: {where: 'id > 0'}, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'normalize-assert-unique',
+    rows: 40,
+    advanceQuantum: 1,
+    cancelOnManagedStart: 5,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', assert_rows: {unique_by: ['id']}, as: 'out',
     }],
     fields: ['id', 'node_name'],
   }, {
@@ -2953,7 +3279,7 @@ async function exerciseStrategyGraph(
     }],
     fields: ['id', 'node_name'],
   }, {
-    name: 'graphs-equal',
+    name: 'graphs-equal-in-flight',
     rows: 2,
     advanceQuantum: 1,
     constructionProgress: 8,
@@ -2970,6 +3296,40 @@ async function exerciseStrategyGraph(
     }],
     fields: ['equal'],
   }, {
+    name: 'graph-diff-in-flight',
+    rows: 2,
+    advanceQuantum: 1,
+    constructionProgress: 8,
+    steps: [{
+      graph: {
+        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g', graph_diff: {with: 'right_graph'}, as: 'out',
+    }],
+    fields: ['delta'],
+  }, {
+    name: 'graph-apply-delta-in-flight',
+    rows: 2,
+    advanceQuantum: 1,
+    // The delta Stage constructs two two-node, two-edge Graphs.
+    constructionProgress: 8,
+    deltaStage: true,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    cancelOnManagedStart: 3,
+    steps: [{
+      from: 'g', apply_graph_delta: {with: 'changes', field: 'delta'},
+      as: 'applied',
+    }, {
+      from: 'applied', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'graph-bounds',
     rows: 40,
     step: {
@@ -2979,7 +3339,7 @@ async function exerciseStrategyGraph(
     },
     fields: ['kind', 'node_id', 'actual', 'max'],
   }, {
-    name: 'match-nodes-predicate',
+    name: 'match-nodes-predicate-in-flight',
     rows: 40,
     step: {
       from: 'g',
@@ -2991,7 +3351,7 @@ async function exerciseStrategyGraph(
     },
     fields: ['id', 'node_name'],
   }, {
-    name: 'match-edges',
+    name: 'match-edges-in-flight',
     rows: 40,
     step: {
       from: 'g',
@@ -3000,7 +3360,7 @@ async function exerciseStrategyGraph(
     },
     fields: ['src', 'dst', 'weight'],
   }, {
-    name: 'match-edges-predicate',
+    name: 'match-edges-predicate-in-flight',
     rows: 40,
     step: {
       from: 'g',
@@ -3027,6 +3387,22 @@ async function exerciseStrategyGraph(
       as: 'out',
     },
     fields: ['start_id', 'node_id', 'depth'],
+  }, {
+    name: 'shortest-out',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    step: {
+      from: 'g',
+      shortest_path: {
+        source: 1,
+        target: 2,
+        direction: 'out',
+        max_hops: 2,
+      },
+      as: 'out',
+    },
+    fields: ['source_id', 'target_id', 'hop_count', 'node_ids', 'edge_ids'],
   }, {
     name: 'traverse-out',
     rows: 40,
@@ -3170,13 +3546,72 @@ async function exerciseStrategyGraph(
     fields: ['event_id', 'occurred_at', 'payload'],
     secondFields: ['payload', 'event_id'],
   }, {
+    name: 'dedupe-events-fused-filter',
+    family: 'tea',
+    operation: 'dedupe',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    fields: ['event_id', 'occurred_at', 'payload'],
+    secondFields: ['payload', 'event_id'],
+  }, {
+    name: 'dedupe-events-selected-filter',
+    family: 'tea',
+    operation: 'dedupe',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    fields: ['event_id', 'occurred_at', 'payload'],
+    secondFields: ['payload', 'event_id'],
+  }, {
     name: 'session',
     family: 'tea',
     rows: 40,
     advanceQuantum: 1,
     constructionProgress: 40,
+    managedStarts: 2,
+    completedTasks: [1],
+    fields: [
+      'event_id',
+      'occurred_at',
+      'payload',
+      'session_start_ms',
+      'session_end_ms',
+      'session_id',
+    ],
+  }, {
+    name: 'session-view',
+    family: 'tea',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    cancelOnManagedStart: 3,
     managedStarts: 3,
     completedTasks: [1, 2],
+    fields: [
+      'event_id',
+      'occurred_at',
+      'payload',
+      'session_start_ms',
+      'session_end_ms',
+      'session_id',
+    ],
+  }, {
+    name: 'session-relation',
+    family: 'tea',
+    operation: 'session',
+    relationSession: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 0,
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
     fields: [
       'event_id',
       'occurred_at',
@@ -3213,8 +3648,8 @@ async function exerciseStrategyGraph(
     rows: 40,
     advanceQuantum: 1,
     constructionProgress: 80,
-    managedStarts: 3,
-    completedTasks: [1, 2],
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
     fields: ['left_value', 'right_value'],
   }, {
     name: 'asof-join',
@@ -3222,8 +3657,8 @@ async function exerciseStrategyGraph(
     rows: 40,
     advanceQuantum: 1,
     constructionProgress: 80,
-    managedStarts: 3,
-    completedTasks: [1, 2],
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
     fields: ['left_value', 'right_value'],
   }, {
     name: 'rows-to-vectors-bridge',
@@ -3251,6 +3686,27 @@ async function exerciseStrategyGraph(
     constructionProgress: 80,
     fields: ['id', 'embedding'],
   }, {
+    name: 'vector-normalize-fused-filter',
+    family: 'veca',
+    operation: 'normalize',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    fields: ['id', 'embedding'],
+  }, {
+    name: 'vector-normalize-selected-filter',
+    family: 'veca',
+    operation: 'normalize',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    fields: ['id', 'embedding'],
+  }, {
     name: 'vector-expression',
     family: 'veca',
     operation: 'expression',
@@ -3258,6 +3714,7 @@ async function exerciseStrategyGraph(
     advanceQuantum: 1,
     constructionProgress: 0,
     cancelOnManagedStart: 2,
+    minimumCompletedRows: 1,
     fields: ['id', 'score', 'joined'],
   }, {
     name: 'vector-score',
@@ -3274,6 +3731,18 @@ async function exerciseStrategyGraph(
     rows: 40,
     advanceQuantum: 1,
     constructionProgress: 80,
+    fields: ['group', 'embedding', 'member_count'],
+  }, {
+    name: 'vector-pool-relation',
+    family: 'veca',
+    operation: 'pool',
+    relationPool: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 0,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
     fields: ['group', 'embedding', 'member_count'],
   }, {
     name: 'vector-ranking-rrf',
@@ -3321,6 +3790,18 @@ async function exerciseStrategyGraph(
     managedStarts: 3,
     completedTasks: [1, 2],
     fields: ['query_id', 'candidate_id', 'score', 'rank'],
+  }, {
+    name: 'vector-nearest-fused',
+    family: 'veca',
+    operation: 'nearest',
+    fusedNearest: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 0,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    fields: ['query_id', 'candidate_id', 'score', 'rank'],
   }];
   for (const cancellationCase of graphCancellationCases) {
     const teaFamily = cancellationCase.family === 'tea' ||
@@ -3330,7 +3811,11 @@ async function exerciseStrategyGraph(
       cancellationCase.family === 'sequence';
     const vecaFamily = cancellationCase.family === 'veca';
     const graphFamily = !teaFamily && !vecaFamily;
-    const unsizedGraph = cancellationCase.name === 'graphs-equal';
+    // Structural two-Graph comparisons use the unsized Graph fixture.
+    const unsizedGraph = [
+      'graphs-equal-in-flight', 'graph-diff-in-flight',
+      'graph-apply-delta-in-flight',
+    ].includes(cancellationCase.name);
     const teaTransform = cancellationCase.operation === 'window-fixed'
       ? {window_events: {kind: 'fixed', size: 10}}
       : cancellationCase.operation === 'window-sliding'
@@ -3572,13 +4057,24 @@ async function exerciseStrategyGraph(
         }, {
           id: 'events',
           inputs: {rows: {result: {stage: 'values', result: 'r'}}},
-          steps: [{
-            from: 'rows',
-            to_events: {id: 'event_id', time: 'occurred_at'},
-          }, teaTransform, {
-            events: true,
-            as: 'out',
-          }],
+          steps: cancellationCase.relationSession
+            ? [{
+              from: 'rows',
+              session: {
+                id: 'event_id',
+                time: 'occurred_at',
+                by: ['payload'],
+                gap: 10,
+              },
+              as: 'out',
+            }]
+            : [{
+              from: 'rows',
+              to_events: {id: 'event_id', time: 'occurred_at'},
+            }, teaTransform, {
+              events: true,
+              as: 'out',
+            }],
           results: {
             r: {from: 'out', fields: cancellationCase.fields},
           },
@@ -3875,14 +4371,27 @@ async function exerciseStrategyGraph(
                   candidates: {result: {stage: 'candidates', result: 'r'}},
                   queries: {result: {stage: 'queries', result: 'r'}},
                 },
-                steps: [{
-                  from: 'candidates',
+                steps: [
+                  ...(cancellationCase.fusedNearest ? [{
+                    from: 'candidates',
+                    to_vectors: {id: 'id', vector: 'embedding'},
+                    as: 'candidate_vectors',
+                  }, {
+                    from: 'queries',
+                    to_vectors: {id: 'id', vector: 'embedding'},
+                    as: 'query_vectors',
+                  }] : []), {
+                  from: cancellationCase.fusedNearest
+                    ? 'candidate_vectors' : 'candidates',
                   nearest: {
-                    queries: 'queries',
-                    candidate_id: 'id',
-                    candidate_vector: 'embedding',
-                    query_id: 'id',
-                    query_vector: 'embedding',
+                    queries: cancellationCase.fusedNearest
+                      ? 'query_vectors' : 'queries',
+                    ...(cancellationCase.fusedNearest ? {} : {
+                      candidate_id: 'id',
+                      candidate_vector: 'embedding',
+                      query_id: 'id',
+                      query_vector: 'embedding',
+                    }),
                     metric: 'dot',
                     k: cancellationCase.rows,
                   },
@@ -3932,10 +4441,14 @@ async function exerciseStrategyGraph(
                   ),
                 },
                 as: 'out',
-              }],
+              }, ...(cancellationCase.relationPool ? [{
+                from: 'out',
+                assert_rows: {unique_by: ['id']},
+                as: 'keyed',
+              }] : [])],
               results: {
                 r: {
-                  from: 'out',
+                  from: cancellationCase.relationPool ? 'keyed' : 'out',
                   fields: cancellationCase.operation === 'pool'
                     ? ['id', 'group', 'embedding']
                     : ['id', 'embedding'],
@@ -3969,7 +4482,15 @@ async function exerciseStrategyGraph(
                   from: 'scored', vectors: true, as: 'out',
                 }]
                 : cancellationCase.operation === 'pool'
-                  ? [{
+                  ? cancellationCase.relationPool ? [{
+                    from: 'rows',
+                    pool_vectors: {
+                      vector: 'embedding', by: ['group'], method: 'sum',
+                    },
+                    as: 'pooled',
+                  }, {
+                    from: 'pooled', vectors: true, as: 'out',
+                  }] : [{
                     from: 'rows',
                     to_vectors: {id: 'id', vector: 'embedding'},
                     as: 'source',
@@ -4019,6 +4540,17 @@ async function exerciseStrategyGraph(
             results: {published: {from: {stage: 'vectors', result: 'r'}}},
           }
           : structuredClone(graphProgramBase);
+    if (cancellationCase.mixedRelationFilter) {
+      const carrierStage = graphCancellationProgram.stages.find(stage =>
+        stage.id === (teaFamily ? 'events' : 'vectors'));
+      const projection = carrierStage.steps.at(-1);
+      projection.as = 'projected';
+      carrierStage.steps.push({
+        from: 'projected',
+        filter: 'true',
+        as: 'out',
+      });
+    }
     if (graphFamily && cancellationCase.relationSelector === true) {
       graphCancellationProgram.stages[2].inputs.selected = {
         result: {stage: 'values', result: 'r'},
@@ -4034,6 +4566,23 @@ async function exerciseStrategyGraph(
           node_name: `node-${index + 1}`,
           weight: index + 1,
         }));
+    }
+    if (graphFamily && cancellationCase.sortStress) {
+      const valueStep = graphCancellationProgram.stages[1].steps[0].values;
+      for (const key of stressSortKeys) {
+        valueStep.schema[key] = {type: 'string', nullable: false};
+      }
+      for (const row of valueStep.rows) {
+        row.node_name = stressSortText;
+        for (const key of stressSortKeys) {
+          row[key] = stressSortText;
+        }
+      }
+      graphCancellationProgram.stages[1].results.r.fields.push(
+        ...stressSortKeys,
+      );
+      graphCancellationProgram.stages[graphStageIndex].steps[0]
+        .graph.nodes.fields.push(...stressSortKeys);
     }
     if (graphFamily) {
       if (cancellationCase.concise === true) {
@@ -4068,6 +4617,23 @@ async function exerciseStrategyGraph(
         [graphFields[0]];
       graphCancellationProgram.stages[graphStageIndex + 3].results.r.fields =
         [graphFields[0]];
+    }
+    if (cancellationCase.name === 'normalize-filter-sort-take') {
+      graphCancellationProgram.stages.splice(graphStageIndex + 1);
+    }
+    if (graphFamily && cancellationCase.deltaStage === true) {
+      // A separate Stage computes the Graph delta the Graph Stage applies.
+      const graphStage = graphCancellationProgram.stages[graphStageIndex];
+      graphStage.inputs.changes = {result: {stage: 'graph_delta', result: 'r'}};
+      graphCancellationProgram.stages.splice(graphStageIndex, 0, {
+        id: 'graph_delta',
+        inputs: {rows: {result: {stage: 'values', result: 'r'}}},
+        steps: [structuredClone(graphStage.steps[0]), {
+          ...structuredClone(graphStage.steps[0]),
+          as: 'right_graph',
+        }, {from: 'g', graph_diff: {with: 'right_graph'}, as: 'out'}],
+        results: {r: {from: 'out', fields: ['delta']}},
+      });
     }
     if (cancellationCase.resultAliases === 2) {
       graphCancellationProgram.results = {
@@ -4127,8 +4693,10 @@ async function exerciseStrategyGraph(
           ? fixture.strategyFixtureSgaTraversePathsSizedCreate
         : cancellationCase.name === 'traverse-out'
           ? fixture.strategyFixtureSgaTraverseSizedCreate
-      : cancellationCase.name === 'reach-out'
+        : cancellationCase.name === 'reach-out'
           ? fixture.strategyFixtureSgaReachSizedCreate
+        : cancellationCase.name === 'shortest-out'
+          ? fixture.strategyFixtureSgaShortestSizedCreate
         : cancellationCase.concise === true
           ? fixture.strategyFixtureSgaDerivedCreate
         : fixture.strategyFixtureSgaSizedCreate;
@@ -4159,6 +4727,16 @@ async function exerciseStrategyGraph(
     let cancellationDeliveredAt;
     let stopObservedAt;
     let managedStarts = 0;
+    let fusedNearestBridgeRows = 0n;
+    const completedRowsByStart = new Map();
+    const boundedValuesInputs = cancellationCase.family === 'interval' ||
+      cancellationCase.family === 'asof';
+    const constructionStarts = boundedValuesInputs ? [3, 4] : [2];
+    const expectedManagedStarts = cancellationCase.managedStarts ??
+      (cancellationCase.family === 'time-series' ? 1 : 2);
+    let maxSortResumeMs = 0;
+    let selectedSortAdvances = 0;
+    let selectedSortReportedWork = 0n;
     const advanceObservations = [];
     const finalizationObservations = [];
     const lifecycleObservations = [];
@@ -4242,31 +4820,59 @@ async function exerciseStrategyGraph(
                 return quantum => {
                   const selectedQuantum = cancellationCase.advanceQuantum ??
                     quantum;
+                  const resumeStartedAt = cancellationCase.sortStress &&
+                    start === 5
+                    ? performance.now() : 0;
                   const result = operation.advance(selectedQuantum);
                   const observation = checked(result);
                   advanceObservations.push({start, observation});
-                  if (!cancellationCase.cancelDuringFinalization &&
-                      cancellationCase.cancelOnManagedStart === start &&
-                      observation?.complete === false &&
-                      observation.work > 0n && !cancellationScheduled) {
+                  const completedRows =
+                    (completedRowsByStart.get(start) ?? 0n) +
+                    (observation?.progress ?? 0n);
+                  completedRowsByStart.set(start, completedRows);
+                  const nearestBridgesFinished =
+                    !cancellationCase.fusedNearest ||
+                    fusedNearestBridgeRows >= BigInt(cancellationCase.rows + 1);
+                  if (cancellationCase.fusedNearest && start === 3) {
+                    fusedNearestBridgeRows += observation?.progress ?? 0n;
+                  }
+                  if (cancellationCase.sortStress && start === 5) {
+                    maxSortResumeMs = Math.max(
+                      maxSortResumeMs,
+                      performance.now() - resumeStartedAt,
+                    );
+                    selectedSortAdvances++;
+                    selectedSortReportedWork += observation?.work ?? 0n;
+                  }
+                  if (cancellationCase.cancelAfterSortAdvances !== undefined &&
+                      start === 5 && observation?.complete === false &&
+                      selectedSortAdvances >=
+                        cancellationCase.cancelAfterSortAdvances &&
+                      !cancellationScheduled) {
                     sawOperationWork = true;
                     cancellationScheduled = true;
                     setTimeout(() => graphCancellation.abort(), 0);
-                  } else if (observation?.complete === false &&
+                  } else if (!cancellationCase.cancelDuringFinalization &&
+                      cancellationCase.cancelOnManagedStart === start &&
+                      nearestBridgesFinished && observation?.complete === false &&
+                      observation.work > 0n && !cancellationScheduled &&
+                      completedRows >= BigInt(
+                        cancellationCase.minimumCompletedRows ?? 0)) {
+                    sawOperationWork = true;
+                    cancellationScheduled = true;
+                    setTimeout(() => graphCancellation.abort(), 0);
+                  } else if (constructionStarts.includes(start) &&
+                      observation !== undefined &&
                       !constructionComplete) {
                     constructionProgress += observation.progress;
-                    constructionComplete = constructionProgress ===
+                    constructionComplete = constructionProgress >=
                       BigInt(cancellationCase.constructionProgress ??
                         cancellationCase.rows * 2);
-                    if (constructionComplete &&
-                        cancellationCase.cancelAtBridgeStart &&
-                        !cancellationScheduled) {
-                      sawOperationWork = true;
-                      cancellationScheduled = true;
-                      setTimeout(() => graphCancellation.abort(), 0);
-                    }
                   } else if (!cancellationCase.cancelDuringFinalization &&
+                      cancellationCase.cancelAfterSortAdvances === undefined &&
+                      cancellationCase.cancelOnManagedStart === undefined &&
                       constructionComplete &&
+                      start === expectedManagedStarts &&
                       observation?.complete === false &&
                       observation.work > 0n && !cancellationScheduled) {
                     sawOperationWork = true;
@@ -4295,13 +4901,15 @@ async function exerciseStrategyGraph(
       );
       assert.equal(
         managedStarts,
-        cancellationCase.managedStarts ??
-          (cancellationCase.family === 'time-series' ? 1 : 2),
+        expectedManagedStarts,
         cancellationCase.name,
       );
-      assert.equal(
-        constructionProgress,
-        BigInt(cancellationCase.family === 'time-series'
+      if (cancellationCase.fusedNearest) {
+        assert(fusedNearestBridgeRows >=
+          BigInt(cancellationCase.rows + 1));
+      }
+      assert(
+        constructionProgress >= BigInt(cancellationCase.family === 'time-series'
           ? 0
           : cancellationCase.constructionProgress ??
             cancellationCase.rows * 2),
@@ -4317,10 +4925,33 @@ async function exerciseStrategyGraph(
           failure: cancellationExecution.failure?.message,
         }, (_, value) => typeof value === 'bigint' ? value.toString() : value),
       );
+      if (cancellationCase.minimumCompletedRows !== undefined) {
+        assert(
+          (completedRowsByStart.get(cancellationCase.cancelOnManagedStart) ??
+            0n) >= BigInt(cancellationCase.minimumCompletedRows),
+          cancellationCase.name,
+        );
+      }
+      if (cancellationCase.sortStress) {
+        assert(selectedSortAdvances >=
+          cancellationCase.cancelAfterSortAdvances);
+        assert(Number.isFinite(maxSortResumeMs));
+        assert(selectedSortReportedWork > 0n);
+      }
       assert.equal(graphCancellation.signal.aborted, true);
       assert.equal(Number.isFinite(cancellationDeliveredAt), true);
       assert.equal(Number.isFinite(stopObservedAt), true);
       assert(stopObservedAt >= cancellationDeliveredAt);
+      if (cancellationCase.sortStress) {
+        console.log('ACTQL_SORT_CANCEL_PROFILE', JSON.stringify({
+          maxResumeMs: maxSortResumeMs,
+          stopAfterDeliveryMs: stopObservedAt - cancellationDeliveredAt,
+          selectedSortAdvances,
+          reportedStepWork: selectedSortReportedWork.toString(),
+          keys: stressSortKeys.length + 2,
+          textBytesPerKey: stressSortTextBytes,
+        }));
+      }
       if (cancellationCase.cancelDuringFinalization) {
         assert.equal(
           finalizationObservations.some(value =>
@@ -4508,6 +5139,177 @@ async function exerciseStrategyGraph(
     }],
     results: {source: {from: {stage: 'a', result: 'r'}}},
   };
+  const splitValuesProgram = structuredClone(zeroInputProgram);
+  const capturedRelationChainProgram = structuredClone(zeroInputProgram);
+  const capturedChainStage = capturedRelationChainProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  capturedChainStage.inputs = {
+    x: {result: {stage: 'a', result: 'r'}},
+  };
+  capturedChainStage.steps = [
+    {from: 'x', filter: 'id > 2', as: 'filtered'},
+    {from: 'filtered', select: ['id'], as: 'out'},
+  ];
+  capturedChainStage.results.r.fields = ['id'];
+  for (const consumer of capturedRelationChainProgram.stages.filter(
+    stage => stage.id.startsWith('consumer_'))) {
+    consumer.steps[0].select = ['id'];
+    consumer.results.r.fields = ['id'];
+  }
+  const capturedCountChainProgram = structuredClone(capturedRelationChainProgram);
+  const capturedCountStage = capturedCountChainProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  capturedCountStage.steps = [
+    {from: 'x', group: {by: [], aggregates: {n: {fn: 'count'}}}, as: 'counted'},
+    {from: 'counted', filter: 'n > 0', as: 'filtered'},
+    {from: 'filtered', select: ['n'], as: 'out'},
+  ];
+  capturedCountStage.results.r.fields = ['n'];
+  for (const consumer of capturedCountChainProgram.stages.filter(
+    stage => stage.id.startsWith('consumer_'))) {
+    consumer.steps[0].select = ['n'];
+    consumer.results.r.fields = ['n'];
+  }
+  const capturedKeyedCountChainProgram = structuredClone(capturedRelationChainProgram);
+  const capturedKeyedCountStage = capturedKeyedCountChainProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  capturedKeyedCountStage.steps = [
+    {from: 'x', group: {by: ['id'], aggregates: {n: {fn: 'count'}}}, as: 'counted'},
+    {from: 'counted', filter: 'n > 0', as: 'filtered'},
+    {from: 'filtered', select: ['id'], as: 'out'},
+  ];
+  const capturedUnpivotChainProgram = structuredClone(capturedRelationChainProgram);
+  const capturedUnpivotStage = capturedUnpivotChainProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  capturedUnpivotStage.steps = [
+    {from: 'x', unpivot: {
+      columns: ['id'], keep: [], name_column: 'metric',
+      value_column: 'value',
+    }, as: 'expanded'},
+    {from: 'expanded', filter: 'value > 2', as: 'filtered'},
+    {from: 'filtered', select: ['value'], as: 'out'},
+  ];
+  capturedUnpivotStage.results.r.fields = ['value'];
+  for (const consumer of capturedUnpivotChainProgram.stages.filter(
+    stage => stage.id.startsWith('consumer_'))) {
+    consumer.steps[0].select = ['value'];
+    consumer.results.r.fields = ['value'];
+  }
+  const capturedWindowChainProgram = structuredClone(capturedRelationChainProgram);
+  const capturedWindowStage = capturedWindowChainProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  capturedWindowStage.steps = [
+    {from: 'x', row_window: {kind: 'fixed', time: 'id', size: 10},
+      as: 'windowed'},
+    {from: 'windowed', filter: 'id > 0', as: 'filtered'},
+    {from: 'filtered', select: ['id'], as: 'out'},
+  ];
+  const splitValuesStage = splitValuesProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  splitValuesStage.steps[0].as = 'values_rows';
+  splitValuesStage.steps.push({
+    from: 'values_rows', filter: 'id > 0', as: 'out',
+  });
+  const splitValuesSelectProgram = structuredClone(zeroInputProgram);
+  const splitValuesSelectStage = splitValuesSelectProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  splitValuesSelectStage.steps[0].as = 'values_rows';
+  splitValuesSelectStage.steps.push({
+    from: 'values_rows', select: ['id', 'label'], as: 'out',
+  });
+  const splitValuesDeriveProgram = structuredClone(zeroInputProgram);
+  const splitValuesDeriveStage = splitValuesDeriveProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  splitValuesDeriveStage.steps[0].as = 'values_rows';
+  splitValuesDeriveStage.steps.push({
+    from: 'values_rows', derive: {copy: 'label'}, as: 'out',
+  });
+  splitValuesDeriveStage.results.r.fields = ['id', 'label', 'copy'];
+  const splitValuesTakeProgram = structuredClone(zeroInputProgram);
+  const splitValuesTakeStage = splitValuesTakeProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  splitValuesTakeStage.steps[0].as = 'values_rows';
+  splitValuesTakeStage.steps.push({
+    from: 'values_rows', take: 1, as: 'out',
+  });
+  const splitValuesAssertProgram = structuredClone(zeroInputProgram);
+  const splitValuesAssertStage = splitValuesAssertProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  splitValuesAssertStage.steps[0].as = 'values_rows';
+  splitValuesAssertStage.steps.push({
+    from: 'values_rows', assert_rows: {where: '1 > 0'}, as: 'out',
+  });
+  const splitValuesUniqueProgram = structuredClone(zeroInputProgram);
+  const splitValuesUniqueStage = splitValuesUniqueProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  splitValuesUniqueStage.steps[0].as = 'values_rows';
+  splitValuesUniqueStage.steps.push({
+    from: 'values_rows', assert_rows: {unique_by: ['label']}, as: 'out',
+  });
+  const splitValuesSortTakeProgram = structuredClone(zeroInputProgram);
+  const splitValuesSortTakeStage = splitValuesSortTakeProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  splitValuesSortTakeStage.steps[0].as = 'values_rows';
+  splitValuesSortTakeStage.steps.push(
+    {from: 'values_rows', sort: [
+      {field: 'id', dir: 'desc', nulls: 'last'},
+    ], as: 'ordered'},
+    {from: 'ordered', take: 1, as: 'out'},
+  );
+  const separateSortTakeProgram = structuredClone(zeroInputProgram);
+  separateSortTakeProgram.stages.splice(2, 0, {
+    id: 'ordered',
+    inputs: {x: {result: {stage: 'values_a', result: 'r'}}},
+    steps: [
+      {from: 'x', sort: [
+        {field: 'id', dir: 'desc', nulls: 'last'},
+      ], as: 'ordered_rows'},
+      {from: 'ordered_rows', take: 1, as: 'out'},
+    ],
+    results: {r: {from: 'out', fields: ['id', 'label']}},
+  });
+  for (const consumer of separateSortTakeProgram.stages.filter(
+    stage => stage.id === 'consumer_a' || stage.id === 'consumer_b')) {
+    consumer.inputs.x.result.stage = 'ordered';
+  }
+  const longSelectedSortTakeProgram = structuredClone(separateSortTakeProgram);
+  longSelectedSortTakeProgram.stages.find(stage =>
+    stage.id === 'values_a').steps[0].values.rows[1].label = 'a'.repeat(512);
+  const separateFilterSortTakeProgram = structuredClone(
+    separateSortTakeProgram,
+  );
+  const filteredOrderedStage = separateFilterSortTakeProgram.stages.find(
+    stage => stage.id === 'ordered',
+  );
+  filteredOrderedStage.steps.unshift({from: 'x', filter: 'true', as: 'filtered'});
+  filteredOrderedStage.steps[1].from = 'filtered';
+  const chainedFilterSortTakeProgram = structuredClone(
+    separateSortTakeProgram,
+  );
+  const chainedOrderedIndex = chainedFilterSortTakeProgram.stages.findIndex(
+    stage => stage.id === 'ordered',
+  );
+  chainedFilterSortTakeProgram.stages.splice(chainedOrderedIndex, 0, {
+    id: 'filtered',
+    inputs: {x: {result: {stage: 'values_a', result: 'r'}}},
+    steps: [{from: 'x', filter: 'true', as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'label']}},
+  });
+  chainedFilterSortTakeProgram.stages.find(
+    stage => stage.id === 'ordered',
+  ).inputs.x.result.stage = 'filtered';
   const appendProgram = structuredClone(zeroInputProgram);
   appendProgram.stages.splice(1, 3, {
     id: 'append_a',
@@ -4530,6 +5332,34 @@ async function exerciseStrategyGraph(
     steps: [{select: ['id'], as: 'out'}],
     results: {r: {from: 'out', fields: ['id']}},
   })));
+  const appendFilterProgram = structuredClone(appendProgram);
+  const appendFilterStage = appendFilterProgram.stages.find(
+    stage => stage.id === 'append_a');
+  const appendSources = appendFilterStage.steps.slice(0, 2).map((step, index) => ({
+    id: `append_source_${index}`,
+    inputs: {},
+    steps: [{...structuredClone(step), as: 'out'}],
+    results: {r: {from: 'out', fields: ['id']}},
+  }));
+  appendFilterStage.inputs = {
+    l: {result: {stage: 'append_source_0', result: 'r'}},
+    r: {result: {stage: 'append_source_1', result: 'r'}},
+  };
+  appendFilterStage.steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', filter: 'id > 1', as: 'out'},
+  ];
+  appendFilterProgram.stages.splice(1, 0, ...appendSources);
+  const filterThenAppendProgram = structuredClone(appendFilterProgram);
+  filterThenAppendProgram.stages = filterThenAppendProgram.stages.filter(
+    stage => stage.id !== 'append_source_0');
+  const filterThenAppendStage = filterThenAppendProgram.stages.find(
+    stage => stage.id === 'append_a');
+  filterThenAppendStage.inputs.l.result.stage = 'a';
+  filterThenAppendStage.steps = [
+    {from: 'l', filter: 'id > 1', as: 'filtered'},
+    {from: 'filtered', append: {with: 'r'}, as: 'out'},
+  ];
   const nestProgram = structuredClone(zeroInputProgram);
   nestProgram.stages.splice(1, 3, {
     id: 'nest_parents',
@@ -4588,6 +5418,27 @@ async function exerciseStrategyGraph(
       ? ['id', 'key', 'items']
       : ['items', 'id', 'key']}},
   })));
+  const nestUnwrapProgram = structuredClone(nestProgram);
+  const nestConsumerIndex = nestUnwrapProgram.stages.findIndex(stage =>
+    stage.id === 'nest_consumer_a');
+  nestUnwrapProgram.stages.splice(nestConsumerIndex, 0, {
+    id: 'unnested',
+    inputs: {x: {result: {stage: 'nested', result: 'r'}}},
+    steps: [
+      {from: 'x', unnest: {column: 'items', as: 'item', outer: false},
+        as: 'expanded'},
+      {from: 'expanded', filter: 'id > 1', as: 'filtered'},
+      {from: 'filtered', select: ['id', 'item'], as: 'out'},
+    ],
+    results: {r: {from: 'out', fields: ['id', 'item']}},
+  });
+  for (const consumer of nestUnwrapProgram.stages.filter(stage =>
+    stage.id.startsWith('nest_consumer_'))) {
+    consumer.inputs.x.result.stage = 'unnested';
+    consumer.steps[0].select = consumer.id.endsWith('_a')
+      ? ['id', 'item'] : ['item', 'id'];
+    consumer.results.r.fields = consumer.steps[0].select;
+  }
   const valuesVariantProgram = (schema, rows, fields, reversed) => {
     const variant = structuredClone(zeroInputProgram);
     variant.stages.splice(1, 3, {
@@ -4769,6 +5620,15 @@ async function exerciseStrategyGraph(
         : ['bucket', 'group', 'amount', 'id'],
     }},
   })));
+  const dedupeFilterProgram = structuredClone(dedupeProgram);
+  const dedupeFilterStage = dedupeFilterProgram.stages.find(
+    stage => stage.id === 'deduped',
+  );
+  dedupeFilterStage.steps = [
+    {...dedupeFilterStage.steps[0], as: 'deduped_rows'},
+    {from: 'deduped_rows', filter: 'amount > 30', as: 'filtered'},
+    {from: 'filtered', select: ['id', 'amount', 'group', 'bucket'], as: 'out'},
+  ];
   const topKProgram = partitioned => {
     const variant = structuredClone(zeroInputProgram);
     const fields = ['id', 'amount', 'group'];
@@ -4845,6 +5705,86 @@ async function exerciseStrategyGraph(
       from: 'out', fields: id === 'a' ? ['id', 'n'] : ['n', 'id'],
     }},
   })));
+  // A general group: the extra max aggregate leaves the count kernel.
+  const directGroupProgram = structuredClone(groupProgram);
+  directGroupProgram.stages.find(stage => stage.id === 'group_a').steps = [
+    {group: {by: ['id'], aggregates: {
+      n: {fn: 'count'}, highest: {fn: 'max', field: 'id'},
+    }}, as: 'out'},
+  ];
+  const globalCountProgram = structuredClone(groupProgram);
+  const globalCountStage = globalCountProgram.stages.find(
+    stage => stage.id === 'group_a',
+  );
+  globalCountStage.steps[0].group = {
+    by: [],
+    aggregates: {n: {fn: 'count'}, present: {fn: 'count', field: 'id'}},
+  };
+  globalCountStage.results.r.fields = ['n', 'present'];
+  for (const stage of globalCountProgram.stages.filter(
+    stage => stage.id.startsWith('group_consumer_'),
+  )) {
+    const fields = stage.id.endsWith('_a')
+      ? ['n', 'present'] : ['present', 'n'];
+    stage.steps[0].select = fields;
+    stage.results.r.fields = fields;
+  }
+  const nestedGlobalCountProgram = structuredClone(globalCountProgram);
+  const nestedCountValues = nestedGlobalCountProgram.stages.find(
+    stage => stage.id === 'group_values',
+  );
+  nestedCountValues.steps[0].values.schema.payload = {
+    type: 'array', nullable: false,
+    items: {type: 'number', nullable: false},
+  };
+  nestedCountValues.results.r.fields = ['id', 'payload'];
+  const sameStageGlobalCountProgram = structuredClone(globalCountProgram);
+  const countValuesStage = sameStageGlobalCountProgram.stages.find(
+    stage => stage.id === 'group_values',
+  );
+  const sameStageCount = sameStageGlobalCountProgram.stages.find(
+    stage => stage.id === 'group_a',
+  );
+  sameStageCount.inputs = {};
+  sameStageCount.steps = [
+    {...countValuesStage.steps[0], as: 'source'},
+    {from: 'source', group: sameStageCount.steps[0].group, as: 'counted'},
+    {from: 'counted', take: 1, as: 'out'},
+  ];
+  sameStageGlobalCountProgram.stages = sameStageGlobalCountProgram.stages
+    .filter(stage => stage.id !== 'group_values');
+  const sameStageCountIfProgram = structuredClone(sameStageGlobalCountProgram);
+  const sameStageCountIf = sameStageCountIfProgram.stages.find(
+    stage => stage.id === 'group_a');
+  sameStageCountIf.steps[0].values.schema = {
+    flag: {type: 'boolean', nullable: true},
+  };
+  sameStageCountIf.steps[0].values.rows = [
+    {flag: true}, {flag: false}, {flag: null}, {flag: true},
+  ];
+  sameStageCountIf.steps[1].group.aggregates = {
+    hits: {fn: 'count_if', field: 'flag'}, n: {fn: 'count'},
+  };
+  sameStageCountIf.results.r.fields = ['hits', 'n'];
+  for (const stage of sameStageCountIfProgram.stages.filter(
+    stage => stage.id.startsWith('group_consumer_'))) {
+    const fields = stage.id.endsWith('_a') ? ['hits', 'n'] : ['n', 'hits'];
+    stage.steps[0].select = fields;
+    stage.results.r.fields = fields;
+  }
+  const sameStageKeyedCountProgram = structuredClone(sameStageGlobalCountProgram);
+  const sameStageKeyedCount = sameStageKeyedCountProgram.stages.find(
+    stage => stage.id === 'group_a');
+  sameStageKeyedCount.steps[1].group.by = ['id'];
+  sameStageKeyedCount.results.r.fields = ['id', 'n', 'present'];
+  for (const stage of sameStageKeyedCountProgram.stages.filter(
+    stage => stage.id.startsWith('group_consumer_'),
+  )) {
+    const fields = stage.id.endsWith('_a')
+      ? ['id', 'n', 'present'] : ['present', 'n', 'id'];
+    stage.steps[0].select = fields;
+    stage.results.r.fields = fields;
+  }
   const watermarkProgram = (threshold, latePolicy) => {
     const variant = structuredClone(zeroInputProgram);
     const fields = [
@@ -5094,6 +6034,30 @@ async function exerciseStrategyGraph(
         : [...unpivotFields].reverse(),
     }},
   })));
+  const sameStageUnpivotProgram = structuredClone(unpivotProgram);
+  const sameStageUnpivotValues = sameStageUnpivotProgram.stages.find(stage =>
+    stage.id === 'unpivot_values');
+  const sameStageUnpivotIndex = sameStageUnpivotProgram.stages.findIndex(
+    stage => stage.id === 'unpivoted');
+  const sameStageUnpivotStep = structuredClone(
+    sameStageUnpivotProgram.stages[sameStageUnpivotIndex].steps[0]);
+  sameStageUnpivotValues.steps.push({
+    from: 'out', ...sameStageUnpivotStep, as: 'expanded',
+  });
+  sameStageUnpivotValues.results.r = {
+    from: 'expanded', fields: unpivotFields,
+  };
+  sameStageUnpivotProgram.stages.splice(sameStageUnpivotIndex, 1);
+  for (const stage of sameStageUnpivotProgram.stages.filter(stage =>
+    stage.id.startsWith('unpivot_consumer_'))) {
+    stage.inputs.x.result.stage = 'unpivot_values';
+  }
+  const unpivotFilterProgram = structuredClone(unpivotProgram);
+  const unpivotFilterStage = unpivotFilterProgram.stages.find(stage =>
+    stage.id === 'unpivoted');
+  unpivotFilterStage.steps[0].as = 'expanded';
+  unpivotFilterStage.steps.push({from: 'expanded', filter: 'id > 1',
+    as: 'out'});
   const pivotProgram = structuredClone(zeroInputProgram);
   const pivotFields = ['id', 'open', 'won'];
   pivotProgram.stages.splice(1, 3, {
@@ -5182,6 +6146,30 @@ async function exerciseStrategyGraph(
         : [...unnestFields].reverse(),
     }},
   })));
+  const sameStageUnnestProgram = structuredClone(unnestProgram);
+  const sameStageUnnestValues = sameStageUnnestProgram.stages.find(stage =>
+    stage.id === 'unnest_values');
+  const sameStageUnnestIndex = sameStageUnnestProgram.stages.findIndex(
+    stage => stage.id === 'unnested');
+  const sameStageUnnestStep = structuredClone(
+    sameStageUnnestProgram.stages[sameStageUnnestIndex].steps[0]);
+  sameStageUnnestValues.steps.push({
+    from: 'out', ...sameStageUnnestStep, as: 'expanded',
+  });
+  sameStageUnnestValues.results.r = {
+    from: 'expanded', fields: unnestFields,
+  };
+  sameStageUnnestProgram.stages.splice(sameStageUnnestIndex, 1);
+  for (const stage of sameStageUnnestProgram.stages.filter(stage =>
+    stage.id.startsWith('unnest_consumer_'))) {
+    stage.inputs.x.result.stage = 'unnest_values';
+  }
+  const unnestFilterProgram = structuredClone(unnestProgram);
+  const unnestFilterStage = unnestFilterProgram.stages.find(stage =>
+    stage.id === 'unnested');
+  unnestFilterStage.steps[0].as = 'expanded';
+  unnestFilterStage.steps.push({from: 'expanded', filter: 'id > 1',
+    as: 'out'});
   const jsonPickProgram = structuredClone(zeroInputProgram);
   const jsonPickFields = ['id', 'payload', 'picked'];
   jsonPickProgram.stages.splice(1, 3, {
@@ -5229,6 +6217,31 @@ async function exerciseStrategyGraph(
         : [...jsonPickFields].reverse(),
     }},
   })));
+  const sameStageJsonPickProgram = structuredClone(jsonPickProgram);
+  const sameStageJsonValues = sameStageJsonPickProgram.stages.find(
+    stage => stage.id === 'json_pick_values');
+  const sameStageJsonIndex = sameStageJsonPickProgram.stages.findIndex(
+    stage => stage.id === 'json_picked');
+  const sameStageJsonStep = structuredClone(
+    sameStageJsonPickProgram.stages[sameStageJsonIndex].steps[0]);
+  sameStageJsonValues.steps.push({
+    from: 'out', ...sameStageJsonStep, as: 'picked_rows',
+  });
+  sameStageJsonValues.results.r = {
+    from: 'picked_rows', fields: jsonPickFields,
+  };
+  sameStageJsonPickProgram.stages.splice(sameStageJsonIndex, 1);
+  for (const stage of sameStageJsonPickProgram.stages.filter(stage =>
+    stage.id.startsWith('json_pick_consumer_'))) {
+    stage.inputs.x.result.stage = 'json_pick_values';
+  }
+  const sameStageJsonFilterProgram = structuredClone(sameStageJsonPickProgram);
+  const sameStageJsonFilterValues = sameStageJsonFilterProgram.stages.find(
+    stage => stage.id === 'json_pick_values');
+  sameStageJsonFilterValues.steps.push({
+    from: 'picked_rows', filter: 'picked > 1', as: 'filtered',
+  });
+  sameStageJsonFilterValues.results.r.from = 'filtered';
   const joinProgram = structuredClone(zeroInputProgram);
   const joinFields = ['id', 'l', 'r'];
   joinProgram.stages.splice(1, 3, {
@@ -5314,33 +6327,178 @@ async function exerciseStrategyGraph(
   };
   const unrestrictedCrossJoinProgram = crossJoinProgram(false);
   const singletonCrossJoinProgram = crossJoinProgram(true);
+  const directCrossJoinProgram = structuredClone(unrestrictedCrossJoinProgram);
+  const directCrossedStage = directCrossJoinProgram.stages.find(
+    stage => stage.id === 'crossed',
+  );
+  const directCrossSteps = directCrossedStage.steps;
+  directCrossSteps[0].as = 'left_rows';
+  directCrossSteps[2].as = 'right_rows';
+  directCrossedStage.steps = [directCrossSteps[0], directCrossSteps[2],
+    directCrossSteps[4]];
+  const externalCrossJoinProgram = structuredClone(zeroInputProgram);
+  const externalCrossFields = ['id', 'tag'];
+  externalCrossJoinProgram.stages.splice(1, 3, {
+    id: 'cross_left',
+    inputs: {},
+    steps: [{values: {
+      schema: {id: {type: 'number', nullable: false}},
+      rows: [{id: 1}, {id: 2}],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['id']}},
+  }, {
+    id: 'cross_right',
+    inputs: {},
+    steps: [{values: {
+      schema: {tag: {type: 'string', nullable: false}},
+      rows: [{tag: 'a'}, {tag: 'b'}, {tag: 'c'}],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['tag']}},
+  }, {
+    id: 'crossed',
+    inputs: {
+      l: {result: {stage: 'cross_left', result: 'r'}},
+      r: {result: {stage: 'cross_right', result: 'r'}},
+    },
+    steps: [{from: 'l', cross_join: {
+      with: 'r', select: {id: 'left.id', tag: 'right.tag'},
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: externalCrossFields}},
+  }, ...['a', 'b'].map(id => ({
+    id: `external_cross_consumer_${id}`,
+    inputs: {x: {result: {stage: 'crossed', result: 'r'}}},
+    steps: [{select: id === 'a'
+      ? externalCrossFields : [...externalCrossFields].reverse(), as: 'out'}],
+    results: {r: {from: 'out', fields: id === 'a'
+      ? externalCrossFields : [...externalCrossFields].reverse()}},
+  })));
+  const splitCrossJoinProgram = structuredClone(externalCrossJoinProgram);
+  const boundedEqualityJoinProgram = structuredClone(externalCrossJoinProgram);
+  const equalityRight = boundedEqualityJoinProgram.stages.find(
+    stage => stage.id === 'cross_right');
+  equalityRight.steps[0].values = {
+    schema: {
+      id: {type: 'number', nullable: false},
+      tag: {type: 'string', nullable: false},
+    },
+    rows: [{id: 1, tag: 'a'}, {id: 1, tag: 'b'}, {id: 2, tag: 'c'}],
+  };
+  equalityRight.results.r.fields = ['id', 'tag'];
+  const equalityStage = boundedEqualityJoinProgram.stages.find(
+    stage => stage.id === 'crossed');
+  equalityStage.steps = [{
+    from: 'l',
+    join: {
+      with: 'r', kind: 'inner',
+      on: [{left: 'id', right: 'id'}],
+      select: {id: 'left.id', tag: 'right.tag'},
+      max_output_rows: 6,
+    },
+    as: 'joined_rows',
+  }, {
+    from: 'joined_rows', select: ['id', 'tag'], as: 'out',
+  }];
+  const splitCrossedStage = splitCrossJoinProgram.stages.find(
+    stage => stage.id === 'crossed',
+  );
+  splitCrossedStage.steps[0].as = 'crossed_rows';
+  splitCrossedStage.steps.push({
+    from: 'crossed_rows', filter: 'id > 0', as: 'out',
+  });
+  const externalAppendProgram = structuredClone(externalCrossJoinProgram);
+  const appendRight = externalAppendProgram.stages.find(
+    stage => stage.id === 'cross_right',
+  );
+  appendRight.steps[0].values = {
+    schema: {id: {type: 'number', nullable: false}},
+    rows: [{id: 3}, {id: 4}],
+  };
+  appendRight.results.r.fields = ['id'];
+  const appendStage = externalAppendProgram.stages.find(
+    stage => stage.id === 'crossed',
+  );
+  appendStage.steps = [{from: 'l', append: {with: 'r'}, as: 'out'}];
+  appendStage.results.r.fields = ['id'];
+  for (const consumer of externalAppendProgram.stages.filter(
+    stage => stage.id.startsWith('external_cross_consumer_'))) {
+    consumer.steps[0].select = ['id'];
+    consumer.results.r.fields = ['id'];
+  }
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
+    ['captured Relation filter/select chain', capturedRelationChainProgram,
+      [1, 2, 3]],
+    ['captured Relation count/filter chain', capturedCountChainProgram,
+      [1, 2, 3]],
+    ['captured Relation keyed count/filter chain', capturedKeyedCountChainProgram,
+      [1, 2, 3]],
+    ['captured Relation unpivot/filter chain', capturedUnpivotChainProgram,
+      [1, 2, 3]],
+    ['captured Relation window/filter chain', capturedWindowChainProgram,
+      [1, 2, 3]],
+    ['split values', splitValuesProgram, [1, 2, 3, 4]],
+    ['split values select', splitValuesSelectProgram, [1, 2, 3, 4]],
+    ['split values derive', splitValuesDeriveProgram, [1, 2, 3, 4]],
+    ['split values take', splitValuesTakeProgram, [1, 2, 3, 4]],
+    ['split values sort/take', splitValuesSortTakeProgram, [1, 2, 3, 4, 5]],
+    ['separate sort/take Stage', separateSortTakeProgram, [1, 2, 3, 4, 5]],
+    ['long selected sort/take Stage', longSelectedSortTakeProgram,
+      [1, 2, 3, 4, 5]],
+    ['separate filter/sort/take Stage', separateFilterSortTakeProgram,
+      [1, 2, 3, 4, 5, 6]],
+    ['chained filter then sort/take Stages', chainedFilterSortTakeProgram,
+      [1, 2, 3, 4, 5, 6]],
     ['empty values', emptyValuesProgram, [1, 2, 3]],
     ['nested values', nestedValuesProgram, [1, 2, 3]],
     ['select', selectProgram, [1, 2, 3, 4]],
     ['snapshot derive', snapshotDeriveProgram, [1, 2, 3, 4]],
     ['sort', sortProgram, [1, 2, 3, 4]],
     ['dedupe rows', dedupeProgram, [1, 2, 3, 4]],
-    ['global top k', globalTopKProgram, [1, 2, 3, 4]],
-    ['partitioned top k', partitionedTopKProgram, [1, 2, 3, 4]],
-    ['append', appendProgram, [1, 2, 3]],
+    ['dedupe/filter chain', dedupeFilterProgram, [1, 2, 3, 4, 5, 6]],
+    ['global top k', globalTopKProgram, [1, 2, 3, 4, 5]],
+    ['partitioned top k', partitionedTopKProgram, [1, 2, 3, 4, 5]],
+    ['append', appendProgram, [1, 2, 3, 4, 5]],
+    ['append filter chain', appendFilterProgram, [1, 2, 3, 4, 5]],
+    ['filter then append captured input', filterThenAppendProgram,
+      [1, 2, 3, 4]],
+    ['direct cross join', directCrossJoinProgram, [1, 2, 3, 4, 5]],
     ['nest', nestProgram, [1, 2, 3, 4, 5]],
+    ['nest then unnest/filter', nestUnwrapProgram, [1, 2, 3, 4, 5, 6]],
     ['group count', groupProgram, [1, 2, 3, 4]],
+    ['direct general group', directGroupProgram, [1, 2, 3, 4]],
+    ['global count', globalCountProgram, [1, 2, 3, 4]],
+    ['same-stage global count/take', sameStageGlobalCountProgram,
+      [1, 2, 3, 4, 5]],
+    ['same-stage keyed count/take', sameStageKeyedCountProgram,
+      [1, 2, 3, 4, 5]],
     ['fixed parameter watermark', fixedWatermarkProgram, [1, 2, 3, 4]],
     ['prefix watermark', prefixWatermarkProgram, [1, 2, 3, 4]],
     ['fixed parameter row window', fixedRowWindowProgram, [1, 2, 3, 4]],
     ['sliding parameter row window', slidingRowWindowProgram, [1, 2, 3, 4]],
     ['window group', windowGroupProgram, [1, 2, 3]],
-    ['parameter lag', lagProgram, [1, 2, 3]],
+    ['parameter lag', lagProgram, [1, 2, 3, 4, 5]],
     ['analytic', analyticProgram, [1, 2, 3]],
     ['unpivot', unpivotProgram, [1, 2, 3, 4]],
+    ['unpivot/filter chain', unpivotFilterProgram, [1, 2, 3, 4, 5]],
+    ['same-stage unpivot', sameStageUnpivotProgram, [1, 2, 3, 4]],
     ['pivot', pivotProgram, [1, 2, 3, 4]],
     ['unnest', unnestProgram, [1, 2, 3, 4]],
+    ['unnest/filter chain', unnestFilterProgram, [1, 2, 3, 4, 5]],
+    ['same-stage unnest', sameStageUnnestProgram, [1, 2, 3, 4]],
     ['json pick', jsonPickProgram, [1, 2, 3, 4]],
-    ['full join', joinProgram, [1, 2, 3]],
-    ['unrestricted cross join', unrestrictedCrossJoinProgram, [1, 2, 3]],
-    ['singleton cross join', singletonCrossJoinProgram, [1, 2, 3]],
+    ['same-stage json pick', sameStageJsonPickProgram, [1, 2, 3, 4]],
+    ['same-stage json pick/filter', sameStageJsonFilterProgram,
+      [1, 2, 3, 4, 5]],
+    ['full join', joinProgram, [1, 2, 3, 4, 5, 6, 7, 8, 9]],
+    ['unrestricted cross join', unrestrictedCrossJoinProgram,
+      [1, 2, 3, 4, 5, 6, 7]],
+    ['singleton cross join', singletonCrossJoinProgram,
+      [1, 2, 3, 4, 5, 6, 7]],
+    ['external cross join', externalCrossJoinProgram, [1, 2, 3, 4, 5]],
+    ['bounded equality join/select', boundedEqualityJoinProgram,
+      [1, 2, 3, 4, 5]],
+    ['split external cross join', splitCrossJoinProgram, [1, 2, 3, 4, 5, 6]],
+    ['external append', externalAppendProgram, [1, 2, 3, 4, 5]],
   ]) {
     const fixtureArgs = name === 'analytic' ? analyticArgs : args;
     let zeroInputFixture;
@@ -5392,7 +6550,120 @@ async function exerciseStrategyGraph(
           'sort and both consumers publish complete retained outputs',
         );
       }
-      if (name === 'snapshot derive') {
+      if (name === 'bounded equality join/select') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 3, 3, 3, 3],
+          'the unsplit equality join feeds two real downstream Computes',
+        );
+      }
+      if (name === 'same-stage keyed count/take') {
+        assert.deepEqual(zeroInputExecution.completed.map(item => item.outputRows),
+          [3, 2, 1, 1, 1]);
+      }
+      if (name === 'append filter chain') {
+        assert.deepEqual(zeroInputExecution.completed.map(item => item.outputRows),
+          [1, 1, 1, 1, 1]);
+      }
+      if (name === 'captured Relation filter/select chain') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 2],
+          'an unsegmented captured input feeds two actual computations',
+        );
+      }
+      if (name === 'captured Relation window/filter chain') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [3, 3, 3],
+          'a bounded row window feeds two actual computations',
+        );
+      }
+      if (name === 'captured Relation count/filter chain') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [1, 1, 1],
+          'an intermediate count feeds two actual bounded computations',
+        );
+      }
+      if (name === 'captured Relation keyed count/filter chain') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 2],
+          'a keyed intermediate count feeds two bounded computations',
+        );
+      }
+      if (name === 'captured Relation unpivot/filter chain') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 2],
+          'the bounded reshape and filter feed two actual computations',
+        );
+      }
+      if (name === 'split values') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 1, 1, 1],
+        );
+      }
+      if (name === 'split values select' || name === 'split values take') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          name === 'split values select' ? [2, 2, 2, 2] : [2, 1, 1, 1],
+        );
+      }
+      if (name === 'split values sort/take' ||
+          name === 'separate sort/take Stage' ||
+          name === 'long selected sort/take Stage') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 1, 1, 1],
+        );
+      }
+      if (name === 'same-stage global count/take') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [3, 1, 1, 1, 1],
+        );
+      }
+      if (name === 'separate filter/sort/take Stage' ||
+          name === 'chained filter then sort/take Stages') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 2, 1, 1, 1],
+        );
+      }
+      if (name === 'unrestricted cross join' ||
+          name === 'singleton cross join') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          name === 'unrestricted cross join'
+            ? [2, 2, 2, 2, 4, 4, 4] : [2, 2, 1, 1, 2, 2, 2],
+        );
+      }
+      if (name === 'external cross join' ||
+          name === 'split external cross join') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          name === 'external cross join'
+            ? [2, 3, 6, 6, 6] : [2, 3, 6, 6, 6, 6],
+        );
+      }
+      if (name === 'external append') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 4, 4, 4],
+          'append and both consumers retain the full ordered output',
+        );
+      }
+      if (name === 'append' || name === 'direct cross join') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          name === 'append' ? [1, 1, 2, 2, 2] : [2, 2, 4, 4, 4],
+          `${name}: bounded producers and binary consumer retain output`,
+        );
+      }
+      if (name === 'snapshot derive' || name === 'split values derive') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 2, 2, 2],
@@ -5402,7 +6673,7 @@ async function exerciseStrategyGraph(
       if (name === 'parameter lag') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
-          [5, 5, 5],
+          [5, 5, 5, 5, 5],
           `${name} and both consumers publish complete retained outputs`,
         );
       }
@@ -5413,6 +6684,13 @@ async function exerciseStrategyGraph(
           `${name} and both consumers publish complete retained outputs`,
         );
       }
+      if (name === 'global count') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [3, 1, 1, 1],
+          'global count and both consumers retain one aggregate row',
+        );
+      }
       if (name === 'analytic') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
@@ -5420,11 +6698,18 @@ async function exerciseStrategyGraph(
           `${name} and both consumers publish complete retained outputs`,
         );
       }
-      if (name === 'unpivot') {
+      if (name === 'unpivot' || name === 'same-stage unpivot') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 6, 6, 6],
           `${name} and both consumers publish complete retained outputs`,
+        );
+      }
+      if (name === 'unpivot/filter chain') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 6, 3, 3, 3],
+          'bounded unpivot and filter feed two actual computations',
         );
       }
       if (name === 'pivot') {
@@ -5434,11 +6719,25 @@ async function exerciseStrategyGraph(
           `${name} and both consumers publish complete retained outputs`,
         );
       }
-      if (name === 'unnest') {
+      if (name === 'unnest' || name === 'same-stage unnest') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [3, 4, 4, 4],
           `${name} and both consumers publish complete retained outputs`,
+        );
+      }
+      if (name === 'unnest/filter chain') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [3, 4, 2, 2, 2],
+          'bounded unnest and filter feed two actual computations',
+        );
+      }
+      if (name === 'nest then unnest/filter') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [4, 3, 4, 2, 2, 2],
+          'the unsplit bounded unnest chain feeds two real computations',
         );
       }
       if (name === 'nest') {
@@ -5448,17 +6747,24 @@ async function exerciseStrategyGraph(
           `${name} and both consumers publish complete retained outputs`,
         );
       }
-      if (name === 'json pick') {
+      if (name === 'json pick' || name === 'same-stage json pick') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 2, 2, 2],
           `${name} and both consumers publish complete retained outputs`,
         );
       }
+      if (name === 'same-stage json pick/filter') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 1, 1, 1],
+          `${name} filters picked rows before both consumers run`,
+        );
+      }
       if (name === 'full join') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
-          [7, 7, 7],
+          [3, 3, 4, 4, 7, 7, 7, 7, 7],
           `${name} and both consumers publish complete retained outputs`,
         );
       }
@@ -5469,10 +6775,17 @@ async function exerciseStrategyGraph(
           'dedupe and both consumers publish complete retained outputs',
         );
       }
+      if (name === 'dedupe/filter chain') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [4, 2, 1, 1, 1, 1],
+          'bounded dedupe and filter feed two actual computations',
+        );
+      }
       if (name === 'global top k' || name === 'partitioned top k') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
-          [4, 2, 2, 2],
+          [4, 4, 2, 2, 2],
           `${name} and both consumers publish complete retained outputs`,
         );
       }
@@ -5484,6 +6797,1272 @@ async function exerciseStrategyGraph(
     assert.equal(await zeroInputExecution.cleanup(), true);
     assert.equal(zeroInputExecution.usage().heldBytes, 0n);
     assert.equal(zeroInputExecution.usage().reservedExecutionBytes, 0n);
+  }
+  // The same bounded binary chain reaches formal publication and retrieval,
+  // not just a private completion or a row-count assertion.
+  for (const equalityPublicationCase of [{
+    name: 'bounded-join-publication',
+    program: structuredClone(boundedEqualityJoinProgram),
+    stage: 'crossed',
+    tasks: 5,
+    expected: [{id: 1, tag: 'a'}, {id: 1, tag: 'b'}, {id: 2, tag: 'c'}],
+  }, {
+    name: 'same-stage-keyed-count-publication',
+    program: structuredClone(sameStageKeyedCountProgram),
+    stage: 'group_a',
+    tasks: 5,
+    expected: [{id: null, n: 1, present: 0}],
+  }, {
+    name: 'append-filter-publication',
+    program: structuredClone(appendFilterProgram),
+    stage: 'append_a',
+    tasks: 5,
+    expected: [{id: 2}],
+  }, {
+    name: 'same-stage-full-join-publication',
+    program: structuredClone(joinProgram),
+    stage: 'joined',
+    tasks: 9,
+    expected: [
+      {id: 1, l: 'l1', r: 'r1'}, {id: 1, l: 'l1', r: 'r2'},
+      {id: 1, l: 'l2', r: 'r1'}, {id: 1, l: 'l2', r: 'r2'},
+      {id: 2, l: 'l3', r: null},
+      {id: null, l: null, r: 'r3'}, {id: null, l: null, r: 'r4'},
+    ],
+  }]) {
+    const equalityPublicationProgram = equalityPublicationCase.program;
+    equalityPublicationProgram.results = {
+      joined: {from: {stage: equalityPublicationCase.stage, result: 'r'}},
+    };
+    const equalityPublicationFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(equalityPublicationProgram));
+    const equalityPublicationCapture = await runNativeHostQuery(
+      grant, fixture.strategyFixtureAcquisition(equalityPublicationFixture),
+      suppliedLimits);
+    const equalityPublicationDirectory = await mkdtemp(join(
+      root, '_build/duckdb-fixtures/bounded-join-publication-'));
+    let equalityPublicationOwner;
+    let equalityPublicationStore;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        equalityPublicationFixture, equalityPublicationCapture.source()), true);
+      const setup = fixture.strategyFixtureModuleSubset(
+        equalityPublicationFixture, 0);
+      const runtime = runtimeCore(hostRuntime);
+      equalityPublicationStore = await openLocalPublicationStore({
+        directory: equalityPublicationDirectory,
+        storeAuthorityCid: hash('bounded-join-publication-store'),
+        capacityBytes: 4 * 1024 * 1024,
+        maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+        maxObjects: 100,
+        maxContractNodes: 10000,
+        maxContractDepth: 64,
+      }, runtime.publicationControl);
+      const plan = standardPublicationPlan(
+        runtime, runtime.programDefinitionCid(setup),
+        runtime.resultInventory(setup).length, equalityPublicationCase.name);
+      equalityPublicationOwner = await runPublishedCapturedStrategy(
+        setup, {store: equalityPublicationStore, plan}, {},
+        new AbortController().signal);
+      assert.equal(equalityPublicationOwner.status, 'published');
+      assert.deepEqual(equalityPublicationOwner.execution.completed.map(
+        value => value.realization),
+      Array(equalityPublicationCase.tasks).fill('local-managed'));
+      const occurrence =
+        equalityPublicationOwner.execution.publicationInventory.occurrences[0];
+      const received = [];
+      await equalityPublicationStore.consumeCommittedResult({
+        tenantId: plan.request.tenantId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, occurrence.definitionContract.identity, () => true,
+      chunk => received.push(Buffer.from(chunk)));
+      assert.deepEqual(JSON.parse(Buffer.concat(received).toString('utf8')),
+        equalityPublicationCase.expected);
+    } finally {
+      if (equalityPublicationOwner !== undefined) {
+        await equalityPublicationOwner.close();
+        assert.equal(await equalityPublicationOwner.cleanup(), true);
+        assert.equal(equalityPublicationOwner.cleanupPending(), false);
+        assert.equal(equalityPublicationOwner.execution.usage().heldBytes, 0n);
+        assert.equal(equalityPublicationOwner.execution.usage()
+          .reservedExecutionBytes, 0n);
+      }
+      equalityPublicationCapture.close();
+      await equalityPublicationStore?.close();
+      await rm(equalityPublicationDirectory, {recursive: true, force: true});
+    }
+  }
+  const retainedManagedRoot = await mkdtemp(join(
+    root, '_build/duckdb-fixtures/local-retained-managed-',
+  ));
+  const retainedManagedConfig = {
+    parentDirectory: retainedManagedRoot,
+    maxFrameBytes: 4096,
+    wire: {
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 64,
+      max_columns: 10,
+      max_order_work: 10000,
+    },
+  };
+  try {
+    for (const [name, program, expectedRows] of [
+      ['filter/select', capturedRelationChainProgram, [2, 2, 2]],
+      ['dedupe/filter', dedupeFilterProgram, [4, 2, 1, 1, 1, 1]],
+      ['count/filter', capturedCountChainProgram, [1, 1, 1]],
+      ['unpivot/filter', capturedUnpivotChainProgram, [2, 2, 2]],
+    ]) {
+      const f = fixture.strategyFixtureAccounted(
+        fixture.strategyFixtureCreate(...args, JSON.stringify(program)),
+      );
+      const capture = await runRetainedStrategyNativeHostQuery(
+        grant,
+        fixture.strategyFixtureAcquisition(f),
+        fixture.strategyFixtureLedger(f),
+        suppliedLimits,
+        retainedManagedConfig,
+      );
+      let execution;
+      try {
+        assert.equal(fixture.strategyFixtureAttach(
+          f, capture.openDAG(fixture.strategyFixtureGraph(f)),
+        ), true);
+        execution = await runCapturedInternalStrategy(
+          fixture.strategyFixtureModuleSubset(f, 0),
+          {duckdb: new Proxy({}, {
+            get() { assert.fail('unused DuckDB settings accessed'); },
+          })},
+        );
+        assert.equal(execution.status, 'host-tasks-completed',
+          `${name}: ${String(execution.failure)}`);
+        assert.deepEqual(
+          execution.completed.map(item => item.realization),
+          Array(expectedRows.length).fill('local-managed'),
+          `${name}: retained capture and both consumers use bounded Local`,
+        );
+        assert.deepEqual(
+          execution.completed.map(item => item.outputRows),
+          expectedRows,
+        );
+      } finally {
+        await execution?.close();
+        capture.close();
+        await capture.cleanupHandle.retry();
+      }
+      assert.equal(execution.cleanupPending(), false);
+      assert.equal(await execution.cleanup(), true);
+      assert.equal(execution.usage().heldBytes, 0n);
+      assert.equal(execution.usage().reservedExecutionBytes, 0n);
+      assert.equal(capture.cleanupHandle.status().pending, false);
+    }
+    assert.deepEqual(await readdir(retainedManagedRoot), []);
+  } finally {
+    await rm(retainedManagedRoot, {recursive: true, force: true});
+  }
+  for (const {name: cancellationName, program: cancellationProgram} of [
+    {name: 'external-cross-join-in-flight', program: externalCrossJoinProgram},
+    {name: 'external-cross-join-empty-right-admission',
+      program: externalCrossJoinProgram},
+    {name: 'split-external-cross-join-in-flight', program: splitCrossJoinProgram},
+    {name: 'external-append-in-flight', program: externalAppendProgram},
+    {name: 'direct-cross-join-in-flight', program: directCrossJoinProgram},
+    {name: 'direct-append-in-flight', program: appendProgram},
+  ]) {
+    const externalCrossJoinCancellationCase = {name: cancellationName};
+    const cancellableCrossJoinProgram = structuredClone(cancellationProgram);
+    const appendCancellation = cancellationName.includes('append');
+    const directCancellation = cancellationName.startsWith('direct-');
+    const emptyRightAdmission = cancellationName ===
+      'external-cross-join-empty-right-admission';
+    const sourceRows = emptyRightAdmission ? 100 :
+      appendCancellation && !directCancellation ? 49 : 10;
+    const directStage = appendCancellation ? 'append_a' : 'crossed';
+    const leftValues = directCancellation
+      ? cancellableCrossJoinProgram.stages.find(
+        stage => stage.id === directStage).steps[0].values
+      : cancellableCrossJoinProgram.stages.find(
+        stage => stage.id === 'cross_left').steps[0].values;
+    const rightValues = directCancellation
+      ? cancellableCrossJoinProgram.stages.find(
+        stage => stage.id === directStage).steps[1].values
+      : cancellableCrossJoinProgram.stages.find(
+        stage => stage.id === 'cross_right').steps[0].values;
+    leftValues.rows = Array.from(
+      {length: sourceRows},
+      (_, index) => ({id: index}),
+    );
+    rightValues.rows = Array.from(
+      {length: emptyRightAdmission ? 0 : sourceRows},
+      (_, index) => appendCancellation
+        ? {id: index + 10} : {tag: `tag${index}`},
+    );
+    const crossJoinCancellationFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(cancellableCrossJoinProgram),
+    );
+    const crossJoinCancellationCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(crossJoinCancellationFixture),
+      suppliedLimits,
+    );
+    const crossJoinCancellation = new AbortController();
+    let crossJoinCancellationExecution;
+    let crossJoinManagedStarts = 0;
+    let crossJoinPairProgress = 0n;
+    let crossJoinAdmissionWork = 0n;
+    let crossJoinCancellationScheduled = false;
+    let crossJoinCancellationDeliveredAt;
+    let crossJoinStopObservedAt;
+    crossJoinCancellation.signal.addEventListener('abort', () => {
+      crossJoinCancellationDeliveredAt = performance.now();
+    }, {once: true});
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        crossJoinCancellationFixture,
+        crossJoinCancellationCapture.source(),
+      ), true);
+      const setup = fixture.strategyFixtureModuleSubset(
+        crossJoinCancellationFixture, 0,
+      );
+      const observedRuntime = new Proxy(hostRuntime, {
+        get(target, property, receiver) {
+          if (property !== 'strategyModule_local_ManagedStart') {
+            return Reflect.get(target, property, receiver);
+          }
+          return configuration => {
+            const start = ++crossJoinManagedStarts;
+            const execution = checked(
+              target.strategyModule_local_ManagedStart(configuration),
+            );
+            const observed = new Proxy(execution, {
+              get(operation, name, operationReceiver) {
+                if (name === 'execution_stopped') {
+                  return () => {
+                    const stopped = operation.execution_stopped();
+                    if (stopped && crossJoinCancellation.signal.aborted &&
+                        crossJoinStopObservedAt === undefined) {
+                      crossJoinStopObservedAt = performance.now();
+                    }
+                    return stopped;
+                  };
+                }
+                if (name !== 'advance') {
+                  return Reflect.get(operation, name, operationReceiver);
+                }
+                return quantum => {
+                  const actualQuantum = appendCancellation &&
+                    directCancellation ? Math.min(quantum, 7) : quantum;
+                  const result = operation.advance(actualQuantum);
+                  const observation = checked(result);
+                  if (start === 3) {
+                    assert(observation.work <= BigInt(actualQuantum));
+                  }
+                  if (start === 3 && observation?.complete === false &&
+                      observation.work > 0n &&
+                      (emptyRightAdmission || observation.progress > 0n)) {
+                    if (emptyRightAdmission) {
+                      crossJoinAdmissionWork += observation.work;
+                    } else {
+                      crossJoinPairProgress += observation.progress;
+                    }
+                    if (!crossJoinCancellationScheduled) {
+                      crossJoinCancellationScheduled = true;
+                      setTimeout(() => crossJoinCancellation.abort(), 0);
+                    }
+                  }
+                  return result;
+                };
+              },
+            });
+            return {$tag: 1, _0: observed};
+          };
+        },
+      });
+      crossJoinCancellationExecution = await runInstalledStrategy(
+        setup,
+        runtimeCore(hostRuntime),
+        [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+        crossJoinCancellation.signal,
+      );
+      assert.equal(crossJoinManagedStarts, 3);
+      assert.equal(
+        emptyRightAdmission
+          ? crossJoinAdmissionWork > 0n && crossJoinPairProgress === 0n
+          : crossJoinPairProgress > 0n,
+        true,
+        `${externalCrossJoinCancellationCase.name}: ` +
+          'kernel work must precede abort',
+      );
+      assert.equal(crossJoinCancellation.signal.aborted, true);
+      assert.equal(Number.isFinite(crossJoinCancellationDeliveredAt), true);
+      assert.equal(Number.isFinite(crossJoinStopObservedAt), true);
+      assert(crossJoinStopObservedAt >= crossJoinCancellationDeliveredAt);
+      assert.equal(crossJoinCancellationExecution.status, 'host-tasks-failed');
+      assert.equal(crossJoinCancellationExecution.failure?.name, 'AbortError');
+      assert.deepEqual(
+        crossJoinCancellationExecution.completed.map(item => item.task),
+        [1, 2],
+        `${externalCrossJoinCancellationCase.name}: no partial cross output`,
+      );
+    } finally {
+      crossJoinCancellationCapture.close();
+      await crossJoinCancellationExecution?.close();
+      if (crossJoinCancellationExecution) {
+        let cleaned = false;
+        for (let attempt = 0; attempt < 3 && !cleaned; attempt++) {
+          cleaned = await crossJoinCancellationExecution.cleanup();
+        }
+        assert.equal(cleaned, true);
+        assert.equal(crossJoinCancellationExecution.cleanupPending(), false);
+        assert.equal(crossJoinCancellationExecution.usage().heldBytes, 0n);
+        assert.equal(
+          crossJoinCancellationExecution.usage().reservedExecutionBytes,
+          0n,
+        );
+      }
+    }
+  }
+  // Retained Store Local: every task runs through the retained-output driver,
+  // whose computation is the bounded provider advanced in quanta. A completed
+  // run publishes retained files read by two consumers; an abort during the
+  // sort is observed between advances, stops the provider and never reaches
+  // the Store for that task.
+  for (const cancel of [false, true]) {
+    // The retained lane serves Local tasks that read captured inputs and carry
+    // only its admitted obligations (no zero-input Values, no cross product).
+    const retainedProgram = JSON.parse(program);
+    retainedProgram.stages.splice(1, 3, stage('retained_rows', 'a', 'id > 0'), {
+      id: 'retained_sorted',
+      inputs: {x: {result: {stage: 'retained_rows', result: 'r'}}},
+      steps: [{sort: [{id: 'desc'}], as: 'out'}],
+      results: {r: {from: 'out', fields: ['id']}},
+    }, ...['a', 'b'].map(id => ({
+      id: `retained_consumer_${id}`,
+      inputs: {x: {result: {stage: 'retained_sorted', result: 'r'}}},
+      steps: [{select: ['id'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['id']}},
+    })));
+    retainedProgram.results = {
+      a: {from: {stage: 'retained_consumer_a', result: 'r'}},
+      b: {from: {stage: 'retained_consumer_b', result: 'r'}},
+    };
+    await replaceRows(`INSERT INTO records VALUES ${Array.from({length: 9},
+      (_, index) => `(${index + 2},${index})`).join(',')}`);
+    const retainedFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(retainedProgram));
+    const retainedCapture = await runNativeHostQuery(grant,
+      fixture.strategyFixtureAcquisition(retainedFixture), suppliedLimits);
+    const retainedDirectory = await mkdtemp(join(tmpdir(), 'actql-retained-local-'));
+    const store = await createLocalRetainedStore({parentDirectory: retainedDirectory,
+      capacityBytes: 8 * 1024 * 1024, maxFrameBytes: 1024 * 1024});
+    const leased = [];
+    const configuration = installLocalRetainedStore((key, bytes) => {
+      leased.push(key);
+      let writer, closed = false;
+      return Object.freeze({
+        status: () => ({reservedBytes: writer && !closed ? bytes : 0,
+          cleanupPending: false}),
+        reserve: value => (writer = store.reserve(value)),
+        close() { closed = true; writer?.cancel(); },
+        async cleanup() { await writer?.cleanupHandle?.retry?.(); },
+      });
+    });
+    const controller = new AbortController();
+    const advances = new Map();
+    let starts = 0, scheduled = false, stoppedAfterAbort = false;
+    const observedRuntime = new Proxy(hostRuntime, {
+      get(target, property, receiver) {
+        if (property !== 'strategyModule_local_Dispatch') {
+          return Reflect.get(target, property, receiver);
+        }
+        return (setup, task) => {
+          const start = ++starts;
+          const operations = checked(target.strategyModule_local_Dispatch(setup, task));
+          return {$tag: 1, _0: new Proxy(operations, {
+            get(operation, name, operationReceiver) {
+              if (name === 'execute') assert.fail('retained Local ran synchronously');
+              if (name === 'execution_stopped') {
+                return () => {
+                  const stopped = operation.execution_stopped();
+                  if (stopped && controller.signal.aborted) stoppedAfterAbort = true;
+                  return stopped;
+                };
+              }
+              if (name !== 'advance') return Reflect.get(operation, name, operationReceiver);
+              // A small quantum makes the fixture-sized sort span advances.
+              return quantum => {
+                const result = operation.advance(Math.min(quantum, 4));
+                const observation = checked(result);
+                advances.set(start, (advances.get(start) ?? 0) + 1);
+                if (cancel && start === 2 && observation.complete === false &&
+                    observation.progress > 0n && !scheduled) {
+                  scheduled = true;
+                  setTimeout(() => controller.abort(), 0);
+                }
+                return result;
+              };
+            },
+          })};
+        };
+      },
+    });
+    let execution;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(retainedFixture, retainedCapture.source()), true);
+      const setup = fixture.strategyFixtureRetainedLocalSubset(retainedFixture);
+      execution = await runInstalledStrategy(setup, runtimeCore(hostRuntime),
+        [localStrategyContribution(observedRuntime, setup, checked, configuration)],
+        controller.signal);
+      if (cancel) {
+        assert.equal(execution.status, 'host-tasks-failed');
+        assert.equal(execution.failure?.name, 'AbortError');
+        assert.equal(stoppedAfterAbort, true);
+        assert.deepEqual(execution.completed.map(item => item.task), [1]);
+        assert.deepEqual(leased, ['task-1']);
+      } else {
+        assert.equal(execution.status, 'host-tasks-completed', String(execution.failure));
+        assert.deepEqual(execution.completed.map(item => item.realization),
+          Array(4).fill('local'));
+        assert(execution.completed.every(item =>
+          item.outputRepresentation === 'retained-file'));
+        assert.deepEqual(execution.completed.map(item => item.exportedRows),
+          [9, 9, 9, 9]);
+        assert.equal(leased.length, 4);
+        // Both consumers publish the sorted rows: exact content, order and
+        // no duplicates against an independently built expectation.
+        const sorted = hash(Array.from({length: 9}, (_, index) => ({id: 10 - index})));
+        for (const task of [2, 3, 4]) {
+          assert.equal(fixture.strategyFixtureCid(retainedFixture, task), sorted,
+            `retained task ${task}`);
+        }
+      }
+      // The sort ran over several bounded advances.
+      assert((advances.get(2) ?? 0) > 1, JSON.stringify([...advances]));
+    } finally {
+      retainedCapture.close();
+      await execution?.close();
+    }
+    let cleaned = false;
+    for (let attempt = 0; attempt < 3 && !cleaned; attempt++) {
+      cleaned = await execution.cleanup();
+    }
+    assert.equal(cleaned, true);
+    assert.equal(execution.cleanupPending(), false);
+    assert.equal(execution.usage().heldBytes, 0n);
+    assert.equal(execution.usage().reservedExecutionBytes, 0n);
+    store.close();
+    await store.cleanup();
+    await rm(retainedDirectory, {recursive: true, force: true});
+  }
+  await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
+  const copyCancellationCase = {
+    name: 'same-stage-distinct-in-flight',
+  };
+  const copyCancellationProgram = structuredClone(unrestrictedCrossJoinProgram);
+  copyCancellationProgram.stages.find(stage =>
+    stage.id === 'crossed').steps[2].values.rows = Array.from(
+    {length: 40}, (_, index) => ({tag: `tag${index}`}),
+  );
+  const copyCancellationFixture = fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(copyCancellationProgram),
+  );
+  const copyCancellationCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(copyCancellationFixture),
+    suppliedLimits,
+  );
+  const copyCancellation = new AbortController();
+  let copyCancellationExecution;
+  let copyManagedStarts = 0;
+  let copyProgress = 0n;
+  let copyCancelScheduled = false;
+  let copyCancelDeliveredAt;
+  let copyStopObservedAt;
+  copyCancellation.signal.addEventListener('abort', () => {
+    copyCancelDeliveredAt = performance.now();
+  }, {once: true});
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      copyCancellationFixture, copyCancellationCapture.source(),
+    ), true);
+    const setup = fixture.strategyFixtureModuleSubset(
+      copyCancellationFixture, 0,
+    );
+    const observedRuntime = new Proxy(hostRuntime, {
+      get(target, property, receiver) {
+        if (property !== 'strategyModule_local_ManagedStart') {
+          return Reflect.get(target, property, receiver);
+        }
+        return configuration => {
+          const start = ++copyManagedStarts;
+          const operation = checked(
+            target.strategyModule_local_ManagedStart(configuration),
+          );
+          const observed = new Proxy(operation, {
+            get(active, name, operationReceiver) {
+              if (name === 'execution_stopped') {
+                return () => {
+                  const stopped = active.execution_stopped();
+                  if (stopped && copyCancellation.signal.aborted &&
+                      copyStopObservedAt === undefined) {
+                    copyStopObservedAt = performance.now();
+                  }
+                  return stopped;
+                };
+              }
+              if (name !== 'advance') {
+                return Reflect.get(active, name, operationReceiver);
+              }
+              return quantum => {
+                const result = active.advance(quantum);
+                const poll = checked(result);
+                if (start === 4) {
+                  assert(poll.work <= BigInt(quantum));
+                  if (poll.complete === false && poll.work > 0n) {
+                    copyProgress += poll.work;
+                    if (!copyCancelScheduled) {
+                      copyCancelScheduled = true;
+                      setTimeout(() => copyCancellation.abort(), 0);
+                    }
+                  }
+                }
+                return result;
+              };
+            },
+          });
+          return {$tag: 1, _0: observed};
+        };
+      },
+    });
+    copyCancellationExecution = await runInstalledStrategy(
+      setup,
+      runtimeCore(hostRuntime),
+      [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+      copyCancellation.signal,
+    );
+    assert(copyProgress > 0n,
+      `${copyCancellationCase.name}: distinct work must start before cancel`);
+    assert.equal(copyCancellation.signal.aborted, true);
+    assert.equal(Number.isFinite(copyCancelDeliveredAt), true);
+    assert.equal(Number.isFinite(copyStopObservedAt), true);
+    assert(copyStopObservedAt >= copyCancelDeliveredAt);
+    assert.equal(copyCancellationExecution.status, 'host-tasks-failed');
+    assert.equal(copyCancellationExecution.failure?.name, 'AbortError');
+    assert.deepEqual(
+      copyCancellationExecution.completed.map(item => item.task),
+      [1, 2, 3], 'partial distinct output must not publish',
+    );
+  } finally {
+    copyCancellationCapture.close();
+    await copyCancellationExecution?.close();
+    if (copyCancellationExecution) {
+      assert.equal(await copyCancellationExecution.cleanup(), true);
+      assert.equal(copyCancellationExecution.cleanupPending(), false);
+      assert.equal(copyCancellationExecution.usage().heldBytes, 0n);
+      assert.equal(copyCancellationExecution.usage().reservedExecutionBytes, 0n);
+    }
+  }
+  for (const ordinaryUnaryCase of [
+    {name: 'ordinary-select-in-flight', kind: 'select'},
+    {name: 'ordinary-rename-in-flight', kind: 'rename'},
+    {name: 'ordinary-drop-in-flight', kind: 'drop'},
+    {name: 'ordinary-filter-in-flight', kind: 'filter'},
+    {name: 'ordinary-derive-in-flight', kind: 'derive'},
+    {name: 'ordinary-assert-where-in-flight', kind: 'assert-where'},
+    {name: 'ordinary-assert-unique-in-flight', kind: 'assert-unique'},
+    {name: 'ordinary-sort-in-flight', kind: 'sort'},
+    {name: 'ordinary-distinct-in-flight', kind: 'distinct'},
+    {name: 'ordinary-dedupe-in-flight', kind: 'dedupe'},
+    {name: 'ordinary-global-top-k-in-flight', kind: 'top-k'},
+    {name: 'ordinary-partitioned-top-k-in-flight', kind: 'top-k-by'},
+    {name: 'ordinary-take-in-flight', kind: 'take'},
+    {name: 'ordinary-pivot-in-flight', kind: 'pivot'},
+    {name: 'ordinary-analytic-in-flight', kind: 'analytic'},
+    {name: 'ordinary-window-group-in-flight', kind: 'window-group'},
+    {name: 'ordinary-row-window-in-flight', kind: 'row-window'},
+    {name: 'ordinary-unpivot-in-flight', kind: 'unpivot'},
+    {name: 'ordinary-json-pick-in-flight', kind: 'json-pick'},
+    {name: 'ordinary-unnest-in-flight', kind: 'unnest'},
+  ]) {
+    const ordinaryUnaryProgram = structuredClone(selectProgram);
+    const hasPreliminary = ordinaryUnaryCase.kind === 'top-k' ||
+      ordinaryUnaryCase.kind === 'top-k-by';
+    const source = ordinaryUnaryProgram.stages.find(stage =>
+      stage.id === 'select_values');
+    source.steps[0].values.rows = Array.from(
+      {length: 80}, (_, index) => ({
+        id: index + 1,
+        amount: index,
+        ...(ordinaryUnaryCase.kind === 'top-k-by' ||
+          ordinaryUnaryCase.kind === 'pivot'
+          ? {group: index % 2 === 0 ? 'a' : 'b'} : {}),
+        ...(ordinaryUnaryCase.kind === 'json-pick'
+          ? {payload: {inner: {leaf: index}}} : {}),
+        ...(ordinaryUnaryCase.kind === 'unnest'
+          ? {items: [index, index + 1]} : {}),
+      }),
+    );
+    if (ordinaryUnaryCase.kind === 'json-pick') {
+      source.steps[0].values.schema.payload = {type: 'object', nullable: false,
+        fields: {inner: {type: 'object', nullable: false,
+          fields: {leaf: {type: 'number', nullable: false}}}}};
+      source.results.r.fields = ['id', 'amount', 'payload'];
+    }
+    if (ordinaryUnaryCase.kind === 'unnest') {
+      source.steps[0].values.schema.items = {type: 'array', nullable: false,
+        items: {type: 'number', nullable: false}, max_items: 2};
+      source.results.r.fields = ['id', 'amount', 'items'];
+    }
+    if (ordinaryUnaryCase.kind === 'top-k-by' ||
+        ordinaryUnaryCase.kind === 'pivot') {
+      source.steps[0].values.schema.group = {type: 'string', nullable: false};
+      source.results.r.fields = ['id', 'amount', 'group'];
+    }
+    if (ordinaryUnaryCase.kind !== 'select') {
+      const unary = ordinaryUnaryProgram.stages.find(stage =>
+        stage.id === 'selected');
+      const unaryStep = {
+        filter: {filter: 'id > 0', as: 'out'},
+        rename: {rename: {amount: 'total'}, as: 'out'},
+        drop: {drop: ['amount'], as: 'out'},
+        derive: {derive: {next: 'id + 1'}, as: 'out'},
+        'assert-where': {assert_rows: {where: 'id > 0'}, as: 'out'},
+        'assert-unique': {assert_rows: {unique_by: ['id']}, as: 'out'},
+        sort: {sort: [{id: 'desc'}], as: 'out'},
+        distinct: {distinct: true, as: 'out'},
+        dedupe: {dedupe_rows: {
+          by: ['id'], order_by: [{amount: 'desc'}],
+        }, as: 'out'},
+        'top-k': {top_k: {k: 60, by: [{id: 'desc'}]}, as: 'out'},
+        'top-k-by': {top_k_by: {
+          partition_by: ['group'], k: 30, by: [{id: 'desc'}],
+        }, as: 'out'},
+        take: {take: 60, as: 'out'},
+        pivot: {pivot: {
+          index: ['id'], column: 'group', values: ['a', 'b'],
+          value: 'amount', aggregate: 'max',
+        }, as: 'out'},
+        analytic: {analytic: {
+          partition_by: [], order_by: [{id: 'asc'}],
+          frame: {start: 'unbounded_preceding', end: 'current_row'},
+          functions: {n: {fn: 'count', field: 'amount'}},
+        }, as: 'out'},
+        'row-window': {row_window: {kind: 'fixed', time: 'id', size: 10}, as: 'out'},
+        unpivot: {unpivot: {
+          columns: ['amount'], keep: ['id'],
+          name_column: 'metric', value_column: 'value',
+        }, as: 'out'},
+        'json-pick': {json_pick: {
+          column: 'payload', path: ['inner', 'leaf'], output: 'picked',
+        }, as: 'out'},
+        unnest: {unnest: {column: 'items', as: 'item', outer: false}, as: 'out'},
+        'window-group': [
+          {row_window: {kind: 'fixed', time: 'id', size: 10}, as: 'windowed'},
+          {from: 'windowed', window_group: {by: [], aggregates: {
+            lowest: {fn: 'min', field: 'amount'},
+          }}, as: 'out'},
+        ],
+      }[ordinaryUnaryCase.kind];
+      unary.steps = hasPreliminary
+        ? [
+          {assert_rows: {unique_by: ['id']}, as: 'unique'},
+          {from: 'unique', ...unaryStep},
+        ]
+        : Array.isArray(unaryStep) ? unaryStep : [unaryStep];
+      const fields = ordinaryUnaryCase.kind === 'derive'
+        ? ['id', 'amount', 'next']
+        : ordinaryUnaryCase.kind === 'rename' ? ['id', 'total']
+          : ordinaryUnaryCase.kind === 'drop' ? ['id']
+            : ordinaryUnaryCase.kind === 'top-k-by'
+              ? ['id', 'amount', 'group']
+            : ordinaryUnaryCase.kind === 'pivot' ? ['a', 'b', 'id']
+            : ordinaryUnaryCase.kind === 'analytic'
+              ? ['amount', 'id', 'n']
+            : ordinaryUnaryCase.kind === 'window-group'
+              ? ['lowest', 'window_end', 'window_start']
+            : ordinaryUnaryCase.kind === 'row-window'
+              ? ['amount', 'id', 'window_end', 'window_start']
+            : ordinaryUnaryCase.kind === 'unpivot' ? ['id', 'metric', 'value']
+            : ordinaryUnaryCase.kind === 'json-pick'
+              ? ['amount', 'id', 'payload', 'picked']
+            : ordinaryUnaryCase.kind === 'unnest'
+              ? ['amount', 'id', 'item', 'items']
+            : ['id', 'amount'];
+      unary.results.r.fields = fields;
+      for (const consumer of ordinaryUnaryProgram.stages.filter(stage =>
+        stage.id.startsWith('select_consumer_'))) {
+        consumer.steps[0].select = fields;
+        consumer.results.r.fields = fields;
+      }
+    }
+    let ordinaryUnaryFixture;
+    try {
+      ordinaryUnaryFixture = fixture.strategyFixtureCreate(
+        ...(ordinaryUnaryCase.kind === 'analytic' ? analyticArgs : args),
+        JSON.stringify(ordinaryUnaryProgram),
+      );
+    } catch (error) {
+      throw new Error(`${ordinaryUnaryCase.name}: fixture rejected`, {cause: error});
+    }
+    const ordinaryUnaryCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(ordinaryUnaryFixture),
+      suppliedLimits,
+    );
+    const cancellation = new AbortController();
+    let execution;
+    let managedStarts = 0;
+    let progressAfterStart = 0n;
+    let deliveredAt;
+    let stoppedAt;
+    let scheduled = false;
+    cancellation.signal.addEventListener('abort', () => {
+      deliveredAt = performance.now();
+    }, {once: true});
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        ordinaryUnaryFixture, ordinaryUnaryCapture.source(),
+      ), true);
+      const setup = fixture.strategyFixtureModuleSubset(
+        ordinaryUnaryFixture, 0,
+      );
+      const observedRuntime = new Proxy(hostRuntime, {
+        get(target, property, receiver) {
+          if (property !== 'strategyModule_local_ManagedStart') {
+            return Reflect.get(target, property, receiver);
+          }
+          return configuration => {
+            const start = ++managedStarts;
+            const operation = checked(
+              target.strategyModule_local_ManagedStart(configuration),
+            );
+            const observed = new Proxy(operation, {
+              get(active, name, operationReceiver) {
+                if (name === 'execution_stopped') {
+                  return () => {
+                    const stopped = active.execution_stopped();
+                    if (stopped && cancellation.signal.aborted &&
+                        stoppedAt === undefined) {
+                      stoppedAt = performance.now();
+                    }
+                    return stopped;
+                  };
+                }
+                if (name !== 'advance') {
+                  return Reflect.get(active, name, operationReceiver);
+                }
+                return quantum => {
+                  const result = active.advance(quantum);
+                  const poll = checked(result);
+                  if (start === (hasPreliminary
+                    ? 3 : 2)) {
+                    assert(poll.work <= BigInt(quantum));
+                    if (poll.complete === false && poll.progress > 0n &&
+                        poll.work > 0n) {
+                      progressAfterStart += poll.progress;
+                      if (!scheduled) {
+                        scheduled = true;
+                        setTimeout(() => cancellation.abort(), 0);
+                      }
+                    }
+                  }
+                  return result;
+                };
+              },
+            });
+            return {$tag: 1, _0: observed};
+          };
+        },
+      });
+      execution = await runInstalledStrategy(
+        setup,
+        runtimeCore(hostRuntime),
+        [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+        cancellation.signal,
+      );
+      assert.equal(managedStarts,
+        hasPreliminary ? 3 : 2);
+      assert(progressAfterStart > 0n,
+        `${ordinaryUnaryCase.name}: row work must precede abort`);
+      assert.equal(cancellation.signal.aborted, true);
+      assert.equal(Number.isFinite(deliveredAt), true);
+      assert.equal(Number.isFinite(stoppedAt), true);
+      assert(stoppedAt >= deliveredAt);
+      assert.equal(execution.status, 'host-tasks-failed');
+      assert.equal(execution.failure?.name, 'AbortError');
+      assert.deepEqual(execution.completed.map(item => item.task),
+        hasPreliminary ? [1, 2] : [1]);
+    } finally {
+      ordinaryUnaryCapture.close();
+      await execution?.close();
+      if (execution) {
+        assert.equal(await execution.cleanup(), true);
+        assert.equal(execution.cleanupPending(), false);
+        assert.equal(execution.usage().heldBytes, 0n);
+        assert.equal(execution.usage().reservedExecutionBytes, 0n);
+      }
+    }
+  }
+  // Binary bounded operations: two external value inputs feed the operation
+  // stage, which is aborted after positive work at quantum one.
+  for (const binaryCase of [
+    {name: 'ordinary-except-in-flight', kind: 'except'},
+    {name: 'ordinary-intersect-in-flight', kind: 'intersect'},
+    {name: 'ordinary-nest-in-flight', kind: 'nest'},
+    {name: 'ordinary-equality-join-in-flight', kind: 'join'},
+  ]) {
+    const nest = binaryCase.kind === 'nest';
+    const join = binaryCase.kind === 'join';
+    const leftSchema = nest
+      ? {id: {type: 'number', nullable: false}, key: {type: 'number', nullable: false}}
+      : {id: {type: 'number', nullable: false}};
+    const rightSchema = nest
+      ? {key: {type: 'number', nullable: false}, value: {type: 'number', nullable: false}}
+      : {id: {type: 'number', nullable: false}};
+    const fields = nest ? ['id', 'items', 'key']
+      : join ? ['id', 'other'] : ['id'];
+    const binaryProgram = structuredClone(zeroInputProgram);
+    binaryProgram.stages.splice(1, 3, {
+      id: 'binary_left', inputs: {},
+      steps: [{values: {schema: leftSchema, rows: Array.from({length: 20},
+        (_, index) => nest ? {id: index, key: index % 5} : {id: index % 12})}, as: 'out'}],
+      results: {r: {from: 'out', fields: Object.keys(leftSchema)}},
+    }, {
+      id: 'binary_right', inputs: {},
+      steps: [{values: {schema: rightSchema, rows: Array.from({length: 20},
+        (_, index) => nest ? {key: index % 5, value: index} : {id: index % 8})}, as: 'out'}],
+      results: {r: {from: 'out', fields: Object.keys(rightSchema)}},
+    }, {
+      id: 'binary_op',
+      inputs: {l: {result: {stage: 'binary_left', result: 'r'}},
+        r: {result: {stage: 'binary_right', result: 'r'}}},
+      steps: [nest
+        ? {from: 'l', nest: {with: 'r', on: [{left: 'key', right: 'key'}],
+          into: 'items', fields: [{amount: 'value'}], max_items: 4}, as: 'out'}
+        : join
+          ? {from: 'l', join: {with: 'r', kind: 'inner',
+            on: [{left: 'id', right: 'id'}],
+            select: {id: 'left.id', other: 'right.id'}}, as: 'out'}
+          : {from: 'l', [binaryCase.kind]: {with: 'r', duplicates: 'all'}, as: 'out'}],
+      results: {r: {from: 'out', fields}},
+    }, ...['a', 'b'].map(id => ({
+      id: `binary_consumer_${id}`,
+      inputs: {x: {result: {stage: 'binary_op', result: 'r'}}},
+      steps: [{select: id === 'a' ? fields : [...fields].reverse(), as: 'out'}],
+      results: {r: {from: 'out', fields: id === 'a' ? fields : [...fields].reverse()}},
+    })));
+    binaryProgram.results = {
+      a: {from: {stage: 'binary_consumer_a', result: 'r'}},
+      b: {from: {stage: 'binary_consumer_b', result: 'r'}},
+    };
+    const binaryFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(binaryProgram));
+    const binaryCapture = await runNativeHostQuery(grant,
+      fixture.strategyFixtureAcquisition(binaryFixture), suppliedLimits);
+    const cancellation = new AbortController();
+    let execution, starts = 0, scheduled = false, workBeforeAbort = 0n;
+    let deliveredAt, stoppedAt;
+    cancellation.signal.addEventListener('abort', () => {
+      deliveredAt = performance.now();
+    }, {once: true});
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        binaryFixture, binaryCapture.source()), true);
+      const setup = fixture.strategyFixtureModuleSubset(binaryFixture, 0);
+      const observedRuntime = new Proxy(hostRuntime, {
+        get(target, property, receiver) {
+          if (property !== 'strategyModule_local_ManagedStart') {
+            return Reflect.get(target, property, receiver);
+          }
+          return configuration => {
+            const start = ++starts;
+            const operation = checked(
+              target.strategyModule_local_ManagedStart(configuration));
+            return {$tag: 1, _0: new Proxy(operation, {
+              get(active, name, operationReceiver) {
+                if (name === 'execution_stopped') {
+                  return () => {
+                    const stopped = active.execution_stopped();
+                    if (stopped && cancellation.signal.aborted &&
+                        stoppedAt === undefined) stoppedAt = performance.now();
+                    return stopped;
+                  };
+                }
+                if (name !== 'advance') {
+                  return Reflect.get(active, name, operationReceiver);
+                }
+                return quantum => {
+                  const step = start === 3 ? 1 : quantum;
+                  const result = active.advance(step);
+                  const poll = checked(result);
+                  if (start === 3) {
+                    assert(poll.work <= BigInt(step));
+                    if (poll.complete === false && poll.work > 0n) {
+                      workBeforeAbort += poll.work;
+                      if (!scheduled && workBeforeAbort >= 5n) {
+                        scheduled = true;
+                        setTimeout(() => cancellation.abort(), 0);
+                      }
+                    }
+                  }
+                  return result;
+                };
+              },
+            })};
+          };
+        },
+      });
+      execution = await runInstalledStrategy(setup, runtimeCore(hostRuntime),
+        [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+        cancellation.signal);
+      assert.equal(starts, 3, binaryCase.name);
+      assert(workBeforeAbort >= 5n, `${binaryCase.name}: work precedes abort`);
+      assert.equal(cancellation.signal.aborted, true);
+      assert.equal(Number.isFinite(deliveredAt), true);
+      assert.equal(Number.isFinite(stoppedAt), true);
+      assert(stoppedAt >= deliveredAt);
+      assert.equal(execution.status, 'host-tasks-failed');
+      assert.equal(execution.failure?.name, 'AbortError');
+      assert.deepEqual(execution.completed.map(item => item.task), [1, 2],
+        `${binaryCase.name}: no partial output`);
+    } finally {
+      binaryCapture.close();
+      await execution?.close();
+      if (execution) {
+        let cleaned = false;
+        for (let attempt = 0; attempt < 3 && !cleaned; attempt++) {
+          cleaned = await execution.cleanup();
+        }
+        assert.equal(cleaned, true);
+        assert.equal(execution.cleanupPending(), false);
+        assert.equal(execution.usage().heldBytes, 0n);
+        assert.equal(execution.usage().reservedExecutionBytes, 0n);
+      }
+    }
+  }
+  for (const {
+    name: cancellationName,
+    program: cancellationProgram,
+    cancelAtStart,
+  } of [
+    {name: 'captured-relation-chain-in-flight',
+      program: capturedRelationChainProgram, cancelAtStart: 1},
+    {name: 'equality-join-chain-in-flight',
+      program: boundedEqualityJoinProgram, cancelAtStart: 3},
+    {name: 'same-stage-full-join-in-flight',
+      program: joinProgram, cancelAtStart: 5},
+    {name: 'dedupe-filter-chain-in-flight',
+      program: dedupeFilterProgram, cancelAtStart: 2},
+    {name: 'captured-count-chain-in-flight',
+      program: capturedCountChainProgram, cancelAtStart: 1},
+    {name: 'captured-keyed-count-chain-in-flight',
+      program: capturedKeyedCountChainProgram, cancelAtStart: 1},
+    {name: 'captured-window-chain-in-flight',
+      program: capturedWindowChainProgram, cancelAtStart: 1},
+    {name: 'captured-unpivot-chain-in-flight',
+      program: capturedUnpivotChainProgram, cancelAtStart: 1},
+    {name: 'nest-output-unnest-chain-in-flight',
+      program: nestUnwrapProgram, cancelAtStart: 4},
+    {name: 'zero-input-values-in-flight', program: zeroInputProgram,
+      cancelAtStart: 2},
+    {name: 'split-values-in-flight', program: splitValuesProgram,
+      cancelAtStart: 2},
+    {name: 'split-values-select-in-flight',
+      program: splitValuesSelectProgram, cancelAtStart: 3},
+    {name: 'split-values-derive-in-flight',
+      program: splitValuesDeriveProgram, cancelAtStart: 3},
+    {name: 'split-values-take-in-flight',
+      program: splitValuesTakeProgram, cancelAtStart: 3},
+    {name: 'split-values-row-window-in-flight',
+      program: fixedRowWindowProgram, cancelAtStart: 2},
+    {name: 'global-count-in-flight',
+      program: globalCountProgram, cancelAtStart: 2},
+    {name: 'nested-global-count-in-flight',
+      program: nestedGlobalCountProgram, cancelAtStart: 2},
+    {name: 'group-count-in-flight',
+      program: groupProgram, cancelAtStart: 2},
+    {name: 'direct-group-in-flight',
+      program: directGroupProgram, cancelAtStart: 2},
+    {name: 'same-stage-global-count-in-flight',
+      program: sameStageGlobalCountProgram, cancelAtStart: 2},
+    {name: 'same-stage-count-if-in-flight',
+      program: sameStageCountIfProgram, cancelAtStart: 2},
+    {name: 'same-stage-keyed-count-in-flight',
+      program: sameStageKeyedCountProgram, cancelAtStart: 2},
+    {name: 'append-filter-in-flight',
+      program: appendFilterProgram, cancelAtStart: 3},
+    {name: 'filter-append-in-flight',
+      program: filterThenAppendProgram, cancelAtStart: 3},
+    {name: 'split-values-fixed-watermark-in-flight',
+      program: fixedWatermarkProgram, cancelAtStart: 2},
+    {name: 'split-values-prefix-watermark-in-flight',
+      program: prefixWatermarkProgram, cancelAtStart: 2},
+    {name: 'split-values-unpivot-in-flight',
+      program: unpivotProgram, cancelAtStart: 2},
+    {name: 'unpivot-filter-chain-in-flight',
+      program: unpivotFilterProgram, cancelAtStart: 3},
+    {name: 'split-values-unnest-in-flight',
+      program: unnestProgram, cancelAtStart: 2},
+    {name: 'unnest-filter-chain-in-flight',
+      program: unnestFilterProgram, cancelAtStart: 3},
+    {name: 'split-values-json-pick-in-flight',
+      program: jsonPickProgram, cancelAtStart: 2},
+    {name: 'same-stage-json-pick-filter-in-flight',
+      program: sameStageJsonFilterProgram, cancelAtStart: 3},
+    {name: 'split-values-assert-in-flight',
+      program: splitValuesAssertProgram, cancelAtStart: 3},
+    {name: 'split-values-unique-in-flight',
+      program: splitValuesUniqueProgram, cancelAtStart: 3},
+    {name: 'same-stage-lag-in-flight',
+      program: lagProgram, cancelAtStart: 3},
+    {name: 'split-values-sort-in-flight',
+      program: splitValuesSortTakeProgram, cancelAtStart: 3},
+    {name: 'separate-sort-in-flight',
+      program: separateSortTakeProgram, cancelAtStart: 3},
+    {name: 'long-selected-take-in-flight',
+      program: longSelectedSortTakeProgram, cancelAtStart: 3},
+    {name: 'separate-filter-sort-in-flight',
+      program: separateFilterSortTakeProgram, cancelAtStart: 4},
+    {name: 'chained-filter-sort-in-flight',
+      program: chainedFilterSortTakeProgram, cancelAtStart: 4},
+  ]) {
+    const valuesCancellationCase = {name: cancellationName};
+    const equalityJoinCancellation = cancellationName ===
+      'equality-join-chain-in-flight' || cancellationName ===
+      'same-stage-full-join-in-flight';
+    const cancellableValuesProgram = structuredClone(cancellationProgram);
+    const capturedRelationChainCancellation = cancellationName ===
+      'captured-relation-chain-in-flight' || cancellationName ===
+      'captured-count-chain-in-flight' || cancellationName ===
+      'captured-keyed-count-chain-in-flight' || cancellationName ===
+      'captured-window-chain-in-flight' || cancellationName ===
+      'captured-unpivot-chain-in-flight';
+    const nestUnwrapCancellation = cancellationName ===
+      'nest-output-unnest-chain-in-flight';
+    const dedupeFilterCancellation = cancellationName ===
+      'dedupe-filter-chain-in-flight';
+    const nestedCountCancellation = cancellationName ===
+      'nested-global-count-in-flight';
+    const longSelectedTakeCancellation = cancellationName ===
+      'long-selected-take-in-flight';
+    const rowWindowCancellation = cancellationName ===
+      'split-values-row-window-in-flight';
+    const sameStageGlobalCountCancellation = cancellationName ===
+      'same-stage-global-count-in-flight' || cancellationName ===
+      'same-stage-count-if-in-flight' || cancellationName ===
+      'same-stage-keyed-count-in-flight';
+    const globalCountCancellation = cancellationName ===
+      'global-count-in-flight' ||
+      nestedCountCancellation ||
+      cancellationName === 'group-count-in-flight' ||
+      cancellationName === 'direct-group-in-flight' ||
+      sameStageGlobalCountCancellation;
+    const watermarkCancellation = cancellationName ===
+      'split-values-fixed-watermark-in-flight' ||
+      cancellationName === 'split-values-prefix-watermark-in-flight';
+    const lagCancellation = cancellationName === 'same-stage-lag-in-flight';
+    const unpivotCancellation = cancellationName ===
+      'split-values-unpivot-in-flight' ||
+      cancellationName === 'unpivot-filter-chain-in-flight';
+    const unnestCancellation = cancellationName ===
+      'split-values-unnest-in-flight' ||
+      cancellationName === 'unnest-filter-chain-in-flight';
+    const jsonPickCancellation = cancellationName ===
+      'split-values-json-pick-in-flight';
+    const sameStageJsonFilterCancellation = cancellationName ===
+      'same-stage-json-pick-filter-in-flight';
+    const valuesStage = cancellableValuesProgram.stages.find(
+      stage => stage.id === (cancellationName === 'append-filter-in-flight'
+        ? 'append_source_0' : cancellationName === 'filter-append-in-flight'
+        ? 'append_source_1' : sameStageGlobalCountCancellation
+        ? 'group_a' : globalCountCancellation
+        ? 'group_values' : lagCancellation
+        ? 'lagged' : rowWindowCancellation
+        ? 'window_values' : watermarkCancellation
+          ? 'watermark_values' : unpivotCancellation
+          ? 'unpivot_values' : unnestCancellation
+            ? 'unnest_values' : jsonPickCancellation ||
+              sameStageJsonFilterCancellation
+              ? 'json_pick_values' : 'values_a'),
+    );
+    if (!capturedRelationChainCancellation && !nestUnwrapCancellation &&
+        !equalityJoinCancellation &&
+        !dedupeFilterCancellation &&
+        !longSelectedTakeCancellation) {
+      const reshapeFilterChain = cancellationName ===
+        'unpivot-filter-chain-in-flight' ||
+        cancellationName === 'unnest-filter-chain-in-flight';
+      valuesStage.steps[0].values.rows = nestedCountCancellation
+        ? [{id: 1, payload: Array(512).fill(1)}] : Array.from(
+      {length: reshapeFilterChain ? 24 : 80}, (_, index) => rowWindowCancellation
+        ? {at: index, id: index}
+        : lagCancellation
+          ? {amount: index, group: index % 2 ? 'a' : null, id: index}
+        : watermarkCancellation
+          ? {id: index, time: 100 - index}
+        : unpivotCancellation
+          ? {a: index, b: index + 1, id: index}
+          : unnestCancellation
+          ? {id: index, items: [index, index + 1]}
+          : jsonPickCancellation || sameStageJsonFilterCancellation
+            ? {id: index, payload: {inner: {leaf: index}}}
+        : cancellationName === 'same-stage-count-if-in-flight'
+          ? {flag: index % 3 === 0 ? null : index % 2 === 0}
+        : globalCountCancellation || cancellationName === 'append-filter-in-flight' ||
+            cancellationName === 'filter-append-in-flight'
+          ? {id: index}
+        : {id: index, label: `row${index}`});
+    }
+    const valuesCancellationFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(cancellableValuesProgram),
+    );
+    const valuesCancellationCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(valuesCancellationFixture),
+      suppliedLimits,
+    );
+    const valuesCancellation = new AbortController();
+    let valuesCancellationExecution;
+    let valuesManagedStarts = 0;
+    let valuesWorkObserved = false;
+    let nestedCountWork = 0n;
+    let splitKeyedCountWork = 0n;
+    let longSelectedTakeWork = 0n;
+    let valuesCancellationDeliveredAt;
+    let valuesStopObservedAt;
+    valuesCancellation.signal.addEventListener('abort', () => {
+      valuesCancellationDeliveredAt = performance.now();
+    }, {once: true});
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        valuesCancellationFixture, valuesCancellationCapture.source(),
+      ), true);
+      const setup = fixture.strategyFixtureModuleSubset(
+        valuesCancellationFixture, 0,
+      );
+      const observedRuntime = new Proxy(hostRuntime, {
+        get(target, property, receiver) {
+          if (property !== 'strategyModule_local_ManagedStart') {
+            return Reflect.get(target, property, receiver);
+          }
+          return configuration => {
+            const start = ++valuesManagedStarts;
+            const execution = checked(
+              target.strategyModule_local_ManagedStart(configuration),
+            );
+            const observed = new Proxy(execution, {
+              get(operation, name, operationReceiver) {
+                if (name === 'execution_stopped') {
+                  return () => {
+                    const stopped = operation.execution_stopped();
+                    if (stopped && valuesCancellation.signal.aborted &&
+                        valuesStopObservedAt === undefined) {
+                      valuesStopObservedAt = performance.now();
+                    }
+                    return stopped;
+                  };
+                }
+                if (name !== 'advance') {
+                  return Reflect.get(operation, name, operationReceiver);
+                }
+                return quantum => {
+                  const stepQuantum = (equalityJoinCancellation ||
+                    nestUnwrapCancellation ||
+                    longSelectedTakeCancellation) &&
+                    start === cancelAtStart ? 1 : start === cancelAtStart &&
+                    (capturedRelationChainCancellation ||
+                      dedupeFilterCancellation ||
+                      cancellationName === 'split-values-take-in-flight' ||
+                      rowWindowCancellation || globalCountCancellation ||
+                      watermarkCancellation ||
+                      lagCancellation ||
+                      unpivotCancellation ||
+                      unnestCancellation || jsonPickCancellation ||
+                      sameStageJsonFilterCancellation)
+                    ? Math.min(quantum, 7)
+                    : cancellationName === 'append-filter-in-flight' ||
+                      cancellationName === 'filter-append-in-flight'
+                      ? 1 : quantum;
+                  const result = operation.advance(stepQuantum);
+                  const observation = checked(result);
+                  if (cancellationName === 'nested-global-count-in-flight' &&
+                      start === cancelAtStart) {
+                    nestedCountWork += observation.work;
+                  }
+                  if (longSelectedTakeCancellation &&
+                      start === cancelAtStart) {
+                    longSelectedTakeWork += observation.work;
+                  }
+                  if (cancellationName === 'same-stage-keyed-count-in-flight' &&
+                      start === cancelAtStart) {
+                    splitKeyedCountWork += observation.work;
+                  }
+                  if (start === cancelAtStart) {
+                    assert(observation.work <= BigInt(stepQuantum));
+                  }
+                  if (start === cancelAtStart &&
+                      observation?.complete === false &&
+                      observation.work > 0n &&
+                      (!watermarkCancellation || observation.progress > 0n) &&
+                      (cancellationName !== 'nested-global-count-in-flight' ||
+                        nestedCountWork >= 100n) &&
+                      (cancellationName !== 'same-stage-keyed-count-in-flight' ||
+                        splitKeyedCountWork >= 100n) &&
+                      (!longSelectedTakeCancellation ||
+                        longSelectedTakeWork >= 10n) &&
+                      !valuesWorkObserved) {
+                    valuesWorkObserved = true;
+                    setTimeout(() => valuesCancellation.abort(), 0);
+                  }
+                  return result;
+                };
+              },
+            });
+            return {$tag: 1, _0: observed};
+          };
+        },
+      });
+      valuesCancellationExecution = await runInstalledStrategy(
+        setup,
+        runtimeCore(hostRuntime),
+        [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+        valuesCancellation.signal,
+      );
+      assert.equal(valuesManagedStarts, cancelAtStart,
+        longSelectedTakeCancellation
+          ? `${valuesCancellationCase.name}: ` +
+            `target work ${longSelectedTakeWork}`
+          : valuesCancellationCase.name);
+      assert.equal(valuesWorkObserved, true, valuesCancellationCase.name);
+      assert.equal(valuesCancellation.signal.aborted, true);
+      assert.equal(Number.isFinite(valuesCancellationDeliveredAt), true);
+      assert.equal(Number.isFinite(valuesStopObservedAt), true);
+      assert(valuesStopObservedAt >= valuesCancellationDeliveredAt);
+      assert.equal(valuesCancellationExecution.status, 'host-tasks-failed');
+      assert.equal(valuesCancellationExecution.failure?.name, 'AbortError');
+      assert.deepEqual(
+        valuesCancellationExecution.completed.map(item => item.task),
+        Array.from({length: cancelAtStart - 1}, (_, index) => index + 1),
+        'a bounded task cannot publish its partial output',
+      );
+    } finally {
+      valuesCancellationCapture.close();
+      await valuesCancellationExecution?.close();
+      if (valuesCancellationExecution) {
+        let cleaned = false;
+        for (let attempt = 0; attempt < 3 && !cleaned; attempt++) {
+          cleaned = await valuesCancellationExecution.cleanup();
+        }
+        assert.equal(cleaned, true);
+        assert.equal(valuesCancellationExecution.cleanupPending(), false);
+        assert.equal(valuesCancellationExecution.usage().heldBytes, 0n);
+        assert.equal(
+          valuesCancellationExecution.usage().reservedExecutionBytes,
+          0n,
+        );
+      }
+    }
   }
   // The runnable application reads user-supplied documents, not conformance
   // exports or test catalogs. Tests supply their own documents at its boundary.
@@ -5515,7 +8094,8 @@ async function exerciseStrategyGraph(
     for (const [fileWork, native, imports, expected] of [
       ['0', '1', undefined, ['duckdb', 'duckdb', 'duckdb']],
       ['100', '1', undefined, ['local', 'local', 'local']],
-      ['0', '5', '0', ['duckdb', 'duckdb', 'local']],
+      ['0', '5', '0', ['local-managed', 'local-managed',
+        'local-managed']],
     ]) {
       const beforeFiles = (await readdir(exampleDirectory)).sort();
       const evidenceRuntime = await import(pathToFileURL(join(root, '_build/js/release/build/retained_host_bridge/retained_host_bridge.js')));
@@ -5544,7 +8124,10 @@ async function exerciseStrategyGraph(
       try {
         assert.equal(result.report.status, 'host-tasks-completed');
         assert.deepEqual(result.report.completed.map(item => item.realization), expected);
-        assert.equal(result.report.internal_output_cids[2].cid, hash([{id: 3}, {id: 3}]));
+        if (expected[2] !== 'local-managed') {
+          assert.equal(result.report.internal_output_cids[2].cid,
+            hash([{id: 3}, {id: 3}]));
+        }
         assert.deepEqual(observed.map(value => value.task), result.report.completed.map(value => value.task));
         for (const record of observed) {
           if (record.descriptor) {
@@ -5560,7 +8143,7 @@ async function exerciseStrategyGraph(
               record.descriptor.rows_cid);
           }
         }
-        if (imports !== undefined) {
+        if (imports !== undefined && expected[2] === 'local') {
           assert.equal(result.report.completed[2].importedRows, 2);
           assert.equal(result.report.completed[2].importedBytes, '19');
         }
@@ -5675,27 +8258,35 @@ async function exerciseStrategyGraph(
       ['20', false, ['local', 'local', 'local', 'local']],
       ['1', false, ['duckdb', 'duckdb', 'duckdb', 'duckdb']],
       ['20', true, ['local', 'local', 'duckdb-resident', 'duckdb-resident']],
-      ['1', false, ['duckdb', 'duckdb', 'duckdb', 'duckdb'], true],
+      ['1', false, Array(4).fill('local-managed'), true],
     ]) {
       const result = await runExample({ accountConfig, database: path, environment,
         environmentCid: args[1], program: programFile, parameters,
         nativeMilliseconds: estimate, resident,
-        ...(retained ? {localImportWorkMilliseconds: '0', retainedWorkMilliseconds: '0',
+        ...(retained ? {localImportWorkMilliseconds: '0',
+          retainedWorkMilliseconds: '0',
           retainedOutput: {parentDirectory: exampleDirectory, maxFrameBytes: 100000,
             wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
               max_columns: 10, max_order_work: 10000}}} : {}) });
       try {
         assert.equal(result.report.status, 'host-tasks-completed', String(result.execution.failure));
-        assert.deepEqual(result.report.completed.map(item => item.realization), expected);
+        assert.deepEqual(result.report.completed.map(item => item.realization), expected,
+          `join-count estimate=${estimate} resident=${resident} retained=${Boolean(retained)}`);
         assert.equal(result.report.internal_output_cids.length, 4);
-        assert.equal(result.report.internal_output_cids[3].cid, hash([{ id: 3, n: 4, present: 4 }]));
-        if (retained) assert(result.report.completed.every(item => item.outputRepresentation === 'retained-file'));
+        if (!retained) {
+          assert.equal(result.report.internal_output_cids[3].cid,
+            hash([{ id: 3, n: 4, present: 4 }]));
+        }
+        // Every placement, including managed retained inputs, publishes the
+        // exact counted row.
+        assert.deepEqual(await readPublishedResultRows(runtimeCore(hostRuntime),
+          result.execution, 0), [{id: 3, n: 4, present: 4}]);
       } finally { await result.close(); }
       assert.equal(result.execution.usage().heldBytes, 0n);
     }
-    // Value-sensitive join obligations use verified key-only import scratch.
-    // Both retained branches contain duplicate id=3; NULL rejection succeeds,
-    // whereas one-to-one must fail before the native join publishes any result.
+    // Both branches contain duplicate id=3; NULL rejection succeeds, whereas
+    // one-to-one must fail before the join publishes any result. The retained
+    // profile is an offer, not a forced physical placement.
     for (const [obligation, succeeds] of [
       [{null_key: 'fail'}, true], [{cardinality: 'one_to_one'}, false],
     ]) {
@@ -5714,14 +8305,16 @@ async function exerciseStrategyGraph(
         assert.equal(result.report.status, succeeds ? 'host-tasks-completed' : 'host-tasks-failed',
           String(result.execution.failure));
         assert.equal(result.report.completed.length, succeeds ? 4 : 2);
-        assert(result.report.completed.every(item => item.outputRepresentation === 'retained-file'));
+        assert(result.report.completed.every(item => item.realization === 'local-managed'));
         if (succeeds) {
-          assert.equal(result.report.internal_output_cids[3].cid, hash([{id: 3, n: 4, present: 4}]));
+          assert.equal(result.report.completed[3].outputRows, 1);
+          assert.deepEqual(await readPublishedResultRows(runtimeCore(hostRuntime),
+            result.execution, 0), [{id: 3, n: 4, present: 4}]);
         } else {
           assert.equal(result.execution.failure.code, 'MoonBitHostFailure');
           assert(result.execution.failure.cause, 'preserve the typed join validation failure');
-          assert.equal(result.execution.cleanupPending(), true,
-            'failed import keeps its explicit physical cleanup responsibility');
+          assert.equal(result.execution.cleanupPending(), false,
+            'managed validation failure settles its physical cleanup');
         }
       } finally { await result.close(); }
       assert.equal(await result.execution.cleanup(), true);
@@ -6192,11 +8785,10 @@ async function exerciseStrategyGraph(
       `${managedStandardExecution.failure?.stack ?? managedStandardExecution.failure}`);
     assert.deepEqual(
       managedStandardExecution.completed.map(item => item.realization),
-      Array(3).fill('duckdb-managed'),
+      Array(3).fill('local-managed'),
     );
-    assert(managedStandardExecution.completed.slice(1).every(item =>
-      item.phases.logicalContentCidComputations === 0),
-    JSON.stringify(managedStandardExecution.completed.slice(1)));
+    assert(managedStandardExecution.completed.every(item =>
+      item.outputRows > 0), JSON.stringify(managedStandardExecution.completed));
     assert(managedStandardExecution.usage().heldBytes > 0n,
       'the dispatcher retains managed task bodies through graph use');
   } finally {
@@ -6252,7 +8844,7 @@ async function exerciseStrategyGraph(
   try {
     assert.equal(fixture.strategyFixtureOpen(
       twoSiteFixture, twoSiteCapture.source()), true);
-    const twoSiteSetup = fixture.strategyFixtureManagedDispatch(
+    const twoSiteSetup = fixture.strategyFixtureManagedTwoSiteDispatch(
       twoSiteFixture,
     );
     const key = registration =>
@@ -6422,7 +9014,7 @@ async function exerciseStrategyGraph(
   try {
     assert.equal(fixture.strategyFixtureOpen(
       capacityFixture, capacityCapture.source()), true);
-    const capacitySetup = fixture.strategyFixtureManagedDispatch(
+    const capacitySetup = fixture.strategyFixtureManagedTwoSiteDispatch(
       capacityFixture,
     );
     const key = registration =>
@@ -6536,7 +9128,7 @@ async function exerciseStrategyGraph(
     try {
       assert.equal(fixture.strategyFixtureOpen(
         failureFixture, failureCapture.source()), true);
-      const failureSetup = fixture.strategyFixtureManagedDispatch(
+      const failureSetup = fixture.strategyFixtureManagedTwoSiteDispatch(
         failureFixture,
       );
       const key = registration =>
@@ -6668,7 +9260,7 @@ async function exerciseStrategyGraph(
     try {
       assert.equal(fixture.strategyFixtureOpen(
         failureFixture, failureCapture.source()), true);
-      const setup = fixture.strategyFixtureManagedDispatch(failureFixture);
+      const setup = fixture.strategyFixtureManagedTwoSiteDispatch(failureFixture);
       const key = registration =>
         hostRuntime.strategyHostRegistrationSelectionKey(registration);
       const memoryTransfer = createManagedMemoryTransferProvider({
@@ -6816,7 +9408,7 @@ async function exerciseStrategyGraph(
     try {
       assert.equal(fixture.strategyFixtureOpen(
         cleanupFixture, cleanupCapture.source()), true);
-      const setup = fixture.strategyFixtureManagedDispatch(cleanupFixture);
+      const setup = fixture.strategyFixtureManagedTwoSiteDispatch(cleanupFixture);
       const key = registration =>
         hostRuntime.strategyHostRegistrationSelectionKey(registration);
       const memoryTransfer = createManagedMemoryTransferProvider({
@@ -6937,7 +9529,7 @@ async function exerciseStrategyGraph(
         });
       }
       publicExecution = await runCapturedStrategy(
-        fixture.strategyFixtureManagedDispatch(publicFixture),
+        fixture.strategyFixtureManagedAfterFirstDispatch(publicFixture),
         publicOptions,
       );
       assert.equal(publicExecution.status, 'host-tasks-completed');
@@ -7067,7 +9659,7 @@ async function exerciseStrategyGraph(
         true,
       );
       identityExecution = await runCapturedInternalStrategy(
-        fixture.strategyFixtureManagedDispatch(identityFixture),
+        fixture.strategyFixtureManagedAfterFirstDispatch(identityFixture),
         {
           managedIdentityPolicy: prepareManagedIdentityPolicy(
             identityCase.policy,
@@ -7137,7 +9729,7 @@ async function exerciseStrategyGraph(
       assert.equal(fixture.strategyFixtureOpen(
         managedJoinFixture, managedJoinCapture.source()), true);
       managedJoinExecution = await runCapturedInternalStrategy(
-        fixture.strategyFixtureManagedDispatch(managedJoinFixture),
+        fixture.strategyFixtureDuckDBManagedDispatch(managedJoinFixture),
         {duckdb: prepareDuckDBStrategyConfiguration({
           transportLimits: suppliedLimits,
           importLimits: {maxRows: 100, maxCells: 1000},
@@ -7209,7 +9801,7 @@ async function exerciseStrategyGraph(
     assert.equal(fixture.strategyFixtureOpen(
       managedGroupFixture, managedGroupCapture.source()), true);
     managedGroupExecution = await runCapturedInternalStrategy(
-      fixture.strategyFixtureManagedDispatch(managedGroupFixture),
+      fixture.strategyFixtureDuckDBManagedDispatch(managedGroupFixture),
       {duckdb: prepareDuckDBStrategyConfiguration({
         transportLimits: suppliedLimits,
         importLimits: {maxRows: 100, maxCells: 1000},
@@ -7264,7 +9856,7 @@ async function exerciseStrategyGraph(
     assert.equal(fixture.strategyFixtureOpen(
       managedFailureFixture, managedFailureCapture.source()), true);
     managedFailureExecution = await runCapturedInternalStrategy(
-      fixture.strategyFixtureManagedDispatch(managedFailureFixture),
+      fixture.strategyFixtureDuckDBManagedDispatch(managedFailureFixture),
       {duckdb: prepareDuckDBStrategyConfiguration({
         transportLimits: suppliedLimits,
         importLimits: {maxRows: 100, maxCells: 1000},
@@ -7408,7 +10000,7 @@ async function exerciseStrategyGraph(
     try {
     assert.equal(fixture.strategyFixtureOpen(
       delayedStopFixture, delayedStopCapture.source()), true);
-    const delayedStopSetup = fixture.strategyFixtureManagedDispatch(
+    const delayedStopSetup = fixture.strategyFixtureDuckDBManagedDispatch(
       delayedStopFixture);
     assert.equal(hostRuntime.strategyHostConfigureManagedIdentity(
       delayedStopSetup, false, false, false, false,
@@ -8439,7 +11031,11 @@ async function exerciseStrategyGraph(
           // transfer budget. Reselection must choose Local B, not erase A's
           // spent transfer to retain the old all-resident placement.
           assert.equal(hostRuntime.strategyHostRegistration(task), hostRuntime.strategyModule_local_Registration(dispatch));
-          checked(hostRuntime.strategyModule_local_Dispatch(dispatch, task));
+          // Local dispatch starts a bounded attempt; drive it to completion.
+          const local = checked(hostRuntime.strategyModule_local_Dispatch(dispatch, task));
+          while (!checked(local.advance(256)).complete) {}
+          checked(local.settle());
+          checked(local.complete());
           capture.close();
           continue;
         }

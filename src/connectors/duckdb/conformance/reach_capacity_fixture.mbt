@@ -99,6 +99,8 @@ fn traversal_fixture_capacity(
       )
       proofs.push(output)
     }
+  } else if operation == "shortest_path" {
+    proofs.push(traversal_fixture_proof("actql.bound.shortest-path", 1L, step~))
   }
   let witnesses = proofs.map(@wire.program_proof_witness)
   let artifacts : Array[(Bytes, String)] = []
@@ -122,7 +124,11 @@ fn traversal_fixture_capacity(
     }).unwrap()
     witnesses.push(wire)
     let candidates = [wire]
-    if operation == "traverse" && !path_emission && unit == "rows" {
+    if (
+        (operation == "traverse" && !path_emission) ||
+        operation == "shortest_path"
+      ) &&
+      unit == "rows" {
       candidates.push(@wire.program_proof_witness(proofs[proofs.length() - 1]))
       candidates.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
     }
@@ -196,6 +202,15 @@ fn reach_fixture_capacity(
   step? : Int = 1,
 ) -> @context.StageCapacityInput raise {
   traversal_fixture_capacity(environment, stage, "reach", step~)
+}
+
+///|
+fn shortest_fixture_capacity(
+  environment : @environment.WireEnvironment,
+  stage : String,
+  step? : Int = 1,
+) -> @context.StageCapacityInput raise {
+  traversal_fixture_capacity(environment, stage, "shortest_path", step~)
 }
 
 ///|

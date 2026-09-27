@@ -26,6 +26,9 @@ fn[T : RelationRows] evaluate_unnest_into(
   }
   let names = input.field_names()
   let width = names.length()
+  if !reserve_slots(workspace, width) {
+    return Err(RowLimit)
+  }
   let source_name = @schema.reference_name(column)
   let mut source_column = -1
   let ordinals : Map[String, Int] = Map([])
@@ -48,14 +51,15 @@ fn[T : RelationRows] evaluate_unnest_into(
     return Err(InvalidRows)
   }
   let checked_output = @lower.kernel_output_schema(kernel)
-  let output_names = Array::makei(@schema.field_count(checked_output), i => {
-    @schema.reference_name(@schema.field_at(checked_output, i).unwrap().name)
-  })
-  if output_names.length() !=
-    width + 1 + (if index_name is Some(_) { 1 } else { 0 }) {
+  let output_width = @schema.field_count(checked_output)
+  let added = if index_name is Some(_) { 2 } else { 1 }
+  if output_width < added || output_width - added != width {
     return Err(InvalidRows)
   }
-  for name in output_names {
+  for i = 0; i < output_width; i = i + 1 {
+    let name = @schema.reference_name(
+      @schema.field_at(checked_output, i).unwrap().name,
+    )
     if !spend_control_text(control, name) {
       return Err(RowLimit)
     }
@@ -67,11 +71,12 @@ fn[T : RelationRows] evaluate_unnest_into(
   }
   let mut emitted = 0
   let rows = IndexedRows::row_count(input)
-  if !reserve_slots(workspace, rows) ||
-    !reserve_slots(workspace, width) ||
-    !reserve_slots(workspace, output_names.length()) {
+  if !reserve_slots(workspace, rows) || !reserve_slots(workspace, output_width) {
     return Err(RowLimit)
   }
+  let output_names = Array::makei(output_width, i => {
+    @schema.reference_name(@schema.field_at(checked_output, i).unwrap().name)
+  })
   for source = 0; source < rows; source = source + 1 {
     if IndexedRows::row_width(input, source) != width {
       return Err(InvalidRows)

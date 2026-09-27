@@ -9,6 +9,74 @@ fn order_table(values : Array[Value]) -> Table {
 }
 
 ///|
+test "stepped stable order preserves exact work and workspace boundaries" {
+  // Two numeric rows: one term, two row checks, four initialized indices,
+  // two merge writes, and one comparison term total ten units.
+  for (work, space, success) in [(10, 5, true), (9, 5, false), (10, 4, false)] {
+    let workspace = row_workspace(space)
+    let control : ControlBudget = { remaining: work, max_frames: 10, }
+    let state = start_stable_order(
+      order_table([Number(2), Number(1)]),
+      [{ column: 0, descending: false, nulls_first: false, }],
+      control,
+      workspace,
+    )
+    let mut terminal = false
+    for _ in 0..<100 {
+      if !terminal {
+        match advance_stable_order(state) {
+          Ok(None) => ()
+          Ok(Some(indices)) => {
+            assert_true(success)
+            assert_eq(indices, [1, 0])
+            assert_eq(workspace.live, 2)
+            assert_eq(control.remaining, 0)
+            terminal = true
+          }
+          Err(Limit) => {
+            assert_false(success)
+            assert_eq(workspace.live, 0)
+            terminal = true
+          }
+          Err(_) => fail("unexpected ordering failure")
+        }
+      }
+    }
+    assert_true(terminal)
+  }
+}
+
+///|
+test "stepped stable order can abandon a long common prefix comparison" {
+  let prefix = "a".repeat(4096)
+  let workspace = row_workspace(8)
+  assert_true(reserve_slots(workspace, 3))
+  let control : ControlBudget = { remaining: 30000, max_frames: 10, }
+  let state = start_stable_order(
+    order_table([Text(prefix + "b"), Text(prefix + "a")]),
+    [{ column: 0, descending: false, nulls_first: false, }],
+    control,
+    workspace,
+  )
+  let mut reached = false
+  for _ in 0..<20000 {
+    if !reached {
+      assert_true(advance_stable_order(state) is Ok(None))
+      reached = state.comparison.phase == 3 && state.comparison.offset == 8
+    }
+  }
+  assert_true(reached)
+  let remaining = control.remaining
+  close_stable_order(state)
+  close_stable_order(state)
+  assert_eq(control.remaining, remaining)
+  assert_eq(workspace.live, 3)
+  assert_eq(state.source.length(), 0)
+  assert_eq(state.target.length(), 0)
+  assert_true(advance_stable_order(state) is Err(InvalidInput))
+}
+
+///|
 test "stable ordering reuses exact decimal and UTF16 scalar comparisons" {
   for
     (table, expected) in [
@@ -194,4 +262,84 @@ test "stable ordering work and workspace bounds are exact at scale" {
       assert_true(result is Err(Limit))
     }
   }
+}
+
+///|
+test "stable merge preparation charges at most one unit per advance" {
+  let table = order_table(
+    Array::makei(64, index => Number((64 - index).to_double())),
+  )
+  let control : ControlBudget = { remaining: 10000, max_frames: 0, }
+  let workspace = { limit: 129, live: 0, peak: 0, }
+  let state = start_stable_order(
+    table,
+    [{ column: 0, descending: false, nulls_first: false, }],
+    control,
+    workspace,
+  )
+  let mut result = None
+  for _ in 0..<2000 {
+    if result is None {
+      let before = control.remaining
+      result = advance_stable_order(state).unwrap()
+      assert_true(before - control.remaining <= 1)
+    }
+  }
+  assert_eq(result.unwrap()[0], 63)
+  assert_eq(workspace.peak, 129)
+  assert_eq(workspace.live, 64)
+}
+
+///|
+test "stable merge charges supplementary text one byte per advance" {
+  let table = order_table([
+    Text("𠮷b"),
+    Text("𠮷a"),
+    Text("a"),
+    Text("𠮷a"),
+  ])
+  let control : ControlBudget = { remaining: 10000, max_frames: 0, }
+  let workspace = { limit: 9, live: 0, peak: 0, }
+  let state = start_stable_order(
+    table,
+    [{ column: 0, descending: false, nulls_first: false, }],
+    control,
+    workspace,
+  )
+  let mut result = None
+  for _ in 0..<1000 {
+    if result is None {
+      let before = control.remaining
+      result = advance_stable_order(state).unwrap()
+      assert_true(before - control.remaining <= 1)
+    }
+  }
+  assert_eq(result.unwrap(), [2, 1, 3, 0])
+  assert_eq(workspace.live, 4)
+}
+
+///|
+test "stable merge charges decimal coefficients one byte per advance" {
+  let table = order_table([
+    decimal_value("99999999999999999999999999999999999999", 0),
+    decimal_value("99999999999999999999999999999999999998", 0),
+  ])
+  let control : ControlBudget = { remaining: 1000, max_frames: 0, }
+  let workspace = { limit: 5, live: 0, peak: 0, }
+  let state = start_stable_order(
+    table,
+    [{ column: 0, descending: false, nulls_first: false, }],
+    control,
+    workspace,
+  )
+  let mut result = None
+  for _ in 0..<400 {
+    if result is None {
+      let before = control.remaining
+      result = advance_stable_order(state).unwrap()
+      assert_true(before - control.remaining <= 1)
+    }
+  }
+  assert_eq(result.unwrap(), [1, 0])
+  assert_eq(workspace.live, 2)
 }

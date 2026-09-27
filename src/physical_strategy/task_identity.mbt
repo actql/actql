@@ -95,22 +95,40 @@ pub fn prepare_checked_task_reference(
       controls.push(edge.predecessor)
     }
   }
+  let mut source_stage = None
+  for stage_index in 0..<@checked.unit_count(graph.program) {
+    if @checked.unit_pipeline(graph.program, stage_index) is Some(pipeline) &&
+      physical_equal(pipeline, @lower.pipeline(@lower.bound_preparation(owner))) {
+      source_stage = Some(stage_index)
+      break
+    }
+  }
+  guard source_stage is Some(stage_index) &&
+    graph.targets[task] is Some(Step(output_step)) else {
+    return Err(InvalidTask)
+  }
   let identity = @checked.source_identity(graph.program)
-  let stage = @context.program_identity_stage_at(identity, task).unwrap()
+  let stage = @context.program_identity_stage_at(identity, stage_index).unwrap()
   Ok({
     graph,
     task,
-    target: Step(count - 1),
+    target: Step(output_step),
     identity: {
       task,
       program_definition_cid: @context.program_identity_definition_cid(identity),
       program_parameters_cid: @context.program_identity_parameter_values_cid(
         identity,
       ),
-      unit_definition_cid: @checked.unit_definition_cid(graph.program, task).unwrap(),
+      unit_definition_cid: @checked.unit_definition_cid(
+        graph.program,
+        stage_index,
+      ).unwrap(),
       unit_parameters_cid: @context.stage_identity_parameter_values_cid(stage),
-      unit_contracts_cid: @checked.unit_contracts_cid(graph.program, task).unwrap(),
-      output_step: count - 1,
+      unit_contracts_cid: @checked.unit_contracts_cid(
+        graph.program,
+        stage_index,
+      ).unwrap(),
+      output_step,
       inputs,
       controls,
     },

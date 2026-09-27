@@ -184,6 +184,15 @@ fn execute_timed_native_strategy_run(
           usage.comparison_nodes.to_string(),
         )
         println(
+          "task-measurement-scope:" +
+          completion.task.to_string() +
+          ":" +
+          (match usage.measurement_scope {
+            @host.InputOutputValues => "input-output-values"
+            @host.ProviderWork => "provider-work"
+          }),
+        )
+        println(
           "task-holding:" +
           completion.task.to_string() +
           ":" +

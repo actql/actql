@@ -12,6 +12,7 @@ priv enum ComponentsPhase {
   ResetVisited
   StartComponent
   WalkComponent
+  CompareMinimum
   PrepareSort
   PrepareMerge
   Merge
@@ -63,10 +64,15 @@ priv struct ComponentsState {
   mut left_index : Int
   mut right_index : Int
   mut merge_index : Int
+  mut key_component : Int
+  mut key_comparison : @value.BoundedKeyComparison?
+  mut pending_node : Int
+  mut pending_component : Int
   mut copy_index : Int
   mut candidate : Int
   mut column : Int
   mut values : Array[@value.CheckedValue]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -100,6 +106,7 @@ pub(all) enum ComponentsIssue {
   ComponentsInputUnavailable
   ComponentsOutputLimit
   ComponentsWorkspaceLimit
+  ComponentsWorkLimit
   ComponentsKeyOrder(@value.KeyOrderIssue)
   ComponentsOutput(@execution.CaptureIssue)
   ComponentsCompletion(@execution.TrustedOutputIssue)
@@ -146,11 +153,11 @@ fn capped_components_run_end(start : Int, width : Int, count : Int) -> Int {
 }
 
 ///|
-fn compare_component_nodes(
+fn compare_component_nodes_step(
   state : ComponentsState,
   left : Int,
   right : Int,
-) -> Result[Int, ComponentsIssue] {
+) -> Result[Int?, ComponentsIssue] {
   guard state.component.get(left) is Some(left_component) &&
     state.component.get(right) is Some(right_component) &&
     state.component_min.get(left_component) is Some(left_min) &&
@@ -159,18 +166,43 @@ fn compare_component_nodes(
     @storage.node_identity(state.source, right_min) is Some(right_component_id) else {
     return Err(ComponentsInputUnavailable)
   }
-  match @value.compare_key_values(left_component_id, right_component_id) {
-    Err(issue) => Err(ComponentsKeyOrder(issue))
-    Ok(0) => {
-      guard @storage.node_identity(state.source, left) is Some(left_id) &&
-        @storage.node_identity(state.source, right) is Some(right_id) else {
-        return Err(ComponentsInputUnavailable)
+  let comparison = match state.key_comparison {
+    Some(value) => value
+    None => {
+      let (a, b) = if state.key_component == 0 {
+        (left_component_id, right_component_id)
+      } else {
+        guard @storage.node_identity(state.source, left) is Some(left_id) &&
+          @storage.node_identity(state.source, right) is Some(right_id) else {
+          return Err(ComponentsInputUnavailable)
+        }
+        (left_id, right_id)
       }
-      @value.compare_key_values(left_id, right_id).map_err(issue => {
-        ComponentsKeyOrder(issue)
-      })
+      let value = match @value.start_bounded_key_comparison(a, b) {
+        Ok(value) => value
+        Err(issue) => return Err(ComponentsKeyOrder(issue))
+      }
+      state.key_comparison = Some(value)
+      value
     }
-    Ok(value) => Ok(value)
+  }
+  match @value.advance_bounded_key_comparison(comparison, 1) {
+    Ok(@value.KeyComparisonContinue(_)) => Ok(None)
+    Ok(@value.KeyComparisonComplete(order~, ..)) => {
+      state.key_comparison = None
+      if order == 0 && state.key_component == 0 {
+        state.key_component = 1
+        Ok(None)
+      } else {
+        state.key_component = 0
+        Ok(Some(order))
+      }
+    }
+    Err(issue) => {
+      state.key_comparison = None
+      state.key_component = 0
+      Err(ComponentsKeyOrder(issue))
+    }
   }
 }
 
@@ -225,31 +257,69 @@ fn merge_components(state : ComponentsState) -> Unit {
 }
 
 ///|
-fn push_component_node(
+fn finish_component_node(
   state : ComponentsState,
   node : Int,
   component : Int,
+  new_minimum : Bool,
 ) -> Result[Unit, ComponentsIssue] {
   guard state.component.get(node) is Some(existing) && existing < 0 else {
     return Err(InvalidComponentsKernel)
   }
   state.component[node] = component
   state.component_size[component] += 1
-  let minimum = state.component_min[component]
-  if minimum < 0 {
+  if new_minimum {
     state.component_min[component] = node
-  } else {
-    guard @storage.node_identity(state.source, node) is Some(node_id) &&
-      @storage.node_identity(state.source, minimum) is Some(minimum_id) else {
-      return Err(ComponentsInputUnavailable)
-    }
-    match @value.compare_key_values(node_id, minimum_id) {
-      Err(issue) => return Err(ComponentsKeyOrder(issue))
-      Ok(value) => if value < 0 { state.component_min[component] = node }
-    }
   }
   state.stack_nodes.push(node)
   state.stack_positions.push(0)
+  Ok(())
+}
+
+///|
+fn push_component_node_step(
+  state : ComponentsState,
+  node : Int,
+  component : Int,
+) -> Result[Unit, ComponentsIssue] {
+  guard state.component.get(node) is Some(existing) &&
+    existing < 0 &&
+    state.component_min.get(component) is Some(minimum) else {
+    return Err(InvalidComponentsKernel)
+  }
+  if minimum < 0 {
+    match finish_component_node(state, node, component, true) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    state.phase = WalkComponent
+    return Ok(())
+  }
+  guard @storage.node_identity(state.source, node) is Some(node_id) &&
+    @storage.node_identity(state.source, minimum) is Some(minimum_id) else {
+    return Err(ComponentsInputUnavailable)
+  }
+  let comparison = match
+    @value.start_bounded_key_comparison(node_id, minimum_id) {
+    Ok(value) => value
+    Err(issue) => return Err(ComponentsKeyOrder(issue))
+  }
+  match @value.advance_bounded_key_comparison(comparison, 1) {
+    Ok(@value.KeyComparisonComplete(order~, ..)) => {
+      match finish_component_node(state, node, component, order < 0) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      state.phase = WalkComponent
+    }
+    Ok(@value.KeyComparisonContinue(_)) => {
+      state.key_comparison = Some(comparison)
+      state.pending_node = node
+      state.pending_component = component
+      state.phase = CompareMinimum
+    }
+    Err(issue) => return Err(ComponentsKeyOrder(issue))
+  }
   Ok(())
 }
 
@@ -344,6 +414,9 @@ fn components_step(
     }
     if !@graph.producer_read_available(state.input) {
       return @bounded.Failed(ComponentsInputUnavailable, progress, used)
+    }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(ComponentsWorkLimit, progress, used)
     }
     match state.phase {
       InitializeNodes =>
@@ -525,9 +598,9 @@ fn components_step(
             let component = state.component_index
             state.component_index += 1
             state.active_component = component
-            match push_component_node(state, node, component) {
+            match push_component_node_step(state, node, component) {
               Err(issue) => return @bounded.Failed(issue, progress, used)
-              Ok(_) => state.phase = WalkComponent
+              Ok(_) => ()
             }
           }
         }
@@ -543,7 +616,11 @@ fn components_step(
             state.stack_positions[top] = offset + 1
             if state.component[neighbor] < 0 {
               match
-                push_component_node(state, neighbor, state.active_component) {
+                push_component_node_step(
+                  state,
+                  neighbor,
+                  state.active_component,
+                ) {
                 Err(issue) => return @bounded.Failed(issue, progress, used)
                 Ok(_) => ()
               }
@@ -558,6 +635,35 @@ fn components_step(
           }
         }
         used += 1
+      }
+      CompareMinimum => {
+        used += 1
+        guard state.key_comparison is Some(comparison) &&
+          state.pending_node >= 0 &&
+          state.pending_component >= 0 else {
+          return @bounded.Failed(InvalidComponentsKernel, progress, used)
+        }
+        match @value.advance_bounded_key_comparison(comparison, 1) {
+          Ok(@value.KeyComparisonContinue(_)) => ()
+          Ok(@value.KeyComparisonComplete(order~, ..)) => {
+            state.key_comparison = None
+            match
+              finish_component_node(
+                state,
+                state.pending_node,
+                state.pending_component,
+                order < 0,
+              ) {
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+              Ok(_) => ()
+            }
+            state.pending_node = -1
+            state.pending_component = -1
+            state.phase = WalkComponent
+          }
+          Err(issue) =>
+            return @bounded.Failed(ComponentsKeyOrder(issue), progress, used)
+        }
       }
       PrepareSort =>
         if state.width >= state.selected.length() {
@@ -581,12 +687,13 @@ fn components_step(
       CompareMerge => {
         used += 1
         match
-          compare_component_nodes(
+          compare_component_nodes_step(
             state,
             state.selected[state.left_index],
             state.selected[state.right_index],
           ) {
-          Ok(comparison) => emit_components_merge(state, comparison <= 0)
+          Ok(Some(comparison)) => emit_components_merge(state, comparison <= 0)
+          Ok(None) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
@@ -664,6 +771,7 @@ fn components_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -694,6 +802,10 @@ fn cleanup_components_state(state : ComponentsState) -> Bool {
   state.stack_positions.clear()
   state.selected.clear()
   state.scratch.clear()
+  state.key_component = 0
+  state.key_comparison = None
+  state.pending_node = -1
+  state.pending_component = -1
   state.values = []
   true
 }
@@ -711,8 +823,13 @@ pub fn start_components(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[ComponentsExecution, ComponentsIssue] {
   let owner = @lower.sequence_owner(sequence)
+  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
+  if control_work_limit < 0 {
+    return Err(ComponentsWorkLimit)
+  }
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),
       owner,
@@ -814,10 +931,15 @@ pub fn start_components(
     left_index: 0,
     right_index: 0,
     merge_index: 0,
+    key_component: 0,
+    key_comparison: None,
+    pending_node: -1,
+    pending_component: -1,
     copy_index: 0,
     candidate: 0,
     column: 0,
     values: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,

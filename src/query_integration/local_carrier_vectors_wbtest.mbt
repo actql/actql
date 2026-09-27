@@ -209,12 +209,22 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     "{\"from\":\"pooled\",\"vectors\":true,\"as\":\"out\"}"
   } else if variant == "bridge_only" ||
     variant == "bridge_filter" ||
+    variant == "normalize_filter" ||
     variant == "bridge_select" ||
     variant == "bridge_derive" ||
     variant == "bridge_take" {
     "{\"from\":\"rows\",\"to_vectors\":{" +
     "\"id\":\"id\",\"vector\":\"embedding\"}," +
-    "\"as\":\"source\"},{\"from\":\"source\"," +
+    "\"as\":\"source\"}," +
+    (if variant == "normalize_filter" {
+      "{\"from\":\"source\",\"normalize_vectors\":true," +
+      "\"as\":\"normalized\"},"
+    } else {
+      ""
+    }) +
+    "{\"from\":\"" +
+    (if variant == "normalize_filter" { "normalized" } else { "source" }) +
+    "\"," +
     "\"vectors\":true,\"as\":" +
     (if variant != "bridge_only" { "\"projected\"}" } else { "\"out\"}" }) +
     (if variant != "bridge_only" {
@@ -608,6 +618,19 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
     local_carrier_vectors_variant=variant,
+    // Values and the asserted Relation remain live across the pool input.
+    ledger_limits=if relation_pool {
+      Some({
+        planning_work: 10000,
+        attempts: 10,
+        holdings: 10,
+        transfer_bytes: 300000L,
+        retained_bytes: 134217728L,
+        execution_bytes: 134217728L,
+      })
+    } else {
+      None
+    },
     managed_publication=variant == "bridge_only" ||
       variant == "normalize_shared" ||
       variant == "score_shared" ||
@@ -631,13 +654,14 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let sequences = dispatch_test_generated(run)
+  let vector_task = if relation_pool { 3 } else { 2 }
   let cleanup_attempts = Ref(0)
   let provider = delayed_cleanup_provider(
     @local_veca_provider.provider(
       carrier_vectors_storage_limits(),
       4096L,
       @execution.generated_sequence_capacity(
-        sequences[1],
+        sequences[vector_task - 1],
         limits.local_execution,
         limits.guards,
       ).unwrap(),
@@ -700,15 +724,38 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
     values_live,
   )
   let values_rows = local_managed_test_rows(values_ops)
+  let (assertion_ops, vector_input, assertion_live) = if relation_pool {
+    let live = Ref(true)
+    let (ops, output) = run_local_managed_test_task(
+      installed,
+      run,
+      2,
+      [values],
+      [values_rows],
+      2,
+      live,
+      execution_quantum=1,
+      require_provider=true,
+    )
+    assert_eq(local_managed_test_rows(ops), values_rows)
+    (Some(ops), output, Some(live))
+  } else {
+    (None, values, None)
+  }
+  let vector_input_rows = if relation_pool {
+    local_managed_test_rows(assertion_ops.unwrap())
+  } else {
+    values_rows
+  }
   let vectors_live = Ref(true)
   let vector_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (vectors_ops, vectors) = run_local_managed_test_task(
     installed,
     run,
-    2,
-    [values],
-    [values_rows],
-    2,
+    vector_task,
+    [vector_input],
+    [vector_input_rows],
+    vector_task,
     vectors_live,
     obligations=vector_obligations,
   )
@@ -837,27 +884,27 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    vector_task + 1,
     [vectors],
     [vector_rows],
-    3,
+    vector_task + 1,
     first_live,
   )
   let second_live = Ref(true)
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    4,
+    vector_task + 2,
     [vectors],
     [vector_rows],
-    4,
+    vector_task + 2,
     second_live,
   )
   assert_eq(local_managed_test_rows(first_ops).length(), expected_rows)
   assert_eq(local_managed_test_rows(second_ops).length(), expected_rows)
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, vector_task + 1)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
@@ -865,15 +912,21 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
   assert_true(@execution.managed_completed_output_available(vectors))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, 4)
+  @strategy.close_captured_task_output(run, vector_task + 2)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
   vectors_live.val = false
-  @strategy.close_captured_task_output(run, 2)
+  @strategy.close_captured_task_output(run, vector_task)
   (vectors_ops.close)()
   assert_false((vectors_ops.cleanup_refresh)())
   assert_true((vectors_ops.cleanup_refresh)())
   assert_eq(cleanup_attempts.val, 2)
+  if assertion_ops is Some(ops) {
+    assertion_live.unwrap().val = false
+    @strategy.close_captured_task_output(run, 2)
+    (ops.close)()
+    (ops.cleanup_refresh)() |> ignore
+  }
   values_live.val = false
   @strategy.close_captured_task_output(run, 1)
   (values_ops.close)()
@@ -891,6 +944,7 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
 ///|
 fn run_standard_host_mixed_vectors_relation_path(
   variant : String,
+  execution_quantum? : Int = 0,
 ) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
@@ -914,6 +968,24 @@ fn run_standard_host_mixed_vectors_relation_path(
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let sequences = dispatch_test_generated(run)
+  if variant == "bridge_take" {
+    let mut bounded_take = false
+    for position in 0..<@execution.generated_sequence_step_count(sequences[3]) {
+      if @execution.generated_sequence_step_at(sequences[3], position)
+        is Some(@lower.RowStep(candidate)) &&
+        @lower.kernel_take(candidate) is Some(_) &&
+        @lower.node_at(
+          @lower.bound_preparation(
+            @execution.generated_sequence_owner(sequences[3]),
+          ),
+          position,
+        )
+        is Some(node) {
+        bounded_take = @lower.order_node_id(node) is None
+      }
+    }
+    assert_true(bounded_take)
+  }
   let provider = @local_veca_provider.provider(
     carrier_vectors_storage_limits(),
     4096L,
@@ -1010,6 +1082,7 @@ fn run_standard_host_mixed_vectors_relation_path(
     4,
     filtered_live,
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+    execution_quantum~,
   )
   let filtered_rows = local_managed_test_rows(filtered_ops)
   if variant == "bridge_derive" {
@@ -1100,11 +1173,19 @@ test "standard Host composes Vectors projection and Relation derive" {
 
 ///|
 test "standard Host composes Vectors projection and Relation take" {
-  run_standard_host_mixed_vectors_relation_path("bridge_take")
+  for quantum in [1, 2, 7, 1024] {
+    run_standard_host_mixed_vectors_relation_path(
+      "bridge_take",
+      execution_quantum=quantum,
+    )
+  }
 }
 
 ///|
 fn run_standard_nearest_provider(variant : String) -> Unit raise {
+  let inferred = variant == "nearest_inferred"
+  let query_values_task = if inferred { 3 } else { 2 }
+  let nearest_task = if inferred { 5 } else { 3 }
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
     local_carrier_vectors_variant=variant,
@@ -1114,7 +1195,12 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
       attempts: 10,
       holdings: 20,
       transfer_bytes: 300000L,
-      retained_bytes: 64000000L,
+      // Both inferred inputs retain Values and assertion generations.
+      retained_bytes: if inferred {
+        134217728L
+      } else {
+        64000000L
+      },
       execution_bytes: 134217728L,
     }),
   )
@@ -1130,7 +1216,7 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
     carrier_vectors_storage_limits(),
     4096L,
     @execution.generated_sequence_capacity(
-      sequences[3],
+      sequences[nearest_task - 1],
       limits.local_execution,
       limits.guards,
     ).unwrap(),
@@ -1184,7 +1270,7 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   let candidates_obligations = @strategy.captured_next_managed_obligations(
     run, 10,
   ).unwrap()
-  let (candidates_ops, candidates) = run_local_managed_test_task(
+  let (candidate_values_ops, candidate_values) = run_local_managed_test_task(
     installed,
     run,
     1,
@@ -1192,31 +1278,94 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
     [],
     1,
     candidates_live,
-    obligations=candidates_obligations,
+    obligations=if inferred {
+      @execution.process_managed_obligations(
+        @strategy.graph_task_owner(@strategy.captured_dag_graph(run), 1).unwrap(),
+      )
+    } else {
+      candidates_obligations
+    },
   )
-  let candidate_rows = local_managed_test_rows(candidates_ops)
+  let candidate_values_rows = local_managed_test_rows(candidate_values_ops)
+  let (candidate_assert_ops, candidates, candidate_assert_live) = if inferred {
+    let live = Ref(true)
+    let (ops, output) = run_local_managed_test_task(
+      installed,
+      run,
+      2,
+      [candidate_values],
+      [candidate_values_rows],
+      2,
+      live,
+      obligations=candidates_obligations,
+      execution_quantum=1,
+      require_provider=true,
+    )
+    assert_eq(local_managed_test_rows(ops), candidate_values_rows)
+    (Some(ops), output, Some(live))
+  } else {
+    (None, candidate_values, None)
+  }
+  let candidate_rows = if inferred {
+    local_managed_test_rows(candidate_assert_ops.unwrap())
+  } else {
+    candidate_values_rows
+  }
   let queries_live = Ref(true)
   let queries_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
-  let (queries_ops, queries) = run_local_managed_test_task(
+  let (query_values_ops, query_values) = run_local_managed_test_task(
     installed,
     run,
-    2,
+    query_values_task,
     [],
     [],
-    2,
+    query_values_task,
     queries_live,
-    obligations=queries_obligations,
+    obligations=if inferred {
+      @execution.process_managed_obligations(
+        @strategy.graph_task_owner(
+          @strategy.captured_dag_graph(run),
+          query_values_task,
+        ).unwrap(),
+      )
+    } else {
+      queries_obligations
+    },
   )
-  let query_rows = local_managed_test_rows(queries_ops)
+  let query_values_rows = local_managed_test_rows(query_values_ops)
+  let (query_assert_ops, queries, query_assert_live) = if inferred {
+    let live = Ref(true)
+    let (ops, output) = run_local_managed_test_task(
+      installed,
+      run,
+      4,
+      [query_values],
+      [query_values_rows],
+      4,
+      live,
+      obligations=queries_obligations,
+      execution_quantum=1,
+      require_provider=true,
+    )
+    assert_eq(local_managed_test_rows(ops), query_values_rows)
+    (Some(ops), output, Some(live))
+  } else {
+    (None, query_values, None)
+  }
+  let query_rows = if inferred {
+    local_managed_test_rows(query_assert_ops.unwrap())
+  } else {
+    query_values_rows
+  }
   let nearest_live = Ref(true)
   let nearest_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (nearest_ops, nearest) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    nearest_task,
     [candidates, queries],
     [candidate_rows, query_rows],
-    3,
+    nearest_task,
     nearest_live,
     obligations=nearest_obligations,
   )
@@ -1279,10 +1428,10 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    4,
+    nearest_task + 1,
     [nearest],
     [nearest_rows],
-    4,
+    nearest_task + 1,
     first_live,
     obligations=first_obligations,
   )
@@ -1291,10 +1440,10 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    5,
+    nearest_task + 2,
     [nearest],
     [nearest_rows],
-    5,
+    nearest_task + 2,
     second_live,
     obligations=second_obligations,
   )
@@ -1302,7 +1451,7 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   assert_eq(local_managed_test_rows(second_ops).length(), expected.length())
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, 4)
+  @strategy.close_captured_task_output(run, nearest_task + 1)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
@@ -1310,21 +1459,33 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   assert_true(@execution.managed_completed_output_available(nearest))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, 5)
+  @strategy.close_captured_task_output(run, nearest_task + 2)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
   nearest_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, nearest_task)
   (nearest_ops.close)()
   (nearest_ops.cleanup_refresh)() |> ignore
+  if query_assert_ops is Some(ops) {
+    query_assert_live.unwrap().val = false
+    @strategy.close_captured_task_output(run, 4)
+    (ops.close)()
+    (ops.cleanup_refresh)() |> ignore
+  }
   queries_live.val = false
-  @strategy.close_captured_task_output(run, 2)
-  (queries_ops.close)()
-  (queries_ops.cleanup_refresh)() |> ignore
+  @strategy.close_captured_task_output(run, query_values_task)
+  (query_values_ops.close)()
+  (query_values_ops.cleanup_refresh)() |> ignore
+  if candidate_assert_ops is Some(ops) {
+    candidate_assert_live.unwrap().val = false
+    @strategy.close_captured_task_output(run, 2)
+    (ops.close)()
+    (ops.cleanup_refresh)() |> ignore
+  }
   candidates_live.val = false
   @strategy.close_captured_task_output(run, 1)
-  (candidates_ops.close)()
-  (candidates_ops.cleanup_refresh)() |> ignore
+  (candidate_values_ops.close)()
+  (candidate_values_ops.cleanup_refresh)() |> ignore
   @strategy.stop_captured_dag(run)
   @strategy.close_captured_task_output(run, 0)
   @strategy.refresh_captured_retention(run)
@@ -1853,6 +2014,349 @@ fn direct_nearest_relation_output(
     compute_test_limits(),
   ).unwrap()
   @execution.completed_output(completed, @pipeline.Step(0)).unwrap()
+}
+
+///|
+fn direct_rows_to_vectors_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"from\":\"rows\",\"to_vectors\":{" +
+        "\"id\":\"id\",\"vector\":\"embedding\"}}]",
+      ),
+      [
+        (
+          "rows",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(source)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      Some(input_cursor("\"rows\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn direct_vectors_projection_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"from\":\"rows\",\"to_vectors\":{\"id\":\"id\"," +
+        "\"vector\":\"embedding\"}},{\"vectors\":true}]",
+      ),
+      [
+        (
+          "rows",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(source)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      Some(input_cursor("\"rows\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+test "rows to Vectors admits exact work and workspace and reclaims partial output" {
+  let source_owner = direct_nearest_relation_owner(
+    "[{\"id\":1,\"embedding\":[1,2]}," + "{\"id\":2,\"embedding\":[3,4]}]",
+  )
+  let source = direct_nearest_relation_output(source_owner)
+  let owner = direct_rows_to_vectors_owner(source_owner)
+  let input = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  // Each row costs two identity nodes, nine record nodes, and three copy
+  // units. Four slots per retained record overlap two scratch fields and
+  // four new slots during the second append.
+  for
+    (work, slots, outcome) in [
+      (28, 10, "complete"),
+      (27, 10, "work"),
+      (28, 9, "workspace"),
+    ] {
+    let execution = @local_bridge.start_rows_to_vectors(
+      @bounded.control(),
+      prepared_sequence(owner),
+      0,
+      input,
+      {
+        ..carrier_vectors_storage_limits(),
+        max_work: work,
+        max_workspace_slots: slots,
+      },
+      4096L,
+      fn() { true },
+    ).unwrap()
+    let mut terminal = false
+    let mut polls = 0
+    while !terminal {
+      polls += 1
+      assert_true(polls < 40)
+      match @local_bridge.advance_rows_to_vectors(execution, 1).unwrap() {
+        @local_bridge.Continue(..) => ()
+        @local_bridge.Complete(output, ..) => {
+          assert_eq(outcome, "complete")
+          assert_true(
+            @records.completed_storage(output) is Some(storage) &&
+            @record_storage.construction_work(storage) == 28 &&
+            @record_storage.retained_workspace_slots(storage) == 8,
+          )
+          assert_true(@records.discard_completed(output))
+          terminal = true
+        }
+        @local_bridge.Failed(
+          @local_bridge.Output(@records.Storage(@record_storage.WorkLimit)),
+          ..
+        ) => {
+          assert_eq(outcome, "work")
+          terminal = true
+        }
+        @local_bridge.Failed(
+          @local_bridge.Output(@records.Storage(@record_storage.WorkspaceLimit)),
+          ..
+        ) => {
+          assert_eq(outcome, "workspace")
+          terminal = true
+        }
+        _ => abort("unexpected rows-to-Vectors result")
+      }
+    }
+    assert_eq(@local_bridge.cleanup_rows_to_vectors(execution), Ok(true))
+    assert_eq(@local_bridge.cleanup_rows_to_vectors(execution), Ok(false))
+    assert_true(@execution.completed_output_available(source))
+  }
+
+  let control = @bounded.control()
+  let cancelled = @local_bridge.start_rows_to_vectors(
+    control,
+    prepared_sequence(owner),
+    0,
+    input,
+    carrier_vectors_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut first_row = false
+  let mut polls = 0
+  while !first_row {
+    polls += 1
+    assert_true(polls < 20)
+    match @local_bridge.advance_rows_to_vectors(cancelled, 1).unwrap() {
+      @local_bridge.Continue(progress~, ..) => first_row = progress > 0L
+      _ => abort("rows-to-Vectors did not yield after its first row")
+    }
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_bridge.advance_rows_to_vectors(cancelled, 1).unwrap()
+    is @local_bridge.Stopped(_, ..),
+  )
+  assert_eq(@local_bridge.cleanup_rows_to_vectors(cancelled), Ok(true))
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
+test "Vectors projection production entrypoint enforces value and width limits" {
+  let source_owner = direct_nearest_relation_owner(
+    "[{\"id\":1,\"embedding\":[1,2]},{\"id\":2,\"embedding\":[3,4]}]",
+  )
+  let source = direct_nearest_relation_output(source_owner)
+  let owner = direct_vectors_projection_owner(source_owner)
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let encoding = @local_bridge.start_rows_to_vectors(
+    @bounded.control(),
+    sequence,
+    0,
+    external,
+    carrier_vectors_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut vectors = None
+  for _ in 0..<40 {
+    if vectors is Some(_) {
+      break
+    }
+    match @local_bridge.advance_rows_to_vectors(encoding, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Complete(output, ..) => vectors = Some(output)
+      _ => abort("rows-to-Vectors setup failed")
+    }
+  }
+  let vectors = vectors.unwrap()
+  assert_eq(@local_bridge.cleanup_rows_to_vectors(encoding), Ok(true))
+  let projection_input = @records.prepare_step_read(owner, 1, 0, vectors).unwrap()
+  let exact = @local_bridge.start_vectors_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    projection_input,
+    2,
+    { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    2,
+    1000,
+    [external],
+    control_work_limit=Some(10),
+  ).unwrap()
+  let mut exact_done = false
+  for _ in 0..<20 {
+    if exact_done {
+      break
+    }
+    match @local_bridge.advance_vectors_to_rows(exact, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Complete(output, work~, ..) => {
+        assert_eq(work, 10L)
+        assert_eq(@execution.completed_row_count(output), 2)
+        assert_true(
+          @execution.completed_output_matches_inputs(output, [external]),
+        )
+        exact_done = true
+      }
+      _ => abort("exact Vectors projection failed")
+    }
+  }
+  assert_true(exact_done)
+  assert_eq(@local_bridge.cleanup_vectors_to_rows(exact), Ok(true))
+  let one_short_work = @local_bridge.start_vectors_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    projection_input,
+    2,
+    { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    2,
+    1000,
+    [external],
+    control_work_limit=Some(9),
+  ).unwrap()
+  let mut work_failed = false
+  for _ in 0..<20 {
+    if work_failed {
+      break
+    }
+    match @local_bridge.advance_vectors_to_rows(one_short_work, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Failed(@local_bridge.ControlWorkLimit, work~, ..) => {
+        assert_eq(work, 9L)
+        work_failed = true
+      }
+      _ => abort("one-short Vectors projection did not reject work")
+    }
+  }
+  assert_true(work_failed)
+  assert_eq(@local_bridge.cleanup_vectors_to_rows(one_short_work), Ok(true))
+  let one_short_width = @local_bridge.start_vectors_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    projection_input,
+    2,
+    { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    1,
+    1000,
+    [external],
+  )
+  assert_true(
+    one_short_width is Err(@local_bridge.Completion(@execution.Limit)),
+  )
+  let one_short_value = @local_bridge.start_vectors_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    projection_input,
+    2,
+    { max_nodes: 9, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    2,
+    1000,
+    [external],
+  ).unwrap()
+  let mut value_failed = false
+  for _ in 0..<20 {
+    if value_failed {
+      break
+    }
+    match @local_bridge.advance_vectors_to_rows(one_short_value, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Failed(
+        @local_bridge.RelationOutput(@execution.CaptureLimit),
+        ..
+      ) => value_failed = true
+      _ => abort("one-short Vectors projection did not reject output")
+    }
+  }
+  assert_true(value_failed)
+  assert_eq(@local_bridge.cleanup_vectors_to_rows(one_short_value), Ok(true))
+  let control = @bounded.control()
+  let cancelled = @local_bridge.start_vectors_to_rows(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    projection_input,
+    2,
+    { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    2,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(
+    @local_bridge.advance_vectors_to_rows(cancelled, 1).unwrap()
+    is @local_bridge.Continue(..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_bridge.advance_vectors_to_rows(cancelled, 1).unwrap()
+    is @local_bridge.Stopped(_, ..),
+  )
+  assert_eq(@local_bridge.cleanup_vectors_to_rows(cancelled), Ok(true))
+  assert_true(@records.completed_available(vectors))
+  assert_true(@records.discard_completed(vectors))
+  assert_true(@execution.completed_output_available(source))
 }
 
 ///|
@@ -2551,6 +3055,71 @@ fn run_direct_ranking_provider(
       )
     }
   }
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+}
+
+///|
+test "ranking detects an in-flight input loss before completion" {
+  let left = direct_ranking_owner()
+  let right = direct_ranking_owner()
+  let owner = direct_ranking_fusion_owner(left, right, "\"max\"")
+  let left_output = direct_ranking_output(left, [(1.0, 1.0, 0.75)])
+  let right_output = direct_ranking_output(right, [(1.0, 2.0, 0.5)])
+  let right_live = Ref(true)
+  let restricted = @execution.restrict_completed_output(right_output, fn() {
+    right_live.val
+  })
+  let inputs = [
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, right, restricted).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+  ]
+  let generated = task_test_generated(owner)
+  let limits = dispatch_test_limits()
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let execution = @local_connector.start_managed_provider(
+    provider, generated, inputs, 10, 1000,
+  ).unwrap()
+  assert_true(
+    @local_connector.advance_managed_provider(execution, 1).unwrap()
+    is @local_connector.Continue(work=1L, ..),
+  )
+  right_live.val = false
+  let mut failed = false
+  for _ in 0..<4 {
+    if !failed {
+      match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+        @local_connector.Failed(_, ..) => failed = true
+        @local_connector.Complete(_, ..) =>
+          fail("ranking published after an input was lost")
+        @local_connector.CarrierComplete(_, ..) =>
+          fail("ranking returned a Carrier")
+        @local_connector.Stopped(..) => fail("ranking stopped without failure")
+      }
+    }
+  }
+  assert_true(failed)
   assert_true(@local_connector.managed_provider_stopped(execution))
   assert_true(
     @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
@@ -3291,6 +3860,337 @@ test "registered VecA provider groups nullable RRF keys" {
 }
 
 ///|
+test "ranking bounds scratch and output assembly within quantum" {
+  let left = direct_rrf_owner()
+  let right = direct_rrf_owner()
+  let owner = direct_rrf_fusion_owner(left, right)
+  let left_output = direct_ranking_output(left, [
+    (1.0, 1.0, 1.0),
+    (1.0, 2.0, 2.0),
+  ])
+  let right_output = direct_ranking_output(right, [
+    (1.0, 3.0, 1.0),
+    (1.0, 4.0, 2.0),
+  ])
+  let inputs = [
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, right, right_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+  ]
+  let control = @bounded.control()
+  let execution = @local_veca.start_ranking(
+    control,
+    task_test_completion(owner),
+    prepared_sequence(owner),
+    0,
+    inputs,
+    10,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    1000,
+    1000,
+    10000,
+  ).unwrap()
+  assert_eq(@local_veca.ranking_scratch_slots(execution), 0)
+  let mut last_work = 0L
+  let mut scratch_started = false
+  for _ in 0..<100 {
+    if !scratch_started {
+      match @local_veca.advance_ranking(execution, 1).unwrap() {
+        @local_veca.RankingContinue(work~, ..) => {
+          assert_eq(work - last_work, 1L)
+          last_work = work
+          scratch_started = @local_veca.ranking_scratch_slots(execution) > 0
+          if scratch_started {
+            assert_eq(@local_veca.ranking_scratch_slots(execution), 1)
+          }
+        }
+        _ => fail("ranking completed before scratch initialization")
+      }
+    }
+  }
+  assert_true(scratch_started)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_veca.advance_ranking(execution, 1).unwrap()
+    is @local_veca.RankingStopped(@bounded.Cancelled, ..),
+  )
+  assert_eq(@local_veca.cleanup_ranking(execution), Ok(true))
+  assert_eq(@local_veca.ranking_scratch_slots(execution), 0)
+  assert_true(@execution.producer_read_available(inputs[0]))
+  assert_true(@execution.producer_read_available(inputs[1]))
+  assert_true(@execution.completed_output_available(left_output))
+  assert_true(@execution.completed_output_available(right_output))
+
+  let output_control = @bounded.control()
+  let output_execution = @local_veca.start_ranking(
+    output_control,
+    task_test_completion(owner),
+    prepared_sequence(owner),
+    0,
+    inputs,
+    10,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    1000,
+    1000,
+    10000,
+  ).unwrap()
+  let mut output_started = false
+  let mut output_work = 0L
+  for _ in 0..<1000 {
+    if !output_started {
+      match @local_veca.advance_ranking(output_execution, 1).unwrap() {
+        @local_veca.RankingContinue(work~, ..) => {
+          assert_eq(work - output_work, 1L)
+          output_work = work
+          output_started = @local_veca.ranking_output_field_slots(
+              output_execution,
+            ) >
+            0
+          if output_started {
+            assert_eq(
+              @local_veca.ranking_output_field_slots(output_execution),
+              1,
+            )
+          }
+        }
+        _ => fail("ranking completed before output field assembly")
+      }
+    }
+  }
+  assert_true(output_started)
+  assert_true(@bounded.request_cancel(output_control))
+  assert_true(
+    @local_veca.advance_ranking(output_execution, 1).unwrap()
+    is @local_veca.RankingStopped(@bounded.Cancelled, ..),
+  )
+  assert_eq(@local_veca.cleanup_ranking(output_execution), Ok(true))
+  assert_eq(@local_veca.ranking_output_field_slots(output_execution), 0)
+  assert_true(@execution.producer_read_available(inputs[0]))
+  assert_true(@execution.producer_read_available(inputs[1]))
+}
+
+///|
+test "ranking producer path admits exact work and workspace" {
+  let left = direct_rrf_owner()
+  let right = direct_rrf_owner()
+  let owner = direct_rrf_fusion_owner(left, right)
+  let left_output = direct_ranking_output(left, [
+    (1.0, 1.0, 1.0),
+    (1.0, 2.0, 2.0),
+  ])
+  let right_output = direct_ranking_output(right, [
+    (1.0, 3.0, 1.0),
+    (1.0, 4.0, 2.0),
+  ])
+  let inputs = [
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, right, right_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+  ]
+  let limits : @execution.ValueLimits = {
+    max_nodes: 1000,
+    max_text_bytes: 1000,
+    max_depth: 10,
+    max_work: 10000,
+  }
+  let exact = @local_veca.start_ranking(
+    @bounded.control(),
+    task_test_completion(owner),
+    prepared_sequence(owner),
+    0,
+    inputs,
+    10,
+    limits,
+    91,
+    1000,
+    10000,
+    control_work_limit=Some(153),
+  ).unwrap()
+  let mut exact_done = false
+  for _ in 0..<1000 {
+    if exact_done {
+      break
+    }
+    match @local_veca.advance_ranking(exact, 1).unwrap() {
+      @local_veca.RankingContinue(work~, ..) => assert_true(work > 0L)
+      @local_veca.RankingComplete(output, work~, ..) => {
+        assert_eq(work, 153L)
+        assert_eq(@execution.completed_row_count(output), 2)
+        exact_done = true
+      }
+      _ => fail("exact ranking boundary failed")
+    }
+  }
+  assert_true(exact_done)
+  assert_eq(@local_veca.cleanup_ranking(exact), Ok(true))
+  assert_true(@execution.completed_output_available(left_output))
+  assert_true(@execution.completed_output_available(right_output))
+  let one_short_work = @local_veca.start_ranking(
+    @bounded.control(),
+    task_test_completion(owner),
+    prepared_sequence(owner),
+    0,
+    inputs,
+    10,
+    limits,
+    91,
+    1000,
+    10000,
+    control_work_limit=Some(152),
+  ).unwrap()
+  let mut work_failed = false
+  for _ in 0..<1000 {
+    if work_failed {
+      break
+    }
+    match @local_veca.advance_ranking(one_short_work, 1).unwrap() {
+      @local_veca.RankingContinue(work~, ..) => assert_true(work > 0L)
+      @local_veca.RankingFailed(@local_veca.RankingWorkLimit, work~, ..) => {
+        assert_eq(work, 152L)
+        work_failed = true
+      }
+      _ => fail("one-short ranking work was accepted")
+    }
+  }
+  assert_true(work_failed)
+  assert_eq(@local_veca.cleanup_ranking(one_short_work), Ok(true))
+  assert_true(@execution.completed_output_available(left_output))
+  assert_true(@execution.completed_output_available(right_output))
+  assert_true(
+    @local_veca.start_ranking(
+      @bounded.control(),
+      task_test_completion(owner),
+      prepared_sequence(owner),
+      0,
+      inputs,
+      10,
+      limits,
+      90,
+      1000,
+      10000,
+    )
+    is Err(@local_veca.RankingWorkspaceLimit),
+  )
+}
+
+///|
+test "registered ranking provider enforces exact work and workspace" {
+  let left = direct_rrf_owner()
+  let right = direct_rrf_owner()
+  let owner = direct_rrf_fusion_owner(left, right)
+  let left_output = direct_ranking_output(left, [
+    (1.0, 1.0, 1.0),
+    (1.0, 2.0, 2.0),
+  ])
+  let right_output = direct_ranking_output(right, [
+    (1.0, 3.0, 1.0),
+    (1.0, 4.0, 2.0),
+  ])
+  let inputs = [
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, right, right_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+  ]
+  let generated = task_test_generated(owner)
+  let limits = dispatch_test_limits()
+  let capacity = @execution.generated_sequence_capacity(
+    generated,
+    limits.local_execution,
+    limits.guards,
+  ).unwrap()
+  // Four three-field input rows cost 32 units; four stable sort passes cost
+  // 80; duplicate/rank validation costs 10; four two-input folds cost 16;
+  // four output visits, two four-field rows, and finalization cost 15.
+  // Workspace is 4*9 + 4 + 4*6 + 4 + (2+2*2) + (1+16) = 91 slots.
+  for
+    (work, slots, outcome) in [
+      (153, 91, "complete"),
+      (152, 91, "work"),
+      (153, 90, "workspace"),
+    ] {
+    let provider = @local_veca_provider.provider(
+      {
+        ..carrier_vectors_storage_limits(),
+        max_work: work,
+        max_workspace_slots: slots,
+      },
+      4096L,
+      capacity,
+    )
+    let execution = @local_connector.start_managed_provider(
+      provider, generated, inputs, 10, 1000,
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<1000 {
+      if terminal {
+        break
+      }
+      match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => {
+          assert_true(work > 0L)
+          charged += work
+        }
+        @local_connector.Complete(output, work~, ..) => {
+          assert_eq(outcome, "complete")
+          charged += work
+          assert_eq(@execution.completed_row_count(output), 2)
+          terminal = true
+        }
+        @local_connector.Failed(_, work~, ..) => {
+          charged += work
+          assert_true(outcome != "complete")
+          terminal = true
+        }
+        _ => fail("ranking provider stopped unexpectedly")
+      }
+    }
+    assert_true(terminal)
+    assert_eq(
+      charged,
+      if outcome == "workspace" {
+        0L
+      } else if outcome == "work" {
+        152L
+      } else {
+        153L
+      },
+    )
+    assert_true(@local_connector.managed_provider_stopped(execution))
+    assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
+    assert_true(@execution.completed_output_available(left_output))
+    assert_true(@execution.completed_output_available(right_output))
+  }
+}
+
+///|
 fn run_direct_nearest_provider(
   owner : @lower.BoundPrepared,
   inputs : Array[@local_connector.ManagedProviderInput],
@@ -3324,6 +4224,45 @@ fn run_direct_nearest_provider(
   assert_eq(@execution.completed_row_count(result), 4)
   assert_true(@execution.completed_cell(result, 0, 0) is Some(Number(3.0)))
   assert_true(@execution.completed_cell(result, 0, 1) is Some(Number(10.0)))
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+}
+
+///|
+fn run_direct_invalid_nearest_provider(
+  owner : @lower.BoundPrepared,
+  inputs : Array[@local_connector.ManagedProviderInput],
+) -> Unit raise {
+  let generated = task_test_generated(owner)
+  let limits = dispatch_test_limits()
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let execution = @local_connector.start_managed_provider_with_inputs(
+    provider, generated, inputs, 10, 1000,
+  ).unwrap()
+  let mut failed = false
+  let mut polls = 0
+  while !failed && polls < 100 {
+    polls += 1
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Failed(_, ..) => failed = true
+      @local_connector.Complete(_, ..) => fail("invalid nearest completed")
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("invalid nearest returned a Carrier")
+      @local_connector.Stopped(..) => fail("invalid nearest stopped")
+    }
+  }
+  assert_true(failed)
   assert_true(@local_connector.managed_provider_stopped(execution))
   assert_true(
     @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
@@ -3397,6 +4336,634 @@ test "registered VecA provider consumes exact Vectors inputs" {
   assert_true(@carrier_runtime.material_available(query_material))
   assert_true(@carrier_runtime.reclaim_material(candidate_material))
   assert_true(@carrier_runtime.reclaim_material(query_material))
+}
+
+///|
+test "nearest charges incremental initialization and cumulative work" {
+  let candidates = direct_nearest_vector_owner()
+  let queries = direct_nearest_vector_owner()
+  let owner = direct_nearest_owner(candidates, queries)
+  let candidate_material = direct_nearest_material(candidates, [(1.0, "[1,0]")])
+  let query_material = direct_nearest_material(queries, [(10.0, "[1,0]")])
+  let generated = task_test_generated(owner)
+  // Each input: one identity slot, two field reads, two identity matches,
+  // one record finish, and three component checks = nine units. Two record
+  // scratch slots and two uniqueness checks bring the total to 22. One
+  // score scratch slot, two component folds, score finish, output emission,
+  // and completion bring the independent total to 28 units.
+  // Workspace: two three-slot records, four score slots, three record-sort
+  // slots, two identity slots, and eight fixed slots = 23.
+  let short_candidate_view = @carrier_runtime.material_prepare_view(
+    candidate_material, owner, 0, candidates,
+  ).unwrap()
+  let short_query_view = @carrier_runtime.material_prepare_view(
+    query_material, owner, 1, queries,
+  ).unwrap()
+  assert_true(
+    @local_veca.start_nearest_inputs_with_control_work_limit(
+      @bounded.control(),
+      @execution.generated_completion_preparation(generated),
+      @execution.generated_prepared_sequence(generated),
+      0,
+      @local_veca.nearest_carrier_producer(short_candidate_view),
+      @local_veca.nearest_carrier_producer(short_query_view),
+      10,
+      { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      22,
+      1000,
+      1000,
+      28,
+    )
+    is Err(@local_veca.NearestWorkspaceLimit),
+  )
+  for (ceiling, accepted) in [(28, true), (27, false)] {
+    let candidate_view = @carrier_runtime.material_prepare_view(
+      candidate_material, owner, 0, candidates,
+    ).unwrap()
+    let query_view = @carrier_runtime.material_prepare_view(
+      query_material, owner, 1, queries,
+    ).unwrap()
+    let execution = @local_veca.start_nearest_inputs_with_control_work_limit(
+      @bounded.control(),
+      @execution.generated_completion_preparation(generated),
+      @execution.generated_prepared_sequence(generated),
+      0,
+      @local_veca.nearest_carrier_producer(candidate_view),
+      @local_veca.nearest_carrier_producer(query_view),
+      10,
+      { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      23,
+      1000,
+      1000,
+      ceiling,
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<32 {
+      if !terminal {
+        match @local_veca.advance_nearest(execution, 1).unwrap() {
+          @local_veca.NearestContinue(work~, ..) => {
+            assert_eq(work - charged, 1L)
+            charged = work
+          }
+          @local_veca.NearestComplete(output, work~, ..) => {
+            assert_true(accepted)
+            assert_eq(work - charged, 1L)
+            charged = work
+            assert_eq(@execution.completed_row_count(output), 1)
+            terminal = true
+          }
+          @local_veca.NearestFailed(@local_veca.NearestWorkLimit, work~, ..) => {
+            assert_false(accepted)
+            assert_eq(work, charged)
+            assert_true(@local_veca.nearest_cleanup_pending(execution))
+            terminal = true
+          }
+          _ => fail("nearest work boundary had another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(charged, ceiling.to_int64())
+    assert_true(@local_veca.nearest_stopped(execution))
+    assert_eq(@local_veca.cleanup_nearest(execution), Ok(true))
+  }
+  assert_true(@carrier_runtime.material_available(candidate_material))
+  assert_true(@carrier_runtime.material_available(query_material))
+  assert_true(@carrier_runtime.reclaim_material(candidate_material))
+  assert_true(@carrier_runtime.reclaim_material(query_material))
+}
+
+///|
+test "nearest stops during incremental identity initialization" {
+  let candidates = direct_nearest_vector_owner()
+  let queries = direct_nearest_vector_owner()
+  let owner = direct_nearest_owner(candidates, queries)
+  let candidate_material = direct_nearest_material(candidates, [(1.0, "[1,0]")])
+  let query_material = direct_nearest_material(queries, [(10.0, "[1,0]")])
+  let candidate_view = @carrier_runtime.material_prepare_view(
+    candidate_material, owner, 0, candidates,
+  ).unwrap()
+  let query_view = @carrier_runtime.material_prepare_view(
+    query_material, owner, 1, queries,
+  ).unwrap()
+  let generated = task_test_generated(owner)
+  let control = @bounded.control()
+  let execution = @local_veca.start_nearest_inputs_with_control_work_limit(
+    control,
+    @execution.generated_completion_preparation(generated),
+    @execution.generated_prepared_sequence(generated),
+    0,
+    @local_veca.nearest_carrier_producer(candidate_view),
+    @local_veca.nearest_carrier_producer(query_view),
+    10,
+    { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    23,
+    1000,
+    1000,
+    28,
+  ).unwrap()
+  assert_true(
+    @local_veca.advance_nearest(execution, 1).unwrap()
+    is @local_veca.NearestContinue(work=1L, ..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_veca.advance_nearest(execution, 1).unwrap()
+    is @local_veca.NearestStopped(_, work=1L, ..),
+  )
+  assert_true(@local_veca.nearest_stopped(execution))
+  assert_true(@local_veca.nearest_cleanup_pending(execution))
+  assert_eq(@local_veca.cleanup_nearest(execution), Ok(true))
+  assert_true(@carrier_runtime.material_available(candidate_material))
+  assert_true(@carrier_runtime.material_available(query_material))
+  assert_true(@carrier_runtime.reclaim_material(candidate_material))
+  assert_true(@carrier_runtime.reclaim_material(query_material))
+}
+
+///|
+test "direct nearest Relation inputs keep exact work and workspace bounds" {
+  let candidates = direct_nearest_relation_owner(
+    "[{\"id\":1,\"embedding\":[1,0]}]",
+  )
+  let queries = direct_nearest_relation_owner(
+    "[{\"id\":10,\"embedding\":[1,0]}]",
+  )
+  let owner = direct_nearest_owner(
+    candidates,
+    queries,
+    candidate_relation=true,
+    query_relation=true,
+  )
+  let candidate_output = direct_nearest_relation_output(candidates)
+  let query_output = direct_nearest_relation_output(queries)
+  let generated = task_test_generated(owner)
+  for (ceiling, accepted) in [(28, true), (27, false)] {
+    let candidate_read = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, candidates, candidate_output).unwrap(),
+      10,
+      1000,
+    ).unwrap()
+    let query_read = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, queries, query_output).unwrap(),
+      10,
+      1000,
+    ).unwrap()
+    // Two three-slot records, four score slots, three ordering slots,
+    // two identity slots, and eight fixed slots require 23 workspace slots.
+    let execution = @local_veca.start_nearest_inputs_with_control_work_limit(
+      @bounded.control(),
+      @execution.generated_completion_preparation(generated),
+      @execution.generated_prepared_sequence(generated),
+      0,
+      @local_veca.nearest_relation_producer(candidate_read),
+      @local_veca.nearest_relation_producer(query_read),
+      10,
+      { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      23,
+      1000,
+      1000,
+      ceiling,
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<32 {
+      if !terminal {
+        match @local_veca.advance_nearest(execution, 1).unwrap() {
+          @local_veca.NearestContinue(work~, ..) => {
+            assert_eq(work - charged, 1L)
+            charged = work
+          }
+          @local_veca.NearestComplete(output, work~, ..) => {
+            assert_true(accepted)
+            assert_eq(work - charged, 1L)
+            charged = work
+            assert_eq(@execution.completed_row_count(output), 1)
+            terminal = true
+          }
+          @local_veca.NearestFailed(@local_veca.NearestWorkLimit, work~, ..) => {
+            assert_false(accepted)
+            assert_eq(work, charged)
+            assert_true(@local_veca.nearest_cleanup_pending(execution))
+            terminal = true
+          }
+          _ => fail("direct Relation nearest work boundary had another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(charged, ceiling.to_int64())
+    assert_true(@local_veca.nearest_stopped(execution))
+    assert_eq(@local_veca.cleanup_nearest(execution), Ok(true))
+    assert_true(@execution.producer_read_available(candidate_read))
+    assert_true(@execution.producer_read_available(query_read))
+  }
+  let candidate_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, candidates, candidate_output).unwrap(),
+    10,
+    1000,
+  ).unwrap()
+  let query_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 1, queries, query_output).unwrap(),
+    10,
+    1000,
+  ).unwrap()
+  assert_true(
+    @local_veca.start_nearest_inputs_with_control_work_limit(
+      @bounded.control(),
+      @execution.generated_completion_preparation(generated),
+      @execution.generated_prepared_sequence(generated),
+      0,
+      @local_veca.nearest_relation_producer(candidate_read),
+      @local_veca.nearest_relation_producer(query_read),
+      10,
+      { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      22,
+      1000,
+      1000,
+      28,
+    )
+    is Err(@local_veca.NearestWorkspaceLimit),
+  )
+  assert_true(@execution.producer_read_available(candidate_read))
+  assert_true(@execution.producer_read_available(query_read))
+}
+
+///|
+fn direct_relation_pool_source_owner() -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check(
+      input_cursor(
+        "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"group\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"embedding\":{\"type\":\"vector\",\"dimensions\":2," +
+        "\"nullable\":false}},\"rows\":[{\"id\":1,\"group\":1," +
+        "\"embedding\":[1,2]}]},\"as\":\"source\"}," +
+        "{\"from\":\"source\",\"assert_rows\":{\"unique_by\":[\"id\"]}," +
+        "\"as\":\"keyed\"}]",
+      ),
+      [],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn direct_relation_pool_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"from\":\"rows\",\"pool_vectors\":{\"vector\":\"embedding\"," +
+        "\"by\":[\"group\"],\"method\":\"sum\"}}]",
+      ),
+      [
+        (
+          "rows",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(source)),
+              @pipeline.Step(1),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      Some(input_cursor("\"rows\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn direct_relation_pool_limits(
+  workspace : Int,
+  work : Int,
+) -> @record_storage.Limits {
+  {
+    max_input_records: 10,
+    max_records: 10,
+    max_fields_per_record: 10,
+    max_value_bytes: 1000,
+    max_total_value_bytes: 10000,
+    max_retained_value_bytes: 10000,
+    max_value_nodes: 100,
+    max_value_depth: 10,
+    max_contract_work: 1000,
+    max_work: work,
+    max_workspace_slots: workspace,
+  }
+}
+
+///|
+test "relation pool enforces exact work and workspace boundaries" {
+  let source = direct_relation_pool_source_owner()
+  let owner = direct_relation_pool_owner(source)
+  let completed = @execution.execute_generated_sequence(
+    task_test_generated(source),
+    [],
+    compute_test_limits(),
+  ).unwrap()
+  let source_output = @execution.completed_output(completed, @pipeline.Step(1)).unwrap()
+  let read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source, source_output).unwrap(),
+    10,
+    1000,
+  ).unwrap()
+  // One five-slot record in each ordering array (10), three output fields,
+  // two vector components, and three key slots require 18 workspace slots.
+  assert_true(
+    @local_veca.start_relation_pool(
+      @bounded.control(),
+      @execution.generated_prepared_sequence(task_test_generated(owner)),
+      0,
+      read,
+      direct_relation_pool_limits(17, 1000),
+      4096L,
+      fn() { true },
+    )
+    is Err(@local_veca.PoolWorkspaceLimit),
+  )
+  assert_true(@execution.producer_read_available(read))
+  let control = @bounded.control()
+  let execution = @local_veca.start_relation_pool(
+    control,
+    @execution.generated_prepared_sequence(task_test_generated(owner)),
+    0,
+    read,
+    direct_relation_pool_limits(18, 1000),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(
+    @local_veca.advance_pool(execution, 1).unwrap()
+    is @local_veca.PoolContinue(..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_veca.advance_pool(execution, 1).unwrap()
+    is @local_veca.PoolStopped(_, ..),
+  )
+  assert_eq(@local_veca.cleanup_pool(execution), Ok(true))
+  assert_true(@execution.producer_read_available(read))
+  // One record: setup 3, three field scans 9, group/identity checks 2,
+  // identity encoding 2, component validation 2, collection/scratch 2,
+  // group boundaries 2, component build/fold/finish 6, output fields 3,
+  // and output commit 1. The independent total is 32 control units.
+  for (ceiling, accepted) in [(32, true), (31, false)] {
+    let bounded = @local_veca.start_relation_pool(
+      @bounded.control(),
+      @execution.generated_prepared_sequence(task_test_generated(owner)),
+      0,
+      read,
+      direct_relation_pool_limits(18, ceiling),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<40 {
+      if !terminal {
+        match @local_veca.advance_pool(bounded, 1).unwrap() {
+          @local_veca.PoolContinue(work~, ..) => {
+            assert_eq(work - charged, 1L)
+            charged = work
+          }
+          @local_veca.PoolComplete(output, work~, ..) => {
+            assert_true(accepted)
+            assert_eq(work, charged)
+            charged = work
+            assert_true(@records.completed_storage(output) is Some(_))
+            terminal = true
+          }
+          @local_veca.PoolFailed(@local_veca.PoolWorkLimit, work~, ..) => {
+            assert_false(accepted)
+            assert_eq(work, charged)
+            assert_true(@local_veca.pool_cleanup_pending(bounded))
+            terminal = true
+          }
+          _ => fail("Relation pool work boundary had another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(charged, ceiling.to_int64())
+    assert_eq(@local_veca.cleanup_pool(bounded), Ok(true))
+    assert_true(@execution.producer_read_available(read))
+  }
+}
+
+///|
+test "fused nearest charges exact Relation inputs and reclaims cancellation" {
+  let candidates = direct_nearest_relation_owner(
+    "[{\"id\":1,\"embedding\":[1,0]}]",
+  )
+  let queries = direct_nearest_relation_owner(
+    "[{\"id\":10,\"embedding\":[1,0]}]",
+  )
+  let owner = direct_nearest_owner(
+    candidates,
+    queries,
+    candidate_relation=true,
+    query_relation=true,
+  )
+  let candidate_output = direct_nearest_relation_output(candidates)
+  let query_output = direct_nearest_relation_output(queries)
+  let generated = task_test_generated(owner)
+  for (ceiling, accepted) in [(28, true), (27, false)] {
+    let candidate_read = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, candidates, candidate_output).unwrap(),
+      10,
+      1000,
+    ).unwrap()
+    let query_read = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, queries, query_output).unwrap(),
+      10,
+      1000,
+    ).unwrap()
+    let control = @bounded.control()
+    let execution = @local_veca.start_nearest_inputs_with_relations_control_work_limit(
+      control,
+      @execution.generated_completion_preparation(generated),
+      @execution.generated_prepared_sequence(generated),
+      0,
+      @local_veca.nearest_relation_producer(candidate_read),
+      @local_veca.nearest_relation_producer(query_read),
+      10,
+      { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      23,
+      1000,
+      1000,
+      [candidate_read, query_read],
+      ceiling,
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<32 {
+      if !terminal {
+        match @local_veca.advance_nearest(execution, 1).unwrap() {
+          @local_veca.NearestContinue(work~, ..) => {
+            assert_eq(work - charged, 1L)
+            charged = work
+          }
+          @local_veca.NearestComplete(output, work~, ..) => {
+            assert_true(accepted)
+            assert_eq(work - charged, 1L)
+            charged = work
+            assert_eq(@execution.completed_row_count(output), 1)
+            terminal = true
+          }
+          @local_veca.NearestFailed(@local_veca.NearestWorkLimit, work~, ..) => {
+            assert_false(accepted)
+            assert_eq(work, charged)
+            assert_true(@local_veca.nearest_cleanup_pending(execution))
+            terminal = true
+          }
+          _ => fail("fused nearest work boundary had another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(charged, ceiling.to_int64())
+    assert_true(@local_veca.nearest_stopped(execution))
+    assert_eq(@local_veca.cleanup_nearest(execution), Ok(true))
+    assert_true(@execution.producer_read_available(candidate_read))
+    assert_true(@execution.producer_read_available(query_read))
+  }
+  let candidate_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, candidates, candidate_output).unwrap(),
+    10,
+    1000,
+  ).unwrap()
+  let query_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 1, queries, query_output).unwrap(),
+    10,
+    1000,
+  ).unwrap()
+  assert_true(
+    @local_veca.start_nearest_inputs_with_relations_control_work_limit(
+      @bounded.control(),
+      @execution.generated_completion_preparation(generated),
+      @execution.generated_prepared_sequence(generated),
+      0,
+      @local_veca.nearest_relation_producer(candidate_read),
+      @local_veca.nearest_relation_producer(query_read),
+      10,
+      { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      22,
+      1000,
+      1000,
+      [candidate_read, query_read],
+      28,
+    )
+    is Err(@local_veca.NearestWorkspaceLimit),
+  )
+  assert_true(@execution.producer_read_available(candidate_read))
+  assert_true(@execution.producer_read_available(query_read))
+  let cancel_control = @bounded.control()
+  let cancel_execution = @local_veca.start_nearest_inputs_with_relations_control_work_limit(
+    cancel_control,
+    @execution.generated_completion_preparation(generated),
+    @execution.generated_prepared_sequence(generated),
+    0,
+    @local_veca.nearest_relation_producer(candidate_read),
+    @local_veca.nearest_relation_producer(query_read),
+    10,
+    { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    23,
+    1000,
+    1000,
+    [candidate_read, query_read],
+    28,
+  ).unwrap()
+  assert_true(
+    @local_veca.advance_nearest(cancel_execution, 1).unwrap()
+    is @local_veca.NearestContinue(work=1L, ..),
+  )
+  assert_true(@bounded.request_cancel(cancel_control))
+  assert_true(
+    @local_veca.advance_nearest(cancel_execution, 1).unwrap()
+    is @local_veca.NearestStopped(_, work=1L, ..),
+  )
+  assert_true(@local_veca.nearest_cleanup_pending(cancel_execution))
+  assert_eq(@local_veca.cleanup_nearest(cancel_execution), Ok(true))
+  assert_true(@execution.producer_read_available(candidate_read))
+  assert_true(@execution.producer_read_available(query_read))
+}
+
+///|
+test "nearest validates query components with an empty Vectors corpus" {
+  let candidates = direct_nearest_vector_owner()
+  let queries = direct_nearest_vector_owner()
+  let owner = direct_nearest_owner(candidates, queries)
+  let candidate_material = direct_nearest_material(candidates, [])
+  let query_material = direct_nearest_material(queries, [(10.0, "[1e39,0]")])
+  let candidate_view = @carrier_runtime.material_prepare_view(
+    candidate_material, owner, 0, candidates,
+  ).unwrap()
+  let query_view = @carrier_runtime.material_prepare_view(
+    query_material, owner, 1, queries,
+  ).unwrap()
+  run_direct_invalid_nearest_provider(owner, [
+    @local_connector.managed_provider_carrier_input(candidate_view),
+    @local_connector.managed_provider_carrier_input(query_view),
+  ])
+  assert_true(@carrier_runtime.material_available(candidate_material))
+  assert_true(@carrier_runtime.material_available(query_material))
+  assert_true(@carrier_runtime.reclaim_material(candidate_material))
+  assert_true(@carrier_runtime.reclaim_material(query_material))
+}
+
+///|
+test "nearest validates candidate components with empty Relation queries" {
+  let candidates = direct_nearest_vector_owner()
+  let queries = direct_nearest_relation_owner("[]")
+  let owner = direct_nearest_owner(candidates, queries, query_relation=true)
+  let candidate_material = direct_nearest_material(candidates, [
+    (1.0, "[1e39,0]"),
+  ])
+  let candidate_view = @carrier_runtime.material_prepare_view(
+    candidate_material, owner, 0, candidates,
+  ).unwrap()
+  let query_output = direct_nearest_relation_output(queries)
+  let query_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 1, queries, query_output).unwrap(),
+    10,
+    1000,
+  ).unwrap()
+  run_direct_invalid_nearest_provider(owner, [
+    @local_connector.managed_provider_carrier_input(candidate_view),
+    @local_connector.managed_provider_relation_input(query_read),
+  ])
+  assert_true(@carrier_runtime.material_available(candidate_material))
+  assert_true(@carrier_runtime.reclaim_material(candidate_material))
 }
 
 ///|

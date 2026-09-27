@@ -91,7 +91,7 @@ fn run_local_managed_watermark_case(variant : String) -> Unit raise {
   ).unwrap()
 
   let producer_live = Ref(true)
-  let (producer_ops, producer) = run_local_managed_test_task(
+  let (values_ops, values) = run_local_managed_test_task(
     installed,
     run,
     1,
@@ -100,8 +100,56 @@ fn run_local_managed_watermark_case(variant : String) -> Unit raise {
     1,
     producer_live,
   )
+  let input_rows = local_managed_test_rows(values_ops)
+  assert_eq(input_rows, [
+    "{\"id\":1,\"time\":100}", "{\"id\":2,\"time\":80}", "{\"id\":3,\"time\":95}",
+  ])
+  let watermark_live = Ref(true)
+  let advances = Ref(0)
+  let (producer_ops, producer) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [values],
+    [input_rows],
+    2,
+    watermark_live,
+    execution_quantum=1,
+    execution_advances=Some(advances),
+    require_provider=true,
+  )
+  assert_true(advances.val > 4)
   let rows = local_managed_test_rows(producer_ops)
   let expected = if variant == "fixed_mark" {
+    [
+      "{\"id\":1,\"time\":100,\"watermark_decision\":\"keep\"," +
+      "\"watermark_late\":false,\"watermark_ms\":90}",
+      "{\"id\":2,\"time\":80,\"watermark_decision\":\"mark\"," +
+      "\"watermark_late\":true,\"watermark_ms\":90}",
+      "{\"id\":3,\"time\":95,\"watermark_decision\":\"keep\"," +
+      "\"watermark_late\":false,\"watermark_ms\":90}",
+    ]
+  } else {
+    [
+      "{\"id\":1,\"time\":100,\"watermark_decision\":\"keep\"," +
+      "\"watermark_late\":false,\"watermark_ms\":90}",
+      "{\"id\":3,\"time\":95,\"watermark_decision\":\"keep\"," +
+      "\"watermark_late\":false,\"watermark_ms\":90}",
+    ]
+  }
+  assert_eq(rows, expected)
+
+  let first_live = Ref(true)
+  let (first_ops, first) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [producer],
+    [rows],
+    3,
+    first_live,
+  )
+  let authored = if variant == "fixed_mark" {
     [
       "{\"id\":1,\"time\":100,\"watermark_ms\":90," +
       "\"watermark_late\":false,\"watermark_decision\":\"keep\"}",
@@ -118,33 +166,21 @@ fn run_local_managed_watermark_case(variant : String) -> Unit raise {
       "\"watermark_late\":false,\"watermark_decision\":\"keep\"}",
     ]
   }
-  assert_eq(rows, expected)
-
-  let first_live = Ref(true)
-  let (first_ops, first) = run_local_managed_test_task(
-    installed,
-    run,
-    2,
-    [producer],
-    [rows],
-    2,
-    first_live,
-  )
-  assert_eq(local_managed_test_rows(first_ops), rows)
+  assert_eq(local_managed_test_rows(first_ops), authored)
   let second_live = Ref(true)
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    4,
     [producer],
     [rows],
-    3,
+    4,
     second_live,
   )
   assert_eq(local_managed_test_rows(second_ops).length(), expected.length())
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, 2)
+  @strategy.close_captured_task_output(run, 3)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
@@ -152,13 +188,17 @@ fn run_local_managed_watermark_case(variant : String) -> Unit raise {
   assert_true(@execution.managed_completed_output_available(producer))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, 4)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
-  producer_live.val = false
-  @strategy.close_captured_task_output(run, 1)
+  watermark_live.val = false
+  @strategy.close_captured_task_output(run, 2)
   (producer_ops.close)()
   (producer_ops.cleanup_refresh)() |> ignore
+  producer_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (values_ops.close)()
+  (values_ops.cleanup_refresh)() |> ignore
   @strategy.stop_captured_dag(run)
   @strategy.close_captured_task_output(run, 0)
   @strategy.refresh_captured_retention(run)

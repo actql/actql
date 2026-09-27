@@ -51,6 +51,9 @@ fn bounded_sequence_input_cell(
 
 ///|
 priv enum BoundedSequencePhase {
+  LoadInputNames
+  ResolveColumns
+  LoadOutputNames
   InitializePredicates
   ValidateIdentity
   ReadClocks
@@ -64,6 +67,8 @@ priv enum BoundedSequencePhase {
   DisallowFirst
   DisallowNext
   PrepareAllowPattern
+  InitializeAllowPartials
+  InitializeRowMatches
   ScanAllowAdjacency
   AllowPattern
   ExtendAllowPattern
@@ -81,13 +86,16 @@ priv enum BoundedSequencePhase {
 ///|
 priv struct BoundedSequenceState {
   input : BoundedSequenceInput
+  input_schema : @schema.Schema
   kernel : @lower.PreparedSequenceMatch
-  key_columns : Array[Int]
-  identity_column : Int
-  time_column : Int
-  input_names : Array[String]
+  mut key_columns : Array[Int]
+  mut identity_column : Int
+  mut time_column : Int
+  mut input_names : Array[String]
   output_schema : @schema.Schema
-  output_names : Array[String]
+  mut output_names : Array[String]
+  mut resolve_field : Int
+  mut resolve_scan : Int
   timestamp : Bool
   pattern_count : Int
   per_key_limit : Int
@@ -209,6 +217,9 @@ fn cleanup_bounded_sequence_state(state : BoundedSequenceState) -> Bool {
     cancel_admitted_output(output) |> ignore
     state.output = None
   }
+  state.input_names = []
+  state.key_columns = []
+  state.output_names = []
   state.identity_order = []
   state.ordered = []
   state.clocks = []
@@ -501,6 +512,75 @@ fn bounded_sequence_step(
       return bounded_sequence_failure(InvalidExecution, progress, used)
     }
     match state.phase {
+      LoadInputNames => {
+        if state.input_names.length() == @schema.field_count(state.input_schema) {
+          state.phase = ResolveColumns
+          continue
+        }
+        guard @schema.field_at(state.input_schema, state.input_names.length())
+          is Some(field) else {
+          return bounded_sequence_failure(InvalidExecution, progress, used)
+        }
+        state.input_names.push(@schema.reference_name(field.name))
+        used += 1
+        progress += 1
+      }
+      ResolveColumns => {
+        let key_count = @lower.sequence_match_key_count(state.kernel)
+        if state.resolve_field == key_count + 2 {
+          state.phase = LoadOutputNames
+          continue
+        }
+        if state.resolve_scan == state.input_names.length() {
+          return bounded_sequence_failure(InvalidExecution, progress, used)
+        }
+        let field = if state.resolve_field < key_count {
+          @lower.sequence_match_key_at(state.kernel, state.resolve_field)
+        } else if state.resolve_field == key_count {
+          Some(@lower.sequence_match_identity(state.kernel))
+        } else {
+          Some(@lower.sequence_match_time(state.kernel))
+        }
+        guard field is Some(field) else {
+          return bounded_sequence_failure(InvalidExecution, progress, used)
+        }
+        let reference = @schema.reference_name(field)
+        let name = state.input_names[state.resolve_scan]
+        if !spend_control(state.control, 1) ||
+          !spend_control_text(state.control, reference) ||
+          !spend_control_text(state.control, name) {
+          return bounded_sequence_failure(Rows(RowLimit), progress, used)
+        }
+        if name == reference {
+          if state.resolve_field < key_count {
+            state.key_columns.push(state.resolve_scan)
+          } else if state.resolve_field == key_count {
+            state.identity_column = state.resolve_scan
+          } else {
+            state.time_column = state.resolve_scan
+          }
+          state.resolve_field += 1
+          state.resolve_scan = 0
+        } else {
+          state.resolve_scan += 1
+        }
+        used += 1
+        progress += 1
+      }
+      LoadOutputNames => {
+        if state.output_names.length() ==
+          @schema.field_count(state.output_schema) {
+          state.phase = InitializePredicates
+          continue
+        }
+        guard @schema.field_at(state.output_schema, state.output_names.length())
+          is Some(field) else {
+          return bounded_sequence_failure(InvalidExecution, progress, used)
+        }
+        state.output_names.push(@schema.reference_name(field.name))
+        used += 1
+        progress += 1
+      }
       InitializePredicates => {
         if state.predicate_initialize_pattern == state.pattern_count {
           state.phase = ValidateIdentity
@@ -808,20 +888,16 @@ fn bounded_sequence_step(
       }
       PrepareAllowPattern => {
         if state.partials.is_empty() {
-          if !reserve_slots(state.workspace, state.pattern_count) {
-            return bounded_sequence_failure(Rows(RowLimit), progress, used)
-          }
-          state.partials = Array::makei(state.pattern_count, _ => [])
+          state.phase = InitializeAllowPartials
+          continue
         }
         if state.position == state.group_end {
           bounded_sequence_advance_group(state)
           continue
         }
         if state.row_matches.is_empty() {
-          if !reserve_slots(state.workspace, state.pattern_count) {
-            return bounded_sequence_failure(Rows(RowLimit), progress, used)
-          }
-          state.row_matches = Array::make(state.pattern_count, false)
+          state.phase = InitializeRowMatches
+          continue
         }
         if state.pattern == state.pattern_count {
           state.pattern = state.pattern_count - 1
@@ -840,6 +916,30 @@ fn bounded_sequence_step(
         }
         state.prior_index = 0
         state.phase = ScanAllowAdjacency
+      }
+      InitializeAllowPartials => {
+        if state.partials.length() == state.pattern_count {
+          state.phase = PrepareAllowPattern
+          continue
+        }
+        if !reserve_slots(state.workspace, 1) {
+          return bounded_sequence_failure(Rows(RowLimit), progress, used)
+        }
+        state.partials.push([])
+        used += 1
+        progress += 1
+      }
+      InitializeRowMatches => {
+        if state.row_matches.length() == state.pattern_count {
+          state.phase = PrepareAllowPattern
+          continue
+        }
+        if !reserve_slots(state.workspace, 1) {
+          return bounded_sequence_failure(Rows(RowLimit), progress, used)
+        }
+        state.row_matches.push(false)
+        used += 1
+        progress += 1
       }
       ScanAllowAdjacency => {
         let prior = state.partials[state.pattern - 1]
@@ -1197,44 +1297,7 @@ fn start_bounded_sequence_match_input(
   if !reserve_slots(workspace, metadata) {
     return Err(Rows(RowLimit))
   }
-  let input_names : Array[String] = []
-  for index in 0..<@schema.field_count(schema) {
-    guard @schema.field_at(schema, index) is Some(field) else {
-      return Err(InvalidExecution)
-    }
-    input_names.push(@schema.reference_name(field.name))
-  }
   let key_columns : Array[Int] = []
-  for index in 0..<key_count {
-    guard @lower.sequence_match_key_at(kernel, index) is Some(field) else {
-      return Err(InvalidExecution)
-    }
-    let column = match resolve_column(input_names, field, control) {
-      Ok(column) => column
-      Err(RowLimit) => return Err(Rows(RowLimit))
-      Err(_) => return Err(InvalidExecution)
-    }
-    key_columns.push(column)
-  }
-  let identity_column = match
-    resolve_column(input_names, @lower.sequence_match_identity(kernel), control) {
-    Ok(column) => column
-    Err(RowLimit) => return Err(Rows(RowLimit))
-    Err(_) => return Err(InvalidExecution)
-  }
-  let time_column = match
-    resolve_column(input_names, @lower.sequence_match_time(kernel), control) {
-    Ok(column) => column
-    Err(RowLimit) => return Err(Rows(RowLimit))
-    Err(_) => return Err(InvalidExecution)
-  }
-  let output_names : Array[String] = []
-  for index in 0..<@schema.field_count(output_schema) {
-    guard @schema.field_at(output_schema, index) is Some(field) else {
-      return Err(InvalidExecution)
-    }
-    output_names.push(@schema.reference_name(field.name))
-  }
   let output_limit = match @lower.sequence_match_output_limit(kernel) {
     Some(value) => Int64::min(value, max_rows.to_int64()).to_int()
     None => max_rows
@@ -1272,13 +1335,16 @@ fn start_bounded_sequence_match_input(
   }
   let state : BoundedSequenceState = {
     input,
+    input_schema: schema,
     kernel,
     key_columns,
-    identity_column,
-    time_column,
-    input_names,
+    identity_column: -1,
+    time_column: -1,
+    input_names: [],
     output_schema,
-    output_names,
+    output_names: [],
+    resolve_field: 0,
+    resolve_scan: 0,
     timestamp: @lower.sequence_match_uses_timestamp(kernel),
     pattern_count,
     per_key_limit,
@@ -1296,7 +1362,7 @@ fn start_bounded_sequence_match_input(
     live,
     accepted,
     port,
-    phase: InitializePredicates,
+    phase: LoadInputNames,
     continuation: ResumeDisallowFirst,
     sort: None,
     identity_order: [],

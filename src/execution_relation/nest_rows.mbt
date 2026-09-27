@@ -251,13 +251,17 @@ fn[P : RelationRows, C : RelationRows] evaluate_nest_rows(
       if count.to_int64() > item_limit {
         return Err(NestItemLimit(parent_row))
       }
+      guard checked_row_slots_add(count, names.length()) is Some(row_entries) &&
+        checked_row_slots_add(row_entries, 1) is Some(row_work) else {
+        return Err(RowLimit)
+      }
       if !reserve_slots(workspace, count) ||
         !reserve_slots(workspace, names.length()) ||
         !reserve_slots(workspace, 1) ||
-        !spend_control(control, count + names.length() + 1) {
+        !spend_control(control, row_work) {
         return Err(RowLimit)
       }
-      retained += count + names.length() + 1
+      retained += row_work
       let nested : Array[@admitted.Value] = []
       for position in start..<pair_index {
         let child_row = pairs[position].1

@@ -33,6 +33,7 @@ fn bounded_interval_source(
 ///|
 fn bounded_interval_fixture_result(
   max_work : Int,
+  max_entries? : Int = 10000,
 ) -> Result[
   (@bounded.Control, BoundedIntervalJoinExecution, Array[ProducerRead]),
   BoundedIntervalJoinIssue,
@@ -122,7 +123,7 @@ fn bounded_interval_fixture_result(
       run_limits().output_values,
       max_work,
       100,
-      10000,
+      max_entries,
       10000,
     ) {
     Ok(value) => value
@@ -134,12 +135,58 @@ fn bounded_interval_fixture_result(
 ///|
 fn bounded_interval_fixture(
   max_work? : Int = 100000,
+  max_entries? : Int = 10000,
 ) -> (@bounded.Control, BoundedIntervalJoinExecution, Array[ProducerRead]) raise {
-  bounded_interval_fixture_result(max_work).unwrap()
+  bounded_interval_fixture_result(max_work, max_entries~).unwrap()
+}
+
+///|
+test "bounded interval checks metadata and output workspace limits" {
+  // Two rows on each side, one key, and two selected columns retain 14
+  // structural entries; one output row and its checked copy add four.
+  match bounded_interval_fixture_result(0, max_entries=13) {
+    Err(Rows(RowLimit)) => ()
+    _ => fail("expected early workspace rejection")
+  }
+  let (_, execution, _) = bounded_interval_fixture(max_entries=18)
+  let mut complete = false
+  for _ in 0..<500 {
+    if !complete {
+      match advance_bounded_interval_join(execution, 1).unwrap() {
+        BoundedIntervalJoinContinue(..) => ()
+        BoundedIntervalJoinComplete(output, ..) => {
+          assert_eq(completed_row_count(output), 3)
+          complete = true
+        }
+        _ => fail("unexpected terminal result")
+      }
+    }
+  }
+  assert_true(complete)
+  assert_true(cleanup_bounded_interval_join(execution).unwrap())
+  let (_, short, inputs) = bounded_interval_fixture(max_entries=17)
+  let mut failed = false
+  for _ in 0..<500 {
+    if !failed {
+      match advance_bounded_interval_join(short, 1).unwrap() {
+        BoundedIntervalJoinContinue(..) => ()
+        BoundedIntervalJoinFailed(Rows(RowLimit), ..) => failed = true
+        _ => fail("one-short workspace did not fail before completion")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(inputs.all(producer_read_available))
+  assert_true(bounded_interval_join_cleanup_pending(short))
+  assert_true(cleanup_bounded_interval_join(short).unwrap())
+  assert_false(bounded_interval_join_cleanup_pending(short))
 }
 
 ///|
 test "bounded interval charges every explored pair" {
+  // This fixed two-by-two fixture includes four clock-loading steps and four
+  // pair visits, three output rows, and finalization in the 132-unit work
+  // envelope. The literal is independent of the execution's work counter.
   let (_, exact, _) = bounded_interval_fixture(max_work=132)
   let mut exact_terminal = false
   while !exact_terminal {
@@ -154,7 +201,7 @@ test "bounded interval charges every explored pair" {
     }
   }
   assert_true(cleanup_bounded_interval_join(exact).unwrap())
-  let (_, short, _) = bounded_interval_fixture(max_work=131)
+  let (_, short, inputs) = bounded_interval_fixture(max_work=131)
   let mut short_terminal = false
   while !short_terminal {
     match advance_bounded_interval_join(short, 1).unwrap() {
@@ -165,7 +212,10 @@ test "bounded interval charges every explored pair" {
       BoundedIntervalJoinStopped(_, ..) => fail("unexpected one-short stop")
     }
   }
+  assert_true(inputs.all(producer_read_available))
+  assert_true(bounded_interval_join_cleanup_pending(short))
   assert_true(cleanup_bounded_interval_join(short).unwrap())
+  assert_false(bounded_interval_join_cleanup_pending(short))
 }
 
 ///|

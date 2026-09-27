@@ -79,6 +79,8 @@ pub fn node_accepts_managed_carrier_view(
 /// fused; this rule does not depend on the neighboring operation's name.
 pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
   match node.payload {
+    Values(_) | InnerJoin(_) | CrossJoinRows(_) | AppendRows(_) | SetRows(_) =>
+      true
     GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
     BasicGraph(_) => operation(node) == "SGA.normalize"
     VectorValue(_) => operation(node) == "BRIDGE.rows.to_vectors"
@@ -91,7 +93,88 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       operation(node) == "BRIDGE.graph.to_edge_rows" ||
       operation(node) == "BRIDGE.events.to_rows" ||
       operation(node) == "BRIDGE.vectors.to_rows"
-    Where(_) | Derive(_) | Select(_) | Limit(_) => true
+    Where(_)
+    | Derive(_)
+    | Select(_)
+    | Sort(_)
+    | Limit(_)
+    | TopK(_)
+    | TopKBy(_)
+    | Distinct(_)
+    | Dedupe(_) => true
+    RowWindow(_)
+    | Watermark(_)
+    | Lag(_)
+    | Pivot(_)
+    | Unpivot(_)
+    | Unnest(_)
+    | JsonPick(_) => true
+    CountGroup(checked) => checked_bounded_count(checked)
+    AssertRows(_) =>
+      operation(node) == "REL.assert_all" ||
+      operation(node) == "REL.assert_unique"
+    _ => false
+  }
+}
+
+///|
+/// The selected count provider consumes keyed and global count profiles.
+/// Keep the split decision narrower than general group eligibility so an
+/// unsupported aggregate cannot enter a selected task without a provider.
+fn checked_bounded_count(checked : @relation.CheckedOperation) -> Bool {
+  guard @relation.group(checked) is Some(group) else { return false }
+  for index in 0..<@relation.aggregate_count(group) {
+    guard @relation.aggregate_at(group, index) is Some(aggregate) &&
+      (
+        @relation.aggregate_function(aggregate) == @relation.Count ||
+        @relation.aggregate_function(aggregate) == @relation.CountIf
+      ) &&
+      @relation.aggregate_filter(aggregate) is None &&
+      @relation.aggregate_distinct(aggregate) != Some(true) else {
+      return false
+    }
+    match @relation.aggregate_argument(aggregate) {
+      Rows =>
+        if @relation.aggregate_function(aggregate) is @relation.Count {
+          ()
+        } else {
+          return false
+        }
+      Field(_) => ()
+      Expression(_) => return false
+    }
+  }
+  true
+}
+
+///|
+/// A one-step fused prefix and its first selected consumer share a checked
+/// managed handoff only where both existing providers preserve the exact view.
+pub fn node_supports_bounded_managed_prefix(
+  node : PreparedNode,
+  consumer : PreparedNode,
+) -> Bool {
+  match (node.payload, consumer.payload) {
+    (Values(_), Where(_))
+    | (Values(_), Derive(_))
+    | (Values(_), Distinct(_))
+    | (Values(_), Dedupe(_))
+    | (Values(_), Select(_))
+    | (Values(_), Sort(_))
+    | (Values(_), Limit(_))
+    | (Values(_), RowWindow(_))
+    | (Values(_), Watermark(_))
+    | (Values(_), Lag(_))
+    | (Values(_), Pivot(_))
+    | (Values(_), Analytic(_))
+    | (Values(_), Unpivot(_))
+    | (Values(_), Unnest(_))
+    | (Values(_), JsonPick(_))
+    | (Values(_), CountGroup(_))
+    | (CrossJoinRows(_), _) => true
+    (Values(_), AssertRows(_)) =>
+      operation(consumer) == "REL.assert_all" ||
+      operation(consumer) == "REL.assert_unique"
     _ => false
   }
 }
@@ -105,6 +188,7 @@ pub fn node_prefers_fused_without_relation_consumer(
 ) -> Bool {
   match node.payload {
     BasicGraph(_) => operation(node) == "SGA.normalize"
+    EventValue(_) => operation(node) == "TEA.window.session_assign"
     CarrierProjection(_) =>
       operation(node) == "BRIDGE.graph.to_edge_rows" ||
       operation(node) == "BRIDGE.vectors.to_rows"
@@ -114,17 +198,44 @@ pub fn node_prefers_fused_without_relation_consumer(
 
 ///|
 /// The common selected-operation Relation reader can preserve the checked
-/// unary row kernel at this exact internal input. This is typed capability
+/// row kernel at this exact internal input. This is typed capability
 /// metadata, not a second interpretation of the authored operation name.
 pub fn node_accepts_managed_relation_view(
   node : PreparedNode,
   index : Int,
 ) -> Bool {
+  if node.input_targets.length() == 2 && index >= 0 && index < 2 {
+    return match node.payload {
+      InnerJoin(_)
+      | CrossJoinRows(_)
+      | AppendRows(_)
+      | SetRows(_)
+      | NestRows(_) => true
+      _ => false
+    }
+  }
   if index != 0 || node.input_targets.length() != 1 {
     return false
   }
   match node.payload {
-    Where(_) | Derive(_) | Select(_) | Limit(_) => true
+    Where(_)
+    | Derive(_)
+    | Select(_)
+    | Sort(_)
+    | Limit(_)
+    | TopK(_)
+    | TopKBy(_)
+    | Distinct(_)
+    | Dedupe(_)
+    | CountGroup(_)
+    | RowWindow(_)
+    | Watermark(_)
+    | Lag(_)
+    | JsonPick(_) => true
+    Pivot(_) | Unpivot(_) | Unnest(_) | WindowGroup(_) | Analytic(_) => true
+    AssertRows(_) =>
+      operation(node) == "REL.assert_all" ||
+      operation(node) == "REL.assert_unique"
     _ => false
   }
 }

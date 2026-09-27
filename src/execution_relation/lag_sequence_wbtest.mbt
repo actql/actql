@@ -160,3 +160,31 @@ test "lag binds offset parameters and shares the exact execution budget" {
   assert_true(execute_lag(owner, max_work=used) is Ok(_))
   assert_true(execute_lag(owner, max_work=used - 1) is Err(_))
 }
+
+///|
+test "empty lag reserves output schema before copying input names" {
+  let owner = lag_input_owner("1")
+  let input : Table = {
+    owner,
+    id: "source",
+    names: ["amount", "group", "id"],
+    rows: [],
+  }
+  // Checked lowering coalesces the repeated partition key: three input
+  // names, one partition term, one order term, two complete sort terms,
+  // and four output names coexist.
+  for (limit, succeeds) in [(11, true), (10, false)] {
+    let workspace = row_workspace(limit)
+    let result = evaluate_lag_rows(
+      row_kernel(owner, 0),
+      input,
+      "lagged",
+      0,
+      { remaining: 10000, max_frames: 100, },
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+    assert_eq(result is Ok(_), succeeds)
+    assert_eq(workspace.peak, if succeeds { 11 } else { 7 })
+  }
+}

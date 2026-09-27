@@ -6,10 +6,12 @@ import {checked} from '../host-common/runtime-result.mjs';
 import * as portableRuntime from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
+
 const ok = value => ({$tag: 1, _0: value});
-function fixture({seal = async () => {}, cleanup = async () => {}} = {}) {
+function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1} = {}) {
   const events = [], material = {}, input = {};
   let releaseCheck, closed = false, clean = false, bound = false, allocated = false, index = 0;
+  let advanced = 0, stopRequested = false, stopped = false;
   const configuration = installLocalRetainedStore((key, bytes, frame) => {
     assert.equal(key, 'task-2'); assert.equal(bytes, 100); assert.equal(frame, 64);
     assert.equal(typeof releaseCheck, 'function');
@@ -46,7 +48,18 @@ function fixture({seal = async () => {}, cleanup = async () => {}} = {}) {
   };
   const operations = {
     inputs: [], output,
-    execute: () => {events.push('execute'); return ok();},
+    // Bounded computation: `steps` advances, each yielding to the Host.
+    advance: quantum => {
+      if (stopRequested) {
+        stopped = true; events.push('stopped');
+        return {$tag: 0, _0: new Error('Stopped')};
+      }
+      events.push('advance');
+      advanced++;
+      return ok({complete: advanced >= steps, progress: 1n, work: BigInt(Math.min(quantum, 1))});
+    },
+    request_cancel: () => {events.push('request-cancel'); stopRequested = true; return true;},
+    execution_stopped: () => stopped,
     settle: () => {events.push('settle'); return ok();},
     complete: () => {assert(bound); events.push('complete'); return ok();},
     guard_usage: () => [0, 0, 0],
@@ -76,6 +89,12 @@ test('Local output seals exact content before completion and retains cleanup unt
   await failure.cleanupHandle.retry();
   assert.equal(f.released(), true);
   assert.equal(failure.cleanupHandle.status().pending, false);
+});
+
+test('retained Store configuration excludes the in-memory managed offer', async () => {
+  const f = fixture();
+  assert.equal(await f.entry.prepareNext(new Map()), undefined);
+  assert.equal(f.allocated(), false);
 });
 
 test('cancel during Local storage seal waits for the started work and never publishes', async () => {
@@ -109,4 +128,25 @@ test('reasonless Store rejection remains failed and copied Local wiring is not a
   await failure.cleanupHandle.retry();
   assert.equal(failure.cleanupHandle.status().pending, false);
   assert.throws(() => localStrategyContribution({}, {}, checked, {...f.configuration}), /InvalidLocalStoreConfiguration/);
+});
+
+test('abort between bounded Local advances stops computation before any Store write', async () => {
+  const controller = new AbortController();
+  const f = fixture({steps: 1000});
+  const work = f.entry.run({}, controller.signal);
+  // The computation yields to the event loop between quanta.
+  while (f.events.filter(event => event === 'advance').length < 3) {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  controller.abort();
+  let failure;
+  await assert.rejects(work, error => {failure = error; return error.name === 'AbortError';});
+  assert(f.events.filter(event => event === 'advance').length < 1000);
+  assert(f.events.indexOf('request-cancel') > 0);
+  // One final advance reports the actual stop before settlement.
+  assert(f.events.indexOf('stopped') > f.events.indexOf('request-cancel'));
+  assert.equal(f.allocated(), false);
+  assert.equal(f.events.includes('lease'), false);
+  assert.equal(f.events.includes('complete'), false);
+  await failure.cleanupHandle?.retry();
 });

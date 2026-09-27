@@ -49,6 +49,7 @@ fn carrier_events_source_owner() -> @lower.BoundPrepared {
 
 ///|
 fn carrier_events_relation_followup(variant : String) -> Bool {
+  variant == "dedupe_filter" ||
   variant == "session_filter" ||
   variant == "session_select" ||
   variant == "session_derive" ||
@@ -57,7 +58,7 @@ fn carrier_events_relation_followup(variant : String) -> Bool {
 
 ///|
 fn local_carrier_events_program(variant? : String = "watermark") -> String {
-  let dedupe = variant == "dedupe"
+  let dedupe = variant == "dedupe" || variant == "dedupe_filter"
   let window = variant == "window_fixed" ||
     variant == "window_sliding" ||
     variant == "window_parameter"
@@ -655,6 +656,326 @@ fn carrier_events_source_output(
 }
 
 ///|
+fn carrier_events_relation_session_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"rows\",\"session\":{\"id\":\"event_id\"," +
+      "\"time\":\"occurred_at\",\"by\":[\"payload\"],\"gap\":10}}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+test "Relation-backed session rejects duplicate IDs across groups" {
+  for payload in ["a", "b"] {
+    let producer = carrier_events_source_owner_with(
+      "number",
+      "[{\"event_id\":1,\"occurred_at\":1,\"payload\":\"a\"}," +
+      "{\"event_id\":1,\"occurred_at\":2,\"payload\":\"" +
+      payload +
+      "\"}]",
+    )
+    let source = carrier_events_source_output(producer)
+    let owner = carrier_events_relation_session_owner(producer)
+    let input = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, producer, source).unwrap(),
+      100,
+      1000,
+    ).unwrap()
+    let execution = @local_tea.start_session_relation(
+      @bounded.control(),
+      prepared_sequence(owner),
+      0,
+      input,
+      carrier_events_storage_limits(),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    let mut failed = false
+    while !failed {
+      match @local_tea.advance_session(execution, 1).unwrap() {
+        @local_tea.SessionContinue(..) => ()
+        @local_tea.SessionFailed(@local_tea.DuplicateSessionIdentity(1), ..) =>
+          failed = true
+        _ => fail("duplicate relation event ID was not rejected")
+      }
+    }
+    assert_true(@local_tea.session_cleanup_pending(execution))
+    assert_eq(@local_tea.cleanup_session(execution), Ok(true))
+    assert_true(@execution.producer_read_available(input))
+  }
+}
+
+///|
+test "Relation-backed session rejects empty input before publication" {
+  let producer = carrier_events_source_owner_with("number", "[]")
+  let source = carrier_events_source_output(producer)
+  let owner = carrier_events_relation_session_owner(producer)
+  let input = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, producer, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let execution = @local_tea.start_session_relation(
+    @bounded.control(),
+    prepared_sequence(owner),
+    0,
+    input,
+    carrier_events_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(
+    @local_tea.advance_session(execution, 1).unwrap()
+    is @local_tea.SessionFailed(@local_tea.EmptySessionInput, ..),
+  )
+  assert_true(@local_tea.session_cleanup_pending(execution))
+  assert_eq(@local_tea.cleanup_session(execution), Ok(true))
+  assert_true(@execution.producer_read_available(input))
+}
+
+///|
+test "Relation-backed session checks combined output workspace" {
+  let producer = carrier_events_source_owner_with(
+    "number", "[{\"event_id\":1,\"occurred_at\":0,\"payload\":\"a\"}]",
+  )
+  let source = carrier_events_source_output(producer)
+  let owner = carrier_events_relation_session_owner(producer)
+  let input = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, producer, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  assert_eq(@execution.producer_read_row_count(input), 1)
+  assert_eq(@schema.field_count(@execution.producer_read_schema(input)), 3)
+  // Three scratch cells, three indices, four metadata slots, and twelve
+  // temporary emission slots require a simultaneous bound of 22.
+  // The one-row session consumes 44 control units across initialization,
+  // field loading, ordering, grouping, identity, and output finalization.
+  for (workspace_budget, work_budget) in [(22, 44), (21, 44), (22, 43)] {
+    let execution = @local_tea.start_session_relation(
+      @bounded.control(),
+      prepared_sequence(owner),
+      0,
+      input,
+      {
+        ..carrier_events_storage_limits(),
+        max_workspace_slots: workspace_budget,
+      },
+      4096L,
+      fn() { true },
+      control_work_limit=Some(work_budget),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<64 {
+      if terminal {
+        break
+      }
+      match @local_tea.advance_session(execution, 1).unwrap() {
+        @local_tea.SessionContinue(..) => ()
+        @local_tea.SessionComplete(output, ..) => {
+          assert_true(workspace_budget == 22 && work_budget == 44)
+          assert_true(@records.discard_completed(output))
+          terminal = true
+        }
+        @local_tea.SessionFailed(@local_tea.SessionWorkspaceLimit, ..) => {
+          assert_eq(workspace_budget, 21)
+          assert_true(@local_tea.session_cleanup_pending(execution))
+          terminal = true
+        }
+        @local_tea.SessionFailed(@local_tea.SessionControlWorkLimit, ..) => {
+          assert_eq(work_budget, 43)
+          assert_true(@local_tea.session_cleanup_pending(execution))
+          terminal = true
+        }
+        _ => fail("unexpected Relation-backed session workspace result")
+      }
+    }
+    assert_true(terminal)
+    assert_true(@local_tea.cleanup_session(execution).unwrap())
+    assert_true(@execution.producer_read_available(input))
+  }
+  let control = @bounded.control()
+  let interrupted = @local_tea.start_session_relation(
+    control,
+    prepared_sequence(owner),
+    0,
+    input,
+    { ..carrier_events_storage_limits(), max_workspace_slots: 22, },
+    4096L,
+    fn() { true },
+    control_work_limit=Some(44),
+  ).unwrap()
+  assert_true(
+    @local_tea.advance_session(interrupted, 1).unwrap()
+    is @local_tea.SessionContinue(work=1L, ..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_tea.advance_session(interrupted, 1).unwrap()
+    is @local_tea.SessionStopped(@bounded.Cancelled, ..),
+  )
+  assert_true(@local_tea.session_cleanup_pending(interrupted))
+  assert_true(@local_tea.cleanup_session(interrupted).unwrap())
+  assert_true(@execution.producer_read_available(input))
+}
+
+///|
+test "Events-view session checks combined output workspace" {
+  let source_owner = carrier_events_source_owner_with(
+    "number", "[{\"event_id\":1,\"occurred_at\":0,\"payload\":\"a\"}]",
+  )
+  let source = carrier_events_source_output(source_owner)
+  let events_owner = carrier_events_output_owner(source_owner)
+  let generated = task_test_generated(events_owner)
+  let external = @execution.prepare_producer_read(
+    events_owner,
+    @execution.bind_completed_input(events_owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let provider = @local_tea_provider.provider(
+    carrier_events_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  let producing = @local_connector.start_managed_provider(
+    provider,
+    generated,
+    [external],
+    10,
+    1000,
+  ).unwrap()
+  let mut material = None
+  while material is None {
+    match @local_connector.advance_managed_provider(producing, 1).unwrap() {
+      @local_connector.Continue(..) => ()
+      @local_connector.CarrierComplete(value, ..) => material = Some(value)
+      _ => fail("expected Events material")
+    }
+  }
+  assert_true(@local_connector.cleanup_managed_provider(producing).unwrap())
+  let material = material.unwrap()
+  let owner = carrier_events_session_owner(events_owner)
+  for (workspace_budget, work_budget) in [(22, 44), (21, 44), (22, 43)] {
+    let view = @carrier_runtime.material_prepare_view(
+      material, owner, 0, events_owner,
+    ).unwrap()
+    assert_eq(@carrier_runtime.producer_view_record_count(view), Some(1))
+    assert_eq(@carrier_runtime.producer_view_record_field_count(view, 0), Ok(3))
+    let execution = @local_tea.start_session_view(
+      @bounded.control(),
+      prepared_sequence(owner),
+      0,
+      view,
+      {
+        ..carrier_events_storage_limits(),
+        max_workspace_slots: workspace_budget,
+      },
+      4096L,
+      fn() { true },
+      control_work_limit=Some(work_budget),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<64 {
+      if terminal {
+        break
+      }
+      match @local_tea.advance_session(execution, 1).unwrap() {
+        @local_tea.SessionContinue(..) => ()
+        @local_tea.SessionComplete(output, ..) => {
+          assert_true(workspace_budget == 22 && work_budget == 44)
+          assert_true(@records.discard_completed(output))
+          terminal = true
+        }
+        @local_tea.SessionFailed(@local_tea.SessionWorkspaceLimit, ..) => {
+          assert_eq(workspace_budget, 21)
+          assert_true(@local_tea.session_cleanup_pending(execution))
+          terminal = true
+        }
+        @local_tea.SessionFailed(@local_tea.SessionControlWorkLimit, ..) => {
+          assert_eq(work_budget, 43)
+          assert_true(@local_tea.session_cleanup_pending(execution))
+          terminal = true
+        }
+        _ => fail("unexpected Events-view session workspace result")
+      }
+    }
+    assert_true(terminal)
+    assert_true(@local_tea.cleanup_session(execution).unwrap())
+    assert_true(@carrier_runtime.material_available(material))
+  }
+  let view = @carrier_runtime.material_prepare_view(
+    material, owner, 0, events_owner,
+  ).unwrap()
+  let control = @bounded.control()
+  let interrupted = @local_tea.start_session_view(
+    control,
+    prepared_sequence(owner),
+    0,
+    view,
+    { ..carrier_events_storage_limits(), max_workspace_slots: 22, },
+    4096L,
+    fn() { true },
+    control_work_limit=Some(44),
+  ).unwrap()
+  assert_true(
+    @local_tea.advance_session(interrupted, 1).unwrap()
+    is @local_tea.SessionContinue(work=1L, ..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_tea.advance_session(interrupted, 1).unwrap()
+    is @local_tea.SessionStopped(@bounded.Cancelled, ..),
+  )
+  assert_true(@local_tea.session_cleanup_pending(interrupted))
+  assert_true(@local_tea.cleanup_session(interrupted).unwrap())
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.reclaim_material(material))
+}
+
+///|
 fn carrier_events_consumer_output(
   producer : @lower.BoundPrepared,
   output : @execution.CompletedOutput,
@@ -778,6 +1099,455 @@ test "bounded Events bridge round trip feeds two Relation consumers" {
   assert_true(@execution.completed_cell(first, 1, 2) is Some(Text("mark")))
   assert_true(@execution.completed_cell(second, 0, 0) is Some(Text("first")))
   assert_true(@execution.completed_cell(second, 1, 1) is Some(Number(10.0)))
+}
+
+///|
+test "Events projection production entrypoint enforces value and width limits" {
+  let source_owner = carrier_events_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_events_owner(source_owner)
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let storage_limits = carrier_events_storage_limits()
+  let encoding = @local_bridge.start_rows_to_events(
+    @bounded.control(),
+    sequence,
+    0,
+    external,
+    storage_limits,
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let events = finish_rows_to_events(encoding)
+  assert_eq(@local_bridge.cleanup_rows_to_events(encoding), Ok(true))
+  let watermark_input = @records.prepare_step_read(owner, 1, 0, events).unwrap()
+  let watermark = @local_tea.start_watermark(
+    @bounded.control(),
+    sequence,
+    1,
+    watermark_input,
+    storage_limits,
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let watermarked = finish_event_watermark(watermark)
+  assert_eq(@local_tea.cleanup_watermark(watermark), Ok(true))
+  let projection_input = @records.prepare_step_read(owner, 2, 0, watermarked).unwrap()
+  let exact = @local_bridge.start_events_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    2,
+    projection_input,
+    2,
+    { max_nodes: 14, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    6,
+    1000,
+    [external],
+    control_work_limit=Some(26),
+  ).unwrap()
+  let mut exact_done = false
+  for _ in 0..<40 {
+    if exact_done {
+      break
+    }
+    match @local_bridge.advance_events_to_rows(exact, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Complete(output, work~, ..) => {
+        assert_eq(work, 26L)
+        assert_eq(@execution.completed_row_count(output), 2)
+        assert_true(
+          @execution.completed_output_matches_inputs(output, [external]),
+        )
+        exact_done = true
+      }
+      _ => abort("exact Events projection failed")
+    }
+  }
+  assert_true(exact_done)
+  assert_eq(@local_bridge.cleanup_events_to_rows(exact), Ok(true))
+  let one_short_work = @local_bridge.start_events_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    2,
+    projection_input,
+    2,
+    { max_nodes: 14, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    6,
+    1000,
+    [external],
+    control_work_limit=Some(25),
+  ).unwrap()
+  let mut work_failed = false
+  for _ in 0..<40 {
+    if work_failed {
+      break
+    }
+    match @local_bridge.advance_events_to_rows(one_short_work, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Failed(@local_bridge.ControlWorkLimit, work~, ..) => {
+        assert_eq(work, 25L)
+        work_failed = true
+      }
+      _ => abort("one-short Events projection did not reject work")
+    }
+  }
+  assert_true(work_failed)
+  assert_eq(@local_bridge.cleanup_events_to_rows(one_short_work), Ok(true))
+  let one_short_width = @local_bridge.start_events_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    2,
+    projection_input,
+    2,
+    { max_nodes: 14, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    5,
+    1000,
+    [external],
+  )
+  assert_true(
+    one_short_width is Err(@local_bridge.Completion(@execution.Limit)),
+  )
+  let one_short_value = @local_bridge.start_events_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    2,
+    projection_input,
+    2,
+    { max_nodes: 13, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    6,
+    1000,
+    [external],
+  ).unwrap()
+  let mut value_failed = false
+  for _ in 0..<40 {
+    if value_failed {
+      break
+    }
+    match @local_bridge.advance_events_to_rows(one_short_value, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Failed(
+        @local_bridge.RelationOutput(@execution.CaptureLimit),
+        ..
+      ) => value_failed = true
+      _ => abort("one-short Events projection did not reject output")
+    }
+  }
+  assert_true(value_failed)
+  assert_eq(@local_bridge.cleanup_events_to_rows(one_short_value), Ok(true))
+  let control = @bounded.control()
+  let cancelled = @local_bridge.start_events_to_rows(
+    control,
+    task_test_completion(owner),
+    sequence,
+    2,
+    projection_input,
+    2,
+    { max_nodes: 14, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    6,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(
+    @local_bridge.advance_events_to_rows(cancelled, 1).unwrap()
+    is @local_bridge.Continue(..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_bridge.advance_events_to_rows(cancelled, 1).unwrap()
+    is @local_bridge.Stopped(_, ..),
+  )
+  assert_eq(@local_bridge.cleanup_events_to_rows(cancelled), Ok(true))
+  assert_true(@records.completed_available(watermarked))
+  assert_true(@records.discard_completed(watermarked))
+  assert_true(@records.discard_completed(events))
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
+test "Events to rows scans once and enforces projection limits" {
+  let source_owner = @lower.bind_parameters(
+    @lower.prepare(
+      @pipeline.check(
+        input_cursor(
+          "[{\"values\":{\"schema\":{" +
+          "\"alpha\":{\"type\":\"number\",\"nullable\":false}," +
+          "\"beta\":{\"type\":\"number\",\"nullable\":false}," +
+          "\"gamma\":{\"type\":\"number\",\"nullable\":false}," +
+          "\"event_id\":{\"type\":\"number\",\"nullable\":false}," +
+          "\"occurred_at\":{\"type\":\"number\",\"nullable\":false}," +
+          "\"payload\":{\"type\":\"string\",\"nullable\":false}}," +
+          "\"rows\":[{\"alpha\":1,\"beta\":2,\"gamma\":3," +
+          "\"event_id\":7,\"occurred_at\":9," +
+          "\"payload\":\"x\"}]},\"as\":\"source\"}]",
+        ),
+        [],
+        None,
+        None,
+        {
+          max_steps: 10,
+          max_work: 10000,
+          max_text_bytes: 10000,
+          max_nodes: 1000,
+          max_tokens: 1000,
+          max_depth: 100,
+        },
+      ).unwrap(),
+      {
+        max_nodes: 100,
+        max_references: 100,
+        max_work: 1000,
+        max_identifier_bytes: 1000,
+      },
+    ).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let source = carrier_events_source_output(source_owner)
+  let events_owner = carrier_events_output_owner(source_owner)
+  let source_input = @execution.prepare_producer_read(
+    events_owner,
+    @execution.bind_completed_input(events_owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let builder = @records.prepare_output(
+    events_owner,
+    @pipeline.Step(0),
+    carrier_events_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let source_schema = @execution.producer_read_schema(source_input)
+  let fields = []
+  for column in 0..<6 {
+    let reversed = 5 - column
+    fields.push(
+      (
+        @schema.field_at(source_schema, reversed).unwrap().name,
+        @execution.producer_read_checked_cell(source_input, 0, reversed, {
+          max_nodes: 100,
+          max_depth: 10,
+          max_text_bytes: 1000,
+        }).unwrap(),
+      ),
+    )
+  }
+  @records.append_record(builder, fields).unwrap()
+  let events = @records.finish_output(builder).unwrap()
+  let projection_owner = carrier_events_projection_owner(events_owner)
+  let events_input = @records.prepare_producer_read(
+    projection_owner, 0, events_owner, events,
+  ).unwrap()
+  let projection = @local_bridge.start_events_view_to_rows(
+    @bounded.control(),
+    task_test_completion(projection_owner),
+    prepared_sequence(projection_owner),
+    0,
+    @records.producer_read_view(events_input).unwrap(),
+    1,
+    // One row container and six scalar values need seven value nodes.
+    { max_nodes: 7, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    100,
+    1000,
+  ).unwrap()
+  let mut terminal = false
+  let mut polls = 0
+  while !terminal {
+    polls += 1
+    assert_true(polls < 25)
+    match @local_bridge.advance_events_to_rows(projection, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Complete(rows, work~, ..) => {
+        // Six source probes, six required-field checks, one output append.
+        assert_eq(work, 13L)
+        assert_eq(@execution.completed_row_count(rows), 1)
+        assert_true(@execution.completed_cell(rows, 0, 0) is Some(Number(1.0)))
+        assert_true(@execution.completed_cell(rows, 0, 2) is Some(Number(7.0)))
+        terminal = true
+      }
+      _ => abort("Events projection failed")
+    }
+  }
+  assert_eq(@local_bridge.cleanup_events_to_rows(projection), Ok(true))
+  let one_short_width = @local_bridge.start_events_view_to_rows(
+    @bounded.control(),
+    task_test_completion(projection_owner),
+    prepared_sequence(projection_owner),
+    0,
+    @records.producer_read_view(events_input).unwrap(),
+    1,
+    { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    5,
+    1000,
+  )
+  assert_true(
+    one_short_width is Err(@local_bridge.Completion(@execution.Limit)),
+  )
+  let one_short_value = @local_bridge.start_events_view_to_rows(
+    @bounded.control(),
+    task_test_completion(projection_owner),
+    prepared_sequence(projection_owner),
+    0,
+    @records.producer_read_view(events_input).unwrap(),
+    1,
+    { max_nodes: 6, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    6,
+    1000,
+  ).unwrap()
+  let mut value_failed = false
+  for _ in 0..<25 {
+    if value_failed {
+      break
+    }
+    match @local_bridge.advance_events_to_rows(one_short_value, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Failed(
+        @local_bridge.RelationOutput(@execution.CaptureLimit),
+        ..
+      ) => value_failed = true
+      _ => abort("one-short Events projection did not reject output")
+    }
+  }
+  assert_true(value_failed)
+  assert_eq(@local_bridge.cleanup_events_to_rows(one_short_value), Ok(true))
+  let control = @bounded.control()
+  let cancelled = @local_bridge.start_events_view_to_rows(
+    control,
+    task_test_completion(projection_owner),
+    prepared_sequence(projection_owner),
+    0,
+    @records.producer_read_view(events_input).unwrap(),
+    1,
+    { max_nodes: 7, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    6,
+    1000,
+  ).unwrap()
+  assert_true(
+    @local_bridge.advance_events_to_rows(cancelled, 1).unwrap()
+    is @local_bridge.Continue(..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_bridge.advance_events_to_rows(cancelled, 1).unwrap()
+    is @local_bridge.Stopped(_, ..),
+  )
+  assert_eq(@local_bridge.cleanup_events_to_rows(cancelled), Ok(true))
+  assert_true(@execution.completed_output_available(source))
+  assert_true(@records.completed_available(events))
+  assert_true(@records.discard_completed(events))
+}
+
+///|
+test "rows to Events admits exact work and workspace and reclaims partial output" {
+  let source_owner = carrier_events_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_events_owner(source_owner)
+  let input = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  // Each three-field record costs one identity array plus its value (2),
+  // one record array plus three field triples (10), and four copy units.
+  // Each record retains five slots. The second append also overlaps its
+  // three scratch fields with five retained and five newly copied slots.
+  for
+    (work, slots, outcome) in [
+      (32, 13, "complete"),
+      (31, 13, "work"),
+      (32, 12, "workspace"),
+    ] {
+    let limits = {
+      ..carrier_events_storage_limits(),
+      max_work: work,
+      max_workspace_slots: slots,
+    }
+    let execution = @local_bridge.start_rows_to_events(
+      @bounded.control(),
+      prepared_sequence(owner),
+      0,
+      input,
+      limits,
+      4096L,
+      fn() { true },
+    ).unwrap()
+    let mut terminal = false
+    let mut polls = 0
+    while !terminal {
+      polls += 1
+      assert_true(polls < 50)
+      match @local_bridge.advance_rows_to_events(execution, 1).unwrap() {
+        @local_bridge.Continue(..) => ()
+        @local_bridge.Complete(output, ..) => {
+          assert_eq(outcome, "complete")
+          assert_true(
+            @records.completed_storage(output) is Some(storage) &&
+            @record_storage.construction_work(storage) == 32 &&
+            @record_storage.retained_workspace_slots(storage) == 10,
+          )
+          assert_true(@records.discard_completed(output))
+          terminal = true
+        }
+        @local_bridge.Failed(
+          @local_bridge.Output(@records.Storage(@record_storage.WorkLimit)),
+          ..
+        ) => {
+          assert_eq(outcome, "work")
+          terminal = true
+        }
+        @local_bridge.Failed(
+          @local_bridge.Output(@records.Storage(@record_storage.WorkspaceLimit)),
+          ..
+        ) => {
+          assert_eq(outcome, "workspace")
+          terminal = true
+        }
+        _ => abort("unexpected rows-to-Events result")
+      }
+    }
+    assert_eq(@local_bridge.cleanup_rows_to_events(execution), Ok(true))
+    assert_eq(@local_bridge.cleanup_rows_to_events(execution), Ok(false))
+    assert_true(@execution.completed_output_available(source))
+  }
+
+  let control = @bounded.control()
+  let cancelled = @local_bridge.start_rows_to_events(
+    control,
+    prepared_sequence(owner),
+    0,
+    input,
+    carrier_events_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut first_row = false
+  let mut polls = 0
+  while !first_row {
+    polls += 1
+    assert_true(polls < 20)
+    match @local_bridge.advance_rows_to_events(cancelled, 1).unwrap() {
+      @local_bridge.Continue(progress~, ..) => first_row = progress > 0L
+      _ => abort("rows-to-Events did not yield after its first row")
+    }
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_bridge.advance_rows_to_events(cancelled, 1).unwrap()
+    is @local_bridge.Stopped(_, ..),
+  )
+  assert_eq(@local_bridge.cleanup_rows_to_events(cancelled), Ok(true))
+  assert_true(@execution.completed_output_available(source))
 }
 
 ///|
@@ -1043,25 +1813,40 @@ test "registered sequence provider consumes exact Events Carrier" {
   let material = material.unwrap()
   let owner = carrier_events_sequence_owner(events_owner)
   let generated = task_test_generated(owner)
+  for work in [0, 1] {
+    let view = @carrier_runtime.material_prepare_view(
+      material, owner, 0, events_owner,
+    ).unwrap()
+    let execution = @execution.start_bounded_sequence_match_events(
+      @bounded.control(),
+      generated,
+      view,
+      10,
+      limits.local_execution.rows.output_values,
+      work,
+      limits.local_execution.max_frames,
+      storage_limits.max_workspace_slots,
+      1000,
+    ).unwrap()
+    let mut failed = false
+    for _ in 0..<100 {
+      if !failed {
+        match @execution.advance_bounded_sequence_match(execution, 1).unwrap() {
+          @execution.BoundedSequenceMatchContinue(..) => ()
+          @execution.BoundedSequenceMatchFailed(
+            @execution.Rows(@execution.RowLimit),
+            ..
+          ) => failed = true
+          _ => fail("sequence work limit had another result")
+        }
+      }
+    }
+    assert_true(failed)
+    assert_true(@execution.cleanup_bounded_sequence_match(execution).unwrap())
+  }
   let first_view = @carrier_runtime.material_prepare_view(
     material, owner, 0, events_owner,
   ).unwrap()
-  for work in [0, 1] {
-    assert_true(
-      @execution.start_bounded_sequence_match_events(
-        @bounded.control(),
-        generated,
-        first_view,
-        10,
-        limits.local_execution.rows.output_values,
-        work,
-        limits.local_execution.max_frames,
-        storage_limits.max_workspace_slots,
-        1000,
-      )
-      is Err(@execution.Rows(@execution.RowLimit)),
-    )
-  }
   let second_view = @carrier_runtime.material_prepare_view(
     material, owner, 0, events_owner,
   ).unwrap()
@@ -1614,7 +2399,7 @@ test "standard Host runs registered bounded Events provider" {
   for
     variant in [
       "watermark", "dedupe", "window_fixed", "window_sliding", "window_parameter",
-      "session_relation",
+      "session", "session_global", "session_parameter", "session_ties", "session_relation",
     ] {
     let publication = variant != "session_ties"
     let (run, issuer) = captured_graph_fixture(
@@ -1728,6 +2513,8 @@ test "standard Host runs registered bounded Events provider" {
       2,
       events_live,
       obligations?=event_obligations,
+      require_provider=variant.has_prefix("session") &&
+        variant != "session_relation",
     )
     let event_rows = local_managed_test_rows(events_ops)
     let expected_rows = if variant == "dedupe" {
@@ -1875,9 +2662,14 @@ test "standard Host runs registered bounded Events provider" {
 ///|
 test "standard Host retains Events across physical task boundaries" {
   for
-    variant in [
-      "session", "session_global", "session_parameter", "session_ties", "session_filter",
-      "session_select", "session_derive", "session_take",
+    (variant, execution_quantum) in [
+      ("session_filter", 0),
+      ("session_select", 0),
+      ("session_derive", 0),
+      ("session_take", 1),
+      ("session_take", 2),
+      ("session_take", 7),
+      ("session_take", 1024),
     ] {
     let (run, issuer) = captured_graph_fixture(
       local_carrier_events_chain=true,
@@ -2023,6 +2815,7 @@ test "standard Host retains Events across physical task boundaries" {
         5,
         filter_live,
         obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+        execution_quantum~,
       )
       consumer_source = filtered
       consumer_rows = local_managed_test_rows(filter_ops)

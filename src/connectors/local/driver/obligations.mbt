@@ -85,3 +85,42 @@ fn local_task_join_output_ceilings(
   }
   Some(ceilings)
 }
+
+///|
+fn local_task_aggregate_output_ceilings(
+  run : @strategy.CapturedDAG,
+  task : Int,
+) -> Array[@connector.AggregateOutputCeiling]? {
+  guard @strategy.captured_task_aggregate_output_count(run, task) is Some(count) else {
+    return None
+  }
+  let ceilings = []
+  for index in 0..<count {
+    guard @strategy.captured_task_aggregate_output_at(run, task, index)
+      is Some(ceiling) else {
+      return None
+    }
+    ceilings.push(ceiling)
+  }
+  Some(ceilings)
+}
+
+///|
+fn local_task_analytic_envelopes(
+  run : @strategy.CapturedDAG,
+  task : Int,
+) -> Array[@connector.AnalyticEnvelope]? {
+  guard @strategy.captured_task_analytic_envelope_count(run, task)
+    is Some(count) else {
+    return None
+  }
+  let envelopes = []
+  for index in 0..<count {
+    guard @strategy.captured_task_analytic_envelope_at(run, task, index)
+      is Some(envelope) else {
+      return None
+    }
+    envelopes.push(envelope)
+  }
+  Some(envelopes)
+}

@@ -92,10 +92,19 @@ pub fn compile_fixed_count_group(
           // Imported row counts are Int-bounded. Exact counts therefore fit
           // binary64; this cast does not define a general language count cap.
           sql_text(sql, "CAST(COUNT(")
-          match count.field {
-            None => sql_text(sql, "*")
-            Some(field) =>
-              group_input_identifier(sql, @schema.reference_name(field))
+          if count.count_if {
+            guard count.field is Some(field) else {
+              return Err(UnsupportedField)
+            }
+            sql_text(sql, "CASE WHEN ")
+            group_input_identifier(sql, @schema.reference_name(field))
+            sql_text(sql, " THEN 1 END")
+          } else {
+            match count.field {
+              None => sql_text(sql, "*")
+              Some(field) =>
+                group_input_identifier(sql, @schema.reference_name(field))
+            }
           }
           sql_text(sql, ") AS DOUBLE)")
         }

@@ -68,7 +68,11 @@ pub fn ranking_max_noninterruptible_value_bytes(RankingExecution) -> Int
 
 pub fn ranking_max_noninterruptible_value_nodes(RankingExecution) -> Int
 
+pub fn ranking_output_field_slots(RankingExecution) -> Int
+
 pub fn ranking_producer_input(@execution_relation.ProducerRead) -> RankingInput
+
+pub fn ranking_scratch_slots(RankingExecution) -> Int
 
 pub fn ranking_stopped(RankingExecution) -> Bool
 
@@ -84,7 +88,11 @@ pub fn score_stopped(ScoreExecution) -> Bool
 
 pub fn start_nearest_inputs(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, NearestProducerInput, NearestProducerInput, Int, @execution_relation.ValueLimits, Int, Int, Int) -> Result[NearestExecution, NearestIssue]
 
+pub fn start_nearest_inputs_with_control_work_limit(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, NearestProducerInput, NearestProducerInput, Int, @execution_relation.ValueLimits, Int, Int, Int, Int) -> Result[NearestExecution, NearestIssue]
+
 pub fn start_nearest_inputs_with_relations(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, NearestProducerInput, NearestProducerInput, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[NearestExecution, NearestIssue]
+
+pub fn start_nearest_inputs_with_relations_control_work_limit(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, NearestProducerInput, NearestProducerInput, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], Int) -> Result[NearestExecution, NearestIssue]
 
 pub fn start_nearest_relations(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @execution_relation.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[NearestExecution, NearestIssue]
 
@@ -92,9 +100,9 @@ pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSe
 
 pub fn start_pool(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[PoolExecution, PoolIssue]
 
-pub fn start_ranking(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Array[@execution_relation.ProducerRead], Int, @execution_relation.ValueLimits, Int, Int, Int) -> Result[RankingExecution, RankingIssue]
+pub fn start_ranking(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Array[@execution_relation.ProducerRead], Int, @execution_relation.ValueLimits, Int, Int, Int, control_work_limit? : Int?) -> Result[RankingExecution, RankingIssue]
 
-pub fn start_ranking_inputs(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Array[RankingInput], Int, @execution_relation.ValueLimits, Int, Int, Int) -> Result[RankingExecution, RankingIssue]
+pub fn start_ranking_inputs(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Array[RankingInput], Int, @execution_relation.ValueLimits, Int, Int, Int, control_work_limit? : Int?) -> Result[RankingExecution, RankingIssue]
 
 pub fn start_relation_pool(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[PoolExecution, PoolIssue]
 
@@ -112,6 +120,7 @@ pub(all) enum NearestIssue {
   InvalidNearestRecord(Bool, Int)
   DuplicateNearestIdentity(Bool, Int)
   NearestWorkspaceLimit
+  NearestWorkLimit
   NearestOutputLimit
   NearestNumeric(@vector_numeric.Issue)
   NearestKeyOrder(@value_admission.KeyOrderIssue)
@@ -138,6 +147,7 @@ pub(all) enum NormalizeIssue {
   InvalidRecord(Int)
   InvalidVector(Int)
   WorkspaceLimit
+  WorkLimit
   Numeric(@vector_numeric.Issue)
   Output(@managed_record_runtime.Issue)
   Execution(@bounded_execution.Issue)
@@ -162,6 +172,7 @@ pub(all) enum PoolIssue {
   InvalidPoolIdentity(Int)
   DuplicatePoolIdentity(Int, Int)
   PoolWorkspaceLimit
+  PoolWorkLimit
   PoolNumeric(@vector_numeric.Issue)
   PoolKeyOrder(@value_admission.KeyOrderIssue)
   PoolOutput(@managed_record_runtime.Issue)
@@ -191,6 +202,7 @@ pub(all) enum RankingIssue {
   InvalidRankingPosition(Int, Int)
   ConflictingRankingTie(Int)
   RankingWorkspaceLimit
+  RankingWorkLimit
   RankingNumeric(@vector_numeric.Issue)
   RankingKeyOrder(@value_admission.KeyOrderIssue)
   RankingOutput(@execution_relation.CaptureIssue)
@@ -215,6 +227,7 @@ pub(all) enum ScoreIssue {
   InvalidScoreVector(Int)
   InvalidScoreIdentity(Int)
   ScoreWorkspaceLimit
+  ScoreWorkLimit
   ScoreNumeric(@vector_numeric.Issue)
   ScoreKeyOrder(@value_admission.KeyOrderIssue)
   ScoreOutput(@managed_record_runtime.Issue)

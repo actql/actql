@@ -4,6 +4,32 @@ fn checked_key(contract : @contract.Contract, value : Value) -> CheckedValue {
 }
 
 ///|
+fn bounded_key_order(
+  left : CheckedValue,
+  right : CheckedValue,
+  quantum : Int,
+) -> Result[(Int, Int), KeyOrderIssue] {
+  let active = match start_bounded_key_comparison(left, right) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let mut work = 0
+  while true {
+    let poll = match advance_bounded_key_comparison(active, quantum) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    match poll {
+      KeyComparisonContinue(work=used) => work += used
+      KeyComparisonComplete(order~, work=used) =>
+        return Ok((order, work + used))
+    }
+  } nobreak {
+    Err(InvalidKey)
+  }
+}
+
+///|
 test "key order preserves primitive and UTF16 semantics" {
   let number = @contract.primitive(@contract.NumberType, nullable=false)
   assert_eq(
@@ -90,4 +116,81 @@ test "checked numbers reject the wrong contract and negative zero" {
   assert_true(checked_number_value(1.0, number) is Some(_))
   assert_true(checked_number_value(1.0, text) is None)
   assert_true(checked_number_value(-0.0, number) is None)
+}
+
+///|
+test "bounded key order preserves typed order across long prefixes" {
+  let text = @contract.primitive(@contract.StringType, nullable=false)
+  let prefix = "x".repeat(512)
+  let smaller = checked_key(text, Text(prefix + "a"))
+  let larger = checked_key(text, Text(prefix + "b"))
+  assert_eq(compare_key_values(smaller, larger), Ok(-1))
+  assert_eq(bounded_key_order(smaller, larger, 1), Ok((-1, 513)))
+  let active = start_bounded_key_comparison(smaller, larger).unwrap()
+  for _ in 0..<100 {
+    assert_true(
+      advance_bounded_key_comparison(active, 1)
+      is Ok(KeyComparisonContinue(work=1)),
+    )
+  }
+  assert_eq(
+    bounded_key_order(
+      checked_key(text, Text("\u{10000}")),
+      checked_key(text, Text("\u{e000}")),
+      1,
+    ).unwrap().0,
+    -1,
+  )
+  let decimal_a = @contract.decimal_contract(2, 1, nullable=false).unwrap()
+  let decimal_b = @contract.decimal_contract(3, 2, nullable=false).unwrap()
+  let left = checked_key(
+    decimal_a,
+    Decimal({ coefficient: "12", precision: 2, scale: 1, }),
+  )
+  let right = checked_key(
+    decimal_b,
+    Decimal({ coefficient: "121", precision: 3, scale: 2, }),
+  )
+  assert_eq(bounded_key_order(left, right, 1).unwrap().0, -1)
+  assert_eq(compare_key_values(left, right), Ok(-1))
+  let nullable = @contract.primitive(@contract.StringType, nullable=true)
+  assert_true(
+    start_bounded_key_comparison(
+      checked_key(nullable, Text("x")),
+      checked_key(nullable, Text("x")),
+    )
+    is Err(InvalidKey),
+  )
+}
+
+///|
+test "present components of a nullable contract compare as keys" {
+  let nullable = @contract.primitive(@contract.StringType, nullable=true)
+  let a = checked_key(nullable, Text("a"))
+  let b = checked_key(nullable, Text("b"))
+  let null = checked_key(nullable, Null)
+  // A key column that admits null is still not a key.
+  assert_eq(compare_key_values(a, a), Err(InvalidKey))
+  assert_eq(start_bounded_key_comparison(a, b).map(_ => ()), Err(InvalidKey))
+  // A nullable component compares by its value, with nulls first.
+  assert_eq(compare_present_key_values(a, b), Ok(-1))
+  assert_eq(compare_present_key_values(b, a), Ok(1))
+  assert_eq(compare_present_key_values(a, a), Ok(0))
+  assert_eq(compare_present_key_values(a, null), Ok(1))
+  assert_eq(compare_present_key_values(null, a), Ok(-1))
+  assert_eq(compare_present_key_values(null, null), Ok(0))
+  let active = start_bounded_present_key_comparison(b, a).unwrap()
+  let mut order = None
+  while order is None {
+    match advance_bounded_key_comparison(active, 1).unwrap() {
+      KeyComparisonContinue(_) => ()
+      KeyComparisonComplete(order=value, ..) => order = Some(value)
+    }
+  }
+  assert_eq(order, Some(1))
+  let first = start_bounded_present_key_comparison(null, a).unwrap()
+  assert_true(
+    advance_bounded_key_comparison(first, 1)
+    is Ok(KeyComparisonComplete(order=-1, ..)),
+  )
 }

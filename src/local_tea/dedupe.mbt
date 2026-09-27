@@ -1,5 +1,7 @@
 ///|
 priv enum DedupePhase {
+  InitializeCells
+  InitializeOrders
   LoadBegin
   LoadField
   LoadTerm
@@ -29,6 +31,7 @@ priv struct DedupeState {
   limits : @storage.Limits
   prepared : @lower.PreparedEvent
   records : Int
+  cell_count : Int
   keys : Int
   terms : Int
   mut phase : DedupePhase
@@ -39,6 +42,8 @@ priv struct DedupeState {
   mut cells : Array[@value.CheckedValue?]
   mut source_order : Array[Int]
   mut target_order : Array[Int]
+  initialized_cells : Ref[Int]
+  initialized_orders : Ref[Int]
   mut width : Int
   mut run_start : Int
   mut middle : Int
@@ -55,6 +60,7 @@ priv struct DedupeState {
   mut emit : Int
   mut emit_field : Int
   mut emit_fields : Array[(@schema.FieldName, @value.CheckedValue)]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -63,6 +69,8 @@ struct DedupeExecution {
   mut token : @bounded.Token?
   max_noninterruptible_value_nodes : Int
   max_noninterruptible_value_bytes : Int
+  initialized_cells : Ref[Int]
+  initialized_orders : Ref[Int]
 }
 
 ///|
@@ -77,10 +85,12 @@ pub enum DedupePoll {
 pub(all) enum DedupeIssue {
   InvalidDedupeKernel
   InvalidDedupeLimits
+  DedupeInputLimit
   DedupeInputUnavailable
   InvalidDedupeRecord(Int)
   InvalidDedupeValue(Int, Int)
   DedupeTopTie(Int, Int)
+  DedupeControlWorkLimit
   DedupeWorkspaceLimit
   DedupeOutput(@records.Issue)
   DedupeExecutionIssue(@bounded.Issue)
@@ -105,6 +115,28 @@ fn dedupe_checked_multiply(left : Int, right : Int) -> Int? {
 }
 
 ///|
+fn dedupe_initialize_step(state : DedupeState) -> Unit {
+  match state.phase {
+    InitializeCells =>
+      if state.cells.length() < state.cell_count {
+        state.cells.push(None)
+        state.initialized_cells.val += 1
+      } else {
+        state.phase = InitializeOrders
+      }
+    InitializeOrders =>
+      if state.source_order.length() < state.records {
+        state.source_order.push(state.source_order.length())
+        state.target_order.push(0)
+        state.initialized_orders.val += 1
+      } else {
+        state.phase = LoadBegin
+      }
+    _ => ()
+  }
+}
+
+///|
 fn dedupe_scratch(records : Int, terms : Int) -> Int? {
   guard dedupe_checked_multiply(records, terms) is Some(cells) &&
     dedupe_checked_multiply(records, 3) is Some(indices) &&
@@ -115,72 +147,13 @@ fn dedupe_scratch(records : Int, terms : Int) -> Int? {
 }
 
 ///|
-fn event_decimal_compare(
-  left : @value.DecimalValue,
-  right : @value.DecimalValue,
-) -> Int {
-  let a = left.coefficient
-  let b = right.coefficient
-  let negative_a = a[0] == '-'
-  let negative_b = b[0] == '-'
-  if a == "0" {
-    return if b == "0" { 0 } else if negative_b { 1 } else { -1 }
-  }
-  if b == "0" {
-    return if negative_a { -1 } else { 1 }
-  }
-  if negative_a != negative_b {
-    return if negative_a { -1 } else { 1 }
-  }
-  let offset_a = if negative_a { 1 } else { 0 }
-  let offset_b = if negative_b { 1 } else { 0 }
-  let digits_a = a.length() - offset_a
-  let digits_b = b.length() - offset_b
-  let exponent_a = digits_a - left.scale
-  let exponent_b = digits_b - right.scale
-  let direction = if negative_a { -1 } else { 1 }
-  if exponent_a != exponent_b {
-    return (if exponent_a < exponent_b { -1 } else { 1 }) * direction
-  }
-  for index in 0..<Int::max(digits_a, digits_b) {
-    let digit_a = if index < digits_a { a[offset_a + index] } else { '0' }
-    let digit_b = if index < digits_b { b[offset_b + index] } else { '0' }
-    if digit_a != digit_b {
-      return (if digit_a < digit_b { -1 } else { 1 }) * direction
-    }
-  }
-  0
-}
-
-///|
 fn event_compare_non_null(
   left : @value.CheckedValue,
   right : @value.CheckedValue,
 ) -> Int? {
-  match (left.value, right.value) {
-    (@value.Number(a), @value.Number(b)) =>
-      Some(if a < b { -1 } else if a > b { 1 } else { 0 })
-    (@value.Boolean(a), @value.Boolean(b)) =>
-      Some(if a == b { 0 } else if a { 1 } else { -1 })
-    (@value.Text(a), @value.Text(b))
-    | (@value.Date(a), @value.Date(b))
-    | (@value.Timestamp(a), @value.Timestamp(b)) =>
-      Some(@canonical.compare_utf16(a, b))
-    (@value.Decimal(a), @value.Decimal(b)) => Some(event_decimal_compare(a, b))
-    (@value.Reference(a), @value.Reference(b)) =>
-      if @value.reference_available(a) &&
-        @value.reference_available(b) &&
-        @value.reference_same_domain(a, b) {
-        Some(
-          @canonical.compare_utf16(
-            @value.reference_identity_cid(a),
-            @value.reference_identity_cid(b),
-          ),
-        )
-      } else {
-        None
-      }
-    _ => None
+  match @value.compare_group_key_values(left, right) {
+    Ok(order) => Some(order)
+    Err(_) => None
   }
 }
 
@@ -247,11 +220,11 @@ fn dedupe_compare_term(
     (@value.Null, _) => Some(if nulls_first { -1 } else { 1 })
     (_, @value.Null) => Some(if nulls_first { 1 } else { -1 })
     _ =>
-      event_compare_non_null(left, right).map(comparison => {
+      event_compare_non_null(left, right).map(order => {
         if descending {
-          -comparison
+          -order
         } else {
-          comparison
+          order
         }
       })
   }
@@ -582,7 +555,14 @@ fn dedupe_step(
     if !@records.producer_read_available(state.input) {
       return @bounded.Failed(DedupeInputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(DedupeControlWorkLimit, progress, used)
+    }
     match state.phase {
+      InitializeCells | InitializeOrders => {
+        used += 1
+        dedupe_initialize_step(state)
+      }
       LoadBegin | LoadField | LoadTerm | LoadVerify => {
         used += 1
         match dedupe_load_step(state) {
@@ -617,6 +597,7 @@ fn dedupe_step(
         }
       }
       Finish => {
+        used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidDedupeKernel, progress, used)
         }
@@ -628,6 +609,7 @@ fn dedupe_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -655,7 +637,15 @@ pub fn start_dedupe(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit? : Int? = None,
 ) -> Result[DedupeExecution, DedupeIssue] {
+  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
+  if control_work_limit < 0 {
+    return Err(InvalidDedupeLimits)
+  }
+  if control_work_limit == 0 {
+    return Err(DedupeControlWorkLimit)
+  }
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
@@ -670,12 +660,18 @@ pub fn start_dedupe(
     @storage.carrier(source) is @carrier.EventValue(_) else {
     return Err(DedupeInputUnavailable)
   }
-  if limits.max_value_nodes < 1 || limits.max_workspace_slots < 0 {
+  if limits.max_value_nodes < 1 ||
+    limits.max_workspace_slots < 0 ||
+    limits.max_input_records < 0 {
     return Err(InvalidDedupeLimits)
   }
   let records = @storage.record_count(source)
+  if records > limits.max_input_records {
+    return Err(DedupeInputLimit)
+  }
   guard dedupe_checked_add(keys, order) is Some(terms) &&
     terms > 0 &&
+    dedupe_checked_multiply(records, terms) is Some(cell_count) &&
     dedupe_scratch(records, terms) is Some(scratch_slots) else {
     return Err(DedupeWorkspaceLimit)
   }
@@ -693,9 +689,8 @@ pub fn start_dedupe(
     Ok(value) => value
     Err(issue) => return Err(DedupeOutput(issue))
   }
-  let cells = Array::make(records * terms, None)
-  let source_order = Array::makei(records, index => index)
-  let target_order = Array::make(records, 0)
+  let initialized_cells = Ref(0)
+  let initialized_orders = Ref(0)
   let state : DedupeState = {
     input,
     source,
@@ -703,16 +698,19 @@ pub fn start_dedupe(
     limits,
     prepared: event,
     records,
+    cell_count,
     keys,
     terms,
-    phase: LoadBegin,
+    phase: InitializeCells,
     record: 0,
     field: 0,
     term: 0,
     current: None,
-    cells,
-    source_order,
-    target_order,
+    cells: [],
+    source_order: [],
+    target_order: [],
+    initialized_cells,
+    initialized_orders,
     width: 1,
     run_start: 0,
     middle: 0,
@@ -729,6 +727,7 @@ pub fn start_dedupe(
     emit: 0,
     emit_field: 0,
     emit_fields: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control, state, dedupe_step, cleanup_dedupe_state, @records.discard_completed,
@@ -738,7 +737,16 @@ pub fn start_dedupe(
     token: Some(token),
     max_noninterruptible_value_nodes: 1,
     max_noninterruptible_value_bytes: limits.max_value_bytes,
+    initialized_cells,
+    initialized_orders,
   })
+}
+
+///|
+/// Diagnostic progress for the bounded scratch initialization. It reports
+/// the cells and paired index entries built so far, not output progress.
+pub fn dedupe_initialization_progress(value : DedupeExecution) -> (Int, Int) {
+  (value.initialized_cells.val, value.initialized_orders.val)
 }
 
 ///|

@@ -106,6 +106,27 @@ test "as-of join passes the common kernel budget sweep" {
 }
 
 ///|
+test "as-of join admits its left-name index before construction" {
+  let (owner, kernel) = asof_test_kernel("left", "nearest")
+  let workspace = row_workspace(5)
+  assert_true(
+    evaluate_asof_join_rows(
+      kernel,
+      asof_left(owner, kernel),
+      asof_right(owner, kernel),
+      20,
+      12L,
+      { remaining: 100000, max_frames: 100, },
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+    is Err(RowLimit),
+  )
+  assert_eq(workspace.peak, 2)
+  assert_eq(workspace.live, 0)
+}
+
+///|
 test "as-of join selects every direction and orders by left clock identity" {
   assert_true(
     join_numeric_rows_equal(asof_evaluate("left", "backward").unwrap().rows, [

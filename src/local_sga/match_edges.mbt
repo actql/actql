@@ -1,5 +1,7 @@
 ///|
 priv enum MatchEdgesPhase {
+  InitializeTypes
+  InitializeScratch
   SelectEdges
   PreparePredicate
   EvaluatePredicate
@@ -28,6 +30,10 @@ priv struct MatchEdgesState {
   accepted : Ref[Bool]
   port : @execution.TrustedOutputPort[Unit]
   mut phase : MatchEdgesPhase
+  type_count : Int?
+  mut type_cursor : Int
+  mut type_index : Map[String, Bool]
+  type_probes : Ref[Int]
   mut source_index : Int
   select_all : Bool
   predicate : @lower.Expression?
@@ -39,6 +45,8 @@ priv struct MatchEdgesState {
   mut predicate_execution : @execution.PredicateExpressionExecution?
   mut selected : Array[Int]
   mut scratch : Array[Int?]
+  scratch_count : Int
+  scratch_slots : Ref[Int]
   mut width : Int
   mut run_start : Int
   mut middle : Int
@@ -46,10 +54,13 @@ priv struct MatchEdgesState {
   mut left_index : Int
   mut right_index : Int
   mut merge_index : Int
+  mut key_component : Int
+  mut key_comparison : @value.BoundedKeyComparison?
   mut copy_index : Int
   mut emit_index : Int
   mut column : Int
   mut values : Array[@value.CheckedValue]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -61,6 +72,8 @@ struct MatchEdgesExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+  scratch_slots : Ref[Int]
+  type_probes : Ref[Int]
   max_noninterruptible_value_nodes : Int
   max_noninterruptible_value_bytes : Int
 }
@@ -83,6 +96,7 @@ pub(all) enum MatchEdgesIssue {
   InvalidMatchEdgesLimits
   MatchEdgesInputUnavailable
   MatchEdgesWorkspaceLimit
+  MatchEdgesWorkLimit
   MatchEdgesPredicate(@execution.EvalIssueKind)
   MatchEdgesKeyOrder(@value.KeyOrderIssue)
   MatchEdgesOutput(@execution.CaptureIssue)
@@ -210,34 +224,11 @@ fn match_edge_field(
 }
 
 ///|
-fn compare_edge_values(
-  left : @value.CheckedValue,
-  right : @value.CheckedValue,
-) -> Result[Int, MatchEdgesIssue] {
-  @value.compare_key_values(left, right).map_err(issue => {
-    MatchEdgesKeyOrder(issue)
-  })
-}
-
-///|
-fn compare_optional_edge_values(
-  left : @value.CheckedValue?,
-  right : @value.CheckedValue?,
-) -> Result[Int, MatchEdgesIssue] {
-  match (left, right) {
-    (None, None) => Ok(0)
-    (None, Some(_)) => Ok(-1)
-    (Some(_), None) => Ok(1)
-    (Some(a), Some(b)) => compare_edge_values(a, b)
-  }
-}
-
-///|
-fn compare_selected_edges(
+fn compare_selected_edges_step(
   state : MatchEdgesState,
   left : Int,
   right : Int,
-) -> Result[Int, MatchEdgesIssue] {
+) -> Result[Int?, MatchEdgesIssue] {
   guard @storage.edge_endpoints(state.source, left)
     is Some((left_source, left_target)) &&
     @storage.edge_endpoints(state.source, right)
@@ -250,36 +241,81 @@ fn compare_selected_edges(
     @storage.edge_label(state.source, right) is Some(right_label) else {
     return Err(MatchEdgesInputUnavailable)
   }
-  match compare_edge_values(left_source_id, right_source_id) {
-    Err(issue) => Err(issue)
-    Ok(value) if value != 0 => Ok(value)
-    Ok(_) =>
-      match compare_edge_values(left_target_id, right_target_id) {
-        Err(issue) => Err(issue)
-        Ok(value) if value != 0 => Ok(value)
-        Ok(_) => compare_optional_edge_values(left_label, right_label)
+  while state.key_component < 3 {
+    if state.key_component == 2 && state.key_comparison is None {
+      match (left_label, right_label) {
+        (None, None) => {
+          state.key_component = 0
+          return Ok(Some(0))
+        }
+        (None, Some(_)) => {
+          state.key_component = 0
+          return Ok(Some(-1))
+        }
+        (Some(_), None) => {
+          state.key_component = 0
+          return Ok(Some(1))
+        }
+        _ => ()
       }
+    }
+    let comparison = match state.key_comparison {
+      Some(value) => value
+      None => {
+        let (a, b) = match state.key_component {
+          0 => (left_source_id, right_source_id)
+          1 => (left_target_id, right_target_id)
+          _ =>
+            match (left_label, right_label) {
+              (Some(a), Some(b)) => (a, b)
+              _ => return Err(MatchEdgesInputUnavailable)
+            }
+        }
+        let started = if state.key_component < 2 {
+          @value.start_bounded_key_comparison(a, b)
+        } else {
+          @value.start_bounded_present_key_comparison(a, b)
+        }
+        let value = match started {
+          Ok(value) => value
+          Err(issue) => return Err(MatchEdgesKeyOrder(issue))
+        }
+        state.key_comparison = Some(value)
+        value
+      }
+    }
+    match @value.advance_bounded_key_comparison(comparison, 1) {
+      Ok(@value.KeyComparisonContinue(_)) => return Ok(None)
+      Ok(@value.KeyComparisonComplete(order~, ..)) => {
+        state.key_comparison = None
+        if order != 0 {
+          state.key_component = 0
+          return Ok(Some(order))
+        }
+        state.key_component += 1
+      }
+      Err(issue) => {
+        state.key_comparison = None
+        state.key_component = 0
+        return Err(MatchEdgesKeyOrder(issue))
+      }
+    }
   }
+  state.key_component = 0
+  Ok(Some(0))
 }
 
 ///|
 fn edge_matches_types(state : MatchEdgesState, edge : Int) -> Bool {
-  match @lower.graph_match_type_count(state.prepared) {
+  state.type_probes.val += 1
+  match state.type_count {
     None => true
     Some(0) => false
-    Some(count) =>
+    Some(_) =>
       match @storage.edge_label(state.source, edge) {
         Some(Some(label)) =>
           match label.value {
-            @value.Text(text) => {
-              for index in 0..<count {
-                if @lower.graph_match_type_at(state.prepared, index) ==
-                  Some(text) {
-                  return true
-                }
-              }
-              false
-            }
+            @value.Text(text) => state.type_index.contains(text)
             _ => false
           }
         _ => false
@@ -352,7 +388,35 @@ fn match_edges_step(
     if !@graph.producer_read_available(state.input) {
       return @bounded.Failed(MatchEdgesInputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(MatchEdgesWorkLimit, progress, used)
+    }
     match state.phase {
+      InitializeTypes => {
+        let count = state.type_count.unwrap_or(0)
+        if state.type_cursor < count {
+          used += 1
+          guard @lower.graph_match_type_at(state.prepared, state.type_cursor)
+            is Some(name) else {
+            return @bounded.Failed(InvalidMatchEdgesKernel, progress, used)
+          }
+          state.type_index[name] = true
+          state.type_cursor += 1
+          progress += 1
+        } else {
+          state.phase = InitializeScratch
+        }
+      }
+      InitializeScratch => {
+        if state.scratch.length() == state.scratch_count {
+          state.phase = SelectEdges
+          continue
+        }
+        state.scratch.push(None)
+        state.scratch_slots.val += 1
+        used += 1
+        progress += 1
+      }
       SelectEdges =>
         if state.source_index < @storage.edge_count(state.source) {
           if edge_matches_types(state, state.source_index) {
@@ -468,12 +532,13 @@ fn match_edges_step(
       CompareMerge => {
         used += 1
         match
-          compare_selected_edges(
+          compare_selected_edges_step(
             state,
             state.selected[state.left_index],
             state.selected[state.right_index],
           ) {
-          Ok(comparison) => emit_match_edges_merge(state, comparison <= 0)
+          Ok(Some(comparison)) => emit_match_edges_merge(state, comparison <= 0)
+          Ok(None) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
@@ -551,6 +616,7 @@ fn match_edges_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -570,6 +636,10 @@ fn cleanup_match_edges_state(state : MatchEdgesState) -> Bool {
   }
   state.selected = []
   state.scratch = []
+  state.key_component = 0
+  state.key_comparison = None
+  state.type_index = Map([])
+  state.scratch_slots.val = 0
   state.values = []
   state.predicate_input.clear()
   true
@@ -588,6 +658,7 @@ pub fn start_match_edges(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[MatchEdgesExecution, MatchEdgesIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -611,6 +682,7 @@ pub fn start_match_edges(
     None
   }
   let count = @storage.edge_count(source)
+  let type_count = @lower.graph_match_type_count(prepared)
   let schema = @lower.graph_match_output_schema(prepared)
   let width = @schema.field_count(schema)
   let predicate_fields = if predicate is Some(_) {
@@ -618,13 +690,18 @@ pub fn start_match_edges(
   } else {
     0
   }
+  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
+  if control_work_limit < 0 {
+    return Err(MatchEdgesWorkLimit)
+  }
   guard max_rows >= 0 &&
     limits.max_nodes >= 0 &&
     limits.max_text_bytes >= 0 &&
     limits.max_depth >= 0 &&
     limits.max_work >= 0 &&
     match_edges_workspace(count, width) is Some(workspace) &&
-    checked_match_edges_add(workspace, predicate_fields)
+    checked_match_edges_add(workspace, predicate_fields) is Some(base_workspace) &&
+    checked_match_edges_add(base_workspace, type_count.unwrap_or(0))
     is Some(fixed_workspace) &&
     fixed_workspace <= max_workspace_slots else {
     return Err(MatchEdgesWorkspaceLimit)
@@ -643,6 +720,8 @@ pub fn start_match_edges(
   let rows : Ref[@execution.AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
+  let scratch_slots = Ref(0)
+  let type_probes = Ref(0)
   let port = match
     @execution.prepare_trusted_output_port(
       preparation,
@@ -674,7 +753,11 @@ pub fn start_match_edges(
     live,
     accepted,
     port,
-    phase: SelectEdges,
+    phase: InitializeTypes,
+    type_count,
+    type_cursor: 0,
+    type_index: Map([]),
+    type_probes,
     source_index: 0,
     select_all,
     predicate,
@@ -685,7 +768,9 @@ pub fn start_match_edges(
     predicate_input: Map([]),
     predicate_execution: None,
     selected: [],
-    scratch: Array::make(count, None),
+    scratch: [],
+    scratch_count: count,
+    scratch_slots,
     width: 1,
     run_start: 0,
     middle: 0,
@@ -693,10 +778,13 @@ pub fn start_match_edges(
     left_index: 0,
     right_index: 0,
     merge_index: 0,
+    key_component: 0,
+    key_comparison: None,
     copy_index: 0,
     emit_index: 0,
     column: 0,
     values: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,
@@ -712,6 +800,8 @@ pub fn start_match_edges(
     session,
     token: Some(token),
     accepted,
+    scratch_slots,
+    type_probes,
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
@@ -722,6 +812,17 @@ pub fn match_edges_max_noninterruptible_value_nodes(
   value : MatchEdgesExecution,
 ) -> Int {
   value.max_noninterruptible_value_nodes
+}
+
+///|
+/// Structural scratch entries retained by the bounded initialization phase.
+pub fn match_edges_scratch_slots(value : MatchEdgesExecution) -> Int {
+  value.scratch_slots.val
+}
+
+///|
+pub fn match_edges_type_probes(value : MatchEdgesExecution) -> Int {
+  value.type_probes.val
 }
 
 ///|

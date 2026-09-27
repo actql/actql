@@ -168,31 +168,84 @@ pub fn local_module_managed_provider(
   installed : LocalComputeModule,
   sequence : @execution.GeneratedSequence,
 ) -> ManagedProvider? {
-  for provider in installed.managed_providers {
+  local_managed_provider_for(
+    installed.managed_providers,
+    installed.execution,
+    installed.measurement,
+    sequence,
+  )
+}
+
+///|
+/// The bounded provider owning `sequence`: a registered family provider first,
+/// then the built-in relation providers bound to the module limits.
+fn local_managed_provider_for(
+  family : Array[ManagedProvider],
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  sequence : @execution.GeneratedSequence,
+) -> ManagedProvider? {
+  for provider in family {
     if managed_provider_accepts(provider, sequence) {
       return Some(provider)
     }
   }
-  let relation = selected_relation_provider(
-    installed.execution,
-    installed.measurement,
-  )
+  let relation = selected_relation_provider(execution, measurement)
   if managed_provider_accepts(relation, sequence) {
     return Some(relation)
+  }
+  let global_count = global_count_provider(execution, measurement)
+  if managed_provider_accepts(global_count, sequence) {
+    return Some(global_count)
+  }
+  let group = group_provider(execution, measurement)
+  if managed_provider_accepts(group, sequence) {
+    return Some(group)
+  }
+  let row_window = row_window_provider(execution, measurement)
+  if managed_provider_accepts(row_window, sequence) {
+    return Some(row_window)
+  }
+  let unpivot = unpivot_provider(execution, measurement)
+  if managed_provider_accepts(unpivot, sequence) {
+    return Some(unpivot)
+  }
+  let unnest = unnest_provider(execution, measurement)
+  if managed_provider_accepts(unnest, sequence) {
+    return Some(unnest)
+  }
+  let cross_join = cross_join_provider(execution, measurement)
+  if managed_provider_accepts(cross_join, sequence) {
+    return Some(cross_join)
+  }
+  let append = append_provider(execution, measurement)
+  if managed_provider_accepts(append, sequence) {
+    return Some(append)
+  }
+  let set = set_provider(execution, measurement)
+  if managed_provider_accepts(set, sequence) {
+    return Some(set)
+  }
+  let nest = nest_provider(execution, measurement)
+  if managed_provider_accepts(nest, sequence) {
+    return Some(nest)
+  }
+  let values = values_provider(execution, measurement)
+  if managed_provider_accepts(values, sequence) {
+    return Some(values)
   }
   None
 }
 
 ///|
 /// Exact installed sequence capability used by candidate estimation. This is
-/// the same managed evaluator/provider decision used during preparation; it
-/// does not infer support from operation names or connector labels.
+/// the same bounded provider decision used during preparation: managed Local
+/// work never falls back to the synchronous whole-sequence evaluator.
 pub fn local_module_managed_sequence_supported(
   installed : LocalComputeModule,
   slot : Int,
 ) -> Bool {
   guard installed.sequences.get(slot) is Some(sequence) else { return false }
-  local_managed_sequence_supported(sequence) ||
   local_module_managed_provider(installed, sequence) is Some(_)
 }
 
@@ -309,6 +362,10 @@ pub fn[E] prepare_local_module_materializing_compute(
   join_output_ceiling : (Int, Int64)?,
   output_limits? : LocalExportLimits? = None,
   join_output_ceilings? : Array[(Int, Int64)] = [],
+  interval_search_ceilings? : Array[(Int, Int64)] = [],
+  asof_search_ceilings? : Array[(Int, Int64)] = [],
+  aggregate_output_ceilings? : Array[@connector.AggregateOutputCeiling] = [],
+  analytic_envelopes? : Array[@connector.AnalyticEnvelope] = [],
 ) -> Result[
   @connector.PreparedExecution[LocalMaterializingAttempt, E],
   LocalModuleIssue,
@@ -328,6 +385,12 @@ pub fn[E] prepare_local_module_materializing_compute(
     join_output_ceiling~,
     output_limits~,
     join_output_ceilings~,
+    interval_search_ceilings~,
+    asof_search_ceilings~,
+    aggregate_output_ceilings~,
+    analytic_envelopes~,
+    family_providers=installed.managed_providers,
+    provider_capacity=Some(installed.managed_capacity),
   ).map_err(error => Materializing(error))
 }
 
@@ -339,9 +402,15 @@ pub fn local_module_capacity(
   slot : Int,
 ) -> @execution.ExecutionCapacity? {
   guard installed.sequences.get(slot) is Some(sequence) else { return None }
-  @execution.generated_sequence_capacity(
-    sequence,
-    installed.execution,
-    installed.measurement,
-  )
+  // Managed Local work reserves its bounded provider's capacity, so offers
+  // advertise that same envelope.
+  match local_module_managed_provider(installed, sequence) {
+    Some(provider) => managed_provider_capacity(provider, sequence)
+    None =>
+      @execution.generated_sequence_capacity(
+        sequence,
+        installed.execution,
+        installed.measurement,
+      )
+  }
 }

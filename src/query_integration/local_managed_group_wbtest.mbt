@@ -1,22 +1,17 @@
 ///|
-fn run_local_managed_test_task(
+fn start_local_managed_test_task_operations(
   installed : @local_driver.LocalDispatchModule,
   run : @strategy.CapturedDAG,
   task : Int,
   inputs : Array[@execution.ManagedCompletedOutput[Int]],
   rows : Array[Array[String]],
-  payload : Int,
-  available : Ref[Bool],
   obligations? : @execution.ManagedObligations,
-  finalization_quantum? : Int = 16,
+  require_provider? : Bool = false,
   carrier_inputs? : Array[
     (@execution.CarrierManagedCompletedOutput, @carrier_runtime.Material),
   ] = [],
   grant? : @strategy.TaskActivationGrant,
-) -> (
-  @local_driver.LocalManagedDispatchOperations[Int],
-  @execution.ManagedCompletedOutput[Int],
-) raise {
+) -> @local_driver.LocalManagedDispatchOperations[Int] raise {
   let owner = @strategy.graph_task_owner(
     @strategy.captured_dag_graph(run),
     task,
@@ -60,6 +55,9 @@ fn run_local_managed_test_task(
   if grant is Some(value) {
     @strategy.authorize_captured_task_activation(run, task, value).unwrap()
   }
+  if require_provider {
+    assert_true(@local_driver.local_managed_dispatch_uses_provider(setup))
+  }
   let operations = match
     @local_driver.start_local_managed_dispatch_node(setup) {
     Ok(value) => value
@@ -83,7 +81,23 @@ fn run_local_managed_test_task(
     Err(Execution(Compute(_))) => fail("Local managed start compute failed")
     Err(Execution(Implementation(_))) =>
       fail("Local managed start implementation failed")
-    Err(Execution(Physical(_))) => fail("Local managed start physical failed")
+    Err(Execution(Physical(issue))) =>
+      fail(
+        "Local managed start physical failed: " +
+        (match issue {
+          @resources.InvalidLimits => "invalid limits"
+          @resources.PlanningLimit => "planning limit"
+          @resources.AttemptLimit => "attempt limit"
+          @resources.HoldingLimit => "holding limit"
+          @resources.TransferLimit => "transfer limit"
+          @resources.RetentionLimit => "retention limit"
+          @resources.ExecutionLimit => "execution limit"
+          @resources.ForeignOwner => "foreign owner"
+          @resources.ClosedReservation => "closed reservation"
+          @resources.ClosedHolding => "closed holding"
+          @resources.InvalidCharge => "invalid charge"
+        }),
+      )
     Err(Execution(ActivationNotAuthorized)) =>
       fail("Local managed start was not authorized")
     Err(Search(_)) => fail("Local managed start search failed")
@@ -118,7 +132,68 @@ fn run_local_managed_test_task(
     }
     (transfer.finish)().unwrap()
   }
-  match (operations.execute)() {
+  operations
+}
+
+///|
+fn run_local_managed_test_task(
+  installed : @local_driver.LocalDispatchModule,
+  run : @strategy.CapturedDAG,
+  task : Int,
+  inputs : Array[@execution.ManagedCompletedOutput[Int]],
+  rows : Array[Array[String]],
+  payload : Int,
+  available : Ref[Bool],
+  obligations? : @execution.ManagedObligations,
+  finalization_quantum? : Int = 16,
+  execution_quantum? : Int = 0,
+  execution_advances? : Ref[Int]? = None,
+  require_provider? : Bool = false,
+  carrier_inputs? : Array[
+    (@execution.CarrierManagedCompletedOutput, @carrier_runtime.Material),
+  ] = [],
+  grant? : @strategy.TaskActivationGrant,
+) -> (
+  @local_driver.LocalManagedDispatchOperations[Int],
+  @execution.ManagedCompletedOutput[Int],
+) raise {
+  let operations = start_local_managed_test_task_operations(
+    installed,
+    run,
+    task,
+    inputs,
+    rows,
+    obligations?,
+    require_provider~,
+    carrier_inputs~,
+    grant?,
+  )
+  fn execute_with_quantum() -> Result[Unit, @local_driver.LocalDispatchIssue] raise {
+    if execution_quantum == 0 {
+      return (operations.execute)()
+    }
+    let mut done = false
+    let mut polls = 0
+    while !done && polls < 10000 {
+      polls += 1
+      match (operations.advance)(execution_quantum) {
+        Ok(observation) => {
+          assert_true(observation.work >= 0L)
+          assert_true(observation.work <= execution_quantum.to_int64())
+          done = observation.complete
+        }
+        Err(issue) => return Err(issue)
+      }
+    }
+    if !done {
+      fail("Local managed execution did not make bounded progress")
+    }
+    if execution_advances is Some(counter) {
+      counter.val = polls
+    }
+    Ok(())
+  }
+  match execute_with_quantum() {
     Ok(_) => ()
     Err(
       @local_driver.Configuration(
@@ -163,6 +238,31 @@ fn run_local_managed_test_task(
       fail("Local managed sequence exceeded an input limit")
     Err(@local_driver.Configuration(@connector.Execution(InputKey(_, _)))) =>
       fail("Local managed sequence rejected an input key")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(Capture(_, @execution.CaptureLimit))
+      )
+    ) => fail("Local managed sequence failed capture limit")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(Capture(_, @execution.ForeignCheckedValue(_, _)))
+      )
+    ) => fail("Local managed sequence failed capture contract")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(Capture(_, @execution.InvalidCheckedRow))
+      )
+    ) => fail("Local managed sequence failed capture row")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(Capture(_, @execution.ClosedCapture))
+      )
+    ) => fail("Local managed sequence failed capture closed")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(Capture(_, @execution.NotRelationOutput))
+      )
+    ) => fail("Local managed sequence failed capture target")
     Err(@local_driver.Configuration(@connector.Execution(Capture(_, _)))) =>
       fail("Local managed sequence failed capture")
     Err(@local_driver.Configuration(@connector.Execution(Store(_)))) =>
@@ -470,6 +570,8 @@ fn run_local_managed_group_case(
     variant == "numeric" ||
     variant == "numeric_filter" ||
     variant == "numeric_regroup"
+  let large_payload = variant == "global_counts_payload" ||
+    variant == "long_text_key"
   @local_driver.configure_local_retained_inputs(
     installed,
     {
@@ -477,12 +579,16 @@ fn run_local_managed_group_case(
       values: limits.local_execution.rows.input_values,
       wire: {
         ..retained_attempt_wire_limits(),
-        max_bytes: if expanded {
+        max_bytes: if large_payload {
+          2048
+        } else if expanded {
           512
         } else {
           100
         },
-        max_nodes: if expanded {
+        max_nodes: if large_payload {
+          512
+        } else if expanded {
           100
         } else {
           20
@@ -499,12 +605,16 @@ fn run_local_managed_group_case(
         },
       },
       row: {
-        max_bytes: if expanded {
+        max_bytes: if large_payload {
+          2048
+        } else if expanded {
           1000
         } else {
           100
         },
-        max_nodes: if expanded {
+        max_nodes: if large_payload {
+          512
+        } else if expanded {
           100
         } else {
           20
@@ -514,13 +624,17 @@ fn run_local_managed_group_case(
         } else {
           4
         },
-        max_text_bytes: if expanded {
+        max_text_bytes: if large_payload {
+          2048
+        } else if expanded {
           1000
         } else {
           100
         },
       },
-      max_batch_bytes: if expanded {
+      max_batch_bytes: if large_payload {
+        2048
+      } else if expanded {
         512
       } else {
         64
@@ -562,6 +676,29 @@ fn run_local_managed_group_case(
   assert_eq(value_rows, input_expected)
 
   let group_live = Ref(true)
+  let bounded_global = variant == "empty_global" ||
+    variant == "global_counts" ||
+    variant == "global_count_if" ||
+    variant == "count_if_same_stage" ||
+    variant == "global_counts_payload" ||
+    variant == "long_text_key" ||
+    variant == "keyed" ||
+    variant == "keyed_same_stage" ||
+    variant == "compound" ||
+    variant == "empty_keyed" ||
+    variant == "counts" ||
+    // General direct aggregates use the bounded group provider.
+    variant == "direct" ||
+    variant == "ordered" ||
+    variant == "collections" ||
+    variant == "nested_distinct" ||
+    variant == "filtered_expression" ||
+    variant == "statistics" ||
+    // Selected numeric reductions run inside the bounded group provider.
+    variant == "numeric" ||
+    variant == "numeric_filter" ||
+    variant == "numeric_regroup"
+  let execution_advances = Ref(0)
   let (group_ops, groups) = run_local_managed_test_task(
     installed,
     run,
@@ -570,8 +707,14 @@ fn run_local_managed_group_case(
     [value_rows],
     2,
     group_live,
+    execution_quantum=if bounded_global { 1 } else { 0 },
+    execution_advances=Some(execution_advances),
+    require_provider=bounded_global,
     grant?,
   )
+  if bounded_global {
+    assert_true(execution_advances.val > 1)
+  }
   let group_rows = local_managed_test_rows(group_ops)
   assert_eq(group_rows, group_expected)
 
@@ -644,6 +787,17 @@ test "Local managed group count orders nullable keys for two consumers" {
 }
 
 ///|
+test "Local same-stage keyed count retains two independently ordered consumers" {
+  run_local_managed_group_case(
+    "keyed_same_stage",
+    ["{\"id\":null}", "{\"id\":1}", "{\"id\":1}"],
+    ["{\"id\":null,\"n\":1}", "{\"id\":1,\"n\":2}"],
+    ["{\"n\":1,\"id\":null}", "{\"n\":2,\"id\":1}"],
+    activation=true,
+  )
+}
+
+///|
 test "Local managed start refuses a required activation without a grant" {
   run_local_managed_group_case(
     "keyed",
@@ -651,6 +805,17 @@ test "Local managed start refuses a required activation without a grant" {
     ["{\"id\":null,\"n\":1}", "{\"id\":1,\"n\":2}"],
     ["{\"n\":1,\"id\":null}", "{\"n\":2,\"id\":1}"],
     activation=true,
+  )
+}
+
+///|
+test "Local managed count carries a long text key to two consumers" {
+  let key = local_count_long_key()
+  run_local_managed_group_case(
+    "long_text_key",
+    ["{\"id\":\"" + key + "\"}"],
+    ["{\"id\":\"" + key + "\",\"n\":1}"],
+    ["{\"n\":1,\"id\":\"" + key + "\"}"],
   )
 }
 
@@ -679,6 +844,269 @@ test "Local managed keyed group emits no group for empty input" {
 ///|
 test "Local managed global group emits zero for empty input" {
   run_local_managed_group_case("empty_global", [], ["{\"n\":0}"], ["{\"n\":0}"])
+}
+
+///|
+test "Local managed bounded global count distinguishes null fields" {
+  run_local_managed_group_case(
+    "global_counts",
+    ["{\"id\":null}", "{\"id\":1}", "{\"id\":1}"],
+    ["{\"n\":3,\"present\":2}"],
+    ["{\"present\":2,\"n\":3}"],
+  )
+}
+
+///|
+test "Local managed count_if uses bounded provider with two consumers" {
+  run_local_managed_group_case(
+    "global_count_if",
+    [
+      "{\"flag\":true}", "{\"flag\":false}", "{\"flag\":null}", "{\"flag\":true}",
+    ],
+    ["{\"hits\":2,\"n\":4}"],
+    ["{\"n\":4,\"hits\":2}"],
+  )
+}
+
+///|
+test "Local same-stage count_if uses bounded provider with two consumers" {
+  run_local_managed_group_case(
+    "count_if_same_stage",
+    [
+      "{\"flag\":true}", "{\"flag\":false}", "{\"flag\":null}", "{\"flag\":true}",
+    ],
+    ["{\"hits\":2,\"n\":4}"],
+    ["{\"n\":4,\"hits\":2}"],
+  )
+}
+
+///|
+test "Local managed count with unused nested input reaches two consumers" {
+  run_local_managed_group_case(
+    "global_counts_payload",
+    [local_count_payload_row()],
+    ["{\"n\":1,\"present\":1}"],
+    ["{\"present\":1,\"n\":1}"],
+  )
+}
+
+///|
+fn assert_standard_host_cancels_bounded_count(
+  variant : String,
+  before_cancel? : Int = 1,
+) -> Unit raise {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_group_chain=true,
+    local_values_group_variant=variant,
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  let large_payload = variant == "global_counts_payload" ||
+    variant == "long_text_key"
+  let expanded = variant == "direct" ||
+    variant == "ordered" ||
+    variant == "collections" ||
+    variant == "statistics" ||
+    variant == "numeric"
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: if large_payload {
+          2048
+        } else if expanded {
+          512
+        } else {
+          256
+        },
+        max_nodes: if large_payload {
+          512
+        } else if expanded {
+          100
+        } else {
+          20
+        },
+        max_columns: if expanded {
+          6
+        } else {
+          4
+        },
+      },
+      row: {
+        max_bytes: if large_payload {
+          2048
+        } else if expanded {
+          1000
+        } else {
+          100
+        },
+        max_nodes: if large_payload {
+          512
+        } else if expanded {
+          100
+        } else {
+          20
+        },
+        max_depth: 4,
+        max_text_bytes: if large_payload {
+          2048
+        } else if expanded {
+          1000
+        } else {
+          100
+        },
+      },
+      max_batch_bytes: if large_payload {
+        2048
+      } else if expanded {
+        512
+      } else {
+        256
+      },
+    },
+    None,
+  ).unwrap()
+  let value_live = Ref(true)
+  let (value_ops, values) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    value_live,
+  )
+  let operations = start_local_managed_test_task_operations(
+    installed,
+    run,
+    2,
+    [values],
+    [local_managed_test_rows(value_ops)],
+    require_provider=true,
+  )
+  for _ in 0..<before_cancel {
+    let next = (operations.advance)(1).unwrap()
+    assert_false(next.complete)
+    assert_eq(next.work, 1L)
+  }
+  assert_true((operations.request_cancel)())
+  assert_true((operations.advance)(1) is Err(Execution(Stopped)))
+  assert_true((operations.execution_stopped)())
+  assert_true((operations.output_row)(0) is Err(_))
+  assert_true(
+    (operations.complete)(2, operations.storage_bytes, fn() { true }) is Err(_),
+  )
+  (operations.settle)().unwrap()
+  assert_true((operations.cleanup_refresh)())
+  assert_false(@strategy.captured_task_completed(run, 2))
+  assert_true(@execution.managed_completed_output_available(values))
+  value_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (value_ops.close)()
+  (value_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.close_captured_task_output(run, 2)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "standard Host cancels global count after bounded work" {
+  assert_standard_host_cancels_bounded_count("global_counts")
+}
+
+///|
+test "standard Host cancels count_if after bounded work" {
+  assert_standard_host_cancels_bounded_count(
+    "global_count_if",
+    before_cancel=20,
+  )
+}
+
+///|
+test "standard Host cancels same-stage count_if after bounded work" {
+  assert_standard_host_cancels_bounded_count(
+    "count_if_same_stage",
+    before_cancel=20,
+  )
+}
+
+///|
+test "standard Host cancels keyed count after bounded work" {
+  assert_standard_host_cancels_bounded_count("keyed")
+}
+
+///|
+test "standard Host cancels same-stage keyed count after bounded work" {
+  assert_standard_host_cancels_bounded_count(
+    "keyed_same_stage",
+    before_cancel=12,
+  )
+}
+
+///|
+test "standard Host cancels count inside unused nested input" {
+  // Metadata and row entry take fewer than 80 steps; the 256 array elements
+  // leave this request inside value measurement rather than row counting.
+  assert_standard_host_cancels_bounded_count(
+    "global_counts_payload",
+    before_cancel=80,
+  )
+}
+
+///|
+test "standard Host cancels a long keyed count after positive work" {
+  assert_standard_host_cancels_bounded_count("long_text_key", before_cancel=30)
+}
+
+///|
+test "standard Host cancels direct aggregates after bounded work" {
+  assert_standard_host_cancels_bounded_count("direct", before_cancel=20)
+}
+
+///|
+test "standard Host cancels ordered aggregates after bounded work" {
+  assert_standard_host_cancels_bounded_count("ordered", before_cancel=20)
+}
+
+///|
+test "standard Host cancels collection aggregates after bounded work" {
+  assert_standard_host_cancels_bounded_count("collections", before_cancel=20)
+}
+
+///|
+test "standard Host cancels group statistics after bounded work" {
+  assert_standard_host_cancels_bounded_count("statistics", before_cancel=20)
+}
+
+///|
+test "standard Host cancels a numeric group after bounded work" {
+  assert_standard_host_cancels_bounded_count("numeric", before_cancel=20)
+}
+
+///|
+test "standard Host cancels filtered expression aggregates after bounded work" {
+  assert_standard_host_cancels_bounded_count(
+    "filtered_expression",
+    before_cancel=20,
+  )
 }
 
 ///|

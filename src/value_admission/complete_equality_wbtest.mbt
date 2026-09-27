@@ -207,3 +207,128 @@ test "complete equality shares admission node and depth limits" {
     true,
   )
 }
+
+///|
+test "complete equality splits long text charges and comparison by quantum" {
+  let contract = equality_contract("{\"type\":\"string\",\"nullable\":false}")
+  let prefix = "x".repeat(512)
+  let left = equality_value(contract, "\"" + prefix + "a\"")
+  let same = equality_value(contract, "\"" + prefix + "a\"")
+  let different = equality_value(contract, "\"" + prefix + "b\"")
+  let expected_work = 1 + 3 * 513
+  assert_eq(
+    values_equal(
+      left,
+      same,
+      limits={ max_nodes: 1, max_depth: 0, max_text_bytes: 1026, },
+      quantum=1,
+    ),
+    Ok((true, expected_work)),
+  )
+  assert_eq(
+    values_equal(
+      left,
+      different,
+      limits={ max_nodes: 1, max_depth: 0, max_text_bytes: 1026, },
+      quantum=1,
+    ),
+    Ok((false, expected_work)),
+  )
+  assert_eq(
+    values_equal(
+      left,
+      same,
+      limits={ max_nodes: 1, max_depth: 0, max_text_bytes: 1025, },
+      quantum=1,
+    ),
+    Err(CompleteEqualityLimit),
+  )
+  let active = start_complete_equality(left, same, {
+    max_nodes: 1,
+    max_depth: 0,
+    max_text_bytes: 1026,
+  }).unwrap()
+  for _ in 0..<100 {
+    assert_true(
+      advance_complete_equality(active, 1) is EqualityContinue(work=1),
+    )
+  }
+}
+
+///|
+test "complete equality bounds object names and decimal digits" {
+  let name = "field_" + "x".repeat(256)
+  let object = equality_contract(
+    "{\"type\":\"object\",\"nullable\":false," +
+    "\"additional_properties\":false,\"fields\":{\"" +
+    name +
+    "\":{\"type\":\"number\",\"nullable\":false}}}",
+  )
+  let left = equality_value(object, "{\"" + name + "\":1}")
+  let right = equality_value(object, "{\"" + name + "\":1}")
+  let result = values_equal(left, right, quantum=1).unwrap()
+  assert_true(result.0)
+  assert_true(result.1 > 256)
+  assert_eq(
+    values_equal(
+      left,
+      right,
+      limits={ max_nodes: 2, max_depth: 1, max_text_bytes: 523, },
+      quantum=1,
+    ),
+    Err(CompleteEqualityLimit),
+  )
+  let decimal = equality_contract(
+    "{\"type\":\"decimal\",\"nullable\":false," +
+    "\"precision\":38,\"scale\":2}",
+  )
+  let amount = equality_value(
+    decimal, "\"123456789012345678901234567890123456.78\"",
+  )
+  let compared = values_equal(amount, amount, quantum=1).unwrap()
+  assert_true(compared.0)
+  assert_true(compared.1 > 38)
+}
+
+///|
+test "complete equality charges supplementary text bytes before comparison" {
+  let contract = equality_contract("{\"type\":\"string\",\"nullable\":false}")
+  let value = equality_value(contract, "\"\u{1f600}\"")
+  assert_eq(
+    values_equal(
+      value,
+      value,
+      limits={ max_nodes: 1, max_depth: 0, max_text_bytes: 8, },
+      quantum=1,
+    ),
+    Ok((true, 5)),
+  )
+  assert_eq(
+    values_equal(
+      value,
+      value,
+      limits={ max_nodes: 1, max_depth: 0, max_text_bytes: 7, },
+      quantum=1,
+    ),
+    Err(CompleteEqualityLimit),
+  )
+}
+
+///|
+test "complete equality drops pending frames at a terminal mismatch" {
+  let contract = equality_contract(
+    "{\"type\":\"array\",\"nullable\":false," +
+    "\"items\":{\"type\":\"number\",\"nullable\":false}}",
+  )
+  let left = equality_value(contract, "[1,2,3]")
+  let right = equality_value(contract, "[0,2,3]")
+  let active = start_complete_equality(left, right, {
+    max_nodes: 4,
+    max_depth: 1,
+    max_text_bytes: 0,
+  }).unwrap()
+  assert_true(
+    advance_complete_equality(active, 10) is EqualityComplete(equal=false, ..),
+  )
+  assert_eq(active.frames.length(), 0)
+}

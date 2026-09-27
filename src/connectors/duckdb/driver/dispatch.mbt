@@ -70,18 +70,26 @@ pub fn prepare_duckdb_dispatch_module(
       Ok(_) => ()
       Err(issue) => return Err(Run(Physical(issue)))
     }
-    rejections.push(
-      (
-        @compute.duckdb_compute_static_rejection(
-          @execution.completion_preparation_owner(sequence),
-          limits.capacity,
-          limits.query,
+    // The legacy native compiler emits the whole checked Stage. It cannot
+    // satisfy a physical task that owns only one selected Step target.
+    if @execution.completion_preparation_selected_step(sequence) is Some(_) {
+      rejections.push(
+        (Some("unsupported_selected_step"), Some("unsupported_selected_step")),
+      )
+    } else {
+      rejections.push(
+        (
+          @compute.duckdb_compute_static_rejection(
+            @execution.completion_preparation_owner(sequence),
+            limits.capacity,
+            limits.query,
+          ),
+          @compute.duckdb_resident_static_rejection(
+            @execution.completion_preparation_owner(sequence),
+          ),
         ),
-        @compute.duckdb_resident_static_rejection(
-          @execution.completion_preparation_owner(sequence),
-        ),
-      ),
-    )
+      )
+    }
   }
   let channel = match
     @host.open_dispatch_channel(driver, registry, registration) {

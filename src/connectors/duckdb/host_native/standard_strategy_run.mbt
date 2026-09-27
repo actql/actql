@@ -74,9 +74,20 @@ pub(all) struct NativeStandardStrategyTaskHolding {
 }
 
 ///|
+/// What a task's measurement covers. The two scopes are not interchangeable.
+pub(all) enum NativeStandardStrategyMeasurementScope {
+  /// Logical input-plus-output value measurement of a DuckDB attempt.
+  InputOutputValues
+  /// Work the bounded Local provider reported across its advances. No values
+  /// are measured, so measurement bytes and nodes are zero.
+  ProviderWork
+}
+
+///|
 /// Product measurements for the completed task's actual implementation.
 /// Logical obligations and ledger capacity remain separate accounting axes.
 pub(all) struct NativeStandardStrategyTaskUsage {
+  measurement_scope : NativeStandardStrategyMeasurementScope
   measurement_work : Int
   measurement_bytes : Int
   measurement_nodes : Int
@@ -90,6 +101,7 @@ fn native_standard_task_usage(
   measured : (Int, Int, Int, Int, Int, Int),
 ) -> NativeStandardStrategyTaskUsage {
   {
+    measurement_scope: InputOutputValues,
     measurement_work: measured.0,
     measurement_bytes: measured.1,
     measurement_nodes: measured.2,
@@ -295,17 +307,22 @@ pub fn execute_next_native_standard_strategy_task(
       run.stop_dispatch()
       return Err(InvalidSelection)
     }
+    // The bounded provider measures no values; its reported work is the
+    // task's only measurement, scoped as such.
     let usage = if run.retained_profile is Some(_) {
       let last = run.local_owners[run.local_owners.length() - 1]
-      let measured = (last.operations.guard_usage)()
-      if measured.length() == 3 {
-        Some(
-          native_standard_task_usage(
-            (measured[0], measured[1], measured[2], 0, 0, 0),
-          ),
-        )
-      } else {
-        None
+      match (last.operations.provider_work)() {
+        Some(work) if work <= 2147483647L =>
+          Some({
+            measurement_scope: ProviderWork,
+            measurement_work: work.to_int(),
+            measurement_bytes: 0,
+            measurement_nodes: 0,
+            comparison_work: 0,
+            comparison_bytes: 0,
+            comparison_nodes: 0,
+          })
+        _ => None
       }
     } else {
       None

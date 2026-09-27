@@ -934,13 +934,24 @@ pub fn captured_task_input(
       fail_captured_task(run, task, MissingOutput)
       return Err(MissingOutput)
     }
-    match
-      @execution.bind_completed_input(
-        receiver,
-        receiver_input,
-        run.graph.owners[edge.producer],
-        output,
-      ) {
+    let binding = match (edge.operation_input, edge.source_input) {
+      (Some((step, operation_input)), None) =>
+        @execution.bind_completed_operation_input(
+          receiver,
+          step,
+          operation_input,
+          run.graph.owners[edge.producer],
+          output,
+        )
+      _ =>
+        @execution.bind_completed_input(
+          receiver,
+          receiver_input,
+          run.graph.owners[edge.producer],
+          output,
+        )
+    }
+    match binding {
       Ok(bound) => bound
       Err(issue) => {
         fail_captured_task(run, task, Binding(issue))

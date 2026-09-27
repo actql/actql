@@ -70,50 +70,51 @@ test "physical DAG reads checked data and control edges separately" {
 }
 
 ///|
-test "physical DAG segments Carrier-only internal operation edges" {
-  let program = query_checked_program_fixture(
-    dag=true,
-    local_carrier_events_chain=true,
-    local_carrier_events_variant="session",
-  )
-  let owners = physical_graph_owners(program)
-  let physical = @strategy.prepare_checked_dag(
-    program,
-    owners,
-    @program_check.unit_count(program) + 10,
-    10000,
-  ).unwrap()
-  let selected = []
-  for task in 0..<@strategy.graph_task_count(physical) {
-    if @strategy.graph_task_selected_step(physical, task) is Some(step) {
-      selected.push((task, step))
+test "physical DAG retains fused session and segments Relation consumers" {
+  for (variant, expected_steps) in [("session", 0), ("session_filter", 4)] {
+    let program = query_checked_program_fixture(
+      dag=true,
+      local_carrier_events_chain=true,
+      local_carrier_events_variant=variant,
+    )
+    let owners = physical_graph_owners(program)
+    let physical = @strategy.prepare_checked_dag(
+      program,
+      owners,
+      @program_check.unit_count(program) + 10,
+      10000,
+    ).unwrap()
+    let selected = []
+    for task in 0..<@strategy.graph_task_count(physical) {
+      if @strategy.graph_task_selected_step(physical, task) is Some(step) {
+        selected.push((task, step))
+        assert_eq(
+          @strategy.graph_task_target(physical, task),
+          Some(@pipeline.Step(step)),
+        )
+      }
+    }
+    assert_eq(
+      selected.map(pair => pair.1),
+      Array::makei(expected_steps, i => i),
+    )
+    // Each selected step keeps its Stage-to-task ownership.
+    for (task, step) in selected {
       assert_eq(
-        @strategy.graph_task_target(physical, task),
-        Some(@pipeline.Step(step)),
+        @strategy.graph_stage_target_task(physical, 2, @pipeline.Step(step)),
+        Some(task),
       )
     }
-  }
-  assert_eq(selected.length(), 3)
-  assert_eq(selected.map(pair => pair.1), [0, 1, 2])
-  for (task, step) in selected {
-    assert_eq(
-      @strategy.graph_stage_target_task(physical, 2, @pipeline.Step(step)),
-      Some(task),
-    )
-  }
-  assert_eq(
-    @strategy.graph_stage_target_task(physical, 2, @pipeline.Step(3)),
-    None,
-  )
-  let operation_edges = []
-  for edge in 0..<@strategy.graph_data_count(physical) {
-    let value = @strategy.graph_data_at(physical, edge).unwrap()
-    if @strategy.data_edge_operation_input(value) is Some(position) {
-      operation_edges.push(position)
+    let operation_edges = []
+    for edge in 0..<@strategy.graph_data_count(physical) {
+      let value = @strategy.graph_data_at(physical, edge).unwrap()
+      if @strategy.data_edge_operation_input(value) is Some(position) {
+        operation_edges.push(position)
+      }
     }
+    assert_eq(operation_edges, Array::makei(expected_steps, i => (i, 0)))
+    assert_true(@strategy.graph_ordered_inputs_complete(physical))
   }
-  assert_eq(operation_edges, [(0, 0), (1, 0), (2, 0)])
-  assert_true(@strategy.graph_ordered_inputs_complete(physical))
 }
 
 ///|
@@ -146,6 +147,55 @@ test "physical DAG segments typed Carrier and Relation operation edges" {
   }
   assert_eq(operation_edges, [(0, 0), (0, 1), (1, 0), (2, 0), (3, 0)])
   assert_true(@strategy.graph_ordered_inputs_complete(physical))
+}
+
+///|
+test "physical DAG retains an unselected Carrier prefix before Relation filter" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_carrier_graph_chain=true,
+    local_carrier_graph_variant="subgraph_filter",
+  )
+  let owners = physical_graph_owners(program)
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    owners,
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 6)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 2), Some(2))
+  assert_eq(@strategy.graph_task_target(graph, 2), Some(@pipeline.Step(2)))
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(3))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+  assert_true(
+    @strategy.prepare_checked_dag(program, owners, 5, 10000)
+    is Err(@strategy.TaskLimit),
+  )
+}
+
+///|
+test "physical DAG retains Events and Vectors prefixes before Relation filter" {
+  for
+    (events, variant) in [(true, "dedupe_filter"), (false, "normalize_filter")] {
+    let program = query_checked_program_fixture(
+      dag=true,
+      local_carrier_events_chain=events,
+      local_carrier_events_variant=variant,
+      local_carrier_vectors_chain=!events,
+      local_carrier_vectors_variant=variant,
+    )
+    let graph = @strategy.prepare_checked_dag(
+      program,
+      physical_graph_owners(program),
+      @program_check.unit_count(program) + 10,
+      10000,
+    ).unwrap()
+    assert_eq(@strategy.graph_task_count(graph), 6)
+    assert_eq(@strategy.graph_task_prefix_end(graph, 2), Some(2))
+    assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(3))
+    assert_true(@strategy.graph_ordered_inputs_complete(graph))
+  }
 }
 
 ///|
@@ -185,6 +235,420 @@ test "physical DAG segments Vectors projection before Relation filter" {
 }
 
 ///|
+test "physical DAG separates bounded cross join from Relation filter" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_cross_external_chain=true,
+    local_values_cross_external_filter=true,
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 7)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 3), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 4), Some(1))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG separates bounded values from Relation filter" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_filter=true,
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 5)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 1), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(1))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG separates bounded values from Relation assertion" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_assert=true,
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 5)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 1), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(1))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG separates bounded values from unique assertion" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_assert_unique=true,
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 5)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 1), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(1))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG separates bounded values from select take and derive" {
+  for variant in ["select", "take", "derive"] {
+    let program = query_checked_program_fixture(
+      dag=true,
+      local_values_two_consumer_chain=true,
+      local_values_two_consumer_relation_variant=variant,
+    )
+    let graph = @strategy.prepare_checked_dag(
+      program,
+      physical_graph_owners(program),
+      @program_check.unit_count(program) + 10,
+      10000,
+    ).unwrap()
+    assert_eq(@strategy.graph_task_count(graph), 5)
+    assert_eq(@strategy.graph_task_prefix_end(graph, 1), Some(0))
+    assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(1))
+    assert_true(@strategy.graph_ordered_inputs_complete(graph))
+  }
+}
+
+///|
+test "physical DAG separates independent bounded Relation branches" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_relation_variant="independent_branches",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 7)
+  for step in 0..<4 {
+    assert_eq(@strategy.graph_task_selected_step(graph, step + 1), Some(step))
+  }
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG retains both append input occurrences after values split" {
+  for variant in ["local", "self", "aligned"] {
+    let program = query_checked_program_fixture(
+      dag=true,
+      local_values_append_chain=true,
+      local_values_append_variant=variant,
+    )
+    let graph = @strategy.prepare_checked_dag(
+      program,
+      physical_graph_owners(program),
+      @program_check.unit_count(program) + 10,
+      10000,
+    ).unwrap()
+    assert_eq(@strategy.graph_task_count(graph), 6)
+    for step in 0..<3 {
+      assert_eq(@strategy.graph_task_selected_step(graph, step + 1), Some(step))
+    }
+    let sources = []
+    for edge in 0..<@strategy.graph_data_count(graph) {
+      let data = @strategy.graph_data_at(graph, edge).unwrap()
+      if data.consumer == 3 {
+        sources.push((data.input, data.producer))
+      }
+    }
+    assert_eq(
+      sources,
+      if variant == "self" {
+        [(0, 1), (1, 1)]
+      } else {
+        [(0, 1), (1, 2)]
+      },
+    )
+    assert_true(@strategy.graph_ordered_inputs_complete(graph))
+  }
+}
+
+///|
+test "physical DAG splits two values before bounded cross join" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_cross_chain=true,
+    local_values_cross_direct=true,
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 6)
+  for step in 0..<3 {
+    assert_eq(@strategy.graph_task_selected_step(graph, step + 1), Some(step))
+  }
+  let sources = []
+  for edge in 0..<@strategy.graph_data_count(graph) {
+    let data = @strategy.graph_data_at(graph, edge).unwrap()
+    if data.consumer == 3 {
+      sources.push((data.input, data.producer))
+    }
+  }
+  assert_eq(sources, [(0, 1), (1, 2)])
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG selects distinct inputs before same-stage cross join" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_cross_chain=true,
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 8)
+  for step in 0..<5 {
+    assert_eq(@strategy.graph_task_selected_step(graph, step + 1), Some(step))
+  }
+  let sources = []
+  for edge in 0..<@strategy.graph_data_count(graph) {
+    let data = @strategy.graph_data_at(graph, edge).unwrap()
+    if data.consumer == 5 {
+      sources.push((data.input, data.producer))
+    }
+  }
+  assert_eq(sources, [(0, 2), (1, 4)])
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG separates bounded values from sort and take" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_sort_take=true,
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 6)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 1), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(1))
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(2))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG splits an indexed Relation input before take" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_relation_variant="separate_sort_take",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 6)
+  assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(1))
+  assert_eq(@strategy.graph_task_target(graph, 2), Some(@pipeline.Step(0)))
+  assert_eq(@strategy.graph_task_target(graph, 3), Some(@pipeline.Step(1)))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG splits unary Relation steps after bounded values" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_relation_variant="separate_filter_sort_take",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 7)
+  assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(1))
+  assert_eq(@strategy.graph_task_selected_step(graph, 4), Some(2))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG splits a chain of bounded Relation Stages" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_relation_variant="chained_filter_sort_take",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 7)
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 4), Some(1))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG splits supplied Relation rows into bounded tasks" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_supplied_relation_chain=true,
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 7)
+  for step in 0..<4 {
+    assert_eq(@strategy.graph_task_selected_step(graph, step + 1), Some(step))
+  }
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG separates bounded values from distinct" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_relation_variant="distinct",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 5)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 1), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(1))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG splits imported full join sources at distinct" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_join_chain=true,
+    local_values_join_kind="full",
+    local_values_join_imported_full=true,
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 8)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 1), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(1))
+  assert_eq(@strategy.graph_task_prefix_end(graph, 3), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 4), Some(1))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG selects both branches of a same-stage equality join" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_join_chain=true,
+    local_values_join_kind="full",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 10)
+  for step in 0..<7 {
+    assert_eq(@strategy.graph_task_selected_step(graph, step + 1), Some(step))
+  }
+  let sources = []
+  for edge in 0..<@strategy.graph_data_count(graph) {
+    let data = @strategy.graph_data_at(graph, edge).unwrap()
+    if data.consumer == 5 {
+      sources.push((data.input, data.producer))
+    }
+  }
+  assert_eq(sources, [(0, 2), (1, 4)])
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+  assert_true(
+    @strategy.prepare_checked_dag(
+      program,
+      physical_graph_owners(program),
+      9,
+      10000,
+    )
+    is Err(@strategy.TaskLimit),
+  )
+}
+
+///|
+test "physical DAG selects keyed count after an internal Values producer" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_group_chain=true,
+    local_values_group_variant="keyed_same_stage",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    5,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 5)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 1), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(1))
+  let edges = []
+  for index in 0..<@strategy.graph_data_count(graph) {
+    let edge = @strategy.graph_data_at(graph, index).unwrap()
+    edges.push((edge.producer, edge.consumer))
+  }
+  assert_eq(edges.length(), 3)
+  assert_true(edges.contains((1, 2)))
+  assert_true(edges.contains((2, 3)))
+  assert_true(edges.contains((2, 4)))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
 test "physical DAG admits Carrier segmentation before allocation" {
   let program = query_checked_program_fixture(
     dag=true,
@@ -211,7 +675,13 @@ test "physical DAG admits Carrier segmentation before allocation" {
 
 ///|
 fn captured_graph_fixture(
+  dag_two_consumers_of_compute_a? : Bool = false,
   count? : Bool = false,
+  count_filter_chain? : Bool = false,
+  keyed_count_filter_chain? : Bool = false,
+  window_filter_chain? : Bool = false,
+  unpivot_filter_chain? : Bool = false,
+  dedupe_filter_chain? : Bool = false,
   collections? : Bool = false,
   join? : Bool = false,
   self_join? : Bool = false,
@@ -219,6 +689,11 @@ fn captured_graph_fixture(
   sort_take? : Bool = false,
   values? : Bool = false,
   local_values_two_consumer_chain? : Bool = false,
+  local_values_two_consumer_filter? : Bool = false,
+  local_values_two_consumer_assert? : Bool = false,
+  local_values_two_consumer_assert_unique? : Bool = false,
+  local_values_two_consumer_sort_take? : Bool = false,
+  local_values_two_consumer_relation_variant? : String = "",
   local_values_managed_variant? : String = "",
   local_values_group_chain? : Bool = false,
   local_values_group_variant? : String = "keyed",
@@ -238,6 +713,8 @@ fn captured_graph_fixture(
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
   local_supplied_ranking_chain? : Bool = false,
+  local_supplied_relation_chain? : Bool = false,
+  local_supplied_relation_variant? : String = "baseline",
   local_supplied_ranking_policy? : String = "\"max\"",
   local_vector_expression_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
@@ -245,6 +722,9 @@ fn captured_graph_fixture(
   local_values_append_chain? : Bool = false,
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
+  local_values_cross_direct? : Bool = false,
+  local_values_cross_external_chain? : Bool = false,
+  local_values_cross_external_filter? : Bool = false,
   local_values_cross_singleton? : Bool = false,
   local_values_cross_output_guard? : Int? = None,
   local_values_set_operation? : String = "",
@@ -256,6 +736,7 @@ fn captured_graph_fixture(
   local_values_asof_chain? : Bool = false,
   local_values_sequence_chain? : Bool = false,
   local_values_nest_chain? : Bool = false,
+  local_values_nest_unwrap_chain? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   linear_compute_stages? : Int = 0,
@@ -272,7 +753,13 @@ fn captured_graph_fixture(
   let program = query_checked_program_fixture(
     nullable~,
     dag=true,
+    dag_two_consumers_of_compute_a~,
     dag_count=count,
+    dag_count_filter_chain=count_filter_chain,
+    dag_keyed_count_filter_chain=keyed_count_filter_chain,
+    dag_window_filter_chain=window_filter_chain,
+    dag_unpivot_filter_chain=unpivot_filter_chain,
+    dag_dedupe_filter_chain=dedupe_filter_chain,
     dag_collections=collections,
     dag_join=join,
     self_join~,
@@ -280,6 +767,11 @@ fn captured_graph_fixture(
     sort_take~,
     dag_values=values,
     local_values_two_consumer_chain~,
+    local_values_two_consumer_filter~,
+    local_values_two_consumer_assert~,
+    local_values_two_consumer_assert_unique~,
+    local_values_two_consumer_sort_take~,
+    local_values_two_consumer_relation_variant~,
     local_values_managed_variant~,
     local_values_group_chain~,
     local_values_group_variant~,
@@ -299,6 +791,8 @@ fn captured_graph_fixture(
     local_carrier_vectors_chain~,
     local_carrier_vectors_variant~,
     local_supplied_ranking_chain~,
+    local_supplied_relation_chain~,
+    local_supplied_relation_variant~,
     local_supplied_ranking_policy~,
     local_vector_expression_chain~,
     local_values_analytic_chain~,
@@ -306,6 +800,9 @@ fn captured_graph_fixture(
     local_values_append_chain~,
     local_values_append_variant~,
     local_values_cross_chain~,
+    local_values_cross_direct~,
+    local_values_cross_external_chain~,
+    local_values_cross_external_filter~,
     local_values_cross_singleton~,
     local_values_cross_output_guard~,
     local_values_set_operation~,
@@ -317,6 +814,7 @@ fn captured_graph_fixture(
     local_values_asof_chain~,
     local_values_sequence_chain~,
     local_values_nest_chain~,
+    local_values_nest_unwrap_chain~,
     local_values_unary_chain~,
     local_select_qualified_chain~,
     linear_compute_stages~,
@@ -444,6 +942,12 @@ fn captured_graph_local(
       ).unwrap()
   }
   let generated = task_test_generated(owner)
+  let generated = match
+    @strategy.graph_task_selected_step(@strategy.captured_dag_graph(run), task) {
+    Some(step) =>
+      @execution.select_generated_sequence_step(generated, step).unwrap()
+    None => generated
+  }
   let prepared = @local_connector.local_fixed_compute_candidate(
     @connector.capability_registration_at(registry, 0).unwrap(),
     request,

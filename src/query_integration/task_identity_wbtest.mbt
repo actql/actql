@@ -54,6 +54,30 @@ test "checked task identity uses adopted identities and preserves input ports" {
 }
 
 ///|
+test "split Carrier task identities retain their authored unit and exact Step" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_carrier_events_chain=true,
+    local_carrier_events_variant="dedupe_filter",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(3))
+  let reference = @strategy.prepare_checked_task_reference(graph, 3, 20, 1000).unwrap()
+  let identity = @strategy.checked_task_identity(reference)
+  assert_eq(identity.task, 3)
+  assert_eq(identity.output_step, 3)
+  assert_eq(
+    identity.unit_definition_cid,
+    @program_check.unit_definition_cid(program, 2).unwrap(),
+  )
+}
+
+///|
 test "task identity distinguishes changed Parameter values without inventing a new definition" {
   let first = query_checked_program_fixture(
     dag=true,

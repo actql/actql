@@ -38,6 +38,7 @@ priv struct RowsToGraphState {
   mut target : @value.CheckedValue?
   mut label : @value.CheckedValue?
   mut properties : Array[@value.CheckedValue]
+  mut control_work_remaining : Int?
 }
 
 ///|
@@ -88,6 +89,7 @@ priv struct GraphRowsState {
   mut record : Int
   mut column : Int
   mut values : Array[@value.CheckedValue]
+  mut control_work_remaining : Int?
 }
 
 ///|
@@ -115,6 +117,7 @@ pub(all) enum GraphBridgeIssue {
   GraphInputUnavailable
   InvalidGraphRecord(Int)
   GraphWorkspaceLimit
+  GraphControlWorkLimit
   GraphRelationOutput(@execution.CaptureIssue)
   GraphCompletion(@execution.TrustedOutputIssue)
   GraphExecution(@bounded.Issue)
@@ -464,6 +467,7 @@ fn rows_to_graph_step(
         }
       }
       FinishGraph => {
+        used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidGraphKernel, progress, used)
         }
@@ -476,6 +480,37 @@ fn rows_to_graph_step(
     }
   }
   @bounded.Continue(progress, used)
+}
+
+///|
+fn bounded_rows_to_graph_step(
+  state : RowsToGraphState,
+  quantum : Int,
+  reader : @bounded.Reader,
+) -> @bounded.KernelStep[@graph.Completed, GraphBridgeIssue] {
+  if @bounded.stop_requested(reader) is Some(reason) {
+    return @bounded.Stopped(reason, 0, 0)
+  }
+  let bounded_quantum = match state.control_work_remaining {
+    None => quantum
+    Some(remaining) => {
+      if remaining < 1 {
+        return @bounded.Failed(GraphControlWorkLimit, 0, 0)
+      }
+      Int::min(quantum, remaining)
+    }
+  }
+  let result = rows_to_graph_step(state, bounded_quantum, reader)
+  let charged = match result {
+    @bounded.Continue(_, work)
+    | @bounded.Complete(_, _, work)
+    | @bounded.Failed(_, _, work)
+    | @bounded.Stopped(_, _, work) => work
+  }
+  if state.control_work_remaining is Some(remaining) {
+    state.control_work_remaining = Some(remaining - charged)
+  }
+  result
 }
 
 ///|
@@ -502,7 +537,11 @@ pub fn start_rows_to_graph(
   storage_bytes : Int64,
   max_workspace_slots : Int,
   available : () -> Bool,
+  control_work_limit? : Int? = None,
 ) -> Result[RowsToGraphExecution, GraphBridgeIssue] {
+  if control_work_limit is Some(limit) && limit < 0 {
+    return Err(GraphControlWorkLimit)
+  }
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphConstructionStep(graph)) &&
@@ -616,9 +655,10 @@ pub fn start_rows_to_graph(
     target: None,
     label: None,
     properties: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
-    control, state, rows_to_graph_step, cleanup_rows_to_graph_state, @graph.discard_completed,
+    control, state, bounded_rows_to_graph_step, cleanup_rows_to_graph_state, @graph.discard_completed,
   )
   Ok({ session, token: Some(token), })
 }
@@ -916,6 +956,10 @@ fn graph_rows_step(
         }
       ReadField =>
         if state.column < @schema.field_count(state.schema) {
+          if !charge_graph_rows_work(state) {
+            return @bounded.Failed(GraphControlWorkLimit, progress, used)
+          }
+          used += 1
           guard @schema.field_at(state.schema, state.column) is Some(expected) &&
             (if state.operation == @projection.NodeRows {
               graph_node_field(state, expected)
@@ -931,13 +975,15 @@ fn graph_rows_step(
           }
           state.values.push(value)
           state.column += 1
-          used += 1
         } else {
           state.phase = CommitRow
         }
       CommitRow => {
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidGraphKernel, progress, used)
+        }
+        if !charge_graph_rows_work(state) {
+          return @bounded.Failed(GraphControlWorkLimit, progress, used)
         }
         used += 1
         match @execution.append_admitted_output(output, state.values) {
@@ -973,6 +1019,20 @@ fn graph_rows_step(
 }
 
 ///|
+fn charge_graph_rows_work(state : GraphRowsState) -> Bool {
+  match state.control_work_remaining {
+    None => true
+    Some(remaining) =>
+      if remaining <= 0 {
+        false
+      } else {
+        state.control_work_remaining = Some(remaining - 1)
+        true
+      }
+  }
+}
+
+///|
 fn cleanup_graph_rows_state(state : GraphRowsState) -> Bool {
   if state.output is Some(output) {
     @execution.cancel_admitted_output(output) |> ignore
@@ -999,7 +1059,11 @@ fn start_graph_to_rows_common(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead]?,
+  control_work_limit : Int?,
 ) -> Result[GraphRowsExecution, GraphBridgeIssue] {
+  if control_work_limit is Some(limit) && limit < 0 {
+    return Err(GraphControlWorkLimit)
+  }
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),
@@ -1074,6 +1138,7 @@ fn start_graph_to_rows_common(
     record: 0,
     column: 0,
     values: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,
@@ -1101,6 +1166,7 @@ pub fn start_graph_to_rows(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[GraphRowsExecution, GraphBridgeIssue] {
   start_graph_to_rows_common(
     control,
@@ -1114,6 +1180,7 @@ pub fn start_graph_to_rows(
     max_entries,
     max_name_bytes,
     Some(inputs),
+    control_work_limit,
   )
 }
 
@@ -1132,6 +1199,7 @@ pub fn start_graph_to_rows_from_carrier_inputs(
   max_workspace_slots : Int,
   max_entries : Int,
   max_name_bytes : Int,
+  control_work_limit? : Int? = None,
 ) -> Result[GraphRowsExecution, GraphBridgeIssue] {
   start_graph_to_rows_common(
     control,
@@ -1145,6 +1213,7 @@ pub fn start_graph_to_rows_from_carrier_inputs(
     max_entries,
     max_name_bytes,
     None,
+    control_work_limit,
   )
 }
 
@@ -1160,7 +1229,11 @@ pub fn start_graph_view_to_rows(
   max_workspace_slots : Int,
   max_entries : Int,
   max_name_bytes : Int,
+  control_work_limit? : Int? = None,
 ) -> Result[GraphRowsExecution, GraphBridgeIssue] {
+  if control_work_limit is Some(limit) && limit < 0 {
+    return Err(GraphControlWorkLimit)
+  }
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),
@@ -1240,6 +1313,7 @@ pub fn start_graph_view_to_rows(
     record: 0,
     column: 0,
     values: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,

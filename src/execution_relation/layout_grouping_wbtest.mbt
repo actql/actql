@@ -15,8 +15,8 @@ test "all layouts share distinct and dedupe indices budgets and occurrence order
     assert_eq(dw.live, 7)
     let gc = { remaining: 100000, max_frames: 0, }
     let gw = { limit: 10000, live: 5, peak: 5, }
-    // Independent fixed group identities order [2] before [1].
-    assert_eq(dedupe_indices(input, by, order, gc, gw).unwrap(), [2, 3])
+    // Typed numeric key 1 precedes key 2, regardless of their CIDs.
+    assert_eq(dedupe_indices(input, by, order, gc, gw).unwrap(), [3, 2])
     assert_eq(gw.live, 7)
     let counters = (dc.remaining, dw.peak, gc.remaining, gw.peak)
     match baseline {
@@ -38,7 +38,7 @@ test "all layouts share distinct and dedupe indices budgets and occurrence order
         workspace,
       )
       if good {
-        assert_eq(result.unwrap(), [2, 3])
+        assert_eq(result.unwrap(), [3, 2])
         assert_eq(workspace.live, 7)
       } else {
         assert_true(result is Err(Ordering(Limit)))
@@ -54,7 +54,7 @@ test "all layouts share distinct and dedupe indices budgets and occurrence order
         { remaining: 100000, max_frames: 0, },
         failed,
       )
-      is Err(TopTie(0, 2)),
+      is Err(TopTie(1, 3)),
     )
     assert_eq(failed.live, 5)
     let reversed = select_layout_rows(
@@ -78,7 +78,7 @@ test "all layouts share distinct and dedupe indices budgets and occurrence order
         { remaining: 100000, max_frames: 0, },
         { limit: 10000, live: 0, peak: 0, },
       ).unwrap(),
-      [1, 0],
+      [0, 1],
     )
     assert_true(layout_cell(input, 0, 0) is Some(Number(2)))
   }

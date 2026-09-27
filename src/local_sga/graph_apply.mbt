@@ -77,6 +77,8 @@ priv struct GraphApplyState {
   mut action_scratch_peak_slots : Int
   mut action_scratch_peak_bytes : Int
   base_snapshot_slots : Int
+  // Control work left under the task-wide ceiling.
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -107,6 +109,7 @@ pub(all) enum GraphApplyIssue {
   GraphApplyPrecondition
   GraphApplyWorkspaceLimit
   GraphApplyScratchBytesLimit
+  GraphApplyWorkLimit
   GraphApplySnapshot(@snapshot.Issue)
   GraphApplyOutput(@graph.Issue)
   GraphApplyExecutionIssue(@bounded.Issue)
@@ -466,21 +469,38 @@ fn apply_value_key(
 }
 
 ///|
-fn apply_node_key(value : ApplyNodeRecord, limits : @value.Limits) -> String? {
-  apply_value_key(value.identity, limits)
+/// One identity component in canonical typed ID order, escaped so that joined
+/// components order as a tuple: U+0000 separates, U+0001 escapes.
+fn apply_identity_component(value : @value.CheckedValue?) -> String? {
+  let key = match value {
+    None => "0"
+    Some(present) if present.value is Null => "0"
+    Some(present) =>
+      match @value.typed_key_order_text(present) {
+        Ok(text) => "1" + text
+        Err(_) => return None
+      }
+  }
+  Some(
+    key
+    .replace_all(old="\u{1}", new="\u{1}\u{2}")
+    .replace_all(old="\u{0}", new="\u{1}\u{1}"),
+  )
 }
 
 ///|
-fn apply_edge_key(value : ApplyEdgeRecord, limits : @value.Limits) -> String? {
-  guard apply_value_key(value.source, limits) is Some(source) &&
-    apply_value_key(value.target, limits) is Some(target) else {
+fn apply_node_key(value : ApplyNodeRecord, _limits : @value.Limits) -> String? {
+  apply_identity_component(Some(value.identity))
+}
+
+///|
+fn apply_edge_key(value : ApplyEdgeRecord, _limits : @value.Limits) -> String? {
+  guard apply_identity_component(Some(value.source)) is Some(source) &&
+    apply_identity_component(Some(value.target)) is Some(target) &&
+    apply_identity_component(value.label) is Some(label) else {
     return None
   }
-  let label = match value.label {
-    Some(label) => apply_value_key(label, limits)
-    None => Some("null")
-  }
-  label.map(label => source + "\u{0}" + target + "\u{0}" + label)
+  Some(source + "\u{0}" + target + "\u{0}" + label)
 }
 
 ///|
@@ -679,7 +699,8 @@ fn apply_action_array(delta : @value.Value, list : Int) -> @value.Value? {
 
 ///|
 fn apply_ordered_key(state : GraphApplyState, key : String) -> Bool {
-  if state.previous_action_key is Some(previous) && previous >= key {
+  if state.previous_action_key is Some(previous) &&
+    @canonical.compare_utf16(previous, key) >= 0 {
     return false
   }
   state.previous_action_key = Some(key)
@@ -887,12 +908,19 @@ fn graph_apply_step(
       !@execution.producer_read_available(state.delta_read) {
       return @bounded.Failed(GraphApplyInputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(GraphApplyWorkLimit, progress, used)
+    }
     match state.phase {
       SnapshotBase => {
         guard state.base_snapshot_preparation is Some(preparation) else {
           return @bounded.Failed(InvalidGraphApplyKernel, progress, used)
         }
-        match @snapshot.advance(preparation, quantum - used) {
+        match
+          @snapshot.advance(
+            preparation,
+            Int::min(quantum - used, state.control_work_remaining - used),
+          ) {
           Ok(@snapshot.Continue(progress=made, work~)) => {
             progress += made.to_int()
             used += work.to_int()
@@ -1136,7 +1164,11 @@ fn graph_apply_step(
         guard state.result_snapshot_preparation is Some(preparation) else {
           return @bounded.Failed(InvalidGraphApplyKernel, progress, used)
         }
-        match @snapshot.advance(preparation, quantum - used) {
+        match
+          @snapshot.advance(
+            preparation,
+            Int::min(quantum - used, state.control_work_remaining - used),
+          ) {
           Ok(@snapshot.Continue(progress=made, work~)) => {
             progress += made.to_int()
             used += work.to_int()
@@ -1162,6 +1194,7 @@ fn graph_apply_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -1262,8 +1295,13 @@ pub fn start_graph_apply(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit? : Int? = None,
 ) -> Result[GraphApplyExecution, GraphApplyIssue] {
   let owner = @lower.sequence_owner(sequence)
+  let control_work_remaining = control_work_limit.unwrap_or(limits.max_work)
+  if control_work_remaining < 0 {
+    return Err(InvalidGraphApplyKernel)
+  }
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphRelationStep(prepared)) &&
     @lower.graph_relation_kind(prepared) == @lower.ApplyGraphRelation &&
@@ -1359,6 +1397,7 @@ pub fn start_graph_apply(
     action_scratch_peak_slots: 0,
     action_scratch_peak_bytes: 0,
     base_snapshot_slots,
+    control_work_remaining,
   }
   let (session, token) = @bounded.start(
     control, state, graph_apply_step, cleanup_graph_apply_state, @graph.discard_completed,
@@ -1389,8 +1428,13 @@ pub fn start_graph_apply_view(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit? : Int? = None,
 ) -> Result[GraphApplyExecution, GraphApplyIssue] {
   let owner = @lower.sequence_owner(sequence)
+  let control_work_remaining = control_work_limit.unwrap_or(limits.max_work)
+  if control_work_remaining < 0 {
+    return Err(InvalidGraphApplyKernel)
+  }
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphRelationStep(prepared)) &&
     @lower.graph_relation_kind(prepared) == @lower.ApplyGraphRelation &&
@@ -1406,8 +1450,8 @@ pub fn start_graph_apply_view(
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.node_input_target(node, 0) is Some(@pipeline.Input(base_index)) &&
     @execution.producer_read_matches_operation_input(delta_read, owner, step, 1) &&
-    @pipeline.carrier_at(
-      @lower.pipeline(@lower.bound_preparation(owner)),
+    @lower.preparation_carrier_at(
+      @lower.bound_preparation(owner),
       @pipeline.Input(base_index),
     )
     is Some(@carrier.GraphValue(graph)) &&
@@ -1498,6 +1542,7 @@ pub fn start_graph_apply_view(
     action_scratch_peak_slots: 0,
     action_scratch_peak_bytes: 0,
     base_snapshot_slots,
+    control_work_remaining,
   }
   let (session, token) = @bounded.start(
     control, state, graph_apply_step, cleanup_graph_apply_state, @graph.discard_completed,

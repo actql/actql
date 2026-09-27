@@ -41,8 +41,15 @@ pub enum RankingInput {
 ///|
 priv enum RankingPhase {
   BeginRecord
+  InitializeGroupValues
+  InitializeTieValues
   ReadField
-  FinishRecord
+  ValidateGroup
+  ValidateCandidate
+  ValidateTie
+  ValidateRecordPolicy
+  StoreRecord
+  InitializeRecordScratch
   PrepareRecordSort
   PrepareRecordMerge
   MergeRecords
@@ -53,11 +60,14 @@ priv enum RankingPhase {
   FindFusionEnd
   FoldFusion
   FinishFusion
+  InitializeFusedScratch
   PrepareOutputSort
   PrepareOutputMerge
   MergeOutputs
   CopyOutputPass
   EmitOutput
+  ReadOutputField
+  CommitOutput
   FinishRanking
 }
 
@@ -89,8 +99,12 @@ priv struct RankingState {
   mut tie_values : Array[@value.CheckedValue?]
   mut score_value : Double?
   mut rank_value : Double?
+  mut validation_index : Int
+  mut validated_group : Array[@value.CheckedValue]
+  mut validated_tie : Array[@value.CheckedValue]
   mut records : Array[RankingRecord]
   mut record_scratch : Array[RankingRecord?]
+  scratch_slots : Ref[Int]
   mut record_order : RankingRecordOrder
   mut width : Int
   mut run_start : Int
@@ -113,6 +127,10 @@ priv struct RankingState {
   mut emit_index : Int
   mut emit_rank : Int
   mut emitted_group : Array[@value.CheckedValue]?
+  mut output_field : Int
+  mut output_values : Array[@value.CheckedValue]
+  output_field_slots : Ref[Int]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -149,6 +167,14 @@ fn ranking_input_matches_operation(
       @execution.supplied_relation_read_matches_operation_input(
         read, owner, step, edge,
       )
+  }
+}
+
+///|
+fn ranking_input_port(value : RankingInput) -> Int {
+  match value {
+    RankingProducer(read) => @execution.producer_read_input_index(read)
+    RankingSupplied(read) => @execution.supplied_relation_read_input_index(read)
   }
 }
 
@@ -201,6 +227,8 @@ struct RankingExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+  scratch_slots : Ref[Int]
+  output_field_slots : Ref[Int]
   max_noninterruptible_value_nodes : Int
   max_noninterruptible_value_bytes : Int
 }
@@ -223,6 +251,7 @@ pub(all) enum RankingIssue {
   InvalidRankingPosition(Int, Int)
   ConflictingRankingTie(Int)
   RankingWorkspaceLimit
+  RankingWorkLimit
   RankingNumeric(@numeric.Issue)
   RankingKeyOrder(@value.KeyOrderIssue)
   RankingOutput(@execution.CaptureIssue)
@@ -249,7 +278,13 @@ fn ranking_checked_multiply(left : Int, right : Int) -> Int? {
 }
 
 ///|
-fn ranking_workspace(rows : Int, by : Int, tie : Int, inputs : Int) -> Int? {
+fn ranking_workspace(
+  rows : Int,
+  by : Int,
+  tie : Int,
+  logical_inputs : Int,
+  physical_inputs : Int,
+) -> Int? {
   guard ranking_checked_add(by, tie) is Some(key_width) &&
     ranking_checked_add(key_width, 8) is Some(record_width) &&
     ranking_checked_add(key_width, 5) is Some(output_width) &&
@@ -259,7 +294,9 @@ fn ranking_workspace(rows : Int, by : Int, tie : Int, inputs : Int) -> Int? {
     ranking_checked_add(records, rows) is Some(first) &&
     ranking_checked_add(first, outputs) is Some(second) &&
     ranking_checked_add(second, rows) is Some(third) &&
-    ranking_checked_add(third, inputs) is Some(fourth) &&
+    ranking_checked_multiply(physical_inputs, 2) is Some(port_slots) &&
+    ranking_checked_add(logical_inputs, port_slots) is Some(input_slots) &&
+    ranking_checked_add(third, input_slots) is Some(fourth) &&
     ranking_checked_add(fourth, fixed_width) is Some(total) else {
     return None
   }
@@ -426,12 +463,15 @@ fn ranking_input_available(state : RankingState) -> RankingIssue? {
 ///|
 fn begin_ranking_record(state : RankingState) -> Unit {
   state.field = 0
-  state.group_values = Array::make(state.by.length(), None)
+  state.group_values = []
   state.candidate_value = None
-  state.tie_values = Array::make(state.tie.length(), None)
+  state.tie_values = []
   state.score_value = None
   state.rank_value = None
-  state.phase = ReadField
+  state.validation_index = 0
+  state.validated_group = []
+  state.validated_tie = []
+  state.phase = InitializeGroupValues
 }
 
 ///|
@@ -474,34 +514,54 @@ fn read_ranking_field(state : RankingState) -> Result[Unit, RankingIssue] {
 }
 
 ///|
-fn finish_ranking_record(state : RankingState) -> Result[Unit, RankingIssue] {
-  let group : Array[@value.CheckedValue] = []
-  for value in state.group_values {
-    guard value is Some(value) else {
-      return Err(InvalidRankingRecord(state.input, state.row))
-    }
-    match @value.compare_group_key_values(value, value) {
-      Ok(_) => group.push(value)
-      Err(issue) => return Err(RankingKeyOrder(issue))
-    }
+fn validate_ranking_group(state : RankingState) -> Result[Unit, RankingIssue] {
+  guard state.group_values[state.validation_index] is Some(value) else {
+    return Err(InvalidRankingRecord(state.input, state.row))
   }
+  match @value.compare_group_key_values(value, value) {
+    Ok(_) => {
+      state.validated_group.push(value)
+      state.validation_index += 1
+      Ok(())
+    }
+    Err(issue) => Err(RankingKeyOrder(issue))
+  }
+}
+
+///|
+fn validate_ranking_candidate(
+  state : RankingState,
+) -> Result[Unit, RankingIssue] {
   guard state.candidate_value is Some(candidate) else {
     return Err(InvalidRankingRecord(state.input, state.row))
   }
   match @value.compare_key_values(candidate, candidate) {
-    Ok(_) => ()
+    Ok(_) => Ok(())
     Err(issue) => return Err(RankingKeyOrder(issue))
   }
-  let tie : Array[@value.CheckedValue] = []
-  for value in state.tie_values {
-    guard value is Some(value) else {
-      return Err(InvalidRankingRecord(state.input, state.row))
-    }
-    match @value.compare_author_order_values(value, value) {
-      Ok(_) => tie.push(value)
-      Err(issue) => return Err(RankingKeyOrder(issue))
-    }
+}
+
+///|
+fn validate_ranking_tie_value(
+  state : RankingState,
+) -> Result[Unit, RankingIssue] {
+  guard state.tie_values[state.validation_index] is Some(value) else {
+    return Err(InvalidRankingRecord(state.input, state.row))
   }
+  match @value.compare_author_order_values(value, value) {
+    Ok(_) => {
+      state.validated_tie.push(value)
+      state.validation_index += 1
+      Ok(())
+    }
+    Err(issue) => Err(RankingKeyOrder(issue))
+  }
+}
+
+///|
+fn validate_ranking_record_policy(
+  state : RankingState,
+) -> Result[Unit, RankingIssue] {
   match state.policy {
     Maximum | Weighted(_, _) => {
       guard state.score_value is Some(score) &&
@@ -522,15 +582,25 @@ fn finish_ranking_record(state : RankingState) -> Result[Unit, RankingIssue] {
       }
     }
   }
+  Ok(())
+}
+
+///|
+fn store_ranking_record(state : RankingState) -> Result[Unit, RankingIssue] {
+  guard state.candidate_value is Some(candidate) else {
+    return Err(InvalidRankingKernel)
+  }
   state.records.push({
     input: state.input,
-    group,
+    group: state.validated_group,
     candidate,
-    tie,
+    tie: state.validated_tie,
     score: state.score_value,
     rank: state.rank_value,
   })
   state.row += 1
+  state.validated_group = []
+  state.validated_tie = []
   state.phase = BeginRecord
   Ok(())
 }
@@ -608,14 +678,16 @@ fn start_ranking_record_sort(
   order : RankingRecordOrder,
 ) -> Unit {
   state.record_order = order
-  state.record_scratch = Array::make(state.records.length(), None)
+  state.record_scratch = []
+  state.scratch_slots.val = 0
   state.width = 1
-  state.phase = PrepareRecordSort
+  state.phase = InitializeRecordScratch
 }
 
 ///|
 fn finish_ranking_record_sort(state : RankingState) -> Unit {
   state.record_scratch = []
+  state.scratch_slots.val = 0
   state.validate_index = 0
   match state.record_order {
     InputCandidateOrder => state.phase = ValidateDuplicates
@@ -937,7 +1009,7 @@ fn ranking_group_value(
 }
 
 ///|
-fn emit_ranking_result(state : RankingState) -> Result[Bool, RankingIssue] {
+fn begin_ranking_result(state : RankingState) -> Result[Bool, RankingIssue] {
   let row = state.fused[state.emit_index]
   let same_group = match state.emitted_group {
     Some(group) =>
@@ -956,29 +1028,47 @@ fn emit_ranking_result(state : RankingState) -> Result[Bool, RankingIssue] {
   if state.emit_rank > state.k {
     return Ok(false)
   }
-  guard state.output is Some(output) else { return Err(InvalidRankingKernel) }
-  let supplied : Array[@value.CheckedValue] = []
-  for field_index in 0..<@schema.field_count(state.output_schema) {
-    guard @schema.field_at(state.output_schema, field_index) is Some(field) else {
-      return Err(InvalidRankingKernel)
-    }
-    let name = @schema.reference_name(field.name)
-    let value = if name == state.candidate_name {
-      ranking_output_value(row.candidate, field.contract, state.value_limits)
-    } else if name == "score" {
-      @value.checked_number_value(row.score, field.contract)
-    } else if name == "rank" {
-      @value.checked_number_value(state.emit_rank.to_double(), field.contract)
-    } else {
-      ranking_group_value(state, row, name).bind(value => {
-        ranking_output_value(value, field.contract, state.value_limits)
-      })
-    }
-    guard value is Some(value) else { return Err(InvalidRankingKernel) }
-    supplied.push(value)
+  Ok(true)
+}
+
+///|
+fn read_ranking_output_field(
+  state : RankingState,
+) -> Result[Unit, RankingIssue] {
+  let row = state.fused[state.emit_index]
+  guard @schema.field_at(state.output_schema, state.output_field) is Some(field) else {
+    return Err(InvalidRankingKernel)
   }
-  match @execution.append_admitted_output(output, supplied) {
-    Ok(_) => Ok(true)
+  let name = @schema.reference_name(field.name)
+  let value = if name == state.candidate_name {
+    ranking_output_value(row.candidate, field.contract, state.value_limits)
+  } else if name == "score" {
+    @value.checked_number_value(row.score, field.contract)
+  } else if name == "rank" {
+    @value.checked_number_value(state.emit_rank.to_double(), field.contract)
+  } else {
+    ranking_group_value(state, row, name).bind(value => {
+      ranking_output_value(value, field.contract, state.value_limits)
+    })
+  }
+  guard value is Some(value) else { return Err(InvalidRankingKernel) }
+  state.output_values.push(value)
+  state.output_field_slots.val += 1
+  state.output_field += 1
+  Ok(())
+}
+
+///|
+fn commit_ranking_output(state : RankingState) -> Result[Unit, RankingIssue] {
+  guard state.output is Some(output) else { return Err(InvalidRankingKernel) }
+  match @execution.append_admitted_output(output, state.output_values) {
+    Ok(_) => {
+      state.output_values = []
+      state.output_field_slots.val = 0
+      state.emit_index += 1
+      state.phase = EmitOutput
+      Ok(())
+    }
     Err(issue) => Err(RankingOutput(issue))
   }
 }
@@ -998,6 +1088,9 @@ fn ranking_step(
     if ranking_input_available(state) is Some(issue) {
       return @bounded.Failed(issue, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(RankingWorkLimit, progress, used)
+    }
     match state.phase {
       BeginRecord =>
         if state.input >= state.inputs.length() {
@@ -1008,6 +1101,20 @@ fn ranking_step(
           state.input += 1
           state.row = 0
         }
+      InitializeGroupValues =>
+        if state.group_values.length() < state.by.length() {
+          state.group_values.push(None)
+          used += 1
+        } else {
+          state.phase = InitializeTieValues
+        }
+      InitializeTieValues =>
+        if state.tie_values.length() < state.tie.length() {
+          state.tie_values.push(None)
+          used += 1
+        } else {
+          state.phase = ReadField
+        }
       ReadField => {
         let schema = ranking_input_schema(state.inputs[state.input])
         if state.field < @schema.field_count(schema) {
@@ -1017,16 +1124,62 @@ fn ranking_step(
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
         } else {
-          state.phase = FinishRecord
+          state.validation_index = 0
+          state.phase = ValidateGroup
         }
       }
-      FinishRecord => {
+      ValidateGroup =>
+        if state.validation_index < state.group_values.length() {
+          used += 1
+          match validate_ranking_group(state) {
+            Ok(_) => ()
+            Err(issue) => return @bounded.Failed(issue, progress, used)
+          }
+        } else {
+          state.phase = ValidateCandidate
+        }
+      ValidateCandidate => {
         used += 1
-        match finish_ranking_record(state) {
+        match validate_ranking_candidate(state) {
+          Ok(_) => {
+            state.validation_index = 0
+            state.phase = ValidateTie
+          }
+          Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
+      ValidateTie =>
+        if state.validation_index < state.tie_values.length() {
+          used += 1
+          match validate_ranking_tie_value(state) {
+            Ok(_) => ()
+            Err(issue) => return @bounded.Failed(issue, progress, used)
+          }
+        } else {
+          state.phase = ValidateRecordPolicy
+        }
+      ValidateRecordPolicy => {
+        used += 1
+        match validate_ranking_record_policy(state) {
+          Ok(_) => state.phase = StoreRecord
+          Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
+      StoreRecord => {
+        used += 1
+        match store_ranking_record(state) {
           Ok(_) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
+      InitializeRecordScratch =>
+        if state.record_scratch.length() < state.records.length() {
+          state.record_scratch.push(None)
+          state.scratch_slots.val += 1
+          used += 1
+        } else {
+          state.phase = PrepareRecordSort
+        }
       PrepareRecordSort =>
         if state.width >= state.records.length() {
           finish_ranking_record_sort(state)
@@ -1084,9 +1237,10 @@ fn ranking_step(
           begin_ranking_fusion(state)
         } else {
           state.records = []
-          state.fused_scratch = Array::make(state.fused.length(), None)
+          state.fused_scratch = []
+          state.scratch_slots.val = 0
           state.width = 1
-          state.phase = PrepareOutputSort
+          state.phase = InitializeFusedScratch
         }
       FindFusionEnd => {
         used += 1
@@ -1109,9 +1263,18 @@ fn ranking_step(
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
+      InitializeFusedScratch =>
+        if state.fused_scratch.length() < state.fused.length() {
+          state.fused_scratch.push(None)
+          state.scratch_slots.val += 1
+          used += 1
+        } else {
+          state.phase = PrepareOutputSort
+        }
       PrepareOutputSort =>
         if state.width >= state.fused.length() {
           state.fused_scratch = []
+          state.scratch_slots.val = 0
           state.emit_index = 0
           state.emit_rank = 0
           state.emitted_group = None
@@ -1154,18 +1317,36 @@ fn ranking_step(
       EmitOutput =>
         if state.emit_index < state.fused.length() {
           used += 1
-          match emit_ranking_result(state) {
-            Ok(emitted) => {
-              if emitted {
-                progress += 1
-              }
-              state.emit_index += 1
+          match begin_ranking_result(state) {
+            Ok(true) => {
+              state.output_field = 0
+              state.output_values = []
+              state.output_field_slots.val = 0
+              state.phase = ReadOutputField
             }
+            Ok(false) => state.emit_index += 1
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
         } else {
           state.phase = FinishRanking
         }
+      ReadOutputField =>
+        if state.output_field < @schema.field_count(state.output_schema) {
+          used += 1
+          match read_ranking_output_field(state) {
+            Ok(_) => ()
+            Err(issue) => return @bounded.Failed(issue, progress, used)
+          }
+        } else {
+          state.phase = CommitOutput
+        }
+      CommitOutput => {
+        used += 1
+        match commit_ranking_output(state) {
+          Ok(_) => progress += 1
+          Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
       FinishRanking => {
         used += 1
         guard state.output is Some(output) else {
@@ -1186,6 +1367,7 @@ fn ranking_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -1201,12 +1383,17 @@ fn cleanup_ranking_state(state : RankingState) -> Bool {
   }
   state.group_values = []
   state.tie_values = []
+  state.validated_group = []
+  state.validated_tie = []
   state.records = []
   state.record_scratch = []
   state.fused = []
   state.fused_scratch = []
+  state.scratch_slots.val = 0
   state.candidate_value = None
   state.emitted_group = None
+  state.output_values = []
+  state.output_field_slots.val = 0
   true
 }
 
@@ -1247,6 +1434,7 @@ pub fn start_ranking(
   max_workspace_slots : Int,
   max_entries : Int,
   max_name_bytes : Int,
+  control_work_limit? : Int? = None,
 ) -> Result[RankingExecution, RankingIssue] {
   start_ranking_inputs(
     control,
@@ -1259,6 +1447,7 @@ pub fn start_ranking(
     max_workspace_slots,
     max_entries,
     max_name_bytes,
+    control_work_limit~,
   )
 }
 
@@ -1274,11 +1463,14 @@ pub fn start_ranking_inputs(
   max_workspace_slots : Int,
   max_entries : Int,
   max_name_bytes : Int,
+  control_work_limit? : Int? = None,
 ) -> Result[RankingExecution, RankingIssue] {
+  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
   if max_rows < 0 ||
     max_workspace_slots < 0 ||
     max_entries < 0 ||
     max_name_bytes < 0 ||
+    control_work_limit < 0 ||
     inputs.is_empty() {
     return Err(InvalidRankingLimits)
   }
@@ -1311,36 +1503,49 @@ pub fn start_ranking_inputs(
     is Some(output_schema) else {
     return Err(InvalidRankingKernel)
   }
-  let occurrence_inputs : Array[RankingInput] = []
-  for edge in 0..<input_count {
-    let mut matched = None
-    for input in inputs {
-      if ranking_input_matches_operation(input, owner, step, edge) {
-        if matched is Some(_) {
-          return Err(InvalidRankingKernel)
-        }
-        matched = Some(input)
-      }
-    }
-    guard matched is Some(input) else { return Err(InvalidRankingKernel) }
-    occurrence_inputs.push(input)
-  }
-  for input in inputs {
-    let mut matched = false
-    for edge in 0..<input_count {
-      if ranking_input_matches_operation(input, owner, step, edge) {
-        matched = true
-      }
-    }
-    if !matched {
-      return Err(InvalidRankingKernel)
-    }
-  }
   let tie_count = @lower.vector_ranking_tie_break_count(prepared).unwrap_or(0)
   guard prepared_ranking_names(tie_count, index => {
       @lower.vector_ranking_tie_break_at(prepared, index)
     })
-    is Some(tie) else {
+    is Some(tie) &&
+    ranking_workspace(0, by_count, tie_count, input_count, inputs.length())
+    is Some(input_workspace) &&
+    input_workspace <= max_workspace_slots else {
+    return Err(RankingWorkspaceLimit)
+  }
+  // Physical receiving ports and authored operation positions are distinct.
+  // One exact input can occur at several positions without losing its order.
+  let by_port : Map[Int, (RankingInput, Bool)] = Map([])
+  for input in inputs {
+    let port = ranking_input_port(input)
+    if port < 0 || by_port.contains(port) {
+      return Err(InvalidRankingKernel)
+    }
+    by_port[port] = (input, false)
+  }
+  let occurrence_inputs : Array[RankingInput] = []
+  let mut unmatched = inputs.length()
+  for edge in 0..<input_count {
+    guard @lower.node_input_target(node, edge) is Some(target) else {
+      return Err(InvalidRankingKernel)
+    }
+    let port = match target {
+      @pipeline.Input(index) => index
+      @pipeline.Step(_) => edge
+    }
+    guard by_port.get(port) is Some((input, matched)) else {
+      return Err(InvalidRankingKernel)
+    }
+    if !ranking_input_matches_operation(input, owner, step, edge) {
+      return Err(InvalidRankingKernel)
+    }
+    occurrence_inputs.push(input)
+    if !matched {
+      by_port[port] = (input, true)
+      unmatched -= 1
+    }
+  }
+  if unmatched != 0 {
     return Err(InvalidRankingKernel)
   }
   let mut total_rows = 0
@@ -1351,10 +1556,19 @@ pub fn start_ranking_inputs(
     }
     total_rows = next
   }
-  guard ranking_workspace(total_rows, by_count, tie_count, input_count)
+  guard ranking_workspace(
+      total_rows,
+      by_count,
+      tie_count,
+      input_count,
+      inputs.length(),
+    )
     is Some(workspace) &&
     workspace <= max_workspace_slots else {
     return Err(RankingWorkspaceLimit)
+  }
+  if control_work_limit == 0 {
+    return Err(RankingWorkLimit)
   }
   let output = match
     @execution.prepare_admitted_output(
@@ -1369,6 +1583,8 @@ pub fn start_ranking_inputs(
   let rows : Ref[@execution.AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
+  let scratch_slots = Ref(0)
+  let output_field_slots = Ref(0)
   let port = match
     @execution.prepare_trusted_output_port_with_inputs(
       preparation,
@@ -1415,8 +1631,12 @@ pub fn start_ranking_inputs(
     tie_values: [],
     score_value: None,
     rank_value: None,
+    validation_index: 0,
+    validated_group: [],
+    validated_tie: [],
     records: [],
     record_scratch: [],
+    scratch_slots,
     record_order: InputCandidateOrder,
     width: 1,
     run_start: 0,
@@ -1439,6 +1659,10 @@ pub fn start_ranking_inputs(
     emit_index: 0,
     emit_rank: 0,
     emitted_group: None,
+    output_field: 0,
+    output_values: [],
+    output_field_slots,
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,
@@ -1454,6 +1678,8 @@ pub fn start_ranking_inputs(
     session,
     token: Some(token),
     accepted,
+    scratch_slots,
+    output_field_slots,
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
@@ -1494,6 +1720,18 @@ pub fn ranking_max_noninterruptible_value_nodes(
   value : RankingExecution,
 ) -> Int {
   value.max_noninterruptible_value_nodes
+}
+
+///|
+/// Structural sort scratch retained by the current bounded phase.
+pub fn ranking_scratch_slots(value : RankingExecution) -> Int {
+  value.scratch_slots.val
+}
+
+///|
+/// Output fields retained by the current bounded row assembly phase.
+pub fn ranking_output_field_slots(value : RankingExecution) -> Int {
+  value.output_field_slots.val
 }
 
 ///|

@@ -12,7 +12,7 @@ pub(all) enum Issue {
   InvalidLimits
   InvalidGraph
   WorkspaceLimit
-  ValueOrder(@value.CompleteOrderIssue)
+  KeyOrder(@value.KeyOrderIssue)
   Sort(@sort.Issue)
   Identity(@identity.Issue)
   Terminal
@@ -209,11 +209,31 @@ fn graph(value : @storage.Storage) -> @carrier.Graph? {
 }
 
 ///|
+/// Canonical typed ID order: the declared type's non-null comparison, not
+/// the canonical key encoding. An edge label present under a nullable label
+/// contract is still ordered by its value.
 fn order_key(
   value : @value.CheckedValue,
+  _limits : @value.Limits,
+) -> Result[String, Issue] {
+  @value.typed_key_order_text(value).map_err(issue => KeyOrder(issue))
+}
+
+///|
+/// Absent and null labels sort before present labels.
+fn label_order_key(
+  label : @value.CheckedValue?,
   limits : @value.Limits,
 ) -> Result[String, Issue] {
-  @value.complete_order_key(value, limits).map_err(issue => ValueOrder(issue))
+  match label {
+    None => Ok("0")
+    Some(value) =>
+      if value.value is Null {
+        Ok("0")
+      } else {
+        order_key(value, limits).map(key => "1" + key)
+      }
+  }
 }
 
 ///|
@@ -454,13 +474,10 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
           Ok(key) => key
           Err(issue) => return Err(issue)
         }
-        let label_key = match label {
-          Some(label) =>
-            match order_key(label, value.limits.value_limits) {
-              Ok(key) => key
-              Err(issue) => return Err(issue)
-            }
-          None => "[\"null\"]"
+        let label_key = match
+          label_order_key(label, value.limits.value_limits) {
+          Ok(key) => key
+          Err(issue) => return Err(issue)
         }
         value.edge_keys.push([source_key, target_key, label_key])
         value.cursor += 1

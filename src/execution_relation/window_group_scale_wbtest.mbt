@@ -115,6 +115,35 @@ test "window group accepts exact work and storage boundaries" {
 }
 
 ///|
+test "empty window group has an independently bounded resource path" {
+  let owner = window_group_scale_owner()
+  let kernel = row_kernel(owner, 2)
+  let input = window_group_scale_input(owner, 0)
+  let run = (work_limit, workspace_limit) => {
+    let control = { remaining: work_limit, max_frames: 100, }
+    let workspace = row_workspace(workspace_limit)
+    let result = evaluate_rows_with_workspace(
+      kernel,
+      input,
+      0,
+      control,
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+    (result, workspace.peak, work_limit - control.remaining)
+  }
+  // This fixed empty case still admits the two checked window coordinates,
+  // five aggregate descriptors, their names, and output schema metadata.
+  let expected_work = 195
+  let expected_peak = 51
+  let (result, peak, used) = run(expected_work, expected_peak)
+  assert_true(result is Ok(_))
+  assert_eq((peak, used), (expected_peak, expected_work))
+  assert_true(run(expected_work - 1, expected_peak).0 is Err(RowLimit))
+  assert_true(run(expected_work, expected_peak - 1).0 is Err(RowLimit))
+}
+
+///|
 fn numeric_window_group_workspace_attempt(
   limit : Int,
 ) -> (Result[Table, RowIssue], Int) {

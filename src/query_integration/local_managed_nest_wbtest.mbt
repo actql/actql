@@ -1,5 +1,20 @@
 ///|
-test "Local managed nest reaches two consumers and final reclamation" {
+test "nest output feeds a checked unnest filter task" {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_nest_unwrap_chain=true,
+  )
+  let graph = @strategy.captured_dag_graph(run)
+  assert_eq(@strategy.graph_task_count(graph), 7)
+  assert_eq(@strategy.graph_task_selected_step(graph, 4), None)
+  @strategy.stop_captured_dag(run)
+  for task in 0..<7 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+fn run_local_managed_nest_case(unwrap : Bool) -> Unit raise {
   let ledger_limits : @resources.LedgerLimits = {
     planning_work: 10000,
     attempts: 20,
@@ -9,7 +24,8 @@ test "Local managed nest reaches two consumers and final reclamation" {
     execution_bytes: 536870912L,
   }
   let (run, issuer) = captured_graph_fixture(
-    local_values_nest_chain=true,
+    local_values_nest_chain=!unwrap,
+    local_values_nest_unwrap_chain=unwrap,
     ledger_limits=Some(ledger_limits),
   )
   let registry = search_registry()
@@ -98,6 +114,7 @@ test "Local managed nest reaches two consumers and final reclamation" {
   let child_rows = local_managed_test_rows(child_ops)
 
   let nest_live = Ref(true)
+  let nest_advances = Ref(0)
   let (nest_ops, nested) = run_local_managed_test_task(
     installed,
     run,
@@ -106,7 +123,11 @@ test "Local managed nest reaches two consumers and final reclamation" {
     [parent_rows, child_rows],
     3,
     nest_live,
+    execution_quantum=1,
+    execution_advances=Some(nest_advances),
+    require_provider=true,
   )
+  assert_true(nest_advances.val > 4)
   let nested_rows = local_managed_test_rows(nest_ops)
   let expected = [
     "{\"id\":1,\"items\":[{\"amount\":null},{\"amount\":10}],\"key\":1}", "{\"id\":2,\"items\":[{\"amount\":null},{\"amount\":10}],\"key\":1}",
@@ -114,46 +135,96 @@ test "Local managed nest reaches two consumers and final reclamation" {
   ]
   assert_eq(nested_rows, expected)
 
+  let unwrap_live = Ref(true)
+  let unwrap_advances = Ref(0)
+  let unwrapped = if unwrap {
+    Some(
+      run_local_managed_test_task(
+        installed,
+        run,
+        4,
+        [nested],
+        [nested_rows],
+        4,
+        unwrap_live,
+        execution_quantum=1,
+        execution_advances=Some(unwrap_advances),
+        require_provider=true,
+      ),
+    )
+  } else {
+    None
+  }
+  let unwrapped_expected = [
+    "{\"id\":2,\"item\":{\"amount\":null}}", "{\"id\":2,\"item\":{\"amount\":10}}",
+  ]
+  let consumer_input = match unwrapped {
+    Some((operations, output)) => {
+      assert_true(unwrap_advances.val > 2)
+      assert_eq(local_managed_test_rows(operations), unwrapped_expected)
+      output
+    }
+    None => nested
+  }
+  let consumer_rows = if unwrap { unwrapped_expected } else { nested_rows }
+  let first_task = if unwrap { 5 } else { 4 }
+  let second_task = first_task + 1
+
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    4,
-    [nested],
-    [nested_rows],
-    4,
+    first_task,
+    [consumer_input],
+    [consumer_rows],
+    first_task,
     first_live,
   )
   let second_live = Ref(true)
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    5,
-    [nested],
-    [nested_rows],
-    5,
+    second_task,
+    [consumer_input],
+    [consumer_rows],
+    second_task,
     second_live,
   )
-  assert_eq(local_managed_test_rows(first_ops), [
-    "{\"id\":1,\"key\":1,\"items\":[{\"amount\":null},{\"amount\":10}]}", "{\"id\":2,\"key\":1,\"items\":[{\"amount\":null},{\"amount\":10}]}",
-    "{\"id\":3,\"key\":null,\"items\":[]}", "{\"id\":4,\"key\":2,\"items\":[]}",
-  ])
-  assert_eq(local_managed_test_rows(second_ops), [
-    "{\"items\":[{\"amount\":null},{\"amount\":10}],\"id\":1,\"key\":1}", "{\"items\":[{\"amount\":null},{\"amount\":10}],\"id\":2,\"key\":1}",
-    "{\"items\":[],\"id\":3,\"key\":null}", "{\"items\":[],\"id\":4,\"key\":2}",
-  ])
-  assert_true(
-    @strategy.pin_captured_task_output(
-      run,
-      4,
-      @strategy.captured_task_target(run, 4).unwrap(),
-      1,
+  let first_expected = if unwrap {
+    unwrapped_expected
+  } else {
+    [
+      "{\"id\":1,\"key\":1,\"items\":[{\"amount\":null},{\"amount\":10}]}", "{\"id\":2,\"key\":1,\"items\":[{\"amount\":null},{\"amount\":10}]}",
+      "{\"id\":3,\"key\":null,\"items\":[]}", "{\"id\":4,\"key\":2,\"items\":[]}",
+    ]
+  }
+  let second_expected = if unwrap {
+    [
+      "{\"item\":{\"amount\":null},\"id\":2}", "{\"item\":{\"amount\":10},\"id\":2}",
+    ]
+  } else {
+    [
+      "{\"items\":[{\"amount\":null},{\"amount\":10}],\"id\":1,\"key\":1}", "{\"items\":[{\"amount\":null},{\"amount\":10}],\"id\":2,\"key\":1}",
+      "{\"items\":[],\"id\":3,\"key\":null}", "{\"items\":[],\"id\":4,\"key\":2}",
+    ]
+  }
+  assert_eq(local_managed_test_rows(first_ops), first_expected)
+  assert_eq(local_managed_test_rows(second_ops), second_expected)
+  if !unwrap {
+    // A nested output cannot be pinned as a cell-backed capture.
+    assert_true(
+      @strategy.pin_captured_task_output(
+        run,
+        first_task,
+        @strategy.captured_task_target(run, first_task).unwrap(),
+        1,
+      )
+      is Err(UnsupportedGraph),
     )
-    is Err(UnsupportedGraph),
-  )
+  }
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, 4)
+  @strategy.close_captured_task_output(run, first_task)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
@@ -161,9 +232,16 @@ test "Local managed nest reaches two consumers and final reclamation" {
   assert_true(@execution.managed_completed_output_available(nested))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, 5)
+  @strategy.close_captured_task_output(run, second_task)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
+  if unwrapped is Some((operations, output)) {
+    unwrap_live.val = false
+    @strategy.close_captured_task_output(run, 4)
+    (operations.close)()
+    (operations.cleanup_refresh)() |> ignore
+    assert_false(@execution.managed_completed_output_available(output))
+  }
   nest_live.val = false
   @strategy.close_captured_task_output(run, 3)
   (nest_ops.close)()
@@ -184,4 +262,14 @@ test "Local managed nest reaches two consumers and final reclamation" {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "Local managed nest reaches two consumers and final reclamation" {
+  run_local_managed_nest_case(false)
+}
+
+///|
+test "nest output unnest filter feeds two bounded consumers" {
+  run_local_managed_nest_case(true)
 }

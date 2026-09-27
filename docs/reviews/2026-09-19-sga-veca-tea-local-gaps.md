@@ -1,9 +1,1388 @@
 # SGA, VecA, and TEA Local execution gaps
 
+## Current delivery unit and acceptance boundary
+
+Tracked on `feat/local-family-closure` against the current product source,
+the historical Local work order, and the progress reviews. A fixed release
+SHA is not yet recorded because the strict gate remains open.
+This section describes the current delivery unit, not the whole original
+RelA/SGA/VecA/TEA plan or a completion declaration. The earlier typed Graph
+order, nullable-label, finite-average, VecA empty-side admission, TEA window
+progress, mixed Carrier/Relation splitting, bounded selected row execution,
+and registered family composition are present in this HEAD; their historical
+review findings are not reopened solely because the strict resource gate is
+red. The performance-improvement branch is not part of this unit.
+
+### What the user can do when this unit is complete
+
+An ordinary family-enabled Program can combine agreed RelA, SGA, VecA, TEA,
+and formal Bridge operations in one or more Stages. The standard Host can
+select and run every supported long-lived route with bounded progress,
+deliver an in-flight cancellation after positive work, observe stop, and
+reclaim unpublished output and borrowed input responsibilities. Successful
+results can feed two real downstream Computes, be independently released,
+and use existing Effect-free Named Result publication where applicable.
+No admissible long-running route silently enters synchronous computation.
+The strict resource-completion gate and required same-SHA target/CI checks
+prove these properties; a normal gate result or an operation count does not.
+
+### Remaining product work and its acceptance tests
+
+The selected count split decision now includes keyed count profiles already
+supported by the bounded count provider. An internal Values producer can
+feed keyed count and a following take in the same Stage, with exact internal
+bindings rather than a providerless whole-sequence fallback. The existing
+count kernel, canonical key order, nullable-field semantics, activation
+checks, and ownership rules are unchanged. Filtered, distinct, expression,
+and non-count aggregates remain outside this particular split decision;
+they are still required by the overall delivery goal.
+
+The direct-field `count_if` profile now uses that same bounded count route.
+It counts only Boolean true, retains false and NULL exclusion, and preserves
+the authored aggregate identity in canonical lowering. Separate-stage and
+same-Stage standard Host fixtures reach the selected provider with
+quantum-one advancement, two independent consumers, cancellation after
+positive work, and cleanup. An
+independent exact/one-short work and workspace fixture covers this profile;
+the fixed DuckDB realization executes the same true/false/NULL and empty
+corpus. Filtered or expression-valued `count_if` remains on the general group
+route and is not certified by this evidence. The strict whole-operation gate
+is still red, so this is a closed route, not a completed group operation.
+
+The strict gate still rejects unassured RelA whole-sequence entrypoints,
+eight SGA entrypoints, and the providerless synchronous computation.
+The providerless route is reachable when the installed product module finds
+no matching managed provider but the checked sequence passes
+`local_managed_sequence_supported()`. The managed driver then calls
+`execute_local_managed_fixed_compute()` before starting its bounded output
+copy. This is computation before the first cancellable copy step, not a
+missing timer assertion on an otherwise bounded calculation. The current
+provider search covers selected Relation steps, finite count groups, row
+windows, unpivot, unnest, cross join, append, values, and installed family
+providers. Its Relation-chain reader requires a linear sequence: each later
+step consumes the immediately preceding output, and any step may also bind
+declared external inputs, one input occurrence per checked operation port
+(for example a filter followed by an append of another captured input). A
+supported sequence outside those shapes,
+or a single supported operation without a bounded provider (including
+general groups, analytic, and pivot), can therefore reach the synchronous
+fallback. These are distinct implementation gaps; adding a route assertion
+for a selected step does not make the fallback cancellable.
+The selected top-k, binary same-Stage, VecA row-expression, and ranking
+paths now have separate evidence, but that does not certify an unrelated
+whole-sequence or formal variant. Multiple rows below share one
+implementation while retaining separate input bindings and route evidence.
+
+General direct groups now have a bounded Local provider. Every aggregate
+finishing state (min and max, Decimal sum, first and last, ordered
+collection, distinct, array_agg and string_agg, selected numeric
+reduction, percentile, variance and standard deviation), the per-aggregate
+evaluation, and the whole group operation advance as resumable states whose
+steps pay at most one control unit; the synchronous evaluator drains the
+same states. The provider covers groups whose aggregates are all direct, and also
+selected numeric reductions when the task supplies the numeric execution;
+the dispatcher seals the task's numeric occurrences when the provider
+completes, and a failed seal fails the attempt. Numeric groups inside a
+bounded chain (a following same-task filter, a second group) take the same
+provider. Filtered and expression-argument aggregates also take it: the
+kernel derives the step's logical budget from its fragment runtime context,
+as the synchronous sequence does, and generation already rejects such a
+group without one. Their filter and argument frames advance with the same
+per-node granularity as the bounded filter and derive path: one frame
+advance pays its node entry, view entries and field-name bytes, and a
+returned value is measured within the fragment's value limits, so it is
+bounded by the program and fragment limits rather than one unit. Its
+evidence is independently derived exact/one-short work fixtures (21 units
+for a one-row max group; 28 and 40 for one filtered-out and one accepted
+row of a filtered expression max), managed direct, ordered, collection,
+nested distinct, statistics, numeric and filtered-expression fixtures at
+quantum one with two consumers, Host cancellation after positive work, and a
+standard Node Host timer cancellation. Analytic still uses the synchronous
+route, so the strict group entrypoint assurance remains open.
+
+`pivot` now runs as one resumable state with the charges of the previous
+atomic evaluator, which drains the same state: names and multi-unit
+metadata pay one unit per advance, index order and group boundaries reuse
+the resumable ordering and range owners, first-occurrence group order merges
+one element per advance, and each group row advances one member, one
+comparison unit (text compares one UTF-16 unit per advance after its
+prepaid operand charge), one Decimal charge unit or one selected numeric
+reduction step at a time. The bounded group kernel and provider drive it,
+and lowering routes `pivot` through selected tasks and the fused `values`
+prefix like `unpivot`. Evidence: an independently derived exact/one-short
+work fixture (58 units for one index row with one max bucket), a stop
+fixture, every managed pivot form (count, min with fill, empty axis,
+numeric, Decimal sum, parameter fill, max and first) at quantum one with a
+required provider and two consumers, and standard Host cancellation after
+positive work for count, numeric and Decimal pivots. No standard Node Host
+timer fixture covers pivot yet, so its route has no path assurance.
+
+General aggregate execution is being converted at its existing evaluation
+boundaries. Source snapshots, filter/argument demand, contributor collection,
+stable ordering, group-boundary discovery, and permutation now share private
+resumable states. The selected common numeric reduction also advances
+admission, arithmetic, and finalization incrementally. Task ownership prevents
+a pending occurrence from
+being sealed or captured before terminal success. Cancellation can release
+these private states without releasing borrowed inputs or refunding work.
+The existing synchronous group evaluator drains the same states, and Local
+installs the task-owned numeric step callback. Stable merge copies and scalar
+comparison charges, including long UTF-8 text and DECIMAL coefficients, are
+split across advances. Independent exact/one-short and partial-cleanup tests
+cover these internal boundaries. The latest relevant package regression passed
+1,051 tests on each of JS, Wasm, and native; generated interfaces were updated.
+The same-source standard Node Host regression passed. Its ordinary mixed-stage
+sort fixture now uses a long equal UTF-8 key beginning with a supplementary
+scalar; quantum-one advancement reached positive work, delivered a timer
+cancellation, observed stop, and reclaimed the attempt. That evidence does not
+prove in-flight interruption inside the group evaluator. The enclosing group
+evaluator still drains its private sort and range states synchronously. Direct
+aggregate folds, output construction, and any remaining multi-work expression
+steps must expose bounded Host advancement.
+Adversarial pending-slot tests and a real Host timer cancellation remain
+required. No coverage completion is inferred from these intermediate changes.
+
+The current append follow-up connects an unsplit two-input `append` followed
+by a unary Relation suffix to the existing bounded chain owner. Previously,
+the chain's provider set omitted append and assumed every non-join step had
+one input. The change preserves both first-step input positions and keeps
+child outputs private until reverse-order cleanup. The final managed fixtures
+pass 11 tests on each of JS, Wasm, and native, including quantum-one
+two-consumer success, cancellation with both producers still live, and
+overlapping child-capacity reservation. Workers freshness and the 198 resource
+gate regression tests pass. The final standard Node/native Host suite passes
+ordinary two-consumer execution, independent Named Result expectations, and
+timer cancellation during append work with stop, nonpublication, and cleanup.
+The cancellation fixture expands the exact input Stage using its declared
+schema; no product admission rule was weakened to accept fixture data.
+This is local product-path evidence, not a same-SHA Linux CI result.
+The appended resource fixture derives its limits independently: 28 append
+steps and one handoff leave 43 filter control units, requiring 72 work units;
+the chain reports 69 bounded transitions. Peak per-child workspace is ten
+slots, with the separately checked overlapping byte reservation retaining
+both children. Work 71 and workspace nine fail without publishing a result,
+preserve both borrowed inputs, and release all reservations during cleanup.
+The final append suite passes 12 tests on each of JS, Wasm, and native. The
+ordinary resource gate and both append gate regressions pass, including
+removal of this boundary fixture. Product source is unchanged from the
+preceding standard-Host run. This is not whole-operation resource assurance:
+this fixture covers
+the recorded append/filter route, not every unary suffix or formal variant.
+
+| Ordinary entry and current limitation | Required connection and proof |
+| --- | --- |
+| A supported multi-step Relation Program can miss a selected provider and run its entire computation synchronously before the bounded copy. A JS timer cannot reach that computation in flight. | Inventory reachable `None` cases from standard Host selection; connect each long-running checked sequence to existing bounded step execution without changing exact input edges, evaluation/failure order, numeric occurrence seals, or Result identity. Run positive-work timer cancel, stop, nonpublication, cleanup, and two-consumer success through the normal Host. |
+| Ordinary RelA whole-sequence entrypoints still lack complete route assurance, even where selected filter/select/derive/sort/take, values, reshape, or binary helpers are bounded. | For each reachable ordinary route, bind fixed independent exact/one-short work and peak-workspace fixtures, in-flight Host cancellation, and cleanup to its actual execution owner. Reuse a fixture only where the ordinary route reaches the same bounded implementation. Preserve separate proof for selected `row_window`, `unpivot`, `json_pick`, and `unnest`; selected top-k paths now share exact bounded entrypoints and recorded proofs with their ordinary routes. |
+| Same-Stage `append` and `cross_join` are separately assured, while other admitted whole-sequence shapes can still enter the synchronous fallback. | Preserve their exact ordered input bindings, work/workspace limits, Host timer cancellation, child leases and cleanup as controls; connect the remaining whole-sequence shapes through bounded dispatch. |
+| Ordinary keyed `group count` reuses exact admitted cell evidence from supplied or admitted producer storage and steps output charging. A providerless RowTable with raw Text still undergoes synchronous canonical recheck. | Remove or bound the remaining raw RowTable path without changing its contract or output charge. Keep quantum-one, exact/one-short, Host cancellation, two-consumer and cleanup proofs as controls. Structured keys remain rejected by the formal checker. |
+| Ordinary keyed `count`→`filter`→`select` retains child sessions and their provisional outputs until final cleanup. Its physical overlap and exact logical workspace boundary now have captured-task checks, but other whole-sequence shapes remain unassured. | Reuse this proof only for the same selected chain; connect other checked shapes through bounded dispatch and prove their limits, failure cleanup and independent release. |
+| Standard SGA Graph programs still have eight registered entrypoints without complete route assurance. | Connect each reachable entrypoint to its product kernel's exact/one-short work and workspace boundary, delivered cancellation and cleanup. Prove shared kernel equivalence only through an explicit production binding; retain separate predicate, path, identity and value-width variants where their loops differ. |
+| VecA ranking and row-expression paths have bounded entrypoint assurance, but the whole delivery unit still depends on the remaining RelA and SGA paths. | Retain their exact provider bindings, independent work/workspace fixtures, delivered Host cancellation, and cleanup as regression controls. Do not extend their proof to unsupported expression placements. |
+
+For `SGA.traverse`, the literal-start, one-node self-edge case now has fixed
+control-work exact/one-short limits for both node and path emission. Node
+emission also has an independently counted exact/one-short workspace bound.
+The existing standard Host timer cases reach the same production
+`start_traverse` entrypoint for nonempty node and path outputs. This is
+path-scoped evidence, not yet assurance for every predicate, selector, and
+value-width variant; the strict gate continues to reject the operation.
+
+At `90f193102`, a temporary read-only diagnostic in the standard managed
+Host fixture observed the actual provider decision while running the JS
+unary, group, binary-input, and values suites. It was removed after the
+probe. The following are reachable synchronous fallback shapes, not inferred
+from operation names or from the complete prepared Stage alone:
+
+| Observed normal task | Missing bounded product connection |
+| --- | --- |
+| `REL.dedupeRows` and `REL.pivot` | At the probe SHA, neither selected task had a bounded managed kernel; the synchronous evaluator ran before the independent bounded output copy. |
+| `REL.join` followed by `REL.select` in one task | The selected Relation chain cannot use a bounded join child; the entire task reaches the synchronous evaluator. |
+| General `REL.groupBy`, including `REL.assert_unique → REL.groupBy`, `REL.groupBy → REL.where`, and two successive groups | The count-only bounded provider does not cover these aggregate members. The combined tasks remain synchronous. |
+
+The binary-input and zero-input Values fixture suites showed no providerless
+task in this probe. A trial Values → filter → select Program is split into
+physical tasks; its complete prepared sequence must not be mistaken for one
+zero-input three-step task. This sample is not a complete reachability audit:
+the strict gate still rejects the generic fallback and the unassured routes
+above. A final route proof must come from persistent standard-Host fixtures
+with delivered cancellation, exact/one-short limits, and cleanup.
+
+The current selected and ordinary single-step `dedupe_rows` routes now use the
+bounded row provider. `pivot` now has a bounded provider (see above);
+whole-sequence dedupe combinations still need a separate bounded connection; the historical probe is not current proof
+of a single-step dedupe fallback.
+
+The ordinary two-input equality join and its unary Relation suffix now
+select the existing Relation provider. The join validates both positions,
+builds a stable key index, finds pairs, and measures output in resumable
+steps. Long Text comparisons reuse the stepped comparison cursor; output
+projection reuses exact admitted cells rather than rebuilding nested values.
+An unprojected join keeps its checked qualified schema for the later select;
+the private kernel buffer does not use the object-only external importer.
+The chain retains each child and its private output until reverse-order
+cleanup. Input acquisition is not replaced, and the supplied/producer
+authorities remain distinct.
+
+The typed equality-join capability also permits the existing common DAG
+splitter to connect two Values/distinct branches to a full join and its
+distinct/sort suffix. The ordinary seven-step Stage becomes seven bounded
+tasks, followed by two independently retained consumers. Exact internal
+ports remain distinct, and cancellation at the join leaves both source
+branches live until their own release. No separate scheduler or provider
+is introduced. The resource gate requires these branch/merge fixtures and
+the standard-Host timer and publication cases; deleting one rejects the
+record even though whole-operation assurance remains incomplete.
+
+This closes the observed providerless `join → select` shape and the
+supported multi-source join DAG, not every arbitrary whole-Stage shape.
+A prefix containing a still-synchronous aggregate can remain
+unselected. Raw RowTable projection can also require synchronous revalidation.
+The strict whole-operation claim therefore remains open. Boundary evidence
+for the new path is registered separately: empty exact/one-short work and
+workspace, nonempty overlapping workspace, output value limits, obligation
+priority, ordered output at multiple quanta, and private-state cancellation.
+The standard Host fixtures cover two real consumers, timer-delivered
+cancellation, nonpublication, and cleanup. Formal publication also retrieves
+the independently expected ordered rows from the committed Result.
+
+The latest fetched `origin/main` was
+`826fc49188cc184f5a9bedcfcd2b49ad6ae3e658`. It was already an ancestor of
+the pre-change Local HEAD `224cae0dd6ba19263e1c298cb281631d344c8853`,
+so no additional rebase or individual authorization cherry-pick was needed.
+The common task activation and resume admission code is unchanged by this
+connection. Neither main nor another worktree was modified.
+
+The same-Stage join follow-up was validated locally on 2026-09-26:
+
+- `query_integration`, `physical_strategy`, and `lowering_relation` passed
+  943 tests on each of JS, Wasm, and native. After removing the fixture's
+  identical-consumer projection override, the four managed join tests passed
+  again on all three targets with independent reversed-column expectations.
+- The rebuilt standard Node/native Host suite passed, including the seven
+  selected branch/merge tasks, two downstream Computes, timer cancellation,
+  stop, cleanup, and independently expected Named Result retrieval.
+- The Host fixture retains all internal results until Run cleanup. Its
+  former fixed 64 MB allowance admitted eight Local outputs but not nine;
+  the fixture now budgets its checked task count using the fixed per-output
+  reservation. No product limit check or cleanup rule was weakened.
+- The Node conformance package passed its supported JS check. It is JS-only;
+  Wasm/native package checks are unsupported, not portability successes.
+- Workers fixtures were regenerated from source and passed freshness checks.
+  Local coverage and document links passed. Strict resource completion and
+  same-SHA Linux CI remain separate, open acceptance requirements.
+- Resource gate regressions passed 198 tests, including removal of the
+  selected join binding and each required branch/merge evidence role.
+  The ordinary gate passed with 31 full-route and 70 path-scoped records;
+  strict completion still failed on the remaining routes and synchronous
+  fallback. The follow-up does not relabel those routes as complete.
+
+The keyed-count split follow-up was validated locally on 2026-09-26:
+
+- The final lowering, physical-DAG, and managed-group fixtures passed 61
+  tests on each of JS, Wasm, and native. The DAG fixture checks the Values
+  prefix separately from the selected count step and verifies both consumer
+  edges. The managed fixture requires activation and reversed-column output
+  from the second consumer.
+- Resource gate regressions passed 198 tests, including rejection when any
+  required keyed-count split, cancellation, or publication proof is removed.
+  The ordinary gate remains at 31 full-route and 70 path-scoped records.
+  The strict gate still rejects the remaining routes; this connection does
+  not promote general aggregate variants to complete.
+- The final standard Node/native Host suite passed with real acquisition,
+  two consumers, independently expected Named Result retrieval, and timer
+  cancellation after at least 100 count work units. Stop, nonpublication,
+  and cleanup checks remain enabled. This is local product-path evidence,
+  not a same-SHA Linux CI result.
+- Workers fixtures were regenerated from source; freshness and pinned
+  formatting checks passed.
+
+The preceding join-kernel and chain validation passed on 2026-09-26:
+
+- `execution_relation` and `query_integration`: 1,675 tests on each of
+  JS, Wasm, and native, including required task-activation rejection.
+- The rebuilt standard Node/native Host suite passed with real DuckDB
+  acquisition, two consumers, delivered cancellation, and Named Result
+  publication/retrieval. This is local product-path evidence, not Linux CI.
+- Retained-boundary tests: 263 passed; Workers runtime tests: 24 passed.
+- Resource-accounting gate tests: 197 passed. The ordinary inventory gate
+  passed; the strict completion gate still rejected the remaining routes.
+- Docs, metadata, pinned formatting, generated Workers fixture freshness,
+  cross-target public API, portable dependency checks, and authorization
+  vectors passed. Generated interfaces came from the integrated source.
+
+No push, main integration, or same-SHA Linux CI result is claimed. This
+join connection does not change the remaining delivery scope or certify
+the providerless fallback.
+
+The current `--require-boundary-complete` output is the finite acceptance
+list. Its 31 full-route and 70 path-scoped counts describe evidence, not
+overall feature completion. For every row, the release gate must fail if a
+required named fixture, suite result, exact production binding, or proof
+role is removed. The existing standard-Host successful composition tests
+are retained as controls, not substituted for in-flight or limit evidence.
+The selected keyed `take` now resumes while charging a long unselected
+sorted-row value, retaining a long selected output value, and charging
+that value into the unpublished result buffer. Quantum-one cancellation,
+nonpublication, and independently calculated exact/one-short value and
+workspace limits cover these phases on three targets. This does not yet
+close the entire route: exact admitted Text and nested Array values copied
+under the same checked contract bypass the redundant synchronous recheck,
+while both output budgets are still charged in bounded steps. Supplied-input
+fixtures check the exact proof branch, a 4,096-byte Text, a 256-member Array,
+cancellation, exact/one-short value limits, and overlapping workspace. The
+nested projection also reaches the standard Host with two consumers,
+managed cancellation after positive work, and final cleanup. This fixture
+does not test external JS timer delivery. Raw RowTable values and
+separately constructed recursive contracts can still recheck synchronously.
+The normal Host sort/take composition
+now includes a 512-byte selected value feeding two real downstream Computes
+and final cleanup. A separate normal-Host timer now cancels the downstream
+take after positive work while that long intermediate value is retained,
+then confirms stop, nonpublication, and cleanup. These are connection and
+lifetime controls, not proof that every internal value pass is interruptible.
+The strict gate now recognizes the existing direct and external cross-join
+Host timer cases: both request cancellation after positive pair progress,
+observe stop, and reclaim their owners. This removes a stale evidence-name
+failure only. The ordinary whole-sequence cross-join entrypoint and the
+providerless synchronous lane remain unassured.
+
+The standard Graph `reach` entrypoint now has a nonempty fixed boundary:
+76 control-work units and 66 structural workspace slots succeed; 75 work
+units and 65 slots fail before completion. The same production provider
+reaches two downstream Computes and Effect-free publication through the
+standard Host. Its Node timer fixture delivers cancellation after positive
+work, observes stop, and reclaims the unfinished output. This closes one
+SGA entrypoint, not the eight remaining Graph routes or generic fallback.
+
+The bounded scalar `shortest_path` kernel now checks cumulative control work
+across resumes. Its fixed four-node/four-edge path completes at 88 steps and
+fails at 87, separately from the output Value budget; the existing 89/88
+workspace fixture remains intact. The standard Graph provider passes its
+execution work ceiling to this kernel, and the Host timer still reaches it.
+The registered provider also shares one task-wide ceiling across graph
+construction and scalar search: the fixed path completes at 125 steps and
+fails at 124. Other shortest variants still lack equivalent fixed work proof.
+This is scalar-path progress, not full shortest-path route assurance.
+
+### Count input measurement review disposition
+
+The P1 input-cell finding in the review of `5a6f1763` is closed by
+`748606525` and its follow-up regressions `fd9a73e65` and `559ed50cb`.
+`ChargeInput` now retains a stepped measurement cursor in the bounded
+count state. Each nested element or bounded text chunk consumes a resume
+step; the input's total node, text, and work charges remain unchanged.
+Quantum-one fixtures cover cancellation inside an unused 256-element
+array and a long unused text cell, exact and one-short limits, and cursor
+cleanup. The normal managed Host also runs the nested-input count through
+two consumers and tests cancellation before publication. On this HEAD,
+the count kernel's 13 tests and managed group's 21 tests passed on each
+of JS, Wasm, and native. The resource gate requires the nested exact/one-short,
+active stop, Host cancellation, and two-consumer fixtures. Removing one now
+rejects the group route. This input-side evidence alone did not close the
+output-key admission or the providerless fallback listed above.
+
+The selected bounded Relation row evaluator now uses the same stepped
+input-cell measurement for an unused nested field. A quantum-one filter
+fixture stops inside a 256-element array and verifies exact and one-short
+input node and work budgets, source availability, and cleanup. The normal
+standard-Host filter fixture traverses the same nested input, feeds two
+downstream Computes with independent release, and cancels after positive
+work in the nested cell without publishing partial output. This does not
+make the separate providerless whole-sequence evaluator bounded.
+
+The selected `unpivot` provider now also measures every input cell in resumed
+steps, including a nested field excluded from the output. Its 256-element
+input fixture fixes exact/one-short value work and node limits, stops inside
+measurement, and reclaims the unfinished operation. A normal Program sends
+that same shape through the standard Host, two downstream Computes, and an
+in-flight cancellation before completion. This improves the selected route;
+it does not certify the remaining providerless whole-sequence path.
+The selected `unnest` provider uses the same resumed measurement for its
+array input. Independent eight-item exact/one-short value budgets and a
+256-item input cancellation prove the local boundary; the normal Program
+also delivers cancellation during the large input via the standard Host.
+Existing two-consumer success fixtures remain the output-lifetime control.
+The selected `row_window` provider now measures every input cell in resumed
+steps as well, including an unused nested field. Independent exact/one-short
+input value budgets and a 256-item cancellation cover the kernel boundary.
+The standard Host delivers cancellation while this input is measured, then
+confirms stop and cleanup without publishing a partial result. This does not
+certify the separate providerless whole-sequence route.
+
+The output continuation now charges the output row and each field to the
+existing value budget and traverses long text for that charge in bounded
+resume steps. The exact admitted producer/supplied input branch now reuses
+the source cell and matching field contract, avoiding a redundant whole-text
+canonical recheck. An independent 4,096-byte fixture uses a bounded Values
+producer and checks separate input/output charges, exact and one-short
+node/text/work and structural workspace limits, and cancellation during
+output measurement. A 512-byte standard-Host fixture reaches two downstream
+Computes with independent release and final reclamation; another Host fixture
+cancels after positive work. A separate white-box guard rejects a
+noncanonical raw RowTable key instead of borrowing admitted evidence. The
+affected 34 tests pass on each of JS, Wasm, and native. A raw RowTable source
+still takes synchronous `text_value` and contract recheck. The providerless
+fallback and strict resource gate remain open; admitted-source evidence must
+not be applied to that raw path.
+
+### Dependencies and owners
+
+- Local owns the bounded kernel connections, exact route bindings, resource
+  fixtures, stop/cleanup behavior, family-enabled product composition, and
+  this strict gate. It reuses the already integrated Engine accounting and
+  execution-control primitives; it does not create a second scheduler or
+  ledger.
+- Distribution owns the ordinary public Client/Run acceptance test. Local
+  supplies representative Program fixtures and verifies its standard Host
+  path; it does not rebuild the Client or claim Distribution's external
+  result before that owner executes it.
+- Engine owns any indispensable shared execution-control or accounting API
+  change. No new shared API is currently established as necessary; if one
+  becomes unavoidable, one owner must implement it with affected callers
+  and regressions in a separate shared commit.
+- The final integrated SHA needs push authorization and a successful Linux
+  CI run. Neither is evidenced by this local HEAD; local target success
+  cannot be reported as Linux CI success.
+
+### Existing plan outside this delivery unit
+
+This unit adds no new author-visible operation, frontend, optimizer,
+provider family, SDK/Cloud implementation, or speculative abstraction. It
+does not merge the separate performance-improvement branch. Those exclusions
+do not shrink the original Local-family goal: all agreed operations and
+formal variants remain in the normative inventory, while this delivery unit
+closes their ordinary execution, cancellation, resource and lifecycle paths.
+
 Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
+The following resource counts are derived from the production-route inventory
+and checked by `check:local-resource-accounting`.
+
+<!-- local-resource-accounting-summary:start -->
+| Resource boundary evidence | Count |
+|---|---:|
+| Production routes | 68 |
+| Operation-specific boundary records | 68 |
+| Four-role lifecycle assurance | 68 |
+| Full route work/workspace assurance | 68 |
+| Path-scoped work/workspace assurance | 111 |
+| Selected-only assurance | 0 |
+<!-- local-resource-accounting-summary:end -->
+
+### Route evidence closure after the retained Store bounded lane
+
+Every ordinary Local task runs a bounded provider: managed dispatch and the
+materializing lane (including a retained Store output) start the same
+provider, and the Node driver has no synchronous execute fallback. The
+synchronous whole-sequence evaluator `execute_generated_sequence` is reached
+only by conformance fixtures and whitebox tests.
+
+Each route entrypoint is bound to the bounded executor its tasks reach.
+Common-implementation evidence (exact/one-short work and workspace and
+cleanup on the executor) is reused through explicit `shared_proof_reuse`
+grants only where paths share the executor symbol. Evidence that the
+ordinary entry reaches that executor is a separate standard Host timer case
+per route: ordinary unary cases (pivot, analytic, window group, row window,
+unpivot, json pick, unnest), binary cases (except, intersect, nest, single
+equality join), and Graph cases (graph diff, apply through a separate delta
+Stage). Parameterized harnesses cover the new fixtures instead of per-route
+copies: `bounded_resource_boundary_wbtest.mbt` (group family, set, nest),
+`local_window_group_chain_resource_wbtest.mbt`,
+`local_join_same_stage_resource_wbtest.mbt`,
+`local_sga_delta_resource_wbtest.mbt`, `structural_merge_resource_wbtest.mbt`
+and the SGA traversal variant harness.
+
+The Graph apply kernel had no control-work ceiling; its provider now passes
+the task ceiling like the other Graph kernels, and the delta harness proves
+the exact and one-short control limit.
+
+| Category | Paths | State |
+| --- | ---: | --- |
+| Implementation gap (recorded, separate unit) | 0 route paths | With configured import limits and a retained Store, Local uses the materializing lane. It rejects zero-input tasks (the common request builder needs an input) and every execution obligation outside its legacy allowance (group execution, join output/order/validation/identity and dedupe ties). Affected ordinary Programs: Values-only Stages and Stages with cross product, set operations, nest, pivot, analytic, window, lag, top-k, json pick, expansion, append, row assertions, Values publication and every SGA/TEA/VecA kernel. Such tasks are excluded from Local with `unsupported_execution_obligation` and run on another realization when one is installed, otherwise the Program fails. Bounded providers already exist for them; widening the lane needs its completion obligations reviewed. |
+| Existing evidence was not referenced | 0 | Closed. |
+| Required tests were missing | 0 | Closed by the harnesses and Host cases above. |
+
+Native Host in-flight cancellation is outside this unit's acceptance
+boundary, which requires standard Host cancellation and JS, Wasm and native
+semantics. The native Host drains the same bounded attempt within one call;
+no native event loop is added here.
+
+An ordinary remote Relation predecessor is a concrete connection gap: its
+downstream multi-step Relation Stage remains one task and can enter the
+providerless synchronous evaluator. A checked unary `filter` then `select`
+chain with a cell-readable captured predecessor now uses the selected bounded
+Relation provider without splitting the task. The normal Host exercises two
+downstream computations and timer cancellation after positive work; portable
+tests also check independent release and final ledger reclamation. This closes
+that captured-input chain shape, not either operation's whole production route:
+retained-only predecessor views now use the bounded selected-provider import
+when the result does not require retained-file output. Other checked chains
+still need their own reachability and boundary proof.
+The same bounded step-dispatch path now handles captured `group count` then
+`filter`/`select`, and fixed `row_window` then `filter`/`select` in one Stage.
+Their three-target portable fixtures exercise quantum-one execution and two
+consumers; the standard Node Host runs each chain and delivers timer
+cancellation. This closes these selected chain shapes without changing the
+20 connection, nine synchronous-body, or nine evidence-only whole-route gaps.
+Splitting every such predecessor changes task identity and port mapping across
+existing dispatch and retention paths; the remaining work is to connect the
+eligible checked shapes without losing those bindings.
+The count-group provider also admits keyed `COUNT(*)` and `COUNT(field)`:
+canonical NULL/compound key order, empty input, two consumers, exact and
+one-short work/workspace limits, and in-flight cancellation are checked on
+that route. The selected chain now also runs keyed count, filter and select
+within one task, with two downstream Computes and delivered cancellation.
+Its captured-task regression pins 91 charged steps, rejects a one-short
+work budget, and confirms failed-task reclamation. The selected chain's
+capacity reservation includes all children retained by the parent until
+cleanup, their provisional outputs, and their handles. A captured-task
+fixture checks that sum against the single-sequence allowance. A separate
+captured-task fixture derives the 14-slot logical peak from the fixed
+metadata and three-row sort, admits exactly 14, rejects 13 and 12, and
+confirms that repeating `advance()` or `execute()` after a resource failure
+cannot turn that failure into a successful empty completion. This closes the
+selected chain's workspace boundary, not other ordinary group shapes.
+The count input scan now resumes inside nested arrays, objects, and long
+text rather than treating a whole cell as one non-interruptible step.
+An unused 256-element array has exact and one-short value-budget fixtures,
+an in-measurement stop/cleanup fixture, and a managed Host case that cancels
+after positive work inside the array without publishing a result. Its
+successful path reaches two downstream Computes and independent release.
+The existing scalar count case also has a delivered standard Host timer
+test. A 4,096-byte unused text cell has quantum-one, exact/one-short,
+and in-measurement stop/cleanup fixtures. Structured group keys are rejected
+by the formal `KeyComparable` check. An exact admitted long Text group key
+now reuses its source proof and charges output in bounded steps; its output
+boundary, active cancellation, and two-consumer fixtures are separate from
+the input-scan proof. A providerless raw RowTable Text key still requires a
+synchronous canonical recheck, so the keyed route is not universally bounded.
+Other aggregate members and providerless whole-sequence group execution
+remain open.
+The `components` route has an independent one-node self-loop boundary:
+weak and strong execution require 16 and 19 charged steps respectively,
+and both require
+22 workspace slots. Exact and one-short checks now join its positive-work
+standard Host timer cancellation and cleanup through the registered
+production entrypoint. This closes that route's resource assurance without
+extending the proof to other Graph operations.
+
+The captured-chain evidence is `ordinary captured Relation chains feed two
+bounded consumers` and `ordinary captured Relation chain cancels after bounded
+work` in `src/query_integration/local_managed_unary_wbtest.mbt`, plus the
+captured filter, count, and window chains and their in-flight timer cases in
+`adapters/connectors/duckdb/node/test/standard-host.test.mjs`. The portable
+fixture checks quantum-one work and ledger reclamation; the Node case checks
+the standard asynchronous cancellation delivery. A separate standard Host
+fixture now streams a real retained DuckDB capture into bounded filter/select
+and count/filter chains, each with two actual consumers and final reclamation.
+This is bounded import of a retained input, not retained-file output or proof
+for all unary operation variants.
+
+Ordinary `values` → `unpivot`/`unnest` → `filter` Programs form five exact
+tasks through the existing typed task splitter. The standard Node Host now
+checks both resulting row counts, two real consumers, and timer cancellation
+while the later filter task is active. This is evidence for those ordinary
+source shapes, not for an unsplit captured or retained Relation predecessor;
+the `unpivot` and `unnest` whole-route obligations remain in the connection
+category until those paths and their exact resource boundaries are proved.
+The selected bounded chain now also accepts an unsplit `unpivot` step.
+A captured or retained Relation feeding `unpivot` → `filter` → `select`
+uses that route in the standard Host, with two downstream Computes; the
+captured-input fixture also delivers cancellation after positive work.
+The three-target portable Host fixture checks the exact output values,
+quantum-one progress, independent consumer release, and cleanup for this
+captured chain. The selected bounded chain also accepts an unsplit `unnest`
+step. An ordinary `nest` result can feed `unnest` → `filter` → `select`
+without a source-level Stage split. Three-target managed tests check
+quantum-one progress, exact output values, two independent downstream
+Computes, and final reclamation. The standard Node Host exercises the same
+Program with two consumers and a timer-delivered cancellation after positive
+work in the unnest task. This proves the nested-input connection, not a bound
+on the preceding `nest` computation. Task-wide exact/one-short work and
+workspace bounds for either composed route remain unproved; neither whole
+route is marked complete.
+
+`match_nodes` and `match_edges` now have full entrypoint assurance. Their
+registered provider invokes the exact bounded matcher with the control,
+work, and workspace parameters exercised by independent exact/one-short kernel
+fixtures. Standard Host fixtures reach that provider, deliver in-flight
+cancellation, and exercise two consumers; kernel fixtures check cleanup of
+partial scratch. The resource gate checks the exact provider call and rejects
+missing route proofs. This closes these two route evidence gaps, not every
+possible formal variant or the remaining synchronous Relation fallback.
+
+The general providerless managed fallback is a cross-cutting synchronous
+hazard represented by the first two rows, not a separate path. Its
+reachability must be removed or bounded for every admitted long-running
+sequence before the strict gate can pass.
+
+The category counts follow the registered production routes. A separate
+cross-cutting audit remains: `bounded_binding_rows` calls synchronous nested
+value revalidation for one output cell during `CheckOutputRow`. Its maximum
+single-resume work for admitted nested values is not established by the row
+quantum alone. This does not add another operation to the 39 paths, but an
+affected route must move from connection or evidence work to bounded-kernel
+work if its accepted value limit permits an excessive noninterruptible step.
+
+The zero-key count-only `group` shape now reaches
+`global_count_provider` from a normal Program. Quantum-one execution,
+NULL-sensitive `count(field)`, fixed exact/one-short work and workspace,
+two consumers with independent release, Node timer cancellation after
+positive work, nonpublication and cleanup have dedicated fixtures. The
+path has separate assurance in the route ledger; keyed and non-count
+aggregates remain in the synchronous category. This is one closed path,
+not completion of the `group` operation or the strict gate.
+
+The direct `merge_rankings` provider now applies a cumulative kernel
+control-work limit instead of relying on bounded resume alone. Its ordered
+two-input RRF fixture reaches the registered provider and checks 153 work
+units and 91 workspace slots at the exact boundary, each one-short limit,
+failed private output cleanup, and continued input availability. Maximum,
+weighted, and RRF policies retain distinct standard-Host timer cancellation
+cases. This closes the ranking entrypoint evidence path, not the remaining
+SGA or RelA routes.
+
+The existing checked task splitter also recognizes a zero-key count-only
+group after a same-Stage `values` step. The ordinary Node Host fixture now
+runs `values -> global count -> take` as five managed tasks, including two
+real consumers, and delivers timer cancellation after the count starts.
+The split does not apply to keyed, filtered, distinct, or expression
+aggregates. This same-Stage connection is not yet whole-operation resource
+assurance for `group`.
+
+Strict boundary completion remains red. A path-scoped fixture is not proof of
+all variants of its operation or of the providerless whole-sequence lane.
+The selected watermark route now has fixed and prefix quantum-one fixtures,
+exact/one-short work and workspace limits, two downstream consumers, and
+Host-delivered timer cancellation after positive work. Its independent
+whole-sequence entrypoint remains unassured and the providerless synchronous
+fallback remains reachable; this is selected-only evidence, not completion
+of `watermark_rows` or of the delivery unit.
+The `lag` step in a `values -> assert_unique -> lag` Stage now reaches the
+selected bounded row provider. Quantum-one tests cover partition ordering,
+work and workspace exact/one-short, cancellation and cleanup; the standard
+Host runs both downstream consumers and delivers an in-flight timer
+cancellation. The independent whole-sequence entrypoint remains unassured,
+so this selected-only proof does not close the strict resource gate.
+The review of `0e8e0ada` found a binary input scan cleanup gap. The shared
+scan cleanup, Append/CrossJoin wiring, retained-frame assertions, borrowed
+input checks, and standard Host input-admission cancellation were already
+landed at `9bd948e80` and its preceding binary-admission changes. The
+review's route-wide assurance and Distribution-owned ordinary Run checks
+remain separate completion conditions; the scan fix does not discharge them.
+The selected Relation row evaluator now accepts an exact supplied input read
+without relabelling it as a completed producer. A same-Stage supplied
+filter/unique/sort/take chain is split into bounded tasks; standard Host
+fixtures execute both downstream consumers, preserve independent release,
+and stop after positive work without publishing partial output. This removes
+one providerless multi-step case. Other formal RelA bodies and unmatched
+whole-sequence paths still use the synchronous fallback and remain open.
+The physical splitter now follows exact source edges to a bounded zero-input
+source or a typed Carrier boundary. The selected fixed adapter uses the
+bounded selected-row evaluator and the actual Step target; the task reader
+preserves the operation input binding. The runnable application and checked
+task identity project physical tasks back to their authored unit and exact
+output Step. A legacy DuckDB compiler that emits the whole Stage is excluded
+before selection for a selected-Step task; the managed native path retains
+its own selected-operation applicability. The standard Node Host regression
+and three-target task-identity tests cover these boundaries. Ordinary remote
+Relation chains still use their existing whole-Stage realization, and the
+fixed synchronous adapter still drains a bounded evaluator synchronously.
+Neither path establishes in-flight cancellation for every Relation variant.
+The bounded Relation evaluator now resumes the adjacent-row comparisons in
+`distinct` and `assert_rows.unique_by` through its existing typed comparison
+cursor. Long text prefixes can be stopped during duplicate marking or unique
+pair validation, not only during index sorting. Portable quantum-one fixtures
+pin the exact phase, stop without publishing partial rows, and retain the
+borrowed input through cleanup. This closes those two comparison intervals;
+the whole-sequence synchronous entrypoint remains unassured.
+The supplied select read also has a fixed one-row boundary: one input and
+one output opening plus two output-name bytes cost four control units; the
+view, name, ordinal, and row slots peak at fourteen. Exact limits succeed,
+and either one-short limit fails before completion while the borrowed input
+remains available. This is a path-scoped proof, not assurance for every
+supplied-input variant or the remaining synchronous fallback.
+The rows-to-Graph Bridge route now binds its independent nineteen-unit work
+and ten-slot workspace fixture to a Node standard-Host case that delivers
+timer cancellation after the Graph construction task reports work. The Host
+observes stop and final cleanup; a separate portable fixture checks both
+consumers. This completes the registered Bridge graph entrypoint's route
+assurance, without extending that proof to other Graph operations.
+ShortestPath now advances typed endpoint, edge, and weighted tie comparisons
+through the shared bounded key cursor. A quantum-one long-text fixture checks
+active cancellation, cleanup, and canonical output order on all three targets.
+This proves key comparison responsiveness for that fixture, not full
+ShortestPath resource assurance or the providerless sequence path.
+The Node standard Host now supplies an independent one-row shortest-path
+program bound alongside the Host path/output ceilings and delivers timer
+cancellation after ShortestPath work begins. Stop, nonpublication, and final
+reclamation are checked through the ordinary Program fixture. This adds
+environment-delivered cancellation evidence, not exact/one-short work and
+workspace assurance for every ShortestPath variant.
+The ordinary partitioned `top_k_by` route now binds a fixed two-row,
+one-partition fixture to its bounded evaluator: work 56 and peak workspace
+23 pass, while work 55 and workspace 22 fail before publication. Quantum-one
+execution, output order, borrowed-input availability, cleanup, and the
+existing Node Host timer cancellation remain separate checks. This assures
+that ordinary path only; the selected and synchronous whole-sequence paths
+remain open.
+The `watermark_rows` route now binds a fixed one-row fixture with independently
+calculated 24 units of control work and an eleven-slot workspace peak. Exact
+limits succeed and either one-short limit fails. This proves that evaluator's
+fixed mark-policy resource boundary, not its in-flight cancellation or every
+watermark variant.
+The `json_pick` route also binds an independently counted one-row object
+fixture: 26 control-work units and a twelve-slot workspace peak for a
+single leaf. Exact limits succeed and either one-short limit fails. This
+does not establish in-flight cancellation or every path and value variant.
+The selected `json_pick` route now has a separate completed-producer fixture
+using `start_bounded_binding_rows`, the production evaluator reached by the
+registered selected provider. Its one-row leaf probe has a fixed 20-unit work
+ceiling and thirteen-slot peak; exact limits complete, while either one-short
+limit rejects without publication. The existing standard Host timer fixture
+delivers in-flight cancellation, and the bounded cleanup test exercises the
+same state machine. This closes selected-route evidence only. The ordinary
+whole-sequence fallback remains in the connection category.
+The `dedupe_rows` whole-sequence route retains its independently derived empty
+keyed-input fixture with 29 control-work units and a twelve-slot peak; that
+does not prove interruption of a synchronous multi-step evaluator. The
+selected and ordinary single-step routes now share a bounded row provider.
+Their nonempty fixture fixes typed nullable-key ordering, authored winners,
+and top-tie failure; another fixture fixes exact/one-short work and workspace
+limits. The standard Host delivers a timer cancellation after positive work,
+observes stop and cleanup, and the ordinary path feeds two downstream Computes.
+The unassured whole-sequence route remains a release gap.
+
+`top_k_by` now has a selected bounded Relation provider. It resolves the
+canonical partition prefix before its ranking terms, compares partition keys
+incrementally, and applies the per-partition count without publishing skipped
+rows. Standard Host tests require that provider for literal, parameterized,
+and nullable-key cases, then run two downstream Computes with independent
+release and final reclamation. A quantum-one kernel fixture also cancels after
+work begins and checks cleanup. The Node standard Host delivers a timer cancel
+while the selected partitioned task is executing and observes stop and final
+cleanup. Exact and one-short resource limits for this route and unselected
+synchronous sequences remain unproved. The partition comparison within one
+resume step still needs its own maximum-width responsiveness evidence.
+
+The `nest` route binds an independently counted empty-input fixture. Its one
+key, one child projection, and three-field output require 98 control units;
+the peak structural workspace is thirteen slots. Exact budgets succeed and
+either one-short limit fails. This proves the empty correlation and metadata
+path only; nonempty nesting, Host-delivered cancellation, and the providerless
+whole-sequence route remain outside full assurance.
+
+The remaining `window_group`, `join`, and `analytic` routes now bind fixed
+empty-input work and workspace fixtures. The checked empty paths use 195/51,
+38/17, and 56/25 work/peak slots respectively. Each accepts the exact pair
+and rejects one short on either dimension. This establishes metadata,
+binding, and empty-index admission for those formal operations; nonempty
+evaluation, same-Stage composition, in-flight stop, and the providerless
+whole-sequence lane remain outside full route assurance.
+
+The synchronous `row_window`, `unpivot`, and `unnest` row evaluators now
+validate output schema names without first materializing the name array. They
+reserve the input and output metadata slots before constructing that array.
+Empty-input fixtures use fixed schema-width arithmetic for exact and one-short
+workspace limits. This closes a local allocation-order gap for those schema
+arrays; it does not make the enclosing providerless sequence cancellable or
+establish complete operation-level resource assurance.
+An independently resumable `row_window` provider now handles a selected
+single-step Relation input. It scans input cells, resolves schema fields,
+collects memberships, and constructs output rows in charged quantum steps.
+The fixed and sliding managed two-consumer fixtures, three-target bounded
+kernel fixtures, and Node standard Host program pass. The selected route has
+independently calculated exact/one-short control-work and peak-workspace
+fixtures, plus a kernel cancel/cleanup fixture. A Node standard Host timer
+delivers cancellation after bounded row-window work, observes stop, and
+reclaims the attempt without exposing partial output. This establishes the
+selected entrypoint only; the exact resource and cancellation roles are now
+bound to that path in the production-route inventory and the strict gate.
+The ordinary whole-sequence route remains unassured. Nested value checking
+and timestamp parsing still need a maximum non-interruptible interval audit.
+The bounded kernel also checks the large-time boundary rule: a representable
+output succeeds even when intermediate coordinates exceed binary64, while an
+unrepresentable output boundary fails without exposing partial completion.
+Multi-step sequences that cannot select this provider still use the
+providerless synchronous path. The operation is not marked fully assured.
+The selected unpivot and unnest providers now have independent nonempty
+exact/one-short work and workspace fixtures. Their selected path claims
+also bind the existing standard Host timer cancellation and kernel cleanup
+fixtures. Their ordinary whole-sequence routes remain unassured; empty
+metadata boundaries alone are not used as proof of nonempty execution.
+The selected `unpivot` route likewise expands each authored column occurrence
+through a bounded managed session. Repeated columns remain repeated outputs.
+Three-target quantum-one fixtures cover ordered values, NULLs, exact/one-short
+empty metadata and control work, output ceilings, and cancellation after
+progress. The managed two-consumer and standard Host programs require the
+provider, including a same-Stage Values-to-Unpivot handoff; a Host timer
+exercises in-flight stop and cleanup. The providerless
+whole-sequence lane and long nested value checks remain unassured, so this
+route is not counted as fully bounded.
+The selected `unnest` route now expands one admitted item per bounded resume
+step while retaining inner/outer, NULL, index, and source-order semantics.
+Three-target fixtures cover quantum-one output, exact and one-short empty
+metadata and work, output ceilings, and cancellation after emitted work.
+The standard Host exercises separate-Stage and same-Stage two-consumer paths
+and a timer-delivered cancellation. Providerless compound sequences and
+deep-value checks are still outside this path assurance.
+The `lag` evaluator likewise reserves its output-name entries before copying
+the input names. An empty-input fixture derives eleven simultaneously live
+slots from the checked partition/order terms and schema widths, and rejects
+one short. The route gate requires this fixture, but the record covers only
+schema workspace admission, not the complete lag path or its cancellation.
+Schema-width checks in `row_window`, `unpivot`, `unnest`, and `lag` now avoid
+overflowing additions. `unpivot` charges its column and keep counts
+separately. EXCEPT and INTERSECT admit their three fixed metadata arrays
+using division before multiplication; a fixed helper fixture checks extreme
+width rejection without allocation. A second fixture reaches both actual set
+operators with empty inputs and independently derived six-slot exact and
+one-short workspace limits. The route gate requires the window and both set
+fixtures. These are operation-specific structural boundaries, not complete
+work, in-flight cancellation, or cleanup assurance for those synchronous
+whole-sequence paths.
+The window, unpivot, and unnest evaluators now reserve their input-name index
+width before constructing the width-sized lookup map. One-short fixtures
+reject before any field-traversal work is charged. Unpivot and unnest also
+bind their existing empty-schema exact/one-short workspace fixture to their
+own production routes. `lag` charges partition and ordering term counts
+separately and uses the checked output width for each row's work and
+workspace, avoiding overflow in both additions. These local admission fixes
+do not turn the synchronous whole-sequence entrypoint into a bounded session.
+The synchronous as-of join and sequence match evaluators now reserve their
+width-sized input-name indices before constructing them. Fixed one-short
+fixtures reject at independently derived pre-index workspace peaks of two
+and five slots, respectively. Each indexed name also consumes a control
+step and UTF-8 name work. Sequence match reserves each output row
+before assembling its values, and as-of join computes its row charge once
+outside the candidate search. These fixtures cover the legacy evaluator's
+admission order; they do not prove the bounded managed entrypoints or close
+the providerless cancellation gap.
+
+The generated-sequence tests for `group`, `pivot`, `unpivot`, and `unnest` now
+use fixed control-work expectations of 354, 145, 160, and 116 units for their
+respective authored fixtures. Each checks the independent constant against
+the charged work and admits that limit while rejecting one short. The
+resource gate binds each fixture to its operation and rejects its removal.
+These synchronous fixtures do not establish bounded resume, workspace peaks,
+or Host-delivered cancellation for the providerless whole-sequence lane.
+
+Graph node and edge matching now initialize sort scratch one slot per bounded
+resume step rather than allocating the entire input-sized array in `start`.
+Their registered fixtures observe zero scratch at start, one charged slot
+after a quantum-one advance, and empty scratch after in-flight cancellation
+and cleanup. This establishes bounded initialization for those entrypoints;
+it is not independent exact/one-short work and workspace assurance for each
+full matching route.
+
+Both registered Graph match entrypoints now enforce the selected control-work
+ceiling during execution. Independent fixed fixtures admit six charged steps
+for one node identity and seven for three excluded edge types, then reject
+five and six respectively before completion. The production Graph provider
+passes its selected work ceiling to both kernels. The resource gate rejects
+removal of either fixture. These cases establish control-work admission for
+the tested variants, not complete work/workspace or lifecycle assurance for
+every match variant and predicate path.
+The same identity fixtures independently count peak structural workspace:
+one node identity needs two sort slots and two output-name slots, while three
+edge identities with one type entry need six sort, four output-name, and one
+type-index slot. Limits of four and eleven admit; one short rejects before
+the corresponding execution starts. The route gate rejects either missing
+workspace record. The property-predicate paths now add exact and one-short
+workspace fixtures: nine versus eight slots for node matching and sixteen
+versus fifteen for edge matching. Distinct standard Host fixtures execute
+literal and predicate forms with two real consumers; timer fixtures deliver
+in-flight cancellation in predicate matching and both edge paths. Predicate
+control-work now has fixed exact/one-short fixtures for the property-predicate
+shape: 22/21 steps for nodes and 33/32 for edges. The route gate requires
+those fixtures separately from literal matching. Value-width interactions
+and the full route resource proof remain open, so neither matching
+entrypoint is marked assured.
+
+The edge matcher now builds its authored type filter over charged bounded
+steps, one occurrence per quantum-one advance, then uses a typed string index
+instead of rescanning every type for every edge. Repeated authored types retain
+their source representation but do not duplicate selected edges. A fixed
+three-edge fixture admits the two-type index at 12 structural slots, rejects
+one short before construction, and cancels after two type steps while sort
+scratch is still empty. Cleanup discards the private index and keeps the
+borrowed Graph available. This closes the avoidable edge-by-type scan for
+the registered matcher, not the remaining predicate and key-comparison bounds.
+
+The registered `graphs_equal` provider now passes its selected control-work
+ceiling into the bounded kernel. Two empty Graphs require exactly three
+control steps: count comparison, one Boolean output, and completion. A
+two-step ceiling fails before publication; cancellation after the first step
+reclaims the private result while preserving both borrowed Graph reads. A
+separate nonempty pair limits nested complete-value comparison to the
+remaining work quantum and fails at three charged steps. The trusted output
+port admits its exact one-entry structural limit and rejects zero entries.
+The standard Host fixture runs two downstream consumers, while a distinct
+timer fixture delivers cancellation during Graph equality. These proofs
+establish the registered production entrypoint, not a cross-product of all
+Graph value shapes and limits.
+The shared complete-value equality cursor now splits UTF-8 admission and
+UTF-16 comparison for Text, Date, Timestamp, object names, decimal digits,
+and reference identities across charged steps. The Graph equality kernel
+stops after 50 quantum-one steps inside a 512-character property comparison,
+cleans the unpublished result, and preserves both Graph reads. This covers
+the previously hidden long-string scan, but does not supply the missing
+independent peak-workspace proof for every Graph value shape.
+
+The registered weak and strong `components` kernels now enforce the selected
+control-work ceiling. Empty Graphs require five structural workspace slots
+and two charged steps in either mode; four slots or one work step fail before
+completion. A separate four-node fixture rejects a one-step work ceiling even
+when resumed with a large quantum, and confirms cancellation after the first
+private node initialization clears the scratch arrays. These fixtures do not
+establish exact work/workspace bounds for every nonempty topology or delivered
+Host cancellation for both modes.
+
+The shared `reach` and node-emitting `traverse` state now spends a selected
+control-work ceiling across resumes. A four-node/four-edge reach fixture
+admits 66 structural slots and rejects 65 before execution. One initialization
+step is admitted with one work unit; a larger quantum cannot perform a second
+step after that ceiling. Cancellation after the first private step reclaims
+the partial state. The node-emitting traversal wrapper reaches the same work
+limit rather than bypassing the shared state. This is prefix evidence, not an
+exact full-route work proof for every reach direction, predicate, or path
+traversal.
+
+The separate path-emitting traversal kernel now enforces the same selected
+control-work ceiling across resumes and charges completion. A four-start
+fixture rejects ceilings of zero and one after exactly zero and one charged
+step respectively, without exposing a partial path result; its overlapping
+start-selector/index cancellation still reclaims private state. This closes
+the unbounded control-work escape in the path branch, but not exact full-route
+work assurance across all path predicates and output shapes.
+
+The registered rows-to-Vectors Bridge reuses the bounded record writer but
+has its own typed source and identity fixture. Two records with two-component
+vectors require 28/27 construction-work units and 10/9 peak structural slots.
+Kernel cancellation after one private record and the standard Node Host's
+`rows-to-vectors-bridge` timer cancellation reach the same production path.
+
+The shared Events/Vectors-to-Relation projection no longer restarts a source
+record scan for every output column. It scans each demanded source field once,
+retains only admitted output names, then verifies output fields in schema order.
+The six-field reversed-storage fixture completes in 13 charged steps: six
+source probes, six checks, and one append. It preserves result order and
+avoids reading fields after all demanded names are found. The same direct
+Events-view fixture admits seven output value nodes and six schema entries,
+rejects each one-short bound, and stops and reclaims after scanning begins.
+It does not establish exact workspace or all production-route work limits for
+the reverse Bridge routes; those assurances remain open.
+The production `start_events_to_rows` entrypoint also admits the exact
+two-row/fourteen-node result and six-column metadata width, rejects each
+one-short bound, charges 26 projection steps, and stops and reclaims after
+the first scan step. The standard Node Host also delivers a timer cancel
+after the Bridge's construction prefix and verifies stop, nonpublication,
+and final cleanup. Full work/workspace assurance remains open.
+The registered `start_vectors_to_rows` path independently admits a two-row,
+two-column projection with ten value nodes and ten charged projection steps.
+It rejects one-short value-node and metadata-width bounds, and its private
+session stops and cleans up after scanning starts without invalidating the
+Vectors producer. The standard Node Host delivers a timer cancel after the
+Bridge construction prefix and verifies stop, nonpublication, and cleanup.
+Full work/workspace assurance for this route remains open.
+
+The registered rows-to-Events Bridge now has independently counted 32/31
+construction-work and 13/12 peak structural-workspace limits for two
+three-field records. The workspace bound includes the second record's
+scratch fields overlapping the retained builder and new copy. The fixed
+fixture also stops after one private record and reclaims the unpublished
+builder. The ordinary Node Host's `to-events-bridge` case
+delivers cancellation during that same Bridge stage. This proves one
+operation path, not the remaining Events or Vectors projections.
+
+The single production entrypoints for `interval_join` and `asof_join` now bind
+their independently counted exact/one-short work and workspace fixtures to
+kernel cancellation/cleanup and delivered standard Host timer cancellation.
+The route gate rejects removal of their path-scoped resource proofs. This
+does not prove the remaining TEA operations or the 68-operation release gate.
+
+The single-step `nearest` entrypoint now has a direct Relation-input fixture
+for independent 28/27 work and 23/22 workspace bounds, with cleanup after
+completion and failure. The standard Node Host's `vector-nearest` fixture
+exercises this single-step entrypoint and delivers in-flight cancellation.
+The fused Relation entrypoint has a separate `vector-nearest-fused` standard
+Host timer-cancellation fixture. The two independently reached Host paths
+now cover both registered nearest production entrypoints.
+
+The single-path `normalize_vectors` and `score_vectors` routes now bind their
+independently counted one-record work ceilings (10/9 and 19/18) and fixed
+workspace ceilings (8/7 and 30/29) to their existing Host cancellation and
+kernel cleanup tests. Both routes are fully resource-assured for these
+registered entrypoints; this does not close other VecA operations.
+
+The direct Carrier `pool_vectors` entrypoint has independent one-record
+work boundaries (30/29) and a fixed-shape structural workspace boundary
+(39/38), alongside delivered Host cancellation and kernel cleanup. Its
+workspace expectation is derived from fixture shape, not the production
+`pool_workspace()` helper. The separate Relation-input entrypoint now has
+independently counted 32/31 work and 18/17 workspace boundaries, plus a
+standard Host timer-cancellation fixture that reaches `start_relation_pool`.
+Both registered pool production paths have separate resource and lifecycle
+proofs.
+
+The bounded sequence-match route now names its quantum-one execution,
+in-flight kernel cancellation, output-limit cleanup, and ordinary Node
+standard-Host timer cancellation fixtures. Removing any of these roles
+fails the resource gate. The existing exact/one-short work fixture measures
+its expected budget from the implementation itself, so it is not promoted
+to independent full-run work assurance. A separate empty-input fixture now
+uses 46 independently counted field-probe units in resumable preparation and
+rejects 45 during execution, while preserving stop and cleanup. Input and
+output name loading also advance within the requested quantum. The allow
+policy's pattern containers and row-match flags are constructed one entry
+per resume step. A 26-pattern fixture cancels after both phases have advanced
+and checks private scratch reclamation without revoking its producer read.
+A separate five-row,
+two-pattern fixture independently counts the 29-slot startup metadata and
+58-slot full-run workspace peak; exact and one-short limits preserve cleanup.
+Independent full-run work assurance remains open.
+
+The direct one-record session fixture now independently counts ten scratch
+slots and twelve temporary emission slots. It completes with 22 workspace
+slots and fails at 21 after consuming the input, without publishing a
+partial output; cleanup retains ownership. This proof is linked to the
+session production route. Relation-backed and Events-view sessions now run the
+same one-record fixture with exact 44/43 work and 22/21 workspace boundaries.
+The view fixture constructs a real Events material through the registered
+provider, then verifies cleanup leaves it available for final reclamation.
+These are fixed-shape kernel-path proofs, not full task-wide accounting or
+all-variant resource assurance.
+The Events-view `start_session_view` production path now binds its
+independently counted 44/43 control-work and 22/21 simultaneous-workspace
+fixture to the registered Host timer. Its own private-state cancellation
+check preserves the Events material through cleanup. The Relation-backed path
+now has its own standard Host timer case, combined
+44/43 work and 22/21 workspace fixture, and private-state cancellation and
+cleanup check. The direct fused input path remains unassured, so the
+three-path operation is not fully resource-assured.
+
+The bounded interval and as-of join constructors now check their complete
+structural metadata dimensions before resolving fields or constructing the
+metadata arrays. Each fixed fixture admits 14 structural entries, rejects 13
+with zero available resolver work, then stops and cleans up the admitted
+execution. The fixtures pass on JS, Wasm, and native. They establish the
+start-time metadata preflight. Fixed full-run work and workspace proofs are
+bound to both production routes, but other join modes still need evidence.
+The existing ordinary Node standard-Host timer cases for both joins have
+now been linked to their production routes and rerun. They deliver a real
+cancel after positive managed work, confirm stop and nonpublication, and
+reclaim held and reserved resources. The resource checker rejects removal
+of either route's timer evidence. This closes the delivered-cancellation
+evidence gap for the tested paths, not every formal join mode.
+The fixed join fixtures now also complete at the independently counted peak
+workspace boundaries: interval at 18 entries and as-of at 21 entries.
+One-short limits (17 and 20) fail during output construction with RowLimit,
+without publishing output or invalidating either input, and cleanup remains
+owned until reclamation. The earlier combined value-validation/workspace
+condition misreported this capacity failure as InvalidExecution; the two
+causes are now separated. These tests cover the fixed variants, not every
+join mode or work boundary.
+The interval fixture also completes with a fixed 132-unit work ceiling and
+fails at 131 without invalidating either input. Its quantum-one kernel
+cancel/cleanup test and the ordinary Host timer are now bound to the same
+production route, and the checker rejects removal of either proof. The
+tested form is left join with point-in-interval matching; overlap and other
+join kinds remain outside full resource assurance.
+The as-of fixture likewise completes at 136 control-work units and fails at
+135 while retaining both inputs and cleanup ownership. Its kernel
+cancellation and ordinary Host timer are bound to the as-of production route.
+This fixture is left/backward with a priority tie-break, so forward, nearest,
+and other join kinds remain outside full resource assurance.
+The bounded as-of evaluator now advances long Text comparisons through
+identity sorting, uniqueness checking, key search, and tie evaluation without
+placing an entire UTF-16 scan in one resume. A shared comparison cursor
+preserves complete-value work charges and ordering. Independent exact and
+one-short UTF-8 charge fixtures, long-key and long-identity quantum-one
+cancellation fixtures, and completed-result fixtures cover these branches.
+Other complete-value domains and the remaining formal join modes still need
+their own interruption and resource evidence.
+
+The `dedupe_events` kernel now checks one cumulative control-work ceiling
+across resumes. Its one-record fixture counts 31 steps, including final
+completion; 30 steps fail before publication. The same input completes with
+seven output workspace slots and fails at six while retaining cleanup
+responsibility. Scratch admission has a separate four-record 20/19 fixture.
+The production entrypoint binds these resource tests to the delivered Host
+timer and kernel cancellation/cleanup tests. This closes the recorded
+`dedupe_events` path, not the providerless whole-sequence execution lane.
+
+The selected and ordinary `distinct` providers now have separate Host
+cancellation routes and shared, independently counted exact/one-short work
+and workspace fixtures for unkeyed and keyed forms. The two routes reach the
+same bounded row kernel, so their resource proofs are explicitly shared;
+their cancellation delivery is tested separately. The legacy synchronous
+entrypoint remains unassured, so `distinct` is not fully closed by this record.
+
+The `session` kernel now enforces a cumulative control-work ceiling across
+bounded resumes. A one-row fixture accepts its independently counted 44
+steps, rejects 43 before completion, and refuses a zero-work start before
+allocating output. The route inventory now names stored, Relation, and
+Carrier-view entrypoints separately. The new work fixture covers the stored
+entrypoint; the other two source forms and their exact path-specific
+resource and lifecycle evidence remain open.
+
+Finite-list ranking now indexes exact physical input ports during setup,
+while preserving every logical occurrence, including repeated use of one
+material. A revoked-input fixture verifies failure, nonpublication, and
+cleanup after a producer becomes unavailable during execution. The resumed
+kernel still scans all input occurrences before each work step. Splitting
+that check into rotating steps is unsafe without a completion-time input
+authority fence: an already-checked input can be revoked before completion.
+The input-count multiplier and full ranking boundary assurance remain open.
+
+The time-series kernel now charges its finalization poll as one work unit,
+matching its emitted-row steps. Its three-row provider fixture rejects a
+two-row output ceiling before starting, admits the exact three-row ceiling,
+and checks one charged work unit on the final quantum-one poll. A separate
+fixture independently counts 30 output value-work units per row and accepts
+90 for three rows while rejecting 89 without publication. Another
+fixture stops after positive row work and reclaims the unpublished output;
+the standard Host timer covers delivered cancellation. These fixtures are
+bound to the time-series production route. The checked three-row grid needs
+four control-work units, including finalization; three are rejected before
+output allocation. The single-column schema needs one structural workspace
+entry; zero is rejected. Output rows and value bytes use their separate
+ceilings. Together with the delivered Host cancellation and cleanup fixture,
+this gives the registered time-series entrypoint exact and one-short
+work/workspace assurance; it does not cover unrelated TEA routes.
+
+Global `top_k` now selects a bounded Relation task after its checked key
+assertion. Its full-input sort and requested output prefix advance at quantum
+one; a fixed fixture checks independently counted exact and one-short work
+and workspace limits, and a second fixture stops and reclaims private sort
+state before publication. The ordinary standard Host runs the assertion,
+global top-k, and two real downstream Computes as separate tasks. A Node
+timer delivers cancellation after positive top-k work and observes stop,
+nonpublication, and final cleanup. This is an assured ordinary path, not
+proof of the providerless whole-sequence path, the selected mixed-Carrier
+path, or partitioned `top_k_by`.
+
+The `ad0c2fce` follow-up review found that the bounded binary providers
+omitted the receiving operation's cumulative `input_values` admission.
+Cross join and append now scan both typed input positions before output work,
+including repeated producer occurrences, field names, and nested values.
+The scan yields between row, field, nested-value, and UTF-16 scalar steps;
+input value and control-work ceilings remain separate. Cross join reaches
+empty output in constant time only after both inputs are admitted. Kernel
+fixtures cover exact and one-short receiving limits, empty-output validation,
+nested values, text, and admission-time cancellation; existing standard Host
+two-consumer and timer-cancel routes remain the product-path regression.
+Standard Host fixtures also complete the producers with ordinary limits and
+then reject each binary receiver under its own zero-node input budget, without
+publishing a result or reclaiming either producer prematurely.
+The portable standard Host now also cancels each receiver after its first
+admission step, before row output, and verifies stop, nonpublication, borrowed
+producer availability, and final ledger reclamation on all three targets.
+The Node standard Host delivers a timer cancellation after positive receiving
+input work in a 100-row-by-empty cross join, then observes stop,
+nonpublication, and final reclamation. This distinguishes input admission
+from the earlier cancellation fixture that starts after a pair is emitted.
+Binary input scan cleanup now drops retained nested frames before releasing
+the remaining kernel workspace. Quantum-one Array/Object, Text, and Vector
+cancellation and active-frame work failure fixtures inspect the retained
+execution handle after cleanup: no scan frames remain, workspace is zero,
+and borrowed producer reads stay available. A second cleanup does not
+release the same frames again. This closes the scan-frame ownership finding
+from the review of `0e8e0ada`; it does not establish every route's resource
+assurance.
+The Workers fixture was refreshed from the pinned generator. These changes
+close the review's binary input and stale-fixture findings, not the strict
+68-route resource assurance or the providerless synchronous lane.
+
+The providerless driver's independent relocation now advances through the
+same bounded row-copy session for RowTable, selected NumberTable, selected
+ColumnTable, and AdmittedTable sources. The copy reads logical row order from
+the immutable indexed view, reserves each destination entry before append,
+and transfers custody only after completion. A fixed fixture checks all four
+layouts at quantum one, exact and one-short workspace, source revocation
+after completion, and final cleanup. It passes on JS, Wasm, and native (6/6
+per target). Affected managed values, unary, and group integration tests pass
+44/44 per target; the broad Node standard Host test passes 1/1. The normal
+resource gate passes 112/112. These are local working-tree results, not
+fixed-SHA Linux CI. The preceding providerless whole-sequence compute remains
+synchronous and is still rejected by the strict completion gate.
+
+The selected Relation provider no longer retains a synchronous row fallback.
+The initial source inspection treated that branch as reachable, but the typed
+managed-view capability restricts selected RowSteps to the existing bounded
+binding, assertion, distinct, sort, and limit bodies. The provider now checks
+that same body set before acceptance and execution; any unsupported body is
+rejected rather than drained in one resume. The resource gate rejects a
+reintroduced synchronous call. This does not resolve the separate
+providerless whole-sequence lane or make unsupported operations bounded.
+
+The `node_rows` and `edge_rows` Bridge routes now bind their existing,
+independently calculated exact and one-short value-work and structural
+workspace fixtures to the production `start_graph_to_rows` entrypoint. The
+fixture also stops after field work and reclaims private output; the Node
+standard Host timer establishes delivered cancellation separately. Gate
+mutation tests reject removal of either work or workspace evidence. This
+raises full work/workspace route assurance from 2/68 to 4/68, without
+claiming that the other Bridge routes or the providerless compute are done.
+
+Graph normalization now has independent work/workspace boundary fixtures for
+both the direct and managed-view production entries. The two one-property
+nodes and one labeled, one-property edge require 21 wire-node work units and
+18 retained structural slots. Exact limits complete at quantum one; each
+one-short limit stops before the final edge and cleanup reclaims partial
+output. The fixtures pass on JS, Wasm, and native (2/2 per target). Both
+entrypoints are bound to the route gate, raising full work/workspace route
+assurance from 4/68 to 5/68. This does not close other Graph operations or
+the strict completion gate.
+
+At source SHA `a389a4d356ac92ab6e5257d26263dcbc18914dfd`, the
+execution-relation and query-integration suites passed 1,447/1,447 on each
+of JS, Wasm, and native. The family coverage gate passed its 6 tests and the
+resource accounting gate passed its 112 tests; it reports 21/68 operation
+boundary records, 6/68 four-role records, and 2/68 full work/workspace
+assurances. The strict resource-completion gate still rejects the
+providerless synchronous lane and missing operation-scoped assurance. This
+local test result does not establish Linux CI or an integrated release SHA.
+
+`SGA.subgraph` now shares one workspace ceiling across its live selector
+arrays, unpublished Graph builder, and predicate evaluation. Previously,
+selector scratch and output storage could each consume the full ceiling.
+A fixed literal-selection fixture admits an independently calculated
+25-slot peak and rejects 24 slots before the final edge append. The route
+inventory also binds a fixed 19-step literal-selection control-work limit;
+18 steps fail before the unpublished Graph can complete. The bounded kernel
+now applies the supplied control-work ceiling across resumes, separately
+from predicate expression and output-value budgets. Kernel cancellation,
+cleanup, and the fused standard Host timer remain connected to the same
+production entrypoint. This is literal-path evidence, not full work/workspace
+assurance for the Relation-selector and predicate variants.
+The literal false-edge branch has its own fixed 19/18 control-work and 17/16
+workspace regression. It checks two retained nodes, no edges, quantum-one
+progress, and cleanup on both limit failures across JS, Wasm, and native.
+The resource gate requires this fixture on the `subgraph` production route.
+This adds a formal branch proof; Relation selectors and evaluated predicates
+remain outside full route assurance.
+
+The Event window kernel now applies a cumulative control-work ceiling across
+bounded resumes. Fixed and sliding one-record fixtures independently count
+nine and twelve steps for three-field input: record admission, three field
+reads, membership preparation, one or two seeks, one or two boundary builds
+and commits, and finish. An extra field adds exactly one read step. Exact
+ceilings complete; one-short ceilings fail without publishing output; each
+quantum-one poll charges at most one step. Separate fixtures complete at
+seven and fourteen structural workspace slots, or eight and sixteen with
+an extra input field, and reject one-short admission. Both number and
+timestamp clocks use these fixtures. Fixed and sliding standard Host timers
+observe stop, nonpublication, and cleanup after positive operation work.
+Empty inputs take exactly one charged finish step, while a zero-step budget
+is rejected before allocating the output builder.
+The single production entrypoint now has complete work/workspace and lifecycle
+assurance; this does not discharge the other TEA operations or the
+providerless synchronous lane.
+
+The watermark kernel now applies its supplied control-work ceiling across
+bounded resumes and charges final completion. Independent mark/drop fixtures
+count 19/18 quantum-one steps over three source records; one-short ceilings
+fail without completion. Retained six-field records consume eight structural
+slots each, so mark/drop complete at 24/16 slots and reject one-short
+admission. Empty input takes one charged finish step and rejects a zero-step
+budget before output allocation. Both number and timestamp clocks are
+covered on JS, Wasm, and native. The existing standard Host watermark timer
+delivers in-flight cancellation after positive work and checks stop and
+cleanup. The single watermark production entrypoint is assured; this does
+not discharge the other TEA operations or the providerless synchronous lane.
+
+Session assignment also no longer constructs its records-by-terms cells and
+three full record arrays during `start`. The kernel admits the checked scratch
+width first, then builds one cell or one record tuple per resume step. An
+eight-record quantum-one fixture checks exact and one-short initialization
+workspace, entry counts after each poll, cancellation before load, and
+cleanup; pre-cancelled execution builds no entries. The existing standard
+Host session timer case supplies delivered in-flight cancellation evidence.
+This does not yet establish full session sort, grouping, identity, and output
+work/workspace assurance on every production path.
+
+VecA ranking input admission now indexes exact physical receiving ports once
+and validates each authored input position once, rather than comparing every
+read with every position. Repeated RRF occurrences still append the same
+material separately at each logical position; the existing standard Host
+repeated-input fixture is a semantic regression, not full ranking resource
+assurance. The binding pass is O(P + E) expected for P physical reads and E
+logical input edges, excluding the cost of exact binding checks.
+
+Per-record group and tie scratch, record-sort scratch, and fused-output sort
+scratch now initialize one entry per charged resume step. Group-key, candidate,
+tie, and numeric record validation run in their prior failure order across
+separate steps. Output rows assemble one field per step before commit. A
+direct ranking fixture reaches record-sort and output-field assembly with
+quantum one, observes one retained slot after each first step, then cancels
+and verifies cleanup without revoking either input. The resource gate requires
+this fixture, but it does not promote the ranking route to full work/workspace
+assurance. Input-authority scans, key comparisons, and other nested value work
+still require their own non-interruptible bounds.
+
+Event deduplication no longer constructs its records-by-terms cell matrix or
+two full index arrays in `start`. The checked scratch ceiling remains an
+admission condition, but cells and paired indices are appended within bounded
+resume steps. A quantum-one white-box fixture observes zero initialized
+entries after start, one new cell per poll, no published output on cancellation
+partway through initialization, and zero initialization after a pre-start
+cancel request. Receiving input one record over its configured limit is
+rejected before initialization. JS, Wasm, and native exercise the same
+fixture; the standard Host has a delivered timer-cancellation path for event
+deduplication. This is operation-specific progress evidence, not yet exact
+and one-short assurance for the full sort, group, and output path.
+
+Direct Graph `node_rows` and `edge_rows` Bridge fixtures now check exact and
+one-short structural workspace admission and admitted-value work on fixed
+two-row numeric-ID fixtures. They also check one field of bounded work before
+cancellation, stop, cleanup, and continued availability of the Graph input.
+They run on JS, Wasm, and native. Wider schema and value-kind variants still
+need operation-scoped work/workspace evidence before full resource assurance.
+The Node standard Host now delivers
+cancellation after positive work in each projection task and checks stop,
+nonpublication, and cleanup. The fixture's 100 declared nodes and 100 edge
+rows require 200 Graph input-row occurrences; the former limit of 100 rejected
+the first edge before either projection could start. The construction and
+projection are separate managed tasks, and the cancellation fixture now
+observes the latter rather than the construction boundary.
+
+The review of `f878797f2fa07749622e6f15fb06da41d33c3f82` is applied
+to the current branch by separating three gates. The same-Stage
+`values → distinct → values → distinct → cross_join` path now has five
+selected bounded tasks. The standard Host runs two downstream Computes;
+the Node Host delivers cancellation after the second distinct task reports
+work and verifies stop, nonpublication, and final cleanup. Direct selected
+distinct fixtures cover full-row and keyed projection semantics, NULL
+equality, quantum-one cancellation, and independently calculated exact and
+one-short structural workspace. Fixed two-row fixtures now also check
+exact and one-short control work for both full-row and keyed distinct, and
+keyed distinct has its own exact and one-short workspace fixture. The route
+gate rejects removal of any of these four resource fixtures. These kernel
+proofs do not close the synchronous entrypoint or the distinct operation as
+a whole. They do not cover all providerless
+sequences, all 68 operation-specific resource assurances, or the
+Distribution-owned ordinary Run port. The strict completion gate remains red.
+The simpler `values → distinct` Stage also selects two bounded tasks;
+three-target standard Host fixtures exercise two downstream Computes and
+reclamation, while the physical DAG fixture checks the actual split.
+An independent zero-input `values` Stage feeding a unary Relation Stage
+now selects separate bounded tasks through the existing typed Relation
+reader. The standard Host exercises both `sort → take` and
+`filter → sort → take` with two downstream Computes at quantum one,
+overlapping consumer rights, independent release, and final reclamation.
+The same typed boundary now follows a one-step bounded `filter` Stage back
+to its checked zero-input `values` owner before splitting a later
+`sort → take` Stage. It does not infer this capability from an imported or
+connector-backed predecessor.
+The Node Host delivers timer cancellation after positive work in each form,
+then checks stop, nonpublication, and cleanup. These fixtures close the
+checked routes, not all providerless multi-step sequences.
+Imported full-join sources with keyed distinct now split on both sides;
+the managed join fixture advances each distinct within quantum one and
+retains both producer identities through the two-consumer join.
 
 ## Shared blockers
 
@@ -15,23 +1394,507 @@ readable coverage manifest is authoritative for individual operation status.
 | Completion | Closed for operation coverage: all 39 entries use the shared Carrier-aware lifecycle with registered lifetime evidence | Preserve exact owner, generation, view, and independent release rules while closing the shared release gates |
 | Runtime material | Closed for operation coverage: all 39 entries retain their Carrier laws through bounded immutable or managed shared storage | Preserve storage meaning, admission, holding, and reclamation while closing the shared release gates |
 | Progress | Long principal paths use bounded sessions and each operation has a checked production route | Prove operation-specific boundary evidence and the remaining common cancellation boundary |
-| Cancellation | Closed for the 39 operation entries; in-flight RelA execution after a mixed Carrier/Relation split remains a shared gap | Preserve stop/reclaim separation while closing the common evaluator boundary |
+| Cancellation | Closed for the 39 operation entries; Node standard Host timers now stop selected filter, select, sort, take, and assertion paths after a mixed Carrier/Relation split | Preserve stop/reclaim separation and test the remaining mixed paths |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
 | Publication | Closed for operation coverage: every applicable Effect-free Relation result and Carrier projection uses the formal publication path | Preserve publication preflight, exact identity, custody, retrieval, and failure behavior |
 | Differential conformance | Closed: all 29 RelA operations are classified and the six registered overlapping Local/DuckDB scopes require same-program execution, canonical comparison, and independent expectations | Preserve the operation-indexed manifest and extend it whenever a second registered implementation gains formal scope |
 | Resource accounting audit | Incomplete: all 68 operations are bound to profiles and checked production routes, but operation-specific exact/one-short/cancel/cleanup evidence is not yet complete | Bind executable boundary fixtures to every production route |
+| Ordinary Program integration | Open: Local standard Host fixtures do not prove the Distribution Run entry | Add a representative mixed Carrier-to-Relation Program through the Distribution-owned ordinary Run port, without a Local substitute |
+
+The Node standard Host now checks one ordinary checked Graph-to-Relation
+pipeline with `filter`, `sort`, and `take` in the same Stage. It executes two
+downstream Relation Computes, publishes all three named outputs through the
+formal Effect-free Run path, retrieves each independently, and checks the
+expected rows and task topology before final reclamation. This is stronger
+standard Host evidence for the mixed pipeline, but it is not a Distribution
+ordinary Run submission and does not exercise Events or Vectors. A separate
+Graph normalization variant carries `filter`, `sort`, and `take` in the same
+Stage and uses a real Node timer to cancel after the sort task has reported
+work. It checks stop, nonpublication, and final cleanup; it is not a claim
+that cancellation was delivered to the exact publication fixture. The
+ordinary Program integration row remains open.
+
+The fixed-SHA review of `f878797f2fa07749622e6f15fb06da41d33c3f82`
+identifies a separate execution-lane blocker. The current managed driver
+still uses the providerless branch for supported sequences without a
+registered provider. It still executes the entire checked sequence
+synchronously and reports one unit of resume work for that execution.
+All cell-accessible output representations now use a separate bounded
+independent copy session. The one-unit
+execution report is not a bound on pair or row work. Ordinary one-step filter,
+select, sort, and take have a
+registered bounded Relation provider; selected one-step row kernels use that
+provider when their typed input view is applicable. One-step cross joins with
+two external Relation inputs now have a bounded provider too. A standard Host
+fixture checks quantum-one pair work, two real consumers, independent release,
+and final reclamation on JS, Wasm, and native. Another Host fixture cancels
+after a pair has been emitted and verifies stop, nonpublication, and cleanup.
+Direct fixtures check independently calculated exact and one-short work and
+structural workspace limits. The same-sequence values/distinct/cross-join
+fixture now splits into bounded values, distinct, and cross-join tasks. Its
+pre-execution cancellation fixture remains labeled as such. An external-input
+cross join followed by a Relation filter in the same Stage now splits at a
+typed provider boundary. The prefix and filter use their bounded providers.
+A standard Host fixture checks quantum-one progress, two downstream Computes,
+independent release, and final reclamation. Post-pair cancellation also covers
+this split form. The real Node standard Host fixture now delivers a timer
+cancel during this exact split form and verifies stop, nonpublication, and
+final reclamation. One-step zero-input `values` now uses
+a bounded provider: row and cell construction advance within the requested
+quantum, and a managed-driver fixture stops after cell work without
+publishing output. A separate standard Node Host fixture delivers a timer
+cancel after values work, observes stop, rejects partial publication, and
+reclaims the attempt. A zero-input `values` step followed by a Relation
+filter now splits to the bounded values and selected Relation providers.
+The standard Host checks both downstream Computes and final reclamation;
+the real Node Host delivers timer cancellation after values work in this
+split form. A zero-input `values` step followed by stable `sort` and `take`
+also splits into bounded values and selected Relation tasks. The standard
+Host checks quantum-one progress, sorted/taken values, two consumers,
+independent release, and final reclamation. The Node Host checks timer
+cancellation after sort work has started, with no partial result published.
+`values` followed by either a `where` or identity-bearing `unique_by` row
+assertion now also splits across bounded providers. Standard Host fixtures
+check quantum-one progress, two real consumers, independent release, and final
+reclamation. VecA Relation-pool and nearest fixtures retain the asserted
+identity across the split. Node Host timers check cancellation after each
+assertion's work begins, stop confirmation, nonpublication, and cleanup.
+These connection fixtures do not establish an exact combined-stage peak
+reservation for every assertion variant.
+Direct `values → select`, `values → take`, `values → derive`, and
+`values → distinct` stages now
+use the same bounded
+producer and selected Relation handoff. Three-target standard Host fixtures
+exercise both actual downstream Computes, overlapping retention, independent
+release, and final reclamation. Node timers deliver cancellation after the
+select, take, and derive steps report positive work, and the five-step
+distinct path has a timer cancellation after distinct work begins. These
+fixtures close those four connection forms, not the remaining
+same-sequence forms or the providerless lane in general.
+The direct-take timer fixture caps each product advance to seven work units
+through its observation wrapper because the small input finishes within the
+default Host quantum; it still delivers abort through the standard Host.
+Two same-Stage `values` producers feeding `append` or direct `cross_join`
+now retain their two exact input occurrences as separate bounded tasks.
+The selected binary providers advance within the Host quantum. Three-target
+standard Host fixtures run both downstream Computes, overlapping retention,
+independent release, and final reclamation. Node timers cancel after binary
+work starts and check stop, nonpublication, and cleanup. These are specific
+checked forms; `values → distinct → cross_join` now uses selected bounded
+tasks. Both same-Stage paths use the same registered single-step bounded
+providers and exact `ProducerRead` inputs as the already bounded external
+paths. The external-input fixtures independently fix exact/one-short work and
+workspace for each shared kernel. The same-Stage standard Host fixtures prove
+provider selection, two consumers, timer-delivered cancellation, and final
+reclamation; the resource audit records the precise shared-proof grant for
+each path. This does not assure either whole-sequence synchronous fallback.
+Other multi-step sequences beginning with `values` and unmatched Relation
+sequences can still reach the providerless lane. A Node standard
+Host timer now cancels the external-input provider after pair work has begun;
+it verifies delivered cancellation, observed stop, nonpublication of the
+cross-join output, and final reclamation. The independent left and right
+producer completions remain intact.
+This remains a release blocker independently
+of the operation-specific resource proof count below. The providerless lane
+must use admitted bounded execution or an explicitly isolated stoppable
+physical lane; it must not be counted as quantum-bounded because execution
+still returns `work=1`. Direct copy and managed driver fixtures confirm
+quantum-one relocation across all cell-accessible table layouts, exact and
+one-short row/column and structural
+workspace admission, source-loss rejection between resumes, and cancellation
+after copy work starts. Each destination container entry is reserved before
+append against the existing Site execution-capacity allowance; completed
+storage takes custody when the copy finishes.
+The standard Node Host runs the split values/distinct/cross-join sequence and
+delivers a timer cancel after the second distinct task reports work. It checks
+stop, rejects the partial distinct output, and reclaims the attempt. This
+proves delivery during the selected distinct kernel, not the remaining
+providerless compute sequences.
+The strict resource-completion gate
+still rejects the providerless
+lane even if route evidence is added elsewhere. Its source
+check is a blocker guard, not a positive proof that a replacement is bounded.
+
+The review of `f878797f2fa07749622e6f15fb06da41d33c3f82` separates three
+closure conditions. The independent output copy, external-input cross join,
+zero-input values, and external-input append now have bounded paths. The
+providerless compute call still runs an unmatched whole checked sequence in
+one resume; it remains a release blocker. The normal route gate reports 68
+mapped operations and 21 with operation-specific boundary records. The
+registered `SGA.graph_bounds` and `SGA.degree` entrypoints have exact and
+one-short work/workspace assurance. The ordinary and selected one-step filter
+and select paths now share their respective bounded evaluators and have
+independently tested Host cancel delivery. Ordinary one-step sort and take
+now also have separate Host timer delivery after positive kernel work, with
+stop, nonpublication, and cleanup checks. Their selected and ordinary paths
+share the exact bounded evaluator and independently checked work/workspace
+fixtures for ordered/empty sort and keyed/unkeyed take. This does not close
+their synchronous whole-sequence paths or any other unassured operation.
+The strict completion gate remains red.
+Standard Host fixtures do not prove the Distribution-owned ordinary Run entry;
+that integration is also open. Closing one condition does not close the others.
+
+The ordinary one-step filter, select, derive, assertion, sort, take,
+external-input cross join, and zero-input values forms use bounded Relation
+providers. External-input
+cross join and zero-input values each support a tested same-Stage Relation
+filter handoff without changing the authored Stage. Other accepted Relation
+forms, including unmatched same-sequence multi-step variants, can still use
+the providerless lane.
+The ordinary derive and assertion routes now use the bounded Relation
+evaluator at quantum one. Their standard Host fixture retains the existing
+authored row-wire order, two downstream Computes, and final reclamation on
+JS, Wasm, and native. The typed input projection supplies the wire order for
+one-step scalar derive and assertion output; vector expression output keeps
+its canonical physical order. The Node standard Host delivers timer
+cancellation after positive work for ordinary derive and both assertion
+forms, then checks stop, nonpublication, and final cleanup. The where and
+unique_by assertion variants now also have independently fixed exact/one-short
+control-work and peak-workspace fixtures on their common selected and ordinary
+bounded evaluator. Derive still lacks those exact resource fixtures, and
+same-sequence variants can still reach the providerless lane.
 
 ## Current cross-operation review gaps
 
-- Mixed Carrier/Relation stages: the selected Graph, Events, and Vectors
-  projection paths now connect to subsequent Relation operations. The common
-  split still requires an audit of Carrier prefixes without standalone selected
-  providers and of in-flight cancellation in the Relation evaluator. These are
-  connection gaps, not new normative operations.
+- Mixed Carrier/Relation stages: selected and fused-prefix Graph, Events, and
+  Vectors paths now connect to a Relation filter and two actual consumers in
+  the standard Host. The fused prefix retains one checked owner and an exact
+  terminal output step. Selected derive, filter, select, sort, and take now
+  use bounded sessions. A multi-step checked sequence
+  can stop without publishing partial rows. Select validates every input
+  field before projecting output columns one at a time. Take validates the
+  complete input before copying the requested rows. Take requiring a key
+  completion sort now uses a bounded stable index sort. The standard Host
+  Graph path passes with execution quanta 1, 2, 7, and 1024, including two
+  downstream consumers and final reclamation. A separate Graph fixture
+  cancels after several advances, checks stop without publication, and
+  settles and reclaims the task. A Node standard Host timer also reaches the
+  selected take after Graph construction, normalization, and node projection
+  in one authored Stage. It confirms stop after delivery, leaves the take
+  completion unpublished, and reclaims the attempt while preserving earlier
+  independent task completions. A separate Node timer now reaches the fused
+  Graph construction, subgraph selection, and node projection prefix after
+  construction has progressed through all 40 nodes and 40 edges. It confirms
+  delivered cancellation, stop, no partial prefix completion, and cleanup
+  while preserving the earlier values task. The existing portable Host fixture
+  executes that prefix through the subsequent Relation filter and two real
+  consumers. Equivalent portable Host fixtures execute unselected Events and
+  Vectors prefixes through Relation filters, two consumers, publication
+  identity, and reclamation. Node Host timers now cancel those prefixes after
+  actual work, observe stop, reject partial completion, and reclaim their
+  attempts. Family conformance registration selects the same task prefix used
+  by dispatch; checking the entire authored sequence would reject these
+  providers before execution. This proves one mixed path per Carrier, not
+  every formal branch. Separate Node timers also cancel the selected Relation
+  filter after each Carrier prefix has completed. These tests preserve the
+  prefix completion while rejecting the filter completion and reclaiming the
+  cancelled attempt. Other mixed branches remain connection gaps, not new
+  normative operations.
+- Ordinary single-step text, structured, and NULL filters now use the same
+  bounded Relation provider as selected Carrier projections. Quantum-one
+  standard Host fixtures retain two real consumers and final reclamation on
+  all three targets. Direct select, rename, and drop forms now use the bounded
+  projection path as well. Direct select preserves authored output-field order
+  separately from canonical schema order, including typed Decimal values.
+  Quantum-one source-form fixtures retain two real downstream Computes across
+  ordinary rename and drop variants.
 - Resource accounting: the 68-operation gate now checks each production
   dispatch marker and entrypoint symbol as well as the family profile. It does
   not yet prove each operation's own exact, one-short, cancellation, and
-  cleanup evidence. A passing route gate alone is not completion evidence.
+  cleanup evidence. The scalar `derive` path now has an independently fixed
+  two-row work boundary of 78 control units and a 27-slot peak workspace
+  boundary. The one-short cases fail before completion and retain cleanup
+  ownership. Direct input-value and post-work cancellation fixtures join
+  separate ordinary and selected standard Host timer routes. These proofs
+  share only the exact bounded execution symbol; the synchronous whole-
+  sequence entrypoint remains unassured. The take route registers bounded
+  mixed-stage quantum,
+  lifetime, cancellation, and cleanup fixtures. Its selected path now binds
+  separate exact/one-short control-work and peak-workspace fixtures for both
+  unkeyed and key-completion variants. The key-completion peak includes the
+  retained sort indices and selected output row; the unkeyed peak includes
+  persistent schema metadata and the selected row's checked values. The
+  resource gate requires both variants and rejects missing or borrowed proof
+  roles. These direct fixtures are paired with the standard Host route rather
+  than substituted for it. The ordinary one-step take path uses the same
+  bounded evaluator and has a separate delivered Host timer cancellation;
+  keyed and unkeyed resource fixtures are reused only across that exact
+  production entrypoint. The synchronous whole-sequence take path remains
+  unassured, so this is not operation completion.
+  The selected sort path likewise binds independent work and workspace
+  exact/one-short fixtures for both an authored ordering term and an empty
+  ordering term. The empty branch uses charged identity indices rather than
+  merge comparisons; its resource proof is not borrowed from the ordered
+  branch. Ordinary one-step sort uses the same bounded evaluator and has a
+  separate delivered Host timer cancellation. The synchronous whole-sequence
+  sort path remains unassured. A passing route gate alone is not
+  operation-completion evidence. An independent audit
+  claim now names the resource-assured selected paths, and the default
+  gate rejects deleting their route proofs, inventing another claimed path,
+  or silently dropping one claim. Selected filter now has an exact/one-short
+  comparison work and workspace fixture. Its shared expression rule records
+  the production call edge and separate nested-workspace, text-work, and
+  branch-demand fixtures. Selected projection now has an independent
+  two-row exact/one-short work and workspace fixture. Its selected ordinal
+  map is reserved before construction, so the peak includes both the map
+  and live output row buffers. This establishes four path-scoped resource
+  proofs, not full assurance for filter, select, sort, take, or the other
+  64 operations.
+  The RelA cross-join route now pairs an independently calculated 2-by-2
+  work/workspace exact-and-one-short kernel fixture with a managed
+  cancel-and-cleanup fixture. Its cancellation fixture closes the operation
+  before execution; it does not establish in-flight interruption of the
+  synchronous Cartesian-product loop.
+  The route gate reports the current number of operation-specific boundary
+  records; that count is not the number of resource-complete operations.
+  The append route now binds an independently calculated control-work and
+  peak-workspace exact/one-short fixture, plus distinct-input and
+  self-occurrence two-consumer reclamation fixtures. This raises the
+  operation-specific record count to 16/68 at that point. A single-step append with two
+  external Relation inputs now uses a bounded provider. Its field alignment,
+  row construction, and completion run in finite resume steps. Independent
+  exact/one-short work and workspace fixtures, quantum-one output, and
+  standard Host cancellation after row work cover this selected route on
+  JS, Wasm, and native. The Node standard Host also delivers a timer cancel
+  after row progress, observes stop, leaves the append output unpublished,
+  preserves both producer completions, and reclaims the attempt. The
+  external-input path has full path-scoped resource assurance. The direct
+  two-Values same-sequence append uses the bounded provider, but other
+  same-sequence forms can still use the synchronous providerless lane. The
+  operation as a whole is not resource-complete.
+  A trial global split of Relation-only filter/sort/take pipelines changed
+  physical tasks before connector selection and failed 106 of 576 JS query
+  integration tests, including non-Local strategy and task-identity cases.
+  That trial was reverted; the unchanged suite passed 574/574 afterward.
+  Closing the remaining Relation-only lane requires a placement-aware
+  bounded plan that preserves other registered whole-Stage candidates and
+  checked task identity, not an unconditional DAG rewrite.
+  Graph normalization has separate exact/one-short node-capacity and
+  cancel/cleanup fixtures for its direct and managed-view starts on all
+  three targets. One standard Host timer cancels the fused normalize after its
+  80 graph-construction steps; another cancels the third selected task after
+  measured work. The split task map binds that task to the managed-view
+  normalize step. Both registered paths have four lifecycle proof roles; their
+  exact work and workspace dimensions remain separately open. Graph diagnostics
+  now pair independent four-row/three-row output and ten-slot/nine-slot
+  workspace boundaries with in-flight cancellation after charged work. A Node
+  standard Host timer reaches the same graph-bounds operation, giving its
+  direct entrypoint all four proof roles. Its kernel reports cumulative work,
+  and a separate one-row fixture fixes output value work at 30 units and
+  cumulative control work at 11 units, rejecting 29 and 10 respectively.
+  Seven workspace slots admit the same case; six reject it before execution.
+  The kernel now enforces its own finite control-work ceiling across resumes,
+  apart from the output-value budget. The provider still does not account for
+  prior graph-construction work against the common selected execution ceiling.
+  That task-wide scope needs a product-path exact/one-short fixture before
+  resource assurance closes.
+  The degree route uses the same resumable diagnostic kernel, but has its own
+  workspace eight/seven, control work eighteen/seventeen, and output two/one
+  exact-boundary fixtures. These control-work counts include its two-node sort.
+  Its direct
+  fixture cancels after charged work and confirms cleanup; a Node standard Host
+  timer reaches the degree operation. Its kernel-level control-work limit does
+  not yet establish task-wide work assurance across construction and projection.
+  Shortest path binds its 89/88 preallocation workspace boundary, large
+  path-value rejection before item construction, kernel cancellation after
+  value-building work, and standard Host consumers to its product entrypoint.
+  The scalar kernel has an 88/87 cumulative control-work boundary. Its
+  registered graph-construction-plus-search path has a 125/124 task-wide
+  ceiling, and the Host timer delivers cancellation after positive work.
+  Fixed work evidence for the other formal variants remains open.
+  The
+  selected RelA filter route adds an independent exact/one-short input-admission
+  pair alongside mixed-stage and cancel/cleanup fixtures. Its
+  selected Graph-to-Relation path also receives a Node Host timer cancellation
+  after measured work, then confirms stop without exposing a partial result. A
+  separate ordinary filter fixture proves quantum-one execution and lifetime.
+  The ordinary route now binds independently calculated exact/one-short input,
+  work, and workspace evidence through the same bounded evaluator. A distinct
+  Node Host timer cancels after ordinary filter row work, confirms stop without
+  a partial completion, and reclaims the attempt. Shared expression rules and
+  reused proof roles identify the exact common product entrypoint and scope;
+  the synchronous whole-sequence path remains unassured.
+  Ordinary one-step select now uses the same bounded provider. A three-target
+  fixture preserves authored projection order through two downstream Computes,
+  including typed Decimal values, at quantum one. The ordinary route now binds
+  exact and one-short input, work, and workspace evidence to the same bounded
+  evaluator as the selected route. A separate Node Host timer cancels after
+  ordinary select row work, observes stop, prevents partial completion, and
+  reclaims the attempt. The shared proof roles record their exact common
+  product entrypoint and scope; the synchronous whole-sequence route remains
+  unassured.
+  Rename and drop now have separate ordinary-route quantum and lifetime
+  fixtures over their named source forms. Each ordinary route now also binds
+  exact and one-short input, control-work, and structural-workspace fixtures
+  for its own output width and names. The independent work expectations count
+  row openings and output-name bytes; peak workspace includes view metadata
+  and both live output row buffers. Dedicated Node Host timers deliver cancel
+  after positive rename and drop row work, confirm stop without partial
+  publication, and reclaim the attempt. Their synchronous whole-sequence
+  entrypoints remain unassured.
+  The production-route manifest now scopes completion proofs to each registered
+  entrypoint, ordinary entrypoint, and selected entrypoint. A selected proof
+  cannot close the synchronous or ordinary path. The where and unique_by
+  assertion forms have distinct selected proof sets; mixing their limit,
+  cancellation, or cleanup roles is rejected. Reusing one fixture across
+  different production paths requires a recorded reason and the same exact
+  implementation entrypoint.
+  A successful route gate does not establish full work/workspace boundary
+  closure for any of the 68 operations. Routes without operation-specific
+  boundary records remain open. Reused evidence must identify the shared
+  product implementation and cover exact, one-short, in-flight cancellation, and
+  cleanup where applicable; the gate must reject a missing required role for
+  every route before this audit can be complete.
+  The separate `check:local-resource-completion` command requires all four
+  lifecycle proof roles and independent exact/one-short work and workspace
+  roles on every route. Sort and take have selected-path proof bindings;
+  filter, select, rename, and drop also have ordinary-path proof. Sort uses an exact/one-short workspace pair and
+  its wide-comparison Host timer; take uses independent exact/one-short work
+  and peak-workspace fixtures plus the selected Host timer. The where and
+  unique_by `assert_rows` variants have separate selected and ordinary proof
+  sets. Both paths share exact/one-short work and workspace fixtures through
+  the same bounded evaluator under explicit reuse rules; each has its own
+  Host timer cancellation. Neither variant may borrow the other's proof.
+  The remaining multi-step fallback paths are not covered by those fixtures.
+  Graph normalization and graph bounds have all four
+  lifecycle proof roles. Graph bounds now has independent kernel-level value
+  and control-work evidence, but neither operation has task-wide execution
+  work assurance across construction and projection. The completion command
+  intentionally fails. The ordinary resource command checks route identity
+  and existing scoped evidence without claiming release completion.
+  Checked Relation sort after a Carrier projection now has a selected task
+  and uses the bounded stable-index kernel. Direct quantum-one fixtures cover
+  output order, stable ties, cancellation without partial publication, and
+  an independently fixed 21-entry peak workspace with a 20-entry rejection.
+  A Node standard Host timer reaches this selected sort after Graph
+  construction, normalization, and node projection. Other Relation paths
+  require their own boundedness and in-flight cancellation evidence.
+  The sort's outer merge and each comparison now yield through the bounded
+  session. Ordering terms, UTF-8 charging, and UTF-16 text comparison advance
+  in bounded steps; a long common prefix no longer occupies one resume.
+  The same comparator serves the partition boundary in bounded top-k.
+  Quantum-one fixtures verify pending comparisons, cancellation, and stable
+  ordering. A Node standard Host stress case uses the maximum ten-column
+  fixture schema and seven sort keys,
+  including six equal 660-byte text values (3,960 text bytes per row). The
+  1,024-byte-per-key probe did not reach the managed sort task. The admitted
+  stress case reports bounded-step work and maximum resume duration, then
+  delivers a real timer cancellation after 70
+  quantum-one advances, and verifies stop and cleanup. Two local runs measured
+  0.529 and 0.477 ms maximum resume, and 0.207 and 0.100 ms from cancellation
+  delivery to stop, respectively. A further local run measured 0.384 ms maximum
+  resume and 0.100 ms from delivery to stop with the same fixture.
+  These are environment diagnostics, not a universal deadline or proof for
+  every admitted representation. No response-time violation has been reproduced;
+  split comparison work or select a stoppable placement if further admitted
+  profiles exceed the accepted response behavior. At `a9e05a272`, the same
+  standard Host fixture passed after the comparison-step change: 70
+  quantum-one advances preceded timer cancellation, the maximum observed
+  resume was 0.288 ms, and delivery-to-stop was 0.097 ms. The white-box
+  fixture separately proves that an equal long prefix yields inside the
+  comparison; the Host timer does not assert the exact active subphase.
+  This evidence is for the selected bounded path. Ordinary one-step sort
+  also uses that bounded
+  provider, with quantum-one execution and two real downstream consumers
+  verified on JS, Wasm, and native. The two paths still lack whole-operation
+  boundary assurance until exact, one-short, in-flight cancellation, and
+  cleanup evidence covers every admitted sort representation.
+  The checked `assert_rows` where branch now also uses the bounded Relation
+  session after a Carrier projection. Its false/NULL predicate is an assertion
+  failure, never a filter omission; a later failure leaves no completion.
+  Three-target fixtures cover quantum-one execution, two consumers, formal
+  publication, cancellation, and cleanup. A Node standard Host timer delivers
+  cancellation during the selected assertion. The unique-key branch now has
+  its own bounded key validation, stable index ordering, duplicate check, and
+  unchanged-row output. Its direct three-target fixtures cover empty input,
+  NULL and duplicate failures, exact/one-short workspace, and cleanup. The
+  Graph-to-Relation standard Host path retains two consumers and publication
+  on all three targets, and a Node timer delivers in-flight cancellation.
+  The combined `assert_rows` route still lacks exact resource evidence for
+  every assertion form, so it is not marked boundary-complete.
+
+The bounded binding-row API now takes separate input and output value limits.
+This is a low-level source signature change, not a standard Host or wire
+contract change. Both in-repository product callers (the common selected
+Relation provider and the VecA provider) and the direct fixtures pass the
+input limit explicitly. The generated package interface changes with them.
+Independent two-row vectors establish the input boundary at 16 value nodes,
+22 UTF-8 name bytes, and 38 value-work units; one node less fails before
+publication. Input admission is spread over row and field advances. A single
+large structured cell still uses the existing bounded-by-value-limit measure,
+so its environment cancellation latency remains part of the shared gap.
+
+Selected Relation `select` now uses that bounded input admission and emits
+one projected field per resume step. The direct regression covers canonical
+output order, complete-input validation, exact admission at 16 value nodes,
+22 UTF-8 name bytes, and 38 value-work units, one-node-short rejection,
+cancellation before publication, and cleanup. The Graph-to-Relation standard
+Host fixture continues through two consumers and formal publication on all
+three targets.
+This does not close environment-delivered cancellation after the mixed-stage
+split.
+
+Selected `take` copies one output field per resume step after admitting every
+input row. Independent direct fixtures for the no-sort path cover the
+offset, empty output, an excluded-row input failure, exact and one-short
+control work, cancellation before publication, and cleanup. The Vectors
+bridge's Relation output uses this no-sort route in the standard Host, then
+feeds two consumers and formal publication. Graph-to-Relation take requires
+an added key-completion sort; its sort and row charging now advance in
+bounded steps. Exact/one-short work and workspace fixtures exercise that
+added sort on all three targets. The Node standard Host cancellation fixture
+reaches this sort through the ordinary family subset; it selects the exact
+physical task view and reserves capacity across the selected task set. Other
+selected Relation kernels and their environment-delivered cancellation remain
+open.
+
+Ordinary one-step `take`, including the bound-count form, now enters the same
+bounded Relation provider as selected `take`. A quantum-one managed fixture
+checks output, both downstream Computes, independent release, and final
+reclamation on JS, Wasm, and native. The route inventory binds the ordinary
+and selected entrypoints separately. This does not establish the exact,
+one-short, and in-flight cancellation roles for every admitted `take`
+representation; the resource-completion gate remains open.
+
+## Local family correction branch
+
+The following fixes are committed after the `8cae50b6` common baseline. They
+close specific correctness and cleanup findings, not the shared blockers above.
+
+| Commit | Corrected boundary | Product evidence |
+|---|---|---|
+| `4ad05dca8` | Exact structural pairwise mean, rounded once | Independent midpoint vectors and three-target SGA tests |
+| `d1b7bb9ac` | Typed Relation and Events grouping order | Three-target grouping and Carrier regressions |
+| `8ab36b721` | Minimum eligible simple path after hop and predicate checks | Three-target SGA and Graph standard-Host regressions |
+| `f0cbb4ebd` | Both VecA nearest inputs admitted before pairing, including an empty opposite side | Three-target VecA and Relation/Vector input regressions |
+| `1d1714058` | Exact window membership with separately checked output boundary | Independent boundary vectors and three-target Relation/Events regressions |
+| `7c16ee15b` | Q1–Q4 language, machine contract, dependency pins, and independent vector wiring | Local contract and documentation gates |
+| `46ef37b72` | Graph mean skips properties of edges whose endpoints are not retained | Retained-versus-excluded edge regression and three-target Graph integration |
+| `82d505432` | Session validates global event identity before grouping and rejects empty input | Relation-input duplicate/empty regressions and three-target Events integration |
+| `1098d32bf` | Graft retains terminal nested-set cleanup responsibility | Terminal nested failure regression and three-target Graph integration |
+| `3880522c8` | Common DAG retains a fused Carrier prefix and selects later Relation steps | Typed physical split and generated-prefix boundary tests |
+| `9317ec2bb` | Graph, Events, and Vectors fused prefixes reach row consumers | Standard Host value, identity, two-consumer, and reclamation regressions |
+
+The backend semantic-boundary gate now scans family kernels, family providers,
+and formal Bridge kernels in addition to Connector and Relation execution code.
+Graph Apply checks its base input Carrier through the typed preparation view;
+it no longer re-reads the checked frontend pipeline. A negative gate fixture
+rejects the original Carrier lookup through a renamed frontend import. This
+closes that frontend traversal finding, not the separate providerless
+synchronous execution or resource-assurance gaps.
+
+At source HEAD `1098d32bf`, the scoped SGA/Graph suite passed 140 tests per
+target and the TEA/Events suite passed 31 tests per target on JS, Wasm, and
+native. `check:docs`, the generated public API gate, and
+`check:local-family-coverage` also passed locally at that HEAD. These results
+do not establish Linux CI, all 68 route-specific resource boundaries, or the
+remaining mixed-stage cancellation boundary.
+
+At source HEAD `9317ec2bb`, query integration plus the generated-sequence
+boundary tests passed 554/554 on each of JS, Wasm, and native. The public API
+gate also passed locally. The new fused-prefix fixtures establish the named
+Relation identity but do not replace publication retrieval or in-flight
+cancellation evidence. No Linux CI result is claimed for this HEAD.
 
 The following snapshot is generated from the authoritative manifest. It is
 checked by `check:local-family-coverage`; do not edit its counts by hand.
@@ -425,6 +2288,53 @@ identity. Cancellation after partial snapshot work confirms stop separately
 from cleanup and reclaims the unpublished output without revoking either
 input.
 
+The Graph diff wrapper now applies the selected cumulative work ceiling to
+output append and final completion as well as the bounded diff core. A
+ten-node, ten-edge identical-input regression executes with quantum one,
+then checks the same path at its observed full work count and one less.
+The one-short path fails without completion and cleanup remains explicit.
+This guards the output tail; its observed count is not an independent
+work formula or full workspace assurance for every diff shape.
+
+The Graph mean kernel now applies one selected cumulative control-work
+ceiling across resumes and charges each empty input position and final
+completion. The empty three-input fixture has three weight additions, six
+node/edge input transitions, and one completion step: ten work units complete,
+while nine fail without exposing a Graph. A fourth poll followed by a
+cancel request stops during the node-input pass. Cleanup succeeds for
+success, work failure, and cancellation, and the retained Graph is released.
+Existing workspace and delivered Host cancellation fixtures remain separate;
+this fixed shape does not prove every property or merge variant.
+
+Graft, finite-list union, and structural subtraction share a bounded Graph
+kernel but retain distinct typed source and input-position paths. All three
+now apply the selected work ceiling across resumes and charge each completed
+input position plus final output completion. The empty direct graft takes
+3/2 work, the four-position view union 5/4, and view subtraction 2/1.
+Quantum-one tests confirm failure without a partial Graph, explicit cleanup,
+and in-flight union cancellation after its first input position. Their
+nonempty merge, property, and output-value budgets still need broader
+independent route assurance.
+
+The row-local `vector_score` and `vector_concat` expressions now have
+operation-specific evidence through a selected derive with two input rows.
+The fixed fixture admits 160 control units and 34 structural slots, rejects
+159 units or 33 slots, and checks both scalar scores and concatenated vector
+contents before cleanup. Separate expression and row-execution tests cover
+private-state cancellation. This is evidence for the shared selected derive
+path; it does not yet establish all ordinary or mixed-Stage placements, or
+delivered Host cancellation for each expression.
+
+The declared-node rows-to-Graph Bridge now receives the selected cumulative
+control-work ceiling from the Graph provider. Its fixed two-row construction
+charges 19 transitions, including finalization; 18 fails without publishing.
+Two property indices plus eight fixed slots require 10 workspace slots, so
+9 is rejected at start. A separate quantum-one cancellation after positive
+construction work confirms stop, cleanup, and continued availability of the
+borrowed Relation input. The existing repeated-input and two-consumer test
+still exercises its output lifetime. This does not prove every derived-node,
+label, or wide-property variant or delivered Host cancellation for this Bridge.
+
 Commits `7e608333e`, `b5cd1a0d2`, and `098f29445` add the atomic
 `apply_graph_delta` kernel and its managed provider path. Lowering retains the
 typed delta field and Graph contract identity. The kernel verifies the exact
@@ -442,6 +2352,10 @@ formal Named Result publication path on JS, Wasm, and native. Independent
 release and retryable cleanup return execution, retention, and held-byte
 ledgers to zero. `apply_graph_delta` is complete.
 Reach retains its typed start identity, direction, and finite depth.
+Its two stable output-ordering phases now resume typed identity comparisons
+one bounded unit at a time. A long common-prefix fixture checks quantum-one
+cancel, cleanup, and canonical output ordering. This is direct kernel evidence,
+not a proof of the providerless synchronous sequence or full route assurance.
 Subgraph retains explicit, predicate, and Relation selectors as distinct typed
 forms and preserves its optional edge predicate.
 Traverse retains homogeneous and patterned hops, selector form, predicates,
@@ -570,6 +2484,10 @@ the formal Graph-to-Relation Bridge to two overlapping consumers and formal
 Effect-free publication. At `309d5111`, a real Node timer delivers
 cancellation during mean work and verifies kernel observation, stop,
 cleanup, and a zero final ledger. This closes `mean_graphs`.
+Node and edge stable sorts now resume long typed identity comparisons between
+work quanta. A three-target direct kernel fixture cancels during a long node
+comparison and checks cleanup, then verifies canonical node and edge order.
+The fixture does not establish the providerless synchronous path.
 
 At `1b7dbec3`, `subtract_graphs` executes the property-free structural
 variant over two immutable internal Graph generations. The bounded kernel
@@ -649,6 +2567,14 @@ expression evaluator rather than a graph-specific interpretation. Predicate
 bindings are prepared one field at a time, expression workspace is admitted
 before use, unknown properties retain their typed source diagnostic, and the
 same standard Host path covers predicate publication and cancellation.
+The Graph match sort now compares Text, date, timestamp, decimal, and
+reference key content through a bounded typed cursor. A long shared Text
+prefix no longer occupies one resume: quantum-one node and edge fixtures
+stop during comparison, reclaim scratch, and confirm the subsequent complete
+run's canonical order on all three targets. The operation route inventory
+binds those fixtures to their production entrypoints. This closes that
+specific comparison interval; it is not a substitute for the still-red
+strict resource assurance across all 68 routes or the providerless lane.
 `match_edges` is complete. Bounded
 Graph diagnostics now emit strict node, edge, and total-degree violations in
 canonical identity order. Their output is atomic under row limits, structural
@@ -657,7 +2583,15 @@ reaches two independent downstream Relation computations and final reclaim on
 all three targets. The Effect-free Named Result path publishes and retrieves
 the retained diagnostics through the formal Store. A real environment timer
 now cancels bounded diagnostic work, observes kernel stop, prevents completion,
-and releases all holdings and reservations. `graph_bounds` is complete.
+and releases all holdings and reservations. Long Text identity ordering now
+uses the shared bounded key cursor rather than one synchronous comparison.
+A quantum-one Graph bounds fixture stops within the comparison, reclaims the
+attempt, confirms the canonical completed order, and checks an independently
+counted 184-unit control-work limit and its one-short failure. The degree
+entrypoint uses the same Graph diagnostic kernel. Existing degree fixtures
+cover its independent production reach and resource boundaries. This
+additional comparison fixture does not establish the providerless lane.
+`graph_bounds` is complete.
 Directional degree metrics now count
 incoming, outgoing, and total incidences in canonical node order, including
 two total incidences for a self-loop. The shared bounded kernel admits its
@@ -680,7 +2614,12 @@ row order. A real timer delivers cancellation during strong-component work;
 the bounded kernel reports stop, no component result is completed, and retry
 cleanup releases all holdings and reservations. Direct portable tests cover
 the same cancellation boundary for weak and strong execution. `components`
-is complete. Commit `235f8b41` connects the first bounded `traverse` variant:
+is complete. Its component-minimum and result-order comparisons now use the
+shared bounded typed-key cursor. A long common-prefix identity fixture covers
+quantum-one cancellation during representative selection, cleanup, and the
+canonical order of both weak and strong results. This strengthens bounded
+execution evidence without claiming strict assurance for every SGA route.
+Commit `235f8b41` connects the first bounded `traverse` variant:
 a literal singleton start, one homogeneous directional hop rule, node output,
 finite minimum and maximum hop counts, and the resolved output guard. The
 registered provider rejects other variants before execution. The implemented
@@ -987,6 +2926,11 @@ kernel stop, publishes no partial result, completes cleanup, and returns held
 and reserved bytes to zero. At `d4fb3d6da`, the Events input crosses a
 physical standard Host task boundary into bounded sequence matching. Its
 Relation output reaches publication and two independently released consumers.
+The fixed five-row, two-pattern kernel fixture now pins 621 control-work
+units independently of the observed run. Exact and one-short work, together
+with the independently calculated 58-slot workspace peak, bind the bounded
+sequence entrypoint to the resource gate. Removing the work fixture makes
+that assurance fail. This does not prove the remaining providerless routes.
 Event
 windows now preserve the Events
 Carrier in typed lowering and emit the registered fixed-label or
@@ -1409,6 +3353,14 @@ The affected portable suites pass 397 tests per target; the real Node Host,
 Workers, package-composition, format, and generated-fixture checks also pass.
 This closes `normalize_vectors`; the remaining VecA operations retain their
 separate variant and lifecycle gaps.
+The bounded normalization kernel now enforces a cumulative control-work
+ceiling across resumes. Its one-record, two-component fixture independently
+counts ten steps, accepts ten and rejects nine without publishing output;
+zero work fails before output allocation. An eight-slot temporary workspace
+completes, while seven slots fail before field collection. Kernel cancellation,
+cleanup, and the delivered standard-Host timer are bound to the production
+route. This establishes a fixed-shape resource boundary, not full work and
+workspace assurance for every dimension, schema, and output-value budget.
 
 At `ca6abe4f`, score queries resolve from both literal and bound parameter
 forms through the portable standard Host. The independent numeric and kernel
@@ -1421,6 +3373,43 @@ work starts, confirms stop, completes retryable cleanup, and returns the ledger
 to zero. Workers generation and all 24 Workers tests pass from the same source.
 This closes `score_vectors` without treating the remaining VecA operations as
 complete.
+The scoring kernel now enforces cumulative control work across resumes.
+Independent fixed fixtures count 3/2 units on empty input and 19/18 units
+for one record, with zero-work admission rejected before output allocation.
+Per-record identity scratch now initializes one slot per charged resume step;
+the exact one-record work count includes that step.
+The three-record ordering workspace admits 30 slots and rejects 29 before
+execution. Kernel cancellation, cleanup, and the delivered Host timer are
+bound to the production route. Metric, identity-width, and output-value work
+interactions remain outside full route resource assurance.
+
+The pooling kernel now enforces cumulative control work on both Vectors and
+Relation input paths. Vectors-input fixtures count 1/0 work on empty input and
+30/29 work for a single record, with zero-work admission rejected before
+output allocation. A four-record sort completes with 39 structural workspace
+slots and rejects 38 before allocation. Kernel cancellation, cleanup, and
+the delivered Host timer are bound to the Vectors production route. The
+Relation-input production entrypoint is separately registered with standard
+Host and composite-identity fixtures, but lacks exact and one-short resource,
+delivered cancellation, and cleanup proof for that path. Composite keys,
+relation member identity encoding, and numeric reduction variants still need
+full route resource assurance.
+
+The nearest-neighbor route now records the fused
+`start_nearest_inputs_with_relations` production entrypoint separately from
+`start_nearest_inputs`. Existing standard Host fixtures cover mixed Vectors and
+Relation inputs and inferred Relation roles. A direct Vectors-input fixture
+now counts 28/27 control-work units with quantum one, admits 23 structural
+workspace slots and rejects 22 before starting. It also verifies cancellation
+during incremental identity initialization and cleanup of the private output.
+The fused Relation-input path also admits 28/27 work and 23/22 workspace,
+reclaims its private output after kernel cancellation, and preserves both
+producer reads. The existing Node standard Host `vector-nearest` fixture
+delivers a timer cancellation during Relation-input kernel work, confirms stop,
+and retries cleanup. Its production wrapper delegates to the same bounded
+kernel tested with an independent control-work ceiling. The Vectors-input path
+still lacks a delivered Host cancellation fixture, so the operation as a whole
+remains outside four-role and full resource assurance.
 
 At `9c751e9c`, one pooled Vectors generation is shared with a real
 normalization consumer and the formal Relation Bridge on JS, Wasm, and native.
@@ -1534,6 +3523,13 @@ active expression provider through an environment yield, stops without a
 completion, and returns held and reserved bytes to zero. This closes both
 VecA expression entries without treating vector filters or assertions as
 supported by the binding-only provider.
+The timer now waits for one complete private derive row, so both the score
+and concatenation have evaluated before the Host delivers abort. The portable
+cancellation fixture likewise stops after a private row rather than during
+input admission. Their shared two-expression fixture fixes independent exact
+and one-short work and workspace ceilings; the resource audit binds these
+proofs to both expression entrypoints. This does not certify expression use
+in unsupported filter or assertion placements.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A
@@ -1612,3 +3608,51 @@ bidirectional traversal, a minimum-zero bound, and an explicit empty edge-type
 set. Together with the literal, Relation-backed, predicate-selected, and
 patterned lifecycle evidence above, every classified `traverse` layer and
 formal branch is connected. `traverse` is complete.
+
+The checked physical splitter now also handles multiple independent
+zero-input Relation branches within one Stage when every operation supports
+selected managed execution and no external input representation is required.
+Each branch retains its exact operation edge and Result occurrence. A standard
+Host fixture executes both branches through bounded values and row providers,
+then runs two downstream Computes with overlapping holdings, independent
+release, and final ledger reclamation. Query integration passes 604 tests on
+each of JS, Wasm, and native. This does not close the providerless synchronous
+fallback or the strict per-operation resource boundary gate.
+
+The session-assignment node now retains the registered fused Events provider
+when its checked sequence has no later Relation consumer. A Relation consumer
+still selects the bounded per-step handoff. Physical-DAG assertions distinguish
+these paths; portable standard-Host fixtures exercise the fused session and
+the separate Events-view session through two downstream Computes, publication
+identity, independent release, and final reclamation. The Node standard Host
+delivers timer cancellation after work begins in each path and observes stop
+and cleanup. Direct session-kernel fixtures independently enforce 44/43
+control-work and 22/21 peak-workspace boundaries. The resource gate now binds
+all three session source paths, but the providerless synchronous lane and the
+remaining operation-specific resource proofs still prevent full closure.
+
+The selected `json_pick` path now uses the shared bounded Relation row
+evaluator. Its object-field search charges one field visit or UTF-16 scalar
+per resume step, and the selected provider is required by the managed
+three-target fixture. The Node standard Host also exercises the separate
+and same-stage forms through two consumers and delivers an in-flight timer
+cancel to the selected step. An independent 20/19 control-work and 13/12
+structural-workspace fixture covers one admitted leaf. The original
+whole-sequence entrypoint remains synchronous, and nested value admission
+inside one output-cell step is not yet bounded. Neither the strict resource
+gate nor the overall Local closure is claimed by this selected-path change.
+
+An exact retained Acquisition Relation can now feed a registered bounded
+Relation provider through the normal Host. The selected attempt reserves a
+full-producer import, streams the admitted file through the existing typed
+reader, verifies the complete logical identity, and rebinds only that exact
+receiving port before the provider starts. The original retained holding stays
+owned until all consumers close. The Node standard Host runs both a
+filter/select chain and a count/filter chain from a real DuckDB retained
+capture through two downstream Computes, checks the output cardinalities,
+and reclaims Store and Run reservations. Independent value expectations for
+these kernels remain in the three-target MoonBit fixtures. A configured Store
+still selects the established file-producing path, since the managed provider
+currently returns an in-memory output. This closes the selected retained-input
+connection, not every providerless synchronous path or the strict
+operation-specific resource gate.

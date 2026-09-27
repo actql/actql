@@ -18,8 +18,13 @@ fn[T : IndexedRows] count_groups(
   max_groups : Int,
   control : ControlBudget,
   workspace : RowWorkspace,
+  count_if_columns? : Array[Bool] = [],
 ) -> Result[Array[CountedGroup], OrderingIssue] {
   if max_groups < 0 ||
+    (
+      !count_if_columns.is_empty() &&
+      count_if_columns.length() != columns.length()
+    ) ||
     control.remaining < 0 ||
     workspace.live < 0 ||
     workspace.live > workspace.limit ||
@@ -86,7 +91,16 @@ fn[T : IndexedRows] count_groups(
         }
         let counted = match columns[i] {
           None => true
-          Some(column) => !(input.read_cell(row, column) is Null)
+          Some(column) =>
+            if !count_if_columns.is_empty() && count_if_columns[i] {
+              match input.read_cell(row, column) {
+                Boolean(true) => true
+                Boolean(false) | Null => false
+                _ => return Err(InvalidInput)
+              }
+            } else {
+              !(input.read_cell(row, column) is Null)
+            }
         }
         if counted {
           counts[i] += 1

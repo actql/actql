@@ -415,6 +415,37 @@ pub fn strategy_fixture_sga_traverse_sized_create(
 }
 
 ///|
+#export_name("strategyFixtureSgaShortestSizedCreate")
+pub fn strategy_fixture_sga_shortest_sized_create(
+  environment_json : String,
+  environment_cid : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  program_json : String,
+  rows : Int64,
+) -> StrategyFixture {
+  strategy_fixture_create_impl(
+    environment_json,
+    environment_cid,
+    registry_json,
+    values_json,
+    fragment_json,
+    query_json,
+    evidence_json,
+    two_receipt_json,
+    program_json,
+    false,
+    sga=true,
+    shortest=true,
+    sga_rows=Some(rows),
+  )
+}
+
+///|
 #export_name("strategyFixtureSgaTraversePathsSizedCreate")
 pub fn strategy_fixture_sga_traverse_paths_sized_create(
   environment_json : String,
@@ -466,6 +497,7 @@ fn strategy_fixture_create_impl(
   components? : Bool = false,
   components_rows? : Int64 = 2L,
   reach? : Bool = false,
+  shortest? : Bool = false,
   traverse? : Bool = false,
   traverse_paths? : Bool = false,
   sga_rows? : Int64? = None,
@@ -485,6 +517,7 @@ fn strategy_fixture_create_impl(
       components~,
       components_rows~,
       reach~,
+      shortest~,
       traverse~,
       traverse_paths~,
       sga_rows~,
@@ -568,14 +601,16 @@ fn strategy_fixture_create_impl(
       None => []
     }
     @acquisition_host.close_native_host(native.host) // unused fixture issuer, not real Host
-    let extended = @program_check.unit_count(program) > 4
+    // A single authored Stage may expand into several bounded physical tasks.
+    let extended = @program_check.unit_count(program) > 4 ||
+      @strategy.graph_task_count(graph) > 4
     let ledger = @resources.create_ledger({
       planning_work: if join || multiple_resources {
         100000
       } else {
         10000
       },
-      attempts: if join || multiple_resources {
+      attempts: if join || multiple_resources || extended {
         20
       } else {
         10
@@ -591,7 +626,13 @@ fn strategy_fixture_create_impl(
         300000L
       },
       retained_bytes: if extended {
-        64000000L
+        // Retain every internal output until the fixture closes the Run.
+        // Each selected Local output reserves 7,760,000 bytes under the
+        // fixed execution limits; include the captured source allowance.
+        Int64::max(
+          64000000L,
+          @strategy.graph_task_count(graph).to_int64() * 8000000L,
+        )
       } else {
         32000000L
       },

@@ -7,6 +7,7 @@ struct CompletionPreparation {
   sequence : @lower.PreparedSequence
   retained_ids : Array[String]
   selected_step : Int?
+  selected_terminal_step : Int?
 }
 
 ///|
@@ -41,6 +42,7 @@ pub fn prepare_completion(
     sequence,
     retained_ids: retained_ids.copy(),
     selected_step: None,
+    selected_terminal_step: None,
   })
 }
 
@@ -58,6 +60,10 @@ pub fn generated_completion_preparation(
       Some([step]) => Some(step)
       _ => None
     },
+    selected_terminal_step: match generated.selected_steps {
+      Some(steps) => steps.get(steps.length() - 1)
+      None => generated.selected_prefix_end
+    },
   }
 }
 
@@ -67,6 +73,16 @@ pub fn completion_preparation_selected_step(
   value : CompletionPreparation,
 ) -> Int? {
   value.selected_step
+}
+
+///|
+/// Exact output step for a selected single occurrence or fused prefix.
+pub fn completion_preparation_terminal_step(
+  value : CompletionPreparation,
+) -> Int {
+  value.selected_terminal_step.unwrap_or(
+    @lower.sequence_count(value.sequence) - 1,
+  )
 }
 
 ///|

@@ -119,7 +119,8 @@ fn evaluate_expression_with_workspace(
   workspace : RowWorkspace,
   logical_work? : LogicalBudget? = None,
 ) -> Result[Value, EvalIssue] {
-  match
+  release_expression_result(
+    root,
     evaluate_expression_retained(
       root,
       input,
@@ -127,7 +128,16 @@ fn evaluate_expression_with_workspace(
       budget,
       workspace,
       logical_work~,
-    ) {
+    ),
+  )
+}
+
+///|
+fn release_expression_result(
+  root : @lower.Expression,
+  result : Result[EvaluatedValue, EvalIssue],
+) -> Result[Value, EvalIssue] {
+  match result {
     Err(e) => Err(e)
     Ok(result) => {
       if result.root is Some(lease) {
@@ -154,6 +164,16 @@ fn evaluate_expression_retained(
   let result = evaluate_expression_impl(
     root, input, slots, budget, workspace, scope,
   )
+  check_expression_result(root, result, logical_work)
+}
+
+///|
+/// Apply the same detached-root limit to draining and resumable callers.
+fn check_expression_result(
+  root : @lower.Expression,
+  result : Result[EvaluatedValue, EvalIssue],
+  logical_work : LogicalBudget?,
+) -> Result[EvaluatedValue, EvalIssue] {
   // The final-root ceiling is separate from retained-row limits. Acquisition
   // mode also checks intermediate roots in the shared result event. Reuse the
   // already measured successful root;

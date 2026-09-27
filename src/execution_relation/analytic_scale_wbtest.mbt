@@ -89,20 +89,59 @@ test "analytic frame demand uses one interval pass per source" {
       "\"field\":\"amount\"}}}",
     )
     let analytic = @lower.kernel_analytic(row_kernel(owner, 0)).unwrap()
-    let frame = @lower.analytic_frame(analytic).unwrap()
-    let sorted = Array::makei(count, index => index)
-    let control = { remaining: count * 3, max_frames: 100, }
-    let workspace = { limit: count * 2 + 1, live: 0, peak: 0, }
-    let (demanded, visits) = prepare_analytic_aggregate_demand(
-      sorted,
-      [{ start: 0, end: count, }],
-      frame,
+    let template = analytic_execution_input(owner)
+    let input : Table = {
+      ..template,
+      rows: Array::makei(count, index => {
+        template.names.map(name => {
+          match name {
+            "amount" | "id" => Number(index.to_double())
+            "group" => Text("g")
+            _ => abort("unexpected analytic scale field")
+          }
+        })
+      }),
+    }
+    let control = { remaining: 100000000, max_frames: 100, }
+    let workspace = { limit: count * 100 + 1000, live: 0, peak: 0, }
+    let state = start_analytic_evaluation(
+      analytic,
+      input,
+      count,
       control,
+      value_budget({
+        max_nodes: 100000000,
+        max_text_bytes: 100000000,
+        max_depth: 100,
+        max_work: 100000000,
+      }).unwrap(),
       workspace,
-    ).unwrap()
-    assert_eq(visits, count * 2)
-    assert_true(demanded.all(value => value))
-    assert_eq(workspace.peak, count * 2 + 1)
+      None,
+      [],
+      None,
+      run_limits().input_values,
+      None,
+      0,
+      (_, _) => Ok(()),
+    )
+    // The demand phase visits every relative position and then every sorted
+    // position once: two control units per source.
+    let mut demand_work = 0
+    let mut done = false
+    while !done {
+      let phase = state.phase
+      let before = control.remaining
+      match advance_analytic_evaluation(state) {
+        Ok(None) => ()
+        Ok(Some(_)) => done = true
+        Err(_) => fail("analytic demand sample failed")
+      }
+      if phase == 12 {
+        demand_work += before - control.remaining
+      }
+    }
+    assert_eq(demand_work, count * 2)
+    assert_true(state.aggregate_demand.all(value => value))
   }
 }
 

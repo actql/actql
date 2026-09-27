@@ -142,9 +142,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       return true
     }
   }
-  let count = @lower.sequence_count(
-    @execution.generated_prepared_sequence(sequence),
-  )
+  let count = @execution.generated_sequence_step_count(sequence)
   if count == 1 {
     guard @lower.sequence_step(
         @execution.generated_prepared_sequence(sequence),
@@ -355,6 +353,7 @@ fn advance_execution(
             value.generated,
             inputs[0],
             value.max_rows,
+            value.execution_limits.rows.input_values,
             value.execution_limits.rows.output_values,
             value.execution_limits.max_work,
             value.execution_limits.max_frames,
@@ -726,6 +725,7 @@ fn advance_execution(
               limits,
               value.limits.max_workspace_slots,
               value.max_value_bytes,
+              control_work_limit=Some(value.limits.max_work),
             )
           None => {
             guard value.transformed is Some(output) &&
@@ -757,6 +757,7 @@ fn advance_execution(
               value.limits.max_workspace_slots,
               value.max_value_bytes,
               inputs,
+              control_work_limit=Some(value.limits.max_work),
             )
           }
         }
@@ -1066,6 +1067,7 @@ fn advance_execution(
             value.limits.max_workspace_slots,
             value.limits.max_workspace_slots,
             value.max_value_bytes,
+            control_work_limit=Some(value.limits.max_work),
           ) {
           Ok(execution) => execution
           Err(_) => return fail_execution(value)
@@ -1238,31 +1240,7 @@ pub fn provider(
     accepts,
     fn(sequence) {
       if accepts(sequence) {
-        let selected = @execution.completion_preparation_selected_step(
-            @execution.generated_completion_preparation(sequence),
-          )
-          is Some(_)
-        let direct_bridge = selected &&
-          @execution.generated_sequence_step_index_at(sequence, 0) is Some(step) &&
-          @lower.node_at(
-            @lower.bound_preparation(
-              @execution.generated_sequence_owner(sequence),
-            ),
-            step,
-          )
-          .map(node => {
-            let operation = @lower.operation(node)
-            operation == "BRIDGE.rows.to_vectors" ||
-            operation == "BRIDGE.vectors.to_rows"
-          })
-          .unwrap_or(false)
-        let count = if direct_bridge {
-          @execution.generated_sequence_step_count(sequence)
-        } else {
-          @lower.sequence_count(
-            @execution.generated_prepared_sequence(sequence),
-          )
-        }
+        let count = @execution.generated_sequence_step_count(sequence)
         if count == 1 {
           Some(capacity)
         } else {
@@ -1279,24 +1257,7 @@ pub fn provider(
       let selected_step = @execution.completion_preparation_selected_step(
         @execution.generated_completion_preparation(sequence),
       )
-      let direct_bridge = selected_step is Some(step) &&
-        @lower.node_at(
-          @lower.bound_preparation(
-            @execution.generated_sequence_owner(sequence),
-          ),
-          step,
-        )
-        .map(node => {
-          let operation = @lower.operation(node)
-          operation == "BRIDGE.rows.to_vectors" ||
-          operation == "BRIDGE.vectors.to_rows"
-        })
-        .unwrap_or(false)
-      let count = if direct_bridge {
-        @execution.generated_sequence_step_count(sequence)
-      } else {
-        @lower.sequence_count(@execution.generated_prepared_sequence(sequence))
-      }
+      let count = @execution.generated_sequence_step_count(sequence)
       guard @execution.generated_sequence_step_index_at(sequence, 0)
         is Some(first_step) else {
         return Err(@connector.InvalidLimits)

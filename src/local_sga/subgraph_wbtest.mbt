@@ -188,6 +188,193 @@ test "subgraph cancellation reclaims unpublished output" {
 }
 
 ///|
+test "subgraph admits exact combined selector and output workspace" {
+  let producer = source_owner()
+  let source = subgraph_source_graph(producer, Ref(true))
+  let owner = subgraph_owner(producer, "[1,2]")
+  let input = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  // Three selection flags and two pairs of selector slots coexist with two
+  // five-slot nodes and one eight-slot labeled edge in the output builder.
+  let execution = start_subgraph(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    None,
+    { ..storage_limits(), max_workspace_slots: 25, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut output : @graph.Completed? = None
+  for _ in 0..<64 {
+    if output is None {
+      match advance_subgraph(execution, 1).unwrap() {
+        SubgraphContinue(_) => ()
+        SubgraphComplete(value, ..) => output = Some(value)
+        SubgraphFailed(_, ..) =>
+          fail("exact selector and output workspace did not complete")
+        SubgraphStopped(_, ..) => fail("exact selector workspace stopped")
+      }
+    }
+  }
+  assert_true(output is Some(_))
+  assert_eq(cleanup_subgraph(execution), Ok(true))
+}
+
+///|
+test "subgraph rejects one short combined selector and output workspace" {
+  let producer = source_owner()
+  let source = subgraph_source_graph(producer, Ref(true))
+  let owner = subgraph_owner(producer, "[1,2]")
+  let input = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let execution = start_subgraph(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    None,
+    { ..storage_limits(), max_workspace_slots: 24, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut failed = false
+  for _ in 0..<64 {
+    if !failed {
+      match advance_subgraph(execution, 1).unwrap() {
+        SubgraphContinue(_) => ()
+        SubgraphFailed(
+          SubgraphOutput(@graph.Storage(@storage.WorkspaceLimit)),
+          ..
+        ) => failed = true
+        SubgraphComplete(_, ..)
+        | SubgraphFailed(_, ..)
+        | SubgraphStopped(_, ..) =>
+          fail("one-short combined workspace was not enforced")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(subgraph_cleanup_pending(execution))
+  assert_eq(cleanup_subgraph(execution), Ok(true))
+}
+
+///|
+test "subgraph admits exact literal-selection control work" {
+  let producer = source_owner()
+  let source = subgraph_source_graph(producer, Ref(true))
+  let owner = subgraph_owner(producer, "[1,2]")
+  // Three selection flags, two selector reads, six identity comparisons,
+  // two selector checks, three node copies, two edge checks, and one finish
+  // require exactly 19 control steps, independent of output-value work.
+  for (work, accepted) in [(19, true), (18, false)] {
+    let input = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+    let execution = start_subgraph(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      input,
+      None,
+      storage_limits(),
+      4096L,
+      fn() { true },
+      control_work_limit=Some(work),
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<64 {
+      if !terminal {
+        match advance_subgraph(execution, 1).unwrap() {
+          SubgraphContinue(work=delta, ..) => {
+            assert_true(delta >= charged && delta - charged <= 1L)
+            charged = delta
+          }
+          SubgraphComplete(output, work=delta, ..) => {
+            assert_true(delta >= charged && delta - charged <= 1L)
+            charged = delta
+            assert_true(accepted)
+            assert_true(@graph.completed_storage(output) is Some(_))
+            terminal = true
+          }
+          SubgraphFailed(SubgraphWorkLimit, work=delta, ..) => {
+            assert_true(delta >= charged && delta - charged <= 1L)
+            charged = delta
+            assert_false(accepted)
+            assert_true(subgraph_cleanup_pending(execution))
+            terminal = true
+          }
+          _ => fail("unexpected literal subgraph work result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(charged, work.to_int64())
+    assert_eq(cleanup_subgraph(execution), Ok(true))
+    assert_true(@graph.producer_read_available(input))
+  }
+}
+
+///|
+test "subgraph false edge branch retains exact work and workspace bounds" {
+  let producer = source_owner()
+  let source = subgraph_source_graph(producer, Ref(true))
+  let owner = subgraph_owner(producer, "[1,2]", edge_predicate=Some("false"))
+  // Three selection flags, four selector slots, and two five-slot nodes
+  // coexist. The false edge branch still visits both source edges, so the
+  // control path has the same independently counted 19 steps as selection.
+  for (work, slots, outcome) in [(19, 17, 0), (18, 17, 1), (19, 16, 2)] {
+    let input = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+    let execution = start_subgraph(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      input,
+      None,
+      { ..storage_limits(), max_workspace_slots: slots, },
+      4096L,
+      fn() { true },
+      control_work_limit=Some(work),
+    ).unwrap()
+    let mut terminal = false
+    let mut prior_work = 0L
+    for _ in 0..<64 {
+      if !terminal {
+        match advance_subgraph(execution, 1).unwrap() {
+          SubgraphContinue(work=charged, ..) => {
+            assert_true(charged >= prior_work && charged - prior_work <= 1L)
+            prior_work = charged
+          }
+          SubgraphComplete(output, work=charged, ..) => {
+            assert_eq(outcome, 0)
+            assert_true(charged - prior_work <= 1L)
+            guard @graph.completed_storage(output) is Some(material) else {
+              fail("false edge output missing")
+            }
+            assert_eq(@storage.node_count(material), 2)
+            assert_eq(@storage.edge_count(material), 0)
+            terminal = true
+          }
+          SubgraphFailed(SubgraphWorkLimit, ..) => {
+            assert_eq(outcome, 1)
+            terminal = true
+          }
+          SubgraphFailed(
+            SubgraphOutput(@graph.Storage(@storage.WorkspaceLimit)),
+            ..
+          ) => {
+            assert_eq(outcome, 2)
+            terminal = true
+          }
+          _ => fail("false edge boundary had another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(cleanup_subgraph(execution), Ok(true))
+    assert_true(@graph.producer_read_available(input))
+  }
+}
+
+///|
 test "subgraph rejects every missing identity before materialization" {
   let producer = source_owner()
   let source = subgraph_source_graph(producer, Ref(true))

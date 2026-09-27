@@ -16,26 +16,47 @@ fn event_window_cursor(text : String) -> @decode.Cursor {
 }
 
 ///|
-fn event_window_relation() -> @carrier.Carrier {
+fn event_window_relation(
+  timestamp? : Bool = false,
+  wide? : Bool = false,
+) -> @carrier.Carrier {
+  let fields = [
+    (
+      @schema.Unqualified("event_id"),
+      Some(@contract.primitive(@contract.NumberType, nullable=false)),
+    ),
+    (
+      @schema.Unqualified("occurred_at"),
+      Some(
+        @contract.primitive(
+          if timestamp {
+            @contract.TimestampType
+          } else {
+            @contract.NumberType
+          },
+          nullable=false,
+        ),
+      ),
+    ),
+    (
+      @schema.Unqualified("payload"),
+      Some(@contract.primitive(@contract.StringType, nullable=false)),
+    ),
+  ]
+  if wide {
+    fields.push(
+      (
+        @schema.Unqualified("payload_extra"),
+        Some(@contract.primitive(@contract.StringType, nullable=false)),
+      ),
+    )
+  }
   @carrier.relation(
     @carrier.rows(
-      [
-        (
-          @schema.Unqualified("event_id"),
-          Some(@contract.primitive(@contract.NumberType, nullable=false)),
-        ),
-        (
-          @schema.Unqualified("occurred_at"),
-          Some(@contract.primitive(@contract.NumberType, nullable=false)),
-        ),
-        (
-          @schema.Unqualified("payload"),
-          Some(@contract.primitive(@contract.StringType, nullable=false)),
-        ),
-      ],
+      fields,
       field_set=@carrier.Closed,
-      max_fields=3,
-      max_name_bytes=26,
+      max_fields=if wide { 4 } else { 3 },
+      max_name_bytes=if wide { 39 } else { 26 },
     ).unwrap(),
   )
 }
@@ -58,13 +79,16 @@ fn event_window_bind(
 }
 
 ///|
-fn event_window_producer() -> @lower.BoundPrepared {
+fn event_window_producer(
+  timestamp? : Bool = false,
+  wide? : Bool = false,
+) -> @lower.BoundPrepared {
   event_window_bind(
     @pipeline.check_carriers(
       event_window_cursor(
         "[{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\",\"time\":\"occurred_at\"}}]",
       ),
-      [("rows", event_window_relation())],
+      [("rows", event_window_relation(timestamp~, wide~))],
       None,
       None,
       {
@@ -136,11 +160,12 @@ fn event_window_sequence(
 fn event_window_limits(
   max_records? : Int = 20,
   workspace? : Int = 100,
+  fields? : Int = 5,
 ) -> @storage.Limits {
   {
     max_input_records: 10,
     max_records,
-    max_fields_per_record: 5,
+    max_fields_per_record: fields,
     max_value_bytes: 1000,
     max_total_value_bytes: 10000,
     max_retained_value_bytes: 10000,
@@ -175,6 +200,7 @@ fn event_window_source(
   owner : @lower.BoundPrepared,
   times : Array[Double],
   live : Ref[Bool],
+  wide? : Bool = false,
 ) -> @records.Completed {
   let output = @records.prepare_output(
     owner,
@@ -184,7 +210,7 @@ fn event_window_source(
     fn() { live.val },
   ).unwrap()
   for index, time in times {
-    @records.append_record(output, [
+    let fields = [
       (
         @schema.Unqualified("event_id"),
         event_window_number(index.to_double() + 1.0),
@@ -194,8 +220,44 @@ fn event_window_source(
         @schema.Unqualified("payload"),
         event_window_text("p" + index.to_string()),
       ),
-    ]).unwrap()
+    ]
+    if wide {
+      fields.push(
+        (@schema.Unqualified("payload_extra"), event_window_text("q")),
+      )
+    }
+    @records.append_record(output, fields).unwrap()
   }
+  @records.finish_output(output).unwrap()
+}
+
+///|
+fn event_window_timestamp_source(
+  owner : @lower.BoundPrepared,
+  live : Ref[Bool],
+  wide? : Bool = false,
+) -> @records.Completed {
+  let output = @records.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    event_window_limits(),
+    4096L,
+    fn() { live.val },
+  ).unwrap()
+  let time = @value.admit(
+    @contract.primitive(@contract.TimestampType, nullable=false),
+    event_window_cursor("\"1970-01-01T00:00:00.009Z\""),
+    { max_nodes: 1, max_depth: 1, max_text_bytes: 100, },
+  ).unwrap()
+  let fields = [
+    (@schema.Unqualified("event_id"), event_window_number(1.0)),
+    (@schema.Unqualified("occurred_at"), time),
+    (@schema.Unqualified("payload"), event_window_text("p0")),
+  ]
+  if wide {
+    fields.push((@schema.Unqualified("payload_extra"), event_window_text("q")))
+  }
+  @records.append_record(output, fields).unwrap()
   @records.finish_output(output).unwrap()
 }
 
@@ -285,15 +347,17 @@ test "fixed and sliding event windows preserve order with bounded steps" {
 }
 
 ///|
-test "event windows terminate when binary grid subtraction cannot progress" {
+// Expectations are transcribed from the separately authored
+// portability/corpus/event-window-boundaries.json.
+test "event windows use exact grids and reject unrepresentable boundaries" {
   let producer = event_window_producer()
   let live = Ref(true)
   for
     (time, step, arithmetic) in [
-      (9007199254740992.0, 1, false),
+      (9007199254740992.0, 1, true),
       (9007199254740992.0, 2, false),
       (18014398509481984.0, 1, true),
-      (18014398509481984.0, 2, false),
+      (18014398509481984.0, 2, true),
       (18014398509481984.0, 4, false),
       (-9007199254740992.0, 1, true),
       (-9007199254740992.0, 2, false),
@@ -364,6 +428,74 @@ test "event windows terminate when binary grid subtraction cannot progress" {
 }
 
 ///|
+test "event windows distinguish exact membership from boundary encoding" {
+  let producer = event_window_producer()
+  let live = Ref(true)
+  for
+    (time, body, expected_start, expected_end) in [
+      (-0.5, "{\"kind\":\"fixed\",\"size\":10}", -10.0, 0.0),
+      (0.5, "{\"kind\":\"fixed\",\"size\":10}", 0.0, 10.0),
+      (
+        9007199254740992.0, "{\"kind\":\"fixed\",\"size\":8}", 9007199254740992.0,
+        9007199254741000.0,
+      ),
+      (
+        18014398509481984.0, "{\"kind\":\"fixed\",\"size\":4}", 18014398509481984.0,
+        18014398509481988.0,
+      ),
+      (
+        9223372036854775808.0, "{\"kind\":\"fixed\",\"size\":2048}", 9223372036854775808.0,
+        9223372036854777856.0,
+      ),
+      (
+        -9223372036854775808.0, "{\"kind\":\"fixed\",\"size\":2048}", -9223372036854775808.0,
+        -9223372036854773760.0,
+      ),
+    ] {
+    let owner = event_window_owner(producer, body)
+    let source = event_window_source(producer, [time], live)
+    let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+    let (output, _) = event_window_finish(
+      start_event_window(
+        @bounded.control(),
+        event_window_sequence(owner),
+        0,
+        read,
+        event_window_limits(),
+        4096L,
+        fn() { true },
+      ).unwrap(),
+    )
+    let storage = @records.completed_storage(output).unwrap()
+    assert_eq(@storage.record_count(storage), 1)
+    assert_eq(event_window_field(storage, 0, "window_start_ms"), expected_start)
+    assert_eq(event_window_field(storage, 0, "window_end_ms"), expected_end)
+    assert_true(@records.discard_completed(output))
+    assert_true(@records.discard_completed(source))
+  }
+  let owner = event_window_owner(
+    producer, "{\"kind\":\"sliding\",\"size\":1,\"step\":3,\"offset\":1}",
+  )
+  let source = event_window_source(producer, [9007199254740992.0], live)
+  let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let (output, _) = event_window_finish(
+    start_event_window(
+      @bounded.control(),
+      event_window_sequence(owner),
+      0,
+      read,
+      event_window_limits(),
+      4096L,
+      fn() { true },
+    ).unwrap(),
+  )
+  let storage = @records.completed_storage(output).unwrap()
+  assert_eq(@storage.record_count(storage), 0)
+  assert_true(@records.discard_completed(output))
+  assert_true(@records.discard_completed(source))
+}
+
+///|
 test "event windows admit capacity before allocation and clean cancellation" {
   let producer = event_window_producer()
   let owner = event_window_owner(
@@ -423,4 +555,198 @@ test "event windows admit capacity before allocation and clean cancellation" {
   assert_true(cleanup_event_window(execution).unwrap())
   assert_false(event_window_cleanup_pending(execution))
   assert_true(@records.discard_completed(source))
+}
+
+///|
+test "event windows admit exact control work across resumes" {
+  // Begin one record, read three fields, prepare membership, seek once,
+  // build and commit one window, then finish: nine fixed control steps.
+  // Sliding takes one additional seek and one additional build/commit pair.
+  for
+    (body, time, exact, rows, timestamp_clock, wide) in [
+      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 9, 1, false, false),
+      (
+        "{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 12, 2, false, false,
+      ),
+      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 9, 1, true, false),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 12, 2, true, false),
+      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 10, 1, false, true),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 13, 2, false, true),
+      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 10, 1, true, true),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 13, 2, true, true),
+    ] {
+    let producer = event_window_producer(timestamp=timestamp_clock, wide~)
+    let owner = event_window_owner(producer, body)
+    let source = if timestamp_clock {
+      event_window_timestamp_source(producer, Ref(true), wide~)
+    } else {
+      event_window_source(producer, [time], Ref(true), wide~)
+    }
+    for (limit, accepted) in [(exact, true), (exact - 1, false)] {
+      let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+      let execution = start_event_window(
+        @bounded.control(),
+        event_window_sequence(owner),
+        0,
+        read,
+        event_window_limits(fields=if wide { 6 } else { 5 }),
+        4096L,
+        fn() { true },
+        control_work_limit=Some(limit),
+      ).unwrap()
+      let mut terminal = false
+      let mut charged = 0L
+      for _ in 0..<32 {
+        if !terminal {
+          match advance_event_window(execution, 1).unwrap() {
+            EventWindowContinue(work~, ..) => {
+              assert_true(work >= charged && work - charged <= 1L)
+              charged = work
+            }
+            EventWindowComplete(output, work~, ..) => {
+              assert_true(work >= charged && work - charged <= 1L)
+              charged = work
+              assert_true(accepted)
+              assert_eq(
+                @storage.record_count(
+                  @records.completed_storage(output).unwrap(),
+                ),
+                rows,
+              )
+              assert_true(@records.discard_completed(output))
+              terminal = true
+            }
+            EventWindowFailed(EventWindowWorkLimit, work~, ..) => {
+              assert_true(work >= charged && work - charged <= 1L)
+              charged = work
+              assert_false(accepted)
+              assert_true(event_window_cleanup_pending(execution))
+              terminal = true
+            }
+            _ => fail("unexpected event-window work result")
+          }
+        }
+      }
+      assert_true(terminal)
+      assert_eq(charged, limit.to_int64())
+      assert_true(cleanup_event_window(execution).unwrap())
+      assert_true(@records.producer_read_available(read))
+    }
+    assert_true(@records.discard_completed(source))
+  }
+}
+
+///|
+test "event windows admit exact fixed and sliding workspace" {
+  // Each emitted record has five declared fields and two window boundaries.
+  // One fixed record needs seven slots; two sliding records need 14.
+  for
+    (body, time, workspace, rows, timestamp_clock, wide) in [
+      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 7, 1, false, false),
+      (
+        "{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 14, 2, false, false,
+      ),
+      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 7, 1, true, false),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 14, 2, true, false),
+      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 8, 1, false, true),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 16, 2, false, true),
+      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 8, 1, true, true),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 16, 2, true, true),
+    ] {
+    let producer = event_window_producer(timestamp=timestamp_clock, wide~)
+    let owner = event_window_owner(producer, body)
+    let source = if timestamp_clock {
+      event_window_timestamp_source(producer, Ref(true), wide~)
+    } else {
+      event_window_source(producer, [time], Ref(true), wide~)
+    }
+    let short_read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+    assert_true(
+      start_event_window(
+        @bounded.control(),
+        event_window_sequence(owner),
+        0,
+        short_read,
+        event_window_limits(
+          max_records=rows,
+          workspace=workspace - 1,
+          fields=if wide { 6 } else { 5 },
+        ),
+        4096L,
+        fn() { true },
+      )
+      is Err(InvalidEventWindowLimits),
+    )
+    let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+    let execution = start_event_window(
+      @bounded.control(),
+      event_window_sequence(owner),
+      0,
+      read,
+      event_window_limits(
+        max_records=rows,
+        workspace~,
+        fields=if wide { 6 } else { 5 },
+      ),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    let (output, _) = event_window_finish(execution)
+    assert_eq(
+      @storage.record_count(@records.completed_storage(output).unwrap()),
+      rows,
+    )
+    assert_true(cleanup_event_window(execution).unwrap())
+    assert_true(@records.discard_completed(output))
+    assert_true(@records.producer_read_available(read))
+    assert_true(@records.discard_completed(source))
+  }
+}
+
+///|
+test "empty event windows stop at the exact finish-work boundary" {
+  let producer = event_window_producer()
+  for
+    body in [
+      "{\"kind\":\"fixed\",\"size\":10}", "{\"kind\":\"sliding\",\"size\":10,\"step\":5}",
+    ] {
+    let owner = event_window_owner(producer, body)
+    let source = event_window_source(producer, [], Ref(true))
+    let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+    assert_true(
+      start_event_window(
+        @bounded.control(),
+        event_window_sequence(owner),
+        0,
+        read,
+        event_window_limits(max_records=0),
+        4096L,
+        fn() { true },
+        control_work_limit=Some(0),
+      )
+      is Err(EventWindowWorkLimit),
+    )
+    let execution = start_event_window(
+      @bounded.control(),
+      event_window_sequence(owner),
+      0,
+      read,
+      event_window_limits(max_records=0),
+      4096L,
+      fn() { true },
+      control_work_limit=Some(1),
+    ).unwrap()
+    match advance_event_window(execution, 1).unwrap() {
+      EventWindowComplete(output, progress=0L, work=1L) => {
+        assert_eq(
+          @storage.record_count(@records.completed_storage(output).unwrap()),
+          0,
+        )
+        assert_true(@records.discard_completed(output))
+      }
+      _ => fail("empty window did not finish in one charged step")
+    }
+    assert_true(cleanup_event_window(execution).unwrap())
+    assert_true(@records.discard_completed(source))
+  }
 }

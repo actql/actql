@@ -2,8 +2,18 @@
 fn bounded_sequence_source(
   empty? : Bool = false,
   unicode? : Bool = false,
+  extra_columns? : Int = 0,
 ) -> (@lower.BoundPrepared, CompletedOutput) raise {
+  if extra_columns < 0 || (extra_columns > 0 && !empty) {
+    fail("wide sequence source requires empty rows")
+  }
   let key = if unicode { "clé" } else { "key" }
+  let mut extra_schema = ""
+  for index in 0..<extra_columns {
+    extra_schema += ",\"z" +
+      index.to_string() +
+      "\":{\"type\":\"number\",\"nullable\":false}"
+  }
   let rows = if empty {
     "[]"
   } else {
@@ -29,7 +39,9 @@ fn bounded_sequence_source(
     key +
     "\":{\"type\":\"number\",\"nullable\":false}," +
     "\"clock\":{\"type\":\"number\",\"nullable\":false}," +
-    "\"value\":{\"type\":\"number\",\"nullable\":false}}," +
+    "\"value\":{\"type\":\"number\",\"nullable\":false}" +
+    extra_schema +
+    "}," +
     "\"rows\":" +
     rows +
     "}," +
@@ -60,13 +72,20 @@ fn bounded_sequence_try_fixture(
   max_output_rows? : Int? = None,
   max_work? : Int = 100000,
   max_rows? : Int = 100,
+  max_entries? : Int = 10000,
   unicode? : Bool = false,
+  extra_columns? : Int = 0,
+  extra_patterns? : Int = 0,
 ) -> (
   @bounded.Control,
   Result[BoundedSequenceMatchExecution, BoundedSequenceMatchIssue],
   ProducerRead,
 ) raise {
-  let (source_owner, source_output) = bounded_sequence_source(empty~, unicode~)
+  let (source_owner, source_output) = bounded_sequence_source(
+    empty~,
+    unicode~,
+    extra_columns~,
+  )
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
     @pipeline.Step(0),
@@ -76,6 +95,12 @@ fn bounded_sequence_try_fixture(
     None => ""
   }
   let key = if unicode { "clé" } else { "key" }
+  let mut pattern_tail = ""
+  for index in 0..<extra_patterns {
+    pattern_tail += ",{\"as\":\"extra_" +
+      index.to_string() +
+      "\",\"where\":\"value = 2\"}"
+  }
   let checked = @pipeline.check_with_evidence(
     input_cursor(
       "[{\"from\":\"events\",\"sequence\":{\"by\":" +
@@ -83,7 +108,9 @@ fn bounded_sequence_try_fixture(
       "," +
       "\"id\":\"id\",\"time\":\"clock\",\"pattern\":[{" +
       "\"as\":\"start\",\"where\":\"value = 1\"},{" +
-      "\"as\":\"end\",\"where\":\"value = 2\"}]," +
+      "\"as\":\"end\",\"where\":\"value = 2\"}" +
+      pattern_tail +
+      "]," +
       "\"within\":10,\"overlap\":\"" +
       overlap +
       "\",\"contiguity\":\"" +
@@ -126,7 +153,7 @@ fn bounded_sequence_try_fixture(
   let input = prepare_producer_read(
     receiver,
     bind_completed_input(receiver, 0, source_owner, source_output).unwrap(),
-    100,
+    10000,
     10000,
   ).unwrap()
   let control = @bounded.control()
@@ -138,7 +165,7 @@ fn bounded_sequence_try_fixture(
     run_limits().output_values,
     max_work,
     100,
-    10000,
+    max_entries,
     10000,
   )
   (control, execution, input)
@@ -153,7 +180,9 @@ fn bounded_sequence_fixture(
   max_output_rows? : Int? = None,
   max_work? : Int = 100000,
   max_rows? : Int = 100,
+  max_entries? : Int = 10000,
   unicode? : Bool = false,
+  extra_patterns? : Int = 0,
 ) -> (@bounded.Control, BoundedSequenceMatchExecution, ProducerRead) raise {
   let (control, execution, input) = bounded_sequence_try_fixture(
     overlap~,
@@ -163,7 +192,9 @@ fn bounded_sequence_fixture(
     max_output_rows~,
     max_work~,
     max_rows~,
+    max_entries~,
     unicode~,
+    extra_patterns~,
   )
   (control, execution.unwrap(), input)
 }
@@ -173,6 +204,9 @@ fn assert_bounded_sequence_scratch_reclaimed(
   execution : BoundedSequenceMatchExecution,
 ) -> Unit raise {
   let state = bounded_sequence_match_state(execution)
+  assert_eq(state.input_names.length(), 0)
+  assert_eq(state.key_columns.length(), 0)
+  assert_eq(state.output_names.length(), 0)
   assert_true(state.sort is None)
   assert_true(state.predicate_execution is None)
   assert_true(state.output is None)
@@ -224,10 +258,18 @@ test "bounded sequence match resumes and preserves canonical match order" {
 test "bounded sequence match cancels without publishing partial rows" {
   let (control, execution, input) = bounded_sequence_fixture()
   assert_eq(bounded_sequence_match_state(execution).predicate_entries.val, 0)
-  match advance_bounded_sequence_match(execution, 8).unwrap() {
-    BoundedSequenceMatchContinue(..) => ()
-    _ => fail("expected partial sequence progress")
+  let mut reached_predicates = false
+  for _ in 0..<64 {
+    if bounded_sequence_match_state(execution).predicate_entries.val > 0 {
+      reached_predicates = true
+      break
+    }
+    match advance_bounded_sequence_match(execution, 1).unwrap() {
+      BoundedSequenceMatchContinue(..) => ()
+      _ => fail("expected partial sequence progress")
+    }
   }
+  assert_true(reached_predicates)
   assert_true(bounded_sequence_match_state(execution).predicate_entries.val > 0)
   assert_true(@bounded.request_cancel(control))
   match advance_bounded_sequence_match(execution, 1).unwrap() {
@@ -272,20 +314,15 @@ fn finish_bounded_sequence(
 
 ///|
 test "bounded sequence work boundary charges output before row allocation" {
-  let maximum = 100000
-  let (_, measured, _) = bounded_sequence_fixture(max_work=maximum)
-  assert_true(
-    finish_bounded_sequence(measured) is BoundedSequenceMatchComplete(_, ..),
-  )
-  let required = maximum -
-    bounded_sequence_match_state(measured).control.remaining
-  assert_true(required > 0)
-  cleanup_bounded_sequence_match(measured).unwrap() |> ignore
-
+  // Fixed five-row, two-pattern fixture: field resolution, two indexed
+  // orders, identity checks, demanded predicates, matches, and emitted rows
+  // consume 621 logical work units. Do not derive this limit from the kernel.
+  let required = 621
   let (_, exact, _) = bounded_sequence_fixture(max_work=required)
   assert_true(
     finish_bounded_sequence(exact) is BoundedSequenceMatchComplete(_, ..),
   )
+  assert_eq(bounded_sequence_match_state(exact).control.remaining, 0)
   cleanup_bounded_sequence_match(exact).unwrap() |> ignore
 
   let (_, short, _) = bounded_sequence_fixture(max_work=required - 1)
@@ -303,43 +340,205 @@ test "bounded sequence work boundary charges output before row allocation" {
 }
 
 ///|
-test "bounded sequence startup work exhaustion remains a resource error" {
-  for (grouped, unicode) in [(true, false), (false, false), (true, true)] {
-    let maximum = 100000
-    let (measured_control, measured, _) = bounded_sequence_fixture(
-      grouped~,
-      max_work=maximum,
-      unicode~,
-    )
-    let required_start = maximum -
-      bounded_sequence_match_state(measured).control.remaining
-    assert_true(required_start > 0)
-    assert_true(@bounded.request_cancel(measured_control))
-    assert_true(
-      advance_bounded_sequence_match(measured, 1).unwrap()
-      is BoundedSequenceMatchStopped(@bounded.Cancelled, ..),
-    )
-    assert_true(cleanup_bounded_sequence_match(measured).unwrap())
-    for budget in 0..<=required_start {
-      let (control, result, _) = bounded_sequence_try_fixture(
+test "bounded sequence admits exact and one-short workspace" {
+  // The five-row, two-pattern fixture starts with 29 metadata slots:
+  // four input names, one group key, five clocks, two pattern containers,
+  // ten predicate cells, and seven output names. During output, five
+  // ordered indices and three two-position matches add 14 more slots.
+  // The charged output row and checked copy add eight and seven slots,
+  // respectively, for a 58-slot peak.
+  let (_, early, _) = bounded_sequence_try_fixture(max_entries=28)
+  assert_true(early is Err(Rows(RowLimit)))
+  let (control, admitted, input) = bounded_sequence_try_fixture(max_entries=29)
+  let admitted = admitted.unwrap()
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_sequence_match(admitted, 1).unwrap()
+    is BoundedSequenceMatchStopped(@bounded.Cancelled, ..),
+  )
+  assert_true(cleanup_bounded_sequence_match(admitted).unwrap())
+  assert_true(producer_read_available(input))
+
+  let (_, exact, _) = bounded_sequence_fixture(max_entries=58)
+  assert_true(
+    finish_bounded_sequence(exact) is BoundedSequenceMatchComplete(_, ..),
+  )
+  assert_eq(bounded_sequence_match_state(exact).workspace.peak, 58)
+  assert_true(cleanup_bounded_sequence_match(exact).unwrap())
+  assert_bounded_sequence_scratch_reclaimed(exact)
+
+  let (_, short, input) = bounded_sequence_fixture(max_entries=57)
+  assert_true(
+    finish_bounded_sequence(short)
+    is BoundedSequenceMatchFailed(Rows(RowLimit), ..),
+  )
+  assert_true(producer_read_available(input))
+  assert_true(bounded_sequence_match_cleanup_pending(short))
+  assert_true(cleanup_bounded_sequence_match(short).unwrap())
+  assert_bounded_sequence_scratch_reclaimed(short)
+}
+
+///|
+test "bounded sequence resolves columns in charged resumable steps" {
+  // The four-column schema probes key=22, id=13, and clock=11 units.
+  // Without a key, only id and clock are demanded. The UTF-8 key adds
+  // four units across its three comparisons.
+  for
+    (grouped, unicode, required) in [
+      (true, false, 46),
+      (false, false, 24),
+      (true, true, 50),
+    ] {
+    for (budget, admitted) in [(required - 1, false), (required, true)] {
+      let (control, result, input) = bounded_sequence_try_fixture(
+        empty=true,
         grouped~,
-        max_work=budget,
         unicode~,
+        max_work=budget,
       )
-      if budget < required_start {
-        assert_true(result is Err(Rows(RowLimit)))
-      } else {
-        let execution = result.unwrap()
+      let execution = result.unwrap()
+      let state = bounded_sequence_match_state(execution)
+      assert_eq(state.input_names.length(), 0)
+      assert_eq(state.resolve_field, 0)
+      assert_eq(state.control.remaining, budget)
+      let mut resolved = false
+      let mut failed = false
+      for _ in 0..<64 {
+        if state.resolve_field ==
+          @lower.sequence_match_key_count(state.kernel) + 2 {
+          resolved = true
+          break
+        }
+        match advance_bounded_sequence_match(execution, 1).unwrap() {
+          BoundedSequenceMatchContinue(..) => ()
+          BoundedSequenceMatchFailed(Rows(RowLimit), ..) => {
+            failed = true
+            break
+          }
+          _ => fail("unexpected sequence column resolution result")
+        }
+      }
+      assert_eq(resolved, admitted)
+      assert_eq(failed, !admitted)
+      if admitted {
+        assert_eq(state.control.remaining, 0)
         assert_true(@bounded.request_cancel(control))
         assert_true(
           advance_bounded_sequence_match(execution, 1).unwrap()
           is BoundedSequenceMatchStopped(@bounded.Cancelled, ..),
         )
-        assert_true(cleanup_bounded_sequence_match(execution).unwrap())
-        assert_bounded_sequence_scratch_reclaimed(execution)
+      }
+      assert_true(cleanup_bounded_sequence_match(execution).unwrap())
+      assert_true(producer_read_available(input))
+      assert_bounded_sequence_scratch_reclaimed(execution)
+    }
+  }
+}
+
+///|
+test "bounded sequence stops during wide input-name initialization" {
+  let (control, result, input) = bounded_sequence_try_fixture(
+    empty=true,
+    extra_columns=32,
+  )
+  let execution = result.unwrap()
+  let state = bounded_sequence_match_state(execution)
+  assert_eq(state.input_names.length(), 0)
+  assert_eq(state.control.remaining, 100000)
+  for loaded in 1..<=20 {
+    match advance_bounded_sequence_match(execution, 1).unwrap() {
+      BoundedSequenceMatchContinue(progress~, work~) => {
+        assert_eq(progress, loaded.to_int64())
+        assert_eq(work, loaded.to_int64())
+      }
+      _ => fail("wide sequence initialization did not yield")
+    }
+    assert_eq(state.input_names.length(), loaded)
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_sequence_match(execution, 1).unwrap()
+    is BoundedSequenceMatchStopped(@bounded.Cancelled, ..),
+  )
+  assert_true(cleanup_bounded_sequence_match(execution).unwrap())
+  assert_true(producer_read_available(input))
+  assert_bounded_sequence_scratch_reclaimed(execution)
+}
+
+///|
+test "bounded sequence initializes allow state one pattern per resume" {
+  let (control, execution, input) = bounded_sequence_fixture(
+    extra_patterns=24,
+    max_entries=10000,
+  )
+  let state = bounded_sequence_match_state(execution)
+  let mut reached = false
+  let mut prior_work = 0L
+  for _ in 0..<2000 {
+    if !reached {
+      if state.phase is InitializeAllowPartials {
+        reached = true
+      } else {
+        match advance_bounded_sequence_match(execution, 1).unwrap() {
+          BoundedSequenceMatchContinue(work~, ..) => {
+            assert_true(work - prior_work <= 1L)
+            prior_work = work
+          }
+          _ => fail("sequence stopped before allow initialization")
+        }
       }
     }
   }
+  assert_true(reached)
+  let initial = state.partials.length()
+  assert_true(initial < state.pattern_count - 10)
+  for offset in 1..<=10 {
+    match advance_bounded_sequence_match(execution, 1).unwrap() {
+      BoundedSequenceMatchContinue(work~, ..) => {
+        assert_eq(work, prior_work + 1L)
+        prior_work = work
+      }
+      _ => fail("allow initialization did not yield")
+    }
+    assert_eq(state.partials.length(), initial + offset)
+  }
+  let mut reached_rows = false
+  for _ in 0..<100 {
+    if !reached_rows {
+      if state.phase is InitializeRowMatches {
+        reached_rows = true
+      } else {
+        match advance_bounded_sequence_match(execution, 1).unwrap() {
+          BoundedSequenceMatchContinue(work~, ..) => {
+            assert_true(work - prior_work <= 1L)
+            prior_work = work
+          }
+          _ => fail("sequence stopped before row-match initialization")
+        }
+      }
+    }
+  }
+  assert_true(reached_rows)
+  let initial_rows = state.row_matches.length()
+  assert_true(initial_rows < state.pattern_count - 10)
+  for offset in 1..<=10 {
+    match advance_bounded_sequence_match(execution, 1).unwrap() {
+      BoundedSequenceMatchContinue(work~, ..) => {
+        assert_eq(work, prior_work + 1L)
+        prior_work = work
+      }
+      _ => fail("row-match initialization did not yield")
+    }
+    assert_eq(state.row_matches.length(), initial_rows + offset)
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_sequence_match(execution, 1).unwrap()
+    is BoundedSequenceMatchStopped(@bounded.Cancelled, ..),
+  )
+  assert_true(cleanup_bounded_sequence_match(execution).unwrap())
+  assert_true(producer_read_available(input))
+  assert_bounded_sequence_scratch_reclaimed(execution)
 }
 
 ///|

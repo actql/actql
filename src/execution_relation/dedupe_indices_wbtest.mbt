@@ -1,16 +1,16 @@
 ///|
-test "dedupe groups use canonical tuple identities not scalar key order" {
+test "dedupe groups use typed key order independent of tuple identities" {
   let table = order_table([Number(2), Number(1), Number(2), Number(1)])
   let by = [{ column: 0, descending: false, nulls_first: false, }]
   let order = [{ column: 1, descending: true, nulls_first: false, }]
-  // SHA256('[2]') = 0389... < SHA256('[1]') = 080a..., independently fixed.
+  // The independent CIDs below order [2] before [1], unlike typed key order.
   assert_eq(
     dedupe_indices(table, by, order, { remaining: 100000, max_frames: 0, }, {
       limit: 1000,
       live: 0,
       peak: 0,
     }).unwrap(),
-    [2, 3],
+    [3, 2],
   )
   assert_eq(
     dedupe_key_identity(table, 0, by, { remaining: 1000, max_frames: 0, }).unwrap(),
@@ -23,6 +23,33 @@ test "dedupe groups use canonical tuple identities not scalar key order" {
     }).unwrap(),
     "e61b9f584dbe27741cef6e9ee440831d7d94470c0871b0871541f0308916efea",
   )
+}
+
+///|
+test "dedupe orders nullable compound text keys without changing survivors" {
+  let table = {
+    ..order_table([]),
+    names: ["first", "second", "priority"],
+    rows: [
+      [Text("a"), Number(2.0), Number(1.0)],
+      [Text("A"), Null, Number(2.0)],
+      [Text("a"), Null, Number(3.0)],
+      [Text("a"), Number(2.0), Number(4.0)],
+      [Text("\u{10000}"), Null, Number(5.0)],
+      [Text("\u{e000}"), Null, Number(6.0)],
+    ],
+  }
+  let indices = dedupe_indices(
+    table,
+    [
+      { column: 0, descending: false, nulls_first: false, },
+      { column: 1, descending: false, nulls_first: false, },
+    ],
+    [{ column: 2, descending: true, nulls_first: false, }],
+    { remaining: 100000, max_frames: 0, },
+    { limit: 1000, live: 0, peak: 0, },
+  ).unwrap()
+  assert_eq(indices, [1, 2, 3, 4, 5])
 }
 
 ///|
@@ -61,7 +88,7 @@ test "dedupe global partition empty input and lower-ranked ties" {
 test "dedupe top tie fails before any survivor escapes and resets only local scratch" {
   let table = order_table([Number(1), Number(1), Number(2), Number(2)])
   let by = [{ column: 0, descending: false, nulls_first: false, }]
-  // Authored order ties in both groups. CID order makes group 2 fail first.
+  // Authored order ties in both groups. Typed key 1 fails first.
   let workspace = { limit: 1000, live: 7, peak: 7, }
   assert_true(
     dedupe_indices(
@@ -71,7 +98,7 @@ test "dedupe top tie fails before any survivor escapes and resets only local scr
       { remaining: 100000, max_frames: 0, },
       workspace,
     )
-    is Err(TopTie(2, 3)),
+    is Err(TopTie(0, 1)),
   )
   assert_eq(workspace.live, 7)
   assert_eq(
@@ -82,20 +109,20 @@ test "dedupe top tie fails before any survivor escapes and resets only local scr
       { remaining: 100000, max_frames: 0, },
       workspace,
     ).unwrap(),
-    [3, 1],
+    [1, 3],
   )
   assert_eq(workspace.live, 9)
 }
 
 ///|
-test "dedupe budget exactness includes canonical identity and final group sorting" {
+test "dedupe budget exactness includes typed grouping and identity checks" {
   let table = order_table([Null, Number(1), Null, Number(1)])
   let by = [{ column: 0, descending: false, nulls_first: false, }]
   let order = [{ column: 1, descending: true, nulls_first: false, }]
   let control = { remaining: 100000, max_frames: 0, }
   let workspace = { limit: 1000, live: 5, peak: 5, }
   assert_eq(dedupe_indices(table, by, order, control, workspace).unwrap(), [
-    3, 2,
+    2, 3,
   ])
   let used = 100000 - control.remaining
   let peak = workspace.peak
@@ -114,7 +141,7 @@ test "dedupe budget exactness includes canonical identity and final group sortin
       workspace,
     )
     if good {
-      assert_eq(result.unwrap(), [3, 2])
+      assert_eq(result.unwrap(), [2, 3])
       assert_eq(workspace.live, 7)
     } else {
       assert_true(result is Err(Ordering(Limit)))

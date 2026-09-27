@@ -34,6 +34,8 @@ pub fn cleanup_watermark(WatermarkExecution) -> Result[Bool, WatermarkIssue]
 
 pub fn dedupe_cleanup_pending(DedupeExecution) -> Bool
 
+pub fn dedupe_initialization_progress(DedupeExecution) -> (Int, Int)
+
 pub fn dedupe_max_noninterruptible_value_bytes(DedupeExecution) -> Int
 
 pub fn dedupe_max_noninterruptible_value_nodes(DedupeExecution) -> Int
@@ -44,21 +46,23 @@ pub fn event_window_cleanup_pending(EventWindowExecution) -> Bool
 
 pub fn session_cleanup_pending(SessionExecution) -> Bool
 
+pub fn session_initialization_progress(SessionExecution) -> (Int, Int)
+
 pub fn session_max_noninterruptible_value_bytes(SessionExecution) -> Int
 
-pub fn start_dedupe(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[DedupeExecution, DedupeIssue]
+pub fn start_dedupe(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[DedupeExecution, DedupeIssue]
 
-pub fn start_event_window(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[EventWindowExecution, EventWindowIssue]
+pub fn start_event_window(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[EventWindowExecution, EventWindowIssue]
 
-pub fn start_session(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[SessionExecution, SessionIssue]
+pub fn start_session(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[SessionExecution, SessionIssue]
 
-pub fn start_session_relation(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[SessionExecution, SessionIssue]
+pub fn start_session_relation(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[SessionExecution, SessionIssue]
 
-pub fn start_session_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[SessionExecution, SessionIssue]
+pub fn start_session_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[SessionExecution, SessionIssue]
 
-pub fn start_time_series(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Int, @execution_relation.ValueLimits, Int, Int) -> Result[TimeSeriesExecution, TimeSeriesExecutionIssue]
+pub fn start_time_series(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Int, @execution_relation.ValueLimits, Int, Int, control_work_limit? : Int?) -> Result[TimeSeriesExecution, TimeSeriesExecutionIssue]
 
-pub fn start_watermark(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[WatermarkExecution, WatermarkIssue]
+pub fn start_watermark(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[WatermarkExecution, WatermarkIssue]
 
 pub fn time_series_cleanup_pending(TimeSeriesExecution) -> Bool
 
@@ -76,10 +80,12 @@ type DedupeExecution
 pub(all) enum DedupeIssue {
   InvalidDedupeKernel
   InvalidDedupeLimits
+  DedupeInputLimit
   DedupeInputUnavailable
   InvalidDedupeRecord(Int)
   InvalidDedupeValue(Int, Int)
   DedupeTopTie(Int, Int)
+  DedupeControlWorkLimit
   DedupeWorkspaceLimit
   DedupeOutput(@managed_record_runtime.Issue)
   DedupeExecutionIssue(@bounded_execution.Issue)
@@ -101,6 +107,7 @@ pub(all) enum EventWindowIssue {
   InvalidEventWindowRecord(Int)
   InvalidEventWindowTime(Int)
   EventWindowArithmetic(Int)
+  EventWindowWorkLimit
   EventWindowWorkspaceLimit
   EventWindowOutput(@managed_record_runtime.Issue)
   EventWindowExecutionIssue(@bounded_execution.Issue)
@@ -119,10 +126,13 @@ pub(all) enum SessionIssue {
   InvalidSessionKernel
   InvalidSessionLimits
   SessionInputUnavailable
+  EmptySessionInput
   InvalidSessionRecord(Int)
   InvalidSessionValue(Int, Int)
+  DuplicateSessionIdentity(Int)
   SessionArithmetic(Int)
   SessionIdentityLimit
+  SessionControlWorkLimit
   SessionWorkspaceLimit
   SessionOutput(@managed_record_runtime.Issue)
   SessionExecutionIssue(@bounded_execution.Issue)
@@ -140,6 +150,7 @@ type TimeSeriesExecution
 pub(all) enum TimeSeriesExecutionIssue {
   InvalidSeriesKernel
   InvalidSeriesLimits
+  SeriesWorkLimit
   InvalidSeriesTimestamp
   SeriesOutput(@execution_relation.CaptureIssue)
   SeriesCompletion(@execution_relation.TrustedOutputIssue)
@@ -162,6 +173,7 @@ pub(all) enum WatermarkIssue {
   InvalidRecord(Int)
   InvalidTime(Int)
   WorkspaceLimit
+  ControlWorkLimit
   Output(@managed_record_runtime.Issue)
   Execution(@bounded_execution.Issue)
 } derive(Eq, @debug.Debug)

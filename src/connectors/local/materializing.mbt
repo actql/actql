@@ -24,20 +24,57 @@ struct LocalMaterializingAttempt {
   imports : Array[@execution.CompletedOutputImport?]
   copies : Array[@execution.CompletedOutput?]
   limits : LocalImportLimits
-  execute : (Array[@execution.CompletedOutput?]) -> Result[
-    (@execution.CompletedOutput, (Int, Int, Int)),
-    @connector.FixedComputeIssue,
-  ]
+  // The computation runs only through its bounded provider, one quantum per
+  // advance, over the constrained sequence.
+  provider : ManagedProvider
+  sequence : @execution.GeneratedSequence
+  execution : @execution.SequenceExecutionLimits
+  max_rows : Int
+  max_value_bytes : Int
+  mut provider_execution : ManagedProviderExecution?
+  // Work the provider reported, summed once per accepted advance.
+  mut provider_work : Int64
+  // The reads given to the provider: imported copies rebind their producer.
+  mut reads : Array[@execution.ProducerRead]
   mut started : Bool
   mut closed : Bool
   mut settled : Bool
   mut output : @execution.CompletedOutput?
-  mut guard_usage : (Int, Int, Int)?
   output_limits : LocalExportLimits?
   mut exported : Bool
   mut export_stream : @execution.CompletedOutputExport?
   mut export_receipt : @execution.CompletedOutputExportReceipt?
   mut release_check : (() -> Bool)?
+}
+
+///|
+/// Import limits a Host has not configured explicitly, for a bounded
+/// materializing attempt: the module's own row and input-guard limits,
+/// clamped to the configurable retained-row bounds.
+pub fn local_default_import_limits(
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> LocalImportLimits {
+  let frame_bytes = Int::max(1, Int::min(measurement.max_bytes, 16777216))
+  let depth = Int::max(1, Int::min(measurement.max_depth, 64))
+  {
+    max_rows: execution.rows.max_rows,
+    values: execution.rows.input_values,
+    wire: {
+      max_columns: measurement.max_nodes,
+      max_order_work: measurement.max_work,
+      max_bytes: measurement.max_bytes,
+      max_nodes: measurement.max_nodes,
+      max_depth: depth,
+    },
+    row: {
+      max_bytes: frame_bytes,
+      max_nodes: measurement.max_nodes,
+      max_depth: depth,
+      max_text_bytes: execution.rows.input_values.max_text_bytes,
+    },
+    max_batch_bytes: frame_bytes,
+  }
 }
 
 ///|
@@ -106,6 +143,12 @@ pub fn[E] prepare_local_materializing_execution(
   join_output_ceiling? : (Int, Int64)? = None,
   output_limits? : LocalExportLimits? = None,
   join_output_ceilings? : Array[(Int, Int64)] = [],
+  interval_search_ceilings? : Array[(Int, Int64)] = [],
+  asof_search_ceilings? : Array[(Int, Int64)] = [],
+  aggregate_output_ceilings? : Array[@connector.AggregateOutputCeiling] = [],
+  analytic_envelopes? : Array[@connector.AnalyticEnvelope] = [],
+  family_providers? : Array[ManagedProvider] = [],
+  provider_capacity? : @connector.FixedComputeCapacity? = None,
 ) -> Result[
   @connector.PreparedExecution[LocalMaterializingAttempt, E],
   LocalMaterializingIssue,
@@ -114,8 +157,15 @@ pub fn[E] prepare_local_materializing_execution(
     is Some(sequence) else {
     return Err(Candidate(NotSelected))
   }
-  guard @execution.generated_sequence_capacity(sequence, execution, measurement)
-    is Some(base) &&
+  // There is no synchronous whole-sequence lane: a sequence no bounded
+  // provider accepts is not a materializing candidate.
+  guard local_managed_provider_for(
+      family_providers, execution, measurement, sequence,
+    )
+    is Some(provider) else {
+    return Err(Candidate(ComputeUnsupported))
+  }
+  guard managed_provider_capacity(provider, sequence) is Some(base) &&
     local_import_retention_capacity(imports) is Some(per_input) else {
     return Err(Capacity)
   }
@@ -145,13 +195,30 @@ pub fn[E] prepare_local_materializing_execution(
   guard @lower.preparation_output_target(
       @lower.bound_preparation(@connector.fixed_compute_request_owner(request)),
     )
-    is Some(target) else {
+    is Some(_) else {
     return Err(Candidate(UnsupportedInputShape))
   }
   let ceilings = join_output_ceilings.copy()
   if join_output_ceiling is Some(ceiling) {
     ceilings.push(ceiling)
   }
+  let constrained = match
+    constrain_local_managed_sequence(
+      sequence,
+      join_output_ceilings=ceilings,
+      interval_search_ceilings~,
+      asof_search_ceilings~,
+      aggregate_output_ceilings~,
+      analytic_envelopes~,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Candidate(issue))
+  }
+  // The provider runs under the same row and value capacity as managed Local
+  // work; the ordinary request capacity describes only the task boundary.
+  let request_capacity = provider_capacity.unwrap_or(
+    @connector.fixed_compute_request_capacity(request),
+  )
   @connector.bind_prepared_materializing_execution(
     choice,
     prepared,
@@ -168,27 +235,18 @@ pub fn[E] prepare_local_materializing_execution(
         imports: Array::make(inputs.length(), None),
         copies: Array::make(inputs.length(), None),
         limits: imports,
-        execute: copies => {
-          execute_local_fixed_compute_with_usage(
-            choice,
-            prepared,
-            execution,
-            measurement~,
-            join_output_ceilings=ceilings,
-            representations=copies,
-          ).bind(result => {
-            let (completed, usage) = result
-            match @execution.completed_output(completed, target) {
-              Some(output) => Ok((output, usage))
-              None => Err(@connector.FixedComputeIssue::UnsupportedInputShape)
-            }
-          })
-        },
+        provider,
+        sequence: constrained,
+        execution,
+        max_rows: request_capacity.max_rows,
+        max_value_bytes: request_capacity.max_value_bytes,
+        provider_execution: None,
+        provider_work: 0L,
+        reads: [],
         started: false,
         closed: false,
         settled: false,
         output: None,
-        guard_usage: None,
         output_limits,
         exported: false,
         export_stream: None,
@@ -323,26 +381,142 @@ pub fn finish_local_materializing_input(
 pub fn execute_local_materializing_attempt(
   attempt : LocalMaterializingAttempt,
 ) -> Result[Unit, LocalMaterializingIssue] {
-  if attempt.closed || attempt.started || attempt.settled {
+  // Drains the same bounded execution for Hosts that own no event loop.
+  while true {
+    match advance_local_materializing_attempt(attempt, 256) {
+      Ok(advance) => if advance.complete { break Ok(()) }
+      Err(issue) => break Err(issue)
+    }
+  } nobreak {
+    Err(State)
+  }
+}
+
+///|
+pub(all) struct LocalMaterializingAdvance {
+  complete : Bool
+  progress : Int64
+  work : Int64
+}
+
+///|
+/// Advance the attempt's bounded provider by at most `quantum` work units.
+/// The first advance requires every retained input to be fully imported.
+pub fn advance_local_materializing_attempt(
+  attempt : LocalMaterializingAttempt,
+  quantum : Int,
+) -> Result[LocalMaterializingAdvance, LocalMaterializingIssue] {
+  if attempt.closed || attempt.settled || attempt.output is Some(_) {
     return Err(State)
   }
-  for index, input in attempt.inputs {
-    if !@execution.producer_read_has_cell_access(input) &&
-      attempt.copies[index] is None {
-      return Err(State)
+  let active = match attempt.provider_execution {
+    Some(value) => value
+    None => {
+      if attempt.started {
+        return Err(State)
+      }
+      let inputs = attempt.inputs.copy()
+      for index, input in attempt.inputs {
+        match attempt.copies[index] {
+          Some(output) =>
+            match @execution.rebind_producer_representation(input, output) {
+              Ok(read) => inputs[index] = read
+              Err(_) => return Err(Candidate(ForeignPreparation))
+            }
+          None =>
+            if !@execution.producer_read_has_cell_access(input) {
+              return Err(State)
+            }
+        }
+      }
+      attempt.started = true
+      attempt.reads = inputs
+      let started = match
+        start_managed_provider_with_inputs_and_execution(
+          attempt.provider,
+          attempt.sequence,
+          inputs.map(managed_provider_relation_input),
+          attempt.max_rows,
+          attempt.max_value_bytes,
+          attempt.execution,
+        ) {
+        Ok(value) => value
+        Err(error) => {
+          close_local_materializing_attempt(attempt)
+          return Err(Candidate(error))
+        }
+      }
+      attempt.provider_execution = Some(started)
+      started
     }
   }
-  attempt.started = true
-  match (attempt.execute)(attempt.copies) {
-    Ok((output, usage)) => {
-      attempt.output = Some(output)
-      attempt.guard_usage = Some(usage)
-      Ok(())
-    }
+  let bounded = fn(progress : Int64, work : Int64, complete : Bool) {
+    progress >= 0L &&
+    work >= 0L &&
+    work <= quantum.to_int64() &&
+    (complete || work > 0L)
+  }
+  match advance_managed_provider(active, quantum) {
     Err(error) => {
       close_local_materializing_attempt(attempt)
       Err(Candidate(error))
     }
+    Ok(Continue(progress~, work~)) =>
+      if bounded(progress, work, false) {
+        attempt.provider_work += work
+        Ok({ complete: false, progress, work, })
+      } else {
+        close_local_materializing_attempt(attempt)
+        Err(Candidate(InvalidLimits))
+      }
+    Ok(Complete(output, progress~, work~)) =>
+      if bounded(progress, work, true) {
+        // Anchor to the exact reads the provider was started with.
+        guard @execution.anchor_completed_output_inputs(output, attempt.reads)
+          is Some(anchored) else {
+          close_local_materializing_attempt(attempt)
+          return Err(Candidate(ForeignPreparation))
+        }
+        attempt.output = Some(anchored)
+        attempt.provider_work += work
+        Ok({ complete: true, progress, work, })
+      } else {
+        close_local_materializing_attempt(attempt)
+        Err(Candidate(InvalidLimits))
+      }
+    Ok(CarrierComplete(material, ..)) => {
+      @carrier_runtime.reclaim_material(material) |> ignore
+      close_local_materializing_attempt(attempt)
+      Err(Candidate(UnsupportedInputShape))
+    }
+    Ok(Failed(error, ..)) => {
+      close_local_materializing_attempt(attempt)
+      Err(Candidate(error))
+    }
+    Ok(Stopped(..)) => {
+      close_local_materializing_attempt(attempt)
+      Err(State)
+    }
+  }
+}
+
+///|
+/// Request a stop. A started provider reports the stop on its next advance.
+pub fn cancel_local_materializing_attempt(
+  attempt : LocalMaterializingAttempt,
+) -> Bool {
+  match attempt.provider_execution {
+    Some(active) => cancel_managed_provider(active)
+    None => false
+  }
+}
+
+///|
+/// True once no provider computation can run: never started, or stopped.
+pub fn local_materializing_stopped(attempt : LocalMaterializingAttempt) -> Bool {
+  match attempt.provider_execution {
+    Some(active) => managed_provider_stopped(active)
+    None => true
   }
 }
 
@@ -351,10 +525,23 @@ pub fn execute_local_materializing_attempt(
 pub fn local_materializing_guard_usage(
   attempt : LocalMaterializingAttempt,
 ) -> (Int, Int, Int)? {
-  if attempt.closed || !attempt.started {
+  // Bounded providers admit their inputs step by step; there is no separate
+  // whole-input guard measurement to report.
+  ignore(attempt)
+  None
+}
+
+///|
+/// Total work the bounded provider reported across the advances of a
+/// completed attempt. This is the provider's own report, not a value
+/// measurement: no input or output values are scanned to produce it.
+pub fn local_materializing_provider_work(
+  attempt : LocalMaterializingAttempt,
+) -> Int64? {
+  if attempt.closed || attempt.output is None {
     None
   } else {
-    attempt.guard_usage
+    Some(attempt.provider_work)
   }
 }
 
@@ -395,4 +582,16 @@ pub fn close_local_materializing_attempt(
     attempt.copies[index] = None
   }
   attempt.output = None
+  if attempt.provider_execution is Some(active) {
+    // A started provider reports its stop on one final advance before its
+    // workspace is reclaimed.
+    if !managed_provider_stopped(active) {
+      cancel_managed_provider(active) |> ignore
+      advance_managed_provider(active, 1) |> ignore
+    }
+    if managed_provider_stopped(active) &&
+      cleanup_managed_provider(active).unwrap_or(false) {
+      attempt.provider_execution = None
+    }
+  }
 }

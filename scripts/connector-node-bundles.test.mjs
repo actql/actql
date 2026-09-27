@@ -25,7 +25,9 @@ test('Node installation touches only the configured module subset', async () => 
     },
     strategyModule_local_Dispatch: (owner, value) => {
       assert.equal(owner, setup); assert.equal(value, task); executions++;
-      return {inputs: [], execute() {}, settle() {}, complete() {},
+      return {inputs: [],
+        advance: () => ({complete: true, progress: 0n, work: 0n}),
+        settle() {}, complete() {},
         guard_usage: () => [0, 0, 0], close() {}};
     },
   }, {

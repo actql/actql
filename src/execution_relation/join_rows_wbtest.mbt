@@ -69,6 +69,45 @@ test "equality join passes the common kernel budget sweep" {
 }
 
 ///|
+test "empty equality join has an independently bounded resource path" {
+  let generated = join_test_sequence("[]", "[]")
+  guard @lower.sequence_step(generated.sequence, 2)
+    is Some(@lower.JoinStep(kernel)) else {
+    fail("join kernel")
+  }
+  let owner = @lower.join_kernel_owner(kernel)
+  let left = table_from_capture(
+    capture_values(owner, 0, max_rows=0, run_limits().input_values).unwrap(),
+  )
+  let right = table_from_capture(
+    capture_values(owner, 1, max_rows=0, run_limits().input_values).unwrap(),
+  )
+  let run = (work_limit, workspace_limit) => {
+    let control = { remaining: work_limit, max_frames: 100, }
+    let workspace = row_workspace(workspace_limit)
+    let result = evaluate_join_rows(
+      kernel,
+      left,
+      right,
+      0,
+      control,
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+    (result, workspace.peak, work_limit - control.remaining)
+  }
+  // Both input schemas, the equality key, three projected fields, and the
+  // empty right index are still admitted when no pair can be emitted.
+  let expected_work = 38
+  let expected_peak = 17
+  let (result, peak, used) = run(expected_work, expected_peak)
+  assert_true(result is Ok(_))
+  assert_eq((peak, used), (expected_peak, expected_work))
+  assert_true(run(expected_work - 1, expected_peak).0 is Err(RowLimit))
+  assert_true(run(expected_work, expected_peak - 1).0 is Err(RowLimit))
+}
+
+///|
 fn join_numeric_rows_equal(
   actual : Array[Array[Value]],
   expected : Array[Array[Value]],

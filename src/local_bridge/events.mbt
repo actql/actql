@@ -12,6 +12,7 @@ priv struct RowsToEventsState {
   mut output : @records.OutputBuilder?
   schema : @schema.Schema
   value_limits : @value.Limits
+  max_workspace_slots : Int
   mut phase : RowsToEventsPhase
   mut row : Int
   mut column : Int
@@ -39,7 +40,8 @@ pub enum RowsToEventsPoll {
 ///|
 priv enum EventsToRowsPhase {
   BeginRecord
-  FindField
+  ScanFields
+  VerifyFields
   CommitRelationRow
   FinishRelation
 }
@@ -63,9 +65,11 @@ priv struct EventsToRowsState {
   schema : @schema.Schema
   mut phase : EventsToRowsPhase
   mut record : Int
-  mut column : Int
-  mut candidate : Int
-  mut values : Array[@value.CheckedValue]
+  mut source_field : Int
+  mut verified_column : Int
+  mut matched_count : Int
+  mut matched : Map[String, @value.CheckedValue]
+  mut control_work_remaining : Int?
 }
 
 ///|
@@ -126,6 +130,7 @@ pub enum EventsToRowsPoll {
 ///|
 pub(all) enum EventsBridgeIssue {
   InvalidKernel
+  ControlWorkLimit
   InputUnavailable
   InvalidRow(Int)
   InvalidRecord(Int)
@@ -161,6 +166,18 @@ fn rows_to_events_step(
         }
       ReadCell =>
         if state.column < @schema.field_count(state.schema) {
+          guard state.output is Some(output) else {
+            return @bounded.Failed(InvalidKernel, progress, used)
+          }
+          let retained = @records.output_workspace_slots(output)
+          if retained > state.max_workspace_slots ||
+            state.fields.length() >= state.max_workspace_slots - retained {
+            return @bounded.Failed(
+              Output(@records.Storage(@storage.WorkspaceLimit)),
+              progress,
+              used,
+            )
+          }
           guard @schema.field_at(state.schema, state.column) is Some(field) &&
             @execution.producer_read_checked_cell(
               state.input,
@@ -180,6 +197,18 @@ fn rows_to_events_step(
       CommitRow => {
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidKernel, progress, used)
+        }
+        let retained = @records.output_workspace_slots(output)
+        let fields = state.fields.length()
+        // append_record copies the scratch fields into retained storage.
+        if retained > state.max_workspace_slots ||
+          fields > state.max_workspace_slots - retained ||
+          fields > state.max_workspace_slots - retained - fields - 2 {
+          return @bounded.Failed(
+            Output(@records.Storage(@storage.WorkspaceLimit)),
+            progress,
+            used,
+          )
         }
         used += 1
         match @records.append_record(output, state.fields) {
@@ -259,6 +288,7 @@ fn start_rows_to_records(
       max_depth: limits.max_value_depth,
       max_text_bytes: limits.max_value_bytes,
     },
+    max_workspace_slots: limits.max_workspace_slots,
     phase: BeginRow,
     row: 0,
     column: 0,
@@ -360,33 +390,58 @@ fn events_to_rows_step(
       BeginRecord =>
         if events_source_record_count(state.source) is Some(count) &&
           state.record < count {
-          state.column = 0
-          state.candidate = 0
-          state.values = []
-          state.phase = FindField
+          state.source_field = 0
+          state.verified_column = 0
+          state.matched_count = 0
+          state.matched = Map([])
+          state.phase = ScanFields
         } else {
           state.phase = FinishRelation
         }
-      FindField =>
-        if state.column < @schema.field_count(state.schema) {
-          guard @schema.field_at(state.schema, state.column) is Some(expected) &&
-            events_source_field_count(state.source, state.record) is Some(width) else {
-            return @bounded.Failed(InvalidRecord(state.record), progress, used)
+      ScanFields => {
+        guard events_source_field_count(state.source, state.record)
+          is Some(width) else {
+          return @bounded.Failed(InvalidRecord(state.record), progress, used)
+        }
+        if state.matched_count == @schema.field_count(state.schema) {
+          state.phase = VerifyFields
+        } else if state.source_field < width {
+          if !charge_events_to_rows_work(state) {
+            return @bounded.Failed(ControlWorkLimit, progress, used)
           }
-          if state.candidate >= width {
-            return @bounded.Failed(InvalidRecord(state.record), progress, used)
-          }
-          guard events_source_field(state.source, state.record, state.candidate)
+          used += 1
+          guard events_source_field(
+              state.source,
+              state.record,
+              state.source_field,
+            )
             is Some((name, checked)) else {
             return @bounded.Failed(InvalidRecord(state.record), progress, used)
           }
-          used += 1
-          state.candidate += 1
-          if name == expected.name {
-            state.values.push(checked)
-            state.column += 1
-            state.candidate = 0
+          state.source_field += 1
+          if @schema.lookup(state.schema, name) is Some(_) {
+            let key = @schema.reference_name(name)
+            if !state.matched.contains(key) {
+              state.matched_count += 1
+              state.matched[key] = checked
+            }
           }
+        } else {
+          state.phase = VerifyFields
+        }
+      }
+      VerifyFields =>
+        if state.verified_column < @schema.field_count(state.schema) {
+          if !charge_events_to_rows_work(state) {
+            return @bounded.Failed(ControlWorkLimit, progress, used)
+          }
+          used += 1
+          guard @schema.field_at(state.schema, state.verified_column)
+            is Some(expected) &&
+            state.matched.contains(@schema.reference_name(expected.name)) else {
+            return @bounded.Failed(InvalidRecord(state.record), progress, used)
+          }
+          state.verified_column += 1
         } else {
           state.phase = CommitRelationRow
         }
@@ -394,12 +449,24 @@ fn events_to_rows_step(
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidKernel, progress, used)
         }
+        if !charge_events_to_rows_work(state) {
+          return @bounded.Failed(ControlWorkLimit, progress, used)
+        }
         used += 1
-        match @execution.append_admitted_output(output, state.values) {
+        match
+          @execution.append_admitted_output_cells(
+            output,
+            @schema.field_count(state.schema),
+            column => {
+              @schema.field_at(state.schema, column).bind(field => {
+                state.matched.get(@schema.reference_name(field.name))
+              })
+            },
+          ) {
           Err(issue) =>
             return @bounded.Failed(RelationOutput(issue), progress, used)
           Ok(_) => {
-            state.values = []
+            state.matched = Map([])
             state.record += 1
             state.phase = BeginRecord
             progress += 1
@@ -434,12 +501,26 @@ fn events_to_rows_step(
 }
 
 ///|
+fn charge_events_to_rows_work(state : EventsToRowsState) -> Bool {
+  match state.control_work_remaining {
+    None => true
+    Some(remaining) =>
+      if remaining <= 0 {
+        false
+      } else {
+        state.control_work_remaining = Some(remaining - 1)
+        true
+      }
+  }
+}
+
+///|
 fn cleanup_events_to_rows_state(state : EventsToRowsState) -> Bool {
   if state.output is Some(output) {
     @execution.cancel_admitted_output(output) |> ignore
     state.output = None
   }
-  state.values = []
+  state.matched = Map([])
   if state.owned is Some(owned) {
     @records.discard_completed(owned) |> ignore
     state.owned = None
@@ -466,7 +547,11 @@ fn start_storage_to_rows(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead]?,
+  control_work_limit : Int?,
 ) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
+  if control_work_limit is Some(limit) && limit < 0 {
+    return Err(ControlWorkLimit)
+  }
   let output = match
     @execution.prepare_admitted_output(owner, target, max_rows, limits) {
     Ok(value) => value
@@ -490,6 +575,8 @@ fn start_storage_to_rows(
       return Err(Completion(issue))
     }
   }
+  // Trusted output admission bounds the schema width by max_entries. The
+  // per-record map only retains names in that admitted output schema.
   let state : EventsToRowsState = {
     available,
     owned,
@@ -502,9 +589,11 @@ fn start_storage_to_rows(
     schema,
     phase: BeginRecord,
     record: 0,
-    column: 0,
-    candidate: 0,
-    values: [],
+    source_field: 0,
+    verified_column: 0,
+    matched_count: 0,
+    matched: Map([]),
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,
@@ -533,6 +622,7 @@ fn start_records_to_rows(
   inputs : Array[@execution.ProducerRead],
   expected : @projection.Operation,
   carrier_matches : (@carrier.Carrier) -> Bool,
+  control_work_limit : Int?,
 ) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -566,6 +656,7 @@ fn start_records_to_rows(
     max_entries,
     max_name_bytes,
     Some(inputs),
+    control_work_limit,
   )
 }
 
@@ -581,6 +672,7 @@ pub fn start_completed_relation_to_rows(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -619,6 +711,7 @@ pub fn start_completed_relation_to_rows(
     max_entries,
     max_name_bytes,
     Some(inputs),
+    control_work_limit,
   )
 }
 
@@ -633,6 +726,7 @@ pub fn start_events_view_to_rows(
   limits : @execution.ValueLimits,
   max_entries : Int,
   max_name_bytes : Int,
+  control_work_limit? : Int? = None,
 ) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -670,6 +764,7 @@ pub fn start_events_view_to_rows(
     max_entries,
     max_name_bytes,
     None,
+    control_work_limit,
   )
 }
 
@@ -685,6 +780,7 @@ pub fn start_events_to_rows(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
   start_records_to_rows(
     control,
@@ -699,6 +795,7 @@ pub fn start_events_to_rows(
     inputs,
     @projection.Events,
     fn(carrier) { carrier is @carrier.EventValue(_) },
+    control_work_limit,
   )
 }
 

@@ -19,9 +19,36 @@ pub fn strategy_fixture_managed_dispatch(
 }
 
 ///|
+/// Keep the first two tasks on DuckDB so the later Local consumers exercise
+/// exact cross-Site managed transfer even when Local's estimate improves.
+#export_name("strategyFixtureManagedTwoSiteDispatch")
+pub fn strategy_fixture_managed_two_site_dispatch(
+  f : StrategyFixture,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  strategy_fixture_duckdb_only_impl(f, true, local_start_index=2)
+}
+
+///|
+#export_name("strategyFixtureManagedAfterFirstDispatch")
+pub fn strategy_fixture_managed_after_first_dispatch(
+  f : StrategyFixture,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  strategy_fixture_duckdb_only_impl(f, true, local_start_index=1)
+}
+
+///|
+#export_name("strategyFixtureDuckDBManagedDispatch")
+pub fn strategy_fixture_duckdb_managed_dispatch(
+  f : StrategyFixture,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  strategy_fixture_duckdb_only_impl(f, true, local_start_index=-1)
+}
+
+///|
 fn strategy_fixture_duckdb_only_impl(
   f : StrategyFixture,
   managed : Bool,
+  local_start_index? : Int = 0,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   let generated = Array::makei(@strategy.graph_task_count(f.graph) - 1, i => {
     fixture_generated(
@@ -281,7 +308,13 @@ fn strategy_fixture_duckdb_only_impl(
     ).unwrap()
     let local_policy = @builtin.prepare_local_estimate_policy(modules, {
       schedules: Array::make(sequences.length(), local_schedule),
-      eligible: [],
+      eligible: if local_start_index == 0 {
+        []
+      } else {
+        Array::makei(sequences.length(), index => {
+          local_start_index >= 0 && index >= local_start_index
+        })
+      },
       max_work: 1000,
     }).unwrap()
     @builtin.install_configured_estimate_policy(local_policy).unwrap()

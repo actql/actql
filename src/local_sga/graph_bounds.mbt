@@ -40,6 +40,7 @@ priv struct GraphBoundsState {
   mut left_index : Int
   mut right_index : Int
   mut merge_index : Int
+  mut key_comparison : @value.BoundedKeyComparison?
   mut copy_index : Int
   mut candidate : Int
   mut kind : String
@@ -48,6 +49,7 @@ priv struct GraphBoundsState {
   mut node : Int?
   mut column : Int
   mut values : Array[@value.CheckedValue]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -97,6 +99,7 @@ pub(all) enum GraphBoundsIssue {
   InvalidGraphBoundsKernel
   GraphBoundsInputUnavailable
   GraphBoundsWorkspaceLimit
+  GraphBoundsWorkLimit
   GraphBoundsKeyOrder(@value.KeyOrderIssue)
   GraphBoundsOutput(@execution.CaptureIssue)
   GraphBoundsCompletion(@execution.TrustedOutputIssue)
@@ -140,18 +143,38 @@ fn capped_graph_bounds_run_end(start : Int, width : Int, count : Int) -> Int {
 }
 
 ///|
-fn compare_bound_nodes(
+fn compare_bound_nodes_step(
   state : GraphBoundsState,
   left : Int,
   right : Int,
-) -> Result[Int, GraphBoundsIssue] {
-  guard @storage.node_identity(state.source, left) is Some(left_value) &&
-    @storage.node_identity(state.source, right) is Some(right_value) else {
-    return Err(GraphBoundsInputUnavailable)
+) -> Result[Int?, GraphBoundsIssue] {
+  let active = match state.key_comparison {
+    Some(value) => value
+    None => {
+      guard @storage.node_identity(state.source, left) is Some(left_value) &&
+        @storage.node_identity(state.source, right) is Some(right_value) else {
+        return Err(GraphBoundsInputUnavailable)
+      }
+      let value = match
+        @value.start_bounded_key_comparison(left_value, right_value) {
+        Ok(value) => value
+        Err(issue) => return Err(GraphBoundsKeyOrder(issue))
+      }
+      state.key_comparison = Some(value)
+      value
+    }
   }
-  @value.compare_key_values(left_value, right_value).map_err(issue => {
-    GraphBoundsKeyOrder(issue)
-  })
+  match @value.advance_bounded_key_comparison(active, 1) {
+    Ok(@value.KeyComparisonContinue(_)) => Ok(None)
+    Ok(@value.KeyComparisonComplete(order~, ..)) => {
+      state.key_comparison = None
+      Ok(Some(order))
+    }
+    Err(issue) => {
+      state.key_comparison = None
+      Err(GraphBoundsKeyOrder(issue))
+    }
+  }
 }
 
 ///|
@@ -311,6 +334,9 @@ fn graph_bounds_step(
     if !@graph.producer_read_available(state.input) {
       return @bounded.Failed(GraphBoundsInputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(GraphBoundsWorkLimit, progress, used)
+    }
     match state.phase {
       InitializeNodes =>
         if state.source_index < @storage.node_count(state.source) {
@@ -372,12 +398,14 @@ fn graph_bounds_step(
       CompareMerge => {
         used += 1
         match
-          compare_bound_nodes(
+          compare_bound_nodes_step(
             state,
             state.selected[state.left_index],
             state.selected[state.right_index],
           ) {
-          Ok(comparison) => emit_graph_bounds_merge(state, comparison <= 0)
+          Ok(Some(comparison)) =>
+            emit_graph_bounds_merge(state, comparison <= 0)
+          Ok(None) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
@@ -456,6 +484,7 @@ fn graph_bounds_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -472,6 +501,7 @@ fn cleanup_graph_bounds_state(state : GraphBoundsState) -> Bool {
   state.degrees = []
   state.selected = []
   state.scratch = []
+  state.key_comparison = None
   state.values = []
   true
 }
@@ -489,6 +519,7 @@ pub fn start_graph_bounds(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[GraphBoundsExecution, GraphBoundsIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -521,6 +552,7 @@ pub fn start_graph_bounds(
     max_entries,
     max_name_bytes,
     inputs,
+    control_work_limit.unwrap_or(limits.max_work),
   )
 }
 
@@ -537,6 +569,7 @@ pub fn start_graph_degree(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[GraphDegreeExecution, GraphBoundsIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -574,6 +607,7 @@ pub fn start_graph_degree(
     max_entries,
     max_name_bytes,
     inputs,
+    control_work_limit.unwrap_or(limits.max_work),
   ).map(inner => { inner, })
 }
 
@@ -595,6 +629,7 @@ fn start_graph_diagnostic(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit : Int,
 ) -> Result[GraphBoundsExecution, GraphBoundsIssue] {
   guard @graph.producer_read_storage(input) is Some(source) else {
     return Err(GraphBoundsInputUnavailable)
@@ -606,6 +641,9 @@ fn start_graph_diagnostic(
   }
   guard max_rows >= 0 && workspace <= max_workspace_slots else {
     return Err(GraphBoundsWorkspaceLimit)
+  }
+  if control_work_limit < 0 {
+    return Err(GraphBoundsWorkLimit)
   }
   let output = match
     @execution.prepare_admitted_output(
@@ -665,6 +703,7 @@ fn start_graph_diagnostic(
     left_index: 0,
     right_index: 0,
     merge_index: 0,
+    key_comparison: None,
     copy_index: 0,
     candidate: 0,
     kind: "",
@@ -673,6 +712,7 @@ fn start_graph_diagnostic(
     node: None,
     column: 0,
     values: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,

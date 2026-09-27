@@ -12,6 +12,7 @@ struct PreparedCountGroup {
 pub struct PreparedCount {
   name : String
   field : @schema.FieldName?
+  count_if : Bool
   distinct : Bool?
 }
 
@@ -116,13 +117,19 @@ pub fn prepare_count_group(
   let counts = []
   for i in 0..<count {
     let aggregate = @relation.aggregate_at(group, i).unwrap()
-    if @relation.aggregate_function(aggregate) != @relation.Count ||
+    let function = @relation.aggregate_function(aggregate)
+    if (function != @relation.Count && function != @relation.CountIf) ||
       @relation.aggregate_filter(aggregate) is Some(_) ||
       @relation.aggregate_distinct(aggregate) == Some(true) {
       return Err(UnsupportedAggregate(i))
     }
     let field = match @relation.aggregate_argument(aggregate) {
-      Rows => None
+      Rows =>
+        if function is @relation.Count {
+          None
+        } else {
+          return Err(UnsupportedAggregate(i))
+        }
       Field(key) => Some(key.field)
       Expression(_) => return Err(UnsupportedAggregate(i))
     }
@@ -136,6 +143,7 @@ pub fn prepare_count_group(
     counts.push({
       name,
       field,
+      count_if: function is @relation.CountIf,
       distinct: @relation.aggregate_distinct(aggregate),
     })
   }
@@ -735,7 +743,7 @@ fn emit_count_group_params(
       @encode.string_value(out, @schema.reference_name(field))
     }
     @encode.key(out, "fn")
-    @encode.string_value(out, "count")
+    @encode.string_value(out, if count.count_if { "count_if" } else { "count" })
     @encode.end_object(out)
   }
   @encode.end_object(out)

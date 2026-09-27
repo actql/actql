@@ -161,6 +161,35 @@ fn pool_source(
 }
 
 ///|
+fn empty_pool_source(owner : @lower.BoundPrepared) -> @records.Completed {
+  let output = @records.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    limits(),
+    8192L,
+    fn() { true },
+  ).unwrap()
+  @records.finish_output(output).unwrap()
+}
+
+///|
+fn single_pool_source(owner : @lower.BoundPrepared) -> @records.Completed {
+  let output = @records.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    limits(),
+    8192L,
+    fn() { true },
+  ).unwrap()
+  @records.append_record(output, [
+    (@schema.Unqualified("id"), number(1.0)),
+    (@schema.Unqualified("group"), number(1.0)),
+    (@schema.Unqualified("embedding"), vector("[1,2]")),
+  ]).unwrap()
+  @records.finish_output(output).unwrap()
+}
+
+///|
 fn finish_pool_execution(execution : PoolExecution) -> @records.Completed {
   while true {
     match advance_pool(execution, 1).unwrap() {
@@ -190,6 +219,102 @@ fn pool_field(
     }
   }
   abort("missing pool field")
+}
+
+///|
+test "pool enforces cumulative empty-input control work" {
+  let producer = pool_producer_owner()
+  let source = empty_pool_source(producer)
+  let owner = pool_owner(producer)
+  let zero_input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  assert_true(
+    start_pool(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      zero_input,
+      limits(work=0),
+      8192L,
+      fn() { true },
+    )
+    is Err(PoolWorkLimit),
+  )
+  // An empty input still needs one terminal group-boundary check.
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let execution = start_pool_with_control_work_limit(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    limits(),
+    8192L,
+    fn() { true },
+    1,
+  ).unwrap()
+  assert_true(advance_pool(execution, 1).unwrap() is PoolContinue(work=1L, ..))
+  guard advance_pool(execution, 1).unwrap() is PoolComplete(output, work=1L, ..) &&
+    @records.completed_storage(output) is Some(material) else {
+    fail("empty pool should finish at one work unit")
+  }
+  assert_eq(@storage.record_count(material), 0)
+  assert_eq(cleanup_pool(execution), Ok(true))
+  assert_true(@records.producer_read_available(input))
+}
+
+///|
+test "pool enforces cumulative one-record control work" {
+  let producer = pool_producer_owner()
+  let source = single_pool_source(producer)
+  let owner = pool_owner(producer)
+  // Admission and field scan: 17; scratch: 1; group boundary: 1;
+  // two component folds: 6; three output fields: 3; commit: 1;
+  // terminal group boundary: 1. Total: 30 work units.
+  for (ceiling, accepted) in [(30, true), (29, false)] {
+    let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+    let execution = start_pool_with_control_work_limit(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      input,
+      limits(),
+      8192L,
+      fn() { true },
+      ceiling,
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<36 {
+      if !terminal {
+        match advance_pool(execution, 1).unwrap() {
+          PoolContinue(work=next, ..) => {
+            assert_true(next >= charged && next - charged <= 1L)
+            charged = next
+          }
+          PoolComplete(output, work=next, ..) => {
+            assert_true(accepted)
+            assert_eq(next, 30L)
+            guard @records.completed_storage(output) is Some(material) else {
+              fail("pooled output missing")
+            }
+            assert_eq(@storage.record_count(material), 1)
+            charged = next
+            terminal = true
+          }
+          PoolFailed(PoolWorkLimit, work=next, ..) => {
+            assert_false(accepted)
+            assert_eq(next, 29L)
+            assert_true(pool_cleanup_pending(execution))
+            terminal = true
+          }
+          _ => fail("pool work boundary had another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(charged, ceiling.to_int64())
+    assert_eq(cleanup_pool(execution), Ok(true))
+    assert_true(@records.producer_read_available(input))
+  }
 }
 
 ///|
@@ -296,7 +421,10 @@ test "pool admits structural workspace before allocating sort state" {
   let source = pool_source(producer, Ref(true))
   let owner = pool_owner(producer)
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
-  let required = pool_workspace(4, 2, 1, 1, 3).unwrap()
+  // Four retained records need two four-slot ordering arrays (32 slots).
+  // The three output fields, two components, and two key slots add seven.
+  // Keep this expected boundary independent of pool_workspace().
+  let required = 39
   assert_true(
     start_pool(
       @bounded.control(),
@@ -323,6 +451,32 @@ test "pool admits structural workspace before allocating sort state" {
   assert_true(@bounded.request_cancel(control))
   assert_true(advance_pool(admitted, 1).unwrap() is PoolStopped(_))
   assert_eq(cleanup_pool(admitted), Ok(true))
+}
+
+///|
+test "pool completes at its exact structural workspace boundary" {
+  let producer = pool_producer_owner()
+  let source = pool_source(producer, Ref(true))
+  let owner = pool_owner(producer)
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  // Two four-slot ordering arrays per retained record (32), plus three
+  // output fields, two components, and two key slots: 39 in total.
+  let required = 39
+  let execution = start_pool(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    limits(workspace=required),
+    8192L,
+    fn() { true },
+  ).unwrap()
+  let completed = finish_pool_execution(execution)
+  guard @records.completed_storage(completed) is Some(material) else {
+    fail("pooled output missing")
+  }
+  assert_eq(@storage.record_count(material), 2)
+  assert_eq(cleanup_pool(execution), Ok(true))
 }
 
 ///|

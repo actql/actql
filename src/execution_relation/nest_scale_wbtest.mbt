@@ -100,7 +100,8 @@ test "nest metadata construction follows the exact workspace reservation" {
 ///|
 fn nest_empty_workspace_attempt(
   limit : Int,
-) -> (Result[Unit, RowIssue], Int) raise {
+  work_limit? : Int = 100000,
+) -> (Result[Unit, RowIssue], Int, Int) raise {
   let generated = nest_sequence(1)
   guard @lower.sequence_step(generated.sequence, 2)
     is Some(@lower.NestStep(kernel)) else {
@@ -116,12 +117,13 @@ fn nest_empty_workspace_attempt(
   let parents = { ..parent_template, rows: [], }
   let children = { ..child_template, rows: [], }
   let workspace = row_workspace(limit)
+  let control = { remaining: work_limit, max_frames: 100, }
   let result = evaluate_nest_rows(
     kernel,
     parents,
     children,
     4,
-    { remaining: 100000, max_frames: 100, },
+    control,
     value_budget({
       max_nodes: 100000,
       max_text_bytes: 100000,
@@ -133,19 +135,36 @@ fn nest_empty_workspace_attempt(
     grouped_byte_limit=Some(10000L),
     attached_byte_limit=Some(10000L),
   ).map(_ => ())
-  (result, workspace.peak)
+  (result, workspace.peak, work_limit - control.remaining)
 }
 
 ///|
 test "empty nest observes the exact metadata workspace boundary" {
-  let (generous, peak) = nest_empty_workspace_attempt(10000)
+  let (generous, peak, used) = nest_empty_workspace_attempt(10000)
   assert_true(generous is Ok(_))
-  let (exact, exact_peak) = nest_empty_workspace_attempt(peak)
+  // The empty right index is released before projection. At the peak, one
+  // key uses two slots, one projected field uses two, and the three output
+  // metadata arrays use nine slots.
+  let expected_peak = 2 + 2 + 3 * 3
+  assert_eq(peak, expected_peak)
+  // The two key-name scans, one empty right-index admission, one projected
+  // child field, and three output names account for the fixed empty work.
+  let expected_work = 98
+  assert_eq(used, expected_work)
+  let (exact, exact_peak, exact_work) = nest_empty_workspace_attempt(
+    expected_peak,
+    work_limit=expected_work,
+  )
   assert_true(exact is Ok(_))
-  assert_eq(exact_peak, peak)
-  let (short, short_peak) = nest_empty_workspace_attempt(peak - 1)
+  assert_eq((exact_peak, exact_work), (expected_peak, expected_work))
+  let (short, short_peak, _) = nest_empty_workspace_attempt(expected_peak - 1)
   assert_true(short is Err(RowLimit))
-  assert_true(short_peak <= peak - 1)
+  assert_true(short_peak <= expected_peak - 1)
+  let (short_work, _, _) = nest_empty_workspace_attempt(
+    expected_peak,
+    work_limit=expected_work - 1,
+  )
+  assert_true(short_work is Err(RowLimit))
 
   let generated = nest_sequence(3)
   guard @lower.sequence_step(generated.sequence, 2)

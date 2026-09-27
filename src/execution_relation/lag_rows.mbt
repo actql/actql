@@ -52,7 +52,8 @@ fn[T : RelationRows] evaluate_lag_rows(
   let order_count = @lower.kernel_sort_term_count(kernel)
   if !reserve_slots(workspace, partition_count) ||
     !reserve_slots(workspace, order_count) ||
-    !spend_control(control, partition_count + order_count) {
+    !spend_control(control, partition_count) ||
+    !spend_control(control, order_count) {
     return Err(RowLimit)
   }
   let partitions : Array[ColumnOrder] = []
@@ -115,20 +116,24 @@ fn[T : RelationRows] evaluate_lag_rows(
       )
     }
   }
-  let output_names = names.copy()
-  output_names.push(output_name)
-  if !reserve_slots(workspace, output_names.length()) ||
-    !spend_control(control, output_names.length()) {
+  let output_width = @schema.field_count(@lower.kernel_output_schema(kernel))
+  if output_width < 1 || output_width - 1 != width {
+    return Err(InvalidRows)
+  }
+  if !reserve_slots(workspace, output_width) ||
+    !spend_control(control, output_width) {
     return Err(RowLimit)
   }
+  let output_names = names.copy()
+  output_names.push(output_name)
   let rows : Array[Array[Value]] = []
   for row in 0..<count {
     if IndexedRows::row_width(input, row) != width {
       return Err(InvalidRows)
     }
     if !spend_control(control, 1) ||
-      !spend_control(control, width + 1) ||
-      !reserve_slots(workspace, width + 1) {
+      !spend_control(control, output_width) ||
+      !reserve_slots(workspace, output_width) {
       return Err(RowLimit)
     }
     let values = Array::makei(width, column => {

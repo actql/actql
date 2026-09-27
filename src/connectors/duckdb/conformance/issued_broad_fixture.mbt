@@ -24,6 +24,7 @@ fn issued_fixture_checked(
   components? : Bool = false,
   components_rows? : Int64 = 2L,
   reach? : Bool = false,
+  shortest? : Bool = false,
   traverse? : Bool = false,
   traverse_paths? : Bool = false,
   sga_rows? : Int64? = None,
@@ -63,6 +64,8 @@ fn issued_fixture_checked(
     [components_fixture_capacity(environment, "graph", rows=components_rows)]
   } else if reach {
     [reach_fixture_capacity(environment, "graph")]
+  } else if shortest {
+    [shortest_fixture_capacity(environment, "graph")]
   } else if traverse {
     [
       traverse_fixture_capacity(

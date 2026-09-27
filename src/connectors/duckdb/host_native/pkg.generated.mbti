@@ -191,6 +191,11 @@ pub(all) enum NativeStandardRunPublicationIssue {
   Publication(@actql/actql/platform_native/run_publication.NativePreparedCapturedRunPublication, @actql/actql/platform_native/run_publication.NativeRunPublicationIssue)
 }
 
+pub(all) enum NativeStandardStrategyMeasurementScope {
+  InputOutputValues
+  ProviderWork
+}
+
 type NativeStandardStrategyRun
 
 pub(all) enum NativeStandardStrategyRunIssue {
@@ -217,6 +222,7 @@ pub(all) struct NativeStandardStrategyTaskHolding {
 }
 
 pub(all) struct NativeStandardStrategyTaskUsage {
+  measurement_scope : NativeStandardStrategyMeasurementScope
   measurement_work : Int
   measurement_bytes : Int
   measurement_nodes : Int

@@ -1,5 +1,6 @@
 ///|
 priv enum MatchNodesPhase {
+  InitializeScratch
   ResolveIdentities
   PreparePredicate
   EvaluatePredicate
@@ -38,8 +39,11 @@ priv struct MatchNodesState {
   mut predicate_work_remaining : Int
   predicate_input : Map[String, @execution.Value]
   mut predicate_execution : @execution.PredicateExpressionExecution?
+  mut key_comparison : @value.BoundedKeyComparison?
   mut selected : Array[Int]
   mut scratch : Array[Int?]
+  scratch_count : Int
+  scratch_slots : Ref[Int]
   mut width : Int
   mut run_start : Int
   mut middle : Int
@@ -51,6 +55,7 @@ priv struct MatchNodesState {
   mut emit_index : Int
   mut column : Int
   mut values : Array[@value.CheckedValue]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -62,6 +67,7 @@ struct MatchNodesExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+  scratch_slots : Ref[Int]
   max_noninterruptible_value_nodes : Int
   max_noninterruptible_value_bytes : Int
 }
@@ -85,6 +91,7 @@ pub(all) enum MatchNodesIssue {
   MatchNodesInputUnavailable
   MissingMatchNodeIdentity(Int)
   MatchNodesWorkspaceLimit
+  MatchNodesWorkLimit
   MatchNodesPredicate(@execution.EvalIssueKind)
   MatchNodesKeyOrder(@value.KeyOrderIssue)
   MatchNodesOutput(@execution.CaptureIssue)
@@ -191,18 +198,38 @@ fn match_node_field(
 }
 
 ///|
-fn compare_selected_nodes(
+fn compare_selected_nodes_step(
   state : MatchNodesState,
   left : Int,
   right : Int,
-) -> Result[Int, MatchNodesIssue] {
-  guard @storage.node_identity(state.source, left) is Some(left_value) &&
-    @storage.node_identity(state.source, right) is Some(right_value) else {
-    return Err(MatchNodesInputUnavailable)
+) -> Result[Int?, MatchNodesIssue] {
+  let active = match state.key_comparison {
+    Some(value) => value
+    None => {
+      guard @storage.node_identity(state.source, left) is Some(left_value) &&
+        @storage.node_identity(state.source, right) is Some(right_value) else {
+        return Err(MatchNodesInputUnavailable)
+      }
+      let value = match
+        @value.start_bounded_key_comparison(left_value, right_value) {
+        Ok(value) => value
+        Err(issue) => return Err(MatchNodesKeyOrder(issue))
+      }
+      state.key_comparison = Some(value)
+      value
+    }
   }
-  @value.compare_key_values(left_value, right_value).map_err(issue => {
-    MatchNodesKeyOrder(issue)
-  })
+  match @value.advance_bounded_key_comparison(active, 1) {
+    Ok(@value.KeyComparisonContinue(_)) => Ok(None)
+    Ok(@value.KeyComparisonComplete(order~, ..)) => {
+      state.key_comparison = None
+      Ok(Some(order))
+    }
+    Err(issue) => {
+      state.key_comparison = None
+      Err(MatchNodesKeyOrder(issue))
+    }
+  }
 }
 
 ///|
@@ -270,7 +297,20 @@ fn match_nodes_step(
     if !@graph.producer_read_available(state.input) {
       return @bounded.Failed(MatchNodesInputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(MatchNodesWorkLimit, progress, used)
+    }
     match state.phase {
+      InitializeScratch => {
+        if state.scratch.length() == state.scratch_count {
+          state.phase = ResolveIdentities
+          continue
+        }
+        state.scratch.push(None)
+        state.scratch_slots.val += 1
+        used += 1
+        progress += 1
+      }
       ResolveIdentities =>
         if state.predicate is Some(_) {
           if state.identity_index < @storage.node_count(state.source) {
@@ -409,12 +449,13 @@ fn match_nodes_step(
       CompareMerge => {
         used += 1
         match
-          compare_selected_nodes(
+          compare_selected_nodes_step(
             state,
             state.selected[state.left_index],
             state.selected[state.right_index],
           ) {
-          Ok(comparison) => emit_match_nodes_merge(state, comparison <= 0)
+          Ok(Some(comparison)) => emit_match_nodes_merge(state, comparison <= 0)
+          Ok(None) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
@@ -448,20 +489,21 @@ fn match_nodes_step(
       CompareDuplicate => {
         used += 1
         match
-          compare_selected_nodes(
+          compare_selected_nodes_step(
             state,
             state.selected[state.emit_index - 1],
             state.selected[state.emit_index],
           ) {
-          Ok(0) => {
+          Ok(Some(0)) => {
             state.emit_index += 1
             state.phase = BeginEmit
           }
-          Ok(_) => {
+          Ok(Some(_)) => {
             state.column = 0
             state.values = []
             state.phase = ReadField
           }
+          Ok(None) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
@@ -514,11 +556,13 @@ fn match_nodes_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
 ///|
 fn cleanup_match_nodes_state(state : MatchNodesState) -> Bool {
+  state.key_comparison = None
   if state.predicate_execution is Some(execution) {
     @execution.cancel_predicate_expression(execution) |> ignore
     state.predicate_execution = None
@@ -533,6 +577,7 @@ fn cleanup_match_nodes_state(state : MatchNodesState) -> Bool {
   }
   state.selected = []
   state.scratch = []
+  state.scratch_slots.val = 0
   state.values = []
   state.predicate_input.clear()
   true
@@ -551,6 +596,7 @@ pub fn start_match_nodes(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[MatchNodesExecution, MatchNodesIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -597,6 +643,10 @@ pub fn start_match_nodes(
   } else {
     0
   }
+  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
+  if control_work_limit < 0 {
+    return Err(MatchNodesWorkLimit)
+  }
   guard max_rows >= 0 &&
     match_nodes_workspace(count, width) is Some(workspace) &&
     checked_match_nodes_add(workspace, predicate_fields)
@@ -618,6 +668,7 @@ pub fn start_match_nodes(
   let rows : Ref[@execution.AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
+  let scratch_slots = Ref(0)
   let port = match
     @execution.prepare_trusted_output_port(
       preparation,
@@ -649,7 +700,7 @@ pub fn start_match_nodes(
     live,
     accepted,
     port,
-    phase: ResolveIdentities,
+    phase: InitializeScratch,
     identity_index: 0,
     select_all_nodes,
     predicate,
@@ -659,8 +710,11 @@ pub fn start_match_nodes(
     predicate_work_remaining: limits.max_work,
     predicate_input: Map([]),
     predicate_execution: None,
+    key_comparison: None,
     selected: [],
-    scratch: Array::make(count, None),
+    scratch: [],
+    scratch_count: count,
+    scratch_slots,
     width: 1,
     run_start: 0,
     middle: 0,
@@ -672,6 +726,7 @@ pub fn start_match_nodes(
     emit_index: 0,
     column: 0,
     values: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,
@@ -687,6 +742,7 @@ pub fn start_match_nodes(
     session,
     token: Some(token),
     accepted,
+    scratch_slots,
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
@@ -697,6 +753,12 @@ pub fn match_nodes_max_noninterruptible_value_nodes(
   value : MatchNodesExecution,
 ) -> Int {
   value.max_noninterruptible_value_nodes
+}
+
+///|
+/// Structural scratch entries retained by the bounded initialization phase.
+pub fn match_nodes_scratch_slots(value : MatchNodesExecution) -> Int {
+  value.scratch_slots.val
 }
 
 ///|

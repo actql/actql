@@ -1,0 +1,14 @@
+{
+  "version": "actql-event-window-boundary-vectors/0.1",
+  "cases": [
+    {"id":"fixed_negative_fraction","kind":"fixed","time":"-0.5","size":10,"step":10,"offset":0,"starts":["-10"],"ends":["0"]},
+    {"id":"fixed_positive_fraction","kind":"fixed","time":"0.5","size":10,"step":10,"offset":0,"starts":["0"],"ends":["10"]},
+    {"id":"fixed_two_to_53","kind":"fixed","time":"9007199254740992","size":8,"step":8,"offset":0,"starts":["9007199254740992"],"ends":["9007199254741000"]},
+    {"id":"fixed_two_to_54","kind":"fixed","time":"18014398509481984","size":4,"step":4,"offset":0,"starts":["18014398509481984"],"ends":["18014398509481988"]},
+    {"id":"fixed_two_to_63","kind":"fixed","time":"9223372036854775808","size":2048,"step":2048,"offset":0,"starts":["9223372036854775808"],"ends":["9223372036854777856"]},
+    {"id":"fixed_negative_two_to_63","kind":"fixed","time":"-9223372036854775808","size":2048,"step":2048,"offset":0,"starts":["-9223372036854775808"],"ends":["-9223372036854773760"]},
+    {"id":"sliding_unrepresentable_start","kind":"sliding","time":"9007199254740992","size":8,"step":1,"offset":0,"issue":"EventWindowArithmetic"},
+    {"id":"sliding_unrepresentable_start_above_two_to_54","kind":"sliding","time":"18014398509481984","size":8,"step":2,"offset":0,"issue":"EventWindowArithmetic"},
+    {"id":"no_membership_near_unrepresentable_grid","kind":"sliding","time":"9007199254740992","size":1,"step":3,"offset":1,"starts":[],"ends":[]}
+  ]
+}

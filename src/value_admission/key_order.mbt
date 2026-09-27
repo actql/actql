@@ -113,6 +113,22 @@ pub fn compare_key_values(
 }
 
 ///|
+/// Compare two components of a declared-nullable domain, such as Graph edge
+/// labels, in canonical typed order with nulls first. Unlike a key column,
+/// the contract may admit null; a stored null orders before every value.
+pub fn compare_present_key_values(
+  left : CheckedValue,
+  right : CheckedValue,
+) -> Result[Int, KeyOrderIssue] {
+  match (left.value, right.value) {
+    (Null, Null) => Ok(0)
+    (Null, _) => Ok(-1)
+    (_, Null) => Ok(1)
+    _ => compare_nonnull_order_values(left, right)
+  }
+}
+
+///|
 /// Compare grouping keys in canonical ascending order with nulls first.
 pub fn compare_group_key_values(
   left : CheckedValue,

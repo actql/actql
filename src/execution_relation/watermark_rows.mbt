@@ -25,9 +25,12 @@ fn[T : RelationRows] evaluate_watermark_rows(
   }
   let names = input.field_names()
   let width = names.length()
+  guard checked_row_slots_add(width, 3) is Some(output_width) else {
+    return Err(RowLimit)
+  }
   let count = IndexedRows::row_count(input)
   if count > max_rows ||
-    !reserve_slots(workspace, width + 3) ||
+    !reserve_slots(workspace, output_width) ||
     !reserve_slots(workspace, count) {
     return Err(RowLimit)
   }
@@ -105,8 +108,8 @@ fn[T : RelationRows] evaluate_watermark_rows(
     if late && policy is @relation.DropLate {
       continue
     }
-    if !spend_control(control, width + 3) ||
-      !reserve_slots(workspace, width + 3) {
+    if !spend_control(control, output_width) ||
+      !reserve_slots(workspace, output_width) {
       return Err(RowLimit)
     }
     let values = Array::makei(width, column => {

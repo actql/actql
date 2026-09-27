@@ -36,7 +36,7 @@ pub(all) enum Issue {
   InvalidEdgeOrder
   InvalidPropertyOrder
   EncodingLimit
-  ValueOrder(@value_admission.CompleteOrderIssue)
+  KeyOrder(@value_admission.KeyOrderIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {

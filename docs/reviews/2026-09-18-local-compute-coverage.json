@@ -1894,7 +1894,7 @@
           "fixed row windows retain exact grids across large signed offsets",
           "row windows preserve exact boundaries for fractional times",
           "sliding row windows use exact large-offset overlap boundaries",
-          "row windows reject unrepresentable exact boundaries as arithmetic",
+          "row windows admit representable large boundaries and reject others",
           "row windows enforce the exact shared execution work boundary"
             ],
             "suite": "moon:execution_relation",
@@ -2227,7 +2227,7 @@
             "fixtures": [
               "Local managed literal lag feeds two downstream Computes",
               "Local managed parameter lag feeds two downstream Computes",
-              "Local managed lag pre-execution cancellation rejects completion and reclaims"
+              "Local lag chain pre-execution values cancellation reclaims"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -4765,10 +4765,10 @@
             "layer": "conformance",
             "path": "src/execution_relation/dedupe_indices_wbtest.mbt",
             "fixtures": [
-              "dedupe groups use canonical tuple identities not scalar key order",
+              "dedupe groups use typed key order independent of tuple identities",
               "dedupe global partition empty input and lower-ranked ties",
               "dedupe top tie fails before any survivor escapes and resets only local scratch",
-              "dedupe budget exactness includes canonical identity and final group sorting",
+              "dedupe budget exactness includes typed grouping and identity checks",
               "dedupe large indexed budgets are exact and fail atomically"
             ],
             "suite": "moon:execution_relation",
@@ -5807,7 +5807,7 @@
             "fixtures": [
               "Local managed cross join reaches two consumers in left-major order",
               "Local managed singleton cross join validates before two consumers",
-              "Local managed cross join cancellation publishes nothing and reclaims"
+              "standard Host cancels external cross join after pair work"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -5830,7 +5830,7 @@
             "fixtures": [
               "Local managed cross join reaches two consumers in left-major order",
               "Local managed singleton cross join validates before two consumers",
-              "Local managed cross join cancellation publishes nothing and reclaims"
+              "standard Host cancels external cross join after pair work"
             ],
             "suite": "moon:query_integration",
             "targets": [

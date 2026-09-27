@@ -113,6 +113,7 @@ pub(all) struct LocalManagedAdvance {
 ///|
 pub struct LocalManagedDispatchOperations[T] {
   inputs : Array[LocalManagedInputTransfer[T]]
+  retained_inputs : Array[LocalInputTransfer]
   execute : () -> Result[Unit, LocalDispatchIssue]
   advance : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
   request_cancel : () -> Bool
@@ -335,6 +336,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
       }
     }
   }
+
   guard @strategy.graph_task_owner(
       @strategy.captured_dag_graph(installed.run),
       task,
@@ -350,11 +352,10 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     is Some(asof_search_ceilings) else {
     return Err(Configuration(InvalidLimits))
   }
-  let selected_operation = @strategy.graph_task_selected_step(
-      @strategy.captured_dag_graph(installed.run),
-      task,
-    )
-    is Some(_)
+  let graph = @strategy.captured_dag_graph(installed.run)
+  let selected_operation = @strategy.graph_task_selected_step(graph, task)
+    is Some(_) ||
+    @strategy.graph_task_prefix_end(graph, task) is Some(_)
   let request_result = if selected_operation ||
     provider_inputs.any(input => input is PreparedCarrier(_)) ||
     relation_inputs.any(input => {
@@ -434,6 +435,12 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     installed.implementation,
     sequence,
   )
+  // Managed Local work runs only through a bounded provider. A sequence no
+  // provider accepts is not a managed candidate; there is no synchronous
+  // whole-sequence fallback.
+  if provider is None {
+    return Ok(None)
+  }
   let base = match provider {
     Some(value) => @local.managed_provider_capacity(value, sequence)
     None =>
@@ -571,6 +578,7 @@ pub fn[T] start_local_managed_dispatch(
   let settled = Ref(false)
   let disposed = Ref(false)
   let bridges : Array[@execution.ManagedProducerBridge[T]] = []
+  let retained_imports : Array[@execution.CompletedOutputImport] = []
   let reads : Array[@execution.ProducerRead?] = []
   let ordinary : Ref[@execution.CompletedOutput?] = Ref(None)
   let retained : Ref[@execution.ManagedRetainedOutput[T]?] = Ref(None)
@@ -580,6 +588,7 @@ pub fn[T] start_local_managed_dispatch(
   )
   let provider_execution : Ref[@local.ManagedProviderExecution?] = Ref(None)
   let execution_finished = Ref(false)
+  let execution_failure : Ref[LocalDispatchIssue?] = Ref(None)
   let request = @connector.managed_fixed_compute_candidate_request(
     @connector.prepared_managed_compute_candidate(setup.prepared),
   )
@@ -670,7 +679,7 @@ pub fn[T] start_local_managed_dispatch(
               if @execution.producer_read_has_cell_access(read) {
                 reads.push(Some(read))
               } else {
-                return Err(@strategy.RunIssue::Compute(InputUnavailable))
+                reads.push(None)
               }
             ManagedRelationInput(input) => {
               let bridge = match
@@ -703,6 +712,9 @@ pub fn[T] start_local_managed_dispatch(
             for bridge in bridges {
               @execution.close_managed_producer_bridge(bridge)
             }
+            for importer in retained_imports {
+              @execution.cancel_completed_output_import(importer) |> ignore
+            }
           },
           dispose: fn() {
             disposed.val = true
@@ -713,6 +725,9 @@ pub fn[T] start_local_managed_dispatch(
             }
             for bridge in bridges {
               @execution.close_managed_producer_bridge(bridge)
+            }
+            for importer in retained_imports {
+              @execution.cancel_completed_output_import(importer) |> ignore
             }
           },
           settled: fn() { settled.val = true },
@@ -763,7 +778,7 @@ pub fn[T] start_local_managed_dispatch(
     None
   } else {
     Some(
-      @execution.numeric_aggregate_execution_with_seal(
+      @execution.numeric_aggregate_execution_with_steps(
         fn(step, name, occurrence, contributors, expected_count, max_work) {
           @strategy.execute_task_numeric_reduction_for_slot(
             setup.run,
@@ -784,6 +799,27 @@ pub fn[T] start_local_managed_dispatch(
             name,
             occurrence_count,
           )
+        },
+        fn(step, name, occurrence, contributors, expected_count, max_work) {
+          @strategy.start_task_numeric_reduction_for_slot(
+            setup.run,
+            execution,
+            step,
+            name,
+            occurrence,
+            contributors,
+            expected_count,
+            max_work,
+          ).map(result => {
+            result.map(pending => {
+              @execution.numeric_aggregate_step(
+                () => {
+                  @strategy.advance_task_numeric_reduction(setup.run, pending)
+                },
+                () => @strategy.close_task_numeric_reduction(setup.run, pending),
+              )
+            })
+          })
         },
       ),
     )
@@ -829,8 +865,83 @@ pub fn[T] start_local_managed_dispatch(
       },
     })
   }
+  let retained_transfers : Array[LocalInputTransfer] = []
+  for read_index, input in relation_inputs {
+    guard input is OrdinaryRelationInput(read) &&
+      !@execution.producer_read_has_cell_access(read) &&
+      @execution.producer_read_retained_material(read) is Some(material) else {
+      continue
+    }
+    let position = read_index
+    let importer : Ref[@execution.CompletedOutputImport?] = Ref(None)
+    retained_transfers.push({
+      material,
+      input: read,
+      frames: {
+        maxBytes: setup.imports.wire.max_bytes,
+        maxRows: setup.imports.max_rows,
+        maxRowBytes: setup.imports.row.max_bytes,
+        maxDepth: setup.imports.row.max_depth,
+        maxFrameBytes: setup.imports.max_batch_bytes,
+      },
+      begin: fn() {
+        guard live.val && importer.val is None else {
+          return Err(Configuration(InputUnavailable))
+        }
+        let prepared = match
+          @execution.prepare_producer_output_import(
+            read,
+            setup.imports.max_rows,
+            setup.imports.values,
+            setup.imports.wire,
+            setup.imports.max_batch_bytes,
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(Configuration(InputUnavailable))
+        }
+        retained_imports.push(prepared)
+        importer.val = Some(prepared)
+        Ok(())
+      },
+      charge: bytes => {
+        @strategy.charge_task_execution_transfer(setup.run, execution, bytes).map_err(issue => {
+            Execution(Physical(issue))
+          },
+        )
+      },
+      append: row => {
+        guard importer.val is Some(active) && live.val else {
+          return Err(Configuration(InputUnavailable))
+        }
+        @execution.append_completed_output_import_wire(
+          active,
+          row,
+          setup.imports.row,
+        ).map_err(_ => Configuration(InputUnavailable))
+      },
+      finish: fn() {
+        guard importer.val is Some(active) && live.val else {
+          return Err(Configuration(InputUnavailable))
+        }
+        let output = match @execution.finish_completed_output_import(active) {
+          Ok(value) => value
+          Err(_) => return Err(Configuration(InputUnavailable))
+        }
+        let rebound = match
+          @execution.rebind_producer_representation(read, output) {
+          Ok(value) => value
+          Err(_) => return Err(Configuration(InputUnavailable))
+        }
+        guard @execution.producer_read_has_cell_access(rebound) else {
+          return Err(Configuration(InputUnavailable))
+        }
+        reads[position] = Some(rebound)
+        Ok(())
+      },
+    })
+  }
   let output_target = @strategy.captured_task_target(setup.run, setup.task)
-  let advance = fn(
+  let advance_once = fn(
     quantum : Int,
   ) -> Result[LocalManagedAdvance, LocalDispatchIssue] {
     if quantum <= 0 {
@@ -850,16 +961,31 @@ pub fn[T] start_local_managed_dispatch(
     if (!live.val || disposed.val) && provider_execution.val is None {
       return Err(Configuration(InputUnavailable))
     }
-    let exact = reads.filter_map(value => value)
     match setup.provider {
       Some(provider) => {
         let active = match provider_execution.val {
           Some(value) => value
           None => {
+            let constrained = match
+              @local.constrain_local_managed_sequence(
+                setup.sequence,
+                join_output_ceilings=setup.join_output_ceilings,
+                interval_search_ceilings=setup.interval_search_ceilings,
+                asof_search_ceilings=setup.asof_search_ceilings,
+                aggregate_output_ceilings=setup.aggregate_output_ceilings,
+                analytic_envelopes=setup.analytic_envelopes,
+                numeric~,
+              ) {
+              Ok(value) => value
+              Err(issue) => {
+                execution_finished.val = true
+                return Err(Configuration(issue))
+              }
+            }
             let started = match
               @local.start_managed_provider_with_inputs_and_execution(
                 provider,
-                setup.sequence,
+                constrained,
                 setup.provider_inputs.map(input => {
                   match input {
                     PreparedRelation(index) =>
@@ -875,6 +1001,7 @@ pub fn[T] start_local_managed_dispatch(
                 @connector.managed_fixed_compute_request_capacity(request).max_rows,
                 @connector.managed_fixed_compute_request_capacity(request).max_value_bytes,
                 setup.execution,
+                numeric~,
               ) {
               Ok(value) => value
               Err(issue) => return Err(Configuration(issue))
@@ -894,6 +1021,13 @@ pub fn[T] start_local_managed_dispatch(
           Ok(@local.Complete(output, progress~, work~)) => {
             if progress < 0L || work < 0L || work > quantum.to_int64() {
               return Err(Configuration(InvalidLimits))
+            }
+            // As after synchronous computation, every selected numeric
+            // reduction slot of the task must be sealed before publication.
+            if numeric_count > 0 &&
+              !@strategy.seal_task_numeric_reductions(setup.run, execution) {
+              execution_finished.val = true
+              return Err(Execution(ForeignCandidate))
             }
             ordinary.val = Some(output)
             execution_finished.val = true
@@ -928,76 +1062,47 @@ pub fn[T] start_local_managed_dispatch(
               return Err(Configuration(InvalidLimits))
             }
             execution_finished.val = true
-            Err(Configuration(InputUnavailable))
+            Err(Execution(Stopped))
           }
         }
       }
+      // Unreachable: preparation declines providerless sequences.
       None => {
-        if setup.provider_inputs.length() != exact.length() ||
-          setup.provider_inputs.any(input => {
-            input is PreparedSupplied(_) || input is PreparedCarrier(_)
-          }) {
-          execution_finished.val = true
-          return Err(Configuration(UnsupportedInputShape))
-        }
-        let output = match
-          @local.execute_local_managed_fixed_compute(
-            setup.choice,
-            setup.prepared,
-            exact,
-            setup.execution,
-            setup.measurement,
-            join_output_ceilings=setup.join_output_ceilings,
-            interval_search_ceilings=setup.interval_search_ceilings,
-            asof_search_ceilings=setup.asof_search_ceilings,
-            aggregate_output_ceilings=setup.aggregate_output_ceilings,
-            analytic_envelopes=setup.analytic_envelopes,
-            numeric~,
-          ) {
-          Ok(value) => value
-          Err(issue) => {
-            execution_finished.val = true
-            return Err(Configuration(issue))
-          }
-        }
-        if numeric_count > 0 &&
-          !@strategy.seal_task_numeric_reductions(setup.run, execution) {
-          execution_finished.val = true
-          return Err(Execution(ForeignCandidate))
-        }
-        let independent = match
-          @execution.copy_completed_output_independent(
-            output,
-            setup.execution.rows.max_rows,
-            setup.imports.wire.max_columns,
-          ) {
-          Ok(value) => value
-          Err(issue) => {
-            execution_finished.val = true
-            return Err(ManagedCopy(issue))
-          }
-        }
-        ordinary.val = Some(independent)
         execution_finished.val = true
-        for bridge in bridges {
-          @execution.close_managed_producer_bridge(bridge)
-        }
-        Ok({
-          complete: true,
-          progress: @execution.completed_row_count(independent).to_int64(),
-          work: 1L,
-        })
+        Err(Configuration(ComputeUnsupported))
       }
     }
   }
+  let advance = fn(
+    quantum : Int,
+  ) -> Result[LocalManagedAdvance, LocalDispatchIssue] {
+    if execution_failure.val is Some(issue) {
+      return Err(issue)
+    }
+    if execution_finished.val && ordinary.val is None && carrier.val is None {
+      return Err(Configuration(InputUnavailable))
+    }
+    let result = advance_once(quantum)
+    if result is Err(issue) && execution_finished.val {
+      execution_failure.val = Some(issue)
+    }
+    result
+  }
   Ok({
     inputs: transfers,
+    retained_inputs: retained_transfers,
     execute: fn() {
+      if execution_failure.val is Some(issue) {
+        return Err(issue)
+      }
       while !execution_finished.val {
         match advance(1024) {
           Ok(_) => ()
           Err(issue) => return Err(issue)
         }
+      }
+      if ordinary.val is None && carrier.val is None {
+        return Err(Configuration(InputUnavailable))
       }
       Ok(())
     },

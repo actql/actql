@@ -305,7 +305,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   }
   let rows = if union_set {
     "[{\"id\":1,\"src\":1,\"dst\":1," + "\"tags\":[\"b\",\"a\"]}]"
-  } else if variant.has_prefix("traverse_pattern_multi_paths") {
+  } else if patterned_multi {
     "[{\"id\":1,\"src\":1,\"dst\":2,\"edge_type\":\"owns\"," +
     "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
     "\"src\":2,\"dst\":3,\"edge_type\":\"blocks\"," +
@@ -458,9 +458,7 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
         "},{\"direction\":\"out\"," +
         "\"edge_types\":[\"blocks\"]," +
         "\"edge_where\":\"weight > 15\"," +
-        "\"node_where\":\"node_name = '" +
-        (if variant == "traverse_pattern_multi" { "first" } else { "third" }) +
-        "'\"" +
+        "\"node_where\":\"node_name = 'third'\"" +
         "}],"
       } else {
         "\"hops\":[{\"direction\":\"out\"" +
@@ -530,9 +528,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     "\"as\":\"same_carrier\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
   } else if variant == "normalize_filter" ||
+    variant == "normalize_filter_false" ||
     variant == "normalize_select" ||
     variant == "normalize_derive" ||
-    variant == "normalize_take" {
+    variant == "normalize_take" ||
+    variant == "normalize_sort" ||
+    variant == "normalize_assert" ||
+    variant == "normalize_unique" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true," +
     "\"as\":\"projected\"},{" +
@@ -543,6 +545,14 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       "\"derive\":{\"copy\":\"id\"}"
     } else if variant == "normalize_take" {
       "\"take\":1"
+    } else if variant == "normalize_sort" {
+      "\"sort\":[{\"id\":\"desc\"}]"
+    } else if variant == "normalize_assert" {
+      "\"assert_rows\":{\"where\":\"id > 0\"}"
+    } else if variant == "normalize_unique" {
+      "\"assert_rows\":{\"unique_by\":[\"id\"]}"
+    } else if variant == "normalize_filter_false" {
+      "\"filter\":\"false\""
     } else {
       "\"filter\":\"true\""
     }) +
@@ -555,7 +565,9 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
   } else if variant == "normalize" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "subgraph_ids" || variant == "subgraph_shared" {
+  } else if variant == "subgraph_ids" ||
+    variant == "subgraph_shared" ||
+    variant == "subgraph_filter" {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[2]}}," +
     "\"as\":\"selected\"},{" +
     (if variant == "subgraph_shared" {
@@ -565,7 +577,13 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       ""
     }) +
     "\"from\":\"selected\"," +
-    "\"node_rows\":true,\"as\":\"out\""
+    "\"node_rows\":true,\"as\":" +
+    (if variant == "subgraph_filter" {
+      "\"projected\"},{\"from\":\"projected\"," +
+      "\"filter\":\"true\",\"as\":\"out\""
+    } else {
+      "\"out\""
+    })
   } else if variant == "subgraph_edges_false" {
     "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[1,2]}," +
     "\"edges\":\"false\"},\"as\":\"selected\"},{" +
@@ -1122,8 +1140,9 @@ fn carrier_graph_material_owner(
 }
 
 ///|
-fn carrier_graph_diff_owner(
+fn carrier_graph_binary_relation_owner(
   source : @lower.BoundPrepared,
+  operation : String,
 ) -> @lower.BoundPrepared {
   let graph = "{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
     "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
@@ -1136,7 +1155,9 @@ fn carrier_graph_diff_owner(
       ",\"as\":\"left\"},{\"graph\":" +
       graph +
       ",\"as\":\"right\"},{\"from\":\"left\"," +
-      "\"graph_diff\":{\"with\":\"right\"}}]",
+      "\"" +
+      operation +
+      "\":{\"with\":\"right\"}}]",
     ),
     [
       (
@@ -1171,6 +1192,13 @@ fn carrier_graph_diff_owner(
     max_parameters=0,
     max_name_bytes=0,
   ).unwrap()
+}
+
+///|
+fn carrier_graph_diff_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  carrier_graph_binary_relation_owner(source, "graph_diff")
 }
 
 ///|
@@ -1401,19 +1429,23 @@ fn carrier_graph_match_body_owner(
 }
 
 ///|
-fn carrier_graph_labeled_source_owner() -> @lower.BoundPrepared {
+fn carrier_graph_labeled_source_owner_with_rows(
+  rows : String,
+  text_id? : Bool = false,
+) -> @lower.BoundPrepared {
   let checked = @pipeline.check(
     input_cursor(
-      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\"," +
-      "\"nullable\":false},\"src\":{\"type\":\"number\"," +
-      "\"nullable\":false},\"dst\":{\"type\":\"number\"," +
-      "\"nullable\":false},\"rel\":{\"type\":\"string\"," +
+      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"" +
+      (if text_id { "string" } else { "number" }) +
+      "\",\"nullable\":false},\"src\":{\"type\":\"" +
+      (if text_id { "string" } else { "number" }) +
+      "\",\"nullable\":false},\"dst\":{\"type\":\"" +
+      (if text_id { "string" } else { "number" }) +
+      "\",\"nullable\":false},\"rel\":{\"type\":\"string\"," +
       "\"nullable\":false},\"weight\":{\"type\":\"number\"," +
-      "\"nullable\":false}},\"rows\":[{\"id\":2,\"src\":2," +
-      "\"dst\":1,\"rel\":\"controls\",\"weight\":20},{\"id\":1," +
-      "\"src\":1,\"dst\":3,\"rel\":\"owns\",\"weight\":30},{" +
-      "\"id\":3,\"src\":1,\"dst\":2,\"rel\":\"owns\"," +
-      "\"weight\":10}]},\"as\":\"source\"}]",
+      "\"nullable\":false}},\"rows\":" +
+      rows +
+      "},\"as\":\"source\"}]",
     ),
     [],
     None,
@@ -1438,6 +1470,16 @@ fn carrier_graph_labeled_source_owner() -> @lower.BoundPrepared {
     max_parameters=0,
     max_name_bytes=0,
   ).unwrap()
+}
+
+///|
+fn carrier_graph_labeled_source_owner() -> @lower.BoundPrepared {
+  carrier_graph_labeled_source_owner_with_rows(
+    "[{\"id\":2,\"src\":2,\"dst\":1,\"rel\":\"controls\"," +
+    "\"weight\":20},{\"id\":1,\"src\":1,\"dst\":3," +
+    "\"rel\":\"owns\",\"weight\":30},{\"id\":3,\"src\":1," +
+    "\"dst\":2,\"rel\":\"owns\",\"weight\":10}]",
+  )
 }
 
 ///|
@@ -1667,6 +1709,7 @@ fn carrier_graph_reach_owner_with_depth(
   start : Int,
   direction : String,
   depth : String,
+  start_json? : String = "",
 ) -> @lower.BoundPrepared {
   let checked = @pipeline.check_with_evidence(
     input_cursor(
@@ -1675,7 +1718,7 @@ fn carrier_graph_reach_owner_with_depth(
       "\"source\":\"src\",\"target\":\"dst\"," +
       "\"fields\":[\"weight\"]}},\"as\":\"graph\"},{" +
       "\"from\":\"graph\",\"reach\":{\"start\":" +
-      start.to_string() +
+      (if start_json == "" { start.to_string() } else { start_json }) +
       ",\"direction\":\"" +
       direction +
       "\",\"max_depth\":" +
@@ -2111,6 +2154,7 @@ fn finish_graph_to_rows(
           @local_bridge.GraphInputUnavailable => abort("graph unavailable")
           @local_bridge.InvalidGraphRecord(_) => abort("invalid graph record")
           @local_bridge.GraphWorkspaceLimit => abort("graph workspace")
+          @local_bridge.GraphControlWorkLimit => abort("graph control work")
           @local_bridge.GraphRelationOutput(_) => abort("graph relation output")
           @local_bridge.GraphCompletion(_) => abort("graph completion")
           @local_bridge.GraphExecution(_) => abort("graph execution")
@@ -2260,6 +2304,7 @@ fn finish_reach(
 fn finish_traverse(
   execution : @local_sga.TraverseExecution,
   quantum? : Int = 1,
+  spent_work? : Ref[Int64]? = None,
 ) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] {
   while true {
     let poll = match @local_sga.advance_traverse(execution, quantum) {
@@ -2268,8 +2313,18 @@ fn finish_traverse(
     }
     match poll {
       @local_sga.TraverseContinue(..) => ()
-      @local_sga.TraverseComplete(output, ..) => return Ok(output)
-      @local_sga.TraverseFailed(issue, ..) => return Err(issue)
+      @local_sga.TraverseComplete(output, work~, ..) => {
+        if spent_work is Some(value) {
+          value.val = work
+        }
+        return Ok(output)
+      }
+      @local_sga.TraverseFailed(issue, work~, ..) => {
+        if spent_work is Some(value) {
+          value.val = work
+        }
+        return Err(issue)
+      }
       @local_sga.TraverseStopped(_, ..) =>
         return Err(
           @local_sga.TraverseReachIssue(
@@ -2394,6 +2449,8 @@ fn match_nodes_predicate_output(
   source_owner : @lower.BoundPrepared,
   predicate : String,
   workspace? : Int = 8,
+  check_workspace_boundary? : Bool = false,
+  check_work_boundary? : Bool = false,
 ) -> @execution.CompletedOutput raise {
   let source = carrier_events_source_output(source_owner)
   let owner = carrier_graph_match_body_owner(
@@ -2420,6 +2477,83 @@ fn match_nodes_predicate_output(
   let graph = finish_rows_to_graph(construction)
   assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
   let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  if check_work_boundary {
+    let start = fn(work) raise {
+      @local_sga.start_match_nodes(
+        @bounded.control(),
+        task_test_completion(owner),
+        sequence,
+        1,
+        input,
+        2,
+        {
+          max_nodes: 1000,
+          max_text_bytes: 1000,
+          max_depth: 10,
+          max_work: 10000,
+        },
+        workspace,
+        1000,
+        1000,
+        [external],
+        control_work_limit=Some(work),
+      ).unwrap()
+    }
+    // Two scratch cells, four predicate bindings, twelve predicate steps,
+    // two output fields, one row commit, and one completion cost 22 units.
+    let exact = start(22)
+    let mut done = false
+    for _ in 0..<23 {
+      if !done {
+        match @local_sga.advance_match_nodes(exact, 1).unwrap() {
+          @local_sga.MatchNodesComplete(_, work~, ..) => {
+            assert_eq(work, 22L)
+            done = true
+          }
+          @local_sga.MatchNodesContinue(..) => ()
+          _ => fail("exact predicate node work failed")
+        }
+      }
+    }
+    assert_true(done)
+    assert_eq(@local_sga.cleanup_match_nodes(exact), Ok(true))
+    let short = start(21)
+    let mut failed = false
+    for _ in 0..<23 {
+      if !failed {
+        match @local_sga.advance_match_nodes(short, 1).unwrap() {
+          @local_sga.MatchNodesContinue(..) => ()
+          @local_sga.MatchNodesFailed(@local_sga.MatchNodesWorkLimit, ..) =>
+            failed = true
+          _ => fail("one-short predicate node work accepted")
+        }
+      }
+    }
+    assert_true(failed)
+    assert_true(@local_sga.match_nodes_cleanup_pending(short))
+    assert_eq(@local_sga.cleanup_match_nodes(short), Ok(true))
+  }
+  if check_workspace_boundary {
+    let short = @local_sga.start_match_nodes(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      2,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      workspace - 1,
+      1000,
+      1000,
+      [external],
+    ).unwrap()
+    assert_true(
+      finish_match_nodes(short)
+      is Err(@local_sga.MatchNodesPredicate(@execution.WorkspaceLimit)),
+    )
+    assert_eq(@local_sga.cleanup_match_nodes(short), Ok(true))
+    assert_true(@graphs.producer_read_available(input))
+  }
   let execution = @local_sga.start_match_nodes(
     @bounded.control(),
     task_test_completion(owner),
@@ -2459,6 +2593,8 @@ test "bounded node match evaluates a checked property predicate" {
     source_owner,
     "node_name = 'second'",
     workspace=9,
+    check_workspace_boundary=true,
+    check_work_boundary=true,
   )
   assert_eq(@execution.completed_row_count(selected), 1)
   assert_true(@execution.completed_cell(selected, 0, 0) is Some(Number(2.0)))
@@ -2514,6 +2650,105 @@ test "bounded node identity match sorts deduplicates and completes atomically" {
   assert_true(@execution.completed_output_matches_inputs(output, [external]))
   assert_true(@graphs.discard_completed(graph))
   assert_true(@execution.completed_output_available(output))
+}
+
+///|
+test "node identity sort yields during a long text comparison" {
+  let prefix = "x".repeat(160)
+  let first = prefix + "a"
+  let second = prefix + "b"
+  let rows = "[{\"id\":\"" +
+    second +
+    "\",\"src\":\"" +
+    second +
+    "\",\"dst\":\"" +
+    second +
+    "\",\"node_name\":\"second\"," +
+    "\"weight\":1},{\"id\":\"" +
+    first +
+    "\",\"src\":\"" +
+    first +
+    "\",\"dst\":\"" +
+    first +
+    "\",\"node_name\":\"first\"," +
+    "\"weight\":2}]"
+  let source_owner = carrier_graph_source_owner_with_rows(rows, text_id=true)
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_match_owner(
+    source_owner,
+    "[\"" + second + "\",\"" + first + "\"]",
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let control = @bounded.control()
+  let execution = @local_sga.start_match_nodes(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    2,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    8,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  for _ in 0..<60 {
+    assert_true(
+      @local_sga.advance_match_nodes(execution, 1).unwrap()
+      is @local_sga.MatchNodesContinue(..),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_match_nodes(execution, 1).unwrap()
+    is @local_sga.MatchNodesStopped(_, ..),
+  )
+  assert_eq(@local_sga.cleanup_match_nodes(execution), Ok(true))
+  assert_true(@graphs.producer_read_available(input))
+  let completed = @local_sga.start_match_nodes(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    2,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    8,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_match_nodes(completed).unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_true(
+    @execution.completed_cell(output, 0, 0) is Some(Text(id)) && id == first,
+  )
+  assert_true(
+    @execution.completed_cell(output, 1, 0) is Some(Text(id)) && id == second,
+  )
+  assert_eq(@local_sga.cleanup_match_nodes(completed), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@execution.completed_output_available(source))
 }
 
 ///|
@@ -2605,15 +2840,102 @@ test "node identity match admits workspace before execution and cleans cancel" {
   )
   let control = @bounded.control()
   let execution = start(control, 8).unwrap()
+  assert_eq(@local_sga.match_nodes_scratch_slots(execution), 0)
+  assert_true(
+    @local_sga.advance_match_nodes(execution, 1).unwrap()
+    is @local_sga.MatchNodesContinue(progress=1L, work=1L),
+  )
+  assert_eq(@local_sga.match_nodes_scratch_slots(execution), 1)
   assert_true(@bounded.request_cancel(control))
   assert_true(
     @local_sga.advance_match_nodes(execution, 1).unwrap()
-    is @local_sga.MatchNodesStopped(_, progress=0L, work=0L),
+    is @local_sga.MatchNodesStopped(_, progress=1L, work=1L),
   )
   assert_true(@local_sga.match_nodes_cleanup_pending(execution))
   assert_eq(@local_sga.cleanup_match_nodes(execution), Ok(true))
+  assert_eq(@local_sga.match_nodes_scratch_slots(execution), 0)
   assert_false(@local_sga.match_nodes_cleanup_pending(execution))
   assert_true(@execution.producer_read_available(external))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "node identity match admits exact work and workspace and rejects one short" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_match_owner(source_owner, "[1]")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let start = fn(work, workspace) raise {
+    @local_sga.start_match_nodes(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      1,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      workspace,
+      1000,
+      1000,
+      [external],
+      control_work_limit=Some(work),
+    )
+  }
+  // One identity needs two sort slots and two output-name slots. Work adds
+  // scratch, identity, two fields, commit, and finish: four slots, six steps.
+  assert_true(start(6, 3) is Err(@local_sga.MatchNodesWorkspaceLimit))
+  let exact = start(6, 4).unwrap()
+  let mut complete = false
+  for _ in 0..<7 {
+    if !complete {
+      match @local_sga.advance_match_nodes(exact, 1).unwrap() {
+        @local_sga.MatchNodesContinue(work~, ..) => assert_true(work <= 6L)
+        @local_sga.MatchNodesComplete(output, work~, ..) => {
+          assert_eq(work, 6L)
+          assert_eq(@execution.completed_row_count(output), 1)
+          complete = true
+        }
+        _ => fail("exact node match control work failed")
+      }
+    }
+  }
+  assert_true(complete)
+  assert_eq(@local_sga.cleanup_match_nodes(exact), Ok(true))
+  let short = start(5, 4).unwrap()
+  let mut failed = false
+  for _ in 0..<7 {
+    if !failed {
+      match @local_sga.advance_match_nodes(short, 1).unwrap() {
+        @local_sga.MatchNodesContinue(..) => ()
+        @local_sga.MatchNodesFailed(@local_sga.MatchNodesWorkLimit, ..) =>
+          failed = true
+        _ => fail("one-short node match control work accepted")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(@local_sga.match_nodes_cleanup_pending(short))
+  assert_eq(@local_sga.cleanup_match_nodes(short), Ok(true))
+  assert_true(@graphs.producer_read_available(input))
   assert_true(@graphs.discard_completed(graph))
 }
 
@@ -2652,12 +2974,13 @@ test "bounded edge match filters repeated types and sorts canonically" {
     input,
     2,
     { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-    10,
+    12,
     1000,
     1000,
     [external],
   ).unwrap()
   let output = finish_match_edges(execution).unwrap()
+  assert_eq(@local_sga.match_edges_type_probes(execution), 3)
   assert_eq(@local_sga.cleanup_match_edges(execution), Ok(true))
   assert_eq(@execution.completed_row_count(output), 2)
   assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(2.0)))
@@ -2669,6 +2992,105 @@ test "bounded edge match filters repeated types and sorts canonically" {
   assert_true(@execution.completed_output_matches_inputs(output, [external]))
   assert_true(@graphs.discard_completed(graph))
   assert_true(@execution.completed_output_available(output))
+}
+
+///|
+test "edge identity sort yields during a long text comparison" {
+  let prefix = "y".repeat(160)
+  let first = prefix + "a"
+  let second = prefix + "b"
+  let rows = "[{\"id\":\"" +
+    second +
+    "\",\"src\":\"" +
+    second +
+    "\",\"dst\":\"" +
+    second +
+    "\",\"rel\":\"owns\"," +
+    "\"weight\":2},{\"id\":\"" +
+    first +
+    "\",\"src\":\"" +
+    first +
+    "\",\"dst\":\"" +
+    first +
+    "\",\"rel\":\"owns\"," +
+    "\"weight\":1}]"
+  let source_owner = carrier_graph_labeled_source_owner_with_rows(
+    rows,
+    text_id=true,
+  )
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_edge_match_owner(source_owner, "[\"owns\"]")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let control = @bounded.control()
+  let execution = @local_sga.start_match_edges(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    2,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    12,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  for _ in 0..<60 {
+    assert_true(
+      @local_sga.advance_match_edges(execution, 1).unwrap()
+      is @local_sga.MatchEdgesContinue(..),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_match_edges(execution, 1).unwrap()
+    is @local_sga.MatchEdgesStopped(_, ..),
+  )
+  assert_eq(@local_sga.cleanup_match_edges(execution), Ok(true))
+  assert_true(@graphs.producer_read_available(input))
+  let completed = @local_sga.start_match_edges(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    2,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    12,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_match_edges(completed).unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_true(
+    @execution.completed_cell(output, 0, 0) is Some(Text(id)) && id == first,
+  )
+  assert_true(
+    @execution.completed_cell(output, 1, 0) is Some(Text(id)) && id == second,
+  )
+  assert_eq(@local_sga.cleanup_match_edges(completed), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@execution.completed_output_available(source))
 }
 
 ///|
@@ -2700,7 +3122,7 @@ test "bounded edge match evaluates a checked property predicate" {
   let graph = finish_rows_to_graph(construction)
   assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
   let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
-  let start = fn(workspace) raise {
+  let start = fn(workspace, work) raise {
     @local_sga.start_match_edges(
       @bounded.control(),
       task_test_completion(owner),
@@ -2713,17 +3135,49 @@ test "bounded edge match evaluates a checked property predicate" {
       1000,
       1000,
       [external],
+      control_work_limit=Some(work),
     )
   }
-  let insufficient = start(14).unwrap()
+  let insufficient = start(15, 100).unwrap()
   assert_true(
     finish_match_edges(insufficient)
     is Err(@local_sga.MatchEdgesPredicate(@execution.WorkspaceLimit)),
   )
   assert_eq(@local_sga.cleanup_match_edges(insufficient), Ok(true))
-  let execution = start(15).unwrap()
-  let output = finish_match_edges(execution).unwrap()
+  // One type entry, two scratch cells, two edge probes, eight bindings,
+  // predicate evaluation, four fields, a row commit, and finalization
+  // have a fixed 33-unit control-work envelope for this two-edge input.
+  let execution = start(16, 33).unwrap()
+  let mut completed : @execution.CompletedOutput? = None
+  for _ in 0..<34 {
+    if completed is None {
+      match @local_sga.advance_match_edges(execution, 1).unwrap() {
+        @local_sga.MatchEdgesContinue(..) => ()
+        @local_sga.MatchEdgesComplete(output, work~, ..) => {
+          assert_eq(work, 33L)
+          completed = Some(output)
+        }
+        _ => fail("exact predicate edge work failed")
+      }
+    }
+  }
+  let output = completed.unwrap()
   assert_eq(@local_sga.cleanup_match_edges(execution), Ok(true))
+  let short = start(16, 32).unwrap()
+  let mut failed = false
+  for _ in 0..<34 {
+    if !failed {
+      match @local_sga.advance_match_edges(short, 1).unwrap() {
+        @local_sga.MatchEdgesContinue(..) => ()
+        @local_sga.MatchEdgesFailed(@local_sga.MatchEdgesWorkLimit, ..) =>
+          failed = true
+        _ => fail("one-short predicate edge work accepted")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(@local_sga.match_edges_cleanup_pending(short))
+  assert_eq(@local_sga.cleanup_match_edges(short), Ok(true))
   assert_eq(@execution.completed_row_count(output), 1)
   assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3.0)))
   assert_true(@execution.completed_cell(output, 0, 1) is Some(Text("owns")))
@@ -2779,15 +3233,174 @@ test "bounded edge match admits workspace and cleans cancellation" {
   )
   let control = @bounded.control()
   let execution = start(control, 10).unwrap()
+  assert_eq(@local_sga.match_edges_scratch_slots(execution), 0)
+  assert_true(
+    @local_sga.advance_match_edges(execution, 1).unwrap()
+    is @local_sga.MatchEdgesContinue(progress=1L, work=1L),
+  )
+  assert_eq(@local_sga.match_edges_scratch_slots(execution), 1)
   assert_true(@bounded.request_cancel(control))
   assert_true(
     @local_sga.advance_match_edges(execution, 1).unwrap()
-    is @local_sga.MatchEdgesStopped(_, progress=0L, work=0L),
+    is @local_sga.MatchEdgesStopped(_, progress=1L, work=1L),
   )
   assert_true(@local_sga.match_edges_cleanup_pending(execution))
   assert_eq(@local_sga.cleanup_match_edges(execution), Ok(true))
+  assert_eq(@local_sga.match_edges_scratch_slots(execution), 0)
   assert_false(@local_sga.match_edges_cleanup_pending(execution))
   assert_true(@execution.producer_read_available(external))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "edge type index builds within quantum and releases on cancellation" {
+  let source_owner = carrier_graph_labeled_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_edge_match_owner(
+    source_owner, "[\"owns\",\"owns\"]",
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let start = fn(control, workspace) raise {
+    @local_sga.start_match_edges(
+      control,
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      2,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      workspace,
+      1000,
+      1000,
+      [external],
+    )
+  }
+  assert_true(
+    start(@bounded.control(), 11) is Err(@local_sga.MatchEdgesWorkspaceLimit),
+  )
+  let control = @bounded.control()
+  let execution = start(control, 12).unwrap()
+  assert_eq(@local_sga.match_edges_scratch_slots(execution), 0)
+  assert_eq(@local_sga.match_edges_type_probes(execution), 0)
+  assert_true(
+    @local_sga.advance_match_edges(execution, 1).unwrap()
+    is @local_sga.MatchEdgesContinue(progress=1L, work=1L),
+  )
+  assert_eq(@local_sga.match_edges_scratch_slots(execution), 0)
+  assert_eq(@local_sga.match_edges_type_probes(execution), 0)
+  assert_true(
+    @local_sga.advance_match_edges(execution, 1).unwrap()
+    is @local_sga.MatchEdgesContinue(progress=2L, work=2L),
+  )
+  assert_eq(@local_sga.match_edges_scratch_slots(execution), 0)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_match_edges(execution, 1).unwrap()
+    is @local_sga.MatchEdgesStopped(_, progress=2L, work=2L),
+  )
+  assert_eq(@local_sga.cleanup_match_edges(execution), Ok(true))
+  assert_true(@graphs.producer_read_available(input))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "edge identity match admits exact work and workspace and rejects one short" {
+  let source_owner = carrier_graph_labeled_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_edge_match_owner(source_owner, "[\"missing\"]")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let start = fn(work, workspace) raise {
+    @local_sga.start_match_edges(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      0,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      workspace,
+      1000,
+      1000,
+      [external],
+      control_work_limit=Some(work),
+    )
+  }
+  // Three edges need six sort slots, four output-name slots, and one type
+  // index slot. Work adds the index, scratch, checks, and finish.
+  assert_true(start(8, 10) is Err(@local_sga.MatchEdgesWorkspaceLimit))
+  let exact = start(8, 11).unwrap()
+  let mut complete = false
+  for _ in 0..<9 {
+    if !complete {
+      match @local_sga.advance_match_edges(exact, 1).unwrap() {
+        @local_sga.MatchEdgesContinue(..) => ()
+        @local_sga.MatchEdgesComplete(output, work~, ..) => {
+          assert_eq(work, 8L)
+          assert_eq(@execution.completed_row_count(output), 0)
+          complete = true
+        }
+        @local_sga.MatchEdgesFailed(@local_sga.MatchEdgesWorkLimit, work~, ..) =>
+          fail("exact edge match exhausted work at " + work.to_string())
+        _ => fail("exact edge match control work failed")
+      }
+    }
+  }
+  assert_true(complete)
+  assert_eq(@local_sga.cleanup_match_edges(exact), Ok(true))
+  let short = start(7, 11).unwrap()
+  let mut failed = false
+  for _ in 0..<9 {
+    if !failed {
+      match @local_sga.advance_match_edges(short, 1).unwrap() {
+        @local_sga.MatchEdgesContinue(..) => ()
+        @local_sga.MatchEdgesFailed(@local_sga.MatchEdgesWorkLimit, ..) =>
+          failed = true
+        _ => fail("one-short edge match control work accepted")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(@local_sga.match_edges_cleanup_pending(short))
+  assert_eq(@local_sga.cleanup_match_edges(short), Ok(true))
+  assert_true(@graphs.producer_read_available(input))
   assert_true(@graphs.discard_completed(graph))
 }
 
@@ -2866,6 +3479,103 @@ test "bounded graph diagnostics preserve row and identity order" {
 }
 
 ///|
+test "graph diagnostics yield during long identity ordering" {
+  let prefix = "z".repeat(160)
+  let first = prefix + "a"
+  let second = prefix + "b"
+  let rows = "[{\"id\":\"" +
+    second +
+    "\",\"src\":\"" +
+    second +
+    "\",\"dst\":\"" +
+    second +
+    "\",\"node_name\":\"second\"," +
+    "\"weight\":1},{\"id\":\"" +
+    first +
+    "\",\"src\":\"" +
+    first +
+    "\",\"dst\":\"" +
+    first +
+    "\",\"node_name\":\"first\"," +
+    "\"weight\":2}]"
+  let source_owner = carrier_graph_source_owner_with_rows(rows, text_id=true)
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_bounds_owner(source_owner, "{\"max_degree\":0}")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let start = fn(control, work_limit) raise {
+    @local_sga.start_graph_bounds(
+      control,
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      2,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      10,
+      1000,
+      1000,
+      [external],
+      control_work_limit=Some(work_limit),
+    )
+  }
+  // Two node and two edge scans cost four steps. Merge preparation costs two
+  // steps, the first differing UTF-16 unit costs 161, and copying costs two.
+  // Four candidate checks, two four-field rows, and finish cost fifteen more.
+  // The independent total is 4 + 2 + 161 + 2 + 4 + 10 + 1 = 184.
+  let control = @bounded.control()
+  let execution = start(control, 184).unwrap()
+  for _ in 0..<60 {
+    assert_true(
+      @local_sga.advance_graph_bounds(execution, 1).unwrap()
+      is @local_sga.GraphBoundsContinue(..),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_graph_bounds(execution, 1).unwrap()
+    is @local_sga.GraphBoundsStopped(_, ..),
+  )
+  assert_eq(@local_sga.cleanup_graph_bounds(execution), Ok(true))
+  assert_true(@graphs.producer_read_available(input))
+  let completed = start(@bounded.control(), 184).unwrap()
+  let output = finish_graph_bounds(completed).unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_true(
+    @execution.completed_cell(output, 0, 3) is Some(Text(id)) && id == first,
+  )
+  assert_true(
+    @execution.completed_cell(output, 1, 3) is Some(Text(id)) && id == second,
+  )
+  assert_eq(@local_sga.cleanup_graph_bounds(completed), Ok(true))
+  let one_short = start(@bounded.control(), 183).unwrap()
+  assert_true(
+    finish_graph_bounds(one_short) is Err(@local_sga.GraphBoundsWorkLimit),
+  )
+  assert_eq(@local_sga.cleanup_graph_bounds(one_short), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
 test "graph diagnostics admit workspace before execution and clean cancel" {
   let source_owner = carrier_graph_source_owner()
   let source = carrier_events_source_output(source_owner)
@@ -2910,16 +3620,93 @@ test "graph diagnostics admit workspace before execution and clean cancel" {
   )
   let control = @bounded.control()
   let execution = start(control, 10).unwrap()
+  assert_true(
+    @local_sga.advance_graph_bounds(execution, 1).unwrap()
+    is @local_sga.GraphBoundsContinue(progress=0L, work=1L),
+  )
   assert_true(@bounded.request_cancel(control))
   assert_true(
     @local_sga.advance_graph_bounds(execution, 1).unwrap()
-    is @local_sga.GraphBoundsStopped(_, progress=0L, work=0L),
+    is @local_sga.GraphBoundsStopped(_, progress=0L, work=1L),
   )
   assert_true(@local_sga.graph_bounds_cleanup_pending(execution))
   assert_eq(@local_sga.cleanup_graph_bounds(execution), Ok(true))
   assert_false(@local_sga.graph_bounds_cleanup_pending(execution))
   assert_true(@execution.producer_read_available(external))
   assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "graph bounds admits exact value and control work" {
+  let source_owner = carrier_graph_source_owner_with_rows(
+    "[{\"id\":1,\"src\":1,\"dst\":1," + "\"node_name\":\"only\",\"weight\":10}]",
+  )
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_bounds_owner(source_owner, "{\"max_nodes\":0}")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let completion = task_test_completion(owner)
+  let start = fn(max_work, workspace, control_work_limit) {
+    @local_sga.start_graph_bounds(
+      @bounded.control(),
+      completion,
+      sequence,
+      1,
+      input,
+      1,
+      { max_nodes: 5, max_text_bytes: 25, max_depth: 10, max_work, },
+      workspace,
+      1000,
+      1000,
+      [external],
+      control_work_limit=Some(control_work_limit),
+    )
+  }
+  // One node needs 3 index slots; four result fields need four more.
+  assert_true(start(30, 6, 11) is Err(@local_sga.GraphBoundsWorkspaceLimit))
+  let exact = start(30, 7, 11).unwrap()
+  let output = finish_graph_bounds(exact).unwrap()
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_true(@execution.completed_cell(output, 0, 1) is Some(Text("nodes")))
+  assert_eq(@local_sga.cleanup_graph_bounds(exact), Ok(true))
+  // The row object and four scalar values cost five nodes. Four field names
+  // cost 4+7+6+3 bytes, and the only text value, "nodes", costs five more.
+  // Thus the independent value-work bound is 5 + 20 + 5 = 30.
+  let short = start(29, 7, 11).unwrap()
+  assert_true(
+    finish_graph_bounds(short)
+    is Err(@local_sga.GraphBoundsOutput(@execution.CaptureLimit)),
+  )
+  assert_eq(@local_sga.cleanup_graph_bounds(short), Ok(true))
+  // With one node and one edge, the bounded phases spend: initialize 1,
+  // scan 1, inspect three candidates, build four fields, commit 1, finish 1.
+  // The cumulative control-work requirement is exactly 11, independent of
+  // the output-value work budget of 30.
+  let control_short = start(30, 7, 10).unwrap()
+  assert_true(
+    finish_graph_bounds(control_short) is Err(@local_sga.GraphBoundsWorkLimit),
+  )
+  assert_eq(@local_sga.cleanup_graph_bounds(control_short), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@execution.completed_output_available(output))
 }
 
 ///|
@@ -2949,7 +3736,7 @@ test "degree metrics preserve directions and admitted execution" {
     assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
     let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
     let completion = task_test_completion(owner)
-    let start = fn(workspace) {
+    let start = fn(workspace, control_work_limit, value_work_limit) {
       @local_sga.start_graph_degree(
         @bounded.control(),
         completion,
@@ -2961,16 +3748,19 @@ test "degree metrics preserve directions and admitted execution" {
           max_nodes: 1000,
           max_text_bytes: 1000,
           max_depth: 10,
-          max_work: 10000,
+          max_work: value_work_limit,
         },
         workspace,
         1000,
         1000,
         [external],
+        control_work_limit=Some(control_work_limit),
       )
     }
-    assert_true(start(7) is Err(@local_sga.GraphBoundsWorkspaceLimit))
-    let execution = start(8).unwrap()
+    assert_true(
+      start(7, 18, 10000) is Err(@local_sga.GraphBoundsWorkspaceLimit),
+    )
+    let execution = start(8, 18, 10000).unwrap()
     let output = finish_graph_degree(execution).unwrap()
     assert_eq(@local_sga.cleanup_graph_degree(execution), Ok(true))
     assert_eq(@execution.completed_row_count(output), 2)
@@ -2982,9 +3772,139 @@ test "degree metrics preserve directions and admitted execution" {
     }
     assert_eq(first, expected)
     assert_eq(second, expected)
+    // Two nodes and two edges cost four steps. Sorting the two nodes takes
+    // three merge steps and two copy steps. The two selected rows cost two
+    // candidate steps, four field reads, two commits, and one finish: 18.
+    let one_short = start(8, 17, 10000).unwrap()
+    assert_true(
+      finish_graph_degree(one_short) is Err(@local_sga.GraphBoundsWorkLimit),
+    )
+    assert_eq(@local_sga.cleanup_graph_degree(one_short), Ok(true))
+    // Each of two rows has an object and two scalar values: six nodes.
+    // The "node" and "degree" field names cost 4 + 6 bytes per row.
+    // The independently calculated value-work requirement is 6 + 20 = 26.
+    let value_exact = start(8, 18, 26).unwrap()
+    let value_output = finish_graph_degree(value_exact).unwrap()
+    assert_eq(@execution.completed_row_count(value_output), 2)
+    assert_eq(@local_sga.cleanup_graph_degree(value_exact), Ok(true))
+    let value_short = start(8, 18, 25).unwrap()
+    assert_true(
+      finish_graph_degree(value_short)
+      is Err(@local_sga.GraphBoundsOutput(@execution.CaptureLimit)),
+    )
+    assert_eq(@local_sga.cleanup_graph_degree(value_short), Ok(true))
     assert_true(@graphs.discard_completed(graph))
     assert_true(@execution.completed_output_available(output))
   }
+}
+
+///|
+test "degree diagnostics enforce output capacity before publishing" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_degree_owner(source_owner, "both")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let start = fn(max_rows, completion) {
+    let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+    @local_sga.start_graph_degree(
+      @bounded.control(),
+      completion,
+      sequence,
+      1,
+      input,
+      max_rows,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      8,
+      1000,
+      1000,
+      [external],
+    ).unwrap()
+  }
+  let exact = start(2, task_test_completion(owner))
+  let output = finish_graph_degree(exact).unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_eq(@local_sga.cleanup_graph_degree(exact), Ok(true))
+  let one_short = start(1, task_test_completion(owner))
+  assert_true(
+    finish_graph_degree(one_short)
+    is Err(@local_sga.GraphBoundsOutput(@execution.CaptureLimit)),
+  )
+  assert_eq(@local_sga.cleanup_graph_degree(one_short), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@execution.completed_output_available(output))
+}
+
+///|
+test "degree diagnostics stop in flight and reclaim private output" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_degree_owner(source_owner, "both")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let control = @bounded.control()
+  let execution = @local_sga.start_graph_degree(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    2,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    8,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(
+    @local_sga.advance_graph_degree(execution, 1).unwrap()
+    is @local_sga.GraphDegreeContinue(progress=0L, work=1L),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_graph_degree(execution, 1).unwrap()
+    is @local_sga.GraphDegreeStopped(_, progress=0L, work=1L),
+  )
+  assert_true(@local_sga.graph_degree_cleanup_pending(execution))
+  assert_eq(@local_sga.cleanup_graph_degree(execution), Ok(true))
+  assert_false(@local_sga.graph_degree_cleanup_pending(execution))
+  assert_true(@execution.producer_read_available(external))
+  assert_true(@graphs.discard_completed(graph))
 }
 
 ///|
@@ -3029,6 +3949,191 @@ test "total degree counts both self-loop incidences" {
   assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(2.0)))
   assert_true(@execution.completed_cell(output, 0, 1) is Some(Number(1.0)))
   assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "empty components admit exact work and workspace and reclaim cancellation" {
+  let source_owner = carrier_graph_source_owner_with_rows("[]")
+  let source = carrier_events_source_output(source_owner)
+  for kind in ["weak", "strong"] {
+    let owner = carrier_graph_components_owner(source_owner, kind)
+    let sequence = prepared_sequence(owner)
+    let external = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+      100,
+      1000,
+    ).unwrap()
+    let construction = @local_bridge.start_rows_to_graph(
+      @bounded.control(),
+      sequence,
+      0,
+      [external, external],
+      carrier_graph_storage_limits(),
+      4096L,
+      100,
+      fn() { true },
+    ).unwrap()
+    let graph = finish_rows_to_graph(construction)
+    assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+    let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+    let start = fn(control, workspace, work) raise {
+      @local_sga.start_components(
+        control,
+        task_test_completion(owner),
+        sequence,
+        1,
+        input,
+        0,
+        {
+          max_nodes: 1000,
+          max_text_bytes: 1000,
+          max_depth: 10,
+          max_work: 1000,
+        },
+        workspace,
+        1000,
+        1000,
+        [external],
+        control_work_limit=Some(work),
+      )
+    }
+    // Fifteen slots per node, two per edge, three fields, two fixed slots.
+    assert_true(
+      start(@bounded.control(), 4, 2)
+      is Err(@local_sga.ComponentsWorkspaceLimit),
+    )
+    let exact = start(@bounded.control(), 5, 2).unwrap()
+    assert_true(
+      @local_sga.advance_components(exact, 1).unwrap()
+      is @local_sga.ComponentsContinue(progress=0L, work=1L),
+    )
+    let output = match @local_sga.advance_components(exact, 1).unwrap() {
+      @local_sga.ComponentsComplete(output, progress=0L, work=2L) => output
+      _ => abort("exact empty components did not complete")
+    }
+    assert_eq(@execution.completed_row_count(output), 0)
+    assert_eq(@local_sga.cleanup_components(exact), Ok(true))
+    assert_true(@execution.completed_output_available(output))
+    let short = start(@bounded.control(), 5, 1).unwrap()
+    assert_true(
+      @local_sga.advance_components(short, 1).unwrap()
+      is @local_sga.ComponentsContinue(progress=0L, work=1L),
+    )
+    assert_true(
+      @local_sga.advance_components(short, 1).unwrap()
+      is @local_sga.ComponentsFailed(@local_sga.ComponentsWorkLimit, ..),
+    )
+    assert_eq(@local_sga.cleanup_components(short), Ok(true))
+    let control = @bounded.control()
+    let cancelled = start(control, 5, 2).unwrap()
+    assert_true(
+      @local_sga.advance_components(cancelled, 1).unwrap()
+      is @local_sga.ComponentsContinue(progress=0L, work=1L),
+    )
+    assert_true(@bounded.request_cancel(control))
+    assert_true(
+      @local_sga.advance_components(cancelled, 1).unwrap()
+      is @local_sga.ComponentsStopped(_, progress=0L, work=1L),
+    )
+    assert_eq(@local_sga.cleanup_components(cancelled), Ok(true))
+    assert_true(@graphs.producer_read_available(input))
+    assert_true(@graphs.discard_completed(graph))
+  }
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
+test "nonempty components admit exact graph work and workspace" {
+  let source_owner = carrier_graph_self_loop_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  for kind in ["weak", "strong"] {
+    let owner = carrier_graph_components_owner(source_owner, kind)
+    let sequence = prepared_sequence(owner)
+    let external = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+      100,
+      1000,
+    ).unwrap()
+    let construction = @local_bridge.start_rows_to_graph(
+      @bounded.control(),
+      sequence,
+      0,
+      [external, external],
+      carrier_graph_storage_limits(),
+      4096L,
+      100,
+      fn() { true },
+    ).unwrap()
+    let graph = finish_rows_to_graph(construction)
+    assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+    let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+    let start = fn(workspace, work) raise {
+      @local_sga.start_components(
+        @bounded.control(),
+        task_test_completion(owner),
+        sequence,
+        1,
+        input,
+        1,
+        {
+          max_nodes: 1000,
+          max_text_bytes: 1000,
+          max_depth: 10,
+          max_work: 1000,
+        },
+        workspace,
+        1000,
+        1000,
+        [external],
+        control_work_limit=Some(work),
+      )
+    }
+    // One node, one edge, and three output fields require 15+2+3+2 slots.
+    assert_true(start(21, 100) is Err(@local_sga.ComponentsWorkspaceLimit))
+    // Common indexing costs seven steps. Weak search costs four steps,
+    // strong search seven, and the output costs five in either case.
+    let exact_work = if kind == "weak" { 16 } else { 19 }
+    let exact = start(22, exact_work).unwrap()
+    let mut complete = false
+    let mut charged = 0L
+    while !complete {
+      match @local_sga.advance_components(exact, 1).unwrap() {
+        @local_sga.ComponentsContinue(work~, ..) => charged = work
+        @local_sga.ComponentsComplete(output, work~, ..) => {
+          charged = work
+          assert_eq(@execution.completed_row_count(output), 1)
+          assert_true(
+            @execution.completed_cell(output, 0, 1) is Some(Number(1.0)),
+          )
+          complete = true
+        }
+        _ => fail("exact nonempty components did not complete")
+      }
+      assert_true(charged <= exact_work.to_int64())
+    }
+    assert_eq(charged, exact_work.to_int64())
+    assert_eq(@local_sga.cleanup_components(exact), Ok(true))
+    let short = start(22, exact_work - 1).unwrap()
+    let mut failed = false
+    let mut short_charged = 0L
+    while !failed {
+      match @local_sga.advance_components(short, 1).unwrap() {
+        @local_sga.ComponentsContinue(work~, ..) => short_charged = work
+        @local_sga.ComponentsFailed(@local_sga.ComponentsWorkLimit, work~, ..) => {
+          short_charged = work
+          failed = true
+        }
+        _ => fail("one-short nonempty components did not fail")
+      }
+      assert_true(short_charged <= exact_work.to_int64())
+    }
+    assert_eq(short_charged, (exact_work - 1).to_int64())
+    assert_eq(@local_sga.cleanup_components(short), Ok(true))
+    assert_true(@graphs.discard_completed(graph))
+  }
+  assert_true(@execution.completed_output_available(source))
 }
 
 ///|
@@ -3133,6 +4238,53 @@ test "weak and strong components preserve canonical identities and bounds" {
     assert_true(@local_sga.components_cleanup_pending(cancelled))
     assert_eq(@local_sga.cleanup_components(cancelled), Ok(true))
     assert_false(@local_sga.components_cleanup_pending(cancelled))
+    let limited = @local_sga.start_components(
+      @bounded.control(),
+      completion,
+      sequence,
+      1,
+      @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+      4,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      73,
+      1000,
+      1000,
+      [external],
+      control_work_limit=Some(1),
+    ).unwrap()
+    assert_true(
+      @local_sga.advance_components(limited, 100).unwrap()
+      is @local_sga.ComponentsFailed(
+        @local_sga.ComponentsWorkLimit,
+        progress=0L,
+        work=1L
+      ),
+    )
+    assert_eq(@local_sga.cleanup_components(limited), Ok(true))
+    let active_control = @bounded.control()
+    let active = @local_sga.start_components(
+      active_control,
+      completion,
+      sequence,
+      1,
+      @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+      4,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      73,
+      1000,
+      1000,
+      [external],
+    ).unwrap()
+    assert_true(
+      @local_sga.advance_components(active, 1).unwrap()
+      is @local_sga.ComponentsContinue(progress=0L, work=1L),
+    )
+    assert_true(@bounded.request_cancel(active_control))
+    assert_true(
+      @local_sga.advance_components(active, 1).unwrap()
+      is @local_sga.ComponentsStopped(_, progress=0L, work=1L),
+    )
+    assert_eq(@local_sga.cleanup_components(active), Ok(true))
     assert_true(@graphs.discard_completed(graph))
     assert_true(@execution.completed_output_available(output))
   }
@@ -3178,6 +4330,106 @@ test "weak and strong components preserve canonical identities and bounds" {
     is Err(@local_sga.ComponentsOutputLimit),
   )
   assert_true(@graphs.discard_completed(guarded_graph))
+}
+
+///|
+test "weak and strong components yield during long minimum comparisons" {
+  let prefix = "m".repeat(160)
+  let first = prefix + "a"
+  let second = prefix + "b"
+  let rows = "[{\"id\":\"" +
+    second +
+    "\",\"src\":\"" +
+    second +
+    "\",\"dst\":\"" +
+    first +
+    "\",\"node_name\":\"second\"," +
+    "\"weight\":1},{\"id\":\"" +
+    first +
+    "\",\"src\":\"" +
+    first +
+    "\",\"dst\":\"" +
+    second +
+    "\",\"node_name\":\"first\"," +
+    "\"weight\":2}]"
+  let source_owner = carrier_graph_source_owner_with_rows(rows, text_id=true)
+  let source = carrier_events_source_output(source_owner)
+  for kind in ["weak", "strong"] {
+    let owner = carrier_graph_components_owner(source_owner, kind)
+    let sequence = prepared_sequence(owner)
+    let external = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+      100,
+      1000,
+    ).unwrap()
+    let construction = @local_bridge.start_rows_to_graph(
+      @bounded.control(),
+      sequence,
+      0,
+      [external, external],
+      carrier_graph_storage_limits(),
+      4096L,
+      100,
+      fn() { true },
+    ).unwrap()
+    let graph = finish_rows_to_graph(construction)
+    assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+    let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+    let start = fn(control) raise {
+      @local_sga.start_components(
+        control,
+        task_test_completion(owner),
+        sequence,
+        1,
+        input,
+        2,
+        {
+          max_nodes: 1000,
+          max_text_bytes: 1000,
+          max_depth: 10,
+          max_work: 10000,
+        },
+        39,
+        1000,
+        1000,
+        [external],
+      )
+    }
+    let control = @bounded.control()
+    let cancelled = start(control).unwrap()
+    for _ in 0..<90 {
+      assert_true(
+        @local_sga.advance_components(cancelled, 1).unwrap()
+        is @local_sga.ComponentsContinue(..),
+      )
+    }
+    assert_true(@bounded.request_cancel(control))
+    assert_true(
+      @local_sga.advance_components(cancelled, 1).unwrap()
+      is @local_sga.ComponentsStopped(_, ..),
+    )
+    assert_eq(@local_sga.cleanup_components(cancelled), Ok(true))
+    assert_true(@graphs.producer_read_available(input))
+    let completed = start(@bounded.control()).unwrap()
+    let output = finish_components(completed).unwrap()
+    assert_eq(@execution.completed_row_count(output), 2)
+    assert_true(
+      @execution.completed_cell(output, 0, 0) is Some(Text(id)) && id == first,
+    )
+    assert_true(
+      @execution.completed_cell(output, 1, 0) is Some(Text(id)) && id == first,
+    )
+    assert_true(
+      @execution.completed_cell(output, 0, 2) is Some(Text(id)) && id == first,
+    )
+    assert_true(
+      @execution.completed_cell(output, 1, 2) is Some(Text(id)) && id == second,
+    )
+    assert_eq(@local_sga.cleanup_components(completed), Ok(true))
+    assert_true(@graphs.discard_completed(graph))
+  }
+  assert_true(@execution.completed_output_available(source))
 }
 
 ///|
@@ -3357,6 +4609,174 @@ test "reach preserves direction depth bounds and cancellation" {
   assert_true(@local_sga.reach_cleanup_pending(cancelled))
   assert_eq(@local_sga.cleanup_reach(cancelled), Ok(true))
   assert_false(@local_sga.reach_cleanup_pending(cancelled))
+  // Four nodes, four edges, and four output fields admit 66 slots.
+  let start = fn(control, workspace, work) raise {
+    @local_sga.start_reach(
+      control,
+      task_test_completion(owner),
+      sequence,
+      1,
+      @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+      4,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      workspace,
+      1000,
+      1000,
+      [external],
+      control_work_limit=Some(work),
+    )
+  }
+  assert_true(
+    start(@bounded.control(), 65, 1) is Err(@local_sga.ReachWorkspaceLimit),
+  )
+  let limited = start(@bounded.control(), 66, 1).unwrap()
+  assert_true(
+    @local_sga.advance_reach(limited, 100).unwrap()
+    is @local_sga.ReachFailed(@local_sga.ReachWorkLimit, progress=0L, work=1L),
+  )
+  assert_eq(@local_sga.cleanup_reach(limited), Ok(true))
+  let active_control = @bounded.control()
+  let active = start(active_control, 66, 10000).unwrap()
+  assert_true(
+    @local_sga.advance_reach(active, 1).unwrap()
+    is @local_sga.ReachContinue(progress=0L, work=1L),
+  )
+  assert_true(@bounded.request_cancel(active_control))
+  assert_true(
+    @local_sga.advance_reach(active, 1).unwrap()
+    is @local_sga.ReachStopped(_, progress=0L, work=1L),
+  )
+  assert_eq(@local_sga.cleanup_reach(active), Ok(true))
+  // Four nodes and four edges: 29 structural, 13 traversal, 15 stable-sort,
+  // 18 output-field, and one completion step require exactly 76 work.
+  for (work, accepted) in [(76, true), (75, false)] {
+    let execution = start(@bounded.control(), 66, work).unwrap()
+    let mut terminal = false
+    for _ in 0..<100 {
+      if !terminal {
+        match @local_sga.advance_reach(execution, 1).unwrap() {
+          @local_sga.ReachContinue(..) => ()
+          @local_sga.ReachComplete(output, work=charged, ..) => {
+            assert_true(accepted)
+            assert_eq(charged, 76L)
+            assert_eq(@execution.completed_row_count(output), 3)
+            terminal = true
+          }
+          @local_sga.ReachFailed(@local_sga.ReachWorkLimit, ..) => {
+            assert_false(accepted)
+            assert_true(@local_sga.reach_cleanup_pending(execution))
+            terminal = true
+          }
+          _ => fail("reach exact work boundary had another outcome")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(@local_sga.cleanup_reach(execution), Ok(true))
+  }
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "reach yields during long typed identity sorting" {
+  let prefix = "m".repeat(160)
+  let first = prefix + "a"
+  let second = prefix + "b"
+  let third = prefix + "c"
+  let rows = "[{\"id\":\"" +
+    third +
+    "\",\"src\":\"" +
+    first +
+    "\",\"dst\":\"" +
+    third +
+    "\",\"node_name\":\"third\",\"weight\":1},{\"id\":\"" +
+    second +
+    "\",\"src\":\"" +
+    first +
+    "\",\"dst\":\"" +
+    second +
+    "\",\"node_name\":\"second\",\"weight\":2},{\"id\":\"" +
+    first +
+    "\",\"src\":\"" +
+    first +
+    "\",\"dst\":\"" +
+    first +
+    "\",\"node_name\":\"first\",\"weight\":3}]"
+  let source_owner = carrier_graph_source_owner_with_rows(rows, text_id=true)
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_reach_owner_with_depth(
+    source_owner,
+    0,
+    "out",
+    "1",
+    start_json="\"" + first + "\"",
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let start = fn(control) raise {
+    @local_sga.start_reach(
+      control,
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      3,
+      {
+        max_nodes: 1000,
+        max_text_bytes: 10000,
+        max_depth: 10,
+        max_work: 10000,
+      },
+      100,
+      1000,
+      10000,
+      [external],
+    )
+  }
+  let control = @bounded.control()
+  let cancelled = start(control).unwrap()
+  for _ in 0..<90 {
+    assert_true(
+      @local_sga.advance_reach(cancelled, 1).unwrap()
+      is @local_sga.ReachContinue(..),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_reach(cancelled, 1).unwrap()
+    is @local_sga.ReachStopped(_, ..),
+  )
+  assert_eq(@local_sga.cleanup_reach(cancelled), Ok(true))
+  assert_true(@graphs.producer_read_available(input))
+  let completed = start(@bounded.control()).unwrap()
+  let output = finish_reach(completed).unwrap()
+  assert_eq(@execution.completed_row_count(output), 3)
+  let expected = [first, second, third]
+  for index in 0..<expected.length() {
+    assert_true(
+      @execution.completed_cell(output, index, 2) is Some(Text(id)) &&
+      id == expected[index],
+    )
+  }
+  assert_eq(@local_sga.cleanup_reach(completed), Ok(true))
   assert_true(@graphs.discard_completed(graph))
 }
 
@@ -3436,6 +4856,28 @@ test "homogeneous traversal enforces minimum depth and cancellation" {
   assert_true(@local_sga.traverse_cleanup_pending(cancelled))
   assert_eq(@local_sga.cleanup_traverse(cancelled), Ok(true))
   assert_false(@local_sga.traverse_cleanup_pending(cancelled))
+  let limited = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 1, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(
+    @local_sga.advance_traverse(limited, 100).unwrap()
+    is @local_sga.TraverseFailed(
+      @local_sga.TraverseReachIssue(@local_sga.ReachWorkLimit),
+      progress=0L,
+      work=1L
+    ),
+  )
+  assert_eq(@local_sga.cleanup_traverse(limited), Ok(true))
   assert_true(@graphs.discard_completed(graph))
   assert_true(@execution.completed_output_available(output))
 }
@@ -3499,6 +4941,53 @@ test "scalar shortest path admits workspace before allocation and cancels" {
   assert_eq(@local_sga.cleanup_shortest(execution), Ok(true))
   assert_eq(@execution.completed_row_count(output), 1)
   assert_true(@execution.completed_output_matches_inputs(output, [external]))
+
+  // The fixed four-node/four-edge scalar path needs 88 charged steps.
+  for (work_limit, accepted) in [(88, true), (87, false)] {
+    let exact = @local_sga.start_shortest(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      1,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      89,
+      1000,
+      1000,
+      [external],
+      control_work_limit=Some(work_limit),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<100 {
+      if !terminal {
+        match @local_sga.advance_shortest(exact, 1).unwrap() {
+          @local_sga.ShortestContinue(..) => ()
+          @local_sga.ShortestComplete(result, work=charged, ..) => {
+            assert_true(accepted)
+            assert_eq(charged, 88L)
+            assert_eq(@execution.completed_row_count(result), 1)
+            terminal = true
+          }
+          @local_sga.ShortestFailed(
+            @local_sga.ShortestWorkLimit,
+            work=charged,
+            ..
+          ) => {
+            assert_false(accepted)
+            assert_eq(charged, 87L)
+            assert_true(@local_sga.shortest_cleanup_pending(exact))
+            terminal = true
+          }
+          @local_sga.ShortestFailed(_, ..) =>
+            fail("shortest exact work boundary had a different failure")
+          _ => fail("shortest exact work boundary had another outcome")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(@local_sga.cleanup_shortest(exact), Ok(true))
+  }
 
   let limited = @local_sga.start_shortest(
     @bounded.control(),
@@ -3571,6 +5060,70 @@ test "scalar shortest path admits workspace before allocation and cancels" {
 }
 
 ///|
+test "registered shortest path shares work across construction and search" {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_shortest_owner(source_owner, 1, 3, 2)
+  let generated = task_test_generated(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    89,
+    1000,
+  ).unwrap()
+  // The fixed graph construction and scalar path consume 125 total steps.
+  for (work_limit, accepted) in [(125, true), (124, false)] {
+    let limits : @graph_storage.Limits = {
+      ..carrier_graph_storage_limits(),
+      max_work: work_limit,
+    }
+    let provider = @local_sga_provider.provider(
+      limits,
+      4096L,
+      @execution.generated_sequence_capacity(
+        generated,
+        dispatch_test_limits().local_execution,
+        dispatch_test_limits().guards,
+      ).unwrap(),
+    )
+    let active = @local_connector.start_managed_provider_with_inputs(
+      provider,
+      generated,
+      [@local_connector.managed_provider_relation_input(external)],
+      1,
+      1000,
+    ).unwrap()
+    let mut total = 0L
+    let mut terminal = false
+    for _ in 0..<1000 {
+      if !terminal {
+        match @local_connector.advance_managed_provider(active, 1).unwrap() {
+          @local_connector.Continue(work~, ..) => total += work
+          @local_connector.Complete(output, work~, ..) => {
+            assert_true(accepted)
+            total += work
+            assert_eq(@execution.completed_row_count(output), 1)
+            terminal = true
+          }
+          @local_connector.Failed(_, work~, ..) => {
+            assert_false(accepted)
+            total += work
+            terminal = true
+          }
+          _ => fail("shortest Graph provider had another outcome")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(total, work_limit.to_int64())
+    assert_true(
+      @local_connector.cleanup_managed_provider(active).unwrap_or(false),
+    )
+  }
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
 test "scalar shortest path uses canonical identity ties" {
   let source_owner = carrier_graph_source_owner_with_rows(
     "[{\"id\":4,\"src\":1,\"dst\":4," +
@@ -3624,6 +5177,114 @@ test "scalar shortest path uses canonical identity ties" {
   )
   assert_true(@graphs.discard_completed(graph))
   assert_true(@execution.completed_output_available(output))
+}
+
+///|
+test "shortest endpoint ordering yields across long typed identities" {
+  let prefix = "s".repeat(160)
+  let first = prefix + "a"
+  let second = prefix + "b"
+  let rows = "[{\"id\":\"" +
+    second +
+    "\",\"src\":\"" +
+    second +
+    "\",\"dst\":\"" +
+    second +
+    "\",\"node_name\":\"second\",\"weight\":1}," +
+    "{\"id\":\"" +
+    first +
+    "\",\"src\":\"" +
+    first +
+    "\",\"dst\":\"" +
+    first +
+    "\",\"node_name\":\"first\",\"weight\":2}]"
+  let source_owner = carrier_graph_source_owner_with_rows(rows, text_id=true)
+  let source = carrier_events_source_output(source_owner)
+  let endpoints = "{\"ids\":[\"" + second + "\",\"" + first + "\"]}"
+  let owner = carrier_graph_shortest_owner_with_endpoints(
+    source_owner,
+    endpoints,
+    endpoints,
+    1,
+    selection=",\"selection\":\"each_pair\"",
+    max_output_rows=4,
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let limits : @execution.ValueLimits = {
+    max_nodes: 1000,
+    max_text_bytes: 10000,
+    max_depth: 10,
+    max_work: 20000,
+  }
+  let control = @bounded.control()
+  let cancelled = @local_sga.start_shortest(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    4,
+    limits,
+    200,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  for _ in 0..<200 {
+    assert_true(
+      @local_sga.advance_shortest(cancelled, 1).unwrap()
+      is @local_sga.ShortestContinue(..),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_shortest(cancelled, 1).unwrap()
+    is @local_sga.ShortestStopped(_, ..),
+  )
+  assert_eq(@local_sga.cleanup_shortest(cancelled), Ok(true))
+  assert_true(@graphs.completed_available(graph))
+  let completed = @local_sga.start_shortest(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    4,
+    limits,
+    200,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_shortest(completed).unwrap()
+  assert_eq(@local_sga.cleanup_shortest(completed), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 2)
+  let first_row = @execution.completed_output_row_wire(output, 0, 2000, 100, 10).unwrap()
+  let second_row = @execution.completed_output_row_wire(
+    output, 1, 2000, 100, 10,
+  ).unwrap()
+  assert_true(first_row.contains("\"source_id\":\"" + first + "\""))
+  assert_true(second_row.contains("\"source_id\":\"" + second + "\""))
+  assert_true(@graphs.discard_completed(graph))
 }
 
 ///|
@@ -4858,6 +6519,8 @@ fn traverse_paths_result_for_source(
   attempts? : Ref[Int]? = None,
   quantum? : Int = 1,
   workspace_peak? : Ref[Int]? = None,
+  max_work? : Int = 10000,
+  spent_work? : Ref[Int64]? = None,
 ) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] raise {
   let source = carrier_events_source_output(source_owner)
   let owner = carrier_graph_traverse_owner(
@@ -4899,14 +6562,14 @@ fn traverse_paths_result_for_source(
       max_nodes: max_value_nodes,
       max_text_bytes: 1000,
       max_depth: 10,
-      max_work: 10000,
+      max_work,
     },
     workspace,
     1000,
     1000,
     [external],
   ).unwrap()
-  let result = finish_traverse(execution, quantum~)
+  let result = finish_traverse(execution, quantum~, spent_work~)
   if attempts is Some(attempts) {
     attempts.val = @local_sga.traverse_value_item_attempts(execution)
   }
@@ -4944,6 +6607,201 @@ fn homogeneous_traverse_paths_result(
     quantum~,
     workspace_peak~,
   )
+}
+
+///|
+fn traverse_nodes_result_for_source(
+  source_owner : @lower.BoundPrepared,
+  minimum : Int,
+  maximum : Int,
+  max_rows? : Int = 4,
+  workspace? : Int = 100,
+  peak? : Ref[Int]? = None,
+  max_work? : Int = 10000,
+  spent_work? : Ref[Int64]? = None,
+) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] raise {
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_traverse_owner(
+    source_owner,
+    minimum,
+    maximum,
+    emission="nodes",
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let execution = match
+    @local_sga.start_traverse(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+      max_rows,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work, },
+      workspace,
+      1000,
+      1000,
+      [external],
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      assert_true(@graphs.discard_completed(graph))
+      return Err(issue)
+    }
+  }
+  let result = finish_traverse(execution, spent_work~)
+  if peak is Some(value) {
+    value.val = @local_sga.traverse_private_workspace_usage(execution).1
+  }
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
+  result
+}
+
+///|
+test "node traversal finds the shortest eligible simple path" {
+  let source_owner = carrier_graph_source_owner_with_rows(
+    "[{\"id\":1,\"src\":1,\"dst\":3,\"node_name\":\"one\",\"weight\":1}," +
+    "{\"id\":2,\"src\":1,\"dst\":2,\"node_name\":\"two\",\"weight\":1}," +
+    "{\"id\":3,\"src\":2,\"dst\":3,\"node_name\":\"three\",\"weight\":1}]",
+  )
+  let output = traverse_nodes_result_for_source(source_owner, 2, 2).unwrap()
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 10000, 1000, 20).unwrap(),
+    "{\"depth\":2,\"node_id\":3,\"start_id\":1}",
+  )
+  let paths = traverse_paths_result_for_source(
+    source_owner,
+    4,
+    100,
+    minimum=2,
+    maximum=2,
+  ).unwrap()
+  assert_eq(@execution.completed_row_count(paths), 1)
+  assert_true(
+    @execution.completed_output_row_wire(paths, 0, 10000, 1000, 20)
+    .unwrap()
+    .contains("\"node_ids\":[1,2,3]"),
+  )
+}
+
+///|
+test "node traversal sorts endpoints and retains minimum eligible depth" {
+  let source_owner = carrier_graph_source_owner_with_rows(
+    "[{\"id\":1,\"src\":1,\"dst\":3,\"node_name\":\"one\",\"weight\":1}," +
+    "{\"id\":2,\"src\":1,\"dst\":2,\"node_name\":\"two\",\"weight\":1}," +
+    "{\"id\":3,\"src\":2,\"dst\":4,\"node_name\":\"three\",\"weight\":1}," +
+    "{\"id\":4,\"src\":3,\"dst\":5,\"node_name\":\"four\",\"weight\":1}," +
+    "{\"id\":5,\"src\":5,\"dst\":4,\"node_name\":\"five\",\"weight\":1}]",
+  )
+  let peak = Ref(0)
+  let output = traverse_nodes_result_for_source(
+    source_owner,
+    2,
+    3,
+    peak=Some(peak),
+  ).unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 10000, 1000, 20).unwrap(),
+    "{\"depth\":2,\"node_id\":4,\"start_id\":1}",
+  )
+  assert_eq(
+    @execution.completed_output_row_wire(output, 1, 10000, 1000, 20).unwrap(),
+    "{\"depth\":2,\"node_id\":5,\"start_id\":1}",
+  )
+  assert_true(peak.val > 0)
+  assert_true(
+    traverse_nodes_result_for_source(source_owner, 2, 3, max_rows=1)
+    is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsOutputLimit)),
+  )
+  assert_true(
+    traverse_nodes_result_for_source(source_owner, 2, 3, workspace=peak.val - 1)
+    is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsWorkspaceLimit)),
+  )
+}
+
+///|
+test "node traversal cancellation reclaims the unpublished path state" {
+  let source_owner = carrier_graph_source_owner_with_rows(
+    "[{\"id\":1,\"src\":1,\"dst\":3,\"node_name\":\"one\",\"weight\":1}," +
+    "{\"id\":2,\"src\":1,\"dst\":2,\"node_name\":\"two\",\"weight\":1}," +
+    "{\"id\":3,\"src\":2,\"dst\":3,\"node_name\":\"three\",\"weight\":1}]",
+  )
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_traverse_owner(source_owner, 2, 2, emission="nodes")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let control = @bounded.control()
+  let execution = @local_sga.start_traverse(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let mut reached = false
+  for _ in 0..<1000 {
+    match @local_sga.advance_traverse(execution, 1).unwrap() {
+      @local_sga.TraverseContinue(..) =>
+        if @local_sga.traverse_private_entry_count(execution) > 3 {
+          reached = true
+          break
+        }
+      _ => abort("node traversal completed before cancellation")
+    }
+  }
+  assert_true(reached)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_traverse(execution, 1).unwrap()
+    is @local_sga.TraverseStopped(_, ..),
+  )
+  assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
+  assert_eq(@local_sga.traverse_private_entry_count(execution), 0)
+  assert_eq(@local_sga.traverse_private_workspace_usage(execution).0, 0)
+  assert_true(@graphs.discard_completed(graph))
 }
 
 ///|
@@ -5052,6 +6910,103 @@ test "path traversal admits output and workspace before expansion" {
 }
 
 ///|
+test "traversal empty simple-path work has exact boundaries" {
+  let source_owner = carrier_graph_source_owner_with_rows(
+    "[{\"id\":1,\"src\":1,\"dst\":1,\"node_name\":\"only\",\"weight\":1}]",
+  )
+  let path_work = Ref(0L)
+  assert_true(
+    traverse_paths_result_for_source(
+      source_owner,
+      2,
+      20,
+      minimum=1,
+      maximum=1,
+      spent_work=Some(path_work),
+    )
+    is Ok(_),
+  )
+  let node_work = Ref(0L)
+  assert_true(
+    traverse_nodes_result_for_source(
+      source_owner,
+      1,
+      1,
+      workspace=20,
+      spent_work=Some(node_work),
+    )
+    is Ok(_),
+  )
+  // Paths use one selection, resolution, and collection visit, then one
+  // edge scan, one simple-path membership rejection, and one finish visit.
+  assert_eq(path_work.val, 6L)
+  // Node emission also builds the one-node/one-edge adjacency: selection,
+  // resolution, collection, node initialization, degree scan, offsets,
+  // edge initialization, edge fill, depth reset, queue pop, edge scan,
+  // rejected neighbor, and finish each consume one control unit.
+  assert_eq(node_work.val, 13L)
+  match
+    traverse_paths_result_for_source(
+      source_owner,
+      2,
+      20,
+      minimum=1,
+      maximum=1,
+      max_work=6,
+    ) {
+    Ok(_) => ()
+    Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsWorkLimit)) =>
+      fail("path control work exceeded six")
+    Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsOutput(_))) =>
+      fail("path output work exceeded six")
+    Err(_) => fail("other path failure at six")
+  }
+  assert_true(
+    traverse_paths_result_for_source(
+      source_owner,
+      2,
+      20,
+      minimum=1,
+      maximum=1,
+      max_work=5,
+    )
+    is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsWorkLimit)),
+  )
+  assert_true(
+    traverse_nodes_result_for_source(
+      source_owner,
+      1,
+      1,
+      workspace=20,
+      max_work=13,
+    )
+    is Ok(_),
+  )
+  // One node needs thirteen slots, one edge needs two, the two offset
+  // sentinels need two, and the output schema has three fields: 20 total.
+  assert_true(
+    traverse_nodes_result_for_source(
+      source_owner,
+      1,
+      1,
+      workspace=19,
+      max_work=13,
+    )
+    is Err(@local_sga.TraverseReachIssue(@local_sga.ReachWorkspaceLimit)),
+  )
+  assert_true(
+    traverse_nodes_result_for_source(
+      source_owner,
+      1,
+      1,
+      workspace=20,
+      max_work=12,
+    )
+    is Err(@local_sga.TraverseReachIssue(@local_sga.ReachWorkLimit)),
+  )
+}
+
+///|
 test "path traversal charges overlapping start selector and indices" {
   for workspace in [7, 8] {
     let source_owner = carrier_graph_components_source_owner()
@@ -5131,6 +7086,38 @@ test "path traversal charges overlapping start selector and indices" {
     assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
     assert_eq(@local_sga.traverse_private_entry_count(execution), 0)
     assert_eq(@local_sga.traverse_private_workspace_usage(execution).0, 0)
+    if workspace == 8 {
+      for ceiling in [0, 1] {
+        let limited = @local_sga.start_traverse(
+          @bounded.control(),
+          task_test_completion(owner),
+          sequence,
+          1,
+          @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+          20,
+          {
+            max_nodes: 1000,
+            max_text_bytes: 1000,
+            max_depth: 10,
+            max_work: ceiling,
+          },
+          workspace,
+          1000,
+          1000,
+          [external],
+        ).unwrap()
+        match @local_sga.advance_traverse(limited, 100).unwrap() {
+          @local_sga.TraverseFailed(
+            @local_sga.TraversePathIssue(@local_sga.TraversePathsWorkLimit),
+            progress=0L,
+            work~
+          ) => assert_eq(work, ceiling.to_int64())
+          _ => fail("path traversal escaped its work ceiling")
+        }
+        assert_eq(@local_sga.cleanup_traverse(limited), Ok(true))
+        assert_eq(@local_sga.traverse_private_entry_count(limited), 0)
+      }
+    }
     assert_true(@graphs.discard_completed(graph))
   }
 }
@@ -5519,6 +7506,103 @@ test "bounded Graph bridge preserves repeated positions and two consumers" {
 }
 
 ///|
+test "rows to Graph Bridge admits exact control work and workspace" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_owner(source_owner)
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  // Two declared nodes each take identity, property, and commit work. Two
+  // edges each take source, target, property, two endpoint checks, and commit.
+  // Finalizing the Graph is one further step: 2 * 3 + 2 * 6 + 1 = 19.
+  // The two property indices and eight fixed scratch slots overlap at start.
+  assert_true(
+    @local_bridge.start_rows_to_graph(
+      @bounded.control(),
+      sequence,
+      0,
+      [external, external],
+      carrier_graph_storage_limits(),
+      4096L,
+      9,
+      fn() { true },
+      control_work_limit=Some(19),
+    )
+    is Err(@local_bridge.GraphWorkspaceLimit),
+  )
+  for (work, accepted) in [(19, true), (18, false)] {
+    let execution = @local_bridge.start_rows_to_graph(
+      @bounded.control(),
+      sequence,
+      0,
+      [external, external],
+      carrier_graph_storage_limits(),
+      4096L,
+      10,
+      fn() { true },
+      control_work_limit=Some(work),
+    ).unwrap()
+    let mut finished = false
+    for _ in 0..<30 {
+      if !finished {
+        match @local_bridge.advance_rows_to_graph(execution, 1).unwrap() {
+          @local_bridge.Continue(..) => ()
+          @local_bridge.Complete(output, work=charged, ..) => {
+            assert_true(accepted)
+            assert_eq(charged, 19L)
+            let storage = @graphs.completed_storage(output).unwrap()
+            assert_eq(@graph_storage.node_count(storage), 2)
+            assert_eq(@graph_storage.edge_count(storage), 2)
+            assert_true(@graphs.discard_completed(output))
+            finished = true
+          }
+          @local_bridge.Failed(@local_bridge.GraphControlWorkLimit, ..) => {
+            assert_false(accepted)
+            assert_true(@local_bridge.rows_to_graph_cleanup_pending(execution))
+            finished = true
+          }
+          _ => fail("rows-to-Graph control boundary had another outcome")
+        }
+      }
+    }
+    assert_true(finished)
+    assert_eq(@local_bridge.cleanup_rows_to_graph(execution), Ok(true))
+    assert_false(@local_bridge.rows_to_graph_cleanup_pending(execution))
+    assert_true(@execution.producer_read_available(external))
+  }
+  let control = @bounded.control()
+  let cancelled = @local_bridge.start_rows_to_graph(
+    control,
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    10,
+    fn() { true },
+    control_work_limit=Some(19),
+  ).unwrap()
+  assert_true(
+    @local_bridge.advance_rows_to_graph(cancelled, 1).unwrap()
+    is @local_bridge.Continue(work=1L, ..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_bridge.advance_rows_to_graph(cancelled, 1).unwrap()
+    is @local_bridge.Stopped(@bounded.Cancelled, ..),
+  )
+  assert_true(@local_bridge.rows_to_graph_cleanup_pending(cancelled))
+  assert_eq(@local_bridge.cleanup_rows_to_graph(cancelled), Ok(true))
+  assert_false(@local_bridge.rows_to_graph_cleanup_pending(cancelled))
+  assert_true(@execution.producer_read_available(external))
+}
+
+///|
 test "bounded Graph edge projection survives Graph reclamation" {
   let source_owner = carrier_graph_source_owner()
   let source = carrier_events_source_output(source_owner)
@@ -5649,6 +7733,191 @@ test "Graph bridge cancellation stops before cleanup and preserves inputs" {
   assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
   assert_false(@local_bridge.rows_to_graph_cleanup_pending(construction))
   assert_true(@execution.producer_read_available(external))
+}
+
+///|
+fn graph_rows_projection_workspace_and_cancel(
+  projection : String,
+  width : Int,
+  exact_work : Int,
+) -> Unit raise {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_owner(source_owner, projection~)
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let values : @execution.ValueLimits = {
+    max_nodes: 1000,
+    max_text_bytes: 1000,
+    max_depth: 10,
+    max_work: 10000,
+  }
+  assert_true(
+    @local_bridge.start_graph_to_rows(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      10,
+      values,
+      width - 1,
+      1000,
+      1000,
+      [external],
+    )
+    is Err(@local_bridge.GraphWorkspaceLimit),
+  )
+  let short_work : @execution.ValueLimits = {
+    max_nodes: 1000,
+    max_text_bytes: 1000,
+    max_depth: 10,
+    max_work: exact_work - 1,
+  }
+  let rejected = @local_bridge.start_graph_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    10,
+    short_work,
+    width,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let mut saw_work_limit = false
+  for _ in 0..<100 {
+    match @local_bridge.advance_graph_to_rows(rejected, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Failed(
+        @local_bridge.GraphRelationOutput(@execution.CaptureLimit),
+        ..
+      ) => {
+        saw_work_limit = true
+        break
+      }
+      _ => fail("Graph projection did not reject one-short value work")
+    }
+  }
+  assert_true(saw_work_limit)
+  assert_true(@local_bridge.graph_to_rows_cleanup_pending(rejected))
+  assert_eq(@local_bridge.cleanup_graph_to_rows(rejected), Ok(true))
+  assert_true(@graphs.producer_read_available(input))
+  let exact : @execution.ValueLimits = {
+    max_nodes: 1000,
+    max_text_bytes: 1000,
+    max_depth: 10,
+    max_work: exact_work,
+  }
+  let accepted = @local_bridge.start_graph_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    10,
+    exact,
+    width,
+    1000,
+    1000,
+    [external],
+    control_work_limit=Some(2 * (width + 1)),
+  ).unwrap()
+  let rows = finish_graph_to_rows(accepted)
+  assert_eq(@execution.completed_row_count(rows), 2)
+  assert_eq(@local_bridge.cleanup_graph_to_rows(accepted), Ok(true))
+  let one_short_control = @local_bridge.start_graph_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    10,
+    values,
+    width,
+    1000,
+    1000,
+    [external],
+    control_work_limit=Some(2 * (width + 1) - 1),
+  ).unwrap()
+  let mut control_failed = false
+  for _ in 0..<100 {
+    match @local_bridge.advance_graph_to_rows(one_short_control, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Failed(@local_bridge.GraphControlWorkLimit, ..) => {
+        control_failed = true
+        break
+      }
+      _ => fail("Graph projection did not reject one-short control work")
+    }
+  }
+  assert_true(control_failed)
+  assert_eq(@local_bridge.cleanup_graph_to_rows(one_short_control), Ok(true))
+  let control = @bounded.control()
+  let execution = @local_bridge.start_graph_to_rows(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    10,
+    values,
+    width,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  match @local_bridge.advance_graph_to_rows(execution, 1).unwrap() {
+    @local_bridge.Continue(progress~, work~) => {
+      assert_eq(progress, 0L)
+      assert_eq(work, 1L)
+    }
+    _ => fail("Graph projection did not report bounded field work")
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_bridge.advance_graph_to_rows(execution, 1).unwrap()
+    is @local_bridge.Stopped(_, ..),
+  )
+  assert_true(@local_bridge.graph_to_rows_cleanup_pending(execution))
+  assert_eq(@local_bridge.cleanup_graph_to_rows(execution), Ok(true))
+  assert_false(@local_bridge.graph_to_rows_cleanup_pending(execution))
+  assert_true(@graphs.producer_read_available(input))
+  assert_true(@execution.producer_read_available(external))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "Graph node rows admit exact work and workspace and stop after field work" {
+  // Two rows: one row node, two value nodes, 11 field-name bytes,
+  // and five/six text bytes respectively.
+  graph_rows_projection_workspace_and_cancel("node_rows", 2, 39)
+}
+
+///|
+test "Graph edge rows admit exact work and workspace and stop after field work" {
+  // Each row has one row node, four value nodes, and 15 field-name bytes.
+  graph_rows_projection_workspace_and_cancel("edge_rows", 4, 40)
 }
 
 ///|
@@ -6768,8 +9037,302 @@ fn graph_relation_publication_cid(variant : String) -> String {
 }
 
 ///|
-test "Graph diff cancellation stops partial snapshots before cleanup" {
+test "Graph equality enforces exact control work and cleans cancellation" {
+  let source_owner = carrier_graph_source_owner_with_rows("[]")
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_binary_relation_owner(source_owner, "graphs_equal")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let left_builder = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let left = finish_rows_to_graph(left_builder)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(left_builder), Ok(true))
+  let right_builder = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    1,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let right = finish_rows_to_graph(right_builder)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(right_builder), Ok(true))
+  let left_read = @graphs.prepare_step_read(owner, 2, 0, left).unwrap()
+  let right_read = @graphs.prepare_step_read(owner, 2, 1, right).unwrap()
+  let start = fn(control, work, entries) raise {
+    @local_sga.start_graphs_equal(
+      control,
+      task_test_completion(owner),
+      sequence,
+      2,
+      left_read,
+      right_read,
+      1,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      entries,
+      1000,
+      [external],
+      control_work_limit=Some(work),
+    ).unwrap()
+  }
+  // The one receiving input and one Boolean output each require one
+  // structural port entry. The same entry is reused across both checks.
+  assert_true(
+    @local_sga.start_graphs_equal(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      2,
+      left_read,
+      right_read,
+      1,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      0,
+      1000,
+      [external],
+      control_work_limit=Some(3),
+    )
+    is Err(@local_sga.GraphsEqualCompletion(@execution.Limit)),
+  )
+  // Empty Graphs require count comparison, one output, and completion.
+  let exact = start(@bounded.control(), 3, 1)
+  assert_true(
+    @local_sga.advance_graphs_equal(exact, 1).unwrap()
+    is @local_sga.GraphsEqualContinue(progress=0L, work=1L),
+  )
+  match @local_sga.advance_graphs_equal(exact, 1).unwrap() {
+    @local_sga.GraphsEqualContinue(progress=1L, work=2L) => ()
+    @local_sga.GraphsEqualContinue(progress~, work~) =>
+      fail("equality progress " + progress.to_string() + "/" + work.to_string())
+    @local_sga.GraphsEqualFailed(@local_sga.GraphsEqualWorkLimit, ..) =>
+      fail("equality work limit fired before output")
+    @local_sga.GraphsEqualFailed(@local_sga.GraphsEqualOutput(_), ..) =>
+      fail("equality output failed")
+    @local_sga.GraphsEqualFailed(@local_sga.GraphsEqualCompletion(_), ..) =>
+      fail("equality completion failed")
+    @local_sga.GraphsEqualFailed(@local_sga.InvalidGraphsEqualKernel, ..) =>
+      fail("equality kernel rejected output")
+    @local_sga.GraphsEqualFailed(_, ..) => fail("equality failed before output")
+    _ => fail("equality second step did not continue")
+  }
+  let output = match @local_sga.advance_graphs_equal(exact, 1).unwrap() {
+    @local_sga.GraphsEqualComplete(output, progress=1L, work=3L) => output
+    _ => abort("exact Graph equality did not complete")
+  }
+  assert_true(@execution.completed_cell(output, 0, 0) is Some(Boolean(true)))
+  assert_eq(@local_sga.cleanup_graphs_equal(exact), Ok(true))
+  assert_true(@execution.completed_output_available(output))
+  let short = start(@bounded.control(), 2, 1)
+  assert_true(
+    @local_sga.advance_graphs_equal(short, 1).unwrap()
+    is @local_sga.GraphsEqualContinue(progress=0L, work=1L),
+  )
+  assert_true(
+    @local_sga.advance_graphs_equal(short, 1).unwrap()
+    is @local_sga.GraphsEqualContinue(progress=1L, work=2L),
+  )
+  assert_true(
+    @local_sga.advance_graphs_equal(short, 1).unwrap()
+    is @local_sga.GraphsEqualFailed(@local_sga.GraphsEqualWorkLimit, ..),
+  )
+  assert_true(@local_sga.graphs_equal_cleanup_pending(short))
+  assert_eq(@local_sga.cleanup_graphs_equal(short), Ok(true))
+  let control = @bounded.control()
+  let cancelled = start(control, 3, 1)
+  assert_true(
+    @local_sga.advance_graphs_equal(cancelled, 1).unwrap()
+    is @local_sga.GraphsEqualContinue(progress=0L, work=1L),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_graphs_equal(cancelled, 1).unwrap()
+    is @local_sga.GraphsEqualStopped(_, progress=0L, work=1L),
+  )
+  assert_eq(@local_sga.cleanup_graphs_equal(cancelled), Ok(true))
+  assert_true(@graphs.producer_read_available(left_read))
+  assert_true(@graphs.producer_read_available(right_read))
+  assert_true(@graphs.discard_completed(left))
+  assert_true(@graphs.discard_completed(right))
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
+test "Graph equality stops during a long property comparison" {
+  let rows = "[{\"id\":1,\"src\":1,\"dst\":1," +
+    "\"node_name\":\"" +
+    "x".repeat(512) +
+    "\",\"weight\":1}]"
+  let source_owner = carrier_graph_source_owner_with_rows(rows)
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_binary_relation_owner(source_owner, "graphs_equal")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let left_builder = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let left = finish_rows_to_graph(left_builder)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(left_builder), Ok(true))
+  let right_builder = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    1,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let right = finish_rows_to_graph(right_builder)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(right_builder), Ok(true))
+  let left_read = @graphs.prepare_step_read(owner, 2, 0, left).unwrap()
+  let right_read = @graphs.prepare_step_read(owner, 2, 1, right).unwrap()
+  let control = @bounded.control()
+  let active = @local_sga.start_graphs_equal(
+    control,
+    task_test_completion(owner),
+    sequence,
+    2,
+    left_read,
+    right_read,
+    1,
+    { max_nodes: 1000, max_text_bytes: 2048, max_depth: 10, max_work: 10000, },
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  for index in 0..<50 {
+    match @local_sga.advance_graphs_equal(active, 1).unwrap() {
+      @local_sga.GraphsEqualContinue(progress~, work~) => {
+        assert_eq(progress, 0L)
+        assert_eq(work, (index + 1).to_int64())
+      }
+      _ => fail("Graph equality did not yield during long text comparison")
+    }
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_graphs_equal(active, 1).unwrap()
+    is @local_sga.GraphsEqualStopped(_, progress=0L, work=50L),
+  )
+  assert_eq(@local_sga.cleanup_graphs_equal(active), Ok(true))
+  assert_true(@graphs.producer_read_available(left_read))
+  assert_true(@graphs.producer_read_available(right_read))
+  assert_true(@graphs.discard_completed(left))
+  assert_true(@graphs.discard_completed(right))
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
+test "Graph equality bounds nested value comparison work" {
   let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_binary_relation_owner(source_owner, "graphs_equal")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let left_builder = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let left = finish_rows_to_graph(left_builder)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(left_builder), Ok(true))
+  let right_builder = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    1,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let right = finish_rows_to_graph(right_builder)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(right_builder), Ok(true))
+  let left_read = @graphs.prepare_step_read(owner, 2, 0, left).unwrap()
+  let right_read = @graphs.prepare_step_read(owner, 2, 1, right).unwrap()
+  let execution = @local_sga.start_graphs_equal(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    2,
+    left_read,
+    right_read,
+    1,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    1000,
+    1000,
+    [external],
+    control_work_limit=Some(3),
+  ).unwrap()
+  assert_true(
+    @local_sga.advance_graphs_equal(execution, 100).unwrap()
+    is @local_sga.GraphsEqualFailed(
+      @local_sga.GraphsEqualWorkLimit,
+      progress=0L,
+      work=3L
+    ),
+  )
+  assert_eq(@local_sga.cleanup_graphs_equal(execution), Ok(true))
+  assert_true(@graphs.producer_read_available(left_read))
+  assert_true(@graphs.producer_read_available(right_read))
+  assert_true(@graphs.discard_completed(left))
+  assert_true(@graphs.discard_completed(right))
+}
+
+///|
+test "Graph diff cancellation stops partial snapshots before cleanup" {
+  let mut source_rows = "["
+  for id in 1..<=10 {
+    if id > 1 {
+      source_rows += ","
+    }
+    source_rows += "{\"id\":" +
+      id.to_string() +
+      ",\"src\":" +
+      id.to_string() +
+      ",\"dst\":" +
+      id.to_string() +
+      ",\"node_name\":\"same\",\"weight\":1}"
+  }
+  source_rows += "]"
+  let source_owner = carrier_graph_source_owner_with_rows(source_rows)
   let source = carrier_events_source_output(source_owner)
   let owner = carrier_graph_diff_owner(source_owner)
   let sequence = prepared_sequence(owner)
@@ -6813,7 +9376,7 @@ test "Graph diff cancellation stops partial snapshots before cleanup" {
     @graphs.prepare_step_read(owner, 2, 1, right).unwrap(),
     1,
     { max_nodes: 1000, max_text_bytes: 10000, max_depth: 20, max_work: 10000, },
-    100,
+    1000,
     1000,
     1000,
     [external],
@@ -6831,6 +9394,79 @@ test "Graph diff cancellation stops partial snapshots before cleanup" {
   assert_true(@local_sga.graph_diff_cleanup_pending(execution))
   assert_eq(@local_sga.cleanup_graph_diff(execution), Ok(true))
   assert_false(@local_sga.graph_diff_cleanup_pending(execution))
+  let reference = @local_sga.start_graph_diff(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    2,
+    @graphs.prepare_step_read(owner, 2, 0, left).unwrap(),
+    @graphs.prepare_step_read(owner, 2, 1, right).unwrap(),
+    1,
+    { max_nodes: 1000, max_text_bytes: 10000, max_depth: 20, max_work: 10000, },
+    1000,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let mut charged = 0
+  let mut finished = false
+  while !finished {
+    match @local_sga.advance_graph_diff(reference, 1).unwrap() {
+      @local_sga.GraphDiffContinue(work~, ..) => charged = work.to_int()
+      @local_sga.GraphDiffComplete(output, work~, ..) => {
+        charged = work.to_int()
+        assert_true(@execution.completed_output_available(output))
+        finished = true
+      }
+      _ => fail("reference graph diff failed")
+    }
+  }
+  assert_eq(@local_sga.cleanup_graph_diff(reference), Ok(true))
+  assert_true(charged > 2)
+  // The paired ceilings guard the emit/finalize tail, not an independent
+  // full-route work formula for every graph shape.
+  for ceiling in [charged - 1, charged] {
+    let limited = @local_sga.start_graph_diff(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      2,
+      @graphs.prepare_step_read(owner, 2, 0, left).unwrap(),
+      @graphs.prepare_step_read(owner, 2, 1, right).unwrap(),
+      1,
+      {
+        max_nodes: 1000,
+        max_text_bytes: 10000,
+        max_depth: 20,
+        max_work: ceiling,
+      },
+      1000,
+      1000,
+      1000,
+      [external],
+    ).unwrap()
+    let mut terminal = false
+    let mut reported = 0
+    while !terminal {
+      match @local_sga.advance_graph_diff(limited, 1).unwrap() {
+        @local_sga.GraphDiffContinue(work~, ..) => reported = work.to_int()
+        @local_sga.GraphDiffComplete(output, work~, ..) => {
+          reported = work.to_int()
+          assert_eq(ceiling, charged)
+          assert_true(@execution.completed_output_available(output))
+          terminal = true
+        }
+        @local_sga.GraphDiffFailed(@local_sga.GraphDiffWorkLimit, work~, ..) => {
+          reported = work.to_int()
+          assert_eq(ceiling, charged - 1)
+          terminal = true
+        }
+        _ => fail("graph diff ignored its total work ceiling")
+      }
+    }
+    assert_eq(reported, ceiling)
+    assert_eq(@local_sga.cleanup_graph_diff(limited), Ok(true))
+  }
   assert_true(@graphs.discard_completed(left))
   assert_true(@graphs.discard_completed(right))
   assert_true(@execution.completed_output_available(source))
@@ -6952,6 +9588,111 @@ test "Graph delta applies an empty exact diff with quantum one" {
   assert_true(@graphs.discard_completed(left))
   assert_true(@graphs.discard_completed(right))
   assert_true(@execution.completed_output_available(source))
+}
+
+///|
+
+///|
+/// Diff emits actions in canonical typed ID order (9 before 10) and apply
+/// verifies that same order; the canonical key encoding would disagree.
+test "Graph delta round-trips numeric identities in typed order" {
+  let left_owner = carrier_graph_source_owner_with_rows(
+    "[{\"id\":10,\"src\":10,\"dst\":10," +
+    "\"node_name\":\"ten\",\"weight\":1}]",
+  )
+  let right_owner = carrier_graph_source_owner_with_rows(
+    "[{\"id\":9,\"src\":9,\"dst\":10,\"node_name\":\"nine\"," +
+    "\"weight\":2},{\"id\":10,\"src\":10,\"dst\":9," +
+    "\"node_name\":\"TEN\",\"weight\":3}]",
+  )
+  let left_rows = carrier_events_source_output(left_owner)
+  let right_rows = carrier_events_source_output(right_owner)
+  let diff_owner = carrier_graph_delta_owner(left_owner, right_owner)
+  let sequence = prepared_sequence(diff_owner)
+  let left_input = @execution.prepare_producer_read(
+    diff_owner,
+    @execution.bind_completed_input(diff_owner, 0, left_owner, left_rows).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let right_input = @execution.prepare_producer_read(
+    diff_owner,
+    @execution.bind_completed_input(diff_owner, 1, right_owner, right_rows).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let inputs = [left_input, right_input]
+  let left_execution = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [left_input, left_input],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let left = finish_rows_to_graph(left_execution)
+  let right_execution = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    1,
+    [right_input, right_input],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let right = finish_rows_to_graph(right_execution)
+  let diff_execution = @local_sga.start_graph_diff(
+    @bounded.control(),
+    task_test_completion(diff_owner),
+    sequence,
+    2,
+    @graphs.prepare_step_read(diff_owner, 2, 0, left).unwrap(),
+    @graphs.prepare_step_read(diff_owner, 2, 1, right).unwrap(),
+    1,
+    { max_nodes: 1000, max_text_bytes: 10000, max_depth: 20, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    inputs,
+  ).unwrap()
+  let delta = finish_graph_diff(diff_execution)
+  let apply_owner = carrier_graph_apply_owner(diff_owner)
+  let apply = @local_sga.start_graph_apply(
+    @bounded.control(),
+    prepared_sequence(apply_owner),
+    0,
+    @graphs.prepare_producer_read(apply_owner, 0, diff_owner, left).unwrap(),
+    @execution.prepare_producer_read(
+      apply_owner,
+      @execution.bind_completed_input(apply_owner, 1, diff_owner, delta).unwrap(),
+      100,
+      1000,
+    ).unwrap(),
+    carrier_graph_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut applied = None
+  let mut polls = 0
+  while applied is None {
+    polls += 1
+    assert_true(polls < 1000)
+    match @local_sga.advance_graph_apply(apply, 1).unwrap() {
+      @local_sga.GraphApplyContinue(..) => ()
+      @local_sga.GraphApplyComplete(output, ..) => applied = Some(output)
+      @local_sga.GraphApplyFailed(issue, ..) => {
+        assert_eq(Some(issue), None)
+        return
+      }
+      @local_sga.GraphApplyStopped(_, ..) => abort("graph apply stopped")
+    }
+  }
+  let storage = @graphs.completed_storage(applied.unwrap()).unwrap()
+  assert_eq(@graph_storage.node_count(storage), 2)
+  assert_eq(@graph_storage.edge_count(storage), 2)
 }
 
 ///|
@@ -7948,7 +10689,7 @@ fn run_standard_host_graph_relation_path(
       assert_true(graph_rows[1].contains("\"node_id\":1"))
     } else if variant == "traverse_pattern_multi" {
       assert_true(graph_rows[0].contains("\"start_id\":1"))
-      assert_true(graph_rows[0].contains("\"node_id\":1"))
+      assert_true(graph_rows[0].contains("\"node_id\":3"))
       assert_true(graph_rows[0].contains("\"depth\":2"))
     } else if variant.has_prefix("traverse_pattern_") &&
       variant != "traverse_pattern_one" {
@@ -8101,6 +10842,8 @@ fn run_standard_host_graph_relation_path(
 ///|
 fn run_standard_host_mixed_graph_relation_path(
   variant? : String = "normalize_filter",
+  execution_quantum? : Int = 0,
+  cancel_take_after? : Int = 0,
 ) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_carrier_graph_chain=true,
@@ -8126,6 +10869,24 @@ fn run_standard_host_mixed_graph_relation_path(
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let sequences = dispatch_test_generated(run)
+  if variant == "normalize_take" {
+    let mut keyed_take = false
+    for position in 0..<@execution.generated_sequence_step_count(sequences[4]) {
+      if @execution.generated_sequence_step_at(sequences[4], position)
+        is Some(@lower.RowStep(candidate)) &&
+        @lower.kernel_take(candidate) is Some(_) &&
+        @lower.node_at(
+          @lower.bound_preparation(
+            @execution.generated_sequence_owner(sequences[4]),
+          ),
+          position,
+        )
+        is Some(node) {
+        keyed_take = @lower.order_node_id(node) is Some(_)
+      }
+    }
+    assert_true(keyed_take)
+  }
   let provider = @local_sga_provider.provider(
     carrier_graph_storage_limits(),
     4096L,
@@ -8228,7 +10989,54 @@ fn run_standard_host_mixed_graph_relation_path(
     obligations?=graph_publication_obligations(run, true),
   )
   let projected_rows = local_managed_test_rows(projected_ops)
+  if cancel_take_after > 0 {
+    let cancelled_ops = start_local_managed_test_task_operations(
+      installed,
+      run,
+      5,
+      [projected],
+      [projected_rows],
+      obligations?=graph_publication_obligations(run, true),
+    )
+    for _ in 0..<cancel_take_after {
+      let observation = (cancelled_ops.advance)(1).unwrap()
+      assert_false(observation.complete)
+      assert_true(observation.work <= 1L)
+    }
+    assert_true((cancelled_ops.request_cancel)())
+    assert_true((cancelled_ops.advance)(1) is Err(_))
+    assert_true((cancelled_ops.execution_stopped)())
+    assert_true((cancelled_ops.material)() is None)
+    (cancelled_ops.settle)().unwrap()
+    @strategy.close_captured_task_output(run, 5)
+    (cancelled_ops.close)()
+    (cancelled_ops.cleanup_refresh)() |> ignore
+    projected_live.val = false
+    @strategy.close_captured_task_output(run, 4)
+    (projected_ops.close)()
+    (projected_ops.cleanup_refresh)() |> ignore
+    @strategy.close_captured_task_output(run, 3)
+    (normalize_ops.close)()
+    (normalize_ops.cleanup_refresh)() |> ignore
+    @strategy.close_captured_task_output(run, 2)
+    (construction_ops.close)()
+    (construction_ops.cleanup_refresh)() |> ignore
+    values_live.val = false
+    @strategy.close_captured_task_output(run, 1)
+    (values_ops.close)()
+    (values_ops.cleanup_refresh)() |> ignore
+    @strategy.stop_captured_dag(run)
+    @strategy.close_captured_task_output(run, 0)
+    @strategy.refresh_captured_retention(run)
+    let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+    assert_eq(usage.reserved_execution_bytes, 0L)
+    assert_eq(usage.reserved_retention_bytes, 0L)
+    assert_eq(usage.held_bytes, 0L)
+    @mock.close_mock_query_issuer(issuer)
+    return
+  }
   let filtered_live = Ref(true)
+  let execution_advances = Ref(0)
   let (filtered_ops, filtered) = run_local_managed_test_task(
     installed,
     run,
@@ -8238,11 +11046,24 @@ fn run_standard_host_mixed_graph_relation_path(
     5,
     filtered_live,
     obligations?=graph_publication_obligations(run, true),
+    execution_quantum~,
+    execution_advances=Some(execution_advances),
   )
+  if execution_quantum == 1 {
+    assert_true(execution_advances.val > 1)
+  }
   let filtered_rows = local_managed_test_rows(filtered_ops)
-  let expected_rows = if variant == "normalize_take" { 1 } else { 2 }
+  let expected_rows = if variant == "normalize_take" {
+    1
+  } else if variant == "normalize_filter_false" {
+    0
+  } else {
+    2
+  }
   assert_eq(filtered_rows.length(), expected_rows)
-  if variant == "normalize_filter" {
+  if variant == "normalize_filter_false" {
+    assert_true(filtered_rows.is_empty())
+  } else if variant == "normalize_filter" {
     assert_eq(filtered_rows, projected_rows)
     assert_true(filtered_rows[0].contains("\"id\":1"))
     assert_true(filtered_rows[1].contains("\"id\":2"))
@@ -8254,6 +11075,13 @@ fn run_standard_host_mixed_graph_relation_path(
     assert_true(filtered_rows[1].contains("\"copy\":2"))
   } else if variant == "normalize_take" {
     assert_true(filtered_rows[0].contains("\"id\":1"))
+  } else if variant == "normalize_sort" {
+    assert_true(filtered_rows[0].contains("\"id\":2"))
+    assert_true(filtered_rows[1].contains("\"id\":1"))
+  } else if variant == "normalize_assert" {
+    assert_eq(filtered_rows, projected_rows)
+  } else if variant == "normalize_unique" {
+    assert_eq(filtered_rows, projected_rows)
   } else {
     assert_true(filtered_rows[0].contains("\"src\":1"))
     assert_true(filtered_rows[1].contains("\"src\":2"))
@@ -8327,6 +11155,206 @@ test "standard Host composes Graph projection and Relation filter" {
 }
 
 ///|
+test "standard Host suppresses rows after a Graph projection and false filter" {
+  run_standard_host_mixed_graph_relation_path(variant="normalize_filter_false")
+}
+
+///|
+test "standard Host runs a fused Graph prefix before Relation filter and two consumers" {
+  let (run, issuer) = captured_graph_fixture(
+    local_carrier_graph_chain=true,
+    local_carrier_graph_variant="subgraph_filter",
+    managed_publication=true,
+    ledger_limits=Some({
+      planning_work: 30000,
+      attempts: 20,
+      holdings: 20,
+      transfer_bytes: 800000L,
+      retained_bytes: 96000000L,
+      execution_bytes: 402653184L,
+    }),
+  )
+  let graph = @strategy.captured_dag_graph(run)
+  assert_eq(@strategy.graph_task_count(graph), 6)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 2), Some(2))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+  assert_true(
+    @strategy.configure_captured_managed_identity_policy(
+      run, true, false, false, false,
+    ),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let sequences = dispatch_test_generated(run)
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      sequences[1],
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let modules = @builtin.configure_compute_modules(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    1,
+    _ => @strategy.RunIssue::ForeignCandidate,
+    with_local=Some(
+      (
+        @connector.capability_registration_at(registry, 0).unwrap(),
+        {
+          sequences,
+          managed_providers: [provider],
+          managed_capacity: limits.capacity,
+          execution: limits.local_execution,
+          measurement: limits.guards,
+          max_work: limits.candidate_work,
+        },
+        _ => @strategy.RunIssue::ForeignCandidate,
+        _ => @strategy.RunIssue::ForeignCandidate,
+      ),
+    ),
+  ).unwrap()
+  let installed = @builtin.configured_local_module(modules).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 20,
+        max_columns: 10,
+      },
+      row: {
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_depth: 10,
+        max_text_bytes: 3000,
+      },
+      max_batch_bytes: 3000,
+    },
+    None,
+  ).unwrap()
+  let values_live = Ref(true)
+  let (values_ops, values) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    values_live,
+    obligations?=graph_publication_obligations(run, true),
+  )
+  let values_rows = local_managed_test_rows(values_ops)
+  let prefix_live = Ref(true)
+  let (prefix_ops, prefix) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [values],
+    [values_rows],
+    2,
+    prefix_live,
+    obligations?=graph_publication_obligations(run, true),
+  )
+  let prefix_rows = local_managed_test_rows(prefix_ops)
+  assert_eq(prefix_rows.length(), 1)
+  assert_true(prefix_rows[0].contains("\"id\":2"))
+  let filtered_live = Ref(true)
+  let filtered_obligations = graph_publication_obligations(run, true).unwrap()
+  let (filtered_ops, filtered) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [prefix],
+    [prefix_rows],
+    3,
+    filtered_live,
+    obligations=filtered_obligations,
+  )
+  assert_eq(local_managed_test_rows(filtered_ops), prefix_rows)
+  let publication = @execution.managed_obligations_identities(
+    filtered_obligations,
+  ).filter(requirement => {
+    requirement.domain == @execution.LogicalRelation &&
+    requirement.subject == @execution.NamedResult
+  })
+  assert_eq(publication.length(), 1)
+  match
+    @execution.managed_completed_identity_requirement_status(
+      filtered,
+      publication[0],
+    ) {
+    Some(@execution.EstablishedSourceRetained(contract, cid)) => {
+      assert_eq(contract, @execution.logical_relation_canonical_contract_cid())
+      assert_eq(
+        cid, "sha256:a2151218d0638a59beb6b366fa8f2d0803e643139fd8c19cae1f9c8d6044f78f",
+      )
+    }
+    _ => fail("fused Graph prefix lost the named Relation identity")
+  }
+  let first_live = Ref(true)
+  let (first_ops, first) = run_local_managed_test_task(
+    installed,
+    run,
+    4,
+    [filtered],
+    [prefix_rows],
+    4,
+    first_live,
+    obligations?=graph_publication_obligations(run, true),
+  )
+  let second_live = Ref(true)
+  let (second_ops, second) = run_local_managed_test_task(
+    installed,
+    run,
+    5,
+    [filtered],
+    [prefix_rows],
+    5,
+    second_live,
+    obligations?=graph_publication_obligations(run, true),
+  )
+  assert_eq(local_managed_test_rows(first_ops).length(), 1)
+  assert_eq(local_managed_test_rows(second_ops).length(), 1)
+  first_live.val = false
+  @strategy.close_captured_task_output(run, 4)
+  (first_ops.close)()
+  (first_ops.cleanup_refresh)() |> ignore
+  assert_false(@execution.managed_completed_output_available(first))
+  assert_true(@execution.managed_completed_output_available(second))
+  second_live.val = false
+  @strategy.close_captured_task_output(run, 5)
+  (second_ops.close)()
+  (second_ops.cleanup_refresh)() |> ignore
+  filtered_live.val = false
+  @strategy.close_captured_task_output(run, 3)
+  (filtered_ops.close)()
+  (filtered_ops.cleanup_refresh)() |> ignore
+  prefix_live.val = false
+  @strategy.close_captured_task_output(run, 2)
+  (prefix_ops.close)()
+  (prefix_ops.cleanup_refresh)() |> ignore
+  values_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (values_ops.close)()
+  (values_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
 test "standard Host composes Graph edge projection and Relation filter" {
   run_standard_host_mixed_graph_relation_path(variant="edge_projection_filter")
 }
@@ -8343,7 +11371,50 @@ test "standard Host composes Graph projection and Relation derive" {
 
 ///|
 test "standard Host composes Graph projection and Relation take" {
-  run_standard_host_mixed_graph_relation_path(variant="normalize_take")
+  for quantum in [1, 2, 7, 1024] {
+    run_standard_host_mixed_graph_relation_path(
+      variant="normalize_take",
+      execution_quantum=quantum,
+    )
+  }
+}
+
+///|
+test "standard Host composes Graph projection and bounded Relation sort" {
+  for quantum in [1, 7, 1024] {
+    run_standard_host_mixed_graph_relation_path(
+      variant="normalize_sort",
+      execution_quantum=quantum,
+    )
+  }
+}
+
+///|
+test "standard Host composes Graph projection and bounded Relation assertion" {
+  for quantum in [1, 7, 1024] {
+    run_standard_host_mixed_graph_relation_path(
+      variant="normalize_assert",
+      execution_quantum=quantum,
+    )
+  }
+}
+
+///|
+test "standard Host composes Graph projection and bounded unique assertion" {
+  for quantum in [1, 7, 1024] {
+    run_standard_host_mixed_graph_relation_path(
+      variant="normalize_unique",
+      execution_quantum=quantum,
+    )
+  }
+}
+
+///|
+test "standard Host cancels ordered Graph projection take before completion" {
+  run_standard_host_mixed_graph_relation_path(
+    variant="normalize_take",
+    cancel_take_after=18,
+  )
 }
 
 ///|

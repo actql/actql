@@ -285,6 +285,8 @@ pub fn strategy_fixture_create(String, String, String, String, String, String, S
 
 pub fn strategy_fixture_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
+pub fn strategy_fixture_duckdb_managed_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
 pub fn strategy_fixture_duckdb_only(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_estimate(StrategyFixture) -> Int64
@@ -298,6 +300,8 @@ pub fn strategy_fixture_join_create(String, String, String, String, String, Stri
 pub fn strategy_fixture_ledger(StrategyFixture) -> @physical_resources.Ledger
 
 pub fn strategy_fixture_local(StrategyFixture, Int) -> Bool
+
+pub fn strategy_fixture_managed_after_first_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_managed_candidate_accepts(StrategyFixture, @connector_sdk.ManagedFixedComputeRequest[Int], @connector_sdk.ManagedFixedComputeRequest[Int]) -> Bool
 
@@ -333,6 +337,8 @@ pub fn strategy_fixture_managed_request_query_sql(@adapter.ManagedFixedQuery[Int
 
 pub fn strategy_fixture_managed_selection_matches(@adapter.ManagedFixedQuery[Int], Array[Int]) -> Bool
 
+pub fn strategy_fixture_managed_two_site_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
 pub fn strategy_fixture_module_subset(StrategyFixture, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_next(StrategyFixture) -> Int
@@ -346,6 +352,8 @@ pub fn strategy_fixture_replan(StrategyFixture, Int64) -> Bool
 pub fn strategy_fixture_resident_cleanup_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_resident_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
+pub fn strategy_fixture_retained_local_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_retained_resident_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
@@ -362,6 +370,8 @@ pub fn strategy_fixture_sga_derived_create(String, String, String, String, Strin
 pub fn strategy_fixture_sga_reach_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
 pub fn strategy_fixture_sga_reach_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
+
+pub fn strategy_fixture_sga_shortest_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
 
 pub fn strategy_fixture_sga_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
 

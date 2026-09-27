@@ -9,6 +9,7 @@ import { checkDependencies, loadDependencies } from './check-aoa-versions.mjs';
 // are fixed in the corpus, never generated from a product evaluator.
 const read = path => JSON.parse(readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 const corpus = read('portability/corpus/pure-operation-laws.json');
+const meanCorpus = read('portability/corpus/structural-pairwise-mean.json');
 test('event identity contract preserves typed equality and separates uniqueness and lowering', () => {
   assert.deepEqual(read('spec/contracts/actql-aoa.json').event_identity_contract, {
     domain: 'complete_non_null_KeyComparable',
@@ -30,6 +31,52 @@ const zero = value => value === 0 ? 0 : value;
 const q = value => finite(Math.fround(finite(value)));
 const fold = xs => xs.reduce((sum, value) => finite(sum + value), 0);
 const square = xs => fold(xs.map(value => finite(value * value)));
+
+function pairwiseMean(left, right) {
+  finite(left);
+  finite(right);
+  const view = new DataView(new ArrayBuffer(8));
+  const units = value => {
+    view.setFloat64(0, value, false);
+    const bits = view.getBigUint64(0, false);
+    const exponent = Number((bits >> 52n) & 0x7ffn);
+    const fraction = bits & 0x000fffffffffffffn;
+    const magnitude = exponent === 0
+      ? fraction : ((1n << 52n) | fraction) << BigInt(exponent - 1);
+    return (bits & 0x8000000000000000n) === 0n
+      ? magnitude : -magnitude;
+  };
+  const numerator = units(left) + units(right);
+  if (numerator === 0n) return 0;
+  const negative = numerator < 0n;
+  const magnitude = negative ? -numerator : numerator;
+  const roundEven = (value, shift) => {
+    const divisor = 1n << shift;
+    const quotient = value / divisor;
+    const remainder = value % divisor;
+    return quotient + (remainder * 2n > divisor ||
+      (remainder * 2n === divisor && (quotient & 1n) !== 0n) ? 1n : 0n);
+  };
+  const highest = magnitude.toString(2).length - 1;
+  let bits;
+  if (highest < 53) {
+    const fraction = roundEven(magnitude, 1n);
+    bits = fraction;
+  } else {
+    let exponent = highest - 1075;
+    let significand = roundEven(magnitude, BigInt(highest - 52));
+    if (significand === (1n << 53n)) {
+      significand >>= 1n;
+      exponent++;
+    }
+    if (exponent > 1023) fail('NonFinite');
+    bits = (BigInt(exponent + 1023) << 52n) |
+      (significand - (1n << 52n));
+  }
+  if (negative) bits |= 0x8000000000000000n;
+  view.setBigUint64(0, bits, false);
+  return zero(view.getFloat64(0, false));
+}
 
 function vector(f) {
   if (f.op.startsWith('pool_')) {
@@ -122,7 +169,7 @@ function property(left, right, strategy) {
   if (strategy.startsWith('number_')) {
     assert.equal(typeof left, 'number'); assert.equal(typeof right, 'number');
     const operations = {
-      number_sum: () => left + right, number_mean: () => (left + right) / 2,
+      number_sum: () => left + right, number_mean: () => pairwiseMean(left, right),
       number_min: () => Math.min(left, right), number_max: () => Math.max(left, right),
     };
     return zero(finite(operations[strategy]()));
@@ -161,6 +208,29 @@ test('pure operation fixtures have the current version and distinct case identit
     return corpus[k];
   });
   assert.equal(new Set(cases.map(c => c.name)).size, cases.length);
+});
+
+test('pure operation mean oracle agrees with independent binary64 vectors', () => {
+  const view = new DataView(new ArrayBuffer(8));
+  const decode = hex => {
+    view.setBigUint64(0, BigInt(`0x${hex}`), false);
+    return view.getFloat64(0, false);
+  };
+  const encode = value => {
+    view.setFloat64(0, value, false);
+    return view.getBigUint64(0, false).toString(16).padStart(16, '0');
+  };
+  for (const vector of meanCorpus.cases) {
+    const left = decode(vector.left);
+    const right = decode(vector.right);
+    if (vector.issue) {
+      assert.throws(() => pairwiseMean(left, right), {
+        message: vector.issue,
+      }, vector.id);
+    } else {
+      assert.equal(encode(pairwiseMean(left, right)), vector.expected, vector.id);
+    }
+  }
 });
 
 for (const [key, oracle] of Object.entries({vectors:vector, rankings:ranking, windows, watermarks:watermark, graphs:graph, graph_bounds:graphBounds,

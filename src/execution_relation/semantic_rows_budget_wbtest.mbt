@@ -40,3 +40,42 @@ test "timestamp work exhaustion remains a canonical resource error" {
   assert_true(window_time_row_issue(WindowTimeResourceLimit, 7) is RowLimit)
   assert_true(window_time_row_issue(InvalidWindowTime, 7) is WindowTime(7))
 }
+
+///|
+test "bounded complete text comparison retains exact work and UTF-16 order" {
+  let left = Text("x".repeat(128) + "\u{e000}")
+  let right = Text("x".repeat(128) + "\u{10000}")
+  let exact : ControlBudget = { remaining: 264, max_frames: 1, }
+  let cursor = bounded_complete_value_comparison()
+  let mut result : Int? = None
+  let mut steps = 0
+  while result is None && steps < 800 {
+    steps += 1
+    match bounded_complete_value_comparison_step(cursor, left, right, exact) {
+      Ok(Some(value)) => result = Some(value)
+      Ok(None) => ()
+      Err(_) => fail("exact comparison rejected")
+    }
+  }
+  assert_eq(result, Some(1))
+  assert_true(steps > 256)
+  assert_eq(exact.remaining, 0)
+  assert_eq(cursor.phase, -1)
+
+  let short : ControlBudget = { remaining: 263, max_frames: 1, }
+  let short_cursor = bounded_complete_value_comparison()
+  let mut exhausted = false
+  for _ in 0..<800 {
+    if exhausted {
+      break
+    }
+    match
+      bounded_complete_value_comparison_step(short_cursor, left, right, short) {
+      Ok(None) => ()
+      Err(Limit) => exhausted = true
+      _ => fail("one-short comparison was accepted")
+    }
+  }
+  assert_true(exhausted)
+  assert_eq(short.remaining, 3)
+}

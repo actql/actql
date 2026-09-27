@@ -46,30 +46,6 @@ fn window_time_milliseconds(
 }
 
 ///|
-fn window_latest_start(
-  time : Double,
-  step : Double,
-  offset : Double,
-) -> Double? {
-  let shifted = (time - offset) / step
-  if shifted.is_nan() || shifted.is_inf() {
-    return None
-  }
-  let start = shifted.floor() * step + offset
-  if start.is_nan() || start.is_inf() || start > time {
-    None
-  } else {
-    Some(if start == 0.0 { 0.0 } else { start })
-  }
-}
-
-///|
-priv enum WindowCoordinate {
-  ExactFloor(Int64)
-  Binary64(Double)
-}
-
-///|
 priv struct WindowMembership {
   start : Double
   end : Double
@@ -80,7 +56,7 @@ fn window_time_coordinate(
   value : Value,
   timestamp : Bool,
   control : ControlBudget,
-) -> Result[WindowCoordinate, WindowTimeReadIssue] {
+) -> Result[@grid.Coordinate, WindowTimeReadIssue] {
   if timestamp {
     guard value is Captured(@admitted.Timestamp(text)) else {
       return Err(InvalidWindowTime)
@@ -89,59 +65,18 @@ fn window_time_coordinate(
       return Err(WindowTimeResourceLimit)
     }
     match @admitted.timestamp_epoch_milliseconds(text) {
-      Some(milliseconds) => Ok(ExactFloor(milliseconds))
+      Some(milliseconds) => Ok(@grid.from_timestamp_milliseconds(milliseconds))
       None => Err(InvalidWindowTime)
     }
   } else {
     guard value is Number(number) && !number.is_nan() && !number.is_inf() else {
       return Err(InvalidWindowTime)
     }
-    match @scalar.read_safe_integer(number.floor()) {
-      Some(floor) => Ok(ExactFloor(floor))
-      None => Ok(Binary64(number))
+    match @grid.from_finite_number(number) {
+      Some(coordinate) => Ok(coordinate)
+      None => Err(InvalidWindowTime)
     }
   }
-}
-
-///|
-fn window_floor_mod(value : Int64, divisor : Int64) -> Int64 {
-  let remainder = value % divisor
-  if remainder < 0L {
-    remainder + divisor
-  } else {
-    remainder
-  }
-}
-
-///|
-fn window_floor_div(value : Int64, divisor : Int64) -> Int64 {
-  let quotient = value / divisor
-  if value % divisor < 0L {
-    quotient - 1L
-  } else {
-    quotient
-  }
-}
-
-///|
-fn window_exact_double(value : Int64) -> Double? {
-  if value < -9007199254740991L || value > 9007199254740991L {
-    None
-  } else {
-    Some(value.to_double())
-  }
-}
-
-///|
-fn window_latest_start_integer(
-  time_floor : Int64,
-  step : Int64,
-  offset : Int64,
-) -> Int64 {
-  // Normalize only the arithmetic grid. The authored offset remains unchanged
-  // in the checked operation and canonical identity.
-  let grid = window_floor_mod(offset, step)
-  window_floor_div(time_floor - grid, step) * step + grid
 }
 
 ///|
@@ -180,14 +115,15 @@ fn[T : RelationRows] evaluate_window_rows(
   let names = RelationRows::field_names(input)
   let width = names.length()
   let output_schema = @lower.node_output_schema(node)
-  let output_names = Array::makei(@schema.field_count(output_schema), i => {
-    @schema.reference_name(@schema.field_at(output_schema, i).unwrap().name)
-  })
+  let output_width = @schema.field_count(output_schema)
   let (start_field, end_field) = @lower.window_boundaries(window)
   let start_name = @schema.reference_name(start_field)
   let end_name = @schema.reference_name(end_field)
-  if output_names.length() != width + 2 {
+  if output_width < 2 || output_width - 2 != width {
     return Err(InvalidRows)
+  }
+  if !reserve_slots(workspace, width) {
+    return Err(RowLimit)
   }
   let mut time_column = -1
   let time_name = @schema.reference_name(@lower.window_time(window))
@@ -214,7 +150,10 @@ fn[T : RelationRows] evaluate_window_rows(
   }
   let mut saw_start = false
   let mut saw_end = false
-  for name in output_names {
+  for i = 0; i < output_width; i = i + 1 {
+    let name = @schema.reference_name(
+      @schema.field_at(output_schema, i).unwrap().name,
+    )
     if !spend_control_text(control, name) {
       return Err(RowLimit)
     }
@@ -238,19 +177,20 @@ fn[T : RelationRows] evaluate_window_rows(
   let input_count = IndexedRows::row_count(input)
   if input_count > max_rows ||
     !reserve_slots(workspace, input_count) ||
-    !reserve_slots(workspace, width) ||
-    !reserve_slots(workspace, output_names.length()) {
+    !reserve_slots(workspace, output_width) {
     return Err(RowLimit)
   }
+  let output_names = Array::makei(output_width, i => {
+    @schema.reference_name(@schema.field_at(output_schema, i).unwrap().name)
+  })
   let size_integer = @lower.window_size(window)
   let step_integer = @lower.window_effective_step(window)
   let offset_integer = @lower.window_offset(window)
   if size_integer <= 0L || step_integer <= 0L {
     return Err(InvalidRows)
   }
-  let size = size_integer.to_double()
-  let step = step_integer.to_double()
-  let arithmetic_offset = window_floor_mod(offset_integer, step_integer).to_double()
+  let size = @bigint.BigInt::from_int64(size_integer)
+  let step = @bigint.BigInt::from_int64(step_integer)
   let result : Array[Array[Value]] = []
   for source = 0; source < input_count; source = source + 1 {
     if IndexedRows::row_width(input, source) != width ||
@@ -274,69 +214,27 @@ fn[T : RelationRows] evaluate_window_rows(
       Err(issue) => return Err(window_time_row_issue(issue, source))
     }
     let memberships : Array[WindowMembership] = []
-    match time {
-      ExactFloor(time_floor) => {
-        let mut current = window_latest_start_integer(
-          time_floor, step_integer, offset_integer,
-        )
-        while true {
-          if current > 9223372036854775807L - size_integer {
-            return Err(WindowArithmetic(source))
-          }
-          let end = current + size_integer
-          if current > time_floor || time_floor >= end {
-            break
-          }
-          if result.length() >= max_rows ||
-            memberships.length() >= max_rows - result.length() ||
-            !reserve_slots(workspace, 1) ||
-            !spend_control(control, 1) {
-            return Err(RowLimit)
-          }
-          guard window_exact_double(current) is Some(start_number) &&
-            window_exact_double(end) is Some(end_number) else {
-            return Err(WindowArithmetic(source))
-          }
-          memberships.push({ start: start_number, end: end_number, })
-          if @lower.window_kind(window) == @window.Fixed {
-            break
-          }
-          if current < -9223372036854775807L - 1L + step_integer {
-            return Err(WindowArithmetic(source))
-          }
-          current -= step_integer
-        }
+    let mut current = @grid.latest_start(time, step_integer, offset_integer)
+    while true {
+      let end = current + size
+      if @grid.compare(time, current) < 0 || @grid.compare(time, end) >= 0 {
+        break
       }
-      Binary64(time) => {
-        guard window_latest_start(time, step, arithmetic_offset) is Some(latest) else {
-          return Err(WindowArithmetic(source))
-        }
-        let mut current = latest
-        while true {
-          let end = current + size
-          if end.is_nan() || end.is_inf() || end <= current {
-            return Err(WindowArithmetic(source))
-          }
-          if current > time || time >= end {
-            break
-          }
-          if result.length() >= max_rows ||
-            memberships.length() >= max_rows - result.length() ||
-            !reserve_slots(workspace, 1) ||
-            !spend_control(control, 1) {
-            return Err(RowLimit)
-          }
-          memberships.push({ start: current, end, })
-          if @lower.window_kind(window) == @window.Fixed {
-            break
-          }
-          let next = current - step
-          if next.is_nan() || next.is_inf() || next >= current {
-            return Err(WindowArithmetic(source))
-          }
-          current = next
-        }
+      if result.length() >= max_rows ||
+        memberships.length() >= max_rows - result.length() ||
+        !reserve_slots(workspace, 1) ||
+        !spend_control(control, 1) {
+        return Err(RowLimit)
       }
+      guard @grid.exact_binary64_boundary(current) is Some(start_number) &&
+        @grid.exact_binary64_boundary(end) is Some(end_number) else {
+        return Err(WindowArithmetic(source))
+      }
+      memberships.push({ start: start_number, end: end_number, })
+      if @lower.window_kind(window) == @window.Fixed {
+        break
+      }
+      current -= step
     }
     for occurrence = 0
         occurrence < memberships.length()

@@ -131,6 +131,31 @@ test "global count SQL has no accidental keyed grouping or empty order clause" {
 }
 
 ///|
+test "fixed count_if SQL counts only true Boolean rows" {
+  let owner = count_group_owner(
+    @value_contract.primitive(@value_contract.BooleanType, nullable=true),
+    "[]",
+    "{\"hits\":{\"fn\":\"count_if\",\"field\":\"k\"}}",
+  )
+  let compiled = @duckdb.compile_fixed_count_group(
+    owner,
+    "main",
+    "fixed",
+    native_compile_limits(),
+  ).unwrap()
+  assert_eq(
+    @duckdb.fixed_count_group_sql(compiled),
+    "SELECT CAST(COUNT(CASE WHEN __actql_source.\"k\" THEN 1 END) AS DOUBLE) AS \"__actql_output_0\" FROM \"main\".\"fixed\" AS __actql_source",
+  )
+  let writer = @encode.writer(10000, 100, 10)
+  @encode.begin_object(writer)
+  @encode.key(writer, "sql")
+  @encode.string_value(writer, @duckdb.fixed_count_group_sql(compiled))
+  @encode.end_object(writer)
+  println("ACTQL_COUNT_IF " + @encode.finish(writer))
+}
+
+///|
 test "emit owned group SQL for real DuckDB conformance without deriving expected results" {
   for
     (name, typ) in [

@@ -1,9 +1,30 @@
 ///|
-fn mean_source_owner() -> @lower.BoundPrepared {
+fn mean_source_owner(text_id? : Bool = false) -> @lower.BoundPrepared {
+  let contract = if text_id {
+    let empty = @carrier.rows(
+      [],
+      field_set=@carrier.Closed,
+      max_fields=0,
+      max_name_bytes=0,
+    ).unwrap()
+    @carrier.graph(
+      @contract.primitive(@contract.StringType, nullable=false),
+      empty,
+      empty,
+      labels=None,
+      max_labels=0,
+      max_label_bytes=0,
+      label_contract=Some(
+        @contract.primitive(@contract.StringType, nullable=true),
+      ),
+    ).unwrap()
+  } else {
+    empty_graph_contract()
+  }
   bind(
     @pipeline.check_carriers(
       cursor("[{\"from\":\"g\",\"normalize_graph\":true}]"),
-      [("g", empty_graph_contract())],
+      [("g", contract)],
       None,
       None,
       {
@@ -93,6 +114,44 @@ fn mean_graph(
     ).unwrap()
   }
   @graph.finish_output(output).unwrap()
+}
+
+///|
+fn mean_text_graph(
+  owner : @lower.BoundPrepared,
+  nodes : Array[String],
+  edges : Array[(String, String)],
+) -> @graph.Completed {
+  let output = @graph.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    storage_limits(),
+    1000000L,
+    fn() { true },
+  ).unwrap()
+  for identity in nodes {
+    @graph.append_node(output, mean_long_text(identity), []).unwrap()
+  }
+  for (source, target) in edges {
+    @graph.append_edge(
+      output,
+      mean_long_text(source),
+      mean_long_text(target),
+      Some(text("edge", nullable=true)),
+      [],
+    ).unwrap()
+  }
+  @graph.finish_output(output).unwrap()
+}
+
+///|
+fn mean_long_text(value : String) -> @value.CheckedValue {
+  @value.admit(
+    @contract.primitive(@contract.StringType, nullable=false),
+    cursor("\"" + value + "\""),
+    { max_nodes: 1, max_depth: 1, max_text_bytes: 1000, },
+  ).unwrap()
 }
 
 ///|
@@ -230,6 +289,65 @@ test "graph mean retains exact support in canonical identity order" {
 }
 
 ///|
+test "graph mean yields during long typed identity sorting" {
+  let prefix = "m".repeat(160)
+  let first = prefix + "a"
+  let second = prefix + "b"
+  let third = prefix + "c"
+  let first_owner = mean_source_owner(text_id=true)
+  let second_owner = mean_source_owner(text_id=true)
+  let owner = mean_owner(first_owner, second_owner)
+  let first_graph = mean_text_graph(first_owner, [third, second, first], [
+    (first, third),
+    (first, second),
+  ])
+  let second_graph = mean_text_graph(second_owner, [], [])
+  let limits = mean_scale_limits(20)
+  let views = mean_views(
+    owner, first_owner, second_owner, first_graph, second_graph,
+  )
+  let start = fn(control) {
+    start_mean_views(
+      control,
+      sequence(owner),
+      0,
+      views,
+      limits,
+      1000000L,
+      4096,
+      fn() { true },
+    )
+  }
+  let control = @bounded.control()
+  let cancelled = start(control).unwrap()
+  for _ in 0..<90 {
+    assert_true(advance_mean(cancelled, 1).unwrap() is MeanContinue(_))
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(advance_mean(cancelled, 1).unwrap() is MeanStopped(_))
+  assert_eq(cleanup_mean(cancelled), Ok(true))
+  let completed = start(@bounded.control()).unwrap()
+  let output = finish_mean(completed)
+  let storage = @graph.completed_storage(output).unwrap()
+  assert_eq(@storage.node_count(storage), 3)
+  assert_eq(@storage.edge_count(storage), 2)
+  let expected = [first, second, third]
+  for index in 0..<expected.length() {
+    assert_true(
+      match @storage.node_identity(storage, index) {
+        Some(actual) =>
+          @value.compare_key_values(actual, mean_long_text(expected[index]))
+          is Ok(0)
+        None => false
+      },
+    )
+  }
+  assert_eq(@storage.edge_endpoints(storage, 0), Some((0, 1)))
+  assert_eq(@storage.edge_endpoints(storage, 1), Some((0, 2)))
+  assert_eq(cleanup_mean(completed), Ok(true))
+}
+
+///|
 test "graph mean cancellation stops before cleanup" {
   let first_owner = mean_source_owner()
   let second_owner = mean_source_owner()
@@ -254,6 +372,74 @@ test "graph mean cancellation stops before cleanup" {
   assert_true(mean_cleanup_pending(execution))
   assert_eq(cleanup_mean(execution), Ok(true))
   assert_false(mean_cleanup_pending(execution))
+}
+
+///|
+test "graph mean charges empty input weights and final completion" {
+  let first_owner = mean_source_owner()
+  let second_owner = mean_source_owner()
+  let owner = mean_owner(first_owner, second_owner)
+  let first = mean_graph(first_owner, [], [])
+  let second = mean_graph(second_owner, [], [])
+  let views = mean_views(owner, first_owner, second_owner, first, second)
+  for ceiling in [9, 10] {
+    let execution = start_mean_views(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      views,
+      { ..storage_limits(), max_work: ceiling, },
+      4096L,
+      4096,
+      fn() { true },
+    ).unwrap()
+    let mut terminal = false
+    let mut completed : @graph.Completed? = None
+    while !terminal {
+      match advance_mean(execution, 1).unwrap() {
+        MeanContinue(..) => ()
+        MeanComplete(output, work~, ..) => {
+          assert_eq(ceiling, 10)
+          assert_eq(work, 10L)
+          assert_eq(
+            @storage.node_count(@graph.completed_storage(output).unwrap()),
+            0,
+          )
+          completed = Some(output)
+          terminal = true
+        }
+        MeanFailed(MeanWorkLimit, work~, ..) => {
+          assert_eq(ceiling, 9)
+          assert_eq(work, 9L)
+          terminal = true
+        }
+        _ => fail("empty mean ignored its cumulative work ceiling")
+      }
+    }
+    assert_eq(cleanup_mean(execution), Ok(true))
+    if completed is Some(output) {
+      assert_true(@graph.discard_completed(output))
+    }
+  }
+  let control = @bounded.control()
+  let cancelled = start_mean_views(
+    control,
+    sequence(owner),
+    0,
+    views,
+    { ..storage_limits(), max_work: 10, },
+    4096L,
+    4096,
+    fn() { true },
+  ).unwrap()
+  for _ in 0..<4 {
+    assert_true(advance_mean(cancelled, 1).unwrap() is MeanContinue(_))
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(advance_mean(cancelled, 1).unwrap() is MeanStopped(_))
+  assert_eq(cleanup_mean(cancelled), Ok(true))
+  assert_true(@graph.discard_completed(first))
+  assert_true(@graph.discard_completed(second))
 }
 
 ///|
@@ -311,6 +497,7 @@ fn mean_numeric_policy_owner(
   third : @lower.BoundPrepared,
   missing : String,
   nulls : String,
+  edge_fail? : Bool = false,
 ) -> @lower.BoundPrepared {
   bind(
     @pipeline.check_with_evidence(
@@ -318,14 +505,22 @@ fn mean_numeric_policy_owner(
         "[{\"mean_graphs\":{" +
         "\"with\":[\"a\",\"b\",\"c\"]," +
         "\"weights\":[1,2,3]," +
-        "\"support\":{\"nodes\":0.5,\"edges\":1}," +
+        "\"support\":{\"nodes\":0.5,\"edges\":" +
+        (if edge_fail { "0.1" } else { "1" }) +
+        "}," +
         "\"properties\":{\"nodes\":{\"score\":{" +
         "\"mean\":{\"missing\":\"" +
         missing +
         "\",\"nulls\":\"" +
         nulls +
         "\"}}}," +
-        "\"edges\":{\"score\":\"exact_equal\"}}},\"as\":\"m\"}]",
+        "\"edges\":{\"score\":" +
+        (if edge_fail {
+          "{\"mean\":{\"missing\":\"exclude\",\"nulls\":\"fail\"}}"
+        } else {
+          "\"exact_equal\""
+        }) +
+        "}}},\"as\":\"m\"}]",
       ),
       [
         (
@@ -455,6 +650,87 @@ fn mean_numeric_graph(
     @graph.append_node(output, number(1.0), [value]).unwrap()
   }
   @graph.finish_output(output).unwrap()
+}
+
+///|
+fn mean_numeric_edge_graph(
+  owner : @lower.BoundPrepared,
+  nodes : Bool,
+  edge : Bool,
+) -> @graph.Completed {
+  let output = @graph.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  if nodes {
+    @graph.append_node(output, number(1.0), [mean_numeric_value("0")]).unwrap()
+    @graph.append_node(output, number(2.0), [mean_numeric_value("0")]).unwrap()
+  }
+  if edge {
+    @graph.append_edge(output, number(1.0), number(2.0), None, [
+      mean_numeric_value("null"),
+    ]).unwrap()
+  }
+  @graph.finish_output(output).unwrap()
+}
+
+///|
+test "graph mean demands edge properties only with retained endpoints" {
+  let first_owner = mean_numeric_source_owner()
+  let second_owner = mean_numeric_source_owner()
+  let third_owner = mean_numeric_source_owner()
+  let owners = [first_owner, second_owner, third_owner]
+  let owner = mean_numeric_policy_owner(
+    first_owner,
+    second_owner,
+    third_owner,
+    "exclude",
+    "exclude",
+    edge_fail=true,
+  )
+  let first = mean_numeric_edge_graph(first_owner, true, true)
+  let empty_second = mean_numeric_edge_graph(second_owner, false, false)
+  let empty_third = mean_numeric_edge_graph(third_owner, false, false)
+  let excluded = start_mean_views(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    mean_numeric_views(owner, owners, [first, empty_second, empty_third]),
+    storage_limits(),
+    4096L,
+    4096,
+    fn() { true },
+  ).unwrap()
+  let excluded_output = finish_mean(excluded)
+  let excluded_storage = @graph.completed_storage(excluded_output).unwrap()
+  assert_eq(@storage.node_count(excluded_storage), 0)
+  assert_eq(@storage.edge_count(excluded_storage), 0)
+  assert_eq(cleanup_mean(excluded), Ok(true))
+
+  let second = mean_numeric_edge_graph(second_owner, true, false)
+  let third = mean_numeric_edge_graph(third_owner, true, false)
+  let retained = start_mean_views(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    mean_numeric_views(owner, owners, [first, second, third]),
+    storage_limits(),
+    4096L,
+    4096,
+    fn() { true },
+  ).unwrap()
+  while true {
+    match advance_mean(retained, 1).unwrap() {
+      MeanContinue(_) => ()
+      MeanFailed(MeanPropertyValue, ..) => break
+      _ => abort("retained edge null did not fail")
+    }
+  }
+  assert_eq(cleanup_mean(retained), Ok(true))
 }
 
 ///|
@@ -668,4 +944,71 @@ test "graph mean canonical ordering scales below quadratic work" {
   let large = mean_scale_work(64)
   assert_true(large > small * 2L)
   assert_true(large < small * 3L)
+}
+
+///|
+test "graph mean orders parallel edges by present labels of a nullable contract" {
+  let first_owner = mean_source_owner()
+  let second_owner = mean_source_owner()
+  let owner = mean_owner(first_owner, second_owner)
+  let build = fn(graph_owner : @lower.BoundPrepared) -> @graph.Completed {
+    let output = @graph.prepare_output(
+      graph_owner,
+      @pipeline.Step(0),
+      @storage.DeclaredNodes,
+      storage_limits(),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    @graph.append_node(output, number(1.0), []).unwrap()
+    @graph.append_node(output, number(2.0), []).unwrap()
+    for label in ["b", "a"] {
+      @graph.append_edge(
+        output,
+        number(1.0),
+        number(2.0),
+        Some(text(label, nullable=true)),
+        [],
+      ).unwrap()
+    }
+    // A stored null label orders before the present labels.
+    @graph.append_edge(
+      output,
+      number(1.0),
+      number(2.0),
+      Some(
+        @value.admit(
+          @contract.primitive(@contract.StringType, nullable=true),
+          cursor("null"),
+          { max_nodes: 1, max_depth: 1, max_text_bytes: 0, },
+        ).unwrap(),
+      ),
+      [],
+    ).unwrap()
+    @graph.finish_output(output).unwrap()
+  }
+  let first = build(first_owner)
+  let second = build(second_owner)
+  let execution = start_mean_views(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    mean_views(owner, first_owner, second_owner, first, second),
+    storage_limits(),
+    4096L,
+    4096,
+    fn() { true },
+  ).unwrap()
+  while true {
+    match advance_mean(execution, 1).unwrap() {
+      MeanContinue(_) => ()
+      MeanComplete(output, ..) => {
+        let storage = @graph.completed_storage(output).unwrap()
+        assert_eq(@storage.edge_count(storage), 3)
+        return
+      }
+      MeanFailed(issue, ..) => assert_eq(Some(issue), None)
+      MeanStopped(_, ..) => fail("mean stopped")
+    }
+  }
 }

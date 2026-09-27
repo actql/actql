@@ -30,6 +30,8 @@ pub fn abort_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, Ru
 
 pub fn admit_placement_policy_response_json(String, PolicyRequest, String) -> Result[PolicyResponse, SearchIssue]
 
+pub fn advance_task_numeric_reduction(CapturedDAG, TaskNumericExecution) -> Result[@numeric_reduction.Outcome?, @numeric_reduction.ReductionIssue]?
+
 pub fn authorize_captured_task_activation(CapturedDAG, Int, TaskActivationGrant) -> Result[Unit, RunIssue]
 
 pub fn begin_captured_managed_transfer(CapturedDAG, Int, Int64, Int64, Int64) -> Result[ManagedTransfer, RunIssue]
@@ -302,6 +304,8 @@ pub fn close_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Un
 
 pub fn close_task_execution(CapturedDAG, TaskExecution) -> Unit
 
+pub fn close_task_numeric_reduction(CapturedDAG, TaskNumericExecution) -> Bool
+
 pub fn commit_strategy_choice(StrategyChoiceSet, Int?) -> Result[StrategyDecision, SearchIssue]
 
 pub fn commit_strategy_policy_decision(StrategyChoiceSet, PolicyRequest, PolicyResponse, Int64) -> Result[StrategyDecision, SearchIssue]
@@ -348,6 +352,8 @@ pub fn expand_internal_carrier_tasks(CheckedDAG, Int, Int) -> Result[CheckedDAG,
 
 pub fn explain_captured_strategy(CapturedDAG, Int, Int, excluded? : Array[(Int, String, String)]) -> Result[String, @encode_core.EncodeFailure]
 
+pub fn fail_task_execution(CapturedDAG, TaskExecution, RunIssue) -> Bool
+
 pub fn finish_captured_effect_plan_verifier(CapturedEffectPlanVerifier) -> Result[CapturedEffectPlanProof, CapturedEffectPlanVerifyIssue]
 
 pub fn finish_captured_effect_proposal_plan(CapturedEffectProposalPlan, Int) -> Result[Unit, CapturedEffectProposalIssue]
@@ -391,6 +397,8 @@ pub fn graph_task_operation_at(CheckedDAG, Int, Int) -> TaskOperationRequirement
 pub fn graph_task_operation_count(CheckedDAG, Int) -> Int?
 
 pub fn graph_task_owner(CheckedDAG, Int) -> @lowering_relation.BoundPrepared?
+
+pub fn graph_task_prefix_end(CheckedDAG, Int) -> Int?
 
 pub fn graph_task_selected_step(CheckedDAG, Int) -> Int?
 
@@ -619,6 +627,8 @@ pub fn[I, T] start_captured_managed_execution(CapturedDAG, Int, @connector_sdk.P
 pub fn[T] start_captured_materializing_execution(CapturedDAG, Int, @connector_sdk.PreparedExecution[T, RunIssue], resident? : ResidentExecution) -> Result[(T, TaskExecution), RunIssue]
 
 pub fn start_captured_result_borrow_export(CapturedResultBorrow, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
+
+pub fn start_task_numeric_reduction_for_slot(CapturedDAG, TaskExecution, Int, String, Int, Array[Double], Int, Int) -> Result[TaskNumericExecution, @numeric_reduction.ReductionIssue]?
 
 pub fn stop_captured_dag(CapturedDAG) -> Unit
 
@@ -1102,6 +1112,8 @@ pub(all) enum StrategySelectionSource {
 type TaskActivationGrant
 
 type TaskExecution
+
+type TaskNumericExecution
 
 type TaskNumericObservation
 

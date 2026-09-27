@@ -22,7 +22,13 @@ pub fn admit_number_usage(@value_contract.Contract, @decode_core.Cursor, Limits)
 
 pub fn admit_usage(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[(CheckedValue, Int, Int), Issue]
 
+pub fn advance_bounded_key_comparison(BoundedKeyComparison, Int) -> Result[BoundedKeyComparisonPoll, KeyOrderIssue]
+
 pub fn advance_complete_equality(CompleteEquality, Int) -> CompleteEqualityPoll
+
+pub fn advance_recheck_runtime_value(RecheckCursor) -> RecheckPoll
+
+pub fn advance_wire_emit(WireEmitCursor) -> Bool raise @encode_core.EncodeFailure
 
 pub fn append_array_item(ArrayBuilder, Value) -> Bool
 
@@ -42,7 +48,11 @@ pub fn cancel_array_value(ArrayBuilder) -> Bool
 
 pub fn cancel_object_value(ObjectBuilder) -> Bool
 
+pub fn cancel_recheck_runtime_value(RecheckCursor) -> Unit
+
 pub fn cancel_vector_value(VectorBuilder) -> Bool
+
+pub fn cancel_wire_emit(WireEmitCursor) -> Unit
 
 pub fn canonical_scalar_text(CheckedValue, Int) -> String?
 
@@ -61,6 +71,8 @@ pub fn compare_author_order_values(CheckedValue, CheckedValue) -> Result[Int, Ke
 pub fn compare_group_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIssue]
 
 pub fn compare_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIssue]
+
+pub fn compare_present_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIssue]
 
 pub fn complete_order_key(CheckedValue, Limits) -> Result[String, CompleteOrderIssue]
 
@@ -118,16 +130,33 @@ pub fn reference_same_issuer(ReferenceValue, ReferenceValue) -> Bool
 
 pub fn reference_wire(ReferenceValue) -> String
 
+pub fn start_bounded_key_comparison(CheckedValue, CheckedValue) -> Result[BoundedKeyComparison, KeyOrderIssue]
+
+pub fn start_bounded_present_key_comparison(CheckedValue, CheckedValue) -> Result[BoundedKeyComparison, KeyOrderIssue]
+
 pub fn start_complete_equality(CheckedValue, CheckedValue, Limits) -> Result[CompleteEquality, CompleteEqualityIssue]
+
+pub fn start_recheck_runtime_value(Value, @value_contract.Contract, Limits) -> RecheckCursor?
+
+pub fn start_wire_emit(Value, @encode_core.Writer) -> WireEmitCursor
 
 pub fn text_value(String, Int) -> Value?
 
 pub fn timestamp_epoch_milliseconds(String) -> Int64?
 
+pub fn typed_key_order_text(CheckedValue) -> Result[String, KeyOrderIssue]
+
 // Errors
 
 // Types and methods
 type ArrayBuilder
+
+type BoundedKeyComparison
+
+pub enum BoundedKeyComparisonPoll {
+  KeyComparisonContinue(work~ : Int)
+  KeyComparisonComplete(order~ : Int, work~ : Int)
+}
 
 pub struct CheckedValue {
   contract : @value_contract.Contract
@@ -202,6 +231,14 @@ pub(all) struct Limits {
 
 type ObjectBuilder
 
+type RecheckCursor
+
+pub enum RecheckPoll {
+  RecheckContinue
+  RecheckComplete(CheckedValue, Int, Int)
+  RecheckFailed
+}
+
 type ReferenceDomain
 
 pub(all) enum ReferenceIssue {
@@ -254,6 +291,8 @@ pub enum Value {
 }
 
 type VectorBuilder
+
+type WireEmitCursor
 
 // Type aliases
 

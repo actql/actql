@@ -42,6 +42,28 @@ fn group_profile_owner(aggregates : String) -> @lowering_relation.BoundPrepared 
 }
 
 ///|
+test "selected count eligibility includes keys without admitting other members" {
+  for
+    (aggregates, expected) in [
+      ("{\"n\":{\"fn\":\"count\"}}", true),
+      ("{\"n\":{\"fn\":\"count\",\"field\":\"n\"}}", true),
+      ("{\"n\":{\"fn\":\"sum\",\"field\":\"n\"}}", false),
+      ("{\"n\":{\"fn\":\"count\",\"field\":\"n\",\"distinct\":true}}", false),
+      ("{\"n\":{\"fn\":\"count\",\"filter\":\"b\"}}", false),
+    ] {
+    let owner = group_profile_owner(aggregates)
+    let node = @lowering_relation.node_at(
+      @lowering_relation.bound_preparation(owner),
+      1,
+    ).unwrap()
+    assert_eq(
+      @lowering_relation.node_supports_selected_managed_execution(node),
+      expected,
+    )
+  }
+}
+
+///|
 test "group profile retains every aggregate kind and typed modifier" {
   let aggregates = "{" +
     "\"a00\":{\"fn\":\"count\"}," +

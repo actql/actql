@@ -67,6 +67,7 @@ priv struct Execution {
   mut relation : RelationExecution?
   mut stage_progress : Int64
   mut stage_work : Int64
+  mut completed_work : Int64
   mut terminal : Bool
   mut reclaimed : Bool
 }
@@ -231,9 +232,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       _ => false
     }
   }
-  let count = @lower.sequence_count(
-    @execution.generated_prepared_sequence(sequence),
-  )
+  let count = @execution.generated_sequence_step_count(sequence)
   if count < 1 || count > 4 {
     return false
   }
@@ -479,7 +478,18 @@ fn continue_poll(
   }
   value.stage_progress = progress
   value.stage_work = work
+  value.completed_work += work_delta
   Some(@local.managed_provider_continue(progress_delta, work_delta))
+}
+
+///|
+fn remaining_control_work(value : Execution) -> Int? {
+  let ceiling = value.limits.max_work.to_int64()
+  if value.completed_work > ceiling {
+    None
+  } else {
+    Some((ceiling - value.completed_work).to_int())
+  }
 }
 
 ///|
@@ -548,6 +558,7 @@ fn advance_execution(
             value.storage_bytes,
             value.limits.max_workspace_slots,
             fn() { true },
+            control_work_limit=Some(value.limits.max_work),
           ) {
           Ok(execution) => execution
           Err(_) => return fail_execution(value)
@@ -861,6 +872,7 @@ fn advance_execution(
                 value.limits,
                 value.storage_bytes,
                 fn() { true },
+                control_work_limit=Some(value.limits.max_work),
               )
             } else {
               guard value.carrier_inputs.is_empty() &&
@@ -886,6 +898,7 @@ fn advance_execution(
                 value.limits,
                 value.storage_bytes,
                 fn() { true },
+                control_work_limit=Some(value.limits.max_work),
               )
             }
             match started {
@@ -1122,6 +1135,7 @@ fn advance_execution(
                 value.limits.max_workspace_slots,
                 value.limits.max_value_bytes,
                 value.limits.max_value_bytes,
+                control_work_limit=Some(value.limits.max_work),
               )
             } else if value.carrier_inputs.is_empty() {
               guard input is Some(input) else { return fail_execution(value) }
@@ -1142,6 +1156,7 @@ fn advance_execution(
                 value.limits.max_value_bytes,
                 value.limits.max_value_bytes,
                 value.inputs,
+                control_work_limit=Some(value.limits.max_work),
               )
             } else {
               guard input is Some(input) else { return fail_execution(value) }
@@ -1161,6 +1176,7 @@ fn advance_execution(
                 value.limits.max_workspace_slots,
                 value.limits.max_value_bytes,
                 value.limits.max_value_bytes,
+                control_work_limit=Some(value.limits.max_work),
               )
             }
             match started {
@@ -1189,6 +1205,7 @@ fn advance_execution(
                   value.limits.max_value_bytes,
                   value.limits.max_value_bytes,
                   value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
                 ) {
                 Ok(execution) => MatchNodesExecution(execution)
                 Err(_) => return fail_execution(value)
@@ -1212,6 +1229,7 @@ fn advance_execution(
                   value.limits.max_value_bytes,
                   value.limits.max_value_bytes,
                   value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
                 ) {
                 Ok(execution) => MatchEdgesExecution(execution)
                 Err(_) => return fail_execution(value)
@@ -1290,6 +1308,7 @@ fn advance_execution(
                   value.limits.max_value_bytes,
                   value.limits.max_value_bytes,
                   value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
                 ) {
                 Ok(execution) => ComponentsExecution(execution)
                 Err(_) => return fail_execution(value)
@@ -1318,6 +1337,7 @@ fn advance_execution(
                 value.limits.max_value_bytes,
                 value.limits.max_value_bytes,
                 value.inputs,
+                control_work_limit=Some(value.limits.max_work),
               ) {
               Ok(execution) => ReachExecution(execution)
               Err(_) => return fail_execution(value)
@@ -1350,6 +1370,9 @@ fn advance_execution(
           }
           Some(@lower.GraphShortestStep(_)) => {
             guard input is Some(input) else { return fail_execution(value) }
+            guard remaining_control_work(value) is Some(work_limit) else {
+              return fail_execution(value)
+            }
             match
               @sga.start_shortest(
                 value.control,
@@ -1368,6 +1391,7 @@ fn advance_execution(
                 value.limits.max_value_bytes,
                 value.limits.max_value_bytes,
                 value.inputs,
+                control_work_limit=Some(work_limit),
               ) {
               Ok(execution) => ShortestExecution(execution)
               Err(_) => return fail_execution(value)
@@ -1418,6 +1442,7 @@ fn advance_execution(
                     value.limits.max_value_bytes,
                     value.limits.max_value_bytes,
                     value.inputs,
+                    control_work_limit=Some(value.limits.max_work),
                   ) {
                   Ok(execution) => GraphsEqualExecution(execution)
                   Err(_) => return fail_execution(value)
@@ -1925,10 +1950,7 @@ pub fn provider(
         max_value_bytes,
         selected_step,
         projection_step: selected_step.unwrap_or(
-          @lower.sequence_count(
-            @execution.generated_prepared_sequence(sequence),
-          ) -
-          1,
+          @execution.generated_sequence_step_count(sequence) - 1,
         ),
         construction_steps,
         kernel_step: selected_step.unwrap_or(construction_steps),
@@ -1950,6 +1972,7 @@ pub fn provider(
         relation: None,
         stage_progress: 0L,
         stage_work: 0L,
+        completed_work: 0L,
         terminal: false,
         reclaimed: false,
       }

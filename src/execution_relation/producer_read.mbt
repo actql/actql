@@ -235,6 +235,24 @@ pub fn producer_read_cell(
 }
 
 ///|
+/// Preserve an admitted immutable cell only when the selected physical
+/// representation still owns that evidence. A RowTable may contain computed
+/// values and must use the ordinary checked-value path instead.
+fn producer_read_admitted_cell(
+  value : ProducerRead,
+  row : Int,
+  column : Int,
+) -> @admitted.Value? {
+  guard producer_read_available(value) &&
+    value.columns.get(column) is Some(source) &&
+    value.bound.output.table is Some(AdmittedTable(table)) &&
+    table.rows.get(row) is Some(cells) else {
+    return None
+  }
+  cells.get(source)
+}
+
+///|
 /// Re-establish a checked immutable cell for a Carrier bridge. The source
 /// completion and receiving schema remain exact; validation is bounded and
 /// performs no coercion or wire round trip.
@@ -290,6 +308,12 @@ pub fn execute_fixed_producer_inputs(
     }
     if input.bound.input_index != index {
       return Err(InputSet)
+    }
+  }
+  if sequence.selected_steps is Some([_]) && inputs is [input] {
+    return match execute_selected_relation_step(sequence, input, limits) {
+      Ok((output, _)) => Ok(output.completion)
+      Err((issue, _)) => Err(issue)
     }
   }
   execute_generated_sequence(

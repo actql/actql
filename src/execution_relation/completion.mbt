@@ -54,6 +54,44 @@ pub fn restrict_completed_output(
 }
 
 ///|
+/// Anchor a bounded provider's terminal output to the task-level fixed inputs
+/// the provider was started with. A multi-step provider seals its terminal
+/// step over internal operation inputs; the task boundary needs the receiving
+/// ports instead. The caller must pass exactly the reads it gave the provider.
+/// Storage, liveness and result identity are unchanged; upstream completions
+/// stay anchored alongside the provider's own anchors.
+pub fn anchor_completed_output_inputs(
+  output : CompletedOutput,
+  inputs : Array[ProducerRead],
+) -> CompletedOutput? {
+  let original = output.completion
+  let owner = @lower.sequence_owner(original.sequence)
+  if original.readmitted ||
+    !completed_output_available(output) ||
+    inputs.length() !=
+    @lower.preparation_input_count(@lower.bound_preparation(owner)) {
+    return None
+  }
+  for index, input in inputs {
+    if !physical_equal(input.bound.receiver, owner) ||
+      input.bound.input_index != index ||
+      !producer_read_available(input) {
+      return None
+    }
+  }
+  let anchors = original._producer_inputs.copy()
+  for input in inputs {
+    anchors.push(input.bound)
+  }
+  let completion = {
+    ..original,
+    _producer_inputs: anchors,
+    input_bindings: inputs.map(input => input.bound.identity),
+  }
+  Some({ ..output, completion, })
+}
+
+///|
 pub fn completed_output(
   completion : CompletedSequence,
   target : @pipeline.Target,

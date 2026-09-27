@@ -83,7 +83,7 @@ test "checked dedupe and distinct selection preserve payload without row materia
         row_output(),
         workspace,
       ).unwrap(),
-      [2, 3],
+      [3, 2],
     )
     let counters = (control.remaining, workspace.peak)
     match baseline {

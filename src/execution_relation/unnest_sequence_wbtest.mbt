@@ -150,7 +150,10 @@ test "unnest accepts exact shared work and rejects one-short execution" {
     )
     is Ok(_),
   )
-  let used = 100000 - control.remaining
+  // Fixed expectation for this authored input and operation, not a budget
+  // obtained from the implementation under test.
+  let used = 116
+  assert_eq(control.remaining, 100000 - used)
   let exact : SequenceExecutionLimits = {
     rows: run_limits(),
     max_work: used,
