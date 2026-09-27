@@ -29,13 +29,19 @@ Client and Host jobs.
 
 ## Validation
 
-- Implementation SHA: `da46295e22f48f4efd21c1b717239e11cd26598e`.
+- Implementation SHAs: `da46295e22f48f4efd21c1b717239e11cd26598e`
+  and `306ec37d76d1592c7fd94044274b587272530278`.
 - Focused authorization and Host tests: 88/88 passed.
-- `node scripts/local-checks.mjs run client`: passed after correcting a
-  `null` authorization regression found by the first run.
-- `node scripts/local-checks.mjs run host`: passed with a workspace-local npm
-  cache. The first run could not write the pre-existing home npm cache and
-  stopped before code tests.
+- `node scripts/local-checks.mjs run client`: passed on the rebased code,
+  including 183/183 Node distribution tests and the packed Checkpoint and
+  native Client checks. The initial pre-rebase run found and fixed a `null`
+  authorization regression. The first rebased run found that a known
+  pre-Run technical delegation failure became `SubmissionUnknown` after the
+  transport change on main; the exact non-admission code is now classified
+  consistently across both transports.
+- `node scripts/local-checks.mjs run host`: passed on the rebased code with a
+  workspace-local npm cache. An earlier attempt could not write the
+  pre-existing home npm cache and stopped before code tests.
 - Linux CI on the final PR SHA: pending at the time of this record.
 
 This unit does not implement the separate Effect commit Checkpoint connection
