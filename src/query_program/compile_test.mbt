@@ -413,6 +413,67 @@ test "Pipe EXTEND resolves every expression against its input snapshot" {
 }
 
 ///|
+test "ordered collection aggregates retain literal and order contracts" {
+  let array_query = @query.parse_query(
+    "SELECT customer_id, ARRAY_AGG(DISTINCT id IGNORE NULLS ORDER BY id) AS ids FROM orders GROUP BY customer_id",
+    syntax_limits(),
+  ).unwrap()
+  let array_program = compile(
+    array_query,
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  let wire = semantic(array_program)
+  assert_true(
+    wire.contains(
+      "\"ids\":{\"distinct\":true,\"field\":\"id\",\"fn\":\"array_agg\"",
+    ),
+  )
+  assert_true(
+    wire.contains(
+      "\"order_by\":[{\"dir\":\"asc\",\"field\":\"id\",\"nulls\":\"first\"}]",
+    ),
+  )
+  match
+    @check.check_parsed(
+      array_program,
+      check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("ordered array bound should be selected")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let string_query = @query.parse_query(
+    "SELECT customer_id, STRING_AGG(status, '|' ORDER BY id) AS statuses FROM orders GROUP BY customer_id",
+    syntax_limits(),
+  ).unwrap()
+  let string_program = compile(
+    string_query,
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_true(semantic(string_program).contains("\"delimiter\":\"|\""))
+  assert_true(
+    @check.check_parsed(
+      string_program,
+      check_environment(),
+      None,
+      check_limits(),
+    )
+    is NeedsInputs(_),
+  )
+  for
+    text in [
+      "SELECT ARRAY_AGG(id ORDER BY id) AS ids FROM orders", "SELECT ARRAY_AGG(id IGNORE NULLS) AS ids FROM orders",
+      "SELECT STRING_AGG(status, id ORDER BY id) AS statuses FROM orders", "SELECT STRING_AGG(status, '|') AS statuses FROM orders",
+    ] {
+    assert_true(@query.parse_query(text, syntax_limits()) is Err(_), msg=text)
+  }
+}
+
+///|
 test "DISTINCT compares projected fields and refuses inaccessible source order" {
   let accepted = compile(
     @query.parse_query(

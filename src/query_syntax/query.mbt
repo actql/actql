@@ -21,6 +21,8 @@ pub(all) struct AggregateCall {
   function_name : String
   argument : Expression?
   distinct : Bool
+  order_by : Array[SortTerm]
+  delimiter : String?
 }
 
 ///|
@@ -423,6 +425,29 @@ fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort 
   } else {
     Some(self.expression())
   }
+  let delimiter = if function_name == "STRING_AGG" {
+    if self.advance().value != Symbol(44) {
+      raise QueryAbort("STRING_AGG requires a delimiter", token.start)
+    }
+    match self.advance().value {
+      Text(value) => Some(value)
+      _ => raise QueryAbort("STRING_AGG delimiter must be literal", token.start)
+    }
+  } else {
+    None
+  }
+  if function_name == "ARRAY_AGG" {
+    self.keyword("IGNORE")
+    self.keyword("NULLS")
+  }
+  let order_by = if function_name == "ARRAY_AGG" ||
+    function_name == "STRING_AGG" {
+    self.keyword("ORDER")
+    self.keyword("BY")
+    self.order()
+  } else {
+    []
+  }
   if self.advance().value != Symbol(41) {
     raise QueryAbort("Expected aggregate closing parenthesis", token.start)
   }
@@ -432,7 +457,7 @@ fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort 
   if distinct && ["COUNTIF", "MIN", "MAX"].contains(function_name) {
     raise QueryAbort("DISTINCT is not valid for this aggregate", token.start)
   }
-  { function_name, argument, distinct, }
+  { function_name, argument, distinct, order_by, delimiter, }
 }
 
 ///|

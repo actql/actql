@@ -408,6 +408,8 @@ fn lower_aggregate(
     "AVG" => "avg"
     "MIN" => "min"
     "MAX" => "max"
+    "ARRAY_AGG" => "array_agg"
+    "STRING_AGG" => "string_agg"
     _ => raise Abort(UnsupportedAggregate)
   }
   let entries : Array[(String, @builder.Node)] = [
@@ -443,6 +445,34 @@ fn lower_aggregate(
   }
   if call.distinct {
     entries.push(("distinct", construction.add(Bool(true))))
+  }
+  if name == "array_agg" || name == "string_agg" {
+    let order : Array[@builder.Node] = []
+    for term in call.order_by {
+      let root = @query.expression_node(
+        term.expression,
+        @query.expression_root(term.expression),
+      ).unwrap()
+      guard root.kind is Reference(path) else {
+        raise Abort(UnsupportedAggregate)
+      }
+      let field = match resolve_column(path, query, input, fields) {
+        Some(field) => field
+        None => raise Abort(UnknownColumn)
+      }
+      order.push(
+        construction.object([
+          ("field", construction.text(field)),
+          ("dir", construction.text(term.direction)),
+          ("nulls", construction.text(term.nulls)),
+        ]),
+      )
+    }
+    entries.push(("order_by", construction.array(order)))
+  }
+  match call.delimiter {
+    Some(delimiter) => entries.push(("delimiter", construction.text(delimiter)))
+    None => ()
   }
   construction.object(entries)
 }
