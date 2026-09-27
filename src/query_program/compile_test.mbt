@@ -122,7 +122,7 @@ fn check_limits() -> @check.CheckLimits {
 }
 
 ///|
-fn check_environment() -> @check.CheckEnvironment {
+fn check_environment(numeric? : Bool = false) -> @check.CheckEnvironment {
   let cid = "sha256:04185e37572a0a791a18909c4bc09da47f393976a9b6bb940ed9658a0497de07"
   let wire = @environment.read(
     @utf8.encode(
@@ -133,13 +133,16 @@ fn check_environment() -> @check.CheckEnvironment {
     cid,
     { max_bytes: 10000, max_nodes: 1000, max_depth: 100, max_members: 10, },
   ).unwrap()
-  @check.checking_environment(wire, { text_time: false, veca: false, }, {
-    rela: true,
-    sga: false,
-    tea: false,
-    calendar: false,
-    text_rank: false,
-  })
+  @check.checking_environment(
+    wire,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    numeric_profile=if numeric {
+      Some(@numeric.builtin_profile())
+    } else {
+      None
+    },
+  )
 }
 
 ///|
@@ -384,6 +387,35 @@ test "OVER frame aggregate is not a group or final ORDER BY" {
     Checked(_) => ()
     NeedsInputs(_) => fail("analytic input should be statically closed")
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+}
+
+///|
+test "analytic SUM and AVG require the selected numeric profile" {
+  for function_name in ["SUM", "AVG"] {
+    let text = "SELECT id, " +
+      function_name +
+      "(amount) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running FROM orders"
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    let program = compile(query, values_context(), construction_limits()).unwrap()
+    let wire = semantic(program)
+    assert_true(wire.contains("\"analytic\""), msg=text)
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      NeedsInputs(_) => ()
+      _ => fail("numeric profile omission must remain visible")
+    }
+    match
+      @check.check_parsed(
+        program,
+        check_environment(numeric=true),
+        None,
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      NeedsInputs(_) => fail("declared numeric profile should close the slot")
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    }
   }
 }
 

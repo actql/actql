@@ -180,6 +180,18 @@ ROW_NUMBER spelling emits the same admitted Program as SQL and returns the same
 rows through both Clients. This covers those signatures and frame; the full
 adopted analytic matrix remains unverified. Pipe EXTEND followed by ROW_NUMBER
 reads the updated input snapshot and returns NULL-preserving adjusted values.
+The packed path now also reads independent DENSE_RANK, LEAD, FIRST_VALUE and
+LAST_VALUE rows. FIRST_VALUE retains the initial NULL within its explicit
+ROWS frame; LAST_VALUE advances to the later non-NULL row. SUM and AVG lower
+to the existing analytic operator, but standard installed Host preparation
+cannot yet supply the numeric reduction profile: the
+`clientProgramCheckEnvironment` bridge in
+`src/connectors_builtin_node/client_program_bridge.mbt` has no numeric-profile
+selection input. The shared checker returns `NeedsInputs` for either call
+without the profile and accepts both when the existing pinned numeric profile
+is supplied in the MoonBit test. The installed Local/HTTP Result path for
+these two signatures remains unverified; it must not silently choose a
+reduction algorithm.
 Pipe SET retains an earlier range alias inside OVER: after replacing `id` with
 `amount`, `ORDER BY before.id` ranks the original input values. Packed Local
 and HTTP Remote both return `(old_id,id,pos)=(1,NULL,1),(2,20,2)`.

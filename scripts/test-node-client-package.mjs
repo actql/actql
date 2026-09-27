@@ -366,6 +366,24 @@ const analyticCases = [
     'SELECT id, LAG(id) OVER (ORDER BY id) AS previous '
       + 'FROM records WHERE id < 3',
     [{id: 1, previous: null}, {id: 2, previous: 1}]],
+  ['dense-rank',
+    'SELECT id, DENSE_RANK() OVER (ORDER BY id) AS ranking '
+      + 'FROM records WHERE id < 3',
+    [{id: 1, ranking: 1}, {id: 2, ranking: 2}]],
+  ['lead',
+    'SELECT id, LEAD(id) OVER (ORDER BY id) AS following '
+      + 'FROM records WHERE id < 3',
+    [{id: 1, following: 2}, {id: 2, following: null}]],
+  ['first-value',
+    'SELECT id, FIRST_VALUE(amount) OVER (ORDER BY id '
+      + 'ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS first_amount '
+      + 'FROM records WHERE id < 3',
+    [{id: 1, first_amount: null}, {id: 2, first_amount: null}]],
+  ['last-value',
+    'SELECT id, LAST_VALUE(amount) OVER (ORDER BY id '
+      + 'ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS last_amount '
+      + 'FROM records WHERE id < 3',
+    [{id: 1, last_amount: null}, {id: 2, last_amount: 20}]],
   ['frame-count',
     'SELECT id, COUNT(id) OVER (ORDER BY id '
       + 'ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running '
