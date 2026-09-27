@@ -18,6 +18,11 @@ const instant = value => typeof value === 'string' &&
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
+const failRollback = (code, operation, cause, rollbackCause) => {
+  throw Object.assign(new Error(code, {cause}), {
+    code, operation, rollbackCause, outcome: 'unknown',
+  });
+};
 
 function syncDirectory(path) {
   const descriptor = openSync(path, 'r');
@@ -370,7 +375,8 @@ export function openClientRequestJournal(directory, {
     } catch (error) {
       try { database.exec('ROLLBACK'); }
       catch (rollback) {
-        fail('ClientRequestAcceptanceUnknown', rollback);
+        failRollback('ClientRequestAcceptanceUnknown', 'accept', error,
+          rollback);
       }
       if (typeof error?.code === 'string' &&
           error.code.startsWith('ClientRequest')) throw error;
@@ -610,7 +616,9 @@ export function openClientRequestJournal(directory, {
           'ClientRequestJournalCorrupt');
       } catch (error) {
         try { database.exec('ROLLBACK'); }
-        catch (rollback) { fail('ClientRunStartUnknown', rollback); }
+        catch (rollback) {
+          failRollback('ClientRunStartUnknown', 'start', error, rollback);
+        }
         if (typeof error?.code === 'string' &&
             (error.code.startsWith('ClientRequest') ||
               error.code.startsWith('ClientRun'))) throw error;
@@ -666,7 +674,10 @@ export function openClientRequestJournal(directory, {
         return true;
       } catch (error) {
         try { database.exec('ROLLBACK'); }
-        catch (rollback) { fail('ClientRunPhysicalStartUnknown', rollback); }
+        catch (rollback) {
+          failRollback('ClientRunPhysicalStartUnknown', 'physical_start',
+            error, rollback);
+        }
         if (typeof error?.code === 'string' &&
             (error.code.startsWith('ClientRun') ||
               error.code.startsWith('ClientRequest'))) throw error;
@@ -710,7 +721,10 @@ export function openClientRequestJournal(directory, {
           revision: Number(row.revision) + (action === 0 ? 1 : 0)});
       } catch (error) {
         try { database.exec('ROLLBACK'); }
-        catch (rollback) { fail('ClientRunCancellationUnknown', rollback); }
+        catch (rollback) {
+          failRollback('ClientRunCancellationUnknown', 'cancel', error,
+            rollback);
+        }
         if (error?.code === 'ClientRunCancellationDenied') throw error;
         fail('ClientRunCancellationUnknown', error);
       }
@@ -755,7 +769,10 @@ export function openClientRequestJournal(directory, {
         database.exec('COMMIT');
       } catch (error) {
         try { database.exec('ROLLBACK'); }
-        catch (rollback) { fail('ClientRunFailureObservationUnknown', rollback); }
+        catch (rollback) {
+          failRollback('ClientRunFailureObservationUnknown',
+            'failure_observation', error, rollback);
+        }
         if (typeof error?.code === 'string' &&
             (error.code.startsWith('ClientRun') ||
               error.code.startsWith('ClientRequest'))) throw error;
@@ -803,7 +820,10 @@ export function openClientRequestJournal(directory, {
         database.exec('COMMIT');
       } catch (error) {
         try { database.exec('ROLLBACK'); }
-        catch (rollback) { fail('ClientRunReconciliationUnknown', rollback); }
+        catch (rollback) {
+          failRollback('ClientRunReconciliationUnknown', 'reconciliation',
+            error, rollback);
+        }
         if (typeof error?.code === 'string' &&
             error.code.startsWith('ClientRun')) throw error;
         fail('ClientRunReconciliationUnknown', error);

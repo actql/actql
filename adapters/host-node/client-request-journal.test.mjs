@@ -72,6 +72,61 @@ async function directory(t) {
   return path;
 }
 
+test('rollback failure retains the primary acceptance error', async t => {
+  const path = await directory(t);
+  const journal = openClientRequestJournal(path);
+  t.after(() => journal.close());
+  const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+  database.exec(`CREATE TRIGGER reject_client_accept
+    BEFORE INSERT ON client_requests BEGIN
+      SELECT RAISE(ROLLBACK, 'PrimaryAcceptanceFailure');
+    END`);
+  database.close();
+  assert.throws(() => journal.accept(identity(), {
+    tenantId: 'tenant-a', runDefinitionCid: cid('d'),
+    lookupExpiresAt: expires,
+  }, moon), error => {
+    assert.equal(error.code, 'ClientRequestAcceptanceUnknown');
+    assert.equal(error.operation, 'accept');
+    assert.equal(error.outcome, 'unknown');
+    assert.match(error.cause.message, /PrimaryAcceptanceFailure/u);
+    assert.match(error.rollbackCause.message, /rollback/u);
+    return true;
+  });
+  assert.equal(journal.lookup({tenantId: 'tenant-a',
+    authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon),
+  undefined);
+});
+
+test('rollback failure retains the primary Run-start error', async t => {
+  const path = await directory(t);
+  const journal = openClientRequestJournal(path);
+  t.after(() => journal.close());
+  const requested = identity();
+  const accepted = journal.acceptDefinition(requested, {
+    tenantId: 'tenant-a', runDefinition: runDefinition(),
+    lookupExpiresAt: expires, resultNames: ['answer'],
+  }, moon, publicationControl);
+  const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+  database.exec(`CREATE TRIGGER reject_client_start
+    BEFORE UPDATE OF dispatch_reserved ON client_requests BEGIN
+      SELECT RAISE(ROLLBACK, 'PrimaryStartFailure');
+    END`);
+  database.close();
+  assert.throws(() => journal.reserveDispatch(requested, {
+    tenantId: 'tenant-a', currentAuthorization: true,
+  }, moon, publicationControl), error => {
+    assert.equal(error.code, 'ClientRunStartUnknown');
+    assert.equal(error.operation, 'start');
+    assert.equal(error.outcome, 'unknown');
+    assert.match(error.cause.message, /PrimaryStartFailure/u);
+    assert.match(error.rollbackCause.message, /rollback/u);
+    return true;
+  });
+  assert.equal(journal.lookupRunDefinition(accepted.ref, moon,
+    publicationControl).dispatchReserved, false);
+});
+
 test('durable Client request survives ACK loss and restart without a new Run',
   async t => {
     const path = await directory(t);
