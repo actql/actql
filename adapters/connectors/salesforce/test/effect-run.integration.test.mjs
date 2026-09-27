@@ -4281,6 +4281,24 @@ test('Effect publication preparation failure reserves no physical start',
     assert.equal(physicalStarts, 0);
     assert.equal((await runs.start(accepted)).kind, 'reconcile');
     assert.equal(physicalStarts, 0);
+    const asyncRuns = installNodeClientEffectRun({moon, journal,
+      authorizeRequest: async () => ({executionContextCid: cid('a'),
+        hostPolicyCid: cid('b'), createdAt: '2026-09-24T00:00:00.000Z',
+        expiresAt: '2027-01-01T00:00:00.000Z'}),
+      authorizeRunStart: async () => true,
+      async prepareExecution() { throw new Error('LatePlanFailure'); },
+      execute() { physicalStarts++; },
+    });
+    const asynchronous = await asyncRuns.accept({prepared,
+      authorityScopeCid: cid('e'), requestId: 'effect-async-plan-failure',
+      tenantId: 'tenant-a', principalId: 'principal-a',
+      connection: {mode: 'local', owner: 'local'},
+      lookupExpiresAt: '2027-01-01T00:00:00.000Z'});
+    await assert.rejects(asyncRuns.start(asynchronous),
+      {name: 'TypeError', message: 'AsyncClientEffectPreparation'});
+    assert.equal(journal.lookupRunDefinition(asynchronous.ref, moon,
+      runtimeCore(moon).publicationControl).physicalStartReserved, false);
+    assert.equal(physicalStarts, 0);
   });
 
 function publicationEvidence(program, parameters, semantics,

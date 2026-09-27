@@ -184,6 +184,10 @@ export function installNodeClientEffectRun({moon,
             identity, owner, prepared, compilation, allowed, definition,
             runDefinition: retained.runDefinition}));
           if (typeof preparedExecution?.then === 'function') {
+            // A misinstalled asynchronous preparer is not a physical-start
+            // permit. Consume its eventual rejection without accepting it
+            // as evidence or retrying this Run.
+            void Promise.resolve(preparedExecution).catch(() => {});
             throw new TypeError('AsyncClientEffectPreparation');
           }
         } catch (error) {
