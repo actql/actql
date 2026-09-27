@@ -288,6 +288,6 @@ pub fn boolean_pair(
           Boolean(false)
         },
       )
-    Coalesce => Err(InvalidOperand)
+    Coalesce | Concat | ConcatStrict => Err(InvalidOperand)
   }
 }

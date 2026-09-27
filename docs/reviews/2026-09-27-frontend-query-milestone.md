@@ -32,7 +32,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | Requirement | Existing target | Required evidence | Current status |
 | --- | --- | --- | --- |
 | UTF-8, tokens, escaping, numeric domain, original spans | Original source owner and bounded query lexer | Positive, negative and exact-limit cases | Partial: exact lexer and query syntax/work limits, original Unicode error span and unadopted OVER rejection pass; full diagnostic matrix pending |
-| Closed scalar expressions, precedence, NULL and CONCAT | Structured Expression admission/typing | Independent trees, demand/failure and legacy regression | Partial: shared AST and direct tree lowering; full typing/failure matrix pending |
+| Closed scalar expressions, precedence, NULL and CONCAT | Structured Expression admission/typing | Independent trees, demand/failure and legacy regression | Partial: shared AST and direct tree lowering; strict and legacy CONCAT execute through packed Local/Remote; full typing/failure matrix pending |
 | SELECT, FROM-only, subqueries, WHERE | Existing Program derive/select/filter | SQL/Pipe expected Program and rows | Partial: base SELECT/FROM/WHERE and named noncorrelated FROM subqueries, including nesting, execute through captured Host; one JOIN-right subquery from an earlier CTE executes through packed Local/Remote; broader joins, set operands and additional source forms remain |
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: direct Values joins support INNER/LEFT, bounded CROSS and output-only DISTINCT; a DISTINCT CTE supplies identity for packed source-free and captured-input FULL/USING; general join scope remains |
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: scalar reductions and ordered ARRAY_AGG/STRING_AGG lower through group; captured COUNT/GROUP/HAVING runtime passes, ordered collection runtime and failure matrix pending |
@@ -51,24 +51,18 @@ profile difference is distinct from an unimplemented adopted feature. The
 former includes eager ActQL boolean/failure rules, explicit new-query NULL
 sort directions, no implicit set-column type promotion or padding, and the
 specified exclusion of recursive/correlated CTEs. The latter includes the
-numeric-profile and CONCAT execution gaps, JOIN-output sort, and the remaining
-Pipe JOIN scope forms. No
+numeric-profile execution gap, JOIN-output sort, and the remaining Pipe JOIN
+scope forms. No
 unimplemented item is reclassified as an intentional incompatibility.
 
-The current Local expression IR rejects `concat_strict` and `concat` during
-`lowering_relation.lower_expression_measured`: `ExpressionNotImplemented`
-is the concrete boundary. The query compiler emits the adopted distinct
-expression trees and the common checker accepts them, but the packed Host
-rejects a Values query before Run creation with
-`RunHostCompilationRejected`. The packed Client reports `SubmissionUnknown`
-with the original request ID and retains the Host rejection as its cause;
-this pre-acceptance compiler gap is not asserted as a Run failure.
-The Local Compute owner must extend the existing lowering and evaluation
-of these two operators, preserving strict NULL propagation versus legacy
-null skipping and bounded output accounting. The frontend must then change
-this expected refusal into independent Local and HTTP Remote Result rows.
-It must not rewrite strict CONCAT as legacy concat or invent a parallel
-expression evaluator.
+The common expression lowering and Local evaluator now retain distinct
+`concat_strict` and `concat` operators. The former propagates NULL after
+evaluating its operands; the latter skips NULL and returns an empty string
+when all operands are NULL. Both use the existing bounded expression frame.
+Packed Local and HTTP Remote Clients read two Result rows with
+`{strict:NULL,legacy:"a",joined:"é😀"}` from a source-free Values query.
+The evaluator regression also covers all-NULL legacy concatenation. This
+does not establish the full scalar typing and failure matrix.
 
 Named noncorrelated SQL and Pipe `FROM (SELECT ...) AS source` now use the
 same checked Stage Result binding as a CTE. The bounded parser preserves

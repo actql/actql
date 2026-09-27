@@ -199,7 +199,7 @@ for (const [name, sql] of [
 }
 const concatQuery = queryFrontend.compileValuesQueryJson(
   "SELECT CONCAT('a', NULL) AS strict, ACTQL.CONCAT('a', NULL) "
-    + 'AS legacy FROM rows',
+    + "AS legacy, CONCAT('é', '😀') AS joined FROM rows",
   'rows', 'rows', JSON.stringify(aliasRows), JSON.stringify(['x', 'y']),
   'fixture.concat_null');
 assert.notEqual(concatQuery, '');
@@ -814,11 +814,14 @@ async function checkOrderScopes(client, suffix) {
   }
 }
 async function checkConcat(client, suffix) {
-  await assert.rejects(client.aql(readFileSync('concat-query.json', 'utf8'),
-    {format: 'json', requestId: 'packed-concat-' + suffix}),
-  error => error.code === 'SubmissionUnknown' &&
-    error.requestId === 'packed-concat-' + suffix &&
-    error.cause?.code === 'RunHostCompilationRejected');
+  const execution = await client.aql(
+    readFileSync('concat-query.json', 'utf8'),
+    {format: 'json', requestId: 'packed-concat-' + suffix});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  assert.deepEqual(await execution.result('answer').all(), [
+    {strict: null, legacy: 'a', joined: 'é😀'},
+    {strict: null, legacy: 'a', joined: 'é😀'},
+  ]);
 }
 async function checkValuesCte(client, suffix) {
   const execution = await client.aql(
@@ -1392,6 +1395,7 @@ await checkPipeSnapshots(installedRemote, 'remote');
 await checkNullOrder(installedRemote, 'remote');
 await checkGlobalCounts(installedRemote, 'remote');
 await checkAnalyticPeers(installedRemote, 'remote');
+await checkConcat(installedRemote, 'remote');
 await checkJoinSubquery(installedRemote, 'remote');
 await checkCteJoinBody(installedRemote, 'remote');
 await checkFilteredSubqueryJoin(installedRemote, 'remote');

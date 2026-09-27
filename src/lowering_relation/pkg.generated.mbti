@@ -1445,6 +1445,8 @@ pub(all) enum ManyOperator {
   And
   Or
   Coalesce
+  Concat
+  ConcatStrict
 } derive(Eq, @debug.Debug)
 
 pub(all) enum NestIssue {
