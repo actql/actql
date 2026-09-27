@@ -385,7 +385,7 @@ fn pipe_name_exists(
 fn pipe_physical_name(physical : Array[String], prefix : String) -> String {
   let mut index = physical.length()
   let mut name = prefix + index.to_string()
-  while physical.contains(name) {
+  while physical.any(field => ascii_upper(field) == ascii_upper(name)) {
     index += 1
     name = prefix + index.to_string()
   }
@@ -2348,7 +2348,7 @@ fn compile_cte_join_steps(
     let name = projection.name
       .map(value => value.value)
       .unwrap_or(path.last().unwrap().value)
-    if output.contains(name) {
+    if output.any(field => ascii_upper(field) == ascii_upper(name)) {
       raise Abort(DuplicateOutput)
     }
     output.push(name)
@@ -3311,7 +3311,7 @@ fn compile_join_query(
       let name = projection.name
         .map(value => value.value)
         .unwrap_or(path.last().unwrap().value)
-      if output.contains(name) {
+      if output.any(field => ascii_upper(field) == ascii_upper(name)) {
         raise Abort(DuplicateOutput)
       }
       output.push(name)

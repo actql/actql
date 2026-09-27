@@ -862,6 +862,14 @@ test "FULL CTE join retains keyed input identity for common closure" {
     NeedsInputs(_) => fail("two-CTE FULL USING should be statically closed")
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
   }
+  let duplicate_alias = @query.parse_query(
+    "WITH chosen AS (SELECT id, customer_id FROM orders) SELECT l.id AS key, r.id AS KEY FROM chosen AS l FULL JOIN chosen AS r USING (customer_id)",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(duplicate_alias, fixture_context(), construction_limits())
+    is Err(DuplicateOutput),
+  )
   let unkeyed = @query.parse_query(
     "WITH chosen AS (SELECT a, b FROM left_rows) SELECT l.a AS left_a, r.a AS right_a FROM chosen AS l FULL JOIN chosen AS r ON l.a = r.a",
     syntax_limits(),
