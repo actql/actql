@@ -123,6 +123,29 @@ fn same_path(
 }
 
 ///|
+// Node indices are local to each parsed expression. Equal syntax trees have
+// the same postorder indices; spans and whitespace are deliberately ignored.
+fn same_expression(left : @query.Expression, right : @query.Expression) -> Bool {
+  let count = @query.expression_node_count(left)
+  if count != @query.expression_node_count(right) {
+    return false
+  }
+  for i in 0..<count {
+    let a = @query.expression_node(left, i).unwrap().kind
+    let b = @query.expression_node(right, i).unwrap().kind
+    match (a, b) {
+      (Reference(x), Reference(y)) => if !same_path(x, y) { return false }
+      (Call(x, ax), Call(y, ay)) =>
+        if !same_path(x, y) || ax != ay {
+          return false
+        }
+      _ => if a != b { return false }
+    }
+  }
+  true
+}
+
+///|
 fn selected_input(query : @query.Query, context : Context) -> Input raise Abort {
   let relation = @query.relation(query)
   let mut found : Input? = None
@@ -247,12 +270,17 @@ fn compile_steps(
   fields : Array[String],
   max_work : Int,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
-  let steps : Array[@builder.Node] = []
+  let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
   let mut first = true
+  let mut pending_select : Array[(String, @builder.Node)]? = None
+  let mut pending_bindings : Array[(String, String)] = []
+  let mut selected_expressions : Array[(@query.Expression, String)] = []
   for i in 0..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
     let entries : Array[(String, @builder.Node)] = []
+    let mut deferred = false
+    let mut add_distinct = false
     if first {
       entries.push(("from", construction.text(input.name)))
       first = false
@@ -268,40 +296,63 @@ fn compile_steps(
           ),
         )
       Select(projections, distinct) => {
-        if distinct {
-          raise Abort(UnsupportedProjection)
-        }
         let names : Array[String] = []
         let derives : Array[(String, @builder.Node)] = []
+        let temporary_names : Array[String] = []
+        let selected : Array[@builder.Node] = []
+        let bindings : Array[(String, String)] = []
+        let expressions : Array[(@query.Expression, String)] = []
         for projection in projections {
           match projection.star {
             Some(_) =>
               for field in fields {
                 names.push(field)
+                selected.push(construction.text(field))
+                bindings.push((field, field))
               }
             None => {
               let name = output_name(projection, query, input, fields)
               names.push(name)
               let expression = projection.expression.unwrap()
+              expressions.push((expression, name))
               let direct = match
                 @query.expression_node(
                   expression,
                   @query.expression_root(expression),
                 ).unwrap().kind {
-                Reference(path) =>
-                  resolve_column(path, query, input, fields) == Some(name)
-                _ => false
+                Reference(path) => resolve_column(path, query, input, fields)
+                _ => None
               }
-              if !direct {
+              let source = if direct is Some(column) {
+                column
+              } else {
+                let mut suffix = names.length() - 1
+                let mut temporary = "aql_query_expr_" + suffix.to_string()
+                while fields.contains(temporary) ||
+                      names.contains(temporary) ||
+                      temporary_names.contains(temporary) {
+                  suffix += 1
+                  temporary = "aql_query_expr_" + suffix.to_string()
+                }
+                temporary_names.push(temporary)
                 derives.push(
                   (
-                    name,
+                    temporary,
                     append_expression(
                       construction, expression, query, input, fields, max_work,
                     ),
                   ),
                 )
+                temporary
               }
+              selected.push(
+                if source == name {
+                  construction.text(source)
+                } else {
+                  construction.object([(name, construction.text(source))])
+                },
+              )
+              bindings.push((name, source))
             }
           }
         }
@@ -319,29 +370,116 @@ fn compile_steps(
             entries.clear()
           }
           derive_fields.push(("derive", construction.object(derives)))
-          steps.push(construction.object(derive_fields))
+          step_entries.push(derive_fields)
         }
-        entries.push(
-          (
-            "select",
-            construction.array(names.map(name => construction.text(name))),
-          ),
-        )
+        entries.push(("select", construction.array(selected)))
         output = names
+        selected_expressions = expressions
+        add_distinct = distinct
+        let needs_input_order = if distinct {
+          false
+        } else {
+          match @query.operation_at(query, i + 1) {
+            Some(Order(terms)) =>
+              terms.any(term => {
+                match
+                  @query.expression_node(
+                    term.expression,
+                    @query.expression_root(term.expression),
+                  ).unwrap().kind {
+                  Reference(path) =>
+                    path.length() != 1 ||
+                    !output.any(name => {
+                      same_name(path[0], { value: name, quoted: false, })
+                    })
+                  _ => false
+                }
+              })
+            _ => false
+          }
+        }
+        if needs_input_order {
+          if entries.length() == 2 && entries[0].0 == "from" {
+            ignore(entries.remove(0))
+            first = true
+          }
+          pending_select = Some(entries)
+          pending_bindings = bindings
+          deferred = true
+        }
       }
       Order(terms) => {
         let sort : Array[@builder.Node] = []
         for term in terms {
-          let name = match
-            @query.expression_node(
+          let kind = @query.expression_node(
               term.expression,
               @query.expression_root(term.expression),
-            ).unwrap().kind {
-            Reference(path) if path.length() == 1 => path[0].value
-            _ => raise Abort(UnsupportedOrdering)
-          }
-          if !output.contains(name) {
-            raise Abort(UnsupportedOrdering)
+            ).unwrap().kind
+          let name = match kind {
+            Reference(path) =>
+              if path.length() == 1 {
+                let mut selected : String? = None
+                for field in output {
+                  if same_name(path[0], { value: field, quoted: false, }) {
+                    selected = Some(field)
+                  }
+                }
+                match selected {
+                  Some(field) =>
+                    if pending_select is Some(_) {
+                      let mut slot = field
+                      for pair in pending_bindings {
+                        if pair.0 == field {
+                          slot = pair.1
+                        }
+                      }
+                      slot
+                    } else {
+                      field
+                    }
+                  None =>
+                    if pending_select is Some(_) {
+                      match resolve_column(path, query, input, fields) {
+                        Some(field) => field
+                        None => raise Abort(UnsupportedOrdering)
+                      }
+                    } else {
+                      raise Abort(UnsupportedOrdering)
+                    }
+                }
+              } else if pending_select is Some(_) {
+                match resolve_column(path, query, input, fields) {
+                  Some(field) => field
+                  None => raise Abort(UnsupportedOrdering)
+                }
+              } else {
+                raise Abort(UnsupportedOrdering)
+              }
+            _ => {
+              let mut matched : String? = None
+              for pair in selected_expressions {
+                if same_expression(term.expression, pair.0) {
+                  if matched is Some(_) {
+                    raise Abort(UnsupportedOrdering)
+                  }
+                  matched = Some(pair.1)
+                }
+              }
+              match matched {
+                Some(name) => {
+                  let mut slot = name
+                  if pending_select is Some(_) {
+                    for pair in pending_bindings {
+                      if pair.0 == name {
+                        slot = pair.1
+                      }
+                    }
+                  }
+                  slot
+                }
+                None => raise Abort(UnsupportedOrdering)
+              }
+            }
           }
           sort.push(
             construction.object([
@@ -364,17 +502,37 @@ fn compile_steps(
           ),
         )
     }
-    if i == @query.operation_count(query) - 1 {
-      entries.push(("as", construction.text("aql_gen_0")))
+    if !deferred {
+      step_entries.push(entries)
     }
-    steps.push(construction.object(entries))
+    if add_distinct {
+      step_entries.push([
+        (
+          "distinct",
+          construction.array(output.map(name => construction.text(name))),
+        ),
+      ])
+    }
+    if operation is Order(_) {
+      match pending_select {
+        Some(selection) => {
+          step_entries.push(selection)
+          pending_select = None
+          pending_bindings = []
+        }
+        None => ()
+      }
+    }
   }
-  if steps.is_empty() {
-    return (steps, output)
+  if step_entries.is_empty() {
+    return ([], output)
   }
   // The last step supplies a stable named stage result for ordinary routing.
   // This is a structural step alias, not a SQL range alias.
-  (steps, output)
+  step_entries[step_entries.length() - 1].push(
+    ("as", construction.text("aql_gen_0")),
+  )
+  (step_entries.map(entries => construction.object(entries)), output)
 }
 
 ///|

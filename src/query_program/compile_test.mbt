@@ -117,3 +117,106 @@ test "FROM-only selection and derived fields enter Program admission" {
     )
   }
 }
+
+///|
+test "SELECT aliases preserve input snapshot and use private slots for replacements" {
+  let context = fixture_context()
+  let swapped = compile(
+    @query.parse_query(
+      "SELECT amount AS status, status AS original FROM orders",
+      syntax_limits(),
+    ).unwrap(),
+    context,
+    construction_limits(),
+  ).unwrap()
+  assert_true(
+    semantic(swapped).contains(
+      "\"select\":[{\"status\":\"amount\"},{\"original\":\"status\"}]",
+    ),
+  )
+  let replaced = compile(
+    @query.parse_query(
+      "SELECT amount + 1 AS amount FROM orders",
+      syntax_limits(),
+    ).unwrap(),
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_true(
+    semantic(replaced).contains(
+      "\"derive\":{\"aql_query_expr_0\":{\"add\":[{\"field\":\"amount\"},{\"literal\":1}]}}",
+    ),
+  )
+  assert_true(
+    semantic(replaced).contains(
+      "\"select\":[{\"amount\":\"aql_query_expr_0\"}]",
+    ),
+  )
+}
+
+///|
+test "non-output ORDER BY stays hidden and output aliases take precedence" {
+  let hidden = compile(
+    @query.parse_query(
+      "SELECT id FROM orders ORDER BY amount DESC",
+      syntax_limits(),
+    ).unwrap(),
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  let wire = semantic(hidden)
+  assert_true(
+    wire.contains(
+      "\"sort\":[{\"dir\":\"desc\",\"field\":\"amount\",\"nulls\":\"last\"}]",
+    ),
+  )
+  assert_true(wire.contains("\"select\":[\"id\"]"))
+  assert_true(wire.contains("\"fields\":[\"id\"]"))
+  assert_true(wire.contains("\"steps\":[{\"from\":\"orders\",\"sort\""))
+  let alias_over_input = compile(
+    @query.parse_query(
+      "SELECT amount AS status FROM orders ORDER BY status, id",
+      syntax_limits(),
+    ).unwrap(),
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  let wire = semantic(alias_over_input)
+  assert_true(wire.contains("\"sort\":[{\"dir\":\"asc\",\"field\":\"amount\""))
+  assert_true(wire.contains("\"field\":\"id\""))
+  assert_true(wire.contains("\"select\":[{\"status\":\"amount\"}]"))
+}
+
+///|
+test "DISTINCT compares projected fields and refuses inaccessible source order" {
+  let accepted = compile(
+    @query.parse_query(
+      "SELECT DISTINCT amount AS x FROM orders ORDER BY x",
+      syntax_limits(),
+    ).unwrap(),
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  let wire = semantic(accepted)
+  assert_true(wire.contains("\"distinct\":[\"x\"]"))
+  assert_true(wire.contains("\"fields\":[\"x\"]"))
+  let rejected = @query.parse_query(
+    "SELECT DISTINCT id FROM orders ORDER BY amount",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(rejected, fixture_context(), construction_limits())
+    is Err(UnsupportedOrdering),
+  )
+  let selected_expression = compile(
+    @query.parse_query(
+      "SELECT DISTINCT amount + 1 AS x FROM orders ORDER BY amount+1",
+      syntax_limits(),
+    ).unwrap(),
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  let wire = semantic(selected_expression)
+  assert_true(wire.contains("\"distinct\":[\"x\"]"))
+  assert_true(wire.contains("\"sort\":[{\"dir\":\"asc\",\"field\":\"x\""))
+}
