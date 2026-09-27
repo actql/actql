@@ -514,7 +514,7 @@ explicitly classify every
 `relation_typing.Operation`.
 There is no catch-all arm at these six operation dispatches: adding a variant
 requires reviewing each evidence boundary under the compiler's denied warnings.
-`scripts/evidence-transfer-coverage.test.mjs`, run by `check:docs`, additionally
+`scripts/evidence-transfer-coverage.test.mjs`, run by `check:spec`, additionally
 guards against reintroducing a fallback and tests missing-classification probes.
 Scoped coverage requirements are described in [Completeness requirements](completeness.md).
 This covers the checked unary operation enum, not every Carrier or all 72 public

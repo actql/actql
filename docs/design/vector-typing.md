@@ -434,7 +434,7 @@ subnormal and maximum-finite inputs. Score bits are big-endian IEEE-754 binary64
 hex, not platform-dependent decimal formatting.
 
 `check:text-rank-numeric` runs the fixed cases and oracle regression tests and is
-included in `check:vector`/`check:docs`. There is no write mode for expectations.
+included in `check:vector`/`check:spec`. There is no write mode for expectations.
 The oracle is specification test tooling, not a bounded production scorer or
 MoonBit evaluator. It does not implement or prove Unicode normalization,
 tokenization, tokenizer resource admission or full text-rank profile conformance.
@@ -457,7 +457,7 @@ expressions. Its NFC and NFKC routines are checked against all 19,965 enumerated
 Unicode NormalizationTest cases (five relations for each form), and its default
 fold map is checked against every C/F record. This validates the tooling used
 to check fixed tokenizer vectors, not a MoonBit tokenizer. `check:text-rank-tokenizer`
-joins `check:vector`/`check:docs`; it has no expectation write mode.
+joins `check:vector`/`check:spec`; it has no expectation write mode.
 
 CaseFolding.txt is the unmodified Unicode 16.0 source file; its SHA-256 was also
 compared with a fresh download from the

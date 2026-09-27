@@ -8,13 +8,13 @@ import { parse } from 'yaml';
 import { checkInterfaces } from './check-moonbit-api.mjs';
 import { installationFiles, verifyInstallation } from './moonbit-installation.mjs';
 
-test('CI installs and exposes the pinned formatter before documentation checks', () => {
+test('CI installs and exposes the pinned formatter before specification checks', () => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
-  const steps = workflow.jobs.documents.steps;
+  const steps = workflow.jobs.spec.steps;
   const installation = steps.findIndex(step => /node scripts\/setup-moonbit\.mjs/.test(step.run ?? ''));
-  const documentation = steps.findIndex(step => /npm run check:docs/.test(step.run ?? ''));
-  assert.ok(installation >= 0 && documentation >= 0, 'CI must install MoonBit and run documentation checks');
-  assert.ok(installation < documentation, 'check:docs invokes moonfmt and must follow pinned MoonBit setup');
+  const specification = steps.findIndex(step => /npm run check:spec/.test(step.run ?? ''));
+  assert.ok(installation >= 0 && specification >= 0, 'CI must install MoonBit and run specification checks');
+  assert.ok(installation < specification, 'check:spec invokes moonfmt and must follow pinned MoonBit setup');
   assert.match(steps[installation].run, /MOON_HOME=.*GITHUB_ENV/);
   assert.match(steps[installation].run, /bin.*GITHUB_PATH/);
 });

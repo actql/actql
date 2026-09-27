@@ -60,7 +60,7 @@ accepted patterns with handwritten component arrays and seventeen rejected
 patterns. Node independently canonicalizes/hashes those fixed arrays; expected
 values never come from the product parser or lowerer. `check:timestamp-pattern`
 verifies fixture identity, component/schema agreement and generated-test drift;
-it runs through `check:docs`. The normal generator preserves fixed identities;
+it runs through `check:spec`. The normal generator preserves fixed identities;
 `--write-identities` is an explicit maintenance operation.
 
 MoonBit tests execute the vectors on all three targets, all 127 nonempty semantic

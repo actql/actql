@@ -22,7 +22,7 @@
   do not import a different version merely because reference code uses it.
 - Where an identifier is part of a canonical preimage, update dependent bodies,
   CIDs, schema pins, metadata and independent fixtures together, then run
-  `npm run check:docs` and the three-target MoonBit checks. Never retain an old
+  `npm run check:spec` and the three-target MoonBit checks. Never retain an old
   CID for a renamed body or compute expected fixtures from product output.
 - Package release versions are independent of contract versions. External
   standards, dependencies and toolchains retain their selected versions and
@@ -46,17 +46,18 @@ default.
    `node scripts/local-checks.mjs run <job>`. It runs the same commands as
    that job in `.github/workflows/ci.yml`. Run `core` for wasm and native
    (`--target`) only when shared MoonBit core changed; canonical identifier
-   changes keep the rule above (`check:docs` and all three targets).
+   changes keep the rule above (`check:spec` and all three targets).
    Run `node scripts/check-moonbit-api.mjs` when a public MoonBit interface
    changed.
 4. Push, then read the CI result for that SHA (a pull request, or
    `gh workflow run CI --ref <branch>` for a working branch). A local run
    does not replace it.
 
-`npm run check:docs` is heavy: it covers the version gate, schemas, pins,
-generated artifacts, document examples and related tests. Run it when
-specifications, machine contracts, generated artifacts or documented
-examples change, not for a code-only change covered by another job.
+`npm run check:spec` checks specifications and machine contracts: the
+version gate, schemas and pins, generated artifacts, Connector boundaries,
+coverage inventories, documented examples and links (about a minute locally
+with a warm build). Run it when those change, not for a code-only change
+covered by another job.
 
 Build hygiene:
 

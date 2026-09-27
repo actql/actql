@@ -129,7 +129,7 @@ of a successful GitHub Actions run.
 The separate `connector-addition` CI job runs the committed-source, isolated
 addition proof with pinned MoonBit and DuckDB dependencies. It retains common-file
 digests and phase logs as artifacts, including available failure logs. This
-expensive integration check is deliberately not part of `check:docs`.
+expensive integration check is deliberately not part of `check:spec`.
 
 Local workerd tests do not establish deployed CPU/memory limits, large-input
 capacity, cross-request persistence, Workers Wasm conformance or production

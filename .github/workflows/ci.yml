@@ -164,7 +164,7 @@ jobs:
   # scheduled (see its condition).
   check:
     if: ${{ always() && !inputs.performance_matrix }}
-    needs: [lint, core, host, client, native, documents, native-macos,
+    needs: [lint, core, host, client, native, spec, native-macos,
       native-separated-network, workers, connector-addition, duckdb-node]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -189,7 +189,9 @@ jobs:
             }
             if (failed) process.exit(1);
           '
-  documents:
+  # Specifications, machine contracts, generated artifacts, boundaries and
+  # documented examples.
+  spec:
     if: ${{ !inputs.performance_matrix }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -211,7 +213,7 @@ jobs:
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
-      - run: npm run check:docs
+      - run: npm run check:spec
   # macOS minutes cost ten times Linux ones: run for main, pull requests to
   # main, and on demand.
   native-macos:

@@ -97,7 +97,7 @@ function runJob(name) {
 const areas = [
   [/^\.github\/|^scripts\/local-checks\.mjs$/u, ['lint']],
   [/^src\//u, ['lint', 'core']],
-  [/^(spec|docs)\/|\.md$/u, ['documents']],
+  [/^(spec|docs)\/|\.md$/u, ['spec']],
   [/^adapters\/connectors\/salesforce\//u, ['client']],
   [/^adapters\/connectors\/duckdb\/node\//u, ['duckdb-node']],
   [/^adapters\/workers\/|workers/u, ['workers']],
