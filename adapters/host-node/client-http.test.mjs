@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
+import {ClientError, connect} from '../../packages/sdk/index.mjs';
+import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 
 const ref = {tenantId: 'tenant-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
@@ -23,6 +25,103 @@ async function withServer(handler, run) {
     await new Promise(resolve => server.close(resolve));
   }
 }
+
+test('submit has one outcome contract over HTTP and in-process', async () => {
+  const profile = {version: 'actql-client-host/0.1', mode: 'local',
+    owner: 'local', durability: 'durable', scopeRef: 'local-scope',
+    capabilities: [], limits: {maxReadWireBytes: 4096,
+      maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
+      maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 10,
+      maxBatchRetainedValueBytes: 2048}};
+  for (const scenario of ['accepted', 'held', 'refused', 'prepare-refused',
+    'accepted-throw', 'accepted-client-error', 'accepted-public-code',
+    'invalid-reply', 'foreign-held']) {
+    for (const explicitId of [false, true]) {
+      const outcomes = [];
+      for (const transport of ['http', 'in-process']) {
+        let sentId;
+        let accepts = 0;
+        const retained = new Map();
+        const options = {
+          authenticate: () => 'local-principal',
+          authorizeConnection: () => true,
+          negotiate: () => profile,
+          maxRowBytes: 1024,
+          prepareSubmit: () => {
+            if (scenario === 'prepare-refused') {
+              throw Object.assign(new Error('Invalid program'),
+                {code: 'ClientProgramRejected'});
+            }
+            return Object.freeze({prepared: true});
+          },
+          submit: ({requestId}) => {
+            sentId = requestId;
+            if (scenario === 'refused') {
+              throw Object.assign(new Error('Denied'),
+                {code: 'ClientRunStartDenied'});
+            }
+            accepts++;
+            const admission = {ref, durability: 'durable', revision: 1};
+            retained.set(requestId, admission);
+            if (scenario === 'accepted-throw') throw new Error('DiskFailure');
+            if (scenario === 'accepted-client-error') {
+              throw new ClientError('ClientHostFailure');
+            }
+            if (scenario === 'accepted-public-code') {
+              throw Object.assign(new Error('Late failure'),
+                {code: 'ClientAdmissionJournalUnavailable'});
+            }
+            if (scenario === 'invalid-reply') return {revision: 1};
+            if (scenario === 'held' || scenario === 'foreign-held') {
+              return {kind: 'held', requestId: scenario === 'held' ? requestId :
+                'another-request', prepareAttemptId: 'prepare-a',
+              state: 'waiting_checkpoint', durability: 'durable',
+              lookupExpiresAt: '2026-10-03T00:00:00.000Z',
+              checkpoint: {checkpointId: 'prepare-a-preflight',
+                checkpointCid: `sha256:${'c'.repeat(64)}`, kind: 'run_scope',
+                expiresAt: '2026-10-02T00:00:00.000Z'}};
+            }
+            return admission;
+          },
+        };
+        const exercise = async (client, endpoint) => {
+          try {
+            const execution = await client.start({version: 'actql/0.1'},
+              explicitId ? {requestId: 'saved-id'} : {});
+            assert.deepEqual(execution.ref, ref);
+            outcomes.push('accepted');
+          } catch (error) {
+            outcomes.push(error.code);
+            if (['SubmissionUnknown', 'RequestHeld'].includes(error.code)) {
+              assert.equal(error.requestId, sentId);
+              assert.ok(typeof sentId === 'string' && sentId.length > 0);
+              assert.deepEqual(error.lookupContext,
+                {endpoint, scopeRef: profile.scopeRef});
+              assert.ok(retained.has(error.requestId));
+            }
+          } finally { client.close(); }
+          assert.equal(accepts,
+            ['refused', 'prepare-refused'].includes(scenario) ? 0 : 1);
+        };
+        if (transport === 'http') {
+          await withServer(createClientHttpHandler(options), async base => {
+            await exercise(await connect({mode: 'local', owner: 'local',
+              endpoint: `${base}/`, token: 'local-token'}), `${base}/`);
+          });
+        } else {
+          await exercise(await connectInProcess({mode: 'local', owner: 'local'},
+            createNodeInProcessClientHost(options)), 'actql:embedded');
+        }
+      }
+      const expected = scenario === 'accepted' ? 'accepted' :
+        scenario === 'held' ? 'RequestHeld' :
+        scenario === 'refused' ? 'ClientRunStartDenied' :
+        scenario === 'prepare-refused' ? 'ClientProgramRejected' :
+        'SubmissionUnknown';
+      assert.deepEqual(outcomes, [expected, expected], scenario);
+    }
+  }
+});
 
 for (const boundary of ['authenticate', 'authorize_connection']) {
   test(`authorization faults stay private at ${boundary} on both ports`,

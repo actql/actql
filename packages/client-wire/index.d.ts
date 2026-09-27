@@ -10,6 +10,8 @@ import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
 export type {ClientHostOperation} from './client-host.generated.js';
 
 export declare const clientHostOperations: readonly ClientHostOperation[];
+/** Explicit submit refusal contracts, not generic public error codes. */
+export declare function isClientSubmitRejection(code: unknown): boolean;
 
 type WireConnectionBase = Pick<WireConnectionShape,
   'durability' | 'consentRefs' | 'runners'>;

@@ -1,6 +1,7 @@
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {connect, ClientError} from './index.mjs';
 
 const ref = Object.freeze({tenantId: 'tenant-a',
@@ -31,6 +32,67 @@ const oversizedControl = cancelled => new Response(new ReadableStream({
   },
   cancel() { cancelled.push(true); },
 }));
+
+test('review wire budget covers maximum base64 without relaxing body limits',
+  async t => {
+    const maximum = 1024 * 1024;
+    let content = Buffer.alloc(maximum, 97);
+    const checkpointCid = `sha256:${'c'.repeat(64)}`;
+    mock.method(globalThis, 'fetch', async url => {
+      if (url.pathname.endsWith('/connect')) return Response.json(profile);
+      return Response.json({kind: 'review', checkpointCid,
+        artifactCid: `sha256:${createHash('sha256').update(content).digest('hex')}`,
+        byteLength: content.length, contentBase64: content.toString('base64')});
+    });
+    t.after(() => mock.restoreAll());
+    const client = await connect(options);
+    const result = await client.reviewCheckpoint(checkpointCid,
+      {maxBytes: maximum});
+    assert.deepEqual(Buffer.from(result.bytes), content);
+    assert.ok(content.toString('base64').length > maximum);
+    content = Buffer.alloc(maximum + 1, 97);
+    await assert.rejects(client.reviewCheckpoint(checkpointCid,
+      {maxBytes: maximum}), {code: 'InvalidHostCheckpointReview'});
+  });
+
+test('peek bounds decoded JSON independently of escaped wire size', async t => {
+  const maximum = 4 * 1024 * 1024;
+  const prefix = JSON.stringify([{value: '\\"日本語'.repeat(120000)}]);
+  let rowsJson = prefix.slice(0, -3) +
+    'a'.repeat(maximum - Buffer.byteLength(prefix)) + prefix.slice(-3);
+  assert.equal(Buffer.byteLength(rowsJson), maximum);
+  assert.ok(Buffer.byteLength(JSON.stringify(rowsJson)) > maximum);
+  mock.method(globalThis, 'fetch', async url =>
+    url.pathname.endsWith('/connect') ? Response.json(profile) :
+      Response.json({resourceConnection: 'connection', resource: 'resource',
+        observationCid: `sha256:${'c'.repeat(64)}`, fields: ['value'],
+        rowsJson, limited: false}));
+  t.after(() => mock.restoreAll());
+  const client = await connect(options);
+  assert.deepEqual((await client.peekResource('connection', 'resource',
+    {fields: ['value'], maxBytes: maximum})).rows, JSON.parse(rowsJson));
+  rowsJson = rowsJson.slice(0, -3) + 'a' + rowsJson.slice(-3);
+  await assert.rejects(client.peekResource('connection', 'resource',
+    {fields: ['value'], maxBytes: maximum}), {code: 'InvalidHostResourcePeek'});
+});
+
+test('review wire cap cancels an oversized stream despite a short length header',
+  async t => {
+    let cancelled = 0;
+    mock.method(globalThis, 'fetch', async url => {
+      if (url.pathname.endsWith('/connect')) return Response.json(profile);
+      return new Response(new ReadableStream({
+        start(controller) { controller.enqueue(new Uint8Array(4096)); },
+        cancel() { cancelled++; },
+      }), {headers: {'content-length': '1'}});
+    });
+    t.after(() => mock.restoreAll());
+    const client = await connect(options);
+    await assert.rejects(client.reviewCheckpoint(`sha256:${'c'.repeat(64)}`,
+      {maxBytes: 1}), error => error.code === 'ReviewReadUnknown' &&
+        error.cause.message === 'HostControlResponseLimit');
+    assert.equal(cancelled, 1);
+  });
 
 test('control responses are bounded and uncertain submit keeps its ID',
   async t => {
