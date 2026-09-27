@@ -210,7 +210,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         {store, plan: held.plan},
         sourceProfile === undefined ? {} :
           {authorization: sourceAccess.authorization},
-        entry.abort.signal);
+        entry.abort.signal, undefined, execution => {
+          entry.cleanupOwner = execution;
+        });
       entry.cleanupOwner = published;
       entry.publicationCommitted = true;
       await observed('computed', {ref: accepted.ref});
