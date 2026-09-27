@@ -143,8 +143,8 @@ async function testValuesHttps(tls, environment, transferControl) {
       '/v1/ready', '{}', 'probe');
     assert.equal(probe.status, 404);
   }
-  // Build before the Cloud-owned Run is accepted. Its first durable alarm
-  // must not mistake a cold native link for an unavailable physical Site.
+  // Build before an external driver accepts work. Compilation latency must
+  // not be mistaken for an unavailable Site during its first observation.
   execFileSync(moon, ['test',
     'src/query_integration/client_source_free_root_wbtest.mbt',
     '--target', 'native', '--build-only'], {

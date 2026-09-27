@@ -352,8 +352,8 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   let admission = @publication_host.admit_prepared_client_run_publication(
     prepared, template, prepared_invocation, authorization, plan,
   ).unwrap()
-  // An external Cloud acceptance driver may supply its accepted Run
-  // identity. The standalone native fixture keeps its fixed Run.
+  // An external acceptance driver may supply its accepted Run identity.
+  // The standalone native fixture keeps its fixed Run.
   let external_run = @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_RUN_ID")
   let run_id = external_run.unwrap_or("native-values-run")
   let created_at = if external_run is Some(_) {

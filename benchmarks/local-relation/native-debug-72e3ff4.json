@@ -2,7 +2,7 @@
   "format": "local-relation-measurement/0.1",
   "source_commit": "72e3ff4ce29d894d26405a05948475bb796a7de9",
   "working_tree_status": "",
-  "executable": "/Users/t14i/workspace/20260822/actql-lowering/_build/native/debug/test/execution_relation/execution_relation.whitebox_test.exe",
+  "executable": "_build/native/debug/test/execution_relation/execution_relation.whitebox_test.exe",
   "executable_sha256": "4ba7c63dc020d9cb61e09c38ac522706b871e7557aeaf1c5bbfafb293360279b",
   "test_source_sha256": "ccf0c81295d69996bf06a23fbb6ff1ec1fe08799c0e5512ace53b4980cba09c0",
   "host": {

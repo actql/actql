@@ -19,11 +19,12 @@ DuckDB-specific translation belongs in an adapter, not in the common planner.
 The initial internal capability interface is not a stable public Connector SPI.
 Acquisition and Compute remain distinct, even when one module provides both.
 
-Smooth Cloud's connector implementation at `55b83448a` provides examples of
-provider-local query translation, field envelopes, metadata prerequisites,
-paging limits and typed Parameter materialization. Its separate DuckDB data-plane
-route is not the registration model adopted here. Neither provider-specific date
-helpers in a shared SPI nor implicit ordering repairs become ActQL rules.
+Query translation, field envelopes, metadata prerequisites, paging limits and
+typed Parameter materialization belong to the selected Connector adapter.
+The [query boundary](query-residual-execution.md) requires checked preservation
+conditions before backend execution. Provider-specific date helpers do not
+belong in the common SPI, and implicit ordering repairs cannot replace checked
+order preservation.
 
 Semantic Read/model interpretation is outside this boundary. ActOntology is a
 separate implementation direction, not an implicit layer in capability matching

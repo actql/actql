@@ -1259,12 +1259,12 @@ the left row bound, canonical value byte size, a generic `validated` flag, or th
 presence of this binding. Its Plan must retain the selected resource contract and
 its ownership separately from source/Unit meaning identity.
 
-This follows the physical-operator resource boundary in smooth-cloud
-`55b83448a` (`packages/data-plane-contract/src/validate.ts` and
-`containers/data-plane/src/duckdb/executor.ts`): required memory/staging/temporary
-limits are checked against the selected operator and passed to the engine.
-That implementation is evidence for the separation, not execution conformance
-for ActQL's typed equality or set multiplicity rules.
+The selected physical operator must receive and enforce its memory, staging
+and temporary-storage limits. Checked source identity cannot establish those
+physical capacities. The [execution boundary](execution-completion-storage.md)
+and [DuckDB adapter boundary](duckdb-relation-execution.md) separate those
+obligations from typed equality and set multiplicity; satisfying one does not
+prove conformance to the other.
 
 Cross join retains the compiler's checked product-count propagation and its
 exact left/right count evidence alongside the selected join-family output limit.

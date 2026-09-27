@@ -42,14 +42,11 @@ The normative owners are [algebra lowering](../spec/language.md#algebra-lowering
 and [generated identifiers](../spec/language.md#generated-identifiers), together
 with the pinned [AoA contract](../../spec/contracts/actql-aoa.json).
 
-`src/lowering_relation/registry-preimages.json` preserves the exact registry and
-module preimages recovered from sketch. Construction follows sketch's
-`src/actql-aoa-contract.ts`: registry input/output signatures from
-`AOA_PIPELINE_OPS`, and the core/rela/sga/veca/tea module subset from
-`ACTQL_MODULES`. The registry distribution matched the archived dependency
-`smoothhq-aoa-pipeline-0.12.0-integration.20260906.2.tgz` whose SHA-256 is
-`be37097b180634e6fbb3e5c1b026661b70f314fb7babead507dc4798ba18fcf4`.
-That dependency version is provenance, not an ActQL contract version.
+`src/lowering_relation/registry-preimages.json` contains the exact historical
+registry and module preimages used by the compatibility checks. The selected
+registry body and its pins are distributed in this repository. Verification
+uses those complete bodies and registered input/output signatures; it requires
+no external implementation checkout or archived package.
 
 `node --test scripts/lowering-registry.test.mjs` independently verifies the
 selected shared registry and the historical registry as distinct identities,
@@ -60,10 +57,12 @@ but registered in the shared registry supplied by main at `a728bda`.
 These signatures do not prove operation-parameter or expression admission.
 Historical module descriptions are not substituted for newer normative rules.
 
-sketch MoonBit's relation evaluator informs ownership and budget design. AoA
-informs node/parameter representation. Smooth Cloud's local lowering and DuckDB
-fragment compiler inform the engine boundary. Their restrictions (for example
-discarding empty transforms or rejecting empty derive) are not imported as laws.
+The pinned AoA contract defines node and parameter representation. The
+[checked Program boundary](checked-program.md) supplies owned checked inputs;
+the [DuckDB execution boundary](duckdb-relation-execution.md) keeps physical
+translation separate from common meaning. Ownership and budget checks apply
+to the whole prepared execution. Empty transforms and empty derive follow the
+language contract, not backend convenience restrictions.
 
 ## Wiring preparation (first increment)
 
@@ -240,16 +239,11 @@ Theory sources inspected at fixed revisions:
   retention and filter membership/predicate facts. Its rows are functions into
   Option String and predicates are total Bool functions. It is not a proof of
   our binary64 arithmetic, nullable expression evaluation or failure ordering.
-- smooth-mechanized `a8424bed8066466aeb2677a6858361fef97a090a`:
-  ACC/LoweredIR.lean, ACC/LoweredExec.lean and AoA canonical-lowering contracts
-  and lowered-execution derivation. These relate native/lowered execution for
-  the modeled LoweredRowsPlan cases. The model's unresolved-case empty-list
-  fallback must not become successful empty output in ActQL. Source-order
-  projection there also does not override ActQL's authored projection order.
 
-Neither theorem tree was modified or rebuilt during this review. No Lean proof
-of the MoonBit implementation is claimed. The relevant preservation properties
-guide independent execution tests, while current ActQL remains authoritative.
+No Lean proof of the MoonBit implementation is claimed. Filter membership,
+selected-field retention, authored projection order and failure rather than
+successful empty output for unresolved execution are checked by the independent
+fixtures in this repository. The current ActQL specification is authoritative.
 
 ## Scalar execution increment
 
