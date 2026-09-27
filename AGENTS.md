@@ -29,3 +29,41 @@
   pins. See [Versioning policy](docs/design/versioning.md).
 - Future version changes require an explicit decision and coordinated updates
   to the applicable checks. Do not rewrite published history without explicit approval.
+
+## Local verification
+
+Linux CI on the pushed SHA is the complete check. Locally, verify in tiers
+and run only what the change can affect; do not rerun whole suites by
+default.
+
+1. While editing: the narrowest check that can fail. `node --check` or
+   `node --test <file> [--test-name-pattern]`, `moon check --target js
+   <package dir>`, `moon test --target js -p <package>` or one test file.
+2. Before a commit: the tests of the touched files and packages, `git diff
+   --check`, and `moon fmt --check` when MoonBit changed.
+   `node scripts/local-checks.mjs changed` lists these for the current diff.
+3. Before a push or handoff: the CI jobs for the touched areas, with
+   `node scripts/local-checks.mjs run <job>`. It runs the same commands as
+   that job in `.github/workflows/ci.yml`. Run `core` for wasm and native
+   (`--target`) only when shared MoonBit core changed; canonical identifier
+   changes keep the rule above (`check:docs` and all three targets).
+   Run `node scripts/check-moonbit-api.mjs` when a public MoonBit interface
+   changed.
+4. Push, then read the CI result for that SHA (a pull request, or
+   `gh workflow run CI --ref <branch>` for a working branch). A local run
+   does not replace it.
+
+`npm run check:docs` is heavy: it covers the version gate, schemas, pins,
+generated artifacts, document examples and related tests. Run it when
+specifications, machine contracts, generated artifacts or documented
+examples change, not for a code-only change covered by another job.
+
+Build hygiene:
+
+- Keep `_build`; MoonBit builds are incremental. Remove it only to verify a
+  final SHA from a clean state or when a stale artifact is suspected.
+- Never run two gates at once in the same worktree, and do not merge,
+  switch branches or edit a worktree while a gate runs there; the results
+  would mix states. Run one heavy gate at a time per machine and note load
+  when judging timing-sensitive failures.
+- Report the commands that ran and the gates that did not.
