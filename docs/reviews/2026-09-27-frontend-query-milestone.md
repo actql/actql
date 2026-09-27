@@ -94,6 +94,10 @@ For DISTINCT, both packed Clients execute `SELECT DISTINCT id + 1 AS next
 ... ORDER BY id + 1` over a duplicate acquired input and return `2,3,4`.
 This checks selected-expression correspondence; the source field `id` does
 not leak into the Result or enter the DISTINCT equality row.
+The acquired-input alias collision `SELECT amount AS id, COUNT(*) AS n ...
+GROUP BY id HAVING n > 1` returns only `{id:30,n:2}` through packed Local and
+HTTP Remote. The source has an input `id` column, so this verifies SELECT
+alias precedence in grouping and HAVING through the ordinary Host.
 
 GQL patterns, VecA/TEA-specific surfaces, INFER/Artifact spelling, INSERT,
 installed raw-text routing, deployment and other owners' runtime redesigns
