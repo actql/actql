@@ -982,6 +982,8 @@ pub fn strategy_host_result_names(@connectors_builtin.ConfiguredComputeHost[@phy
 
 pub fn strategy_host_result_output_export_begin(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostOutputExport raise NodeHostFailure
 
+pub fn strategy_host_result_output_export_begin_converted(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.CompletedOutput?) -> StrategyHostOutputExport raise NodeHostFailure
+
 pub fn strategy_host_result_tasks(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
 
 pub fn strategy_host_run(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_strategy.CapturedDAG
