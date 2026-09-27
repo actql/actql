@@ -104,6 +104,10 @@ Remote: ascending ORDER returns `NULL,1,2` and descending ORDER returns
 change to the legacy AQL sort default.
 The same source-free ordered rows with `LIMIT 2 OFFSET 1` publish `1,2`
 through both packed Clients, after the NULL row is skipped.
+Global COUNT over source-free Values now runs in both packed modes:
+`[1,NULL,2]` yields `COUNT(x)=2` and `COUNT(*)=3`, while an empty typed
+Relation yields one aggregate row with `COUNT(*)=0`. SUM/AVG remain separate
+numeric-profile work; these COUNT results do not establish their execution.
 
 GQL patterns, VecA/TEA-specific surfaces, INFER/Artifact spelling, INSERT,
 installed raw-text routing, deployment and other owners' runtime redesigns

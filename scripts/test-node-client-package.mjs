@@ -152,6 +152,23 @@ const pagedQuery = queryFrontend.compileValuesQueryJson(
   JSON.stringify(['a']), 'fixture.paged_query');
 assert.notEqual(pagedQuery, '');
 await writeFile(join(root, 'paged-query.json'), pagedQuery);
+for (const [name, rows, expected] of [
+  ['count-nullable', [{x: 1}, {x: null}, {x: 2}],
+    [{present: 2, total: 3}]],
+  ['count-empty', [], [{total: 0}]],
+]) {
+  const values = {values: {schema: {
+    x: {type: 'number', nullable: true}}, rows}, as: 'rows'};
+  const sql = name === 'count-empty'
+    ? 'SELECT COUNT(*) AS total FROM rows'
+    : 'SELECT COUNT(x) AS present, COUNT(*) AS total FROM rows';
+  const query = queryFrontend.compileValuesQueryJson(sql,
+    'rows', 'rows', JSON.stringify(values), JSON.stringify(['x']),
+    'fixture.' + name);
+  assert.notEqual(query, '', name);
+  await writeFile(join(root, name + '.json'), query);
+  await writeFile(join(root, name + '-expected.json'), JSON.stringify(expected));
+}
 for (const [name, sql] of [
   ['alias-order', 'SELECT x AS y FROM rows ORDER BY y'],
   ['hidden-order', 'SELECT x FROM rows ORDER BY y'],
@@ -769,6 +786,16 @@ async function checkNullOrder(client, suffix) {
   assert.equal((await paged.wait()).status, 'succeeded');
   assert.deepEqual(await paged.result('answer').all(), [{a: 1}, {a: 2}]);
 }
+async function checkGlobalCounts(client, suffix) {
+  for (const name of ['count-nullable', 'count-empty']) {
+    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+      {format: 'json', requestId: 'packed-' + name + '-' + suffix});
+    const status = await execution.wait();
+    assert.equal(status.status, 'succeeded', JSON.stringify(status));
+    assert.deepEqual(await execution.result('answer').all(),
+      JSON.parse(readFileSync(name + '-expected.json', 'utf8')));
+  }
+}
 async function checkAnalyticPeers(client, suffix) {
   const execution = await client.aql(
     readFileSync('analytic-peers.json', 'utf8'),
@@ -1074,6 +1101,7 @@ await checkOrderScopes(installedLocal, 'local');
 await checkQueryPair(installedLocal, 'local');
 await checkValuesCte(installedLocal, 'local');
 await checkNullOrder(installedLocal, 'local');
+await checkGlobalCounts(installedLocal, 'local');
 await checkAnalyticPeers(installedLocal, 'local');
 await checkJoinSubquery(installedLocal, 'local');
 await checkCteJoinBody(installedLocal, 'local');
@@ -1265,6 +1293,7 @@ await checkOrderScopes(installedRemote, 'remote');
 await checkQueryPair(installedRemote, 'remote');
 await checkValuesCte(installedRemote, 'remote');
 await checkNullOrder(installedRemote, 'remote');
+await checkGlobalCounts(installedRemote, 'remote');
 await checkAnalyticPeers(installedRemote, 'remote');
 await checkJoinSubquery(installedRemote, 'remote');
 await checkCteJoinBody(installedRemote, 'remote');
