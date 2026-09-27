@@ -19,17 +19,17 @@ records reference terms, frontend and existing IR meanings, and differences.
 | Requirement | Existing target | Required evidence | Current status |
 | --- | --- | --- | --- |
 | UTF-8, tokens, escaping, numeric domain, original spans | Original source owner and bounded query lexer | Positive, negative and exact-limit cases | Pending |
-| Closed scalar expressions, precedence, NULL and CONCAT | Structured Expression admission/typing | Independent trees, demand/failure and legacy regression | Pending |
-| SELECT, FROM-only, subqueries, WHERE | Existing Program derive/select/filter | SQL/Pipe expected Program and rows | Pending |
+| Closed scalar expressions, precedence, NULL and CONCAT | Structured Expression admission/typing | Independent trees, demand/failure and legacy regression | Partial: shared AST and direct tree lowering; full typing/failure matrix pending |
+| SELECT, FROM-only, subqueries, WHERE | Existing Program derive/select/filter | SQL/Pipe expected Program and rows | Partial: base SELECT/FROM/WHERE equivalence and captured Host Result; subqueries pending |
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Pending |
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Pending |
-| DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Pending |
+| DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; ordered runtime/ties pending |
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Pending |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Pending |
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Pending |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Pending |
 | Bounds, origin maps and Grammar Manifest | Existing owners | Before-allocation bounds, source diagnostics, pins/vectors | Pending |
-| Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Pending |
+| Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Partial: captured SQL query runs through packed Local and HTTP Remote Host; source-free multi-step query and CTE pending |
 | Core isolation and SDK dependency boundary | Existing gates | No frontend production dependency or tracked runtime bundles | Pending |
 
 ## Reference evidence
@@ -77,8 +77,23 @@ identity, IN values, source-resolution refusal and integer admission.
 
 This is not a PR-3/PR-4 completion claim. Relational SQL/Pipe elaboration,
 aggregate/analytic source calls, typed scope integration, complete function
-mapping, unified work accounting, normative grammar/manifest updates and packed
-Host acceptance remain. Unary plus over a nonliteral currently fails closed;
+mapping, unified work accounting, normative grammar/manifest updates and full
+packed Host acceptance remain. Unary plus over a nonliteral currently fails closed;
 its final handling must preserve numeric typing rather than erase the operator
-and accidentally accept strings. New syntax packages are not yet installed
-frontend routing or a public execution path.
+and accidentally accept strings. Raw-text routing is not installed in the
+standard Client; that is a later delivery unit.
+
+The test-only query adapter now uses the same structured Program admission as
+the Host. The independent SQL/Pipe fixture yields the same Program; the normal
+checker accepts its declared relation. A physical acquisition needs a separate
+capture Stage: the installed Host's existing acquisition owner requires an
+exclusive filter→select chain, then a downstream task for direct Result
+publication. The frontend emits this chain only for a context explicitly
+selecting a captured Stage, moves the original WHERE into that capture once,
+and preserves the downstream query. A packed installation then executes
+`SELECT id FROM records WHERE id > 1` via both embedded Local and HTTP Remote,
+returning the named `answer` Result with rows `3, 2, 3`. This is a concrete
+product route for that query shape, not a claim that the full SQL/Pipe profile
+or arbitrary physical acquisition shape is complete. Source-free queries with
+more than one Values task step still hit the installed Host's direct-Values
+compilation boundary; the ordinary Values-only packed route remains intact.
