@@ -29,7 +29,11 @@ as a durable transition.
 
 ## Validation
 
-Implementation and test SHA: `9cc15b9d8c86e61b19d1cec37e4dfc62281b6199`.
+The original implementation was tested at
+`9cc15b9d8c86e61b19d1cec37e4dfc62281b6199`. The restacked tree at
+`d0dadf8e6eb1311ba2626813d70ba090bece8a8a` is identical. The Workers
+allowlist fix and its direct verification are at
+`f39afbc74a57fe25011ba07e5a6e00e3be080273`.
 
 - `check:distribution-client`: passed. Node tests: 159/159; packed Node and
   browser Client smoke, packed Checkpoint acceptance, and native Client mTLS
@@ -42,13 +46,17 @@ Implementation and test SHA: `9cc15b9d8c86e61b19d1cec37e4dfc62281b6199`.
   packed package.
 - `check:publication-runtime`: passed, 16/16.
 - `test:docs`: passed, 40/40.
+- `local-checks.mjs run workers`: passed after the explicit pure publication
+  action translator was added to both Workers module sets, 24/24 workerd
+  tests.
 - Real SQLite and installed HTTP Host regression tests cover retained
   observations, restart uncertainty, cancellation, rollback causes, and
   acquisition binding. No Salesforce or external provider was exercised.
 
 The final documentation commit, unrelated local jobs, and Linux CI are not
-covered by this SHA. Linux CI needs the pushed review SHA and must be reported
-separately. The PR must distinguish these from the checks above.
+covered by these local checks. The first H3 CI run identified the missing
+Workers module allowance; it must be rerun at the pushed fix SHA. The PR must
+distinguish this pending CI result from the checks above.
 
 ## Compatibility and follow-up
 
