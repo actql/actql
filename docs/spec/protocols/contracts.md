@@ -506,7 +506,7 @@ multiplier is one; count evidence does not establish order or acquisition comple
 
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-bound-window-laws.json# sha256:a5045688150b6b5aaf0c992b2e528ba3b5f1dd49e0db14e5673c9515af82ac3a
+../../../spec/contracts/actql-bound-window-laws.json# sha256:2ad08f2130caa35968ac9cdf660708693c5e14f021f7878d9965a5e1fff5ff78
 ```
 
 <!-- requirement-block: capacity-law-registry.graph-count-body capacity-law-registry.graph-count-machine -->
@@ -519,7 +519,7 @@ completeness or discharged resource enforcement.
 
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-bound-graph-laws.json# sha256:5e9a00ff401f42059f037c52babb40f8440201b3dccaffa90da297058d6adc89
+../../../spec/contracts/actql-bound-graph-laws.json# sha256:ef1923fe948bed0d07a08bf339e75f0ca9749bde9f1590b31ff3e9317a1e7c48
 ```
 
 <!-- requirement-block: capacity-law-registry.ranking-series-body capacity-law-registry.ranking-machine capacity-law-registry.series-machine -->
@@ -1594,7 +1594,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:ce96d2dd879fc6ef10be73ca086d0dcff0bfbe83e9aebb2f0ec979aa6145c69d
+../../../spec/contracts/actql-check-environment.json# sha256:52d76d2076977a16f78f35797b00f65aa7796d9aaf75ae6376ffa8d5e74d9129
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:b59aff026e4853a370475e7b25c7fa6ddf0890aacbd57af0a3ec4b7aa14b65b5
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2

@@ -2,12 +2,12 @@
 
 ///|
 fn catalog_body_grammar_cid() -> String {
-  "sha256:ce96d2dd879fc6ef10be73ca086d0dcff0bfbe83e9aebb2f0ec979aa6145c69d"
+  "sha256:52d76d2076977a16f78f35797b00f65aa7796d9aaf75ae6376ffa8d5e74d9129"
 }
 
 ///|
 fn pushdown_relation_laws_cid() -> String {
-  "sha256:78738e358ec26e70304f7cad6b0ac10b063f9939b107b903bebac4c8fc56d5b2"
+  "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade"
 }
 
 ///|
