@@ -103,6 +103,14 @@ const computedValuesQuery = queryFrontend.compileValuesQueryJson(
 assert.notEqual(computedValuesQuery, '');
 await writeFile(join(root, 'query-computed-values.json'),
   computedValuesQuery);
+const fullUsingValuesQuery = queryFrontend.compileValuesQueryJson(
+  'WITH chosen AS (SELECT DISTINCT id FROM rows) '
+    + 'SELECT id FROM chosen AS l FULL JOIN chosen AS r USING (id)',
+  'rows', 'selected', JSON.stringify(valuesStep), JSON.stringify(['id']),
+  'fixture.full_using_values');
+assert.notEqual(fullUsingValuesQuery, '');
+await writeFile(join(root, 'query-full-using-values.json'),
+  fullUsingValuesQuery);
 const aliasRows = {values: {schema: {
   x: {type: 'number', nullable: false},
   y: {type: 'number', nullable: false}},
@@ -234,6 +242,17 @@ const usingCteQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.using_cte');
 assert.notEqual(usingCteQuery, '');
 await writeFile(join(root, 'using-cte-query.json'), usingCteQuery);
+const fullUsingCteQuery = queryFrontend.compileCapturedQueryJson(
+  'WITH acquired AS (SELECT id FROM records WHERE id > 1), '
+    + 'chosen AS (SELECT DISTINCT id FROM acquired), '
+    + 'subset AS (SELECT id FROM chosen WHERE id = 2) '
+    + 'SELECT id, l.id AS left_id, r.id AS right_id '
+    + 'FROM subset AS l FULL JOIN chosen AS r USING (id)',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.full_using_cte');
+assert.notEqual(fullUsingCteQuery, '');
+await writeFile(join(root, 'full-using-cte-query.json'), fullUsingCteQuery);
 const chainedCteQuery = queryFrontend.compileCapturedQueryJson(
   'WITH first AS (SELECT id, amount FROM records WHERE id > 1), '
     + 'second AS (SELECT id FROM first WHERE amount >= 20) '
@@ -445,6 +464,8 @@ const document = readFileSync('values.json', 'utf8');
 const valuesQueryDocument = readFileSync('query-values.json', 'utf8');
 const computedValuesQueryDocument = readFileSync('query-computed-values.json',
   'utf8');
+const fullUsingValuesDocument = readFileSync('query-full-using-values.json',
+  'utf8');
 async function checkOrderScopes(client, suffix) {
   for (const [name, expected] of [
     ['alias-order', [{y: 1}, {y: 2}]],
@@ -469,6 +490,13 @@ async function checkValuesCte(client, suffix) {
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.deepEqual(await execution.result('answer').all(),
     [{x: 2}, {x: 1}]);
+}
+async function checkFullUsingValues(client, suffix) {
+  const execution = await client.aql(fullUsingValuesDocument,
+    {format: 'json', requestId: 'packed-full-using-values-' + suffix});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  assert.deepEqual(sortedRows(await execution.result('answer').all()),
+    sortedRows([{id: 1}, {id: 2}]));
 }
 const setQueryDocument = readFileSync('set-query.json', 'utf8');
 const pipeUnionQueryDocument = readFileSync('pipe-union-query.json', 'utf8');
@@ -514,6 +542,7 @@ const capturedQueryDocument = readFileSync('captured-query.json', 'utf8');
 const capturedCteDocument = readFileSync('captured-cte-query.json', 'utf8');
 const reusedCteDocument = readFileSync('reused-cte-query.json', 'utf8');
 const usingCteDocument = readFileSync('using-cte-query.json', 'utf8');
+const fullUsingCteDocument = readFileSync('full-using-cte-query.json', 'utf8');
 const chainedCteDocument = readFileSync('chained-cte-query.json', 'utf8');
 async function checkCapturedCte(client, suffix) {
   const execution = await client.aql(capturedCteDocument,
@@ -535,6 +564,12 @@ async function checkCapturedCte(client, suffix) {
   assert.equal((await using.wait()).status, 'succeeded');
   assert.deepEqual(sortedRows(await using.result('answer').all()),
     sortedRows([{id: 3}, {id: 3}, {id: 2}, {id: 3}, {id: 3}]));
+  const fullUsing = await client.aql(fullUsingCteDocument,
+    {format: 'json', requestId: 'packed-full-using-cte-' + suffix});
+  assert.equal((await fullUsing.wait()).status, 'succeeded');
+  assert.deepEqual(sortedRows(await fullUsing.result('answer').all()),
+    sortedRows([{id: 2, left_id: 2, right_id: 2},
+      {id: 3, left_id: null, right_id: 3}]));
   const chained = await client.aql(chainedCteDocument,
     {format: 'json', requestId: 'packed-chained-cte-' + suffix});
   assert.equal((await chained.wait()).status, 'succeeded');
@@ -635,6 +670,7 @@ assert.deepEqual(await computedValuesQueryLocal.result('answer').all(),
   [{id: 2}]);
 await checkOrderScopes(installedLocal, 'local');
 await checkValuesCte(installedLocal, 'local');
+await checkFullUsingValues(installedLocal, 'local');
 await checkConcat(installedLocal, 'local');
 const setQueryLocal = await installedLocal.aql(setQueryDocument,
   {format: 'json', requestId: 'packed-set-query-local'});
@@ -817,6 +853,7 @@ assert.deepEqual(await computedValuesQueryRemote.result('answer').all(),
   [{id: 2}]);
 await checkOrderScopes(installedRemote, 'remote');
 await checkValuesCte(installedRemote, 'remote');
+await checkFullUsingValues(installedRemote, 'remote');
 const setQueryRemote = await installedRemote.aql(setQueryDocument,
   {format: 'json', requestId: 'packed-set-query-remote'});
 assert.equal((await setQueryRemote.wait()).status, 'succeeded');

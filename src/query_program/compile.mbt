@@ -2100,14 +2100,36 @@ fn compile_cte_query(
         query,
       ) ==
       1 {
+      let part = @query.join_part_at(query, 0).unwrap()
+      let mut right_input : Input? = None
+      for input in cte_inputs {
+        if same_path(input.relation, part.relation) {
+          right_input = Some(input)
+        }
+      }
+      guard right_input is Some(right_input) &&
+        right_input.source is StageResult(right_stage, right_result) else {
+        raise Abort(UnsupportedCte)
+      }
+      let right_ref = construction.object([
+        (
+          "result",
+          construction.object([
+            ("stage", construction.text(right_stage)),
+            ("result", construction.text(right_result)),
+          ]),
+        ),
+      ])
       let (steps, fields) = compile_cte_join_steps(
         construction,
         query,
         @query.relation(query)[0],
         body_output,
+        part.relation[0],
+        right_input.visible_fields,
         limits,
       )
-      (steps, fields, [("l", cte_ref), ("r", cte_ref)], "aql_join_output")
+      (steps, fields, [("l", cte_ref), ("r", right_ref)], "aql_join_output")
     } else {
       let (steps, fields) = compile_steps(
         construction,
@@ -2290,8 +2312,10 @@ fn compile_cte_stage(
 fn compile_cte_join_steps(
   construction : Construction,
   query : @query.Query,
-  cte_name : @query.NamePart,
-  fields : Array[String],
+  left_name : @query.NamePart,
+  left_fields : Array[String],
+  right_name : @query.NamePart,
+  right_fields : Array[String],
   limits : Limits,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   if @query.operation_count(query) != 1 ||
@@ -2300,15 +2324,14 @@ fn compile_cte_join_steps(
     raise Abort(UnsupportedCte)
   }
   let part = @query.join_part_at(query, 0).unwrap()
-  if !same_path(part.relation, [cte_name]) {
-    raise Abort(UnsupportedCte)
-  }
-  let left_qualifier = @query.relation_alias(query).unwrap_or(cte_name)
-  let right_qualifier = part.source_alias.unwrap_or(cte_name)
+  let left_qualifier = @query.relation_alias(query).unwrap_or(left_name)
+  let right_qualifier = part.source_alias.unwrap_or(right_name)
   if same_name(left_qualifier, right_qualifier) {
     raise Abort(AmbiguousRelation)
   }
-  let keys = join_keys(part, left_qualifier, right_qualifier, fields, fields)
+  let keys = join_keys(
+    part, left_qualifier, right_qualifier, left_fields, right_fields,
+  )
   guard @query.operation_at(query, 0) is Some(Select(projections, false)) else {
     raise Abort(UnsupportedCte)
   }
@@ -2333,7 +2356,7 @@ fn compile_cte_join_steps(
   if output.is_empty() {
     raise Abort(UnsupportedCte)
   }
-  let reserved = fields.copy()
+  let reserved = left_fields + right_fields
   for name in output {
     reserved.push(name)
   }
@@ -2353,15 +2376,15 @@ fn compile_cte_join_steps(
         [left_qualifier, path[0]],
         left_qualifier,
         right_qualifier,
-        fields,
-        fields,
+        left_fields,
+        right_fields,
       )
       let right = join_field(
         [right_qualifier, path[0]],
         left_qualifier,
         right_qualifier,
-        fields,
-        fields,
+        left_fields,
+        right_fields,
       )
       let left_slot = pipe_physical_name(reserved, "aql_join_left_key_")
       reserved.push(left_slot)
@@ -2372,7 +2395,7 @@ fn compile_cte_join_steps(
       merged.push((name, left_slot, right_slot))
     } else {
       let resolved = join_projection_field(
-        path, part, left_qualifier, right_qualifier, fields, fields,
+        path, part, left_qualifier, right_qualifier, left_fields, right_fields,
       )
       select.push((name, construction.text(resolved.0 + "." + resolved.1)))
     }

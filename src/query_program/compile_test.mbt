@@ -838,6 +838,30 @@ test "FULL CTE join retains keyed input identity for common closure" {
     NeedsInputs(_) => fail("keyed FULL USING CTE should be statically closed")
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
   }
+  let right_only = @query.parse_query(
+    "WITH all_rows AS (SELECT id, customer_id FROM orders), subset AS (SELECT id, customer_id FROM all_rows WHERE id = 'one') SELECT customer_id, l.id AS left_id, r.id AS right_id FROM subset AS l FULL JOIN all_rows AS r USING (customer_id)",
+    syntax_limits(),
+  ).unwrap()
+  let right_only_program = compile(
+    right_only,
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  let right_only_wire = semantic(right_only_program)
+  assert_true(right_only_wire.contains("\"coalesce\""))
+  assert_true(right_only_wire.contains("\"stage\":\"aql_cte_0\""))
+  assert_true(right_only_wire.contains("\"stage\":\"aql_cte_1\""))
+  match
+    @check.check_parsed(
+      right_only_program,
+      check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("two-CTE FULL USING should be statically closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
   let unkeyed = @query.parse_query(
     "WITH chosen AS (SELECT a, b FROM left_rows) SELECT l.a AS left_a, r.a AS right_a FROM chosen AS l FULL JOIN chosen AS r ON l.a = r.a",
     syntax_limits(),
