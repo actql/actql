@@ -39,23 +39,30 @@ Branch: `feat/host-effect-commit-checkpoint`.
 - Captured computation suspension releases process-local prepared payloads
   without retiring the exact durable capture. It cannot be used with a foreign
   owner or changed into terminal retirement on the same released owner.
+- The installed Host routes source-free checked Effect Programs through the
+  shared Effect Run owner. Unsupported shapes are rejected before a deferred
+  Run-acceptance Checkpoint is saved, and acceptance reuses its compilation.
+- The existing Checkpoint sweep invokes an installed Effect continuation after
+  answer or restart. A simulated Site test covers the same Run, a durable
+  claim, send-time admission, one send with an unknown reply, duplicate answer,
+  request replay, and another restart. This is not publication acceptance.
 
 ## Remaining product connections
 
-1. Install the existing `installNodeClientEffectRun` in `embedded-local.mjs`
-   and route supported checked Effect Programs to it without rechecking or
-   recompiling through the Effect-free path.
-2. Connect captured computation, Preview, row intents and commit authorization
+1. Connect captured computation, Preview, row intents and commit authorization
    to the installed Checkpoint service. Keep live cleanup with the existing
    dispatch owner; a suspended computation is not a failed Run.
-3. Recover the exact durable capture and Effect ledger after an answer or
+2. Recover the exact durable capture and Effect ledger after an answer or
    restart, without reclaiming Run-start permission or rerunning Compute.
-4. Connect authoritative Checkpoint and reconciliation states to public Run
+3. Connect authoritative Checkpoint and reconciliation states to public Run
    observation and cancellation. Complete or reclaim retained captures on the
    appropriate existing terminal transitions.
-5. Run public Client / installed Host fault-injection acceptance, including
+4. Run public Client / installed Host fault-injection acceptance, including
    unsupported read deferral's public state, zero sends and cleanup. Service
    admission tests alone are not evidence that the installed Program path works.
+5. Publish an approved Effect Set and Named Result through the installed Host.
+   The current simulated continuation deliberately ends in reconciliation; it
+   does not prove typed row receipts, complete apply or publication.
 
 ## Verification so far
 
@@ -74,3 +81,7 @@ Working-tree verification, not a fixed-SHA or Linux CI completion claim:
 - The prepared-result cleanup test had an obsolete synthetic retention object;
   its successful-export case now uses an admitted retention contract so that
   it reaches the intended physical release/retry assertions.
+- The installed Host and Checkpoint test files passed 29/29 on the working
+  tree, including the new Effect restart cases. The shared Effect Run race
+  case passed 1/1 with the pinned MoonBit toolchain. These do not replace the
+  remaining complete-apply and publication acceptance tests.

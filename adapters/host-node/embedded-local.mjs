@@ -10,6 +10,7 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
+import {installNodeClientEffectRun} from './client-effect-run.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -59,7 +60,14 @@ function localStateRoot() {
 const REALIZATION_KEY = 'source-free-values';
 
 async function openInstalledHost(root, mode = 'local', beforeDispatch,
-  authorization, sourceProfilePath) {
+  authorization, sourceProfilePath, effectInstallation) {
+  if (effectInstallation !== undefined &&
+      (sourceProfilePath !== undefined ||
+        typeof effectInstallation?.environmentWire !== 'string' ||
+        typeof effectInstallation.execute !== 'function' ||
+        typeof effectInstallation.resume !== 'function')) {
+    throw new TypeError('InvalidInstalledEffectSite');
+  }
   await mkdir(root, {recursive: true, mode: 0o700});
   const moon = await import(runtimeUrl.href);
   const control = runtimeCore(moon).publicationControl;
@@ -67,7 +75,11 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   const sourceProfile = await loadInstalledDuckDBSource(
     sourceProfilePath ?? process.env.ACTQL_LOCAL_SOURCE_PROFILE,
     {root, principalId});
-  const environmentWire = sourceProfile?.environmentWire ??
+  if (effectInstallation !== undefined && sourceProfile !== undefined) {
+    throw new TypeError('InvalidInstalledEffectSite');
+  }
+  const environmentWire = effectInstallation?.environmentWire ??
+    sourceProfile?.environmentWire ??
     (await readFile(join(packageRoot,
       'spec/local-check-environment.json'), 'utf8')).trimEnd();
   const evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
@@ -149,7 +161,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       actual === principalId && ref.tenantId === tenantId &&
       ref.authorityScopeCid === authorityScopeCid});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
-    environment});
+    environment, allowEffects: effectInstallation !== undefined});
     checkpoints = await installRemoteCheckpoints({root, tenantId,
       authorityScopeCid, ownerPrincipal: principalId,
       siteKey: authorization?.siteKey ?? 'actql-remote-host',
@@ -298,6 +310,27 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     return observeRun({ref, principalId: actual});
   };
   const requestOf = ({preparedProgram, requestId}) => {
+    prepareSubmit.assertOwned(preparedProgram);
+    if (prepareSubmit.kindOf(preparedProgram) === 'effectful') {
+      const requested = moon.clientProgramEffectRequestIdentity(
+        preparedProgram, authorityScopeCid, requestId,
+        moon.clientProgramSourceFreeInputIntentCid());
+      if (requested === undefined) {
+        throw new Error('ClientProgramNeedsInputs');
+      }
+      const resultNames = [];
+      for (let index = 0;
+        index < moon.clientProgramEffectResultCount(preparedProgram);
+        index++) {
+        const name = moon.clientProgramEffectResultName(preparedProgram,
+          index);
+        if (name === undefined) {
+          throw new Error('ClientProgramResultMissing');
+        }
+        resultNames.push(name);
+      }
+      return {requested, resultNames, acquired: false, effectful: true};
+    }
     const acquisition = moon.clientProgramPrepareQueryAcquisition(
       preparedProgram, 0, 0);
     const acquired = acquisition?.$tag === 1;
@@ -326,7 +359,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       if (name === undefined) throw new Error('ClientProgramResultMissing');
       resultNames.push(name);
     }
-    return {requested, resultNames, acquired};
+    return {requested, resultNames, acquired, effectful: false};
   };
   const prepareAcquisition = (preparedProgram,
     sourceAccess = sourceProfile.sourceAccess) =>
@@ -369,17 +402,109 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     faultInjection: authorization?.faultInjection,
     fragment, ordered, tenantId, authorityScopeCid, storeAuthorityCid, now});
   const startDispatch = dispatchOwner.start;
+  const effectRun = effectInstallation === undefined ? undefined :
+    installNodeClientEffectRun({moon, publicationControl: control, journal,
+      now,
+      authorizeRequest: async ({principalId: actual, connection}) => {
+        if (!hostConnection({principalId: actual, connection})) return null;
+        const createdAt = now();
+        return Object.freeze({
+          executionContextCid: cid({version:
+            'actql-installed-effect-execution-context/0.1',
+          authorityScopeCid, evidenceCid, principalId: actual}),
+          hostPolicyCid: checkpoints?.binding.authorizationContextCid ??
+            cid({version: 'actql-installed-effect-missing-policy/0.1',
+              authorityScopeCid}),
+          createdAt, expiresAt: plus(createdAt, 24 * 60 * 60 * 1000),
+        });
+      },
+      authorizeRunStart: ({principalId: actual, connection, ref}) =>
+        hostConnection({principalId: actual, connection, ref}),
+      execute: facts => dispatchOwner.track(facts.ref, {
+        run: ({signal, retainExecution}) => effectInstallation.execute(
+          Object.freeze({...facts, signal, retainExecution, moon, control,
+            store, storeAuthorityCid, authorityScopeCid,
+            effectAuthorization: checkpoints?.effectAuthorization,
+            recordReconciliation: (...args) =>
+              effectRun.recordReconciliation(...args)})),
+        observeStopped: () => journal.markPhysicalClose(facts.ref),
+      }),
+    });
   const runIdOf = accepted => control.runDefinitionRunId(
     accepted.runDefinition?.wire === undefined
       ? journal.lookupRunDefinition(accepted.ref, moon, control).runDefinition
       : accepted.runDefinition);
+  const admitEffectDefinition = submission => effectRun.accept({
+    prepared: submission.preparedProgram, authorityScopeCid,
+    requestId: submission.requestId, tenantId,
+    principalId: submission.principalId, connection: submission.connection,
+    lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
+  });
+  const submitEffect = async (submission, requested, resultNames) => {
+    const {requestId, principalId: actual, connection, kind, input,
+      parameters, preparedProgram} = submission;
+    // A deferred approval must be answerable by this installed profile.
+    // Reject unsupported checked shapes before retaining a Checkpoint.
+    effectRun.checkSupported(preparedProgram);
+    if (checkpoints?.heldOrigin(requestId)) {
+      const existing = journal.resolveDefinition(requested, {tenantId}, moon,
+        control);
+      if (existing !== undefined) {
+        void checkpoints.sweep();
+        return {ref: existing.ref, durability: existing.durability,
+          revision: existing.revision};
+      }
+    }
+    if (checkpoints !== undefined &&
+        (checkpoints.heldOrigin(requestId) ||
+         journal.lookup({tenantId, authorityScopeCid, requestId}, moon) ===
+           undefined)) {
+      const requestedFacts = {
+        logicalRequestScopeCid: moon.clientRequestScopeCid(requested),
+        intentFingerprintCid: moon.clientRequestIntentCid(requested),
+      };
+      const captured = {version: 'actql-remote-captured-submission/0.1',
+        requestId, principalId: actual, connection, kind, input,
+        parameters, resultNames};
+      const decided = await checkpoints.acceptRun({requested: requestedFacts,
+        captured});
+      if (decided.kind !== 'dispatch') {
+        const existing = journal.lookupDefinition({tenantId,
+          authorityScopeCid, requestId}, moon, control);
+        void checkpoints.sweep();
+        if (existing !== undefined) {
+          return {ref: existing.ref, durability: existing.durability,
+            revision: existing.revision};
+        }
+        if (decided.held === undefined) {
+          throw new Error('HeldRunDefinitionMissing');
+        }
+        return decided.held;
+      }
+    }
+    const accepted = await admitEffectDefinition(submission);
+    // The durable accepted Ref is returned before physical work settles.
+    // Its start claim cannot be reset by a lost response or a second submit.
+    void effectRun.start(accepted).catch(error => {
+      diagnostic('effect_start_failed', {ref: accepted.ref,
+        code: error?.code ?? error?.message});
+    }).finally(() => settleHeldRun(accepted, runIdOf(accepted)))
+      .catch(error => diagnostic('effect_settlement_failed', {
+        ref: accepted.ref, code: error?.code ?? error?.message}));
+    return {ref: accepted.ref, durability: accepted.durability,
+      revision: accepted.revision};
+  };
   const submit = async submission => {
     const {requestId, principalId: actual, connection, kind, input,
       parameters} = submission;
     if (!hostConnection({principalId: actual, connection})) {
       throw new Error('ClientConnectionDenied');
     }
-    const {requested, resultNames, acquired} = requestOf(submission);
+    const {requested, resultNames, acquired, effectful} =
+      requestOf(submission);
+    if (effectful) {
+      return submitEffect(submission, requested, resultNames);
+    }
     const preparedSource = acquired
       ? await prepareAcquisition(submission.preparedProgram) : undefined;
     // Run acceptance on the protected Site is decided before any Run
@@ -458,7 +583,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       kind: captured.kind, input: captured.input,
       parameters: captured.parameters};
     submission.preparedProgram = await prepareSubmit(submission);
-    const {requested, resultNames, acquired} = requestOf(submission);
+    const {requested, resultNames, acquired, effectful} =
+      requestOf(submission);
     const preparedSource = acquired
       ? await prepareAcquisition(submission.preparedProgram) : undefined;
     const acquisition = preparedSource === undefined ? undefined : {
@@ -475,7 +601,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         JSON.stringify(captured.resultNames)) {
       throw new Error('HeldRequestChanged');
     }
-    return {submission, requested, resultNames, preparedSource};
+    return {submission, requested, resultNames, preparedSource, effectful};
   };
   const definitionOf = captured => journal.lookupDefinition({tenantId,
     authorityScopeCid, requestId: captured.requestId}, moon, control);
@@ -580,7 +706,46 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       }
       throw error;
     }
-    const {submission, requested, resultNames, preparedSource} = resolved;
+    const {submission, requested, resultNames, preparedSource,
+      effectful} = resolved;
+    if (effectful) {
+      effectRun.checkSupported(submission.preparedProgram);
+      const accepted = await admitEffectDefinition(submission);
+      await step('definition_admitted', {ref: accepted.ref});
+      try { renew(); }
+      catch (error) { return {refused: error}; }
+      if (preparationCancelled()) {
+        await cancelHeldRun(captured);
+        return 'not_started';
+      }
+      if (definitionOf(captured)?.cancellationRequested) {
+        return 'not_started';
+      }
+      const runId = runIdOf(accepted);
+      let settle;
+      const observedStart = new Promise(resolve => { settle = resolve; });
+      let startObserved = false;
+      const flight = effectRun.start(accepted, {
+        beforePhysicalStart,
+        started() {
+          startObserved = true;
+          try { started(runId); }
+          finally { settle('started'); }
+        },
+      });
+      void flight.then(result => {
+        if (!startObserved) {
+          settle(result.kind === 'started' ? 'started' : 'not_started');
+        }
+      }, error => {
+        if (!startObserved) settle({refused: error});
+        diagnostic('effect_start_failed', {ref: accepted.ref,
+          code: error?.code ?? error?.message});
+      }).finally(() => settleHeldRun(accepted, runId))
+        .catch(error => diagnostic('effect_settlement_failed', {
+          ref: accepted.ref, code: error?.code ?? error?.message}));
+      return observedStart;
+    }
     const held = {preparedSource,
       preparedSourceAccess: sourceProfile?.sourceAccess};
     const accepted = await admitDefinition(submission, requested,
@@ -658,6 +823,67 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     value.ref === undefined && value.connection.mode === mode &&
     value.connection.owner === mode &&
     checkpoints.admitsCheckpointPrincipal(value.principalId);
+  const effectResumeFlights = new Map();
+  const sweepEffectRuns = async () => {
+    if (effectRun === undefined || checkpoints === undefined) return false;
+    let busy = false;
+    let after = '';
+    for (;;) {
+      const page = checkpoints.journal.listRunCheckpoints({after, limit: 100});
+      for (const view of page) {
+        if (view.kind !== 'effect_set' || view.prepareAttemptId !== null ||
+            checkpoints.journal.getRunState(view.runId)?.status !==
+              'resuming') continue;
+        const key = view.runDefinitionCid;
+        const ref = Object.freeze({tenantId, authorityScopeCid,
+          runDefinitionCid: key});
+        if (effectResumeFlights.has(key) ||
+            dispatchOwner.operation(ref) !== undefined) {
+          busy = true;
+          continue;
+        }
+        try {
+          const retained = journal.lookupRunDefinition(ref, moon, control);
+          if (retained === undefined ||
+              retained.runDefinition.identity !== key) {
+            throw new Error('EffectResumeRunDefinitionMissing');
+          }
+          const continuation = await checkpoints.effectContinuation(view);
+          const flight = dispatchOwner.track(ref, {
+            run: ({signal, retainExecution}) =>
+              effectInstallation.resume(Object.freeze({ref, view,
+                continuation, retained, moon, control, store,
+                storeAuthorityCid, authorityScopeCid, signal,
+                retainExecution,
+                checkpointJournal: checkpoints.journal,
+                checkpointBinding: checkpoints.binding,
+                effectAuthorization: checkpoints.effectAuthorization,
+                recordReconciliation: (...args) =>
+                  effectRun.recordReconciliation(...args)})),
+            observeStopped: () => journal.markPhysicalClose(ref),
+          });
+          effectResumeFlights.set(key, flight);
+          void flight.catch(error => {
+            diagnostic('effect_resume_failed', {ref,
+              code: error?.code ?? error?.message});
+          }).finally(() => {
+            effectResumeFlights.delete(key);
+            if (checkpoints.journal.getRunState(view.runId)?.status !==
+                'resuming') {
+              void checkpoints.sweep();
+            }
+          });
+        } catch (error) {
+          diagnostic('effect_resume_failed', {ref,
+            code: error?.code ?? error?.message});
+        }
+        busy = true;
+      }
+      if (page.length < 100) break;
+      after = page.at(-1).checkpointCid;
+    }
+    return busy;
+  };
   const hostOperations = {
     observe: observed,
     authorizeConnection: value => checkpointOperation.has(value.operation)
@@ -671,7 +897,9 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   if (checkpoints !== undefined) {
     await checkpoints.start({inspect: inspectHeld, resume: resumeHeld,
       abandon: abandonHeld, observe: observeHeldRun,
-      cancelRun: cancelHeldRun});
+      cancelRun: cancelHeldRun,
+      effects: effectRun === undefined ? undefined :
+        {sweep: sweepEffectRuns}});
   }
   const port = createNodeInProcessClientHost({
     authenticate: () => principalId,
@@ -703,14 +931,15 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
 // `beforeDispatch` remains a required execution barrier. Without a
 // configuration the Missing account denies every request; nothing allows it.
 export async function openInstalledRemoteHttpHost({directory,
-  authenticate, beforeDispatch, authorization, sourceProfilePath}) {
+  authenticate, beforeDispatch, authorization, sourceProfilePath,
+  effectInstallation}) {
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
     throw new TypeError('InvalidInstalledRemoteHost');
   }
   const host = await openInstalledHost(resolve(directory), 'remote',
-    beforeDispatch, authorization, sourceProfilePath);
+    beforeDispatch, authorization, sourceProfilePath, effectInstallation);
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536,
   });
