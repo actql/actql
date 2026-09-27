@@ -589,6 +589,8 @@ pub fn client_program_task_compilation_plan_wire(@run_publication_host.ClientTas
 
 pub fn client_program_task_compilation_template_wire(@run_publication_host.ClientTaskCompilation) -> String
 
+pub fn client_program_task_count(@run_publication_host.PreparedClientProgram) -> Int
+
 pub fn client_program_task_executable_plan_wire(@run_publication_host.ClientTaskExecutablePlan) -> String
 
 pub fn client_program_task_fragment_wire(@run_publication_host.ClientTaskFragmentNode) -> String

@@ -94,9 +94,9 @@ fn check_limits() -> @check.CheckLimits {
       work: 10000000,
       artifacts: { bytes: 1000000, nodes: 100000, depth: 100, },
       structure: {
-        stages: 2,
+        stages: 20,
         steps: 20,
-        results: 2,
+        results: 20,
         parameters: 10,
         bindings: 100,
         slots: 1000,
@@ -568,6 +568,98 @@ test "Pipe AGGREGATE sees replaced top-level fields and closes old ranges" {
   assert_true(
     compile(old_range, pair_context(), construction_limits()) is Err(_),
   )
+}
+
+///|
+fn set_context() -> Context {
+  let left = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"a":{"type":"number","nullable":true},"b":{"type":"string","nullable":false}},"rows":[{"a":1,"b":"x"},{"a":1,"b":"x"},{"a":2,"b":"y"},{"a":null,"b":"n"}]},"as":"left_rows"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let right = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"c":{"type":"number","nullable":true},"d":{"type":"string","nullable":false}},"rows":[{"c":1,"d":"x"},{"c":3,"d":"z"},{"c":null,"d":"n"}]},"as":"right_rows"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  {
+    program_id: "fixture.sql_set",
+    stage_id: "main",
+    stage_result: "rows",
+    result_name: "answer",
+    captured_stage: None,
+    inputs: [
+      {
+        relation: [{ value: "left_rows", quoted: false, }],
+        name: "left_rows",
+        source: GeneratedValues(left),
+        visible_fields: ["a", "b"],
+      },
+      {
+        relation: [{ value: "right_rows", quoted: false, }],
+        name: "right_rows",
+        source: GeneratedValues(right),
+        visible_fields: ["c", "d"],
+      },
+    ],
+  }
+}
+
+///|
+test "SQL set operations align positions before existing row-set kernels" {
+  let terms = [
+    ("UNION ALL", "\"append\":{\"with\":\"r\"}"),
+    ("UNION DISTINCT", "\"distinct\":[\"a\",\"b\"]"),
+    ("INTERSECT DISTINCT", "\"intersect\":{\"duplicates\":\"distinct\""),
+    ("EXCEPT DISTINCT", "\"except\":{\"duplicates\":\"distinct\""),
+  ]
+  for (operator, expected) in terms {
+    let text = "SELECT a, b FROM left_rows " +
+      operator +
+      " SELECT c, d FROM right_rows"
+    let parsed = @query.parse_query(text, syntax_limits()).unwrap()
+    let program = compile(parsed, set_context(), construction_limits()).unwrap()
+    let wire = semantic(program)
+    assert_true(wire.contains(expected), msg=text)
+    assert_true(wire.contains("\"select\":[{\"a\":\"c\"},{\"b\":\"d\"}]"))
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      NeedsInputs(_) => fail("set operands should be closed")
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    }
+  }
+}
+
+///|
+test "SQL exact BY NAME and positional shape reject mismatched outputs" {
+  let named = @query.parse_query(
+    "SELECT a, b FROM left_rows UNION ALL BY NAME SELECT b, a FROM left_rows",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(named, set_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"append\":{\"with\":"))
+  assert_eq(wire.split("\"values\":").length(), 3)
+  for
+    text in [
+      "SELECT a, b FROM left_rows UNION ALL BY NAME SELECT c, d FROM right_rows",
+      "SELECT a, b FROM left_rows UNION ALL SELECT c FROM right_rows",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    assert_true(
+      compile(query, set_context(), construction_limits()) is Err(_),
+      msg=text,
+    )
+  }
 }
 
 ///|

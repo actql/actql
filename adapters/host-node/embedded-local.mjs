@@ -31,7 +31,7 @@ import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
-  sourceFreeValuesPlan, acquiredTaskRunAdmission} from
+  sourceFreeValuesPlan, sourceFreeTaskPlan, acquiredTaskRunAdmission} from
   './local-values-plan.mjs';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
@@ -334,7 +334,9 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0)?.$tag ===
         1
       ? acquiredTaskRunAdmission(common)
-      : sourceFreeValuesPlan(common);
+      : moon.clientProgramTaskCount(preparedProgram) > 1
+        ? sourceFreeTaskPlan(common)
+        : sourceFreeValuesPlan(common);
   };
   // Admit (or look up) the request's Run Definition: the durable Run.
   const admitDefinition = async (submission, requested, resultNames,

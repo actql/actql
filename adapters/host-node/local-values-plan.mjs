@@ -133,6 +133,31 @@ export function acquiredTaskRunAdmission({moon, control, preparedProgram,
   return Object.freeze({...compiled, compiled, runDefinition, createdAt});
 }
 
+// Multi-task source-free Programs use the common task compiler and the same
+// empty initial input set. No source observation is invented for Values roots.
+export function sourceFreeTaskPlan(options) {
+  const acquired = acquiredTaskRunAdmission(options);
+  const {moon, control, preparedProgram, authorityScopeCid, tenantId,
+    requestId, storeAuthorityCid, now} = options;
+  const dataPolicyCid = policyCid('local-result-data');
+  const issued = run.issueSourceFreeTaskInvocation(acquired.prepared,
+    acquired.compilation, acquired.ownerAdmission, acquired.sourceDefinition,
+    dataPolicyCid, limits);
+  const observation = control.admitRunEvidence('observation_set',
+    issued.observation.wire, limits);
+  const invocation = control.admit('run_invocation',
+    issued.invocation.wire, limits);
+  const request = run.prepareRequest(acquired.prepared, authorityScopeCid,
+    requestId, moon.clientProgramSourceFreeInputIntentCid());
+  return localPublicationPlan({control, admission: acquired.admission,
+    runDefinition: acquired.runDefinition, invocation, observation,
+    compiledPlanCid: acquired.compiledPlan.identity,
+    programDefinitionCid: run.requestFields(request).programDefinitionCid,
+    inputRelationCids: [], sourceEvidence: [], authorityScopeCid, tenantId,
+    storeAuthorityCid, dataPolicyCid, createdAt: acquired.createdAt, now,
+    resultCount: moon.clientProgramResultCount(preparedProgram)});
+}
+
 // The connector/Acquisition owner supplies Source Evidence after completing
 // physical capture and current authorization. This Host binds that evidence to
 // the checked task Run and the captured relation before publication.

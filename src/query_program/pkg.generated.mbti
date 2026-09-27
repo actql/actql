@@ -20,13 +20,20 @@ pub(all) struct Context {
   stage_id : String
   stage_result : String
   result_name : String
+  captured_stage : String?
   inputs : Array[Input]
 }
 
 pub(all) struct Input {
   relation : Array[@query_syntax.NamePart]
   name : String
-  declaration : @decode_core.Cursor
+  source : InputSource
+  visible_fields : Array[String]
+}
+
+pub(all) enum InputSource {
+  Captured(@decode_core.Cursor)
+  GeneratedValues(@decode_core.Cursor)
 }
 
 pub(all) enum Issue {
@@ -36,7 +43,12 @@ pub(all) enum Issue {
   UnknownColumn
   DuplicateOutput
   UnsupportedProjection
+  UnsupportedGrouping
+  UnsupportedAggregate
+  UnsupportedHaving
   UnsupportedOrdering
+  UnsupportedAnalytic
+  UnsupportedSet
   Construction(@program_source_builder.Issue)
   Expression(@query_expression.Diagnostic)
   Admission(@stage_syntax.SyntaxError)

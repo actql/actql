@@ -25,7 +25,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: scalar reductions and ordered ARRAY_AGG/STRING_AGG lower through group; captured COUNT/GROUP/HAVING runtime passes, ordered collection runtime and failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Pending |
-| UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Pending |
+| UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands execute through packed Local/HTTP Clients; captured operands, Pipe set, CTE reuse and broader type/order cases remain |
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND and scoped SET/DROP/RENAME/AS; JOIN/set and some post-projection scope remain |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK Result; full negative and frame matrix pending |
 | Bounds, origin maps and Grammar Manifest | Existing owners | Before-allocation bounds, source diagnostics, pins/vectors | Pending |
@@ -152,6 +152,15 @@ the old range scope. Both packed Hosts return `id=20,n=1` and `id=30,n=2`
 after replacing `id` with `amount` and grouping. Analytic after a scope
 mutation and additional operators after a Pipe SELECT still need the next
 scope pass before this milestone closes.
+Two source-free Values operands now lower through checked Stage Results and
+the existing `append`, `distinct`, `intersect` and `except` operations. An
+alignment projection occupies its own Stage so each physical task retains the
+correct input and output contract. The packed Local and HTTP Remote Clients
+read independently expected Named Results for UNION ALL, UNION DISTINCT,
+INTERSECT DISTINCT and EXCEPT DISTINCT, including duplicate and NULL rows.
+The common Result-plan issuer maps physical task indices back to checked Unit
+indices when a Stage splits. These fixtures do not establish captured set
+operands, Pipe set syntax, mixed operator grouping or CTE acquisition reuse.
 ARRAY_AGG requires the adopted `IGNORE NULLS` and explicit order spelling;
 STRING_AGG requires a literal delimiter and explicit order. Both lower to the
 existing group call. The independent checker accepts the bounded ARRAY_AGG

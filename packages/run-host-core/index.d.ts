@@ -426,6 +426,14 @@ export function issueSourceFreeInvocation(prepared: PreparedProgram,
     observation: RunEvidence;
     invocation: PublicationContract;
   }>;
+/** Source-free Observation Set for a checked multi-task compilation. */
+export function issueSourceFreeTaskInvocation(prepared: PreparedProgram,
+  compilation: TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, dataPolicyCid: string,
+  limits: PublicationLimits): Readonly<{
+    observation: RunEvidence;
+    invocation: PublicationContract;
+  }>;
 /** Bind observed source evidence to a completed captured input and scope. */
 export function admitCompletedSourceObservation(facts: Readonly<{
   sourceEvidenceWire: string;

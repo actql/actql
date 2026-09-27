@@ -404,6 +404,8 @@ pub fn graph_task_selected_step(CheckedDAG, Int) -> Int?
 
 pub fn graph_task_target(CheckedDAG, Int) -> @pipeline_typing.Target?
 
+pub fn graph_task_unit_index(CheckedDAG, Int) -> Int?
+
 pub fn host_cleanup_pending(Bool, Bool, Bool) -> Bool
 
 pub fn host_cleanup_runtime_action_code(HostCleanupRuntimeAction) -> Int

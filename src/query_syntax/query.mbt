@@ -78,12 +78,42 @@ pub(all) enum QueryOperation {
 }
 
 ///|
+pub(all) struct SetPart {
+  kind : String
+  duplicates : String
+  by_name : Bool
+  right : Query
+}
+
+///|
 struct Query {
   source : Tokens
   relation : Array[NamePart]
   source_alias : NamePart?
   operations : Array[QueryOperation]
+  sets : Array[SetPart]
+  final_operations : Array[QueryOperation]
   work : Int
+}
+
+///|
+pub fn set_part_count(query : Query) -> Int {
+  query.sets.length()
+}
+
+///|
+pub fn set_part_at(query : Query, index : Int) -> SetPart? {
+  query.sets.get(index)
+}
+
+///|
+pub fn final_operation_count(query : Query) -> Int {
+  query.final_operations.length()
+}
+
+///|
+pub fn final_operation_at(query : Query, index : Int) -> QueryOperation? {
+  query.final_operations.get(index)
 }
 
 ///|
@@ -574,7 +604,7 @@ fn QueryParser::end(self : QueryParser) -> Unit raise QueryAbort {
 }
 
 ///|
-fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
+fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   self.keyword("SELECT")
   let distinct = self.has("DISTINCT")
   if distinct {
@@ -607,17 +637,81 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
     operations.push(Analytic(projections))
   }
   operations.push(Select(projections, distinct))
+  {
+    source: self.source,
+    relation,
+    source_alias,
+    operations,
+    sets: [],
+    final_operations: [],
+    work: self.work,
+  }
+}
+
+///|
+fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
+  let term = self.sql_term()
+  let sets : Array[SetPart] = []
+  let mut set_spelling : (String, String, Bool)? = None
+  while self.has("UNION") || self.has("INTERSECT") || self.has("EXCEPT") {
+    self.node()
+    let kind = if self.has("UNION") {
+      self.keyword("UNION")
+      "union"
+    } else if self.has("INTERSECT") {
+      self.keyword("INTERSECT")
+      "intersect"
+    } else {
+      self.keyword("EXCEPT")
+      "except"
+    }
+    let duplicates = if self.has("ALL") {
+      self.keyword("ALL")
+      if kind != "union" {
+        raise QueryAbort("Set operator requires DISTINCT", self.peek().start)
+      }
+      "all"
+    } else {
+      self.keyword("DISTINCT")
+      "distinct"
+    }
+    let by_name = if self.has("BY") {
+      self.keyword("BY")
+      self.keyword("NAME")
+      true
+    } else {
+      false
+    }
+    match set_spelling {
+      Some((old_kind, old_duplicates, old_by_name)) =>
+        if old_kind != kind ||
+          old_duplicates != duplicates ||
+          old_by_name != by_name {
+          raise QueryAbort(
+            "Mixed set operators require parentheses",
+            self.peek().start,
+          )
+        }
+      None => set_spelling = Some((kind, duplicates, by_name))
+    }
+    sets.push({ kind, duplicates, by_name, right: self.sql_term(), })
+  }
+  let tail : Array[QueryOperation] = []
   if self.has("ORDER") {
     self.keyword("ORDER")
     self.keyword("BY")
-    operations.push(Order(self.order()))
+    tail.push(Order(self.order()))
   }
   if self.has("LIMIT") {
     self.node()
-    operations.push(self.limit())
+    tail.push(self.limit())
   }
   self.end()
-  { source: self.source, relation, source_alias, operations, work: self.work, }
+  if sets.is_empty() {
+    { ..term, operations: term.operations + tail, work: self.work, }
+  } else {
+    { ..term, sets, final_operations: tail, work: self.work, }
+  }
 }
 
 ///|
@@ -716,7 +810,15 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
     }
   }
   self.end()
-  { source: self.source, relation, source_alias, operations, work: self.work, }
+  {
+    source: self.source,
+    relation,
+    source_alias,
+    operations,
+    sets: [],
+    final_operations: [],
+    work: self.work,
+  }
 }
 
 ///|

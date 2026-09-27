@@ -93,3 +93,30 @@ test "LIMIT and OFFSET admit only exact safe integers" {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
 }
+
+///|
+test "SQL set operators keep explicit multiplicity and final ordering" {
+  let parsed = parse_query(
+    "SELECT a, b FROM left_rows UNION ALL SELECT c, d FROM right_rows ORDER BY a LIMIT 4",
+    query_limits(),
+  ).unwrap()
+  assert_eq(set_part_count(parsed), 1)
+  let part = set_part_at(parsed, 0).unwrap()
+  assert_eq((part.kind, part.duplicates, part.by_name), ("union", "all", false))
+  assert_eq(relation(part.right), [{ value: "right_rows", quoted: false, }])
+  assert_eq(final_operation_count(parsed), 2)
+  assert_true(final_operation_at(parsed, 0) is Some(Order(_)))
+  assert_true(final_operation_at(parsed, 1) is Some(Limit(4L, 0L)))
+  let named = parse_query(
+    "SELECT a, b FROM left_rows INTERSECT DISTINCT BY NAME SELECT b, a FROM left_rows",
+    query_limits(),
+  ).unwrap()
+  assert_true(set_part_at(named, 0).unwrap().by_name)
+  for
+    text in [
+      "SELECT a FROM left_rows INTERSECT ALL SELECT a FROM left_rows", "SELECT a FROM left_rows UNION SELECT a FROM left_rows",
+      "SELECT a FROM left_rows UNION ALL SELECT a FROM left_rows EXCEPT DISTINCT SELECT a FROM left_rows",
+    ] {
+    assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
+  }
+}

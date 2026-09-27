@@ -189,3 +189,86 @@ fn compile_query_json_checked(
   @program.emit_metadata_stripped_program(program, writer)
   @encode.finish(writer)
 }
+
+///|
+fn values_input(
+  name : String,
+  declaration_json : String,
+  fields_json : String,
+) -> @query.Input raise QueryBridgeRejected {
+  let declaration = match
+    @source.parse_json(declaration_json, limits().source.source) {
+    Ok(node) => node
+    Err(_) => raise QueryBridgeRejected
+  }
+  let declaration = match @wire.admit(declaration, limits().source.tree) {
+    Ok(cursor) => cursor
+    Err(_) => raise QueryBridgeRejected
+  }
+  let field_node = match
+    @source.parse_json(fields_json, limits().source.source) {
+    Ok(node) => node
+    Err(_) => raise QueryBridgeRejected
+  }
+  let field_node = match @wire.admit(field_node, limits().source.tree) {
+    Ok(cursor) => cursor
+    Err(_) => raise QueryBridgeRejected
+  }
+  let fields = match @wire.elements(field_node) {
+    Ok(fields) => fields
+    Err(_) => raise QueryBridgeRejected
+  }
+  let visible_fields : Array[String] = []
+  for field in fields {
+    match @wire.text(field) {
+      Ok(value) => visible_fields.push(value)
+      Err(_) => raise QueryBridgeRejected
+    }
+  }
+  {
+    relation: [{ value: name, quoted: false, }],
+    name,
+    source: @query.GeneratedValues(declaration),
+    visible_fields,
+  }
+}
+
+///|
+#export_name("compileTwoValuesSetQueryJson")
+pub fn compile_two_values_set_query_json(
+  text : String,
+  left_name : String,
+  left_json : String,
+  left_fields_json : String,
+  right_name : String,
+  right_json : String,
+  right_fields_json : String,
+  program_id : String,
+) -> String {
+  try {
+    let parsed = match @syntax.parse_query(text, syntax_limits()) {
+      Ok(query) => query
+      Err(_) => raise QueryBridgeRejected
+    }
+    let context : @query.Context = {
+      program_id,
+      stage_id: "main",
+      stage_result: "rows",
+      result_name: "answer",
+      captured_stage: None,
+      inputs: [
+        values_input(left_name, left_json, left_fields_json),
+        values_input(right_name, right_json, right_fields_json),
+      ],
+    }
+    let program = match @query.compile(parsed, context, limits()) {
+      Ok(program) => program
+      Err(_) => raise QueryBridgeRejected
+    }
+    let writer = @encode.writer(100000, 10000, 100)
+    @program.emit_metadata_stripped_program(program, writer)
+    @encode.finish(writer)
+  } catch {
+    _ => ""
+  }
+}

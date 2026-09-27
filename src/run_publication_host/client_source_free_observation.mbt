@@ -90,6 +90,28 @@ pub fn issue_client_values_source_free_invocation(
 }
 
 ///|
+/// A source-free checked task graph uses the same no-external-source
+/// observation as a direct Values compilation, bound to its own template.
+pub fn issue_client_task_source_free_invocation(
+  compilation : ClientTaskCompilation,
+  data_policy_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  issue_client_source_free_invocation(
+    client_task_compilation_template(compilation),
+    data_policy_cid,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
 pub fn issue_client_effect_source_free_invocation(
   compilation : ClientEffectCompilation,
   data_policy_cid : String,

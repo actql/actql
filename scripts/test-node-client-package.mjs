@@ -103,6 +103,37 @@ const computedValuesQuery = queryFrontend.compileValuesQueryJson(
 assert.notEqual(computedValuesQuery, '');
 await writeFile(join(root, 'query-computed-values.json'),
   computedValuesQuery);
+const setLeft = {values: {schema: {
+  a: {type: 'number', nullable: true},
+  b: {type: 'string', nullable: false}},
+rows: [{a: 1, b: 'x'}, {a: 1, b: 'x'}, {a: 2, b: 'y'},
+  {a: null, b: 'n'}]}, as: 'set_left'};
+const setRight = {values: {schema: {
+  c: {type: 'number', nullable: true},
+  d: {type: 'string', nullable: false}},
+rows: [{c: 1, d: 'x'}, {c: 3, d: 'z'}, {c: null, d: 'n'}]},
+as: 'set_right'};
+const setQuery = queryFrontend.compileTwoValuesSetQueryJson(
+  'SELECT a, b FROM set_left UNION ALL SELECT c, d FROM set_right',
+  'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+  'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+  'fixture.set_query');
+assert.notEqual(setQuery, '');
+await writeFile(join(root, 'set-query.json'), setQuery);
+const setQueries = [
+  ['union-distinct', 'UNION DISTINCT'],
+  ['intersect-distinct', 'INTERSECT DISTINCT'],
+  ['except-distinct', 'EXCEPT DISTINCT'],
+];
+for (const [name, operator] of setQueries) {
+  const query = queryFrontend.compileTwoValuesSetQueryJson(
+    `SELECT a, b FROM set_left ${operator} SELECT c, d FROM set_right`,
+    'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+    'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+    `fixture.${name}`);
+  assert.notEqual(query, '', name);
+  await writeFile(join(root, `${name}.json`), query);
+}
 const capturedQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT id FROM records WHERE id > 1', 'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
@@ -263,6 +294,24 @@ const document = readFileSync('values.json', 'utf8');
 const valuesQueryDocument = readFileSync('query-values.json', 'utf8');
 const computedValuesQueryDocument = readFileSync('query-computed-values.json',
   'utf8');
+const setQueryDocument = readFileSync('set-query.json', 'utf8');
+const setExpectations = [
+  ['union-distinct', [{a: 1, b: 'x'}, {a: 2, b: 'y'},
+    {a: null, b: 'n'}, {a: 3, b: 'z'}]],
+  ['intersect-distinct', [{a: 1, b: 'x'}, {a: null, b: 'n'}]],
+  ['except-distinct', [{a: 2, b: 'y'}]],
+];
+const sortedRows = rows => rows.map(row => JSON.stringify(row)).sort();
+async function checkSetQueries(client, suffix) {
+  for (const [name, expected] of setExpectations) {
+    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+      {format: 'json', requestId: 'packed-' + name + '-' + suffix});
+    const status = await execution.wait();
+    assert.equal(status.status, 'succeeded', JSON.stringify(status));
+    assert.deepEqual(sortedRows(await execution.result('answer').all()),
+      sortedRows(expected));
+  }
+}
 const acquiredDocument = readFileSync('source-program.json', 'utf8');
 const capturedQueryDocument = readFileSync('captured-query.json', 'utf8');
 const distinctQueryDocument = readFileSync('distinct-query.json', 'utf8');
@@ -337,6 +386,16 @@ const computedValuesQueryLocal = await installedLocal.aql(
 assert.equal((await computedValuesQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await computedValuesQueryLocal.result('answer').all(),
   [{id: 2}]);
+const setQueryLocal = await installedLocal.aql(setQueryDocument,
+  {format: 'json', requestId: 'packed-set-query-local'});
+const setQueryLocalStatus = await setQueryLocal.wait();
+assert.equal(setQueryLocalStatus.status, 'succeeded',
+  JSON.stringify(setQueryLocalStatus));
+assert.deepEqual(await setQueryLocal.result('answer').all(),
+  [{a: 1, b: 'x'}, {a: 1, b: 'x'}, {a: 2, b: 'y'},
+    {a: null, b: 'n'}, {a: 1, b: 'x'}, {a: 3, b: 'z'},
+    {a: null, b: 'n'}]);
+await checkSetQueries(installedLocal, 'local');
 const acquiredLocal = await runAcquiredApplication(
   {mode: 'local', owner: 'local', durability: 'durable'},
   'packed-acquired-local');
@@ -501,6 +560,14 @@ const computedValuesQueryRemote = await installedRemote.aql(
 assert.equal((await computedValuesQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await computedValuesQueryRemote.result('answer').all(),
   [{id: 2}]);
+const setQueryRemote = await installedRemote.aql(setQueryDocument,
+  {format: 'json', requestId: 'packed-set-query-remote'});
+assert.equal((await setQueryRemote.wait()).status, 'succeeded');
+assert.deepEqual(await setQueryRemote.result('answer').all(),
+  [{a: 1, b: 'x'}, {a: 1, b: 'x'}, {a: 2, b: 'y'},
+    {a: null, b: 'n'}, {a: 1, b: 'x'}, {a: 3, b: 'z'},
+    {a: null, b: 'n'}]);
+await checkSetQueries(installedRemote, 'remote');
 const acquiredRemote = await runAcquiredApplication(remoteOptions,
   'packed-acquired-remote');
 const capturedQueryRemote = await acquiredRemote.client.aql(

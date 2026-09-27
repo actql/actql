@@ -166,6 +166,14 @@ pub fn client_program_result_count(
 }
 
 ///|
+#export_name("clientProgramTaskCount")
+pub fn client_program_task_count(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Int {
+  @strategy.graph_task_count(@publication_host.prepared_client_graph(prepared))
+}
+
+///|
 #export_name("clientProgramSemanticsCid")
 pub fn client_program_semantics_cid(
   prepared : @publication_host.PreparedClientProgram,

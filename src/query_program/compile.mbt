@@ -42,6 +42,7 @@ pub(all) enum Issue {
   UnsupportedHaving
   UnsupportedOrdering
   UnsupportedAnalytic
+  UnsupportedSet
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   Admission(@program.SyntaxError)
@@ -868,6 +869,7 @@ fn compile_steps(
   max_work : Int,
   start_at : Int,
   preserve_identity_select : Bool,
+  final_alias : String,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
@@ -1805,7 +1807,7 @@ fn compile_steps(
   // The last step supplies a stable named stage result for ordinary routing.
   // This is a structural step alias, not a SQL range alias.
   step_entries[step_entries.length() - 1].push(
-    ("as", construction.text("aql_gen_0")),
+    ("as", construction.text(final_alias)),
   )
   (step_entries.map(entries => construction.object(entries)), output)
 }
@@ -1818,6 +1820,9 @@ pub fn compile(
   context : Context,
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
+  if @query.set_part_count(query) > 0 {
+    return compile_set_query(query, context, limits)
+  }
   if limits.max_expression_work < 0 ||
     context.program_id == "" ||
     context.stage_id == "" ||
@@ -1923,6 +1928,7 @@ pub fn compile(
       limits.max_expression_work,
       start_at,
       context.captured_stage is Some(_),
+      "aql_gen_0",
     )
     let all_steps = seed_steps + steps
     let result_source = if steps.is_empty() { input.name } else { "aql_gen_0" }
@@ -1943,6 +1949,532 @@ pub fn compile(
       Some(capture) => [capture, stage]
       None => [stage]
     }
+    let root = construction.object([
+      ("version", construction.text("actql/0.1")),
+      ("id", construction.text(context.program_id)),
+      ("stages", construction.array(stages)),
+      (
+        "results",
+        construction.object([
+          (
+            context.result_name,
+            construction.object([
+              (
+                "from",
+                construction.object([
+                  ("stage", construction.text(context.stage_id)),
+                  ("result", construction.text(context.stage_result)),
+                ]),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    ])
+    let source = match @builder.finish(builder, root) {
+      Ok(source) => source
+      Err(issue) => raise Abort(Construction(issue))
+    }
+    match @program.admit_generated_source(source, limits.program) {
+      Ok(program) => Ok(program)
+      Err(issue) => Err(Admission(issue))
+    }
+  } catch {
+    Abort(issue) => {
+      @builder.discard(builder)
+      Err(issue)
+    }
+  }
+}
+
+///|
+// Set operands remain checked Program steps. Position matching is expressed
+// as an ordinary simultaneous projection before the existing row-set kernel.
+fn compile_set_query(
+  query : @query.Query,
+  context : Context,
+  limits : Limits,
+) -> Result[@program.Program, Issue] {
+  if limits.max_expression_work < 0 ||
+    context.program_id == "" ||
+    context.stage_id == "" ||
+    context.stage_result == "" ||
+    context.result_name == "" ||
+    context.captured_stage is Some(_) {
+    return Err(InvalidContext)
+  }
+  let document = @query.query_document(query)
+  let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
+  let builder = match @builder.create(document, limits.source) {
+    Ok(builder) => builder
+    Err(issue) => return Err(Construction(issue))
+  }
+  let construction : Construction = { builder, generated, }
+  try {
+    let terms : Array[@query.Query] = [query]
+    for index in 0..<@query.set_part_count(query) {
+      terms.push(@query.set_part_at(query, index).unwrap().right)
+    }
+    let stages : Array[@builder.Node] = []
+    let sources : Array[String] = []
+    let outputs : Array[Array[String]] = []
+    for index in 0..<terms.length() {
+      let term = terms[index]
+      let input = selected_input(term, context)
+      let fields = columns(input)
+      let fragment = match input.source {
+        GeneratedValues(step) => step
+        Captured(_) => raise Abort(UnsupportedSet)
+      }
+      let seed = match @builder.import_cursor(builder, fragment, generated) {
+        Ok(node) => node
+        Err(issue) => raise Abort(Construction(issue))
+      }
+      let seed_stage = "aql_set_seed_" + index.to_string()
+      stages.push(
+        construction.object([
+          ("id", construction.text(seed_stage)),
+          ("inputs", construction.object([])),
+          ("steps", construction.array([seed])),
+          (
+            "results",
+            construction.object([
+              (
+                seed_stage,
+                construction.object([
+                  ("from", construction.text(input.name)),
+                  (
+                    "fields",
+                    construction.array(
+                      fields.map(name => construction.text(name)),
+                    ),
+                  ),
+                ]),
+              ),
+            ]),
+          ),
+        ]),
+      )
+      let term_stage = "aql_set_term_" + index.to_string()
+      if context.inputs.any(other => other.name == term_stage) {
+        raise Abort(InvalidContext)
+      }
+      let term_name = "aql_set_output_" + index.to_string()
+      let (body, output) = compile_steps(
+        construction,
+        term,
+        input,
+        fields,
+        limits.max_expression_work,
+        0,
+        false,
+        term_name,
+      )
+      let term_steps : Array[@builder.Node] = []
+      for step in body {
+        term_steps.push(step)
+      }
+      if term_steps.is_empty() {
+        term_steps.push(
+          construction.object([
+            ("from", construction.text(input.name)),
+            (
+              "select",
+              construction.array(fields.map(name => construction.text(name))),
+            ),
+            ("as", construction.text(term_name)),
+          ]),
+        )
+      }
+      stages.push(
+        construction.object([
+          ("id", construction.text(term_stage)),
+          (
+            "inputs",
+            construction.object([
+              (
+                input.name,
+                construction.object([
+                  (
+                    "result",
+                    construction.object([
+                      ("stage", construction.text(seed_stage)),
+                      ("result", construction.text(seed_stage)),
+                    ]),
+                  ),
+                ]),
+              ),
+            ]),
+          ),
+          ("steps", construction.array(term_steps)),
+          (
+            "results",
+            construction.object([
+              (
+                term_stage,
+                construction.object([
+                  ("from", construction.text(term_name)),
+                  (
+                    "fields",
+                    construction.array(
+                      output.map(name => construction.text(name)),
+                    ),
+                  ),
+                ]),
+              ),
+            ]),
+          ),
+        ]),
+      )
+      sources.push(term_stage)
+      outputs.push(output)
+    }
+    let left_fields = outputs[0]
+    let mut current_stage = sources[0]
+    for index in 0..<@query.set_part_count(query) {
+      let part = @query.set_part_at(query, index).unwrap()
+      let right_fields = outputs[index + 1]
+      if right_fields.length() != left_fields.length() {
+        raise Abort(UnsupportedSet)
+      }
+      let aligned : Array[(String, @builder.Node)] = []
+      let mut alignment_needed = false
+      let matched : Array[String] = []
+      for field in left_fields {
+        let source = if part.by_name {
+          let mut selected : String? = None
+          for candidate in right_fields {
+            if same_name({ value: field, quoted: false, }, {
+                value: candidate,
+                quoted: false,
+              }) {
+              if selected is Some(_) {
+                raise Abort(UnsupportedSet)
+              }
+              selected = Some(candidate)
+            }
+          }
+          match selected {
+            Some(name) => name
+            None => raise Abort(UnsupportedSet)
+          }
+        } else {
+          right_fields[aligned.length()]
+        }
+        matched.push(source)
+        if source != field || right_fields[aligned.length()] != field {
+          alignment_needed = true
+        }
+        aligned.push((field, construction.text(source)))
+      }
+      if matched.length() != right_fields.length() {
+        raise Abort(UnsupportedSet)
+      }
+      let mut right_stage = sources[index + 1]
+      if alignment_needed {
+        let aligned_name = "aql_set_aligned_" + index.to_string()
+        stages.push(
+          construction.object([
+            ("id", construction.text(aligned_name)),
+            (
+              "inputs",
+              construction.object([
+                (
+                  "r",
+                  construction.object([
+                    (
+                      "result",
+                      construction.object([
+                        ("stage", construction.text(right_stage)),
+                        ("result", construction.text(right_stage)),
+                      ]),
+                    ),
+                  ]),
+                ),
+              ]),
+            ),
+            (
+              "steps",
+              construction.array([
+                construction.object([
+                  ("from", construction.text("r")),
+                  (
+                    "select",
+                    construction.array(
+                      aligned.mapi((index, entry) => {
+                        if entry.0 == matched[index] {
+                          entry.1
+                        } else {
+                          construction.object([(entry.0, entry.1)])
+                        }
+                      }),
+                    ),
+                  ),
+                  ("as", construction.text("aligned_rows")),
+                ]),
+              ]),
+            ),
+            (
+              "results",
+              construction.object([
+                (
+                  aligned_name,
+                  construction.object([
+                    ("from", construction.text("aligned_rows")),
+                    (
+                      "fields",
+                      construction.array(
+                        left_fields.map(name => construction.text(name)),
+                      ),
+                    ),
+                  ]),
+                ),
+              ]),
+            ),
+          ]),
+        )
+        right_stage = aligned_name
+      }
+      let combined = "aql_set_combined_" + index.to_string()
+      let operation = match part.kind {
+        "union" => "append"
+        "intersect" => "intersect"
+        "except" => "except"
+        _ => raise Abort(UnsupportedSet)
+      }
+      let body = if part.kind == "union" {
+        construction.object([("with", construction.text("r"))])
+      } else {
+        construction.object([
+          ("with", construction.text("r")),
+          ("duplicates", construction.text(part.duplicates)),
+        ])
+      }
+      let merge_stage = "aql_set_merge_" + index.to_string()
+      stages.push(
+        construction.object([
+          ("id", construction.text(merge_stage)),
+          (
+            "inputs",
+            construction.object([
+              (
+                "l",
+                construction.object([
+                  (
+                    "result",
+                    construction.object([
+                      ("stage", construction.text(current_stage)),
+                      ("result", construction.text(current_stage)),
+                    ]),
+                  ),
+                ]),
+              ),
+              (
+                "r",
+                construction.object([
+                  (
+                    "result",
+                    construction.object([
+                      ("stage", construction.text(right_stage)),
+                      ("result", construction.text(right_stage)),
+                    ]),
+                  ),
+                ]),
+              ),
+            ]),
+          ),
+          (
+            "steps",
+            construction.array([
+              construction.object([
+                ("from", construction.text("l")),
+                (operation, body),
+                ("as", construction.text(combined)),
+              ]),
+            ]),
+          ),
+          (
+            "results",
+            construction.object([
+              (
+                merge_stage,
+                construction.object([
+                  ("from", construction.text(combined)),
+                  (
+                    "fields",
+                    construction.array(
+                      left_fields.map(name => construction.text(name)),
+                    ),
+                  ),
+                ]),
+              ),
+            ]),
+          ),
+        ]),
+      )
+      current_stage = merge_stage
+      if part.kind == "union" && part.duplicates == "distinct" {
+        let unique_stage = "aql_set_unique_" + index.to_string()
+        stages.push(
+          construction.object([
+            ("id", construction.text(unique_stage)),
+            (
+              "inputs",
+              construction.object([
+                (
+                  "rows",
+                  construction.object([
+                    (
+                      "result",
+                      construction.object([
+                        ("stage", construction.text(current_stage)),
+                        ("result", construction.text(current_stage)),
+                      ]),
+                    ),
+                  ]),
+                ),
+              ]),
+            ),
+            (
+              "steps",
+              construction.array([
+                construction.object([
+                  ("from", construction.text("rows")),
+                  (
+                    "distinct",
+                    construction.array(
+                      left_fields.map(name => construction.text(name)),
+                    ),
+                  ),
+                  ("as", construction.text("unique_rows")),
+                ]),
+              ]),
+            ),
+            (
+              "results",
+              construction.object([
+                (
+                  unique_stage,
+                  construction.object([
+                    ("from", construction.text("unique_rows")),
+                    (
+                      "fields",
+                      construction.array(
+                        left_fields.map(name => construction.text(name)),
+                      ),
+                    ),
+                  ]),
+                ),
+              ]),
+            ),
+          ]),
+        )
+        current_stage = unique_stage
+      }
+    }
+    let steps : Array[@builder.Node] = []
+    let mut current = "set_rows"
+    for index in 0..<@query.final_operation_count(query) {
+      let operation = @query.final_operation_at(query, index).unwrap()
+      let final_name = "aql_set_final_" + index.to_string()
+      match operation {
+        Order(terms) => {
+          let sort : Array[@builder.Node] = []
+          for term in terms {
+            let root = @query.expression_node(
+              term.expression,
+              @query.expression_root(term.expression),
+            ).unwrap()
+            guard root.kind is Reference(path) && path.length() == 1 else {
+              raise Abort(UnsupportedOrdering)
+            }
+            let mut selected : String? = None
+            for field in left_fields {
+              if same_name(path[0], { value: field, quoted: false, }) {
+                selected = Some(field)
+              }
+            }
+            let field = match selected {
+              Some(field) => field
+              None => raise Abort(UnsupportedOrdering)
+            }
+            sort.push(
+              construction.object([
+                ("field", construction.text(field)),
+                ("dir", construction.text(term.direction)),
+                ("nulls", construction.text(term.nulls)),
+              ]),
+            )
+          }
+          steps.push(
+            construction.object([
+              ("from", construction.text(current)),
+              ("sort", construction.array(sort)),
+              ("as", construction.text(final_name)),
+            ]),
+          )
+        }
+        Limit(count, offset) =>
+          steps.push(
+            construction.object([
+              ("from", construction.text(current)),
+              (
+                "take",
+                construction.object([
+                  ("count", construction.add(Number(count.to_double()))),
+                  ("offset", construction.add(Number(offset.to_double()))),
+                ]),
+              ),
+              ("as", construction.text(final_name)),
+            ]),
+          )
+        _ => raise Abort(UnsupportedSet)
+      }
+      current = final_name
+    }
+    if steps.is_empty() {
+      current = "aql_set_final_0"
+      steps.push(
+        construction.object([
+          ("from", construction.text("set_rows")),
+          (
+            "select",
+            construction.array(left_fields.map(name => construction.text(name))),
+          ),
+          ("as", construction.text(current)),
+        ]),
+      )
+    }
+    let result = construction.object([
+      ("from", construction.text(current)),
+      (
+        "fields",
+        construction.array(left_fields.map(name => construction.text(name))),
+      ),
+    ])
+    let stage = construction.object([
+      ("id", construction.text(context.stage_id)),
+      (
+        "inputs",
+        construction.object([
+          (
+            "set_rows",
+            construction.object([
+              (
+                "result",
+                construction.object([
+                  ("stage", construction.text(current_stage)),
+                  ("result", construction.text(current_stage)),
+                ]),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+      ("steps", construction.array(steps)),
+      ("results", construction.object([(context.stage_result, result)])),
+    ])
+    stages.push(stage)
     let root = construction.object([
       ("version", construction.text("actql/0.1")),
       ("id", construction.text(context.program_id)),

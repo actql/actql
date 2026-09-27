@@ -8,6 +8,8 @@ import {
 }
 
 // Values
+pub fn expression_child(Expression, Int) -> Expression?
+
 pub fn expression_document(Expression) -> @frontend_source_map.Document
 
 pub fn expression_node(Expression, Int) -> ExpressionNode?
@@ -19,6 +21,10 @@ pub fn expression_origin(Expression, Int) -> @frontend_source_map.Origin?
 pub fn expression_root(Expression) -> Int
 
 pub fn expression_work(Expression) -> Int
+
+pub fn final_operation_at(Query, Int) -> QueryOperation?
+
+pub fn final_operation_count(Query) -> Int
 
 pub fn operation_at(Query, Int) -> QueryOperation?
 
@@ -38,6 +44,10 @@ pub fn relation(Query) -> Array[NamePart]
 
 pub fn relation_alias(Query) -> NamePart?
 
+pub fn set_part_at(Query, Int) -> SetPart?
+
+pub fn set_part_count(Query) -> Int
+
 pub fn token_at(Tokens, Int) -> Token?
 
 pub fn token_count(Tokens) -> Int
@@ -53,6 +63,31 @@ pub fn usage(Tokens, Resource) -> Int
 // Errors
 
 // Types and methods
+pub(all) struct AggregateCall {
+  function_name : String
+  argument : Expression?
+  distinct : Bool
+  order_by : Array[SortTerm]
+  delimiter : String?
+}
+
+pub(all) struct AnalyticCall {
+  expression : Expression?
+  aggregate : AggregateCall?
+  window : AnalyticWindow
+}
+
+pub(all) struct AnalyticFrame {
+  start : FrameBoundary
+  end : FrameBoundary
+} derive(Eq, @debug.Debug)
+
+pub(all) struct AnalyticWindow {
+  partition_by : Array[Array[NamePart]]
+  order_by : Array[SortTerm]
+  frame : AnalyticFrame?
+}
+
 pub(all) enum CastType {
   Boolean
   String
@@ -96,6 +131,14 @@ pub struct ExpressionNode {
   start : Int
   end : Int
 }
+
+pub(all) enum FrameBoundary {
+  UnboundedPreceding
+  CurrentRow
+  UnboundedFollowing
+  Preceding(Int64)
+  Following(Int64)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum Issue {
   InvalidLimits
@@ -142,6 +185,8 @@ pub(all) struct NamePart {
 
 pub(all) struct Projection {
   expression : Expression?
+  aggregate : AggregateCall?
+  analytic : AnalyticCall?
   name : NamePart?
   star : String?
 }
@@ -158,9 +203,17 @@ pub(all) struct QueryLimits {
 
 pub(all) enum QueryOperation {
   Where(Expression)
+  Extend(Array[Projection])
+  Set(Array[(NamePart, Expression)])
+  Drop(Array[NamePart])
+  Rename(Array[(NamePart, NamePart)])
+  Alias(NamePart)
+  Group(Array[Expression], Array[Projection])
+  Having(Expression)
+  Analytic(Array[Projection])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
-  Limit(Int, Int)
+  Limit(Int64, Int64)
 }
 
 pub(all) enum Resource {
@@ -168,6 +221,13 @@ pub(all) enum Resource {
   LiteralBytes
   Work
 } derive(Eq, @debug.Debug)
+
+pub(all) struct SetPart {
+  kind : String
+  duplicates : String
+  by_name : Bool
+  right : Query
+}
 
 pub(all) struct SortTerm {
   expression : Expression
