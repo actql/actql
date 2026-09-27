@@ -96,6 +96,10 @@ export function installSalesforceResourceDiscovery({moon, catalog, binding,
     const state = checked(moon.salesforceCatalogObservedResourceState(
       ...arguments_));
     if (state !== 1) {
+      // The public reasons stay those of the Client–Host contract: a
+      // Resource outside a named observation's targets is `listing_truncated`
+      // (unobserved, not absent); a target the org did not find is
+      // `describe_unavailable` here and `not_found` in the listing outcome.
       return Object.freeze({status: 'catalog_required', observationCid,
         reason: state === -2 ? 'listing_truncated' :
           state === -1 ? 'not_visible' : 'describe_unavailable'});

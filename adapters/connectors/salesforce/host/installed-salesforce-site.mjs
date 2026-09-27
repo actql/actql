@@ -349,6 +349,14 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     resource_origin: profile.instanceOrigin,
     connector_registration: 'salesforce',
     connector_revision: 'salesforce/0.1'});
+  // The declaration covers the targets the describe observed; a target the
+  // org did not find or did not answer stays in the observation only.
+  const describedTargets = (resources, evidence) => {
+    const described = resources.filter(name =>
+      evidence.outcomes[evidence.names.indexOf(name)] === 1);
+    if (described.length === 0) fail('SalesforceDeclarationUnavailable');
+    return described;
+  };
   const generate = (observation, connectorId, resources, limits) => {
     const binding = JSON.parse(
       salesforceMoon.salesforceCatalogObservationJson(observation)).binding;
@@ -392,8 +400,11 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
         ? 'SalesforceCatalogCancelled' : 'SalesforceCatalogRefreshInterrupted');
     }
     return Object.freeze({...generate(catalog.observation, connectorId,
-      selected, limits), observationCid: catalog.observationCid,
-    evidence: catalog.evidence});
+      describedTargets(selected, catalog.evidence), limits), observationCid: catalog.observationCid,
+    evidence: catalog.evidence, observed: Object.freeze({
+      observation: catalog.observation,
+      observationCid: catalog.observationCid,
+      observationJson: catalog.observationJson})});
   }
 
   // Restore a declaration this Site published from its retained describe
@@ -425,11 +436,13 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     const observation = recoverNamedSalesforceObservation({
       moon: salesforceMoon, evidence, expectedObservationCid: observationCid});
     const restored = generate(observation, connectorId,
-      [...new Set(resources)], limits);
+      describedTargets([...new Set(resources)], evidence), limits);
     if (restored.catalog_cid !== catalogCid) {
       fail('ForeignSalesforceDeclaration');
     }
-    return Object.freeze({...restored, observationCid, evidence});
+    return Object.freeze({...restored, observationCid, evidence,
+      observed: Object.freeze({observation, observationCid,
+        observationJson: evidence.observationJson})});
   }
 
   const writeKinds = Object.freeze({create: 0, createFromResult: 1,
