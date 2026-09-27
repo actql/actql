@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { inspect, promisify } from 'node:util';
 import { tmpdir } from 'node:os';
 import { chmod, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -7431,6 +7431,33 @@ async function exerciseStrategyGraph(
     }
     return program;
   };
+  const retainedUnaryChain = (sourceSteps, suffix, fields, rows, schema) => {
+    const program = structuredClone(externalAppendProgram);
+    const left = program.stages.find(stage => stage.id === 'cross_left');
+    if (rows) left.steps[0].values.rows = rows;
+    if (schema) {
+      left.steps[0].values.schema = schema;
+      const right = program.stages.find(stage => stage.id === 'cross_right');
+      right.steps[0].values.schema = schema;
+      right.steps[0].values.rows = [];
+      right.results.r.fields = Object.keys(schema);
+    }
+    left.results.r.fields = Object.keys(left.steps[0].values.schema);
+    const producer = program.stages.find(stage => stage.id === 'crossed');
+    const steps = [{append: {with: 'r'}}, ...sourceSteps, ...suffix];
+    producer.steps = steps.map((step, index) => ({
+      from: index === 0 ? 'l' : `chain_${index - 1}`,
+      ...step,
+      as: index === steps.length - 1 ? 'out' : `chain_${index}`,
+    }));
+    producer.results.r.fields = fields;
+    for (const stage of program.stages.filter(stage =>
+      stage.id.startsWith('external_cross_consumer_'))) {
+      stage.steps[0].select = fields;
+      stage.results.r.fields = fields;
+    }
+    return program;
+  };
   for (const {name, source, expected, fields} of [
     {name: 'append', source: externalAppendProgram,
       expected: [{id: 1}, {id: 2}, {id: 3}, {id: 4}], fields: ['id']},
@@ -7502,6 +7529,59 @@ async function exerciseStrategyGraph(
       ['id', 'tag', 'copy']),
     expected: [1, 2].flatMap(id => ['a', 'b', 'c'].map(tag =>
       ({id, tag, copy: tag}))), fields: ['id', 'tag', 'copy']},
+    {name: 'sort-filter-select', source: retainedUnaryChain(
+      [{sort: [{id: 'desc'}]}],
+      [{filter: 'id > 0'}, {select: ['id']}], ['id']),
+    expected: [4, 3, 2, 1].map(id => ({id})), fields: ['id']},
+    {name: 'distinct-filter-select', source: retainedUnaryChain(
+      [{distinct: true}], [{filter: 'id > 0'}, {select: ['id']}],
+      ['id'], [{id: 1}, {id: 1}, {id: 2}]),
+    expected: [1, 2, 3, 4].map(id => ({id})), fields: ['id']},
+    {name: 'group-filter-select', source: retainedUnaryChain(
+      [{group: {by: ['id'], aggregates: {n: {fn: 'count'}}}}],
+      [{filter: 'n > 0'}, {select: ['id', 'n']}],
+      ['id', 'n'], [{id: 1}, {id: 1}, {id: 2}]),
+    expected: [{id: 1, n: 2}, ...[2, 3, 4].map(id => ({id, n: 1}))],
+    fields: ['id', 'n']},
+    {name: 'row-window-filter-select', source: retainedUnaryChain(
+      [{row_window: {kind: 'fixed', time: 'id', size: 10}}],
+      [{filter: 'id > 0'},
+        {select: ['id', 'window_start', 'window_end']}],
+      ['id', 'window_start', 'window_end']),
+    expected: [1, 2, 3, 4].map(id =>
+      ({id, window_start: 0, window_end: 10})),
+    fields: ['id', 'window_start', 'window_end']},
+    {name: 'analytic-filter-select', source: retainedUnaryChain(
+      [{analytic: {
+        partition_by: [], order_by: [{id: 'asc'}],
+        frame: {start: 'unbounded_preceding', end: 'current_row'},
+        functions: {n: {fn: 'count', field: 'id'}},
+      }}], [{filter: 'n > 0'}, {select: ['id', 'n']}], ['id', 'n']),
+    expected: [1, 2, 3, 4].map(id => ({id, n: id})), fields: ['id', 'n']},
+    {name: 'pivot-filter-select', source: retainedUnaryChain(
+      [{pivot: {
+        index: ['id'], column: 'status', values: ['a', 'b'],
+        value: 'amount', aggregate: 'max',
+      }}], [{filter: 'id > 0'}, {select: ['a', 'b', 'id']}],
+      ['a', 'b', 'id'], [
+        {id: 1, status: 'a', amount: 3},
+        {id: 1, status: 'b', amount: 4},
+        {id: 2, status: 'a', amount: 5},
+      ], {
+        id: {type: 'number', nullable: false},
+        status: {type: 'string', nullable: false},
+        amount: {type: 'number', nullable: false},
+      }),
+    expected: [{a: 3, b: 4, id: 1}, {a: 5, b: null, id: 2}],
+    fields: ['a', 'b', 'id']},
+    {name: 'window-group-filter-select', source: retainedUnaryChain(
+      [{row_window: {kind: 'fixed', time: 'id', size: 10}},
+        {window_group: {by: [], aggregates: {n: {fn: 'count'}}}}],
+      [{filter: 'n > 0'},
+        {select: ['n', 'window_start', 'window_end']}],
+      ['n', 'window_start', 'window_end']),
+    expected: [{n: 4, window_start: 0, window_end: 10}],
+    fields: ['n', 'window_start', 'window_end']},
   ]) {
     const program = structuredClone(source);
     program.results = {
@@ -7509,8 +7589,14 @@ async function exerciseStrategyGraph(
       first: {from: {stage: 'external_cross_consumer_a', result: 'r'}},
       second: {from: {stage: 'external_cross_consumer_b', result: 'r'}},
     };
-    const binaryFixture = fixture.strategyFixtureCreate(
-      ...args, JSON.stringify(program));
+    let binaryFixture;
+    try {
+      binaryFixture = fixture.strategyFixtureCreate(
+        ...(name.startsWith('analytic-') ? analyticArgs : args),
+        JSON.stringify(program));
+    } catch (error) {
+      throw new Error(`${name}: fixture preparation failed`, {cause: error});
+    }
     assert.equal(fixture.strategyFixtureTaskStepCount(binaryFixture, 3),
       program.stages.find(stage => stage.id === 'crossed').steps.length,
       `${name}: the binary chain must remain one physical task`);
@@ -7537,7 +7623,7 @@ async function exerciseStrategyGraph(
         async cleanup() { await writer?.cleanupHandle?.retry?.(); },
       });
     });
-    let owner, publicationStore;
+    let owner, failedExecution, publicationStore;
     try {
       assert.equal(fixture.strategyFixtureOpen(
         binaryFixture, binaryCapture.source()), true);
@@ -7556,9 +7642,19 @@ async function exerciseStrategyGraph(
         runtime, runtime.programDefinitionCid(setup),
         runtime.resultInventory(setup).length,
         `retained-${name}-publication-attempt`);
-      owner = await runPublishedCapturedStrategy(
-        setup, {store: publicationStore, plan},
-        {local: configuration}, new AbortController().signal);
+      try {
+        owner = await runPublishedCapturedStrategy(
+          setup, {store: publicationStore, plan},
+          {local: configuration}, new AbortController().signal);
+      } catch (error) {
+        failedExecution = error.execution;
+        throw new Error(`${name}: ${String(error.cause)}; ` +
+          `execution=${failedExecution?.status}; ` +
+          `completed=${inspect(failedExecution?.completed?.map(item => item.task))}; ` +
+          `failure=${failedExecution?.failure?.code}: ` +
+          inspect(failedExecution?.failure?.cause, {depth: 7}),
+        {cause: error});
+      }
       assert.equal(owner.status, 'published', name);
       assert.equal(owner.execution.status, 'host-tasks-completed', name);
       assert.deepEqual(owner.execution.completed.map(item => item.realization),
@@ -7620,7 +7716,10 @@ async function exerciseStrategyGraph(
       assert.equal(fixture.strategyFixtureCid(binaryFixture, 3),
         fixture.strategyFixtureCid(binaryFixture, 4),
         `${name}: retained producer and first consumer must agree`);
-      if (!name.includes('derive')) {
+      // The JSON expectation is not a typed CID preimage for window boundary
+      // values. Their published values and independent consumer are checked
+      // above; the producer and first consumer still share the exact CID.
+      if (!name.includes('derive') && !name.includes('window')) {
         assert.equal(fixture.strategyFixtureCid(binaryFixture, 3),
           hash(expected), `${name}: producer task`);
       }
@@ -7631,6 +7730,11 @@ async function exerciseStrategyGraph(
         assert.equal(await owner.cleanup(), true);
         assert.equal(owner.execution.usage().heldBytes, 0n);
         assert.equal(owner.execution.usage().reservedExecutionBytes, 0n);
+      } else if (failedExecution) {
+        await failedExecution.close();
+        assert.equal(await failedExecution.cleanup(), true);
+        assert.equal(failedExecution.usage().heldBytes, 0n);
+        assert.equal(failedExecution.usage().reservedExecutionBytes, 0n);
       }
       await publicationStore?.close();
       binaryStore.close();

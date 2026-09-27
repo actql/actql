@@ -71,6 +71,8 @@ pub fn local_module_bounded_append_obligation(LocalComputeModule, Int, Int) -> B
 
 pub fn local_module_bounded_cross_join_obligation(LocalComputeModule, Int, Int) -> Bool
 
+pub fn local_module_bounded_relation_obligation(LocalComputeModule, Int, Int, LocalBoundedRelationCheck) -> Bool
+
 pub fn local_module_bounded_set_obligation(LocalComputeModule, Int, Int) -> Bool
 
 pub fn local_module_bounded_values_publication(LocalComputeModule, Int) -> Bool
@@ -148,6 +150,17 @@ pub fn start_managed_provider_with_inputs_and_execution(ManagedProvider, @execut
 // Errors
 
 // Types and methods
+pub(all) enum LocalBoundedRelationCheck {
+  Group
+  Analytic
+  Pivot
+  RowWindow
+  Lag
+  TopK
+  Dedupe
+  Assertion
+}
+
 type LocalComputeModule
 
 pub(all) struct LocalExportLimits {
