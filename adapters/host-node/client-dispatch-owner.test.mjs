@@ -167,3 +167,29 @@ test('dispatch owner retains failed cleanup and retries without Compute',
     assert.deepEqual(stopped, [[ref, null]]);
     assert.equal(owner.operation(ref), undefined);
   });
+
+test('Effect owner retains an unobserved start after callback failure',
+  async () => {
+    const ref = {runDefinitionCid: 'effect-claimed-before-callback'};
+    let calls = 0;
+    let observed = 0;
+    const owner = installNodeClientDispatchOwner({});
+    const run = () => {
+      calls++;
+      throw new Error('LostEffectOwner');
+    };
+    const first = owner.track(ref, {run,
+      observeStopped: () => { observed++; }});
+    await assert.rejects(first, {message: 'LostEffectOwner'});
+    assert.equal(owner.track(ref, {run,
+      observeStopped: () => { observed++; }}), first);
+    await assert.rejects(owner.drain(), error => {
+      assert.equal(error.code, 'ClientDispatchCleanupPending');
+      assert.deepEqual(error.pendingRefs, [ref]);
+      return true;
+    });
+    assert.equal(calls, 1);
+    assert.equal(observed, 0);
+    assert.equal(owner.live(ref), false);
+    assert.equal(owner.operation(ref), first);
+  });

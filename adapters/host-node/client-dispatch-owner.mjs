@@ -286,7 +286,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     if (existing !== undefined) return existing.promise;
     const entry = {ref: Object.freeze({...ref}), settled: false,
       abort: new AbortController(), observeStopped,
-      physicalStarted: false, physicalWorkMayHaveStarted: false,
+      // The Effect Run's durable physical-start claim precedes this call.
+      // A callback that fails before handing over its execution owner does
+      // not prove that physical work stopped.
+      physicalStarted: true, physicalWorkMayHaveStarted: true,
       stopObserved: false, stopObservationPending: false,
       cleanupOwner: undefined, cleanupHandle: undefined,
       unresolvedCleanup: false};
