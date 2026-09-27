@@ -1,5 +1,6 @@
 ///|
 pub struct ClientTaskCompilation {
+  owner : PreparedClientProgram
   plan : ClientTaskExecutablePlan
   template : @publication.RunEvidenceValue
   compiled_plan : @publication.PublicationContract
@@ -152,5 +153,5 @@ fn finish_client_task_compilation(
     }
     result_names.push(name)
   }
-  Ok({ plan, template, compiled_plan, result_names, })
+  Ok({ owner: value, plan, template, compiled_plan, result_names, })
 }

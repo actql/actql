@@ -7,13 +7,18 @@ Connected Remote mode imports only the lightweight SDK path.
 
 The installed source-free profile accepts an Effect-free JSON or YAML AQL
 Program with one checked Values task and one named Result. It binds the
-initial empty captured Artifact set through `@actql/run-host-core`, durably
+initial empty captured Artifact set through the shared MoonBit Run owner, durably
 records the request, executes the real Local Site, commits formal publication,
 and serves Result rows in process. A repeated request ID with the same intent
 attaches to the retained Run; changed intent is rejected. A reserved dispatch
 is reconciled and never automatically recomputed. The default profile has no
 external connector registrations yet, so Programs requiring acquired input
 return `ClientProgramNeedsInputs`.
+
+Preparation, compilation, and Run evidence issuance retain the same checked
+owner in the installed runtime. Local does not load a second Run Host Core
+runtime or recompile the Program to compare CIDs. The separately distributed
+`@actql/run-host-core` keeps its standalone API and private handle custody.
 
 The physical journal and publication Store live under
 `~/.local/share/actql`. Set `ACTQL_LOCAL_STATE_DIR` before process start to

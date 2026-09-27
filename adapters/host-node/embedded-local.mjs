@@ -309,12 +309,10 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       fragment, ordered, database: sourceProfile.database,
       schema: sourceProfile.schema, table: sourceProfile.table,
       sourceAccess});
-  const planFor = ({preparedProgram, kind, input, parameters, requestId},
+  const planFor = ({preparedProgram, requestId},
     retainedDefinitionWire) => {
+    prepareSubmit.assertOwned(preparedProgram);
     const common = {moon, control, preparedProgram,
-      document: kind === 'aql' ? input.text : JSON.stringify(input),
-      format: kind === 'aql' ? input.format : 'json', parameters,
-      environmentWire, environmentCid: evidenceCid,
       authorityScopeCid, tenantId, requestId, storeAuthorityCid, now,
       ...(retainedDefinitionWire === undefined ? {} :
         {retainedDefinitionWire})};
