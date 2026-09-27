@@ -51,19 +51,22 @@ async function discoveryHost(t) {
     journalRoot: join(root, 'journal'), orgId: org.orgId, siteGeneration: 1,
     siteKey: 'salesforce-site', tenant: 'tenant-a',
     caPath: join(root, 'org-ca.crt')};
-  const accountConfiguration = canonicalJson({
+  const accountConfiguration = readable => canonicalJson({
     version: 'actql-execution-account-config/0.1',
     account_id: 'discovery-account',
     entries: [{entry_id: 'records-read', outcome: 'allow', exclusions: [],
       principal: {all: true},
       connection: {any_of: [`salesforce:${org.orgId}`]},
-      resource: {any_of: ['Test_Record__c']},
+      resource: {any_of: readable},
       operation: {any_of: ['read']}}]});
-  // Each open plays one Host process with the profile as installed then.
-  const open = async ({changes = {}, principalId = 'owner-principal'} = {}) => {
+  // Each open plays one Host process with the profile and account
+  // configuration as installed then.
+  const open = async ({changes = {}, principalId = 'owner-principal',
+    readable = ['Test_Record__c']} = {}) => {
     await writeFile(profilePath, JSON.stringify({...profile, ...changes}));
     const authorization = await installSalesforceAuthorization({
-      accountConfiguration, principalId, root});
+      accountConfiguration: accountConfiguration(readable), principalId,
+      root});
     const site = await loadInstalledSalesforceSite(profilePath, {commonMoon,
       salesforceMoon, authorization, runtimeBundleCid: cid('b'),
       resolveSecret: async () => 'test-only-secret'});
@@ -223,5 +226,47 @@ test('a snapshot of another Site installation never becomes current discovery',
     {code: 'ForeignRetainedSalesforceCatalog'});
     assert.equal((await client.resources(host.connection)).observationCid,
       snapshot.observationCid);
+    assert.equal(host.org.seen.length, requests);
+  });
+
+test('discovery refuses another principal before any Catalog request',
+  async t => {
+    const host = await discoveryHost(t);
+    const {client: connectAs} = await host.open();
+    const before = host.org.seen.length;
+    const other = await connectAs('other-token');
+    t.after(() => other.close());
+    await assert.rejects(other.resources(host.connection),
+      {code: 'ResourceDiscoveryDenied'});
+    await assert.rejects(other.inspectResource(host.connection,
+      'Test_Record__c'), {code: 'ResourceDiscoveryDenied'});
+    const owner = await connectAs('owner-token');
+    t.after(() => owner.close());
+    await assert.rejects(owner.resources('salesforce:00D000000000009EAA'),
+      {code: 'ResourceConnectionNotFound'});
+    // No listing, describe or query reached the org.
+    assert.equal(host.org.seen.length, before);
+  });
+
+test('a restored snapshot is disclosed only under current read authority',
+  async t => {
+    const host = await discoveryHost(t);
+    const first = await host.open();
+    const snapshot = await first.service.refresh(host.connection);
+    first.site.close();
+    // The same installation, now configured to read nothing on this org.
+    const revoked = await host.open({readable: ['Other_Object__c']});
+    const requests = host.org.seen.length;
+    assert.equal(revoked.service.restore(host.connection, snapshot),
+      snapshot.observationCid);
+    const client = await revoked.client('owner-token');
+    t.after(() => client.close());
+    // The snapshot is bound to this Site, but binding is not permission:
+    // the Resource it described is no longer disclosed.
+    assert.deepEqual((await client.resources(host.connection)).resources, []);
+    await assert.rejects(client.inspectResource(host.connection,
+      'Test_Record__c'), {code: 'ResourceDiscoveryDenied'});
+    await assert.rejects(client.peekResource(host.connection,
+      'Test_Record__c', {fields: ['Id']}), {code: 'ResourcePeekDenied'});
     assert.equal(host.org.seen.length, requests);
   });
