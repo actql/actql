@@ -8,6 +8,10 @@ import {
 }
 
 // Values
+pub fn cte_at(Query, Int) -> CtePart?
+
+pub fn cte_count(Query) -> Int
+
 pub fn expression_child(Expression, Int) -> Expression?
 
 pub fn expression_document(Expression) -> @frontend_source_map.Document
@@ -99,6 +103,11 @@ pub(all) enum CastType {
   Timestamp
   Decimal(Int, Int)
 } derive(Eq, @debug.Debug)
+
+pub(all) struct CtePart {
+  name : NamePart
+  query : Query
+}
 
 pub(all) struct Diagnostic {
   issue : Issue

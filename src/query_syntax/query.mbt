@@ -95,8 +95,15 @@ pub(all) struct JoinPart {
 }
 
 ///|
+pub(all) struct CtePart {
+  name : NamePart
+  query : Query
+}
+
+///|
 struct Query {
   source : Tokens
+  ctes : Array[CtePart]
   relation : Array[NamePart]
   source_alias : NamePart?
   joins : Array[JoinPart]
@@ -104,6 +111,16 @@ struct Query {
   sets : Array[SetPart]
   final_operations : Array[QueryOperation]
   work : Int
+}
+
+///|
+pub fn cte_count(query : Query) -> Int {
+  query.ctes.length()
+}
+
+///|
+pub fn cte_at(query : Query, index : Int) -> CtePart? {
+  query.ctes.get(index)
 }
 
 ///|
@@ -731,6 +748,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   operations.push(Select(projections, distinct))
   {
     source: self.source,
+    ctes: [],
     relation,
     source_alias,
     joins,
@@ -743,6 +761,36 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
 
 ///|
 fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
+  let ctes : Array[CtePart] = []
+  if self.has("WITH") {
+    self.keyword("WITH")
+    if self.has("RECURSIVE") {
+      raise QueryAbort("Recursive CTE is unsupported", self.peek().start)
+    }
+    while true {
+      self.node()
+      if ctes.length() >= self.limits.max_cte_count {
+        raise QueryAbort("CTE count limit", self.peek().start)
+      }
+      let name = self.name()
+      if ctes.any(part => part.name.value == name.value) {
+        raise QueryAbort("Duplicate CTE name", self.peek().start)
+      }
+      self.keyword("AS")
+      if self.advance().value != Symbol(40) {
+        raise QueryAbort("Expected CTE opening parenthesis", self.peek().start)
+      }
+      let body = self.sql_term()
+      if self.advance().value != Symbol(41) {
+        raise QueryAbort("Expected CTE closing parenthesis", self.peek().start)
+      }
+      ctes.push({ name, query: body, })
+      if self.peek().value != Symbol(44) {
+        break
+      }
+      ignore(self.advance())
+    }
+  }
   let term = self.sql_term()
   let sets : Array[SetPart] = []
   let mut set_spelling : (String, String, Bool)? = None
@@ -801,9 +849,9 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
   }
   self.end()
   if sets.is_empty() {
-    { ..term, operations: term.operations + tail, work: self.work, }
+    { ..term, ctes, operations: term.operations + tail, work: self.work, }
   } else {
-    { ..term, sets, final_operations: tail, work: self.work, }
+    { ..term, ctes, sets, final_operations: tail, work: self.work, }
   }
 }
 
@@ -979,6 +1027,7 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
   self.end()
   {
     source: self.source,
+    ctes: [],
     relation,
     source_alias,
     joins,
@@ -1013,7 +1062,11 @@ pub fn parse_query(
     syntax_nodes: 0,
   }
   try {
-    let query = if parser.has("SELECT") { parser.sql() } else { parser.pipe() }
+    let query = if parser.has("SELECT") || parser.has("WITH") {
+      parser.sql()
+    } else {
+      parser.pipe()
+    }
     Ok(query)
   } catch {
     QueryExpression(error) => Err(error)

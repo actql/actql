@@ -169,3 +169,28 @@ test "SQL JOIN retains qualifier and equality condition" {
     }
   }
 }
+
+///|
+test "nonrecursive CTE names retain declaration order and bounds" {
+  let query = parse_query(
+    "WITH first AS (SELECT a FROM left_rows), second AS (SELECT a FROM first) SELECT a FROM second",
+    query_limits(),
+  ).unwrap()
+  assert_eq(cte_count(query), 2)
+  assert_eq(cte_at(query, 0).unwrap().name.value, "first")
+  assert_eq(relation(cte_at(query, 1).unwrap().query)[0].value, "first")
+  assert_eq(relation(query)[0].value, "second")
+  assert_true(
+    parse_query("WITH first AS (SELECT a FROM left_rows) SELECT a FROM first", {
+      ..query_limits(),
+      max_cte_count: 0,
+    })
+    is Err(_),
+  )
+  for
+    text in [
+      "WITH RECURSIVE c AS (SELECT a FROM c) SELECT a FROM c", "WITH c AS (SELECT a FROM left_rows), c AS (SELECT a FROM left_rows) SELECT a FROM c",
+    ] {
+    assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
+  }
+}

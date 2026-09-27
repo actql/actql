@@ -705,6 +705,17 @@ test "FULL Values join refuses to invent stable row identities" {
 }
 
 ///|
+test "CTE declarations cannot be ignored during Program construction" {
+  let query = @query.parse_query(
+    "WITH left_rows AS (SELECT c FROM right_rows) SELECT a FROM left_rows",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(query, set_context(), construction_limits()) is Err(UnsupportedCte),
+  )
+}
+
+///|
 test "JOIN USING binds both checked keys and rejects ambiguous columns" {
   let using_query = @query.parse_query(
     "SELECT l.a AS a, r.b AS right_b FROM left_rows AS l INNER JOIN left_rows AS r USING (a)",

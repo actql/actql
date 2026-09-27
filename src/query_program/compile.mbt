@@ -44,6 +44,7 @@ pub(all) enum Issue {
   UnsupportedAnalytic
   UnsupportedSet
   UnsupportedJoin
+  UnsupportedCte
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   Admission(@program.SyntaxError)
@@ -1828,6 +1829,9 @@ pub fn compile(
   context : Context,
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
+  if @query.cte_count(query) > 0 {
+    return Err(UnsupportedCte)
+  }
   if @query.set_part_count(query) > 0 {
     return compile_set_query(query, context, limits)
   }
