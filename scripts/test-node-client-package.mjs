@@ -262,6 +262,16 @@ const setRight = {values: {schema: {
   d: {type: 'string', nullable: false}},
 rows: [{c: 1, d: 'x'}, {c: 3, d: 'z'}, {c: null, d: 'n'}]},
 as: 'set_right'};
+const filteredSubqueryJoin = queryFrontend.compileTwoValuesSetQueryJson(
+  'FROM (SELECT a, b FROM set_left) AS l |> WHERE l.a > 1 '
+    + '|> LEFT JOIN (SELECT c, d FROM set_right) AS r ON l.a = r.c '
+    + '|> SELECT l.a AS a, r.d AS d',
+  'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+  'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+  'fixture.filtered_subquery_join');
+assert.notEqual(filteredSubqueryJoin, '');
+await writeFile(join(root, 'filtered-subquery-join.json'),
+  filteredSubqueryJoin);
 const setQuery = queryFrontend.compileTwoValuesSetQueryJson(
   'SELECT a, b FROM set_left UNION ALL SELECT c, d FROM set_right',
   'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
@@ -885,6 +895,14 @@ async function checkCteJoinBody(client, suffix) {
   assert.equal((await computed.wait()).status, 'succeeded');
   assert.deepEqual(await computed.result('answer').all(), [{total: 4}]);
 }
+async function checkFilteredSubqueryJoin(client, suffix) {
+  const execution = await client.aql(
+    readFileSync('filtered-subquery-join.json', 'utf8'),
+    {format: 'json', requestId: 'packed-filtered-subquery-join-' + suffix});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  assert.deepEqual(await execution.result('answer').all(),
+    [{a: 2, d: null}]);
+}
 async function checkFullUsingValues(client, suffix) {
   const execution = await client.aql(fullUsingValuesDocument,
     {format: 'json', requestId: 'packed-full-using-values-' + suffix});
@@ -1181,6 +1199,7 @@ await checkGlobalCounts(installedLocal, 'local');
 await checkAnalyticPeers(installedLocal, 'local');
 await checkJoinSubquery(installedLocal, 'local');
 await checkCteJoinBody(installedLocal, 'local');
+await checkFilteredSubqueryJoin(installedLocal, 'local');
 await checkFullUsingValues(installedLocal, 'local');
 await checkConcat(installedLocal, 'local');
 const setQueryLocal = await installedLocal.aql(setQueryDocument,
@@ -1375,6 +1394,7 @@ await checkGlobalCounts(installedRemote, 'remote');
 await checkAnalyticPeers(installedRemote, 'remote');
 await checkJoinSubquery(installedRemote, 'remote');
 await checkCteJoinBody(installedRemote, 'remote');
+await checkFilteredSubqueryJoin(installedRemote, 'remote');
 await checkFullUsingValues(installedRemote, 'remote');
 const setQueryRemote = await installedRemote.aql(setQueryDocument,
   {format: 'json', requestId: 'packed-set-query-remote'});

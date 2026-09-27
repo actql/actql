@@ -51,8 +51,8 @@ profile difference is distinct from an unimplemented adopted feature. The
 former includes eager ActQL boolean/failure rules, explicit new-query NULL
 sort directions, no implicit set-column type promotion or padding, and the
 specified exclusion of recursive/correlated CTEs. The latter includes the
-numeric-profile and CONCAT execution gaps, JOIN-output sort and filtered
-subquery task compilation, and the remaining Pipe JOIN scope forms. No
+numeric-profile and CONCAT execution gaps, JOIN-output sort, and the remaining
+Pipe JOIN scope forms. No
 unimplemented item is reclassified as an intentional incompatibility.
 
 The current Local expression IR rejects `concat_strict` and `concat` during
@@ -146,31 +146,19 @@ from `FROM set_left AS l |> WHERE l.a > 1 |> LEFT JOIN set_right AS r ON
 l.a = r.c |> SELECT l.a AS a, r.d AS d`. A pre-join predicate cannot refer
 to the right relation. Other Pipe edits before JOIN still fail closed because
 their range snapshot has not yet been connected to JOIN lowering.
-The same pre-join filter over two named `FROM (SELECT ...)` sources emits a
-checked Program, but the installed Host currently rejects its task graph
-with `RunHostTaskCompilationRejected`. The nested MoonBit issue is
-`ClientTaskPlanGraphIssue::InvalidEdge`: the generated JS enum tags are
-`Compilation(Plan(TaskGraph(InvalidEdge)))`. Moving the filter into a separate
-checked Stage preserved the same rejection, so stage splitting alone is not
-a supported fix. The concrete program has two Values subquery Stages followed
-by a main Stage with pre-JOIN filter and LEFT JOIN. `prepare_checked_dag_owned`
-expands that Stage into internal tasks; `emit_prepared_client_task_pipeline`
-still emits the full Stage pipeline for each expanded task, and
-`issue_client_task_plan_graph` tries to resolve every internal data edge as a
-declared Stage input contract. The second lookup returns `InvalidEdge`.
-The shared Plan issuer must emit each selected task prefix and bind its
-internal producer/consumer port using the checked graph's operation-input
-coordinate. It must retain the full owner and existing edge admission. This
-source-free Stage Result case is not counted as an executed query. The
-frontend should keep the filter before the join and rerun the packed Result
-case after the shared boundary is fixed.
+The same pre-join filter over two named `FROM (SELECT ...)` sources now runs
+through packed Local and HTTP Remote. Both publish `{a:2,d:NULL}` as a Named
+Result. The checked Stage expands into internal tasks; the shared Plan issuer
+emits each selected task pipeline and binds producer/consumer ports using the
+checked operation-input coordinate. The Local dispatcher selects each task's
+own prefix, so its completed output matches the exact checked target. A
+dedicated Plan test checks the internal edge and selected pipelines; the packed
+test checks the full Client-to-Result path. The input fixtures and expected
+rows were written independently of the generated Plan.
 
-At the rebased source, the focused query MoonBit packages pass 80/80, the
-independent Program bridge passes 2/2, the source-free task Host owner test
-passes 3/3, the connector-free Core isolation gate passes, and document links
-pass. The full packed Client gate and fixed-SHA CI have not passed at this
-revision. These local results do not close the accepted SQL/Pipe matrix or
-justify a review-ready PR.
+The full packed Node/browser Client smoke passes locally after the selected
+task fix. Fixed-SHA CI and the remaining accepted SQL/Pipe matrix have not
+passed at this revision; this is not yet a review-ready PR.
 
 GQL patterns, VecA/TEA-specific surfaces, INFER/Artifact spelling, INSERT,
 installed raw-text routing, deployment and other owners' runtime redesigns

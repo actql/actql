@@ -93,10 +93,15 @@ pub fn issue_prepared_client_task_fragment(
   guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
     return Err(MissingTask)
   }
-  let checked = @lower.pipeline(@lower.bound_preparation(owner))
-  let last = @pipeline.step_count(checked) - 1
+  let prepared = @lower.bound_preparation(owner)
+  let checked = @lower.pipeline(prepared)
+  let last = @strategy.graph_task_selected_step(value.graph, task).unwrap_or(
+    @strategy.graph_task_prefix_end(value.graph, task).unwrap_or(
+      @pipeline.step_count(checked) - 1,
+    ),
+  )
   guard last >= 0 &&
-    @lower.node_at(@lower.bound_preparation(owner), last) is Some(output) &&
+    @lower.node_at(prepared, last) is Some(output) &&
     @schema.as_object(@lower.node_output_schema(output)) is Some(row) else {
     return Err(MissingOutput)
   }
@@ -122,8 +127,22 @@ pub fn issue_prepared_client_task_fragment(
     @encode.begin_object(writer)
     @encode.key(writer, "input_contracts")
     @encode.begin_object(writer)
-    for index in 0..<@pipeline.input_count(checked) {
-      guard @pipeline.input_at(checked, index) is Some((name, carrier)) &&
+    let selected = @strategy.graph_task_selected_step(value.graph, task)
+    let input_count = if selected is Some(step) {
+      @lower.node_at(prepared, step).map(@lower.node_input_count).unwrap_or(0)
+    } else {
+      @pipeline.input_count(checked)
+    }
+    for index in 0..<input_count {
+      let input = if selected is Some(step) {
+        @lower.node_at(prepared, step)
+        .bind(node => @lower.node_input_target(node, index))
+        .bind(target => @lower.preparation_carrier_at(prepared, target))
+        .map(carrier => ("input_" + index.to_string(), carrier))
+      } else {
+        @pipeline.input_at(checked, index)
+      }
+      guard input is Some((name, carrier)) &&
         @carrier.relation_rows(carrier) is Some(rows) &&
         @carrier.complete_schema(rows) is Some(schema) &&
         @schema.as_object(schema) is Some(input_contract) else {

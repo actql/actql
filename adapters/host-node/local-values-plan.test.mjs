@@ -210,3 +210,38 @@ for (const kind of ['values', 'tasks']) {
         policy.executionContextCid, policy.hostPolicyCid, policy.expiresAt)));
     });
 }
+
+test('compiled task Plan binds an internal filtered JOIN edge', async () => {
+  const document = await read('./fixtures/segmented-join-program.json');
+  const environmentWire = await read(
+    '../../packages/sdk/fixtures/values.environment.json');
+  const environmentBody = JSON.parse(environmentWire);
+  const environment = admitStandaloneEnvironment(
+    canonicalText(environmentBody), environmentBody.evidence_bundle_cid,
+    {rela: true});
+  const owner = prepareStandalone(document, 'json', environment);
+  const compiled = compileStandaloneTasks(owner);
+  const plan = JSON.parse(privateTaskCompilationWires(compiled).executablePlan);
+  const filtered = plan.nodes.find(node => node.pipeline.steps.some(step =>
+    step.op === 'REL.where'));
+  const joined = plan.nodes.find(node => node.pipeline.steps.some(step =>
+    step.op === 'REL.join'));
+  assert.ok(filtered);
+  assert.ok(joined);
+  assert.deepEqual(filtered.pipeline.steps.map(step => step.op),
+    ['REL.where']);
+  assert.deepEqual(Object.keys(filtered.input_contracts), ['input_0']);
+  assert.deepEqual(joined.pipeline.steps.map(step => step.op),
+    ['REL.join', 'REL.select']);
+  assert.deepEqual(Object.keys(joined.input_contracts),
+    ['input_0', 'input_1']);
+  assert.deepEqual(joined.pipeline.steps[0].in,
+    ['input_0', 'input_1']);
+  assert.ok(plan.data_edges.some(edge =>
+    edge.from.node_id === filtered.node_id &&
+    edge.from.port === filtered.pipeline.output &&
+    edge.to.node_id === joined.node_id && edge.to.port === 'input_0'));
+  assert.deepEqual(plan.root_refs, [{name: 'answer',
+    ref: {node_id: joined.node_id, port: joined.pipeline.output},
+    role: 'requested_result'}]);
+});

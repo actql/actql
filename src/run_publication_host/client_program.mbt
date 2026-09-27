@@ -376,8 +376,13 @@ pub fn emit_prepared_client_task_pipeline(
   }
   let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
   let count = @pipeline.step_count(pipeline)
+  let selected = @strategy.graph_task_selected_step(value.graph, task)
+  let prefix_end = @strategy.graph_task_prefix_end(value.graph, task)
+  let end_step = selected.unwrap_or(prefix_end.unwrap_or(count - 1))
   guard count > 0 &&
-    @lower.node_at(@lower.bound_preparation(owner), count - 1) is Some(output) else {
+    end_step >= 0 &&
+    end_step < count &&
+    @lower.node_at(@lower.bound_preparation(owner), end_step) is Some(output) else {
     return Err(MissingOutput)
   }
   let sequence = match @lower.prepare_sequence(owner, limits) {
@@ -417,7 +422,154 @@ pub fn emit_prepared_client_task_pipeline(
       is Some(body) else {
       return Err(Encoding)
     }
-    Ok(@canonical.stringify_value(body, max_wire_bytes, max_nodes, max_depth))
+    if selected is None && prefix_end is None {
+      return Ok(
+        @canonical.stringify_value(body, max_wire_bytes, max_nodes, max_depth),
+      )
+    }
+    let first_step = selected.unwrap_or(0)
+    let included : Array[String] = []
+    for step in first_step..<(end_step + 1) {
+      guard @lower.sequence_canonical_node_count(sequence, step)
+        is Some(node_count) else {
+        return Err(Encoding)
+      }
+      for occurrence in 0..<node_count {
+        guard @lower.sequence_canonical_node_at(sequence, step, occurrence)
+          is Some(node) else {
+          return Err(Encoding)
+        }
+        included.push(node.id)
+      }
+    }
+    let remap : Array[(String, String)] = []
+    if selected is Some(step) {
+      guard @lower.node_at(@lower.bound_preparation(owner), step)
+        is Some(selected_node) else {
+        return Err(Encoding)
+      }
+      for input in 0..<@lower.node_input_count(selected_node) {
+        let original = match @lower.node_input_target(selected_node, input) {
+          Some(@pipeline.Step(producer)) =>
+            match @lower.node_at(@lower.bound_preparation(owner), producer) {
+              Some(node) => @lower.node_id(node)
+              None => return Err(Encoding)
+            }
+          Some(@pipeline.Input(source)) => "input_" + source.to_string()
+          None => return Err(Encoding)
+        }
+        remap.push((original, "input_" + input.to_string()))
+      }
+    }
+    guard @canonical.object_field(body, "steps")
+      is Some(@canonical.Array(step_values)) else {
+      return Err(Encoding)
+    }
+    let task_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
+    @encode.begin_object(task_writer)
+    @encode.key(task_writer, "output")
+    @encode.string_value(task_writer, @lower.node_id(output))
+    @encode.key(task_writer, "sources")
+    @encode.begin_object(task_writer)
+    if selected is Some(step) {
+      let node = @lower.node_at(@lower.bound_preparation(owner), step).unwrap()
+      for input in 0..<@lower.node_input_count(node) {
+        guard @lower.node_input_target(node, input) is Some(target) &&
+          @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+          is Some(carrier) &&
+          @carrier.relation_rows(carrier) is Some(_) else {
+          return Err(UnsupportedCarrier)
+        }
+        @encode.key(task_writer, "input_" + input.to_string())
+        @encode.begin_object(task_writer)
+        @encode.key(task_writer, "sort")
+        @encode.string_value(task_writer, "relation")
+        @encode.end_object(task_writer)
+      }
+    } else {
+      for input in 0..<@pipeline.input_count(pipeline) {
+        guard @pipeline.input_at(pipeline, input) is Some((name, carrier)) &&
+          @carrier.relation_rows(carrier) is Some(_) else {
+          return Err(UnsupportedCarrier)
+        }
+        @encode.key(task_writer, name)
+        @encode.begin_object(task_writer)
+        @encode.key(task_writer, "sort")
+        @encode.string_value(task_writer, "relation")
+        @encode.end_object(task_writer)
+      }
+    }
+    @encode.end_object(task_writer)
+    @encode.key(task_writer, "steps")
+    @encode.begin_array(task_writer)
+    let mut emitted = 0
+    for node in @canonical.array_values(step_values) {
+      guard @canonical.object_field(node, "id") is Some(@canonical.String(id)) else {
+        return Err(Encoding)
+      }
+      if !included.contains(id) {
+        continue
+      }
+      emitted += 1
+      if selected is None {
+        @canonical.emit_value(node, task_writer)
+        continue
+      }
+      guard @canonical.object_fields(node) is Some(fields) else {
+        return Err(Encoding)
+      }
+      @encode.begin_object(task_writer)
+      for (key, field) in fields {
+        @encode.key(task_writer, key)
+        if key == "in" {
+          guard field is @canonical.Array(refs) else { return Err(Encoding) }
+          @encode.begin_array(task_writer)
+          for reference in @canonical.array_values(refs) {
+            guard reference is @canonical.String(name) else {
+              return Err(Encoding)
+            }
+            let mut resolved = if included.contains(name) {
+              Some(name)
+            } else {
+              None
+            }
+            if resolved is None {
+              for pair in remap {
+                if pair.0 == name {
+                  resolved = Some(pair.1)
+                  break
+                }
+              }
+            }
+            guard resolved is Some(port) else { return Err(Encoding) }
+            @encode.string_value(task_writer, port)
+          }
+          @encode.end_array(task_writer)
+        } else {
+          @canonical.emit_value(field, task_writer)
+        }
+      }
+      @encode.end_object(task_writer)
+    }
+    if emitted != included.length() {
+      return Err(Encoding)
+    }
+    @encode.end_array(task_writer)
+    @encode.key(task_writer, "version")
+    @encode.string_value(task_writer, "aoa-pipeline/0.1")
+    @encode.end_object(task_writer)
+    let task_raw = @encode.finish(task_writer)
+    guard parse_plan_identity_value(
+        task_raw, max_wire_bytes, max_nodes, max_depth,
+      )
+      is Some(task_body) else {
+      return Err(Encoding)
+    }
+    Ok(
+      @canonical.stringify_value(
+        task_body, max_wire_bytes, max_nodes, max_depth,
+      ),
+    )
   } catch {
     _ => Err(Encoding)
   }
