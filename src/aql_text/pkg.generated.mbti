@@ -1,0 +1,89 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/aql_text"
+
+import {
+  "actql/actql/encode_core",
+  "actql/actql/frontend_source_map",
+  "actql/actql/program_source_builder",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "actql/actql/stage_syntax",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn emit_program_json(@stage_syntax.Program, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn format(@stage_syntax.Program, Int) -> Result[String, @encode_core.EncodeFailure]
+
+pub fn parse(String, Limits, source_path? : String) -> Result[Parsed, Diagnostic]
+
+pub fn parse_bytes(Bytes, Limits, source_path? : String) -> Result[Parsed, Diagnostic]
+
+pub fn program(Parsed) -> @stage_syntax.Program
+
+pub fn source(Parsed) -> @program_source_builder.Source
+
+pub fn usage(Parsed, Resource) -> Int
+
+// Errors
+
+// Types and methods
+pub(all) struct Diagnostic {
+  issue : Issue
+  span : @source_span.Span?
+} derive(@debug.Debug)
+
+pub(all) struct FrontendLimits {
+  max_tokens : Int
+  max_syntax_nodes : Int
+  max_syntax_depth : Int
+  max_literal_bytes : Int
+  max_symbol_count : Int
+  max_generated_steps : Int
+  max_generated_fields : Int
+  max_lowering_work : Int
+}
+
+pub(all) enum Issue {
+  InvalidLimits
+  ResourceLimit(Resource)
+  OriginalSource(@frontend_source_map.Issue)
+  Lexical(LexicalIssue)
+  Expected(String)
+  Json(@source_value.ParseIssue)
+  Construction(@program_source_builder.Issue)
+  Admission(@stage_syntax.SyntaxError)
+} derive(@debug.Debug)
+
+pub(all) enum LexicalIssue {
+  UnexpectedEnd
+  UnexpectedToken
+  InvalidEscape
+  InvalidScalar
+  EmptyIdentifier
+  UnterminatedComment
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  frontend : FrontendLimits
+  construction : @program_source_builder.Limits
+  max_stages : Int
+}
+
+type Parsed
+
+pub(all) enum Resource {
+  Tokens
+  SyntaxNodes
+  SyntaxDepth
+  LiteralBytes
+  Symbols
+  GeneratedSteps
+  GeneratedFields
+  LoweringWork
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

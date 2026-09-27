@@ -689,9 +689,11 @@
         "existing closed envelope constraints"
       ],
       "spec_section": "5",
-      "execution_evidence_ids": [],
+      "execution_evidence_ids": [
+        "frontend-pr2-structural"
+      ],
       "adoption": "supported",
-      "implementation_status": "not_implemented",
+      "implementation_status": "implemented",
       "delivery_unit": "PR-2",
       "acceptance_case_ids": [
         "STR-02",
@@ -714,9 +716,11 @@
         "operation name must exist in closed inventory"
       ],
       "spec_section": "5.5",
-      "execution_evidence_ids": [],
+      "execution_evidence_ids": [
+        "frontend-pr2-structural"
+      ],
       "adoption": "supported",
-      "implementation_status": "not_implemented",
+      "implementation_status": "implemented",
       "delivery_unit": "PR-2",
       "acceptance_case_ids": [
         "STR-01",
@@ -1282,9 +1286,11 @@
         "mapping contract"
       ],
       "spec_section": "12.2",
-      "execution_evidence_ids": [],
+      "execution_evidence_ids": [
+        "frontend-pr2-structural"
+      ],
       "adoption": "supported",
-      "implementation_status": "not_implemented",
+      "implementation_status": "implemented",
       "delivery_unit": "PR-2",
       "acceptance_case_ids": [
         "FX-01",
@@ -1516,9 +1522,11 @@
         "violates existing boundaries"
       ],
       "spec_section": "12",
-      "execution_evidence_ids": [],
+      "execution_evidence_ids": [
+        "frontend-pr2-structural"
+      ],
       "adoption": "rejected",
-      "implementation_status": "not_implemented",
+      "implementation_status": "partial",
       "delivery_unit": "PR-2",
       "acceptance_case_ids": [
         "FX-12",
@@ -1550,5 +1558,8 @@
         "UPDATE, DELETE, MERGE and multiple-statement rejection"
       ]
     }
-  ]
+  ],
+  "implementation_evidence": {
+    "frontend-pr2-structural": "docs/reviews/2026-09-27-frontend-pr2.md"
+  }
 }

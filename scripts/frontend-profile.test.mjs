@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { checkVocabulary } from './generate-aql-text-vocabulary.mjs';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url));
 const json = path => JSON.parse(read(path));
@@ -11,11 +12,18 @@ const index = json('spec/frontend/acceptance-index.json');
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 
 test('adopted structural vocabulary matches the current closed inventory', () => {
+  checkVocabulary();
   const manifest = json('spec/manifests/actql-grammar-0.1.json');
   const operations = profile.structured_total_coverage.map(x => x.operation);
   assert.equal(new Set(operations).size, 72);
   assert.deepEqual([...operations].sort(), [...manifest.operations].sort());
-  assert.deepEqual(baseline.grammar_manifest, manifest);
+  // PR-0 is a frozen historical observation, not the live compilation manifest.
+  const {grammar_manifest_cid: _oldCid, ...oldBody} = baseline.grammar_manifest;
+  const {grammar_manifest_cid: _newCid, structural_text_grammar_sha256: grammar,
+    structural_text_rules_sha256: rules, ...unchangedBody} = manifest;
+  assert.deepEqual(oldBody, unchangedBody);
+  assert.equal(grammar, hash(read('spec/grammar/actql-text-0.1.ebnf')));
+  assert.equal(rules, hash(read('docs/spec/structural-text.md')));
   for (const op of profile.structured_total_coverage) {
     assert.deepEqual(op.surface, ['STEP', 'OP']);
     assert.equal(op.runtime_support,
@@ -35,8 +43,16 @@ test('adoption decisions retain conditions and explicit case or fixture gaps', (
     assert.ok(feature.acceptance_case_ids.length > 0 ||
       feature.additional_fixture_requirements.length > 0, feature.feature_id);
     for (const id of feature.acceptance_case_ids) assert.ok(ids.has(id), id);
-    assert.equal(feature.implementation_status, 'not_implemented');
-    assert.deepEqual(feature.execution_evidence_ids, []);
+    const structural = ['text.envelope', 'text.total', 'effect.declaration',
+      'effect.hidden'].includes(feature.feature_id);
+    assert.equal(feature.implementation_status, structural ?
+      (feature.feature_id === 'effect.hidden' ? 'partial' : 'implemented') :
+      'not_implemented');
+    assert.deepEqual(feature.execution_evidence_ids,
+      structural ? ['frontend-pr2-structural'] : []);
+    for (const evidence of feature.execution_evidence_ids) {
+      assert.ok(read(profile.implementation_evidence[evidence]).length > 0);
+    }
     if (feature.adoption === 'rejected') assert.equal(feature.canonical_lowering, null);
   }
   for (const item of index.cases) {
@@ -45,7 +61,7 @@ test('adoption decisions retain conditions and explicit case or fixture gaps', (
   }
 });
 
-test('all imported requirements remain pending, with no document-check passes', () => {
+test('frozen imported requirements retain their baseline, not document-check passes', () => {
   assert.equal(index.case_count, 140);
   assert.equal(index.cases.length, 140);
   assert.equal(new Set(index.cases.map(c => c.id)).size, 140);

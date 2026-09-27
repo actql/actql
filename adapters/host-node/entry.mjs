@@ -107,7 +107,11 @@ async function runPublishedCapturedStrategyTarget(
   observer,
   loadRuntime,
   install,
+  retainExecution,
 ) {
+  if (retainExecution !== undefined && typeof retainExecution !== 'function') {
+    throw new TypeError('InvalidExecutionOwnerReceiver');
+  }
   if (publication === null || typeof publication !== 'object' ||
       Array.isArray(publication) ||
       Object.keys(publication).sort().join('\0') !== 'plan\0store') {
@@ -124,6 +128,9 @@ async function runPublishedCapturedStrategyTarget(
     install,
   );
   try {
+    // Transfer cleanup responsibility before publication can fail. The
+    // installed supervisor must not depend on an exception surviving wrappers.
+    retainExecution?.(execution);
     const result = await execution.publishEffectFreeRun(
       publication.store,
       execution.publicationPreflight.plan,
@@ -180,9 +187,9 @@ export function createNodeHostEntry(loadRuntime, install) {
     ) => runCapturedEffectComputationTarget(owner, options, signal,
       observer, load, install),
     runPublishedCapturedStrategy: (
-      setup, publication, options = {}, signal, observer,
+      setup, publication, options = {}, signal, observer, retainExecution,
     ) => runPublishedCapturedStrategyTarget(setup, publication, options,
-      signal, observer, load, install),
+      signal, observer, load, install, retainExecution),
     completeCapturedEffectRun: async options => {
       const moon = await load();
       if (options?.apply?.moon !== moon) {

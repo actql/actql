@@ -1,4 +1,5 @@
 import {checked} from './runtime-result.mjs';
+import {publicationAction} from './publication-action.mjs';
 import {
   validOutputLimits,
   validResultOutputLimits,
@@ -2449,15 +2450,17 @@ function publicationControl(moon) {
       );
     },
     existingDeliveryAttemptAction(record) {
-      return moon.strategyExistingDeliveryAttemptAction(
-        record === undefined ? undefined : token(record),
-      );
+      return publicationAction('existingDelivery',
+        moon.strategyExistingDeliveryAttemptAction(
+          record === undefined ? undefined : token(record),
+        ));
     },
     beginResultAccessProgress() {
       return moon.strategyBeginResultAccessProgress();
     },
     resultAccessProgressAction(progress) {
-      return moon.strategyResultAccessProgressAction(progress);
+      return publicationAction('resultAccess',
+        moon.strategyResultAccessProgressAction(progress));
     },
     recordResultAccessRequestAuthorization(progress, authorized) {
       if (!moon.strategyRecordResultAccessRequestAuthorization(
@@ -2485,12 +2488,12 @@ function publicationControl(moon) {
       }
     },
     deliveryFailureTerminalAction(cancellationObserved) {
-      return moon.strategyDeliveryFailureTerminalAction(
-        cancellationObserved,
-      );
+      return publicationAction('failureTerminal',
+        moon.strategyDeliveryFailureTerminalAction(cancellationObserved));
     },
     deliveryRecordRetryAction(nextRecord, recordCount) {
-      return moon.strategyDeliveryRecordRetryAction(nextRecord, recordCount);
+      return publicationAction('recordRetry',
+        moon.strategyDeliveryRecordRetryAction(nextRecord, recordCount));
     },
     publicationPreparedReleaseAction(
       currentIndex,

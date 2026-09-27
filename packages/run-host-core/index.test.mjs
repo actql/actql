@@ -222,12 +222,20 @@ test('portable delivery control keeps progress and serializer opaque', () => {
   const control = openResultDeliveryControl();
   const limits = {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64};
   const progress = control.beginResultAccessProgress();
-  assert.equal(control.resultAccessProgressAction(progress), 0);
+  assert.equal(control.resultAccessProgressAction(progress),
+    'authorize_request');
   assert.equal(control.recordResultAccessRequestAuthorization(progress,
     true), true);
-  assert.equal(control.resultAccessProgressAction(progress), 1);
+  assert.equal(control.resultAccessProgressAction(progress),
+    'resolve_committed_result');
   assert.throws(() => control.resultAccessProgressAction({}),
     {name: 'TypeError', message: 'ForeignRunHostHandle'});
+  assert.equal(control.deliveryFailureTerminalAction(false), 'failed');
+  assert.equal(control.deliveryFailureTerminalAction(true), 'cancelled');
+  assert.equal(control.deliveryRecordRetryAction(0, 1),
+    'append_next_record');
+  assert.equal(control.deliveryRecordRetryAction(1, 1), 'finished');
+  assert.equal(control.deliveryRecordRetryAction(2, 1), 'invalid');
   const schema = '{"id":{"nullable":false,"type":"number"}}';
   const serializer = control.prepareResultDeliverySerializer('jsonl',
     schema, ['id'], limits);
@@ -537,6 +545,11 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
     }), limits);
     const readManifest = readControl.admit('result_manifest',
       manifest.wire, limits);
+    assert.throws(() => readControl.resultReadDefinitionCid({
+      ...readManifest,
+    }, 'answer'), {name: 'TypeError', message: 'ForeignRunHostDelivery'});
+    assert.throws(() => readControl.resultReadDefinitionCid(publicIndex,
+      'answer'), {code: 'RunHostDeliveryRejected'});
     const grant = readControl.issueResultReadGrant(publicIndex,
       readManifest, {resultNames: ['answer'], formats: ['jsonl'],
         principalId: 'reader', purpose: 'download',
@@ -1129,17 +1142,21 @@ test('accepted unpublished Run state uses the common owner', () => {
     [true, true, true], [true, false, false], [false, true, false],
   ]) assert.equal(prepareRunPhysicalStart(request, request, definition,
     definitionCid, reserved, unstarted, true, cancelled), false);
-  assert.deepEqual(issueRunControlObservation(3, true, false, false),
+  assert.deepEqual(issueRunControlObservation(3,
+    {requested: true, unstarted: false, stopped: false}),
     {revision: 3, cancellation_requested: true, physical_stop: 'unknown'});
-  assert.equal(issueRunControlObservation(4, true, true, false).physical_stop,
+  assert.equal(issueRunControlObservation(4,
+    {requested: true, unstarted: true, stopped: false}).physical_stop,
     'confirmed');
   assert.equal(JSON.parse(issueUnpublishedRunStateWire(prepared,
-    compilation, admission, definition, '2026-09-25T00:00:01.000Z', false,
-    false, true)).status, 'cancelled');
+    compilation, admission, definition, '2026-09-25T00:00:01.000Z',
+    {dispatchReserved: false, preDispatchFailureConfirmed: false,
+      cancelledBeforeStart: true})).status, 'cancelled');
   const at = '2026-09-25T00:00:01.000Z';
   const projection = (reserved, failed) => JSON.parse(
     issueUnpublishedRunStateWire(prepared, compilation, admission,
-      definition, at, reserved, failed));
+      definition, at, {dispatchReserved: reserved,
+        preDispatchFailureConfirmed: failed}));
   const preparing = projection(false, false);
   assert(validRunState(preparing));
   assert.equal(preparing.run_id, 'state-run');
@@ -1150,10 +1167,12 @@ test('accepted unpublished Run state uses the common owner', () => {
   assert.throws(() => projection(false, true),
     {code: 'RunHostStateProjectionRejected'});
   assert.throws(() => issueUnpublishedRunStateWire(prepared, compilation,
-    admission, definition, 'invalid', false, false),
+    admission, definition, 'invalid', {dispatchReserved: false,
+      preDispatchFailureConfirmed: false}),
   {code: 'RunHostStateProjectionRejected'});
   assert.throws(() => issueUnpublishedRunStateWire(prepared, compilation,
-    admission, {}, at, false, false),
+    admission, {}, at, {dispatchReserved: false,
+      preDispatchFailureConfirmed: false}),
   {name: 'TypeError', message: 'ForeignRunHostHandle'});
   const succeeded = JSON.parse(issueSucceededRunStateWire(prepared,
     compilation, admission, definition, at, [{name: 'answer',

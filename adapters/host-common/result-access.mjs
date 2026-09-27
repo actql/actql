@@ -249,7 +249,7 @@ export async function deliverAuthorizedResult(
       fail('InvalidResultAccessProgress');
     }
   };
-  requireAction(0);
+  requireAction('authorize_request');
   const indexKey = request.indexKey;
   let requestAuthorized = false;
   try {
@@ -271,7 +271,7 @@ export async function deliverAuthorizedResult(
     progress, requestAuthorized === true,
   );
   if (requestAuthorized !== true) fail('ResultAccessDenied');
-  requireAction(1);
+  requireAction('resolve_committed_result');
   let entry;
   let index;
   let manifest;
@@ -303,7 +303,8 @@ export async function deliverAuthorizedResult(
       indexKey, resultDefinitionCid,
     );
   } catch (error) {
-    if (installed.control.resultAccessProgressAction(progress) === 1) {
+    if (installed.control.resultAccessProgressAction(progress) ===
+        'resolve_committed_result') {
       installed.control.recordResultAccessResolution(progress, false);
     }
     if (error?.code === 'PublicationObjectMissing') {
@@ -328,7 +329,7 @@ export async function deliverAuthorizedResult(
     installed.control.resultRetentionClockContractCid(retention);
   await installed.store.observeTrustedClock(clockContractCid, admittedAt);
   const initiallyAvailable = availability(admittedAt) === 'available';
-  requireAction(2);
+  requireAction('check_initial_availability');
   installed.control.recordResultAccessInitialAvailability(
     progress, initiallyAvailable,
   );
@@ -348,7 +349,7 @@ export async function deliverAuthorizedResult(
     baseRetention: retention,
     observedAt: admittedAt,
   });
-  requireAction(3);
+  requireAction('admit_read');
   let admission;
   try {
     admission = await installed.authority.admitResultRead(requestFacts);
@@ -358,7 +359,7 @@ export async function deliverAuthorizedResult(
     throw error;
   }
   installed.control.recordResultAccessReadAdmission(progress, true);
-  requireAction(4);
+  requireAction('issue_grant');
   let grant;
   try {
     grant = installed.control.issueResultReadGrant(
@@ -383,7 +384,7 @@ export async function deliverAuthorizedResult(
     throw error;
   }
   installed.control.recordResultAccessGrant(progress, true);
-  requireAction(5);
+  requireAction('start_delivery');
   const authorize = async facts => {
     await installed.store.observeTrustedClock(
       clockContractCid, facts.observedAt,

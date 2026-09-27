@@ -20,16 +20,21 @@ if (access === accessSource) {
 }
 const delivery = readFileSync(join(root, 'adapters/host-common',
   'result-delivery.mjs'));
+const action = readFileSync(join(root, 'adapters/host-common',
+  'publication-action.mjs'));
 const accessFile = join(root, 'packages/run-host-core',
   'result-access.mjs');
 const deliveryFile = join(root, 'packages/run-host-core',
   'result-delivery.mjs');
+const actionFile = join(root, 'packages/run-host-core',
+  'publication-action.mjs');
 if (process.argv.includes('--check')) {
   if (!readFileSync(destination).equals(bytes)) {
     throw new Error('StaleRunHostCorePackage');
   }
   if (readFileSync(accessFile, 'utf8') !== access ||
-      !readFileSync(deliveryFile).equals(delivery)) {
+      !readFileSync(deliveryFile).equals(delivery) ||
+      !readFileSync(actionFile).equals(action)) {
     throw new Error('StaleRunHostResultAccessService');
   }
 } else {
@@ -38,5 +43,6 @@ if (process.argv.includes('--check')) {
   if (!process.argv.includes('--runtime-only')) {
     writeFileSync(accessFile, access);
     writeFileSync(deliveryFile, delivery);
+    writeFileSync(actionFile, action);
   }
 }
