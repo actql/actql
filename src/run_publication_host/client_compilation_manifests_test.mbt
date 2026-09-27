@@ -44,4 +44,19 @@ test "compiler manifests require exact pinned bodies" {
     )
     is Err(ClientCompilationManifestIssue::BarrierManifestMismatch),
   )
+  // Structural grammar and lowering rules are current manifest obligations.
+  // An otherwise intact old or substituted body cannot issue a current Plan.
+  for
+    field in ["structural_text_grammar_sha256", "structural_text_rules_sha256"] {
+    assert_true(
+      admit_client_compilation_manifests(
+        grammar.replace(old=field, new="unrecognized_structural_pin"),
+        barrier,
+        10000,
+        1000,
+        20,
+      )
+      is Err(ClientCompilationManifestIssue::GrammarManifestMismatch),
+    )
+  }
 }

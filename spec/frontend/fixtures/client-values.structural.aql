@@ -1,0 +1,11 @@
+AQL '0.1';
+PROGRAM 'client-values' {
+  STAGE source {
+    DATA selected = OP values {
+      "schema": {"id": {"type": "number", "nullable": false}},
+      "rows": [{"id": 1}, {"id": 2}]
+    };
+    RESULT rows = {"from": "selected", "fields": ["id"]};
+  }
+  RESULT answer = {"from": {"stage": "source", "result": "rows"}};
+}
