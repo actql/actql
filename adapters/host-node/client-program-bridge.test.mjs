@@ -394,9 +394,14 @@ test('checked acquired source and downstream task emit their input ports',
         }, control);
         let published;
         try {
+          let retainedExecution;
           published = await runPublishedCapturedStrategy(opened.setup,
-            {store, plan});
+            {store, plan}, {}, undefined, undefined, execution => {
+              assert.equal(published, undefined);
+              retainedExecution = execution;
+            });
           const execution = published.execution;
+          assert.equal(retainedExecution, execution);
           assert.equal(execution.status, 'host-tasks-completed');
           assert.deepEqual(execution.resultInventory.map(result =>
             result.name), ['b', 'c']);
