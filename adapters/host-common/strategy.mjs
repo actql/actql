@@ -518,6 +518,7 @@ export async function runInstalledStrategy(
   const candidateComparisons = [];
   const outputs = [];
   const managedOutputs = new Map();
+  const publicationOutputs = new Map();
   const pendingCleanup = new Set();
   const pendingCloses = new Set();
   // A release without a recovery handle has no safe implicit retry contract.
@@ -922,6 +923,9 @@ export async function runInstalledStrategy(
           releaseOwner: siteResult,
         }));
       }
+      if (result?.publicationOutput != null) {
+        publicationOutputs.set(index, result.publicationOutput);
+      }
       completed.push(Object.freeze({
         ...result?.diagnostic,
         taskElapsedMilliseconds: performance.now() - taskStarted,
@@ -1073,6 +1077,10 @@ export async function runInstalledStrategy(
             }
           }
         };
+      const beginResult = beginManagedResult ?? ((host, result, limits) =>
+        core.outputExportControl.beginResult(
+          host, result, limits, publicationOutputs.get(occurrence.task),
+        ));
       const stored = await storeCompletedResultPublicationPayload(
         store,
         core.outputExportControl,
@@ -1089,7 +1097,7 @@ export async function runInstalledStrategy(
           limits: publication.contractLimits,
         },
         signal,
-        beginManagedResult,
+        beginResult,
       );
       return Object.freeze({
         occurrence: Object.freeze({
@@ -1223,6 +1231,7 @@ export async function runInstalledStrategy(
         } catch (error) { releaseFailed(error, output); }
       }
       outputs.length = 0;
+      publicationOutputs.clear();
       try { coreSiteOutputs.close(); }
       catch (error) { releaseFailed(error, coreSiteOutputs); }
       if (pendingCloses.size) {

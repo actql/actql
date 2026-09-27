@@ -500,9 +500,41 @@ the exact and one-short control limit.
 
 | Category | Paths | State |
 | --- | ---: | --- |
-| Implementation gap (recorded, separate unit) | 0 route paths | With configured import limits and a retained Store, Local uses the materializing lane. It rejects zero-input tasks (the common request builder needs an input) and every execution obligation outside its legacy allowance (group execution, join output/order/validation/identity and dedupe ties). Affected ordinary Programs: Values-only Stages and Stages with cross product, set operations, nest, pivot, analytic, window, lag, top-k, json pick, expansion, append, row assertions, Values publication and every SGA/TEA/VecA kernel. Such tasks are excluded from Local with `unsupported_execution_obligation` and run on another realization when one is installed, otherwise the Program fails. Bounded providers already exist for them; widening the lane needs its completion obligations reviewed. |
+| Implementation gap (recorded, separate unit) | 0 route paths | The retained Store materializing lane now admits a checked zero-input Values task and its Values publication obligation through the bounded Values provider. It can publish an exact retained Values Result, run two downstream Computes, and reclaim the output. Other formerly rejected obligations and SGA/TEA/VecA retained Store paths remain separate implementation work; the Values change is not a blanket obligation allowance. See the retained completion follow-up below. |
 | Existing evidence was not referenced | 0 | Closed. |
 | Required tests were missing | 0 | Closed by the harnesses and Host cases above. |
+
+### Retained Store completion follow-up
+
+The zero-input Values route is connected through the ordinary Host with
+configured import limits and a retained Store. The common request builder
+prepares a checked source-free request for any ready zero-input task, including
+one after an Acquisition task. Local admits the Values publication obligation
+only for an installed one-step Values sequence with a bounded provider. The
+file-backed completion stays in the captured graph; its evaluator-owned cell
+view can be used for Named Result export only after the common publication
+layer verifies the same exact occurrence. No alternate Local publication
+format or synchronous evaluator was added.
+
+The standard Host fixture in `standard-host.test.mjs` selects retained Local
+for Values and two independent downstream Computes, retrieves all three Named
+Results through the ordinary access service, and checks independently written
+rows and order. It also delivers a timer cancellation after positive Values
+work, observes stop before publication, and verifies final cleanup. An injected
+retained Store append failure leaves no completed output and is reclaimed.
+`bounded_values_wbtest.mbt` covers exact and one-short work and workspace on
+the same bounded provider; `retained-output.test.mjs` covers the shared Store
+seal, abort, and cleanup owner. These are reused implementation proofs, not
+claims that every retained Store obligation is complete.
+
+| Remaining retained Store route | State | Required next proof |
+| --- | --- | --- |
+| Relation obligations beyond one-step Values | Open | Classify each checked obligation against its bounded provider, then prove ordinary Host completion, retained publication where applicable, cancellation, and cleanup. |
+| SGA, TEA, and VecA retained outputs | Open | Connect their exact Carrier completion and retention obligations without widening the Relation-only allowance. |
+| Native Host in-flight cancellation | Separate completion unit | Do not count JS Host cancellation as native request delivery. |
+
+The above is local route evidence. A final verification SHA and Linux CI result
+are not claimed by this document.
 
 Native Host in-flight cancellation is outside this unit's acceptance
 boundary, which requires standard Host cancellation and JS, Wasm and native

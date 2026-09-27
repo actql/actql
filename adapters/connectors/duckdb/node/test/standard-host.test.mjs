@@ -7255,6 +7255,307 @@ async function exerciseStrategyGraph(
     await store.cleanup();
     await rm(retainedDirectory, {recursive: true, force: true});
   }
+  const retainedValuesProgram = structuredClone(zeroInputProgram);
+  retainedValuesProgram.results = {
+    values: {from: {stage: 'values_a', result: 'r'}},
+    first: {from: {stage: 'consumer_a', result: 'r'}},
+    second: {from: {stage: 'consumer_b', result: 'r'}},
+  };
+  const retainedValuesFixture = fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(retainedValuesProgram));
+  const retainedValuesCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(retainedValuesFixture),
+    suppliedLimits,
+  );
+  const retainedValuesDirectory = await mkdtemp(join(
+    tmpdir(), 'actql-retained-values-'));
+  const retainedPublicationDirectory = await mkdtemp(join(
+    tmpdir(), 'actql-retained-values-publication-'));
+  const retainedValuesStore = await createLocalRetainedStore({
+    parentDirectory: retainedValuesDirectory,
+    capacityBytes: 8 * 1024 * 1024,
+    maxFrameBytes: 1024 * 1024,
+  });
+  const retainedValuesLeases = [];
+  const retainedValuesConfiguration = installLocalRetainedStore((key, bytes) => {
+    retainedValuesLeases.push(key);
+    let writer, closed = false;
+    return Object.freeze({
+      status: () => ({reservedBytes: writer && !closed ? bytes : 0,
+        cleanupPending: false}),
+      reserve: value => (writer = retainedValuesStore.reserve(value)),
+      close() { closed = true; writer?.cancel(); },
+      async cleanup() { await writer?.cleanupHandle?.retry?.(); },
+    });
+  });
+  let retainedValuesOwner, retainedPublicationStore;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      retainedValuesFixture, retainedValuesCapture.source()), true);
+    const setup = fixture.strategyFixtureRetainedLocalSubset(
+      retainedValuesFixture);
+    const runtime = runtimeCore(hostRuntime);
+    retainedPublicationStore = await openLocalPublicationStore({
+      directory: retainedPublicationDirectory,
+      storeAuthorityCid: hash('retained-values-publication-store'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    const plan = standardPublicationPlan(
+      runtime,
+      runtime.programDefinitionCid(setup),
+      runtime.resultInventory(setup).length,
+      'retained-values-publication-attempt',
+    );
+    retainedValuesOwner = await runPublishedCapturedStrategy(
+      setup,
+      {store: retainedPublicationStore, plan},
+      {local: retainedValuesConfiguration},
+      new AbortController().signal,
+    );
+    assert.equal(retainedValuesOwner.status, 'published');
+    assert.equal(retainedValuesOwner.execution.status, 'host-tasks-completed');
+    assert.deepEqual(
+      retainedValuesOwner.execution.completed.map(item => item.realization),
+      Array(3).fill('local'),
+    );
+    assert(retainedValuesOwner.execution.completed.every(item =>
+      item.outputRepresentation === 'retained-file'));
+    assert.equal(retainedValuesLeases.length, 3);
+    const rows = [{id: null, label: 'none'}, {id: 1, label: 'one'}];
+    assert.equal(fixture.strategyFixtureCid(retainedValuesFixture, 1),
+      hash(rows));
+    assert.equal(fixture.strategyFixtureCid(retainedValuesFixture, 2),
+      hash(rows));
+    assert.equal(fixture.strategyFixtureCid(retainedValuesFixture, 3),
+      hash(rows));
+    const authority = installResultAccessAuthority({
+      authorizeResultReadRequest: () => true,
+      admitResultRead: () => ({
+        authorizationContextCid: hash('retained-values-context'),
+        dataCeilingCid: hash('retained-values-ceiling'),
+        egressAdmissionCid: hash('retained-values-egress'),
+        expiresAt: '2026-09-18T01:00:00.000Z',
+        maxBytes: 100000,
+        maxUses: 1,
+      }),
+      authorizeResultRead: () => true,
+    });
+    const accessService = installNodeResultAccessService({
+      store: retainedPublicationStore,
+      control: runtime.publicationControl,
+      authority,
+      now: () => '2026-09-18T00:30:00.000Z',
+      limits: {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64},
+      frameLimits: {maxRowBytes: 4096, maxDepth: 32, maxFrameBytes: 4096},
+    });
+    for (const [name, expected] of Object.entries({
+      values: rows,
+      first: rows,
+      second: rows.map(({id, label}) => ({label, id})),
+    })) {
+      const delivered = [];
+      await deliverAuthorizedResult(accessService, {
+        indexKey: {
+          tenantId: plan.request.tenantId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        },
+        principalId: 'principal-a',
+        purpose: 'download',
+        resultName: name,
+        format: 'json',
+        attemptId: `retained-values-${name}`,
+      }, {
+        async write(bytes) {
+          delivered.push(Buffer.from(bytes));
+          return {confirmedBytes: bytes.byteLength};
+        },
+        async finish() { return {confirmed: true}; },
+      }, new AbortController().signal);
+      assert.deepEqual(JSON.parse(Buffer.concat(delivered).toString('utf8')),
+        expected);
+    }
+  } finally {
+    retainedValuesCapture.close();
+    if (retainedValuesOwner) {
+      await retainedValuesOwner.close();
+      assert.equal(await retainedValuesOwner.cleanup(), true);
+      assert.equal(retainedValuesOwner.execution.usage().heldBytes, 0n);
+      assert.equal(
+        retainedValuesOwner.execution.usage().reservedExecutionBytes, 0n);
+    }
+    await retainedPublicationStore?.close();
+    retainedValuesStore.close();
+    await retainedValuesStore.cleanup();
+    await rm(retainedValuesDirectory, {recursive: true, force: true});
+    await rm(retainedPublicationDirectory, {recursive: true, force: true});
+  }
+  const cancelledValuesFixture = fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(retainedValuesProgram));
+  const cancelledValuesCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(cancelledValuesFixture),
+    suppliedLimits,
+  );
+  const cancelledValuesDirectory = await mkdtemp(join(
+    tmpdir(), 'actql-cancelled-values-'));
+  const cancelledValuesStore = await createLocalRetainedStore({
+    parentDirectory: cancelledValuesDirectory,
+    capacityBytes: 8 * 1024 * 1024,
+    maxFrameBytes: 1024 * 1024,
+  });
+  const cancelledValuesLeases = [];
+  const cancelledValuesConfiguration = installLocalRetainedStore((key, bytes) => {
+    cancelledValuesLeases.push(key);
+    let writer, closed = false;
+    return Object.freeze({
+      status: () => ({reservedBytes: writer && !closed ? bytes : 0,
+        cleanupPending: false}),
+      reserve: value => (writer = cancelledValuesStore.reserve(value)),
+      close() { closed = true; writer?.cancel(); },
+      async cleanup() { await writer?.cleanupHandle?.retry?.(); },
+    });
+  });
+  const valuesCancel = new AbortController();
+  let valuesWorkObserved = false, valuesStopped = false;
+  const cancelRuntime = new Proxy(hostRuntime, {
+    get(target, property, receiver) {
+      if (property !== 'strategyModule_local_Dispatch') {
+        return Reflect.get(target, property, receiver);
+      }
+      return (setup, task) => {
+        const operations = checked(target.strategyModule_local_Dispatch(setup, task));
+        return {$tag: 1, _0: new Proxy(operations, {
+          get(operation, name, operationReceiver) {
+            if (name === 'execute') assert.fail('Values ran synchronously');
+            if (name === 'execution_stopped') {
+              return () => {
+                const stopped = operation.execution_stopped();
+                if (stopped && valuesCancel.signal.aborted) valuesStopped = true;
+                return stopped;
+              };
+            }
+            if (name !== 'advance') {
+              return Reflect.get(operation, name, operationReceiver);
+            }
+            return quantum => {
+              const result = operation.advance(Math.min(quantum, 1));
+              if (!valuesCancel.signal.aborted) {
+                const observation = checked(result);
+                if (!valuesWorkObserved && !observation.complete &&
+                    observation.progress > 0n) {
+                  valuesWorkObserved = true;
+                  setTimeout(() => valuesCancel.abort(), 0);
+                }
+              }
+              return result;
+            };
+          },
+        })};
+      };
+    },
+  });
+  let cancelledValuesExecution;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      cancelledValuesFixture, cancelledValuesCapture.source()), true);
+    const setup = fixture.strategyFixtureRetainedLocalSubset(cancelledValuesFixture);
+    cancelledValuesExecution = await runInstalledStrategy(
+      setup,
+      runtimeCore(cancelRuntime),
+      [localStrategyContribution(cancelRuntime, setup, checked,
+        cancelledValuesConfiguration)],
+      valuesCancel.signal,
+    );
+    assert.equal(valuesWorkObserved, true);
+    assert.equal(valuesStopped, true);
+    assert.equal(cancelledValuesExecution.status, 'host-tasks-failed');
+    assert.equal(cancelledValuesExecution.failure?.name, 'AbortError');
+    assert.equal(cancelledValuesExecution.completed.length, 0);
+    assert.equal(cancelledValuesLeases.length, 0);
+  } finally {
+    cancelledValuesCapture.close();
+    await cancelledValuesExecution?.close();
+    if (cancelledValuesExecution) {
+      assert.equal(await cancelledValuesExecution.cleanup(), true);
+      assert.equal(cancelledValuesExecution.cleanupPending(), false);
+      assert.equal(cancelledValuesExecution.usage().heldBytes, 0n);
+      assert.equal(cancelledValuesExecution.usage().reservedExecutionBytes, 0n);
+    }
+    cancelledValuesStore.close();
+    await cancelledValuesStore.cleanup();
+    await rm(cancelledValuesDirectory, {recursive: true, force: true});
+  }
+  const failedValuesFixture = fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(retainedValuesProgram));
+  const failedValuesCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(failedValuesFixture),
+    suppliedLimits,
+  );
+  const failedValuesDirectory = await mkdtemp(join(
+    tmpdir(), 'actql-failed-values-'));
+  const failedValuesStore = await createLocalRetainedStore({
+    parentDirectory: failedValuesDirectory,
+    capacityBytes: 8 * 1024 * 1024,
+    maxFrameBytes: 1024 * 1024,
+  });
+  let failedStoreAppends = 0, failedStoreLeases = 0;
+  const failedValuesConfiguration = installLocalRetainedStore((key, bytes) => {
+    failedStoreLeases++;
+    let writer, closed = false;
+    return Object.freeze({
+      status: () => ({reservedBytes: writer && !closed ? bytes : 0,
+        cleanupPending: writer?.cleanupHandle?.status?.().pending ?? false}),
+      reserve(value) {
+        writer = failedValuesStore.reserve(value);
+        return Object.freeze({
+          start: () => writer.start(),
+          append: async () => {
+            failedStoreAppends++;
+            throw new Error('InjectedLocalStoreAppend');
+          },
+          seal: identity => writer.seal(identity),
+        });
+      },
+      close() { closed = true; writer?.cancel(); },
+      async cleanup() { await writer?.cleanupHandle?.retry?.(); },
+    });
+  });
+  let failedValuesExecution;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      failedValuesFixture, failedValuesCapture.source()), true);
+    const setup = fixture.strategyFixtureRetainedLocalSubset(failedValuesFixture);
+    failedValuesExecution = await runInstalledStrategy(
+      setup,
+      runtimeCore(hostRuntime),
+      [localStrategyContribution(hostRuntime, setup, checked,
+        failedValuesConfiguration)],
+      new AbortController().signal,
+    );
+    assert.equal(failedStoreLeases, 1);
+    assert.equal(failedStoreAppends, 1);
+    assert.equal(failedValuesExecution.status, 'host-tasks-failed');
+    assert.equal(failedValuesExecution.completed.length, 0);
+  } finally {
+    failedValuesCapture.close();
+    await failedValuesExecution?.close();
+    if (failedValuesExecution) {
+      assert.equal(await failedValuesExecution.cleanup(), true);
+      assert.equal(failedValuesExecution.cleanupPending(), false);
+      assert.equal(failedValuesExecution.usage().heldBytes, 0n);
+      assert.equal(failedValuesExecution.usage().reservedExecutionBytes, 0n);
+    }
+    failedValuesStore.close();
+    await failedValuesStore.cleanup();
+    await rm(failedValuesDirectory, {recursive: true, force: true});
+  }
   await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
   const copyCancellationCase = {
     name: 'same-stage-distinct-in-flight',

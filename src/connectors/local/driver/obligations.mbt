@@ -22,6 +22,13 @@ pub fn local_dispatch_rejection(
         | JoinInputValidation(_)
         | JoinIdentity(_)
         | DedupeTopTie(_) => ()
+        ValuesPublication(_) =>
+          if !@local.local_module_bounded_values_publication(
+              installed.implementation,
+              local_task_slot(installed, task),
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
         _ => return Some("unsupported_execution_obligation")
       }
     }

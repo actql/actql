@@ -63,7 +63,11 @@ pub fn local_materializing_input(LocalMaterializingAttempt, Int) -> @execution_r
 
 pub fn local_materializing_provider_work(LocalMaterializingAttempt) -> Int64?
 
+pub fn local_materializing_publication_output(LocalMaterializingAttempt) -> @execution_relation.CompletedOutput?
+
 pub fn local_materializing_stopped(LocalMaterializingAttempt) -> Bool
+
+pub fn local_module_bounded_values_publication(LocalComputeModule, Int) -> Bool
 
 pub fn local_module_capacity(LocalComputeModule, Int) -> @execution_relation.ExecutionCapacity?
 

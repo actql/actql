@@ -177,6 +177,22 @@ pub fn local_module_managed_provider(
 }
 
 ///|
+/// A Values publication check is discharged only by the exact one-step
+/// bounded Values provider. Its admitted output and typed row construction
+/// enforce the checked source obligation before completion is exposed.
+pub fn local_module_bounded_values_publication(
+  installed : LocalComputeModule,
+  slot : Int,
+) -> Bool {
+  guard installed.sequences.get(slot) is Some(sequence) else { return false }
+  @execution.generated_sequence_step_index_at(sequence, 0) is Some(_) &&
+  @execution.generated_sequence_step_index_at(sequence, 1) is None &&
+  @execution.generated_sequence_step_at(sequence, 0)
+  is Some(@lower.ValuesStep(_)) &&
+  local_module_managed_provider(installed, sequence) is Some(_)
+}
+
+///|
 /// The bounded provider owning `sequence`: a registered family provider first,
 /// then the built-in relation providers bound to the module limits.
 fn local_managed_provider_for(
