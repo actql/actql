@@ -1,7 +1,6 @@
 // One installed Host owner for an admitted Run's physical dispatch, stop
 // observation, and recoverable cleanup. The journal and MoonBit control keep
 // their existing authority; this owner does not decide whether to retry.
-import {openCapturedDuckDBSource} from './captured-duckdb-source.mjs';
 import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
 import {acquiredTaskPublicationPlan} from './local-values-plan.mjs';
@@ -183,11 +182,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         const captureStartedAt = now();
         await observed('acquisition_started', {ref: accepted.ref});
         entry.physicalWorkMayHaveStarted = true;
-        entry.sourceCapture = await openCapturedDuckDBSource({moon,
-          preparedProgram, registry, values, fragment, ordered,
-          database: sourceProfile.database, schema: sourceProfile.schema,
-          table: sourceProfile.table, sourceAccess,
-          transportLimits: sourceProfile.transportLimits,
+        // The installed source's adapter owns the physical read; the
+        // returned capture is this entry's to close.
+        entry.sourceCapture = await sourceProfile.open({preparedProgram,
+          registry, values, fragment, ordered, sourceAccess,
           signal: entry.abort.signal,
           preparedSource: held.preparedSource});
         const captureCompletedAt = now();

@@ -154,17 +154,27 @@ const byCid = values => values.map(value => JSON.parse(value))
 
 // The Check Environment for Programs over a published declaration: the
 // Host's base environment with the declaration's Catalog, source views,
-// contracts and manifest entry. Built only from the published generation;
-// Check never describes or regenerates anything.
-export function salesforceCheckEnvironment(baseWire, declared) {
+// contracts and manifest entry, and the source evidence members generated
+// from the same declaration (`members`: schema snapshot and capability
+// texts). Built only from the published generation; Check never describes
+// or regenerates anything.
+export function salesforceCheckEnvironment(baseWire, declared, members) {
   const base = JSON.parse(baseWire);
   const {evidence_bundle_cid: _, ...body} = base;
   if (body.version !== 'actql-check-environment/0.1' ||
       body.connector_catalogs.length !== 0 ||
-      body.connector_manifest !== undefined) {
+      body.schema_snapshots.length !== 0 ||
+      body.connector_capabilities.length !== 0 ||
+      body.connector_manifest !== undefined ||
+      !Array.isArray(members?.schemas) ||
+      !Array.isArray(members?.capabilities) ||
+      members.schemas.length !== declared.source_views.length ||
+      members.capabilities.length !== declared.source_views.length) {
     fail('InvalidSalesforceCheckEnvironmentBase');
   }
   const environment = {...body,
+    schema_snapshots: byCid(members.schemas),
+    connector_capabilities: byCid(members.capabilities),
     source_views: byCid(declared.source_views),
     contract_registry: byCid(declared.contracts),
     connector_catalogs: [JSON.parse(declared.catalog)],

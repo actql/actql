@@ -16,12 +16,21 @@ function cid(value) {
     .digest('hex')}`;
 }
 
+export const INSTALLED_DUCKDB_SOURCE_VERSION =
+  'actql-installed-duckdb-source/0.1';
+
 export async function loadInstalledDuckDBSource(path, {root, principalId}) {
   if (path === undefined) return undefined;
   if (typeof path !== 'string' || !isAbsolute(path)) {
     throw new TypeError('InvalidInstalledSourceProfilePath');
   }
-  const profile = JSON.parse(await readFile(path, 'utf8'));
+  return installDuckDBSourceProfile(JSON.parse(await readFile(path, 'utf8')),
+    {root, principalId});
+}
+
+// Install one parsed DuckDB source profile.
+export async function installDuckDBSourceProfile(profile, {root,
+  principalId}) {
   if (profile === null || typeof profile !== 'object' ||
       Array.isArray(profile) ||
       Object.keys(profile).sort().join('\0') !==

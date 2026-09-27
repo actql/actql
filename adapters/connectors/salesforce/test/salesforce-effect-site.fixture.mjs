@@ -93,11 +93,12 @@ export async function openSalesforceEffectSiteFixture(t, {
     }
     const prefix = '/services/data/v62.0/';
     if (request.method === 'GET' && request.url?.startsWith(`${prefix}query?q=`)) {
-      // Three stored records answer a bounded preview query.
+      // Three stored records answer a bounded preview query, or a whole
+      // acquisition query without a limit.
       const soql = decodeURIComponent(request.url.slice(
         `${prefix}query?q=`.length));
       const match =
-        /^SELECT ([A-Za-z_,]+) FROM Test_Record__c( ORDER BY Id)? LIMIT ([0-9]+)$/u
+        /^SELECT ([A-Za-z_,]+) FROM Test_Record__c( ORDER BY Id)?(?: LIMIT ([0-9]+))?$/u
           .exec(soql);
       if (match === null) {
         response.writeHead(400, {'content-type': 'application/json'});
@@ -108,7 +109,8 @@ export async function openSalesforceEffectSiteFixture(t, {
         : [...storedOrder].sort()).map(index => ({
         Id: `a0000000000000${index}`,
         Name: `record-${index}`, External_Key__c: `key-${index}`}));
-      const records = stored.slice(0, Number(match[3])).map(record =>
+      const records = stored.slice(0, match[3] === undefined
+        ? stored.length : Number(match[3])).map(record =>
         Object.fromEntries([['attributes', {type: 'Test_Record__c'}],
           ...match[1].split(',').map(name => [name, record[name]])]));
       response.writeHead(200, {'content-type': 'application/json'});

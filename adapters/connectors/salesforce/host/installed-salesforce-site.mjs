@@ -108,6 +108,9 @@ export async function installSalesforceAuthorization({accountConfiguration,
     return decision;
   };
   const authorization = Object.freeze({...gate, context,
+    // The exact configuration text, for a Host Checkpoint that decides the
+    // same source's reads under the same configuration.
+    accountConfiguration,
     authorize: async (...args) => own(await gate.authorize(...args)),
     resume: async (...args) => own(await gate.resume(...args))});
   installedDecisions.set(authorization, issued);
@@ -445,6 +448,28 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
         observationJson: evidence.observationJson})});
   }
 
+  // A describe of exactly `resource` for one acquisition dispatch, under its
+  // own metadata read decision. The describe responses are retained so the
+  // runtime that owns the acquisition reprojects the observation itself.
+  async function describeForAcquisition({resource, runInvocationCid,
+    dispatchRequestCid, occurrence, signal} = {}) {
+    if (!text(resource) || !text(occurrence) ||
+        !cidPattern.test(runInvocationCid ?? '') ||
+        !cidPattern.test(dispatchRequestCid ?? '')) {
+      fail('InvalidSalesforceCredentialGrantRequest');
+    }
+    const catalog = await describeNamed({resources: [resource], occurrence,
+      runInvocationCid, dispatchRequestCid, retainEvidence: true,
+      maxRetainedBytes: DEFAULT_SALESFORCE_CATALOG_LIMITS.maxObservationBytes,
+      signal});
+    if (catalog.status === 'interrupted') {
+      fail(catalog.interruptionCode === 'SalesforceCatalogCancelled'
+        ? 'SalesforceCatalogCancelled' : 'SalesforceCatalogRefreshInterrupted');
+    }
+    return Object.freeze({observationCid: catalog.observationCid,
+      evidence: catalog.evidence});
+  }
+
   const writeKinds = Object.freeze({create: 0, createFromResult: 1,
     update: 2, upsert: 3});
   // The executable Mapping of one Effect, from a declaration this Site
@@ -560,7 +585,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     connectorRegistration: 'salesforce', connectorRevision: 'salesforce/0.1',
     principal: principalId, context, authorization, credential,
     issueGrant, refreshCatalog, declareCatalog, restoreDeclaration,
-    prepareExecutionMapping, peek,
+    describeForAcquisition, prepareExecutionMapping, peek,
     // Whether this Site generated `declaration`.
     ownsDeclaration: declaration => declarations.has(declaration),
     close() {
