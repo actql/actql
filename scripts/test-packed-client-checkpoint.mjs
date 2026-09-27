@@ -466,14 +466,23 @@ async function startHost(name, options) {
     RESUME_AFTER_ANSWER: '1', HOLD_DISPATCH: '0', ...options}});
   let output = '';
   const port = await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      reject(new Error(`Remote Host readiness timed out: ${output}`));
+    }, 30000);
     child.stdout.setEncoding('utf8').on('data', chunk => {
       output += chunk;
       const ready = output.match(/READY:(\d+)/u);
-      if (ready) resolve(Number(ready[1]));
+      if (ready) {
+        clearTimeout(timer);
+        resolve(Number(ready[1]));
+      }
     });
     child.stderr.setEncoding('utf8').on('data', chunk => { output += chunk; });
-    child.on('exit', code => reject(new Error(
-      `Remote Host exited before ready (${code}): ${output}`)));
+    child.on('exit', code => {
+      clearTimeout(timer);
+      reject(new Error(`Remote Host exited before ready (${code}): ${output}`));
+    });
   });
   return {child, endpoint: `https://127.0.0.1:${port}/`, output: () => output};
 }
@@ -667,10 +676,21 @@ for (const [name, crashAt, restart, extra, step] of [
 {
   const name = 'cancel-restart';
   await approvedAndStopped(name, name, {LEASE_MS: '2000'});
-  await crashed(name, {CRASH_AT: 'definition_admitted', LEASE_MS: '2000'});
+  // Keep the dead claimant fenced through startup. Otherwise a slow start
+  // can enter the long injected stall before the HTTP listener exists.
+  await crashed(name, {CRASH_AT: 'definition_admitted', LEASE_MS: '30000'});
   const stalled = await startHost(name, {LEASE_MS: '2000',
     STALL_AT: 'resume_claimed', STALL_MS: '600000'});
-  try { client(stalled, 'cancelRun', [name]); }
+  try {
+    const deadline = Date.now() + 40000;
+    for (;;) {
+      try { await readFile(join(root, name + '.stalled')); break; }
+      catch (error) { if (error.code !== 'ENOENT') throw error; }
+      assert(Date.now() < deadline, 'resume did not reach its injected stall');
+      await new Promise(resolve => setTimeout(resolve, 25));
+    }
+    client(stalled, 'cancelRun', [name]);
+  }
   finally { await stopHost(stalled, 'SIGKILL'); }
   // The running Host settles once the killed claimant's lease lapses.
   await withHost(name, {LEASE_MS: '2000'}, async started => {
