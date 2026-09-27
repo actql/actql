@@ -128,3 +128,7 @@ Working-tree verification, not a fixed-SHA or Linux CI completion claim:
   Node/browser smoke, packed Checkpoint acceptance, and native Client mTLS.
   The preparation-failure regression also passed 1/1 with the pinned
   MoonBit toolchain. This is not Linux CI or a complete Effect apply test.
+- At `00d4f77eaa11f213de98853451a8af8468891a33`, the local
+  `check:salesforce-site` job passed 198/198 tests. Its multi-member apply,
+  unknown-row and publication cases use the Connector test composition;
+  they do not exercise the installed Host's Effect Checkpoint callbacks.
