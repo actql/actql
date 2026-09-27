@@ -167,13 +167,19 @@ await writeFile(join(root, 'paged-query.json'), pagedQuery);
 for (const [name, rows, expected] of [
   ['count-nullable', [{x: 1}, {x: null}, {x: 2}],
     [{present: 2, total: 3}]],
+  ['count-variety', [{x: 1}, {x: null}, {x: 2}, {x: 2}],
+    [{matched: 2, distinct_x: 2, smallest: 1, largest: 2}]],
   ['count-empty', [], [{total: 0}]],
 ]) {
   const values = {values: {schema: {
     x: {type: 'number', nullable: true}}, rows}, as: 'rows'};
   const sql = name === 'count-empty'
     ? 'SELECT COUNT(*) AS total FROM rows'
-    : 'SELECT COUNT(x) AS present, COUNT(*) AS total FROM rows';
+    : name === 'count-variety'
+      ? 'SELECT COUNTIF(x > 1) AS matched, '
+        + 'COUNT(DISTINCT x) AS distinct_x, MIN(x) AS smallest, '
+        + 'MAX(x) AS largest FROM rows'
+      : 'SELECT COUNT(x) AS present, COUNT(*) AS total FROM rows';
   const query = queryFrontend.compileValuesQueryJson(sql,
     'rows', 'rows', JSON.stringify(values), JSON.stringify(['x']),
     'fixture.' + name);
@@ -830,7 +836,7 @@ async function checkNullOrder(client, suffix) {
   assert.deepEqual(await paged.result('answer').all(), [{a: 1}, {a: 2}]);
 }
 async function checkGlobalCounts(client, suffix) {
-  for (const name of ['count-nullable', 'count-empty']) {
+  for (const name of ['count-nullable', 'count-variety', 'count-empty']) {
     const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
       {format: 'json', requestId: 'packed-' + name + '-' + suffix});
     const status = await execution.wait();

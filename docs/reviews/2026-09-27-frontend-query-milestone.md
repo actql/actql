@@ -108,6 +108,8 @@ Global COUNT over source-free Values now runs in both packed modes:
 `[1,NULL,2]` yields `COUNT(x)=2` and `COUNT(*)=3`, while an empty typed
 Relation yields one aggregate row with `COUNT(*)=0`. SUM/AVG remain separate
 numeric-profile work; these COUNT results do not establish their execution.
+On `[1,NULL,2,2]`, both packed modes also return `COUNTIF(x>1)=2`,
+`COUNT(DISTINCT x)=2`, `MIN(x)=1` and `MAX(x)=2` from one global aggregation.
 Pipe column edits also retain the input snapshot in both packed modes.
 `SET x=y,y=x` on `(2,1),(1,2)` publishes old and new values
 `(2,1,1,2),(1,2,2,1)`, and `DROP x` still permits `before.x` while omitting
