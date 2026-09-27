@@ -88,6 +88,14 @@ const sourceRoundtrip = frontend.structuralToJson(
   frontend.jsonToStructural(sourceProgram));
 assert.deepEqual(JSON.parse(sourceRoundtrip), JSON.parse(sourceProgram));
 await writeFile(join(root, 'source-program.json'), sourceRoundtrip);
+const queryFrontend = await import(pathToFileURL(join(repository,
+  '_build/js/debug/build/query_program_test_bridge/query_program_test_bridge.js')));
+const capturedQuery = queryFrontend.compileCapturedQueryJson(
+  'SELECT id FROM records WHERE id > 1', 'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.captured_query');
+assert.notEqual(capturedQuery, '');
+await writeFile(join(root, 'captured-query.json'), capturedQuery);
 const sourceCatalog = await readFile(join(repository,
   'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
 const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
@@ -181,6 +189,7 @@ for (const selected of connected) {
 }
 const document = readFileSync('values.json', 'utf8');
 const acquiredDocument = readFileSync('source-program.json', 'utf8');
+const capturedQueryDocument = readFileSync('captured-query.json', 'utf8');
 async function runApplication(options, requestId) {
   const client = await connect(options);
   const execution = await client.aql(document, {format: 'json', requestId});
@@ -238,6 +247,11 @@ assert.deepEqual((await installedLocal.attach(execution.ref)).ref,
 const acquiredLocal = await runAcquiredApplication(
   {mode: 'local', owner: 'local', durability: 'durable'},
   'packed-acquired-local');
+const capturedQueryLocal = await acquiredLocal.client.aql(capturedQueryDocument,
+  {format: 'json', requestId: 'packed-captured-query-local'});
+assert.equal((await capturedQueryLocal.wait()).status, 'succeeded');
+assert.deepEqual(await capturedQueryLocal.result('answer').all(),
+  [{id: 3}, {id: 2}, {id: 3}]);
 assert.deepEqual((await acquiredLocal.client.attach(
   acquiredLocal.execution.ref)).ref, acquiredLocal.execution.ref);
 const acquiredStarted = await acquiredLocal.client.start(
@@ -349,6 +363,12 @@ const {client: installedRemote, execution: remoteExecution,
 assert.deepEqual(remoteRows, rows);
 const acquiredRemote = await runAcquiredApplication(remoteOptions,
   'packed-acquired-remote');
+const capturedQueryRemote = await acquiredRemote.client.aql(
+  capturedQueryDocument,
+  {format: 'json', requestId: 'packed-captured-query-remote'});
+assert.equal((await capturedQueryRemote.wait()).status, 'succeeded');
+assert.deepEqual(await capturedQueryRemote.result('answer').all(),
+  [{id: 3}, {id: 2}, {id: 3}]);
 assert.deepEqual(acquiredRemote.b, acquiredLocal.b);
 assert.deepEqual(acquiredRemote.c, acquiredLocal.c);
 assert.deepEqual((await acquiredRemote.client.attach(

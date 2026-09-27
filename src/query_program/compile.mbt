@@ -18,6 +18,7 @@ pub(all) struct Context {
   stage_id : String
   stage_result : String
   result_name : String
+  captured_stage : String?
   inputs : Array[Input]
 }
 
@@ -310,6 +311,7 @@ fn compile_steps(
   input : Input,
   fields : Array[String],
   max_work : Int,
+  start_at : Int,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
@@ -317,7 +319,7 @@ fn compile_steps(
   let mut pending_select : Array[(String, @builder.Node)]? = None
   let mut pending_bindings : Array[(String, String)] = []
   let mut selected_expressions : Array[(@query.Expression, String)] = []
-  for i in 0..<@query.operation_count(query) {
+  for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
     let entries : Array[(String, @builder.Node)] = []
     let mut deferred = false
@@ -588,7 +590,9 @@ pub fn compile(
     context.program_id == "" ||
     context.stage_id == "" ||
     context.stage_result == "" ||
-    context.result_name == "" {
+    context.result_name == "" ||
+    context.captured_stage == Some(context.stage_id) ||
+    context.captured_stage == Some("") {
     return Err(InvalidContext)
   }
   let input = selected_input(query, context) catch {
@@ -611,9 +615,73 @@ pub fn compile(
       Ok(node) => node
       Err(issue) => raise Abort(Construction(issue))
     }
-    let (input_entries, seed_steps) = match input.source {
-      Captured(_) => ([(input.name, imported)], [])
-      GeneratedValues(_) => ([], [imported])
+    let mut start_at = 0
+    let (input_entries, seed_steps, capture_stage) = match input.source {
+      Captured(_) =>
+        match context.captured_stage {
+          Some(stage_id) => {
+            let predicate = match @query.operation_at(query, 0) {
+              Some(Where(expression)) => {
+                start_at = 1
+                append_expression(
+                  construction,
+                  expression,
+                  query,
+                  input,
+                  fields,
+                  limits.max_expression_work,
+                )
+              }
+              _ =>
+                construction.object([("literal", construction.add(Bool(true)))])
+            }
+            let capture_filter = construction.object([
+              ("from", construction.text(input.name)),
+              ("filter", predicate),
+            ])
+            let capture_step = construction.object([
+              (
+                "select",
+                construction.array(
+                  fields.map(field => construction.text(field)),
+                ),
+              ),
+              ("as", construction.text("aql_capture_0")),
+            ])
+            let capture_result = construction.object([
+              ("from", construction.text("aql_capture_0")),
+              (
+                "fields",
+                construction.array(
+                  fields.map(field => construction.text(field)),
+                ),
+              ),
+            ])
+            let capture = construction.object([
+              ("id", construction.text(stage_id)),
+              ("inputs", construction.object([(input.name, imported)])),
+              ("steps", construction.array([capture_filter, capture_step])),
+              ("results", construction.object([("source", capture_result)])),
+            ])
+            let source_ref = construction.object([
+              (
+                "result",
+                construction.object([
+                  ("stage", construction.text(stage_id)),
+                  ("result", construction.text("source")),
+                ]),
+              ),
+            ])
+            ([(input.name, source_ref)], [], Some(capture))
+          }
+          None => ([(input.name, imported)], [], None)
+        }
+      GeneratedValues(_) => {
+        if context.captured_stage is Some(_) {
+          raise Abort(InvalidContext)
+        }
+        ([], [imported], None)
+      }
     }
     let (steps, output) = compile_steps(
       construction,
@@ -621,6 +689,7 @@ pub fn compile(
       input,
       fields,
       limits.max_expression_work,
+      start_at,
     )
     let all_steps = seed_steps + steps
     let result_source = if steps.is_empty() { input.name } else { "aql_gen_0" }
@@ -637,10 +706,14 @@ pub fn compile(
       ("steps", construction.array(all_steps)),
       ("results", construction.object([(context.stage_result, result)])),
     ])
+    let stages = match capture_stage {
+      Some(capture) => [capture, stage]
+      None => [stage]
+    }
     let root = construction.object([
       ("version", construction.text("actql/0.1")),
       ("id", construction.text(context.program_id)),
-      ("stages", construction.array([stage])),
+      ("stages", construction.array(stages)),
       (
         "results",
         construction.object([

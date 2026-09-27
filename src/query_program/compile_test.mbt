@@ -51,6 +51,7 @@ fn fixture_context() -> Context {
     stage_id: "main",
     stage_result: "rows",
     result_name: "answer",
+    captured_stage: None,
     inputs: [
       {
         relation: [{ value: "orders", quoted: false, }],
@@ -324,4 +325,41 @@ test "source-free Values context enters the same query Program path" {
     compile(query, { ..context, inputs: [wrong], }, construction_limits())
     is Err(InvalidContext),
   )
+}
+
+///|
+test "captured source is read once before the downstream query task" {
+  let context = { ..fixture_context(), captured_stage: Some("capture"), }
+  for
+    text in [
+      "SELECT id FROM orders WHERE amount > 10", "FROM orders |> WHERE amount > 10 |> SELECT id",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    let program = compile(query, context, construction_limits()).unwrap()
+    let wire = semantic(program)
+    assert_true(wire.contains("\"id\":\"capture\""))
+    assert_true(
+      wire.contains("\"inputs\":{\"orders\":{\"carrier\":\"relation\""),
+    )
+    assert_true(
+      wire.contains(
+        "\"orders\":{\"result\":{\"result\":\"source\",\"stage\":\"capture\"}}",
+      ),
+    )
+    assert_true(
+      wire.contains(
+        "\"filter\":{\"gt\":[{\"field\":\"amount\"},{\"literal\":10}]}",
+      ),
+    )
+    let mut count = 0
+    for _ in wire.split("\"filter\"") {
+      count += 1
+    }
+    assert_eq(count, 2)
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      _ => fail("captured query must use ordinary checker")
+    }
+  }
 }

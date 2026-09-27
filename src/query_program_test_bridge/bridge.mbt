@@ -58,7 +58,14 @@ pub fn compile_query_json(
   program_id : String,
 ) -> String {
   compile_query_json_checked(
-    text, relation, input_name, declaration_json, fields_json, program_id, false,
+    text,
+    relation,
+    input_name,
+    declaration_json,
+    fields_json,
+    program_id,
+    false,
+    None,
   ) catch {
     _ => ""
   }
@@ -75,7 +82,38 @@ pub fn compile_values_query_json(
   program_id : String,
 ) -> String {
   compile_query_json_checked(
-    text, relation, input_name, values_step_json, fields_json, program_id, true,
+    text,
+    relation,
+    input_name,
+    values_step_json,
+    fields_json,
+    program_id,
+    true,
+    None,
+  ) catch {
+    _ => ""
+  }
+}
+
+///|
+#export_name("compileCapturedQueryJson")
+pub fn compile_captured_query_json(
+  text : String,
+  relation : String,
+  input_name : String,
+  declaration_json : String,
+  fields_json : String,
+  program_id : String,
+) -> String {
+  compile_query_json_checked(
+    text,
+    relation,
+    input_name,
+    declaration_json,
+    fields_json,
+    program_id,
+    false,
+    Some("capture"),
   ) catch {
     _ => ""
   }
@@ -90,6 +128,7 @@ fn compile_query_json_checked(
   fields_json : String,
   program_id : String,
   generated_values : Bool,
+  captured_stage : String?,
 ) -> String raise {
   let parsed = match @syntax.parse_query(text, syntax_limits()) {
     Ok(query) => query
@@ -128,6 +167,7 @@ fn compile_query_json_checked(
     stage_id: "main",
     stage_result: "rows",
     result_name: "answer",
+    captured_stage,
     inputs: [
       {
         relation: [{ value: relation, quoted: false, }],
