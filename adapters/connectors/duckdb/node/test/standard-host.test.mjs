@@ -7851,6 +7851,11 @@ async function exerciseStrategyGraph(
       } else {
         assert.deepEqual(execution.completed.map(item => item.task), [1, 2], name);
         assert.equal(leases, 2, name);
+        assert.equal(execution.failure?.code, 'MoonBitHostFailure', name);
+        assert(execution.failure.cause, `${name}: preserve the typed failure`);
+        assert.equal(fixture.strategyFixtureRetainedRowLimit(
+          execution.failure.cause), true,
+        `${name}: the producer must fail with Rows(_, RowLimit)`);
       }
     } finally {
       capture.close();

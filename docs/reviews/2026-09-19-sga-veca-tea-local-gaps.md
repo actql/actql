@@ -555,6 +555,12 @@ same retained Host path also applies independent kernel budgets: Append work
 and two-by-two Cross Join work 52/workspace 12. Each limit passes exactly and
 fails one short before retaining the producer result. These constants come
 from the corresponding bounded kernel proofs, not observed successful usage.
+The one-short cases also match the retained driver's typed
+`Preparation(Materializing(Candidate(Execution(Rows(_, RowLimit)))))`
+failure. Work and workspace are varied independently; both deliberately share
+the existing `RowLimit` classification. A selection, input, Store, or unrelated
+runtime failure cannot satisfy this assertion. Only the two input tasks may
+complete, and final cleanup must return held and reserved bytes to zero.
 
 #### Ordinary Program boundary
 

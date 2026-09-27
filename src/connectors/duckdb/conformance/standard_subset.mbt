@@ -118,6 +118,23 @@ pub fn strategy_fixture_retained_local_limits(
 }
 
 ///|
+/// Match the retained materializing driver's typed provider failure without
+/// relying on compiler-specific JavaScript enum tags or constructor names.
+#export_name("strategyFixtureRetainedRowLimit")
+pub fn strategy_fixture_retained_row_limit(
+  issue : @local_driver.LocalDispatchIssue,
+) -> Bool {
+  issue
+  is @local_driver.Preparation(
+    @local_connector.Materializing(
+      @local_connector.Candidate(
+        @connector.Execution(@execution.Rows(_, @execution.RowLimit))
+      )
+    )
+  )
+}
+
+///|
 /// Explicit SGA-enabled conformance artifact. The ordinary module subset does
 /// not import or install this family provider.
 #export_name("strategyFixtureSgaSubset")

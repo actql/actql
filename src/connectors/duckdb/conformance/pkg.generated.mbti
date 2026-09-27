@@ -6,7 +6,6 @@ import {
   "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/connectors/duckdb/compute",
-  "actql/actql/connectors/duckdb/driver",
   "actql/actql/connectors/duckdb/host",
   "actql/actql/connectors_builtin",
   "actql/actql/execution_query",
@@ -217,7 +216,7 @@ pub fn owned_fixed_begin(OwnedFixedFixture, String, Int) -> Bool
 
 pub fn owned_fixed_column_count(OwnedFixedFixture) -> Int
 
-pub fn owned_fixed_configuration(OwnedFixedFixture) -> @driver.ComputeHostConfiguration
+pub fn owned_fixed_configuration(OwnedFixedFixture) -> @actql/actql/connectors/duckdb/driver.ComputeHostConfiguration
 
 pub fn owned_fixed_consume_output(OwnedFixedFixture, @execution_relation.CompletedOutput) -> String
 
@@ -275,7 +274,7 @@ pub fn strategy_fixture_cid(StrategyFixture, Int) -> String
 
 pub fn strategy_fixture_close_output(StrategyFixture, Int) -> Unit
 
-pub fn strategy_fixture_compute(StrategyFixture, Int) -> @driver.StrategyComputeHostConfiguration
+pub fn strategy_fixture_compute(StrategyFixture, Int) -> @actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration
 
 pub fn strategy_fixture_consume(StrategyFixture, Int, String) -> String
 
@@ -305,7 +304,7 @@ pub fn strategy_fixture_managed_after_first_dispatch(StrategyFixture) -> @connec
 
 pub fn strategy_fixture_managed_candidate_accepts(StrategyFixture, @connector_sdk.ManagedFixedComputeRequest[Int], @connector_sdk.ManagedFixedComputeRequest[Int]) -> Bool
 
-pub fn strategy_fixture_managed_configuration(StrategyFixture, Int, @connector_sdk.ManagedFixedComputeRequest[Int], @execution_relation.ManagedExecutionProfile, Int64) -> @driver.ManagedStrategyComputeHostConfiguration[Int]
+pub fn strategy_fixture_managed_configuration(StrategyFixture, Int, @connector_sdk.ManagedFixedComputeRequest[Int], @execution_relation.ManagedExecutionProfile, Int64) -> @actql/actql/connectors/duckdb/driver.ManagedStrategyComputeHostConfiguration[Int]
 
 pub fn strategy_fixture_managed_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
@@ -358,6 +357,8 @@ pub fn strategy_fixture_retained_local_limits(StrategyFixture, Int, Int) -> @con
 pub fn strategy_fixture_retained_local_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_retained_resident_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
+pub fn strategy_fixture_retained_row_limit(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
 
 pub fn strategy_fixture_run(StrategyFixture) -> @physical_strategy.CapturedDAG
 
