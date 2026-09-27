@@ -866,6 +866,9 @@ fn compile_steps(
   let mut pipe_selected = false
   for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
+    if pipe_selected && !(operation is Order(_) || operation is Limit(_, _)) {
+      raise Abort(UnsupportedProjection)
+    }
     let entries : Array[(String, @builder.Node)] = []
     let mut deferred = false
     let mut add_distinct = false
@@ -1221,6 +1224,8 @@ fn compile_steps(
         let names : Array[String] = []
         let selected : Array[@builder.Node] = []
         let derives : Array[(String, @builder.Node)] = []
+        let bindings : Array[(String, String)] = []
+        let expressions : Array[(@query.Expression, String)] = []
         let physical = active_fields.copy()
         for projection in projections {
           match projection.star {
@@ -1236,6 +1241,7 @@ fn compile_steps(
                     ])
                   },
                 )
+                bindings.push(visible)
               }
             Some(_) => raise Abort(UnsupportedProjection)
             None => {
@@ -1281,6 +1287,8 @@ fn compile_steps(
                   }
               }
               names.push(name)
+              bindings.push((name, source))
+              expressions.push((expression, name))
               selected.push(
                 if name == source {
                   construction.text(source)
@@ -1309,9 +1317,20 @@ fn compile_steps(
         }
         entries.push(("select", construction.array(selected)))
         output = names
-        active_fields = names.copy()
-        pipe_visible = names.map(name => (name, name))
-        pipe_changed = false
+        selected_expressions = expressions
+        if !distinct && @query.operation_at(query, i + 1) is Some(Order(_)) {
+          if entries.length() == 2 && entries[0].0 == "from" {
+            ignore(entries.remove(0))
+            first = true
+          }
+          pending_select = Some(entries)
+          pending_bindings = bindings
+          deferred = true
+        } else {
+          active_fields = names.copy()
+          pipe_visible = names.map(name => (name, name))
+          pipe_changed = false
+        }
         pipe_selected = true
         if distinct {
           add_distinct = true
@@ -1467,17 +1486,85 @@ fn compile_steps(
           active_fields = names.copy()
         }
       }
-      Order(terms) if pipe_selected &&
-        terms.any(term => {
-          match
-            @query.expression_node(
-              term.expression,
-              @query.expression_root(term.expression),
-            ).unwrap().kind {
-            Reference(path) => path.length() == 2
-            _ => false
+      Order(terms) if pipe_selected => {
+        let sort : Array[@builder.Node] = []
+        for term in terms {
+          let expression = term.expression
+          let mut selected : String? = None
+          for pair in selected_expressions {
+            if same_expression(expression, pair.0) {
+              if selected is Some(_) {
+                raise Abort(UnsupportedOrdering)
+              }
+              selected = Some(pair.1)
+            }
           }
-        }) => raise Abort(UnsupportedOrdering)
+          let name = match selected {
+            Some(name) => {
+              let mut slot = name
+              if pending_select is Some(_) {
+                for binding in pending_bindings {
+                  if binding.0 == name {
+                    slot = binding.1
+                  }
+                }
+              }
+              slot
+            }
+            None =>
+              match
+                @query.expression_node(
+                  expression,
+                  @query.expression_root(expression),
+                ).unwrap().kind {
+                Reference(path) if path.length() == 1 => {
+                  let mut slot : String? = None
+                  for name in output {
+                    if same_name(path[0], { value: name, quoted: false, }) {
+                      slot = Some(name)
+                    }
+                  }
+                  match slot {
+                    Some(name) => {
+                      let mut physical = name
+                      if pending_select is Some(_) {
+                        for binding in pending_bindings {
+                          if binding.0 == name {
+                            physical = binding.1
+                          }
+                        }
+                      }
+                      physical
+                    }
+                    None =>
+                      if pending_select is Some(_) {
+                        match pipe_slot(path, pipe_visible, pipe_ranges) {
+                          Some(slot) => slot
+                          None => raise Abort(UnsupportedOrdering)
+                        }
+                      } else {
+                        raise Abort(UnsupportedOrdering)
+                      }
+                  }
+                }
+                Reference(path) if pending_select is Some(_) =>
+                  match pipe_slot(path, pipe_visible, pipe_ranges) {
+                    Some(slot) => slot
+                    None => raise Abort(UnsupportedOrdering)
+                  }
+                _ => raise Abort(UnsupportedOrdering)
+              }
+          }
+          sort.push(
+            construction.object([
+              ("field", construction.text(name)),
+              ("dir", construction.text(term.direction)),
+              ("nulls", construction.text(term.nulls)),
+            ]),
+          )
+        }
+        entries.push(("sort", construction.array(sort)))
+      }
       Order(terms) if pipe_changed => {
         let sort : Array[@builder.Node] = []
         for term in terms {
@@ -1618,6 +1705,8 @@ fn compile_steps(
           pending_select = None
           pending_bindings = []
           active_fields = output.copy()
+          pipe_visible = output.map(name => (name, name))
+          pipe_changed = false
         }
         None => ()
       }

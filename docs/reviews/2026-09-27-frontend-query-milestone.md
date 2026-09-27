@@ -142,9 +142,12 @@ names while older range aliases retain their prior slots; AS captures a new
 range snapshot and is not an ActQL step alias. The packed Local and HTTP
 Remote Hosts both execute `SET id = amount, amount = id` followed by a SELECT
 of original and new values. Both return the independently expected swap,
-including a NULL source value. The current lowering fails closed on qualified
-range ordering after a subsequent Pipe SELECT and on grouping/analytic after
-a scope mutation; these need the next scope pass before this milestone closes.
+including a NULL source value. For a Pipe SELECT followed by ORDER BY, the
+projection is deferred so the old range alias remains available to sorting;
+the SELECT output alias takes precedence over the input column of the same
+name. The checker accepts both distinct sort targets. Grouping/analytic after
+a scope mutation and additional operators after a Pipe SELECT still need the
+next scope pass before this milestone closes.
 ARRAY_AGG requires the adopted `IGNORE NULLS` and explicit order spelling;
 STRING_AGG requires a literal delimiter and explicit order. Both lower to the
 existing group call. The independent checker accepts the bounded ARRAY_AGG

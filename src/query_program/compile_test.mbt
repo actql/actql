@@ -509,17 +509,38 @@ test "Pipe DROP and AS separate current names from old range snapshots" {
   assert_true(
     semantic(implicit).contains("\"from\":\"pair\",\"select\":[\"y\"]"),
   )
+  let old_order = compile(
+    @query.parse_query(
+      "FROM pair AS before |> SET x = y |> SELECT x |> ORDER BY before.x",
+      syntax_limits(),
+    ).unwrap(),
+    pair_context(),
+    construction_limits(),
+  ).unwrap()
+  let old_wire = semantic(old_order)
+  assert_true(old_wire.contains("\"sort\":[{\"dir\":\"asc\",\"field\":\"x\""))
+  assert_true(old_wire.contains("\"select\":[{\"x\":\"aql_pipe_set_2\"}]"))
+  let alias_order = compile(
+    @query.parse_query(
+      "FROM pair AS before |> SET x = y |> SELECT x |> ORDER BY x",
+      syntax_limits(),
+    ).unwrap(),
+    pair_context(),
+    construction_limits(),
+  ).unwrap()
   assert_true(
-    compile(
-      @query.parse_query(
-        "FROM pair AS before |> SET x = y |> SELECT x |> ORDER BY before.x",
-        syntax_limits(),
-      ).unwrap(),
-      pair_context(),
-      construction_limits(),
-    )
-    is Err(UnsupportedOrdering),
+    semantic(alias_order).contains(
+      "\"sort\":[{\"dir\":\"asc\",\"field\":\"aql_pipe_set_2\"",
+    ),
   )
+  for program in [old_order, alias_order] {
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      NeedsInputs(_) => fail("static pair ordering should be closed")
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    }
+  }
 }
 
 ///|
