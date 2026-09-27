@@ -40,13 +40,13 @@ fn run_group_workspace(
     false,
     max_entries=entries,
   )
+  // Only the workspace row limit counts as the expected rejection.
   let result = match started {
-    Err(_) => None
+    Err(_) => fail(case.label + ": start rejected before execution")
     Ok(execution) => {
       let cells = match drive_bounded_group(execution) {
         BoundedGroupComplete(output, ..) => Some(bounded_output_cells(output))
-        BoundedGroupFailed(Rows(RowLimit), ..)
-        | BoundedGroupFailed(Completion(_), ..) => None
+        BoundedGroupFailed(Rows(RowLimit), ..) => None
         _ => fail(case.label + ": unexpected workspace outcome")
       }
       assert_true(cleanup_bounded_group_execution(execution).unwrap())
@@ -108,7 +108,7 @@ fn run_set_workspace(operation : String, entries : Int) -> Array[String]? raise 
     max_rows=10,
   )
   let result = match started {
-    Err(_) => None
+    Err(_) => fail(operation + ": start rejected before execution")
     Ok(execution) => {
       let ids = match drive_bounded_set(execution) {
         BoundedSetComplete(output, ..) => Some(bounded_set_ids(output))
@@ -196,7 +196,7 @@ fn run_nest_workspace(entries : Int) -> Array[Int]? raise {
     max_work=100000,
   )
   let result = match started {
-    Err(_) => None
+    Err(_) => fail("nest: start rejected before execution")
     Ok(execution) => {
       let counts = match drive_bounded_nest(execution) {
         BoundedNestComplete(output, ..) =>
