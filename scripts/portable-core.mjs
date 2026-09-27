@@ -1,6 +1,6 @@
 // Conservative parser for the audited Moon package grammar. Unknown syntax is
 // an error, not an ignored dependency. Build-time tooling may use Node I/O.
-import {readFileSync, readdirSync, existsSync} from 'node:fs';
+import {readFileSync, readdirSync, existsSync, mkdirSync, copyFileSync, writeFileSync} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -188,6 +188,31 @@ export function inspectCore(root, roots = coreRoots) {
   }
   return {roots:[...roots], packages:[...packages.keys()].sort(), external:Object.fromEntries(external),
     implicitRuntime: 'Pinned MoonBit builtin/compiler runtime: generated JS requires the separate explicit-seed and artifact audit; source import inspection alone does not certify it.'};
+}
+
+// Materialize exactly the audited production closure. Test manifests must not
+// make the isolated build depend on packages outside that closure.
+export function copyProductionCore(root, destination, roots = coreRoots) {
+  const audit = inspectCore(root, roots);
+  mkdirSync(destination, {recursive: true});
+  copyFileSync(join(root, 'moon.mod'), join(destination, 'moon.mod'));
+  for (const name of audit.packages) {
+    const source = join(root, 'src', name);
+    const target = join(destination, 'src', name);
+    mkdirSync(target, {recursive: true});
+    const imports = packageImports(readFileSync(join(source, 'moon.pkg'), 'utf8'))
+      .filter(entry => entry.scope === 'production');
+    const manifest = 'supported_targets = "+js+wasm+native"\n' +
+      (imports.length ? '\nimport {\n' + imports.map(entry =>
+        `  ${JSON.stringify(entry.path)} @${entry.alias},\n`).join('') + '}\n' : '');
+    writeFileSync(join(target, 'moon.pkg'), manifest);
+    for (const file of readdirSync(source)) {
+      if (file.endsWith('.mbt') && !/_(?:wb)?test\.mbt$/.test(file)) {
+        copyFileSync(join(source, file), join(target, file));
+      }
+    }
+  }
+  return audit;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
