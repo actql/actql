@@ -14,13 +14,15 @@ const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
 const root = await mkdtemp(join(build, 'node-client-package-'));
-const cache = join(root, 'npm-cache');
+const cache = join(build, 'npm-cache');
 const environment = {...process.env, npm_config_cache: cache,
   ACTQL_LOCAL_STATE_DIR: join(root, 'local-state')};
 
 function run(command, args, cwd) {
+  const timeout = command === 'npm' && args[0] === 'pack' ? 180000
+    : command === 'npm' && args[0] === 'install' ? 120000 : 30000;
   const result = spawnSync(command, args, {cwd, env: environment,
-    encoding: 'utf8', timeout: command === 'npm' && args[0] === 'pack' ? 180000 : 30000});
+    encoding: 'utf8', timeout});
   if (result.error || result.status !== 0) {
     throw new Error(`${command} ${args.join(' ')} failed:\n` +
       `${result.stdout}\n${result.stderr}`, {cause: result.error});
@@ -187,6 +189,39 @@ for (const [name, rows, expected] of [
   await writeFile(join(root, name + '.json'), query);
   await writeFile(join(root, name + '-expected.json'), JSON.stringify(expected));
 }
+const numericAggregateValues = {values: {schema: {
+  x: {type: 'number', nullable: true}},
+rows: [{x: 1}, {x: null}, {x: 2}, {x: 2}]}, as: 'rows'};
+const numericAggregateQuery = queryFrontend.compileValuesQueryJson(
+  'SELECT SUM(x) AS total, AVG(x) AS average FROM rows',
+  'rows', 'rows', JSON.stringify(numericAggregateValues),
+  JSON.stringify(['x']), 'fixture.numeric_aggregate');
+assert.notEqual(numericAggregateQuery, '');
+await writeFile(join(root, 'numeric-aggregate.json'), numericAggregateQuery);
+const emptyNumericAggregateQuery = queryFrontend.compileValuesQueryJson(
+  'SELECT SUM(x) AS total, AVG(x) AS average FROM rows',
+  'rows', 'rows', JSON.stringify({
+    ...numericAggregateValues,
+    values: {...numericAggregateValues.values, rows: []},
+  }), JSON.stringify(['x']), 'fixture.empty_numeric_aggregate');
+assert.notEqual(emptyNumericAggregateQuery, '');
+await writeFile(join(root, 'numeric-aggregate-empty.json'),
+  emptyNumericAggregateQuery);
+const numericWindowValues = {values: {schema: {
+  id: {type: 'number', nullable: false},
+  x: {type: 'number', nullable: true}},
+rows: [{id: 1, x: 1}, {id: 2, x: null},
+  {id: 3, x: 2}, {id: 4, x: 2}]}, as: 'rows'};
+const numericWindowQuery = queryFrontend.compileValuesQueryJson(
+  'SELECT id, SUM(x) OVER (ORDER BY id '
+    + 'ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total, '
+    + 'AVG(x) OVER (ORDER BY id '
+    + 'ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS average '
+    + 'FROM rows',
+  'rows', 'rows', JSON.stringify(numericWindowValues),
+  JSON.stringify(['id', 'x']), 'fixture.numeric_window');
+assert.notEqual(numericWindowQuery, '');
+await writeFile(join(root, 'numeric-window.json'), numericWindowQuery);
 for (const [name, sql] of [
   ['alias-order', 'SELECT x AS y FROM rows ORDER BY y'],
   ['hidden-order', 'SELECT x FROM rows ORDER BY y'],
@@ -869,6 +904,23 @@ async function checkGlobalCounts(client, suffix) {
       JSON.parse(readFileSync(name + '-expected.json', 'utf8')));
   }
 }
+async function checkNumericAggregate(client, suffix) {
+  for (const [name, expected] of [
+    ['numeric-aggregate', [{total: 5, average: 5 / 3}]],
+    ['numeric-aggregate-empty', [{total: null, average: null}]],
+    ['numeric-window', [
+      {id: 1, total: 1, average: 1},
+      {id: 2, total: 1, average: 1},
+      {id: 3, total: 3, average: 1.5},
+      {id: 4, total: 5, average: 5 / 3},
+    ]],
+  ]) {
+    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+      {format: 'json', requestId: 'packed-' + name + '-' + suffix});
+    assert.equal((await execution.wait()).status, 'succeeded');
+    assert.deepEqual(await execution.result('answer').all(), expected);
+  }
+}
 async function checkAnalyticPeers(client, suffix) {
   const execution = await client.aql(
     readFileSync('analytic-peers.json', 'utf8'),
@@ -1199,6 +1251,7 @@ await checkValuesCte(installedLocal, 'local');
 await checkPipeSnapshots(installedLocal, 'local');
 await checkNullOrder(installedLocal, 'local');
 await checkGlobalCounts(installedLocal, 'local');
+await checkNumericAggregate(installedLocal, 'local');
 await checkAnalyticPeers(installedLocal, 'local');
 await checkJoinSubquery(installedLocal, 'local');
 await checkCteJoinBody(installedLocal, 'local');
@@ -1394,6 +1447,7 @@ await checkValuesCte(installedRemote, 'remote');
 await checkPipeSnapshots(installedRemote, 'remote');
 await checkNullOrder(installedRemote, 'remote');
 await checkGlobalCounts(installedRemote, 'remote');
+await checkNumericAggregate(installedRemote, 'remote');
 await checkAnalyticPeers(installedRemote, 'remote');
 await checkConcat(installedRemote, 'remote');
 await checkJoinSubquery(installedRemote, 'remote');

@@ -35,12 +35,12 @@ records reference terms, frontend and existing IR meanings, and differences.
 | Closed scalar expressions, precedence, NULL and CONCAT | Structured Expression admission/typing | Independent trees, demand/failure and legacy regression | Partial: shared AST and direct tree lowering; strict and legacy CONCAT execute through packed Local/Remote; full typing/failure matrix pending |
 | SELECT, FROM-only, subqueries, WHERE | Existing Program derive/select/filter | SQL/Pipe expected Program and rows | Partial: base SELECT/FROM/WHERE and named noncorrelated FROM subqueries, including nesting, execute through captured Host; one JOIN-right subquery from an earlier CTE executes through packed Local/Remote; broader joins, set operands and additional source forms remain |
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: direct Values joins support INNER/LEFT, bounded CROSS and output-only DISTINCT; a DISTINCT CTE supplies identity for packed source-free and captured-input FULL/USING; general join scope remains |
-| GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: scalar reductions and ordered ARRAY_AGG/STRING_AGG lower through group; captured COUNT/GROUP/HAVING runtime passes, ordered collection runtime and failure matrix pending |
+| GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: COUNT, MIN/MAX and pinned-profile SUM/AVG execute through packed Local/Remote, including empty input; ordered collection runtime and failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each used declaration lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin, a sequential chain, two branches from one predecessor and a join inside a declaration body; physical provider read counter and broader joins remain |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands and two terms sharing one captured source execute through packed Local/HTTP Clients; different captured sources, different physical source filters, CTE reuse and broader type/order cases remain |
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND, scoped SET/DROP/RENAME/AS, one JOIN with an optional preceding WHERE, and a parenthesized SQL right operand for Pipe set; post-projection JOIN and other scope forms remain |
-| Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK, ROW_NUMBER, LAG and framed COUNT Results; Pipe EXTEND/SET before OVER preserves updated and prior alias snapshots; full negative and frame matrix pending |
+| Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed ranking, navigation, framed COUNT, SUM and AVG Results; Pipe EXTEND/SET before OVER preserves updated and prior alias snapshots; full negative and frame matrix pending |
 | Bounds, origin maps and Grammar Manifest | Existing owners | Before-allocation bounds, source diagnostics, pins/vectors | Partial: query grammar/rules now bind the 0.1 Grammar Manifest with schema, generated pin and independent vector; exact-limit and origin diagnostics matrix remains |
 | Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Partial: source-free and captured query, analytic, set and CTE examples run through packed Local and HTTP Remote Host; independent acquisition count remains |
 | Core isolation and SDK dependency boundary | Existing gates | No frontend production dependency or tracked runtime bundles | Partial: connector-free Core isolation passes; final SDK closure gate remains |
@@ -50,9 +50,8 @@ uses reference terms and existing IR names. In this status table, an intentional
 profile difference is distinct from an unimplemented adopted feature. The
 former includes eager ActQL boolean/failure rules, explicit new-query NULL
 sort directions, no implicit set-column type promotion or padding, and the
-specified exclusion of recursive/correlated CTEs. The latter includes the
-numeric-profile execution gap, JOIN-output sort, and the remaining Pipe JOIN
-scope forms. No
+specified exclusion of recursive/correlated CTEs. The latter includes
+JOIN-output sort and the remaining Pipe JOIN scope forms. No
 unimplemented item is reclassified as an intentional incompatibility.
 
 The common expression lowering and Local evaluator now retain distinct
@@ -249,16 +248,15 @@ and later numeric rows producing running minimum and maximum values.
 The source-free packed Local and HTTP Hosts also evaluate RANK and DENSE_RANK
 against the same peer window: input rows with sort keys `2,1,1` retain their
 input order and yield ranks `3,1,1` versus dense ranks `2,1,1`. The peer rows
-are specified independently of the generated Program. SUM and AVG lower to
-the existing analytic operator, but standard installed Host preparation
-cannot yet supply the numeric reduction profile: the
-`clientProgramCheckEnvironment` bridge in
-`src/connectors_builtin_node/client_program_bridge.mbt` has no numeric-profile
-selection input. The shared checker returns `NeedsInputs` for either call
-without the profile and accepts both when the existing pinned numeric profile
-is supplied in the MoonBit test. The installed Local/HTTP Result path for
-these two signatures remains unverified; it must not silently choose a
-reduction algorithm.
+are specified independently of the generated Program. The installed Host now
+selects the repository-pinned numeric reduction profile by its exact CID when
+admitting the check environment. The Host ABI rejects an unknown CID, and the
+old no-profile entry retains its `NeedsInputs` behavior for SUM/AVG. Packed
+Local and HTTP Remote both publish SUM=5 and AVG=5/3 over `(1,NULL,2,2)`;
+empty input yields NULL for both. An explicit ROWS-frame OVER query publishes
+running SUM `(1,1,3,5)` and AVG `(1,1,1.5,5/3)` in input order. This selects
+the existing numeric reduction owner; it does not infer an algorithm from SQL
+syntax or silently fall back after execution failure.
 Pipe SET retains an earlier range alias inside OVER: after replacing `id` with
 `amount`, `ORDER BY before.id` ranks the original input values. Packed Local
 and HTTP Remote both return `(old_id,id,pos)=(1,NULL,1),(2,20,2)`.

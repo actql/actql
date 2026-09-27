@@ -73,8 +73,13 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   const environmentWire = sourceProfile?.environmentWire ??
     baseEnvironmentWire;
   const evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
-  const environment = moon.clientProgramCheckEnvironment(environmentWire,
-    evidenceCid, false, false, true, false, false, false, false);
+  const numericProfile = JSON.parse(await readFile(join(packageRoot,
+    'spec/contracts/actql-numeric-reduction.json'), 'utf8'));
+  const numericProfileCid = `sha256:${createHash('sha256')
+    .update(canonicalJson(numericProfile)).digest('hex')}`;
+  const environment = moon.clientProgramCheckEnvironmentWithNumericProfile(
+    environmentWire, evidenceCid, false, false, true, false, false, false,
+    false, numericProfileCid);
   if (environment === undefined) {
     sourceProfile?.close();
     throw new Error('InvalidInstalledLocalEnvironment');

@@ -28,6 +28,34 @@ pub fn client_program_check_environment(
 }
 
 ///|
+/// The installed Host opts into the exact pinned numeric profile before
+/// checking a Program. An unknown CID cannot silently choose an algorithm.
+#export_name("clientProgramCheckEnvironmentWithNumericProfile")
+pub fn client_program_check_environment_with_numeric_profile(
+  body : String,
+  evidence_bundle_cid : String,
+  text_time : Bool,
+  veca : Bool,
+  rela : Bool,
+  sga : Bool,
+  tea : Bool,
+  calendar : Bool,
+  text_rank : Bool,
+  numeric_profile_cid : String,
+) -> @program_check.CheckEnvironment? {
+  if sga {
+    return None
+  }
+  @publication_host.admit_client_check_environment(
+    body,
+    evidence_bundle_cid,
+    { text_time, veca, },
+    { rela, sga, tea, calendar, text_rank, },
+    numeric_profile_cid=Some(numeric_profile_cid),
+  )
+}
+
+///|
 /// Preserve the shared checker's typed failure across the in-process Host ABI.
 /// A wire adapter may project it to a public error, but must not recheck the
 /// Program or infer missing inputs from an absent prepared handle.
@@ -470,6 +498,24 @@ pub fn client_program_issue_compiled_values_invocation(
   @publication.RunEvidenceValueIssue,
 ] {
   @publication_host.issue_client_compiled_values_invocation(
+    value, definition, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramIssueCompiledSourceFreeTaskInvocation")
+pub fn client_program_issue_compiled_source_free_task_invocation(
+  value : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  data_policy_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  @publication_host.issue_client_compiled_source_free_task_invocation(
     value, definition, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
   )
 }

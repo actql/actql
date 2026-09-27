@@ -24,6 +24,32 @@ pub fn client_program_check_environment(
 }
 
 ///|
+/// The installed Host opts into the exact pinned numeric profile before
+/// checking a Program. An unknown CID cannot silently choose an algorithm.
+#export_name("clientProgramCheckEnvironmentWithNumericProfile")
+pub fn client_program_check_environment_with_numeric_profile(
+  body : String,
+  evidence_bundle_cid : String,
+  text_time : Bool,
+  veca : Bool,
+  rela : Bool,
+  sga : Bool,
+  tea : Bool,
+  calendar : Bool,
+  text_rank : Bool,
+  numeric_profile_cid : String,
+) -> @program_check.CheckEnvironment? {
+  // SELECTED_SGA_NUMERIC_CAPABILITY
+  @publication_host.admit_client_check_environment(
+    body,
+    evidence_bundle_cid,
+    { text_time, veca, },
+    { rela, sga, tea, calendar, text_rank, },
+    numeric_profile_cid=Some(numeric_profile_cid),
+  )
+}
+
+///|
 /// Preserve the shared checker's typed failure across the in-process Host ABI.
 /// A wire adapter may project it to a public error, but must not recheck the
 /// Program or infer missing inputs from an absent prepared handle.
