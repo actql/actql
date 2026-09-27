@@ -6497,7 +6497,7 @@ async function exerciseStrategyGraph(
     ['external cross join', externalCrossJoinProgram, [1, 2, 3, 4, 5]],
     ['bounded equality join/select', boundedEqualityJoinProgram,
       [1, 2, 3, 4, 5]],
-    ['split external cross join', splitCrossJoinProgram, [1, 2, 3, 4, 5, 6]],
+    ['same-task external cross join', splitCrossJoinProgram, [1, 2, 3, 4, 5]],
     ['external append', externalAppendProgram, [1, 2, 3, 4, 5]],
   ]) {
     const fixtureArgs = name === 'analytic' ? analyticArgs : args;
@@ -6642,11 +6642,11 @@ async function exerciseStrategyGraph(
         );
       }
       if (name === 'external cross join' ||
-          name === 'split external cross join') {
+          name === 'same-task external cross join') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           name === 'external cross join'
-            ? [2, 3, 6, 6, 6] : [2, 3, 6, 6, 6, 6],
+            ? [2, 3, 6, 6, 6] : [2, 3, 6, 6, 6],
         );
       }
       if (name === 'external append') {
@@ -7413,6 +7413,24 @@ async function exerciseStrategyGraph(
     .steps[0].values.rows = [{tag: 'a'}];
   retainedSingletonCross.stages.find(stage => stage.id === 'crossed')
     .steps[0].cross_join.right_rows = 'one';
+  const retainedBinaryChain = (source, suffix, fields) => {
+    const program = structuredClone(source);
+    const producer = program.stages.find(stage => stage.id === 'crossed');
+    producer.steps[0].as = 'binary';
+    let from = 'binary';
+    for (const [index, step] of suffix.entries()) {
+      const as = index === suffix.length - 1 ? 'out' : `chain_${index}`;
+      producer.steps.push({from, ...step, as});
+      from = as;
+    }
+    producer.results.r.fields = fields;
+    for (const stage of program.stages.filter(stage =>
+      stage.id.startsWith('external_cross_consumer_'))) {
+      stage.steps[0].select = fields;
+      stage.results.r.fields = fields;
+    }
+    return program;
+  };
   for (const {name, source, expected, fields} of [
     {name: 'append', source: externalAppendProgram,
       expected: [{id: 1}, {id: 2}, {id: 3}, {id: 4}], fields: ['id']},
@@ -7431,6 +7449,56 @@ async function exerciseStrategyGraph(
       ], fields: ['id', 'tag']},
     {name: 'singleton-cross-join', source: retainedSingletonCross,
       expected: [{id: 1, tag: 'a'}, {id: 2, tag: 'a'}], fields: ['id', 'tag']},
+    {name: 'append-filter-select', source: retainedBinaryChain(
+      externalAppendProgram, [{filter: 'id > 1'}, {select: ['id']}], ['id']),
+    expected: [{id: 2}, {id: 3}, {id: 4}], fields: ['id']},
+    {name: 'append-derive-select', source: retainedBinaryChain(
+      externalAppendProgram,
+      [{derive: {copy: 'id'}}, {select: ['id', 'copy']}],
+      ['id', 'copy']),
+    expected: [1, 2, 3, 4].map(id => ({id, copy: id})),
+    fields: ['id', 'copy']},
+    {name: 'append-reuse-input', source: retainedBinaryChain(
+      externalAppendProgram,
+      [{append: {with: 'r'}}, {filter: 'id > 1'}], ['id']),
+    expected: [2, 3, 4, 3, 4].map(id => ({id})), fields: ['id']},
+    {name: 'except-all-filter', source: retainedBinaryChain(
+      retainedSetProgram('except'), [{filter: 'id > 1'}], ['id']),
+    expected: [{id: 2}], fields: ['id']},
+    {name: 'except-distinct-empty', source: retainedBinaryChain(
+      retainedSetProgram('except', 'distinct'),
+      [{filter: 'id > 1'}], ['id']), expected: [], fields: ['id']},
+    {name: 'except-empty-input', source: (() => {
+      const program = retainedSetProgram('except');
+      program.stages.find(stage => stage.id === 'cross_left')
+        .steps[0].values.rows = [];
+      return retainedBinaryChain(program, [{filter: 'id > 0'}], ['id']);
+    })(), expected: [], fields: ['id']},
+    {name: 'intersect-all-filter', source: retainedBinaryChain(
+      retainedSetProgram('intersect'), [{filter: 'id >= 2'}], ['id']),
+    expected: [{id: 2}, {id: 2}], fields: ['id']},
+    {name: 'intersect-distinct-empty', source: retainedBinaryChain(
+      retainedSetProgram('intersect', 'distinct'),
+      [{filter: 'id > 2'}], ['id']), expected: [], fields: ['id']},
+    {name: 'intersect-empty-input', source: (() => {
+      const program = retainedSetProgram('intersect');
+      program.stages.find(stage => stage.id === 'cross_right')
+        .steps[0].values.rows = [];
+      return retainedBinaryChain(program, [{filter: 'id > 0'}], ['id']);
+    })(), expected: [], fields: ['id']},
+    {name: 'cross-join-filter', source: retainedBinaryChain(
+      externalCrossJoinProgram, [{filter: 'id > 1'}], ['id', 'tag']),
+    expected: [{id: 2, tag: 'a'}, {id: 2, tag: 'b'},
+      {id: 2, tag: 'c'}], fields: ['id', 'tag']},
+    {name: 'singleton-cross-join-filter', source: retainedBinaryChain(
+      retainedSingletonCross, [{filter: 'id > 1'}], ['id', 'tag']),
+    expected: [{id: 2, tag: 'a'}], fields: ['id', 'tag']},
+    {name: 'cross-join-derive-select', source: retainedBinaryChain(
+      externalCrossJoinProgram,
+      [{derive: {copy: 'tag'}}, {select: ['id', 'tag', 'copy']}],
+      ['id', 'tag', 'copy']),
+    expected: [1, 2].flatMap(id => ['a', 'b', 'c'].map(tag =>
+      ({id, tag, copy: tag}))), fields: ['id', 'tag', 'copy']},
   ]) {
     const program = structuredClone(source);
     program.results = {
@@ -7440,6 +7508,9 @@ async function exerciseStrategyGraph(
     };
     const binaryFixture = fixture.strategyFixtureCreate(
       ...args, JSON.stringify(program));
+    assert.equal(fixture.strategyFixtureTaskStepCount(binaryFixture, 3),
+      program.stages.find(stage => stage.id === 'crossed').steps.length,
+      `${name}: the binary chain must remain one physical task`);
     const binaryCapture = await runNativeHostQuery(grant,
       fixture.strategyFixtureAcquisition(binaryFixture), suppliedLimits);
     const binaryDirectory = await mkdtemp(join(
@@ -7494,10 +7565,6 @@ async function exerciseStrategyGraph(
       assert.equal(leases.length, 5, name);
       // Task output identity precedes the Named Result field projection;
       // publication below checks the second consumer's reversed field order.
-      for (const task of [3, 4]) {
-        assert.equal(fixture.strategyFixtureCid(binaryFixture, task),
-          hash(expected), `${name}: task ${task}`);
-      }
       const authority = installResultAccessAuthority({
         authorizeResultReadRequest: () => true,
         admitResultRead: () => ({
@@ -7547,6 +7614,13 @@ async function exerciseStrategyGraph(
         assert.deepEqual(JSON.parse(Buffer.concat(delivered).toString('utf8')),
           rows, `${name}: ${resultName}`);
       }
+      assert.equal(fixture.strategyFixtureCid(binaryFixture, 3),
+        fixture.strategyFixtureCid(binaryFixture, 4),
+        `${name}: retained producer and first consumer must agree`);
+      if (!name.includes('derive')) {
+        assert.equal(fixture.strategyFixtureCid(binaryFixture, 3),
+          hash(expected), `${name}: producer task`);
+      }
     } finally {
       binaryCapture.close();
       if (owner) {
@@ -7563,9 +7637,12 @@ async function exerciseStrategyGraph(
     }
   }
   for (const {name: mode} of [
-    {name: 'cancel'}, {name: 'store-failure'}, {name: 'finalize-failure'},
+    {name: 'cancel'}, {name: 'compute-failure'},
+    {name: 'store-failure'}, {name: 'finalize-failure'},
   ]) {
-    const program = structuredClone(externalAppendProgram);
+    const program = retainedBinaryChain(externalAppendProgram,
+      [{filter: mode === 'compute-failure'
+        ? '1 / (id - id) > 0' : 'id >= 10'}], ['id']);
     program.results = {
       producer: {from: {stage: 'crossed', result: 'r'}},
       first: {from: {stage: 'external_cross_consumer_a', result: 'r'}},
@@ -7591,7 +7668,9 @@ async function exerciseStrategyGraph(
     let permitCleanup = mode !== 'finalize-failure';
     const configuration = installLocalRetainedStore((key, bytes) => {
       leases++;
-      const failThisOutput = mode !== 'cancel' && leases === 3;
+      const failThisOutput =
+        (mode === 'store-failure' || mode === 'finalize-failure') &&
+        leases === 3;
       let writer, closed = false;
       return Object.freeze({
         status: () => ({reservedBytes: writer && (!closed ||
@@ -7723,6 +7802,9 @@ async function exerciseStrategyGraph(
         assert.equal(sawStop, true);
         assert.equal(execution.failure?.name, 'AbortError');
         assert.equal(leases, 2);
+      } else if (mode === 'compute-failure') {
+        assert.equal(leases, 2);
+        assert.equal(execution.failure?.code, 'MoonBitHostFailure');
       } else {
         assert.equal(leases, 3);
         assert.equal(failedAppends, mode === 'store-failure' ? 1 : 0);
@@ -7774,6 +7856,9 @@ async function exerciseStrategyGraph(
   };
   const appendBoundary = retainedBoundaryProgram('append',
     [{id: 1}, {id: 2}], [{id: 3}]);
+  const appendChainBoundary = retainedBinaryChain(
+    retainedBoundaryProgram('append', [{id: 1}], [{id: 2}, {id: 3}]),
+    [{filter: 'id > 1'}], ['id']);
   const setWorkBoundary = retainedBoundaryProgram('except', [{id: 1}], []);
   const setSpaceBoundary = retainedBoundaryProgram('except',
     [{id: 1}, {id: 2}], [{id: 3}]);
@@ -7782,13 +7867,19 @@ async function exerciseStrategyGraph(
   const rejectedChain = structuredClone(appendBoundary);
   rejectedChain.stages.find(stage => stage.id === 'crossed').steps = [
     {from: 'l', append: {with: 'r'}, as: 'appended'},
-    {from: 'appended', filter: 'true', as: 'out'},
+    {from: 'l', filter: 'true', as: 'out'},
   ];
   for (const {name, program, work, space, expected} of [
     {name: 'append-exact', program: appendBoundary, work: 26, space: 10,
       expected: [{id: 1}, {id: 2}, {id: 3}]},
     {name: 'append-work-short', program: appendBoundary, work: 25, space: 10},
     {name: 'append-space-short', program: appendBoundary, work: 26, space: 9},
+    {name: 'append-chain-exact', program: appendChainBoundary,
+      work: 72, space: 10, expected: [{id: 2}, {id: 3}]},
+    {name: 'append-chain-work-short', program: appendChainBoundary,
+      work: 71, space: 10},
+    {name: 'append-chain-space-short', program: appendChainBoundary,
+      work: 72, space: 9},
     {name: 'set-work-exact', program: setWorkBoundary, work: 19, space: 100,
       expected: [{id: 1}]},
     {name: 'set-work-short', program: setWorkBoundary, work: 18, space: 100},
@@ -7853,9 +7944,13 @@ async function exerciseStrategyGraph(
         assert.equal(leases, 2, name);
         assert.equal(execution.failure?.code, 'MoonBitHostFailure', name);
         assert(execution.failure.cause, `${name}: preserve the typed failure`);
-        assert.equal(fixture.strategyFixtureRetainedRowLimit(
-          execution.failure.cause), true,
-        `${name}: the producer must fail with Rows(_, RowLimit)`);
+        const resourceCause = fixture.strategyFixtureRetainedRowLimit(
+          execution.failure.cause) ||
+          (name === 'append-chain-work-short' &&
+            fixture.strategyFixtureRetainedInputLimit(
+              execution.failure.cause));
+        assert.equal(resourceCause, true,
+          `${name}: the producer must fail with a typed resource limit`);
       }
     } finally {
       capture.close();

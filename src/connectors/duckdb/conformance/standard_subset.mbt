@@ -135,6 +135,31 @@ pub fn strategy_fixture_retained_row_limit(
 }
 
 ///|
+#export_name("strategyFixtureRetainedInputLimit")
+pub fn strategy_fixture_retained_input_limit(
+  issue : @local_driver.LocalDispatchIssue,
+) -> Bool {
+  issue
+  is @local_driver.Preparation(
+    @local_connector.Materializing(
+      @local_connector.Candidate(@connector.Execution(@execution.InputLimit))
+    )
+  )
+}
+
+///|
+/// The authored Stage must remain one physical task with all checked steps.
+#export_name("strategyFixtureTaskStepCount")
+pub fn strategy_fixture_task_step_count(
+  f : StrategyFixture,
+  task : Int,
+) -> Int? {
+  @strategy.graph_task_owner(f.graph, task).map(owner => {
+    @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner)))
+  })
+}
+
+///|
 /// Explicit SGA-enabled conformance artifact. The ordinary module subset does
 /// not import or install this family provider.
 #export_name("strategyFixtureSgaSubset")

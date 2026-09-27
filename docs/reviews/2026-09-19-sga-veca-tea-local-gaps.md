@@ -587,28 +587,42 @@ five choose Local retained-file output. Substituting EXCEPT/INTERSECT with
 `duplicates: all` or `distinct`, or a typed Cross Join projection, uses the
 corresponding built-in bounded provider without changing the retention owner.
 
-Replacing the producer's `steps` with the following is **not** included:
+The retained route also accepts a linear bounded chain in that same producer
+task. For example, replacing the producer's steps with the following keeps
+one binary producer task rather than requiring another authored Stage:
 
 ```json
 [
-  {"from": "l", "append": {"with": "r"}, "as": "appended"},
-  {"from": "appended", "filter": "true", "as": "out"}
+  {"from": "l", "append": {"with": "r"}, "as": "binary"},
+  {"from": "binary", "filter": "id > 1", "as": "filtered"},
+  {"from": "filtered", "select": ["id"], "as": "out"}
 ]
 ```
 
-The ordinary retained-only Host now rejects this Program during whole-graph
-selection: no Compute dispatch, Store lease, or completed task is created.
-Local's offer uses the configured output contract, so a memory-only managed
-provider cannot make an unsupported retained obligation look applicable.
-Memory-output chains retain their existing bounded route; another installed
-eligible implementation may still supply a valid offer. No synchronous fallback
-or new Host state machine is introduced. The regression is `unsupported-chain`
-in `standard-host.test.mjs`, with a portable offer-level control in
-`local_dispatch_wbtest.mbt`.
+Append, EXCEPT/INTERSECT ALL and DISTINCT, and Cross Join feed bounded
+filter, derive, and select steps through the existing selected Relation chain
+owner. The real Store fixture proves multi-step producer publication, two
+independent consumer publications, empty and singleton variants, and repeated
+use of the same input occurrence. The chain work/workspace fixture uses the
+independent Append/filter kernel budgets (72/10 exact; 71/9 one short), rather
+than inferring a limit from a successful Host run. The same retained chain
+fixture delivers timer cancellation after positive producer work and exercises
+a later filter error, Store append/finalize errors, pending cleanup, and final
+reclamation. The memory-output chain uses the same owner and remains a
+regression control. No synchronous fallback or new Host state machine was
+added.
+
+A nonlinear producer that appends `l` and then filters `l` rather than the
+append result is still unsupported by the bounded selected provider. The
+ordinary retained-only Host rejects that Program during whole-graph selection:
+no Compute dispatch, Store lease, or completed task is created. Another
+eligible implementation may provide a valid offer. The `unsupported-chain`
+fixture is a pre-execution rejection control, not an assertion that all
+multi-step Relation tasks are rejected.
 
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |
-| Other Relation obligations, including multi-step tasks | Open | Bind each remaining checked obligation to its exact bounded execution path, then prove ordinary Host completion, retained publication where applicable, cancellation, and cleanup. |
+| Other Relation obligations outside the selected bounded binary chains | Open | Bind each remaining checked obligation to its exact bounded execution path, then prove ordinary Host completion, retained publication where applicable, cancellation, and cleanup. |
 | SGA, TEA, and VecA retained outputs | Open | Connect their exact Carrier completion and retention obligations without widening the Relation-only allowance. |
 | Native Host in-flight cancellation | Separate completion unit | Do not count JS Host cancellation as native request delivery. |
 

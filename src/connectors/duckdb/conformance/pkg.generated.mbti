@@ -352,6 +352,8 @@ pub fn strategy_fixture_resident_cleanup_dispatch(StrategyFixture) -> @connector
 
 pub fn strategy_fixture_resident_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
+pub fn strategy_fixture_retained_input_limit(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
+
 pub fn strategy_fixture_retained_local_limits(StrategyFixture, Int, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_retained_local_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
@@ -383,6 +385,8 @@ pub fn strategy_fixture_sga_subset(StrategyFixture) -> @connectors_builtin.Confi
 pub fn strategy_fixture_sga_traverse_paths_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
 
 pub fn strategy_fixture_sga_traverse_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
+
+pub fn strategy_fixture_task_step_count(StrategyFixture, Int) -> Int?
 
 pub fn strategy_fixture_tea_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
