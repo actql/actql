@@ -24,7 +24,7 @@ function run(command, args, cwd) {
 }
 
 const artifacts = [];
-for (const name of ['client-wire', 'sdk', 'run-host-core', 'local-node']) {
+for (const name of ['client-wire', 'sdk', 'local-node']) {
   const packed = run('npm', ['pack', '--pack-destination', root, '--json'],
     join(repository, 'packages', name));
   const metadata = JSON.parse(packed);

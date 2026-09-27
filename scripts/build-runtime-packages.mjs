@@ -27,8 +27,6 @@ for (const name of requested) {
   if (!Object.hasOwn(packages, name)) throw new Error(`Unknown runtime package: ${name}`);
 }
 const selected = new Set(requested.length ? requested : Object.keys(packages));
-// Local adapters import the Run Host wrapper while discovering their graph.
-if (selected.has('local-node')) selected.add('run-host-core');
 const entries = [...selected].map(name => packages[name]);
 execFileSync('moon', ['build', '--target', 'js', '--release',
   ...new Set(entries.flatMap(item => item.sources.map(path => `src/${path}`)))],

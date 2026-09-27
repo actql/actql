@@ -1,8 +1,6 @@
 // Bind the installed source-free compiler to the common Run and publication
 // owner. Physical Local policy CIDs are stable identities of this Host profile.
 import {createHash, randomUUID} from 'node:crypto';
-import * as run from '../../packages/run-host-core/index.mjs';
-import {checked} from '../host-common/runtime-result.mjs';
 
 const limits = Object.freeze({maxWireBytes: 100000, maxNodes: 10000,
   maxDepth: 64});
@@ -76,8 +74,7 @@ function localPublicationPlan({control, admission, runDefinition, invocation,
 }
 
 export function sourceFreeValuesPlan({moon, control, preparedProgram,
-  document, format, parameters, environmentWire, environmentCid,
-  authorityScopeCid, tenantId, requestId, storeAuthorityCid, now,
+  authorityScopeCid, tenantId, storeAuthorityCid, now,
   retainedDefinitionWire}) {
   const at = Date.parse(now());
   if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
@@ -86,67 +83,22 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
   const createdAt = retained?.created_at ?? instant(at);
   const validUntil = retained?.valid_until ??
     instant(at + 24 * 60 * 60 * 1000);
-  const coreEnvironment = run.admitEnvironment(environmentWire,
-    environmentCid, {rela: true});
-  const prepared = run.prepare(document, format, coreEnvironment,
-    parameters === null ? undefined : JSON.stringify(parameters));
-  const compilation = run.compileValues(prepared);
-  const siteCompilation = checked(moon.clientProgramCompileLocalValues(
-    preparedProgram));
-  const coreWires = run.privateCompilationWires(compilation);
-  const siteWires = {
-    boundTemplate: moon.clientProgramCompilationTemplateWire(siteCompilation),
-    compiledPlan: moon.clientProgramCompilationCompiledPlanWire(
-      siteCompilation),
-  };
-  if (JSON.parse(coreWires.boundTemplate).bound_invocation_template_cid !==
-      JSON.parse(siteWires.boundTemplate).bound_invocation_template_cid ||
-      JSON.parse(coreWires.compiledPlan).compiled_plan_cid !==
-      JSON.parse(siteWires.compiledPlan).compiled_plan_cid) {
-    throw new Error('LocalCompilerOwnerMismatch');
-  }
   const contextCid = cid({version: 'actql-installed-local-context/0.1',
     authority_scope_cid: authorityScopeCid});
-  const hostPolicyCid = policyCid('source-free-values');
-  const issued = run.issueAllowedRun(prepared, compilation, {
-    executionContextCid: contextCid, hostPolicyCid,
-    expiresAt: validUntil,
+  const compiled = control.prepareCheckedClientCompiledRun(preparedProgram,
+    'values', {executionContextCid: contextCid,
+      hostPolicyCid: policyCid('source-free-values'), expiresAt: validUntil});
+  const {admission, compiledPlan} = compiled;
+  const runDefinition = control.defineCheckedClientCompiledRun(compiled, {
+    tenantId, runId: randomUUID(), createdAt, validUntil,
+    retainedDefinitionWire,
   });
-  const template = control.admitRunEvidence('bound_invocation_template',
-    siteWires.boundTemplate, limits);
-  const compiledPlan = control.admit('compiled_plan',
-    siteWires.compiledPlan, limits);
-  const preparedEvidence = control.admitRunEvidence('prepared_invocation',
-    issued.preparedInvocationWire, limits);
-  const authorization = control.admitRunEvidence('run_authorization',
-    issued.authorizationWire, limits);
-  const admission = control.admitCheckedClientRunPublication(preparedProgram,
-    template, preparedEvidence, authorization, compiledPlan);
-  const sourceDefinition = retainedDefinitionWire === undefined
-    ? run.issueSourceFreeRunDefinition(prepared, compilation,
-      issued.admission, tenantId, randomUUID(), createdAt, validUntil)
-    : run.admitSourceFreeRunDefinition(prepared, compilation,
-      issued.admission, retainedDefinitionWire);
-  const definitionWire = run.privateRunDefinition(sourceDefinition);
-  const runDefinition = control.admit('run_definition',
-    definitionWire.wire, limits);
-  if (runDefinition.identity !== definitionWire.cid) {
-    throw new Error('LocalRunOwnerMismatch');
-  }
-  control.checkClientRunDefinitionBinding(preparedProgram, admission,
-    runDefinition);
   const dataPolicyCid = policyCid('local-result-data');
-  const issuedInvocation = run.issueSourceFreeInvocation(prepared,
-    compilation, issued.admission, sourceDefinition, dataPolicyCid, limits);
-  const observation = control.admitRunEvidence('observation_set',
-    issuedInvocation.observation.wire, limits);
-  const invocation = control.admit('run_invocation',
-    issuedInvocation.invocation.wire, limits);
+  const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
+    compiled, runDefinition, {dataPolicyCid}, limits);
   return localPublicationPlan({control, admission, runDefinition, invocation,
     observation, compiledPlanCid: compiledPlan.identity,
-    programDefinitionCid: run.requestFields(
-      run.prepareSourceFreeRequest(prepared, compilation,
-        authorityScopeCid, requestId)).programDefinitionCid,
+    programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
     inputRelationCids: [], sourceEvidence: [], authorityScopeCid,
     tenantId, storeAuthorityCid, dataPolicyCid, createdAt,
     now, resultCount: 1});
@@ -157,7 +109,6 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
 // acquisition and Source Evidence must still be established before this Run
 // can be published; this admission alone never authorizes provider I/O.
 export function acquiredTaskRunAdmission({moon, control, preparedProgram,
-  document, format, parameters, environmentWire, environmentCid,
   authorityScopeCid, tenantId, now, retainedDefinitionWire}) {
   const at = Date.parse(now());
   if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
@@ -166,58 +117,17 @@ export function acquiredTaskRunAdmission({moon, control, preparedProgram,
   const createdAt = retained?.created_at ?? instant(at);
   const validUntil = retained?.valid_until ??
     instant(at + 24 * 60 * 60 * 1000);
-  const coreEnvironment = run.admitEnvironment(environmentWire,
-    environmentCid, {rela: true});
-  const prepared = run.prepare(document, format, coreEnvironment,
-    parameters === null ? undefined : JSON.stringify(parameters));
-  const compilation = run.compileTasks(prepared);
-  const siteCompilation = checked(moon.clientProgramCompileLocalTasks(
-    preparedProgram));
-  const coreWires = run.privateTaskCompilationWires(compilation);
-  const siteWires = {
-    boundTemplate: moon.clientProgramTaskCompilationTemplateWire(
-      siteCompilation),
-    compiledPlan: moon.clientProgramTaskCompilationCompiledPlanWire(
-      siteCompilation),
-  };
-  if (JSON.parse(coreWires.boundTemplate).bound_invocation_template_cid !==
-      JSON.parse(siteWires.boundTemplate).bound_invocation_template_cid ||
-      JSON.parse(coreWires.compiledPlan).compiled_plan_cid !==
-      JSON.parse(siteWires.compiledPlan).compiled_plan_cid) {
-    throw new Error('LocalTaskCompilerOwnerMismatch');
-  }
   const contextCid = cid({version: 'actql-installed-local-context/0.1',
     authority_scope_cid: authorityScopeCid});
-  const issued = run.issueAllowedTaskRun(prepared, compilation, {
-    executionContextCid: contextCid,
-    hostPolicyCid: policyCid('checked-tasks'), expiresAt: validUntil,
+  const compiled = control.prepareCheckedClientCompiledRun(preparedProgram,
+    'tasks', {executionContextCid: contextCid,
+      hostPolicyCid: policyCid('checked-tasks'), expiresAt: validUntil});
+  const {admission, compiledPlan} = compiled;
+  const runDefinition = control.defineCheckedClientCompiledRun(compiled, {
+    tenantId, runId: randomUUID(), createdAt, validUntil,
+    retainedDefinitionWire,
   });
-  const template = control.admitRunEvidence('bound_invocation_template',
-    siteWires.boundTemplate, limits);
-  const compiledPlan = control.admit('compiled_plan',
-    siteWires.compiledPlan, limits);
-  const preparedEvidence = control.admitRunEvidence('prepared_invocation',
-    issued.preparedInvocationWire, limits);
-  const authorization = control.admitRunEvidence('run_authorization',
-    issued.authorizationWire, limits);
-  const admission = control.admitCheckedClientRunPublication(preparedProgram,
-    template, preparedEvidence, authorization, compiledPlan);
-  const sourceDefinition = retainedDefinitionWire === undefined
-    ? run.issueTaskRunDefinition(prepared, compilation,
-      issued.admission, tenantId, randomUUID(), createdAt, validUntil)
-    : run.admitTaskRunDefinition(prepared, compilation,
-      issued.admission, retainedDefinitionWire);
-  const definitionWire = run.privateRunDefinition(sourceDefinition);
-  const runDefinition = control.admit('run_definition',
-    definitionWire.wire, limits);
-  if (runDefinition.identity !== definitionWire.cid) {
-    throw new Error('LocalTaskRunOwnerMismatch');
-  }
-  control.checkClientRunDefinitionBinding(preparedProgram, admission,
-    runDefinition);
-  return Object.freeze({admission, runDefinition, compiledPlan, template,
-    preparedEvidence, authorization, compilation, prepared,
-    sourceDefinition, ownerAdmission: issued.admission, createdAt});
+  return Object.freeze({...compiled, compiled, runDefinition, createdAt});
 }
 
 // The connector/Acquisition owner supplies Source Evidence after completing
@@ -226,7 +136,8 @@ export function acquiredTaskRunAdmission({moon, control, preparedProgram,
 export function acquiredTaskPublicationPlan({moon, control, acquired,
   preparedProgram, captured, sourceEvidenceWire, authorityScopeCid,
   effectiveDataPolicyCid, captureStartedAt, captureCompletedAt, tenantId,
-  requestId, storeAuthorityCid, now}) {
+  storeAuthorityCid, now}) {
+  control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
   if (typeof sourceEvidenceWire !== 'string' ||
       typeof effectiveDataPolicyCid !== 'string' ||
       captured?.logicalInput === undefined ||
@@ -240,33 +151,23 @@ export function acquiredTaskPublicationPlan({moon, control, acquired,
   const inputLogicalWire = moon.strategyRunEvidenceJson(
     captured.logicalInput);
   const source = captured.checkedSource;
-  run.admitCompletedSourceObservation({sourceEvidenceWire,
-    inputLogicalWire, sourceRef: source.sourceRef,
-    sourceContractCid: source.sourceContractCid,
-    authorityScopeCid, effectiveDataPolicyCid, limits});
-  const issued = run.issueTaskInvocation(acquired.prepared,
-    acquired.compilation, acquired.ownerAdmission, acquired.sourceDefinition,
-    {sourceEvidenceWire, inputLogicalWire,
+  const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
+    acquired.compiled, acquired.runDefinition,
+    {dataPolicyCid: effectiveDataPolicyCid, source: {
+      sourceEvidenceWire, inputLogicalWire,
       sourceRef: source.sourceRef,
       sourceContractCid: source.sourceContractCid,
-      authorityScopeCid, dataPolicyCid: effectiveDataPolicyCid,
-      captureStartedAt, captureCompletedAt}, limits);
-  const observation = control.admitRunEvidence('observation_set',
-    issued.observation.wire, limits);
-  const invocation = control.admit('run_invocation',
-    issued.invocation.wire, limits);
+      authorityScopeCid, captureStartedAt, captureCompletedAt,
+    }}, limits);
   const sourceEvidence = control.admitRunEvidence('source_evidence',
     sourceEvidenceWire, limits);
-  const request = run.prepareRequest(acquired.prepared,
-    authorityScopeCid, requestId,
-    moon.clientProgramSourceFreeInputIntentCid());
   return localPublicationPlan({control, admission: acquired.admission,
     runDefinition: acquired.runDefinition, invocation, observation,
     compiledPlanCid: acquired.compiledPlan.identity,
-    programDefinitionCid: run.requestFields(request).programDefinitionCid,
+    programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
     inputRelationCids: [moon.clientProgramCapturedSourceLogicalCid(
       captured.identity)], sourceEvidence: [sourceEvidence],
     authorityScopeCid, tenantId, storeAuthorityCid,
     dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
-    now, resultCount: run.taskResultNames(acquired.compilation).length});
+    now, resultCount: moon.clientProgramResultCount(preparedProgram)});
 }

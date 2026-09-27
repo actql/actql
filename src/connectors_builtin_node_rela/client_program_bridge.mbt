@@ -19,24 +19,11 @@ pub fn client_program_check_environment(
   if sga {
     return None
   }
-  let wire = match
-    @check_environment.read(@utf8.encode(body), evidence_bundle_cid, {
-      max_bytes: 65536,
-      max_nodes: 4096,
-      max_depth: 64,
-      max_members: 256,
-    }) {
-    Ok(value) => value
-    Err(_) => return None
-  }
-  Some(
-    @program_check.checking_environment(wire, { text_time, veca, }, {
-      rela,
-      sga,
-      tea,
-      calendar,
-      text_rank,
-    }),
+  @publication_host.admit_client_check_environment(
+    body,
+    evidence_bundle_cid,
+    { text_time, veca, },
+    { rela, sga, tea, calendar, text_rank, },
   )
 }
 
@@ -356,6 +343,171 @@ pub fn client_run_control_observation(
     Ok(value) => Some(value)
     Err(_) => None
   }
+}
+
+///|
+#export_name("clientProgramIssueValuesCompiledRun")
+pub fn client_program_issue_values_compiled_run(
+  prepared : @publication_host.PreparedClientProgram,
+  compilation : @publication_host.ClientValuesCompilation,
+  execution_context_cid : String,
+  host_policy_cid : String,
+  expires_at : String,
+) -> Result[
+  @publication_host.ClientCompiledRun,
+  @publication_host.ClientCompiledRunIssue,
+] {
+  @publication_host.issue_client_values_compiled_run(
+    prepared, compilation, execution_context_cid, host_policy_cid, expires_at,
+  )
+}
+
+///|
+#export_name("clientProgramIssueTaskCompiledRun")
+pub fn client_program_issue_task_compiled_run(
+  prepared : @publication_host.PreparedClientProgram,
+  compilation : @publication_host.ClientTaskCompilation,
+  execution_context_cid : String,
+  host_policy_cid : String,
+  expires_at : String,
+) -> Result[
+  @publication_host.ClientCompiledRun,
+  @publication_host.ClientCompiledRunIssue,
+] {
+  @publication_host.issue_client_task_compiled_run(
+    prepared, compilation, execution_context_cid, host_policy_cid, expires_at,
+  )
+}
+
+///|
+#export_name("clientProgramCompiledRunTemplate")
+pub fn client_program_compiled_run_template(
+  value : @publication_host.ClientCompiledRun,
+) -> @publication.RunEvidenceValue {
+  @publication_host.client_compiled_run_template(value)
+}
+
+///|
+#export_name("clientProgramCompiledRunPlan")
+pub fn client_program_compiled_run_plan(
+  value : @publication_host.ClientCompiledRun,
+) -> @publication.PublicationContract {
+  @publication_host.client_compiled_run_plan(value)
+}
+
+///|
+#export_name("clientProgramCompiledRunPrepared")
+pub fn client_program_compiled_run_prepared(
+  value : @publication_host.ClientCompiledRun,
+) -> @publication.RunEvidenceValue {
+  @publication_host.client_compiled_run_prepared(value)
+}
+
+///|
+#export_name("clientProgramCompiledRunAuthorization")
+pub fn client_program_compiled_run_authorization(
+  value : @publication_host.ClientCompiledRun,
+) -> @publication.RunEvidenceValue {
+  @publication_host.client_compiled_run_authorization(value)
+}
+
+///|
+#export_name("clientProgramCompiledRunAdmission")
+pub fn client_program_compiled_run_admission(
+  value : @publication_host.ClientCompiledRun,
+) -> @publication.RunPublicationAdmission {
+  @publication_host.client_compiled_run_admission(value)
+}
+
+///|
+#export_name("clientProgramIssueCompiledRunDefinition")
+pub fn client_program_issue_compiled_run_definition(
+  value : @publication_host.ClientCompiledRun,
+  scope_id : String,
+  run_id : String,
+  created_at : String,
+  valid_until : String,
+) -> Result[
+  @publication.PublicationContract,
+  @publication_host.ClientCompiledRunIssue,
+] {
+  @publication_host.issue_client_compiled_run_definition(
+    value, scope_id, run_id, created_at, valid_until,
+  )
+}
+
+///|
+#export_name("clientProgramAdmitCompiledRunDefinition")
+pub fn client_program_admit_compiled_run_definition(
+  value : @publication_host.ClientCompiledRun,
+  wire : String,
+) -> Result[
+  @publication.PublicationContract,
+  @publication_host.ClientCompiledRunIssue,
+] {
+  @publication_host.admit_client_compiled_run_definition(value, wire)
+}
+
+///|
+#export_name("clientProgramIssueCompiledValuesInvocation")
+pub fn client_program_issue_compiled_values_invocation(
+  value : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  data_policy_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  @publication_host.issue_client_compiled_values_invocation(
+    value, definition, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramIssueCompiledTaskInvocation")
+pub fn client_program_issue_compiled_task_invocation(
+  value : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  source_evidence_wire : String,
+  input_logical_wire : String,
+  source_ref : String,
+  source_contract_cid : String,
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  @publication_host.issue_client_compiled_task_invocation(
+    value, definition, source_evidence_wire, input_logical_wire, source_ref, source_contract_cid,
+    authority_scope_cid, data_policy_cid, capture_started_at, capture_completed_at,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramDefinitionCid")
+pub fn client_program_definition_cid(
+  prepared : @publication_host.PreparedClientProgram,
+) -> String {
+  @publication_host.prepared_client_identity(prepared).program_definition_cid
+}
+
+///|
+#export_name("clientProgramCompiledRunMatches")
+pub fn client_program_compiled_run_matches(
+  value : @publication_host.ClientCompiledRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Bool {
+  @publication_host.client_compiled_run_matches(value, prepared)
 }
 
 ///|

@@ -1664,6 +1664,15 @@ function publicationControl(moon) {
   const tokens = new WeakMap();
   const evidenceTokens = new WeakMap();
   const admissionTokens = new WeakMap();
+  const compiledRunTokens = new WeakMap();
+  const compiledRunResult = (result, code) => {
+    try {
+      return checked(result);
+    } catch (error) {
+      if (error.code !== 'MoonBitHostFailure') throw error;
+      throw Object.assign(new Error(code, {cause: error.cause}), {code});
+    }
+  };
   const snapshotTokens = new WeakMap();
   const effectSourceTokens = new WeakMap();
   const localEffectSourceTokens = new WeakMap();
@@ -1844,6 +1853,81 @@ function publicationControl(moon) {
         throw new TypeError('Publication evidence differs from checked Program');
       }
       return inspectAdmission(admission);
+    },
+    prepareCheckedClientCompiledRun(checkedProgram, kind, policy) {
+      if (!['values', 'tasks'].includes(kind)) {
+        throw new TypeError('Invalid Client compilation profile');
+      }
+      const compilation = compiledRunResult(kind === 'values'
+        ? moon.clientProgramCompileLocalValues(checkedProgram)
+        : moon.clientProgramCompileLocalTasks(checkedProgram),
+      kind === 'values' ? 'RunHostCompilationRejected'
+        : 'RunHostTaskCompilationRejected');
+      const value = compiledRunResult(kind === 'values'
+        ? moon.clientProgramIssueValuesCompiledRun(checkedProgram,
+          compilation, policy.executionContextCid, policy.hostPolicyCid,
+          policy.expiresAt)
+        : moon.clientProgramIssueTaskCompiledRun(checkedProgram,
+          compilation, policy.executionContextCid, policy.hostPolicyCid,
+          policy.expiresAt), 'RunHostAdmissionRejected');
+      const result = Object.freeze({
+        kind,
+        template: inspectEvidence(moon.clientProgramCompiledRunTemplate(value)),
+        compiledPlan: inspect(moon.clientProgramCompiledRunPlan(value)),
+        preparedEvidence: inspectEvidence(
+          moon.clientProgramCompiledRunPrepared(value)),
+        authorization: inspectEvidence(
+          moon.clientProgramCompiledRunAuthorization(value)),
+        admission: inspectAdmission(
+          moon.clientProgramCompiledRunAdmission(value)),
+      });
+      compiledRunTokens.set(result, value);
+      return result;
+    },
+    checkClientCompiledRunOwner(compiled, checkedProgram) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined ||
+          !moon.clientProgramCompiledRunMatches(value, checkedProgram)) {
+        throw new TypeError('Foreign Client compiled Run');
+      }
+    },
+    defineCheckedClientCompiledRun(compiled, {tenantId, runId,
+      createdAt, validUntil, retainedDefinitionWire}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined) {
+        throw new TypeError('Foreign Client compiled Run');
+      }
+      return inspect(compiledRunResult(retainedDefinitionWire === undefined
+        ? moon.clientProgramIssueCompiledRunDefinition(value,
+          tenantId, runId, createdAt, validUntil)
+        : moon.clientProgramAdmitCompiledRunDefinition(value,
+          retainedDefinitionWire), compiled.kind === 'tasks'
+        ? 'RunHostTaskDefinitionRejected'
+        : retainedDefinitionWire === undefined
+          ? 'RunHostSourceFreeDefinitionRejected'
+          : 'RunHostSourceFreeAdmissionRejected'));
+    },
+    issueCheckedClientCompiledInvocation(compiled, definition,
+      {dataPolicyCid, source}, limits) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined) {
+        throw new TypeError('Foreign Client compiled Run');
+      }
+      issuanceLimits(limits, 'Client Run Invocation');
+      const issued = compiledRunResult(source === undefined
+        ? moon.clientProgramIssueCompiledValuesInvocation(value,
+          token(definition), dataPolicyCid,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
+        : moon.clientProgramIssueCompiledTaskInvocation(value,
+          token(definition), source.sourceEvidenceWire,
+          source.inputLogicalWire, source.sourceRef, source.sourceContractCid,
+          source.authorityScopeCid, dataPolicyCid,
+          source.captureStartedAt, source.captureCompletedAt,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
+      source === undefined ? 'RunHostInvocationRejected'
+        : 'RunHostTaskInvocationRejected');
+      return Object.freeze({observation: inspectEvidence(issued._0),
+        invocation: inspect(issued._1)});
     },
     checkClientRunDefinitionBinding(checkedProgram, admission, definition) {
       if (typeof moon.clientProgramCheckRunBinding !== 'function' ||

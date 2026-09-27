@@ -834,6 +834,70 @@ test "ordinary values document prepares one named Effect-free result" {
   let compilation = issue_prepared_client_values_compilation(
     prepared, compiler_manifests, aoa_limits, 32, 64, 100000, 10000, 100,
   ).unwrap()
+  // Equal content does not make a separately prepared owner interchangeable.
+  let foreign_prepared = prepare_effect_free_client_program(
+    document,
+    Json,
+    selected,
+    None,
+    limits,
+  ).unwrap()
+  let policy_cid = "sha256:" + "1".repeat(64)
+  let allowed = issue_client_values_compiled_run(
+    prepared, compilation, policy_cid, policy_cid, "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  assert_true(client_compiled_run_matches(allowed, prepared))
+  assert_false(client_compiled_run_matches(allowed, foreign_prepared))
+  assert_true(
+    issue_client_values_compiled_run(
+      foreign_prepared, compilation, policy_cid, policy_cid, "2027-01-01T00:00:00.000Z",
+    )
+    is Err(ClientCompiledRunIssue::ForeignOwner),
+  )
+  let run_definition = issue_client_compiled_run_definition(
+    allowed, "local", "values-owner-run", "2026-09-27T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  assert_true(
+    bind_source_free_client_values_run(
+      foreign_prepared,
+      compilation,
+      client_compiled_run_admission(allowed),
+      run_definition,
+    )
+    is Err(ClientValuesRunBindingIssue::ForeignRun),
+  )
+  let restored = admit_client_compiled_run_definition(
+    allowed,
+    @publication.publication_contract_json(run_definition),
+  ).unwrap()
+  assert_eq(
+    @publication.publication_contract_identity(restored),
+    @publication.publication_contract_identity(run_definition),
+  )
+  let task_compilation = issue_prepared_client_task_compilation(
+    prepared, compiler_manifests, aoa_limits, 32, 64, 100000, 10000, 100,
+  ).unwrap()
+  assert_true(
+    issue_client_task_compiled_run(
+      foreign_prepared, task_compilation, policy_cid, policy_cid, "2027-01-01T00:00:00.000Z",
+    )
+    is Err(ClientCompiledRunIssue::ForeignOwner),
+  )
+  let task_allowed = issue_client_task_compiled_run(
+    prepared, task_compilation, policy_cid, policy_cid, "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let task_definition = issue_client_compiled_run_definition(
+    task_allowed, "local", "tasks-owner-run", "2026-09-27T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  assert_true(
+    bind_client_task_run(
+      foreign_prepared,
+      task_compilation,
+      client_compiled_run_admission(task_allowed),
+      task_definition,
+    )
+    is Err(ClientTaskRunBindingIssue::ForeignRun),
+  )
   let compiled_wire = @publication.publication_contract_json(
     client_values_compilation_compiled_plan(compilation),
   )
