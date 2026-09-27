@@ -27,7 +27,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Pending |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Pending |
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Pending |
-| Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Pending |
+| Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK Result; full negative and frame matrix pending |
 | Bounds, origin maps and Grammar Manifest | Existing owners | Before-allocation bounds, source diagnostics, pins/vectors | Pending |
 | Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Partial: source-free `SELECT *` and captured filter/query run through packed Local and HTTP Remote Host; multi-step Values and CTE pending |
 | Core isolation and SDK dependency boundary | Existing gates | No frontend production dependency or tracked runtime bundles | Pending |
@@ -119,4 +119,7 @@ the query's final `ORDER BY` alias scope. Matching windows combine their calls
 in one analytic operation. The ordinary checker accepts row-number/navigation
 and framed COUNT over bounded Values with explicit Host analytic ceilings;
 missing ceilings are not inferred. Physical Result verification for this
-surface and the broader SQL/Pipe scope remain pending.
+surface and the broader SQL/Pipe scope remain pending. The packed Local and
+HTTP Remote Host route also executes `RANK() OVER (ORDER BY id)` on captured
+rows with a duplicated sort key and returns ranks `3, 1, 2, 3` in input order.
+The test Host explicitly supplies analytic resource ceilings.

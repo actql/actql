@@ -122,6 +122,13 @@ const pipeGroupedQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.grouped_query');
 assert.deepEqual(JSON.parse(pipeGroupedQuery), JSON.parse(groupedQuery));
 await writeFile(join(root, 'grouped-query.json'), groupedQuery);
+const analyticQuery = queryFrontend.compileCapturedQueryJson(
+  'SELECT id, RANK() OVER (ORDER BY id) AS ranking FROM records WHERE id > 0',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.analytic_query');
+assert.notEqual(analyticQuery, '');
+await writeFile(join(root, 'analytic-query.json'), analyticQuery);
 const sourceCatalog = await readFile(join(repository,
   'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
 const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
@@ -146,6 +153,12 @@ sourceEnvironment.connector_capabilities = [{...sourceSelector,
   capability_contract_cids: [
     'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8'],
 }];
+Object.assign(sourceEnvironment.host_policy_profile.capacity, {
+  max_analytic_frame_memberships: 10000,
+  max_analytic_input_wire_bytes: 10000,
+  max_analytic_output_wire_bytes: 10000,
+  max_analytic_partition_wire_bytes: 10000,
+});
 delete sourceEnvironment.evidence_bundle_cid;
 sourceEnvironment.evidence_bundle_cid = machineCid(sourceEnvironment);
 const databasePath = join(root, 'records.duckdb');
@@ -219,6 +232,7 @@ const acquiredDocument = readFileSync('source-program.json', 'utf8');
 const capturedQueryDocument = readFileSync('captured-query.json', 'utf8');
 const distinctQueryDocument = readFileSync('distinct-query.json', 'utf8');
 const groupedQueryDocument = readFileSync('grouped-query.json', 'utf8');
+const analyticQueryDocument = readFileSync('analytic-query.json', 'utf8');
 async function runApplication(options, requestId) {
   const client = await connect(options);
   const execution = await client.aql(document, {format: 'json', requestId});
@@ -296,6 +310,12 @@ const groupedQueryLocal = await acquiredLocal.client.aql(groupedQueryDocument,
 assert.equal((await groupedQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await groupedQueryLocal.result('answer').all(),
   [{id: 3, n: 2}]);
+const analyticQueryLocal = await acquiredLocal.client.aql(analyticQueryDocument,
+  {format: 'json', requestId: 'packed-analytic-query-local'});
+assert.equal((await analyticQueryLocal.wait()).status, 'succeeded');
+assert.deepEqual(await analyticQueryLocal.result('answer').all(),
+  [{id: 3, ranking: 3}, {id: 1, ranking: 1},
+    {id: 2, ranking: 2}, {id: 3, ranking: 3}]);
 assert.deepEqual((await acquiredLocal.client.attach(
   acquiredLocal.execution.ref)).ref, acquiredLocal.execution.ref);
 const acquiredStarted = await acquiredLocal.client.start(
@@ -430,6 +450,13 @@ const groupedQueryRemote = await acquiredRemote.client.aql(
 assert.equal((await groupedQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await groupedQueryRemote.result('answer').all(),
   [{id: 3, n: 2}]);
+const analyticQueryRemote = await acquiredRemote.client.aql(
+  analyticQueryDocument,
+  {format: 'json', requestId: 'packed-analytic-query-remote'});
+assert.equal((await analyticQueryRemote.wait()).status, 'succeeded');
+assert.deepEqual(await analyticQueryRemote.result('answer').all(),
+  [{id: 3, ranking: 3}, {id: 1, ranking: 1},
+    {id: 2, ranking: 2}, {id: 3, ranking: 3}]);
 assert.deepEqual(acquiredRemote.b, acquiredLocal.b);
 assert.deepEqual(acquiredRemote.c, acquiredLocal.c);
 assert.deepEqual((await acquiredRemote.client.attach(
