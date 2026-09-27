@@ -48,7 +48,8 @@ export function checkWorkersArtifact(metafile, source, allowedModules) {
 // The Effect receipt custody imported by run publication has no imports and
 // keeps only a WeakMap of issued receipt sets. The private publication
 // holding imported by completed-run publication has no imports and only calls
-// the Store it is given.
+// the Store it is given. Publication action names are a fixed, dependency-free
+// ABI translation table; they confer no publication authority.
 // No namespace-wide permission.
 export const conformanceModules = [
   '_build/workers/modules/bridge.mjs',
@@ -75,6 +76,7 @@ export const conformanceModules = [
   'adapters/host-common/run-publication.mjs',
   'adapters/host-common/effect-receipt-custody.mjs',
   'adapters/host-common/run-publication-preflight.mjs',
+  'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
   'adapters/host-common/runtime-result.mjs',
   'adapters/host-common/result-output-limits.mjs',
@@ -107,6 +109,7 @@ export const hostModules = [
   'adapters/host-common/run-publication.mjs',
   'adapters/host-common/effect-receipt-custody.mjs',
   'adapters/host-common/run-publication-preflight.mjs',
+  'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
   'adapters/host-common/runtime-result.mjs',
   'adapters/host-common/result-output-limits.mjs',

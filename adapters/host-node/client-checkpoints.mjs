@@ -20,6 +20,8 @@ import {createPrivateEvidenceKey, loadPrivateEvidenceKey,
   openContinuationEvidence} from './local-continuation-evidence.mjs';
 import {loadCheckpointRuntime, openSqliteCheckpointJournal} from
   './sqlite-checkpoint-journal.mjs';
+import {retainInstalledHostInitializationFailure} from
+  './installed-host-cleanup.mjs';
 
 const IDENTIFIER = /^[A-Za-z0-9._:-]{1,128}$/u;
 const MAX_REVIEW_BYTES = 256 * 1024;
@@ -215,7 +217,9 @@ export async function installRemoteCheckpoints({root, tenantId,
   // Retention of held private evidence follows the journal: a waiting or
   // resuming request keeps it; an ended preparation or a terminal Run
   // releases it.
-  const evidence = openContinuationEvidence({
+  let evidence;
+  try {
+  evidence = openContinuationEvidence({
     stateDirectory: state, ...privateKey, contractControl,
     preparation(prepareAttemptId) {
       const current = journal.getPreparation(prepareAttemptId);
@@ -1224,4 +1228,8 @@ export async function installRemoteCheckpoints({root, tenantId,
       return Object.freeze({pendingRetention: retention.pending});
     },
   });
+  } catch (cause) {
+    throw await retainInstalledHostInitializationFailure(cause,
+      {journal, store: evidence});
+  }
 }
