@@ -2,11 +2,15 @@
 
 ## Current completion unit: packed Local and Remote AQL
 
-At the current Distribution branch, `@actql/node` includes an installed
-embedded Local Host, and the packed source-free Values route reaches a named
-Result without Cloud login or a user-assembled provider. The lightweight
-`@actql/sdk` still contains no kernel or DuckDB dependency. This is a working
-baseline, not completion of the acquired-input unit.
+Current implementation: `feat/distribution-acquired-client`, with its current
+source seam committed at `9915c7d38cc955de78f4c33939a61d50fd1f5594`.
+The installed standard
+Host and a real HTTP Host both accept the same acquired-input AQL Program
+from the same packed `@actql/node` application function. A real DuckDB read,
+checked downstream computation, formal publication and named `b`/`c` Result
+reads pass locally. The lightweight `@actql/sdk` still has no kernel or
+DuckDB dependency. This closes the basic acquired-input execution route;
+the remaining lifecycle acceptance below is not yet complete.
 
 1. **What the user can do when this unit is complete.** Install the standard
    packed Node package in a clean directory and run the same AQL Program from
@@ -16,31 +20,44 @@ baseline, not completion of the acquired-input unit.
    needs no Cloud connection or login; Remote does not silently upload a
    local path. Result reading, attach, request uncertainty, cancellation,
    limits and cleanup retain the agreed Client semantics.
-2. **Remaining implementation and acceptance.** The embedded Host currently
-   stops at its empty source catalog and source-free Run preparation. Connect
-   an installed source's authorized acquisition, checked input identity,
-   captured Run, downstream compute and publication to normal `aql()` and
-   `start()`. Extend the actual Remote Host through the same common Run seam.
-   Pack both real implementations and run one independent acquired-input
-   fixture through Local and HTTP Remote, checking exact values/order,
-   attach, unknown reply reconciliation, read limits, cancellation and
-   release. The existing packed Values smoke is insufficient for this test.
+2. **Remaining implementation and acceptance.** The packed acquired-input
+   case currently proves successful `aql()` and named Result reads, but its
+   same route now tests `start()`, lost submit reply and `lookupRequest`,
+   restart and `attach`, cancellation before physical start, bounded reading,
+   and ordered, NULL and empty acquired Results. Finish the acquired-input
+   acquisition recovery and cleanup acceptance: after a started Run whose
+   Host exits, distinguish unknown acquisition from a completed, durably
+   retained observation; reopen the exact retained observation without a new
+   fetch. After successful or cancelled Runs, confirm that the
+   physical source owner closes, Result retention survives restart, and
+   expired material is released and deleted through the Store owner. Inject
+   a denied or expired installed read grant before capture and verify no
+   physical acquisition. Keep the currently supported single installed
+   DuckDB source profile explicit; wider source installation is not needed
+   for this unit.
 3. **Dependencies and owners.** Distribution owns Client composition, the
    shared acquired-input Run/publication bridge and the packed acceptance.
    The Local owner supplies the installed bounded acquisition/compute
-   capability; the Connector owner supplies source Catalog and Acquisition
-   semantics. Cloud owns the physical Remote Host adapter but must consume
-   the one shared OSS Run boundary rather than duplicate its decisions.
-   The exact missing connections are recorded in
-   [the acquired-input handoff](2026-09-26-acquired-input-client-gap.md).
+   capability; Distribution now owns the DuckDB Source Evidence issuer under
+   the Connector contract, so Connector must not duplicate it. Cloud owns
+   its distinct Cloud-owned Coordinator and consumes public OSS packages;
+   the real HTTP Host used for this Local/Remote unit is the installed OSS
+   Host. The [acquired-input handoff](2026-09-26-acquired-input-client-gap.md)
+   describes the earlier gap and is historical at this HEAD.
 4. **Existing plan outside this unit.** The two Hybrid ownership forms,
-   Effectful submit, SQL, Python embedding, expanded native CLI and optional
-   tools remain in the distribution plan. Closing this Node AQL unit does not
-   complete those milestones or Cloud deployment.
+   Cloud-owned Run product lifecycle, Effectful submit, SQL, Python embedding,
+   expanded native CLI and optional tools remain in the distribution plan.
+   Closing this Node AQL unit does not complete those milestones or Cloud
+   deployment.
 
-The source-free packed distribution gate passed locally at
-`c9ed2cc2221489c40372e2e3718d67462e74fd42` using the pinned MoonBit
-toolchain. Linux CI and the acquired-input acceptance remain unverified.
+The acquired-input packed distribution gate passed locally at
+`0ab1a72c7b79456749205926715f35f084e2d22f`. At `9915c7d38`, the new
+pre-acquisition preparation test, clean packed Local/Remote smoke and docs
+gate passed. The current full distribution gate is blocked in the existing
+Remote Checkpoint TLS fixture at connect, also reproduced on `c12deddfb`
+under the same Node environment. Full hosted Linux CI remains unverified.
+Historical
+findings below retain their review-time scope and do not reopen fixed issues.
 
 Review input: `/Users/t14i/Downloads/03-distribution-client-cloud.md`,
 written against `92dd4410ea9eadf278b312ec6020564883f0ec9a`.

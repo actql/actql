@@ -754,6 +754,33 @@ pub fn client_program_local_values_aoa_wire(
 }
 
 ///|
+#export_name("clientProgramIssueEffectValuesFragment")
+pub fn client_program_issue_effect_values_fragment(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  task : Int,
+) -> Result[
+  @publication_host.ClientValuesFragmentNode,
+  @publication_host.ClientValuesFragmentIssue,
+] {
+  @publication_host.issue_prepared_client_effect_values_fragment(
+    prepared,
+    task,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramValuesFragmentLogicalCid")
+pub fn client_program_values_fragment_logical_cid(
+  fragment : @publication_host.ClientValuesFragmentNode,
+) -> String {
+  @publication_host.client_values_fragment_logical_cid(fragment)
+}
+
+///|
 #export_name("clientProgramLocalValuesAoACid")
 pub fn client_program_local_values_aoa_cid(
   value : @publication_host.ClientValuesAoAIdentity,
@@ -2795,6 +2822,15 @@ pub fn client_program_effect_input_task(
 }
 
 ///|
+/// Checked Unit coordinate for grouping a complete local Result Manifest.
+#export_name("clientProgramEffectInputStage")
+pub fn client_program_effect_input_stage(
+  value : @strategy.CapturedEffectInput,
+) -> Int {
+  @strategy.captured_effect_input_stage(value)
+}
+
+///|
 /// Release one member holding without revoking another borrow of the Result.
 #export_name("clientProgramReleaseEffectInput")
 pub fn client_program_release_effect_input(
@@ -4299,4 +4335,232 @@ fn reject_client_local_run(
   @strategy.stop_captured_dag(run)
   @strategy.refresh_captured_retention(run)
   None
+}
+
+///|
+pub(all) enum ClientProgramEffectCompilationBridgeIssue {
+  Manifests(@publication_host.ClientCompilationManifestIssue)
+  Compilation(@publication_host.ClientEffectCompilationIssue)
+}
+
+///|
+#export_name("clientProgramCompileLocalEffects")
+pub fn client_program_compile_local_effects(
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> Result[
+  @publication_host.ClientEffectCompilation,
+  ClientProgramEffectCompilationBridgeIssue,
+] {
+  let manifests = match
+    @publication_host.admit_client_compilation_manifests(
+      @check_environment.compiler_grammar_manifest_wire(),
+      @check_environment.compiler_barrier_contract_manifest_wire(),
+      100000,
+      10000,
+      100,
+    ) {
+    Ok(manifests) => manifests
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @publication_host.issue_prepared_client_effect_compilation(
+    prepared,
+    manifests,
+    client_local_sequence_limits(),
+    1000,
+    10000,
+    1000000,
+    100000,
+    100,
+  ).map_err(issue => Compilation(issue))
+}
+
+///|
+/// Expose only the unsupported-profile decision to the Host. Other compiler
+/// failures retain their typed cause and must not be reported as a caller's
+/// unsupported Program.
+#export_name("clientProgramEffectCompilationIssueCode")
+pub fn client_program_effect_compilation_issue_code(
+  outcome : Result[
+    @publication_host.ClientEffectCompilation,
+    ClientProgramEffectCompilationBridgeIssue,
+  ],
+) -> String? {
+  match outcome {
+    Err(Compilation(UnsupportedProgram)) => Some("unsupported_program")
+    _ => None
+  }
+}
+
+///|
+#export_name("clientProgramEffectCompilationPlanWire")
+pub fn client_program_effect_compilation_plan_wire(
+  value : @publication_host.ClientEffectCompilation,
+) -> String {
+  @publication_host.client_task_executable_plan_wire(
+    @publication_host.client_effect_compilation_plan(value),
+  )
+}
+
+///|
+#export_name("clientProgramEffectCompilationFactManifestWire")
+pub fn client_program_effect_compilation_fact_manifest_wire(
+  value : @publication_host.ClientEffectCompilation,
+) -> String {
+  @publication_host.client_task_executable_plan_fact_manifest_wire(
+    @publication_host.client_effect_compilation_plan(value),
+  )
+}
+
+///|
+#export_name("clientProgramEffectCompilationTemplateWire")
+pub fn client_program_effect_compilation_template_wire(
+  value : @publication_host.ClientEffectCompilation,
+) -> String {
+  @publication.run_evidence_value_json(
+    @publication_host.client_effect_compilation_template(value),
+  )
+}
+
+///|
+/// Issue the source-free observation and Run Invocation from the exact
+/// checked Effect compilation. The Host supplies its data-policy identity;
+/// the Program cannot substitute a Template or observation body.
+#export_name("clientProgramIssueEffectSourceFreeInvocation")
+pub fn client_program_issue_effect_source_free_invocation(
+  value : @publication_host.ClientEffectCompilation,
+  data_policy_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  @publication_host.issue_client_effect_source_free_invocation(
+    value, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramEffectCompilationCompiledPlanWire")
+pub fn client_program_effect_compilation_compiled_plan_wire(
+  value : @publication_host.ClientEffectCompilation,
+) -> String {
+  @publication.publication_contract_json(
+    @publication_host.client_effect_compilation_compiled_plan(value),
+  )
+}
+
+///|
+#export_name("clientProgramIssueAllowedEffectRun")
+pub fn client_program_issue_allowed_effect_run(
+  compilation : @publication_host.ClientEffectCompilation,
+  execution_context_cid : String,
+  host_policy_cid : String,
+  expires_at : String,
+) -> Result[
+  @publication_host.ClientEffectAllowedRun,
+  @publication_host.ClientEffectCompiledRunIssue,
+] {
+  @publication_host.issue_client_effect_allowed_run(
+    compilation, execution_context_cid, host_policy_cid, expires_at,
+  )
+}
+
+///|
+#export_name("clientProgramAdmitAllowedEffectRun")
+pub fn client_program_admit_allowed_effect_run(
+  compilation : @publication_host.ClientEffectCompilation,
+  prepared : @publication.RunEvidenceValue,
+  authorization : @publication.RunEvidenceValue,
+) -> Result[
+  @publication_host.ClientEffectAllowedRun,
+  @publication_host.ClientEffectCompiledRunIssue,
+] {
+  @publication_host.admit_client_effect_allowed_run(
+    compilation, prepared, authorization,
+  )
+}
+
+///|
+#export_name("clientProgramIssueEffectRunDefinition")
+pub fn client_program_issue_effect_run_definition(
+  allowed : @publication_host.ClientEffectAllowedRun,
+  scope_id : String,
+  run_id : String,
+  created_at : String,
+  valid_until : String,
+) -> Result[
+  @publication.PublicationContract,
+  @publication_host.ClientEffectCompiledRunIssue,
+] {
+  @publication_host.issue_client_effect_run_definition(
+    allowed, scope_id, run_id, created_at, valid_until,
+  )
+}
+
+///|
+#export_name("clientProgramBindCompiledEffectRun")
+pub fn client_program_bind_compiled_effect_run(
+  owner : @publication_host.PreparedClientEffectComputation,
+  allowed : @publication_host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+) -> Result[
+  @publication_host.PreparedClientEffectRun,
+  @publication_host.ClientEffectCompiledRunIssue,
+] {
+  @publication_host.bind_client_effect_compiled_run(owner, allowed, definition)
+}
+
+///|
+#export_name("clientProgramEffectRunStartCurrent")
+pub fn client_program_effect_run_start_current(
+  allowed : @publication_host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  at : String,
+) -> Bool {
+  @publication_host.client_effect_run_start_current(allowed, definition, at)
+}
+
+///|
+#export_name("clientProgramEffectCompilationResultNames")
+pub fn client_program_effect_compilation_result_names(
+  value : @publication_host.ClientEffectCompilation,
+) -> Array[String] {
+  @publication_host.client_effect_compilation_result_names(value)
+}
+
+///|
+#export_name("clientProgramAllowedEffectRunPrepared")
+pub fn client_program_allowed_effect_run_prepared(
+  value : @publication_host.ClientEffectAllowedRun,
+) -> @publication.RunEvidenceValue {
+  @publication_host.client_effect_allowed_run_prepared(value)
+}
+
+///|
+#export_name("clientProgramAllowedEffectRunAuthorization")
+pub fn client_program_allowed_effect_run_authorization(
+  value : @publication_host.ClientEffectAllowedRun,
+) -> @publication.RunEvidenceValue {
+  @publication_host.client_effect_allowed_run_authorization(value)
+}
+
+///|
+#export_name("clientProgramAllowedEffectRunAdmission")
+pub fn client_program_allowed_effect_run_admission(
+  value : @publication_host.ClientEffectAllowedRun,
+) -> @publication.RunPublicationAdmission {
+  @publication_host.client_effect_allowed_run_admission(value)
+}
+
+///|
+#export_name("clientProgramPrepareDuckDBSourceEvidenceContext")
+pub fn client_program_prepare_duckdb_source_evidence_context(
+  requirement : @planning.QueryRequirement,
+) -> Result[
+  @duckdb_host.NativeSourceEvidenceContext,
+  @duckdb_host.NativeSourceEvidenceIssue,
+] {
+  @duckdb_host.prepare_native_source_evidence_context(requirement)
 }

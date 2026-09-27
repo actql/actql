@@ -25,6 +25,7 @@ import {
 
 formatter(
   ignore: [
+    "source_evidence_members.generated_test.mbt",
     "inherited_text_time.generated.mbt",
     "compilation_manifests.generated.mbt",
     "catalog_grammar.generated.mbt",

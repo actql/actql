@@ -3,6 +3,8 @@
 /// belong here. The Node assembly supplies only its private transport verifier.
 struct NativeHostRun {
   issuer : @duckdb_query.DuckDBNativeIssuer
+  requirement : @planning.QueryRequirement
+  capability_contract_cid : String
   attempt : @duckdb_query.DuckDBNativeAttempt
   scan : @duckdb.NativeScan
   mut port : @duckdb.NativeReceiptPort?
@@ -55,6 +57,8 @@ pub fn start_native_host(
   }
   Ok({
     issuer,
+    requirement,
+    capability_contract_cid: @planning.query_two_receipt_contract_cid(contract),
     attempt,
     scan: @duckdb_query.duckdb_native_preparation_scan(
       @duckdb_query.duckdb_native_attempt_preparation(attempt),

@@ -234,6 +234,36 @@ pub fn check_run_publication_program_binding(
 }
 
 ///|
+/// The saved admission and Run Definition have separate deadlines. A Host
+/// supplies its current clock immediately before claiming physical execution;
+/// structural admission alone cannot establish that either record is live.
+pub fn run_publication_start_current(
+  admission : RunPublicationAdmission,
+  run_definition : PublicationContract,
+  at : String,
+) -> Bool {
+  if run_definition.name != "run_definition" || !valid_timestamp(at) {
+    return false
+  }
+  guard contract_string(run_definition, "created_at") is Some(created_at) &&
+    contract_string(run_definition, "valid_until") is Some(valid_until) &&
+    contract_string(run_definition, "compiled_plan_cid") is Some(plan_cid) &&
+    contract_string(run_definition, "invocation_template_cid")
+    is Some(template_cid) &&
+    contract_string(run_definition, "authorization_context_cid")
+    is Some(context_cid) else {
+    return false
+  }
+  created_at <= at &&
+  at < valid_until &&
+  at < admission.expires_at &&
+  valid_until <= admission.expires_at &&
+  plan_cid == admission.compiled_plan_cid &&
+  template_cid == admission.template.identity &&
+  context_cid == admission.authorization_context_cid
+}
+
+///|
 /// Bind one private Preview to the exact Run and concrete Invocation identity.
 /// ObservationSet closure, static Program closure, and current apply authority
 /// are independently required by their own owners.

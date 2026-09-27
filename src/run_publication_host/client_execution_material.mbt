@@ -105,6 +105,7 @@ fn issue_prepared_client_execution_material_with_template(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  effect_plan_cids? : Array[(String, String)] = [],
 ) -> Result[ClientExecutionMaterial, ClientExecutionMaterialIssue] {
   let bindings = match
     issue_prepared_client_empty_invocation_bindings(
@@ -157,6 +158,10 @@ fn issue_prepared_client_execution_material_with_template(
     @encode.string_value(writer, prepared_client_check_environment_cid(value))
     @encode.key(writer, "effect_plan_logical_cids")
     @encode.begin_object(writer)
+    for (name, cid) in effect_plan_cids {
+      @encode.key(writer, name)
+      @encode.string_value(writer, cid)
+    }
     @encode.end_object(writer)
     @encode.key(writer, "grammar_manifest_cid")
     @encode.string_value(writer, manifests.grammar_manifest_cid)

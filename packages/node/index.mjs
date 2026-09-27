@@ -1,6 +1,6 @@
 import {connect as connectHost, ClientError} from '@actql/sdk';
 
-export {ClientError} from '@actql/sdk';
+export {ClientError, RequestHeld} from '@actql/sdk';
 
 // The standard installation has one fixed Local provider slot. Resolution
 // does not load Local code for a connected Host and never installs packages.

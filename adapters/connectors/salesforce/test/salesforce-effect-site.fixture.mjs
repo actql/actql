@@ -5,15 +5,27 @@ import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {runtimeCore} from '../../../host-common/runtime-core.mjs';
-import {openSqliteCredentialJournal} from
-  '../../../site-node/sqlite-credential-journal.mjs';
-import {signRemoteCredentialGrant} from
-  '../../../site-node/remote-credential-signature.mjs';
-import {syncSalesforceCatalog} from
-  '../site/salesforce-catalog-sync.mjs';
+import {canonicalJson} from '../../../host-node/local-account-config.mjs';
+import {INSTALLED_SALESFORCE_SITE_VERSION, installSalesforceAuthorization,
+  loadInstalledSalesforceSite} from '../host/installed-salesforce-site.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
+
+// The Host account configuration for the local orgs: Test_Record__c reads
+// and Effects are allowed; nothing else is configured.
+export function salesforceSiteAccountConfiguration(orgIds) {
+  return canonicalJson({
+    version: 'actql-execution-account-config/0.1',
+    account_id: 'salesforce-test-account',
+    entries: [{
+      entry_id: 'test-records', outcome: 'allow', exclusions: [],
+      principal: {all: true},
+      connection: {any_of: orgIds.map(orgId => `salesforce:${orgId}`)},
+      resource: {any_of: ['Test_Record__c']},
+      operation: {any_of: ['effect', 'read']},
+    }],
+  });
+}
 
 export async function openSalesforceEffectSiteFixture(t, {
   commonMoon, salesforceMoon, runInvocationCid, dispatchRequestCid,
@@ -22,6 +34,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   rateLimitWriteOnce = false,
   collectionPartial = true,
   writeOperation = 'update',
+  authorization,
 }) {
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
   const openssl = (...args) => execFileSync('openssl', args,
@@ -56,6 +69,27 @@ export async function openSalesforceEffectSiteFixture(t, {
       return;
     }
     const prefix = '/services/data/v62.0/';
+    if (request.method === 'GET' && request.url?.startsWith(`${prefix}query?q=`)) {
+      // Three stored records answer a bounded preview query.
+      const soql = decodeURIComponent(request.url.slice(
+        `${prefix}query?q=`.length));
+      const match = /^SELECT ([A-Za-z_,]+) FROM Test_Record__c LIMIT ([0-9]+)$/u
+        .exec(soql);
+      if (match === null) {
+        response.writeHead(400, {'content-type': 'application/json'});
+        response.end('[{"errorCode":"MALFORMED_QUERY"}]');
+        return;
+      }
+      const stored = [1, 2, 3].map(index => ({Id: `a0000000000000${index}`,
+        Name: `record-${index}`, External_Key__c: `key-${index}`}));
+      const records = stored.slice(0, Number(match[2])).map(record =>
+        Object.fromEntries([['attributes', {type: 'Test_Record__c'}],
+          ...match[1].split(',').map(name => [name, record[name]])]));
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end(JSON.stringify({totalSize: records.length, done: true,
+        records}));
+      return;
+    }
     if (request.method === 'GET' && request.url ===
         `${prefix}sobjects/`) {
       response.writeHead(200, {'content-type': 'application/json'});
@@ -174,64 +208,71 @@ export async function openSalesforceEffectSiteFixture(t, {
     server.listen(0, '127.0.0.1', resolve);
   });
   const origin = `https://127.0.0.1:${server.address().port}`;
+  // The Site is installed from a Host profile and the Host's account gate;
+  // the test supplies only the local org and its secret.
   const authority = generateKeyPairSync('ed25519');
-  const journal = openSqliteCredentialJournal(join(root, 'journal'), {
-    credentialAuthorities: new Map([['credential-authority-a',
-      new Map([['credential-key-a', authority.publicKey]])]]),
-  });
+  await writeFile(join(root, 'credential.key'), authority.privateKey.export({
+    type: 'pkcs8', format: 'pem'}));
+  await writeFile(join(root, 'org-ca.crt'), ca);
+  const profilePath = join(root, 'salesforce-site.json');
+  await writeFile(profilePath, JSON.stringify({
+    version: INSTALLED_SALESFORCE_SITE_VERSION, apiVersion: 'v62.0',
+    cliAlias: 'actql-test', cliUsername: 'user@example.test',
+    connectionRevision: 'connection-revision-a',
+    credentialAuthorityId: 'credential-authority-a',
+    credentialKeyId: 'credential-key-a',
+    credentialPrivateKeyPath: join(root, 'credential.key'),
+    environment: 'test', instanceOrigin: origin,
+    journalRoot: join(root, 'journal'), orgId, siteGeneration: 4,
+    siteKey: 'site-a', tenant: 'tenant-a', caPath: join(root, 'org-ca.crt'),
+  }));
+  const hostAuthorization = authorization ??
+    await installSalesforceAuthorization({
+      accountConfiguration: salesforceSiteAccountConfiguration([orgId]),
+      principalId: 'principal-a', root});
+  const installed = await loadInstalledSalesforceSite(profilePath, {
+    commonMoon, salesforceMoon, authorization: hostAuthorization,
+    runtimeBundleCid: cid('a'), resolveSecret: async () => 'test-only-secret',
+    now: () => 1_999_999_999_999, grantLifetimeMs: 1});
+  const journal = installed.credential.journal;
   t.after(async () => {
-    journal.close();
+    installed.close();
     await new Promise(resolve => server.close(resolve));
     await rm(root, {recursive: true, force: true});
   });
-  const control = runtimeCore(commonMoon).remoteCredentialControl;
-  const scope = operation => Object.freeze({
-    issuerAuthority: 'credential-authority-a',
-    principal: 'principal-a', tenant: 'tenant-a', environment: 'test',
-    siteKey: 'site-a', siteGeneration: 4, runtimeBundleCid: cid('a'),
-    connectorRegistration: 'salesforce',
-    connectorRevision: 'salesforce/0.1', resourceOrigin: origin,
-    operation, runInvocationCid, taskAttempt: 2, dispatchRequestCid,
-    expiresUnixMilliseconds: 2_000_000_000_000n, maxUses: 32,
-  });
-  const authorize = operation => {
-    const value = scope(operation);
-    const grant = control.prepare(value);
-    journal.acceptGrant(signRemoteCredentialGrant(grant, control, {
-      keyId: 'credential-key-a', privateKey: authority.privateKey,
-    }), control);
-    return {grant, scope: value};
+  const control = installed.credential.control;
+  const dispatch = {runInvocationCid, taskAttempt: 2, dispatchRequestCid};
+  // Record grants follow the Host gate's own dispatch for this org's
+  // Test_Record__c; the gate still decides each commit separately.
+  const recordGrant = async (operation, boundary, operationClass) => {
+    const decision = await hostAuthorization.authorize(boundary, {
+      connection: installed.connection, resource: 'Test_Record__c',
+      operation: operationClass}, {subjectCid: runInvocationCid});
+    return installed.issueGrant({operation, decision,
+      resource: 'Test_Record__c', ...dispatch, maxUses: 32});
   };
-  const list = authorize('salesforce:catalog:list');
-  const describe = authorize('salesforce:catalog:describe');
-  const observe = authorize('salesforce:record:observe');
-  const write = authorize(`salesforce:record:${writeOperation}`);
-  const credential = {orgId, control, journal,
-    resolveSecret: async () => 'test-only-secret', ca,
-    now: () => 1_999_999_999_999};
+  const observe = await recordGrant('salesforce:record:observe',
+    'acquisition', 'read');
+  const write = await recordGrant(`salesforce:record:${writeOperation}`,
+    'effect_commit', 'effect');
+  const credential = installed.credential;
   let catalogSequence = 0;
+  const catalogLimits = {
+    list: {maxBytes: 10000, maxNodes: 1000, maxDepth: 20,
+      maxResources: 20, maxSelected: 20, maxNameUnits: 1000},
+    describe: {maxBytes: 10000, maxNodes: 1000, maxDepth: 20,
+      maxFields: 20, maxNameUnits: 1000},
+    maxObservationBytes: 10000,
+  };
   const refreshCatalog = async ({signal} = {}) => {
     const sequence = catalogSequence++;
-    const currentList = sequence === 0 ? list : authorize('salesforce:catalog:list');
-    const currentDescribe = sequence === 0 ? describe :
-      authorize('salesforce:catalog:describe');
-    return await syncSalesforceCatalog({
-      moon: salesforceMoon, apiVersion: 'v62.0',
-      connectionRevision: 'connection-revision-a', orgId,
-      syncOccurrence: sequence === 0 ? 'catalog-sync-a' :
+    return await installed.refreshCatalog({...dispatch,
+      occurrence: sequence === 0 ? 'catalog-sync-a' :
         `catalog-sync-${sequence}`,
-      maxObservationBytes: 10000,
       retainResponses: sequence === 0,
       maxRetainedBytes: sequence === 0 ? 30000 : 0,
-      listAuthorization: {...currentList, useId: `list-use-${sequence}`},
-      authorizationForDescribe: async name => ({...currentDescribe,
-        useId: `describe-${name}-${sequence}`}),
-      credential,
-      listLimits: {maxBytes: 10000, maxNodes: 1000, maxDepth: 20,
-        maxResources: 20, maxSelected: 20, maxNameUnits: 1000},
-      describeLimits: {maxBytes: 10000, maxNodes: 1000, maxDepth: 20,
-        maxFields: 20, maxNameUnits: 1000}, signal,
-    });
+      // One dispatch's metadata grants serve every refresh of the Run.
+      limits: catalogLimits, grantUses: 32, signal});
   };
   const catalog = await refreshCatalog();
   assert.equal(catalog.status, 'complete');
@@ -246,8 +287,8 @@ export async function openSalesforceEffectSiteFixture(t, {
     authorityPublicKey: authority.publicKey.export({
       type: 'spki', format: 'pem',
     }),
-    list: recoveryGrant(list),
-    describe: recoveryGrant(describe),
+    list: recoveryGrant(catalog.grants.list),
+    describe: recoveryGrant(catalog.grants.describe),
     observe: recoveryGrant(observe),
     write: recoveryGrant(write),
   });

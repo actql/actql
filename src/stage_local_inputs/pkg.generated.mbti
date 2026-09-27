@@ -146,6 +146,7 @@ pub enum PrepareEnvironmentIssue {
   Environment(Int, EnvironmentIssue)
   Collection(ProgramEnvironmentIssue)
   ForeignSourceViews
+  ConnectorSnapshot(Int, @check_environment.SourceEvidenceMemberIssue)
 }
 
 type Prepared
@@ -161,6 +162,7 @@ pub enum ProgramEnvironmentIssue {
   DuplicateStage(Int)
   DuplicateMember(Int)
   UncheckedSnapshot(Int)
+  ConnectorSnapshot(Int, @check_environment.SourceEvidenceMemberIssue)
 }
 
 type ReconciledAttachment

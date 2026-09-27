@@ -149,3 +149,26 @@ This guard is AoA-specific, not a claim to validate every version domain.
 Specification-family, schema, metadata and identity-fixture checks cover their
 own contracts; package/toolchain checks remain separate. Extend the applicable
 checks when adding or changing a versioned surface.
+
+
+## Repository-wide version guard
+
+`npm run check:contract-versions` rejects new non-0.1 versions in namespace-qualified
+ActQL/AoA contract identifiers, law identifiers and schema URNs. It runs before
+build steps in CI and at the start of `check:docs`. Private Host bindings are
+included. Package release numbers, third-party dependencies and unqualified
+numeric fields are not interpreted as contract identifiers.
+
+The scanner reads tracked text files and new nonignored text files, including
+source, fixtures, documentation and generated bundles. It is a literal identifier
+check, not a semantic proof: dynamically constructed identifiers and unqualified
+version fields still require the applicable contract/schema checks and review.
+
+`scripts/owned-contract-version-legacy.json` freezes pre-existing nonbaseline
+occurrences by path, token, surrounding-context hash and count. These include
+negative fixtures, external Unicode data and legacy implementation formats.
+This inventory preserves existing identities; it does not approve those formats
+as new contracts. Removing an occurrence is allowed. Adding, moving, duplicating
+or changing its context requires review and cannot silently inherit an exception.
+Do not regenerate or extend the inventory merely to make a failing gate pass.
+Any intentional exception requires the explicit version decision described above.

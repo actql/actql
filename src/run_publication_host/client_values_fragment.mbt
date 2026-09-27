@@ -70,17 +70,57 @@ pub fn issue_prepared_client_values_fragment(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue] {
+  issue_client_values_fragment_graph(
+    value.graph,
+    task,
+    sequence_limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Keep the checked Effect closure while sharing the compiler's Fragment
+/// issuer. This computation evidence is neither an apply permit nor a Plan.
+pub fn issue_prepared_client_effect_values_fragment(
+  value : PreparedClientEffectComputation,
+  task : Int,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue] {
+  issue_client_values_fragment_graph(
+    @strategy.checked_effect_computation_graph(value.graph),
+    task,
+    sequence_limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn issue_client_values_fragment_graph(
+  graph : @strategy.CheckedDAG,
+  task : Int,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue] {
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
   }
   let aoa = match
-    issue_prepared_client_values_aoa_identity(
-      value, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    issue_client_values_aoa_identity_graph(
+      graph, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(AoA(issue))
   }
-  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) &&
+  guard @strategy.graph_task_owner(graph, task) is Some(owner) &&
     @lower.node_at(
       @lower.bound_preparation(owner),
       @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner))) - 1,
@@ -160,6 +200,29 @@ pub fn admit_prepared_client_values_fragment(
 ) -> Result[ClientValuesFragmentNode, ClientValuesFragmentAdmissionIssue] {
   let issued = match
     issue_prepared_client_values_fragment(
+      value, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(node) => node
+    Err(issue) => return Err(Issue(issue))
+  }
+  if saved_wire != issued.wire {
+    return Err(MismatchedNode)
+  }
+  Ok(issued)
+}
+
+///|
+pub fn admit_prepared_client_effect_values_fragment(
+  value : PreparedClientEffectComputation,
+  task : Int,
+  saved_wire : String,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientValuesFragmentNode, ClientValuesFragmentAdmissionIssue] {
+  let issued = match
+    issue_prepared_client_effect_values_fragment(
       value, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(node) => node

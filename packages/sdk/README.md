@@ -81,3 +81,119 @@ overhead can make peak memory higher. An exceeded limit fails the delivery
 attempt without cancelling its Run; `all()` never returns a truncated result.
 The reader decodes a received transport chunk in slices no larger than 8 KiB
 or the selected row wire limit, whichever is smaller.
+
+## Held requests and Checkpoints
+
+A Host may hold a request before any Run exists. For example, its account
+configuration can delegate Run acceptance on a protected Site, and the Host
+defers the decision to a durable Checkpoint. `aql()` and `start()` then
+reject with `RequestHeld`. That is a control result, not a failure and not an
+unknown submission. The request is stored durably, so it never needs to be
+submitted again. `error.held` carries the `prepareAttemptId` and the
+Checkpoint reference, and never a RunRef. Follow the request with
+`lookupRequest(requestId)`. It reports `held` with the state
+`waiting_checkpoint`, `resuming` or `ended` (with its reason) until the Run
+exists, and then `found` with the RunRef for `attach`, `status` and `wait`.
+A Program with real input can also be held before the Host reads its
+source. It is the same held request, with a `read_access` Checkpoint instead
+of `run_scope`; a request can be held for its run first and then for its
+read. Nothing is read before the answer, and the Client still only looks the
+request up.
+
+The owner can cancel a request by its ID with `cancelRequest(requestId)`,
+whether or not its Run exists yet. The reply is `accepted`,
+`already_requested` or `already_terminal`. `accepted` means the Host recorded
+the cancellation durably; it does not mean anything stopped or was cleaned
+up. Follow the request with `lookupRequest`, which reports a held request as
+`ended` with `endReason: 'cancelled'`, or with `status()` once there is a
+Run. When the request already has a Run, the reply names it (`ref`) and that
+Run is cancelled through its own cancellation. A lost reply or a Host
+failure raises `CancellationUnknown` with the `requestId`: call
+`cancelRequest` again with the same ID, and it is matched to the recorded
+cancellation. Aborting the call never withdraws a recorded cancellation. A
+reviewer or review reader cannot cancel.
+
+Three operations serve reviewers. Each needs its own Host authorization:
+listing, reading the review body and answering are separate permissions.
+
+- `checkpoints({limit, after})` returns one page of waiting Checkpoints as
+  safe metadata only, never review contents. `next` continues the listing.
+- `reviewCheckpoint(checkpoint, {maxBytes, signal})` reads the exact review
+  projection the Checkpoint names. Both sides enforce the byte bound. The
+  bytes are checked against the named artifact CID, and a larger review is
+  refused, never truncated. Aborting the read never cancels the request.
+- `resolveCheckpoints(items, {signer})` answers one or more Checkpoints.
+  Each answer is its own signed Resolution, and the Host admits each one
+  separately; the batch is not atomic. `signer` is supplied by the
+  application and signs with a key the Host trusts. The SDK never holds the
+  key. A stored answer is not a resumed Run: the Host resumes approved
+  requests itself. When the reply is lost, `ResolutionUnknown` carries the
+  exact signed items. Resend them unchanged; the Host reports `duplicate`.
+
+```js
+import {createPrivateKey, sign} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import {connect, RequestHeld} from '@actql/node';
+
+const endpoint = 'https://remote-host.example/';
+const owner = await connect({mode: 'remote', endpoint, token: ownerToken});
+let execution;
+try {
+  execution = await owner.aql(documentText, {format: 'json',
+    requestId: 'nightly-1'});
+} catch (error) {
+  if (!(error instanceof RequestHeld)) throw error;
+}
+
+// Later, from any process: review and answer.
+const reviewer = await connect({mode: 'remote', endpoint,
+  token: reviewerToken});
+const {items: [checkpoint]} = await reviewer.checkpoints();
+const reader = await connect({mode: 'remote', endpoint, token: readerToken});
+const review = await reader.reviewCheckpoint(checkpoint, {maxBytes: 65536});
+const key = createPrivateKey(readFileSync('reviewer.key', 'utf8'));
+const {results} = await reviewer.resolveCheckpoints(
+  [{checkpoint, decision: 'approved'}],
+  {signer: {keyId: 'reviewer-key', reviewerId: 'reviewer',
+    sign: bytes => sign(null, bytes, key)}});
+
+// The Host resumes the request; follow it to its Run and Result.
+const lookup = await owner.lookupRequest('nightly-1');
+if (lookup.kind === 'found') {
+  execution = await owner.attach(lookup.ref);
+  const rows = await execution.result('answer').all();
+}
+```
+
+## Unknown Effect outcomes
+
+A Run whose Effect writes may have reached the provider without a known
+outcome is never reported as succeeded or failed. `status()` reports
+`needs_reconciliation`, and `next_action` is `{kind: 'reconcile', effects}`
+naming exactly the Effects whose outcome is unknown. `reconcile()` returns the
+Run's current state after the Host's reconciliation attempt. Neither call
+resends a write, and a restarted Host reports the same state for the same
+request. Submitting the same request again returns the existing Run.
+
+## Resource discovery
+
+`resources(resourceConnection, {query, limit})` lists the Resources an
+installed Host connection shows to the caller, from the Host's current Catalog
+observation. `snapshotComplete`, `snapshotTruncated` and `resultTruncated` say
+whether the listing is the whole Catalog; a missing name is not evidence that
+a Resource is absent. `inspectResource(resourceConnection, resource)` returns
+typed metadata, or `catalog_required` with a reason when the Catalog cannot
+answer yet. Neither call reads business rows or grants reading or running
+anything.
+
+`peekResource(resourceConnection, resource, {fields, maxRows, maxBytes})` is
+authorized separately. It returns at most `maxRows` rows with exactly the
+requested `fields`; `limited` marks a prefix. A preview is display material,
+never a complete read, Acquisition evidence or a Result.
+
+```js
+const listing = await client.resources('salesforce:00D000000000001EAA',
+  {query: 'record'});
+const preview = await client.peekResource('salesforce:00D000000000001EAA',
+  'Test_Record__c', {fields: ['Id', 'Name'], maxRows: 5});
+```

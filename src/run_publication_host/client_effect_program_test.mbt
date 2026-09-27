@@ -111,6 +111,103 @@ fn client_effect_fixture() -> (
 }
 
 ///|
+test "Effect compilation shares the checked Values Fragment issuer" {
+  let (document, environment, limits) = client_effect_fixture()
+  let prepared = prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  let graph = prepared_client_effect_computation_graph(prepared)
+  let owner = prepared_client_effect_computation_candidate(prepared)
+  let sequence_limits : @lower.SequenceLimits = {
+    max_steps: 10,
+    max_rows: 10,
+    max_cells: 10,
+    max_bindings: 10,
+    max_name_bytes: 1000,
+    expressions: {
+      max_nodes: 100,
+      max_work: 1000,
+      max_depth: 10,
+      max_literal_nodes: 100,
+      max_literal_text_bytes: 1000,
+    },
+  }
+  let fragment = issue_prepared_client_effect_values_fragment(
+    prepared, 0, sequence_limits, 20000, 2000, 100,
+  ).unwrap()
+  // Independent SHA-256 of the canonical Values pipeline for {value: 1}.
+  assert_eq(
+    client_values_fragment_logical_cid(fragment),
+    "sha256:dbbd1b8a7e0751ce96aece5ac9a85a67eaabfb1ec9e4cf5d86c5a40c64d5afc2",
+  )
+  assert_eq(client_values_fragment_node_id(fragment), "values_0")
+  assert_eq(
+    client_values_fragment_output_contract_wire(fragment),
+    "{\"additional_properties\":false,\"fields\":{\"value\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"}",
+  )
+  assert_eq(
+    client_values_fragment_wire(
+      admit_prepared_client_effect_values_fragment(
+        prepared,
+        0,
+        client_values_fragment_wire(fragment),
+        sequence_limits,
+        20000,
+        2000,
+        100,
+      ).unwrap(),
+    ),
+    client_values_fragment_wire(fragment),
+  )
+  let changed = prepare_client_effect_computation(
+    document.replace(old="\"value\":1", new="\"value\":2"),
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  assert_true(
+    admit_prepared_client_effect_values_fragment(
+      changed,
+      0,
+      client_values_fragment_wire(fragment),
+      sequence_limits,
+      20000,
+      2000,
+      100,
+    )
+    is Err(ClientValuesFragmentAdmissionIssue::MismatchedNode),
+  )
+  assert_true(
+    issue_prepared_client_effect_values_fragment(
+      prepared, 1, sequence_limits, 20000, 2000, 100,
+    )
+    is Err(_),
+  )
+  assert_true(
+    issue_prepared_client_effect_values_fragment(
+      prepared, 0, sequence_limits, 1, 2000, 100,
+    )
+    is Err(_),
+  )
+  assert_true(
+    physical_equal(@strategy.checked_effect_computation_owner(graph), owner),
+  )
+  assert_eq(@strategy.checked_effect_source_count(graph), 1)
+  assert_true(
+    @strategy.graph_program_has_effects(
+      @strategy.checked_effect_computation_graph(graph),
+    ),
+  )
+}
+
+///|
 test "standard Client preparation retains source-free Effect closure" {
   let (document, environment, limits) = client_effect_fixture()
   let prepared = match
@@ -405,6 +502,37 @@ test "Effectful Client request uses the common checked intent and scope" {
     prepared, scope, "write-request", input,
   ).unwrap()
   assert_true(client_request_identity_relation(request, replay) is SameRequest)
+  let effect_scope = prepared_client_effect_request_scope(prepared, request).unwrap()
+  assert_eq(
+    @request_scope.logical_request_scope_cid(effect_scope),
+    client_request_scope_cid(request),
+  )
+  assert_eq(effect_scope, client_request_logical_scope(replay))
+  let restored = admit_client_request_identity_record(
+    client_request_authority_scope_cid(request),
+    client_request_caller_id(request),
+    client_request_program_cid(request),
+    client_request_parameters_cid(request),
+    client_request_input_cid(request),
+    client_request_scope_cid(request),
+    client_request_intent_cid(request),
+  ).unwrap()
+  assert_eq(
+    prepared_client_effect_request_scope(prepared, restored).unwrap(),
+    effect_scope,
+  )
+  let other_program = prepare_client_effect_computation(
+    document.replace(old="client-effect", new="another-effect"),
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  assert_true(
+    prepared_client_effect_request_scope(other_program, request)
+    is Err(IdentityMismatch),
+  )
   let changed = prepare_client_effect_request_identity(
     prepared, scope, "write-request", "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
   ).unwrap()
@@ -414,5 +542,158 @@ test "Effectful Client request uses the common checked intent and scope" {
   assert_true(
     prepare_client_effect_request_identity(prepared, scope, "", input)
     is Err(InvalidRequestId),
+  )
+}
+
+///|
+test "Effectful compiler issues owner-bound Plan and Template" {
+  let (document, environment, limits) = client_effect_fixture()
+  let owner = prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  let manifests = admit_client_compilation_manifests(
+    @environment.compiler_grammar_manifest_wire(),
+    @environment.compiler_barrier_contract_manifest_wire(),
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  let sequence : @lower.SequenceLimits = {
+    max_steps: 10,
+    max_rows: 10,
+    max_cells: 10,
+    max_bindings: 10,
+    max_name_bytes: 1000,
+    expressions: {
+      max_nodes: 100,
+      max_work: 1000,
+      max_depth: 10,
+      max_literal_nodes: 100,
+      max_literal_text_bytes: 1000,
+    },
+  }
+  let compiled = issue_prepared_client_effect_compilation(
+    owner, manifests, sequence, 1000, 10000, 1000000, 100000, 100,
+  ).unwrap()
+  assert_true(physical_equal(client_effect_compilation_owner(compiled), owner))
+  let plan = client_effect_compilation_plan(compiled)
+  let wire = client_task_executable_plan_wire(plan)
+  let facts = client_task_executable_plan_fact_manifest_wire(plan)
+  let template = @publication.run_evidence_value_json(
+    client_effect_compilation_template(compiled),
+  )
+  let envelope = @publication.publication_contract_json(
+    client_effect_compilation_compiled_plan(compiled),
+  )
+  assert_true(wire.contains("\"effect_result\""))
+  assert_true(wire.contains("\"effects\":{\"save\":"))
+  assert_true(wire.contains("\"effect_plan_logical_cids\":{}"))
+  assert_true(
+    template.contains(prepared_client_effect_computation_definition_cid(owner)),
+  )
+  let policy = "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  let (observation, invocation) = issue_client_effect_source_free_invocation(
+    compiled, policy, 100000, 10000, 100,
+  ).unwrap()
+  assert_true(
+    @publication.run_evidence_value_json(observation).contains(
+      @publication.run_evidence_value_identity(
+        client_effect_compilation_template(compiled),
+      ),
+    ),
+  )
+  assert_true(
+    @publication.publication_contract_json(invocation).contains(
+      @publication.run_evidence_value_identity(observation),
+    ),
+  )
+  assert_true(
+    issue_client_effect_source_free_invocation(compiled, "", 100000, 10000, 100)
+    is Err(_),
+  )
+  assert_true(envelope.contains(client_task_executable_plan_cid(plan)))
+  let restored = admit_prepared_client_effect_compilation(
+    owner, wire, facts, template, envelope, manifests, sequence, 1000, 10000, 1000000,
+    100000, 100,
+  ).unwrap()
+  assert_true(physical_equal(client_effect_compilation_owner(restored), owner))
+  let changed = prepare_client_effect_computation(
+    document.replace(old="\"save\":", new="\"other\":"),
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  assert_true(
+    admit_prepared_client_effect_compilation(
+      changed, wire, facts, template, envelope, manifests, sequence, 1000, 10000,
+      1000000, 100000, 100,
+    )
+    is Err(ClientEffectCompilationAdmissionIssue::MismatchedCompilation),
+  )
+  assert_true(
+    admit_prepared_client_effect_compilation(
+      owner, wire, facts, "{}", envelope, manifests, sequence, 1000, 10000, 1000000,
+      100000, 100,
+    )
+    is Err(ClientEffectCompilationAdmissionIssue::MismatchedCompilation),
+  )
+  assert_true(
+    issue_prepared_client_effect_compilation(
+      owner, manifests, sequence, 1000, 10000, 1, 100000, 100,
+    )
+    is Err(_),
+  )
+  let allowed = issue_client_effect_allowed_run(
+    compiled, "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = issue_client_effect_run_definition(
+    allowed, "tenant-a", "effect-run", "2026-09-26T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let bound = bind_client_effect_compiled_run(owner, allowed, definition).unwrap()
+  assert_true(
+    physical_equal(prepared_client_effect_run_computation(bound), owner),
+  )
+  assert_true(
+    bind_client_effect_compiled_run(changed, allowed, definition)
+    is Err(ClientEffectCompiledRunIssue::ForeignCompilation),
+  )
+  let equal_owner = prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  assert_true(
+    bind_client_effect_compiled_run(equal_owner, allowed, definition)
+    is Err(ClientEffectCompiledRunIssue::ForeignCompilation),
+  )
+  let restored_allowed = admit_client_effect_allowed_run(
+    compiled,
+    client_effect_allowed_run_prepared(allowed),
+    client_effect_allowed_run_authorization(allowed),
+  ).unwrap()
+  ignore(
+    bind_client_effect_compiled_run(owner, restored_allowed, definition).unwrap(),
+  )
+  let foreign_compilation = issue_prepared_client_effect_compilation(
+    changed, manifests, sequence, 1000, 10000, 1000000, 100000, 100,
+  ).unwrap()
+  assert_true(
+    admit_client_effect_allowed_run(
+      foreign_compilation,
+      client_effect_allowed_run_prepared(allowed),
+      client_effect_allowed_run_authorization(allowed),
+    )
+    is Err(ClientEffectCompiledRunIssue::Admission(_)),
   )
 }

@@ -9,6 +9,9 @@ const bundles = [
   'connectors/duckdb/host_node/host_node.js',
   'retained_host_bridge/retained_host_bridge.js',
   'process_host_bridge/process_host_bridge.js',
+  // The Checkpoint journal runtime of the Remote Host's Run-acceptance
+  // protection (not part of the light @actql/sdk).
+  'checkpoint_runtime_node/checkpoint_runtime_node.js',
 ];
 const buildRoot = join(root, '_build/js/release/build');
 const packageRoot = join(root, 'packages/local-node/_build/js/release/build');

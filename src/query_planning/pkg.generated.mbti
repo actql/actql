@@ -3,6 +3,7 @@ package "actql/actql/query_planning"
 
 import {
   "actql/actql/canonical_json",
+  "actql/actql/check_environment",
   "actql/actql/connector_sdk",
   "actql/actql/encode_core",
   "actql/actql/execution_query",
@@ -119,6 +120,8 @@ pub fn query_requirement_site(QueryRequirement) -> (String, String)
 pub fn query_requirement_source(QueryRequirement) -> (String, String)
 
 pub fn query_requirement_source_evidence_facts(QueryRequirement) -> QuerySourceEvidenceFacts?
+
+pub fn query_requirement_source_evidence_members(QueryRequirement) -> Result[@check_environment.ConnectorSourceEvidenceMembers, @check_environment.SourceEvidenceMemberIssue]
 
 pub fn query_requirement_usage(QueryRequirement) -> (Int, Int, Int)
 

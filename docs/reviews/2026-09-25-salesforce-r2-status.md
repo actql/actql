@@ -1,13 +1,191 @@
 # Salesforce Effect review R2 status
 
-## Current completion unit
+## Fixed completion unit at current HEAD
 
 | Required view | Current boundary |
 | --- | --- |
 | User capability at completion | Submit a normal Program with at least two multi-row Salesforce Effect members; inspect or reconcile uncertain rows without resending known writes; read its separately named published Result; release private and public holdings after the last user. |
-| Remaining implementation and acceptance | The installed Host has checked local Effect identities, exact captured source inventory, authenticated Site write capabilities, durable row claims, recovered apply, row/set Receipts, formal Store publication, authorized Result read, and holding retirement. Its completion entry joins apply, Receipt issuance, and publication on one captured owner; a fresh process exercises the recovered entry. The multi-member local HTTPS/SQLite fixture still composes the earlier preparation/capture steps and supplies the logical request scope authority. Join those steps and admitted request authority in one production Host caller and expose completed or uncertain state to public ingress. Preserve normal multi-member/multi-row execution, whole-set rejection with zero sends, response loss without resend, restart, publication uncertainty, Result read, and last-owner cleanup through that caller. The section 22.5 entrypoint-to-test inventory below exists; authorized discovery/resource resolution and live-org validation remain open. |
-| Cross-owner dependency | This branch owns the common checked Effect Run/Host caller, local Artifact/Manifest issuer, and Salesforce Site operations. Distribution owns public Client `submit`, attach/status/Checkpoint projection and must consume the same Host owner rather than implement an Effect scheduler; this remains an exact integration dependency, not evidence of completion here. The isolated Salesforce org, secret-manager reference, and write permission are not supplied, so live-provider acceptance is unverified. |
-| Existing plan outside this unit | New providers, Cloud OAuth management, Bulk API, unrelated frontends or optimizers, and fleet deployment remain separate. These exclusions do not shrink the current product-path acceptance or complete the original ten-Connector objective. |
+| Remaining implementation and acceptance | Connected locally: configured Host authorization (installed Site profiles and one installed account gate issuing every record grant), public `needs_reconciliation` status and reconcile for uncertain Runs, and public discovery (list/search/inspect from the current or retained Catalog observation, authorized bounded peek). Remaining: verify declared read/write behavior against the isolated org when access is supplied. |
+| Cross-owner dependency | Distribution owns public Client Checkpoint projection and shared ingress; Connector owns Salesforce Site operations and consumes the delivered common compiler and Run-start owner. The isolated org, secret-manager reference and write permission have not been supplied; live-provider acceptance is unverified. |
+| Existing plan outside this unit | New providers, Cloud OAuth management, Bulk API, unrelated frontends or optimizers, fleet deployment and the separately managed performance work remain separate. This does not complete the original ten-Connector objective. |
+
+## Closure of the fixed unit (2026-09-26)
+
+- Configured Host authorization: `loadInstalledSalesforceSite` installs each
+  Site from a Host profile (org binding, credential authority key, sf CLI
+  secret reference). `installSalesforceAuthorization` installs one account gate
+  for the Host's Sites from the exact configuration text. Record grants are
+  issued only for a dispatch decision that gate returned for the same
+  connection, Resource and operation class; copied or constructed decisions
+  are refused. The Effect Site fixture and the main Effect commit now use this
+  installed gate; the test supplies only the local org and its secret.
+  Variant gates remain only where a test proves a denial.
+- Uncertain Runs: `issue_effect_reconciliation_run_state_wire` derives
+  `needs_reconciliation` from the complete admitted Effect Set and names
+  exactly the unknown Effects. When publication is refused for unknown
+  outcomes, the Host records that owner-issued state in the request journal
+  from the exact issued receipt set. Public `status` and `reconcile` answer
+  from the record, also after the Host is reinstalled over the reopened
+  journal, with one physical start and no further provider writes. This is a
+  Run state, not a Checkpoint: the protocol forbids a Checkpoint on a
+  `needs_reconciliation` Run and only a reconciliation receipt leaves it.
+  `run_unit` commit Checkpoints through the public Client remain outside this
+  unit.
+- Discovery: the public `resources`, `resource-inspect` and `resource-peek`
+  operations are served by `installSalesforceResourceService` from one current
+  Catalog observation per Site, restored from retained responses after a
+  restart without provider I/O. A preview needs its own read dispatch, syncs a
+  Catalog bound to its own dispatch, adds one `LIMIT`, reads one page under a
+  one-use query grant and returns a bounded prefix.
+- Still open: the isolated org, secret-manager reference and write
+  permission have not been supplied, so every live-provider cell stays
+  unverified.
+
+## Current connection (2026-09-26)
+
+The provider-owned Resource discovery view now exposes list, search, inspect,
+and resolve over one exact MoonBit Catalog observation. It freezes the
+observation binding, checks current account disclosure per Resource, separates
+snapshot truncation from display truncation, and performs no provider request
+or credential use. MoonBit decides whether the entire observation is complete;
+an unavailable Describe stays incomplete even when the listing fits. Inspect
+returns bounded typed metadata, not execution authority. The local HTTPS test
+also reinstalls this view from an exact retained observation after recovery,
+then checks current disclosure without another network or credential use.
+The view is not yet exposed through a public discovery endpoint, and
+business-row peek remains open.
+
+An authorized Resource resolver now consumes one supplied exact Salesforce
+Catalog observation and the installed account gate. It checks current metadata
+disclosure before looking up the resource, derives read or write candidates in
+MoonBit without provider I/O, and reports partial Resource or field evidence as
+`catalog_required`. A write candidate is not Effect apply authority. This is
+one section 22.5 connection, not completion of list/search/inspect/peek or
+live-provider discovery. The local HTTPS regression verifies denied disclosure,
+foreign binding, partial describe, missing field, and zero additional HTTP or
+credential uses during resolution.
+
+The Salesforce Host now has one installed Effect route that owns the same
+request inventory for current Catalog/target rechecks and physical dispatch.
+The common Effect frontier still decides admission, retry, and completion.
+The route rejects a foreign Set Preview before Site I/O and is reinstalled
+from the reopened Ledger and re-admitted Preview after recovery; a route
+cannot carry an old physical Ledger into a new recovery flight. The local
+two-member public submit matrix exercises this route for ordinary single
+and Collections writes and restart/publication cases. Other fault-injection
+cases retain direct physical hooks so they can stop at exact boundaries.
+This improves the provider product composition but does not supply the
+missing live-org authority or Distribution-owned public Checkpoint entry.
+The route implementation at `da40e11bf` passed the local Salesforce Site
+suite (172/172), including public Client submit, saved-response recovery,
+process restart, Collections partial results, and last-owner retirement.
+It is not a live Salesforce or hosted Linux CI result.
+
+The source-free Observation Set and Run Invocation in the public Effect
+integration now come from the exact checked compiler owner through the shared
+Host issuer. The Salesforce test no longer constructs those bodies or supplies
+a test-authored Template CID. The compiler rejects imported or external inputs
+before this issuer can be used. The existing Effect-free Values Host uses the
+same issuer procedure without changing its wire contract. This does not grant
+apply authority: the installed Host still requires current authorization,
+the durable Run-start claim, and the Effect ledger's row claims. A callback
+failure or lost response is reconciled from those retained claims and cannot
+acquire a second physical start by resubmitting the public request.
+
+The Distributor-owned compiler and durable start handoff
+`e65664ebb415a80a0d80edf7f6b04038ced18709` is integrated with the
+Connector branch. Its `installNodeClientEffectRun` entry issues the formal
+Plan, Template, policy evidence and Run Definition from the original checked
+Effect owner. The public Client `submit` in the local HTTPS integration test
+now prepares the ordinary Program, durably accepts the request, takes the
+shared Run-start claim, and passes the bound owner to the existing
+capture, apply, Receipt, publication, read and retirement path. The same test
+covers two members with two rows each and an Effect source named `rows` while
+the public Result is named `answer`.
+
+A second submit of the same request returns the accepted Run reference without
+another physical start. A failed execute callback after an uncertain row makes
+the first public submit report an unknown response; resubmission reconciles
+the retained Run and does not call execute or resend the row. The existing
+fault matrix still exercises Store restart, saved response, partial failure,
+whole-set preflight, and private holding retirement through this entry.
+The compiler's initial single-Unit source-free Values profile rejects
+unsupported Programs before durable acceptance. A public ingress regression
+now checks the typed `ClientProgramUnsupported` response, zero accepted journal
+rows, and zero physical execution for a checked multi-Unit Program; it cannot
+silently fall back to another path.
+
+At `ada3f0033f5091944c564b9e03ca3d8831135239`, the local Salesforce
+gate passed 171/171, the shared `run_publication_host` package passed 15/15
+on each of JS, Wasm and native, the public Client gate passed 104/104, and
+`check:docs` passed after regenerating the RelA Effect bridge. The worktree
+was clean. These are local and fixture-backed results, not hosted Linux CI or
+live Salesforce evidence. The subsequent unsupported-Program regression and
+bridge projection passed the local Salesforce gate (172/172), shared Host
+package tests on JS, Wasm and native (15/15 each), public Client gate
+(104/104), public API and format checks, and `check:docs`. The generated
+packaged Node bundle was refreshed from the same source. Hosted Linux CI and
+live Salesforce remain unverified.
+
+This local connection uses test-configured authorization and an authenticated
+Salesforce-shaped HTTP resource. The isolated Salesforce org and write scope
+have not been supplied. Public Client Checkpoint projection, authorized
+resource discovery, live-provider behavior and hosted Linux CI remain open.
+The historical sections below describe earlier milestones; their statements
+that formal Plan issuance or public submit is pending are superseded here.
+
+At `98240e24216d8dbd71a37942f07df13758c822ad`, the shared Host bridge
+regression also rejects a receipt from an equal-valued but different Result
+export and rejects a released receipt. The public Client gate passed 104/104.
+The following integration change routes the two-member Effect authorization
+matrix through the production local account-configuration installer rather
+than directly constructing the test gate. Its targeted case and the full
+Salesforce Site gate passed (172/172). The account document and HTTP provider
+remain test supplied; this does not establish live-org authorization or the
+final installed Salesforce Host configuration.
+
+## Shared integration baseline
+
+Current work is on `feat/connector-salesforce-integration`, based on
+`44f00eab0a73819b45a0f64627898f796717ea29`. The nine post-baseline Connector
+request/recovery/source-holding/capture commits have been replayed. The original
+`feat/connector-salesforce-effects` remains at `78e73fe62`, preserving all eleven
+additions. Distribution's approved adaptation of its two compiler proposals,
+`4c583cacbf31abbfd707f8f826d87387c6907c0d`, is now merged without replaying
+the original proposals. Compiler, Plan, and Invocation issuance remain owned
+by Distribution. The shared Fragment issuer supplies the checked computation
+CID, but does not issue the full Plan or Bound Invocation Template. See the
+[compiler handoff](2026-09-26-effect-fragment-compiler-handoff.md).
+Public Client Checkpoint
+integration is separately reviewed and is not counted as complete here.
+Historical commit references below identify original changes, not their new
+replayed SHAs. Local tests of the old branch do not verify this integration.
+The replayed implementation at `2baaabdb7` passed the combined Salesforce,
+Client bridge, request-journal, and publication-control tests (82/82), after
+building the integrated DuckDB Host artifact. Two Run-start whitebox fixtures
+needed the retained opaque request scope instead of the removed CID-only field;
+with that test-only adaptation, the affected common packages passed JS, Wasm,
+and native (16/16 each). Generated API consistency, document links (1098), and
+the connector dispatch boundary also passed. No performance path was changed
+by this replay; the performance suite was not rerun. Linux CI, main integration,
+live Salesforce, and public Checkpoint completion remain unverified.
+
+After merging the approved Fragment series, the affected common packages pass
+17 tests on each of JS, Wasm and native. The combined Salesforce Effect,
+Client bridge, request journal and publication control regression passes 82/82.
+Regenerated local-node and run-host-core artifacts pass freshness checks;
+run-host-core and Connector boundary tests pass 25/25 together. Public APIs,
+formatting and document links pass. Full Plan/Invocation issuance is still
+fixture-backed and is not validated as a product path by these results.
+
+At `af13f6636d2b7c6b9ba25c7552ea25cc9e5ed646`, the additional Catalog,
+CLI credential, common Effect control, physical dispatch and durable Ledger
+suite passed 140/140. The packaged portable Host passed offline installation
+and its existing effect-free admission smoke. Salesforce Catalog, Host and
+conformance packages passed 79/79 on each of JS, Wasm and native. These tests
+cover the local provider-shaped resource and independent contract fixtures;
+the packed smoke does not prove public Effectful submit. They supplement,
+rather than replace, the multi-member integration results above.
 
 The installed Node Host now exports `completeCapturedEffectRun` and
 `completeRecoveredEffectRun`. These functions use the existing MoonBit frontier,
@@ -17,9 +195,21 @@ two-member HTTPS test covers successful completion and an unknown row, while a
 fresh-process test covers settled recovery and publication. They are Host
 connection progress, not public `submit` acceptance or live-org evidence.
 The Salesforce Preview author now takes member authority from the checked
-logical request scope; a member cannot choose or relabel that authority. The
-local fixture's logical request scope origin still needs product issuance;
-the Site capability issuer described below no longer accepts example CIDs.
+logical request scope; a member cannot choose or relabel that authority.
+The normal internal preparation now issues a checked Client request identity
+and durably accepts its Run Definition before Compute. Effect preparation
+reuses that request's opaque scope; fresh-process recovery re-admits the
+saved identity rather than deriving a replacement from caller strings.
+The installed `recoverAdmittedEffectRun` now owns the initial recovery join:
+current evidence-read authorization precedes one exact Client journal lookup,
+and request/Run matching precedes encrypted capture access. The fresh-process
+fixture uses this entry, including denial without Site traffic. It introduces
+no execution, credential, or retry authority; apply retains its independent
+current admission requirements.
+Authenticated ingress authority still comes from fixture configuration, and
+compiler/Host policy evidence is still fixture-supplied. Those origins and
+the preparation/capture composition remain product connection work; the
+Site capability issuer described below no longer accepts example CIDs.
 The common completion entry now rejects a foreign apply or Receipt Preview
 before any row send. Replaying a Set with no ready rows needs no fresh mutation
 grant or target refresh; current evidence-read admission still governs Receipt
@@ -61,8 +251,99 @@ request a mutation grant. The current-use test now uses real MoonBit Catalog
 and capability values rather than fabricated observations. The internal profile
 and trust boundary are documented in
 [Salesforce write capability evidence](../design/salesforce-write-capability.md).
-The earlier preparation/capture composition, logical request authority,
-authorized discovery, public ingress, and live-org acceptance remain open.
+The earlier preparation/capture composition, authenticated request authority,
+formal compiler/Host policy evidence, authorized discovery, public ingress,
+and live-org acceptance remain open. Distribution owns the shared compiler
+dependency and public ingress, as detailed in the
+[current request handoff](2026-09-24-effect-run-shared-port.md).
+
+Effect input preparation now uses the common `preparePinnedEffectSourceSet`.
+It derives member sharing from exact MoonBit owners, exports a shared view
+once, and issues a complete local Manifest only after all of the Unit's
+Artifact owners are available. Distinct Results with equal rows stay distinct.
+Partial preparation failure uses existing publication cleanup and keeps
+failed Store custody retryable. This closes a fixture-authored input grouping
+step; initial compilation, the complete preparation/capture composition, and
+public ingress are still open.
+The following holding step now also uses the common Host entry
+`preparePinnedEffectSourceHoldings`: every source binding is admitted before
+Store I/O, and the caller receives the complete responsibility inventory before
+commit. Lost acknowledgements are reconciled against the same Store records,
+without another export or another Effect dispatch. Independent member holdings
+remain separate even when their immutable payload is shared.
+
+## Source-set preparation verification
+
+The common computation capture now admits every source holding and constructs
+the complete Receipt, Captured Run, and encrypted-record input before its first
+Store wait. A foreign later holding or missing required Plan is rejected before
+any holding synchronization. The normal two-member Salesforce integration also
+mutates caller-owned Plan and evidence arrays during that first wait; publication
+and public Result read must still use the already admitted capture. This ordering
+fix preserves exact-record synchronization and retryable cleanup ownership. It
+does not close the compiler evidence or public ingress dependencies above.
+The final local regression passed 61/61 across the Salesforce integration,
+common Client bridge, and publication-control tests. Document links (1097)
+and the connector dispatch boundary (3/3) also passed. No schema, generated
+API, or MoonBit implementation changed; this is not a Linux CI or live-org run.
+
+The holding-set implementation (`b601f0097`) and integration pass the
+Salesforce suite (169/169)
+and common Client, request journal, and publication-control suite (42/42).
+Its real-Store test loses the second member's share acknowledgement after
+the record is durable. Both concurrent commit callers observe the same
+failure; all responsibility records remain available. Same-record retry
+does not create another writer or increase stored bytes. A copied set is
+rejected before Store I/O, and an unavailable sharing source remains rejected.
+The final inventory check reuses the existing MoonBit Preview/source rule.
+After adding that check, the normal Salesforce publication/SDK-read case
+also passed again against the final implementation.
+This increment does not change schemas, pins, generated APIs, or semantics.
+
+The source-set implementation (`3e92241af`) and its integration pass
+`check:salesforce-site` (169/169) and the
+combined common Client, Client request journal, and publication-control
+suite (42/42). The new real-Store regression distinguishes one shared Result
+from two separately named Results with identical rows. It checks the complete
+local Manifest, refusal before writer creation when grouping work is exhausted,
+and a second-source failure plus a failed first-owner release. Retrying that
+cleanup creates no new writer and returns stored/reserved bytes to zero.
+
+The Node bridge only exposes an existing checked Unit coordinate; no canonical
+preimage, schema, pin, or identity rule changed. Three-target interface
+generation, generated API consistency, formatting, document links, common
+connector dispatch boundary, and whitespace checks accompany this increment.
+These are local checks, not Linux CI, live Salesforce, or a completion claim
+for the pending initial compiler/public ingress connection.
+
+## Client request connection verification
+
+The installed recovery entry (`c73fa072d`) is also exercised by the full
+Salesforce suite (169/169) and common Client/request journal tests (28/28).
+The former now includes denial with zero Site requests and uses the same
+entry for prepared intent, lost response, saved response, and publication
+recovery in a fresh process. The latter checks denial before lookup,
+foreign-Run rejection, binding ownership across an authorization await, and
+cancellation before lookup. Connector boundary, links (1,097), and whitespace
+checks pass. This recovery increment changes JavaScript orchestration only;
+it does not change MoonBit, schema, pins, or generated interfaces.
+
+Shared implementation commit: `79e89a07f`. The existing Client request
+identity, canonical body, and journal schema are unchanged. The new internal
+accessor retains the same opaque scope for initial execution and recovery.
+No scope accessor grants current execution permission.
+
+- `logical_request_scope`: JS, Wasm, and native each 3/3.
+- `run_publication_host`: JS, Wasm, and native each 8/8.
+- `npm run check:salesforce-site`: 169/169, including a foreign caller ID
+  rejection before fresh-process recovery can send another write.
+- Common Client bridge and Client request journal: 28/28.
+- Generated API consistency, `moon fmt --check`, document links, common
+  connector dispatch boundary, and whitespace checks passed locally.
+
+These checks cover the integration commit accompanying this record on top
+of the shared implementation. They are not Linux CI, live
+Salesforce, authenticated public Effect submit, or compiler closure evidence.
 
 ## Capability connection verification
 
@@ -569,17 +850,36 @@ its exact Catalog observation, current grant, and selected Site capability.
 
 | Capability and product entry | Local evidence | Remaining gate |
 | --- | --- | --- |
-| Object/field Catalog: `syncSalesforceCatalog` | `salesforce-catalog-sync.test.mjs`: scoped list/describe, partial or rate-limited describe, truncation, cancellation, foreign generation, retargeted CLI alias | Expose the authorized list/search/inspect/peek and resource-resolution product surface required by section 22.5; the bounded listing and selector alone are not that surface. Run the metadata projection against the isolated org and confirm actual field and write constraints. |
+| Object/field Catalog: `syncSalesforceCatalog` | `salesforce-catalog-sync.test.mjs`: scoped list/describe, partial or rate-limited describe, truncation, cancellation, foreign generation, retargeted CLI alias. The installed view now supports authorized list/search/inspect/resolve and exact retained-observation recovery. | Connect the provider view to the public Resource discovery surface and add an authorized bounded business-row peek. Run the metadata projection against the isolated org and confirm actual field and write constraints. |
 | Authorized query with projection and locator: `readSalesforceQuery` / `readSalesforceManagedQuery` | Same suite: exact locator, page ceiling before HTTP and credential use on both raw and managed paths, changed schema or permission before use, stale Catalog, foreign continuation, partial consumer failure, typed output owner. The managed path also rejects a foreign continuation and does not append a fresh query after locator failure. | Verify real-org pagination, provider failures, supported comparison semantics, and actual pushdown against independent expected rows. Locator completion is not a point-in-time snapshot. |
-| Single create, ID update, external-ID upsert: `captureSalesforceSingleEffectWrite` | Same suite: exact target/request authority, physical response custody, restart without resend, rejected response, alias/footprint mismatch; MoonBit write-request fixtures. `adapters/connectors/salesforce/test/effect-run.integration.test.mjs` runs each operation as a checked two-member Program through local HTTPS writes, final publication, SDK read after restart, and holding retirement. The local Host authors the Preview from typed requests, current target observations, and authenticated capability handles, then refreshes selected Catalogs, guards, and capability authority before sending. Changed permission rejects the whole set with zero writes; a lost create reply remains unknown after Ledger reopen without resending POST. The separate local Artifact inventory is durable and re-admitted after restart. | Finish the admitted request-authority composition, then verify behavior against the isolated org, including required External ID, duplicate key, field omission versus NULL, permission changes, and provider failures. Live writes remain unauthorized and untested. |
+| Single create, ID update, external-ID upsert: `captureSalesforceSingleEffectWrite` | Same suite: exact target/request authority, physical response custody, restart without resend, rejected response, alias/footprint mismatch; MoonBit write-request fixtures. `adapters/connectors/salesforce/test/effect-run.integration.test.mjs` runs each operation as a checked two-member Program through local HTTPS writes, final publication, SDK read after restart, and holding retirement. The local Host authors the Preview from typed requests, current target observations, and authenticated capability handles, then refreshes selected Catalogs, guards, and capability authority before sending. Changed permission rejects the whole set with zero writes; a lost create reply remains unknown after Ledger reopen without resending POST. The separate local Artifact inventory is durable and re-admitted after restart. | The local request-authority composition is connected; do not rebuild it. Verify behavior against the isolated org, including required External ID, duplicate key, field omission versus NULL, permission changes, and provider failures. Live writes remain unauthorized and untested. |
 | Same-member Collections continue (`allOrNone=false`): `captureSalesforceCollectionEffectWrite` | Same suite: row order, shared response custody, target identity and operation authority. The Salesforce integration suite includes two-row Collections partial failure and saved-response recovery in the checked two-member Host Run, with Ledger reopen and no resend. Its authenticated capability distinguishes Collections from ordered single-record execution. | Validate actual provider limits and partial-result behavior in the isolated org. No cross-member atomicity is claimed. |
 | Provider-atomic Collections command (`allOrNone=true`) | Not declared or connected. The current request builder fixes `allOrNone=false`, and common apply admission rejects a provider-atomic collection as a `continue` route. | If declared under the agreed Command contract, add a distinct typed command, batch rollback evidence and a normal Host path. Do not count the existing continue collection as this capability. |
-| Effect Set completion and publication: `applyCapturedEffectSet` / `publishCompletedEffectfulRun` | Salesforce integration suite: checked two-member Program, credentialed local HTTPS Site writes, durable rows, final chain, lost index acknowledgement, public SDK attach/status/authorized Result read after Store reopen, and retirement; saved-response/terminal/claim fault cases, lost physical HTTP reply, halt/continue, unknown and partial failure; simulated response control remains. The common `client-program-bridge.test.mjs` keeps provider-independent contracts. | Install public Effectful `submit` and uncommitted unknown-state reporting with the Distribution owner. Local Site tests do not validate a live Salesforce org. |
+| Effect Set completion and publication: `applyCapturedEffectSet` / `publishCompletedEffectfulRun` | Salesforce integration suite: checked two-member Program, credentialed local HTTPS Site writes, durable rows, final chain, lost index acknowledgement, public SDK submit and later attach/status/authorized Result read after Store reopen, and retirement; saved-response/terminal/claim fault cases, lost physical HTTP reply, halt/continue, unknown and partial failure; simulated response control remains. The common `client-program-bridge.test.mjs` keeps provider-independent contracts. | The public submit path now enters the shared compiled Run owner and Connector completion. Distribution still owns public Checkpoint projection for an uncommitted unknown Run. The Site tests do not validate a live Salesforce org. |
 
 The org alias, instance, dedicated custom object, external-ID field, and
 write scope have not been supplied. No existing Smooth Cloud connection is
 implicitly authorized. Until an isolated org is configured and explicit
 write permission is granted, every real-Salesforce cell above is unverified.
+
+### Section 22.5 audit: fixed Effect unit versus Connector completion
+
+The checked source-free Values Effect Run is a local product-path acceptance,
+not a claim that the entire Salesforce Connector satisfies section 22.5. The
+following audit uses the current product entrypoints rather than test counts.
+
+| Criterion | Current evidence | Remaining boundary |
+| --- | --- | --- |
+| 1. Static Catalog closure | No pinned Salesforce Connector Catalog, SourceView, Command and lock closure is registered under `spec/`. The dynamic observation is not that static identity. | Define and independently vector-check only the capabilities that the product actually installs. |
+| 2. Resource Snapshot | `syncSalesforceCatalog` binds exact connection/authority and records partial Describe, truncation and retained responses. | Confirm metadata revision and provider behavior with the isolated org. |
+| 3. Metadata projection | MoonBit read/write projections use observed fields and constraints. | Carrier, relations, keys and per-column semantic capability coverage are not proven as a complete provider projection. |
+| 4. Discovery | Public `resources`, `resource-inspect` and `resource-peek` over installed Sites; retained-snapshot restore; separately authorized bounded peek. | Live-org verification of discovery results and peek. |
+| 5. Supplied-snapshot planning | The resolver uses its supplied observation without network I/O and returns `catalog_required` for missing Resource/field facts. | The ordinary compiler profile remains source-free Values; external Acquisition planning is not connected. |
+| 6. Drift and refresh | Query and Effect Site paths refresh and recheck current Catalog/target authority before physical use. | Broader public replanning after changed connection/scope/schema is not demonstrated. |
+| 7. Declared execution | The local HTTPS path exercises query, single write and non-atomic Collections through their respective physical owners. | Static Catalog registration and complete candidate-to-cleanup coverage are not yet proven for all declared operations. |
+| 8. Provider matrix | Local authenticated HTTPS and independent MoonBit fixtures cover the named fault boundaries. | No isolated-org run or contract-approved provider replay has been supplied. |
+| 9. Write semantics | The checked Effect path preserves Preview, current-use admission, durable row outcomes and unknown reconciliation. | Real provider constraints and failures still require explicitly authorized isolated-org writes. |
+| 10. Optional Connector | The Connector-addition gate tests an isolated common Host with a third implementation. | Record the same-SHA gate result and verify the final packaged product excludes unselected provider code. |
 
 Review baseline: `15904a32f31573a86a3507253f3eaa1b010adf78`.
 Prior implementation and verification baseline:

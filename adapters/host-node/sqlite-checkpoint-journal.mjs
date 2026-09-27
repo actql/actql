@@ -187,6 +187,7 @@ function preparationView(row) {
     endReason: row.end_reason === '' ? null : row.end_reason,
     terminalErrorCode: row.terminal_error_code === '' ? null :
       row.terminal_error_code,
+    cancelRequested: row.cancel_requested === 1,
   });
 }
 
@@ -244,7 +245,9 @@ export function openSqliteCheckpointJournal(root, {
         checkpoint_cid TEXT NOT NULL DEFAULT '',
         run_id TEXT NOT NULL DEFAULT '',
         end_reason TEXT NOT NULL DEFAULT '',
-        terminal_error_code TEXT NOT NULL DEFAULT ''
+        terminal_error_code TEXT NOT NULL DEFAULT '',
+        cancel_requested INTEGER NOT NULL DEFAULT 0
+          CHECK (cancel_requested IN (0, 1))
       ) STRICT;
       CREATE TABLE IF NOT EXISTS checkpoints (
         checkpoint_cid TEXT PRIMARY KEY NOT NULL,
@@ -316,6 +319,15 @@ export function openSqliteCheckpointJournal(root, {
         database.exec(`ALTER TABLE checkpoints ADD COLUMN
           requested_claims_json TEXT NOT NULL DEFAULT '[]'`);
       }
+      // A preparation recorded before request cancellation is not cancelled.
+      const preparationColumns = database.prepare(
+        'PRAGMA table_info(preparations)').all();
+      if (!preparationColumns.some(column =>
+        column.name === 'cancel_requested')) {
+        database.exec(`ALTER TABLE preparations ADD COLUMN
+          cancel_requested INTEGER NOT NULL DEFAULT 0
+          CHECK (cancel_requested IN (0, 1))`);
+      }
       // ... and the configuration binding, unbound.
       if (!columns.some(column => column.name === 'configuration_cid')) {
         database.exec(`ALTER TABLE checkpoints ADD COLUMN
@@ -369,6 +381,10 @@ export function openSqliteCheckpointJournal(root, {
         updated_at, declared_results_json, checkpoint_cid)
       VALUES (?, 'waiting_checkpoint', 1, ?, ?, ?)`),
     // Compare-and-swap on the preparation version and prior status.
+    requestPreparationCancel: database.prepare(`
+      UPDATE preparations SET cancel_requested = 1, version = version + 1,
+        updated_at = ?
+      WHERE prepare_attempt_id = ? AND version = ? AND cancel_requested = 0`),
     movePreparation: database.prepare(`
       UPDATE preparations SET status = ?, version = version + 1,
         updated_at = ?, checkpoint_cid = ?, run_id = ?, end_reason = ?,
@@ -397,6 +413,38 @@ export function openSqliteCheckpointJournal(root, {
       WHERE c.closure = 'open' AND (r.status = 'waiting_checkpoint'
         OR p.status = 'waiting_checkpoint')
       ORDER BY c.persisted_at, c.checkpoint_cid`),
+    // One page of the same pending set, after a (persisted_at,
+    // checkpoint_cid) cursor.
+    pendingPage: database.prepare(`
+      SELECT c.* FROM checkpoints c
+        LEFT JOIN runs r
+          ON r.run_id = c.run_id AND r.checkpoint_cid = c.checkpoint_cid
+        LEFT JOIN preparations p
+          ON p.prepare_attempt_id = c.prepare_attempt_id
+          AND p.checkpoint_cid = c.checkpoint_cid
+      WHERE c.closure = 'open' AND (r.status = 'waiting_checkpoint'
+        OR p.status = 'waiting_checkpoint')
+        AND (c.persisted_at > ? OR c.persisted_at = ? AND c.checkpoint_cid > ?)
+      ORDER BY c.persisted_at, c.checkpoint_cid LIMIT ?`),
+    // Preparations whose current resume intent is not completed: an
+    // approved continuation a Host start or answer sweep must continue.
+    resumablePreparations: database.prepare(`
+      SELECT i.prepare_attempt_id FROM resume_intents i
+        JOIN preparations p ON p.prepare_attempt_id = i.prepare_attempt_id
+      WHERE i.state != 'completed' AND p.status = 'resuming'
+        AND i.rowid = (SELECT MAX(rowid) FROM resume_intents
+          WHERE prepare_attempt_id = i.prepare_attempt_id)
+        AND i.prepare_attempt_id > ?
+      ORDER BY i.prepare_attempt_id LIMIT ?`),
+    // Runs created by an approved preparation that are still `running`:
+    // the Run-side execution duty a Host start must carry on after the
+    // preparation's resume intent completed.
+    preparationRuns: database.prepare(`
+      SELECT p.prepare_attempt_id, p.run_id FROM preparations p
+        JOIN runs r ON r.run_id = p.run_id
+      WHERE p.status = 'run_created' AND r.status = 'running'
+        AND p.prepare_attempt_id > ?
+      ORDER BY p.prepare_attempt_id LIMIT ?`),
     resolution: database.prepare(
       'SELECT * FROM resolutions WHERE checkpoint_cid = ?'),
     insertResolution: database.prepare(`
@@ -835,13 +883,111 @@ export function openSqliteCheckpointJournal(root, {
       });
     },
 
-    listPending() {
+    // Durable request cancellation of one prepare attempt, committed before
+    // it is acknowledged. A waiting preparation is ended as cancelled with
+    // its Checkpoint closed (a later answer is then `cancelled`). A resuming
+    // or Run-created preparation keeps the durable request for its resume
+    // owner, which must not start it and forwards it to the Run's own
+    // cancellation. Outcomes: `accepted`, `already_requested` (this request
+    // was already recorded, or the preparation already ended cancelled) or
+    // `already_terminal` (ended otherwise). Repeating it changes nothing.
+    requestPreparationCancellation(prepareAttemptId) {
       alive();
-      return statements.pending.all().map(row => {
+      if (!text(prepareAttemptId)) fail('InvalidPrepareAttemptId');
+      const at = iso(now());
+      return transaction(database, () => {
+        const preparation = statements.preparation.get(prepareAttemptId);
+        if (preparation === undefined) fail('PreparationNotFound');
+        const view = () => projectPreparation(prepareAttemptId);
+        if (preparation.cancel_requested === 1 ||
+            preparation.status === 'ended' &&
+              preparation.end_reason === 'cancelled') {
+          return Object.freeze({outcome: 'already_requested',
+            preparation: view()});
+        }
+        if (preparation.status === 'ended') {
+          return Object.freeze({outcome: 'already_terminal',
+            preparation: view()});
+        }
+        if (preparation.status === 'waiting_checkpoint') {
+          changed(statements.closeCheckpoint.run('cancelled', '', at,
+            preparation.checkpoint_cid), 'CheckpointAlreadyClosed');
+          changed(statements.movePreparation.run('ended', at, '', '',
+            'cancelled', '', prepareAttemptId, preparation.version,
+            'waiting_checkpoint'), 'PreparationStateConflict');
+          const ended = statements.preparation.get(prepareAttemptId);
+          changed(statements.requestPreparationCancel.run(at,
+            prepareAttemptId, ended.version), 'PreparationStateConflict');
+        } else {
+          changed(statements.requestPreparationCancel.run(at,
+            prepareAttemptId, preparation.version),
+          'PreparationStateConflict');
+        }
+        fault('requestPreparationCancellation');
+        return Object.freeze({outcome: 'accepted', preparation: view()});
+      });
+    },
+
+    // Safe metadata of the waiting Checkpoints, oldest first. With `limit`
+    // one bounded page is returned after the opaque `after` cursor (the
+    // `cursor` of the page's last item); without it, every waiting one.
+    listPending({after, limit} = {}) {
+      alive();
+      let rows;
+      if (limit === undefined) {
+        if (after !== undefined) fail('InvalidCheckpointPage');
+        rows = statements.pending.all();
+      } else {
+        if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000) {
+          fail('InvalidCheckpointPage');
+        }
+        let cursor = ['', ''];
+        if (after !== undefined) {
+          const parsed = typeof after === 'string' ? after.split('|') : [];
+          if (parsed.length !== 2 || !text(parsed[0]) || !text(parsed[1])) {
+            fail('InvalidCheckpointPage');
+          }
+          cursor = parsed;
+        }
+        rows = statements.pendingPage.all(cursor[0], cursor[0], cursor[1],
+          limit);
+      }
+      return rows.map(row => {
         core(runtime.checkpointAdmit(row.checkpoint_wire),
           'CheckpointJournalCorrupt');
-        return checkpointView(row.checkpoint_wire, row);
+        const view = checkpointView(row.checkpoint_wire, row);
+        return limit === undefined ? view : Object.freeze({...view,
+          cursor: `${row.persisted_at}|${row.checkpoint_cid}`});
       });
+    },
+
+    // Prepare attempts with an approved, not yet completed resume intent,
+    // for a Host sweep on start and after answers. Claims still decide who
+    // continues; this only names candidates.
+    // Pages continue after the last prepare attempt ID of the previous page.
+    listResumablePreparations({after = '', limit = 100} = {}) {
+      alive();
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000 ||
+          typeof after !== 'string') {
+        fail('InvalidResumableLimit');
+      }
+      return statements.resumablePreparations.all(after, limit)
+        .map(row => row.prepare_attempt_id);
+    },
+
+    // Runs created by approved preparations and still `running`, as
+    // {prepareAttemptId, runId}, one page after `after`. The Host that owns
+    // the Run's execution resumes or reconciles each on start; completing
+    // the preparation intent never drops this duty.
+    listPreparationRuns({after = '', limit = 100} = {}) {
+      alive();
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000 ||
+          typeof after !== 'string') {
+        fail('InvalidPreparationRunPage');
+      }
+      return statements.preparationRuns.all(after, limit).map(row =>
+        Object.freeze({prepareAttemptId: row.prepare_attempt_id,
+          runId: row.run_id}));
     },
 
     inspect(reference) {

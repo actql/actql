@@ -269,6 +269,125 @@ be committed, and a committed Effect Set approval stays admissible for the
 resumed commit until its intent completes. Run-scope approvals, in contrast,
 authorize new work only strictly before their own `expires_at`.
 
+## Remote Host Run acceptance and the public Client (informative)
+
+The installed Remote Host (`openInstalledRemoteHttpHost` with an
+`authorization` installation) protects Run acceptance on its own Site. For
+each request it evaluates the Host-resolved tuple (Site key,
+`source-free-values`, `write`) before any Run Definition exists.
+- `write` classifies the request to run on that Site; it is not an Effect.
+- The decision subject is the Host-resolved request: the installation scope,
+  the request identity and intent, the Site and the realization. The caller
+  supplies none of these values.
+- allow runs as before with no Checkpoint and no Host policy call.
+- deny and a missing configuration refuse with their ACTQL code and record
+  nothing.
+- Without an `authorization` installation, the Site is unprotected and pure
+  compute is covered, as for the embedded Local Host.
+
+A deferred decision is held as a `prepare_attempt` `run_scope` Checkpoint:
+- Preparation is two-phase. The account outcome and any immediate Host answer
+  are decided on the request subject. Only a deferral captures the submitted
+  document, parameters and result names as encrypted private evidence. It
+  then seals a prepared invocation bound to that capture and writes an
+  `actql-run-review-projection/0.1` review.
+- The public Client sees a typed held request (submit and `lookupRequest`),
+  never a fictitious RunRef.
+
+The Client wire adds three operations. Each one is authorized separately.
+- `checkpoints` lists a bounded page for the request owner, trusted
+  reviewers and review readers.
+- `checkpoint-review` returns the body only to the configured
+  `reviewReaders`. It returns only the exact projection the Checkpoint
+  names, and checks the stored size against the bound before loading.
+- `resolve` accepts answers only from a trusted reviewer whose configured
+  principal is the authenticated caller. Each signed answer is admitted by
+  the common journal on its own.
+
+The Host resumes approved requests when it starts, and after an answer
+unless `resumeAfterAnswer` is false. The sweep never loses a wake: a wake
+during a drain triggers another pass. A drain pages through every resumable
+preparation. A busy or lapsed claim, or a transient failure, is retried
+after the lease. The resume path:
+1. Claims the durable intent. A claim whose revalidation fails (for example
+   after a configuration change) ends the preparation. A Run already defined
+   for it fails before dispatch.
+2. Reconciles a Run whose physical start an earlier claim already reserved:
+   the intent completes with it, and nothing is authorized or sent again.
+3. Otherwise passes `gate.resume` with the common admission (live claim,
+   committed approval still valid, same configuration, exact sealed artifact
+   and decision subject). A refusal fails any defined Run before dispatch.
+4. Admits (or looks up) the Run Definition. It enters the admission
+   synchronously immediately before the physical start reservation; a later
+   claim generation only reconciles the same request identity. Right after
+   the reservation it completes the intent with the Run.
+5. From then on, the Run is only observed (`listPreparationRuns`):
+   - a terminal Run ends the journal Run;
+   - a Run whose start is reserved but unfinished stays unknown and is never
+     sent again.
+6. Releases the continuation's evidence once the Run is terminal and keeps it
+   while the Run is not terminal.
+
+`close()` stops new resumes, waits for running dispatches and records their
+ends, settles retention, and only then releases the journals and the Store.
+
+The held-request index names only request IDs. It is written with a
+directory sync and rebuilt from the captured submission when it is missing
+or unreadable. `observe(step)` is Host instrumentation of the protected
+steps; it never changes a decision.
+
+The request owner cancels a request by its ID (`cancel-request`), with or
+without a Run:
+- The cancellation is recorded durably on the held request's prepare attempt
+  before it is acknowledged.
+- A waiting request ends cancelled at once, with its Checkpoint closed; a
+  later answer is `cancelled`.
+- A resuming request is left for its resume owner. The resume re-reads the
+  durable cancellation after its claim, after admitting the Run Definition,
+  and synchronously immediately before the physical start.
+- When the request has a Run, created before or concurrently, the
+  cancellation is applied to that Run through its own cancellation, which
+  the physical start reservation observes atomically.
+- A Run whose physical start was reserved first keeps its stop and cleanup
+  owners. The held request's journal Run ends, and its evidence is released,
+  only once the Run is observed terminal.
+- Reviewers and review readers cannot cancel. Aborting a review read is not a
+  cancel.
+
+A Program with real input on a Host with an installed source profile is
+also held before its source read, at the same prepare attempt and before any
+Run exists:
+- The read tuple comes from the Host's checked source, never from the
+  request: the source connection, the source resource and `read`. The source
+  profile's own account configuration and context decide it.
+- allow reads with no Checkpoint. deny refuses the request before anything is
+  read. delegate asks the Host decision; a permit is used once for this
+  attempt's exact tuple, a reject refuses, and a defer holds.
+- A deferral writes a `read_access` Checkpoint (`prepare_attempt`). Its
+  sealed artifact is an acquisition intent
+  (`actql-remote-acquisition-intent/0.1`) binding the request, the prepare
+  attempt, the checked source, the read tuple and the source configuration
+  CID. The review projection shows the same document with the source and the
+  tuple.
+- When the run itself was held first, the resumed `run_scope` approval takes
+  the read decision in the same resume and may write the `read_access`
+  Checkpoint next; the earlier approval is checked again when the read
+  resumes.
+- On resume the common admission is passed for the `acquisition` boundary.
+  The physical read's own authorization check is then answered only for the
+  exact admitted tuple, only while every approval is still current and the
+  request is not cancelled.
+- The read runs after the Run's physical start reservation. A Host that
+  stops after the read started leaves the Run unknown and never reads again.
+- Owner cancellation is the same as for a held run: a waiting read ends
+  cancelled and nothing is read.
+
+This profile has these limits:
+- Only the installed DuckDB source profile (one captured source) is
+  connected. `run_unit` Checkpoints on this Host are not connected here.
+- One Host process owns a state directory. A second one is refused by the
+  Store owner.
+
 ## Delegated-decision adapter
 
 The logical request contains or references the admitted execution account,

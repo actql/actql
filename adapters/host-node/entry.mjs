@@ -14,6 +14,8 @@ import {missingAuthorizationGate} from '../host-common/authorization-gate.mjs';
 import {completeCapturedEffectRun as completeEffectRun,
   completeRecoveredEffectRun as completeRecoveredRun} from
   './effect-run-completion.mjs';
+import {recoverAdmittedEffectRun as recoverAdmittedRun} from
+  './effect-run-recovery.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 
@@ -166,6 +168,7 @@ export function createNodeHostEntry(loadRuntime, install) {
   let runtime;
   const load = () => (runtime ??= loadRuntime());
   return Object.freeze({
+    recoverAdmittedEffectRun: options => recoverAdmittedRun(options, load),
     runCapturedStrategy: (setup, options = {}, signal, observer) =>
       runCapturedStrategyTarget(setup, options, signal, observer, true,
         undefined, load, install),
@@ -209,3 +212,4 @@ export const completeCapturedEffectRun =
   standard.completeCapturedEffectRun;
 export const completeRecoveredEffectRun =
   standard.completeRecoveredEffectRun;
+export const recoverAdmittedEffectRun = standard.recoverAdmittedEffectRun;

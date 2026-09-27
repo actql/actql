@@ -12,6 +12,10 @@ import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
+  './captured-duckdb-source.mjs';
+import {loadInstalledDuckDBSource} from './installed-duckdb-source.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {runPublishedCapturedStrategy} from './entry.mjs';
@@ -21,8 +25,11 @@ import {installRunStateAuthority, installRunStateService,
   inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {installRemoteCheckpoints} from './client-checkpoints.mjs';
+import {canonicalJson} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
-  sourceFreeValuesPlan} from './local-values-plan.mjs';
+  sourceFreeValuesPlan, acquiredTaskRunAdmission,
+  acquiredTaskPublicationPlan} from './local-values-plan.mjs';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
 const runtimeUrl = new URL('../../_build/js/release/build/' +
@@ -42,12 +49,23 @@ function localStateRoot() {
   return resolve(supplied ?? join(homedir(), '.local', 'share', 'actql'));
 }
 
-async function openInstalledHost(root, mode = 'local', beforeDispatch) {
+// The realization this installed Host runs: source-free values Programs on
+// its in-process Site. With Run-acceptance protection installed, the account
+// decides the tuple (Site key, this realization, write) for each request.
+const REALIZATION_KEY = 'source-free-values';
+
+async function openInstalledHost(root, mode = 'local', beforeDispatch,
+  authorization, sourceProfilePath) {
   await mkdir(root, {recursive: true, mode: 0o700});
   const moon = await import(runtimeUrl.href);
   const control = runtimeCore(moon).publicationControl;
-  const environmentWire = (await readFile(join(packageRoot,
-    'spec/local-check-environment.json'), 'utf8')).trimEnd();
+  const principalId = userInfo().username;
+  const sourceProfile = await loadInstalledDuckDBSource(
+    sourceProfilePath ?? process.env.ACTQL_LOCAL_SOURCE_PROFILE,
+    {root, principalId});
+  const environmentWire = sourceProfile?.environmentWire ??
+    (await readFile(join(packageRoot,
+      'spec/local-check-environment.json'), 'utf8')).trimEnd();
   const evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
   const environment = moon.clientProgramCheckEnvironment(environmentWire,
     evidenceCid, false, false, true, false, false, false, false);
@@ -63,7 +81,6 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
     aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
   const ordered = JSON.stringify(
     aoa.execution_contracts['REL.derive.ordered']);
-  const principalId = userInfo().username;
   const tenantId = 'local';
   const authorityScopeCid = cid({version: 'actql-local-owner-scope/0.1',
     root, principalId});
@@ -130,6 +147,20 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
       ref.authorityScopeCid === authorityScopeCid});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment});
+  let checkpoints;
+  try {
+    checkpoints = await installRemoteCheckpoints({root, tenantId,
+      authorityScopeCid, ownerPrincipal: principalId,
+      siteKey: authorization?.siteKey ?? 'actql-remote-host',
+      realizationKey: sourceProfile === undefined ? REALIZATION_KEY
+        : 'duckdb-acquired', environmentCid: evidenceCid,
+      contractControl: control, authorization,
+      source: sourceProfile?.readAuthorization});
+  } catch (error) {
+    journal.close();
+    await store.close();
+    throw error;
+  }
   const activeDispatches = new Map();
   const observeRun = async ({ref, principalId: actual}) => {
     if (actual !== principalId || ref.tenantId !== tenantId ||
@@ -187,6 +218,37 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
     }
     return accepted;
   };
+  // Cancel a request by its ID. For a request this Host held, the
+  // cancellation is first made durable on its prepare attempt, so a resume
+  // (on this or a later start) cannot start it and hands it to the Run.
+  // When the request has a Run (created before or concurrently), the same
+  // cancellation is then applied to that Run through its own cancellation,
+  // which the physical start reservation observes atomically.
+  const cancelRequest = async ({principalId: actual, connection,
+    requestId}) => {
+    if (!hostConnection({principalId: actual, connection})) {
+      throw Object.assign(new Error('ClientRequestCancellationDenied'),
+        {code: 'ClientRequestCancellationDenied'});
+    }
+    const held = checkpoints?.heldOrigin(requestId)
+      ? checkpoints.cancelHeld(requestId) : undefined;
+    const existing = journal.lookupDefinition({tenantId, authorityScopeCid,
+      requestId}, moon, control);
+    if (existing !== undefined) {
+      const run = await cancel({ref: existing.ref, principalId: actual,
+        connection});
+      void checkpoints?.sweep();
+      return {requestId, ref: run.ref, revision: run.revision,
+        kind: held?.outcome === 'accepted' && run.kind === 'already_requested'
+          ? 'accepted' : run.kind};
+    }
+    if (held === undefined) {
+      throw Object.assign(new Error('ClientRequestNotFound'),
+        {code: 'ClientRequestNotFound'});
+    }
+    void checkpoints.sweep();
+    return {requestId, kind: held.outcome};
+  };
   const wait = async ({ref, principalId: actual, until, signal}) => {
     if (until !== null && until !== 'terminal') {
       throw new Error('InvalidWaitCondition');
@@ -210,10 +272,21 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
     }
     return observeRun({ref, principalId: actual});
   };
-  const submit = async ({preparedProgram, requestId, principalId: actual,
-    connection, kind, input, parameters}) => {
-    if (!hostConnection({principalId: actual, connection})) {
-      throw new Error('ClientConnectionDenied');
+  const requestOf = ({preparedProgram, requestId}) => {
+    const acquisition = moon.clientProgramPrepareQueryAcquisition(
+      preparedProgram, 0, 0);
+    const acquired = acquisition?.$tag === 1;
+    if (acquired) {
+      if (sourceProfile === undefined) {
+        throw new Error('ClientProgramNeedsInputs');
+      }
+      const requirement = checked(
+        moon.clientProgramPrepareLocalQueryRequirement(preparedProgram,
+          0, 0, registry, values, fragment, ordered));
+      if (moon.clientProgramQueryRequirementSourceRef(requirement) !==
+          sourceProfile.sourceRef) {
+        throw new Error('InstalledSourceProgramMismatch');
+      }
     }
     const requested = moon.clientProgramRequestIdentity(preparedProgram,
       authorityScopeCid, requestId,
@@ -228,91 +301,456 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
       if (name === undefined) throw new Error('ClientProgramResultMissing');
       resultNames.push(name);
     }
-    let plan;
+    return {requested, resultNames, acquired};
+  };
+  const prepareAcquisition = (preparedProgram,
+    sourceAccess = sourceProfile.sourceAccess) =>
+    prepareCapturedDuckDBSource({moon, preparedProgram, registry, values,
+      fragment, ordered, database: sourceProfile.database,
+      schema: sourceProfile.schema, table: sourceProfile.table,
+      sourceAccess});
+  const planFor = ({preparedProgram, kind, input, parameters, requestId},
+    retainedDefinitionWire) => {
+    const common = {moon, control, preparedProgram,
+      document: kind === 'aql' ? input.text : JSON.stringify(input),
+      format: kind === 'aql' ? input.format : 'json', parameters,
+      environmentWire, environmentCid: evidenceCid,
+      authorityScopeCid, tenantId, requestId, storeAuthorityCid, now,
+      ...(retainedDefinitionWire === undefined ? {} :
+        {retainedDefinitionWire})};
+    return sourceProfile !== undefined &&
+      moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0)?.$tag ===
+        1
+      ? acquiredTaskRunAdmission(common)
+      : sourceFreeValuesPlan(common);
+  };
+  // Admit (or look up) the request's Run Definition: the durable Run.
+  const admitDefinition = async (submission, requested, resultNames,
+    held) => {
     const accepted = await journal.admitOrLookupDefinition(requested, {
       tenantId, lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
       resultNames,
       issueDefinition: () => {
-        plan = sourceFreeValuesPlan({moon, control, preparedProgram,
-          document: kind === 'aql' ? input.text : JSON.stringify(input),
-          format: kind === 'aql' ? input.format : 'json', parameters,
-          environmentWire, environmentCid: evidenceCid,
-          authorityScopeCid, tenantId, requestId, storeAuthorityCid, now});
-        return plan.runDefinition;
+        held.plan = planFor(submission);
+        return held.plan.runDefinition;
       },
     }, moon, control);
+    return accepted;
+  };
+  // Start the admitted Run's single physical dispatch unless it is already
+  // active or started; `finished(status)` reports its end.
+  // Host instrumentation of the protected steps (a Host-supplied observer;
+  // it never changes a decision).
+  const observed = (name, detail) => authorization?.observe?.(name, detail);
+  // `gate` (a resumed held request only): {beforePhysicalStart(), started()}
+  // called synchronously immediately before and after the physical start
+  // reservation. A throwing `beforePhysicalStart` starts nothing and leaves
+  // the Run unstarted for its owner. Returns a promise that settles once the
+  // physical start is reserved ('started'), refused by the gate
+  // ({refused: error}) or not reached ('not_started').
+  const startDispatch = (submission, requested, accepted, held,
+    finished, gate) => {
+    const {preparedProgram, principalId: actual, connection} = submission;
     const unstarted = accepted.dispatchReserved !== true ||
       accepted.physicalStartReserved === false &&
       !accepted.preDispatchFailureConfirmed;
-    if (!activeDispatches.has(accepted.ref.runDefinitionCid) && unstarted &&
-        !accepted.cancellationRequested) {
-      const active = {promise: undefined, reserved: false,
-        abort: new AbortController(),
-        physicalStarted: false, physicalStartClaimAttempted: false};
-      activeDispatches.set(accepted.ref.runDefinitionCid, active);
-      active.promise = Promise.resolve().then(async () => {
-        const start = await startRun({identity: requested, tenantId,
-          principalId: actual, connection});
-        if (start.kind !== 'reserved' &&
-            !(start.kind === 'reconcile' &&
-              accepted.dispatchReserved === true &&
-              accepted.physicalStartReserved === false &&
-              !accepted.preDispatchFailureConfirmed)) return;
-        active.reserved = true;
-        if (beforeDispatch !== undefined) await beforeDispatch(start.ref);
-        if (active.abort.signal.aborted) return;
-        if (plan === undefined) {
-          plan = sourceFreeValuesPlan({moon, control, preparedProgram,
-            document: kind === 'aql' ? input.text : JSON.stringify(input),
-            format: kind === 'aql' ? input.format : 'json', parameters,
-            environmentWire, environmentCid: evidenceCid,
-            authorityScopeCid, tenantId, requestId, storeAuthorityCid, now,
-            retainedDefinitionWire: accepted.runDefinition.wire});
-        }
-        const setup = moon.clientProgramOpenSourceFreeLocalHost(
+    if (activeDispatches.has(accepted.ref.runDefinitionCid) || !unstarted ||
+        accepted.cancellationRequested) {
+      return Promise.resolve('not_started');
+    }
+    // Defense in depth: a Run from a held request starts only with its
+    // resumed admission. Its origin is read from the Host's own Checkpoint
+    // journal, never from the caller.
+    if (gate === undefined && checkpoints?.heldOrigin(submission.requestId)) {
+      return Promise.resolve('not_started');
+    }
+    let reached;
+    const physical = new Promise(resolve => { reached = resolve; });
+    const active = {promise: undefined, reserved: false,
+      abort: new AbortController(),
+      physicalStarted: false, physicalStartClaimAttempted: false};
+    activeDispatches.set(accepted.ref.runDefinitionCid, active);
+    active.promise = Promise.resolve().then(async () => {
+      const start = await startRun({identity: requested, tenantId,
+        principalId: actual, connection});
+      if (start.kind !== 'reserved' &&
+          !(start.kind === 'reconcile' &&
+            accepted.dispatchReserved === true &&
+            accepted.physicalStartReserved === false &&
+            !accepted.preDispatchFailureConfirmed)) return;
+      active.reserved = true;
+      await observed('dispatch_reserved', {ref: start.ref});
+      if (beforeDispatch !== undefined) await beforeDispatch(start.ref);
+      if (active.abort.signal.aborted) return;
+      if (held.plan === undefined) {
+        held.plan = planFor(submission, accepted.runDefinition.wire);
+      }
+      const acquiring = sourceProfile !== undefined &&
+        moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0)
+          ?.$tag === 1;
+      let setup;
+      if (!acquiring) {
+        setup = moon.clientProgramOpenSourceFreeLocalHost(
           preparedProgram, registry, values, 1n, 0n, 0n, 0n,
           fragment, ordered);
         if (setup === undefined) throw new Error('ClientProgramNeedsInputs');
-        active.physicalStartClaimAttempted = true;
-        if (!journal.reservePhysicalStart(requested, {
-          tenantId, ref: accepted.ref,
-          currentAuthorization: hostConnection({principalId: actual,
-            connection, ref: accepted.ref}),
-        }, moon, control)) return;
-        active.physicalStarted = true;
-        const published = await runPublishedCapturedStrategy(setup,
-          {store, plan}, {}, active.abort.signal);
-        await published.close();
-        await published.cleanup();
-        if (!published.cleanupPending()) journal.markPhysicalClose(accepted.ref);
-      }).catch(async cause => {
-        if (cause?.cleanupPending === true) active.cleanupOwner = cause;
-        if (active.reserved && !active.physicalStartClaimAttempted &&
-            !active.abort.signal.aborted) {
-          try { journal.markPreDispatchFailure(accepted.ref); } catch {}
+      }
+      // No await from the resumed admission to the start reservation.
+      if (gate !== undefined) {
+        try { gate.beforePhysicalStart(); }
+        catch (error) {
+          reached({refused: error});
+          return;
         }
-        if (cause?.execution) {
-          try {
-            await cause.execution.close();
-            await cause.execution.cleanup();
-            if (!cause.execution.cleanupPending()) {
-              journal.markPhysicalClose(accepted.ref);
-            }
-          } catch { active.cleanupOwner = cause.execution; }
-          if (cause.execution.cleanupPending()) {
-            active.cleanupOwner = cause.execution;
+      }
+      active.physicalStartClaimAttempted = true;
+      if (!journal.reservePhysicalStart(requested, {
+        tenantId, ref: accepted.ref,
+        currentAuthorization: hostConnection({principalId: actual,
+          connection, ref: accepted.ref}),
+      }, moon, control)) return;
+      active.physicalStarted = true;
+      gate?.started();
+      reached('started');
+      await observed('physical_start_reserved', {ref: accepted.ref});
+      // A held and approved read uses its own admitted approval for the
+      // adapter's current-authority check; every other request uses the
+      // installed source access.
+      const sourceAccess = checkpoints?.acquisitionAccess(
+        submission.requestId, sourceProfile?.sourceAccess) ??
+        sourceProfile?.sourceAccess;
+      if (acquiring) {
+        if (held.preparedSourceAccess !== sourceAccess) {
+          held.preparedSource = await prepareAcquisition(preparedProgram,
+            sourceAccess);
+          held.preparedSourceAccess = sourceAccess;
+        }
+        const captureStartedAt = now();
+        await observed('acquisition_started', {ref: accepted.ref});
+        active.sourceCapture = await openCapturedDuckDBSource({moon,
+          preparedProgram, registry, values, fragment, ordered,
+          database: sourceProfile.database, schema: sourceProfile.schema,
+          table: sourceProfile.table, sourceAccess,
+          transportLimits: sourceProfile.transportLimits,
+          signal: active.abort.signal,
+          preparedSource: held.preparedSource});
+        const captureCompletedAt = now();
+        await observed('acquisition_completed', {ref: accepted.ref});
+        const sourceEvidenceWire = await active.sourceCapture.issueSourceEvidence({
+          authorityScopeCid,
+          effectiveDataPolicyCid:
+            active.sourceCapture.checkedSource.sourceDataPolicyCid});
+        held.plan = acquiredTaskPublicationPlan({moon, control,
+          acquired: held.plan, preparedProgram,
+          captured: active.sourceCapture, sourceEvidenceWire,
+          authorityScopeCid,
+          effectiveDataPolicyCid:
+            active.sourceCapture.checkedSource.sourceDataPolicyCid,
+          captureStartedAt, captureCompletedAt, tenantId,
+          requestId: submission.requestId, storeAuthorityCid, now});
+        setup = active.sourceCapture.setup;
+      }
+      const published = await runPublishedCapturedStrategy(setup,
+        {store, plan: held.plan},
+        sourceProfile === undefined ? {} :
+          {authorization: sourceAccess.authorization},
+        active.abort.signal);
+      await observed('computed', {ref: accepted.ref});
+      await published.close();
+      await published.cleanup();
+      if (published.cleanupPending()) {
+        active.cleanupOwner = published;
+      } else {
+        active.sourceCapture?.close();
+        active.sourceCapture = undefined;
+        journal.markPhysicalClose(accepted.ref);
+      }
+      await finished?.();
+    }).catch(async cause => {
+      if (cause?.cleanupPending === true) active.cleanupOwner = cause;
+      if (active.reserved && !active.physicalStartClaimAttempted &&
+          !active.abort.signal.aborted) {
+        try { journal.markPreDispatchFailure(accepted.ref); } catch {}
+      }
+      if (cause?.execution) {
+        try {
+          await cause.execution.close();
+          await cause.execution.cleanup();
+          if (!cause.execution.cleanupPending()) {
+            journal.markPhysicalClose(accepted.ref);
           }
-          // Failed cleanup remains with its existing execution owner. It is
-          // never converted to physical stop by the cancellation request.
+        } catch { active.cleanupOwner = cause.execution; }
+        if (cause.execution.cleanupPending()) {
+          active.cleanupOwner = cause.execution;
         }
-      }).finally(() => {
-        if (active.cleanupOwner === undefined) {
-          activeDispatches.delete(accepted.ref.runDefinitionCid);
-        }
-      });
+        // Failed cleanup remains with its existing execution owner. It is
+        // never converted to physical stop by the cancellation request.
+      }
+      if (active.physicalStarted) await finished?.();
+    }).finally(() => {
+      reached('not_started');
+      checkpoints?.releaseAcquisition(submission.requestId);
+      if (active.cleanupOwner === undefined) {
+        active.sourceCapture?.close();
+        activeDispatches.delete(accepted.ref.runDefinitionCid);
+      }
+    });
+    return physical;
+  };
+  const runIdOf = accepted => control.runDefinitionRunId(
+    accepted.runDefinition?.wire === undefined
+      ? journal.lookupRunDefinition(accepted.ref, moon, control).runDefinition
+      : accepted.runDefinition);
+  const submit = async submission => {
+    const {requestId, principalId: actual, connection, kind, input,
+      parameters} = submission;
+    if (!hostConnection({principalId: actual, connection})) {
+      throw new Error('ClientConnectionDenied');
     }
+    const {requested, resultNames, acquired} = requestOf(submission);
+    const preparedSource = acquired
+      ? await prepareAcquisition(submission.preparedProgram) : undefined;
+    // Run acceptance on the protected Site is decided before any Run
+    // Definition exists. A request that was held is never started from here:
+    // submitting it again returns its held state, or its existing Run, and
+    // only wakes the durable resume owner, which starts it under the resumed
+    // authorization. Other admitted requests are looked up, not decided
+    // again.
+    // A held request whose Run exists is compared with the request
+    // journal's own identity (no side effect): another intent conflicts,
+    // whatever the state of the held evidence.
+    if (checkpoints?.heldOrigin(requestId)) {
+      const existing = journal.resolveDefinition(requested, {tenantId}, moon,
+        control);
+      if (existing !== undefined) {
+        void checkpoints.sweep();
+        return {ref: existing.ref, durability: existing.durability,
+          revision: existing.revision};
+      }
+    }
+    if (checkpoints !== undefined &&
+        (checkpoints.heldOrigin(requestId) ||
+         journal.lookup({tenantId, authorityScopeCid, requestId}, moon) ===
+           undefined)) {
+      const requestedFacts = {
+        logicalRequestScopeCid: moon.clientRequestScopeCid(requested),
+        intentFingerprintCid: moon.clientRequestIntentCid(requested),
+      };
+      const captured = {version: 'actql-remote-captured-submission/0.1',
+        requestId, principalId: actual, connection, kind, input,
+        parameters, resultNames,
+        ...(preparedSource === undefined ? {} : {acquisition: {
+          checkedSource: preparedSource.checkedSource,
+          readTuple: preparedSource.readTuple,
+          physicalBinding: preparedSource.physicalBinding}})};
+      let decided = await checkpoints.acceptRun({requested: requestedFacts,
+        captured});
+      // Run acceptance allowed or permitted: a Program that reads the
+      // installed source has its read decided before any Run exists.
+      if (decided.kind === 'dispatch') {
+        decided = await checkpoints.acceptAcquisition({
+          requested: requestedFacts, captured});
+      }
+      if (decided.kind !== 'dispatch') {
+        const existing = journal.lookupDefinition({tenantId,
+          authorityScopeCid, requestId}, moon, control);
+        void checkpoints.sweep();
+        if (existing === undefined) {
+          if (decided.held === undefined) {
+            throw new Error('HeldRunDefinitionMissing');
+          }
+          return decided.held;
+        }
+        return {ref: existing.ref, durability: existing.durability,
+          revision: existing.revision};
+      }
+    }
+    const held = {preparedSource,
+      preparedSourceAccess: sourceProfile?.sourceAccess};
+    const accepted = await admitDefinition(submission, requested,
+      resultNames, held);
+    // A resumed request's journal Run (if any) ends with its dispatch.
+    startDispatch(submission, requested, accepted, held,
+      checkpoints === undefined ? undefined : status =>
+        settleHeldRun(accepted, runIdOf(accepted)));
     return {ref: accepted.ref, durability: accepted.durability,
       revision: accepted.revision};
+  };
+  // Continue one approved held request (called by the Checkpoint sweep with
+  // the captured submission and the claim's admission). The admission is
+  // entered synchronously immediately before the Run Definition is
+  // admitted; the resume intent completes with the created Run.
+  const heldSubmission = async captured => {
+    const submission = {principalId: captured.principalId,
+      connection: captured.connection, requestId: captured.requestId,
+      kind: captured.kind, input: captured.input,
+      parameters: captured.parameters};
+    submission.preparedProgram = await prepareSubmit(submission);
+    const {requested, resultNames, acquired} = requestOf(submission);
+    const preparedSource = acquired
+      ? await prepareAcquisition(submission.preparedProgram) : undefined;
+    const acquisition = preparedSource === undefined ? undefined : {
+      checkedSource: preparedSource.checkedSource,
+      readTuple: preparedSource.readTuple,
+      physicalBinding: preparedSource.physicalBinding};
+    // Compared as canonical JSON: the held submission is stored in its
+    // canonical form, so key order carries no meaning here.
+    if (canonicalJson(acquisition ?? null) !==
+        canonicalJson(captured.acquisition ?? null)) {
+      throw new Error('HeldAcquisitionChanged');
+    }
+    if (JSON.stringify(resultNames) !==
+        JSON.stringify(captured.resultNames)) {
+      throw new Error('HeldRequestChanged');
+    }
+    return {submission, requested, resultNames, preparedSource};
+  };
+  const definitionOf = captured => journal.lookupDefinition({tenantId,
+    authorityScopeCid, requestId: captured.requestId}, moon, control);
+  const terminal = status => ['succeeded', 'failed', 'cancelled']
+    .includes(status);
+  // Recover only from the accepted Run and the committed publication owner.
+  // A reserved start without an available publication cannot be treated as
+  // an unstarted read or reconstructed by fetching the source again.
+  const inspectAcquisition = async ({requestId, principalId: actual,
+    connection}) => {
+    if (sourceProfile === undefined ||
+        !hostConnection({principalId: actual, connection})) {
+      throw new Error('AcquisitionInspectionDenied');
+    }
+    const accepted = journal.lookupDefinition({tenantId,
+      authorityScopeCid, requestId}, moon, control);
+    if (accepted === undefined || accepted.physicalStartReserved !== true) {
+      return {state: 'not_started'};
+    }
+    const current = await observeRun({ref: accepted.ref,
+      principalId: actual});
+    const availability = Object.values(current.result_availability);
+    if (current.status === 'succeeded' && availability.length > 0 &&
+        availability.every(result => result.state === 'available')) {
+      return {state: 'completed_retained', ref: accepted.ref,
+        resultNames: Object.keys(current.result_availability)};
+    }
+    return {state: 'started_unknown', ref: accepted.ref};
+  };
+  // The physical state of a held request's Run: `absent` (no Run
+  // Definition yet), `unstarted` (no physical start reserved), `cancelled`
+  // (cancelled before any physical start), `abandoned` (failed before
+  // dispatch), `started` (reserved: running, or unknown after a crash) or
+  // `terminal`.
+  const inspectHeld = async captured => {
+    const acquisition = captured.acquisition === undefined ? undefined :
+      await inspectAcquisition({requestId: captured.requestId,
+        principalId: captured.principalId, connection: captured.connection});
+    const accepted = definitionOf(captured);
+    if (accepted === undefined) return {state: 'absent', acquisition};
+    const runId = runIdOf(accepted);
+    if (accepted.preDispatchFailureConfirmed) {
+      return {state: 'abandoned', runId, acquisition};
+    }
+    if (accepted.physicalStartReserved !== true) {
+      // A Run cancelled before any physical start is terminal, not
+      // resumable: its public state is the Run's own projection.
+      if (accepted.cancellationRequested) {
+        const current = await observeRun({ref: accepted.ref, principalId});
+        if (current.status === 'cancelled') {
+          return {state: 'cancelled', runId, acquisition};
+        }
+      }
+      return {state: 'unstarted', runId, acquisition};
+    }
+    const current = await observeRun({ref: accepted.ref, principalId});
+    return terminal(current.status)
+      ? {state: 'terminal', runId, status: current.status, acquisition}
+      : {state: 'started', runId, status: current.status, acquisition};
+  };
+  // After a held request's dispatch ends, its journal Run ends only with the
+  // Run's observed terminal state; a Run whose physical stop is unknown (for
+  // example after a cancel) stays with its owners and is observed again by
+  // the sweep. Nothing is inferred from how the dispatch returned.
+  const settleHeldRun = async (accepted, runId) => {
+    let status;
+    try {
+      status = (await observeRun({ref: accepted.ref, principalId})).status;
+    } catch {}
+    if (terminal(status)) checkpoints.runFinished(runId, status);
+    else void checkpoints.sweep();
+  };
+  // Continue one approved held request whose physical start is not
+  // reserved. The Run Definition is admitted (or looked up); the common
+  // resumed admission is entered synchronously immediately before the
+  // physical start reservation, and the resume intent completes with the
+  // Run right after it. Resolves with 'started', {refused} or 'not_started'.
+  // The Run cancellation of a held request's defined Run (the Host itself
+  // applies a durable request cancellation to its Run).
+  const cancelHeldRun = async captured => {
+    const accepted = definitionOf(captured);
+    if (accepted === undefined) return;
+    const publicationCommitted =
+      await store.confirmCommittedIndex(accepted.ref) !== undefined;
+    const result = journal.requestCancellation(accepted.ref, {
+      currentAuthorization: true, publicationCommitted}, moon, control);
+    if (result.kind !== 'already_terminal') {
+      activeDispatches.get(accepted.ref.runDefinitionCid)?.abort.abort(
+        new Error('ClientRunCancellationRequested'));
+    }
+  };
+  const resumeHeld = async ({captured, beforePhysicalStart, started,
+    step, renew, preparationCancelled}) => {
+    // A request whose physical target or result inventory differs from the
+    // one held is refused before anything is admitted or read: the earlier
+    // approval does not cover it.
+    let resolved;
+    try { resolved = await heldSubmission(captured); }
+    catch (error) {
+      if (['HeldAcquisitionChanged', 'HeldRequestChanged']
+        .includes(error?.message)) {
+        return {refused: Object.assign(error, {code: error.message})};
+      }
+      throw error;
+    }
+    const {submission, requested, resultNames, preparedSource} = resolved;
+    const held = {preparedSource,
+      preparedSourceAccess: sourceProfile?.sourceAccess};
+    const accepted = await admitDefinition(submission, requested,
+      resultNames, held);
+    await step('definition_admitted', {ref: accepted.ref});
+    try { renew(); }
+    catch (error) { return {refused: error}; }
+    // A request cancellation recorded meanwhile (even before this Run
+    // existed) is applied to the Run now; a Run cancellation is read from
+    // the journal, not from the admitted snapshot. Either way the Run is not
+    // dispatched.
+    if (preparationCancelled()) {
+      await cancelHeldRun(captured);
+      return 'not_started';
+    }
+    if (definitionOf(captured)?.cancellationRequested) return 'not_started';
+    const runId = runIdOf(accepted);
+    return startDispatch(submission, requested, accepted, held,
+      () => settleHeldRun(accepted, runId),
+      {beforePhysicalStart, started: () => started(runId)});
+  };
+  // A held request whose authorization no longer holds before any physical
+  // start: its Run (if already defined) fails before dispatch; nothing runs.
+  const abandonHeld = async captured => {
+    const accepted = definitionOf(captured);
+    if (accepted === undefined || accepted.physicalStartReserved === true ||
+        accepted.preDispatchFailureConfirmed) return;
+    if (accepted.dispatchReserved !== true) {
+      const start = await startRun({identity: (await heldSubmission(
+        captured)).requested, tenantId, principalId: captured.principalId,
+      connection: captured.connection});
+      if (start.kind !== 'reserved' && start.kind !== 'reconcile') return;
+    }
+    journal.markPreDispatchFailure(accepted.ref);
+  };
+  // A Run whose physical start is reserved is only observed: a terminal Run
+  // ends its journal Run; an unknown one is never sent again.
+  const observeHeldRun = async ({captured}) => {
+    const accepted = definitionOf(captured);
+    if (accepted === undefined) throw new Error('HeldRunDefinitionMissing');
+    return (await observeRun({ref: accepted.ref, principalId})).status;
   };
   const negotiate = () => ({version: 'actql-client-host/0.1',
     mode, owner: mode, durability: 'durable', scopeRef: principalId,
@@ -324,33 +762,130 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
       maxRows: 10000, maxBatchRows: 1000,
       maxBatchRetainedValueBytes: 10 * 1024 * 1024,
     }});
-  const hostOperations = {
-    authorizeConnection: hostConnection,
-    negotiate, prepareSubmit, submit, attach, lookupRequest,
-    stateService, resultService, observeRun, wait, cancel,
+  // A held request is looked up through the Checkpoint journal until its Run
+  // exists; then the request journal answers with its RunRef.
+  const lookupHeld = async value => {
+    const found = await lookupRequest(value);
+    if (checkpoints === undefined || found.kind !== 'not_found') return found;
+    if (authorizedScope(value) === undefined) return found;
+    return checkpoints.heldLookup(value.requestId) ?? found;
   };
+  const checkpointOperations = checkpoints === undefined ? {} : {
+    checkpoints: ({principalId: actual, after, limit}) =>
+      checkpoints.listCheckpoints({principalId: actual, after, limit}),
+    checkpointReview: ({principalId: actual, checkpointCid, maxBytes,
+      signal}) => checkpoints.reviewCheckpoint({principalId: actual,
+      checkpointCid, maxBytes, signal}),
+    resolve: ({principalId: actual, items}) =>
+      checkpoints.resolve({principalId: actual, items}),
+  };
+  const checkpointOperation = new Set(['checkpoints', 'checkpoint-review',
+    'resolve']);
+  // Reviewers and review readers may connect and use only the Checkpoint
+  // operations; every Run operation still requires the owner.
+  const checkpointConnection = value => checkpoints !== undefined &&
+    value.ref === undefined && value.connection.mode === mode &&
+    value.connection.owner === mode &&
+    checkpoints.admitsCheckpointPrincipal(value.principalId);
+  const hostOperations = {
+    authorizeConnection: value => checkpointOperation.has(value.operation)
+      ? checkpointConnection(value)
+      : hostConnection(value) || value.operation === 'connect' &&
+        checkpointConnection(value),
+    negotiate, prepareSubmit, submit, attach, lookupRequest: lookupHeld,
+    stateService, resultService, observeRun, wait, cancel, cancelRequest,
+    ...checkpointOperations,
+  };
+  if (checkpoints !== undefined) {
+    await checkpoints.start({inspect: inspectHeld, resume: resumeHeld,
+      abandon: abandonHeld, observe: observeHeldRun,
+      cancelRun: cancelHeldRun});
+  }
   const port = createNodeInProcessClientHost({
     authenticate: () => principalId,
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
-  return {port, store, journal, hostOperations};
+  return {port, store, journal, hostOperations, checkpoints,
+    activeDispatches, inspectAcquisition};
 }
 
 // This HTTP ingress uses the installed Host's common owner and physical
 // services. Embedded Local continues to use the in-process port above.
+//
+// `authorization` installs Run-acceptance protection for the Host's Site:
+// {accountConfig | accountConfiguration, reviewers: [{keyId, reviewerId,
+// principalId, publicKey}], reviewReaders: [principal], hostKey: {keyId,
+// privateKey}, siteKey?, decide?, answeringAuthorities?, checkpointTtlMs?,
+// leaseMs?, maxReviewBytes?, resumeAfterAnswer?, sweepPage?, observe?}.
+// Approved requests are resumed at Host start and, unless
+// `resumeAfterAnswer` is false, after an answer is stored; each sweep step
+// handles at most `sweepPage` items and continues until none remain.
+// `observe(step, detail)` is Host instrumentation of the protected steps. Without a configuration the Missing account
+// denies every request; nothing defaults to allow.
 export async function openInstalledRemoteHttpHost({directory,
-  authenticate, beforeDispatch}) {
+  authenticate, beforeDispatch, authorization, sourceProfilePath}) {
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
     throw new TypeError('InvalidInstalledRemoteHost');
   }
   const host = await openInstalledHost(resolve(directory), 'remote',
-    beforeDispatch);
+    beforeDispatch, authorization, sourceProfilePath);
+  const handle = createClientHttpHandler({
+    ...host.hostOperations, authenticate, maxRequestBytes: 65536,
+  });
+  // A request's handling can outlive its response: a Result read records
+  // its delivery attempt after the last bytes are sent. Close waits for
+  // every request still being handled; once closing, new requests are
+  // refused before they touch the Store.
+  const handling = new Set();
+  let closing = false;
   return Object.freeze({
-    handler: createClientHttpHandler({
-      ...host.hostOperations, authenticate, maxRequestBytes: 65536,
-    }),
+    handler(request, response) {
+      if (closing) {
+        response.writeHead(503, {'content-type': 'application/json'});
+        response.end(JSON.stringify({code: 'ClientHostClosing'}));
+        return Promise.resolve();
+      }
+      const handled = Promise.resolve(handle(request, response));
+      handling.add(handled);
+      handled.finally(() => handling.delete(handled)).catch(() => {});
+      return handled;
+    },
+    inspectAcquisition: host.inspectAcquisition,
+    // Stop accepting requests and wait for those being handled, stop
+    // starting resumes, let running dispatches finish and record their
+    // ends, settle retention, then release the journals and the Store
+    // owner. Returns what remains for the next owner instead of hiding it.
+    async close() {
+      closing = true;
+      while (handling.size > 0) {
+        await Promise.allSettled([...handling]);
+      }
+      await host.checkpoints?.stop();
+      // Each dispatch is awaited once; an entry kept for its cleanup owner
+      // stays with that owner.
+      const awaited = new Set();
+      for (;;) {
+        const next = [...host.activeDispatches.values()]
+          .filter(active => !awaited.has(active));
+        if (next.length === 0) break;
+        for (const active of next) awaited.add(active);
+        await Promise.all(next.map(active => active.promise));
+      }
+      const checkpoints = await host.checkpoints?.close();
+      host.journal.close();
+      // A Store with a pending deletion keeps its durable deletion record;
+      // the next owner recovers it.
+      let storeCleanupPending = false;
+      try { await host.store.close(); }
+      catch (error) {
+        if (error?.code !== 'PublicationStoreCleanupPending') throw error;
+        storeCleanupPending = true;
+      }
+      return Object.freeze({storeCleanupPending,
+        pendingRetention: checkpoints?.pendingRetention ?? []});
+    },
   });
 }
 

@@ -738,3 +738,42 @@ test('started cancellation never invents stop and terminal completion wins',
       currentAuthorization: true, publicationCommitted: true,
     }, moon, publicationControl).kind, 'already_terminal');
   });
+
+test('a started Run keeps one reconciliation state across a restart',
+  async t => {
+    const path = await directory(t);
+    let journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const requested = identity();
+    const accepted = journal.acceptDefinition(requested, {tenantId: 'tenant-a',
+      runDefinition: runDefinition(), lookupExpiresAt: expires,
+      resultNames: ['answer']}, moon, publicationControl);
+    const state = effects => JSON.stringify({version: 'actql-run-state/0.1',
+      run_id: 'saved-run', status: 'needs_reconciliation',
+      updated_at: '2026-09-24T00:00:03.000Z',
+      next_action: {kind: 'reconcile', effects},
+      result_available: false, result_availability: {answer: {
+        state: 'unavailable', observed_at: '2026-09-24T00:00:03.000Z',
+        reason: 'not_published'}}});
+    // Nothing is recorded for a Run that never claimed its physical start.
+    assert.throws(() => journal.recordReconciliationState(accepted.ref,
+      state(['save'])), {code: 'ClientRunReconciliationDenied'});
+    journal.reserveDispatch(requested, {tenantId: 'tenant-a',
+      currentAuthorization: true}, moon, publicationControl);
+    assert.equal(claimPhysicalStart(journal, accepted.ref), true);
+    assert.equal(journal.lookupReconciliationState(accepted.ref), undefined);
+    assert.throws(() => journal.recordReconciliationState(accepted.ref,
+      JSON.stringify({status: 'succeeded'})),
+    {code: 'InvalidClientRunReconciliation'});
+    journal.recordReconciliationState(accepted.ref, state(['save']));
+    journal.recordReconciliationState(accepted.ref, state(['save']));
+    assert.throws(() => journal.recordReconciliationState(accepted.ref,
+      state(['save', 'save_again'])),
+    {code: 'ClientRunReconciliationConflict'});
+    journal.close();
+    journal = openClientRequestJournal(path);
+    assert.equal(journal.lookupReconciliationState(accepted.ref),
+      state(['save']));
+    assert.equal(journal.lookupReconciliationState({...accepted.ref,
+      runDefinitionCid: cid('9')}), undefined);
+  });

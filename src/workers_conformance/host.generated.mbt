@@ -14,6 +14,7 @@ pub(all) suberror NodeHostFailure {
   EffectFootprint(@effect.EffectFootprintIssue)
   EffectPreviewFootprint(@effect.EffectPreviewFootprintIssue)
   EffectPreviewIdentity(@effect.EffectPreviewApplyIdentityIssue)
+  EffectPreviewRecoveryKeys(@effect.EffectPreviewRecoveryKeysIssue)
   EffectPreviewTargetGuard(@effect.EffectPreviewTargetGuardIssue)
   EffectCollectionBatch(@effect.EffectCollectionBatchIssue)
   EffectLedger(@effect.EffectLedgerIssue)
@@ -736,6 +737,75 @@ pub fn strategy_admit_captured_result_snapshot(
 }
 
 ///|
+#export_name("strategyAdmitCapturedEffectSourceArtifact")
+pub fn strategy_admit_captured_effect_source_artifact(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> @publication.CapturedEffectSourceArtifact raise NodeHostFailure {
+  match
+    @publication.admit_captured_effect_source_artifact(
+      preview, member_index, invocation, artifact, store_authority_cid,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCapturedEffectSourceHoldingCid")
+pub fn strategy_captured_effect_source_holding_cid(
+  source : @publication.CapturedEffectSourceArtifact,
+) -> String {
+  @publication.captured_effect_source_holding_cid(source)
+}
+
+///|
+/// Re-admit persisted local evidence at a trust boundary. This does not
+/// replace the checked Host owner required for first issuance.
+#export_name("strategyAdmitCapturedLocalEffectSource")
+pub fn strategy_admit_captured_local_effect_source(
+  source : @publication.CapturedEffectSourceArtifact,
+  definition_wire : String,
+  invocation_wire : String,
+  manifest_wire : String,
+  artifact : @publication.PublicationContract,
+  derivation : @publication.PublicationContract,
+  ordering : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedLocalEffectSourceEvidence raise NodeHostFailure {
+  match
+    @publication.admit_captured_local_effect_source(
+      source, definition_wire, invocation_wire, manifest_wire, artifact, derivation,
+      ordering, retention, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCapturedEffectSourceArtifactCid")
+pub fn strategy_captured_effect_source_artifact_cid(
+  source : @publication.CapturedEffectSourceArtifact,
+) -> String {
+  @publication.captured_effect_source_artifact_cid(source)
+}
+
+///|
+#export_name("strategyCapturedEffectSourceStoreAuthorityCid")
+pub fn strategy_captured_effect_source_store_authority_cid(
+  source : @publication.CapturedEffectSourceArtifact,
+) -> String {
+  @publication.captured_effect_source_store_authority_cid(source)
+}
+
+///|
 #export_name("strategyAdmitPendingSourceStateAdvance")
 pub fn strategy_admit_pending_source_state_advance(
   complete_wire : String,
@@ -774,6 +844,187 @@ pub fn strategy_issue_effect_free_captured_run(
     @publication.issue_effect_free_captured_run(
       run_definition, invocation, definitions, artifacts, manifest, receipt, snapshots,
       advances, authoring, models, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyAdmitEffectComputationPreview")
+pub fn strategy_admit_effect_computation_preview(
+  preview_wire : String,
+  run_identity_cid : String,
+  authoring_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.EffectPreviewIdentity raise NodeHostFailure {
+  match
+    @publication.admit_effect_preview_identity(
+      preview_wire, run_identity_cid, authoring_context_cid, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueEffectfulCapturedRun")
+pub fn strategy_issue_effectful_captured_run(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  snapshots : Array[@publication.CapturedResultSnapshot],
+  sources : Array[@publication.CapturedEffectSourceArtifact],
+  local_sources : Array[@publication.CapturedLocalEffectSourceEvidence],
+  advances : Array[@publication.PendingSourceStateAdvance],
+  authoring : @publication.RunEvidenceValue,
+  models : Array[@publication.RunEvidenceValue],
+  preview : @publication.EffectPreviewIdentity,
+  plan_names : Array[String],
+  plan_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  if plan_names.length() != plan_wires.length() {
+    raise InvalidCommand
+  }
+  let plans : Array[(String, String)] = []
+  for index in 0..<plan_names.length() {
+    plans.push((plan_names[index], plan_wires[index]))
+  }
+  match
+    @publication.issue_effectful_captured_run(
+      run_definition, invocation, definitions, artifacts, manifest, receipt, snapshots,
+      sources, local_sources, advances, authoring, models, preview, plans, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+/// Issue the final Effectful Receipt only from an admitted computation chain
+/// and the exact private Preview and Effect Set receipts. This is not apply
+/// authority or a durable publication commit.
+#export_name("strategyIssueEffectfulFinalRunReceipt")
+pub fn strategy_issue_effectful_final_run_receipt(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  computation_receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  preview : @publication.EffectPreviewIdentity,
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  let final_receipt = match
+    @publication.issue_effectful_final_run_receipt(
+      run_definition, computation_receipt, captured_run, preview, set_receipt_wire,
+      member_receipt_wires, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+  match
+    @publication.admit_effectful_final_run_evidence_chain(
+      run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      manifest,
+      computation_receipt,
+      captured_run,
+      preview,
+      set_receipt_wire,
+      member_receipt_wires,
+      @publication.publication_contract_json(final_receipt),
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(_) => final_receipt
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueEffectSetApplyReceiptFromMembers")
+pub fn strategy_issue_effect_set_apply_receipt_from_members(
+  preview : @publication.EffectPreviewIdentity,
+  member_receipt_wires : Array[String],
+  replayed : Array[Bool],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  let members : Array[@publication.PublicationContract] = []
+  for wire in member_receipt_wires {
+    match
+      @publication.admit_publication_contract(
+        "effect_apply_receipt", wire, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      Ok(value) => members.push(value)
+      Err(_) => raise InvalidCommand
+    }
+  }
+  match
+    @publication.issue_effect_set_apply_receipt_from_members(
+      preview, members, replayed, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyEffectSetReceiptRunDisposition")
+pub fn strategy_effect_set_receipt_run_disposition(
+  preview : @publication.EffectPreviewIdentity,
+  set_wire : String,
+  member_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Int raise NodeHostFailure {
+  match
+    @publication.effect_set_receipt_run_disposition(
+      preview, set_wire, member_wires, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyEffectReconciliationRunState")
+pub fn strategy_effect_reconciliation_run_state(
+  preview : @publication.EffectPreviewIdentity,
+  set_wire : String,
+  member_wires : Array[String],
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise NodeHostFailure {
+  match
+    @publication.issue_effect_reconciliation_run_state_wire(
+      preview, set_wire, member_wires, run_id, updated_at, declared_results, max_wire_bytes,
+      max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -1243,6 +1494,15 @@ pub fn strategy_issue_public_index_entry(
 }
 
 ///|
+#export_name("strategyPublicIndexSameCommittedContent")
+pub fn strategy_public_index_same_committed_content(
+  committed : @publication.PublicationContract,
+  candidate : @publication.PublicationContract,
+) -> Bool {
+  @publication.public_index_same_committed_content(committed, candidate)
+}
+
+///|
 #export_name("strategyIssuePublicationRecord")
 pub fn strategy_issue_publication_record(
   attempt : @publication.PublicationContract,
@@ -1289,6 +1549,40 @@ pub fn strategy_effect_free_run_evidence_chain_valid(
 }
 
 ///|
+#export_name("strategyEffectfulComputationEvidenceChainValid")
+pub fn strategy_effectful_computation_evidence_chain_valid(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  computation_receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  preview : @publication.EffectPreviewIdentity,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.validate_effectful_computation_evidence_chain(
+    run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
+    captured_run, preview, max_wire_bytes, max_nodes, max_depth,
+  )
+  is Ok(_)
+}
+
+///|
+#export_name("strategyCapturedEffectSourceRecoveryInventoryValid")
+pub fn strategy_captured_effect_source_recovery_inventory_valid(
+  preview : @publication.EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+) -> Bool {
+  @publication.captured_effect_source_recovery_inventory_valid(
+    preview, member_indices, artifacts,
+  )
+}
+
+///|
 #export_name("strategyEffectFreePublicationCommitValid")
 pub fn strategy_effect_free_publication_commit_valid(
   run_definition : @publication.PublicationContract,
@@ -1313,6 +1607,42 @@ pub fn strategy_effect_free_publication_commit_valid(
     run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
     durable_bindings, manifest, receipt, captured_run, request, attempt, index_entry,
     max_wire_bytes, max_nodes, max_depth,
+  )
+  is Ok(_)
+}
+
+///|
+/// The final Effectful Receipt, not its computation Receipt, is indexed.
+/// The Host must separately prove checked kind and current apply authority.
+#export_name("strategyEffectfulPublicationCommitValid")
+pub fn strategy_effectful_publication_commit_valid(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  durable_bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  computation_receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  preview : @publication.EffectPreviewIdentity,
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  final_receipt_wire : String,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.validate_effectful_publication_commit_with_result_evidence(
+    run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
+    durable_bindings, manifest, computation_receipt, captured_run, preview, set_receipt_wire,
+    member_receipt_wires, final_receipt_wire, request, attempt, index_entry, max_wire_bytes,
+    max_nodes, max_depth,
   )
   is Ok(_)
 }
@@ -6975,6 +7305,30 @@ pub fn strategy_effect_dispatch_key_cid(
 }
 
 ///|
+/// Reconstruct the opaque key inventory from an admitted private Preview.
+/// This is not a write permit; current apply authority remains separate.
+#export_name("strategyEffectRecoveredPreviewKeys")
+pub fn strategy_effect_recovered_preview_keys(
+  preview : @publication.EffectPreviewIdentity,
+  scope : @effect.LogicalRequestScope,
+  max_members : Int,
+  max_rows : Int,
+  max_work : Int,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> Array[Array[@effect.EffectDispatchKey]] raise NodeHostFailure {
+  match
+    @effect.recover_effect_preview_apply_keys(
+      preview, scope, max_members, max_rows, max_work, max_key_bytes, max_key_nodes,
+      max_key_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise EffectPreviewRecoveryKeys(issue)
+  }
+}
+
+///|
 #export_name("strategyEffectBatchRowsShareMember")
 pub fn strategy_effect_batch_rows_share_member(
   first_locator : @effect.LogicalItemLocator,
@@ -7233,6 +7587,59 @@ pub fn strategy_effect_preview_apply_identity_admit(
 }
 
 ///|
+#export_name("strategyEffectPreviewPrivateHoldingCid")
+pub fn strategy_effect_preview_private_holding_cid(
+  preview : @publication.EffectPreviewIdentity,
+  store_authority_cid : String,
+) -> String raise NodeHostFailure {
+  match
+    @publication.effect_preview_private_holding_cid(
+      preview, store_authority_cid,
+    ) {
+    Some(cid) => cid
+    None => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyEffectComputationCaptureHoldingCid")
+pub fn strategy_effect_computation_capture_holding_cid(
+  run_definition : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> String raise NodeHostFailure {
+  match
+    @publication.effect_computation_capture_holding_cid(
+      run_definition, store_authority_cid,
+    ) {
+    Some(cid) => cid
+    None => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyEffectComputationRecordHoldingCid")
+pub fn strategy_effect_computation_record_holding_cid(
+  run_definition : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> String raise NodeHostFailure {
+  match
+    @publication.effect_computation_record_holding_cid(
+      run_definition, store_authority_cid,
+    ) {
+    Some(cid) => cid
+    None => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyEffectPreviewSemanticCid")
+pub fn strategy_effect_preview_semantic_cid(
+  preview : @publication.EffectPreviewIdentity,
+) -> String {
+  @publication.effect_preview_semantic_identity(preview)
+}
+
+///|
 #export_name("strategyEffectPreviewApplyIdentity")
 pub fn strategy_effect_preview_apply_identity(
   preview_wire : String,
@@ -7332,6 +7739,391 @@ pub fn strategy_effect_member_row_admit(
 }
 
 ///|
+#export_name("strategyEffectPreviewMemberKind")
+pub fn strategy_effect_preview_member_kind(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+) -> String? {
+  @publication.effect_preview_member_kind(preview, member_index)
+}
+
+///|
+#export_name("strategyEffectPreviewOrderedRowCid")
+pub fn strategy_effect_preview_ordered_row_cid(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+) -> String? {
+  @publication.effect_preview_ordered_row_identity(
+    preview, member_index, row_index,
+  )
+}
+
+///|
+/// Rebuild read-only locator bindings from the admitted Preview. This does
+/// not recover an apply permit or authorize another physical send.
+#export_name("strategyEffectRecoveryBindings")
+pub fn strategy_effect_recovery_bindings(
+  preview : @publication.EffectPreviewIdentity,
+  scope : @effect.LogicalRequestScope,
+  program_id : String,
+  node_id : String,
+  max_rows : Int,
+  max_work : Int,
+) -> Array[Array[@effect.EffectRecoveryBinding]] raise NodeHostFailure {
+  match
+    @effect.prepare_effect_recovery_bindings(
+      preview, scope, program_id, node_id, max_rows, max_work,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyEffectRecoveryBindingLocatorCid")
+pub fn strategy_effect_recovery_binding_locator_cid(
+  binding : @effect.EffectRecoveryBinding,
+) -> String {
+  @effect.effect_recovery_binding_locator_cid(binding)
+}
+
+///|
+#export_name("strategyEffectRecoverClaimsFromHeads")
+pub fn strategy_effect_recover_claims_from_heads(
+  bindings : Array[Array[@effect.EffectRecoveryBinding]],
+  heads : Array[Array[@effect.EffectLedgerEntry?]],
+  max_rows : Int,
+) -> Array[Array[@effect.EffectRecoveredClaim]] raise NodeHostFailure {
+  match @effect.recover_effect_claims_from_heads(bindings, heads, max_rows) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyEffectRecoveredClaimScope")
+pub fn strategy_effect_recovered_claim_scope(
+  claim : @effect.EffectRecoveredClaim,
+) -> @effect.LogicalRequestScope {
+  @effect.effect_recovered_claim_scope(claim)
+}
+
+///|
+#export_name("strategyEffectRecoveredClaimLocator")
+pub fn strategy_effect_recovered_claim_locator(
+  claim : @effect.EffectRecoveredClaim,
+) -> @effect.LogicalItemLocator {
+  @effect.effect_recovered_claim_locator(claim)
+}
+
+///|
+#export_name("strategyEffectRecoveredClaimKey")
+pub fn strategy_effect_recovered_claim_key(
+  claim : @effect.EffectRecoveredClaim,
+) -> @effect.EffectDispatchKey {
+  @effect.effect_recovered_claim_key(claim)
+}
+
+///|
+#export_name("strategyEffectRecoveredClaimBasis")
+pub fn strategy_effect_recovered_claim_basis(
+  claim : @effect.EffectRecoveredClaim,
+) -> @effect.EffectLedgerBasis {
+  @effect.effect_recovered_claim_basis(claim)
+}
+
+///|
+#export_name("strategyEffectRecoveredClaimIntentFingerprintCid")
+pub fn strategy_effect_recovered_claim_intent_fingerprint_cid(
+  claim : @effect.EffectRecoveredClaim,
+) -> String {
+  @effect.effect_recovered_claim_intent_fingerprint_cid(claim)
+}
+
+///|
+#export_name("strategyEffectRecoveredClaimCanonicalRequestCid")
+pub fn strategy_effect_recovered_claim_canonical_request_cid(
+  claim : @effect.EffectRecoveredClaim,
+) -> String {
+  @effect.effect_recovered_claim_canonical_request_cid(claim)
+}
+
+///|
+#export_name("strategyIssueEffectRowOutcomeReceipt")
+pub fn strategy_issue_effect_row_outcome_receipt(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  dispatch_entry_cid : String,
+  credential_use_cid : String,
+  response_bytes : Bytes,
+  http_status_code : Int,
+  outcome_wire : String,
+  max_response_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_effect_row_outcome_receipt(
+      preview, member_index, row_index, dispatch_entry_cid, credential_use_cid, response_bytes,
+      http_status_code, outcome_wire, max_response_bytes, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyAdmitEffectSavedResponseEvidence")
+pub fn strategy_admit_effect_saved_response_evidence(
+  dispatch_entry_cids : Array[String],
+  credential_use_cid : String,
+  response_bytes : Bytes,
+  http_status_code : Int,
+  max_response_bytes : Int,
+) -> @publication.EffectSavedResponseEvidence raise NodeHostFailure {
+  match
+    @publication.admit_effect_saved_response_evidence(
+      dispatch_entry_cids, credential_use_cid, response_bytes, http_status_code,
+      max_response_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueEffectRowOutcomeReceiptFromResponse")
+pub fn strategy_issue_effect_row_outcome_receipt_from_response(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  dispatch_entry_cid : String,
+  response : @publication.EffectSavedResponseEvidence,
+  outcome_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_effect_row_outcome_receipt_from_response(
+      preview, member_index, row_index, dispatch_entry_cid, response, outcome_wire,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyAdmitEffectRowOutcomeReceipt")
+pub fn strategy_admit_effect_row_outcome_receipt(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  dispatch_entry_cid : String,
+  credential_use_cid : String,
+  response_bytes : Bytes,
+  http_status_code : Int,
+  receipt_wire : String,
+  max_response_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.admit_effect_row_outcome_receipt(
+      preview, member_index, row_index, dispatch_entry_cid, credential_use_cid, response_bytes,
+      http_status_code, receipt_wire, max_response_bytes, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyAdmitEffectRowOutcomeReceiptFromResponse")
+pub fn strategy_admit_effect_row_outcome_receipt_from_response(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  dispatch_entry_cid : String,
+  response : @publication.EffectSavedResponseEvidence,
+  receipt_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.admit_effect_row_outcome_receipt_from_response(
+      preview, member_index, row_index, dispatch_entry_cid, response, receipt_wire,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyEffectRowOutcomeReceiptTerminalState")
+pub fn strategy_effect_row_outcome_receipt_terminal_state(
+  receipt : @publication.PublicationContract,
+) -> String? {
+  @publication.effect_row_outcome_receipt_terminal_state(receipt)
+}
+
+///|
+#export_name("strategyIssueEffectRowReceiptTerminalEntry")
+pub fn strategy_issue_effect_row_receipt_terminal_entry(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  scope : @effect.LogicalRequestScope,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  canonical_request_cid : String,
+  current : @effect.EffectLedgerEntry,
+  history : Array[@effect.EffectLedgerEntry],
+  dispatch_entry_cid : String,
+  credential_use_cid : String,
+  response_bytes : Bytes,
+  http_status_code : Int,
+  receipt_wire : String,
+  max_response_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @effect.EffectLedgerEntry raise NodeHostFailure {
+  match
+    @effect.issue_effect_row_receipt_terminal_entry(
+      preview, member_index, row_index, scope, locator, key, canonical_request_cid,
+      current, history, dispatch_entry_cid, credential_use_cid, response_bytes, http_status_code,
+      receipt_wire, max_response_bytes, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueEffectRowReceiptTerminalEntryFromResponse")
+pub fn strategy_issue_effect_row_receipt_terminal_entry_from_response(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  scope : @effect.LogicalRequestScope,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  canonical_request_cid : String,
+  current : @effect.EffectLedgerEntry,
+  history : Array[@effect.EffectLedgerEntry],
+  dispatch_entry_cid : String,
+  response : @publication.EffectSavedResponseEvidence,
+  receipt_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @effect.EffectLedgerEntry raise NodeHostFailure {
+  match
+    @effect.issue_effect_row_receipt_terminal_entry_from_response(
+      preview, member_index, row_index, scope, locator, key, canonical_request_cid,
+      current, history, dispatch_entry_cid, response, receipt_wire, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCheckEffectMemberReceiptRowPartitionEvidence")
+pub fn strategy_check_effect_member_receipt_row_partition_evidence(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  scopes : Array[@effect.LogicalRequestScope],
+  locators : Array[@effect.LogicalItemLocator],
+  keys : Array[@effect.EffectDispatchKey],
+  bases : Array[@effect.EffectLedgerBasis],
+  heads : Array[@effect.EffectLedgerEntry?],
+  active_owners : Array[Bool],
+  terminal_receipt_wires : Array[String?],
+  member_receipt_wire : String,
+  max_rows : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool raise NodeHostFailure {
+  let terminal_receipts : Array[@publication.PublicationContract?] = []
+  for wire in terminal_receipt_wires {
+    match wire {
+      None => terminal_receipts.push(None)
+      Some(value) =>
+        match
+          @publication.admit_publication_contract(
+            "effect_row_outcome_receipt", value, max_wire_bytes, max_nodes, max_depth,
+          ) {
+          Ok(receipt) => terminal_receipts.push(Some(receipt))
+          Err(_) => raise InvalidCommand
+        }
+    }
+  }
+  match
+    @effect.check_effect_member_receipt_row_partition_evidence(
+      preview, member_index, scopes, locators, keys, bases, heads, active_owners,
+      terminal_receipts, member_receipt_wire, max_rows, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(_) => true
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueEffectMemberReceiptFromRowPartition")
+pub fn strategy_issue_effect_member_receipt_from_row_partition(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  scopes : Array[@effect.LogicalRequestScope],
+  locators : Array[@effect.LogicalItemLocator],
+  keys : Array[@effect.EffectDispatchKey],
+  bases : Array[@effect.EffectLedgerBasis],
+  heads : Array[@effect.EffectLedgerEntry?],
+  active_owners : Array[Bool],
+  terminal_receipt_wires : Array[String?],
+  max_rows : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  let terminal_receipts : Array[@publication.PublicationContract?] = []
+  for wire in terminal_receipt_wires {
+    match wire {
+      None => terminal_receipts.push(None)
+      Some(value) =>
+        match
+          @publication.admit_publication_contract(
+            "effect_row_outcome_receipt", value, max_wire_bytes, max_nodes, max_depth,
+          ) {
+          Ok(receipt) => terminal_receipts.push(Some(receipt))
+          Err(_) => raise InvalidCommand
+        }
+    }
+  }
+  match
+    @effect.issue_effect_member_receipt_from_row_partition(
+      preview, member_index, scopes, locators, keys, bases, heads, active_owners,
+      terminal_receipts, max_rows, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyEffectSetFrontierOutcome")
 pub fn strategy_effect_set_frontier_outcome(
   frontier : @effect.EffectSetFrontier,
@@ -7397,6 +8189,14 @@ pub fn strategy_effect_ledger_entry_cid(
   entry : @effect.EffectLedgerEntry,
 ) -> String {
   @effect.effect_ledger_entry_cid(entry)
+}
+
+///|
+#export_name("strategyEffectLedgerEntryStateCode")
+pub fn strategy_effect_ledger_entry_state_code(
+  entry : @effect.EffectLedgerEntry,
+) -> Int {
+  @effect.effect_ledger_entry_state_code(entry)
 }
 
 ///|
@@ -7616,6 +8416,7 @@ pub(all) suberror AsyncHostFailure {
   EffectFootprint(@effect.EffectFootprintIssue)
   EffectPreviewFootprint(@effect.EffectPreviewFootprintIssue)
   EffectPreviewIdentity(@effect.EffectPreviewApplyIdentityIssue)
+  EffectPreviewRecoveryKeys(@effect.EffectPreviewRecoveryKeysIssue)
   EffectPreviewTargetGuard(@effect.EffectPreviewTargetGuardIssue)
   EffectCollectionBatch(@effect.EffectCollectionBatchIssue)
   EffectLedger(@effect.EffectLedgerIssue)
@@ -8340,6 +9141,75 @@ pub fn async_strategy_admit_captured_result_snapshot(
 }
 
 ///|
+#export_name("asyncStrategyAdmitCapturedEffectSourceArtifact")
+pub fn async_strategy_admit_captured_effect_source_artifact(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> @publication.CapturedEffectSourceArtifact raise AsyncHostFailure {
+  match
+    @publication.admit_captured_effect_source_artifact(
+      preview, member_index, invocation, artifact, store_authority_cid,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyCapturedEffectSourceHoldingCid")
+pub fn async_strategy_captured_effect_source_holding_cid(
+  source : @publication.CapturedEffectSourceArtifact,
+) -> String {
+  @publication.captured_effect_source_holding_cid(source)
+}
+
+///|
+/// Re-admit persisted local evidence at a trust boundary. This does not
+/// replace the checked Host owner required for first issuance.
+#export_name("asyncStrategyAdmitCapturedLocalEffectSource")
+pub fn async_strategy_admit_captured_local_effect_source(
+  source : @publication.CapturedEffectSourceArtifact,
+  definition_wire : String,
+  invocation_wire : String,
+  manifest_wire : String,
+  artifact : @publication.PublicationContract,
+  derivation : @publication.PublicationContract,
+  ordering : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedLocalEffectSourceEvidence raise AsyncHostFailure {
+  match
+    @publication.admit_captured_local_effect_source(
+      source, definition_wire, invocation_wire, manifest_wire, artifact, derivation,
+      ordering, retention, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyCapturedEffectSourceArtifactCid")
+pub fn async_strategy_captured_effect_source_artifact_cid(
+  source : @publication.CapturedEffectSourceArtifact,
+) -> String {
+  @publication.captured_effect_source_artifact_cid(source)
+}
+
+///|
+#export_name("asyncStrategyCapturedEffectSourceStoreAuthorityCid")
+pub fn async_strategy_captured_effect_source_store_authority_cid(
+  source : @publication.CapturedEffectSourceArtifact,
+) -> String {
+  @publication.captured_effect_source_store_authority_cid(source)
+}
+
+///|
 #export_name("asyncStrategyAdmitPendingSourceStateAdvance")
 pub fn async_strategy_admit_pending_source_state_advance(
   complete_wire : String,
@@ -8378,6 +9248,187 @@ pub fn async_strategy_issue_effect_free_captured_run(
     @publication.issue_effect_free_captured_run(
       run_definition, invocation, definitions, artifacts, manifest, receipt, snapshots,
       advances, authoring, models, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyAdmitEffectComputationPreview")
+pub fn async_strategy_admit_effect_computation_preview(
+  preview_wire : String,
+  run_identity_cid : String,
+  authoring_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.EffectPreviewIdentity raise AsyncHostFailure {
+  match
+    @publication.admit_effect_preview_identity(
+      preview_wire, run_identity_cid, authoring_context_cid, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssueEffectfulCapturedRun")
+pub fn async_strategy_issue_effectful_captured_run(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  snapshots : Array[@publication.CapturedResultSnapshot],
+  sources : Array[@publication.CapturedEffectSourceArtifact],
+  local_sources : Array[@publication.CapturedLocalEffectSourceEvidence],
+  advances : Array[@publication.PendingSourceStateAdvance],
+  authoring : @publication.RunEvidenceValue,
+  models : Array[@publication.RunEvidenceValue],
+  preview : @publication.EffectPreviewIdentity,
+  plan_names : Array[String],
+  plan_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  if plan_names.length() != plan_wires.length() {
+    raise InvalidCommand
+  }
+  let plans : Array[(String, String)] = []
+  for index in 0..<plan_names.length() {
+    plans.push((plan_names[index], plan_wires[index]))
+  }
+  match
+    @publication.issue_effectful_captured_run(
+      run_definition, invocation, definitions, artifacts, manifest, receipt, snapshots,
+      sources, local_sources, advances, authoring, models, preview, plans, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+/// Issue the final Effectful Receipt only from an admitted computation chain
+/// and the exact private Preview and Effect Set receipts. This is not apply
+/// authority or a durable publication commit.
+#export_name("asyncStrategyIssueEffectfulFinalRunReceipt")
+pub fn async_strategy_issue_effectful_final_run_receipt(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  computation_receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  preview : @publication.EffectPreviewIdentity,
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  let final_receipt = match
+    @publication.issue_effectful_final_run_receipt(
+      run_definition, computation_receipt, captured_run, preview, set_receipt_wire,
+      member_receipt_wires, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+  match
+    @publication.admit_effectful_final_run_evidence_chain(
+      run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      manifest,
+      computation_receipt,
+      captured_run,
+      preview,
+      set_receipt_wire,
+      member_receipt_wires,
+      @publication.publication_contract_json(final_receipt),
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(_) => final_receipt
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssueEffectSetApplyReceiptFromMembers")
+pub fn async_strategy_issue_effect_set_apply_receipt_from_members(
+  preview : @publication.EffectPreviewIdentity,
+  member_receipt_wires : Array[String],
+  replayed : Array[Bool],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  let members : Array[@publication.PublicationContract] = []
+  for wire in member_receipt_wires {
+    match
+      @publication.admit_publication_contract(
+        "effect_apply_receipt", wire, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      Ok(value) => members.push(value)
+      Err(_) => raise InvalidCommand
+    }
+  }
+  match
+    @publication.issue_effect_set_apply_receipt_from_members(
+      preview, members, replayed, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyEffectSetReceiptRunDisposition")
+pub fn async_strategy_effect_set_receipt_run_disposition(
+  preview : @publication.EffectPreviewIdentity,
+  set_wire : String,
+  member_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Int raise AsyncHostFailure {
+  match
+    @publication.effect_set_receipt_run_disposition(
+      preview, set_wire, member_wires, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyEffectReconciliationRunState")
+pub fn async_strategy_effect_reconciliation_run_state(
+  preview : @publication.EffectPreviewIdentity,
+  set_wire : String,
+  member_wires : Array[String],
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise AsyncHostFailure {
+  match
+    @publication.issue_effect_reconciliation_run_state_wire(
+      preview, set_wire, member_wires, run_id, updated_at, declared_results, max_wire_bytes,
+      max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -8847,6 +9898,15 @@ pub fn async_strategy_issue_public_index_entry(
 }
 
 ///|
+#export_name("asyncStrategyPublicIndexSameCommittedContent")
+pub fn async_strategy_public_index_same_committed_content(
+  committed : @publication.PublicationContract,
+  candidate : @publication.PublicationContract,
+) -> Bool {
+  @publication.public_index_same_committed_content(committed, candidate)
+}
+
+///|
 #export_name("asyncStrategyIssuePublicationRecord")
 pub fn async_strategy_issue_publication_record(
   attempt : @publication.PublicationContract,
@@ -8893,6 +9953,40 @@ pub fn async_strategy_effect_free_run_evidence_chain_valid(
 }
 
 ///|
+#export_name("asyncStrategyEffectfulComputationEvidenceChainValid")
+pub fn async_strategy_effectful_computation_evidence_chain_valid(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  computation_receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  preview : @publication.EffectPreviewIdentity,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.validate_effectful_computation_evidence_chain(
+    run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
+    captured_run, preview, max_wire_bytes, max_nodes, max_depth,
+  )
+  is Ok(_)
+}
+
+///|
+#export_name("asyncStrategyCapturedEffectSourceRecoveryInventoryValid")
+pub fn async_strategy_captured_effect_source_recovery_inventory_valid(
+  preview : @publication.EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+) -> Bool {
+  @publication.captured_effect_source_recovery_inventory_valid(
+    preview, member_indices, artifacts,
+  )
+}
+
+///|
 #export_name("asyncStrategyEffectFreePublicationCommitValid")
 pub fn async_strategy_effect_free_publication_commit_valid(
   run_definition : @publication.PublicationContract,
@@ -8917,6 +10011,42 @@ pub fn async_strategy_effect_free_publication_commit_valid(
     run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
     durable_bindings, manifest, receipt, captured_run, request, attempt, index_entry,
     max_wire_bytes, max_nodes, max_depth,
+  )
+  is Ok(_)
+}
+
+///|
+/// The final Effectful Receipt, not its computation Receipt, is indexed.
+/// The Host must separately prove checked kind and current apply authority.
+#export_name("asyncStrategyEffectfulPublicationCommitValid")
+pub fn async_strategy_effectful_publication_commit_valid(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  durable_bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  computation_receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  preview : @publication.EffectPreviewIdentity,
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  final_receipt_wire : String,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.validate_effectful_publication_commit_with_result_evidence(
+    run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
+    durable_bindings, manifest, computation_receipt, captured_run, preview, set_receipt_wire,
+    member_receipt_wires, final_receipt_wire, request, attempt, index_entry, max_wire_bytes,
+    max_nodes, max_depth,
   )
   is Ok(_)
 }
@@ -14585,6 +15715,30 @@ pub fn async_strategy_effect_dispatch_key_cid(
 }
 
 ///|
+/// Reconstruct the opaque key inventory from an admitted private Preview.
+/// This is not a write permit; current apply authority remains separate.
+#export_name("asyncStrategyEffectRecoveredPreviewKeys")
+pub fn async_strategy_effect_recovered_preview_keys(
+  preview : @publication.EffectPreviewIdentity,
+  scope : @effect.LogicalRequestScope,
+  max_members : Int,
+  max_rows : Int,
+  max_work : Int,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> Array[Array[@effect.EffectDispatchKey]] raise AsyncHostFailure {
+  match
+    @effect.recover_effect_preview_apply_keys(
+      preview, scope, max_members, max_rows, max_work, max_key_bytes, max_key_nodes,
+      max_key_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise EffectPreviewRecoveryKeys(issue)
+  }
+}
+
+///|
 #export_name("asyncStrategyEffectBatchRowsShareMember")
 pub fn async_strategy_effect_batch_rows_share_member(
   first_locator : @effect.LogicalItemLocator,
@@ -14845,6 +15999,59 @@ pub fn async_strategy_effect_preview_apply_identity_admit(
 }
 
 ///|
+#export_name("asyncStrategyEffectPreviewPrivateHoldingCid")
+pub fn async_strategy_effect_preview_private_holding_cid(
+  preview : @publication.EffectPreviewIdentity,
+  store_authority_cid : String,
+) -> String raise AsyncHostFailure {
+  match
+    @publication.effect_preview_private_holding_cid(
+      preview, store_authority_cid,
+    ) {
+    Some(cid) => cid
+    None => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyEffectComputationCaptureHoldingCid")
+pub fn async_strategy_effect_computation_capture_holding_cid(
+  run_definition : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> String raise AsyncHostFailure {
+  match
+    @publication.effect_computation_capture_holding_cid(
+      run_definition, store_authority_cid,
+    ) {
+    Some(cid) => cid
+    None => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyEffectComputationRecordHoldingCid")
+pub fn async_strategy_effect_computation_record_holding_cid(
+  run_definition : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> String raise AsyncHostFailure {
+  match
+    @publication.effect_computation_record_holding_cid(
+      run_definition, store_authority_cid,
+    ) {
+    Some(cid) => cid
+    None => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyEffectPreviewSemanticCid")
+pub fn async_strategy_effect_preview_semantic_cid(
+  preview : @publication.EffectPreviewIdentity,
+) -> String {
+  @publication.effect_preview_semantic_identity(preview)
+}
+
+///|
 #export_name("asyncStrategyEffectPreviewApplyIdentity")
 pub fn async_strategy_effect_preview_apply_identity(
   preview_wire : String,
@@ -14944,6 +16151,391 @@ pub fn async_strategy_effect_member_row_admit(
 }
 
 ///|
+#export_name("asyncStrategyEffectPreviewMemberKind")
+pub fn async_strategy_effect_preview_member_kind(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+) -> String? {
+  @publication.effect_preview_member_kind(preview, member_index)
+}
+
+///|
+#export_name("asyncStrategyEffectPreviewOrderedRowCid")
+pub fn async_strategy_effect_preview_ordered_row_cid(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+) -> String? {
+  @publication.effect_preview_ordered_row_identity(
+    preview, member_index, row_index,
+  )
+}
+
+///|
+/// Rebuild read-only locator bindings from the admitted Preview. This does
+/// not recover an apply permit or authorize another physical send.
+#export_name("asyncStrategyEffectRecoveryBindings")
+pub fn async_strategy_effect_recovery_bindings(
+  preview : @publication.EffectPreviewIdentity,
+  scope : @effect.LogicalRequestScope,
+  program_id : String,
+  node_id : String,
+  max_rows : Int,
+  max_work : Int,
+) -> Array[Array[@effect.EffectRecoveryBinding]] raise AsyncHostFailure {
+  match
+    @effect.prepare_effect_recovery_bindings(
+      preview, scope, program_id, node_id, max_rows, max_work,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyEffectRecoveryBindingLocatorCid")
+pub fn async_strategy_effect_recovery_binding_locator_cid(
+  binding : @effect.EffectRecoveryBinding,
+) -> String {
+  @effect.effect_recovery_binding_locator_cid(binding)
+}
+
+///|
+#export_name("asyncStrategyEffectRecoverClaimsFromHeads")
+pub fn async_strategy_effect_recover_claims_from_heads(
+  bindings : Array[Array[@effect.EffectRecoveryBinding]],
+  heads : Array[Array[@effect.EffectLedgerEntry?]],
+  max_rows : Int,
+) -> Array[Array[@effect.EffectRecoveredClaim]] raise AsyncHostFailure {
+  match @effect.recover_effect_claims_from_heads(bindings, heads, max_rows) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyEffectRecoveredClaimScope")
+pub fn async_strategy_effect_recovered_claim_scope(
+  claim : @effect.EffectRecoveredClaim,
+) -> @effect.LogicalRequestScope {
+  @effect.effect_recovered_claim_scope(claim)
+}
+
+///|
+#export_name("asyncStrategyEffectRecoveredClaimLocator")
+pub fn async_strategy_effect_recovered_claim_locator(
+  claim : @effect.EffectRecoveredClaim,
+) -> @effect.LogicalItemLocator {
+  @effect.effect_recovered_claim_locator(claim)
+}
+
+///|
+#export_name("asyncStrategyEffectRecoveredClaimKey")
+pub fn async_strategy_effect_recovered_claim_key(
+  claim : @effect.EffectRecoveredClaim,
+) -> @effect.EffectDispatchKey {
+  @effect.effect_recovered_claim_key(claim)
+}
+
+///|
+#export_name("asyncStrategyEffectRecoveredClaimBasis")
+pub fn async_strategy_effect_recovered_claim_basis(
+  claim : @effect.EffectRecoveredClaim,
+) -> @effect.EffectLedgerBasis {
+  @effect.effect_recovered_claim_basis(claim)
+}
+
+///|
+#export_name("asyncStrategyEffectRecoveredClaimIntentFingerprintCid")
+pub fn async_strategy_effect_recovered_claim_intent_fingerprint_cid(
+  claim : @effect.EffectRecoveredClaim,
+) -> String {
+  @effect.effect_recovered_claim_intent_fingerprint_cid(claim)
+}
+
+///|
+#export_name("asyncStrategyEffectRecoveredClaimCanonicalRequestCid")
+pub fn async_strategy_effect_recovered_claim_canonical_request_cid(
+  claim : @effect.EffectRecoveredClaim,
+) -> String {
+  @effect.effect_recovered_claim_canonical_request_cid(claim)
+}
+
+///|
+#export_name("asyncStrategyIssueEffectRowOutcomeReceipt")
+pub fn async_strategy_issue_effect_row_outcome_receipt(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  dispatch_entry_cid : String,
+  credential_use_cid : String,
+  response_bytes : Bytes,
+  http_status_code : Int,
+  outcome_wire : String,
+  max_response_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_effect_row_outcome_receipt(
+      preview, member_index, row_index, dispatch_entry_cid, credential_use_cid, response_bytes,
+      http_status_code, outcome_wire, max_response_bytes, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyAdmitEffectSavedResponseEvidence")
+pub fn async_strategy_admit_effect_saved_response_evidence(
+  dispatch_entry_cids : Array[String],
+  credential_use_cid : String,
+  response_bytes : Bytes,
+  http_status_code : Int,
+  max_response_bytes : Int,
+) -> @publication.EffectSavedResponseEvidence raise AsyncHostFailure {
+  match
+    @publication.admit_effect_saved_response_evidence(
+      dispatch_entry_cids, credential_use_cid, response_bytes, http_status_code,
+      max_response_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssueEffectRowOutcomeReceiptFromResponse")
+pub fn async_strategy_issue_effect_row_outcome_receipt_from_response(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  dispatch_entry_cid : String,
+  response : @publication.EffectSavedResponseEvidence,
+  outcome_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_effect_row_outcome_receipt_from_response(
+      preview, member_index, row_index, dispatch_entry_cid, response, outcome_wire,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyAdmitEffectRowOutcomeReceipt")
+pub fn async_strategy_admit_effect_row_outcome_receipt(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  dispatch_entry_cid : String,
+  credential_use_cid : String,
+  response_bytes : Bytes,
+  http_status_code : Int,
+  receipt_wire : String,
+  max_response_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.admit_effect_row_outcome_receipt(
+      preview, member_index, row_index, dispatch_entry_cid, credential_use_cid, response_bytes,
+      http_status_code, receipt_wire, max_response_bytes, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyAdmitEffectRowOutcomeReceiptFromResponse")
+pub fn async_strategy_admit_effect_row_outcome_receipt_from_response(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  dispatch_entry_cid : String,
+  response : @publication.EffectSavedResponseEvidence,
+  receipt_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.admit_effect_row_outcome_receipt_from_response(
+      preview, member_index, row_index, dispatch_entry_cid, response, receipt_wire,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyEffectRowOutcomeReceiptTerminalState")
+pub fn async_strategy_effect_row_outcome_receipt_terminal_state(
+  receipt : @publication.PublicationContract,
+) -> String? {
+  @publication.effect_row_outcome_receipt_terminal_state(receipt)
+}
+
+///|
+#export_name("asyncStrategyIssueEffectRowReceiptTerminalEntry")
+pub fn async_strategy_issue_effect_row_receipt_terminal_entry(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  scope : @effect.LogicalRequestScope,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  canonical_request_cid : String,
+  current : @effect.EffectLedgerEntry,
+  history : Array[@effect.EffectLedgerEntry],
+  dispatch_entry_cid : String,
+  credential_use_cid : String,
+  response_bytes : Bytes,
+  http_status_code : Int,
+  receipt_wire : String,
+  max_response_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @effect.EffectLedgerEntry raise AsyncHostFailure {
+  match
+    @effect.issue_effect_row_receipt_terminal_entry(
+      preview, member_index, row_index, scope, locator, key, canonical_request_cid,
+      current, history, dispatch_entry_cid, credential_use_cid, response_bytes, http_status_code,
+      receipt_wire, max_response_bytes, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssueEffectRowReceiptTerminalEntryFromResponse")
+pub fn async_strategy_issue_effect_row_receipt_terminal_entry_from_response(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  scope : @effect.LogicalRequestScope,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  canonical_request_cid : String,
+  current : @effect.EffectLedgerEntry,
+  history : Array[@effect.EffectLedgerEntry],
+  dispatch_entry_cid : String,
+  response : @publication.EffectSavedResponseEvidence,
+  receipt_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @effect.EffectLedgerEntry raise AsyncHostFailure {
+  match
+    @effect.issue_effect_row_receipt_terminal_entry_from_response(
+      preview, member_index, row_index, scope, locator, key, canonical_request_cid,
+      current, history, dispatch_entry_cid, response, receipt_wire, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyCheckEffectMemberReceiptRowPartitionEvidence")
+pub fn async_strategy_check_effect_member_receipt_row_partition_evidence(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  scopes : Array[@effect.LogicalRequestScope],
+  locators : Array[@effect.LogicalItemLocator],
+  keys : Array[@effect.EffectDispatchKey],
+  bases : Array[@effect.EffectLedgerBasis],
+  heads : Array[@effect.EffectLedgerEntry?],
+  active_owners : Array[Bool],
+  terminal_receipt_wires : Array[String?],
+  member_receipt_wire : String,
+  max_rows : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool raise AsyncHostFailure {
+  let terminal_receipts : Array[@publication.PublicationContract?] = []
+  for wire in terminal_receipt_wires {
+    match wire {
+      None => terminal_receipts.push(None)
+      Some(value) =>
+        match
+          @publication.admit_publication_contract(
+            "effect_row_outcome_receipt", value, max_wire_bytes, max_nodes, max_depth,
+          ) {
+          Ok(receipt) => terminal_receipts.push(Some(receipt))
+          Err(_) => raise InvalidCommand
+        }
+    }
+  }
+  match
+    @effect.check_effect_member_receipt_row_partition_evidence(
+      preview, member_index, scopes, locators, keys, bases, heads, active_owners,
+      terminal_receipts, member_receipt_wire, max_rows, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(_) => true
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssueEffectMemberReceiptFromRowPartition")
+pub fn async_strategy_issue_effect_member_receipt_from_row_partition(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  scopes : Array[@effect.LogicalRequestScope],
+  locators : Array[@effect.LogicalItemLocator],
+  keys : Array[@effect.EffectDispatchKey],
+  bases : Array[@effect.EffectLedgerBasis],
+  heads : Array[@effect.EffectLedgerEntry?],
+  active_owners : Array[Bool],
+  terminal_receipt_wires : Array[String?],
+  max_rows : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  let terminal_receipts : Array[@publication.PublicationContract?] = []
+  for wire in terminal_receipt_wires {
+    match wire {
+      None => terminal_receipts.push(None)
+      Some(value) =>
+        match
+          @publication.admit_publication_contract(
+            "effect_row_outcome_receipt", value, max_wire_bytes, max_nodes, max_depth,
+          ) {
+          Ok(receipt) => terminal_receipts.push(Some(receipt))
+          Err(_) => raise InvalidCommand
+        }
+    }
+  }
+  match
+    @effect.issue_effect_member_receipt_from_row_partition(
+      preview, member_index, scopes, locators, keys, bases, heads, active_owners,
+      terminal_receipts, max_rows, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("asyncStrategyEffectSetFrontierOutcome")
 pub fn async_strategy_effect_set_frontier_outcome(
   frontier : @effect.EffectSetFrontier,
@@ -15009,6 +16601,14 @@ pub fn async_strategy_effect_ledger_entry_cid(
   entry : @effect.EffectLedgerEntry,
 ) -> String {
   @effect.effect_ledger_entry_cid(entry)
+}
+
+///|
+#export_name("asyncStrategyEffectLedgerEntryStateCode")
+pub fn async_strategy_effect_ledger_entry_state_code(
+  entry : @effect.EffectLedgerEntry,
+) -> Int {
+  @effect.effect_ledger_entry_state_code(entry)
 }
 
 ///|

@@ -1,8 +1,13 @@
 // The transport Client delegates admission, state and delivery to the Host.
-import {validClientAdmission, validClientConnection, validClientProfile,
-  validDeliveryAttemptLookup, validRequestLookup, validRunRef,
-  validRunState, validCancellation} from
+import {checkpointLimits, validCancellation, validCheckpointPage,
+  validCheckpointReview, validClientAdmission, validClientConnection,
+  validClientProfile, validDeliveryAttemptLookup, validRequestCancellation,
+  validRequestLookup,
+  validResolveItem, validResolveResults, validRunRef, validRunState,
+  validSubmitReply, validClientBody, validResourceInspection,
+  validResourceListing, validResourcePeek} from
   '@actql/client-wire';
+import {bytesCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const maxControlResponseBytes = 1024 * 1024;
 
@@ -14,6 +19,17 @@ export class ClientError extends Error {
   }
 }
 const fail = code => { throw new ClientError(code); };
+
+// The Host accepted and durably holds the request, but no Run exists yet:
+// it waits on a `prepare_attempt` Checkpoint, is resuming, or ended without
+// a Run. This is a control result, not a failure and not an unknown
+// submission: submitting again is never needed. Follow it with
+// `lookupRequest(requestId)`; once the Run exists the lookup is `found`.
+export class RequestHeld extends ClientError {
+  constructor(held, lookupContext) {
+    super('RequestHeld', {requestId: held.requestId, held, lookupContext});
+  }
+}
 
 async function boundedHostJson(response) {
   const declared = response.headers.get('content-length');
@@ -240,7 +256,7 @@ async function connectSelected(selected, port) {
         throw new ClientError('SubmissionUnknown', {...submitContext,
           cause: new ClientError(code)});
       }
-      throw new ClientError(code);
+      throw new ClientError(code, {status: response.status});
     }
     return response;
   };
@@ -492,11 +508,13 @@ async function connectSelected(selected, port) {
         }
         return response;
       },
+      // The Run's current state after the Host's reconciliation attempt. An
+      // unknown Effect outcome stays `needs_reconciliation` until the Host
+      // has provider evidence; nothing is resent to find out.
       reconcile: async ({signal} = {}) => {
-        const response = await readControl('reconcile', {}, signal);
-        if (response?.version === 'actql-run-state/0.1' &&
-            !validRunState(response)) fail('InvalidHostRunState');
-        return response;
+        const state = await readControl('reconcile', {}, signal);
+        if (!validRunState(state)) fail('InvalidHostRunState');
+        return state;
       },
     });
   };
@@ -513,6 +531,13 @@ async function connectSelected(selected, port) {
     try { admitted = await controlValue(response); }
     catch (cause) {
       throw new ClientError('SubmissionUnknown', {...context, cause});
+    }
+    if (admitted?.kind === 'held' &&
+        validSubmitReply(admitted, selected.wire, requestId)) {
+      throw new RequestHeld(Object.freeze({...admitted,
+        ...(admitted.checkpoint === undefined ? {} :
+          {checkpoint: Object.freeze({...admitted.checkpoint})})}),
+      context.lookupContext);
     }
     try { return execution(admitted); }
     catch (cause) {
@@ -566,6 +591,206 @@ async function connectSelected(selected, port) {
         return Object.freeze({...answer, ref: Object.freeze({...answer.ref})});
       }
       return Object.freeze(answer);
+    },
+    // Cancel a request by its ID, before or after its Run exists; a Run is
+    // cancelled through its own cancellation. `accepted` means the Host
+    // durably recorded it, not that anything stopped or was cleaned up
+    // (follow lookupRequest, or status() once there is a Run). When the
+    // reply is lost or the Host fails, the error is CancellationUnknown with
+    // the requestId: call cancelRequest again with the same ID; it is
+    // matched to the existing cancellation. Aborting the call never
+    // withdraws a cancellation the Host already recorded.
+    cancelRequest: async (requestId, {signal} = {}) => {
+      if (typeof requestId !== 'string' || !requestId) fail('InvalidRequestId');
+      let answer;
+      try {
+        const response = await exchange('cancel-request', {requestId},
+          signal);
+        answer = await controlValue(response);
+      } catch (cause) {
+        if (cause instanceof ClientError &&
+            cause.code !== 'ClientTransportUnknown' &&
+            !(cause.status >= 500)) throw cause;
+        throw new ClientError('CancellationUnknown', {requestId, cause});
+      }
+      if (!validRequestCancellation(answer, requestId)) {
+        throw new ClientError('CancellationUnknown', {requestId,
+          cause: new ClientError('InvalidHostRequestCancellation')});
+      }
+      return Object.freeze({...answer, ...(answer.ref === undefined ? {} :
+        {ref: Object.freeze({...answer.ref})})});
+    },
+    // Resources an installed connection shows to this caller, from the
+    // Host's current Catalog observation. A listing is display material:
+    // `snapshotComplete` and the truncation flags say whether it is the whole
+    // Catalog, and it never grants reading rows or running anything.
+    resources: async (resourceConnection, {query = '', limit = 100,
+      signal} = {}) => {
+      const body = {resourceConnection, query, limit};
+      if (!validClientBody('resources', {connection: selected.wire,
+        ...body})) fail('InvalidResourceListing');
+      let listing;
+      try { listing = await controlValue(await exchange('resources', body,
+        signal)); }
+      catch (cause) {
+        if (cause instanceof ClientError) throw cause;
+        throw new ClientError('InvalidHostResourceListing', {cause});
+      }
+      if (!validResourceListing(listing, {resourceConnection, limit})) {
+        fail('InvalidHostResourceListing');
+      }
+      return Object.freeze({...listing, resources: Object.freeze(
+        listing.resources.map(item => Object.freeze({...item})))});
+    },
+    // Typed metadata of one Resource the caller may see. `catalog_required`
+    // with a reason means the Host's Catalog cannot answer yet; it is never
+    // evidence that the Resource is absent.
+    inspectResource: async (resourceConnection, resource, {
+      maxBytes = 64 * 1024, signal} = {}) => {
+      const body = {resourceConnection, resource, maxBytes};
+      if (!validClientBody('resource-inspect', {connection: selected.wire,
+        ...body})) fail('InvalidResourceInspection');
+      let inspection;
+      try { inspection = await controlValue(await exchange('resource-inspect',
+        body, signal)); }
+      catch (cause) {
+        if (cause instanceof ClientError) throw cause;
+        throw new ClientError('InvalidHostResourceInspection', {cause});
+      }
+      if (!validResourceInspection(inspection, body)) {
+        fail('InvalidHostResourceInspection');
+      }
+      const {summaryJson, ...rest} = inspection;
+      return Object.freeze({...rest, ...(summaryJson === undefined ? {} :
+        {summary: JSON.parse(summaryJson)})});
+    },
+    // A separately authorized preview of at most `maxRows` rows with exactly
+    // `fields`. `limited` marks a prefix; a preview is never a complete read,
+    // Acquisition evidence or a Result.
+    peekResource: async (resourceConnection, resource, {fields, maxRows = 10,
+      maxBytes = 64 * 1024, signal} = {}) => {
+      const body = {resourceConnection, resource,
+        fields: Array.isArray(fields) ? [...fields] : fields, maxRows,
+        maxBytes};
+      if (!validClientBody('resource-peek', {connection: selected.wire,
+        ...body})) fail('InvalidResourcePeek');
+      let peek;
+      try { peek = await controlValue(await exchange('resource-peek', body,
+        signal)); }
+      catch (cause) {
+        if (cause instanceof ClientError) throw cause;
+        throw new ClientError('InvalidHostResourcePeek', {cause});
+      }
+      if (!validResourcePeek(peek, body)) fail('InvalidHostResourcePeek');
+      const {rowsJson, ...rest} = peek;
+      return Object.freeze({...rest, fields: Object.freeze([...peek.fields]),
+        rows: Object.freeze(JSON.parse(rowsJson).map(row =>
+          Object.freeze(row)))});
+    },
+    // One authorized page of waiting Checkpoints: safe metadata only, never
+    // review contents. `next` continues the listing.
+    checkpoints: async ({after, limit = 50, signal} = {}) => {
+      if (after !== undefined && (typeof after !== 'string' || !after) ||
+          !positive(limit) || limit > checkpointLimits.maxPageItems) {
+        fail('InvalidCheckpointPage');
+      }
+      const response = await exchange('checkpoints',
+        {after: after ?? '', limit}, signal);
+      let page;
+      try { page = await controlValue(response); }
+      catch (cause) { throw new ClientError('InvalidHostCheckpointPage', {cause}); }
+      if (!validCheckpointPage(page, limit)) fail('InvalidHostCheckpointPage');
+      return Object.freeze({items: Object.freeze(page.items.map(item =>
+        Object.freeze(structuredClone(item)))),
+      ...(page.next === undefined ? {} : {next: page.next})});
+    },
+    // The exact review projection a Checkpoint names, when the caller is
+    // authorized to read it. Bounded by `maxBytes` on both sides; the bytes
+    // are verified against the named artifact CID before they are returned.
+    // Aborting this read never cancels the request or Run.
+    reviewCheckpoint: async (checkpoint, {maxBytes = 64 * 1024,
+      signal} = {}) => {
+      const checkpointCid = typeof checkpoint === 'string' ? checkpoint
+        : checkpoint?.checkpointCid;
+      if (typeof checkpointCid !== 'string' ||
+          !/^sha256:[0-9a-f]{64}$/u.test(checkpointCid)) {
+        fail('InvalidCheckpointReference');
+      }
+      if (!positive(maxBytes) || maxBytes > checkpointLimits.maxReviewBytes) {
+        fail('InvalidReviewLimit');
+      }
+      const response = await exchange('checkpoint-review',
+        {checkpointCid, maxBytes}, signal);
+      let review;
+      try { review = await controlValue(response); }
+      catch (cause) { throw new ClientError('ReviewReadUnknown', {cause}); }
+      if (!validCheckpointReview(review, {checkpointCid, maxBytes})) {
+        fail('InvalidHostCheckpointReview');
+      }
+      const bytes = Uint8Array.from(atob(review.contentBase64),
+        character => character.charCodeAt(0));
+      if (bytes.byteLength !== review.byteLength ||
+          await bytesCid(bytes) !== review.artifactCid ||
+          typeof checkpoint === 'object' &&
+            checkpoint.reviewProjectionCid !== undefined &&
+            checkpoint.reviewProjectionCid !== review.artifactCid) {
+        fail('ReviewIntegrityFailed');
+      }
+      return Object.freeze({checkpointCid, artifactCid: review.artifactCid,
+        bytes});
+    },
+    // Answer one or more Checkpoints. Each item is either {checkpoint,
+    // decision} (a listed summary and 'approved' | 'rejected', signed here
+    // by `signer`) or a previously signed item returned by an earlier call,
+    // which is resent unchanged. Results are per Checkpoint; the batch is not
+    // atomic. A stored answer is not a resumed or completed Run: follow the
+    // request with lookupRequest, then status()/wait() once the Run exists.
+    // When the reply is lost the error carries the exact signed items to
+    // resend; they are never re-signed with a new decision time.
+    resolveCheckpoints: async (items, {signer, signal} = {}) => {
+      if (!Array.isArray(items) || items.length === 0 ||
+          items.length > checkpointLimits.maxResolveItems) {
+        fail('InvalidCheckpointAnswers');
+      }
+      const decidedAt = new Date().toISOString();
+      const signed = [];
+      for (const item of items) {
+        if (validResolveItem(item)) {
+          signed.push(Object.freeze({...item}));
+          continue;
+        }
+        let key;
+        try { key = checkedSigner(signer); }
+        catch { fail('InvalidCheckpointSigner'); }
+        try {
+          signed.push(await signedAnswer(item?.checkpoint, item?.decision,
+            key, decidedAt));
+        } catch (cause) {
+          throw new ClientError(cause.message ?? 'InvalidCheckpointAnswer',
+            {cause});
+        }
+      }
+      if (new Set(signed.map(item => item.checkpointCid)).size !==
+          signed.length) fail('DuplicateCheckpointAnswer');
+      const frozen = Object.freeze(signed);
+      let answer;
+      try {
+        const response = await exchange('resolve', {items: frozen}, signal);
+        answer = await controlValue(response);
+      } catch (cause) {
+        if (cause instanceof ClientError && cause.code !==
+            'ClientTransportUnknown' && !(cause.status >= 500)) throw cause;
+        throw new ClientError('ResolutionUnknown', {signed: frozen, cause});
+      }
+      if (!validResolveResults(answer, frozen)) {
+        throw new ClientError('ResolutionUnknown', {signed: frozen,
+          cause: new ClientError('InvalidHostResolveReply')});
+      }
+      return Object.freeze({
+        results: Object.freeze(answer.results.map(result =>
+          Object.freeze({...result}))),
+        signed: frozen,
+      });
     },
     close() { closed = true; },
   });

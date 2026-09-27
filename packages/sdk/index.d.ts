@@ -1,5 +1,8 @@
-import type {WireClientProfile, WireDeliveryAttemptLookup, WireCancellation,
-  WireRequestLookup, WireRunRef, WireRunState} from '@actql/client-wire';
+import type {WireCancellation, WireCheckpointSummary, WireClientProfile,
+  WireRequestCancellation,
+  WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
+  WireResolveItem, WireResolveResult, WireRunRef,
+  WireRunState} from '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
 export type RunReference = WireRunRef;
@@ -34,6 +37,21 @@ export type RunNextAction = WireRunState['next_action'];
 
 export type DeliveryAttemptLookup = WireDeliveryAttemptLookup;
 
+export type HeldRequest = WireHeldRequest;
+export type RequestCancellation = WireRequestCancellation;
+export type CheckpointSummary = WireCheckpointSummary;
+export type SignedCheckpointAnswer = WireResolveItem;
+export type CheckpointAnswerResult = WireResolveResult;
+
+// Supplied by the application; the SDK never holds the key. `sign` signs
+// the UTF-8 text of an unsigned artifact CID (Ed25519, 64-byte signature
+// or its base64 text).
+export type CheckpointSigner = Readonly<{
+  keyId: string;
+  reviewerId: string;
+  sign(bytes: Uint8Array): Uint8Array | string | Promise<Uint8Array | string>;
+}>;
+
 export declare class ClientError extends Error {
   readonly code: string;
   readonly hint?: string;
@@ -41,6 +59,16 @@ export declare class ClientError extends Error {
   readonly attemptId?: string;
   readonly cleanupError?: unknown;
   readonly lookupContext?: Readonly<{endpoint: string; scopeRef: string}>;
+  readonly status?: number;
+  // ResolutionUnknown: the exact signed answers to resend unchanged.
+  readonly signed?: readonly SignedCheckpointAnswer[];
+}
+
+// A durably held request with no Run yet (not a failure; never resubmit).
+export declare class RequestHeld extends ClientError {
+  readonly code: 'RequestHeld';
+  readonly requestId: string;
+  readonly held: HeldRequest;
 }
 
 export type ReadOptions = {
@@ -75,7 +103,7 @@ export interface Execution {
   status(options?: {signal?: AbortSignal}): Promise<RunState>;
   wait(options?: {until?: string; signal?: AbortSignal}): Promise<RunState>;
   cancel(options?: {signal?: AbortSignal}): Promise<WireCancellation>;
-  reconcile(options?: {signal?: AbortSignal}): Promise<unknown>;
+  reconcile(options?: {signal?: AbortSignal}): Promise<RunState>;
   result(name: string): Result;
 }
 
@@ -96,6 +124,41 @@ export interface Client {
   attach(ref: RunReference, options?: {signal?: AbortSignal}): Promise<Execution>;
   lookupRequest(requestId: string,
     options?: {signal?: AbortSignal}): Promise<RequestLookup>;
+  cancelRequest(requestId: string, options?: {signal?: AbortSignal}):
+    Promise<RequestCancellation>;
+  resources(resourceConnection: string, options?: {query?: string;
+    limit?: number; signal?: AbortSignal}): Promise<Readonly<{
+      resourceConnection: string; observationCid: string;
+      resources: readonly Readonly<{name: string; outcome: string}>[];
+      snapshotComplete: boolean; snapshotTruncated: boolean;
+      resultTruncated: boolean}>>;
+  inspectResource(resourceConnection: string, resource: string, options?: {
+    maxBytes?: number; signal?: AbortSignal}): Promise<Readonly<{
+      resourceConnection: string; resource: string; observationCid: string;
+      status: 'ready' | 'catalog_required';
+      reason?: 'listing_truncated' | 'not_visible' | 'describe_unavailable';
+      summary?: unknown}>>;
+  peekResource(resourceConnection: string, resource: string, options: {
+    fields: readonly string[]; maxRows?: number; maxBytes?: number;
+    signal?: AbortSignal}): Promise<Readonly<{
+      resourceConnection: string; resource: string; observationCid: string;
+      fields: readonly string[];
+      rows: readonly Readonly<Record<string,
+        string | number | boolean | null>>[];
+      limited: boolean}>>;
+  checkpoints(options?: {after?: string; limit?: number;
+    signal?: AbortSignal}): Promise<Readonly<{
+      items: readonly CheckpointSummary[]; next?: string}>>;
+  reviewCheckpoint(checkpoint: string | CheckpointSummary, options?: {
+    maxBytes?: number; signal?: AbortSignal}): Promise<Readonly<{
+      checkpointCid: string; artifactCid: string; bytes: Uint8Array}>>;
+  resolveCheckpoints(items: readonly (
+    | Readonly<{checkpoint: CheckpointSummary;
+        decision: 'approved' | 'rejected'}>
+    | SignedCheckpointAnswer)[], options?: {
+      signer?: CheckpointSigner; signal?: AbortSignal}): Promise<Readonly<{
+        results: readonly CheckpointAnswerResult[];
+        signed: readonly SignedCheckpointAnswer[]}>>;
   close(): void;
 }
 

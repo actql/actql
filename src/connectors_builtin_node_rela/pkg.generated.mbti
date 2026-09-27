@@ -35,6 +35,8 @@ import {
 }
 
 // Values
+pub fn client_program_admit_allowed_effect_run(@run_publication_host.ClientEffectCompilation, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@run_publication_host.ClientEffectAllowedRun, @run_publication_host.ClientEffectCompiledRunIssue]
+
 pub fn client_program_admit_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootAdmissionIssue]
 
 pub fn client_program_admit_effect_publication(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> @run_publication.RunPublicationAdmission?
@@ -67,7 +69,15 @@ pub fn client_program_admit_result_plan(@run_publication_host.PreparedClientProg
 
 pub fn client_program_admit_task_plan_graph(@run_publication_host.PreparedClientProgram, String) -> Result[@run_publication_host.ClientTaskPlanGraph, @run_publication_host.ClientTaskPlanGraphAdmissionIssue]
 
+pub fn client_program_allowed_effect_run_admission(@run_publication_host.ClientEffectAllowedRun) -> @run_publication.RunPublicationAdmission
+
+pub fn client_program_allowed_effect_run_authorization(@run_publication_host.ClientEffectAllowedRun) -> @run_publication.RunEvidenceValue
+
+pub fn client_program_allowed_effect_run_prepared(@run_publication_host.ClientEffectAllowedRun) -> @run_publication.RunEvidenceValue
+
 pub fn client_program_author_effect_preview(String, String, String, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[(String, Array[Array[@effect_application.EffectDispatchKey]]), ClientEffectPreviewAuthorIssue]
+
+pub fn client_program_bind_compiled_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[@run_publication_host.PreparedClientEffectRun, @run_publication_host.ClientEffectCompiledRunIssue]
 
 pub fn client_program_bind_effect_preview_inputs(ClientLocalEffectHost, @physical_strategy.CapturedEffectInputs, @run_publication.PublicationContract, Int, String, String, ClientEffectPreviewInputLimits) -> Result[@physical_strategy.CapturedEffectPreviewInputs, ClientEffectPreviewInputIssue]
 
@@ -119,6 +129,8 @@ pub fn client_program_compilation_fact_manifest_wire(@run_publication_host.Clien
 
 pub fn client_program_compilation_template_wire(@run_publication_host.ClientValuesCompilation) -> String
 
+pub fn client_program_compile_local_effects(@run_publication_host.PreparedClientEffectComputation) -> Result[@run_publication_host.ClientEffectCompilation, ClientProgramEffectCompilationBridgeIssue]
+
 pub fn client_program_compile_local_tasks(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientTaskCompilation, ClientProgramTaskCompilationBridgeIssue]
 
 pub fn client_program_compile_local_values(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientProgramValuesCompilationBridgeIssue]
@@ -140,6 +152,18 @@ pub fn client_program_effect_apply_capability_reconciliation_mode(@effect_applic
 pub fn client_program_effect_apply_member_count(@physical_strategy.CapturedEffectPreviewInputs) -> Int?
 
 pub fn client_program_effect_apply_subject_cid(@physical_strategy.CapturedEffectPreviewInputs) -> String?
+
+pub fn client_program_effect_compilation_compiled_plan_wire(@run_publication_host.ClientEffectCompilation) -> String
+
+pub fn client_program_effect_compilation_fact_manifest_wire(@run_publication_host.ClientEffectCompilation) -> String
+
+pub fn client_program_effect_compilation_issue_code(Result[@run_publication_host.ClientEffectCompilation, ClientProgramEffectCompilationBridgeIssue]) -> String?
+
+pub fn client_program_effect_compilation_plan_wire(@run_publication_host.ClientEffectCompilation) -> String
+
+pub fn client_program_effect_compilation_result_names(@run_publication_host.ClientEffectCompilation) -> Array[String]
+
+pub fn client_program_effect_compilation_template_wire(@run_publication_host.ClientEffectCompilation) -> String
 
 pub fn client_program_effect_create_row_inventory(Array[String], Int, Int, Int, Int) -> Result[Array[(Int, String)], @run_publication.EffectPreviewIdentityIssue]
 
@@ -180,6 +204,8 @@ pub fn client_program_effect_input_export_row_count(@execution_relation.Complete
 pub fn client_program_effect_input_export_schema_cid(@execution_relation.CompletedRelationExportReceipt) -> String
 
 pub fn client_program_effect_input_export_start(@physical_strategy.CapturedEffectInput, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_effect_input_stage(@physical_strategy.CapturedEffectInput) -> Int
 
 pub fn client_program_effect_input_task(@physical_strategy.CapturedEffectInput) -> Int
 
@@ -247,6 +273,8 @@ pub fn client_program_effect_request_identity(@run_publication_host.PreparedClie
 
 pub fn client_program_effect_risk_unsigned_payload_cid(@effect_application.EffectRiskAcceptanceBody) -> String
 
+pub fn client_program_effect_run_start_current(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Bool
+
 pub fn client_program_effect_semantics_cid(@run_publication_host.PreparedClientEffectComputation) -> String
 
 pub fn client_program_effect_source_artifact_preview_binding(@run_publication.PublicationContract, String, String, String) -> Result[(String, String), @run_publication.EffectSourceArtifactIssue]
@@ -254,6 +282,8 @@ pub fn client_program_effect_source_artifact_preview_binding(@run_publication.Pu
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
 pub fn client_program_identify_captured_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
+
+pub fn client_program_issue_allowed_effect_run(@run_publication_host.ClientEffectCompilation, String, String, String) -> Result[@run_publication_host.ClientEffectAllowedRun, @run_publication_host.ClientEffectCompiledRunIssue]
 
 pub fn client_program_issue_captured_effect_input_local_invocation(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalInvocationIssue]
 
@@ -267,7 +297,13 @@ pub fn client_program_issue_direct_task_result_root(@run_publication_host.Prepar
 
 pub fn client_program_issue_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
 
+pub fn client_program_issue_effect_run_definition(@run_publication_host.ClientEffectAllowedRun, String, String, String, String) -> Result[@run_publication.PublicationContract, @run_publication_host.ClientEffectCompiledRunIssue]
+
 pub fn client_program_issue_effect_source_artifact(@physical_strategy.CapturedEffectInput, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.EffectSourceArtifactIssue]
+
+pub fn client_program_issue_effect_source_free_invocation(@run_publication_host.ClientEffectCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
+pub fn client_program_issue_effect_values_fragment(@run_publication_host.PreparedClientEffectComputation, Int) -> Result[@run_publication_host.ClientValuesFragmentNode, @run_publication_host.ClientValuesFragmentIssue]
 
 pub fn client_program_issue_empty_invocation_bindings(@run_publication_host.PreparedClientProgram) -> Result[@run_publication.RunEvidenceValue, @run_publication_host.ClientEmptyInvocationBindingsIssue]
 
@@ -387,6 +423,8 @@ pub fn client_program_preparation_ready(ClientProgramBridgeOutcome) -> @run_publ
 
 pub fn client_program_prepare_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@host.NativeHostConfiguration, @client_local_host.ClientDuckDBAcquisitionIssue]
 
+pub fn client_program_prepare_duckdb_source_evidence_context(@query_planning.QueryRequirement) -> Result[@host.NativeSourceEvidenceContext, @host.NativeSourceEvidenceIssue]
+
 pub fn client_program_prepare_effect_computation_with_parameters(String, String, @program_check.CheckEnvironment, String?, Array[@pipeline_check_context.StageCapacityInput]) -> ClientEffectProgramBridgeOutcome
 
 pub fn client_program_prepare_effect_free(String, String, @program_check.CheckEnvironment) -> @run_publication_host.PreparedClientProgram?
@@ -478,6 +516,8 @@ pub fn client_program_task_fragment_wire(@run_publication_host.ClientTaskFragmen
 pub fn client_program_task_pipeline_wire(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskPipelineIssue]
 
 pub fn client_program_task_plan_graph_wire(@run_publication_host.ClientTaskPlanGraph) -> String
+
+pub fn client_program_values_fragment_logical_cid(@run_publication_host.ClientValuesFragmentNode) -> String
 
 pub fn client_run_control_observation(Int, Bool, Bool, Bool, Bool) -> String?
 
@@ -638,6 +678,8 @@ pub fn strategy_effect_preview_row_identities(String, Int, Int, Int) -> Array[Ar
 pub fn strategy_effect_preview_semantic_cid(@run_publication.EffectPreviewIdentity) -> String
 
 pub fn strategy_effect_preview_target_guards_check(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int) -> Bool raise NodeHostFailure
+
+pub fn strategy_effect_reconciliation_run_state(@run_publication.EffectPreviewIdentity, String, Array[String], String, String, Array[String], Int, Int, Int) -> String raise NodeHostFailure
 
 pub fn strategy_effect_recover_claims_from_heads(Array[Array[@effect_application.EffectRecoveryBinding]], Array[Array[@effect_application.EffectLedgerEntry?]], Int) -> Array[Array[@effect_application.EffectRecoveredClaim]] raise NodeHostFailure
 
@@ -1861,6 +1903,11 @@ pub(all) enum ClientProgramBridgeIssue {
 pub(all) enum ClientProgramBridgeOutcome {
   Prepared(@run_publication_host.PreparedClientProgram)
   Rejected(ClientProgramBridgeIssue)
+}
+
+pub(all) enum ClientProgramEffectCompilationBridgeIssue {
+  Manifests(@run_publication_host.ClientCompilationManifestIssue)
+  Compilation(@run_publication_host.ClientEffectCompilationIssue)
 }
 
 pub(all) enum ClientProgramTaskCompilationBridgeIssue {

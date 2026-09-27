@@ -548,58 +548,9 @@ pub fn client_values_host_issue_source_free_invocation(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Array[String], @publication.RunEvidenceValueIssue] {
-  let template = @host.client_values_compilation_template(compilation)
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(@publication.RunEvidenceValueIssue::RunEvidenceEncoding)
-  }
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "capture_completed_at")
-    @encode.null_value(writer)
-    @encode.key(writer, "capture_started_at")
-    @encode.null_value(writer)
-    @encode.key(writer, "captured_input_artifact_cids")
-    @encode.begin_array(writer)
-    @encode.end_array(writer)
-    @encode.key(writer, "consistency")
-    @encode.string_value(writer, "no_external_sources")
-    @encode.key(writer, "data_policy_cid")
-    @encode.string_value(writer, data_policy_cid)
-    @encode.key(writer, "invocation_template_cid")
-    @encode.string_value(
-      writer,
-      @publication.run_evidence_value_identity(template),
-    )
-    @encode.key(writer, "replayability")
-    @encode.begin_object(writer)
-    @encode.key(writer, "availability_evidence_cids")
-    @encode.begin_array(writer)
-    @encode.end_array(writer)
-    @encode.key(writer, "materialized")
-    @encode.bool_value(writer, false)
-    @encode.end_object(writer)
-    @encode.key(writer, "source_evidence_cids")
-    @encode.begin_array(writer)
-    @encode.end_array(writer)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-observation-set/0.1")
-    @encode.end_object(writer)
-  } catch {
-    _ => return Err(@publication.RunEvidenceValueIssue::RunEvidenceEncoding)
-  }
-  let body = @encode.finish(writer) catch {
-    _ => return Err(@publication.RunEvidenceValueIssue::RunEvidenceEncoding)
-  }
-  let observation = match
-    @publication.seal_run_evidence_value(
-      "observation_set", body, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let invocation = match
-    @publication.issue_run_invocation(
-      template, observation, max_wire_bytes, max_nodes, max_depth,
+  let (observation, invocation) = match
+    @host.issue_client_values_source_free_invocation(
+      compilation, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -1016,45 +967,13 @@ fn client_values_host_issue_allowed_run_with_compilation(
   host_policy_cid : String,
   expires_at : String,
 ) -> Result[ClientValuesHostAllowedRun, ClientValuesHostRunAdmissionIssue] {
-  let prepared_value = match
-    @publication.seal_run_evidence_value(
-      "prepared_invocation",
-      "{\"version\":\"actql-prepared-invocation/0.1\"," +
-      "\"invocation_template_cid\":\"" +
-      @publication.run_evidence_value_identity(template) +
-      "\",\"compiled_plan_cid\":\"" +
-      @publication.publication_contract_identity(plan) +
-      "\",\"execution_context_cid\":\"" +
-      execution_context_cid +
-      "\",\"host_policy_cid\":\"" +
-      host_policy_cid +
-      "\",\"policy_decision\":\"allow\",\"expires_at\":\"" +
-      expires_at +
-      "\"}",
-      100000,
-      10000,
-      100,
+  let (prepared_value, authorization) = match
+    @host.issue_client_allowed_run_evidence(
+      template, plan, execution_context_cid, host_policy_cid, expires_at,
     ) {
-    Ok(value) => value
-    Err(issue) => return Err(Prepared(issue))
-  }
-  let authorization = match
-    @publication.seal_run_evidence_value(
-      "run_authorization",
-      "{\"version\":\"actql-run-authorization/0.1\"," +
-      "\"prepared_invocation_cid\":\"" +
-      @publication.run_evidence_value_identity(prepared_value) +
-      "\",\"execution_context_cid\":\"" +
-      execution_context_cid +
-      "\",\"host_policy_cid\":\"" +
-      host_policy_cid +
-      "\",\"decision\":\"allowed\"}",
-      100000,
-      10000,
-      100,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Authorization(issue))
+    Ok(values) => values
+    Err(Prepared(issue)) => return Err(Prepared(issue))
+    Err(Authorization(issue)) => return Err(Authorization(issue))
   }
   let admission = match
     @host.admit_prepared_client_run_publication(

@@ -1537,3 +1537,112 @@ test('a journal created before the requested-claims column is upgraded',
       authorities, binding, requestedClaims: ['effect_scope_approved'],
     }), {code: 'CheckpointConflict'});
   });
+
+test('pending Checkpoints page by a stable cursor; resumable preparations and their Runs are listed',
+  async t => {
+    const {clock, open} = await workspace(t);
+    const journal = open();
+    const waiting = [];
+    for (const index of [1, 2, 3]) {
+      clock.ms += 1000;
+      waiting.push(persistPreparation(journal, prepareBody({
+        attemptId: `attempt-${index}`, checkpointId: `cp-prep-${index}`})));
+    }
+    const first = journal.listPending({limit: 2});
+    assert.deepEqual(first.map(view => view.checkpointCid),
+      waiting.slice(0, 2).map(view => view.checkpointCid));
+    const second = journal.listPending({after: first.at(-1).cursor, limit: 2});
+    assert.deepEqual(second.map(view => view.checkpointCid),
+      [waiting[2].checkpointCid]);
+    assert.deepEqual(journal.listPending({after: second.at(-1).cursor,
+      limit: 2}), []);
+    // The unpaged listing is unchanged: every waiting one, no cursor.
+    assert.equal(journal.listPending().length, 3);
+    assert.equal('cursor' in journal.listPending()[0], false);
+    for (const bad of [{limit: 0}, {limit: 1001}, {after: 'x', limit: 1},
+      {after: first[0].cursor}]) {
+      assert.throws(() => journal.listPending(bad),
+        {code: 'InvalidCheckpointPage'});
+    }
+    // Only an approved preparation with an uncompleted intent is resumable.
+    assert.deepEqual(journal.listResumablePreparations(), []);
+    const [approved, rejected] = [0, 1].map(index =>
+      storedWire(journal, waiting[index].checkpointCid));
+    await journal.submitResolution({checkpointCid: approved.checkpoint_cid,
+      ...resolvePreparation(approved, 'approved')});
+    await journal.submitResolution({checkpointCid: rejected.checkpoint_cid,
+      ...resolvePreparation(rejected, 'rejected')});
+    assert.deepEqual(journal.listResumablePreparations(), ['attempt-1']);
+    assert.equal(journal.listPending().length, 1);
+    const claimed = journal.claimPreparationResume('attempt-1',
+      {claimant: 'host-a', leaseMs: 1000, binding});
+    // A claimed but uncompleted intent stays a candidate (its claimant may
+    // have died); the claim still decides who continues.
+    assert.deepEqual(journal.listResumablePreparations(), ['attempt-1']);
+    // Pages continue after the previous page's last attempt.
+    assert.deepEqual(journal.listResumablePreparations({after: 'attempt-1'}),
+      []);
+    assert.deepEqual(journal.listPreparationRuns(), []);
+    journal.completeResume(claimed.claim, {run: {runId: 'run-1',
+      status: 'running'}});
+    assert.deepEqual(journal.listResumablePreparations(), []);
+    // The created Run keeps a durable execution duty until it ends.
+    assert.deepEqual(journal.listPreparationRuns(),
+      [{prepareAttemptId: 'attempt-1', runId: 'run-1'}]);
+    assert.deepEqual(journal.listPreparationRuns({after: 'attempt-1'}), []);
+    journal.finishRun('run-1', {status: 'succeeded'});
+    assert.deepEqual(journal.listPreparationRuns(), []);
+    assert.throws(() => journal.listResumablePreparations({limit: 0}),
+      {code: 'InvalidResumableLimit'});
+    assert.throws(() => journal.listPreparationRuns({limit: 0}),
+      {code: 'InvalidPreparationRunPage'});
+  });
+
+test('a request cancellation is durable and ends or marks the preparation',
+  async t => {
+    const {clock, open} = await workspace(t);
+    const journal = open();
+    const [waiting, resuming, rejected] = ['a', 'b', 'c'].map(id => {
+      clock.ms += 1000;
+      return persistPreparation(journal, prepareBody({
+        attemptId: `attempt-${id}`, checkpointId: `cp-${id}`}));
+    });
+    // Waiting: the Checkpoint closes as cancelled and the preparation ends
+    // cancelled; a later answer is `cancelled`, never a resume.
+    const first = journal.requestPreparationCancellation('attempt-a');
+    assert.equal(first.outcome, 'accepted');
+    assert.equal(first.preparation.status, 'ended');
+    assert.equal(first.preparation.endReason, 'cancelled');
+    assert.equal(first.preparation.cancelRequested, true);
+    assert.equal(journal.inspect(waiting.checkpointCid).closure, 'cancelled');
+    const late = await journal.submitResolutions([{
+      checkpointCid: waiting.checkpointCid,
+      ...resolvePreparation(storedWire(journal, waiting.checkpointCid),
+        'approved')}]);
+    assert.equal(late[0].status, 'cancelled');
+    assert.deepEqual(journal.listResumablePreparations(), []);
+    // Repeating it is idempotent.
+    assert.equal(journal.requestPreparationCancellation('attempt-a').outcome,
+      'already_requested');
+    // Resuming (approved first): the durable request stays for the resume
+    // owner; nothing else changes.
+    await journal.submitResolution({checkpointCid: resuming.checkpointCid,
+      ...resolvePreparation(storedWire(journal, resuming.checkpointCid),
+        'approved')});
+    const marked = journal.requestPreparationCancellation('attempt-b');
+    assert.equal(marked.outcome, 'accepted');
+    assert.equal(marked.preparation.status, 'resuming');
+    assert.equal(marked.preparation.cancelRequested, true);
+    assert.equal(journal.getPreparation('attempt-b').cancelRequested, true);
+    assert.equal(journal.requestPreparationCancellation('attempt-b').outcome,
+      'already_requested');
+    // Ended otherwise: already terminal, unchanged.
+    await journal.submitResolution({checkpointCid: rejected.checkpointCid,
+      ...resolvePreparation(storedWire(journal, rejected.checkpointCid),
+        'rejected')});
+    const terminal = journal.requestPreparationCancellation('attempt-c');
+    assert.equal(terminal.outcome, 'already_terminal');
+    assert.equal(terminal.preparation.cancelRequested, false);
+    assert.throws(() => journal.requestPreparationCancellation('attempt-x'),
+      {code: 'PreparationNotFound'});
+  });

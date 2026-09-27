@@ -2351,6 +2351,26 @@ function publicationControl(moon) {
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
       ));
     },
+    // The public state of a Run whose complete admitted Effect Set has
+    // unknown outcomes: `needs_reconciliation` naming exactly those Effects.
+    effectReconciliationRunState(preview, receipts, {runId, updatedAt,
+      resultNames}, limits) {
+      issuanceLimits(limits, 'Effect reconciliation Run state');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined ||
+          typeof receipts?.setWire !== 'string' ||
+          !Array.isArray(receipts.memberWires) ||
+          receipts.memberWires.some(wire => typeof wire !== 'string') ||
+          !Array.isArray(resultNames) ||
+          resultNames.some(name => typeof name !== 'string')) {
+        throw new TypeError('Invalid Effect reconciliation Run state');
+      }
+      return checked(moon.strategyEffectReconciliationRunState(
+        ownedPreview, receipts.setWire, receipts.memberWires, runId,
+        updatedAt, resultNames, limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth,
+      ));
+    },
     recordTransition(previous, next, uncommittedConfirmed) {
       return moon.strategyPublicationRecordTransition(
         previous === undefined ? undefined : token(previous),

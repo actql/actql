@@ -20,13 +20,21 @@ pub fn cancel_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
 
 pub fn catalog_http_failure(Int, Bytes, Int) -> DescribeFailure
 
+pub fn catalog_observation_first_unconfirmed_field(CatalogObservation, CatalogObservationBinding, String, Array[String]) -> Result[String?, CatalogObservationIssue]
+
 pub fn catalog_observation_identity(CatalogObservation) -> String
 
+pub fn catalog_observation_is_complete(CatalogObservation) -> Bool
+
 pub fn catalog_observation_json(CatalogObservation) -> String
+
+pub fn catalog_observation_matches_binding(CatalogObservation, CatalogObservationBinding) -> Bool
 
 pub fn catalog_observation_resource(CatalogObservation, CatalogObservationBinding, String) -> Result[ResourceMetadata, CatalogObservationIssue]
 
 pub fn catalog_observation_resource_outcome(CatalogObservation, CatalogObservationBinding, String) -> Result[ResourceDescribeOutcome, CatalogObservationIssue]
+
+pub fn catalog_observation_resource_summary_json(CatalogObservation, CatalogObservationBinding, String, Int) -> Result[String, CatalogObservationIssue]
 
 pub fn catalog_response_sha256(Bytes) -> String
 
@@ -90,6 +98,8 @@ pub fn query_page_cell(QueryPage, Int, Int) -> @value_admission.CheckedValue?
 
 pub fn query_page_done(QueryPage) -> Bool
 
+pub fn query_page_field_names(QueryPage) -> Array[String]
+
 pub fn query_page_matches_projection(QueryPage, ReadProjection) -> Bool
 
 pub fn query_page_next_url(QueryPage) -> String?
@@ -119,6 +129,8 @@ pub fn read_projection_matches_site_scope(ReadProjection, String, String, String
 pub fn read_projection_observation(ReadProjection) -> String
 
 pub fn read_projection_resource(ReadProjection) -> String
+
+pub fn read_projection_row_limit(ReadProjection) -> Int?
 
 pub fn read_projection_soql(ReadProjection) -> String
 
@@ -193,6 +205,8 @@ pub fn target_preview_row_guard_cid(TargetPreviewRow) -> String
 pub fn target_preview_row_target_wire(TargetPreviewRow) -> String
 
 pub fn with_exact_int_comparison(ReadProjection, String, ExactIntComparison, Int) -> ReadProjection?
+
+pub fn with_row_limit(ReadProjection, Int) -> ReadProjection?
 
 pub fn write_body_json(WriteBody) -> String
 
@@ -470,6 +484,7 @@ pub struct ReadProjection {
   soql : String
   max_soql_bytes : Int
   prefiltered : Bool
+  row_limit : Int?
 }
 
 pub(all) enum ReadProjectionIssue {

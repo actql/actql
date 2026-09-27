@@ -30,7 +30,11 @@ test "Client Run start reserves once and never repeats an uncertain dispatch" {
   let request : ClientRequestIdentity = {
     authority_scope_cid: start_test_cid("a"),
     caller_request_id: "request-a",
-    logical_request_scope_cid: start_test_cid("b"),
+    scope: @request_scope.prepare_logical_request_scope(
+      start_test_cid("a"),
+      "request-a",
+      256,
+    ).unwrap(),
     intent_fingerprint_cid: start_test_cid("c"),
     program_definition_cid: start_test_cid("d"),
     parameter_values_cid: start_test_cid("e"),
@@ -103,7 +107,11 @@ test "Client Run physical start requires exact retained and unstarted evidence" 
   let request : ClientRequestIdentity = {
     authority_scope_cid: start_test_cid("a"),
     caller_request_id: "request-a",
-    logical_request_scope_cid: start_test_cid("b"),
+    scope: @request_scope.prepare_logical_request_scope(
+      start_test_cid("a"),
+      "request-a",
+      256,
+    ).unwrap(),
     intent_fingerprint_cid: start_test_cid("c"),
     program_definition_cid: start_test_cid("d"),
     parameter_values_cid: start_test_cid("e"),

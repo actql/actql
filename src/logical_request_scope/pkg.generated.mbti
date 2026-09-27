@@ -19,7 +19,7 @@ pub fn prepare_scope_cid(String, String, Int) -> Result[String, LogicalRequestSc
 // Errors
 
 // Types and methods
-type LogicalRequestScope
+type LogicalRequestScope derive(Eq, @debug.Debug)
 
 pub(all) enum LogicalRequestScopeIssue {
   InvalidAuthorityScope

@@ -110,7 +110,9 @@ function uniqueContracts(values) {
   });
 }
 
-async function releasePreparedResults(exported, primary, control) {
+// Shared failure cleanup for prepared public Results and private Effect
+// inputs. Always rethrow the primary failure, retaining retryable custody.
+export async function releasePreparedResults(exported, primary, control) {
   const prepared = [...new Set(exported
     .map(value => value?.prepared)
     .filter(value => value !== undefined))];
@@ -502,9 +504,6 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
           store.storeAuthorityCid) {
       fail('InvalidCompletedEffectSourceHolding');
     }
-    // An existing exact record must be re-synced, not merely visible.
-    // No payload is re-exported on this reconciliation path.
-    await store.commitPhysicalHolding(record, []);
   }
   const definitions = storedResults.definitions;
   const artifacts = storedResults.artifacts;
@@ -554,12 +553,6 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
       cid: result.physical.cid, byte_count: result.physical.bytes,
     }))),
   });
-  // Retain the owner before a fallible Store commit. A visible but unsynced
-  // holding must remain addressable for reconciliation and cleanup.
-  owner.captureHolding = captureHolding;
-  await store.commitPhysicalHolding(captureHolding,
-    [...objects.values()].map(result => result.physicalPrepared),
-    ownedHoldings.map(holding => holding.record.holding_cid));
   const previewBinding = control.effectPrivateEvidenceBinding(
     preview, store.storeAuthorityCid,
   );
@@ -594,6 +587,26 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
       observation_cid: value.observationCid, wire: value.wire,
     })),
   });
+  if (owner.captureRecordOwner !== undefined &&
+      owner.captureRecordWire !== captureRecordWire) {
+    fail('CompletedEffectfulCaptureConflict');
+  }
+  // Admit the complete inventory and serialize the capture before yielding.
+  // Caller-owned plans and evidence cannot change while Store sync is pending.
+  // A later invalid member must not leave earlier members partially synced.
+  const commitHolding = store.commitPhysicalHolding.bind(store);
+  const prepared = [...objects.values()].map(result => result.physicalPrepared);
+  const sourceHoldingCids = ownedHoldings.map(holding =>
+    holding.record.holding_cid);
+  // Retain responsibility before any fallible Store operation, including a
+  // lost acknowledgement. Retry reconciles these exact records without export.
+  owner.captureHolding = captureHolding;
+  for (const holding of ownedHoldings) {
+    await commitHolding(holding.record, []);
+  }
+  await commitHolding(captureHolding, prepared, sourceHoldingCids);
+  // A source sync can fail before the private writer exists. Do not retain
+  // that connection in a new private owner until the capture holding commits.
   if (owner.captureRecordOwner === undefined) {
     owner.captureRecordWire = captureRecordWire;
     owner.captureRecordOwner = preparePrivatePublicationHolding(store,

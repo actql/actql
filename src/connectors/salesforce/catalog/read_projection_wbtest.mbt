@@ -160,6 +160,15 @@ test "integer comparison prefilter requires exact metadata and bounded SQL" {
     ),
   )
   assert_true(with_exact_int_comparison(broad, "Other__c", Equal, 4) is None)
+  assert_true(
+    with_exact_int_comparison(
+      with_row_limit(broad, 5).unwrap(),
+      "Score__c",
+      Less,
+      8,
+    )
+    is None,
+  )
   let limited = prepare_read_projection(
     observed,
     binding,
@@ -168,6 +177,41 @@ test "integer comparison prefilter requires exact metadata and bounded SQL" {
     "SELECT Score__c FROM Account".length(),
   ).unwrap()
   assert_true(with_exact_int_comparison(limited, "Score__c", Less, 4) is None)
+}
+
+///|
+test "row-limited preview appends one LIMIT and admits no later filter" {
+  let (observation, binding) = read_test_observation()
+  let plan = prepare_read_projection(
+    observation,
+    binding,
+    "Account",
+    ["Id"],
+    100,
+  ).unwrap()
+  assert_true(read_projection_row_limit(plan) is None)
+  let preview = with_row_limit(plan, 5).unwrap()
+  assert_eq(read_projection_soql(preview), "SELECT Id FROM Account LIMIT 5")
+  assert_eq(read_projection_row_limit(preview), Some(5))
+  assert_true(with_row_limit(preview, 3) is None)
+  assert_true(with_row_limit(plan, 0) is None)
+  assert_true(with_row_limit(plan, 2001) is None)
+  let tight = prepare_read_projection(
+    observation,
+    binding,
+    "Account",
+    ["Id"],
+    "SELECT Id FROM Account".length(),
+  ).unwrap()
+  assert_true(with_row_limit(tight, 5) is None)
+  assert_eq(
+    query_read_next_path(
+      begin_query_read(preview, "v62.0", query_test_limits(), 1, 10L).unwrap(),
+    ).unwrap(),
+    Some(
+      "/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account%20LIMIT%205",
+    ),
+  )
 }
 
 ///|

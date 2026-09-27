@@ -22,6 +22,7 @@ pub struct ReadProjection {
   soql : String
   max_soql_bytes : Int
   prefiltered : Bool
+  row_limit : Int?
 }
 
 ///|
@@ -119,6 +120,7 @@ pub fn prepare_read_projection(
     soql: sql.to_string(),
     max_soql_bytes,
     prefiltered: false,
+    row_limit: None,
   })
 }
 
@@ -140,7 +142,7 @@ pub fn with_exact_int_comparison(
       eligible = true
     }
   }
-  if !eligible || plan.prefiltered {
+  if !eligible || plan.prefiltered || plan.row_limit is Some(_) {
     return None
   }
   let symbol = match operator {
@@ -155,6 +157,26 @@ pub fn with_exact_int_comparison(
     return None
   }
   Some({ ..plan, soql: plan.soql + suffix, prefiltered: true, })
+}
+
+///|
+/// A preview of at most `limit` rows. The limit bounds only the provider
+/// reply: the rows are a prefix in provider order, never a complete read, and
+/// no further filter can follow it.
+pub fn with_row_limit(plan : ReadProjection, limit : Int) -> ReadProjection? {
+  if limit < 1 || limit > 2000 || plan.row_limit is Some(_) {
+    return None
+  }
+  let suffix = " LIMIT " + limit.to_string()
+  if suffix.length() > plan.max_soql_bytes - plan.soql.length() {
+    return None
+  }
+  Some({ ..plan, soql: plan.soql + suffix, row_limit: Some(limit), })
+}
+
+///|
+pub fn read_projection_row_limit(plan : ReadProjection) -> Int? {
+  plan.row_limit
 }
 
 ///|

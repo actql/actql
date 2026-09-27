@@ -91,3 +91,40 @@ pub fn query_source_evidence_fact_values(
     facts.source_view_contract_cid,
   ]
 }
+
+///|
+/// Select evidence from the same checked Catalog environment as the Query.
+/// A caller cannot substitute an unrelated environment with matching names.
+pub fn query_requirement_source_evidence_members(
+  requirement : QueryRequirement,
+) -> Result[
+  @environment.ConnectorSourceEvidenceMembers,
+  @environment.SourceEvidenceMemberIssue,
+] {
+  guard query_requirement_source_evidence_facts(requirement) is Some(facts) else {
+    return Err(@environment.ContractMismatch("checked_source"))
+  }
+  let acquisition = @query.query_sequence_requirement(
+    requirement.material.owner,
+  )
+  let requests = @acquisition.query_acquisition_owner(acquisition)
+  guard @acquisition.pipeline_request_at(
+      requests,
+      @acquisition.query_acquisition_source_index(acquisition),
+    )
+    is Some(@acquisition.Direct(mode, _)) else {
+    return Err(@environment.ContractMismatch("checked_source"))
+  }
+  let selected = @acquisition.selected_contract(@acquisition.mode_input(mode))
+  let environment = @environment.member_environment(
+    @environment.source_request_member(selected),
+  )
+  @environment.select_connector_source_evidence_members(environment, {
+    source_ref: facts.source_ref,
+    source_contract_cid: facts.source_contract_cid,
+    source_view_contract_cid: facts.source_view_contract_cid,
+    carrier_schema_contract_cid: facts.carrier_schema_contract_cid,
+    source_data_policy_cid: facts.source_data_policy_cid,
+    data_classification: facts.data_classification,
+  })
+}

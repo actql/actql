@@ -1,5 +1,5 @@
 // Generated from the registered Client–Host machine contract.
-export type ClientHostOperation = "connect" | "submit" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "reconcile" | "read" | "delivery-attempt";
+export type ClientHostOperation = "connect" | "submit" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "reconcile" | "read" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek";
 export type WireRunRefShape = Readonly<{
   tenantId: string;
   authorityScopeCid: string;
@@ -65,6 +65,70 @@ export type WireLookupUnknownShape = Readonly<{
   reason: string;
 }>;
 
+export type WireHeldShape = Readonly<{
+  kind: "held";
+  requestId: string;
+  prepareAttemptId: string;
+  state: "waiting_checkpoint" | "resuming" | "ended";
+  durability: "durable";
+  lookupExpiresAt: string;
+  checkpoint?: Readonly<{
+  checkpointId: string;
+  checkpointCid: string;
+  kind: "run_scope" | "read_access" | "data_egress" | "cost_scope" | "effect_set";
+  expiresAt: string;
+}>;
+  endReason?: string;
+  terminalErrorCode?: string;
+}>;
+
+export type WireCheckpointSummaryShape = Readonly<{
+  checkpointId: string;
+  checkpointCid: string;
+  kind: "run_scope" | "read_access" | "data_egress" | "cost_scope" | "effect_set";
+  phase: "preflight" | "commit";
+  subject: Readonly<{
+  kind: "prepare_attempt";
+  prepareAttemptId: string;
+  requestId: string;
+}> | Readonly<{
+  kind: "run_unit";
+  runId: string;
+  runDefinitionCid: string;
+}>;
+  requiredArtifact: Readonly<{
+  type: string;
+  cid: string;
+}>;
+  reviewProjectionCid: string;
+  requirements: readonly string[];
+  createdAt: string;
+  expiresAt: string;
+  humanSummary: string;
+}>;
+
+export type WireCheckpointReviewShape = Readonly<{
+  kind: "review";
+  checkpointCid: string;
+  artifactCid: string;
+  byteLength: number;
+  contentBase64: string;
+}>;
+
+export type WireResolveItemShape = Readonly<{
+  checkpointCid: string;
+  resolutionWire: string;
+  approvalEvidenceWire: string;
+}>;
+
+export type WireResolveResultShape = Readonly<{
+  checkpointCid: string;
+  status: "committed" | "duplicate" | "conflicting" | "expired" | "cancelled" | "invalid";
+  decision?: "approved" | "rejected";
+  resolutionCid?: string;
+  reason?: string;
+}>;
+
 export type WireSubmitPreparationErrorShape = Readonly<{
   code: "ClientProgramInvalidInput" | "ClientParametersInvalid" | "ClientParametersTooLarge" | "ClientProgramUnsupported" | "ClientProgramNeedsInputs" | "ClientProgramRejected";
 }>;
@@ -77,6 +141,47 @@ export type WireCancellationShape = Readonly<{
 }>;
   kind: "accepted" | "already_requested" | "already_terminal";
   revision: number;
+}>;
+
+export type WireRequestCancellationShape = Readonly<{
+  requestId: string;
+  kind: "accepted" | "already_requested" | "already_terminal";
+  ref?: Readonly<{
+  tenantId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+}>;
+  revision?: number;
+}>;
+
+export type WireResourceListingShape = Readonly<{
+  resourceConnection: string;
+  observationCid: string;
+  resources: readonly Readonly<{
+  name: string;
+  outcome: string;
+}>[];
+  snapshotComplete: boolean;
+  snapshotTruncated: boolean;
+  resultTruncated: boolean;
+}>;
+
+export type WireResourceInspectionShape = Readonly<{
+  resourceConnection: string;
+  resource: string;
+  observationCid: string;
+  status: "ready" | "catalog_required";
+  reason?: "listing_truncated" | "not_visible" | "describe_unavailable";
+  summaryJson?: string;
+}>;
+
+export type WireResourcePeekShape = Readonly<{
+  resourceConnection: string;
+  resource: string;
+  observationCid: string;
+  fields: readonly string[];
+  rowsJson: string;
+  limited: boolean;
 }>;
 
 export type WireRunStateShape = Readonly<{

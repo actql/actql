@@ -8,11 +8,16 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const source = 'spec/contracts/actql-client-host.json';
 const runStateSource = 'spec/contracts/actql-protocol-schemas.json';
 const names = ['run_ref', 'connection', 'profile', 'admission',
-  'lookup_found', 'lookup_not_found', 'lookup_unknown',
-  'submit_preparation_error', 'cancellation'];
+  'lookup_found', 'lookup_not_found', 'lookup_unknown', 'held',
+  'checkpoint_summary', 'checkpoint_review', 'resolve_item',
+  'resolve_result', 'submit_preparation_error', 'cancellation',
+  'request_cancellation', 'resource_listing', 'resource_inspection',
+  'resource_peek'];
 const exports = ['RunRef', 'Connection', 'Profile', 'Admission',
-  'LookupFound', 'LookupNotFound', 'LookupUnknown',
-  'SubmitPreparationError', 'Cancellation'];
+  'LookupFound', 'LookupNotFound', 'LookupUnknown', 'Held',
+  'CheckpointSummary', 'CheckpointReview', 'ResolveItem', 'ResolveResult',
+  'SubmitPreparationError', 'Cancellation', 'RequestCancellation',
+  'ResourceListing', 'ResourceInspection', 'ResourcePeek'];
 
 export function buildClientHostWire(registry, protocol) {
   if (registry.version !== 'actql-client-host/0.1' ||

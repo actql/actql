@@ -160,7 +160,8 @@ test('Run reconciliation validates state without submitting computation', async 
   assert.deepEqual(await execution.reconcile(), reply);
   reply = {...reply, next_action: {kind: 'reconcile_run'}};
   await assert.rejects(execution.reconcile(), {code: 'InvalidHostRunState'});
-  reply = {kind: 'effect_reconciliation_pending'};
+  reply = {...state, status: 'needs_reconciliation',
+    next_action: {kind: 'reconcile', effects: ['write']}};
   assert.deepEqual(await execution.reconcile(), reply);
   assert.deepEqual(requests, ['connect', 'attach', 'reconcile',
     'reconcile', 'reconcile']);
