@@ -422,6 +422,16 @@ const capturedSetQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.captured_set_query');
 assert.notEqual(capturedSetQuery, '');
 await writeFile(join(root, 'captured-set-query.json'), capturedSetQuery);
+const capturedPipeSetQuery = queryFrontend.compileCapturedQueryJson(
+  'FROM records |> WHERE id > 1 |> SELECT id |> UNION ALL '
+    + '(SELECT id FROM records WHERE id > 1)',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.captured_set_query');
+assert.deepEqual(JSON.parse(capturedPipeSetQuery),
+  JSON.parse(capturedSetQuery));
+await writeFile(join(root, 'captured-pipe-set-query.json'),
+  capturedPipeSetQuery);
 for (const [name, sql] of [
   ['captured-union-by-name',
     'SELECT id AS key, amount AS value FROM records WHERE id > 1 '
@@ -827,13 +837,18 @@ const capturedCteJoinBodyDocument = readFileSync(
   'captured-cte-join-body.json', 'utf8');
 const capturedSetDocument = readFileSync('captured-set-query.json', 'utf8');
 async function checkCapturedSet(client, suffix) {
-  const execution = await client.aql(capturedSetDocument,
-    {format: 'json', requestId: 'packed-captured-set-' + suffix});
-  const status = await execution.wait();
-  assert.equal(status.status, 'succeeded', JSON.stringify(status));
-  assert.deepEqual(sortedRows(await execution.result('answer').all()),
-    sortedRows([{id: 3}, {id: 2}, {id: 3},
-      {id: 3}, {id: 2}, {id: 3}]));
+  for (const [name, document] of [
+    ['captured-set', capturedSetDocument],
+    ['captured-pipe-set', readFileSync('captured-pipe-set-query.json', 'utf8')],
+  ]) {
+    const execution = await client.aql(document,
+      {format: 'json', requestId: 'packed-' + name + '-' + suffix});
+    const status = await execution.wait();
+    assert.equal(status.status, 'succeeded', JSON.stringify(status));
+    assert.deepEqual(sortedRows(await execution.result('answer').all()),
+      sortedRows([{id: 3}, {id: 2}, {id: 3},
+        {id: 3}, {id: 2}, {id: 3}]));
+  }
   for (const [name, expected] of [
     ['captured-union-by-name',
       [{key: 3, value: 30}, {key: 2, value: 20}]],

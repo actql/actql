@@ -252,8 +252,10 @@ open; no physical provider read counter has yet established once-only I/O.
 The first Pipe set form, `FROM set_left |> SELECT a, b |> UNION ALL
 (SELECT c, d FROM set_right)`, now emits the same admitted Program as its SQL
 counterpart. Packed Local and HTTP Remote Clients read the same independently
-specified rows. Further Pipe chaining, multiple right operands and acquired
-inputs remain unverified.
+specified rows. An acquired `FROM records |> WHERE id > 1 |> SELECT id |>
+UNION ALL (...)` emits the same Program as its SQL counterpart and produces
+the six expected duplicate-preserving rows through both packed Clients.
+Further Pipe chaining and multiple right operands remain unverified.
 SQL and Pipe INNER equijoins, SQL LEFT equijoins, and SQL finite CROSS JOINs
 over two source-free Values relations now execute
 through packed Local and HTTP Remote Clients, preserving duplicate rows and
