@@ -1,7 +1,7 @@
 ///|
 /// Initial bounded Client Host preparation profile. Hosts may choose tighter
-/// limits, but sharing this profile keeps Local and Cloud prototype intake
-/// consistent while they use the same checked Program owner.
+/// limits. Sharing this profile keeps Host intake consistent when Hosts use
+/// the same checked Program owner.
 pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationLimits {
   {
     checking: {

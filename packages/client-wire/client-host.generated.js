@@ -1094,6 +1094,22 @@ const schemas = {
                 "const": "none"
               }
             }
+          },
+          {
+            "type": "object",
+            "required": [
+              "kind",
+              "reason"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "reconcile_run"
+              },
+              "reason": {
+                "const": "execution_unknown"
+              }
+            }
           }
         ]
       },
@@ -1305,16 +1321,46 @@ const schemas = {
         "then": {
           "properties": {
             "next_action": {
-              "type": "object",
-              "required": [
-                "kind",
-                "effects"
-              ],
-              "properties": {
-                "kind": {
-                  "const": "reconcile"
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "effects"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "reconcile"
+                    },
+                    "effects": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "reason"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "reconcile_run"
+                    },
+                    "reason": {
+                      "const": "execution_unknown"
+                    }
+                  }
                 }
-              }
+              ]
             }
           },
           "not": {

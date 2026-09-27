@@ -52,8 +52,8 @@ ActQL text equality ([Salesforce comparison operators](https://developer.salesfo
   that require provider-atomic version conditions when unavailable; do not switch
   the approved create/update branch of an upsert after target drift.
 - The live test org, custom object, external-ID field, and credentials are not
-  assigned. Salesforce schema creation and writes are not authorized, and the
-  Smooth Cloud connection must not be reused. Continue product implementation,
+  assigned. Salesforce schema creation and writes are not authorized. Do not
+  reuse credentials from another service. Continue product implementation,
   local HTTP tests, independent fixtures, and a reviewable setup/minimum-rights
   guide. Mark live-provider verification incomplete until a dedicated org and
   Site secret-resolver reference are supplied; never store secret values in
@@ -343,26 +343,20 @@ that observations are keyed by row CID rather than Preview member order and
 that one missing or stale member guard rejects the whole check. The standard
 Effectful Run caller and current Site observation producer remain open.
 
-## Capability comparison with Smooth Cloud
+## Capability requirements and implementation boundary
 
-This is a design comparison, not an import of Smooth Cloud contracts. The
-ActQL specification and machine contracts remain authoritative.
+The ActQL specification and machine contracts are authoritative.
 
-| Concern | Decision | Reason |
+| Concern | Required behavior | OSS basis |
 | --- | --- | --- |
-| Static capabilities vs. observed resources | Already reflected | ActQL separates content-addressed Connector Catalog contracts from authorized observations and forbids partial discovery from establishing complete evidence. |
-| Operation and field constraints | Adopt missing product projection | Smooth Cloud projects describe-level field permissions, keys, and write constraints. ActQL already requires typed capability and preview evidence; its Salesforce implementation still needs exact resource-level facts and conservative incompleteness. |
-| Pushdown | Keep ActQL contract | ActQL requires value/type/order/duplicate preservation. Smooth Cloud's curated field allowlists and provider-specific preflight are useful comparison cases, not authority for semantic equivalence or a common Engine branch. |
-| Authentication scope | Already reflected | ActQL's credential grant and use bind tenant, principal, Site generation, operation, origin, attempt, expiry, and use count more exactly than a generic readable/writable flag. |
-| Partial results and retries | Already reflected; connect product path | ActQL distinguishes per-item failure, `unknown`, idempotency, reconciliation, and Effect Set policy. Smooth Cloud's per-row errors and repair reasons inform fixtures, but its operation labels must not replace ActQL outcomes. |
-| Catalog sync and resource resolver | Adopt missing product path | Smooth Cloud separates metadata sync, selection, readiness, and repair diagnostics. Implement these for ActQL with exact snapshot and current authority checks; do not import Cloud tenant, billing, OAuth, or curated display policy. |
+| Static capabilities and observed resources | Separate content-addressed Catalog contracts from current authorized observations. Partial discovery cannot establish complete evidence. | `docs/spec/protocols/discovery.md` |
+| Operation and field constraints | Project exact field permissions, keys and write constraints into typed capability and Preview evidence; preserve incompleteness. | `docs/spec/protocols/contracts.md` |
+| Pushdown | Preserve values, types, order and duplicates; provider preflight does not establish semantic equivalence. | `docs/spec/language.md` |
+| Authentication scope | Bind credential use to tenant, principal, Site generation, operation, origin, attempt, expiry and use count. | `src/remote_credential` |
+| Partial results and retries | Keep per-item failure and unknown outcomes distinct; reconcile before any permitted resend. | `docs/spec/execution.md` |
+| Catalog sync and resource resolution | Recheck exact snapshot bindings and current authority when selecting resources. Service billing and display policy are outside the Connector contract. | `docs/spec/protocols/discovery.md` |
 
-Comparison sources: Smooth Cloud `connector-spi` catalog sync, resource
-resolver and write capability contracts; Salesforce catalog, read, write and
-capability modules. ActQL sources: `docs/spec/protocols/contracts.md`,
-`docs/spec/protocols/discovery.md`, `docs/spec/execution.md`, and
-`src/remote_credential`. No new shared Capability abstraction is introduced
-solely for this comparison.
+No additional shared Capability abstraction is required by these obligations.
 
 ## Optional local Salesforce CLI authentication
 

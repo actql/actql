@@ -283,6 +283,18 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     1000,
     20,
   ).unwrap()
+  // The external Client may select another ordinary Values document. Recheck
+  // that same document here so the native issuer remains bound to its owner.
+  let native_document = @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_PROGRAM").unwrap_or(
+    document,
+  )
+  let prepared = @publication_host.prepare_effect_free_client_program(
+    native_document,
+    Json,
+    selected,
+    None,
+    preparation,
+  ).unwrap()
   let sequence_limits : @lower.SequenceLimits = {
     max_steps: 10,
     max_rows: 10,
@@ -340,8 +352,8 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   let admission = @publication_host.admit_prepared_client_run_publication(
     prepared, template, prepared_invocation, authorization, plan,
   ).unwrap()
-  // An external Cloud acceptance driver may supply its accepted Run
-  // identity. The standalone native fixture keeps its fixed Run.
+  // An external acceptance driver may supply its accepted Run identity.
+  // The standalone native fixture keeps its fixed Run.
   let external_run = @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_RUN_ID")
   let run_id = external_run.unwrap_or("native-values-run")
   let created_at = if external_run is Some(_) {
@@ -605,6 +617,27 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     foreign_endpoint.dispatch_json(body, second_cid)
     is Err(@native_remote_values.ForeignDispatch),
   )
+  let control_body = @remote.dispatch_request_json(second).unwrap()
+  assert_true(
+    endpoint.cancel_json(control_body, second_cid)
+    is Err(
+      @native_remote_values.Journal(@native_remote_journal.MissingDispatch)
+    ),
+  )
+  assert_true(
+    endpoint.release_json(control_body, second_cid)
+    is Err(
+      @native_remote_values.Journal(@native_remote_journal.MissingDispatch)
+    ),
+  )
+  assert_true(
+    foreign_endpoint.cancel_json(control_body, second_cid)
+    is Err(@native_remote_values.ForeignDispatch),
+  )
+  assert_true(
+    foreign_endpoint.release_json(control_body, second_cid)
+    is Err(@native_remote_values.ForeignDispatch),
+  )
   if @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_HTTPS_CERT") is Some(cert) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_HTTPS_KEY") is Some(key) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_HTTPS_CA") is Some(ca) &&
@@ -693,6 +726,27 @@ test "ordinary AQL values root reaches the installed Local kernel" {
       None => ()
     }
   }
+  if @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_CANCEL_ACCEPTANCE") is Some("1") {
+    let query = @remote.remote_poll_query_json(second).unwrap()
+    let response = @remote.admit_remote_dispatch_response_json(
+      endpoint.query_json(query, second_cid).unwrap(),
+      second,
+      @remote.StatusReply,
+    ).unwrap()
+    let observed = @remote.remote_dispatch_response_projection(response)
+    // Public Run cancellation may arrive after native computation settled.
+    // In either case the physical Site must have completed its cleanup.
+    assert_true(observed[1] == 3 || observed[1] == 5)
+    assert_eq(observed[3], 2)
+    let retained = endpoint.query_json(query, second_cid).unwrap()
+    endpoint.cancel_json(control_body, second_cid).unwrap() |> ignore
+    endpoint.release_json(control_body, second_cid).unwrap() |> ignore
+    assert_eq(endpoint.query_json(query, second_cid).unwrap(), retained)
+    assert_true(runtime.close().unwrap())
+    assert_true(journal.close())
+    assert_true(bundles.close().unwrap())
+    return
+  }
   let reply = endpoint.dispatch_json(body, second_cid).unwrap()
   let accepted = @remote.admit_remote_dispatch_response_json(
     reply,
@@ -761,7 +815,9 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   }
   assert_eq(
     @utf8.decode_lossy(Bytes::from_array(output)),
-    "[{\"id\":1},{\"id\":2}]",
+    @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_EXPECTED_ROWS").unwrap_or(
+      "[{\"id\":1},{\"id\":2}]",
+    ),
   )
   assert_true(reader.finish().unwrap())
   assert_true(runtime.release(second).unwrap())

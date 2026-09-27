@@ -213,9 +213,9 @@ Q2: Initial acceptance combines a limited formal model, independent conformance
 and fault tests, and a declared trusted implementation boundary. Do not claim a
 new representation is covered by an existing mechanized theorem without its
 assumptions and a checked bridge where needed. AoA canonical equality does not
-mandate eagerly constructing canonical data, but Smooth's row-CID tie breaking,
-CID selectors and strict materialized-row claims cannot be replaced by a file
-digest. Semantic equality, including demanded failure behavior, is the basis
+mandate eagerly constructing canonical data. When the selected ActQL contract
+requires row-CID tie breaking, CID selectors or materialized-row evidence, a
+file digest cannot substitute for that logical evidence. Semantic equality, including demanded failure behavior, is the basis
 of correspondence, not an assumed converse of `cid_sound`.
 
 Q3: Detecting a violation and selecting the reportable failure are separate.

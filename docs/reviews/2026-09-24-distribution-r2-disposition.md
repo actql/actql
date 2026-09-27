@@ -39,16 +39,14 @@ the remaining lifecycle acceptance below is not yet complete.
    shared acquired-input Run/publication bridge and the packed acceptance.
    The Local owner supplies the installed bounded acquisition/compute
    capability; Distribution now owns the DuckDB Source Evidence issuer under
-   the Connector contract, so Connector must not duplicate it. Cloud owns
-   its distinct Cloud-owned Coordinator and consumes public OSS packages;
-   the real HTTP Host used for this Local/Remote unit is the installed OSS
-   Host. The [acquired-input handoff](2026-09-26-acquired-input-client-gap.md)
+   the Connector contract, so Connector must not duplicate it. The real HTTP
+   Host used for this Local/Remote unit is the installed OSS Host. The
+   [acquired-input handoff](2026-09-26-acquired-input-client-gap.md)
    describes the earlier gap and is historical at this HEAD.
 4. **Existing plan outside this unit.** The two Hybrid ownership forms,
-   Cloud-owned Run product lifecycle, Effectful submit, SQL, Python embedding,
-   expanded native CLI and optional tools remain in the distribution plan.
-   Closing this Node AQL unit does not complete those milestones or Cloud
-   deployment.
+   Effectful submit, SQL, Python embedding, expanded native CLI and optional
+   tools remain in the distribution plan. Closing this Node AQL unit does
+   not complete those milestones or prove a deployed service.
 
 The acquired-input packed distribution gate passed locally at
 `0ab1a72c7b79456749205926715f35f084e2d22f`. At `9915c7d38`, the new
@@ -59,8 +57,7 @@ under the same Node environment. Full hosted Linux CI remains unverified.
 Historical
 findings below retain their review-time scope and do not reopen fixed issues.
 
-Review input: `/Users/t14i/Downloads/03-distribution-client-cloud.md`,
-written against `92dd4410ea9eadf278b312ec6020564883f0ec9a`.
+The review was written against `92dd4410ea9eadf278b312ec6020564883f0ec9a`.
 This disposition compares that snapshot with the current distribution branch;
 the review SHA is historical evidence, not the implementation base.
 
@@ -71,7 +68,7 @@ the review SHA is historical evidence, not the implementation base.
 | DIST-R2-G1, reserved dispatch through terminal state | Open. One-time reservation and reconciliation after restart prevent an unsupported second Compute. The failure matrix from reserved-but-unstarted through publication and cleanup is not yet a complete product recovery proof. | `adapters/host-node/client-request-journal.test.mjs`; shared Run and output owner work remains |
 
 The Local Values public path computes and reads an independently expected
-Named Result. That does not prove the Cloud-owned Site output path, active Run
+Named Result. That does not prove the remote Site output path, active Run
 projection, or Linux CI at the current branch SHA.
 
 Local verification at `edc8362e773c0bfcdc18dbfa20377a366c11cf80`:
@@ -98,19 +95,19 @@ endpoint can open the retained output through the same manifest-preserving
 physical source binding as the standard native Site. The ordinary Values
 fixture reads the independent expected rows through that endpoint and rejects
 a foreign dispatch or Result intent before opening a reader. The native test,
-all-target check, public API check, native remote runtime gate and Cloud's
-local native mTLS smoke passed. This supplies the Site-side physical source;
-it does not transfer bytes to Cloud or publish a Named Result.
+all-target check, public API check and native remote runtime gate passed.
+This supplies the Site-side physical source; it does not establish destination
+custody or publish a Named Result.
 
 At `dae70d26a`, the Values endpoint rechecks the Coordinator output intent,
 observed Site subject and admitted Output Plan before borrowing the common
 native direct Transfer sender. The sender uses the retained manifest reader,
 native HTTP client and durable Transfer journal; its destination origin comes
 from Site configuration rather than the poll envelope. This is an OSS source
-entry point, not yet an HTTPS execute route or Cloud destination. The all-target
-MoonBit check, native Values fixture, native remote runtime gate and generated
+entry point, not yet an HTTPS execute route or a destination receiver. The
+all-target MoonBit check, native Values fixture, native remote runtime gate and generated
 public API check passed locally. The fixture still verifies the physical source
-and independent rows; it does not exercise the new direct send through Cloud.
+and independent rows; it does not exercise the new direct send to a receiver.
 
 At `a214fddb3`, the native Values HTTPS Site exposes `/outputs/execute` only
 when a physical destination, bounded client and durable Transfer journal are
@@ -119,7 +116,8 @@ sender and returns the common Transfer reply. The destination origin is fixed
 by Site configuration. The native mTLS gate verifies that an unconfigured
 route is 404 while existing dispatch, query and Output Plan behavior passes.
 All-target checking and the generated API check passed. This gate does not yet
-exercise a configured destination, Cloud payload custody or Result publication.
+exercise a configured destination, destination payload custody or Result
+publication.
 
 At `060b58a3c`, the native runtime gate installs an HTTPS direct Transfer
 receiver with the common MoonBit control and durable destination journal. A
@@ -129,6 +127,6 @@ exact Transfer request. The receiver yields the independent expected bytes
 `[{"id":1},{"id":2}]`; a repeated Output poll returns the same reply without
 another physical chunk write or an extra holding. The receiver's committed
 receipt proves destination custody, not public Result publication or Client
-receipt. The full native runtime gate, all-target check and Cloud's existing
-external native mTLS smoke passed locally. The latter still stops at the
-admitted Output Plan and does not exercise Cloud R2 storage.
+receipt. The full native runtime gate and all-target check passed locally.
+The standalone receiver exercises destination custody; public Result publication
+requires its own acceptance path.

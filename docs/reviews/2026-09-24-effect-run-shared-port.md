@@ -503,7 +503,7 @@ Connector closure and a standard Effectful Run caller remain acceptance work.
 
 These local fixtures are not live Salesforce verification. The isolated org,
 credential reference and write permission have not been supplied; no existing
-Smooth Cloud connection may be substituted.
+unrelated service connection may be substituted.
 
 The checked physical graph can now retain the exact admitted Effect Run owner
 in `CheckedEffectRunDAG`. Binding a graph to a separately checked candidate is

@@ -2,7 +2,7 @@
 
 Status: proposal only. No org alias, instance URL, credentials, schema-change
 approval, or write authorization has been supplied. Do not run these steps
-against an existing Smooth Cloud connection or any production org.
+against an existing unrelated service connection or any production org.
 
 ## Isolated resources
 

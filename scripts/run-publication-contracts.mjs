@@ -214,6 +214,12 @@ export function effectReconciliationReceiptSchema(previous) {
 }
 
 export function runStateSchema(previous) {
+  const runReconciliation = {
+    type: 'object', additionalProperties: false,
+    required: ['kind', 'reason'],
+    properties: {kind: {const: 'reconcile_run'},
+      reason: {const: 'execution_unknown'}},
+  };
   const availability = {
     type: 'object',
     minProperties: 1,
@@ -297,7 +303,9 @@ export function runStateSchema(previous) {
           results: clone(resultNames),
         },
       },
-      previous.properties.next_action.oneOf.at(-1),
+      {type: 'object', additionalProperties: false,
+        required: ['kind'], properties: {kind: {const: 'none'}}},
+      runReconciliation,
     ],
   };
   const state = clone(previous);
@@ -323,6 +331,11 @@ export function runStateSchema(previous) {
   state.properties.result_available = {type: 'boolean'};
   state.properties.result_availability = availability;
   state.allOf = previous.allOf.map(rule => clone(rule));
+  const reconciliation = state.allOf.find(
+    rule => rule.if?.properties?.status?.const === 'needs_reconciliation');
+  reconciliation.then.properties.next_action = {oneOf: [
+    clone(nextAction.oneOf[1]), clone(runReconciliation),
+  ]};
   const succeeded = state.allOf.find(
     rule => rule.if?.properties?.status?.const === 'succeeded',
   );

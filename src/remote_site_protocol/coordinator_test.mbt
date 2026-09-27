@@ -357,3 +357,79 @@ test "Coordinator unknown state restores without inventing a Site fact" {
   assert_false(coordinator_completion_evidence_available(restored))
   assert_true(coordinator_exact_retransmission_eligible(restored, request))
 }
+
+///|
+test "Coordinator terminal execution preserves independent cleanup" {
+  let request = coordinator_request("terminal-observation", 1)
+  let journal = create_coordinator_dispatch_journal("coordinator-a").unwrap()
+  let (_, record) = commit_coordinator_dispatch_intent(
+    prepare_coordinator_dispatch_intent(journal, request).unwrap(),
+    true,
+  ).unwrap()
+  let run_cid = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  let before = coordinator_execution_observation(
+    record, "coordinator-a", run_cid, "task-a",
+  ).unwrap()
+  assert_eq(before.execution, None)
+  assert_false(before.execution_terminal)
+  assert_false(before.cleanup_complete)
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_site_observation(record, 1, 4, 0, 1, false, false, None).unwrap(),
+    true,
+  ).unwrap()
+  let failed = coordinator_execution_observation(
+    record, "coordinator-a", run_cid, "task-a",
+  ).unwrap()
+  assert_eq(failed.execution, Some(ExecutionFailed))
+  assert_true(failed.execution_terminal)
+  assert_false(failed.cleanup_complete)
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_site_observation(record, 2, 4, 0, 2, false, false, None).unwrap(),
+    true,
+  ).unwrap()
+  let released = coordinator_execution_observation(
+    record, "coordinator-a", run_cid, "task-a",
+  ).unwrap()
+  assert_true(released.execution_terminal)
+  assert_true(released.cleanup_complete)
+  assert_true(
+    coordinator_execution_observation(
+      record, "foreign-authority", run_cid, "task-a",
+    )
+    is Err(InvalidDispatch),
+  )
+  assert_true(
+    coordinator_execution_observation(
+      record, "coordinator-a", run_cid, "foreign-task",
+    )
+    is Err(InvalidDispatch),
+  )
+  assert_true(
+    coordinator_execution_observation(
+      record, "coordinator-a", "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "task-a",
+    )
+    is Err(InvalidDispatch),
+  )
+}
+
+///|
+test "Coordinator unknown execution is not a failed or released Run" {
+  let request = coordinator_request("unknown-observation", 1)
+  let journal = create_coordinator_dispatch_journal("coordinator-a").unwrap()
+  let (_, record) = commit_coordinator_dispatch_intent(
+    prepare_coordinator_dispatch_intent(journal, request).unwrap(),
+    true,
+  ).unwrap()
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_site_observation(record, 1, 6, 0, 3, false, false, None).unwrap(),
+    true,
+  ).unwrap()
+  let observation = coordinator_execution_observation(
+    record, "coordinator-a", "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "task-a",
+  ).unwrap()
+  assert_eq(observation.execution, Some(ExecutionUnknown))
+  assert_false(observation.execution_terminal)
+  assert_false(observation.cleanup_complete)
+}

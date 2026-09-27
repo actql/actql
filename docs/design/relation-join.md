@@ -113,7 +113,7 @@ ownership and join-to-unary-to-Result composition on all supported targets.
 AoA's Relation AST already distinguishes left/right operands; its common
 pipeline uses ordered input references, so future lowering maps main/right to
 the registered input order. Neither representation forces string-only schema
-typing here. The existing Cloud keyed-merge adapter namespaces only conflicts
-and merges some equal-name keys, which is not ActQL raw join provenance. It
-must not determine this layer's output schema. Backend integration and the
-existing empty-operation AoA compatibility gaps remain separate work.
+typing here. Raw join output retains each operand's provenance according to
+the fixed corpus above; merging equal-name keys or namespacing only conflicts
+would lose that distinction. Backend integration and the existing empty-operation
+AoA compatibility gaps remain separate work.

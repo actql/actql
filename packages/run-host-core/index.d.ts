@@ -353,7 +353,8 @@ export function issueUnpublishedRunStateWire(prepared: PreparedProgram,
   compilation: ValuesCompilation, admission: RunAdmission,
   definition: RunDefinition, observedAt: string,
   dispatchReserved: boolean,
-  preDispatchFailureConfirmed: boolean): string;
+  preDispatchFailureConfirmed: boolean, cancelledBeforeStart?: boolean,
+  executionUnknown?: boolean): string;
 /** Project a committed Run with current physical availability observations. */
 export function issueSucceededRunStateWire(prepared: PreparedProgram,
   compilation: ValuesCompilation, admission: RunAdmission,
@@ -598,3 +599,30 @@ export function issueSourceFreeCapturedRun(
   snapshots: readonly CapturedResultSnapshot[], authoring: RunEvidence,
   models: readonly RunEvidence[], limits: PublicationLimits):
   PublicationContract;
+
+/** Authenticated storage is supplied by the Host; this grants no execution. */
+export function projectSiteRun(prepared: PreparedProgram,
+  compilation: ValuesCompilation, admission: RunAdmission,
+  definition: RunDefinition, authority: string, durableWire: string,
+  observedAt: string, cancellationRequested?: boolean,
+  physicalStartClaimed?: boolean): Readonly<{stateWire: string;
+    execution: 'unobserved' | 'running' | 'settled' | 'failed' |
+      'cancelled' | 'unknown';
+    cleanup: 'complete' | 'pending'; revision: number;
+    nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release'}>;
+
+export function prepareRunPhysicalStart(requested: RequestIdentity,
+  retained: RequestIdentity, definition: RunDefinition, definitionCid: string,
+  reserved: boolean, unstarted: boolean, authorized: boolean,
+  cancelled: boolean, failed?: boolean): boolean;
+export function prepareRunPreStartFailure(requested: RequestIdentity,
+  retained: RequestIdentity, definition: RunDefinition, definitionCid: string,
+  reserved: boolean, unstarted: boolean, admissionDenied: boolean,
+  cancelled: boolean): boolean;
+export function prepareRunCancellation(definition: RunDefinition,
+  definitionCid: string, authorized: boolean, terminal: boolean,
+  requested: boolean): 'accepted' | 'already_requested' | 'already_terminal';
+export function issueRunControlObservation(revision: number,
+  requested: boolean, unstarted: boolean, stopped: boolean): Readonly<{
+    revision: number; cancellation_requested: boolean;
+    physical_stop: 'unknown' | 'confirmed'}>;

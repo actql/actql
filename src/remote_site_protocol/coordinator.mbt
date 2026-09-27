@@ -718,3 +718,64 @@ pub fn restore_coordinator_dispatch_record(
   record.accepted_measurement_cid = accepted_measurement_cid
   Ok(())
 }
+
+///|
+/// A projection of an admitted Site observation, never permission to execute.
+/// Terminal execution and physical cleanup remain independent facts.
+pub(all) struct CoordinatorExecutionObservation {
+  execution : RemoteExecutionState?
+  cleanup : RemoteCleanupState?
+  revision : Int
+  execution_terminal : Bool
+  cleanup_complete : Bool
+} derive(Eq, Debug)
+
+///|
+/// Bind the observation to the exact Run and task before projecting it. A
+/// missing reply or a quarantined generation never proves physical release.
+pub fn coordinator_execution_observation(
+  record : CoordinatorDispatchIntentRecord,
+  authority : String,
+  run_definition_cid : String,
+  task_key : String,
+) -> Result[CoordinatorExecutionObservation, DispatchIssue] {
+  if record.request.coordinator_authority != authority ||
+    record.request.run_definition_cid != run_definition_cid ||
+    record.request.task_key != task_key {
+    return Err(InvalidDispatch)
+  }
+  if record.site_revision == -1 {
+    return Ok({
+      execution: None,
+      cleanup: None,
+      revision: record.revision,
+      execution_terminal: false,
+      cleanup_complete: false,
+    })
+  }
+  let execution = match execution_state_from_code(record.site_execution) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let cleanup = match cleanup_state_from_code(record.site_cleanup) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let terminal = match execution {
+    ExecutionFailed | ExecutionCancelled | NativeSettled => true
+    _ => false
+  }
+  let released = match cleanup {
+    CleanupReleased | CleanupRecoveredAfterLoss => true
+    _ => false
+  }
+  Ok({
+    execution: Some(execution),
+    cleanup: Some(cleanup),
+    revision: record.revision,
+    execution_terminal: terminal,
+    cleanup_complete: released &&
+    !record.site_material_available &&
+    !record.site_quarantined_capacity,
+  })
+}

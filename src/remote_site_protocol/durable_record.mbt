@@ -91,7 +91,7 @@ fn admit_dispatch_request_body(
       "site_key", "strategy_revision", "task_attempt", "task_key", "version",
     ]),
   )
-  if durable_text(object, "version") != "actql-remote-dispatch-request/0.2" {
+  if durable_text(object, "version") != "actql-remote-dispatch-request/0.1" {
     raise DurableRecordStop
   }
   let request = match

@@ -4,7 +4,10 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {validRunState} from '../client-wire/index.mjs';
-import {admitDispatchJson, dispatchCid} from '../coordinator-core/index.mjs';
+import {admitDispatchJson, dispatchCid, createJournal, prepareIntent,
+  admissionDurableJson, admitDurableJson, commitIntent, admitResponseJson,
+  prepareResponseObservation, responseDurableJson}
+  from '../coordinator-core/index.mjs';
 import {admitEnvironment, admitRequestFields, admitRunDefinition,
   admitSourceFreeRunDefinition,
   admitPublicationContract, admitRunEvidenceValue, sealRunEvidenceValue,
@@ -39,9 +42,11 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   issueSourceFreeInvocation,
   admitCompletedSourceObservation,
   issueTaskInvocation,
-  issueUnpublishedRunStateWire, issueSucceededRunStateWire,
+  issueUnpublishedRunStateWire, issueSucceededRunStateWire, projectSiteRun,
   resultReadAvailability,
-  prepareRunStart,
+  prepareRunStart, prepareRunPhysicalStart, prepareRunCancellation,
+  prepareRunPreStartFailure,
+  issueRunControlObservation,
   prepareSourceFreeRequest,
   privateCompilationWires, compiledPlanCid,
   privateRunDefinition, requestFields, requestRelation} from './index.mjs';
@@ -994,6 +999,60 @@ test('checked Run issues one source-free Site dispatch identity', () => {
     grantCid: `sha256:${'5'.repeat(64)}`};
   const issued = issueSourceFreeDispatch(prepared, compilation, admission,
     definition, request, selection);
+  {
+    const dispatch = admitDispatchJson(issued.wire, issued.cid);
+    const intent = prepareIntent(createJournal(scope), dispatch);
+    const saved = admissionDurableJson(intent);
+    const unstarted = projectSiteRun(prepared, compilation, admission,
+      definition, scope, saved, '2026-09-25T00:00:01.000Z', false, false);
+    assert.equal(unstarted.execution, 'unobserved');
+    const started = projectSiteRun(prepared, compilation, admission,
+      definition, scope, saved, '2026-09-25T00:00:01.000Z', false, true);
+    assert.equal(started.execution, 'unknown');
+    assert.equal(JSON.parse(started.stateWire).status, 'needs_reconciliation');
+    assert.deepEqual(JSON.parse(started.stateWire).next_action,
+      {kind: 'reconcile_run', reason: 'execution_unknown'});
+  }
+  for (const [execution, cleanup, outcome, work] of [
+    [4, 2, 'failed', 'none'], [4, 1, 'failed', 'cleanup'],
+    [5, 2, 'cancelled', 'none'], [6, 3, 'needs_reconciliation', 'reconcile'],
+    [3, 0, 'running', 'publication'], [3, 2, 'running', 'publication'],
+  ]) {
+    const dispatch = admitDispatchJson(issued.wire, issued.cid);
+    const intent = prepareIntent(createJournal(scope), dispatch);
+    const durable = admitDurableJson(admissionDurableJson(intent));
+    const record = commitIntent(intent);
+    const response = admitResponseJson(JSON.stringify({
+      version: 'actql-remote-dispatch-response/0.1',
+      dispatch_request_cid: issued.cid, revision: 2,
+      state: [execution, 0, cleanup, 0, 0],
+    }), dispatch, false);
+    const saved = responseDurableJson(durable,
+      prepareResponseObservation(record, response), response);
+    const observe = authority => projectSiteRun(prepared, compilation,
+      admission, definition, authority, saved, '2026-09-25T00:00:01.000Z');
+    const result = observe(scope);
+    assert.equal(result.nextWork, work);
+    assert.equal(JSON.parse(result.stateWire).status, outcome);
+    assert(validRunState(JSON.parse(result.stateWire)));
+    if (execution === 6) assert.deepEqual(JSON.parse(result.stateWire).next_action,
+      {kind: 'reconcile_run', reason: 'execution_unknown'});
+    const cancelled = projectSiteRun(prepared, compilation, admission,
+      definition, scope, saved, '2026-09-25T00:00:01.000Z', true);
+    if (execution === 3) {
+      assert.equal(cancelled.nextWork, cleanup === 2 ? 'none' : 'release');
+      assert.equal(JSON.parse(cancelled.stateWire).status,
+        cleanup === 2 ? 'cancelled' : 'running');
+    } else if (execution === 6) {
+      assert.equal(cancelled.nextWork, 'cancel');
+      assert.equal(cancelled.execution, 'unknown');
+    }
+    assert.deepEqual(observe(scope), result);
+    assert.throws(() => observe(`sha256:${'f'.repeat(64)}`),
+      {code: 'RunHostSiteProjectionRejected'});
+    assert.throws(() => projectSiteRun(prepared, compilation, admission,
+      substituted, scope, saved, '2026-09-25T00:00:01.000Z'));
+  }
   const wire = JSON.parse(issued.wire);
   assert.equal(wire.run_definition_cid,
     privateRunDefinition(definition).cid);
@@ -1038,6 +1097,45 @@ test('accepted unpublished Run state uses the common owner', () => {
   const definition = issueSourceFreeRunDefinition(prepared, compilation,
     admission, 'site-scope', 'state-run', '2026-09-25T00:00:00.000Z',
     '2027-01-01T00:00:00.000Z');
+  const request = prepareSourceFreeRequest(prepared, compilation,
+    `sha256:${'a'.repeat(64)}`, 'cancel-request');
+  const definitionCid = privateRunDefinition(definition).cid;
+  assert.equal(prepareRunCancellation(definition, definitionCid,
+    true, false, false), 'accepted');
+  assert.equal(prepareRunCancellation(definition, definitionCid,
+    true, false, true), 'already_requested');
+  assert.equal(prepareRunCancellation(definition, definitionCid,
+    true, true, true), 'already_terminal');
+  assert.throws(() => prepareRunCancellation(definition, definitionCid,
+    false, false, false), {code: 'RunHostCancellationRejected'});
+  assert.throws(() => prepareRunCancellation(definition,
+    `sha256:${'f'.repeat(64)}`, true, false, false),
+  {code: 'RunHostCancellationRejected'});
+  assert(prepareRunPhysicalStart(request, request, definition,
+    definitionCid, true, true, true, false));
+  assert(prepareRunPreStartFailure(request, request, definition,
+    definitionCid, true, true, true, false));
+  assert.equal(prepareRunPhysicalStart(request, request, definition,
+    definitionCid, true, true, true, false, true), false);
+  for (const [reserved, unstarted, denied, cancelled] of [
+    [false, true, true, false], [true, false, true, false],
+    [true, true, false, false], [true, true, true, true],
+  ]) assert.equal(prepareRunPreStartFailure(request, request, definition,
+    definitionCid, reserved, unstarted, denied, cancelled), false);
+  assert.throws(() => prepareRunPreStartFailure(request, request, definition,
+    `sha256:${'f'.repeat(64)}`, true, true, true, false),
+  {code: 'RunHostStartRejected'});
+  for (const [reserved, unstarted, cancelled] of [
+    [true, true, true], [true, false, false], [false, true, false],
+  ]) assert.equal(prepareRunPhysicalStart(request, request, definition,
+    definitionCid, reserved, unstarted, true, cancelled), false);
+  assert.deepEqual(issueRunControlObservation(3, true, false, false),
+    {revision: 3, cancellation_requested: true, physical_stop: 'unknown'});
+  assert.equal(issueRunControlObservation(4, true, true, false).physical_stop,
+    'confirmed');
+  assert.equal(JSON.parse(issueUnpublishedRunStateWire(prepared,
+    compilation, admission, definition, '2026-09-25T00:00:01.000Z', false,
+    false, true)).status, 'cancelled');
   const at = '2026-09-25T00:00:01.000Z';
   const projection = (reserved, failed) => JSON.parse(
     issueUnpublishedRunStateWire(prepared, compilation, admission,

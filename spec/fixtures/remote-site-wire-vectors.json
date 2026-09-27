@@ -1,0 +1,115 @@
+{
+  "version": "actql-remote-site-wire-vectors/0.1",
+  "vectors": [
+    {
+      "name": "dispatch",
+      "body": {
+        "budget_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "connector_registration": "local",
+        "connector_revision": "local/1",
+        "coordinator_authority": "coordinator-a",
+        "dispatch_id": "dispatch-a",
+        "evidence_issuer_capability_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "grant_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "input_binding_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "obligations_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "runtime_bundle_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "site_generation": 1,
+        "site_key": "site-a",
+        "strategy_revision": "strategy/1",
+        "task_attempt": 1,
+        "task_key": "task-a",
+        "version": "actql-remote-dispatch-request/0.1"
+      },
+      "canonical": "{\"budget_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"connector_registration\":\"local\",\"connector_revision\":\"local/1\",\"coordinator_authority\":\"coordinator-a\",\"dispatch_id\":\"dispatch-a\",\"evidence_issuer_capability_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"grant_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"input_binding_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"obligations_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"run_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":1,\"site_key\":\"site-a\",\"strategy_revision\":\"strategy/1\",\"task_attempt\":1,\"task_key\":\"task-a\",\"version\":\"actql-remote-dispatch-request/0.1\"}",
+      "cid": "sha256:3dd78060f4a610d0b1dbb10afaa65b653ca3f8b964e503cc6a2eb6e4783c21b1"
+    },
+    {
+      "name": "holding",
+      "body": {
+        "dispatch_request_cid": "sha256:3dd78060f4a610d0b1dbb10afaa65b653ca3f8b964e503cc6a2eb6e4783c21b1",
+        "material_generation": "material-generation-a",
+        "retained_bytes": "8",
+        "site_generation": 1,
+        "site_key": "site-a",
+        "version": "actql-remote-output-holding/0.1"
+      },
+      "canonical": "{\"dispatch_request_cid\":\"sha256:3dd78060f4a610d0b1dbb10afaa65b653ca3f8b964e503cc6a2eb6e4783c21b1\",\"material_generation\":\"material-generation-a\",\"retained_bytes\":\"8\",\"site_generation\":1,\"site_key\":\"site-a\",\"version\":\"actql-remote-output-holding/0.1\"}",
+      "cid": "sha256:0d53447b5b3e1a626b9bee01eca67067dd5465f4900e4b2a2573dc40336d331a"
+    },
+    {
+      "name": "execution_evidence",
+      "body": {
+        "connector_registration": "local",
+        "connector_revision": "local/1",
+        "dispatch_request_cid": "sha256:3dd78060f4a610d0b1dbb10afaa65b653ca3f8b964e503cc6a2eb6e4783c21b1",
+        "evidence_kind": "actql.remote.physical-output/0.1",
+        "evidence_subject_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "holding_evidence_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "issuer_capability_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "material_generation": "material-generation-a",
+        "obligations_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "runtime_bundle_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "site_generation": 1,
+        "site_key": "site-a",
+        "strategy_revision": "strategy/1",
+        "version": "actql-remote-execution-evidence/0.1"
+      },
+      "canonical": "{\"connector_registration\":\"local\",\"connector_revision\":\"local/1\",\"dispatch_request_cid\":\"sha256:3dd78060f4a610d0b1dbb10afaa65b653ca3f8b964e503cc6a2eb6e4783c21b1\",\"evidence_kind\":\"actql.remote.physical-output/0.1\",\"evidence_subject_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"holding_evidence_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"issuer_capability_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"material_generation\":\"material-generation-a\",\"obligations_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":1,\"site_key\":\"site-a\",\"strategy_revision\":\"strategy/1\",\"version\":\"actql-remote-execution-evidence/0.1\"}",
+      "cid": "sha256:87aee5c85b8b9cdc90baccb52c6b3f0c005eeb2cbd672817e21d851695c6a1fa"
+    },
+    {
+      "name": "managed_subject",
+      "body": {
+        "dispatch_request_cid": "sha256:3dd78060f4a610d0b1dbb10afaa65b653ca3f8b964e503cc6a2eb6e4783c21b1",
+        "holding_evidence_cid": "sha256:0d53447b5b3e1a626b9bee01eca67067dd5465f4900e4b2a2573dc40336d331a",
+        "logical_view_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "managed_profile_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "material_generation": "material-generation-a",
+        "measurement_evidence_cid": "sha256:eecf2bab4ef5dc77dc89eee5b6bcc3c5d75d457d9d28d58fac85d5c0a6306a51",
+        "physical_manifest_cid": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "representation_codec_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "result_schema_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "retained_bytes": "8",
+        "row_count": 2,
+        "version": "actql-remote-managed-output-subject/0.1"
+      },
+      "canonical": "{\"dispatch_request_cid\":\"sha256:3dd78060f4a610d0b1dbb10afaa65b653ca3f8b964e503cc6a2eb6e4783c21b1\",\"holding_evidence_cid\":\"sha256:0d53447b5b3e1a626b9bee01eca67067dd5465f4900e4b2a2573dc40336d331a\",\"logical_view_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"managed_profile_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"material_generation\":\"material-generation-a\",\"measurement_evidence_cid\":\"sha256:eecf2bab4ef5dc77dc89eee5b6bcc3c5d75d457d9d28d58fac85d5c0a6306a51\",\"physical_manifest_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"representation_codec_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"result_schema_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"retained_bytes\":\"8\",\"row_count\":2,\"version\":\"actql-remote-managed-output-subject/0.1\"}",
+      "cid": "sha256:2831143cda2a560c07ede897807dcd160716d096f5a7a586410c6c8b705fe287"
+    },
+    {
+      "name": "managed_evidence",
+      "body": {
+        "connector_registration": "local",
+        "connector_revision": "local/1",
+        "dispatch_request_cid": "sha256:3dd78060f4a610d0b1dbb10afaa65b653ca3f8b964e503cc6a2eb6e4783c21b1",
+        "evidence_kind": "actql.remote.managed-output/0.1",
+        "evidence_subject_cid": "sha256:2831143cda2a560c07ede897807dcd160716d096f5a7a586410c6c8b705fe287",
+        "holding_evidence_cid": "sha256:0d53447b5b3e1a626b9bee01eca67067dd5465f4900e4b2a2573dc40336d331a",
+        "issuer_capability_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "material_generation": "material-generation-a",
+        "obligations_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "runtime_bundle_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "site_generation": 1,
+        "site_key": "site-a",
+        "strategy_revision": "strategy/1",
+        "version": "actql-remote-execution-evidence/0.1"
+      },
+      "canonical": "{\"connector_registration\":\"local\",\"connector_revision\":\"local/1\",\"dispatch_request_cid\":\"sha256:3dd78060f4a610d0b1dbb10afaa65b653ca3f8b964e503cc6a2eb6e4783c21b1\",\"evidence_kind\":\"actql.remote.managed-output/0.1\",\"evidence_subject_cid\":\"sha256:2831143cda2a560c07ede897807dcd160716d096f5a7a586410c6c8b705fe287\",\"holding_evidence_cid\":\"sha256:0d53447b5b3e1a626b9bee01eca67067dd5465f4900e4b2a2573dc40336d331a\",\"issuer_capability_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"material_generation\":\"material-generation-a\",\"obligations_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":1,\"site_key\":\"site-a\",\"strategy_revision\":\"strategy/1\",\"version\":\"actql-remote-execution-evidence/0.1\"}",
+      "cid": "sha256:51d34fd90fd4828a8a9eb8128aadd3284c862de11ff6d77f1ba78fc567d903ef"
+    },
+    {
+      "name": "poll_dispatch",
+      "body": {
+        "version": "actql-remote-poll-dispatch/0.1",
+        "dispatch_request_cid": "sha256:b940a6c947444f8d848ee0f9f563a3d02ab8ddb84812ed4ed35b9b65fe3af56b",
+        "input_binding_cid": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "input_binding_json": "{}",
+        "request_json": "{\"budget_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"connector_registration\":\"local\",\"connector_revision\":\"local/1\",\"coordinator_authority\":\"coordinator-a\",\"dispatch_id\":\"dispatch-a\",\"evidence_issuer_capability_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"grant_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"input_binding_cid\":\"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"obligations_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"run_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":1,\"site_key\":\"site-a\",\"strategy_revision\":\"strategy/1\",\"task_attempt\":1,\"task_key\":\"task-a\",\"version\":\"actql-remote-dispatch-request/0.1\"}"
+      },
+      "canonical": "{\"dispatch_request_cid\":\"sha256:b940a6c947444f8d848ee0f9f563a3d02ab8ddb84812ed4ed35b9b65fe3af56b\",\"input_binding_cid\":\"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"input_binding_json\":\"{}\",\"request_json\":\"{\\\"budget_cid\\\":\\\"sha256:3333333333333333333333333333333333333333333333333333333333333333\\\",\\\"connector_registration\\\":\\\"local\\\",\\\"connector_revision\\\":\\\"local/1\\\",\\\"coordinator_authority\\\":\\\"coordinator-a\\\",\\\"dispatch_id\\\":\\\"dispatch-a\\\",\\\"evidence_issuer_capability_cid\\\":\\\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\\\",\\\"grant_cid\\\":\\\"sha256:4444444444444444444444444444444444444444444444444444444444444444\\\",\\\"input_binding_cid\\\":\\\"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\\\",\\\"obligations_cid\\\":\\\"sha256:2222222222222222222222222222222222222222222222222222222222222222\\\",\\\"run_definition_cid\\\":\\\"sha256:0000000000000000000000000000000000000000000000000000000000000000\\\",\\\"runtime_bundle_cid\\\":\\\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\\",\\\"site_generation\\\":1,\\\"site_key\\\":\\\"site-a\\\",\\\"strategy_revision\\\":\\\"strategy/1\\\",\\\"task_attempt\\\":1,\\\"task_key\\\":\\\"task-a\\\",\\\"version\\\":\\\"actql-remote-dispatch-request/0.1\\\"}\",\"version\":\"actql-remote-poll-dispatch/0.1\"}",
+      "cid": "sha256:810c3bab26cc14fdff63fe5d6de3abc6d8ee71da764245011dd926862a746561"
+    }
+  ]
+}

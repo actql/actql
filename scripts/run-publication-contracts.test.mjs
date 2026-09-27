@@ -283,6 +283,7 @@ test('Run state separates terminal outcome from per-Result availability', () => 
     'read_result',
     'refresh_availability',
     'none',
+    'reconcile_run',
   ]);
 });
 
@@ -313,7 +314,7 @@ test('corrected schemas have independently fixed canonical identities', () => {
       run_receipt:
         'sha256:d017cd0e95bce341edd4fabf859fc521588ee8d12eadfa9fd2704d8d8a94f526',
       run_state:
-        'sha256:9c4e0ef67f6a3b7441cf1dc5cc8cafaec05dde6422a7628db027542cc0c808c6',
+        'sha256:e61cdac45a5af98ca5362ee945511d705c373613cd4e9dc42009e036eb9fcb84',
       captured_run:
         'sha256:ac57820dd589db489f000eb80ff95ec9c9a95fec5b233add853293ed9c1dbc53',
     },

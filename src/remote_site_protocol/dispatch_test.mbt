@@ -256,7 +256,7 @@ test "dispatch retransmission reconciles without admitting another attempt" {
   let first = request("dispatch-a", 1, 1, bundle)
   assert_eq(
     dispatch_request_identity(first),
-    "sha256:64b3898a97352d0e8c2daec377af6335bc51a06b471e9118677c6d1facc3a5ba",
+    "sha256:3dd78060f4a610d0b1dbb10afaa65b653ca3f8b964e503cc6a2eb6e4783c21b1",
   )
   let admission = prepare_dispatch_acceptance(state, first).unwrap()
   assert_eq(dispatch_admission_kind(admission), NewDispatch)
@@ -463,11 +463,11 @@ test "registered issuer binds evidence to exact dispatch and material" {
   ).unwrap()
   assert_eq(
     remote_execution_evidence_cid(evidence),
-    "sha256:b3ee413eb44ae2a6b688c4406bde6ca0c64335e49b3aa4764d303ae794572704",
+    "sha256:87aee5c85b8b9cdc90baccb52c6b3f0c005eeb2cbd672817e21d851695c6a1fa",
   )
   assert_eq(
     remote_execution_evidence_json(evidence).unwrap(),
-    "{\"connector_registration\":\"local\",\"connector_revision\":\"local/1\",\"dispatch_request_cid\":\"sha256:64b3898a97352d0e8c2daec377af6335bc51a06b471e9118677c6d1facc3a5ba\",\"evidence_kind\":\"actql.remote.physical-output/0.1\",\"evidence_subject_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"holding_evidence_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"issuer_capability_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"material_generation\":\"material-generation-a\",\"obligations_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":1,\"site_key\":\"site-a\",\"strategy_revision\":\"strategy/1\",\"version\":\"actql-remote-execution-evidence/0.1\"}",
+    "{\"connector_registration\":\"local\",\"connector_revision\":\"local/1\",\"dispatch_request_cid\":\"sha256:3dd78060f4a610d0b1dbb10afaa65b653ca3f8b964e503cc6a2eb6e4783c21b1\",\"evidence_kind\":\"actql.remote.physical-output/0.1\",\"evidence_subject_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"holding_evidence_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"issuer_capability_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"material_generation\":\"material-generation-a\",\"obligations_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":1,\"site_key\":\"site-a\",\"strategy_revision\":\"strategy/1\",\"version\":\"actql-remote-execution-evidence/0.1\"}",
   )
   let foreign_site = replacement_site(1, bundle)
   let wrong = register_remote_evidence_issuer(
@@ -514,11 +514,11 @@ test "managed output subject has an independent canonical identity" {
   ).unwrap()
   assert_eq(
     remote_managed_output_subject_json(subject).unwrap(),
-    "{\"dispatch_request_cid\":\"sha256:64b3898a97352d0e8c2daec377af6335bc51a06b471e9118677c6d1facc3a5ba\",\"holding_evidence_cid\":\"sha256:7f25f99381914c631025306ed2b7d4626c3cae78dc0acfc7a6dc2d8592405ecf\",\"logical_view_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"managed_profile_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"material_generation\":\"material-generation-a\",\"measurement_evidence_cid\":\"sha256:eecf2bab4ef5dc77dc89eee5b6bcc3c5d75d457d9d28d58fac85d5c0a6306a51\",\"physical_manifest_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"representation_codec_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"result_schema_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"retained_bytes\":\"8\",\"row_count\":2,\"version\":\"actql-remote-managed-output-subject/0.2\"}",
+    "{\"dispatch_request_cid\":\"sha256:3dd78060f4a610d0b1dbb10afaa65b653ca3f8b964e503cc6a2eb6e4783c21b1\",\"holding_evidence_cid\":\"sha256:0d53447b5b3e1a626b9bee01eca67067dd5465f4900e4b2a2573dc40336d331a\",\"logical_view_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"managed_profile_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"material_generation\":\"material-generation-a\",\"measurement_evidence_cid\":\"sha256:eecf2bab4ef5dc77dc89eee5b6bcc3c5d75d457d9d28d58fac85d5c0a6306a51\",\"physical_manifest_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"representation_codec_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"result_schema_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"retained_bytes\":\"8\",\"row_count\":2,\"version\":\"actql-remote-managed-output-subject/0.1\"}",
   )
   assert_eq(
     remote_managed_output_subject_cid(subject),
-    "sha256:d4480f667813e73e83947fb645d8946919426485b9bec3554bb2748c2bdf460a",
+    "sha256:2831143cda2a560c07ede897807dcd160716d096f5a7a586410c6c8b705fe287",
   )
   assert_true(remote_managed_output_subject_matches_dispatch(subject, dispatch))
   let unbound = prepare_remote_managed_output_subject(
@@ -599,7 +599,7 @@ test "managed output evidence accepts only its typed retained subject" {
   ).unwrap()
   assert_eq(
     remote_execution_evidence_cid(evidence),
-    "sha256:2ed0638123e7e97790b3031ea5e8bd5a11b203050a50d3ce2a12b9aa258ae36e",
+    "sha256:51d34fd90fd4828a8a9eb8128aadd3284c862de11ff6d77f1ba78fc567d903ef",
   )
   assert_true(
     remote_managed_output_subject_matches_evidence(subject, evidence, dispatch),
