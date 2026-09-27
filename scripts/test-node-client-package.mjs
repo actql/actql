@@ -286,6 +286,14 @@ const computedPipeJoin = queryFrontend.compileTwoValuesSetQueryJson(
   'fixture.join_computed');
 assert.deepEqual(JSON.parse(computedPipeJoin), JSON.parse(computedJoin));
 await writeFile(join(root, 'join-computed.json'), computedJoin);
+const distinctJoin = queryFrontend.compileTwoValuesSetQueryJson(
+  'SELECT DISTINCT l.a AS a FROM set_left AS l '
+    + 'JOIN set_right AS r ON l.a = r.c',
+  'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+  'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+  'fixture.join_distinct');
+assert.notEqual(distinctJoin, '');
+await writeFile(join(root, 'join-distinct.json'), distinctJoin);
 const computedLeftJoin = queryFrontend.compileTwoValuesSetQueryJson(
   'SELECT l.a + r.c AS total, r.d AS label FROM set_left AS l '
     + 'LEFT JOIN set_right AS r ON l.a = r.c',
@@ -791,6 +799,11 @@ async function checkJoinCases(client, suffix) {
   assert.equal((await computed.wait()).status, 'succeeded');
   assert.deepEqual(await computed.result('answer').all(),
     [{total: 2, label: 'x'}, {total: 2, label: 'x'}]);
+  const distinct = await client.aql(
+    readFileSync('join-distinct.json', 'utf8'),
+    {format: 'json', requestId: 'packed-join-distinct-' + suffix});
+  assert.equal((await distinct.wait()).status, 'succeeded');
+  assert.deepEqual(await distinct.result('answer').all(), [{a: 1}]);
   const computedLeft = await client.aql(
     readFileSync('join-computed-left.json', 'utf8'),
     {format: 'json', requestId: 'packed-join-computed-left-' + suffix});

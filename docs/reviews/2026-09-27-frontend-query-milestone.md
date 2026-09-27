@@ -21,7 +21,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | UTF-8, tokens, escaping, numeric domain, original spans | Original source owner and bounded query lexer | Positive, negative and exact-limit cases | Partial: exact lexer and query syntax/work limits, original Unicode error span and unadopted OVER rejection pass; full diagnostic matrix pending |
 | Closed scalar expressions, precedence, NULL and CONCAT | Structured Expression admission/typing | Independent trees, demand/failure and legacy regression | Partial: shared AST and direct tree lowering; full typing/failure matrix pending |
 | SELECT, FROM-only, subqueries, WHERE | Existing Program derive/select/filter | SQL/Pipe expected Program and rows | Partial: base SELECT/FROM/WHERE and named noncorrelated FROM subqueries, including nesting, execute through captured Host; one JOIN-right subquery from an earlier CTE executes through packed Local/Remote; broader joins, set operands and additional source forms remain |
-| INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: direct Values joins support INNER/LEFT and bounded CROSS; a DISTINCT CTE supplies identity for packed source-free and captured-input FULL/USING; general join scope remains |
+| INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: direct Values joins support INNER/LEFT, bounded CROSS and output-only DISTINCT; a DISTINCT CTE supplies identity for packed source-free and captured-input FULL/USING; general join scope remains |
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: scalar reductions and ordered ARRAY_AGG/STRING_AGG lower through group; captured COUNT/GROUP/HAVING runtime passes, ordered collection runtime and failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each used declaration lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin, a sequential chain, two branches from one predecessor and a join inside a declaration body; physical provider read counter and broader joins remain |
@@ -272,7 +272,11 @@ unmatched left rows in packed Local and HTTP Remote. The Pipe spelling emits
 the same Program. Two packed zero-input cases preserve demand: the post-join
 WHERE excludes a division by zero before projection, and an unselected CASE
 branch does not divide by zero. General post-join grouping, order and multiple
-joins remain open. An attempted `ORDER BY` after a checked JOIN also reached
+joins remain open. JOIN DISTINCT now removes duplicate matched rows using only
+the named output columns; packed Local and HTTP Remote reduce two equal
+matches to one `{a:1}` Result. CTE JOIN DISTINCT also selects the deduplicated
+Stage Result in checker tests. An attempted `ORDER BY` after a checked JOIN
+also reached
 the standard Host but `run-host-core.compileTasks` rejected it with
 `RunHostTaskCompilationRejected`. This reproduced with source-free CROSS JOIN
 and with two DISTINCT CTE inputs and DISTINCT joined output; both Programs

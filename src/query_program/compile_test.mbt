@@ -863,6 +863,24 @@ test "JOIN computes SELECT expressions once after matching rows" {
 }
 
 ///|
+test "JOIN DISTINCT compares only the selected output row" {
+  let query = @query.parse_query(
+    "SELECT DISTINCT l.a AS a FROM left_rows AS l JOIN right_rows AS r ON l.a = r.c",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, set_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"distinct\":[\"a\"]"))
+  assert_true(wire.contains("\"from\":\"aql_join_unique\""))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("distinct joined Values should be closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+}
+
+///|
 test "LEFT JOIN WHERE filters null-extended rows after matching" {
   let sql = @query.parse_query(
     "SELECT l.a AS a FROM left_rows AS l LEFT JOIN right_rows AS r ON l.a = r.c WHERE r.c IS NULL",
@@ -906,6 +924,27 @@ test "CTE JOIN body shares scalar projection and post-join filter lowering" {
     Checked(_) => ()
     NeedsInputs(_) => fail("joined CTE inputs should be statically closed")
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+}
+
+///|
+test "CTE JOIN DISTINCT publishes the deduplicated Stage Result" {
+  for
+    text in [
+      "WITH base AS (SELECT a FROM left_rows), other AS (SELECT a FROM base) SELECT DISTINCT l.a AS a FROM base AS l JOIN other AS r ON l.a = r.a",
+      "WITH base AS (SELECT a FROM left_rows), other AS (SELECT a FROM base), matched AS (SELECT DISTINCT l.a AS a FROM base AS l JOIN other AS r ON l.a = r.a) SELECT a FROM matched",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    let program = compile(query, set_context(), construction_limits()).unwrap()
+    let wire = semantic(program)
+    assert_true(wire.contains("\"distinct\":[\"a\"]"), msg=text)
+    assert_true(wire.contains("\"from\":\"aql_join_unique\""), msg=text)
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      NeedsInputs(_) => fail("joined CTE inputs should be statically closed")
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    }
   }
 }
 

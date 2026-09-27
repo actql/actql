@@ -2225,7 +2225,7 @@ fn compile_cte_query(
           ]),
         ),
       ])
-      let (steps, fields) = compile_cte_join_steps(
+      let (steps, fields, final_from) = compile_cte_join_steps(
         construction,
         query,
         @query.relation(query)[0],
@@ -2234,7 +2234,7 @@ fn compile_cte_query(
         right_input.visible_fields,
         limits,
       )
-      (steps, fields, [("l", cte_ref), ("r", right_ref)], "aql_join_output")
+      (steps, fields, [("l", cte_ref), ("r", right_ref)], final_from)
     } else {
       let (steps, fields) = compile_steps(
         construction,
@@ -2350,7 +2350,7 @@ fn compile_cte_stage(
         ),
       ])
     }
-    let (steps, output) = compile_cte_join_steps(
+    let (steps, output, final_from) = compile_cte_join_steps(
       construction,
       body,
       @query.relation(body)[0],
@@ -2375,7 +2375,7 @@ fn compile_cte_stage(
           (
             "rows",
             construction.object([
-              ("from", construction.text("aql_join_output")),
+              ("from", construction.text(final_from)),
               (
                 "fields",
                 construction.array(
@@ -2494,7 +2494,7 @@ fn compile_cte_join_steps(
   right_name : @query.NamePart,
   right_fields : Array[String],
   limits : Limits,
-) -> (Array[@builder.Node], Array[String]) raise Abort {
+) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if @query.operation_count(query) < 1 ||
     @query.operation_count(query) > 2 ||
     limits.max_join_output_rows < 1L ||
@@ -2520,7 +2520,7 @@ fn compile_cte_join_steps(
   }
   let select_index = if predicate is Some(_) { 1 } else { 0 }
   guard @query.operation_at(query, select_index)
-    is Some(Select(projections, false)) else {
+    is Some(Select(projections, distinct)) else {
     raise Abort(UnsupportedCte)
   }
   if part.kind != "full" {
@@ -2580,7 +2580,27 @@ fn compile_cte_join_steps(
         ]),
       ] +
       tail
-    return (steps, output)
+    if distinct {
+      steps.push(
+        construction.object([
+          ("from", construction.text("aql_join_output")),
+          (
+            "distinct",
+            construction.array(output.map(name => construction.text(name))),
+          ),
+          ("as", construction.text("aql_join_unique")),
+        ]),
+      )
+    }
+    return (
+      steps,
+      output,
+      if distinct {
+        "aql_join_unique"
+      } else {
+        "aql_join_output"
+      },
+    )
   }
   if predicate is Some(_) {
     raise Abort(UnsupportedCte)
@@ -2745,7 +2765,19 @@ fn compile_cte_join_steps(
       ]),
     )
   }
-  (steps, output)
+  if distinct {
+    steps.push(
+      construction.object([
+        ("from", construction.text("aql_join_output")),
+        (
+          "distinct",
+          construction.array(output.map(name => construction.text(name))),
+        ),
+        ("as", construction.text("aql_join_unique")),
+      ]),
+    )
+  }
+  (steps, output, if distinct { "aql_join_unique" } else { "aql_join_output" })
 }
 
 ///|
@@ -3912,7 +3944,7 @@ fn compile_join_query(
     }
     let select_index = if predicate is Some(_) { 1 } else { 0 }
     guard @query.operation_at(query, select_index)
-      is Some(Select(projections, false)) else {
+      is Some(Select(projections, distinct)) else {
       raise Abort(UnsupportedJoin)
     }
     let (select, computed_steps, output, joined) = joined_projection(
@@ -3926,6 +3958,18 @@ fn compile_join_query(
       right_fields,
       limits.max_expression_work,
     )
+    if distinct {
+      computed_steps.push(
+        construction.object([
+          ("from", construction.text("aql_join_output")),
+          (
+            "distinct",
+            construction.array(output.map(name => construction.text(name))),
+          ),
+          ("as", construction.text("aql_join_unique")),
+        ]),
+      )
+    }
     let left_rows = join_values_rows(left).to_int64()
     let right_rows = join_values_rows(right).to_int64()
     let factor = if part.kind == "inner" || part.kind == "cross" {
@@ -4028,7 +4072,16 @@ fn compile_join_query(
           (
             context.stage_result,
             construction.object([
-              ("from", construction.text("aql_join_output")),
+              (
+                "from",
+                construction.text(
+                  if distinct {
+                    "aql_join_unique"
+                  } else {
+                    "aql_join_output"
+                  },
+                ),
+              ),
               (
                 "fields",
                 construction.array(output.map(name => construction.text(name))),
