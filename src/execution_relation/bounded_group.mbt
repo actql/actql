@@ -415,7 +415,11 @@ fn bounded_group_step(
             }
             RecheckFailed => {
               state.output_recheck = None
-              return bounded_group_failure(Rows(InvalidRows), progress, used + 1)
+              return bounded_group_failure(
+                Rows(InvalidRows),
+                progress,
+                used + 1,
+              )
             }
             RecheckComplete(_, _, _) => {
               state.output_recheck = None

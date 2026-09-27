@@ -460,7 +460,7 @@ pub fn advance_local_materializing_attempt(
     }
     Ok(Continue(progress~, work~)) =>
       if bounded(progress, work, false) {
-        Ok({ complete: false, progress, work })
+        Ok({ complete: false, progress, work, })
       } else {
         close_local_materializing_attempt(attempt)
         Err(Candidate(InvalidLimits))
@@ -474,7 +474,7 @@ pub fn advance_local_materializing_attempt(
           return Err(Candidate(ForeignPreparation))
         }
         attempt.output = Some(anchored)
-        Ok({ complete: true, progress, work })
+        Ok({ complete: true, progress, work, })
       } else {
         close_local_materializing_attempt(attempt)
         Err(Candidate(InvalidLimits))

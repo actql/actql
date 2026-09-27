@@ -3250,16 +3250,13 @@ test "bounded binding rows preserve authored binding dependencies" {
   assert_true(producer_read_available(input))
 }
 
-
 ///|
 test "bounded selected filter retains more input rows than expression frames" {
   // Admitted input rows stay live until output completes; their roots are
   // bounded by workspace entries, not by the expression frame limit.
   let rows = "[" +
     Array::makei(8, i => {
-      "{\"id\":" +
-      (i + 1).to_string() +
-      ",\"left\":[1,0],\"right\":[0,1]}"
+      "{\"id\":" + (i + 1).to_string() + ",\"left\":[1,0],\"right\":[0,1]}"
     }).join(",") +
     "]"
   let (_, execution, input) = bounded_binding_rows_fixture(

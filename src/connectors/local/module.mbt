@@ -190,17 +190,11 @@ fn local_managed_provider_for(
       return Some(provider)
     }
   }
-  let relation = selected_relation_provider(
-    execution,
-    measurement,
-  )
+  let relation = selected_relation_provider(execution, measurement)
   if managed_provider_accepts(relation, sequence) {
     return Some(relation)
   }
-  let global_count = global_count_provider(
-    execution,
-    measurement,
-  )
+  let global_count = global_count_provider(execution, measurement)
   if managed_provider_accepts(global_count, sequence) {
     return Some(global_count)
   }
@@ -208,10 +202,7 @@ fn local_managed_provider_for(
   if managed_provider_accepts(group, sequence) {
     return Some(group)
   }
-  let row_window = row_window_provider(
-    execution,
-    measurement,
-  )
+  let row_window = row_window_provider(execution, measurement)
   if managed_provider_accepts(row_window, sequence) {
     return Some(row_window)
   }
@@ -223,10 +214,7 @@ fn local_managed_provider_for(
   if managed_provider_accepts(unnest, sequence) {
     return Some(unnest)
   }
-  let cross_join = cross_join_provider(
-    execution,
-    measurement,
-  )
+  let cross_join = cross_join_provider(execution, measurement)
   if managed_provider_accepts(cross_join, sequence) {
     return Some(cross_join)
   }

@@ -332,8 +332,8 @@ test "bounded nest nested phases visit one element per advance" {
   // and rechecking the nested array must not run in one advance.
   let text = "x".repeat(200)
   let right = Array::makei(10, i => {
-      "{\"key\":1,\"value\":\"" + text + i.to_string() + "\"}"
-    })
+    "{\"key\":1,\"value\":\"" + text + i.to_string() + "\"}"
+  })
   let (_, started, _) = bounded_nest_fixture(
     nest="\"on\":[{\"left\":\"key\",\"right\":\"key\"}],\"into\":\"items\",\"fields\":[{\"amount\":\"value\"}],\"max_items\":10",
     right_schema="{\"key\":{\"type\":\"number\",\"nullable\":true},\"value\":{\"type\":\"string\",\"nullable\":true}}",
@@ -354,7 +354,8 @@ test "bounded nest nested phases visit one element per advance" {
         let delta = work - last
         last = work
         advances.set(phase, advances.get_or_default(phase, 0) + 1)
-        if phase == nest_phase_id(MeasureNested) || phase == nest_phase_id(BuildCell) {
+        if phase == nest_phase_id(MeasureNested) ||
+          phase == nest_phase_id(BuildCell) {
           max_nested = Int64::max(max_nested, delta)
         }
       }

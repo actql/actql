@@ -2855,7 +2855,9 @@ fn start_bounded_binding_rows_with_input(
     // the synchronous row evaluator: the scope holds workspace entries, not
     // only expression frames.
     scope: logical.map(logical => {
-      ({ budget: logical, slots: [], free: [], limit: max_entries } : ExpressionRoots)
+      (
+        { budget: logical, slots: [], free: [], limit: max_entries, } :
+        ExpressionRoots)
     }),
     control,
     workspace,

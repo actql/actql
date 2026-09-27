@@ -266,7 +266,13 @@ fn bounded_nest_measure_step(
     }
     Err(issue) => {
       state.measure = None
-      Err(if issue is LogicalWorkLimit { RowLimit } else { NestEnvelope(Measurement) })
+      Err(
+        if issue is LogicalWorkLimit {
+          RowLimit
+        } else {
+          NestEnvelope(Measurement)
+        },
+      )
     }
   }
 }
@@ -583,7 +589,9 @@ fn bounded_nest_step(
               !reserve_slots(state.workspace, 1) {
               return row_limit(used)
             }
-            state.builder = @admitted.prepare_array_value(state.matches.length())
+            state.builder = @admitted.prepare_array_value(
+              state.matches.length(),
+            )
             state.item = 0
             state.item_column = -1
             state.phase = BuildItem
@@ -763,7 +771,11 @@ fn bounded_nest_step(
                 state.admitted_limits,
               )
               is Some(cursor) else {
-              return bounded_nest_failure(Rows(InputMismatch), progress, used + 1)
+              return bounded_nest_failure(
+                Rows(InputMismatch),
+                progress,
+                used + 1,
+              )
             }
             state.recheck = Some(cursor)
             used += 1

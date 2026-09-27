@@ -186,7 +186,10 @@ fn advance_logical_measure_impl(
             if !@admitted.reference_available(reference) {
               return Err(ReferenceUnavailable)
             }
-            if !logical_measure_text(cursor, @admitted.reference_wire(reference)) {
+            if !logical_measure_text(
+                cursor,
+                @admitted.reference_wire(reference),
+              ) {
               return Err(LogicalWorkLimit)
             }
           }
@@ -249,7 +252,7 @@ fn advance_logical_measure_impl(
   let bytes = @encode.finish_measurement(writer) catch {
     _ => return Err(WireMeasureFailure)
   }
-  Ok(Some({ wire_bytes: bytes, weight: cursor.max_work - cursor.remaining }))
+  Ok(Some({ wire_bytes: bytes, weight: cursor.max_work - cursor.remaining, }))
 }
 
 ///|

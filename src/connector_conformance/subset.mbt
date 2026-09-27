@@ -73,12 +73,15 @@ pub fn configure_subset(
             measurement,
             max_work: 100,
           },
-          issue => match issue {
-            @local_driver.Configuration(value) => @strategy.RunIssue::Compute(value)
-            @local_driver.Execution(value) => value
-            @local_driver.Preparation(Materializing(Candidate(value))) =>
-              @strategy.RunIssue::Compute(value)
-            _ => @strategy.RunIssue::ForeignCandidate
+          issue => {
+            match issue {
+              @local_driver.Configuration(value) =>
+                @strategy.RunIssue::Compute(value)
+              @local_driver.Execution(value) => value
+              @local_driver.Preparation(Materializing(Candidate(value))) =>
+                @strategy.RunIssue::Compute(value)
+              _ => @strategy.RunIssue::ForeignCandidate
+            }
           },
           _ => @strategy.RunIssue::ForeignCandidate,
         ),

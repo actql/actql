@@ -75,17 +75,16 @@ pub fn advance_recheck_runtime_value(cursor : RecheckCursor) -> RecheckPoll {
   guard cursor.stack.pop() is Some(frame) else {
     cursor.finished = true
     return RecheckComplete(
-      { contract: cursor.contract, value: cursor.value },
+      { contract: cursor.contract, value: cursor.value, },
       cursor.limits.max_nodes - budget.nodes,
       cursor.limits.max_text_bytes - budget.text,
     )
   }
   match frame {
-    CheckNode(value, contract, depth) => {
+    CheckNode(value, contract, depth) =>
       if !recheck_node_step(cursor, value, contract, depth) {
         return recheck_step_fail(cursor)
       }
-    }
     ArrayItems(values, item, index, depth) =>
       if index < values.length() {
         cursor.stack.push(ArrayItems(values, item, index + 1, depth))
@@ -174,7 +173,11 @@ fn recheck_node_step(
 
 ///|
 /// One node of `recheck_json`; containers defer their children.
-fn recheck_json_step(cursor : RecheckCursor, value : Value, depth : Int) -> Bool {
+fn recheck_json_step(
+  cursor : RecheckCursor,
+  value : Value,
+  depth : Int,
+) -> Bool {
   let budget = cursor.budget
   match value {
     Array(values) => {

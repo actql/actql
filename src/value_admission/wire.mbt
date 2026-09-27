@@ -88,8 +88,11 @@ struct WireEmitCursor {
 }
 
 ///|
-pub fn start_wire_emit(value : Value, output : @encode.Writer) -> WireEmitCursor {
-  { pending: [Read(value)], output }
+pub fn start_wire_emit(
+  value : Value,
+  output : @encode.Writer,
+) -> WireEmitCursor {
+  { pending: [Read(value)], output, }
 }
 
 ///|

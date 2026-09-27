@@ -110,7 +110,8 @@ fn local_task_analytic_envelopes(
   run : @strategy.CapturedDAG,
   task : Int,
 ) -> Array[@connector.AnalyticEnvelope]? {
-  guard @strategy.captured_task_analytic_envelope_count(run, task) is Some(count) else {
+  guard @strategy.captured_task_analytic_envelope_count(run, task)
+    is Some(count) else {
     return None
   }
   let envelopes = []
