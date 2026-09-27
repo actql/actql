@@ -18,5 +18,8 @@
   "dependencies": {"@actql/client-wire": "0.0.0-development"},
   "files": ["index.mjs", "index.d.ts", "publication-action.mjs", "result-access.mjs",
     "result-access.d.ts", "result-delivery.mjs",
-    "dist/client_values_host_abi.js"]
+    "dist/client_values_host_abi.js"],
+  "scripts": {
+    "prepack": "node ../../scripts/build-runtime-packages.mjs run-host-core"
+  }
 }

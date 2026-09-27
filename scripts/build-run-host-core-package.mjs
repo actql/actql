@@ -40,7 +40,9 @@ if (process.argv.includes('--check')) {
 } else {
   mkdirSync(join(root, 'packages/run-host-core/dist'), {recursive: true});
   writeFileSync(destination, bytes);
-  writeFileSync(accessFile, access);
-  writeFileSync(deliveryFile, delivery);
-  writeFileSync(actionFile, action);
+  if (!process.argv.includes('--runtime-only')) {
+    writeFileSync(accessFile, access);
+    writeFileSync(deliveryFile, delivery);
+    writeFileSync(actionFile, action);
+  }
 }

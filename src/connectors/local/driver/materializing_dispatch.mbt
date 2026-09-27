@@ -55,6 +55,7 @@ pub struct LocalDispatchOperations {
   guard_usage : () -> Array[Int]
   // Work reported by the bounded provider of a completed attempt.
   provider_work : () -> Int64?
+  publication_output : () -> @execution.CompletedOutput?
   settle : () -> Result[Unit, LocalDispatchIssue]
   complete : () -> Result[Unit, LocalDispatchIssue]
   close : () -> Unit
@@ -153,6 +154,9 @@ pub fn[C, E] start_local_dispatch(
           }
         },
         provider_work: () => @local.local_materializing_provider_work(attempt),
+        publication_output: () => {
+          @local.local_materializing_publication_output(attempt)
+        },
         settle: () => {
           @strategy.settle_task_execution(run, ticket, true).map_err(issue => {
             Execution(Physical(issue))

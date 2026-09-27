@@ -84,7 +84,7 @@ pub fn prepare_fixed_compute_request(
 }
 
 ///|
-/// The checked zero-input root supplies the request owner when no producer
+/// The checked zero-input task supplies the request owner when no producer
 /// read exists. This grants no execution; common strategy and admission still
 /// select and start the task.
 pub fn prepare_source_free_fixed_compute_request(

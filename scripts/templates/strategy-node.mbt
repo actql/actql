@@ -2472,6 +2472,66 @@ pub fn strategy_host_result_output_export_begin(
   max_schema_depth : Int,
   max_batch_bytes : Int,
 ) -> StrategyHostOutputExport raise NodeHostFailure {
+  strategy_host_result_output_export_begin_converted(
+    host,
+    result,
+    max_result_fields,
+    max_result_mapping_work,
+    max_result_order_work,
+    max_result_workspace_entries,
+    max_rows,
+    max_value_nodes,
+    max_value_text_bytes,
+    max_value_depth,
+    max_value_work,
+    max_wire_bytes,
+    max_wire_nodes,
+    max_wire_depth,
+    max_columns,
+    max_order_work,
+    max_logical_wire_bytes,
+    max_logical_wire_nodes,
+    max_logical_wire_depth,
+    max_schema_fields,
+    max_schema_bytes,
+    max_schema_nodes,
+    max_schema_depth,
+    max_batch_bytes,
+    None,
+  )
+}
+
+///|
+/// Export a retained Result through an independently held cell view. The
+/// publication owner validates that the view belongs to the exact occurrence.
+#export_name("strategyHostResultOutputExportBeginConverted")
+pub fn strategy_host_result_output_export_begin_converted(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  result : Int,
+  max_result_fields : Int,
+  max_result_mapping_work : Int,
+  max_result_order_work : Int,
+  max_result_workspace_entries : Int,
+  max_rows : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_value_depth : Int,
+  max_value_work : Int,
+  max_wire_bytes : Int,
+  max_wire_nodes : Int,
+  max_wire_depth : Int,
+  max_columns : Int,
+  max_order_work : Int,
+  max_logical_wire_bytes : Int,
+  max_logical_wire_nodes : Int,
+  max_logical_wire_depth : Int,
+  max_schema_fields : Int,
+  max_schema_bytes : Int,
+  max_schema_nodes : Int,
+  max_schema_depth : Int,
+  max_batch_bytes : Int,
+  converted_output : @execution.CompletedOutput?,
+) -> StrategyHostOutputExport raise NodeHostFailure {
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(host),
   )
@@ -2514,6 +2574,7 @@ pub fn strategy_host_result_output_export_begin(
           },
           max_batch_bytes,
         },
+        converted_output?,
       ),
     ),
     managed_import: None,
