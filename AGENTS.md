@@ -68,3 +68,21 @@ Build hygiene:
   would mix states. Run one heavy gate at a time per machine and note load
   when judging timing-sensitive failures.
 - Report the commands that ran and the gates that did not.
+
+## Runtime package artifacts
+
+Compiled JavaScript under `packages/local-node/_build` and the `dist`
+directories of `run-host-core`, `coordinator-core`, and `transfer-core` is
+ignored, not committed. After changing MoonBit sources or merging another
+branch, run `npm run build:runtime-packages` before importing those packages
+directly. An optional package name limits the build, for example
+`npm run build:runtime-packages -- local-node`. The related npm checks prepare
+their runtime dependencies automatically.
+
+`npm pack` in each runtime package builds its payload through `prepack`;
+use the pinned MoonBit toolchain and root npm dependencies. Do not use
+`--ignore-scripts` when producing tarballs. Consumers may install the resulting
+tarballs with `--ignore-scripts` and need no MoonBit toolchain. Generated API
+interfaces, schema/pins, fixtures, and the tracked Run Host service wrappers
+remain reviewed source artifacts. Regenerate wrapper changes explicitly;
+runtime preparation checks them but does not silently update them.
