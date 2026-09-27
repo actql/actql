@@ -120,12 +120,14 @@ to the right relation. Other Pipe edits before JOIN still fail closed because
 their range snapshot has not yet been connected to JOIN lowering.
 The same pre-join filter over two named `FROM (SELECT ...)` sources emits a
 checked Program, but the installed Host currently rejects its task graph
-with `RunHostTaskCompilationRejected`. This source-free Stage Result case is
-not counted as an executed query. The frontend and Host/ABI owners need to
-identify whether a separate checked filter task or an existing task-pipeline
-capability closes this graph without weakening source or result evidence.
-The filter must stay before the join, and the packed Result case must be
-rerun after that connection.
+with `RunHostTaskCompilationRejected`. The nested MoonBit issue is
+`ClientTaskPlanGraphIssue::InvalidEdge`: the generated JS enum tags are
+`Compilation(Plan(TaskGraph(InvalidEdge)))`. Moving the filter into a separate
+checked Stage preserved the same rejection, so stage splitting alone is not
+a supported fix. This source-free Stage Result case is not counted as an
+executed query. Frontend and Host/ABI owners must identify the exact producer
+and consumer contracts that disagree, keep the filter before the join, and
+rerun the packed Result case after closing that edge.
 
 GQL patterns, VecA/TEA-specific surfaces, INFER/Artifact spelling, INSERT,
 installed raw-text routing, deployment and other owners' runtime redesigns
