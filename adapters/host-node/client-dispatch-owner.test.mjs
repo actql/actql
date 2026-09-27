@@ -17,7 +17,7 @@ test('publication ownership survives a wrapped error and cleanup retry',
         if (!permitCleanup) throw new Error('CloseFailure');
       },
       async cleanup() {},
-      cleanupPending: () => false,
+      cleanupPending: () => !permitCleanup,
     };
     const owner = installNodeClientDispatchOwner({
       moon: {clientProgramOpenSourceFreeLocalHost: () => ({})},
@@ -61,13 +61,15 @@ test('dispatch owner retains failed cleanup and retries without Compute',
     let cleanups = 0;
     let permitCleanup = false;
     const stopped = [];
+    const closeFailure = new Error('PhysicalCloseFailed');
+    let closeFlight;
     const physical = {
-      async close() {
+      close() {
         closes++;
-        if (!permitCleanup) throw new Error('PhysicalCloseFailed');
+        return closeFlight ??= Promise.reject(closeFailure);
       },
-      async cleanup() { cleanups++; },
-      cleanupPending: () => false,
+      async cleanup() { cleanups++; return permitCleanup; },
+      cleanupPending: () => !permitCleanup,
     };
     const owner = installNodeClientDispatchOwner({
       moon: {clientProgramOpenSourceFreeLocalHost: () => ({})},
@@ -94,12 +96,21 @@ test('dispatch owner retains failed cleanup and retries without Compute',
     await owner.operation(ref);
     assert.equal(starts, 1);
     assert.deepEqual(stopped, []);
-    await assert.rejects(owner.drain(), {code: 'ClientDispatchCleanupPending'});
+    for (let retry = 0; retry < 2; retry++) {
+      await assert.rejects(owner.drain(), error => {
+        assert.equal(error.code, 'ClientDispatchCleanupPending');
+        assert.equal(error.failures[0].close, closeFailure);
+        return true;
+      });
+      assert.notEqual(owner.operation(ref), undefined);
+      assert.deepEqual(stopped, []);
+    }
+    assert.equal(cleanups, 4);
     permitCleanup = true;
     await owner.drain();
     assert.equal(starts, 1);
     assert.ok(closes >= 2);
-    assert.equal(cleanups, 1);
+    assert.equal(cleanups, 5);
     assert.deepEqual(stopped, [[ref, null]]);
     assert.equal(owner.operation(ref), undefined);
   });

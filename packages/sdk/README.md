@@ -177,8 +177,8 @@ request. Submitting the same request again returns the existing Run.
 
 ## Resource discovery
 
-`resources(resourceConnection, {query, limit})` lists the Resources an
-installed Host connection shows to the caller, from the Host's current Catalog
+`resources(resourceConnection, {query, limit})` lists the Resources a Host
+that serves discovery for that connection shows to the caller, from the Host's current Catalog
 observation. `snapshotComplete`, `snapshotTruncated` and `resultTruncated` say
 whether the listing is the whole Catalog; a missing name is not evidence that
 a Resource is absent. `inspectResource(resourceConnection, resource)` returns
@@ -188,7 +188,8 @@ anything.
 
 `peekResource(resourceConnection, resource, {fields, maxRows, maxBytes})` is
 authorized separately. It returns at most `maxRows` rows with exactly the
-requested `fields`; `limited` marks a prefix. A preview is display material,
+requested `fields`; `limited` is true when the reply reached `maxRows`, so
+more rows may exist. Row order is not part of the reply. A preview is display material,
 never a complete read, Acquisition evidence or a Result.
 
 ```js

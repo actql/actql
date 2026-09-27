@@ -1,0 +1,3 @@
+{"id": "o1", "customer_id": "c1", "status": "open", "amount": 120}
+{"id": "o2", "customer_id": "c1", "status": "closed", "amount": 30}
+{"id": "o3", "customer_id": "c2", "status": "open", "amount": 80}

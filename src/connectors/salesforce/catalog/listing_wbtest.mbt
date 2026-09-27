@@ -108,3 +108,50 @@ test "listing rejects malformed and unbounded observations" {
     project_resource_listing(malformed, list_limits()) is Err(InvalidResponse),
   )
 }
+
+///|
+test "targeted listing selects only named resources and is never complete" {
+  let listing = project_resource_listing_for(listed(), list_limits(), [
+    "ActQL_Test_Record__c",
+  ]).unwrap()
+  assert_eq(listing.visible_count, 2)
+  assert_true(listing.truncated)
+  assert_eq(listing.selected.length(), 1)
+  assert_eq(listing.selected[0].name, "ActQL_Test_Record__c")
+  assert_true(listing.selected[0].createable)
+  assert_true(
+    select_described_resource(listing, "Account", None) is Err(ListingTruncated),
+  )
+  let unseen = project_resource_listing_for(listed(), list_limits(), [
+    "Hidden__c",
+  ]).unwrap()
+  assert_eq(unseen.selected.length(), 0)
+  assert_true(
+    select_described_resource(unseen, "Hidden__c", None)
+    is Err(ListingTruncated),
+  )
+  let whole = project_resource_listing_for(listed(), list_limits(), [
+    "Account", "ActQL_Test_Record__c",
+  ]).unwrap()
+  assert_false(whole.truncated)
+  assert_true(
+    project_resource_listing_for(listed(), list_limits(), [])
+    is Err(InvalidLimits),
+  )
+  assert_true(
+    project_resource_listing_for(
+      listed(),
+      { ..list_limits(), max_selected: 1, },
+      ["Account", "ActQL_Test_Record__c"],
+    )
+    is Err(InvalidLimits),
+  )
+  let duplicate_body =
+    #|{"sobjects":[{"name":"Account"},{"name":"Account"}]}
+  assert_true(
+    project_resource_listing_for(@utf8.encode(duplicate_body), list_limits(), [
+      "Account",
+    ])
+    is Err(DuplicateResource("Account")),
+  )
+}

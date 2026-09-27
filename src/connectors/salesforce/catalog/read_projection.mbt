@@ -22,6 +22,8 @@ pub struct ReadProjection {
   soql : String
   max_soql_bytes : Int
   prefiltered : Bool
+  id_sortable : Bool
+  ordered_by_id : Bool
   row_limit : Int?
 }
 
@@ -53,6 +55,16 @@ fn read_field_contract(field : FieldMetadata) -> @contract.Contract? {
     _ => return None
   }
   Some(@contract.primitive(kind, nullable=field.nullable))
+}
+
+///|
+/// The Resource's record Id is a described, sortable `id` field.
+fn sortable_record_id(resource : ResourceMetadata) -> Bool {
+  resource.fields
+  .iter()
+  .any(field => {
+    field.name == "Id" && field.native_type == "id" && field.sortable
+  })
 }
 
 ///|
@@ -120,6 +132,8 @@ pub fn prepare_read_projection(
     soql: sql.to_string(),
     max_soql_bytes,
     prefiltered: false,
+    id_sortable: sortable_record_id(resource),
+    ordered_by_id: false,
     row_limit: None,
   })
 }
@@ -142,7 +156,10 @@ pub fn with_exact_int_comparison(
       eligible = true
     }
   }
-  if !eligible || plan.prefiltered || plan.row_limit is Some(_) {
+  if !eligible ||
+    plan.prefiltered ||
+    plan.ordered_by_id ||
+    plan.row_limit is Some(_) {
     return None
   }
   let symbol = match operator {
@@ -157,6 +174,32 @@ pub fn with_exact_int_comparison(
     return None
   }
   Some({ ..plan, soql: plan.soql + suffix, prefiltered: true, })
+}
+
+///|
+/// Fix the provider's retrieval order to ascending record Id, where the
+/// described Resource reports a sortable `id` field. This orders one reply
+/// only: reruns against a changing org may return different rows, and it is
+/// neither a snapshot nor a determinism guarantee across time.
+pub fn with_id_order(plan : ReadProjection) -> ReadProjection? {
+  if !plan.id_sortable || plan.ordered_by_id || plan.row_limit is Some(_) {
+    return None
+  }
+  let suffix = " ORDER BY Id"
+  if suffix.length() > plan.max_soql_bytes - plan.soql.length() {
+    return None
+  }
+  Some({ ..plan, soql: plan.soql + suffix, ordered_by_id: true, })
+}
+
+///|
+pub fn read_projection_id_sortable(plan : ReadProjection) -> Bool {
+  plan.id_sortable
+}
+
+///|
+pub fn read_projection_ordered_by_id(plan : ReadProjection) -> Bool {
+  plan.ordered_by_id
 }
 
 ///|
@@ -217,6 +260,9 @@ pub fn recheck_read_projection(
     catalog_observation_resource(current, next, plan.resource) {
     Ok(value) => value
     Err(issue) => return Err(Observation(issue))
+  }
+  if plan.ordered_by_id && !sortable_record_id(resource) {
+    return Err(SchemaChanged("Id"))
   }
   let names = read_projection_fields(plan)
   let fields = match require_read_fields(resource, names) {
