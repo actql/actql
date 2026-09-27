@@ -16,6 +16,8 @@ import {DEFAULT_SALESFORCE_CATALOG_LIMITS, INSTALLED_SALESFORCE_SITE_VERSION,
   '../host/installed-salesforce-site.mjs';
 import {openSalesforceEffectSiteFixture} from
   './salesforce-effect-site.fixture.mjs';
+import {declarationEnvironment, declaredReadProgram} from
+  './salesforce-declaration-environment.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const configuration = entries => canonicalJson({
@@ -391,4 +393,29 @@ test('installed Salesforce Site declares only its selected, typed Resources',
       resources: ['Test_Record__c']}), {code: 'MoonBitHostFailure'});
     await assert.rejects(site.declareCatalog({connectorId: 'crm-main',
       resources: []}), {code: 'InvalidSalesforceDeclaration'});
+  });
+
+test('a Program is checked against the Site\'s generated declaration',
+  async t => {
+    const setup = await installed(t);
+    const site = await setup.load();
+    const declared = await site.declareCatalog({connectorId: 'crm-main',
+      resources: ['Test_Record__c']});
+    const {text, evidenceCid} = declarationEnvironment(declared);
+    const environment = commonMoon.clientProgramCheckEnvironment(text,
+      evidenceCid, false, false, true, false, false, false, false);
+    assert.ok(environment);
+    const prepare = (resource, fields) =>
+      commonMoon.clientProgramPrepareEffectFreeWithParameters(
+        declaredReadProgram('crm-main', resource, fields), 'json',
+        environment, undefined);
+    const outcome = prepare('Test_Record__c', ['Id', 'Name']);
+    assert.ok(commonMoon.clientProgramPreparationReady(outcome),
+      String(commonMoon.clientProgramPreparationIssueCode(outcome)));
+    // A field outside the declaration, and a Resource outside it, fail Check.
+    for (const [resource, fields] of [['Test_Record__c', ['Id', 'Missing__c']],
+      ['Account', ['Id']]]) {
+      assert.equal(commonMoon.clientProgramPreparationReady(
+        prepare(resource, fields)), undefined);
+    }
   });
