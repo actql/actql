@@ -11,6 +11,7 @@ import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
+import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -426,6 +427,25 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     faultInjection: authorization?.faultInjection,
     fragment, ordered, tenantId, authorityScopeCid, storeAuthorityCid, now});
   const startDispatch = dispatchOwner.start;
+  const recoverEffectCapture = (ref, signal) => {
+    const retained = journal.lookupRunDefinition(ref, moon, control);
+    if (retained === undefined || typeof retained.requestId !== 'string') {
+      throw new Error('EffectRecoveryRequestMismatch');
+    }
+    const requestId = retained.requestId;
+    return recoverAdmittedEffectRun({requests: journal, store,
+      key: {tenantId, authorityScopeCid, requestId,
+        runDefinitionCid: ref.runDefinitionCid}, principalId,
+      contractLimits: localContractLimits, signal,
+      authorizeEvidenceRead: binding => hostConnection({principalId,
+        connection: {mode, owner: mode}, ref}) &&
+        binding.tenantId === tenantId &&
+        binding.authorityScopeCid === authorityScopeCid &&
+        binding.requestId === requestId &&
+        binding.runDefinitionCid === ref.runDefinitionCid &&
+        binding.storeAuthorityCid === storeAuthorityCid},
+    async () => moon);
+  };
   const effectRun = effectInstallation === undefined ? undefined :
     installNodeClientEffectRun({moon, publicationControl: control, journal,
       now,
@@ -448,6 +468,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         run: ({signal, retainExecution}) => effectInstallation.execute(
           Object.freeze({...facts, signal, retainExecution, moon, control,
             store, storeAuthorityCid, authorityScopeCid,
+            recoverCapture: ({signal: recoverySignal} = {}) =>
+              recoverEffectCapture(facts.ref, recoverySignal),
             effectAuthorization: checkpoints?.effectAuthorization,
             recordReconciliation: (...args) =>
               effectRun.recordReconciliation(...args)})),
@@ -886,6 +908,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
                 continuation, retained, moon, control, store,
                 storeAuthorityCid, authorityScopeCid, signal,
                 retainExecution,
+                recoverCapture: ({signal: recoverySignal} = {}) =>
+                  recoverEffectCapture(ref, recoverySignal),
                 checkpointJournal: checkpoints.journal,
                 checkpointBinding: checkpoints.binding,
                 effectAuthorization: checkpoints.effectAuthorization,

@@ -56,6 +56,14 @@ Branch: `feat/host-effect-commit-checkpoint`.
   only after its physical cleanup completes; an exception without that
   observation remains unknown. The public Client test covers deferred target
   read, zero Site reads/writes, no unanswerable Checkpoint, and restart.
+- The installed Host now supplies a scoped `recoverCapture` operation to its
+  Effect callbacks. It resolves the original request ID from the exact
+  accepted RunRef and reuses the common evidence-read admission. It never
+  reissues an Invocation or reruns Compute. Evidence recovery may proceed
+  under its own signal after execution cancellation, but mutation admission
+  remains separate. The current mock Site proves the exact lookup and
+  absence result; a retained-capture success through this port is still
+  required.
 
 ## Remaining product connections
 

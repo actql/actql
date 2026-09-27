@@ -535,7 +535,7 @@ export function openClientRequestJournal(directory, {
       const accepted = admission(row);
       return Object.freeze({
         ref: accepted.ref, durability: accepted.durability,
-        revision: accepted.revision,
+        revision: accepted.revision, requestId: row.caller_request_id,
         ...retainedRunFacts(row, publicationControl,
           maxRunDefinitionWireBytes),
       });

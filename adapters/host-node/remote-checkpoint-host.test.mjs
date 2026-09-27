@@ -478,12 +478,15 @@ test('installed Effect commit resumes the same Run without resending',
         return {status: 'waiting_checkpoint'};
       },
       async resume({ref, view, continuation, effectAuthorization,
+        recoverCapture,
         checkpointJournal, checkpointBinding, retainExecution}) {
         resumed++;
         retainExecution({async close() {}, async cleanup() { return true; },
           cleanupPending() { return false; }});
         const subjectCid = subjectFor(ref);
         assert.equal(continuation.subjectCid, subjectCid);
+        await assert.rejects(recoverCapture(),
+          {code: 'CompletedEffectfulCaptureUnavailable'});
         const claimed = checkpointJournal.claimResume(view.runId, {
           claimant: 'installed-effect-host', leaseMs: 60_000,
           binding: checkpointBinding});
