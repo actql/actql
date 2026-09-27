@@ -183,7 +183,7 @@ if (actualKeys.length !== expectedKeys.length ||
 const routes = fs.existsSync(routesPath)
   ? readJson(routesPath)
   : {routes: []};
-if (routes.version !== 'actql-local-resource-production-routes/0.2') {
+if (routes.version !== 'actql-local-resource-production-routes/0.1') {
   fail(`unexpected production route version: ${routes.version}`);
 }
 const routeEntries = routes.routes ?? [];

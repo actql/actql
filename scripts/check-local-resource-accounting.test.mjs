@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 48 with four-role boundary evidence, 48 with full work\/workspace assurance, 87 with path-scoped work\/workspace evidence, 4 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 68 with four-role boundary evidence, 68 with full work\/workspace assurance, 111 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('same-stage equality join requires its bounded route and evidence', () => {
@@ -865,7 +865,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 87 |',
+    '| Path-scoped work/workspace assurance | 111 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);
@@ -1836,9 +1836,9 @@ test('assured path claims reject duplicate or invented routes', () => {
   }), /assured production claims differ from resource-assured routes/);
   assert.match(run(manifest => {
     manifest.assured_production_paths.push({
-      family: 'SGA', operation: 'shortest_path', path: 'entrypoint',
+      family: 'SGA', operation: 'shortest_path', path: 'selected_entrypoint',
     });
-  }), /SGA:shortest_path:entrypoint: assured production claim lacks its exact route proofs/);
+  }), /SGA:shortest_path:selected_entrypoint: assured production claim lacks its exact route proofs/);
 });
 
 test('mixed-path gate rejects missing delivered prefix cancellation', () => {
@@ -2102,8 +2102,17 @@ test('resource gate keeps assertion work proofs variant-specific', () => {
 });
 
 test('resource completion rejects every unassured operation', () => {
+  assert.match(run(undefined, value => {
+    const route = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'analytic');
+    delete route.path_assurance.entrypoint;
+  }, ['--require-boundary-complete']),
+  /RelA analytic: entrypoint boundary assurance is missing/);
+});
+
+test('strict resource completion accepts every assured route', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /RelA analytic: entrypoint boundary assurance is missing/);
+    /68 with four-role boundary evidence, 68 with full work\/workspace assurance/);
 });
 
 test('whole-sequence take owes both keyed and unkeyed resource branches', () => {
@@ -2125,8 +2134,12 @@ test('whole-sequence filter proof reuse needs its shared entrypoint grant', () =
 });
 
 test('resource completion also rejects an unassured SGA route', () => {
-  assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /SGA shortest_path: entrypoint boundary assurance is missing/);
+  assert.match(run(undefined, value => {
+    const route = value.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'shortest_path');
+    delete route.path_assurance.entrypoint;
+  }, ['--require-boundary-complete']),
+  /SGA shortest_path: entrypoint boundary assurance is missing/);
 });
 
 test('resource completion requires the selected sort proof set', () => {

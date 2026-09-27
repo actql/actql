@@ -1,5 +1,5 @@
 {
-  "version": "actql-local-resource-production-routes/0.2",
+  "version": "actql-local-resource-production-routes/0.1",
   "mixed_paths": [
     {
       "id": "graph_subgraph_node_rows_filter",
@@ -1582,8 +1582,8 @@
         "marker": "WindowStep("
       },
       "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
+        "path": "src/connectors/local/row_window_provider.mbt",
+        "symbol": "row_window_provider"
       },
       "selected_entrypoint": {
         "path": "src/connectors/local/row_window_provider.mbt",
@@ -1593,70 +1593,110 @@
         {
           "role": "row_window_empty_schema_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/row_window_scale_wbtest.mbt",
           "fixture": "empty row window reserves its output schema before allocation"
         },
         {
           "role": "row_window_input_index_pre_admission",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/row_window_scale_wbtest.mbt",
           "fixture": "row window admits its input-name index before field traversal"
         },
         {
           "role": "row_window_bounded_quantum_output",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_row_window_wbtest.mbt",
           "fixture": "bounded row windows preserve ascending memberships at quantum one"
         },
         {
           "role": "row_window_nested_input_cancel_cleanup",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_row_window_wbtest.mbt",
           "fixture": "bounded row window stops inside an unused nested input value"
         },
         {
           "role": "row_window_nested_input_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_row_window_wbtest.mbt",
           "fixture": "bounded row window preserves exact nested input value charges"
         },
         {
           "role": "row_window_nested_input_host_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "standard Host cancels a unary kernel inside a nested input"
         },
         {
           "role": "row_window_exact_output_boundary",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_row_window_wbtest.mbt",
           "fixture": "bounded row window rejects only an unrepresentable output boundary"
         },
         {
           "role": "row_window_bounded_cancel_cleanup",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_row_window_wbtest.mbt",
           "fixture": "bounded row window cancellation stops before exposing partial rows"
         },
         {
           "role": "row_window_bounded_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_row_window_wbtest.mbt",
           "fixture": "bounded row window admits exact live metadata and rejects one short"
         },
         {
           "role": "row_window_bounded_control_work_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_row_window_wbtest.mbt",
           "fixture": "bounded row window admits exact control work and rejects one short"
         }
@@ -1665,7 +1705,9 @@
         {
           "role": "row_window_standard_host_two_consumers",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "fixed parameter row window",
           "case": "fixedRowWindowProgram"
@@ -1673,9 +1715,20 @@
         {
           "role": "row_window_in_flight_host_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-values-row-window-in-flight"
+        },
+        {
+          "role": "row_window_ordinary_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-row-window-in-flight"
         }
       ],
       "path_assurance": {
@@ -1683,6 +1736,12 @@
           "exact_limit": "row_window_bounded_workspace_exact_one_short",
           "one_short_limit": "row_window_bounded_control_work_exact_one_short",
           "in_flight_cancel": "row_window_in_flight_host_timer",
+          "cleanup": "row_window_bounded_cancel_cleanup"
+        },
+        "entrypoint": {
+          "exact_limit": "row_window_bounded_workspace_exact_one_short",
+          "one_short_limit": "row_window_bounded_control_work_exact_one_short",
+          "in_flight_cancel": "row_window_ordinary_host_timer",
           "cleanup": "row_window_bounded_cancel_cleanup"
         }
       },
@@ -1696,8 +1755,44 @@
             "exact_limit": "row_window_bounded_workspace_exact_one_short",
             "one_short_limit": "row_window_bounded_workspace_exact_one_short"
           }
+        },
+        "entrypoint": {
+          "work": {
+            "exact_limit": "row_window_bounded_control_work_exact_one_short",
+            "one_short_limit": "row_window_bounded_control_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "row_window_bounded_workspace_exact_one_short",
+            "one_short_limit": "row_window_bounded_workspace_exact_one_short"
+          }
         }
-      }
+      },
+      "shared_proof_reuse": [
+        {
+          "role": "row_window_bounded_workspace_exact_one_short",
+          "paths": [
+            "selected_entrypoint",
+            "entrypoint"
+          ],
+          "reason": "Ordinary and selected row_window tasks run row_window_provider; the ordinary Host timer separately proves the ordinary entry reaches it."
+        },
+        {
+          "role": "row_window_bounded_control_work_exact_one_short",
+          "paths": [
+            "selected_entrypoint",
+            "entrypoint"
+          ],
+          "reason": "Ordinary and selected row_window tasks run row_window_provider; the ordinary Host timer separately proves the ordinary entry reaches it."
+        },
+        {
+          "role": "row_window_bounded_cancel_cleanup",
+          "paths": [
+            "selected_entrypoint",
+            "entrypoint"
+          ],
+          "reason": "Ordinary and selected row_window tasks run row_window_provider; the ordinary Host timer separately proves the ordinary entry reaches it."
+        }
+      ]
     },
     {
       "inventory": "rela",
@@ -1709,18 +1804,86 @@
         "marker": "WindowStep("
       },
       "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "bounded_relation_chain_execution"
       },
       "boundary_tests": [
         {
           "role": "window_group_empty_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/window_group_scale_wbtest.mbt",
           "fixture": "empty window group has an independently bounded resource path"
+        },
+        {
+          "role": "window_group_chain_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_window_group_chain_resource_wbtest.mbt",
+          "fixture": "ordinary window group chain admits exact work and one-short limits"
+        },
+        {
+          "role": "window_group_chain_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_window_group_chain_resource_wbtest.mbt",
+          "fixture": "ordinary window group chain admits exact workspace and one-short limit"
+        },
+        {
+          "role": "window_group_chain_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_window_group_chain_resource_wbtest.mbt",
+          "fixture": "ordinary window group chain cancels after bounded work and cleans up"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "window_group_ordinary_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-window-group-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "window_group_chain_work_exact_one_short",
+          "one_short_limit": "window_group_chain_work_exact_one_short",
+          "in_flight_cancel": "window_group_ordinary_host_timer",
+          "cleanup": "window_group_chain_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "window_group_chain_work_exact_one_short",
+            "one_short_limit": "window_group_chain_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "window_group_chain_workspace_exact_one_short",
+            "one_short_limit": "window_group_chain_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "rela",
@@ -1947,8 +2110,8 @@
         "marker": "Pivot("
       },
       "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
+        "path": "src/connectors/local/group_provider.mbt",
+        "symbol": "group_provider"
       },
       "selected_entrypoint": {
         "path": "src/connectors/local/group_provider.mbt",
@@ -1958,37 +2121,149 @@
         {
           "role": "pivot_fixed_sequence_work_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/pivot_sequence_wbtest.mbt",
           "fixture": "pivot accepts exact shared work and rejects one-short execution"
         },
         {
           "role": "pivot_bounded_work_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_group_wbtest.mbt",
           "fixture": "bounded pivot admits exact work and rejects one unit short"
         },
         {
           "role": "pivot_bounded_stop_nonpublication",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_group_wbtest.mbt",
           "fixture": "bounded pivot stops after positive work without publishing"
         },
         {
           "role": "pivot_managed_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "Local managed unary source forms feed two downstream Computes"
         },
         {
           "role": "pivot_host_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "standard Host cancels pivot after bounded work"
+        },
+        {
+          "role": "pivot_bounded_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_resource_boundary_wbtest.mbt",
+          "fixture": "bounded group-family executions admit their exact workspace peak"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "pivot_ordinary_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-pivot-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "pivot_bounded_work_exact_one_short",
+          "one_short_limit": "pivot_bounded_work_exact_one_short",
+          "in_flight_cancel": "pivot_ordinary_host_timer",
+          "cleanup": "pivot_bounded_stop_nonpublication"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "pivot_bounded_work_exact_one_short",
+          "one_short_limit": "pivot_bounded_work_exact_one_short",
+          "in_flight_cancel": "pivot_ordinary_host_timer",
+          "cleanup": "pivot_bounded_stop_nonpublication"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "pivot_bounded_work_exact_one_short",
+            "one_short_limit": "pivot_bounded_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "pivot_bounded_workspace_exact_one_short",
+            "one_short_limit": "pivot_bounded_workspace_exact_one_short"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "pivot_bounded_work_exact_one_short",
+            "one_short_limit": "pivot_bounded_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "pivot_bounded_workspace_exact_one_short",
+            "one_short_limit": "pivot_bounded_workspace_exact_one_short"
+          }
+        }
+      },
+      "shared_proof_reuse": [
+        {
+          "role": "pivot_bounded_work_exact_one_short",
+          "paths": [
+            "entrypoint",
+            "selected_entrypoint"
+          ],
+          "reason": "Whole-sequence and selected pivot tasks both run group_provider, the bounded group kernel with the same pivot preparation."
+        },
+        {
+          "role": "pivot_bounded_workspace_exact_one_short",
+          "paths": [
+            "entrypoint",
+            "selected_entrypoint"
+          ],
+          "reason": "Whole-sequence and selected pivot tasks both run group_provider, the bounded group kernel with the same pivot preparation."
+        },
+        {
+          "role": "pivot_bounded_stop_nonpublication",
+          "paths": [
+            "entrypoint",
+            "selected_entrypoint"
+          ],
+          "reason": "Whole-sequence and selected pivot tasks both run group_provider, the bounded group kernel with the same pivot preparation."
+        },
+        {
+          "role": "pivot_ordinary_host_timer",
+          "paths": [
+            "entrypoint",
+            "selected_entrypoint"
+          ],
+          "reason": "Whole-sequence and selected pivot tasks both run group_provider, the bounded group kernel with the same pivot preparation."
         }
       ]
     },
@@ -2002,8 +2277,8 @@
         "marker": "Unpivot("
       },
       "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
+        "path": "src/connectors/local/unpivot_provider.mbt",
+        "symbol": "unpivot_provider"
       },
       "selected_entrypoint": {
         "path": "src/connectors/local/unpivot_provider.mbt",
@@ -2013,98 +2288,154 @@
         {
           "role": "unpivot_fixed_sequence_work_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/unpivot_sequence_wbtest.mbt",
           "fixture": "unpivot accepts exact shared work and rejects one-short execution"
         },
         {
           "role": "unpivot_empty_schema_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/reshape_scale_wbtest.mbt",
           "fixture": "empty reshape outputs reserve schema entries before construction"
         },
         {
           "role": "unpivot_input_index_pre_admission",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/reshape_scale_wbtest.mbt",
           "fixture": "reshape admits input-name indices before field traversal"
         },
         {
           "role": "unpivot_bounded_quantum_output",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
           "fixture": "bounded unpivot preserves repeated columns and ordered occurrences"
         },
         {
           "role": "unpivot_bounded_cancel_cleanup",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
           "fixture": "bounded unpivot cancels after output work without partial completion"
         },
         {
           "role": "unpivot_unused_nested_input_cancel_cleanup",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
           "fixture": "bounded unpivot stops inside an unused nested input value"
         },
         {
           "role": "unpivot_nested_input_value_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
           "fixture": "bounded unpivot preserves exact nested input value charges"
         },
         {
           "role": "unpivot_bounded_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
           "fixture": "bounded unpivot admits exact empty metadata and rejects one short"
         },
         {
           "role": "unpivot_bounded_control_work_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
           "fixture": "bounded unpivot admits exact empty control work and rejects one short"
         },
         {
           "role": "unpivot_bounded_output_limit",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
           "fixture": "bounded unpivot enforces the output row ceiling incrementally"
         },
         {
           "role": "unpivot_nonempty_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
           "fixture": "bounded unpivot admits exact nonempty work and workspace"
         },
         {
           "role": "unpivot_captured_chain_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "ordinary captured Relation chains feed two bounded consumers"
         },
         {
           "role": "unpivot_captured_chain_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "ordinary captured Relation chain cancels after bounded work"
         },
         {
           "role": "unpivot_nested_input_host_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "standard Host cancels a unary kernel inside a nested input"
         }
@@ -2113,7 +2444,9 @@
         {
           "role": "unpivot_standard_host_two_consumers",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "unpivot",
           "case": "unpivotProgram"
@@ -2121,7 +2454,9 @@
         {
           "role": "unpivot_same_stage_host_two_consumers",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage unpivot",
           "case": "sameStageUnpivotProgram"
@@ -2129,14 +2464,18 @@
         {
           "role": "unpivot_in_flight_host_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-values-unpivot-in-flight"
         },
         {
           "role": "unpivot_captured_chain_host_two_consumers",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "captured Relation unpivot/filter chain",
           "case": "capturedUnpivotChainProgram"
@@ -2144,7 +2483,9 @@
         {
           "role": "unpivot_retained_chain_host_two_consumers",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "unpivot/filter",
           "case": "capturedUnpivotChainProgram"
@@ -2152,9 +2493,20 @@
         {
           "role": "unpivot_captured_chain_in_flight_host_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "captured-unpivot-chain-in-flight"
+        },
+        {
+          "role": "unpivot_ordinary_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-unpivot-in-flight"
         }
       ],
       "path_assurance": {
@@ -2162,6 +2514,12 @@
           "exact_limit": "unpivot_nonempty_work_workspace_exact_one_short",
           "one_short_limit": "unpivot_nonempty_work_workspace_exact_one_short",
           "in_flight_cancel": "unpivot_in_flight_host_timer",
+          "cleanup": "unpivot_bounded_cancel_cleanup"
+        },
+        "entrypoint": {
+          "exact_limit": "unpivot_nonempty_work_workspace_exact_one_short",
+          "one_short_limit": "unpivot_nonempty_work_workspace_exact_one_short",
+          "in_flight_cancel": "unpivot_ordinary_host_timer",
           "cleanup": "unpivot_bounded_cancel_cleanup"
         }
       },
@@ -2175,8 +2533,36 @@
             "exact_limit": "unpivot_nonempty_work_workspace_exact_one_short",
             "one_short_limit": "unpivot_nonempty_work_workspace_exact_one_short"
           }
+        },
+        "entrypoint": {
+          "work": {
+            "exact_limit": "unpivot_nonempty_work_workspace_exact_one_short",
+            "one_short_limit": "unpivot_nonempty_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "unpivot_nonempty_work_workspace_exact_one_short",
+            "one_short_limit": "unpivot_nonempty_work_workspace_exact_one_short"
+          }
         }
-      }
+      },
+      "shared_proof_reuse": [
+        {
+          "role": "unpivot_nonempty_work_workspace_exact_one_short",
+          "paths": [
+            "selected_entrypoint",
+            "entrypoint"
+          ],
+          "reason": "Ordinary and selected unpivot tasks run unpivot_provider; the ordinary Host timer separately proves the ordinary entry reaches it."
+        },
+        {
+          "role": "unpivot_bounded_cancel_cleanup",
+          "paths": [
+            "selected_entrypoint",
+            "entrypoint"
+          ],
+          "reason": "Ordinary and selected unpivot tasks run unpivot_provider; the ordinary Host timer separately proves the ordinary entry reaches it."
+        }
+      ]
     },
     {
       "inventory": "rela",
@@ -2188,8 +2574,8 @@
         "marker": "JsonPick("
       },
       "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_relation_provider"
       },
       "selected_entrypoint": {
         "path": "src/connectors/local/selected_relation_provider.mbt",
@@ -2199,28 +2585,44 @@
         {
           "role": "json_pick_leaf_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/json_pick_domains_wbtest.mbt",
           "fixture": "json pick admits independently counted leaf work and workspace"
         },
         {
           "role": "json_pick_selected_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_json_pick_wbtest.mbt",
           "fixture": "bounded json pick admits exact work and workspace"
         },
         {
           "role": "json_pick_completed_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_json_pick_wbtest.mbt",
           "fixture": "bounded json pick completed input admits exact work and workspace"
         },
         {
           "role": "json_pick_selected_cancel_cleanup",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_json_pick_wbtest.mbt",
           "fixture": "bounded json pick cancels before field search completes"
         }
@@ -2229,7 +2631,9 @@
         {
           "role": "json_pick_host_two_consumers",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "json pick",
           "case": "jsonPickProgram"
@@ -2237,7 +2641,9 @@
         {
           "role": "json_pick_same_stage_host_two_consumers",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage json pick",
           "case": "sameStageJsonPickProgram"
@@ -2245,7 +2651,9 @@
         {
           "role": "json_pick_same_stage_filter_host_two_consumers",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage json pick/filter",
           "case": "sameStageJsonFilterProgram"
@@ -2253,16 +2661,29 @@
         {
           "role": "json_pick_same_stage_filter_in_flight_host_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage-json-pick-filter-in-flight"
         },
         {
           "role": "json_pick_in_flight_host_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-values-json-pick-in-flight"
+        },
+        {
+          "role": "json_pick_ordinary_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-json-pick-in-flight"
         }
       ],
       "path_assurance": {
@@ -2270,6 +2691,12 @@
           "exact_limit": "json_pick_completed_work_workspace_exact_one_short",
           "one_short_limit": "json_pick_completed_work_workspace_exact_one_short",
           "in_flight_cancel": "json_pick_in_flight_host_timer",
+          "cleanup": "json_pick_selected_cancel_cleanup"
+        },
+        "entrypoint": {
+          "exact_limit": "json_pick_completed_work_workspace_exact_one_short",
+          "one_short_limit": "json_pick_completed_work_workspace_exact_one_short",
+          "in_flight_cancel": "json_pick_ordinary_host_timer",
           "cleanup": "json_pick_selected_cancel_cleanup"
         }
       },
@@ -2283,8 +2710,36 @@
             "exact_limit": "json_pick_completed_work_workspace_exact_one_short",
             "one_short_limit": "json_pick_completed_work_workspace_exact_one_short"
           }
+        },
+        "entrypoint": {
+          "work": {
+            "exact_limit": "json_pick_completed_work_workspace_exact_one_short",
+            "one_short_limit": "json_pick_completed_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "json_pick_completed_work_workspace_exact_one_short",
+            "one_short_limit": "json_pick_completed_work_workspace_exact_one_short"
+          }
         }
-      }
+      },
+      "shared_proof_reuse": [
+        {
+          "role": "json_pick_completed_work_workspace_exact_one_short",
+          "paths": [
+            "selected_entrypoint",
+            "entrypoint"
+          ],
+          "reason": "Ordinary and selected json_pick tasks run selected_relation_provider; the ordinary Host timer separately proves the ordinary entry reaches it."
+        },
+        {
+          "role": "json_pick_selected_cancel_cleanup",
+          "paths": [
+            "selected_entrypoint",
+            "entrypoint"
+          ],
+          "reason": "Ordinary and selected json_pick tasks run selected_relation_provider; the ordinary Host timer separately proves the ordinary entry reaches it."
+        }
+      ]
     },
     {
       "inventory": "rela",
@@ -2296,8 +2751,8 @@
         "marker": "Unnest("
       },
       "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
+        "path": "src/connectors/local/unnest_provider.mbt",
+        "symbol": "unnest_provider"
       },
       "selected_entrypoint": {
         "path": "src/connectors/local/unnest_provider.mbt",
@@ -2307,91 +2762,143 @@
         {
           "role": "unnest_fixed_sequence_work_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/unnest_sequence_wbtest.mbt",
           "fixture": "unnest accepts exact shared work and rejects one-short execution"
         },
         {
           "role": "unnest_empty_schema_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/reshape_scale_wbtest.mbt",
           "fixture": "empty reshape outputs reserve schema entries before construction"
         },
         {
           "role": "unnest_input_index_pre_admission",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/reshape_scale_wbtest.mbt",
           "fixture": "reshape admits input-name indices before field traversal"
         },
         {
           "role": "unnest_bounded_quantum_output",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
           "fixture": "bounded unnest retains item order and outer indexed rows"
         },
         {
           "role": "unnest_bounded_cancel_cleanup",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
           "fixture": "bounded unnest stops after output work without partial completion"
         },
         {
           "role": "unnest_long_input_cancel_cleanup",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
           "fixture": "bounded unnest stops inside its long input array"
         },
         {
           "role": "unnest_input_array_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
           "fixture": "bounded unnest preserves exact input array charges"
         },
         {
           "role": "unnest_bounded_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
           "fixture": "bounded unnest admits exact empty metadata and rejects one short"
         },
         {
           "role": "unnest_bounded_control_work_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
           "fixture": "bounded unnest admits exact empty work and rejects one short"
         },
         {
           "role": "unnest_bounded_output_limit",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
           "fixture": "bounded unnest rejects output overflow incrementally"
         },
         {
           "role": "unnest_nonempty_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
           "fixture": "bounded unnest admits exact nonempty work and workspace"
         },
         {
           "role": "unnest_nested_chain_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_nest_wbtest.mbt",
           "fixture": "nest output unnest filter feeds two bounded consumers"
         },
         {
           "role": "unnest_long_input_host_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "standard Host cancels a unary kernel inside a nested input"
         }
@@ -2400,7 +2907,9 @@
         {
           "role": "unnest_standard_host_two_consumers",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "unnest",
           "case": "unnestProgram"
@@ -2408,7 +2917,9 @@
         {
           "role": "unnest_same_stage_host_two_consumers",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage unnest",
           "case": "sameStageUnnestProgram"
@@ -2416,14 +2927,18 @@
         {
           "role": "unnest_in_flight_host_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-values-unnest-in-flight"
         },
         {
           "role": "unnest_nested_chain_host_two_consumers",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "nest then unnest/filter",
           "case": "nestUnwrapProgram"
@@ -2431,9 +2946,20 @@
         {
           "role": "unnest_nested_chain_in_flight_host_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "nest-output-unnest-chain-in-flight"
+        },
+        {
+          "role": "unnest_ordinary_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-unnest-in-flight"
         }
       ],
       "path_assurance": {
@@ -2441,6 +2967,12 @@
           "exact_limit": "unnest_nonempty_work_workspace_exact_one_short",
           "one_short_limit": "unnest_nonempty_work_workspace_exact_one_short",
           "in_flight_cancel": "unnest_in_flight_host_timer",
+          "cleanup": "unnest_bounded_cancel_cleanup"
+        },
+        "entrypoint": {
+          "exact_limit": "unnest_nonempty_work_workspace_exact_one_short",
+          "one_short_limit": "unnest_nonempty_work_workspace_exact_one_short",
+          "in_flight_cancel": "unnest_ordinary_host_timer",
           "cleanup": "unnest_bounded_cancel_cleanup"
         }
       },
@@ -2454,8 +2986,36 @@
             "exact_limit": "unnest_nonempty_work_workspace_exact_one_short",
             "one_short_limit": "unnest_nonempty_work_workspace_exact_one_short"
           }
+        },
+        "entrypoint": {
+          "work": {
+            "exact_limit": "unnest_nonempty_work_workspace_exact_one_short",
+            "one_short_limit": "unnest_nonempty_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "unnest_nonempty_work_workspace_exact_one_short",
+            "one_short_limit": "unnest_nonempty_work_workspace_exact_one_short"
+          }
         }
-      }
+      },
+      "shared_proof_reuse": [
+        {
+          "role": "unnest_nonempty_work_workspace_exact_one_short",
+          "paths": [
+            "selected_entrypoint",
+            "entrypoint"
+          ],
+          "reason": "Ordinary and selected unnest tasks run unnest_provider; the ordinary Host timer separately proves the ordinary entry reaches it."
+        },
+        {
+          "role": "unnest_bounded_cancel_cleanup",
+          "paths": [
+            "selected_entrypoint",
+            "entrypoint"
+          ],
+          "reason": "Ordinary and selected unnest tasks run unnest_provider; the ordinary Host timer separately proves the ordinary entry reaches it."
+        }
+      ]
     },
     {
       "inventory": "rela",
@@ -2467,8 +3027,8 @@
         "marker": "JoinStep("
       },
       "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
+        "path": "src/connectors/local/selected_join_execution.mbt",
+        "symbol": "selected_join_execution"
       },
       "external_input_entrypoint": {
         "path": "src/connectors/local/selected_join_execution.mbt",
@@ -2486,116 +3046,308 @@
         {
           "role": "bounded_join_empty_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_join_wbtest.mbt",
           "fixture": "empty bounded join has independent exact work and workspace limits"
         },
         {
           "role": "bounded_join_output_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_join_wbtest.mbt",
           "fixture": "bounded join reserves overlapping output and index workspace"
         },
         {
           "role": "bounded_join_value_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_join_wbtest.mbt",
           "fixture": "bounded join output node admission rejects before completion"
         },
         {
           "role": "bounded_join_cancel_cleanup",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_join_wbtest.mbt",
           "fixture": "bounded join cancels during private index construction and output"
         },
         {
           "role": "bounded_join_long_comparison_cancel",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_join_wbtest.mbt",
           "fixture": "bounded join yields within a long equal text key comparison"
         },
         {
           "role": "bounded_join_order_and_quantum",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_join_wbtest.mbt",
           "fixture": "bounded joins preserve pair order and null extension at every quantum"
         },
         {
           "role": "bounded_join_standard_host_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_join_wbtest.mbt",
           "fixture": "Local managed equality joins bind both ports and feed two Computes"
         },
         {
           "role": "bounded_join_qualified_chain_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "Local qualified select feeds two downstream Computes"
         },
         {
           "role": "bounded_join_split_dag_edges",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/physical_graph_wbtest.mbt",
           "fixture": "physical DAG selects both branches of a same-stage equality join"
         },
         {
           "role": "bounded_join_split_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_join_wbtest.mbt",
           "fixture": "Local managed full join retains stable identities for two consumers"
         },
         {
           "role": "bounded_join_split_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_join_wbtest.mbt",
           "fixture": "Local same-stage full join cancels without reclaiming its branches"
         },
         {
           "role": "join_empty_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/join_rows_wbtest.mbt",
           "fixture": "empty equality join has an independently bounded resource path"
+        },
+        {
+          "role": "bounded_join_same_stage_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_join_same_stage_resource_wbtest.mbt",
+          "fixture": "same-stage full join admits exact work and one-short limits"
+        },
+        {
+          "role": "bounded_join_same_stage_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_join_same_stage_resource_wbtest.mbt",
+          "fixture": "same-stage full join admits exact workspace and one-short limit"
         }
       ],
       "environment_tests": [
         {
           "role": "bounded_join_chain_host_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "equality-join-chain-in-flight"
         },
         {
           "role": "bounded_join_named_result_retrieval",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "bounded-join-publication"
         },
         {
           "role": "bounded_join_split_host_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage-full-join-in-flight"
         },
         {
           "role": "bounded_join_split_named_result",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage-full-join-publication"
+        },
+        {
+          "role": "bounded_join_ordinary_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-equality-join-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "bounded_join_empty_work_workspace_exact_one_short",
+          "one_short_limit": "bounded_join_output_workspace_exact_one_short",
+          "in_flight_cancel": "bounded_join_ordinary_host_timer",
+          "cleanup": "bounded_join_cancel_cleanup"
+        },
+        "external_input_entrypoint": {
+          "exact_limit": "bounded_join_empty_work_workspace_exact_one_short",
+          "one_short_limit": "bounded_join_output_workspace_exact_one_short",
+          "in_flight_cancel": "bounded_join_ordinary_host_timer",
+          "cleanup": "bounded_join_cancel_cleanup"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "bounded_join_empty_work_workspace_exact_one_short",
+          "one_short_limit": "bounded_join_output_workspace_exact_one_short",
+          "in_flight_cancel": "bounded_join_chain_host_timer",
+          "cleanup": "bounded_join_cancel_cleanup"
+        },
+        "same_stage_entrypoint": {
+          "exact_limit": "bounded_join_same_stage_work_exact_one_short",
+          "one_short_limit": "bounded_join_same_stage_workspace_exact_one_short",
+          "in_flight_cancel": "bounded_join_split_host_timer",
+          "cleanup": "bounded_join_split_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "bounded_join_empty_work_workspace_exact_one_short",
+            "one_short_limit": "bounded_join_empty_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "bounded_join_output_workspace_exact_one_short",
+            "one_short_limit": "bounded_join_output_workspace_exact_one_short"
+          }
+        },
+        "external_input_entrypoint": {
+          "work": {
+            "exact_limit": "bounded_join_empty_work_workspace_exact_one_short",
+            "one_short_limit": "bounded_join_empty_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "bounded_join_output_workspace_exact_one_short",
+            "one_short_limit": "bounded_join_output_workspace_exact_one_short"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "bounded_join_empty_work_workspace_exact_one_short",
+            "one_short_limit": "bounded_join_empty_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "bounded_join_output_workspace_exact_one_short",
+            "one_short_limit": "bounded_join_output_workspace_exact_one_short"
+          }
+        },
+        "same_stage_entrypoint": {
+          "work": {
+            "exact_limit": "bounded_join_same_stage_work_exact_one_short",
+            "one_short_limit": "bounded_join_same_stage_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "bounded_join_same_stage_workspace_exact_one_short",
+            "one_short_limit": "bounded_join_same_stage_workspace_exact_one_short"
+          }
+        }
+      },
+      "shared_proof_reuse": [
+        {
+          "role": "bounded_join_empty_work_workspace_exact_one_short",
+          "paths": [
+            "entrypoint",
+            "external_input_entrypoint",
+            "selected_entrypoint"
+          ],
+          "reason": "Whole-sequence, external-input and selected equality joins all run selected_join_execution over the same bounded join kernel."
+        },
+        {
+          "role": "bounded_join_output_workspace_exact_one_short",
+          "paths": [
+            "entrypoint",
+            "external_input_entrypoint",
+            "selected_entrypoint"
+          ],
+          "reason": "Whole-sequence, external-input and selected equality joins all run selected_join_execution over the same bounded join kernel."
+        },
+        {
+          "role": "bounded_join_cancel_cleanup",
+          "paths": [
+            "entrypoint",
+            "external_input_entrypoint",
+            "selected_entrypoint"
+          ],
+          "reason": "Whole-sequence, external-input and selected equality joins all run selected_join_execution over the same bounded join kernel."
+        },
+        {
+          "role": "bounded_join_ordinary_host_timer",
+          "paths": [
+            "entrypoint",
+            "external_input_entrypoint"
+          ],
+          "reason": "A single equality join step over two external inputs is both the whole-sequence and the external-input route."
         }
       ]
     },
@@ -2609,18 +3361,86 @@
         "marker": "NestStep("
       },
       "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
+        "path": "src/connectors/local/nest_provider.mbt",
+        "symbol": "nest_provider"
       },
       "boundary_tests": [
         {
           "role": "nest_empty_work_workspace_independent_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/nest_scale_wbtest.mbt",
           "fixture": "empty nest observes the exact metadata workspace boundary"
+        },
+        {
+          "role": "nest_bounded_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_nest_wbtest.mbt",
+          "fixture": "bounded nest admits exact work and rejects one unit short"
+        },
+        {
+          "role": "nest_bounded_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_resource_boundary_wbtest.mbt",
+          "fixture": "bounded nest admits its exact workspace peak"
+        },
+        {
+          "role": "nest_bounded_cleanup_release",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_nest_wbtest.mbt",
+          "fixture": "bounded nest cleanup releases the nested value at every phase"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "nest_ordinary_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-nest-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "nest_bounded_work_exact_one_short",
+          "one_short_limit": "nest_bounded_work_exact_one_short",
+          "in_flight_cancel": "nest_ordinary_host_timer",
+          "cleanup": "nest_bounded_cleanup_release"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "nest_bounded_work_exact_one_short",
+            "one_short_limit": "nest_bounded_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "nest_bounded_workspace_exact_one_short",
+            "one_short_limit": "nest_bounded_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "rela",
@@ -2632,8 +3452,8 @@
         "marker": "Groups("
       },
       "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
+        "path": "src/connectors/local/group_provider.mbt",
+        "symbol": "group_provider"
       },
       "global_count_entrypoint": {
         "path": "src/connectors/local/global_count_provider.mbt",
@@ -2643,317 +3463,506 @@
         {
           "role": "group_fixed_sequence_work_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/group_rows_wbtest.mbt",
           "fixture": "direct group accepts exact shared work and rejects one-short execution"
         },
         {
           "role": "global_count_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
           "fixture": "bounded global count admits exact work and workspace limits"
         },
         {
           "role": "global_count_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "standard Host cancels global count after bounded work"
         },
         {
           "role": "global_count_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "Local managed bounded global count distinguishes null fields"
         },
         {
           "role": "count_if_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
           "fixture": "bounded count_if admits exact work and workspace limits"
         },
         {
           "role": "count_if_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "standard Host cancels count_if after bounded work"
         },
         {
           "role": "count_if_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "Local managed count_if uses bounded provider with two consumers"
         },
         {
           "role": "count_if_same_stage_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "Local same-stage count_if uses bounded provider with two consumers"
         },
         {
           "role": "count_if_same_stage_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "standard Host cancels same-stage count_if after bounded work"
         },
         {
           "role": "direct_group_work_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_group_wbtest.mbt",
           "fixture": "bounded group admits exact work and rejects one unit short"
         },
         {
           "role": "direct_group_stop_nonpublication",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_group_wbtest.mbt",
           "fixture": "bounded group stops after positive work without publishing"
         },
         {
           "role": "filtered_group_work_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_group_wbtest.mbt",
           "fixture": "bounded group evaluates filtered expression aggregates within exact work"
         },
         {
           "role": "filtered_group_stop_nonpublication",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_group_wbtest.mbt",
           "fixture": "bounded group stops a filtered aggregate after positive work"
         },
         {
           "role": "direct_group_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "Local managed direct aggregates reach two independent consumers"
         },
         {
           "role": "ordered_group_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "Local managed ordered aggregates reach two independent consumers"
         },
         {
           "role": "collection_group_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "Local managed collection aggregates reach two independent consumers"
         },
         {
           "role": "statistics_group_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "Local managed group statistics reach two independent consumers"
         },
         {
           "role": "numeric_group_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "Local managed numeric reductions reach two independent consumers"
         },
         {
           "role": "filtered_group_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "Local managed filtered expressions reach two independent consumers"
         },
         {
           "role": "direct_group_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "standard Host cancels direct aggregates after bounded work"
         },
         {
           "role": "ordered_group_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "standard Host cancels ordered aggregates after bounded work"
         },
         {
           "role": "collection_group_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "standard Host cancels collection aggregates after bounded work"
         },
         {
           "role": "statistics_group_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "standard Host cancels group statistics after bounded work"
         },
         {
           "role": "numeric_group_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "standard Host cancels a numeric group after bounded work"
         },
         {
           "role": "filtered_group_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "standard Host cancels filtered expression aggregates after bounded work"
         },
         {
           "role": "keyed_count_values_split_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "Local same-stage keyed count retains two independently ordered consumers"
         },
         {
           "role": "keyed_count_values_split_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "standard Host cancels same-stage keyed count after bounded work"
         },
         {
           "role": "keyed_count_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
           "fixture": "bounded keyed count admits exact work and workspace limits"
         },
         {
           "role": "keyed_count_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "standard Host cancels keyed count after bounded work"
         },
         {
           "role": "keyed_count_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "Local managed group count orders nullable keys for two consumers"
         },
         {
           "role": "keyed_count_long_output_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
           "fixture": "bounded count charges a long output key in resumed steps"
         },
         {
           "role": "keyed_count_long_output_cancel_cleanup",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
           "fixture": "bounded count stops inside long output key measurement"
         },
         {
           "role": "keyed_count_long_output_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "Local managed count carries a long text key to two consumers"
         },
         {
           "role": "keyed_count_long_output_host_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "standard Host cancels a long keyed count after positive work"
         },
         {
           "role": "keyed_count_raw_rowtable_recheck",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
           "fixture": "raw row table text still requires canonical admission"
         },
         {
           "role": "keyed_count_same_stage_work_exact_one_short",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "ordinary keyed count chain admits exact work and one-short limits"
         },
         {
           "role": "keyed_count_same_stage_workspace_exact_one_short",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "ordinary keyed count chain admits exact workspace and one-short limit"
         },
         {
           "role": "keyed_count_same_stage_overlap_capacity",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "ordinary keyed count chain reserves overlapping child capacity"
         },
         {
           "role": "count_nested_input_cancel_cleanup",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
           "fixture": "bounded count stops inside an unused nested input value"
         },
         {
           "role": "count_nested_input_host_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "standard Host cancels count inside unused nested input"
         },
         {
           "role": "count_nested_input_host_two_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "Local managed count with unused nested input reaches two consumers"
         },
         {
           "role": "count_nested_value_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
           "fixture": "bounded count preserves exact nested input value charges"
         },
         {
           "role": "count_long_text_input_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
           "fixture": "bounded count steps a long unused text cell and preserves its budget"
         },
         {
           "role": "count_long_text_input_cancel_cleanup",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
           "fixture": "bounded count stops while measuring a long unused text cell"
+        },
+        {
+          "role": "general_group_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_resource_boundary_wbtest.mbt",
+          "fixture": "bounded group-family executions admit their exact workspace peak"
         }
       ],
       "environment_tests": [
         {
           "role": "global_count_host_two_consumers",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "global count",
           "case": "globalCountProgram"
@@ -2961,21 +3970,27 @@
         {
           "role": "global_count_host_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "global-count-in-flight"
         },
         {
           "role": "global_count_nested_host_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "nested-global-count-in-flight"
         },
         {
           "role": "global_count_same_stage_two_consumers",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage global count/take",
           "case": "sameStageGlobalCountProgram"
@@ -2983,35 +3998,45 @@
         {
           "role": "global_count_same_stage_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage-global-count-in-flight"
         },
         {
           "role": "count_if_same_stage_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage-count-if-in-flight"
         },
         {
           "role": "direct_group_host_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "direct-group-in-flight"
         },
         {
           "role": "keyed_count_host_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "group-count-in-flight"
         },
         {
           "role": "keyed_count_values_split_two_consumers",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage keyed count/take",
           "case": "sameStageKeyedCountProgram"
@@ -3019,21 +4044,27 @@
         {
           "role": "keyed_count_values_split_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage-keyed-count-in-flight"
         },
         {
           "role": "keyed_count_values_split_publication",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage-keyed-count-publication"
         },
         {
           "role": "keyed_count_same_stage_two_consumers",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "captured Relation keyed count/filter chain",
           "case": "capturedKeyedCountChainProgram"
@@ -3041,7 +4072,9 @@
         {
           "role": "keyed_count_same_stage_timer",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "captured-keyed-count-chain-in-flight"
         }
@@ -3062,6 +4095,12 @@
               "cleanup": "keyed_count_cancel_cleanup"
             }
           }
+        },
+        "entrypoint": {
+          "exact_limit": "direct_group_work_exact_one_short",
+          "one_short_limit": "direct_group_work_exact_one_short",
+          "in_flight_cancel": "direct_group_host_timer",
+          "cleanup": "direct_group_stop_nonpublication"
         }
       },
       "resource_assurance": {
@@ -3087,6 +4126,16 @@
                 "one_short_limit": "keyed_count_work_workspace_exact_one_short"
               }
             }
+          }
+        },
+        "entrypoint": {
+          "work": {
+            "exact_limit": "direct_group_work_exact_one_short",
+            "one_short_limit": "direct_group_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "general_group_workspace_exact_one_short",
+            "one_short_limit": "general_group_workspace_exact_one_short"
           }
         }
       }
@@ -4225,18 +5274,86 @@
         "marker": "SetStep("
       },
       "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
+        "path": "src/connectors/local/set_provider.mbt",
+        "symbol": "set_provider"
       },
       "boundary_tests": [
         {
           "role": "except_empty_schema_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/set_rows_wbtest.mbt",
           "fixture": "empty set operators admit exact schema workspace and reject one short"
+        },
+        {
+          "role": "except_bounded_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_set_wbtest.mbt",
+          "fixture": "bounded set admits exact work and rejects one unit short"
+        },
+        {
+          "role": "except_bounded_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_resource_boundary_wbtest.mbt",
+          "fixture": "bounded set operations admit their exact workspace peak"
+        },
+        {
+          "role": "except_bounded_stop_nonpublication",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_set_wbtest.mbt",
+          "fixture": "bounded set stops after positive work without publishing"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "except_ordinary_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-except-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "except_bounded_work_exact_one_short",
+          "one_short_limit": "except_bounded_work_exact_one_short",
+          "in_flight_cancel": "except_ordinary_host_timer",
+          "cleanup": "except_bounded_stop_nonpublication"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "except_bounded_work_exact_one_short",
+            "one_short_limit": "except_bounded_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "except_bounded_workspace_exact_one_short",
+            "one_short_limit": "except_bounded_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "rela",
@@ -4248,18 +5365,86 @@
         "marker": "SetStep("
       },
       "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
+        "path": "src/connectors/local/set_provider.mbt",
+        "symbol": "set_provider"
       },
       "boundary_tests": [
         {
           "role": "intersect_empty_schema_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/set_rows_wbtest.mbt",
           "fixture": "empty set operators admit exact schema workspace and reject one short"
+        },
+        {
+          "role": "intersect_bounded_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_resource_boundary_wbtest.mbt",
+          "fixture": "bounded intersect admits exact work and rejects one unit short"
+        },
+        {
+          "role": "intersect_bounded_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_resource_boundary_wbtest.mbt",
+          "fixture": "bounded set operations admit their exact workspace peak"
+        },
+        {
+          "role": "intersect_bounded_stop_nonpublication",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_resource_boundary_wbtest.mbt",
+          "fixture": "bounded intersect stops after positive work without publishing"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "intersect_ordinary_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-intersect-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "intersect_bounded_work_exact_one_short",
+          "one_short_limit": "intersect_bounded_work_exact_one_short",
+          "in_flight_cancel": "intersect_ordinary_host_timer",
+          "cleanup": "intersect_bounded_stop_nonpublication"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "intersect_bounded_work_exact_one_short",
+            "one_short_limit": "intersect_bounded_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "intersect_bounded_workspace_exact_one_short",
+            "one_short_limit": "intersect_bounded_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "rela",
@@ -4518,18 +5703,86 @@
         "marker": "AnalyticRows("
       },
       "entrypoint": {
-        "path": "src/execution_relation/generated_sequence.mbt",
-        "symbol": "execute_generated_sequence"
+        "path": "src/connectors/local/group_provider.mbt",
+        "symbol": "group_provider"
       },
       "boundary_tests": [
         {
           "role": "analytic_empty_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/execution_relation/analytic_rows_wbtest.mbt",
           "fixture": "empty analytic ranking has an independently bounded resource path"
+        },
+        {
+          "role": "analytic_bounded_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_group_wbtest.mbt",
+          "fixture": "bounded analytic admits exact work and rejects one unit short"
+        },
+        {
+          "role": "analytic_bounded_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_resource_boundary_wbtest.mbt",
+          "fixture": "bounded group-family executions admit their exact workspace peak"
+        },
+        {
+          "role": "analytic_bounded_stop_nonpublication",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_group_wbtest.mbt",
+          "fixture": "bounded analytic stops after positive work without publishing"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "analytic_ordinary_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-analytic-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "analytic_bounded_work_exact_one_short",
+          "one_short_limit": "analytic_bounded_work_exact_one_short",
+          "in_flight_cancel": "analytic_ordinary_host_timer",
+          "cleanup": "analytic_bounded_stop_nonpublication"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "analytic_bounded_work_exact_one_short",
+            "one_short_limit": "analytic_bounded_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "analytic_bounded_workspace_exact_one_short",
+            "one_short_limit": "analytic_bounded_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
@@ -4906,62 +6159,143 @@
         {
           "role": "literal_empty_path_work_exact_one_short",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "traversal empty simple-path work has exact boundaries"
         },
         {
           "role": "literal_empty_node_workspace_exact_one_short",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "traversal empty simple-path work has exact boundaries"
         },
         {
           "role": "exact_one_short_and_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "path traversal charges overlapping start selector and indices"
         },
         {
           "role": "quantum_and_empty_selector",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "sparse and zero-hop path selectors are independent of resume quantum"
         },
         {
           "role": "node_emit_control_work_ceiling",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "homogeneous traversal enforces minimum depth and cancellation"
         },
         {
           "role": "path_emit_control_work_ceiling",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "path traversal charges overlapping start selector and indices"
+        },
+        {
+          "role": "traverse_variant_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_sga_traversal_variant_resource_wbtest.mbt",
+          "fixture": "SGA traversal variants admit exact work and reject one unit short"
+        },
+        {
+          "role": "traverse_variant_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_sga_traversal_variant_resource_wbtest.mbt",
+          "fixture": "SGA traversal variants admit exact workspace and reject one entry short"
+        },
+        {
+          "role": "traverse_variant_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_sga_traversal_variant_resource_wbtest.mbt",
+          "fixture": "SGA traversal variants cancel after bounded work and clean up"
         }
       ],
       "environment_tests": [
         {
           "role": "traverse_nodes_host_in_flight_cancel",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "traverse-out"
         },
         {
           "role": "traverse_paths_host_in_flight_cancel",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "traverse-paths"
         }
-      ]
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "traverse_variant_work_exact_one_short",
+          "one_short_limit": "traverse_variant_workspace_exact_one_short",
+          "in_flight_cancel": "traverse_nodes_host_in_flight_cancel",
+          "cleanup": "traverse_variant_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "traverse_variant_work_exact_one_short",
+            "one_short_limit": "traverse_variant_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "traverse_variant_workspace_exact_one_short",
+            "one_short_limit": "traverse_variant_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
@@ -4980,62 +6314,145 @@
         {
           "role": "shortest_workspace_exact_one_short",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "scalar shortest path admits workspace before allocation and cancels"
         },
         {
           "role": "shortest_scalar_control_work_exact_one_short",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "scalar shortest path admits workspace before allocation and cancels"
         },
         {
           "role": "shortest_scalar_pipeline_work_exact_one_short",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "registered shortest path shares work across construction and search"
         },
         {
           "role": "shortest_value_preallocation_rejection",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "scalar shortest path admits workspace before allocation and cancels"
         },
         {
           "role": "shortest_kernel_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "scalar shortest path admits workspace before allocation and cancels"
         },
         {
           "role": "shortest_long_typed_identity_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "shortest endpoint ordering yields across long typed identities"
         },
         {
           "role": "shortest_standard_host_consumers",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "standard Host runs a bounded scalar shortest path"
+        },
+        {
+          "role": "shortest_variant_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_sga_traversal_variant_resource_wbtest.mbt",
+          "fixture": "SGA shortest path variants admit exact work and reject one unit short"
+        },
+        {
+          "role": "shortest_variant_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_sga_traversal_variant_resource_wbtest.mbt",
+          "fixture": "SGA shortest path variants admit exact workspace and reject one entry short"
+        },
+        {
+          "role": "shortest_variant_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_sga_traversal_variant_resource_wbtest.mbt",
+          "fixture": "SGA shortest path variants cancel after bounded work and clean up"
         }
       ],
       "environment_tests": [
         {
           "role": "shortest_host_in_flight_cancel_cleanup",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "shortest-out"
         }
-      ]
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "shortest_variant_work_exact_one_short",
+          "one_short_limit": "shortest_variant_workspace_exact_one_short",
+          "in_flight_cancel": "shortest_host_in_flight_cancel_cleanup",
+          "cleanup": "shortest_variant_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "shortest_variant_work_exact_one_short",
+            "one_short_limit": "shortest_variant_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "shortest_variant_workspace_exact_one_short",
+            "one_short_limit": "shortest_variant_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
@@ -5353,11 +6770,79 @@
         {
           "role": "graph_diff_tail_work_ceiling_and_kernel_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "Graph diff cancellation stops partial snapshots before cleanup"
+        },
+        {
+          "role": "graph_diff_variant_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_sga_delta_resource_wbtest.mbt",
+          "fixture": "Graph diff and apply admit exact work and reject one unit short"
+        },
+        {
+          "role": "graph_diff_variant_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_sga_delta_resource_wbtest.mbt",
+          "fixture": "Graph diff and apply admit exact workspace and reject one entry short"
+        },
+        {
+          "role": "graph_diff_variant_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_sga_delta_resource_wbtest.mbt",
+          "fixture": "Graph diff and apply cancel after bounded work and clean up"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "graph_diff_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "graph-diff-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "graph_diff_variant_work_exact_one_short",
+          "one_short_limit": "graph_diff_variant_workspace_exact_one_short",
+          "in_flight_cancel": "graph_diff_host_in_flight_cancel",
+          "cleanup": "graph_diff_variant_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "graph_diff_variant_work_exact_one_short",
+            "one_short_limit": "graph_diff_variant_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "graph_diff_variant_workspace_exact_one_short",
+            "one_short_limit": "graph_diff_variant_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
@@ -5376,11 +6861,90 @@
         {
           "role": "graft_empty_work_exact_one_short_and_cleanup",
           "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/local_sga/graft_wbtest.mbt",
           "fixture": "structural Graph modes charge empty source positions and completion"
+        },
+        {
+          "role": "graft_merge_work_exact_one_short",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges admit exact work and reject one unit short"
+        },
+        {
+          "role": "graft_merge_workspace_exact_one_short",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges admit exact workspace and reject one entry short"
+        },
+        {
+          "role": "graft_merge_output_exact_one_short",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges admit exact output budgets and reject one short"
+        },
+        {
+          "role": "graft_merge_cancel_cleanup",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges cancel after bounded work and clean up"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "graft_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "graft"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "graft_merge_work_exact_one_short",
+          "one_short_limit": "graft_merge_workspace_exact_one_short",
+          "in_flight_cancel": "graft_host_in_flight_cancel",
+          "cleanup": "graft_merge_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "graft_merge_work_exact_one_short",
+            "one_short_limit": "graft_merge_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "graft_merge_workspace_exact_one_short",
+            "one_short_limit": "graft_merge_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
@@ -5399,11 +6963,90 @@
         {
           "role": "union_empty_work_exact_one_short_active_cancel_cleanup",
           "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/local_sga/graft_wbtest.mbt",
           "fixture": "structural Graph modes charge empty source positions and completion"
+        },
+        {
+          "role": "union_merge_work_exact_one_short",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges admit exact work and reject one unit short"
+        },
+        {
+          "role": "union_merge_workspace_exact_one_short",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges admit exact workspace and reject one entry short"
+        },
+        {
+          "role": "union_merge_output_exact_one_short",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges admit exact output budgets and reject one short"
+        },
+        {
+          "role": "union_merge_cancel_cleanup",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges cancel after bounded work and clean up"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "union_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "union"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "union_merge_work_exact_one_short",
+          "one_short_limit": "union_merge_workspace_exact_one_short",
+          "in_flight_cancel": "union_host_in_flight_cancel",
+          "cleanup": "union_merge_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "union_merge_work_exact_one_short",
+            "one_short_limit": "union_merge_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "union_merge_workspace_exact_one_short",
+            "one_short_limit": "union_merge_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
@@ -5422,11 +7065,90 @@
         {
           "role": "subtract_empty_work_exact_one_short_and_cleanup",
           "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/local_sga/graft_wbtest.mbt",
           "fixture": "structural Graph modes charge empty source positions and completion"
+        },
+        {
+          "role": "subtract_merge_work_exact_one_short",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges admit exact work and reject one unit short"
+        },
+        {
+          "role": "subtract_merge_workspace_exact_one_short",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges admit exact workspace and reject one entry short"
+        },
+        {
+          "role": "subtract_merge_output_exact_one_short",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges admit exact output budgets and reject one short"
+        },
+        {
+          "role": "subtract_merge_cancel_cleanup",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges cancel after bounded work and clean up"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "subtract_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "subtract-exact"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "subtract_merge_work_exact_one_short",
+          "one_short_limit": "subtract_merge_workspace_exact_one_short",
+          "in_flight_cancel": "subtract_host_in_flight_cancel",
+          "cleanup": "subtract_merge_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "subtract_merge_work_exact_one_short",
+            "one_short_limit": "subtract_merge_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "subtract_merge_workspace_exact_one_short",
+            "one_short_limit": "subtract_merge_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
@@ -5598,32 +7320,112 @@
         {
           "role": "exact_one_short_and_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "Graph delta atomically applies node edge and property changes"
         },
         {
           "role": "many_action_and_empty_base",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "Graph delta admits many additions and removals before scratch allocation"
         },
         {
           "role": "wide_property",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "Graph delta reserves wide property reference containers before action storage"
         },
         {
           "role": "utf8_key",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "Graph delta accounts UTF-8 action keys apart from structural entries"
+        },
+        {
+          "role": "graph_apply_variant_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_sga_delta_resource_wbtest.mbt",
+          "fixture": "Graph diff and apply admit exact work and reject one unit short"
+        },
+        {
+          "role": "graph_apply_variant_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_sga_delta_resource_wbtest.mbt",
+          "fixture": "Graph diff and apply admit exact workspace and reject one entry short"
+        },
+        {
+          "role": "graph_apply_variant_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_sga_delta_resource_wbtest.mbt",
+          "fixture": "Graph diff and apply cancel after bounded work and clean up"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "graph_apply_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "graph-apply-delta-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "graph_apply_variant_work_exact_one_short",
+          "one_short_limit": "graph_apply_variant_workspace_exact_one_short",
+          "in_flight_cancel": "graph_apply_host_in_flight_cancel",
+          "cleanup": "graph_apply_variant_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "graph_apply_variant_work_exact_one_short",
+            "one_short_limit": "graph_apply_variant_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "graph_apply_variant_workspace_exact_one_short",
+            "one_short_limit": "graph_apply_variant_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
@@ -5642,18 +7444,101 @@
         {
           "role": "mean_empty_work_exact_one_short_and_cleanup",
           "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/local_sga/mean_wbtest.mbt",
           "fixture": "graph mean charges empty input weights and final completion"
         },
         {
           "role": "mean_long_text_sort_cancel_cleanup",
           "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/local_sga/mean_wbtest.mbt",
           "fixture": "graph mean yields during long typed identity sorting"
+        },
+        {
+          "role": "mean_merge_work_exact_one_short",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges admit exact work and reject one unit short"
+        },
+        {
+          "role": "mean_merge_workspace_exact_one_short",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges admit exact workspace and reject one entry short"
+        },
+        {
+          "role": "mean_merge_output_exact_one_short",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges admit exact output budgets and reject one short"
+        },
+        {
+          "role": "mean_merge_cancel_cleanup",
+          "suite": "moon:local_sga",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
+          "fixture": "structural Graph merges cancel after bounded work and clean up"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "mean_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "mean"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "mean_merge_work_exact_one_short",
+          "one_short_limit": "mean_merge_workspace_exact_one_short",
+          "in_flight_cancel": "mean_host_in_flight_cancel",
+          "cleanup": "mean_merge_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "mean_merge_work_exact_one_short",
+            "one_short_limit": "mean_merge_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "mean_merge_workspace_exact_one_short",
+            "one_short_limit": "mean_merge_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
