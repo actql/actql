@@ -45,7 +45,7 @@ existing identity-oracle files are recorded by digest, not regenerated from a
 new lowerer. Additional metadata, Effect, special-expression and all-operation
 fixtures and their verification scope are listed in the PR-2 record.
 
-## Existing entries and missing connections
+## PR-0 dependency inventory
 
 | Boundary | Existing entry / owner | Work assigned to Frontend |
 | --- | --- | --- |
@@ -71,8 +71,8 @@ Each executed case needs an actual fixture, independent expectation, suite,
 result, source SHA and target; artifact and profile are recorded when relevant.
 Document/inventory checks do not change any runtime case status. A case that
 only exercises a fixture adapter is not proof of an installed public route.
-JS, Wasm and native canonical comparison and normal Host execution are future
-PR-1/PR-2 evidence, not asserted by this baseline.
+JS, Wasm and native canonical comparison and normal Host execution are
+recorded separately for PR-1/PR-2, not asserted by the frozen baseline.
 
 Run `node --test scripts/frontend-profile.test.mjs` for the adoption inventory
 and immutable fixture checks. It is included in `npm run test:docs` and the
