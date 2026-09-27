@@ -836,6 +836,31 @@ test('started Run records only a confirmed terminal outcome across restart',
     assert.equal(claimPhysicalStart(journal, accepted.ref), false);
   });
 
+test('every definition lookup rejects a corrupt retained Result inventory',
+  async t => {
+    const path = await directory(t);
+    const journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const requested = identity();
+    const accepted = journal.acceptDefinition(requested, {
+      tenantId: 'tenant-a', runDefinition: runDefinition(),
+      lookupExpiresAt: expires, resultNames: ['answer'],
+    }, moon, publicationControl);
+    const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+    database.prepare('UPDATE client_requests SET result_names_json = ?')
+      .run('["answer","answer"]');
+    database.close();
+    const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+      requestId: fixture.requestId};
+    assert.throws(() => journal.lookupDefinition(key, moon,
+      publicationControl), {code: 'ClientRequestJournalCorrupt'});
+    assert.throws(() => journal.lookupRunDefinition(accepted.ref, moon,
+      publicationControl), {code: 'ClientRequestJournalCorrupt'});
+    assert.throws(() => journal.resolveDefinition(requested,
+      {tenantId: 'tenant-a'}, moon, publicationControl),
+    {code: 'ClientRequestJournalCorrupt'});
+  });
+
 test('a started Run keeps one reconciliation state across a restart',
   async t => {
     const path = await directory(t);
