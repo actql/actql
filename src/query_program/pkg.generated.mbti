@@ -1,0 +1,53 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/query_program"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/program_source_builder",
+  "actql/actql/query_expression",
+  "actql/actql/query_syntax",
+  "actql/actql/stage_syntax",
+}
+
+// Values
+pub fn compile(@query_syntax.Query, Context, Limits) -> Result[@stage_syntax.Program, Issue]
+
+// Errors
+
+// Types and methods
+pub(all) struct Context {
+  program_id : String
+  stage_id : String
+  stage_result : String
+  result_name : String
+  inputs : Array[Input]
+}
+
+pub(all) struct Input {
+  relation : Array[@query_syntax.NamePart]
+  name : String
+  declaration : @decode_core.Cursor
+}
+
+pub(all) enum Issue {
+  InvalidContext
+  UnknownRelation
+  AmbiguousRelation
+  UnknownColumn
+  DuplicateOutput
+  UnsupportedProjection
+  UnsupportedOrdering
+  Construction(@program_source_builder.Issue)
+  Expression(@query_expression.Diagnostic)
+  Admission(@stage_syntax.SyntaxError)
+}
+
+pub(all) struct Limits {
+  source : @program_source_builder.Limits
+  program : @stage_syntax.Limits
+  max_expression_work : Int
+}
+
+// Type aliases
+
+// Traits

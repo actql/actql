@@ -28,6 +28,8 @@ pub fn parse_expression(String, ExpressionLimits, source_path? : String) -> Resu
 
 pub fn parse_query(String, QueryLimits, source_path? : String) -> Result[Query, Diagnostic]
 
+pub fn query_document(Query) -> @frontend_source_map.Document
+
 pub fn query_source(Query) -> Tokens
 
 pub fn query_work(Query) -> Int

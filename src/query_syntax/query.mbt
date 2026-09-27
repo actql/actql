@@ -54,6 +54,11 @@ pub fn query_source(query : Query) -> Tokens {
 }
 
 ///|
+pub fn query_document(query : Query) -> @origin.Document {
+  query.source.document
+}
+
+///|
 pub fn operation_count(query : Query) -> Int {
   query.operations.length()
 }

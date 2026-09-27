@@ -1,0 +1,15 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/query_syntax" @query,
+  "actql/actql/query_expression" @expression,
+  "actql/actql/program_source_builder" @builder,
+  "actql/actql/frontend_source_map" @origin,
+  "actql/actql/decode_core" @wire,
+  "actql/actql/stage_syntax" @program,
+}
+
+import {
+  "actql/actql/source_value" @source,
+  "actql/actql/encode_core" @encode,
+} for "test"
