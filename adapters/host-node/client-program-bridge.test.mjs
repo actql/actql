@@ -2468,6 +2468,30 @@ test('installed Effect preparation retains the checked Program owner',
     {code: 'ClientProgramUnsupported'});
   });
 
+test('one installed preparation distinguishes Effect and pure owners',
+  async () => {
+    const {document, environment} = await effectFixture();
+    const prepare = installNodeClientProgramPreparation({moon, environment,
+      allowEffects: true});
+    const effectRequest = {kind: 'aql', input: {text: document,
+      format: 'json'}, parameters: null};
+    const effect = prepare(effectRequest);
+    assert.equal(prepare.kindOf(effect), 'effectful');
+    prepare.assertOwned(effect);
+    const pureDocument = JSON.parse(document);
+    delete pureDocument.stages[0].effects;
+    const pure = prepare({kind: 'program', input: pureDocument,
+      parameters: null});
+    assert.equal(prepare.kindOf(pure), 'effect_free');
+    prepare.assertOwned(pure);
+    const foreign = installNodeClientProgramPreparation({moon,
+      environment, allowEffects: true})(effectRequest);
+    assert.throws(() => prepare.kindOf(foreign),
+      {message: 'Foreign Client preparation'});
+    assert.throws(() => prepare.assertOwned(foreign),
+      {message: 'Foreign Client preparation'});
+  });
+
 test('checked Effect member resolution is Stage-scoped', async () => {
   const fixture = await effectFixture({splitSource: true,
     memberIds: ['late'], sourceIds: ['record-a', 'record-b']});
