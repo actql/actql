@@ -99,7 +99,7 @@ of the Acquisition and process-evidence contracts, and checks their actual hashe
 under one aggregate `QueryEvidenceLimits` budget. It rejects schema-only or
 digest-only substitutes. `query_evidence_contract_usage` reports hashed bytes
 and nodes. This is verifier-contract selection, not permission to issue records
-or execute the proposed strategy. `check:docs` also verifies that the filesystem-free test
+or execute the proposed strategy. `check:spec` also verifies that the filesystem-free test
 copies match the current complete shared contract bodies.
 
 See [design](design/query-physical-strategy.md) for ownership, scope and limitations.

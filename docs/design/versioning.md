@@ -133,7 +133,7 @@ rename does not change them when their bytes are unchanged.
 Update the owned bodies and consuming code together, recompute dependent schema
 and registry CIDs, refresh document metadata and generated identity tests, and
 verify independent fixed expectations. Never use MoonBit output as the source
-of its own expected CID. Run `npm run check:docs`, then format, public-interface
+of its own expected CID. Run `npm run check:spec`, then format, public-interface
 and check/test gates on JS, Wasm and native.
 
 History rewrites require explicit approval; they are not a routine version
@@ -144,7 +144,7 @@ separately.
 throughout source/specification/tooling/fixtures, and the declared Effect law's
 membership in the pipeline manifest. Its regression tests reject stale pins,
 renamed or missing law bodies, and legacy version strings. The check is part
-of `check:docs`; it is dependency/identity verification, not runtime conformance.
+of `check:spec`; it is dependency/identity verification, not runtime conformance.
 This guard is AoA-specific, not a claim to validate every version domain.
 Specification-family, schema, metadata and identity-fixture checks cover their
 own contracts; package/toolchain checks remain separate. Extend the applicable
@@ -155,7 +155,7 @@ checks when adding or changing a versioned surface.
 
 `npm run check:contract-versions` rejects new non-0.1 versions in namespace-qualified
 ActQL/AoA contract identifiers, law identifiers and schema URNs. It runs before
-build steps in CI and at the start of `check:docs`. Private Host bindings are
+build steps in CI and at the start of `check:spec`. Private Host bindings are
 included. Package release numbers, third-party dependencies and unqualified
 numeric fields are not interpreted as contract identifiers.
 

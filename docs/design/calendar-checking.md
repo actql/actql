@@ -175,7 +175,7 @@ collapsed. Python datetime supplies proleptic Gregorian arithmetic only: there
 is no zoneinfo, local timezone conversion, system TZDB or product evaluator call.
 The checker compares against fixed expectations and has no write/generate mode.
 Its regression tests include mutated fixture bytes and a wrong interval to ensure
-that either fails the check. `check:calendar`, and therefore `check:docs`, runs
+that either fails the check. `check:calendar`, and therefore `check:spec`, runs
 both the corpus and these regressions after reproducing the transition artifact.
 
 These are independent semantic vectors and oracle tests, not MoonBit Calendar

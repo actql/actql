@@ -10,8 +10,8 @@ npm ci
 
 Node.js is used for documentation and toolchain setup. Product implementation
 is developed in MoonBit; see the [implementation guide](design/implementation-port.md).
-Documentation checks also verify generated connector code using the pinned
-MoonBit formatter. Complete the MoonBit setup below before running `check:docs`.
+Specification checks also verify generated connector code using the pinned
+MoonBit formatter. Complete the MoonBit setup below before running `check:spec`.
 
 ### MoonBit
 
@@ -24,11 +24,16 @@ node scripts/setup-moonbit.mjs
 export MOON_HOME="$PWD/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
 export PATH="$MOON_HOME/bin:$PATH"
 moon version --all
-npm run check:docs
+npm run check:spec
 moon fmt --check
 moon check --deny-warn
 moon test --deny-warn
 ```
+
+That sequence confirms a new setup. For everyday changes, check in tiers as
+described under Local verification in [AGENTS.md](../AGENTS.md):
+`node scripts/local-checks.mjs changed` lists the checks for the current
+diff, and Linux CI verifies the pushed revision.
 
 Setup verifies archive SHA-256 pins before extraction and installs only inside
 the ignored `.toolchains/` directory. It does not modify a global installation
@@ -126,7 +131,7 @@ For normative edits, preserve or explicitly assign `requirement-block` IDs.
 Run `npm run check:metadata` to inspect added, changed and removed obligations
 and document-import pins, then `npm run update:metadata` to apply reviewed
 updates. Changed obligations become pending and do not inherit execution evidence.
-Review the Git diff and run `npm run check:docs` before committing.
+Review the Git diff and run `npm run check:spec` before committing.
 
 `npm run generate:requirements` regenerates only the combined registry from
 owner-local records. It does not approve changed statements or produce evidence.

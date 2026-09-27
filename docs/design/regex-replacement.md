@@ -56,7 +56,7 @@ part limits do not claim to bound all retained text or total heap memory.
 contain sixteen accepted replacement texts with handwritten parts and thirteen
 rejections. Node computes statistics, canonical text and SHA-256 from those
 fixed parts, never from the product parser/lowerer. The drift check uses the
-existing schema's part definitions and runs through `check:docs`.
+existing schema's part definitions and runs through `check:spec`.
 `generate:regex-replacement` preserves expected identities; the separate
 `--write-identities` option is an explicit fixture-maintenance command.
 

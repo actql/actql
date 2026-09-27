@@ -160,7 +160,7 @@ machine-readable change inventory are retained at the printed temporary path.
 This is an implementation-addition check, not proof of a new provider's semantic
 conformance or an unimplemented transport capability.
 
-`check:docs` also runs the connector dispatch boundary gate. It checks common
+`check:spec` also runs the connector dispatch boundary gate. It checks common
 source files for concrete IDs, closed execution variants and literal dispatch
 tables, with negative cases and positive opaque-lookup cases. Comments and
 transported labels are not interpreted as dispatch. This lexical regression check
