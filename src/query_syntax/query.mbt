@@ -32,7 +32,7 @@ pub(all) struct SortTerm {
 ///|
 pub(all) enum QueryOperation {
   Where(Expression)
-  Group(Array[Expression])
+  Group(Array[Expression], Array[Projection])
   Having(Expression)
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
@@ -80,7 +80,7 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
   }
   match query.operations[index] {
     Where(e) => Some(Where(e))
-    Group(keys) => Some(Group(keys.copy()))
+    Group(keys, projections) => Some(Group(keys.copy(), projections.copy()))
     Having(e) => Some(Having(e))
     Select(xs, distinct) => Some(Select(xs.copy(), distinct))
     Order(xs) => Some(Order(xs.copy()))
@@ -433,9 +433,9 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
   let grouped = self.has("GROUP") ||
     projections.any(projection => projection.aggregate is Some(_))
   if self.has("GROUP") {
-    operations.push(Group(self.group_keys()))
+    operations.push(Group(self.group_keys(), projections))
   } else if grouped {
-    operations.push(Group([]))
+    operations.push(Group([], projections))
   }
   if self.has("HAVING") {
     if !grouped {
@@ -469,6 +469,14 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
     if self.has("WHERE") {
       self.keyword("WHERE")
       operations.push(Where(self.expression()))
+    } else if self.has("AGGREGATE") {
+      self.keyword("AGGREGATE")
+      let aggregates = self.projections()
+      if aggregates.any(projection => projection.aggregate is None) {
+        raise QueryAbort("AGGREGATE requires named calls", self.peek().start)
+      }
+      let keys = if self.has("GROUP") { self.group_keys() } else { [] }
+      operations.push(Group(keys, aggregates))
     } else if self.has("SELECT") {
       self.keyword("SELECT")
       let distinct = self.has("DISTINCT")

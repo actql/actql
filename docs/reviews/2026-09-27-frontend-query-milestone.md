@@ -108,5 +108,6 @@ The captured route also executes `SELECT id, COUNT(*) AS n FROM records WHERE
 id > 0 GROUP BY id HAVING n > 1 ORDER BY id`, returning `{id:3,n:2}` in Local
 and HTTP Remote. This exercises the existing `group` operation and post-group
 filter through the normal Host, with the SELECT alias `n` resolved after
-aggregation. The broader aggregate signature, empty/NULL and failure-order
-matrix remains pending.
+aggregation. The corresponding Pipe `AGGREGATE` and post-group `WHERE` emit
+the same canonical Program under the same compile context. The broader
+aggregate signature, empty/NULL and failure-order matrix remains pending.

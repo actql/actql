@@ -501,8 +501,7 @@ fn compile_steps(
             ),
           ),
         )
-      Group(keys) => {
-        let projections = selected_projections(query)
+      Group(keys, projections) => {
         let derives : Array[(String, @builder.Node)] = []
         let key_names : Array[String] = []
         let by : Array[@builder.Node] = []

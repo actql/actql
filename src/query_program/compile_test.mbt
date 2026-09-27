@@ -506,3 +506,22 @@ test "grouped SELECT rejects nongrouped field and invalid aggregate form" {
     is Err(UnsupportedGrouping),
   )
 }
+
+///|
+test "SQL GROUP BY and Pipe AGGREGATE use the same checked Program" {
+  let sql = @query.parse_query(
+    "SELECT id, COUNT(*) AS n FROM orders WHERE amount > 0 GROUP BY id",
+    syntax_limits(),
+  ).unwrap()
+  let pipe = @query.parse_query(
+    "FROM orders |> WHERE amount > 0 |> AGGREGATE COUNT(*) AS n GROUP BY id |> SELECT id, n",
+    syntax_limits(),
+  ).unwrap()
+  let expected = compile(sql, fixture_context(), construction_limits()).unwrap()
+  let actual = compile(pipe, fixture_context(), construction_limits()).unwrap()
+  assert_eq(semantic(actual), semantic(expected))
+  match @check.check_parsed(actual, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    _ => fail("Pipe aggregate failed the ordinary checker")
+  }
+}

@@ -115,6 +115,12 @@ const groupedQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
   JSON.stringify(['id', 'amount']), 'fixture.grouped_query');
 assert.notEqual(groupedQuery, '');
+const pipeGroupedQuery = queryFrontend.compileCapturedQueryJson(
+  'FROM records |> WHERE id > 0 |> AGGREGATE COUNT(*) AS n GROUP BY id |> WHERE n > 1 |> SELECT id, n |> ORDER BY id',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.grouped_query');
+assert.deepEqual(JSON.parse(pipeGroupedQuery), JSON.parse(groupedQuery));
 await writeFile(join(root, 'grouped-query.json'), groupedQuery);
 const sourceCatalog = await readFile(join(repository,
   'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
