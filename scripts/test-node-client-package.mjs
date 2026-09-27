@@ -422,6 +422,25 @@ const capturedSetQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.captured_set_query');
 assert.notEqual(capturedSetQuery, '');
 await writeFile(join(root, 'captured-set-query.json'), capturedSetQuery);
+for (const [name, sql] of [
+  ['captured-union-by-name',
+    'SELECT id AS key, amount AS value FROM records WHERE id > 1 '
+      + 'UNION DISTINCT BY NAME SELECT amount AS value, id AS key '
+      + 'FROM records WHERE id > 1'],
+  ['captured-intersect',
+    'SELECT id FROM records WHERE id > 1 INTERSECT DISTINCT '
+      + 'SELECT id FROM records WHERE id > 1'],
+  ['captured-except',
+    'SELECT id FROM records WHERE id > 1 EXCEPT DISTINCT '
+      + 'SELECT id FROM records WHERE id > 1'],
+]) {
+  const program = queryFrontend.compileCapturedQueryJson(sql,
+    'records', 'remote',
+    JSON.stringify({connector: 'crm/main', resource: 'r'}),
+    JSON.stringify(['id', 'amount']), 'fixture.' + name);
+  assert.notEqual(program, '', name);
+  await writeFile(join(root, name + '.json'), program);
+}
 const distinctQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT DISTINCT id FROM records WHERE id > 1 ORDER BY id',
   'records', 'remote',
@@ -815,6 +834,19 @@ async function checkCapturedSet(client, suffix) {
   assert.deepEqual(sortedRows(await execution.result('answer').all()),
     sortedRows([{id: 3}, {id: 2}, {id: 3},
       {id: 3}, {id: 2}, {id: 3}]));
+  for (const [name, expected] of [
+    ['captured-union-by-name',
+      [{key: 3, value: 30}, {key: 2, value: 20}]],
+    ['captured-intersect', [{id: 3}, {id: 2}]],
+    ['captured-except', []],
+  ]) {
+    const current = await client.aql(readFileSync(name + '.json', 'utf8'),
+      {format: 'json', requestId: 'packed-' + name + '-' + suffix});
+    const settled = await current.wait();
+    assert.equal(settled.status, 'succeeded', JSON.stringify(settled));
+    assert.deepEqual(sortedRows(await current.result('answer').all()),
+      sortedRows(expected));
+  }
 }
 async function checkCapturedCte(client, suffix) {
   const execution = await client.aql(capturedCteDocument,

@@ -240,7 +240,10 @@ The common Result-plan issuer maps physical task indices back to checked Unit
 indices when a Stage splits. Two captured set terms using the same checked
 DuckDB source and identical `id > 1` predicate now share one acquisition
 Stage. Packed Local and HTTP Remote each return six `id` rows for the three
-matching source rows repeated by UNION ALL. The common predicate is moved to
+matching source rows repeated by UNION ALL. The same packed path returns two
+distinct typed rows after `UNION DISTINCT BY NAME` with reversed right
+columns, two distinct IDs after `INTERSECT DISTINCT`, and an empty Named
+Result after `EXCEPT DISTINCT`. The common predicate is moved to
 the acquisition Stage once; term predicates are retained when they differ.
 The installed physical candidate does not yet admit a broad unfiltered
 capture for differing predicates, so this latter shape has only Program and
