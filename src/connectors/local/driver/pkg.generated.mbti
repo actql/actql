@@ -102,6 +102,7 @@ pub struct LocalDispatchOperations {
   request_cancel : () -> Bool
   execution_stopped : () -> Bool
   guard_usage : () -> Array[Int]
+  provider_work : () -> Int64?
   settle : () -> Result[Unit, LocalDispatchIssue]
   complete : () -> Result[Unit, LocalDispatchIssue]
   close : () -> Unit

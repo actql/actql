@@ -61,6 +61,8 @@ pub fn local_materializing_guard_usage(LocalMaterializingAttempt) -> (Int, Int, 
 
 pub fn local_materializing_input(LocalMaterializingAttempt, Int) -> @execution_relation.ProducerRead?
 
+pub fn local_materializing_provider_work(LocalMaterializingAttempt) -> Int64?
+
 pub fn local_materializing_stopped(LocalMaterializingAttempt) -> Bool
 
 pub fn local_module_capacity(LocalComputeModule, Int) -> @execution_relation.ExecutionCapacity?

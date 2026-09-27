@@ -32,6 +32,8 @@ struct LocalMaterializingAttempt {
   max_rows : Int
   max_value_bytes : Int
   mut provider_execution : ManagedProviderExecution?
+  // Work the provider reported, summed once per accepted advance.
+  mut provider_work : Int64
   // The reads given to the provider: imported copies rebind their producer.
   mut reads : Array[@execution.ProducerRead]
   mut started : Bool
@@ -239,6 +241,7 @@ pub fn[E] prepare_local_materializing_execution(
         max_rows: request_capacity.max_rows,
         max_value_bytes: request_capacity.max_value_bytes,
         provider_execution: None,
+        provider_work: 0L,
         reads: [],
         started: false,
         closed: false,
@@ -460,6 +463,7 @@ pub fn advance_local_materializing_attempt(
     }
     Ok(Continue(progress~, work~)) =>
       if bounded(progress, work, false) {
+        attempt.provider_work += work
         Ok({ complete: false, progress, work, })
       } else {
         close_local_materializing_attempt(attempt)
@@ -474,6 +478,7 @@ pub fn advance_local_materializing_attempt(
           return Err(Candidate(ForeignPreparation))
         }
         attempt.output = Some(anchored)
+        attempt.provider_work += work
         Ok({ complete: true, progress, work, })
       } else {
         close_local_materializing_attempt(attempt)
@@ -524,6 +529,20 @@ pub fn local_materializing_guard_usage(
   // whole-input guard measurement to report.
   ignore(attempt)
   None
+}
+
+///|
+/// Total work the bounded provider reported across the advances of a
+/// completed attempt. This is the provider's own report, not a value
+/// measurement: no input or output values are scanned to produce it.
+pub fn local_materializing_provider_work(
+  attempt : LocalMaterializingAttempt,
+) -> Int64? {
+  if attempt.closed || attempt.output is None {
+    None
+  } else {
+    Some(attempt.provider_work)
+  }
 }
 
 ///|
