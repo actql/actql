@@ -20,7 +20,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | --- | --- | --- | --- |
 | UTF-8, tokens, escaping, numeric domain, original spans | Original source owner and bounded query lexer | Positive, negative and exact-limit cases | Pending |
 | Closed scalar expressions, precedence, NULL and CONCAT | Structured Expression admission/typing | Independent trees, demand/failure and legacy regression | Partial: shared AST and direct tree lowering; full typing/failure matrix pending |
-| SELECT, FROM-only, subqueries, WHERE | Existing Program derive/select/filter | SQL/Pipe expected Program and rows | Partial: base SELECT/FROM/WHERE and named noncorrelated FROM subqueries, including nesting, execute through captured Host; subquery joins, set operands and additional source forms remain |
+| SELECT, FROM-only, subqueries, WHERE | Existing Program derive/select/filter | SQL/Pipe expected Program and rows | Partial: base SELECT/FROM/WHERE and named noncorrelated FROM subqueries, including nesting, execute through captured Host; one JOIN-right subquery from an earlier CTE executes through packed Local/Remote; broader joins, set operands and additional source forms remain |
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: direct Values joins support INNER/LEFT and bounded CROSS; a DISTINCT CTE supplies identity for packed source-free and captured-input FULL/USING; general join scope remains |
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: scalar reductions and ordered ARRAY_AGG/STRING_AGG lower through group; captured COUNT/GROUP/HAVING runtime passes, ordered collection runtime and failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
@@ -54,9 +54,13 @@ the source alias and accumulates nested source stages without reparsing
 expressions or copying acquisition. A two-level captured-input subquery
 applies DISTINCT, ORDER BY and LIMIT after acquisition and returns `id=2,3`
 through packed Local and HTTP Remote Named Results.
-Missing aliases and source-count overruns are rejected. JOIN subqueries,
-correlation and set operands containing subqueries remain outside the
-implemented path.
+Missing aliases and source-count overruns are rejected. A named noncorrelated
+JOIN-right subquery also becomes a checked Stage Result when its input is an
+earlier CTE, with the same global CTE count bound. A packed source-free case
+reuses one base CTE in the outer join and the right subquery; Local and HTTP
+Remote both publish `{left_id:2,right_id:2}`. Correlation, arbitrary join
+chains and set operands containing subqueries remain outside the implemented
+path.
 Generated source bindings avoid names already present in the input tokens;
 a user CTE named `aql_query_source_0` retains its own binding while the
 subquery uses the next available internal name. The name search is charged

@@ -921,6 +921,25 @@ test "SQL and Pipe FROM subqueries reuse the ordinary checked Stage Result" {
 }
 
 ///|
+test "named JOIN subquery reuses an earlier checked CTE result" {
+  let query = @query.parse_query(
+    "WITH base AS (SELECT id FROM orders) SELECT l.id AS left_id, r.id AS right_id FROM base AS l JOIN (SELECT id FROM base WHERE id = 'a') AS r ON l.id = r.id",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, values_context(), construction_limits()).unwrap()
+  assert_eq(@program.stage_count(program), 3)
+  let wire = semantic(program)
+  assert_true(wire.contains("\"stage\":\"aql_cte_0\""))
+  assert_true(wire.contains("\"stage\":\"aql_cte_1\""))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("JOIN subquery should use checked Stage Results")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+}
+
+///|
 test "FULL CTE join retains keyed input identity for common closure" {
   let query = @query.parse_query(
     "WITH chosen AS (SELECT id, customer_id FROM orders) SELECT l.id AS left_id, r.id AS right_id FROM chosen AS l FULL JOIN chosen AS r ON l.customer_id = r.customer_id",

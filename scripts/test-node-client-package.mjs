@@ -157,6 +157,15 @@ const valuesCteQuery = queryFrontend.compileValuesQueryJson(
   'fixture.values_cte');
 assert.notEqual(valuesCteQuery, '');
 await writeFile(join(root, 'values-cte-query.json'), valuesCteQuery);
+const joinSubquery = queryFrontend.compileValuesQueryJson(
+  'WITH base AS (SELECT id FROM rows) '
+    + 'SELECT l.id AS left_id, r.id AS right_id FROM base AS l '
+    + 'JOIN (SELECT id FROM base WHERE id > 1) AS r ON l.id = r.id',
+  'rows', 'rows', JSON.stringify({...valuesStep, as: 'rows'}),
+  JSON.stringify(['id']),
+  'fixture.join_subquery');
+assert.notEqual(joinSubquery, '');
+await writeFile(join(root, 'join-subquery.json'), joinSubquery);
 const setLeft = {values: {schema: {
   a: {type: 'number', nullable: true},
   b: {type: 'string', nullable: false}},
@@ -529,6 +538,14 @@ async function checkValuesCte(client, suffix) {
   assert.deepEqual(await execution.result('answer').all(),
     [{x: 2}, {x: 1}]);
 }
+async function checkJoinSubquery(client, suffix) {
+  const execution = await client.aql(
+    readFileSync('join-subquery.json', 'utf8'),
+    {format: 'json', requestId: 'packed-join-subquery-' + suffix});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  assert.deepEqual(await execution.result('answer').all(),
+    [{left_id: 2, right_id: 2}]);
+}
 async function checkFullUsingValues(client, suffix) {
   const execution = await client.aql(fullUsingValuesDocument,
     {format: 'json', requestId: 'packed-full-using-values-' + suffix});
@@ -717,6 +734,7 @@ assert.deepEqual(await computedValuesQueryLocal.result('answer').all(),
 await checkOrderScopes(installedLocal, 'local');
 await checkQueryPair(installedLocal, 'local');
 await checkValuesCte(installedLocal, 'local');
+await checkJoinSubquery(installedLocal, 'local');
 await checkFullUsingValues(installedLocal, 'local');
 await checkConcat(installedLocal, 'local');
 const setQueryLocal = await installedLocal.aql(setQueryDocument,
@@ -902,6 +920,7 @@ assert.deepEqual(await computedValuesQueryRemote.result('answer').all(),
 await checkOrderScopes(installedRemote, 'remote');
 await checkQueryPair(installedRemote, 'remote');
 await checkValuesCte(installedRemote, 'remote');
+await checkJoinSubquery(installedRemote, 'remote');
 await checkFullUsingValues(installedRemote, 'remote');
 const setQueryRemote = await installedRemote.aql(setQueryDocument,
   {format: 'json', requestId: 'packed-set-query-remote'});

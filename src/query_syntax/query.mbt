@@ -406,7 +406,9 @@ fn QueryParser::query_source(
 }
 
 ///|
-fn QueryParser::join_part(self : QueryParser) -> JoinPart raise QueryAbort {
+fn QueryParser::join_part(
+  self : QueryParser,
+) -> (JoinPart, Array[CtePart]) raise QueryAbort {
   self.node()
   let kind = if self.has("INNER") {
     self.keyword("INNER")
@@ -430,20 +432,26 @@ fn QueryParser::join_part(self : QueryParser) -> JoinPart raise QueryAbort {
     "inner"
   }
   self.keyword("JOIN")
-  let (relation, source_alias) = self.source_name()
+  let (relation, source_alias, ctes) = self.query_source()
   if kind == "cross" {
-    return { kind, relation, source_alias, on: None, using_columns: [], }
+    return (
+      { kind, relation, source_alias, on: None, using_columns: [], },
+      ctes,
+    )
   }
   if self.has("ON") {
     self.keyword("ON")
     self.node()
-    return {
-      kind,
-      relation,
-      source_alias,
-      on: Some(self.expression()),
-      using_columns: [],
-    }
+    return (
+      {
+        kind,
+        relation,
+        source_alias,
+        on: Some(self.expression()),
+        using_columns: [],
+      },
+      ctes,
+    )
   }
   self.keyword("USING")
   if self.advance().value != Symbol(40) {
@@ -461,7 +469,7 @@ fn QueryParser::join_part(self : QueryParser) -> JoinPart raise QueryAbort {
   if self.advance().value != Symbol(41) {
     raise QueryAbort("Expected USING closing parenthesis", self.peek().start)
   }
-  { kind, relation, source_alias, on: None, using_columns, }
+  ({ kind, relation, source_alias, on: None, using_columns, }, ctes)
 }
 
 ///|
@@ -801,7 +809,11 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   let (relation, source_alias, ctes) = self.query_source()
   let joins : Array[JoinPart] = []
   while self.starts_join() {
-    joins.push(self.join_part())
+    let (part, join_ctes) = self.join_part()
+    joins.push(part)
+    for cte in join_ctes {
+      ctes.push(cte)
+    }
   }
   let operations : Array[QueryOperation] = []
   if self.has("WHERE") {
@@ -1025,7 +1037,11 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
           self.peek().start,
         )
       }
-      joins.push(self.join_part())
+      let (part, join_ctes) = self.join_part()
+      joins.push(part)
+      for cte in join_ctes {
+        ctes.push(cte)
+      }
     } else if self.has("WHERE") {
       self.keyword("WHERE")
       operations.push(Where(self.expression()))
@@ -1124,6 +1140,9 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
     }
   }
   self.end()
+  if ctes.length() > self.limits.max_cte_count {
+    raise QueryAbort("CTE count limit", self.peek().start)
+  }
   {
     source: self.source,
     ctes,

@@ -234,6 +234,46 @@ test "SQL JOIN retains qualifier and equality condition" {
 }
 
 ///|
+test "JOIN subquery is a named source with one synthetic CTE" {
+  let sql = parse_query(
+    "WITH base AS (SELECT id FROM orders) SELECT l.id AS left_id, r.id AS right_id FROM base AS l JOIN (SELECT id FROM base WHERE id = 'a') AS r ON l.id = r.id",
+    query_limits(),
+  ).unwrap()
+  assert_eq(cte_count(sql), 2)
+  assert_eq(relation(cte_at(sql, 1).unwrap().query)[0].value, "base")
+  assert_eq(join_part_at(sql, 0).unwrap().relation, [
+    cte_at(sql, 1).unwrap().name,
+  ])
+  assert_eq(
+    join_part_at(sql, 0).unwrap().source_alias,
+    Some({ value: "r", quoted: false, }),
+  )
+  let pipe = parse_query(
+    "FROM base AS l |> JOIN (SELECT id FROM base) AS r ON l.id = r.id |> SELECT l.id AS left_id, r.id AS right_id",
+    query_limits(),
+  ).unwrap()
+  assert_eq(cte_count(pipe), 1)
+  assert_eq(join_part_at(pipe, 0).unwrap().relation, [
+    cte_at(pipe, 0).unwrap().name,
+  ])
+  assert_true(
+    parse_query(
+      "SELECT l.id FROM base AS l JOIN (SELECT id FROM base) ON l.id = id",
+      query_limits(),
+    )
+    is Err(_),
+  )
+  let one_cte = { ..query_limits(), max_cte_count: 1, }
+  assert_true(
+    parse_query(
+      "FROM (SELECT id FROM rows) AS l |> JOIN (SELECT id FROM rows) AS r ON l.id = r.id",
+      one_cte,
+    )
+    is Err(_),
+  )
+}
+
+///|
 test "nonrecursive CTE names retain declaration order and bounds" {
   let query = parse_query(
     "WITH first AS (SELECT a FROM left_rows), second AS (SELECT a FROM first) SELECT a FROM second",
