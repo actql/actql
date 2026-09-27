@@ -68,6 +68,8 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson} from
   '../../../host-common/publication-contract-control.fixture.mjs';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
+import {sourceFreeEffectPublicationPlan} from
+  '../../../host-node/local-values-plan.mjs';
 import {issueCompletedEffectfulComputationEvidence,
   prepareCompletedEffectfulPublication,
   publishCompletedEffectfulRun,
@@ -1572,6 +1574,32 @@ test(`two-member captured Effect Run ${
       compilation: effectCompilation, allowed, definition,
       identity: clientRequest, ref: clientRef}) => {
     physicalStarts++;
+    if (physical === 'simulated') {
+      const noRecompile = {...moon,
+        clientProgramCompileLocalEffects() {
+          assert.fail('publication plan compiled the Effect Program again');
+        },
+        clientProgramPrepareEffectComputationWithParameters() {
+          assert.fail('publication plan prepared the Effect Program again');
+        }};
+      const installedPlan = sourceFreeEffectPublicationPlan({
+        moon: noRecompile, control, prepared,
+        compilation: effectCompilation, allowed, definition,
+        authorityScopeCid: cid('a'), tenantId: 'tenant-a',
+        storeAuthorityCid: cid('7'),
+        now: () => '2026-09-24T00:00:00.000Z',
+      });
+      assert.equal(installedPlan.runDefinition.identity,
+        moon.strategyPublicationContractIdentity(definition));
+      assert.equal(installedPlan.results.length,
+        moon.clientProgramEffectCompilationResultNames(effectCompilation)
+          .length);
+      assert.ok(Date.parse(JSON.parse(installedPlan.results[0].retention.wire)
+        .available_until) >= Date.parse(JSON.parse(
+        installedPlan.runDefinition.wire).valid_until));
+      assert.equal(installedPlan.localEvidenceContext.runDefinition,
+        installedPlan.runDefinition);
+    }
     const semanticInvocation = checked(
       moon.clientProgramIssueSourceFreeLocalEffectInvocation(
         prepared, 0, 4096, 64, 8));

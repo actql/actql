@@ -40,6 +40,15 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   }
 
   async function observeStop(entry) {
+    if (entry.observeStopped !== undefined) {
+      // An Effect continuation may stop its in-process Compute while its Run
+      // waits for approval. Only that common Run owner can publish the
+      // observed outcome; absence of a public index does not imply failure.
+      await entry.observeStopped();
+      entry.stopObservationPending = false;
+      entry.stopObserved = true;
+      return;
+    }
     let publicationCommitted = entry.publicationCommitted === true;
     if (!publicationCommitted) {
       publicationCommitted =
@@ -262,6 +271,69 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     return physical;
   };
 
+  // The installed Effect Run owner supplies the already-admitted operation.
+  // This is the same physical supervisor as ordinary dispatch, not another
+  // Run-start or Effect retry engine. It never invokes run again during drain.
+  // The callback must transfer cleanup custody before any fallible operation
+  // that can retain resources. Its common Run observer records the stop
+  // independently from waiting, failed, unknown or published outcome.
+  const track = (ref, {run, observeStopped}) => {
+    if (typeof ref?.runDefinitionCid !== 'string' ||
+        typeof run !== 'function' || typeof observeStopped !== 'function') {
+      throw new TypeError('InvalidClientOwnedDispatch');
+    }
+    const existing = current(ref);
+    if (existing !== undefined) return existing.promise;
+    const entry = {ref: Object.freeze({...ref}), settled: false,
+      abort: new AbortController(), observeStopped,
+      physicalStarted: false, physicalWorkMayHaveStarted: false,
+      stopObserved: false, stopObservationPending: false,
+      cleanupOwner: undefined, cleanupHandle: undefined,
+      unresolvedCleanup: false};
+    entries.set(keyOf(ref), entry);
+    entry.promise = Promise.resolve().then(() => run(Object.freeze({
+      signal: entry.abort.signal,
+      retainExecution(execution) {
+        if (entry.cleanupOwner !== undefined &&
+            entry.cleanupOwner !== execution) {
+          throw new TypeError('ClientDispatchCleanupOwnerAlreadyRetained');
+        }
+        if (typeof execution?.close !== 'function' ||
+            typeof execution?.cleanup !== 'function' ||
+            typeof execution?.cleanupPending !== 'function') {
+          throw new TypeError('ClientDispatchCleanupOwnerInvalid');
+        }
+        entry.cleanupOwner = execution;
+        entry.physicalStarted = true;
+        entry.physicalWorkMayHaveStarted = true;
+      },
+    }))).then(async result => {
+      await settleCleanup(entry);
+      return result;
+    }).catch(async cause => {
+      entry.primaryFailure = cause;
+      if (cause?.cleanupPending === true) {
+        if (typeof cause.cleanupHandle?.status === 'function' &&
+            typeof cause.cleanupHandle?.retry === 'function') {
+          entry.cleanupHandle = cause.cleanupHandle;
+        } else if (entry.cleanupOwner === undefined) {
+          entry.unresolvedCleanup = true;
+        }
+      }
+      try { await settleCleanup(entry); }
+      catch (failure) { entry.cleanupFailure = failure; }
+      throw cause;
+    }).finally(() => {
+      entry.settled = true;
+      retire(entry);
+    });
+    // submit returns its durable RunRef before the owned operation settles.
+    // Observation remains available through operation(), without an unhandled
+    // rejection when a Client disconnects or never calls wait().
+    entry.promise.catch(() => {});
+    return entry.promise;
+  };
+
   const drain = async () => {
     for (;;) {
       const running = [...entries.values()].filter(entry => !entry.settled);
@@ -290,5 +362,5 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       });
     }
   };
-  return Object.freeze({start, cancel, live, operation, drain});
+  return Object.freeze({start, track, cancel, live, operation, drain});
 }
