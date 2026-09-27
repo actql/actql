@@ -1,0 +1,11 @@
+AQL '0.1';
+PROGRAM 'customer.open_orders' {
+  STAGE main {
+    INPUT orders = {"carrier": "relation", "schema": {"id": {"type": "string", "nullable": false}, "customer_id": {"type": "string", "nullable": false}, "status": {"type": "string", "nullable": false}, "amount": {"type": "number", "nullable": false}}, "primary_key": ["id"]};
+    FROM orders;
+    STEP {"filter": "status = 'open'"};
+    STEP {"group": {"by": ["customer_id"], "aggregates": {"order_count": {"fn": "count"}, "total_amount": {"fn": "sum", "field": "amount"}}}, "as": "customer_totals"};
+    RESULT main = {"from": "customer_totals", "fields": ["customer_id", "order_count", "total_amount"], "order_by": [{"total_amount": "desc"}, {"customer_id": "asc"}]};
+  }
+  RESULT main = {"from": {"stage": "main", "result": "main"}};
+}

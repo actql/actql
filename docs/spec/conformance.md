@@ -142,7 +142,10 @@ does not alone invalidate static Catalog identity.
 The adopted source syntax uses explicit stages, map/ordered-array derive, and
 select. Authoring evaluation measures intent preservation, successful checking,
 diagnostic repair, field leakage, shadowed-value confusion, coverage and cost.
-Evaluation does not introduce alternative source spellings. Independent curators
+Evaluation does not introduce unregistered source spellings. Explicit frontend
+profiles and their implementation evidence are tracked in the
+[Frontend r1 registry](../../spec/frontend/frontend-profile-r1.json); adoption
+alone does not establish parser or Host conformance. Independent curators
 seal task variants, contract pins, seeds and oracles before isolated sessions;
 answers stay out of author context and failed attempts remain in the results.
 Examples and acceptance cases are not execution evidence by themselves.
@@ -384,8 +387,12 @@ compatibility policy is `actql-version-policy/0.1`, exported as
 The source parser MUST reject an absent or unsupported `version` before
 lowering; [Structural grammar (normative)](language.md#structural-grammar) defines the admitted source version. Unknown document, input, operation, parameter,
 result, and effect fields MUST fail closed.
-ActQL 0.1 has no extension namespace, deprecated syntax, source aliases, or
-alternate compatibility mode. Only the current canonical syntax is accepted.
+ActQL 0.1 has no extension namespace, deprecated operation aliases, or alternate
+compatibility mode in the canonical Program model. An explicitly registered
+frontend can provide a different representation of that same model. An
+implementation accepts only its installed profiles and their closed syntax;
+it does not infer support from a backend language or retry another frontend
+after a parse or type error.
 
 <!-- requirement-block: versioning.a-patch-must-not-accept-a-new-source-spelling-alias -->
 An implementation patch MAY fix execution or rejection of source whose status
@@ -398,6 +405,12 @@ module, law, or contract CID in place. A source-language change requires a new
 ActQL language version and conformance corpus. An incompatible machine-artifact
 or CLI change requires a new artifact protocol version and package major
 revision, while preserving all earlier frozen evidence.
+
+The adopted Frontend r1 work is an explicit initial-0.1 specification decision,
+not permission for implementation patches to invent further syntax or bump
+versions. Its profile names separate frontend surfaces from Program semantics.
+Actual grammar changes are accompanied by the applicable manifest, pins and
+conformance corpus; their evidence is not inherited from JSON/YAML decoding.
 
 <!-- requirement-block: versioning.a-runtime-must-reject-unsupported-actql-aoa-ir-connector-spi versioning.the-installed-skill-must-bind-the-compiler-s-exact-grammar-manifest versioning.aoa-execution-must-bind-the-exact-frozen-aoa-contract-cid -->
 A runtime MUST reject unsupported ActQL, AoA IR, Connector SPI, and artifact
