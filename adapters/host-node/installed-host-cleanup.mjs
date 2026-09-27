@@ -13,7 +13,8 @@ export async function retainInstalledHostInitializationFailure(cause,
   if (store !== undefined) pending.add('store');
   const errors = [];
   const failure = Object.assign(new Error('InstalledHostInitializationFailed',
-    {cause}), {code: 'InstalledHostInitializationFailed', primaryFailure: cause});
+    {cause}), {code: 'InstalledHostInitializationFailed',
+    primaryFailure: cause?.primaryFailure ?? cause});
   const status = () => Object.freeze({pending: pending.size !== 0,
     owners: Object.freeze([...pending]), errors: Object.freeze([...errors])});
   async function attempt(name, close) {

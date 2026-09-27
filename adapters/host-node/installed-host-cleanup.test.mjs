@@ -3,8 +3,88 @@ import test from 'node:test';
 import {mkdir, mkdtemp, rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {generateKeyPairSync} from 'node:crypto';
+import {DatabaseSync} from 'node:sqlite';
 import {retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
+import {openClientRequestJournal} from './client-request-journal.mjs';
+
+test('request journal fences admission but retries a failed physical close',
+  async t => {
+    const root = fileURLToPath(new URL('../../_build/host-init/', import.meta.url));
+    await mkdir(root, {recursive: true});
+    const directory = await mkdtemp(join(root, 'request-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const journal = openClientRequestJournal(directory);
+    const close = DatabaseSync.prototype.close;
+    const failure = new Error('RequestJournalCloseFailure');
+    let calls = 0;
+    DatabaseSync.prototype.close = function () {
+      if (++calls === 1) throw failure;
+      return close.call(this);
+    };
+    t.after(() => { DatabaseSync.prototype.close = close; });
+    assert.throws(() => journal.close(), error => error === failure);
+    assert.throws(() => journal.lookupRunDefinition({}, {}, {}),
+      {code: 'ClientRequestJournalClosed'});
+    journal.close();
+    assert.equal(calls, 2);
+    journal.close();
+    assert.equal(calls, 2);
+  });
+
+test('Checkpoint installation retains its journal before returning an owner',
+  async t => {
+    const {installRemoteCheckpoints} = await import('./client-checkpoints.mjs');
+    const {runtimeCore} = await import('../host-common/runtime-core.mjs');
+    const moon = await import('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js');
+    const root = fileURLToPath(new URL('../../_build/host-init/', import.meta.url));
+    await mkdir(root, {recursive: true});
+    const directory = await mkdtemp(join(root, 'checkpoint-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const keys = generateKeyPairSync('ed25519');
+    const primary = new Error('ReadResumeInstallationFailure');
+    const closeFailure = new Error('CheckpointJournalCloseFailure');
+    const close = DatabaseSync.prototype.close;
+    let closeCalls = 0;
+    DatabaseSync.prototype.close = function () {
+      if (++closeCalls === 1) throw closeFailure;
+      return close.call(this);
+    };
+    t.after(() => { DatabaseSync.prototype.close = close; });
+    let reads = 0;
+    const cid = `sha256:${'a'.repeat(64)}`;
+    let failure;
+    await assert.rejects(installRemoteCheckpoints({root: directory,
+      tenantId: 'tenant', authorityScopeCid: cid, ownerPrincipal: 'owner',
+      siteKey: 'site', realizationKey: 'values', environmentCid: cid,
+      contractControl: runtimeCore(moon).publicationControl,
+      authorization: {
+        reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
+          principalId: 'reviewer', publicKey: keys.publicKey.export({
+            type: 'spki', format: 'pem'})}],
+        hostKey: {keyId: 'host-key', privateKey: keys.privateKey.export({
+          type: 'pkcs8', format: 'pem'})},
+      },
+      source: {get context() {
+        if (++reads === 2) throw primary;
+        return undefined;
+      }},
+    }), error => {
+      failure = error;
+      assert.equal(error.primaryFailure, primary);
+      assert.equal(error.cause, primary);
+      assert.equal(error.cleanupPending, true);
+      assert.equal(error.cleanupErrors[0].error, closeFailure);
+      return true;
+    });
+    assert.equal(closeCalls, 1);
+    const outer = await retainInstalledHostInitializationFailure(failure, {});
+    assert.equal(outer.primaryFailure, primary);
+    assert.equal(outer.cleanupPending, false);
+    assert.equal(closeCalls, 2);
+  });
 
 test('installed Host exposes initialization cause and releases its Store lock',
   async t => {

@@ -221,6 +221,7 @@ export function openClientRequestJournal(directory, {
     enableForeignKeyConstraints: true,
   });
   let closed = false;
+  let databaseClosed = false;
   try {
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
@@ -891,9 +892,10 @@ export function openClientRequestJournal(directory, {
       return row?.reconciliation_state_wire ?? undefined;
     },
     close() {
-      if (closed) return;
       closed = true;
+      if (databaseClosed) return;
       database.close();
+      databaseClosed = true;
     },
   });
   return journal;
