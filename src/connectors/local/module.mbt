@@ -193,6 +193,80 @@ pub fn local_module_bounded_values_publication(
 }
 
 ///|
+/// An operation obligation is discharged only by the bounded provider for
+/// the exact source step. A provider for another step in the task is not
+/// evidence for this obligation.
+priv enum LocalBinaryRelationOperation {
+  Append
+  Set
+  CrossJoin
+}
+
+///|
+fn local_bounded_binary_relation_step(
+  installed : LocalComputeModule,
+  slot : Int,
+  required_step : Int,
+  operation : LocalBinaryRelationOperation,
+) -> Bool {
+  guard installed.sequences.get(slot) is Some(sequence) else { return false }
+  guard @execution.generated_sequence_step_index_at(sequence, 0) is Some(step) &&
+    step == required_step &&
+    @execution.generated_sequence_step_index_at(sequence, 1) is None else {
+    return false
+  }
+  let matches = match @execution.generated_sequence_step_at(sequence, 0) {
+    Some(@lower.AppendStep(_)) => operation is Append
+    Some(@lower.SetStep(_)) => operation is Set
+    Some(@lower.CrossJoinStep(_)) => operation is CrossJoin
+    _ => false
+  }
+  if !matches {
+    return false
+  }
+  // Family registrations precede the built-in Relation providers. Do not
+  // discharge a Relation check with a different provider's acceptance.
+  for provider in installed.managed_providers {
+    if managed_provider_accepts(provider, sequence) {
+      return false
+    }
+  }
+  let provider = match operation {
+    Append => append_provider(installed.execution, installed.measurement)
+    Set => set_provider(installed.execution, installed.measurement)
+    CrossJoin => cross_join_provider(installed.execution, installed.measurement)
+  }
+  managed_provider_accepts(provider, sequence)
+}
+
+///|
+pub fn local_module_bounded_append_obligation(
+  installed : LocalComputeModule,
+  slot : Int,
+  step : Int,
+) -> Bool {
+  local_bounded_binary_relation_step(installed, slot, step, Append)
+}
+
+///|
+pub fn local_module_bounded_set_obligation(
+  installed : LocalComputeModule,
+  slot : Int,
+  step : Int,
+) -> Bool {
+  local_bounded_binary_relation_step(installed, slot, step, Set)
+}
+
+///|
+pub fn local_module_bounded_cross_join_obligation(
+  installed : LocalComputeModule,
+  slot : Int,
+  step : Int,
+) -> Bool {
+  local_bounded_binary_relation_step(installed, slot, step, CrossJoin)
+}
+
+///|
 /// The bounded provider owning `sequence`: a registered family provider first,
 /// then the built-in relation providers bound to the module limits.
 fn local_managed_provider_for(

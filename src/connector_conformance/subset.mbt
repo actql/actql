@@ -8,6 +8,8 @@ pub fn configure_subset(
   mode : Int,
   managed_providers? : Array[@local.ManagedProvider] = [],
   retained_output? : Bool = false,
+  execution_work? : Int = 100000,
+  operation_entries? : Int = 10000,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   if mode < 0 || mode > 2 {
     abort("invalid conformance configuration")
@@ -63,11 +65,11 @@ pub fn configure_subset(
                 max_rows: 100,
                 metadata_entries: 10000,
                 retained_entries: 10000,
-                operation_entries: 10000,
+                operation_entries,
                 input_values: values,
                 output_values: values,
               },
-              max_work: 100000,
+              max_work: execution_work,
               max_frames: 100,
             },
             measurement,

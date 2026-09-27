@@ -97,6 +97,7 @@ fn run_local_managed_cross_join(singleton : Bool) -> Unit raise {
   )
   let right_rows = local_managed_test_rows(right_ops)
   assert_eq(right_rows, right_values_rows)
+  assert_eq(@local_driver.local_dispatch_rejection(installed, 5), None)
   let producer_live = Ref(true)
   let (producer_ops, producer) = run_local_managed_test_task(
     installed,

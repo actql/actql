@@ -500,7 +500,7 @@ the exact and one-short control limit.
 
 | Category | Paths | State |
 | --- | ---: | --- |
-| Implementation gap (recorded, separate unit) | 0 route paths | The retained Store materializing lane now admits a checked zero-input Values task and its Values publication obligation through the bounded Values provider. It can publish an exact retained Values Result, run two downstream Computes, and reclaim the output. Other formerly rejected obligations and SGA/TEA/VecA retained Store paths remain separate implementation work; the Values change is not a blanket obligation allowance. See the retained completion follow-up below. |
+| Implementation gap (recorded, separate unit) | 0 route paths | The retained Store materializing lane admits checked zero-input Values and exact one-step Append, EXCEPT, INTERSECT, and Cross Join tasks through their bounded providers. Their retained Relation outputs can be published, consumed twice, and reclaimed. Other checked Relation obligations and SGA/TEA/VecA retained Store paths remain separate implementation work; this is not a blanket obligation allowance. See the retained completion follow-up below. |
 | Existing evidence was not referenced | 0 | Closed. |
 | Required tests were missing | 0 | Closed by the harnesses and Host cases above. |
 
@@ -527,9 +527,88 @@ the same bounded provider; `retained-output.test.mjs` covers the shared Store
 seal, abort, and cleanup owner. These are reused implementation proofs, not
 claims that every retained Store obligation is complete.
 
+Exact one-step Append, EXCEPT, INTERSECT, and Cross Join now discharge their
+checked Relation obligations only when the corresponding built-in bounded
+provider owns the same source step. A family provider accepting the sequence
+does not count as evidence for those obligations. The ordinary Host fixture in
+`standard-host.test.mjs` retains all five tasks in each binary Program,
+publishes the producer and two consumer Named Results, and compares their
+ordered rows against independent expectations. The same fixture cancels a
+retained Append after positive producer work, observes stop without publishing
+that output, and injects producer Store append and finalize failures before
+completion. The finalize failure occurs after the real file has sealed, with
+its acknowledgement lost. Publication remains absent, a failed cleanup keeps
+the reservation and cleanup owner live, and retry reclaims the output without
+rerunning the producer. All failure cases finally release held and reserved
+resources.
+
+The retained cancellation and Store-failure fixture uses Append as the shared
+driver control: these providers reach the same bounded advancement, retained
+writer, finalization, stop, and cleanup owner. Their individual kernel stop
+and two-consumer lifetime tests remain linked in the resource route inventory;
+the shared driver evidence does not replace their operation-specific limits.
+
+EXCEPT and INTERSECT cover both ALL and DISTINCT with duplicate-sensitive
+expectations; Cross Join covers ordinary and `right_rows: one` variants. The
+same retained Host path also applies independent kernel budgets: Append work
+26/workspace 10, one-row EXCEPT work 19, two-left/one-right EXCEPT workspace 15,
+and two-by-two Cross Join work 52/workspace 12. Each limit passes exactly and
+fails one short before retaining the producer result. These constants come
+from the corresponding bounded kernel proofs, not observed successful usage.
+The one-short cases also match the retained driver's typed
+`Preparation(Materializing(Candidate(Execution(Rows(_, RowLimit)))))`
+failure. Work and workspace are varied independently; both deliberately share
+the existing `RowLimit` classification. A selection, input, Store, or unrelated
+runtime failure cannot satisfy this assertion. Only the two input tasks may
+complete, and final cleanup must return held and reserved bytes to zero.
+
+#### Ordinary Program boundary
+
+The supported fixtures use authored Stage boundaries, not test-only task
+splitting. For example, after `cross_left` and `cross_right` Values Stages
+each declare Result `r`, this producer Stage is supported with a retained Store:
+
+```json
+{
+  "id": "crossed",
+  "inputs": {
+    "l": {"result": {"stage": "cross_left", "result": "r"}},
+    "r": {"result": {"stage": "cross_right", "result": "r"}}
+  },
+  "steps": [{"from": "l", "append": {"with": "r"}, "as": "out"}],
+  "results": {"r": {"from": "out", "fields": ["id"]}}
+}
+```
+
+Two separate consumer Stages each bind `crossed.r` and select its fields.
+The Program publishes the producer and both consumer Results. The actual
+execution has two Values tasks, one binary task, and two consumer tasks; all
+five choose Local retained-file output. Substituting EXCEPT/INTERSECT with
+`duplicates: all` or `distinct`, or a typed Cross Join projection, uses the
+corresponding built-in bounded provider without changing the retention owner.
+
+Replacing the producer's `steps` with the following is **not** included:
+
+```json
+[
+  {"from": "l", "append": {"with": "r"}, "as": "appended"},
+  {"from": "appended", "filter": "true", "as": "out"}
+]
+```
+
+The ordinary retained-only Host now rejects this Program during whole-graph
+selection: no Compute dispatch, Store lease, or completed task is created.
+Local's offer uses the configured output contract, so a memory-only managed
+provider cannot make an unsupported retained obligation look applicable.
+Memory-output chains retain their existing bounded route; another installed
+eligible implementation may still supply a valid offer. No synchronous fallback
+or new Host state machine is introduced. The regression is `unsupported-chain`
+in `standard-host.test.mjs`, with a portable offer-level control in
+`local_dispatch_wbtest.mbt`.
+
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |
-| Relation obligations beyond one-step Values | Open | Classify each checked obligation against its bounded provider, then prove ordinary Host completion, retained publication where applicable, cancellation, and cleanup. |
+| Other Relation obligations, including multi-step tasks | Open | Bind each remaining checked obligation to its exact bounded execution path, then prove ordinary Host completion, retained publication where applicable, cancellation, and cleanup. |
 | SGA, TEA, and VecA retained outputs | Open | Connect their exact Carrier completion and retention obligations without widening the Relation-only allowance. |
 | Native Host in-flight cancellation | Separate completion unit | Do not count JS Host cancellation as native request delivery. |
 

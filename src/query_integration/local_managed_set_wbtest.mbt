@@ -44,6 +44,7 @@ fn assert_local_managed_set_variant(
   let graph = @strategy.captured_dag_graph(run)
   assert_eq(@strategy.graph_task_count(graph), 6)
   assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(2))
+  assert_eq(@local_driver.local_dispatch_rejection(installed, 3), None)
   let left_live = Ref(true)
   let (left_ops, left) = run_local_managed_test_task(
     installed,

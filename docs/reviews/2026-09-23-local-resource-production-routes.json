@@ -5023,6 +5023,27 @@
       ],
       "environment_tests": [
         {
+          "role": "retained_append_host_work_workspace",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "append-exact"
+        },
+        {
+          "role": "retained_binary_finalize_failure_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "finalize-failure"
+        },
+        {
+          "role": "retained_chain_pre_execution_rejection",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "unsupported-chain"
+        },
+        {
           "role": "append_chain_timer",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
@@ -5325,6 +5346,20 @@
       ],
       "environment_tests": [
         {
+          "role": "retained_except_distinct_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "except-distinct"
+        },
+        {
+          "role": "retained_set_host_work_workspace",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "set-space-exact"
+        },
+        {
           "role": "except_ordinary_host_timer",
           "suite": "node:duckdb_standard_host",
           "targets": [
@@ -5415,6 +5450,13 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "retained_intersect_distinct_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "intersect-distinct"
+        },
         {
           "role": "intersect_ordinary_host_timer",
           "suite": "node:duckdb_standard_host",
@@ -5593,6 +5635,20 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "retained_product_host_work_workspace",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "cross-exact"
+        },
+        {
+          "role": "retained_singleton_product_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "singleton-cross-join"
+        },
         {
           "role": "external_product_node_timer_cancel_cleanup",
           "suite": "node:duckdb_standard_host",

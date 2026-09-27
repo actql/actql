@@ -1,4 +1,61 @@
 ///|
+test "Local retained offers exclude memory-only chains before predecessor execution" {
+  for retained in [false, true] {
+    let (run, _) = captured_graph_fixture(
+      local_values_append_chain=true,
+      local_values_append_variant="imported_filter",
+    )
+    let registry = search_registry()
+    let limits = dispatch_test_limits()
+    let installed = @local_driver.prepare_local_dispatch_module(
+      @host_driver.open_dispatch_driver(run),
+      registry,
+      @connector.capability_registration_at(registry, 0).unwrap(),
+      dispatch_test_generated(run),
+      limits.local_execution,
+      limits.guards,
+      limits.candidate_work,
+    ).unwrap()
+    let imports : @local_connector.LocalImportLimits = {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: retained_attempt_wire_limits(),
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 64,
+    }
+    @local_driver.configure_local_retained_inputs(installed, imports, None).unwrap()
+    if retained {
+      @local_driver.configure_local_retained_output(
+        installed,
+        {
+          max_rows: 100,
+          values: limits.local_execution.rows.output_values,
+          wire: imports.wire,
+          max_batch_bytes: 64,
+        },
+        None,
+      ).unwrap()
+    }
+    let before = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+    let offer = @local_driver.estimate_local_dispatch_offer(
+      installed,
+      3,
+      [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
+      100,
+    )
+    if retained {
+      assert_true(offer is Err(Configuration(ComputeUnsupported)))
+      assert_eq(
+        @resources.ledger_usage(@strategy.captured_dag_ledger(run)),
+        before,
+      )
+    } else {
+      assert_true(offer is Ok(_))
+    }
+  }
+}
+
+///|
 test "Local retained input policy validates before mutation and seals before offers escape" {
   for install_policy in [false, true] {
     let (run, _) = captured_graph_fixture()
