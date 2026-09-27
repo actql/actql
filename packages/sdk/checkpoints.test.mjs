@@ -145,6 +145,70 @@ test('a held submit is a control result, not a failure or unknown submission',
       1);
   });
 
+const effectSummary = () => ({...summary, kind: 'effect_set', phase: 'commit',
+  subject: {kind: 'run_unit', runId: 'run-a', runDefinitionCid: cid('1')},
+  requiredArtifact: {type: 'effect_set_preview', cid: cid('2')},
+  requirements: ['effect_scope_approved']});
+
+test('Effect answers bind the Run, full Preview and exact authority scope',
+  async () => {
+    for (const requirements of [['effect_scope_approved'],
+      ['effect_scope_approved', 'partial_application_accepted']]) {
+      const checkpoint = {...effectSummary(), requirements};
+      const answer = await signedAnswer(checkpoint, 'approved',
+        {...signer, authorityScopeCid: cid('3')}, summary.createdAt);
+      const resolution = JSON.parse(answer.resolutionWire);
+      const evidence = JSON.parse(answer.approvalEvidenceWire);
+      const approval = evidence.compatibility_approval;
+      assert.equal(resolution.run_id, 'run-a');
+      assert.equal(resolution.run_definition_cid, cid('1'));
+      assert.equal('prepare_attempt_id' in resolution, false);
+      assert.equal(approval.version, 'actql-approval-attestation/0.1');
+      assert.equal(approval.effect_preview_cid, cid('2'));
+      assert.equal(approval.authority_scope_cid, cid('3'));
+      assert.deepEqual(approval.claims, requirements);
+      assert.equal(approval.attestation_cid,
+        await contentCid(without(approval, 'attestation_cid')));
+      assert.equal(verify(null, Buffer.from(await contentCid(without(approval,
+        'proof', 'attestation_cid'))), keys.publicKey,
+      Buffer.from(approval.proof.signature, 'base64')), true);
+      assert.equal(resolution.approval_evidence_cid, await contentCid(evidence));
+    }
+    await assert.rejects(signedAnswer(effectSummary(), 'approved', signer,
+      summary.createdAt), {message: 'EffectApprovalAuthorityScopeRequired'});
+    await assert.rejects(signedAnswer({...effectSummary(),
+      requirements: ['invocation_scope_approved']}, 'approved',
+    {...signer, authorityScopeCid: cid('3')}, summary.createdAt),
+    {message: 'UnsupportedEffectApprovalClaims'});
+    const rejected = await signedAnswer(effectSummary(), 'rejected', signer,
+      summary.createdAt);
+    assert.equal(rejected.approvalEvidenceWire, '');
+    assert.equal(JSON.parse(rejected.resolutionWire).run_id, 'run-a');
+  });
+
+test('a pending signer cannot change the reviewed Effect binding', async () => {
+  const checkpoint = effectSummary();
+  const mutableSigner = {...signer, authorityScopeCid: cid('3')};
+  mutableSigner.sign = bytes => {
+    checkpoint.subject.runId = 'foreign-run';
+    checkpoint.requiredArtifact.cid = cid('9');
+    checkpoint.requirements.push('partial_application_accepted');
+    mutableSigner.reviewerId = 'foreign-reviewer';
+    mutableSigner.authorityScopeCid = cid('8');
+    return signer.sign(bytes);
+  };
+  const answer = await signedAnswer(checkpoint, 'approved', mutableSigner,
+    summary.createdAt);
+  const resolution = JSON.parse(answer.resolutionWire);
+  const approval = JSON.parse(answer.approvalEvidenceWire)
+    .compatibility_approval;
+  assert.equal(resolution.run_id, 'run-a');
+  assert.equal(resolution.required_artifact_cid, cid('2'));
+  assert.equal(resolution.actor, 'alice');
+  assert.equal(approval.authority_scope_cid, cid('3'));
+  assert.deepEqual(approval.claims, ['effect_scope_approved']);
+});
+
 test('listing and review are bounded and the review bytes are verified',
   async t => {
     const content = Buffer.from(canonicalJson({displayed_scope: {site:

@@ -164,6 +164,7 @@ function checkpointView(wire, row) {
       cid: artifact.required_artifact.artifact_cid,
     }),
     reviewProjectionCid: artifact.review_projection_cid,
+    continuationStateCid: artifact.continuation_state_cid,
     requirements: Object.freeze([...artifact.requirements]),
     reasonCode: artifact.reason_code,
     humanSummary: artifact.human_summary,
@@ -962,10 +963,23 @@ export function openSqliteCheckpointJournal(root, {
       });
     },
 
-    // Prepare attempts with an approved, not yet completed resume intent,
-    // for a Host sweep on start and after answers. Claims still decide who
-    // continues; this only names candidates.
-    // Pages continue after the last prepare attempt ID of the previous page.
+    // Discover retained Run continuations, including closed Checkpoints whose
+    // Run still needs reconciliation or cleanup. Discovery grants no execution.
+    listRunCheckpoints({after = '', limit = 100} = {}) {
+      alive();
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000 ||
+          typeof after !== 'string') fail('InvalidCheckpointPage');
+      return database.prepare(`SELECT * FROM checkpoints
+        WHERE run_id IS NOT NULL AND checkpoint_cid > ?
+        ORDER BY checkpoint_cid LIMIT ?`).all(after, limit).map(row => {
+        core(runtime.checkpointAdmit(row.checkpoint_wire),
+          'CheckpointJournalCorrupt');
+        return checkpointView(row.checkpoint_wire, row);
+      });
+    },
+
+    // Prepare attempts with an approved, not yet completed resume intent.
+    // Claims decide who continues; pages use the last prepare attempt ID.
     listResumablePreparations({after = '', limit = 100} = {}) {
       alive();
       if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000 ||

@@ -85,13 +85,21 @@ export async function installRemoteCheckpoints({root, tenantId,
     fail('InvalidRemoteHostAuthorization');
   }
   const {accountConfig, accountConfiguration, reviewers, reviewReaders,
-    hostKey, decide, answeringAuthorities, checkpointTtlMs = 24 * 60 * 60 * 1000,
+    hostKey, decide, answeringAuthorities, effectRequiredClaims = [],
+    checkpointTtlMs = 24 * 60 * 60 * 1000,
     leaseMs = 60_000, maxReviewBytes = MAX_REVIEW_BYTES,
     decisionTimeoutMs = 30_000, maxInFlightDecisions = 16,
     maxRetainedDecisions = 1024,
     resumeAfterAnswer = true, observe, faultInjection,
     sweepPage = PAGE} = authorization;
   const trusted = trustedReviewers(reviewers);
+  if (!Array.isArray(effectRequiredClaims) ||
+      effectRequiredClaims.some(claim =>
+        !['effect_scope_approved', 'partial_application_accepted']
+          .includes(claim))) {
+    fail('InvalidEffectApprovalClaims');
+  }
+  const effectClaims = Object.freeze([...effectRequiredClaims]);
   const readers = principals(reviewReaders, 'InvalidReviewReaders');
   const answerers = new Set([...trusted.values()].map(item => item.principalId));
   if (!IDENTIFIER.test(hostKey?.keyId ?? '')) fail('InvalidRemoteHostKey');
@@ -196,12 +204,14 @@ export async function installRemoteCheckpoints({root, tenantId,
         fail('InvalidResolutionSignature');
       }
       if (approvalEvidenceWire !== '') {
-        const approval = JSON.parse(approvalEvidenceWire)
-          .compatibility_approval;
+        const evidence = JSON.parse(approvalEvidenceWire);
+        const approval = evidence.compatibility_approval;
+        const effect = evidence.kind === 'effect_set';
         const unsigned = contentCid(without(approval,
-          'run_scope_approval_cid', 'proof'));
+          effect ? 'attestation_cid' : 'run_scope_approval_cid', 'proof'));
         if (approval?.proof?.key_id !== reviewer.keyId ||
             approval.approver !== reviewer.reviewerId ||
+            effect && approval.authority_scope_cid !== authorityScopeCid ||
             !verify(null, Buffer.from(unsigned, 'utf8'), reviewer.publicKey,
               Buffer.from(approval.proof.signature ?? '', 'base64'))) {
           fail('InvalidApprovalSignature');
@@ -231,6 +241,11 @@ export async function installRemoteCheckpoints({root, tenantId,
   evidence = openContinuationEvidence({
     stateDirectory: state, ...privateKey, contractControl,
     preparation(prepareAttemptId) {
+      if (prepareAttemptId.startsWith('effect-')) {
+        const run = journal.getRunState(prepareAttemptId.slice(7));
+        return run === undefined ? undefined :
+          {status: 'run_created', runStatus: run.status};
+      }
       const current = journal.getPreparation(prepareAttemptId);
       if (current === undefined) return undefined;
       return {status: current.status, runStatus: current.runId === null
@@ -898,6 +913,7 @@ export async function installRemoteCheckpoints({root, tenantId,
       after = page.at(-1);
     }
     if (await recoverRuns()) busy = true;
+    if (await host?.effects?.sweep()) busy = true;
     await evidence.settle();
     return busy;
   }
@@ -956,6 +972,77 @@ export async function installRemoteCheckpoints({root, tenantId,
   return Object.freeze({
     configured,
     journal,
+    binding,
+
+    // Host-installed Effect execution uses this same journal and reviewer
+    // authority. The read boundary has no deferral port in this profile:
+    // a deferred target read is unsupported before any provider I/O.
+    async effectAuthorization({runId, runDefinitionCid, unitId,
+      declaredResults, reviewWire, continuationWire, beforeDefer}) {
+      if (!IDENTIFIER.test(runId ?? '') || !IDENTIFIER.test(unitId ?? '') ||
+          typeof beforeDefer !== 'function' ||
+          typeof reviewWire !== 'string' ||
+          typeof continuationWire !== 'string' ||
+          !Array.isArray(declaredResults)) {
+        fail('InvalidInstalledEffectContinuation');
+      }
+      declaredResults = Object.freeze([...declaredResults]);
+      const common = {accountConfig, accountConfiguration,
+        principal: ownerPrincipal, decide,
+        answeringAuthorities: answeringAuthorities === undefined
+          ? authorities.map(item => item.reviewerId)
+          : [...answeringAuthorities]};
+      const read = await createLocalAuthorizationGate(common);
+      const commit = await createLocalAuthorizationGate({...common,
+        requiredClaims: effectClaims,
+        deferral: {journal, authorities, binding,
+          async describe(view) {
+            if (view.boundary !== 'effect_commit' &&
+                view.subject.boundary !== 'effect_commit') {
+              fail('InvalidEffectCheckpointBoundary');
+            }
+            await beforeDefer();
+            const id = `effect-${runId}`;
+            const refs = await evidence.hold(id, runDefinitionCid, [
+              {name: 'review_projection', wire: reviewWire},
+              {name: 'continuation_record', wire: continuationWire},
+            ]);
+            const created = now();
+            return {priorStatus: 'running', declaredResults, body: {
+              checkpoint_id: `${runId}-effect-commit`, run_id: runId,
+              run_definition_cid: runDefinitionCid,
+              continuation_state_cid: refs[1],
+              subject: {kind: 'run_unit', run_id: runId, unit_id: unitId,
+                continuation: 'resume_unit'},
+              required_artifact: {artifact_cid: view.subject.subject_cid},
+              review_projection_cid: refs[0],
+              human_summary: 'Approve the complete Effect Set',
+              created_at: new Date(created).toISOString(),
+              expires_at: new Date(created + checkpointTtlMs).toISOString(),
+            }};
+          },
+        }});
+      if (read.configurationCid !== gate.configurationCid ||
+          commit.configurationCid !== gate.configurationCid) {
+        fail('EffectCheckpointConfigurationChanged');
+      }
+      return Object.freeze({
+        authorize: (boundary, ...args) =>
+          (boundary === 'effect_commit' ? commit : read)
+            .authorize(boundary, ...args),
+        resume: (...args) => commit.resume(...args),
+      });
+    },
+    async effectContinuation(view) {
+      if (view?.kind !== 'effect_set' || view.prepareAttemptId !== null) {
+        fail('InvalidEffectContinuation');
+      }
+      const held = await evidence.open(`effect-${view.runId}`);
+      if (held.requestCid !== view.runDefinitionCid) {
+        fail('EffectContinuationRunMismatch');
+      }
+      return held.record('continuation_record', view.continuationStateCid);
+    },
     // Principals admitted to the Checkpoint operations at all. Each
     // operation still applies its own authorization.
     admitsCheckpointPrincipal: principal => principal === ownerPrincipal ||
@@ -1136,7 +1223,7 @@ export async function installRemoteCheckpoints({root, tenantId,
       // Only a Checkpoint of this Host scope, named by its exact CID, and
       // only its own review projection; never an arbitrary Store CID.
       if (view === undefined || view.checkpointCid !== checkpointCid ||
-          view.prepareAttemptId === null) {
+          view.prepareAttemptId === null && view.kind !== 'effect_set') {
         fail('CheckpointReviewDenied');
       }
       if (view.closure === 'expired' || view.closure === 'cancelled') {
@@ -1146,7 +1233,8 @@ export async function installRemoteCheckpoints({root, tenantId,
       const bound = Math.min(maxBytes, maxReviewBytes);
       let bytes;
       try {
-        const opened = await evidence.open(view.prepareAttemptId);
+        const opened = await evidence.open(view.prepareAttemptId ??
+          `effect-${view.runId}`);
         bytes = await opened.bytes('review_projection',
           view.reviewProjectionCid, {maxBytes: bound});
       } catch (error) {
