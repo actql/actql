@@ -32,6 +32,16 @@ records reference terms, frontend and existing IR meanings, and differences.
 | Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Partial: source-free and captured query, analytic, set and CTE examples run through packed Local and HTTP Remote Host; independent acquisition count remains |
 | Core isolation and SDK dependency boundary | Existing gates | No frontend production dependency or tracked runtime bundles | Pending |
 
+The [architecture correspondence](../design/frontend-r1.md#shared-query-vocabulary-and-scope)
+uses reference terms and existing IR names. In this status table, an intentional
+profile difference is distinct from an unimplemented adopted feature. The
+former includes eager ActQL boolean/failure rules, explicit new-query NULL
+sort directions, no implicit set-column type promotion or padding, and the
+specified exclusion of recursive/correlated CTEs. The latter includes the
+numeric-profile and CONCAT execution gaps, JOIN-output sort and filtered
+subquery task compilation, and the remaining Pipe JOIN scope forms. No
+unimplemented item is reclassified as an intentional incompatibility.
+
 The current Local expression IR rejects `concat_strict` and `concat` during
 `lowering_relation.lower_expression_measured`: `ExpressionNotImplemented`
 is the concrete boundary. The query compiler emits the adopted distinct
