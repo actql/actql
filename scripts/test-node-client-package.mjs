@@ -90,6 +90,12 @@ assert.deepEqual(JSON.parse(sourceRoundtrip), JSON.parse(sourceProgram));
 await writeFile(join(root, 'source-program.json'), sourceRoundtrip);
 const queryFrontend = await import(pathToFileURL(join(repository,
   '_build/js/debug/build/query_program_test_bridge/query_program_test_bridge.js')));
+const valuesStep = JSON.parse(structuralValues).stages[0].steps[0];
+const valuesQuery = queryFrontend.compileValuesQueryJson(
+  'SELECT * FROM rows', 'rows', 'selected', JSON.stringify(valuesStep),
+  JSON.stringify(['id']), 'fixture.values_query');
+assert.notEqual(valuesQuery, '');
+await writeFile(join(root, 'query-values.json'), valuesQuery);
 const capturedQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT id FROM records WHERE id > 1', 'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
@@ -188,6 +194,7 @@ for (const selected of connected) {
   client.close();
 }
 const document = readFileSync('values.json', 'utf8');
+const valuesQueryDocument = readFileSync('query-values.json', 'utf8');
 const acquiredDocument = readFileSync('source-program.json', 'utf8');
 const capturedQueryDocument = readFileSync('captured-query.json', 'utf8');
 async function runApplication(options, requestId) {
@@ -244,6 +251,11 @@ assert.deepEqual((await installedLocal.lookupRequest(
   'packed-standard-values')).ref, execution.ref);
 assert.deepEqual((await installedLocal.attach(execution.ref)).ref,
   execution.ref);
+const valuesQueryLocal = await installedLocal.aql(valuesQueryDocument,
+  {format: 'json', requestId: 'packed-query-values-local'});
+assert.equal((await valuesQueryLocal.wait()).status, 'succeeded');
+assert.deepEqual(await valuesQueryLocal.result('answer').all(),
+  [{id: 1}, {id: 2}]);
 const acquiredLocal = await runAcquiredApplication(
   {mode: 'local', owner: 'local', durability: 'durable'},
   'packed-acquired-local');
@@ -361,6 +373,11 @@ const {client: installedRemote, execution: remoteExecution,
   rows: remoteRows} = await runApplication(remoteOptions,
   'packed-remote-values');
 assert.deepEqual(remoteRows, rows);
+const valuesQueryRemote = await installedRemote.aql(valuesQueryDocument,
+  {format: 'json', requestId: 'packed-query-values-remote'});
+assert.equal((await valuesQueryRemote.wait()).status, 'succeeded');
+assert.deepEqual(await valuesQueryRemote.result('answer').all(),
+  [{id: 1}, {id: 2}]);
 const acquiredRemote = await runAcquiredApplication(remoteOptions,
   'packed-acquired-remote');
 const capturedQueryRemote = await acquiredRemote.client.aql(

@@ -312,6 +312,7 @@ fn compile_steps(
   fields : Array[String],
   max_work : Int,
   start_at : Int,
+  preserve_identity_select : Bool,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
@@ -338,6 +339,16 @@ fn compile_steps(
             ),
           ),
         )
+      Select(projections, distinct) if !preserve_identity_select &&
+        !distinct &&
+        projections.length() == 1 &&
+        projections[0].star == Some("*") => {
+        if entries.length() == 1 && entries[0].0 == "from" {
+          entries.clear()
+          first = true
+        }
+        deferred = true
+      }
       Select(projections, distinct) => {
         let names : Array[String] = []
         let derives : Array[(String, @builder.Node)] = []
@@ -690,6 +701,7 @@ pub fn compile(
       fields,
       limits.max_expression_work,
       start_at,
+      context.captured_stage is Some(_),
     )
     let all_steps = seed_steps + steps
     let result_source = if steps.is_empty() { input.name } else { "aql_gen_0" }

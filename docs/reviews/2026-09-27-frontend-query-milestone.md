@@ -29,7 +29,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Pending |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Pending |
 | Bounds, origin maps and Grammar Manifest | Existing owners | Before-allocation bounds, source diagnostics, pins/vectors | Pending |
-| Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Partial: captured SQL query runs through packed Local and HTTP Remote Host; source-free multi-step query and CTE pending |
+| Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Partial: source-free `SELECT *` and captured filter/query run through packed Local and HTTP Remote Host; multi-step Values and CTE pending |
 | Core isolation and SDK dependency boundary | Existing gates | No frontend production dependency or tracked runtime bundles | Pending |
 
 ## Reference evidence
@@ -91,8 +91,10 @@ exclusive filter→select chain, then a downstream task for direct Result
 publication. The frontend emits this chain only for a context explicitly
 selecting a captured Stage, moves the original WHERE into that capture once,
 and preserves the downstream query. A packed installation then executes
-`SELECT id FROM records WHERE id > 1` via both embedded Local and HTTP Remote,
-returning the named `answer` Result with rows `3, 2, 3`. This is a concrete
+`SELECT * FROM rows` over source-free Values and
+`SELECT id FROM records WHERE id > 1` over a captured DuckDB source via both
+embedded Local and HTTP Remote. Named `answer` Results contain `1, 2` and
+`3, 2, 3`, respectively. This is a concrete
 product route for that query shape, not a claim that the full SQL/Pipe profile
 or arbitrary physical acquisition shape is complete. Source-free queries with
 more than one Values task step still hit the installed Host's direct-Values

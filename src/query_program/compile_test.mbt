@@ -363,3 +363,32 @@ test "captured source is read once before the downstream query task" {
     }
   }
 }
+
+///|
+test "source-free SELECT star preserves direct Values publication" {
+  let seed = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"id":{"type":"string","nullable":false}},"rows":[{"id":"a"},{"id":"b"}]},"as":"orders"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let context = fixture_context()
+  let input = {
+    ..context.inputs[0],
+    source: GeneratedValues(seed),
+    visible_fields: ["id"],
+  }
+  let query = @query.parse_query("SELECT * FROM orders", syntax_limits()).unwrap()
+  let program = compile(
+    query,
+    { ..context, inputs: [input], },
+    construction_limits(),
+  ).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"steps\":[{\"as\":\"orders\",\"values\""))
+  assert_true(!wire.contains("\"select\""))
+  assert_true(wire.contains("\"fields\":[\"id\"]"))
+}
