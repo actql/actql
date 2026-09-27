@@ -747,6 +747,25 @@ test "one CTE lowers to a shared checked Stage Result" {
     NeedsInputs(_) => fail("reused CTE should remain closed")
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
   }
+  let using_join = @query.parse_query(
+    "WITH chosen AS (SELECT a, b FROM left_rows) SELECT a FROM chosen AS l JOIN chosen AS r USING (a)",
+    syntax_limits(),
+  ).unwrap()
+  let using_program = compile(using_join, set_context(), construction_limits()).unwrap()
+  assert_true(
+    semantic(using_program).contains("\"left\":\"a\",\"right\":\"a\""),
+  )
+  match
+    @check.check_parsed(
+      using_program,
+      check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("reused USING CTE should remain closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
 }
 
 ///|

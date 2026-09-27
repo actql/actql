@@ -226,6 +226,14 @@ const reusedCteQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.reused_cte');
 assert.notEqual(reusedCteQuery, '');
 await writeFile(join(root, 'reused-cte-query.json'), reusedCteQuery);
+const usingCteQuery = queryFrontend.compileCapturedQueryJson(
+  'WITH chosen AS (SELECT id, amount FROM records WHERE id > 1) '
+    + 'SELECT id FROM chosen AS l JOIN chosen AS r USING (id)',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.using_cte');
+assert.notEqual(usingCteQuery, '');
+await writeFile(join(root, 'using-cte-query.json'), usingCteQuery);
 const distinctQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT DISTINCT id FROM records WHERE id > 1 ORDER BY id',
   'records', 'remote',
@@ -496,6 +504,7 @@ const acquiredDocument = readFileSync('source-program.json', 'utf8');
 const capturedQueryDocument = readFileSync('captured-query.json', 'utf8');
 const capturedCteDocument = readFileSync('captured-cte-query.json', 'utf8');
 const reusedCteDocument = readFileSync('reused-cte-query.json', 'utf8');
+const usingCteDocument = readFileSync('using-cte-query.json', 'utf8');
 async function checkCapturedCte(client, suffix) {
   const execution = await client.aql(capturedCteDocument,
     {format: 'json', requestId: 'packed-captured-cte-' + suffix});
@@ -511,6 +520,11 @@ async function checkCapturedCte(client, suffix) {
       {left_id: 2, right_id: 2}, {left_id: 3, right_id: 3},
       {left_id: 3, right_id: 3},
     ]));
+  const using = await client.aql(usingCteDocument,
+    {format: 'json', requestId: 'packed-using-cte-' + suffix});
+  assert.equal((await using.wait()).status, 'succeeded');
+  assert.deepEqual(sortedRows(await using.result('answer').all()),
+    sortedRows([{id: 3}, {id: 3}, {id: 2}, {id: 3}, {id: 3}]));
 }
 const distinctQueryDocument = readFileSync('distinct-query.json', 'utf8');
 const distinctExpressionDocument = readFileSync(

@@ -2244,8 +2244,8 @@ fn compile_cte_join_steps(
       is Some({ kind: Reference(path), .. }) else {
       raise Abort(UnsupportedCte)
     }
-    let resolved = join_field(
-      path, left_qualifier, right_qualifier, fields, fields,
+    let resolved = join_projection_field(
+      path, part, left_qualifier, right_qualifier, fields, fields,
     )
     let name = projection.name
       .map(value => value.value)
@@ -2896,6 +2896,33 @@ fn join_field(
 }
 
 ///|
+fn join_projection_field(
+  path : Array[@query.NamePart],
+  part : @query.JoinPart,
+  left_qualifier : @query.NamePart,
+  right_qualifier : @query.NamePart,
+  left_fields : Array[String],
+  right_fields : Array[String],
+) -> (String, String) raise Abort {
+  if path.length() == 1 {
+    for using_name in part.using_columns {
+      if same_name(path[0], using_name) {
+        // INNER and LEFT USING expose one key while retaining qualified
+        // access to both originals. FULL requires a coalesced output key.
+        return join_field(
+          [left_qualifier, using_name],
+          left_qualifier,
+          right_qualifier,
+          left_fields,
+          right_fields,
+        )
+      }
+    }
+  }
+  join_field(path, left_qualifier, right_qualifier, left_fields, right_fields)
+}
+
+///|
 fn join_keys(
   part : @query.JoinPart,
   left_qualifier : @query.NamePart,
@@ -3085,8 +3112,8 @@ fn compile_join_query(
         is Some({ kind: Reference(path), .. }) else {
         raise Abort(UnsupportedJoin)
       }
-      let resolved = join_field(
-        path, left_qualifier, right_qualifier, left_fields, right_fields,
+      let resolved = join_projection_field(
+        path, part, left_qualifier, right_qualifier, left_fields, right_fields,
       )
       let name = projection.name
         .map(value => value.value)

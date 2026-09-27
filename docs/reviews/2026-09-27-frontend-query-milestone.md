@@ -221,6 +221,9 @@ self-join of filtered `id` rows `3,2,3` returns five rows, including four
 read counter has not yet been added, so the once-only read acceptance case
 remains open. More than one CTE declaration, outer joins and general CTE
 expressions still fail closed rather than being textually substituted.
+The same packed path accepts `JOIN ... USING(id)` and exposes one unqualified
+`id` Result column while retaining qualified left and right key bindings.
+This is not FULL JOIN's coalesced-key behavior; that shape remains refused.
 ARRAY_AGG requires the adopted `IGNORE NULLS` and explicit order spelling;
 STRING_AGG requires a literal delimiter and explicit order. Both lower to the
 existing group call. The independent checker accepts the bounded ARRAY_AGG
