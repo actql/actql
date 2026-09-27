@@ -181,17 +181,27 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         if (!Array.isArray(retained.resultNames)) {
           throw new Error('RunStateInventoryUnknown');
         }
-        const wire = moon.clientProgramIssueControlledUnpublishedRunState(
+        const liveExecution = activeDispatches.get(ref.runDefinitionCid)
+          ?.settled === false;
+        const executionUnknown = retained.dispatchReserved &&
+          !retained.preDispatchFailureConfirmed &&
+          retained.physicalStartReserved !== false &&
+          retained.observedTerminalOutcome === null && !liveExecution;
+        const wire = checked(moon.clientProgramIssueControlledUnpublishedRunState(
           control.runDefinitionRunId(retained.runDefinition), now(),
           retained.resultNames, retained.dispatchReserved,
           retained.preDispatchFailureConfirmed,
           retained.cancellationRequested &&
-            retained.physicalStartReserved === false);
-        if (wire === undefined) throw new Error('InvalidRunStateProjection');
+            retained.physicalStartReserved === false,
+          retained.observedTerminalOutcome ?? 'none', executionUnknown));
         state = JSON.parse(wire);
       }
       const after = journal.lookupRunDefinition(ref, moon, control);
       if (after?.revision !== retained.revision) continue;
+      if (state.status === 'running' &&
+          activeDispatches.get(ref.runDefinitionCid)?.settled === true) {
+        continue;
+      }
       const observation = moon.clientRunControlObservation(retained.revision,
         retained.cancellationRequested,
         retained.physicalStartReserved === false,
@@ -366,7 +376,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     }
     let reached;
     const physical = new Promise(resolve => { reached = resolve; });
-    const active = {promise: undefined, reserved: false,
+    const active = {promise: undefined, reserved: false, settled: false,
       abort: new AbortController(),
       physicalStarted: false, physicalStartClaimAttempted: false};
     activeDispatches.set(accepted.ref.runDefinitionCid, active);
@@ -455,6 +465,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         sourceProfile === undefined ? {} :
           {authorization: sourceAccess.authorization},
         active.abort.signal);
+      active.executionOwner = published;
+      active.publicationCommitted = true;
       await observed('computed', {ref: accepted.ref});
       await published.close();
       await published.cleanup();
@@ -472,22 +484,33 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
           !active.abort.signal.aborted) {
         try { journal.markPreDispatchFailure(accepted.ref); } catch {}
       }
-      if (cause?.execution) {
+      const execution = cause?.execution ?? active.executionOwner;
+      if (execution !== undefined) {
         try {
-          await cause.execution.close();
-          await cause.execution.cleanup();
-          if (!cause.execution.cleanupPending()) {
-            journal.markPhysicalClose(accepted.ref);
+          await execution.close();
+          await execution.cleanup();
+          if (!execution.cleanupPending()) {
+            let publicationCommitted = active.publicationCommitted === true;
+            if (!publicationCommitted) {
+              try {
+                publicationCommitted =
+                  await store.confirmCommittedIndex(accepted.ref) !== undefined;
+              } catch {}
+            }
+            journal.markPhysicalClose(accepted.ref,
+              publicationCommitted ? null :
+                active.abort.signal.aborted ? 'cancelled' : 'failed');
           }
-        } catch { active.cleanupOwner = cause.execution; }
-        if (cause.execution.cleanupPending()) {
-          active.cleanupOwner = cause.execution;
+        } catch { active.cleanupOwner = execution; }
+        if (execution.cleanupPending()) {
+          active.cleanupOwner = execution;
         }
         // Failed cleanup remains with its existing execution owner. It is
         // never converted to physical stop by the cancellation request.
       }
       if (active.physicalStarted) await finished?.();
     }).finally(() => {
+      active.settled = true;
       reached('not_started');
       checkpoints?.releaseAcquisition(submission.requestId);
       if (active.cleanupOwner === undefined) {
@@ -788,6 +811,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     value.connection.owner === mode &&
     checkpoints.admitsCheckpointPrincipal(value.principalId);
   const hostOperations = {
+    observe: observed,
     authorizeConnection: value => checkpointOperation.has(value.operation)
       ? checkpointConnection(value)
       : hostConnection(value) || value.operation === 'connect' &&

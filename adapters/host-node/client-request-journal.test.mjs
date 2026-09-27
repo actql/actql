@@ -9,6 +9,7 @@ import * as moon from
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 
 const root = new URL('../../_build/client-request-journal-tests/', import.meta.url);
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -71,6 +72,61 @@ async function directory(t) {
   t.after(() => rm(path, {recursive: true, force: true}));
   return path;
 }
+
+test('rollback failure retains the primary acceptance error', async t => {
+  const path = await directory(t);
+  const journal = openClientRequestJournal(path);
+  t.after(() => journal.close());
+  const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+  database.exec(`CREATE TRIGGER reject_client_accept
+    BEFORE INSERT ON client_requests BEGIN
+      SELECT RAISE(ROLLBACK, 'PrimaryAcceptanceFailure');
+    END`);
+  database.close();
+  assert.throws(() => journal.accept(identity(), {
+    tenantId: 'tenant-a', runDefinitionCid: cid('d'),
+    lookupExpiresAt: expires,
+  }, moon), error => {
+    assert.equal(error.code, 'ClientRequestAcceptanceUnknown');
+    assert.equal(error.operation, 'accept');
+    assert.equal(error.outcome, 'unknown');
+    assert.match(error.cause.message, /PrimaryAcceptanceFailure/u);
+    assert.match(error.rollbackCause.message, /rollback/u);
+    return true;
+  });
+  assert.equal(journal.lookup({tenantId: 'tenant-a',
+    authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon),
+  undefined);
+});
+
+test('rollback failure retains the primary Run-start error', async t => {
+  const path = await directory(t);
+  const journal = openClientRequestJournal(path);
+  t.after(() => journal.close());
+  const requested = identity();
+  const accepted = journal.acceptDefinition(requested, {
+    tenantId: 'tenant-a', runDefinition: runDefinition(),
+    lookupExpiresAt: expires, resultNames: ['answer'],
+  }, moon, publicationControl);
+  const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+  database.exec(`CREATE TRIGGER reject_client_start
+    BEFORE UPDATE OF dispatch_reserved ON client_requests BEGIN
+      SELECT RAISE(ROLLBACK, 'PrimaryStartFailure');
+    END`);
+  database.close();
+  assert.throws(() => journal.reserveDispatch(requested, {
+    tenantId: 'tenant-a', currentAuthorization: true,
+  }, moon, publicationControl), error => {
+    assert.equal(error.code, 'ClientRunStartUnknown');
+    assert.equal(error.operation, 'start');
+    assert.equal(error.outcome, 'unknown');
+    assert.match(error.cause.message, /PrimaryStartFailure/u);
+    assert.match(error.rollbackCause.message, /rollback/u);
+    return true;
+  });
+  assert.equal(journal.lookupRunDefinition(accepted.ref, moon,
+    publicationControl).dispatchReserved, false);
+});
 
 test('durable Client request survives ACK loss and restart without a new Run',
   async t => {
@@ -737,6 +793,47 @@ test('started cancellation never invents stop and terminal completion wins',
     assert.equal(journal.requestCancellation(accepted.ref, {
       currentAuthorization: true, publicationCommitted: true,
     }, moon, publicationControl).kind, 'already_terminal');
+  });
+
+test('started Run records only a confirmed terminal outcome across restart',
+  async t => {
+    const path = await directory(t);
+    let journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const requested = identity();
+    const accepted = journal.acceptDefinition(requested, {
+      tenantId: 'tenant-a', runDefinition: runDefinition(),
+      lookupExpiresAt: expires, resultNames: ['answer'],
+    }, moon, publicationControl);
+    journal.reserveDispatch(requested, {tenantId: 'tenant-a',
+      currentAuthorization: true}, moon, publicationControl);
+    assert.equal(claimPhysicalStart(journal, accepted.ref), true);
+    journal.close();
+    journal = openClientRequestJournal(path);
+    const state = () => {
+      const retained = journal.lookupRunDefinition(accepted.ref, moon,
+        publicationControl);
+      return JSON.parse(checked(
+        moon.clientProgramIssueControlledUnpublishedRunState(
+          publicationControl.runDefinitionRunId(retained.runDefinition),
+          '2026-09-27T00:00:00.000Z', retained.resultNames,
+          retained.dispatchReserved, retained.preDispatchFailureConfirmed,
+          false, retained.observedTerminalOutcome ?? 'none',
+          retained.physicalStartReserved === true &&
+            retained.observedTerminalOutcome === null)));
+    };
+    assert.equal(state().status, 'needs_reconciliation');
+    assert.deepEqual(state().next_action,
+      {kind: 'reconcile_run', reason: 'execution_unknown'});
+    journal.markPhysicalClose(accepted.ref, 'failed');
+    assert.equal(state().status, 'failed');
+    journal.markPhysicalClose(accepted.ref, 'failed');
+    assert.throws(() => journal.markPhysicalClose(accepted.ref,
+      'cancelled'), {code: 'ClientRunStopObservationDenied'});
+    journal.close();
+    journal = openClientRequestJournal(path);
+    assert.equal(state().status, 'failed');
+    assert.equal(claimPhysicalStart(journal, accepted.ref), false);
   });
 
 test('a started Run keeps one reconciliation state across a restart',

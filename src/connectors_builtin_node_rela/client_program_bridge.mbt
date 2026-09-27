@@ -295,8 +295,14 @@ pub fn client_program_issue_unpublished_run_state(
 
 ///|
 /// The installed Host reports an uncommitted Run through the portable
-/// validator. Only a durable confirmed failure before physical dispatch may
-/// make this projection terminal; missing worker observation cannot.
+/// validator. A missing live owner after a physical-start claim is unknown,
+/// not a confirmed failure or permission to start again.
+pub(all) suberror ClientProgramRunStateIssue {
+  InvalidTerminalOutcome
+  Projection(@publication.RunStateIssue)
+}
+
+///|
 #export_name("clientProgramIssueControlledUnpublishedRunState")
 pub fn client_program_issue_controlled_unpublished_run_state(
   run_id : String,
@@ -305,7 +311,15 @@ pub fn client_program_issue_controlled_unpublished_run_state(
   dispatch_reserved : Bool,
   pre_dispatch_failure_confirmed : Bool,
   cancelled_before_start : Bool,
-) -> String? {
+  observed_terminal_outcome : String,
+  execution_unknown : Bool,
+) -> String raise ClientProgramRunStateIssue {
+  let terminal = match observed_terminal_outcome {
+    "none" => None
+    "failed" => Some(@publication.RunOutcomeStatus::Failed)
+    "cancelled" => Some(@publication.RunOutcomeStatus::Cancelled)
+    _ => raise InvalidTerminalOutcome
+  }
   match
     @publication.issue_effect_free_unpublished_run_state_wire(
       run_id,
@@ -317,9 +331,11 @@ pub fn client_program_issue_controlled_unpublished_run_state(
       10000,
       64,
       cancelled_before_start~,
+      observed_terminal_outcome=terminal,
+      execution_unknown~,
     ) {
-    Ok(value) => Some(value)
-    Err(_) => None
+    Ok(value) => value
+    Err(issue) => raise Projection(issue)
   }
 }
 
