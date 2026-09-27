@@ -233,9 +233,10 @@ function referencePreflight({moon, preview, mappingCids, requestScope,
     maxFootprintWork: 4, maxWork: effectLimits.maxWork};
 }
 
-function referenceDispatch({ledger, preview, sends, loseReply}) {
+function referenceDispatch({ledger, preview, sends, loseReply, failRow}) {
   return async ({memberIndex, rowIndex, claim}) => {
     sends.push([memberIndex, rowIndex]);
+    const failed = failRow?.(memberIndex, rowIndex) === true;
     await captureClaimedEffectResponse({ledger, claim,
       requestCid: claim.canonicalRequestCid,
       execute: async () => {
@@ -243,12 +244,15 @@ function referenceDispatch({ledger, preview, sends, loseReply}) {
           throw new Error('ReferenceEffectReplyLost');
         }
         return {observation: {useCid: referenceCid('use'),
-          statusCode: 204, body: Buffer.alloc(0)}};
+          statusCode: failed ? 422 : 204, body: Buffer.alloc(0)}};
       }});
     ledger.recordAdmittedRowOutcome({claim, preview,
       memberIndex, previewRowIndex: rowIndex,
-      outcomeWire: canonicalJson({state: 'applied',
-        result: {record_id: `reference-${rowIndex}`}})});
+      outcomeWire: canonicalJson(failed
+        ? {state: 'failed', error: {code: 'REFERENCE_REJECTED',
+          message: 'Reference row rejected'}}
+        : {state: 'applied',
+          result: {record_id: `reference-${rowIndex}`}})});
     ledger.commitAdmittedRowOutcome({claim, preview,
       memberIndex, previewRowIndex: rowIndex});
   };
@@ -262,7 +266,7 @@ function referenceLedger(directory, moon, requestIdentity) {
 }
 
 async function prepareReferenceCapture(facts, {directory, mappingCids,
-  sends, loseReply}) {
+  sends, loseReply, failRow}) {
   const {moon, control, store, execution, publicationPlan: plan,
     prepared, checkedHost, identity} = facts;
   const storedResults = await storeCompletedRunResultSet({execution,
@@ -341,7 +345,7 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
       ledger, members, maxFrontierWork: effectLimits.maxFrontierWork,
       refreshPreflight: async () => preflight,
       dispatchRow: referenceDispatch({ledger, preview: applyPreview,
-        sends, loseReply})},
+        sends, loseReply, failRow})},
     receipt: {ledger, preview: applyPreview, commonMoon: moon,
       publicationPreview: preview,
       authorizeEvidenceRead: async () => true,
@@ -359,7 +363,7 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
 }
 
 function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
-  loseReply}) {
+  loseReply, failRow}) {
   const {moon, control, store, recovered, continuation} = facts;
   const {requestIdentity, requestScope, computation: durable} = recovered;
   const {computation, preview, storedResults} = durable;
@@ -391,7 +395,7 @@ function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
         maxWork: effectLimits.maxWork},
       refreshPreflight: async () => preflight,
       dispatchRow: referenceDispatch({ledger, preview: applyPreview,
-        sends, loseReply})},
+        sends, loseReply, failRow})},
     receipt: {ledger, preview: applyPreview, commonMoon: moon,
       publicationPreview: preview,
       authorizeEvidenceRead: async () => true,
@@ -988,6 +992,13 @@ test('installed Effect reply loss retains the unknown row after restart',
     const closedActive = await active.close();
     assert.equal(closedActive.storeCleanupPending, false,
       JSON.stringify(diagnostics.slice(-5)));
+    const holdingRoot = join(directory, 'state', 'publication',
+      'physical-holdings');
+    const holdingFiles = await readdir(holdingRoot);
+    const holdings = await Promise.all(holdingFiles.map(async file =>
+      JSON.parse(await readFile(join(holdingRoot, file), 'utf8'))));
+    assert.ok(holdings.some(item => item.namespace === 'effect-capture'));
+    assert.ok(holdings.some(item => item.namespace === 'effect-source'));
     const recovered = await remoteHost(t, account(), {directory,
       effectInstallation}).catch(error => {
         throw error.primaryFailure ?? error;
@@ -1005,6 +1016,67 @@ test('installed Effect reply loss retains the unknown row after restart',
     assert.equal(state.status, 'needs_reconciliation');
     assert.deepEqual(sends, [[0, 0]]);
     await recovered.close();
+  });
+
+test('installed Effect keeps independent members after a halted row',
+  async t => {
+    const fixture = await effectFixture({twoMembers: true});
+    const directory = await mkdtemp(join(scratch, 'effect-row-failure-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const sends = [];
+    const hooks = {directory, mappingCids: fixture.mappingCids, sends,
+      failRow: (memberIndex, rowIndex) => memberIndex === 0 &&
+        rowIndex === 0};
+    const effectInstallation = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 7),
+      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
+      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+    });
+    const account = () => protectedHost(undefined,
+      {accountConfiguration: effectCommitConfiguration()});
+    const first = await remoteHost(t, account(), {directory,
+      effectInstallation});
+    const submitted = await (await first.as('owner-token'))
+      .aql(fixture.document, {format: 'json', requestId: 'row-failure-a'});
+    await waitFor(async () => (await submitted.status()).status ===
+      'waiting_checkpoint');
+    assert.deepEqual(sends, []);
+    const [checkpoint] = (await (await first.as('reviewer-token'))
+      .checkpoints()).items;
+    await first.close();
+    const answering = await remoteHost(t,
+      {...account(), resumeAfterAnswer: false}, {directory,
+        effectInstallation});
+    const answered = await (await answering.as('reviewer-token'))
+      .resolveCheckpoints([{checkpoint, decision: 'approved'}],
+        {signer: {...signer,
+          authorityScopeCid: submitted.ref.authorityScopeCid}});
+    assert.deepEqual(answered.results.map(item => item.status),
+      ['committed']);
+    await answering.close();
+    const running = await remoteHost(t, account(), {directory,
+      effectInstallation});
+    const failed = await (await running.as('owner-token'))
+      .attach(submitted.ref);
+    const state = await waitFor(async () => {
+      const current = await failed.status();
+      return current.status === 'failed' ? current : undefined;
+    });
+    assert.equal(state.result_available, false);
+    assert.deepEqual(sends, [[0, 0], [1, 0], [1, 1]]);
+    assert.equal((await running.close()).storeCleanupPending, false);
+    const holdingRoot = join(directory, 'state', 'publication',
+      'physical-holdings');
+    const holdingFiles = await readdir(holdingRoot);
+    assert.deepEqual(await Promise.all(holdingFiles.map(async file =>
+      JSON.parse(await readFile(join(holdingRoot, file), 'utf8')))), []);
+    const restarted = await remoteHost(t, account(), {directory,
+      effectInstallation});
+    assert.equal((await (await (await restarted.as('owner-token'))
+      .attach(submitted.ref)).status()).status, 'failed');
+    assert.deepEqual(sends, [[0, 0], [1, 0], [1, 1]]);
+    await restarted.close();
   });
 
 test('installed Effect commit resumes the same Run without resending',

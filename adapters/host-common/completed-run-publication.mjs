@@ -376,6 +376,22 @@ function releaseCompletedResultOwner(storedResults, control, retainCapture) {
         }
       }
     }
+    if (owner.privateEffectOwner !== undefined &&
+        !owner.capturePublished && !retainCapture) {
+      await owner.privateEffectOwner.abort();
+      const retired = await owner.store.retirePhysicalHolding(
+        owner.privateEffectOwner.binding.holdingCid,
+      );
+      if (retired.cleanup.status().pending) {
+        const error = new CompletedRunPublicationError(
+          'CompletedEffectPrivateCleanupPending',
+        );
+        error.cleanupPending = true;
+        error.cleanupHandle = retired.cleanup;
+        owner.cleanupFailure = error;
+        throw error;
+      }
+    }
     if (owner.captureRecordOwner !== undefined &&
         !owner.capturePublished && !retainCapture) {
       try { await owner.captureRecordOwner.abort(); }
@@ -1028,6 +1044,7 @@ export async function publishCompletedEffectfulRun(options) {
     privateOwner = preparePrivatePublicationHolding(store, binding);
     privateEffectfulHoldings.set(computation, privateOwner);
   }
+  completedResultOwners.get(storedResults).privateEffectOwner = privateOwner;
   await privateOwner.commit();
   const publication = await publishEffectfulRun({
     store, control, ...inventory, ledger, issuedSet,

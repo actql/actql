@@ -96,16 +96,28 @@ function finishStatus(result) {
 function cleanupCustody(physical) {
   let stage;
   let disposed = false;
+  let release;
+  let released = false;
   return Object.freeze({
     attach(value) {
       if (stage !== undefined) fail('InstalledEffectCleanupOwnerAlreadySet');
       stage = value;
+    },
+    requireRelease(operation) {
+      if (release !== undefined || typeof operation !== 'function') {
+        fail('InstalledEffectCleanupOwnerAlreadySet');
+      }
+      release = operation;
     },
     async close() { await physical?.close(); },
     async cleanup() {
       const cleaned = await physical?.cleanup() ?? true;
       if (cleaned === false || physical?.cleanupPending() === true) {
         return false;
+      }
+      if (release !== undefined && !released) {
+        await release();
+        released = true;
       }
       if (!disposed && typeof stage?.dispose === 'function') {
         await stage.dispose();
@@ -115,6 +127,7 @@ function cleanupCustody(physical) {
     },
     cleanupPending() {
       return physical?.cleanupPending() === true ||
+        release !== undefined && !released ||
         !disposed && stage?.dispose !== undefined;
     },
   });
@@ -210,12 +223,14 @@ export function createInstalledEffectSite({environmentWire,
             throw completionError;
           }
         }
-        if (result.status === 'needs_reconciliation' ||
-            result.status === 'failed') {
+        if (result.status === 'needs_reconciliation') {
           await suspendCompletedEffectfulComputation({execution,
             store: facts.store, storedResults: stage.storedResults,
             control: facts.control, computation: stage.computation,
             preview: stage.preview});
+        } else if (result.status === 'failed') {
+          custody.requireRelease(() => releaseCompletedRunPreparedPayloads(
+            stage.storedResults, facts.control));
         }
         recordUnknown(facts, result, stage);
         return finishStatus(result);
@@ -309,8 +324,7 @@ export function createInstalledEffectSite({environmentWire,
         if (result.status === 'waiting') {
           fail('InstalledEffectRepeatDeferralUnsupported');
         }
-        if (result.status === 'needs_reconciliation' ||
-            result.status === 'failed') {
+        if (result.status === 'needs_reconciliation') {
           await suspendCompletedEffectfulComputation({execution: null,
             store: facts.store, storedResults: stage.storedResults,
             control: facts.control, computation: stage.computation,
@@ -318,6 +332,8 @@ export function createInstalledEffectSite({environmentWire,
         }
         if (result.status === 'failed') {
           checkpointJournal.completeResume(claimed.claim, {status: 'failed'});
+          custody.requireRelease(() => releaseCompletedRunPreparedPayloads(
+            stage.storedResults, facts.control));
         } else {
           const state = await currentRunState(facts, result, stage);
           checkpointJournal.completeResume(claimed.claim, {

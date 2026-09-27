@@ -937,8 +937,10 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
                 effectAuthorization: checkpoints.effectAuthorization,
                 recordReconciliation: (...args) =>
                   effectRun.recordReconciliation(...args)})),
-            observeStopped: terminalOutcome => journal.markPhysicalClose(
-              ref, terminalOutcome),
+            // The original Compute stopped before the Effect Checkpoint.
+            // Its nonterminal stop observation is immutable. Effect failure
+            // and reconciliation belong to the Checkpoint and Effect owners.
+            observeStopped: () => journal.markPhysicalClose(ref, null),
           });
           effectResumeFlights.set(key, flight);
           void flight.catch(error => {
