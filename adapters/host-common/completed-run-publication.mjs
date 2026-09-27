@@ -327,10 +327,37 @@ export async function storeCompletedRunResultSet(options) {
 // have separate Store custody. Concurrent callers join one release flight;
 // failed physical cleanup retains its retry handle.
 export function releaseCompletedRunPreparedPayloads(storedResults, control) {
+  return releaseCompletedResultOwner(storedResults, control, false);
+}
+
+// Relinquish only process-local payload custody after a durable continuation
+// has been recorded. The exact captured computation remains recoverable in
+// the Store; this is neither final publication nor retirement. A later Host
+// recovers a new owner from that capture before applying or retiring it.
+export async function suspendCompletedEffectfulComputation({
+  execution, store, storedResults, control, computation, preview,
+}) {
+  const issued = completedEffectfulOwners.get(computation);
+  if (issued === undefined || issued.execution !== execution ||
+      issued.store !== store || issued.storedResults !== storedResults ||
+      issued.control !== control || issued.preview !== preview) {
+    fail('InvalidCompletedEffectfulRunOwner');
+  }
+  await confirmCompletedEffectfulApplySources({store, control,
+    computation, preview});
+  return releaseCompletedResultOwner(storedResults, control, true);
+}
+
+function releaseCompletedResultOwner(storedResults, control, retainCapture) {
   const owner = completedResultOwners.get(storedResults);
   if (owner === undefined || owner.control !== control) {
     fail('InvalidCompletedRunResultSetOwner');
   }
+  if (owner.retainCapture !== undefined &&
+      owner.retainCapture !== retainCapture) {
+    fail('CompletedRunResultSetReleaseModeConflict');
+  }
+  owner.retainCapture = retainCapture;
   if (owner.releaseComplete) return Promise.resolve(false);
   if (owner.releaseFlight !== undefined) return owner.releaseFlight;
   let flight;
@@ -350,7 +377,7 @@ export function releaseCompletedRunPreparedPayloads(storedResults, control) {
       }
     }
     if (owner.captureRecordOwner !== undefined &&
-        !owner.capturePublished) {
+        !owner.capturePublished && !retainCapture) {
       try { await owner.captureRecordOwner.abort(); }
       catch (error) {
         error.cleanupPending = true;
@@ -370,7 +397,8 @@ export function releaseCompletedRunPreparedPayloads(storedResults, control) {
         throw error;
       }
     }
-    if (owner.captureHolding !== undefined && !owner.capturePublished) {
+    if (owner.captureHolding !== undefined && !owner.capturePublished &&
+        !retainCapture) {
       const retired = await owner.store.retirePhysicalHolding(
         owner.captureHolding.holding_cid,
       );

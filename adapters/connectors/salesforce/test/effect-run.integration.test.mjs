@@ -73,6 +73,7 @@ import {issueCompletedEffectfulComputationEvidence,
   publishCompletedEffectfulRun,
   recoverCompletedEffectfulComputation,
   releaseCompletedRunPreparedPayloads,
+  suspendCompletedEffectfulComputation,
   storeCompletedRunResultSet} from
   '../../../host-common/completed-run-publication.mjs';
 import {inspectAuthorizedRunState, installRunStateAuthority,
@@ -2324,11 +2325,21 @@ test(`two-member captured Effect Run ${
           chunk => encrypted.push(Buffer.from(chunk)));
         assert.equal(Buffer.concat(encrypted).toString('utf8')
           .includes('"captured_run"'), false);
-        for (const result of storedResults.results) {
-          if (result.prepared.status().pending) {
-            await result.prepared.release();
-          }
-        }
+        const suspended = {execution, store, storedResults, control,
+          computation, preview: admittedPreview};
+        await assert.rejects(suspendCompletedEffectfulComputation({
+          ...suspended, computation: {...computation}}),
+        {code: 'InvalidCompletedEffectfulRunOwner'});
+        assert.equal(await suspendCompletedEffectfulComputation(suspended),
+          true);
+        assert.equal(await suspendCompletedEffectfulComputation(suspended),
+          false);
+        assert.throws(() => releaseCompletedRunPreparedPayloads(
+          storedResults, control),
+        {code: 'CompletedRunResultSetReleaseModeConflict'});
+        assert.equal(JSON.stringify(await store.inspectPhysicalHolding(
+          control.effectComputationCaptureHoldingCid(
+            runDefinition, store.storeAuthorityCid))), before);
         if (sourcePayload.prepared.status().pending) {
           await sourcePayload.prepared.release();
         }
