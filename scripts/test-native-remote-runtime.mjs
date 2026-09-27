@@ -203,8 +203,13 @@ async function testValuesHttps(tls, environment, transferControl) {
       const acceptedPath = join(root, 'accepted-run.json');
       if (existsSync(acceptedPath)) {
         const accepted = JSON.parse(await readFile(acceptedPath, 'utf8'));
-        const names = ['RUN_ID', 'CREATED_AT', 'VALID_UNTIL',
+        const required = ['RUN_ID', 'CREATED_AT', 'VALID_UNTIL',
           'RUN_DEFINITION_CID', 'DISPATCH_ID', 'DISPATCH_CID'];
+        // A tenant-scoped driver also names its scope and coordinator
+        // authority; both or neither.
+        const names = accepted !== null && typeof accepted === 'object' &&
+          'SCOPE_ID' in accepted ?
+          [...required, 'SCOPE_ID', 'COORDINATOR_AUTHORITY'] : required;
         if (accepted === null || typeof accepted !== 'object' ||
             Array.isArray(accepted) ||
             Object.keys(accepted).sort().join('\0') !==
