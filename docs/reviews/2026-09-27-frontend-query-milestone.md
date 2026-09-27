@@ -182,8 +182,12 @@ adopted analytic matrix remains unverified. Pipe EXTEND followed by ROW_NUMBER
 reads the updated input snapshot and returns NULL-preserving adjusted values.
 The packed path now also reads independent DENSE_RANK, LEAD, FIRST_VALUE and
 LAST_VALUE rows. FIRST_VALUE retains the initial NULL within its explicit
-ROWS frame; LAST_VALUE advances to the later non-NULL row. SUM and AVG lower
-to the existing analytic operator, but standard installed Host preparation
+ROWS frame; LAST_VALUE advances to the later non-NULL row.
+The source-free packed Local and HTTP Hosts also evaluate RANK and DENSE_RANK
+against the same peer window: input rows with sort keys `2,1,1` retain their
+input order and yield ranks `3,1,1` versus dense ranks `2,1,1`. The peer rows
+are specified independently of the generated Program. SUM and AVG lower to
+the existing analytic operator, but standard installed Host preparation
 cannot yet supply the numeric reduction profile: the
 `clientProgramCheckEnvironment` bridge in
 `src/connectors_builtin_node/client_program_bridge.mbt` has no numeric-profile
