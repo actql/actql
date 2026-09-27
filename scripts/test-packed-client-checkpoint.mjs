@@ -566,8 +566,9 @@ async function approvedAndStopped(name, requestId, extra = {}) {
   });
 }
 // Wait (bounded) until the running Host has released the held evidence.
-async function untilRetired(name) {
-  for (let attempt = 0; attempt < 100; attempt++) {
+async function untilRetired(name, maxWaitMs = 20_000) {
+  const deadline = Date.now() + maxWaitMs;
+  while (Date.now() < deadline) {
     try { await assertRetired(name); return; }
     catch {}
     await new Promise(resolve => setTimeout(resolve, 200));
@@ -695,7 +696,9 @@ for (const [name, crashAt, restart, extra, step] of [
   // The running Host settles once the killed claimant's lease lapses.
   await withHost(name, {LEASE_MS: '2000'}, async started => {
     client(started, 'finished', [name], {EXPECT_STATUS: 'cancelled'});
-    await untilRetired(name);
+    // The killed claimant held a 30-second lease. A fast restart can observe
+    // the cancelled Run before that lease permits its preparation to retire.
+    await untilRetired(name, 45_000);
   });
   const counted = await counts(name);
   assert.equal(counted.physical_start_reserved, 0, name);
