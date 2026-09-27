@@ -259,15 +259,26 @@ informative [extension policy](../design/extension-policy.md).
 
 ## Source and Program structure
 
-Source is a closed JSON-model document. [Structural grammar (normative)](#structural-grammar) defines its structural
+The common Program source model is a closed JSON-model document.
+[Structural grammar (normative)](#structural-grammar) defines its structural
 grammar; this chapter defines representation, naming, and authoring context.
+Explicit frontend profiles can lower other source representations into this
+same model, followed by ordinary admission and the common checker.
 
 <a id="source-representation"></a>
 
 ### Source representation
 
-ActQL source files SHOULD use the `.aql` extension for both YAML and JSON
+ActQL source files SHOULD use the `.aql` extension for YAML, JSON and structural text
 representations. The extension identifies the language, not the representation.
+
+The [Frontend r1 adoption registry](../../spec/frontend/frontend-profile-r1.json)
+records the selected structural-text and later query/pattern profiles separately
+from installed parser support. JSON/YAML decoding below is unchanged. A caller
+selects an installed frontend explicitly; a failure in that frontend does not
+trigger reinterpretation as another format. Each frontend preserves the closed
+Program model, explicit steps, semantic array order and the existing checking
+rules. Profile adoption alone is not runtime conformance evidence.
 
 <!-- requirement-block: source-representation.yaml-input-must-be-restricted-to-the-json-data-model -->
 ActQL source MAY be encoded as YAML or JSON. YAML input MUST be restricted to
@@ -2911,8 +2922,12 @@ the specified TEA calendar opcodes. Acquisition/search_candidates is a typed
 barrier, not an algebra opcode. Profile claims and registry admission are
 checked independently of this display classification.
 
-ActQL has exactly one source spelling for each operation. The complete
-canonical vocabulary is:
+ActQL has exactly one canonical operation name for each operation in the
+Program model. Registered frontend surfaces lower into that vocabulary; they
+do not add operation aliases to the structured model or bypass its checker.
+Structural `STEP` and closed `OP` preserve existing operations. Query sugar is
+governed by its explicit frontend profile, not inferred from backend SQL.
+The complete canonical vocabulary is:
 
 <!-- requirement-block: operation-inventory.family-operation-input-output -->
 | Family | Operation | Input -> output |
