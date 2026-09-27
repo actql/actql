@@ -29,7 +29,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND and scoped SET/DROP/RENAME/AS; JOIN/set and some post-projection scope remain |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK Result; full negative and frame matrix pending |
 | Bounds, origin maps and Grammar Manifest | Existing owners | Before-allocation bounds, source diagnostics, pins/vectors | Pending |
-| Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Partial: source-free `SELECT *` and captured filter/query run through packed Local and HTTP Remote Host; multi-step Values and CTE pending |
+| Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Partial: source-free direct and filtered Values plus captured filter/query run through packed Local and HTTP Remote Host; CTE reuse pending |
 | Core isolation and SDK dependency boundary | Existing gates | No frontend production dependency or tracked runtime bundles | Pending |
 
 ## Reference evidence
@@ -96,9 +96,10 @@ and preserves the downstream query. A packed installation then executes
 embedded Local and HTTP Remote. Named `answer` Results contain `1, 2` and
 `3, 2, 3`, respectively. This is a concrete
 product route for that query shape, not a claim that the full SQL/Pipe profile
-or arbitrary physical acquisition shape is complete. Source-free queries with
-more than one Values task step still hit the installed Host's direct-Values
-compilation boundary; the ordinary Values-only packed route remains intact.
+or arbitrary physical acquisition shape is complete. The same packed Clients
+also run source-free `SELECT id FROM rows WHERE id > 1` through the existing
+multi-step Values pipeline, returning `{id:2}`. This replaces the earlier
+assumption that the installed Values compiler only accepted a direct root.
 The same captured route also executes `SELECT DISTINCT id FROM records WHERE
 id > 1 ORDER BY id`, returning `2, 3` in order. The source includes duplicate
 `id=3` rows; DISTINCT supplies a proven key before sorting. Arbitrary source
