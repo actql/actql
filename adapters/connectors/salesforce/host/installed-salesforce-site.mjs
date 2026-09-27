@@ -264,6 +264,51 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     return Object.freeze({...catalog, grants});
   }
 
+  // Declarations this Site generated. Only these can gate its own reads and
+  // writes; a copied or constructed object cannot.
+  const declarations = new WeakSet();
+  let declareSequence = 0;
+  // Generate the static declaration (Catalog and Mappings) for the selected
+  // Resources from a targeted sync under this Site's metadata grants. The
+  // result is the explicit publication input to Check; it is not current
+  // authority and issues no grant.
+  async function declareCatalog({connectorId, resources, signal,
+    limits = {maxBytes: 4_000_000, maxNodes: 400_000, maxDepth: 64}} = {}) {
+    if (!Array.isArray(resources) || resources.length === 0 ||
+        !resources.every(text) || !text(connectorId) ||
+        !Number.isSafeInteger(limits?.maxBytes) || limits.maxBytes < 1 ||
+        !Number.isSafeInteger(limits?.maxNodes) || limits.maxNodes < 1 ||
+        !Number.isSafeInteger(limits?.maxDepth) || limits.maxDepth < 1) {
+      fail('InvalidSalesforceDeclaration');
+    }
+    const {request} = catalogSyncRequest({
+      occurrence: `declare-${now()}-${declareSequence++}`,
+      resources: [...new Set(resources)]});
+    const catalog = await syncSalesforceCatalog({...request,
+      moon: salesforceMoon, credential, signal});
+    if (catalog.status === 'interrupted') {
+      fail('SalesforceCatalogRefreshInterrupted');
+    }
+    const binding = JSON.parse(catalog.observationJson).binding;
+    const declaration = checked(
+      salesforceMoon.salesforceGenerateStaticDeclaration(catalog.observation,
+        binding.tenant, binding.principal, binding.environment,
+        binding.connection_revision, binding.org_id, binding.site_key,
+        binding.site_generation, binding.connector_registration,
+        binding.connector_revision, binding.resource_origin,
+        binding.run_invocation_cid, binding.dispatch_request_cid,
+        binding.sync_occurrence,
+        checked(salesforceMoon.salesforceImplementation(
+          'salesforce/0.1')), connectorId, [...resources],
+        limits.maxBytes, limits.maxNodes, limits.maxDepth));
+    declarations.add(declaration);
+    const summary = JSON.parse(checked(
+      salesforceMoon.salesforceStaticDeclarationJson(declaration,
+        limits.maxBytes, limits.maxNodes, limits.maxDepth)));
+    return Object.freeze({...summary, declaration,
+      observationCid: catalog.observationCid});
+  }
+
   let peekSequence = 0;
   // One authorized preview of at most `maxRows` rows of `resource`. The
   // decision must be the installed gate's read dispatch for this exact
@@ -353,7 +398,9 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     connectionRevision: profile.connectionRevision,
     connectorRegistration: 'salesforce', connectorRevision: 'salesforce/0.1',
     principal: principalId, context, authorization, credential,
-    issueGrant, refreshCatalog, peek,
+    issueGrant, refreshCatalog, declareCatalog, peek,
+    // Whether this Site generated `declaration`.
+    ownsDeclaration: declaration => declarations.has(declaration),
     close() {
       if (closed) return;
       closed = true;

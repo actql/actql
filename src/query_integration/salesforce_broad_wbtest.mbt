@@ -1,4 +1,23 @@
 ///|
+fn salesforce_broad_binding() -> @salesforce_catalog.CatalogObservationBinding {
+  {
+    tenant: "tenant-a",
+    principal: "principal-a",
+    environment: "test",
+    connection_revision: "connection-a",
+    org_id: "00D000000000001EAA",
+    site_key: "site-a",
+    site_generation: 1,
+    connector_registration: "salesforce",
+    connector_revision: "salesforce/0.1",
+    resource_origin: "https://example.invalid",
+    run_invocation_cid: "sha256:" + "a".repeat(64),
+    dispatch_request_cid: "sha256:" + "b".repeat(64),
+    sync_occurrence: "sync-a",
+  }
+}
+
+///|
 fn salesforce_broad_plan(
   resource? : String = "r",
   native_type? : String = "int",
@@ -39,21 +58,7 @@ fn salesforce_broad_plan(
     },
   ).unwrap()
   @salesforce_catalog.finish_catalog_sync(sync).unwrap()
-  let binding : @salesforce_catalog.CatalogObservationBinding = {
-    tenant: "tenant-a",
-    principal: "principal-a",
-    environment: "test",
-    connection_revision: "connection-a",
-    org_id: "00D000000000001EAA",
-    site_key: "site-a",
-    site_generation: 1,
-    connector_registration: "salesforce",
-    connector_revision: "salesforce/0.1",
-    resource_origin: "https://example.invalid",
-    run_invocation_cid: "sha256:" + "a".repeat(64),
-    dispatch_request_cid: "sha256:" + "b".repeat(64),
-    sync_occurrence: "sync-a",
-  }
+  let binding = salesforce_broad_binding()
   let observation = @salesforce_catalog.prepare_catalog_observation(
     sync,
     binding,
@@ -76,8 +81,85 @@ fn salesforce_broad_plan(
 }
 
 ///|
+/// This Site's declaration for the fixture Resource `r`, from the same
+/// describe the plans observe; the checked Program reads its SourceView.
+fn salesforce_broad_declaration(
+  resource? : String = "r",
+  connector_id? : String = "crm/main",
+  site_generation? : Int = 1,
+) -> @salesforce_catalog.StaticDeclaration {
+  let listing = @salesforce_catalog.project_resource_listing(
+    @utf8.encode(
+      "{\"sobjects\":[{\"name\":\"" + resource + "\",\"queryable\":true}]}",
+    ),
+    {
+      max_bytes: 1000,
+      max_nodes: 100,
+      max_depth: 10,
+      max_resources: 10,
+      max_selected: 10,
+      max_name_units: 100,
+    },
+  ).unwrap()
+  let sync = @salesforce_catalog.begin_catalog_sync(listing)
+  let description = "{\"name\":\"" +
+    resource +
+    "\",\"queryable\":true,\"fields\":[{\"name\":\"id\",\"type\":\"int\",\"nillable\":false,\"filterable\":false}]}"
+  @salesforce_catalog.catalog_sync_describe(
+    sync,
+    resource,
+    @utf8.encode(description),
+    {
+      max_bytes: 1000,
+      max_nodes: 100,
+      max_depth: 10,
+      max_fields: 10,
+      max_name_units: 100,
+    },
+  ).unwrap()
+  @salesforce_catalog.finish_catalog_sync(sync).unwrap()
+  let binding = { ..salesforce_broad_binding(), site_generation, }
+  let observation = @salesforce_catalog.prepare_catalog_observation(
+    sync,
+    binding,
+    "sha256:" + "c".repeat(64),
+    [Some("sha256:" + "d".repeat(64))],
+    [
+      Some(
+        @salesforce_catalog.catalog_response_sha256(@utf8.encode(description)),
+      ),
+    ],
+    4096,
+  ).unwrap()
+  @salesforce_catalog.generate_static_declaration(
+    observation,
+    binding,
+    @salesforce_catalog.salesforce_implementation("salesforce/0.1").unwrap(),
+    connector_id,
+    [resource],
+    { max_bytes: 200000, max_nodes: 20000, max_depth: 32, },
+  ).unwrap()
+}
+
+///|
+fn salesforce_broad_catalog() -> @environment.SourceRequestContracts {
+  let declaration = salesforce_broad_declaration()
+  let (wire, cid) = declaration_environment(
+    [declaration.catalog],
+    declaration.contracts,
+    declaration.view_bodies,
+    [],
+    // The same fixed capacity policy as the existing Program fixture.
+    host_policy="{\"capacity\":{\"max_aggregate_array_items\":10000,\"max_artifact_bytes\":10000,\"max_artifact_rows\":10000,\"max_effect_items\":10000,\"max_graph_input_edges\":10000,\"max_graph_input_nodes\":10000,\"max_graph_output_rows\":10000,\"max_graph_paths\":10000,\"max_infer_items\":10000,\"max_model_input_tokens_per_item\":10000,\"max_model_request_bytes_per_item\":10000,\"max_model_total_duration_ms\":10000,\"max_nested_value_bytes\":10000,\"max_nested_value_depth\":10000,\"max_relation_output_rows\":10000,\"max_temporal_matches_per_key\":10000,\"max_temporal_output_rows\":10000,\"version\":\"actql-capacity-host-policy/0.1\"}}",
+  )
+  query_catalog_from_wire(wire, expected=cid)
+}
+
+///|
 fn salesforce_broad_requirement() -> @planning.QueryRequirement raise {
-  let checked = query_checked_program_fixture()
+  let checked = query_checked_program_fixture(
+    catalog=Some(salesforce_broad_catalog()),
+  )
   let sequence = query_checked_sequence(checked)
   @planning.prepare_query_requirement(
     @planning.prepare_query_material(sequence, query_material_limits()).unwrap(),
@@ -92,7 +174,10 @@ test "Salesforce broad candidate binds the exact checked source and common choic
   let requirement = salesforce_broad_requirement()
   let plan = salesforce_broad_plan()
   let preparation = @salesforce_host.prepare_salesforce_broad_query(
-    requirement, plan, "crm/main",
+    requirement,
+    plan,
+    "crm/main",
+    salesforce_broad_declaration(),
   ).unwrap()
   assert_true(
     physical_equal(
@@ -102,7 +187,10 @@ test "Salesforce broad candidate binds the exact checked source and common choic
   )
   assert_true(
     @salesforce_host.prepare_salesforce_broad_query(
-      requirement, plan, "foreign/instance",
+      requirement,
+      plan,
+      "foreign/instance",
+      salesforce_broad_declaration(),
     )
     is Err(ForeignSource),
   )
@@ -111,6 +199,7 @@ test "Salesforce broad candidate binds the exact checked source and common choic
       requirement,
       salesforce_broad_plan(resource="other"),
       "crm/main",
+      salesforce_broad_declaration(),
     )
     is Err(ForeignSource),
   )
@@ -119,6 +208,7 @@ test "Salesforce broad candidate binds the exact checked source and common choic
       requirement,
       salesforce_broad_plan(native_type="string"),
       "crm/main",
+      salesforce_broad_declaration(),
     )
     is Err(InvalidInputSchema),
   )
@@ -163,6 +253,7 @@ test "Salesforce pushes an exact checked integer comparison and retains residual
     requirement,
     salesforce_broad_plan(filterable=true),
     "crm/main",
+    salesforce_broad_declaration(),
   ).unwrap()
   assert_eq(
     @salesforce_catalog.read_projection_soql(
@@ -214,6 +305,7 @@ test "Salesforce pushes an exact checked integer comparison and retains residual
     requirement,
     salesforce_broad_plan(),
     "crm/main",
+    salesforce_broad_declaration(),
   ).unwrap()
   assert_eq(
     @salesforce_catalog.read_projection_soql(
@@ -229,20 +321,23 @@ test "Salesforce pushes an exact checked integer comparison and retains residual
   ).unwrap()
   assert_true(
     @salesforce_host.prepare_salesforce_broad_query(
-      requirement, supplied_filter, "crm/main",
+      requirement,
+      supplied_filter,
+      "crm/main",
+      salesforce_broad_declaration(),
     )
     is Err(UnexpectedPrefilter),
   )
-  let different_type = @salesforce_host.prepare_salesforce_broad_query(
-    requirement,
-    salesforce_broad_plan(native_type="double", filterable=true),
-    "crm/main",
-  ).unwrap()
-  assert_eq(
-    @salesforce_catalog.read_projection_soql(
-      @salesforce_host.salesforce_broad_plan(different_type),
-    ),
-    "SELECT id FROM r",
+  // A field whose current type has no exact declared contract is refused
+  // before any query, even though its name is declared.
+  assert_true(
+    @salesforce_host.prepare_salesforce_broad_query(
+      requirement,
+      salesforce_broad_plan(native_type="double", filterable=true),
+      "crm/main",
+      salesforce_broad_declaration(),
+    )
+    is Err(Undeclared(UndeclaredField("id"))),
   )
 }
 
@@ -252,6 +347,7 @@ test "Salesforce broad pages use checked input admission and Local residual" {
     salesforce_broad_requirement(),
     salesforce_broad_plan(),
     "crm/main",
+    salesforce_broad_declaration(),
   ).unwrap()
   let query = @salesforce_host.begin_salesforce_broad_query(
     preparation,
@@ -316,6 +412,7 @@ test "Salesforce broad pages use checked input admission and Local residual" {
         salesforce_broad_requirement(),
         salesforce_broad_plan(),
         "crm/main",
+        salesforce_broad_declaration(),
       ).unwrap(),
       input,
       compute_test_limits(),
@@ -331,6 +428,7 @@ test "Salesforce broad capture failure and cancellation expose no partial input"
     salesforce_broad_requirement(),
     salesforce_broad_plan(),
     "crm/main",
+    salesforce_broad_declaration(),
   ).unwrap()
   let limits : @salesforce_catalog.QueryPageLimits = {
     max_bytes: 4096,
@@ -449,6 +547,7 @@ fn salesforce_issued_fixture(
     requirement,
     salesforce_broad_plan(),
     "crm/main",
+    salesforce_broad_declaration(),
   ).unwrap()
   let registry = @connector.prepare_capability_registry(
     [
@@ -878,7 +977,10 @@ test "Salesforce completion requires selected attempt and settled transport" {
 
 ///|
 test "Salesforce captured source opens the checked DAG for downstream consumers" {
-  let program = query_checked_program_fixture(dag=true)
+  let program = query_checked_program_fixture(
+    dag=true,
+    catalog=Some(salesforce_broad_catalog()),
+  )
   let sequence = query_checked_sequence(program)
   let requirement = @planning.prepare_query_requirement(
     @planning.prepare_query_material(sequence, query_material_limits()).unwrap(),
@@ -932,4 +1034,39 @@ test "Salesforce captured source opens the checked DAG for downstream consumers"
       )
     }
   }
+}
+
+///|
+test "Salesforce broad query requires this Site's declaration of the source" {
+  let requirement = salesforce_broad_requirement()
+  // Another generation of the same connection and schema is foreign.
+  assert_true(
+    @salesforce_host.prepare_salesforce_broad_query(
+      requirement,
+      salesforce_broad_plan(),
+      "crm/main",
+      salesforce_broad_declaration(site_generation=2),
+    )
+    is Err(Undeclared(ForeignDeclaration)),
+  )
+  // The same schema declared under another connection id is foreign.
+  assert_true(
+    @salesforce_host.prepare_salesforce_broad_query(
+      requirement,
+      salesforce_broad_plan(),
+      "crm/main",
+      salesforce_broad_declaration(connector_id="crm/other"),
+    )
+    is Err(ForeignSource),
+  )
+  // A declaration of another Resource does not cover the checked source.
+  assert_true(
+    @salesforce_host.prepare_salesforce_broad_query(
+      requirement,
+      salesforce_broad_plan(),
+      "crm/main",
+      salesforce_broad_declaration(resource="other"),
+    )
+    is Err(Undeclared(Undeclared)),
+  )
 }

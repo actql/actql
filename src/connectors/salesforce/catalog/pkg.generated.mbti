@@ -50,11 +50,21 @@ pub fn catalog_sync_resource(CatalogSync, String) -> Result[ResourceMetadata, Re
 
 pub fn catalog_sync_unavailable(CatalogSync, String, DescribeFailure) -> Result[Unit, CatalogSyncIssue]
 
+pub fn check_declared_collection_write(StaticDeclaration, WriteCollectionRequest) -> Result[Unit, DeclarationUseIssue]
+
+pub fn check_declared_read(StaticDeclaration, ReadProjection, String) -> Result[Unit, DeclarationUseIssue]
+
+pub fn check_declared_single_write(StaticDeclaration, SingleWriteRequest) -> Result[Unit, DeclarationUseIssue]
+
+pub fn check_declared_write(StaticDeclaration, WriteProjection) -> Result[Unit, DeclarationUseIssue]
+
 pub fn check_write_capability_request(WriteCapabilityEvidence, SingleWriteRequest, String) -> Result[Unit, WriteCapabilityIssue]
 
 pub fn described_field(ResourceMetadata, String) -> FieldMetadata?
 
 pub fn finish_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
+
+pub fn generate_static_declaration(CatalogObservation, CatalogObservationBinding, SalesforceImplementation, String, Array[String], DeclarationLimits) -> Result[StaticDeclaration, DeclarationIssue]
 
 pub fn interrupt_query_read(QueryRead) -> Bool
 
@@ -164,6 +174,8 @@ pub fn require_update_fields(ResourceMetadata, Array[String]) -> Result[Array[Fi
 
 pub fn require_upsert_fields(ResourceMetadata, String, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
 
+pub fn salesforce_implementation(String) -> SalesforceImplementation?
+
 pub fn select_described_resource(ResourceListing, String, ResourceMetadata?) -> Result[ResourceMetadata, ResourceSelectionIssue]
 
 pub fn single_write_member_footprint(Array[SingleWriteRequest], Int, Int) -> Result[(String, String, String, String, String, Array[String]), WriteCollectionRequestIssue]
@@ -193,6 +205,12 @@ pub fn single_write_request_path(SingleWriteRequest) -> String
 pub fn single_write_request_resource(SingleWriteRequest) -> String
 
 pub fn single_write_request_target_identity(SingleWriteRequest, Int) -> Result[WriteTargetIdentity?, WriteCollectionRequestIssue]
+
+pub fn static_declaration_catalog(StaticDeclaration) -> String
+
+pub fn static_declaration_catalog_cid(StaticDeclaration) -> String
+
+pub fn static_declaration_json(StaticDeclaration, DeclarationLimits) -> String?
 
 pub fn target_observation_before_value_wire(TargetObservation) -> String
 
@@ -354,6 +372,60 @@ pub(all) enum CatalogSyncIssue {
   Incomplete
   Describe(DescribeIssue)
 } derive(Eq, @debug.Debug)
+
+pub struct DeclarationExclusion {
+  resource : String
+  field : String
+  reason : DeclarationExclusionReason
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DeclarationExclusionReason {
+  UnconfirmedNullability
+  UnsupportedType(String)
+  NotQueryable
+  CreateRequirementUnknown(String)
+  NoRecordIdentity
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DeclarationIssue {
+  InvalidConnectorId
+  InvalidSelection
+  ForeignImplementation
+  Observation(CatalogObservationIssue)
+  OutputLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DeclarationLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+pub(all) enum DeclarationUseIssue {
+  ForeignDeclaration
+  Undeclared
+  UndeclaredField(String)
+  UndeclaredKey(String)
+} derive(Eq, @debug.Debug)
+
+pub struct DeclaredMapping {
+  resource : String
+  mapping_ref : String
+  target_ref : String
+  mapping_cid : String
+  create_fields : Array[String]?
+  update_fields : Array[String]?
+  upsert_fields : Array[String]?
+  upsert_keys : Array[String]
+  body : String
+}
+
+pub struct DeclaredView {
+  resource : String
+  source_ref : String
+  view_cid : String
+  fields : Array[String]
+}
 
 pub(all) enum DescribeFailure {
   PermissionDenied
@@ -556,6 +628,15 @@ pub(all) enum ResourceSelectionIssue {
   DescribeMismatch
 } derive(Eq, @debug.Debug)
 
+pub struct SalesforceImplementation {
+  connector_revision : String
+  scan_read : Bool
+  exact_int_prefilter : Bool
+  create : Bool
+  update_by_id : Bool
+  upsert_by_external_id : Bool
+}
+
 pub struct SingleWriteRequest {
   api_version : String
   verb : String
@@ -565,6 +646,20 @@ pub struct SingleWriteRequest {
   projection : WriteProjection
   target : WriteTargetValue
   max_target_bytes : Int
+}
+
+pub struct StaticDeclaration {
+  connector_id : String
+  connector_version : String
+  binding : CatalogObservationBinding
+  observation_cid : String
+  catalog : String
+  catalog_cid : String
+  contracts : Array[String]
+  views : Array[DeclaredView]
+  view_bodies : Array[String]
+  mappings : Array[DeclaredMapping]
+  exclusions : Array[DeclarationExclusion]
 }
 
 pub struct TargetObservation {

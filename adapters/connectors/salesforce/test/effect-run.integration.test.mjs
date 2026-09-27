@@ -435,9 +435,37 @@ async function capabilitySite(t) {
   const options = {moon: salesforceMoon, requests: [request],
     currentObservation: site.catalog.observation,
     authorization: site.write, credential: site.credential,
-    maxRows: 2, maxBytes: 20000};
+    declaration: site.declaration, maxRows: 2, maxBytes: 20000};
   return {site, request, options};
 }
+
+test('Salesforce capability requires this Site\'s declaration before any use',
+  async t => {
+    const {site, options} = await capabilitySite(t);
+    const other = await openSalesforceEffectSiteFixture(t, {
+      commonMoon: moon, salesforceMoon, runInvocationCid: cid('b'),
+      dispatchRequestCid: cid('c'), writeOperation: 'create',
+      orgId: '00D000000000002EAA'});
+    // A declaration whose create rule omits Name (declared from a later
+    // describe of the same Site) refuses a write of Name.
+    site.setNameCreateable(false);
+    const narrowed = await site.refreshDeclaration();
+    site.setNameCreateable(true);
+    assert.equal(narrowed.mappings[0].create_fields.includes('Name'), false);
+    const uses = site.journal.recover().length;
+    const sent = site.seen.length;
+    assert.throws(() => issueSalesforceEffectCapability({...options,
+      declaration: undefined}), {code: 'InvalidSalesforceEffectCapability'});
+    // Same connection id and schema, another org: a foreign declaration.
+    assert.throws(() => issueSalesforceEffectCapability({...options,
+      declaration: other.declaration}), {code: 'MoonBitHostFailure'});
+    assert.throws(() => issueSalesforceEffectCapability({...options,
+      declaration: narrowed.declaration}), {code: 'MoonBitHostFailure'});
+    // Refused before any credential use or request.
+    assert.equal(site.journal.recover().length, uses);
+    assert.equal(site.seen.length, sent);
+    assert.ok(issueSalesforceEffectCapability(options).identity);
+  });
 
 test('Salesforce capability requires current signed authority without a use',
   async t => {
@@ -1713,6 +1741,7 @@ test(`two-member captured Effect Run ${
           requests: siteRequests[index],
           currentObservation: currentCatalogs[index],
           authorization: site.write, credential: site.credential,
+          declaration: site.declaration,
           collection: collectionMode && index === 0,
           maxRows: 4, maxBytes: 20000}));
       let targetRead = 0;
@@ -2971,8 +3000,9 @@ test(`two-member captured Effect Run ${
             claim.locator)), undefined);
         }
         if (physical === 'salesforce-schema-drift') {
+          // Setup sync, setup declaration and the drift recheck.
           assert.deepEqual(sites.map(site => site.seen.filter(item =>
-            item.path.endsWith('/describe')).length), [2, 2]);
+            item.path.endsWith('/describe')).length), [3, 3]);
         }
         assert.deepEqual(sites.map(site => site.journal.recover().length),
           expectedCredentialUses([0, 0]));

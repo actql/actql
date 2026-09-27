@@ -1,0 +1,184 @@
+///|
+/// A synthetic describe: no real org. Admission of what the Salesforce
+/// Connector generates is checked by the existing Check Environment owners.
+fn salesforce_declaration_fixture(
+  connector_id? : String = "crm-main",
+) -> @salesforce_catalog.StaticDeclaration {
+  let describe = "{\"name\":\"Record__c\",\"queryable\":true,\"createable\":true,\"updateable\":true,\"fields\":[" +
+    "{\"name\":\"Id\",\"type\":\"id\",\"nillable\":false,\"createable\":false,\"updateable\":false}," +
+    "{\"name\":\"Name\",\"type\":\"string\",\"nillable\":true,\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true}," +
+    "{\"name\":\"External_Key__c\",\"type\":\"string\",\"nillable\":false,\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true,\"externalId\":true,\"unique\":true}," +
+    "{\"name\":\"Count__c\",\"type\":\"int\",\"nillable\":true,\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true,\"filterable\":true}," +
+    "{\"name\":\"Amount__c\",\"type\":\"double\",\"nillable\":true,\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true}" +
+    "]}"
+  let listing = @salesforce_catalog.project_resource_listing(
+    @utf8.encode(
+      "{\"sobjects\":[{\"name\":\"Record__c\",\"queryable\":true,\"createable\":true,\"updateable\":true}]}",
+    ),
+    {
+      max_bytes: 1000,
+      max_nodes: 100,
+      max_depth: 10,
+      max_resources: 10,
+      max_selected: 10,
+      max_name_units: 100,
+    },
+  ).unwrap()
+  let sync = @salesforce_catalog.begin_catalog_sync(listing)
+  @salesforce_catalog.catalog_sync_describe(
+    sync,
+    "Record__c",
+    @utf8.encode(describe),
+    {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 10,
+      max_fields: 20,
+      max_name_units: 1000,
+    },
+  ).unwrap()
+  @salesforce_catalog.finish_catalog_sync(sync).unwrap()
+  let binding : @salesforce_catalog.CatalogObservationBinding = {
+    tenant: "tenant-a",
+    principal: "principal-a",
+    environment: "test",
+    connection_revision: "connection-a",
+    org_id: "00D000000000001EAA",
+    site_key: "site-a",
+    site_generation: 1,
+    connector_registration: "salesforce",
+    connector_revision: "salesforce/0.1",
+    resource_origin: "https://example.invalid",
+    run_invocation_cid: "sha256:" + "a".repeat(64),
+    dispatch_request_cid: "sha256:" + "b".repeat(64),
+    sync_occurrence: "sync-a",
+  }
+  let observation = @salesforce_catalog.prepare_catalog_observation(
+    sync,
+    binding,
+    "sha256:" + "c".repeat(64),
+    [Some("sha256:" + "d".repeat(64))],
+    [Some(@salesforce_catalog.catalog_response_sha256(@utf8.encode(describe)))],
+    4096,
+  ).unwrap()
+  @salesforce_catalog.generate_static_declaration(
+    observation,
+    binding,
+    @salesforce_catalog.salesforce_implementation("salesforce/0.1").unwrap(),
+    connector_id,
+    ["Record__c"],
+    { max_bytes: 200000, max_nodes: 20000, max_depth: 32, },
+  ).unwrap()
+}
+
+///|
+fn text_cid(text : String) -> String {
+  "sha256:" + @sha.hex(@utf8.encode(text))
+}
+
+///|
+/// Derived environment arrays are ordered by full-body CID.
+fn by_body(texts : Array[String]) -> String {
+  let sorted = texts.copy()
+  sorted.sort_by((a, b) => text_cid(a).compare(text_cid(b)))
+  "[" + sorted.join(",") + "]"
+}
+
+///|
+/// One canonical Check Environment holding the given Catalogs and Mappings,
+/// with members in canonical key order and its evidence CID sealed last.
+fn declaration_environment(
+  catalogs : Array[String],
+  contracts : Array[String],
+  views : Array[String],
+  mappings : Array[String],
+  host_policy? : String = "{}",
+) -> (String, String) {
+  let head = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[" +
+    catalogs.join(",") +
+    "],\"contract_registry\":" +
+    by_body(contracts)
+  let tail = ",\"host_policy_profile\":" +
+    host_policy +
+    ",\"mapping_contracts\":" +
+    by_body(mappings) +
+    ",\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":" +
+    by_body(views) +
+    ",\"version\":\"actql-check-environment/0.1\"}"
+  let cid = text_cid(head + tail)
+  (head + ",\"evidence_bundle_cid\":\"" + cid + "\"" + tail, cid)
+}
+
+///|
+fn declaration_limits_for_admission() -> @environment.Limits {
+  { max_bytes: 1000000, max_nodes: 100000, max_depth: 100, max_members: 1000, }
+}
+
+///|
+test "a generated Salesforce declaration passes the existing Check Environment admission" {
+  let declaration = salesforce_declaration_fixture()
+  let (wire, cid) = declaration_environment(
+    [declaration.catalog],
+    declaration.contracts,
+    declaration.view_bodies,
+    declaration.mappings.map(mapping => mapping.body),
+  )
+  // The same chain the existing Catalog fixtures use, through request
+  // contracts; this panics on any rejection.
+  ignore(query_catalog_from_wire(wire, expected=cid))
+  let caps = declaration_limits_for_admission()
+  let raw = @environment.read(@utf8.encode(wire), cid, caps).unwrap()
+  assert_true(
+    @environment.check_mapping_contract_shapes(raw, caps, 1000000) is Ok(_),
+  )
+}
+
+///|
+test "admission rejects an altered or duplicated Salesforce declaration" {
+  let declaration = salesforce_declaration_fixture()
+  let caps = declaration_limits_for_admission()
+  let mappings = declaration.mappings.map(mapping => mapping.body)
+  // A declared type changed without resealing no longer matches its CIDs.
+  let altered = declaration.catalog.replace(
+    old="\"Count__c\":{\"nullable\":true,\"type\":\"number\"}",
+    new="\"Count__c\":{\"nullable\":true,\"type\":\"string\"}",
+  )
+  assert_true(altered != declaration.catalog)
+  let (wire, cid) = declaration_environment(
+    [altered],
+    declaration.contracts,
+    declaration.view_bodies,
+    mappings,
+  )
+  let rejected = match @environment.read(@utf8.encode(wire), cid, caps) {
+    Err(_) => true
+    Ok(raw) =>
+      match @environment.check_contract_registry(raw, caps) {
+        Err(_) => true
+        Ok(registry) =>
+          @environment.check_catalog_contents(registry, caps) is Err(_)
+      }
+  }
+  assert_true(rejected)
+  // The same logical connection id twice in one environment is refused.
+  let (twice, twice_cid) = declaration_environment(
+    [declaration.catalog, declaration.catalog],
+    declaration.contracts,
+    declaration.view_bodies,
+    mappings,
+  )
+  let duplicate = match
+    @environment.read(@utf8.encode(twice), twice_cid, caps) {
+    Err(_) => true
+    Ok(raw) =>
+      match @environment.check_contract_registry(raw, caps) {
+        Err(_) => true
+        Ok(registry) =>
+          @environment.check_catalog_contents(registry, caps) is Err(_)
+      }
+  }
+  assert_true(duplicate)
+  // Distinct connection ids for the same schema are distinct Catalogs.
+  let other = salesforce_declaration_fixture(connector_id="crm-other")
+  assert_true(other.catalog_cid != declaration.catalog_cid)
+}

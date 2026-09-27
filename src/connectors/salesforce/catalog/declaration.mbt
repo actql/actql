@@ -823,8 +823,10 @@ pub fn check_declared_read(
   }
   for view in declaration.views {
     if view.resource == plan.resource && view.view_cid == source_view_cid {
+      // Each field must be declared and still exactly typed now; the
+      // checked input contract is compared with the plan separately.
       for field in plan.fields {
-        if !view.fields.contains(field.name) {
+        if !view.fields.contains(field.name) || field_contract(field) is None {
           return Err(UndeclaredField(field.name))
         }
       }

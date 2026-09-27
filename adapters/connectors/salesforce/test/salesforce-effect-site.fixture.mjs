@@ -67,6 +67,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   let rateLimitReply = rateLimitWriteOnce;
   let observedName = 'before';
   let nameUpdateable = true;
+  let nameCreateable = true;
   const server = createServer({cert, key}, (request, response) => {
     const observed = {method: request.method, path: request.url,
       authorization: request.headers.authorization};
@@ -126,7 +127,7 @@ export async function openSalesforceEffectSiteFixture(t, {
         createable: true, updateable: true, fields: [
           {name: 'Id', type: 'id', nillable: false, sortable: idSortable},
           {name: 'Name', type: 'string', nillable: false,
-            defaultedOnCreate: false, createable: true,
+            defaultedOnCreate: false, createable: nameCreateable,
             updateable: nameUpdateable},
           {name: 'External_Key__c', type: 'string', externalId: true,
             unique: true, caseSensitive: true, nillable: false,
@@ -298,6 +299,10 @@ export async function openSalesforceEffectSiteFixture(t, {
   };
   const catalog = await refreshCatalog();
   assert.equal(catalog.status, 'complete');
+  // The Site's static declaration for its writable Resource: the explicit
+  // publication step that gates its write capability.
+  const declared = await installed.declareCatalog({connectorId: 'crm-main',
+    resources: ['Test_Record__c']});
   const recoveryGrant = authorization => Object.freeze({
     cid: control.identity(authorization.grant),
     wire: control.json(authorization.grant),
@@ -315,7 +320,11 @@ export async function openSalesforceEffectSiteFixture(t, {
     write: recoveryGrant(write),
   });
   return {seen, journal, orgId, origin, catalog, observe, write, credential,
-    refreshCatalog, recoveryConnection,
+    refreshCatalog, recoveryConnection, declared,
+    declaration: declared.declaration,
+    refreshDeclaration: () => installed.declareCatalog({
+      connectorId: 'crm-main', resources: ['Test_Record__c']}),
     setTargetName(name) { observedName = name; },
-    setNameUpdateable(value) { nameUpdateable = value; }};
+    setNameUpdateable(value) { nameUpdateable = value; },
+    setNameCreateable(value) { nameCreateable = value; }};
 }

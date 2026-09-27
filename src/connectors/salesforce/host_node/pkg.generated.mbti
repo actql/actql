@@ -65,6 +65,12 @@ pub fn salesforce_catalog_response_sha256(Bytes) -> String
 
 pub fn salesforce_catalog_unavailable(@catalog.CatalogSync, String, Int) -> Bool raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_check_declared_collection_write(@catalog.StaticDeclaration, @catalog.WriteCollectionRequest) -> Unit raise SalesforceDeclarationBridgeIssue
+
+pub fn salesforce_check_declared_read(@catalog.StaticDeclaration, @catalog.ReadProjection, String) -> Unit raise SalesforceDeclarationBridgeIssue
+
+pub fn salesforce_check_declared_single_write(@catalog.StaticDeclaration, @catalog.SingleWriteRequest) -> Unit raise SalesforceDeclarationBridgeIssue
+
 pub fn salesforce_check_write_capability_request(@catalog.WriteCapabilityEvidence, @catalog.SingleWriteRequest, String) -> Unit raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_collection_write_request_body(@catalog.WriteCollectionRequest) -> String
@@ -98,6 +104,10 @@ pub fn salesforce_collection_write_response_row_applied(@catalog.WriteCollection
 pub fn salesforce_collection_write_response_row_cid(@catalog.WriteCollectionResponse, Int) -> String raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_collection_write_response_row_count(@catalog.WriteCollectionResponse) -> Int
+
+pub fn salesforce_generate_static_declaration(@catalog.CatalogObservation, String, String, String, String, String, String, Int, String, String, String, String, String, String, @catalog.SalesforceImplementation, String, Array[String], Int, Int, Int) -> @catalog.StaticDeclaration raise SalesforceDeclarationBridgeIssue
+
+pub fn salesforce_implementation(String) -> @catalog.SalesforceImplementation raise SalesforceDeclarationBridgeIssue
 
 pub fn salesforce_issued_broad_abort(@host.SalesforceBroadAttempt) -> Unit
 
@@ -239,6 +249,8 @@ pub fn salesforce_single_write_request_target_identity(@catalog.SingleWriteReque
 
 pub fn salesforce_single_write_success_projection(@catalog.WriteSingleResponse) -> Array[String] raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_static_declaration_json(@catalog.StaticDeclaration, Int, Int, Int) -> String raise SalesforceDeclarationBridgeIssue
+
 pub fn salesforce_target_observation_before_value_wire(@catalog.TargetObservation) -> String
 
 pub fn salesforce_target_observation_response_sha256(@catalog.TargetObservation) -> String
@@ -287,6 +299,13 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   BroadHost(@host.SalesforceBroadHostIssue)
   InvalidResource
   PreviewRows
+}
+
+pub(all) suberror SalesforceDeclarationBridgeIssue {
+  UnknownRevision
+  Declaration(@catalog.DeclarationIssue)
+  DeclaredUse(@catalog.DeclarationUseIssue)
+  OutputLimit
 }
 
 // Types and methods
