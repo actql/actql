@@ -93,11 +93,7 @@ fn estimate_local_configuration(
   if configuration.eligible.get(task - 1) is Some(false) {
     return Ok([])
   }
-  if local_dispatch_rejection(installed, task) is Some(_) &&
-    !@local.local_module_managed_sequence_supported(
-      installed.implementation,
-      local_task_slot(installed, task),
-    ) {
+  if !local_dispatch_offer_supported(installed, task) {
     return Ok([])
   }
   let lines = match

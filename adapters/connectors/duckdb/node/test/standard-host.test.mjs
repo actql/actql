@@ -7397,27 +7397,40 @@ async function exerciseStrategyGraph(
   }
   // These checked binary obligations are discharged by their exact bounded
   // providers, including when every output is retained and published.
-  const retainedSetProgram = kind => {
+  const retainedSetProgram = (kind, duplicates = 'all') => {
     const program = structuredClone(externalAppendProgram);
+    program.stages.find(stage => stage.id === 'cross_left').steps[0]
+      .values.rows = [1, 1, 2, 2, 2].map(id => ({id}));
     const right = program.stages.find(stage => stage.id === 'cross_right');
-    right.steps[0].values.rows = [{id: 2}, {id: 3}];
+    right.steps[0].values.rows = [2, 2, 3].map(id => ({id}));
     program.stages.find(stage => stage.id === 'crossed').steps[0] = {
-      from: 'l', [kind]: {with: 'r', duplicates: 'all'}, as: 'out',
+      from: 'l', [kind]: {with: 'r', duplicates}, as: 'out',
     };
     return program;
   };
+  const retainedSingletonCross = structuredClone(externalCrossJoinProgram);
+  retainedSingletonCross.stages.find(stage => stage.id === 'cross_right')
+    .steps[0].values.rows = [{tag: 'a'}];
+  retainedSingletonCross.stages.find(stage => stage.id === 'crossed')
+    .steps[0].cross_join.right_rows = 'one';
   for (const {name, source, expected, fields} of [
     {name: 'append', source: externalAppendProgram,
       expected: [{id: 1}, {id: 2}, {id: 3}, {id: 4}], fields: ['id']},
-    {name: 'except', source: retainedSetProgram('except'),
+    {name: 'except-all', source: retainedSetProgram('except'),
+      expected: [{id: 1}, {id: 1}, {id: 2}], fields: ['id']},
+    {name: 'except-distinct', source: retainedSetProgram('except', 'distinct'),
       expected: [{id: 1}], fields: ['id']},
-    {name: 'intersect', source: retainedSetProgram('intersect'),
+    {name: 'intersect-all', source: retainedSetProgram('intersect'),
+      expected: [{id: 2}, {id: 2}], fields: ['id']},
+    {name: 'intersect-distinct', source: retainedSetProgram('intersect', 'distinct'),
       expected: [{id: 2}], fields: ['id']},
     {name: 'cross-join', source: externalCrossJoinProgram,
       expected: [
         {id: 1, tag: 'a'}, {id: 1, tag: 'b'}, {id: 1, tag: 'c'},
         {id: 2, tag: 'a'}, {id: 2, tag: 'b'}, {id: 2, tag: 'c'},
       ], fields: ['id', 'tag']},
+    {name: 'singleton-cross-join', source: retainedSingletonCross,
+      expected: [{id: 1, tag: 'a'}, {id: 2, tag: 'a'}], fields: ['id', 'tag']},
   ]) {
     const program = structuredClone(source);
     program.results = {
@@ -7549,8 +7562,15 @@ async function exerciseStrategyGraph(
       await rm(publicationDirectory, {recursive: true, force: true});
     }
   }
-  for (const mode of ['cancel', 'store-failure']) {
+  for (const {name: mode} of [
+    {name: 'cancel'}, {name: 'store-failure'}, {name: 'finalize-failure'},
+  ]) {
     const program = structuredClone(externalAppendProgram);
+    program.results = {
+      producer: {from: {stage: 'crossed', result: 'r'}},
+      first: {from: {stage: 'external_cross_consumer_a', result: 'r'}},
+      second: {from: {stage: 'external_cross_consumer_b', result: 'r'}},
+    };
     program.stages.find(stage => stage.id === 'cross_left').steps[0]
       .values.rows = Array.from({length: 30}, (_, id) => ({id}));
     program.stages.find(stage => stage.id === 'cross_right').steps[0]
@@ -7566,28 +7586,50 @@ async function exerciseStrategyGraph(
       capacityBytes: 8 * 1024 * 1024,
       maxFrameBytes: 1024 * 1024,
     });
-    let leases = 0, failedAppends = 0;
+    let leases = 0, failedAppends = 0, failedFinalizations = 0;
+    let failurePublicationStore;
+    let permitCleanup = mode !== 'finalize-failure';
     const configuration = installLocalRetainedStore((key, bytes) => {
       leases++;
-      const failThisOutput = mode === 'store-failure' && leases === 3;
+      const failThisOutput = mode !== 'cancel' && leases === 3;
       let writer, closed = false;
       return Object.freeze({
-        status: () => ({reservedBytes: writer && !closed ? bytes : 0,
-          cleanupPending: writer?.cleanupHandle?.status?.().pending ?? false}),
+        status: () => ({reservedBytes: writer && (!closed ||
+          (failThisOutput && !permitCleanup)) ? bytes : 0,
+          cleanupPending: (failThisOutput && !permitCleanup) ||
+            (writer?.cleanupHandle?.status?.().pending ?? false)}),
         reserve(value) {
           writer = store.reserve(value);
           if (!failThisOutput) return writer;
           return Object.freeze({
             start: () => writer.start(),
-            append: async () => {
+            append: async part => {
+              if (mode !== 'store-failure') return writer.append(part);
               failedAppends++;
               throw new Error('InjectedRetainedAppendFailure');
             },
-            seal: identity => writer.seal(identity),
+            seal: async identity => {
+              failedFinalizations++;
+              // Finalize the actual file before losing its acknowledgement.
+              // The lease must still retain and reclaim the resulting body.
+              await writer.seal(identity);
+              throw new Error('InjectedRetainedFinalizeFailure');
+            },
           });
         },
-        close() { closed = true; writer?.cancel(); },
-        async cleanup() { await writer?.cleanupHandle?.retry?.(); },
+        close() {
+          if (mode === 'cancel' && cancellation.signal.aborted) {
+            assert.equal(sawStop, true, 'input release must follow confirmed stop');
+          }
+          closed = true;
+          writer?.cancel();
+        },
+        async cleanup() {
+          if (failThisOutput && !permitCleanup) {
+            throw new Error('InjectedRetainedCleanupPending');
+          }
+          await writer?.cleanupHandle?.retry?.();
+        },
       });
     });
     const cancellation = new AbortController();
@@ -7643,7 +7685,30 @@ async function exerciseStrategyGraph(
       assert.equal(fixture.strategyFixtureOpen(
         binaryFixture, binaryCapture.source()), true);
       const setup = fixture.strategyFixtureRetainedLocalSubset(binaryFixture);
-      execution = await runInstalledStrategy(
+      if (mode === 'finalize-failure') {
+        const runtime = runtimeCore(hostRuntime);
+        failurePublicationStore = await openLocalPublicationStore({
+          directory: join(directory, 'publication'),
+          storeAuthorityCid: hash('binary-finalize-failure-store'),
+          capacityBytes: 4 * 1024 * 1024,
+          maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+          maxObjects: 100, maxContractNodes: 10000, maxContractDepth: 64,
+        }, runtime.publicationControl);
+        const plan = standardPublicationPlan(runtime,
+          runtime.programDefinitionCid(setup),
+          runtime.resultInventory(setup).length, 'binary-finalize-failure');
+        await assert.rejects(runPublishedCapturedStrategy(setup,
+          {store: failurePublicationStore, plan}, {local: configuration},
+          cancellation.signal), error => {
+          execution = error.execution;
+          return error.code === 'CapturedRunPublicationFailed';
+        });
+        await assert.rejects(failurePublicationStore.lookupCommittedIndex({
+          tenantId: plan.request.tenantId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, () => true), /PublicationLookupDenied/);
+      } else execution = await runInstalledStrategy(
         setup,
         runtimeCore(observedRuntime),
         [localStrategyContribution(observedRuntime, setup, checked,
@@ -7660,9 +7725,18 @@ async function exerciseStrategyGraph(
         assert.equal(leases, 2);
       } else {
         assert.equal(leases, 3);
-        assert.equal(failedAppends, 1);
+        assert.equal(failedAppends, mode === 'store-failure' ? 1 : 0);
+        assert.equal(failedFinalizations, mode === 'finalize-failure' ? 1 : 0);
+        if (mode === 'finalize-failure') {
+          assert.equal(execution.cleanupPending(), true);
+          assert.equal(await execution.cleanup(), false);
+          assert(execution.usage().reservedExecutionBytes > 0n ||
+            execution.usage().heldBytes > 0n);
+          permitCleanup = true;
+        }
       }
     } finally {
+      permitCleanup = true;
       binaryCapture.close();
       await execution?.close();
       if (execution) {
@@ -7670,6 +7744,121 @@ async function exerciseStrategyGraph(
         assert.equal(execution.cleanupPending(), false);
         assert.equal(execution.usage().heldBytes, 0n);
         assert.equal(execution.usage().reservedExecutionBytes, 0n);
+      }
+      store.close();
+      await store.cleanup();
+      await failurePublicationStore?.close();
+      await rm(directory, {recursive: true, force: true});
+    }
+  }
+  // The same provider budgets used by the independent kernel proofs must
+  // reach the retained driver unchanged. No measured successful run supplies
+  // these expectations. Source Values and downstream consumers use separate
+  // task budgets; only the producer is requested in these boundary Programs.
+  const retainedBoundaryProgram = (operation, left, right) => {
+    const program = structuredClone(operation === 'cross_join'
+      ? externalCrossJoinProgram : externalAppendProgram);
+    program.stages = program.stages.filter(stage =>
+      !stage.id.startsWith('external_cross_consumer_'));
+    program.stages.find(stage => stage.id === 'cross_left')
+      .steps[0].values.rows = left;
+    program.stages.find(stage => stage.id === 'cross_right')
+      .steps[0].values.rows = right;
+    if (operation === 'except') {
+      program.stages.find(stage => stage.id === 'crossed').steps[0] = {
+        from: 'l', except: {with: 'r', duplicates: 'all'}, as: 'out',
+      };
+    }
+    program.results = {producer: {from: {stage: 'crossed', result: 'r'}}};
+    return program;
+  };
+  const appendBoundary = retainedBoundaryProgram('append',
+    [{id: 1}, {id: 2}], [{id: 3}]);
+  const setWorkBoundary = retainedBoundaryProgram('except', [{id: 1}], []);
+  const setSpaceBoundary = retainedBoundaryProgram('except',
+    [{id: 1}, {id: 2}], [{id: 3}]);
+  const crossBoundary = retainedBoundaryProgram('cross_join',
+    [{id: 1}, {id: 2}], [{tag: 'a'}, {tag: 'b'}]);
+  const rejectedChain = structuredClone(appendBoundary);
+  rejectedChain.stages.find(stage => stage.id === 'crossed').steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', filter: 'true', as: 'out'},
+  ];
+  for (const {name, program, work, space, expected} of [
+    {name: 'append-exact', program: appendBoundary, work: 26, space: 10,
+      expected: [{id: 1}, {id: 2}, {id: 3}]},
+    {name: 'append-work-short', program: appendBoundary, work: 25, space: 10},
+    {name: 'append-space-short', program: appendBoundary, work: 26, space: 9},
+    {name: 'set-work-exact', program: setWorkBoundary, work: 19, space: 100,
+      expected: [{id: 1}]},
+    {name: 'set-work-short', program: setWorkBoundary, work: 18, space: 100},
+    {name: 'set-space-exact', program: setSpaceBoundary, work: 1000, space: 15,
+      expected: [{id: 1}, {id: 2}]},
+    {name: 'set-space-short', program: setSpaceBoundary, work: 1000, space: 14},
+    {name: 'cross-exact', program: crossBoundary, work: 52, space: 12,
+      expected: [{id: 1, tag: 'a'}, {id: 1, tag: 'b'},
+        {id: 2, tag: 'a'}, {id: 2, tag: 'b'}]},
+    {name: 'cross-work-short', program: crossBoundary, work: 51, space: 12},
+    {name: 'cross-space-short', program: crossBoundary, work: 52, space: 11},
+    {name: 'unsupported-chain', program: rejectedChain, work: 100000, space: 10000},
+  ]) {
+    const binaryFixture = fixture.strategyFixtureCreate(...args,
+      JSON.stringify(program));
+    const capture = await runNativeHostQuery(grant,
+      fixture.strategyFixtureAcquisition(binaryFixture), suppliedLimits);
+    const directory = await mkdtemp(join(tmpdir(), `actql-retained-${name}-`));
+    const store = await createLocalRetainedStore({parentDirectory: directory,
+      capacityBytes: 8 * 1024 * 1024, maxFrameBytes: 1024 * 1024});
+    let leases = 0, dispatches = 0;
+    const configuration = installLocalRetainedStore((key, bytes) => {
+      leases++;
+      let writer, closed = false;
+      return {status: () => ({reservedBytes: writer && !closed ? bytes : 0,
+        cleanupPending: writer?.cleanupHandle?.status?.().pending ?? false}),
+      reserve: value => (writer = store.reserve(value)),
+      close() { closed = true; writer?.cancel(); },
+      async cleanup() { await writer?.cleanupHandle?.retry?.(); }};
+    });
+    const observed = new Proxy(hostRuntime, {get(target, property, receiver) {
+      if (property !== 'strategyModule_local_Dispatch') {
+        return Reflect.get(target, property, receiver);
+      }
+      return (setup, task) => {
+        dispatches++;
+        const operations = checked(target.strategyModule_local_Dispatch(setup, task));
+        return {$tag: 1, _0: new Proxy(operations, {get(operation, key, owner) {
+          if (key === 'execute') assert.fail(`${name}: synchronous fallback`);
+          return Reflect.get(operation, key, owner);
+        }})};
+      };
+    }});
+    let execution;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(binaryFixture, capture.source()), true);
+      const setup = fixture.strategyFixtureRetainedLocalLimits(binaryFixture, work, space);
+      execution = await runInstalledStrategy(setup, runtimeCore(observed),
+        [localStrategyContribution(observed, setup, checked, configuration)],
+        new AbortController().signal);
+      assert.equal(execution.status, expected
+        ? 'host-tasks-completed' : 'host-tasks-failed', name);
+      if (expected) {
+        assert.equal(fixture.strategyFixtureCid(binaryFixture, 3), hash(expected), name);
+        assert.equal(leases, 3, name);
+      } else if (name === 'unsupported-chain') {
+        assert.equal(dispatches, 0, 'unsupported Program must fail before any Compute');
+        assert.equal(leases, 0, name);
+        assert.equal(execution.completed.length, 0, name);
+      } else {
+        assert.deepEqual(execution.completed.map(item => item.task), [1, 2], name);
+        assert.equal(leases, 2, name);
+      }
+    } finally {
+      capture.close();
+      await execution?.close();
+      if (execution) {
+        assert.equal(await execution.cleanup(), true, name);
+        assert.equal(execution.usage().heldBytes, 0n, name);
+        assert.equal(execution.usage().reservedExecutionBytes, 0n, name);
       }
       store.close();
       await store.cleanup();

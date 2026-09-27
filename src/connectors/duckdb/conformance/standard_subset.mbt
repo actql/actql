@@ -84,6 +84,17 @@ pub fn strategy_fixture_module_subset(
 pub fn strategy_fixture_retained_local_subset(
   f : StrategyFixture,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  strategy_fixture_retained_local_limits(f, 100000, 10000)
+}
+
+///|
+/// Exercise the same installed retained driver with explicit kernel budgets.
+#export_name("strategyFixtureRetainedLocalLimits")
+pub fn strategy_fixture_retained_local_limits(
+  f : StrategyFixture,
+  execution_work : Int,
+  operation_entries : Int,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   let generated = Array::makei(@strategy.graph_task_count(f.graph) - 1, i => {
     fixture_generated_with_ordered(
       @strategy.graph_task_owner(f.graph, i + 1).unwrap(),
@@ -101,6 +112,8 @@ pub fn strategy_fixture_retained_local_subset(
     generated,
     0,
     retained_output=true,
+    execution_work~,
+    operation_entries~,
   )
 }
 

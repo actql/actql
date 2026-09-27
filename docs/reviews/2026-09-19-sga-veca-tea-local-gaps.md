@@ -535,12 +535,70 @@ does not count as evidence for those obligations. The ordinary Host fixture in
 publishes the producer and two consumer Named Results, and compares their
 ordered rows against independent expectations. The same fixture cancels a
 retained Append after positive producer work, observes stop without publishing
-that output, and injects a producer Store append failure before completion;
-both cases reclaim held and reserved resources. The existing bounded Append,
-Set, and Cross Join tests supply exact and one-short work and workspace
-evidence for those same providers. This does not admit a multi-step
-`append -> filter` task to retained Store output merely because its first step
-has an Append obligation.
+that output, and injects producer Store append and finalize failures before
+completion. The finalize failure occurs after the real file has sealed, with
+its acknowledgement lost. Publication remains absent, a failed cleanup keeps
+the reservation and cleanup owner live, and retry reclaims the output without
+rerunning the producer. All failure cases finally release held and reserved
+resources.
+
+The retained cancellation and Store-failure fixture uses Append as the shared
+driver control: these providers reach the same bounded advancement, retained
+writer, finalization, stop, and cleanup owner. Their individual kernel stop
+and two-consumer lifetime tests remain linked in the resource route inventory;
+the shared driver evidence does not replace their operation-specific limits.
+
+EXCEPT and INTERSECT cover both ALL and DISTINCT with duplicate-sensitive
+expectations; Cross Join covers ordinary and `right_rows: one` variants. The
+same retained Host path also applies independent kernel budgets: Append work
+26/workspace 10, one-row EXCEPT work 19, two-left/one-right EXCEPT workspace 15,
+and two-by-two Cross Join work 52/workspace 12. Each limit passes exactly and
+fails one short before retaining the producer result. These constants come
+from the corresponding bounded kernel proofs, not observed successful usage.
+
+#### Ordinary Program boundary
+
+The supported fixtures use authored Stage boundaries, not test-only task
+splitting. For example, after `cross_left` and `cross_right` Values Stages
+each declare Result `r`, this producer Stage is supported with a retained Store:
+
+```json
+{
+  "id": "crossed",
+  "inputs": {
+    "l": {"result": {"stage": "cross_left", "result": "r"}},
+    "r": {"result": {"stage": "cross_right", "result": "r"}}
+  },
+  "steps": [{"from": "l", "append": {"with": "r"}, "as": "out"}],
+  "results": {"r": {"from": "out", "fields": ["id"]}}
+}
+```
+
+Two separate consumer Stages each bind `crossed.r` and select its fields.
+The Program publishes the producer and both consumer Results. The actual
+execution has two Values tasks, one binary task, and two consumer tasks; all
+five choose Local retained-file output. Substituting EXCEPT/INTERSECT with
+`duplicates: all` or `distinct`, or a typed Cross Join projection, uses the
+corresponding built-in bounded provider without changing the retention owner.
+
+Replacing the producer's `steps` with the following is **not** included:
+
+```json
+[
+  {"from": "l", "append": {"with": "r"}, "as": "appended"},
+  {"from": "appended", "filter": "true", "as": "out"}
+]
+```
+
+The ordinary retained-only Host now rejects this Program during whole-graph
+selection: no Compute dispatch, Store lease, or completed task is created.
+Local's offer uses the configured output contract, so a memory-only managed
+provider cannot make an unsupported retained obligation look applicable.
+Memory-output chains retain their existing bounded route; another installed
+eligible implementation may still supply a valid offer. No synchronous fallback
+or new Host state machine is introduced. The regression is `unsupported-chain`
+in `standard-host.test.mjs`, with a portable offer-level control in
+`local_dispatch_wbtest.mbt`.
 
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |

@@ -61,6 +61,23 @@ pub fn local_dispatch_rejection(
 }
 
 ///|
+/// A memory-only managed provider cannot discharge a retained-output offer.
+/// Keep unsupported tasks out of whole-graph planning before predecessors run.
+fn local_dispatch_offer_supported(
+  installed : LocalDispatchModule,
+  task : Int,
+) -> Bool {
+  local_dispatch_rejection(installed, task) is None ||
+  (
+    installed.output_policy is None &&
+    @local.local_module_managed_sequence_supported(
+      installed.implementation,
+      local_task_slot(installed, task),
+    )
+  )
+}
+
+///|
 fn local_task_interval_search_ceilings(
   run : @strategy.CapturedDAG,
   task : Int,
