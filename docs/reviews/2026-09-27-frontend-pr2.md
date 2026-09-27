@@ -115,6 +115,17 @@ the transport SDK free of parser, kernel, DuckDB and Store dependencies.
 
 ## Delivery boundary
 
+Before publication, two commit-body lines were wrapped to the repository's
+72-character limit. Every corresponding commit tree was compared and is
+identical; no published history was rewritten. Local execution SHAs above
+remain the actual tested revisions. Their published equivalents are:
+
+| Tested revision | Published equivalent | Identical tree |
+| --- | --- | --- |
+| `d343c4c4a1db742638db92c0f76f7002a410a025` | `6c4e4f58ebbac1471558945c8cb2e3450c1a5a6c` | `bd23a4e89475d7c9934068b07d3f433718e1fe3c` |
+| `1c0069ea310607be4ab50cf3c4adc964d811cbd4` | `9d9bf8b24c370803bd0a878d19526c610b80c68d` | `e7523ed0187a72d95b251d000af56ea7d4360bce` |
+| `d38ca5bbc26c667b334e9ad7d09fc8c27282cb2b` | `b6a2ab8499b0218b4e9388b08b547c1e5d6facfe` | `987f84f218f4ef2348ec928c74e0d33306ca143b` |
+
 The structural implementation and local affected gates are complete. Linux
 CI remains pending until the PR's exact pushed revision finishes; local
 results do not replace it. No package publication or main merge is performed.
