@@ -878,6 +878,81 @@ test('installed Effect factory resumes an approved captured Set',
     await finalHost.close();
   });
 
+test('installed Effect allow publishes without a commit Checkpoint',
+  async t => {
+    const fixture = await effectFixture({twoMembers: true});
+    const directory = await mkdtemp(join(scratch, 'effect-direct-allow-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const sends = [];
+    const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const effectInstallation = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 8),
+      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
+      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+    });
+    const account = () => protectedHost(undefined,
+      {accountConfiguration: effectCommitConfiguration('allow', 'allow')});
+    const first = await remoteHost(t, account(), {directory,
+      effectInstallation});
+    const client = await first.as('owner-token');
+    const submitted = await client.aql(fixture.document, {format: 'json',
+      requestId: 'effect-direct-allow-a'});
+    await waitFor(async () => (await submitted.status()).status ===
+      'succeeded');
+    assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
+    assert.deepEqual(await submitted.result('answer').all(),
+      [{id: 1}, {id: 2}]);
+    assert.deepEqual((await (await first.as('reviewer-token'))
+      .checkpoints()).items, []);
+    await first.close();
+    const restarted = await remoteHost(t, account(), {directory,
+      effectInstallation});
+    const sameRun = await (await restarted.as('owner-token'))
+      .attach(submitted.ref);
+    assert.equal((await sameRun.status()).status, 'succeeded');
+    assert.deepEqual(await sameRun.result('answer').all(),
+      [{id: 1}, {id: 2}]);
+    assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
+    await restarted.close();
+  });
+
+test('installed Effect deny sends nothing and reclaims captured inputs',
+  async t => {
+    const fixture = await effectFixture({twoMembers: true});
+    const directory = await mkdtemp(join(scratch, 'effect-direct-deny-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const sends = [];
+    const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const effectInstallation = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 9),
+      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
+      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+    });
+    const account = () => protectedHost(undefined,
+      {accountConfiguration: effectCommitConfiguration('allow', 'deny')});
+    const first = await remoteHost(t, account(), {directory,
+      effectInstallation});
+    const submitted = await (await first.as('owner-token'))
+      .aql(fixture.document, {format: 'json',
+        requestId: 'effect-direct-deny-a'});
+    await waitFor(async () => (await submitted.status()).status === 'failed');
+    assert.deepEqual(sends, []);
+    assert.deepEqual((await (await first.as('reviewer-token'))
+      .checkpoints()).items, []);
+    assert.equal((await first.close()).storeCleanupPending, false);
+    assert.deepEqual(await readdir(join(directory, 'state', 'publication',
+      'physical-holdings')), []);
+    const restarted = await remoteHost(t, account(), {directory,
+      effectInstallation});
+    const sameRun = await (await restarted.as('owner-token'))
+      .attach(submitted.ref);
+    assert.equal((await sameRun.status()).status, 'failed');
+    assert.deepEqual(sends, []);
+    await restarted.close();
+  });
+
 test('installed Effect rechecks account denial after an approved answer',
   async t => {
     const fixture = await effectFixture({twoMembers: true});

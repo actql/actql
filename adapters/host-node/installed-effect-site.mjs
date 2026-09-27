@@ -9,6 +9,8 @@ import {releaseCompletedRunPreparedPayloads,
   suspendCompletedEffectfulComputation} from
   '../host-common/completed-run-publication.mjs';
 import {canonicalJson} from './local-account-config.mjs';
+import {ExecutionAuthorizationError} from
+  '../host-common/authorization-gate.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -218,6 +220,13 @@ export function createInstalledEffectSite({environmentWire,
           try { result = await completeInterruptedEffectRun(options, false); }
           catch (completionError) {
             if (completionError?.code === 'EffectRunNoUncertainSend') {
+              if (error instanceof ExecutionAuthorizationError &&
+                  error.authorization?.action === 'deny') {
+                custody.requireRelease(() =>
+                  releaseCompletedRunPreparedPayloads(
+                    stage.storedResults, facts.control));
+                return Object.freeze({status: 'failed_without_effect_dispatch'});
+              }
               throw error;
             }
             throw completionError;
@@ -316,6 +325,15 @@ export function createInstalledEffectSite({environmentWire,
           try { result = await completeInterruptedEffectRun(options, true); }
           catch (completionError) {
             if (completionError?.code === 'EffectRunNoUncertainSend') {
+              if (error instanceof ExecutionAuthorizationError &&
+                  error.authorization?.action === 'deny') {
+                checkpointJournal.completeResume(claimed.claim,
+                  {status: 'failed'});
+                custody.requireRelease(() =>
+                  releaseCompletedRunPreparedPayloads(
+                    stage.storedResults, facts.control));
+                return Object.freeze({status: 'failed'});
+              }
               throw error;
             }
             throw completionError;
