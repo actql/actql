@@ -6,6 +6,7 @@ import test from 'node:test';
 import {
   ExecutionAuthorizationError,
   createAuthorizationGate,
+  createAuthorizationDecisionBudget,
   decisionSubjectCid,
   missingAuthorizationGate,
   requireAuthorizedDispatch,
@@ -35,6 +36,289 @@ const permitWith = (overrides = {}) => view => ({
   claims: [...view.requiredClaims],
   ...overrides,
 });
+const trackedAbortController = () => {
+  const controller = new AbortController();
+  const signal = controller.signal;
+  const add = signal.addEventListener.bind(signal);
+  const remove = signal.removeEventListener.bind(signal);
+  let listeners = 0;
+  signal.addEventListener = (type, listener, options) => {
+    if (type === 'abort') listeners++;
+    return add(type, listener, options);
+  };
+  signal.removeEventListener = (type, listener, options) => {
+    if (type === 'abort') listeners--;
+    return remove(type, listener, options);
+  };
+  return {controller, listeners: () => listeners};
+};
+
+test('deadline aborts only the child and retains uncooperative decisions',
+  async () => {
+    const parent = new AbortController();
+    const pending = [];
+    const gate = await fixtureAuthorization(delegateEntries, {
+      answeringAuthorities: ['reviewer'], decisionTimeoutMs: 10,
+      maxInFlightDecisions: 1,
+      decide: (view, {signal}) => new Promise(resolve => {
+        pending.push({signal, finish: () => resolve(permitWith()(view))});
+      }),
+    });
+    assert.equal((await gate.authorize('acquisition', scope,
+      {subjectCid, signal: parent.signal})).reason, 'timeout');
+    assert.equal(pending[0].signal.aborted, true);
+    assert.equal(parent.signal.aborted, false);
+    assert.equal(gate.resourceUsage().inFlightDecisions, 1);
+    const saturated = await gate.authorize('acquisition', scope, {subjectCid});
+    assert.equal(saturated.action, 'failure');
+    assert.equal(saturated.detail, 'AuthorizationDecisionCapacity');
+    assert.equal(pending.length, 1);
+    pending[0].finish();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(gate.resourceUsage().inFlightDecisions, 0);
+    // The late permit is never installed in the decision scope.
+    assert.equal(gate.resourceUsage().retainedDecisions, 0);
+    gate.close();
+  });
+
+test('decision scopes retain exact judgments until explicit bounded release',
+  async () => {
+    let calls = 0;
+    const gate = await fixtureAuthorization(delegateEntries, {
+      answeringAuthorities: ['reviewer'], maxRetainedDecisions: 2,
+      decide: view => { calls++; return permitWith()(view); },
+    });
+    for (let iteration = 0; iteration < 30; iteration++) {
+      const scoped = gate.withContext({principal: 'local-user',
+        contextCid: `sha256:${iteration.toString(16).padStart(64, '0')}`});
+      await scoped.authorize('acquisition', scope, {subjectCid});
+      await scoped.authorize('acquisition', scope, {subjectCid});
+      assert.equal(scoped.resourceUsage().retainedDecisions, 1);
+      scoped.close();
+      assert.equal(gate.resourceUsage().retainedDecisions, 0);
+      await assert.rejects(scoped.authorize('acquisition', scope, {subjectCid}),
+        {code: 'AuthorizationDecisionScopeClosed'});
+    }
+    assert.equal(calls, 30);
+    await gate.authorize('acquisition', scope, {subjectCid});
+    await gate.authorize('transfer', scope, {subjectCid});
+    const full = await gate.authorize('activation', scope, {subjectCid});
+    assert.equal(full.action, 'failure');
+    assert.equal(full.detail, 'AuthorizationDecisionCapacity');
+    assert.equal(calls, 32);
+    assert.equal((await gate.authorize('acquisition', scope,
+      {subjectCid})).action, 'dispatch');
+    assert.equal(calls, 32);
+    gate.close();
+    assert.equal(gate.resourceUsage().retainedDecisions, 0);
+  });
+
+test('parent abort and scope close preserve physical decision custody',
+  async () => {
+    for (const finish of ['parent', 'scope']) {
+      let entered;
+      const ready = new Promise(resolve => { entered = resolve; });
+      let settle;
+      let child;
+      const parent = new AbortController();
+      const gate = await fixtureAuthorization(delegateEntries, {
+        answeringAuthorities: ['reviewer'],
+        decide: (view, {signal}) => {
+          child = signal;
+          entered();
+          return new Promise(resolve => {
+            settle = () => resolve(permitWith()(view));
+          });
+        },
+      });
+      const response = gate.authorize('acquisition', scope,
+        {subjectCid, signal: parent.signal});
+      await ready;
+      if (finish === 'parent') parent.abort();
+      else assert.equal(gate.close(), false);
+      if (finish === 'parent') assert.equal((await response).action, 'failure');
+      else await assert.rejects(response,
+        {code: 'AuthorizationDecisionScopeClosed'});
+      assert.equal(child.aborted, true);
+      assert.equal(parent.signal.aborted, finish === 'parent');
+      assert.equal(gate.cleanupPending(), true);
+      assert.equal(gate.cleanup(), false);
+      settle();
+      await new Promise(resolve => setImmediate(resolve));
+      assert.equal(gate.cleanup(), true);
+      assert.equal(gate.cleanupPending(), false);
+    }
+  });
+
+test('joined authorization wait aborts without stopping its owner',
+  async () => {
+    let entered;
+    const ready = new Promise(resolve => { entered = resolve; });
+    let finish;
+    let child;
+    let calls = 0;
+    const gate = await fixtureAuthorization(delegateEntries, {
+      answeringAuthorities: ['reviewer'],
+      decide: (view, {signal}) => {
+        calls++;
+        child = signal;
+        entered();
+        return new Promise(resolve => {
+          finish = () => resolve(permitWith()(view));
+        });
+      },
+    });
+    const first = gate.authorize('acquisition', scope, {subjectCid});
+    await ready;
+    const tracked = trackedAbortController();
+    const later = tracked.controller;
+    const second = gate.authorize('acquisition', scope,
+      {subjectCid, signal: later.signal});
+    later.abort();
+    await assert.rejects(second, {name: 'AbortError'});
+    assert.equal(tracked.listeners(), 0);
+    assert.equal(child.aborted, false);
+    assert.equal(gate.resourceUsage().inFlightDecisions, 1);
+    assert.equal(calls, 1);
+    finish();
+    assert.equal((await first).action, 'dispatch');
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(gate.resourceUsage().inFlightDecisions, 0);
+    assert.equal(gate.resourceUsage().retainedDecisions, 1);
+    assert.equal(gate.close(), true);
+    assert.equal(gate.resourceUsage().retainedDecisions, 0);
+  });
+
+test('owner abort stops a joined decision but retains physical custody',
+  async () => {
+    let entered;
+    const ready = new Promise(resolve => { entered = resolve; });
+    let finish;
+    let child;
+    const owner = new AbortController();
+    const tracked = trackedAbortController();
+    const later = tracked.controller;
+    const gate = await fixtureAuthorization(delegateEntries, {
+      answeringAuthorities: ['reviewer'],
+      decide: (view, {signal}) => {
+        child = signal;
+        entered();
+        return new Promise(resolve => {
+          finish = () => resolve(permitWith()(view));
+        });
+      },
+    });
+    const first = gate.authorize('acquisition', scope,
+      {subjectCid, signal: owner.signal});
+    await ready;
+    const second = gate.authorize('acquisition', scope,
+      {subjectCid, signal: later.signal});
+    owner.abort();
+    assert.equal((await first).action, 'failure');
+    assert.equal((await second).action, 'failure');
+    assert.equal(later.signal.aborted, false);
+    assert.equal(tracked.listeners(), 0);
+    assert.equal(child.aborted, true);
+    assert.equal(gate.resourceUsage().inFlightDecisions, 1);
+    assert.equal(gate.resourceUsage().retainedDecisions, 0);
+    finish();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(gate.resourceUsage().inFlightDecisions, 0);
+    assert.equal(gate.close(), true);
+  });
+
+test('closing a scope ends joined waits before an uncooperative callback',
+  async () => {
+    let entered;
+    const ready = new Promise(resolve => { entered = resolve; });
+    let finish;
+    let child;
+    const tracked = trackedAbortController();
+    const later = tracked.controller;
+    const gate = await fixtureAuthorization(delegateEntries, {
+      answeringAuthorities: ['reviewer'],
+      decide: (view, {signal}) => {
+        child = signal;
+        entered();
+        return new Promise(resolve => {
+          finish = () => resolve(permitWith()(view));
+        });
+      },
+    });
+    const first = gate.authorize('acquisition', scope, {subjectCid});
+    await ready;
+    const second = gate.authorize('acquisition', scope,
+      {subjectCid, signal: later.signal});
+    assert.equal(gate.close(), false);
+    await assert.rejects(first, {code: 'AuthorizationDecisionScopeClosed'});
+    await assert.rejects(second, {code: 'AuthorizationDecisionScopeClosed'});
+    assert.equal(child.aborted, true);
+    assert.equal(later.signal.aborted, false);
+    assert.equal(tracked.listeners(), 0);
+    assert.equal(gate.resourceUsage().inFlightDecisions, 1);
+    finish();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(gate.resourceUsage().inFlightDecisions, 0);
+    assert.equal(gate.resourceUsage().retainedDecisions, 0);
+    assert.equal(gate.cleanupPending(), false);
+  });
+
+test('cooperative decisions settle after timeout without occupying capacity',
+  async () => {
+    let stopped = 0;
+    const gate = await fixtureAuthorization(delegateEntries, {
+      answeringAuthorities: ['reviewer'], decisionTimeoutMs: 10,
+      maxInFlightDecisions: 1,
+      decide: (_view, {signal}) => new Promise((_, reject) => {
+        signal.addEventListener('abort', () => {
+          stopped++;
+          reject(new Error('Stopped'));
+        }, {once: true});
+      }),
+    });
+    for (let attempt = 0; attempt < 3; attempt++) {
+      assert.equal((await gate.authorize('acquisition', scope,
+        {subjectCid})).reason, 'timeout');
+      await new Promise(resolve => setImmediate(resolve));
+      assert.equal(gate.resourceUsage().inFlightDecisions, 0);
+    }
+    assert.equal(stopped, 3);
+    assert.equal(gate.close(), true);
+  });
+
+test('one installation bounds callbacks across independently built gates',
+  async () => {
+    const budget = createAuthorizationDecisionBudget({
+      maxInFlightDecisions: 1, maxRetainedDecisions: 2});
+    const pending = [];
+    const options = {decisionBudget: budget, decisionTimeoutMs: 10,
+      answeringAuthorities: ['reviewer'],
+      decide: (view, {signal}) => new Promise(resolve => {
+        pending.push({signal, finish: () => resolve(permitWith()(view))});
+      })};
+    const first = await fixtureAuthorization(delegateEntries, options);
+    const second = await fixtureAuthorization(delegateEntries, options);
+    assert.equal((await first.authorize('acquisition', scope,
+      {subjectCid})).reason, 'timeout');
+    first.close();
+    const refused = await second.authorize('acquisition', scope,
+      {subjectCid});
+    assert.equal(refused.detail, 'AuthorizationDecisionCapacity');
+    assert.equal(pending.length, 1);
+    assert.equal(budget.usage().inFlightDecisions, 1);
+    pending[0].finish();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(budget.usage().inFlightDecisions, 0);
+    assert.equal((await second.authorize('acquisition', scope,
+      {subjectCid})).reason, 'timeout');
+    assert.equal(pending.length, 2);
+    assert.equal(budget.close(), false);
+    assert.equal(pending[1].signal.aborted, true);
+    pending[1].finish();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(budget.cleanupPending(), false);
+    assert.equal(budget.usage().scopes, 0);
+  });
 
 async function workspace(t) {
   const root = await mkdtemp(join(tmpdir(), 'actql-authorization-gate-'));

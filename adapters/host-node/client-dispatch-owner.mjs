@@ -5,13 +5,20 @@ import {openCapturedDuckDBSource} from './captured-duckdb-source.mjs';
 import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
 import {acquiredTaskPublicationPlan} from './local-values-plan.mjs';
+import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 
 export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, tenantId, authorityScopeCid, storeAuthorityCid, now,
+  faultInjection,
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
+  const diagnostic = diagnosticObserver(observed);
+  const step = async (name, detail) => {
+    diagnostic(name, detail);
+    await faultInjection?.(name, detail);
+  };
   const keyOf = ref => ref.runDefinitionCid;
   const current = ref => entries.get(keyOf(ref));
   const cancel = ref => current(ref)?.abort.abort(
@@ -136,7 +143,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             accepted.physicalStartReserved === false &&
             !accepted.preDispatchFailureConfirmed)) return;
       entry.reserved = true;
-      await observed('dispatch_reserved', {ref: claim.ref});
+      await step('dispatch_reserved', {ref: claim.ref});
       if (beforeDispatch !== undefined) await beforeDispatch(claim.ref);
       if (entry.abort.signal.aborted) return;
       if (held.plan === undefined) {
@@ -170,7 +177,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.finishPending = true;
       gate?.started();
       reached('started');
-      await observed('physical_start_reserved', {ref: accepted.ref});
+      await step('physical_start_reserved', {ref: accepted.ref});
       const sourceAccess = checkpoints?.acquisitionAccess(
         submission.requestId, sourceProfile?.sourceAccess) ??
         sourceProfile?.sourceAccess;
@@ -181,7 +188,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           held.preparedSourceAccess = sourceAccess;
         }
         const captureStartedAt = now();
-        await observed('acquisition_started', {ref: accepted.ref});
+        await step('acquisition_started', {ref: accepted.ref});
         entry.physicalWorkMayHaveStarted = true;
         entry.sourceCapture = await openCapturedDuckDBSource({moon,
           preparedProgram, registry, values, fragment, ordered,
@@ -191,7 +198,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           signal: entry.abort.signal,
           preparedSource: held.preparedSource});
         const captureCompletedAt = now();
-        await observed('acquisition_completed', {ref: accepted.ref});
+        await step('acquisition_completed', {ref: accepted.ref});
         const sourceEvidenceWire =
           await entry.sourceCapture.issueSourceEvidence({
             authorityScopeCid,
@@ -218,7 +225,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         });
       entry.cleanupOwner = published;
       entry.publicationCommitted = true;
-      await observed('computed', {ref: accepted.ref});
+      await step('computed', {ref: accepted.ref});
       await settleCleanup(entry);
       await finishRun(entry);
     }).catch(async cause => {

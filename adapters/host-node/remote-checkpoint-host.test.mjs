@@ -143,7 +143,7 @@ test('a claimed start with lost execution observation reconciles after restart',
     const directory = await mkdtemp(join(scratch, 'unknown-run-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
     const first = await remoteHost(t, protectedHost('allow', {
-      observe(name) {
+      faultInjection(name) {
         if (name === 'physical_start_reserved') {
           throw new Error('LostExecutionObservation');
         }
@@ -172,7 +172,7 @@ test('a claimed start with lost execution observation reconciles after restart',
 test('a late Host observation failure does not overwrite publication',
   async t => {
     const host = await remoteHost(t, protectedHost('allow', {
-      observe(name) {
+      faultInjection(name) {
         if (name === 'computed') throw new Error('LateObservationFailure');
       },
     }));
@@ -183,6 +183,33 @@ test('a late Host observation failure does not overwrite publication',
     assert.deepEqual(await execution.result('answer').all(),
       [{id: 1}, {id: 2}]);
     assert.equal(host.dispatches(), 1);
+  });
+
+test('installed Host bounds unfinished decisions across distinct requests',
+  async t => {
+    let finish;
+    let calls = 0;
+    const host = await remoteHost(t, protectedHost('delegate', {
+      decisionTimeoutMs: 10, maxInFlightDecisions: 1,
+      decide: () => {
+        calls++;
+        return new Promise(resolve => { finish = resolve; });
+      },
+    }));
+    const client = await host.as('owner-token');
+    for (const requestId of ['unfinished-one', 'unfinished-two']) {
+      await assert.rejects(client.aql(document, {format: 'json', requestId}),
+        {code: 'ACTQL_E_DELEGATION_UNAVAILABLE'});
+    }
+    assert.equal(calls, 1);
+    assert.equal(host.dispatches(), 0);
+    finish({decision: 'unavailable'});
+    await new Promise(resolve => setImmediate(resolve));
+    await assert.rejects(client.aql(document, {format: 'json',
+      requestId: 'unfinished-three'}),
+    {code: 'ACTQL_E_DELEGATION_UNAVAILABLE'});
+    assert.equal(calls, 2);
+    finish({decision: 'unavailable'});
   });
 
 test('delegate immediate permit runs and immediate reject records nothing',
@@ -372,7 +399,7 @@ async function stalledSweep(t, {leaseMs, stallMs}) {
   const stalled = new Promise(resolve => { released = resolve; });
   const host = await remoteHost(t, protectedHost('delegate', {
     leaseMs,
-    async observe(name) {
+    async faultInjection(name) {
       steps.push(name);
       if (name === 'resume_claimed' && stall) {
         stall = false;
@@ -474,7 +501,7 @@ test('closing during a resumed dispatch records its end before releasing',
     let released;
     const stalled = new Promise(resolve => { released = resolve; });
     const host = await remoteHost(t, protectedHost('delegate', {
-      async observe(name) {
+      async faultInjection(name) {
         steps.push(name);
         if (name === 'physical_start_reserved') await stalled;
       }}), {directory});
@@ -518,7 +545,7 @@ async function resubmittedWhileStalled(t, {leaseMs = 60_000,
   const stalled = new Promise(resolve => { released = resolve; });
   const host = await remoteHost(t, protectedHost('delegate', {
     leaseMs, ...(checkpointTtlMs === undefined ? {} : {checkpointTtlMs}),
-    async observe(name) {
+    async faultInjection(name) {
       steps.push(name);
       if (name === 'definition_admitted' && stall) {
         stall = false;
@@ -675,7 +702,7 @@ async function cancelledBeforeStart(t, stallAt) {
   const stalled = new Promise(resolve => { released = resolve; });
   const host = await remoteHost(t, protectedHost('delegate', {
     leaseMs: 1000,
-    async observe(name) {
+    async faultInjection(name) {
       steps.push(name);
       if (name === stallAt && stall) {
         stall = false;
@@ -775,7 +802,7 @@ async function stalledHost(t, {stallAt, extra = {}} = {}) {
   const stalled = new Promise(resolve => { released = resolve; });
   const host = await remoteHost(t, protectedHost('delegate', {leaseMs: 1000,
     ...extra,
-    async observe(name) {
+    async faultInjection(name) {
       steps.push(name);
       if (name === stallAt && stall) {
         stall = false;
@@ -886,7 +913,7 @@ test('C4: a cancellation recorded before a restart settles on the next start',
     await answering.close();
     const steps = [];
     const restarted = await remoteHost(t, protectedHost('delegate', {
-      leaseMs: 1000, observe: name => { steps.push(name); }}), {directory});
+      leaseMs: 1000, faultInjection: name => { steps.push(name); }}), {directory});
     t.after(() => rm(directory, {recursive: true, force: true}));
     await waitFor(() => journalRows(directory,
       'SELECT status FROM preparations')[0].status === 'ended');

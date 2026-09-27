@@ -115,9 +115,9 @@ async function acquiringHost(t, {readOutcome = 'delegate',
       // step on a loaded machine; a test of a lapsed claim sets its own.
       leaseMs: 10_000,
       ...extra,
-      observe: async (name, detail) => {
+      faultInjection: async (name, detail) => {
         steps.push(name);
-        await extra.observe?.(name, detail);
+        await extra.faultInjection?.(name, detail);
       },
     },
   });
