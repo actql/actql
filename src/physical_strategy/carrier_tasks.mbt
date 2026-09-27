@@ -196,6 +196,22 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
       @lower.node_supports_bounded_managed_prefix(prefix, consumer) else {
       return None
     }
+    // A linear Cross Join followed by supported row projections has a
+    // bounded whole-task owner. Keep its checked operation occurrences in
+    // that task so the retained output uses the same chain completion.
+    if @lower.payload(prefix) is @lower.CrossJoinRows(_) {
+      let mut row_suffix = true
+      for step in 1..<count {
+        guard @lower.node_at(prepared, step) is Some(node) else { return None }
+        match @lower.payload(node) {
+          @lower.Where(_) | @lower.Derive(_) | @lower.Select(_) => ()
+          _ => row_suffix = false
+        }
+      }
+      if row_suffix {
+        return None
+      }
+    }
   } else {
     let mut carrier_prefix = false
     for step in 0..<terminal {

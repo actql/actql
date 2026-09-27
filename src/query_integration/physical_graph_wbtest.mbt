@@ -235,7 +235,7 @@ test "physical DAG segments Vectors projection before Relation filter" {
 }
 
 ///|
-test "physical DAG separates bounded cross join from Relation filter" {
+test "physical DAG keeps bounded cross join and filter in one task" {
   let program = query_checked_program_fixture(
     dag=true,
     local_values_cross_external_chain=true,
@@ -247,9 +247,9 @@ test "physical DAG separates bounded cross join from Relation filter" {
     @program_check.unit_count(program) + 10,
     10000,
   ).unwrap()
-  assert_eq(@strategy.graph_task_count(graph), 7)
-  assert_eq(@strategy.graph_task_prefix_end(graph, 3), Some(0))
-  assert_eq(@strategy.graph_task_selected_step(graph, 4), Some(1))
+  assert_eq(@strategy.graph_task_count(graph), 6)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 3), None)
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), None)
   assert_true(@strategy.graph_ordered_inputs_complete(graph))
 }
 

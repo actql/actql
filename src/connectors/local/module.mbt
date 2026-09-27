@@ -194,8 +194,7 @@ pub fn local_module_bounded_values_publication(
 
 ///|
 /// An operation obligation is discharged only by the bounded provider for
-/// the exact source step. A provider for another step in the task is not
-/// evidence for this obligation.
+/// the exact source step, inside the provider selected for the whole task.
 priv enum LocalBinaryRelationOperation {
   Append
   Set
@@ -210,12 +209,24 @@ fn local_bounded_binary_relation_step(
   operation : LocalBinaryRelationOperation,
 ) -> Bool {
   guard installed.sequences.get(slot) is Some(sequence) else { return false }
-  guard @execution.generated_sequence_step_index_at(sequence, 0) is Some(step) &&
-    step == required_step &&
-    @execution.generated_sequence_step_index_at(sequence, 1) is None else {
+  let count = @execution.generated_sequence_step_count(sequence)
+  let mut position = -1
+  for index in 0..<count {
+    if @execution.generated_sequence_step_index_at(sequence, index) ==
+      Some(required_step) {
+      if position >= 0 {
+        return false
+      }
+      position = index
+    }
+  }
+  guard position >= 0 &&
+    @execution.select_generated_sequence_step(sequence, required_step)
+    is Some(selected) else {
     return false
   }
-  let matches = match @execution.generated_sequence_step_at(sequence, 0) {
+  let matches = match
+    @execution.generated_sequence_step_at(sequence, position) {
     Some(@lower.AppendStep(_)) => operation is Append
     Some(@lower.SetStep(_)) => operation is Set
     Some(@lower.CrossJoinStep(_)) => operation is CrossJoin
@@ -231,12 +242,19 @@ fn local_bounded_binary_relation_step(
       return false
     }
   }
+  if count > 1 &&
+    !managed_provider_accepts(
+      selected_relation_provider(installed.execution, installed.measurement),
+      sequence,
+    ) {
+    return false
+  }
   let provider = match operation {
     Append => append_provider(installed.execution, installed.measurement)
     Set => set_provider(installed.execution, installed.measurement)
     CrossJoin => cross_join_provider(installed.execution, installed.measurement)
   }
-  managed_provider_accepts(provider, sequence)
+  managed_provider_accepts(provider, selected)
 }
 
 ///|

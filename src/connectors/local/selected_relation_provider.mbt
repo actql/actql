@@ -181,6 +181,7 @@ fn bounded_relation_step_provider(
   for
     provider in [
       selected_relation_provider(execution, measurement),
+      cross_join_provider(execution, measurement),
       append_provider(execution, measurement),
       set_provider(execution, measurement),
       nest_provider(execution, measurement),
