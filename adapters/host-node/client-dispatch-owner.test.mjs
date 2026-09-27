@@ -8,6 +8,7 @@ test('publication ownership survives a wrapped error and cleanup retry',
     let starts = 0;
     let closes = 0;
     let permitCleanup = false;
+    let publicationReadable = false;
     const stopped = [];
     const failure = new Error('PublicationFailure');
     const wrapped = new Error('BoundaryFailure', {cause: failure});
@@ -24,7 +25,10 @@ test('publication ownership survives a wrapped error and cleanup retry',
       control: {},
       journal: {reservePhysicalStart: () => true,
         markPhysicalClose: (...args) => stopped.push(args)},
-      store: {confirmCommittedIndex: async () => undefined},
+      store: {confirmCommittedIndex: async () => {
+        if (!publicationReadable) throw new Error('StoreObservationFailure');
+        return undefined;
+      }},
       startRun: async () => ({kind: 'reserved', ref}),
       hostConnection: () => true,
       observed: async () => {},
@@ -46,6 +50,10 @@ test('publication ownership survives a wrapped error and cleanup retry',
     assert.deepEqual(stopped, []);
     await assert.rejects(owner.drain(), {code: 'ClientDispatchCleanupPending'});
     permitCleanup = true;
+    await assert.rejects(owner.drain(), {code: 'ClientDispatchCleanupPending'});
+    assert.deepEqual(stopped, []);
+    assert.notEqual(owner.operation(ref), undefined);
+    publicationReadable = true;
     await owner.drain();
     assert.equal(starts, 1);
     assert.ok(closes >= 2);

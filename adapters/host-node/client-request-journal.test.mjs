@@ -795,7 +795,8 @@ test('started cancellation never invents stop and terminal completion wins',
     }, moon, publicationControl).kind, 'already_terminal');
   });
 
-test('started Run records only a confirmed terminal outcome across restart',
+for (const outcome of ['failed', 'cancelled']) {
+test(`started Run retains confirmed ${outcome} across restart and cancellation`,
   async t => {
     const path = await directory(t);
     let journal = openClientRequestJournal(path);
@@ -825,16 +826,34 @@ test('started Run records only a confirmed terminal outcome across restart',
     assert.equal(state().status, 'needs_reconciliation');
     assert.deepEqual(state().next_action,
       {kind: 'reconcile_run', reason: 'execution_unknown'});
-    journal.markPhysicalClose(accepted.ref, 'failed');
-    assert.equal(state().status, 'failed');
-    journal.markPhysicalClose(accepted.ref, 'failed');
+    journal.markPhysicalClose(accepted.ref, outcome);
+    assert.equal(state().status, outcome);
+    const checkCancellation = () => {
+      const before = journal.lookupRunDefinition(accepted.ref, moon,
+        publicationControl);
+      assert.equal(journal.requestCancellation(accepted.ref, {
+        currentAuthorization: true, publicationCommitted: false,
+      }, moon, publicationControl).kind, 'already_terminal');
+      assert.throws(() => journal.requestCancellation(accepted.ref, {
+        currentAuthorization: false, publicationCommitted: false,
+      }, moon, publicationControl), {code: 'ClientRunCancellationDenied'});
+      const after = journal.lookupRunDefinition(accepted.ref, moon,
+        publicationControl);
+      assert.equal(after.revision, before.revision);
+      assert.equal(after.cancellationRequested, before.cancellationRequested);
+    };
+    checkCancellation();
+    journal.markPhysicalClose(accepted.ref, outcome);
     assert.throws(() => journal.markPhysicalClose(accepted.ref,
-      'cancelled'), {code: 'ClientRunStopObservationDenied'});
+      outcome === 'failed' ? 'cancelled' : 'failed'),
+    {code: 'ClientRunStopObservationDenied'});
     journal.close();
     journal = openClientRequestJournal(path);
-    assert.equal(state().status, 'failed');
+    assert.equal(state().status, outcome);
+    checkCancellation();
     assert.equal(claimPhysicalStart(journal, accepted.ref), false);
   });
+}
 
 test('every definition lookup rejects a corrupt retained Result inventory',
   async t => {

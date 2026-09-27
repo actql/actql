@@ -19,6 +19,8 @@ import {loadInstalledDuckDBSource} from './installed-duckdb-source.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
+import {retainInstalledHostInitializationFailure} from
+  './installed-host-cleanup.mjs';
 import {installNodeResultAccessService,
   installResultAccessAuthority} from './result-access.mjs';
 import {installRunStateAuthority, installRunStateService,
@@ -90,6 +92,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   await mkdir(journalDirectory, {recursive: true, mode: 0o700});
   const journal = openClientRequestJournal(journalDirectory);
   let store;
+  let checkpoints;
+  let dispatchOwner;
   try {
     store = await openLocalPublicationStore({
       directory: join(root, 'publication'), storeAuthorityCid,
@@ -98,10 +102,6 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       maxObjects: 10000, maxContractNodes: 10000,
       maxContractDepth: 64,
     }, control);
-  } catch (error) {
-    journal.close();
-    throw error;
-  }
   const hostConnection = ({principalId: actual, connection, ref}) =>
     actual === principalId &&
     connection.mode === mode && connection.owner === mode &&
@@ -147,8 +147,6 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       ref.authorityScopeCid === authorityScopeCid});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment});
-  let checkpoints;
-  try {
     checkpoints = await installRemoteCheckpoints({root, tenantId,
       authorityScopeCid, ownerPrincipal: principalId,
       siteKey: authorization?.siteKey ?? 'actql-remote-host',
@@ -156,11 +154,6 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         : 'duckdb-acquired', environmentCid: evidenceCid,
       contractControl: control, authorization,
       source: sourceProfile?.readAuthorization});
-  } catch (error) {
-    journal.close();
-    await store.close();
-    throw error;
-  }
   const observeRun = async ({ref, principalId: actual}) => {
     if (actual !== principalId || ref.tenantId !== tenantId ||
         ref.authorityScopeCid !== authorityScopeCid) {
@@ -347,7 +340,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   // Composition installs one owner for dispatch, cancellation, stop, and
   // cleanup. Checkpoint and HTTP paths share this owner.
   const observed = (name, detail) => authorization?.observe?.(name, detail);
-  const dispatchOwner = installNodeClientDispatchOwner({moon, control,
+  dispatchOwner = installNodeClientDispatchOwner({moon, control,
     journal, store, checkpoints, startRun, hostConnection, beforeDispatch,
     observed, prepareAcquisition, planFor, sourceProfile, registry, values,
     fragment, ordered, tenantId, authorityScopeCid, storeAuthorityCid, now});
@@ -662,6 +655,10 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   });
   return {port, store, journal, hostOperations, checkpoints,
     dispatchOwner, inspectAcquisition};
+  } catch (cause) {
+    throw await retainInstalledHostInitializationFailure(cause,
+      {journal, store, checkpoints, dispatchOwner});
+  }
 }
 
 // This HTTP ingress uses the installed Host's common owner and physical

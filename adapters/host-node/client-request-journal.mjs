@@ -724,12 +724,14 @@ export function openClientRequestJournal(directory, {
           ref.runDefinitionCid);
         if (row === undefined) fail('ClientRunCancellationDenied');
         retainedIdentity(row, requestControl);
-        const definition = retainedRunDefinition(row, publicationControl,
+        const facts = retainedRunFacts(row, publicationControl,
           maxRunDefinitionWireBytes);
-        const action = requestControl.clientRunCancellationAction(definition,
+        const action = requestControl.clientRunCancellationAction(facts.runDefinition,
           ref.runDefinitionCid, currentAuthorization,
-          publicationCommitted || row.pre_dispatch_failure_confirmed === 1,
-          row.cancellation_requested === 1);
+          publicationCommitted || facts.preDispatchFailureConfirmed ||
+            facts.physicalCloseConfirmed &&
+              facts.observedTerminalOutcome !== null,
+          facts.cancellationRequested);
         if (![0, 1, 2].includes(action)) fail('ClientRunCancellationDenied');
         if (action === 0) {
           database.prepare(`UPDATE client_requests SET
