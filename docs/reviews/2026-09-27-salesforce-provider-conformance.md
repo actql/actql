@@ -21,7 +21,7 @@ are kept outside this repository.
 | --- | --- | --- |
 | Public wire and SDK operation | Defined in `spec/contracts/actql-client-host.json`, `packages/client-wire` and `packages/sdk`. | Ordinary Effectful submit; the standard checked Program still rejects nonempty Effects (agreement SF-3). |
 | Assembled in a test Host | `installSalesforceResourceService` behind `createClientHttpHandler` (`salesforce-resource-service.test.mjs`). | The installed Effect route behind the public submit matrix (`effect-run.integration.test.mjs`). |
-| Standard installed Host (`embedded-local`) | Not connected: `hostOperations` has no discovery handlers. | Not connected: the standard Host is Effect-free. |
+| Standard installed Host (`embedded-local`) | Connected on 2026-09-28: discovery, publication and acquisition; see [the standard Host read path](2026-09-28-salesforce-standard-host-read.md). | Not connected: the standard Host is Effect-free. |
 
 The standard Host connection is owned by the Host owner; see
 [Host handoff](#host-handoff).
@@ -77,6 +77,12 @@ own: the policy vocabulary has no metadata operation, and
 shared authorization question for the Host owner; the Connector does not add
 a Catalog operation class.
 
+Update 2026-09-28: declaration, peek and acquisition now describe each named
+Resource only after the installed gate's `read` decision under a
+metadata subject, with no provider listing. The full sync above remains only
+for the Effect route. See
+[the standard Host read path](2026-09-28-salesforce-standard-host-read.md#catalog-metadata-authorization).
+
 ## Static declaration (section 22.5 items 1 and 7)
 
 A Site generates its static declaration with `installed.declareCatalog({connectorId, resources})`, which is the explicit publication step.
@@ -131,6 +137,11 @@ Remaining concrete gaps:
 - The per-field pushdown limit (exact `int` only) is not expressible in the pushdown body. The residual rule keeps a declared `filter` legal.
 
 ## Host handoff
+
+The read items below (discovery, explicit publication, broad query
+preparation, metadata authorization) were connected on 2026-09-28; see
+[the standard Host read path](2026-09-28-salesforce-standard-host-read.md).
+The Effect items remain.
 
 Needed from the Host owner, with the provider entry points already present:
 
