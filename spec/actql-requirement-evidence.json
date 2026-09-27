@@ -9233,7 +9233,7 @@
     },
     {
       "requirement_id": "actql.execution/run-states.state-meaning-terminal-preparing",
-      "statement_sha256": "45375037002c55b97d38fda98a57963053561d336b16bb1a1756c4450225403d",
+      "statement_sha256": "c2092ad6eb2f228d5227475aad153ef0f6cdfb48223d1edef0caa5bd791a487f",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -9255,13 +9255,24 @@
     },
     {
       "requirement_id": "actql.execution/run-states.from-to-required-condition-preparing",
-      "statement_sha256": "010cf5be04519cbeaaeea52c12f939d8e478af50db39a54e314340114390845b",
+      "statement_sha256": "ae3429e732f94d922fb467ab0a66e56e9f4cb52ac1ecf8d8ee0a9496adc14ffc",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "run-states",
         "kind": "table"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/run-states.execution-reconciliation-must-not-retransmit",
+      "statement_sha256": "b4718aeac241955e11309ffbad7c4febc3cc48d1b144fabc848de3cd6934e9b1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "run-states",
+        "kind": "prose"
       }
     },
     {
@@ -12973,7 +12984,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "4cbec1d98a17b09f48a6c83eb02ee8144eab2271c337456e2b02511e27fda948",
+      "statement_sha256": "f7a0d8901ab762f593f43bbf4b9c08970e5c7f51ab234551255fd1621a46e4c0",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

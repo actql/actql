@@ -999,9 +999,23 @@ test('checked Run issues one source-free Site dispatch identity', () => {
     grantCid: `sha256:${'5'.repeat(64)}`};
   const issued = issueSourceFreeDispatch(prepared, compilation, admission,
     definition, request, selection);
+  {
+    const dispatch = admitDispatchJson(issued.wire, issued.cid);
+    const intent = prepareIntent(createJournal(scope), dispatch);
+    const saved = admissionDurableJson(intent);
+    const unstarted = projectSiteRun(prepared, compilation, admission,
+      definition, scope, saved, '2026-09-25T00:00:01.000Z', false, false);
+    assert.equal(unstarted.execution, 'unobserved');
+    const started = projectSiteRun(prepared, compilation, admission,
+      definition, scope, saved, '2026-09-25T00:00:01.000Z', false, true);
+    assert.equal(started.execution, 'unknown');
+    assert.equal(JSON.parse(started.stateWire).status, 'needs_reconciliation');
+    assert.deepEqual(JSON.parse(started.stateWire).next_action,
+      {kind: 'reconcile_run', reason: 'execution_unknown'});
+  }
   for (const [execution, cleanup, outcome, work] of [
     [4, 2, 'failed', 'none'], [4, 1, 'failed', 'cleanup'],
-    [5, 2, 'cancelled', 'none'], [6, 3, 'running', 'reconcile'],
+    [5, 2, 'cancelled', 'none'], [6, 3, 'needs_reconciliation', 'reconcile'],
     [3, 0, 'running', 'publication'], [3, 2, 'running', 'publication'],
   ]) {
     const dispatch = admitDispatchJson(issued.wire, issued.cid);
@@ -1021,6 +1035,8 @@ test('checked Run issues one source-free Site dispatch identity', () => {
     assert.equal(result.nextWork, work);
     assert.equal(JSON.parse(result.stateWire).status, outcome);
     assert(validRunState(JSON.parse(result.stateWire)));
+    if (execution === 6) assert.deepEqual(JSON.parse(result.stateWire).next_action,
+      {kind: 'reconcile_run', reason: 'execution_unknown'});
     const cancelled = projectSiteRun(prepared, compilation, admission,
       definition, scope, saved, '2026-09-25T00:00:01.000Z', true);
     if (execution === 3) {

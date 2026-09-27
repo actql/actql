@@ -493,7 +493,10 @@ async function connectSelected(selected, port) {
         return response;
       },
       reconcile: async ({signal} = {}) => {
-        return readControl('reconcile', {}, signal);
+        const response = await readControl('reconcile', {}, signal);
+        if (response?.version === 'actql-run-state/0.1' &&
+            !validRunState(response)) fail('InvalidHostRunState');
+        return response;
       },
     });
   };

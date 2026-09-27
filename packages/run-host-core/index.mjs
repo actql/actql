@@ -505,7 +505,8 @@ export function privateRunDefinition(definition) {
 // observation. A state wire is a projection, never Run or read authority.
 export function issueUnpublishedRunStateWire(prepared, compilation,
   admission, definition, observedAt, dispatchReserved,
-  preDispatchFailureConfirmed, cancelledBeforeStart = false) {
+  preDispatchFailureConfirmed, cancelledBeforeStart = false,
+  executionUnknown = false) {
   const compiled = requireHandle(compilations, compilation);
   const admitted = requireHandle(admissions, admission);
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
@@ -514,13 +515,15 @@ export function issueUnpublishedRunStateWire(prepared, compilation,
   if (typeof observedAt !== 'string' ||
       typeof dispatchReserved !== 'boolean' ||
       typeof preDispatchFailureConfirmed !== 'boolean' ||
-      typeof cancelledBeforeStart !== 'boolean') {
+      typeof cancelledBeforeStart !== 'boolean' ||
+      typeof executionUnknown !== 'boolean') {
     throw new TypeError('InvalidRunHostStateObservation');
   }
   checkRunBinding(prepared, admission, definition);
   const wire = owner.clientValuesHostIssueUnpublishedRunStateWire(
     requireHandle(definitions, definition), compiled.value, observedAt,
-    dispatchReserved, preDispatchFailureConfirmed, cancelledBeforeStart);
+    dispatchReserved, preDispatchFailureConfirmed, cancelledBeforeStart,
+    executionUnknown);
   if (typeof wire !== 'string') {
     throw Object.assign(new Error('RunHostStateProjectionRejected'),
       {code: 'RunHostStateProjectionRejected'});
@@ -1452,20 +1455,23 @@ export function openResultDeliveryControl() {
 
 /** Project an admitted durable Site record bound to this checked Run. */
 export function projectSiteRun(prepared, compilation, admission, definition,
-  authority, durableWire, observedAt, cancellationRequested = false) {
+  authority, durableWire, observedAt, cancellationRequested = false,
+  physicalStartClaimed = false) {
   const compiled = requireHandle(compilations, compilation);
   const admitted = requireHandle(admissions, admission);
   if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
     throw new TypeError('ForeignRunHostCompilation');
   }
   if ([authority, durableWire, observedAt].some(value =>
-      typeof value !== 'string') || typeof cancellationRequested !== 'boolean') {
+      typeof value !== 'string') || typeof cancellationRequested !== 'boolean' ||
+      typeof physicalStartClaimed !== 'boolean') {
     throw new TypeError('InvalidSiteObservation');
   }
   checkRunBinding(prepared, admission, definition);
   const fields = checked(owner.clientValuesHostProjectSiteRun(
     requireHandle(definitions, definition), compiled.value,
-    authority, durableWire, observedAt, cancellationRequested),
+    authority, durableWire, observedAt, cancellationRequested,
+    physicalStartClaimed),
   'RunHostSiteProjectionRejected');
   if (fields === undefined) {
     throw Object.assign(new Error('RunHostSiteProjectionRejected'),

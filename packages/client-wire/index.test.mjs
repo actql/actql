@@ -130,6 +130,27 @@ test('request lookup retains found, absent and observation-unknown replies',
       'request-a'), false);
   });
 
+test('Run reconciliation is distinct from the unchanged Effect action', () => {
+  const state = {version: 'actql-run-state/0.1', run_id: 'run-a',
+    status: 'needs_reconciliation', updated_at: '2026-09-27T00:00:00.000Z',
+    result_available: false, result_availability: {answer: {
+      state: 'unavailable', reason: 'not_published',
+      observed_at: '2026-09-27T00:00:00.000Z'}},
+    next_action: {kind: 'reconcile_run', reason: 'execution_unknown'}};
+  assert.equal(validRunState(state), true);
+  assert.equal(validRunState({...state,
+    next_action: {kind: 'reconcile', effects: ['write']}}), true);
+  for (const action of [
+    {kind: 'reconcile', effects: []},
+    {kind: 'reconcile_run'},
+    {kind: 'reconcile_run', reason: 'execution_unknown', effects: []},
+    {kind: 'reconcile_run', reason: 'failed'},
+  ]) assert.equal(validRunState({...state, next_action: action}), false);
+  for (const status of ['succeeded', 'failed', 'cancelled', 'running']) {
+    assert.equal(validRunState({...state, status}), false);
+  }
+});
+
 test('registered Run state guard checks nested availability and action wire',
   () => {
     const at = '2026-09-24T00:30:00.000Z';

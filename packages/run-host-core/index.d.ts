@@ -353,7 +353,8 @@ export function issueUnpublishedRunStateWire(prepared: PreparedProgram,
   compilation: ValuesCompilation, admission: RunAdmission,
   definition: RunDefinition, observedAt: string,
   dispatchReserved: boolean,
-  preDispatchFailureConfirmed: boolean, cancelledBeforeStart?: boolean): string;
+  preDispatchFailureConfirmed: boolean, cancelledBeforeStart?: boolean,
+  executionUnknown?: boolean): string;
 /** Project a committed Run with current physical availability observations. */
 export function issueSucceededRunStateWire(prepared: PreparedProgram,
   compilation: ValuesCompilation, admission: RunAdmission,
@@ -603,7 +604,8 @@ export function issueSourceFreeCapturedRun(
 export function projectSiteRun(prepared: PreparedProgram,
   compilation: ValuesCompilation, admission: RunAdmission,
   definition: RunDefinition, authority: string, durableWire: string,
-  observedAt: string, cancellationRequested?: boolean): Readonly<{stateWire: string;
+  observedAt: string, cancellationRequested?: boolean,
+  physicalStartClaimed?: boolean): Readonly<{stateWire: string;
     execution: 'unobserved' | 'running' | 'settled' | 'failed' |
       'cancelled' | 'unknown';
     cleanup: 'complete' | 'pending'; revision: number;

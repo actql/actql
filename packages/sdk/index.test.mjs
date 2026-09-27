@@ -143,6 +143,29 @@ test('status and wait reject malformed Host state replies', async t => {
   await assert.rejects(execution.wait(), {code: 'InvalidHostRunState'});
 });
 
+test('Run reconciliation validates state without submitting computation', async t => {
+  const requests = [];
+  let reply = {...state, status: 'needs_reconciliation',
+    next_action: {kind: 'reconcile_run', reason: 'execution_unknown'}};
+  mock.method(globalThis, 'fetch', async url => {
+    const operation = url.pathname.split('/').at(-1);
+    requests.push(operation);
+    if (operation === 'connect') return Response.json(profile);
+    if (operation === 'attach') return Response.json(admission);
+    if (operation === 'reconcile') return Response.json(reply);
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => mock.restoreAll());
+  const execution = await (await connect(options)).attach(ref);
+  assert.deepEqual(await execution.reconcile(), reply);
+  reply = {...reply, next_action: {kind: 'reconcile_run'}};
+  await assert.rejects(execution.reconcile(), {code: 'InvalidHostRunState'});
+  reply = {kind: 'effect_reconciliation_pending'};
+  assert.deepEqual(await execution.reconcile(), reply);
+  assert.deepEqual(requests, ['connect', 'attach', 'reconcile',
+    'reconcile', 'reconcile']);
+});
+
 test('unknown submit carries one fixed request ID and lookup never submits', async t => {
   const requests = [];
   mock.method(globalThis, 'fetch', async (url, init) => {

@@ -46,6 +46,7 @@ pub(all) struct ResultAvailability {
 pub(all) enum RunNextAction {
   ResolveCheckpoint
   Reconcile
+  ReconcileRun
   ReadResult(Array[String])
   RefreshAvailability(Array[String])
   NoAction
@@ -211,7 +212,7 @@ pub fn validate_run_state(
       if has_checkpoint {
         return Err(CheckpointMismatch)
       }
-      if action is Reconcile {
+      if action is Reconcile || action is ReconcileRun {
         return Ok(())
       }
       Err(ActionStatusMismatch)
@@ -461,8 +462,8 @@ pub fn issue_succeeded_run_state_wire(
 /// supplies the durable dispatch claim, a confirmed pre-dispatch failure and
 /// the checked Result inventory; this owner chooses the phase, availability
 /// and action. Loss of worker observation after a reservation does not prove
-/// Run failure. Effect reconciliation has a distinct state and cannot be
-/// inferred from an interrupted Effect-free Compute.
+/// Run failure. Unknown execution uses Run reconciliation, never an invented
+/// Effect inventory. Reconciliation itself does not authorize a new dispatch.
 pub fn issue_effect_free_unpublished_run_state_wire(
   run_id : String,
   updated_at : String,
@@ -474,6 +475,7 @@ pub fn issue_effect_free_unpublished_run_state_wire(
   max_depth : Int,
   cancelled_before_start? : Bool = false,
   observed_terminal_outcome? : RunOutcomeStatus? = None,
+  execution_unknown? : Bool = false,
 ) -> Result[String, RunStateIssue] {
   if run_id.is_empty() {
     return Err(InvalidRunId)
@@ -482,6 +484,15 @@ pub fn issue_effect_free_unpublished_run_state_wire(
     return Err(InvalidObservationTime("run"))
   }
   if pre_dispatch_failure_confirmed && !dispatch_reserved {
+    return Err(ActionStatusMismatch)
+  }
+  if execution_unknown &&
+    (
+      !dispatch_reserved ||
+      pre_dispatch_failure_confirmed ||
+      cancelled_before_start ||
+      observed_terminal_outcome is Some(_)
+    ) {
     return Err(ActionStatusMismatch)
   }
   if observed_terminal_outcome is Some(outcome) {
@@ -501,6 +512,8 @@ pub fn issue_effect_free_unpublished_run_state_wire(
     RunOutcomeStatus::Preparing
   } else if pre_dispatch_failure_confirmed {
     RunOutcomeStatus::Failed
+  } else if execution_unknown {
+    RunOutcomeStatus::NeedsReconciliation
   } else {
     RunOutcomeStatus::Running
   }
@@ -511,7 +524,18 @@ pub fn issue_effect_free_unpublished_run_state_wire(
     observations.push({ name, state: Unavailable, reason: NotPublished, })
   }
   match
-    validate_run_state(status, names, observations, false, NoAction, false) {
+    validate_run_state(
+      status,
+      names,
+      observations,
+      false,
+      if execution_unknown {
+        ReconcileRun
+      } else {
+        NoAction
+      },
+      false,
+    ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -523,7 +547,18 @@ pub fn issue_effect_free_unpublished_run_state_wire(
     @encode.key(writer, "next_action")
     @encode.begin_object(writer)
     @encode.key(writer, "kind")
-    @encode.string_value(writer, "none")
+    @encode.string_value(
+      writer,
+      if execution_unknown {
+        "reconcile_run"
+      } else {
+        "none"
+      },
+    )
+    if execution_unknown {
+      @encode.key(writer, "reason")
+      @encode.string_value(writer, "execution_unknown")
+    }
     @encode.end_object(writer)
     @encode.key(writer, "result_availability")
     @encode.begin_object(writer)
@@ -549,6 +584,7 @@ pub fn issue_effect_free_unpublished_run_state_wire(
       match status {
         RunOutcomeStatus::Preparing => "preparing"
         RunOutcomeStatus::Running => "running"
+        RunOutcomeStatus::NeedsReconciliation => "needs_reconciliation"
         RunOutcomeStatus::Failed => "failed"
         RunOutcomeStatus::Cancelled => "cancelled"
         _ => return Err(Encoding)

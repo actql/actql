@@ -137,7 +137,7 @@ pub fn client_values_host_issue_task_invocation(@run_publication_host.PreparedCl
 
 pub fn client_values_host_issue_task_run_definition(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientValuesHostTaskDefinitionIssue]
 
-pub fn client_values_host_issue_unpublished_run_state_wire(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, Bool, Bool, Bool) -> String?
+pub fn client_values_host_issue_unpublished_run_state_wire(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, Bool, Bool, Bool, Bool) -> String?
 
 pub fn client_values_host_next_result_delivery_row(@run_publication.ResultDeliverySerializer, String) -> String raise ClientValuesHostDeliveryIssue
 
@@ -171,7 +171,7 @@ pub fn client_values_host_project_committed_result_read_wire(@run_publication.Pu
 
 pub fn client_values_host_project_publication_snapshot(@run_publication.PublicationContract?, Int, @run_publication.PublicationContract?) -> Result[Array[String], ClientValuesHostPublicationSnapshotIssue]
 
-pub fn client_values_host_project_site_run(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, String, String, Bool) -> Result[Array[String], Unit]
+pub fn client_values_host_project_site_run(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, String, String, Bool, Bool) -> Result[Array[String], Unit]
 
 pub fn client_values_host_publication_contract_identity(@run_publication.PublicationContract) -> String
 

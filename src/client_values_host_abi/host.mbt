@@ -1427,6 +1427,7 @@ pub fn client_values_host_issue_unpublished_run_state_wire(
   dispatch_reserved : Bool,
   pre_dispatch_failure_confirmed : Bool,
   cancelled_before_start : Bool,
+  execution_unknown : Bool,
 ) -> String? {
   let run_id = match @publication.run_definition_run_id(definition) {
     Ok(value) => value
@@ -1444,6 +1445,7 @@ pub fn client_values_host_issue_unpublished_run_state_wire(
       10000,
       64,
       cancelled_before_start~,
+      execution_unknown~,
     ) {
     Ok(wire) => Some(wire)
     Err(_) => None
@@ -2167,6 +2169,7 @@ pub fn client_values_host_project_site_run(
   durable_wire : String,
   observed_at : String,
   cancellation_requested : Bool,
+  physical_start_claimed : Bool,
 ) -> Result[Array[String], Unit] {
   let durable = match
     @remote.admit_durable_coordinator_dispatch_record(
@@ -2218,11 +2221,14 @@ pub fn client_values_host_project_site_run(
       10000,
       64,
       observed_terminal_outcome=terminal,
+      execution_unknown=observation.execution is Some(@remote.ExecutionUnknown) ||
+        (physical_start_claimed && observation.execution is None),
     ) {
     Ok(value) => value
     Err(_) => return Err(())
   }
   let execution = match observation.execution {
+    None if physical_start_claimed => "unknown"
     None => "unobserved"
     Some(@remote.Accepted | @remote.Provisioning | @remote.Running) => "running"
     Some(@remote.NativeSettled) => "settled"
