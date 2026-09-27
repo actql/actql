@@ -13,7 +13,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
-import test from 'node:test';
+import test, {after} from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {connect, RequestHeld} from '../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
@@ -22,6 +22,17 @@ import {canonicalJson} from './local-account-config.mjs';
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const scratch = join(repository, '_build', 'remote-checkpoint-host');
 await mkdir(scratch, {recursive: true});
+const tlsRoot = await mkdtemp(join(scratch, 'tls-'));
+execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+  '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
+  '-subj', '/CN=localhost',
+  '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
+{cwd: tlsRoot, stdio: 'ignore'});
+const tlsKey = await readFile(join(tlsRoot, 'remote.key'));
+const tlsCertificate = await readFile(join(tlsRoot, 'remote.crt'));
+setDefaultCACertificates([...getCACertificates('default'),
+  tlsCertificate.toString('utf8')]);
+after(() => rm(tlsRoot, {recursive: true, force: true}));
 const document = await readFile(join(repository,
   'packages/sdk/fixtures/values.json'), 'utf8');
 const owner = userInfo().username;
@@ -49,12 +60,6 @@ const tokens = new Map([['owner-token', owner],
 
 async function remoteHost(t, authorization, {directory} = {}) {
   const root = directory ?? await mkdtemp(join(scratch, 'host-'));
-  execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
-    '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
-    '-subj', '/CN=localhost',
-    '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
-  {cwd: root, stdio: 'ignore'});
-  const certificate = await readFile(join(root, 'remote.crt'));
   let dispatches = 0;
   const host = await openInstalledRemoteHttpHost({
     directory: join(root, 'state'),
@@ -62,8 +67,8 @@ async function remoteHost(t, authorization, {directory} = {}) {
     beforeDispatch: async () => { dispatches++; },
     authorization,
   });
-  const server = createServer({key: await readFile(join(root, 'remote.key')),
-    cert: certificate}, host.handler);
+  const server = createServer({key: tlsKey, cert: tlsCertificate},
+    host.handler);
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   let closed = false;
   const close = async () => {
@@ -81,9 +86,6 @@ async function remoteHost(t, authorization, {directory} = {}) {
     }
   });
   const endpoint = `https://127.0.0.1:${server.address().port}/`;
-  // Trust this test certificate for the process's fetch.
-  setDefaultCACertificates([...getCACertificates('default'),
-    certificate.toString('utf8')]);
   const as = token => connect({mode: 'remote', endpoint, token,
     durability: 'durable'});
   return {as, dispatches: () => dispatches, close};
@@ -134,6 +136,53 @@ test('allow runs without a Checkpoint; deny and missing configuration start noth
       assert.deepEqual(await denied.lookupRequest(`${label}-a`),
         {kind: 'not_found'}, label);
     }
+  });
+
+test('a claimed start with lost execution observation reconciles after restart',
+  async t => {
+    const directory = await mkdtemp(join(scratch, 'unknown-run-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const first = await remoteHost(t, protectedHost('allow', {
+      observe(name) {
+        if (name === 'physical_start_reserved') {
+          throw new Error('LostExecutionObservation');
+        }
+      },
+    }), {directory});
+    const client = await first.as('owner-token');
+    const execution = await client.aql(document, {format: 'json',
+      requestId: 'unknown-start'});
+    const unknown = await waitFor(async () => {
+      const state = await execution.status();
+      return state.status === 'needs_reconciliation' ? state : undefined;
+    });
+    assert.deepEqual(unknown.next_action,
+      {kind: 'reconcile_run', reason: 'execution_unknown'});
+    assert.equal(first.dispatches(), 1);
+    await first.close();
+    const restarted = await remoteHost(t, protectedHost('allow'),
+      {directory});
+    const attached = await (await restarted.as('owner-token'))
+      .attach(execution.ref);
+    assert.equal((await attached.status()).status, 'needs_reconciliation');
+    assert.equal(restarted.dispatches(), 0);
+    await restarted.close();
+  });
+
+test('a late Host observation failure does not overwrite publication',
+  async t => {
+    const host = await remoteHost(t, protectedHost('allow', {
+      observe(name) {
+        if (name === 'computed') throw new Error('LateObservationFailure');
+      },
+    }));
+    const client = await host.as('owner-token');
+    const execution = await client.aql(document, {format: 'json',
+      requestId: 'late-observation'});
+    assert.equal((await execution.wait()).status, 'succeeded');
+    assert.deepEqual(await execution.result('answer').all(),
+      [{id: 1}, {id: 2}]);
+    assert.equal(host.dispatches(), 1);
   });
 
 test('delegate immediate permit runs and immediate reject records nothing',

@@ -18,6 +18,11 @@ const instant = value => typeof value === 'string' &&
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
+const failRollback = (code, operation, cause, rollbackCause) => {
+  throw Object.assign(new Error(code, {cause}), {
+    code, operation, rollbackCause, outcome: 'unknown',
+  });
+};
 
 function syncDirectory(path) {
   const descriptor = openSync(path, 'r');
@@ -146,7 +151,8 @@ const columns = `authority_scope_cid, caller_request_id,
   lookup_expires_at, result_names_json, run_admission_evidence_json`;
 const selectColumns = `${columns}, dispatch_reserved,
   pre_dispatch_failure_confirmed, physical_start_reserved,
-  cancellation_requested, physical_close_confirmed`;
+  cancellation_requested, physical_close_confirmed,
+  observed_terminal_outcome`;
 
 export function openClientRequestJournal(directory, {
   maxRecords = 100_000,
@@ -250,6 +256,11 @@ export function openClientRequestJournal(directory, {
         database.exec(`ALTER TABLE client_requests ADD COLUMN ${field} ` +
           `INTEGER NOT NULL DEFAULT 0 CHECK (${field} IN (0, 1))`);
       }
+    }
+    if (!fields.some(field => field.name === 'observed_terminal_outcome')) {
+      database.exec('ALTER TABLE client_requests ADD COLUMN '
+        + 'observed_terminal_outcome TEXT '
+        + "CHECK (observed_terminal_outcome IN ('failed', 'cancelled'))");
     }
     if (!fields.some(field => field.name === 'reconciliation_state_wire')) {
       database.exec('ALTER TABLE client_requests ADD COLUMN '
@@ -370,7 +381,8 @@ export function openClientRequestJournal(directory, {
     } catch (error) {
       try { database.exec('ROLLBACK'); }
       catch (rollback) {
-        fail('ClientRequestAcceptanceUnknown', rollback);
+        failRollback('ClientRequestAcceptanceUnknown', 'accept', error,
+          rollback);
       }
       if (typeof error?.code === 'string' &&
           error.code.startsWith('ClientRequest')) throw error;
@@ -460,6 +472,7 @@ export function openClientRequestJournal(directory, {
           retained.row.pre_dispatch_failure_confirmed === 1,
         physicalStartReserved: retained.row.physical_start_reserved === null
           ? undefined : retained.row.physical_start_reserved === 1,
+        observedTerminalOutcome: retained.row.observed_terminal_outcome,
       });
     },
     // Attach reads the original accepted Run Definition by its exact ref.
@@ -496,6 +509,7 @@ export function openClientRequestJournal(directory, {
           row.pre_dispatch_failure_confirmed === 1,
         physicalStartReserved: row.physical_start_reserved === null
           ? undefined : row.physical_start_reserved === 1,
+        observedTerminalOutcome: row.observed_terminal_outcome,
         runDefinition: retainedRunDefinition(
           row, publicationControl, maxRunDefinitionWireBytes),
       });
@@ -545,6 +559,7 @@ export function openClientRequestJournal(directory, {
           retained.row.pre_dispatch_failure_confirmed === 1,
         physicalStartReserved: retained.row.physical_start_reserved === null
           ? undefined : retained.row.physical_start_reserved === 1,
+        observedTerminalOutcome: retained.row.observed_terminal_outcome,
       });
     },
     // Physical admit-or-lookup ordering for a checked request. The common
@@ -610,7 +625,9 @@ export function openClientRequestJournal(directory, {
           'ClientRequestJournalCorrupt');
       } catch (error) {
         try { database.exec('ROLLBACK'); }
-        catch (rollback) { fail('ClientRunStartUnknown', rollback); }
+        catch (rollback) {
+          failRollback('ClientRunStartUnknown', 'start', error, rollback);
+        }
         if (typeof error?.code === 'string' &&
             (error.code.startsWith('ClientRequest') ||
               error.code.startsWith('ClientRun'))) throw error;
@@ -666,7 +683,10 @@ export function openClientRequestJournal(directory, {
         return true;
       } catch (error) {
         try { database.exec('ROLLBACK'); }
-        catch (rollback) { fail('ClientRunPhysicalStartUnknown', rollback); }
+        catch (rollback) {
+          failRollback('ClientRunPhysicalStartUnknown', 'physical_start',
+            error, rollback);
+        }
         if (typeof error?.code === 'string' &&
             (error.code.startsWith('ClientRun') ||
               error.code.startsWith('ClientRequest'))) throw error;
@@ -710,25 +730,52 @@ export function openClientRequestJournal(directory, {
           revision: Number(row.revision) + (action === 0 ? 1 : 0)});
       } catch (error) {
         try { database.exec('ROLLBACK'); }
-        catch (rollback) { fail('ClientRunCancellationUnknown', rollback); }
+        catch (rollback) {
+          failRollback('ClientRunCancellationUnknown', 'cancel', error,
+            rollback);
+        }
         if (error?.code === 'ClientRunCancellationDenied') throw error;
         fail('ClientRunCancellationUnknown', error);
       }
     },
     // Only the live execution owner may report a completed physical close.
     // A restarted process cannot infer this from its empty worker map.
-    markPhysicalClose(ref) {
+    markPhysicalClose(ref, terminalOutcome = null) {
       ensureOpen();
       if (!text(ref?.tenantId) || !cid(ref?.authorityScopeCid) ||
-          !cid(ref?.runDefinitionCid)) {
+          !cid(ref?.runDefinitionCid) ||
+          terminalOutcome !== null &&
+            !['failed', 'cancelled'].includes(terminalOutcome)) {
         fail('InvalidClientRunStopObservation');
       }
-      database.prepare(`UPDATE client_requests SET
-        physical_close_confirmed = 1, revision = revision + 1
-        WHERE tenant_id = ? AND authority_scope_cid = ? AND
-          run_definition_cid = ? AND physical_start_reserved = 1 AND
-          physical_close_confirmed = 0`).run(ref.tenantId,
-        ref.authorityScopeCid, ref.runDefinitionCid);
+      database.exec('BEGIN IMMEDIATE');
+      try {
+        const row = selectRef.get(ref.tenantId, ref.authorityScopeCid,
+          ref.runDefinitionCid);
+        if (row === undefined || row.physical_start_reserved !== 1 ||
+            row.physical_close_confirmed === 1 &&
+              row.observed_terminal_outcome !== terminalOutcome) {
+          fail('ClientRunStopObservationDenied');
+        }
+        if (row.physical_close_confirmed === 0) {
+          database.prepare(`UPDATE client_requests SET
+            physical_close_confirmed = 1, observed_terminal_outcome = ?,
+            revision = revision + 1
+            WHERE tenant_id = ? AND authority_scope_cid = ? AND
+              run_definition_cid = ? AND physical_start_reserved = 1 AND
+              physical_close_confirmed = 0`).run(terminalOutcome,
+            ref.tenantId, ref.authorityScopeCid, ref.runDefinitionCid);
+        }
+        database.exec('COMMIT');
+      } catch (error) {
+        try { database.exec('ROLLBACK'); }
+        catch (rollback) {
+          failRollback('ClientRunStopObservationUnknown',
+            'stop_observation', error, rollback);
+        }
+        if (error?.code === 'ClientRunStopObservationDenied') throw error;
+        fail('ClientRunStopObservationUnknown', error);
+      }
     },
     // Physical Host evidence only: a failure before invoking Site execution
     // is confirmed. A lost reply or absent worker cannot call this method.
@@ -755,7 +802,10 @@ export function openClientRequestJournal(directory, {
         database.exec('COMMIT');
       } catch (error) {
         try { database.exec('ROLLBACK'); }
-        catch (rollback) { fail('ClientRunFailureObservationUnknown', rollback); }
+        catch (rollback) {
+          failRollback('ClientRunFailureObservationUnknown',
+            'failure_observation', error, rollback);
+        }
         if (typeof error?.code === 'string' &&
             (error.code.startsWith('ClientRun') ||
               error.code.startsWith('ClientRequest'))) throw error;
@@ -803,7 +853,10 @@ export function openClientRequestJournal(directory, {
         database.exec('COMMIT');
       } catch (error) {
         try { database.exec('ROLLBACK'); }
-        catch (rollback) { fail('ClientRunReconciliationUnknown', rollback); }
+        catch (rollback) {
+          failRollback('ClientRunReconciliationUnknown', 'reconciliation',
+            error, rollback);
+        }
         if (typeof error?.code === 'string' &&
             error.code.startsWith('ClientRun')) throw error;
         fail('ClientRunReconciliationUnknown', error);

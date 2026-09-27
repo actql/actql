@@ -1,0 +1,7 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/source_span" @span,
+  "actql/actql/decode_scalar" @scalar,
+  "moonbitlang/core/encoding/utf8",
+}

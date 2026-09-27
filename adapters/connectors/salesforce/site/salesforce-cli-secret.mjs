@@ -28,7 +28,9 @@ function origin(value) {
   return parsed.origin;
 }
 
-function options({executable = 'sf', timeoutMs = 10_000,
+// A cold `sf` start was measured at about 11 s against a live org (about 3 s
+// warm); a token refresh runs three commands in sequence.
+function options({executable = 'sf', timeoutMs = 30_000,
   maxOutputBytes = 65_536, invoke = execute} = {}) {
   if (!text(executable) || !positive(timeoutMs) || timeoutMs > 60_000 ||
       !positive(maxOutputBytes) || maxOutputBytes > 1_048_576 ||

@@ -294,7 +294,7 @@ pub fn client_program_issue_captured_effect_input_local_result_definition(@run_p
 
 pub fn client_program_issue_captured_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
 
-pub fn client_program_issue_controlled_unpublished_run_state(String, String, Array[String], Bool, Bool, Bool) -> String?
+pub fn client_program_issue_controlled_unpublished_run_state(String, String, Array[String], Bool, Bool, Bool, String, Bool) -> String raise ClientProgramRunStateIssue
 
 pub fn client_program_issue_direct_task_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
 
@@ -1863,6 +1863,11 @@ pub fn strategy_superseded_publication_finalization_action(@run_publication.Publ
 pub fn strategy_trusted_clock_not_before(String?, String) -> Bool
 
 // Errors
+pub(all) suberror ClientProgramRunStateIssue {
+  InvalidTerminalOutcome
+  Projection(@run_publication.RunStateIssue)
+}
+
 pub(all) suberror NodeHostFailure {
   Diagnostics(@physical_host.ComputeDiagnosticsIssue)
   Dispatch(@physical_host.ComputeHostIssue[@physical_strategy.RunIssue])
