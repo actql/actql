@@ -35,7 +35,7 @@ function duckdbAdapter(profile, moon) {
   const common = {moon, database: profile.database, schema: profile.schema,
     table: profile.table};
   return Object.freeze({
-    kind: 'duckdb', realizationKey: 'duckdb-acquired',
+    realizationKey: 'duckdb-acquired',
     environmentWire: profile.environmentWire,
     readAuthorization: profile.readAuthorization,
     sourceAccess: profile.sourceAccess,

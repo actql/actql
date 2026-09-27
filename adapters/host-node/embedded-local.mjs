@@ -282,9 +282,17 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       if (sourceProfile === undefined) {
         throw new Error('ClientProgramNeedsInputs');
       }
-      const requirement = checked(
-        moon.clientProgramPrepareLocalQueryRequirement(preparedProgram,
-          0, 0, registry, values, fragment, ordered));
+      // A checked acquisition the local planner cannot generate is an
+      // unsupported Program: refused before any Run exists.
+      let requirement;
+      try {
+        requirement = checked(
+          moon.clientProgramPrepareLocalQueryRequirement(preparedProgram,
+            0, 0, registry, values, fragment, ordered));
+      } catch (cause) {
+        throw Object.assign(new Error('ClientProgramUnsupported', {cause}),
+          {code: 'ClientProgramUnsupported'});
+      }
       if (!sourceProfile.admitsSource(
         moon.clientProgramQueryRequirementSourceRef(requirement))) {
         throw new Error('InstalledSourceProgramMismatch');

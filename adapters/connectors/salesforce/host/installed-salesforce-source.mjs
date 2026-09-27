@@ -345,7 +345,7 @@ function installedSalesforceAdapter({moon, site, authorization, declaration,
   }
 
   return Object.freeze({
-    kind: 'salesforce', realizationKey: 'salesforce-acquired',
+    realizationKey: 'salesforce-acquired',
     environmentWire: environment.wire, generationCid,
     // The source's own read authorization for the Host's pre-acquisition
     // Checkpoint decision: the same configuration and context as the Site's.

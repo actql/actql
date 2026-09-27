@@ -190,7 +190,15 @@ test('a Program outside the published declaration fails Check without I/O',
       '"External_Key__c", "Missing__c"]')
       .replaceAll('External_Key__c', 'Missing__c');
     await assert.rejects(client.aql(undeclared, {format: 'json',
-      requestId: 'undeclared-1'}));
+      requestId: 'undeclared-1'}), {code: 'ClientProgramRejected'});
+    // An acquisition the local planner cannot generate is refused as
+    // unsupported, before any Run.
+    const unsupported = program.replace("Name <> 'record-2'",
+      "External_Key__c IN ('key-1', 'key-3')");
+    await assert.rejects(client.aql(unsupported, {format: 'json',
+      requestId: 'unsupported-1'}), {code: 'ClientProgramUnsupported'});
+    assert.deepEqual(await client.lookupRequest('unsupported-1'),
+      {kind: 'not_found'});
     assert.equal(setup.org.seen.length, before);
   });
 
