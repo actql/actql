@@ -146,6 +146,12 @@ for (const [name, direction] of [
   assert.notEqual(query, '', name);
   await writeFile(join(root, name + '.json'), query);
 }
+const pagedQuery = queryFrontend.compileValuesQueryJson(
+  'SELECT a FROM rows ORDER BY a ASC LIMIT 2 OFFSET 1',
+  'rows', 'rows', JSON.stringify(nullOrderRows),
+  JSON.stringify(['a']), 'fixture.paged_query');
+assert.notEqual(pagedQuery, '');
+await writeFile(join(root, 'paged-query.json'), pagedQuery);
 for (const [name, sql] of [
   ['alias-order', 'SELECT x AS y FROM rows ORDER BY y'],
   ['hidden-order', 'SELECT x FROM rows ORDER BY y'],
@@ -758,6 +764,10 @@ async function checkNullOrder(client, suffix) {
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(), expected);
   }
+  const paged = await client.aql(readFileSync('paged-query.json', 'utf8'),
+    {format: 'json', requestId: 'packed-paged-query-' + suffix});
+  assert.equal((await paged.wait()).status, 'succeeded');
+  assert.deepEqual(await paged.result('answer').all(), [{a: 1}, {a: 2}]);
 }
 async function checkAnalyticPeers(client, suffix) {
   const execution = await client.aql(

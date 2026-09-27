@@ -102,6 +102,8 @@ Source-free Values `(NULL,1,2)` also execute through packed Local and HTTP
 Remote: ascending ORDER returns `NULL,1,2` and descending ORDER returns
 `2,1,NULL`. These are the query profile's explicit NULL directions, not a
 change to the legacy AQL sort default.
+The same source-free ordered rows with `LIMIT 2 OFFSET 1` publish `1,2`
+through both packed Clients, after the NULL row is skipped.
 
 GQL patterns, VecA/TEA-specific surfaces, INFER/Artifact spelling, INSERT,
 installed raw-text routing, deployment and other owners' runtime redesigns
