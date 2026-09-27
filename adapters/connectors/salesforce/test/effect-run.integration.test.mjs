@@ -114,6 +114,8 @@ const canonicalHashWithoutSelf = (value, selfKey) => {
   return `sha256:${createHash('sha256').update(canonicalJson(body))
     .digest('hex')}`;
 };
+const canonicalHash = value => `sha256:${createHash('sha256')
+  .update(canonicalJson(value)).digest('hex')}`;
 const evidenceCid =
   'sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904';
 const programCid =
@@ -167,7 +169,7 @@ async function effectFixture({splitSource = false,
   splitEffectSource = 'consumer', writeKind = 'create',
   memberIds = ['save'], target = 'connector://crm/account',
   mappingRef = 'mapping:crm.account.v1', sourceIds,
-  continueMembers = []} = {}) {
+  continueMembers = [], generated, labels} = {}) {
   const [documentBody, environmentBody] = await Promise.all([
     readFile(new URL('values.json', fixture), 'utf8'),
     readFile(new URL('values.environment.json', fixture), 'utf8'),
@@ -221,10 +223,29 @@ async function effectFixture({splitSource = false,
     ? canonicalHashWithoutSelf(mapping, 'mapping_contract_cid')
     : hashWithoutSelf(mapping, 'mapping_contract_cid');
   const environmentDocument = JSON.parse(environmentBody);
-  mapping.connector_manifest_cid = withFixtureConnector(environmentDocument,
-    mapping.target_ref);
-  mapping.mapping_contract_cid = canonicalHashWithoutSelf(mapping,
-    'mapping_contract_cid');
+  if (generated === undefined) {
+    mapping.connector_manifest_cid = withFixtureConnector(environmentDocument,
+      mapping.target_ref);
+    mapping.mapping_contract_cid = canonicalHashWithoutSelf(mapping,
+      'mapping_contract_cid');
+  } else {
+    // A Site-generated execution Mapping with its declaration's Catalog and
+    // manifest entry; no hand-written Mapping.
+    Object.assign(mapping, JSON.parse(generated.body));
+    for (const key of Object.keys(mapping)) {
+      if (!(key in JSON.parse(generated.body))) delete mapping[key];
+    }
+    const byBody = texts => texts.map(text => JSON.parse(text)).sort(
+      (a, b) => canonicalHash(a) < canonicalHash(b) ? -1 : 1);
+    environmentDocument.connector_catalogs = [
+      JSON.parse(generated.declared.catalog)];
+    environmentDocument.source_views = byBody(
+      generated.declared.source_views);
+    environmentDocument.contract_registry = byBody(
+      generated.declared.contracts);
+    environmentDocument.connector_manifest = {version: 'actql-connectors/0.1',
+      connectors: [JSON.parse(generated.declared.manifest_entry)]};
+  }
   environmentDocument.mapping_contracts = [mapping];
   if (splitSource) {
     environmentDocument.host_policy_profile.capacity = JSON.parse(
@@ -247,6 +268,14 @@ async function effectFixture({splitSource = false,
   if (sourceIds) {
     document.stages[0].steps[0].values.schema.id.type = 'string';
     document.stages[0].steps[0].values.rows = sourceIds.map(id => ({id}));
+  }
+  if (labels) {
+    // A nullable label beside each id: some rows carry null.
+    document.stages[0].steps[0].values.schema.label = {type: 'string',
+      nullable: true};
+    document.stages[0].steps[0].values.rows = sourceIds.map((id, index) =>
+      ({id, label: labels[index]}));
+    document.stages[0].results.rows.fields = ['id', 'label'];
   }
   const write = writeKind === 'create'
     ? {target, mapping: mapping.mapping_ref,
@@ -308,7 +337,7 @@ function effectInputPreview(prepared, evidence, definition, invocation,
   scope, {target = 'connector://crm/account',
     mapping = 'mapping:crm.account.v1', resourceKind = 'Account',
     footprints, continueMembers = [], guardVersions,
-    templateOnly = false} = {}) {
+    templateOnly = false, createChanges} = {}) {
   const definitionCid = moon.clientProgramEffectDefinitionCid(prepared);
   const authoring = {
     version: 'actql-authoring-context/0.1',
@@ -353,13 +382,15 @@ function effectInputPreview(prepared, evidence, definition, invocation,
           ? {state: 'not_applicable'}
           : {state: 'version', version_cid:
             guardVersions?.[memberIndex]?.[index] ?? cid('6')},
-        intended_changes: {state: 'present', value: writeKind === 'create'
-          ? {Name: value, External_Key__c: value} : {Name: value}},
+        intended_changes: {state: 'present', value: createChanges?.[index] ??
+          (writeKind === 'create'
+            ? {Name: value, External_Key__c: value} : {Name: value})},
         before: writeKind === 'create' ? {state: 'absent'}
           : {state: 'present', value: {Name: typeof value === 'string'
             ? 'before' : 0}},
-        after: {state: 'present', value: writeKind === 'create'
-          ? {Name: value, External_Key__c: value} : {Name: value}},
+        after: {state: 'present', value: createChanges?.[index] ??
+          (writeKind === 'create'
+            ? {Name: value, External_Key__c: value} : {Name: value})},
         row_preview_cid: cid('1'), row_idempotency_key: cid('8'),
       })),
       row_order: [],
@@ -1415,7 +1446,7 @@ for (const physical of ['simulated', 'simulated-authorization',
   'salesforce',
   'salesforce-recovered', 'salesforce-terminal-restart',
   'salesforce-upsert', 'salesforce-create',
-  'salesforce-create-duplicates',
+  'salesforce-create-duplicates', 'salesforce-create-omit',
   'salesforce-publication-restart',
   'salesforce-overlap', 'salesforce-stale-target',
   'salesforce-schema-drift',
@@ -1496,12 +1527,30 @@ test(`two-member captured Effect Run ${
       : undefined;
     const target = siteRun ? 'connector://salesforce/Test_Record__c'
       : 'connector://crm/account';
-    const mappingRef = siteRun ? 'mapping:salesforce.test-record.v1'
-      : 'mapping:crm.account.v1';
+    // A Named Result with a null and a present label, written through a
+    // Site-generated Mapping that omits the null.
+    const omitNull = physical === 'salesforce-create-omit';
+    const labels = omitNull ? [null, 'two'] : undefined;
+    const generated = omitNull ? await (async () => {
+      const site = await openSalesforceEffectSiteFixture(t, {
+        commonMoon: moon, salesforceMoon, runInvocationCid: cid('b'),
+        dispatchRequestCid: cid('c'), optionalText: true,
+        connectorId: 'salesforce'});
+      const mapping = site.executionMapping(fixtureWrites.createOmit);
+      return {body: mapping.body, ref: mapping.mappingRef,
+        cid: mapping.mappingCid, declared: site.declared};
+    })() : undefined;
+    const mappingRef = generated?.ref ?? (siteRun
+      ? 'mapping:salesforce.test-record.v1' : 'mapping:crm.account.v1');
     const {document, environment, mappingCid} = await effectFixture({
       writeKind, memberIds, target, mappingRef, sourceIds,
-      continueMembers,
+      continueMembers, generated, labels,
     });
+    if (generated) assert.equal(mappingCid, generated.cid);
+    const expectedCreate = sourceIds?.map((id, index) => ({
+      Name: id, External_Key__c: id,
+      ...(labels?.[index] == null ? {} : {Optional_Text__c: labels[index]}),
+    }));
     const prepareProgram = installNodeClientEffectProgramPreparation({
       moon, environment,
     });
@@ -1676,8 +1725,8 @@ test(`two-member captured Effect Run ${
             writeKind === 'create' ? [null, null] : sourceIds);
           assert.deepEqual(rows.map(row =>
             JSON.parse(row.changesWire).value),
-          sourceIds.map(Name => writeKind === 'create' ?
-            {Name, External_Key__c: Name} : {Name}));
+          writeKind === 'create' ? expectedCreate
+            : sourceIds.map(Name => ({Name})));
         }
       }
       const effect = runtimeCore(moon).effectApplicationControl;
@@ -1701,7 +1750,19 @@ test(`two-member captured Effect Run ${
           rateLimitWriteOnce: rateLimitWrite && index === 0,
           collectionPartial: collectionPartial && index === 0,
           writeOperation: writeKind,
+          optionalText: omitNull,
+          connectorId: omitNull ? 'salesforce' : 'crm-main',
         }))) : undefined;
+      // The write each member's Site executes, and its execution Mapping.
+      const siteWrite = omitNull ? fixtureWrites.createOmit
+        : fixtureWrites[writeKind];
+      const siteMappings = sites?.map(site =>
+        site.executionMapping(siteWrite));
+      if (omitNull) {
+        for (const mapping of siteMappings) {
+          assert.equal(mapping.mappingCid, generated.cid);
+        }
+      }
       const prepareSiteProjection = (site,
         observationValue = site.catalog.observation) => {
         const binding = site.write.scope;
@@ -1716,8 +1777,9 @@ test(`two-member captured Effect Run ${
           'Test_Record__c', writeKind === 'upsert' ? 2 :
             writeKind === 'create' ? 0 : 1,
           writeKind === 'upsert' ? 'External_Key__c' : '',
+          omitNull ? ['External_Key__c', 'Name', 'Optional_Text__c'] :
           writeKind === 'create' ? ['Name', 'External_Key__c'] :
-            ['Name'], 2));
+            ['Name'], 3));
       };
       const siteProjections = sites?.map(site => prepareSiteProjection(site));
       if (siteRun && writeKind !== 'create') {
@@ -1726,7 +1788,8 @@ test(`two-member captured Effect Run ${
       }
       const siteBodies = siteRun ? memberIds.map((_, memberIndex) =>
         sourceIds.map((value, rowIndex) => checked(
-          salesforceMoon.salesforcePrepareWriteBody(
+          salesforceMoon.salesforcePrepareExecutionWriteBody(
+          siteMappings[memberIndex].mapping,
           siteProjections[memberIndex],
           Buffer.from(JSON.stringify(
             JSON.parse(proposedRows[memberIndex][rowIndex].changesWire)
@@ -1766,7 +1829,7 @@ test(`two-member captured Effect Run ${
           requests: siteRequests[index],
           currentObservation: currentCatalogs[index],
           authorization: site.write, credential: site.credential,
-          mapping: site.executionMapping(fixtureWrites[writeKind]).mapping,
+          mapping: siteMappings[index].mapping,
           collection: collectionMode && index === 0,
           maxRows: 4, maxBytes: 20000}));
       let targetRead = 0;
@@ -1806,7 +1869,8 @@ test(`two-member captured Effect Run ${
           resourceKind: siteRun ? 'Test_Record__c' : 'Account',
           footprints: siteFootprints, continueMembers,
           guardVersions: previewGuardVersions,
-          templateOnly: siteRun});
+          templateOnly: siteRun,
+          createChanges: omitNull ? expectedCreate : undefined});
       const productMembers = siteRun ? siteRequests.map((requests, index) => ({
         stageIndex: 0, effectId: memberIds[index], requests,
         observations: previewTargetObservations?.[index],
@@ -3796,7 +3860,8 @@ test(`two-member captured Effect Run ${
         storedResults.definitions[0].identity, () => true,
         chunk => chunks.push(Buffer.from(chunk)));
       assert.equal(Buffer.concat(chunks).toString('utf8'),
-        JSON.stringify(siteRun ? sourceIds.map(id => ({id}))
+        JSON.stringify(siteRun ? sourceIds.map((id, index) =>
+          labels ? {id, label: labels[index]} : {id})
           : [{id: 1}, {id: 2}]));
       const accessAuthority = installResultAccessAuthority({
         authorizeResultReadRequest: () => true,
@@ -3862,7 +3927,8 @@ test(`two-member captured Effect Run ${
           assert.equal(state.status, 'succeeded');
           const reader = run.result('answer').rows();
           assert.deepEqual(await Array.fromAsync(reader),
-            siteRun ? sourceIds.map(id => ({id})) :
+            siteRun ? sourceIds.map((id, index) =>
+              labels ? {id, label: labels[index]} : {id}) :
               [{id: 1}, {id: 2}]);
           assert.equal(reader.state(), 'complete');
           let attempt = await run.result('answer')
@@ -3895,6 +3961,14 @@ test(`two-member captured Effect Run ${
           undefined);
       }
       assert.equal(store.status().storedBytes, 0);
+      if (omitNull) {
+        // The provider received each row as its Mapping wrote it: the null
+        // label omitted, the present one written.
+        for (const site of sites) {
+          assert.deepEqual(site.seen.filter(item => item.method === 'POST')
+            .map(item => JSON.parse(item.body)), expectedCreate);
+        }
+      }
       publishedRunDefinitionCid = definition.identity;
       published = true;
     } catch (error) {

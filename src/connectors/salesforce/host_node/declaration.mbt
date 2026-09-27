@@ -202,3 +202,26 @@ pub fn salesforce_check_declared_read(
     Err(issue) => raise DeclaredUse(issue)
   }
 }
+
+///|
+/// One Result row's body for an execution Mapping: only a field the Mapping
+/// omits on a null source may be absent.
+#export_name("salesforcePrepareExecutionWriteBody")
+pub fn salesforce_prepare_execution_write_body(
+  mapping : @catalog.ExecutionMapping,
+  projection : @catalog.WriteProjection,
+  bytes : Bytes,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @catalog.WriteBody raise SalesforceCatalogBridgeIssue {
+  match
+    @catalog.prepare_execution_write_body(mapping, projection, bytes, {
+      max_bytes,
+      max_nodes,
+      max_depth,
+    }) {
+    Ok(value) => value
+    Err(issue) => raise WriteBody(issue)
+  }
+}

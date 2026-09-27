@@ -712,6 +712,8 @@ pub(all) enum DeclarationUseIssue {
   UndeclaredKey(String)
   /// The field no longer means what was declared; declare again first.
   SchemaChanged(String)
+  /// A row omits a field its Mapping does not omit.
+  OmittedField(String)
 } derive(Eq, Debug)
 
 ///|
@@ -954,6 +956,8 @@ pub struct ExecutionMapping {
   resource : String
   operation : WriteOperation
   fields : Array[String]
+  // Fields this Mapping omits when a Result row's source value is null.
+  omittable : Array[String]
   mapping_ref : String
   mapping_cid : String
   body : String
@@ -1171,11 +1175,21 @@ pub fn prepare_execution_mapping(
       "mapping_contract_cid",
       limits,
     )
+    let omittable = match write {
+      CreateFromResult(sources) =>
+        sorted_strings(
+          sources
+          .filter(source => source.null_behavior == "omit")
+          .map(source => source.target),
+        )
+      _ => []
+    }
     Ok({
       declaration,
       resource: resource_name,
       operation,
       fields: written,
+      omittable,
       mapping_ref,
       mapping_cid,
       body: canonical_text(mapping, limits),
@@ -1186,12 +1200,38 @@ pub fn prepare_execution_mapping(
 }
 
 ///|
+/// The top-level member names of one admitted request body. Request bodies
+/// were produced within their own budgets, so their size bounds these limits.
+fn body_field_names(body : String) -> Array[String]? {
+  let bytes = @utf8.encode(body)
+  let nodes = bytes.length() + 1
+  guard @source.parse_json_bytes_preserving(bytes, {
+      max_input_bytes: bytes.length(),
+      max_nodes: nodes,
+      max_depth: 64,
+    })
+    is Ok(parsed) &&
+    @decode.admit(parsed, {
+      max_nodes: nodes,
+      max_depth: 64,
+      max_string_bytes: bytes.length(),
+      max_total_string_bytes: bytes.length(),
+    })
+    is Ok(root) &&
+    @decode.object_field_names(root) is Ok(names) else {
+    return None
+  }
+  Some(names)
+}
+
+///|
 /// Before any provider I/O: the write request must be exactly this
 /// execution Mapping's write, for the declaring Site, and every field it uses
 /// (the upsert key included) must still mean what was declared.
 pub fn check_execution_write(
   mapping : ExecutionMapping,
   projection : WriteProjection,
+  bodies? : Array[String] = [],
 ) -> Result[Unit, DeclarationUseIssue] {
   let declaration = mapping.declaration
   if !declaration_site_matches(declaration.binding, projection.binding) {
@@ -1210,6 +1250,18 @@ pub fn check_execution_write(
     }
     return Err(Undeclared)
   }
+  // Each row body carries every Mapping field except those this Mapping
+  // omits on a null source.
+  for body in bodies {
+    guard body_field_names(body) is Some(present) else {
+      return Err(Undeclared)
+    }
+    for name in mapping.fields {
+      if !present.contains(name) && !mapping.omittable.contains(name) {
+        return Err(OmittedField(name))
+      }
+    }
+  }
   let used = match projection.external_target {
     Some(target) => [..projection.fields, target]
     None => projection.fields
@@ -1222,7 +1274,7 @@ pub fn check_execution_single_write(
   mapping : ExecutionMapping,
   request : SingleWriteRequest,
 ) -> Result[Unit, DeclarationUseIssue] {
-  check_execution_write(mapping, request.projection)
+  check_execution_write(mapping, request.projection, bodies=[request.body])
 }
 
 ///|
@@ -1230,5 +1282,17 @@ pub fn check_execution_collection_write(
   mapping : ExecutionMapping,
   request : WriteCollectionRequest,
 ) -> Result[Unit, DeclarationUseIssue] {
-  check_execution_write(mapping, request.projection)
+  check_execution_write(mapping, request.projection, bodies=request.row_bodies)
+}
+
+///|
+/// A row body for this execution Mapping: a field it omits on a null source
+/// may be absent; any other absent field is `MissingField`.
+pub fn prepare_execution_write_body(
+  mapping : ExecutionMapping,
+  projection : WriteProjection,
+  bytes : Bytes,
+  limits : WriteBodyLimits,
+) -> Result[WriteBody, WriteBodyIssue] {
+  prepare_write_body_omitting(projection, bytes, limits, mapping.omittable)
 }

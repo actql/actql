@@ -532,3 +532,73 @@ test "declared use is checked before I/O against the Site and the rules" {
     Err(SchemaChanged("Name")),
   )
 }
+
+///|
+test "an omitted null source is the only field a row may leave out" {
+  let (observation, binding) = declared_observation(declared_record_describe())
+  let declaration = declared_for(declared_record_describe())
+  let create = execution(
+    declaration,
+    CreateFromResult([
+      { target: "External_Key__c", source: "key", null_behavior: "reject", },
+      { target: "Name", source: "label", null_behavior: "omit", },
+    ]),
+  ).unwrap()
+  assert_true(create.body.contains("\"null_behavior\":\"omit\""))
+  let projection = prepare_write_projection(
+    observation,
+    binding,
+    "Record__c",
+    WriteCreate,
+    ["External_Key__c", "Name"],
+    8,
+  ).unwrap()
+  let limits : WriteBodyLimits = {
+    max_bytes: 1024,
+    max_nodes: 32,
+    max_depth: 5,
+  }
+  let row = text => {
+    prepare_execution_write_body(create, projection, @utf8.encode(text), limits)
+  }
+  // A null label was omitted by the Mapping; a present one is written.
+  let omitted = row("{\"External_Key__c\":\"k1\"}").unwrap()
+  assert_eq(write_body_json(omitted), "{\"External_Key__c\":\"k1\"}")
+  let written = row("{\"External_Key__c\":\"k2\",\"Name\":\"two\"}").unwrap()
+  assert_eq(
+    write_body_json(written),
+    "{\"External_Key__c\":\"k2\",\"Name\":\"two\"}",
+  )
+  // A rejected (required) source is never omitted.
+  assert_true(row("{\"Name\":\"two\"}") is Err(MissingField("External_Key__c")))
+  // Without the Mapping, the exact projection still requires every field.
+  assert_true(
+    prepare_write_body(
+      projection,
+      @utf8.encode("{\"External_Key__c\":\"k1\"}"),
+      limits,
+    )
+    is Err(MissingField("Name")),
+  )
+  // Per-row check before I/O: omission only where the Mapping omits.
+  assert_true(
+    check_execution_write(create, projection, bodies=[
+      write_body_json(omitted),
+      write_body_json(written),
+    ])
+    is Ok(_),
+  )
+  let rejecting = execution(
+    declaration,
+    CreateFromResult([
+      { target: "External_Key__c", source: "key", null_behavior: "reject", },
+      { target: "Name", source: "label", null_behavior: "reject", },
+    ]),
+  ).unwrap()
+  assert_eq(
+    check_execution_write(rejecting, projection, bodies=[
+      write_body_json(omitted),
+    ]),
+    Err(OmittedField("Name")),
+  )
+}

@@ -151,6 +151,8 @@ pub fn salesforce_prepare_continue_write_collection(Array[String], Array[@catalo
 
 pub fn salesforce_prepare_execution_mapping(@catalog.StaticDeclaration, String, Int, Array[String], String, Array[String], Array[String], Array[String], Int, Int, Int) -> @catalog.ExecutionMapping raise SalesforceDeclarationBridgeIssue
 
+pub fn salesforce_prepare_execution_write_body(@catalog.ExecutionMapping, @catalog.WriteProjection, Bytes, Int, Int, Int) -> @catalog.WriteBody raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_prepare_managed_query(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64, @execution_relation.ManagedOutputValues) -> @host.ManagedQuery raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_prepare_observed_preview_row(@catalog.SingleWriteRequest, @catalog.TargetObservation, Int) -> @catalog.TargetPreviewRow raise SalesforceCatalogBridgeIssue

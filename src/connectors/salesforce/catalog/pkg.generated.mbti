@@ -56,7 +56,7 @@ pub fn check_execution_collection_write(ExecutionMapping, WriteCollectionRequest
 
 pub fn check_execution_single_write(ExecutionMapping, SingleWriteRequest) -> Result[Unit, DeclarationUseIssue]
 
-pub fn check_execution_write(ExecutionMapping, WriteProjection) -> Result[Unit, DeclarationUseIssue]
+pub fn check_execution_write(ExecutionMapping, WriteProjection, bodies? : Array[String]) -> Result[Unit, DeclarationUseIssue]
 
 pub fn check_write_capability_request(WriteCapabilityEvidence, SingleWriteRequest, String) -> Result[Unit, WriteCapabilityIssue]
 
@@ -74,6 +74,8 @@ pub fn prepare_continue_write_collection(Array[WriteCollectionItem], String, Wri
 
 pub fn prepare_execution_mapping(StaticDeclaration, String, ExecutionWrite, DeclarationLimits) -> Result[ExecutionMapping, ExecutionMappingIssue]
 
+pub fn prepare_execution_write_body(ExecutionMapping, WriteProjection, Bytes, WriteBodyLimits) -> Result[WriteBody, WriteBodyIssue]
+
 pub fn prepare_observed_target_preview_row(SingleWriteRequest, TargetObservation, Int) -> Result[TargetPreviewRow, TargetObservationIssue]
 
 pub fn prepare_read_projection(CatalogObservation, CatalogObservationBinding, String, Array[String], Int) -> Result[ReadProjection, ReadProjectionIssue]
@@ -83,6 +85,8 @@ pub fn prepare_single_write_request(WriteBody, String, WriteTargetValue, WriteRe
 pub fn prepare_target_observation(SingleWriteRequest, Int, Bytes, TargetObservationLimits) -> Result[TargetObservation, TargetObservationIssue]
 
 pub fn prepare_write_body(WriteProjection, Bytes, WriteBodyLimits) -> Result[WriteBody, WriteBodyIssue]
+
+pub fn prepare_write_body_omitting(WriteProjection, Bytes, WriteBodyLimits, Array[String]) -> Result[WriteBody, WriteBodyIssue]
 
 pub fn prepare_write_capability_evidence(SingleWriteRequest, String, WriteCapabilityRoute, Int) -> Result[WriteCapabilityEvidence, WriteCapabilityIssue]
 
@@ -409,6 +413,7 @@ pub(all) enum DeclarationUseIssue {
   UndeclaredField(String)
   UndeclaredKey(String)
   SchemaChanged(String)
+  OmittedField(String)
 } derive(Eq, @debug.Debug)
 
 pub struct DeclaredView {
@@ -467,6 +472,7 @@ pub struct ExecutionMapping {
   resource : String
   operation : WriteOperation
   fields : Array[String]
+  omittable : Array[String]
   mapping_ref : String
   mapping_cid : String
   body : String
