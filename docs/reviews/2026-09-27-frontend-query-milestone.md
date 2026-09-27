@@ -300,7 +300,12 @@ consumers. An acquired DuckDB input runs the same shape and publishes four
 `{id:3,amount:30}` rows from two duplicate left rows and two duplicate right
 rows. The generated Programs retain one Values seed or one acquisition stage,
 respectively. A physical provider read counter is still needed to establish
-the once-only acquisition claim. Direct captured
+the once-only acquisition claim. JOIN projection and post-JOIN filtering now
+share one lowering path between source-free queries and CTE bodies. Packed
+Local and HTTP Remote runs compute `{total:4}` from source-free rows after
+filtering, and four `{total:6}` rows from one acquired input with duplicate
+`id=3` rows. The latter retains one acquisition Stage and does not turn the
+post-JOIN predicate into a source filter. Direct captured
 JOIN inputs, longer join chains and correlated subqueries still fail closed
 rather than being textually substituted.
 The same packed path accepts `JOIN ... USING(id)` and exposes one unqualified

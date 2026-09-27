@@ -187,6 +187,17 @@ const cteJoinBody = queryFrontend.compileValuesQueryJson(
   JSON.stringify(['id']), 'fixture.cte_join_body');
 assert.notEqual(cteJoinBody, '');
 await writeFile(join(root, 'cte-join-body.json'), cteJoinBody);
+const computedCteJoinBody = queryFrontend.compileValuesQueryJson(
+  'WITH base AS (SELECT id FROM rows), '
+    + 'copy AS (SELECT id FROM base), '
+    + 'matched AS (SELECT l.id + r.id AS total FROM base AS l '
+    + 'JOIN copy AS r ON l.id = r.id WHERE r.id > 1) '
+    + 'SELECT total FROM matched',
+  'rows', 'rows', JSON.stringify({...valuesStep, as: 'rows'}),
+  JSON.stringify(['id']), 'fixture.computed_cte_join_body');
+assert.notEqual(computedCteJoinBody, '');
+await writeFile(join(root, 'computed-cte-join-body.json'),
+  computedCteJoinBody);
 const setLeft = {values: {schema: {
   a: {type: 'number', nullable: true},
   b: {type: 'string', nullable: false}},
@@ -391,6 +402,18 @@ const capturedCteJoinBody = queryFrontend.compileCapturedQueryJson(
 assert.notEqual(capturedCteJoinBody, '');
 await writeFile(join(root, 'captured-cte-join-body.json'),
   capturedCteJoinBody);
+const capturedComputedCteJoinBody = queryFrontend.compileCapturedQueryJson(
+  'WITH acquired AS (SELECT id FROM records WHERE id > 1), '
+    + 'copy AS (SELECT id FROM acquired), '
+    + 'matched AS (SELECT l.id + r.id AS total FROM acquired AS l '
+    + 'JOIN copy AS r ON l.id = r.id WHERE r.id > 2) '
+    + 'SELECT total FROM matched',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.captured_computed_cte_join_body');
+assert.notEqual(capturedComputedCteJoinBody, '');
+await writeFile(join(root, 'captured-computed-cte-join-body.json'),
+  capturedComputedCteJoinBody);
 const distinctQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT DISTINCT id FROM records WHERE id > 1 ORDER BY id',
   'records', 'remote',
@@ -682,6 +705,11 @@ async function checkCteJoinBody(client, suffix) {
     {format: 'json', requestId: 'packed-cte-join-body-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.deepEqual(await execution.result('answer').all(), [{id: 2}]);
+  const computed = await client.aql(
+    readFileSync('computed-cte-join-body.json', 'utf8'),
+    {format: 'json', requestId: 'packed-computed-cte-join-body-' + suffix});
+  assert.equal((await computed.wait()).status, 'succeeded');
+  assert.deepEqual(await computed.result('answer').all(), [{total: 4}]);
 }
 async function checkFullUsingValues(client, suffix) {
   const execution = await client.aql(fullUsingValuesDocument,
@@ -808,6 +836,12 @@ async function checkCapturedCte(client, suffix) {
     .map(row => ({id: row.id, amount: row.amount})),
   [{id: 3, amount: 30}, {id: 3, amount: 30},
     {id: 3, amount: 30}, {id: 3, amount: 30}]);
+  const computed = await client.aql(
+    readFileSync('captured-computed-cte-join-body.json', 'utf8'),
+    {format: 'json', requestId: 'packed-captured-computed-cte-' + suffix});
+  assert.equal((await computed.wait()).status, 'succeeded');
+  assert.deepEqual(await computed.result('answer').all(),
+    [{total: 6}, {total: 6}, {total: 6}, {total: 6}]);
 }
 async function checkCapturedSubquery(client, suffix) {
   const execution = await client.aql(capturedSubqueryDocument,

@@ -2495,7 +2495,8 @@ fn compile_cte_join_steps(
   right_fields : Array[String],
   limits : Limits,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
-  if @query.operation_count(query) != 1 ||
+  if @query.operation_count(query) < 1 ||
+    @query.operation_count(query) > 2 ||
     limits.max_join_output_rows < 1L ||
     limits.max_join_output_rows > 9007199254740991L {
     raise Abort(UnsupportedCte)
@@ -2509,7 +2510,79 @@ fn compile_cte_join_steps(
   let keys = join_keys(
     part, left_qualifier, right_qualifier, left_fields, right_fields,
   )
-  guard @query.operation_at(query, 0) is Some(Select(projections, false)) else {
+  let predicate = if @query.operation_count(query) == 2 {
+    match @query.operation_at(query, 0) {
+      Some(Where(expression)) => Some(expression)
+      _ => raise Abort(UnsupportedCte)
+    }
+  } else {
+    None
+  }
+  let select_index = if predicate is Some(_) { 1 } else { 0 }
+  guard @query.operation_at(query, select_index)
+    is Some(Select(projections, false)) else {
+    raise Abort(UnsupportedCte)
+  }
+  if part.kind != "full" {
+    let (select, tail, output, joined) = joined_projection(
+      construction,
+      projections,
+      predicate,
+      part,
+      left_qualifier,
+      right_qualifier,
+      left_fields,
+      right_fields,
+      limits.max_expression_work,
+    )
+    let operation = if part.kind == "cross" {
+      (
+        "cross_join",
+        construction.object([
+          ("with", construction.text("r")),
+          (
+            "max_output_rows",
+            construction.add(Number(limits.max_join_output_rows.to_double())),
+          ),
+          ("select", construction.object(select)),
+        ]),
+      )
+    } else {
+      (
+        "join",
+        construction.object([
+          ("with", construction.text("r")),
+          ("kind", construction.text(part.kind)),
+          (
+            "on",
+            construction.array(
+              keys.map(pair => {
+                construction.object([
+                  ("left", construction.text(pair.0)),
+                  ("right", construction.text(pair.1)),
+                ])
+              }),
+            ),
+          ),
+          (
+            "max_output_rows",
+            construction.add(Number(limits.max_join_output_rows.to_double())),
+          ),
+          ("select", construction.object(select)),
+        ]),
+      )
+    }
+    let steps = [
+        construction.object([
+          ("from", construction.text("l")),
+          operation,
+          ("as", construction.text(joined)),
+        ]),
+      ] +
+      tail
+    return (steps, output)
+  }
+  if predicate is Some(_) {
     raise Abort(UnsupportedCte)
   }
   let select : Array[(String, @builder.Node)] = []
@@ -3464,6 +3537,198 @@ fn join_reference_paths(
 }
 
 ///|
+// Both source-free and Stage Result joins use this projection boundary. A
+// predicate sees matched rows before SELECT, while selected expressions are
+// evaluated once and private inputs are removed from the published Result.
+fn joined_projection(
+  construction : Construction,
+  projections : Array[@query.Projection],
+  predicate : @query.Expression?,
+  part : @query.JoinPart,
+  left_qualifier : @query.NamePart,
+  right_qualifier : @query.NamePart,
+  left_fields : Array[String],
+  right_fields : Array[String],
+  max_work : Int,
+) -> (
+  Array[(String, @builder.Node)],
+  Array[@builder.Node],
+  Array[String],
+  String,
+) raise Abort {
+  let select : Array[(String, @builder.Node)] = []
+  let output : Array[String] = []
+  let mut private_projection = predicate is Some(_)
+  for projection in projections {
+    guard projection.expression is Some(expression) &&
+      projection.aggregate is None &&
+      projection.analytic is None else {
+      raise Abort(UnsupportedJoin)
+    }
+    let reference = match
+      @query.expression_node(expression, @query.expression_root(expression)) {
+      Some({ kind: Reference(path), .. }) => Some(path)
+      _ => None
+    }
+    let name = match projection.name {
+      Some(value) => value.value
+      None =>
+        match reference {
+          Some(path) => path.last().unwrap().value
+          None => raise Abort(UnsupportedJoin)
+        }
+    }
+    if output.any(field => ascii_upper(field) == ascii_upper(name)) {
+      raise Abort(DuplicateOutput)
+    }
+    output.push(name)
+    match reference {
+      Some(path) => {
+        let resolved = join_projection_field(
+          path, part, left_qualifier, right_qualifier, left_fields, right_fields,
+        )
+        select.push((name, construction.text(resolved.0 + "." + resolved.1)))
+      }
+      None => private_projection = true
+    }
+  }
+  if output.is_empty() {
+    raise Abort(UnsupportedJoin)
+  }
+  let tail : Array[@builder.Node] = []
+  if !private_projection {
+    return (select, tail, output, "aql_join_output")
+  }
+  select.clear()
+  let required : Array[(String, String)] = []
+  for projection in projections {
+    for path in join_reference_paths(projection.expression.unwrap()) {
+      let field = join_projection_field(
+        path, part, left_qualifier, right_qualifier, left_fields, right_fields,
+      )
+      if !required.contains(field) {
+        required.push(field)
+      }
+    }
+  }
+  match predicate {
+    Some(expression) =>
+      for path in join_reference_paths(expression) {
+        let field = join_projection_field(
+          path, part, left_qualifier, right_qualifier, left_fields, right_fields,
+        )
+        if !required.contains(field) {
+          required.push(field)
+        }
+      }
+    None => ()
+  }
+  if required.is_empty() {
+    if left_fields.is_empty() {
+      raise Abort(UnsupportedJoin)
+    }
+    required.push(("left", left_fields[0]))
+  }
+  let reserved = output + left_fields + right_fields
+  let slots : Array[(String, String, String)] = []
+  for field in required {
+    let slot = pipe_physical_name(reserved, "aql_join_input_")
+    reserved.push(slot)
+    slots.push((field.0, field.1, slot))
+    select.push((slot, construction.text(field.0 + "." + field.1)))
+  }
+  let resolve = fn(path : Array[@query.NamePart]) -> String? {
+    let selected = Some(
+      join_projection_field(
+        path, part, left_qualifier, right_qualifier, left_fields, right_fields,
+      ),
+    ) catch {
+      Abort(_) => None
+    }
+    match selected {
+      Some(field) => {
+        for slot in slots {
+          if slot.0 == field.0 && slot.1 == field.1 {
+            return Some(slot.2)
+          }
+        }
+        None
+      }
+      None => None
+    }
+  }
+  let mut from = "aql_join_raw"
+  match predicate {
+    Some(expression) => {
+      let filter = match
+        @expression.append(expression, resolve, construction.builder, max_work) {
+        Ok(value) => value
+        Err(error) => raise Abort(Expression(error))
+      }
+      tail.push(
+        construction.object([
+          ("from", construction.text(from)),
+          ("filter", filter),
+          ("as", construction.text("aql_join_filtered")),
+        ]),
+      )
+      from = "aql_join_filtered"
+    }
+    None => ()
+  }
+  let derivations : Array[(String, @builder.Node)] = []
+  let final_select : Array[@builder.Node] = []
+  for index in 0..<projections.length() {
+    let expression = projections[index].expression.unwrap()
+    let name = output[index]
+    match
+      @query.expression_node(expression, @query.expression_root(expression)) {
+      Some({ kind: Reference(path), .. }) => {
+        let slot = match resolve(path) {
+          Some(value) => value
+          None => raise Abort(UnknownColumn)
+        }
+        final_select.push(
+          construction.object([(name, construction.text(slot))]),
+        )
+      }
+      _ => {
+        let value = match
+          @expression.append(
+            expression,
+            resolve,
+            construction.builder,
+            max_work,
+          ) {
+          Ok(value) => value
+          Err(error) => raise Abort(Expression(error))
+        }
+        derivations.push((name, value))
+        final_select.push(construction.text(name))
+      }
+    }
+  }
+  if !derivations.is_empty() {
+    tail.push(
+      construction.object([
+        ("from", construction.text(from)),
+        ("derive", construction.object(derivations)),
+        ("as", construction.text("aql_join_derived")),
+      ]),
+    )
+    from = "aql_join_derived"
+  }
+  tail.push(
+    construction.object([
+      ("from", construction.text(from)),
+      ("select", construction.array(final_select)),
+      ("as", construction.text("aql_join_output")),
+    ]),
+  )
+  (select, tail, output, "aql_join_raw")
+}
+
+///|
 fn compile_join_query(
   query : @query.Query,
   context : Context,
@@ -3522,180 +3787,17 @@ fn compile_join_query(
       is Some(Select(projections, false)) else {
       raise Abort(UnsupportedJoin)
     }
-    let select : Array[(String, @builder.Node)] = []
-    let output : Array[String] = []
-    let mut computed = predicate is Some(_)
-    for projection in projections {
-      guard projection.expression is Some(expression) &&
-        projection.aggregate is None &&
-        projection.analytic is None else {
-        raise Abort(UnsupportedJoin)
-      }
-      let reference = match
-        @query.expression_node(expression, @query.expression_root(expression)) {
-        Some({ kind: Reference(path), .. }) => Some(path)
-        _ => None
-      }
-      let name = match projection.name {
-        Some(value) => value.value
-        None =>
-          match reference {
-            Some(path) => path.last().unwrap().value
-            None => raise Abort(UnsupportedJoin)
-          }
-      }
-      if output.any(field => ascii_upper(field) == ascii_upper(name)) {
-        raise Abort(DuplicateOutput)
-      }
-      output.push(name)
-      match reference {
-        Some(path) => {
-          let resolved = join_projection_field(
-            path, part, left_qualifier, right_qualifier, left_fields, right_fields,
-          )
-          select.push((name, construction.text(resolved.0 + "." + resolved.1)))
-        }
-        None => computed = true
-      }
-    }
-    if output.is_empty() {
-      raise Abort(UnsupportedJoin)
-    }
-    let computed_steps : Array[@builder.Node] = []
-    if computed {
-      select.clear()
-      let required : Array[(String, String)] = []
-      for projection in projections {
-        let expression = projection.expression.unwrap()
-        for path in join_reference_paths(expression) {
-          let field = join_projection_field(
-            path, part, left_qualifier, right_qualifier, left_fields, right_fields,
-          )
-          if !required.contains(field) {
-            required.push(field)
-          }
-        }
-      }
-      match predicate {
-        Some(expression) =>
-          for path in join_reference_paths(expression) {
-            let field = join_projection_field(
-              path, part, left_qualifier, right_qualifier, left_fields, right_fields,
-            )
-            if !required.contains(field) {
-              required.push(field)
-            }
-          }
-        None => ()
-      }
-      if required.is_empty() {
-        if left_fields.is_empty() {
-          raise Abort(UnsupportedJoin)
-        }
-        required.push(("left", left_fields[0]))
-      }
-      let reserved = output + left_fields + right_fields
-      let slots : Array[(String, String, String)] = []
-      for field in required {
-        let slot = pipe_physical_name(reserved, "aql_join_input_")
-        reserved.push(slot)
-        slots.push((field.0, field.1, slot))
-        select.push((slot, construction.text(field.0 + "." + field.1)))
-      }
-      let resolve = fn(path : Array[@query.NamePart]) -> String? {
-        let selected = Some(
-          join_projection_field(
-            path, part, left_qualifier, right_qualifier, left_fields, right_fields,
-          ),
-        ) catch {
-          Abort(_) => None
-        }
-        match selected {
-          Some(field) => {
-            for slot in slots {
-              if slot.0 == field.0 && slot.1 == field.1 {
-                return Some(slot.2)
-              }
-            }
-            None
-          }
-          None => None
-        }
-      }
-      let derivations : Array[(String, @builder.Node)] = []
-      let final_select : Array[@builder.Node] = []
-      let mut from = "aql_join_raw"
-      match predicate {
-        Some(expression) => {
-          let filter = match
-            @expression.append(
-              expression,
-              resolve,
-              builder,
-              limits.max_expression_work,
-            ) {
-            Ok(value) => value
-            Err(error) => raise Abort(Expression(error))
-          }
-          computed_steps.push(
-            construction.object([
-              ("from", construction.text(from)),
-              ("filter", filter),
-              ("as", construction.text("aql_join_filtered")),
-            ]),
-          )
-          from = "aql_join_filtered"
-        }
-        None => ()
-      }
-      for index in 0..<projections.length() {
-        let expression = projections[index].expression.unwrap()
-        let name = output[index]
-        match
-          @query.expression_node(expression, @query.expression_root(expression)) {
-          Some({ kind: Reference(path), .. }) => {
-            let slot = match resolve(path) {
-              Some(value) => value
-              None => raise Abort(UnknownColumn)
-            }
-            final_select.push(
-              construction.object([(name, construction.text(slot))]),
-            )
-          }
-          _ => {
-            let value = match
-              @expression.append(
-                expression,
-                resolve,
-                builder,
-                limits.max_expression_work,
-              ) {
-              Ok(value) => value
-              Err(error) => raise Abort(Expression(error))
-            }
-            derivations.push((name, value))
-            final_select.push(construction.text(name))
-          }
-        }
-      }
-      if !derivations.is_empty() {
-        computed_steps.push(
-          construction.object([
-            ("from", construction.text(from)),
-            ("derive", construction.object(derivations)),
-            ("as", construction.text("aql_join_derived")),
-          ]),
-        )
-        from = "aql_join_derived"
-      }
-      computed_steps.push(
-        construction.object([
-          ("from", construction.text(from)),
-          ("select", construction.array(final_select)),
-          ("as", construction.text("aql_join_output")),
-        ]),
-      )
-    }
+    let (select, computed_steps, output, joined) = joined_projection(
+      construction,
+      projections,
+      predicate,
+      part,
+      left_qualifier,
+      right_qualifier,
+      left_fields,
+      right_fields,
+      limits.max_expression_work,
+    )
     let left_rows = join_values_rows(left).to_int64()
     let right_rows = join_values_rows(right).to_int64()
     let factor = if part.kind == "inner" || part.kind == "cross" {
@@ -3748,7 +3850,6 @@ fn compile_join_query(
         ]),
       )
     }
-    let joined = if computed { "aql_join_raw" } else { "aql_join_output" }
     let stage = construction.object([
       ("id", construction.text(context.stage_id)),
       (

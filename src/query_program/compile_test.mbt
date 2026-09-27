@@ -862,6 +862,25 @@ test "LEFT JOIN WHERE filters null-extended rows after matching" {
 }
 
 ///|
+test "CTE JOIN body shares scalar projection and post-join filter lowering" {
+  let query = @query.parse_query(
+    "WITH base AS (SELECT a, b FROM left_rows), other AS (SELECT a, b FROM base), matched AS (SELECT l.a + r.a AS total FROM base AS l JOIN other AS r ON l.a = r.a WHERE r.a > 0) SELECT total FROM matched",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, set_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"derive\":{\"total\":{\"add\""))
+  assert_true(wire.contains("\"aql_join_filtered\""))
+  assert_eq(@program.stage_count(program), 4)
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("joined CTE inputs should be statically closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+}
+
+///|
 test "FULL Values join refuses to invent stable row identities" {
   let query = @query.parse_query(
     "SELECT l.a AS a, r.d AS d FROM left_rows AS l FULL JOIN right_rows AS r ON l.a = r.c",
