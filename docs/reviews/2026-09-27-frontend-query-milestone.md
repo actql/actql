@@ -37,7 +37,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: direct Values joins support INNER/LEFT, bounded CROSS, DISTINCT and output/non-output ORDER with LIMIT; a DISTINCT CTE supplies identity for packed source-free and captured-input FULL/USING; general join scope remains |
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: COUNT, MIN/MAX and pinned-profile SUM/AVG execute through packed Local/Remote, including empty input; ordered collection runtime and failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering, including JOIN output and hidden input order through packed Local/Remote; captured DISTINCT→ORDER runtime passes, broader ties/limits pending |
-| Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each used declaration lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin, a sequential chain, two branches from one predecessor and a join inside a declaration body; physical provider read counter and broader joins remain |
+| Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each used declaration lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin with hidden ORDER/LIMIT, a sequential chain, two branches from one predecessor and a join inside a declaration body; physical provider read counter and broader joins remain |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands and two terms sharing one captured source execute through packed Local/HTTP Clients; different captured sources, different physical source filters, CTE reuse and broader type/order cases remain |
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND, scoped SET/DROP/RENAME/AS, one JOIN with an optional preceding WHERE, and a parenthesized SQL right operand for Pipe set; post-projection JOIN and other scope forms remain |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed ranking, navigation, framed COUNT, SUM and AVG Results; Pipe EXTEND/SET before OVER preserves updated and prior alias snapshots; full negative and frame matrix pending |
@@ -51,7 +51,7 @@ profile difference is distinct from an unimplemented adopted feature. The
 former includes eager ActQL boolean/failure rules, explicit new-query NULL
 sort directions, no implicit set-column type promotion or padding, and the
 specified exclusion of recursive/correlated CTEs. The latter includes
-CTE JOIN-output sort and the remaining Pipe JOIN scope forms. No
+the remaining Pipe JOIN scope forms. No
 unimplemented item is reclassified as an intentional incompatibility.
 
 The common expression lowering and Local evaluator now retain distinct
@@ -343,7 +343,10 @@ selected aliases and non-output input expressions, takes a bounded prefix,
 then removes private sort columns. SQL and Pipe emit the same Program; packed
 Local and HTTP Remote Clients return the independently expected rows and do
 not expose private fields. DISTINCT rejects a non-output sort expression.
-CTE JOIN-output ordering and broader sort/failure cases remain open. No
+The same resolution and private-slot implementation now serves CTE JOINs;
+a source-free CTE reused as both JOIN inputs sorts and limits correctly
+through packed Local and HTTP Remote Clients. Broader sort/failure cases
+remain open. No
 candidate key or total-order witness is fabricated here. FULL JOIN is parsed
 but the
 Values compiler refuses it before issuing a Program: the checked FULL JOIN

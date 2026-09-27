@@ -287,6 +287,14 @@ const computedCteJoinBody = queryFrontend.compileValuesQueryJson(
 assert.notEqual(computedCteJoinBody, '');
 await writeFile(join(root, 'computed-cte-join-body.json'),
   computedCteJoinBody);
+const orderedCteJoin = queryFrontend.compileValuesQueryJson(
+  'WITH base AS (SELECT id FROM rows), other AS (SELECT id FROM base) '
+    + 'SELECT l.id AS x FROM base AS l CROSS JOIN other AS r '
+    + 'ORDER BY r.id DESC, x DESC LIMIT 3',
+  'rows', 'rows', JSON.stringify({...valuesStep, as: 'rows'}),
+  JSON.stringify(['id']), 'fixture.ordered_cte_join');
+assert.notEqual(orderedCteJoin, '');
+await writeFile(join(root, 'ordered-cte-join.json'), orderedCteJoin);
 const setLeft = {values: {schema: {
   a: {type: 'number', nullable: true},
   b: {type: 'string', nullable: false}},
@@ -983,6 +991,14 @@ async function checkCteJoinBody(client, suffix) {
     {format: 'json', requestId: 'packed-computed-cte-join-body-' + suffix});
   assert.equal((await computed.wait()).status, 'succeeded');
   assert.deepEqual(await computed.result('answer').all(), [{total: 4}]);
+  const ordered = await client.aql(
+    readFileSync('ordered-cte-join.json', 'utf8'),
+    {format: 'json', requestId: 'packed-ordered-cte-join-' + suffix});
+  const orderedStatus = await ordered.wait();
+  assert.equal(orderedStatus.status, 'succeeded',
+    JSON.stringify(orderedStatus));
+  assert.deepEqual(await ordered.result('answer').all(),
+    [{x: 2}, {x: 1}, {x: 2}]);
 }
 async function checkFilteredSubqueryJoin(client, suffix) {
   const execution = await client.aql(

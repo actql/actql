@@ -1044,6 +1044,32 @@ test "CTE JOIN DISTINCT publishes the deduplicated Stage Result" {
 }
 
 ///|
+test "CTE JOIN uses the same hidden ORDER and visible Result projection" {
+  for
+    text in [
+      "WITH base AS (SELECT a, b FROM left_rows), other AS (SELECT a, b FROM base) SELECT l.a AS x FROM base AS l CROSS JOIN other AS r ORDER BY r.b DESC, x DESC LIMIT 3",
+      "WITH base AS (SELECT a, b FROM left_rows), other AS (SELECT a, b FROM base) SELECT l.a AS x FROM base AS l CROSS JOIN other AS r ORDER BY x DESC LIMIT 2",
+    ] {
+    let parsed = @query.parse_query(text, syntax_limits())
+    assert_true(parsed is Ok(_), msg=text)
+    let query = parsed.unwrap()
+    let program = compile(query, set_context(), construction_limits()).unwrap()
+    let wire = semantic(program)
+    if text.contains("r.b DESC") {
+      assert_true(wire.contains("aql_join_sort_"))
+      assert_true(wire.contains("\"from\":\"aql_join_visible\""))
+    }
+    assert_true(wire.contains("\"fields\":[\"x\"]"))
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      NeedsInputs(_) => fail("CTE JOIN order should be statically closed")
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    }
+  }
+}
+
+///|
 test "FULL Values join refuses to invent stable row identities" {
   let query = @query.parse_query(
     "SELECT l.a AS a, r.d AS d FROM left_rows AS l FULL JOIN right_rows AS r ON l.a = r.c",
