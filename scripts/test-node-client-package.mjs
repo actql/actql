@@ -41,6 +41,18 @@ function runAsync(command, args, cwd, extraEnvironment = {}) {
   });
 }
 
+// PR-2 uses a test-only source adapter; the installed Client and Host retain
+// their ordinary JSON admission and execution path. Raw-text SDK routing is
+// intentionally a separate delivery unit.
+run('moon', ['build', '--target', 'js', 'src/aql_text_test_bridge'], repository);
+run('node', ['--test', 'scripts/aql-text.test.mjs'], repository);
+const frontend = await import(pathToFileURL(join(repository,
+  '_build/js/debug/build/aql_text_test_bridge/aql_text_test_bridge.js')));
+const structuralValues = frontend.structuralToJson(await readFile(join(repository,
+  'spec/frontend/fixtures/client-values.structural.aql'), 'utf8'));
+assert.deepEqual(JSON.parse(structuralValues), JSON.parse(await readFile(
+  join(repository, 'packages/sdk/fixtures/values.json'), 'utf8')));
+
 for (const name of ['client-wire', 'sdk', 'run-host-core', 'local-node',
   'node']) {
   run('npm', ['pack', '--pack-destination', root, '--json'],
@@ -67,10 +79,13 @@ for (const name of ['host-port.mjs', 'host-port.d.ts']) {
   assert((await readFile(join(root, 'node_modules', '@actql',
     'sdk', name), 'utf8')).length > 0);
 }
-await writeFile(join(root, 'values.json'), await readFile(join(repository,
-  'packages/sdk/fixtures/values.json')));
-await writeFile(join(root, 'source-program.json'), await readFile(
-  join(repository, 'adapters/connectors/duckdb/node/examples/program.json')));
+await writeFile(join(root, 'values.json'), structuralValues);
+const sourceProgram = await readFile(join(repository,
+  'adapters/connectors/duckdb/node/examples/program.json'), 'utf8');
+const sourceRoundtrip = frontend.structuralToJson(
+  frontend.jsonToStructural(sourceProgram));
+assert.deepEqual(JSON.parse(sourceRoundtrip), JSON.parse(sourceProgram));
+await writeFile(join(root, 'source-program.json'), sourceRoundtrip);
 const sourceCatalog = await readFile(join(repository,
   'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
 const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
@@ -262,8 +277,11 @@ assert.equal(computedLocalState.status, 'succeeded',
 assert.deepEqual(await computedLocal.result('answer').all(), [{id: 2}]);
 assert.deepEqual((await installedLocal.aql(document, {format: 'json',
   requestId: 'packed-standard-values'})).ref, execution.ref);
-await assert.rejects(installedLocal.aql(document.replace('"id": 2',
-  '"id": 3'), {format: 'json', requestId: 'packed-standard-values'}),
+const conflictingProgram = JSON.parse(document);
+assert.equal(conflictingProgram.stages[0].steps[0].values.rows[1].id, 2);
+conflictingProgram.stages[0].steps[0].values.rows[1].id = 3;
+await assert.rejects(installedLocal.aql(JSON.stringify(conflictingProgram),
+  {format: 'json', requestId: 'packed-standard-values'}),
   {code: 'ClientRequestIntentConflict'});
 installedLocal.close();
 assert.equal(calls.length, connected.length);

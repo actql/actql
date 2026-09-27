@@ -1,6 +1,9 @@
 # Frontend r1 adoption baseline
 
-This is PR-0 evidence, not a parser release. The agreed first milestone is
+The frozen baseline and imported index are PR-0 evidence, not a parser release.
+Current structural implementation evidence is recorded separately in the
+[PR-2 record](../../docs/reviews/2026-09-27-frontend-pr2.md); it does not rewrite
+the baseline's historical observations. The agreed first milestone is
 PR-0 (baseline and adoption), PR-1 (bounded source builder and origins), then
 PR-2 (structural text and minimal formatter). Each unit is reviewed and merged
 before starting the next. SQL/Pipe sugar, MATCH and full Client routing remain
@@ -26,7 +29,7 @@ are requirement associations, not claims that a case covers every surface.
 Missing cases are recorded in `additional_fixture_requirements`.
 
 [acceptance-index.json](acceptance-index.json) retains all 140 imported case
-IDs. All are `not_run`; the requirement digest identifies the original case,
+IDs. Their baseline status is `not_run`; the requirement digest identifies the original case,
 not an execution receipt. Builder cases start in PR-1; structural coverage
 starts in PR-2. Cases involving query or Host routing are not silently counted
 as complete when their structural prerequisite passes.
@@ -35,10 +38,12 @@ The [structural orders source](fixtures/orders.structural.aql),
 [independent Program](fixtures/orders.canonical.json),
 [input rows](fixtures/orders.jsonl) and
 [expected rows](fixtures/orders.expected.json) are byte-for-byte imported
-requirements. They have not been executed through the new frontend. The
+requirements. The structural source now has a translation comparison against
+the independent Program, as recorded separately; execution of its expected
+rows is not implied by that comparison. The
 existing identity-oracle files are recorded by digest, not regenerated from a
 new lowerer. Additional metadata, Effect, special-expression and all-operation
-fixtures remain required for PR-2.
+fixtures and their verification scope are listed in the PR-2 record.
 
 ## Existing entries and missing connections
 

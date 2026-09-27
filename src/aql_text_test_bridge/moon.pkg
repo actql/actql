@@ -1,0 +1,10 @@
+supported_targets = "js"
+
+pkgtype(kind: "foreign_library")
+
+import {
+  "moonbitlang/core/debug",
+  "actql/actql/aql_text" @aql,
+  "actql/actql/stage_syntax" @syntax,
+  "actql/actql/encode_core" @encode,
+}
