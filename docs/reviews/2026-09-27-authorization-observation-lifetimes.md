@@ -52,8 +52,13 @@ callback retains its slot until it settles.
 - Linux CI on `9aa171839a3d4493402bf5961e49b21eee40f34e`: all 14 required
   jobs passed. That result predates the joined-wait correction.
 - After the correction, the authorization, dispatch-owner, and HTTP tests
-  passed together: 55/55. Linux CI on the corrected SHA is required before
-  merge and is not represented by the earlier green run.
+  passed together: 55/55. Linux CI on
+  `49b071e6da6c14bf6bf2c0de646cc337e0ecb933` passed all 14 required
+  jobs; the optional performance matrix was skipped.
+- The local Client job passed its 183/183 Node tests and packed Node/browser
+  smoke, then hit a timing-sensitive packed Checkpoint crash expectation.
+  The packed Checkpoint test passed when rerun alone, and the Linux Client
+  job passed on the corrected SHA. The full local Client job was not rerun.
 
 This unit does not implement the separate Effect commit Checkpoint connection
 or the Local Compute accounting-checker review item.
