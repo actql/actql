@@ -23,6 +23,8 @@ fn limits() -> @query.Limits {
     program: { source, tree, max_stages: 10, },
     max_expression_work: 10000,
     max_join_output_rows: 1000L,
+    max_collection_items: 1000L,
+    max_collection_bytes: 10000L,
   }
 }
 

@@ -29,6 +29,8 @@ pub(all) struct Limits {
   program : @program.Limits
   max_expression_work : Int
   max_join_output_rows : Int64
+  max_collection_items : Int64
+  max_collection_bytes : Int64
 }
 
 ///|
@@ -492,6 +494,8 @@ fn lower_aggregate_resolved(
   call : @query.AggregateCall,
   resolve : (Array[@query.NamePart]) -> String?,
   max_work : Int,
+  max_collection_items : Int64,
+  max_collection_bytes : Int64,
 ) -> @builder.Node raise Abort {
   let name = match call.function_name {
     "COUNT" => "count"
@@ -546,6 +550,24 @@ fn lower_aggregate_resolved(
     entries.push(("distinct", construction.add(Bool(true))))
   }
   if name == "array_agg" || name == "string_agg" {
+    let bound = if name == "array_agg" {
+      max_collection_items
+    } else {
+      max_collection_bytes
+    }
+    if bound < 1L || bound > 9007199254740991L {
+      raise Abort(UnsupportedAggregate)
+    }
+    entries.push(
+      (
+        if name == "array_agg" {
+          "max_items"
+        } else {
+          "max_bytes"
+        },
+        construction.add(Number(bound.to_double())),
+      ),
+    )
     let order : Array[@builder.Node] = []
     for term in call.order_by {
       let root = @query.expression_node(
@@ -584,12 +606,16 @@ fn lower_aggregate(
   input : Input,
   fields : Array[String],
   max_work : Int,
+  max_collection_items : Int64,
+  max_collection_bytes : Int64,
 ) -> @builder.Node raise Abort {
   lower_aggregate_resolved(
     construction,
     call,
     path => resolve_column(path, query, input, fields),
     max_work,
+    max_collection_items,
+    max_collection_bytes,
   )
 }
 
@@ -630,7 +656,9 @@ fn lower_analytic_call(
         ) {
         raise Abort(UnsupportedAnalytic)
       }
-      lower_aggregate_resolved(construction, aggregate, resolve, max_work)
+      lower_aggregate_resolved(
+        construction, aggregate, resolve, max_work, 0L, 0L,
+      )
     }
     None => {
       let expression = call.expression.unwrap()
@@ -883,6 +911,8 @@ fn compile_steps(
   input : Input,
   fields : Array[String],
   max_work : Int,
+  max_collection_items : Int64,
+  max_collection_bytes : Int64,
   start_at : Int,
   preserve_identity_select : Bool,
   final_alias : String,
@@ -1205,10 +1235,13 @@ fn compile_steps(
                       call,
                       path => pipe_slot(path, pipe_visible, pipe_ranges),
                       max_work,
+                      max_collection_items,
+                      max_collection_bytes,
                     )
                   } else {
                     lower_aggregate(
                       construction, call, query, input, active_fields, max_work,
+                      max_collection_items, max_collection_bytes,
                     )
                   },
                 ),
@@ -1970,6 +2003,8 @@ pub fn compile(
       input,
       fields,
       limits.max_expression_work,
+      limits.max_collection_items,
+      limits.max_collection_bytes,
       start_at,
       context.captured_stage is Some(_),
       "aql_gen_0",
@@ -2242,6 +2277,8 @@ fn compile_cte_query(
         cte_input,
         body_output,
         limits.max_expression_work,
+        limits.max_collection_items,
+        limits.max_collection_bytes,
         0,
         false,
         "aql_gen_0",
@@ -2447,6 +2484,8 @@ fn compile_cte_stage(
     input,
     fields,
     limits.max_expression_work,
+    limits.max_collection_items,
+    limits.max_collection_bytes,
     0,
     input.source is Captured(_),
     final_alias,
@@ -3030,6 +3069,8 @@ fn compile_set_query(
         input,
         fields,
         limits.max_expression_work,
+        limits.max_collection_items,
+        limits.max_collection_bytes,
         if common_capture_filter {
           1
         } else {

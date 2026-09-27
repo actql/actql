@@ -35,7 +35,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | Closed scalar expressions, precedence, NULL and CONCAT | Structured Expression admission/typing | Independent trees, demand/failure and legacy regression | Partial: shared AST and direct tree lowering; strict and legacy CONCAT execute through packed Local/Remote; full typing/failure matrix pending |
 | SELECT, FROM-only, subqueries, WHERE | Existing Program derive/select/filter | SQL/Pipe expected Program and rows | Partial: base SELECT/FROM/WHERE and named noncorrelated FROM subqueries, including nesting, execute through captured Host; one JOIN-right subquery from an earlier CTE executes through packed Local/Remote; broader joins, set operands and additional source forms remain |
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: direct Values joins support INNER/LEFT, bounded CROSS, DISTINCT and output/non-output ORDER with LIMIT; a DISTINCT CTE supplies identity for packed source-free and captured-input FULL/USING; general join scope remains |
-| GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: COUNT, MIN/MAX and pinned-profile SUM/AVG execute through packed Local/Remote, including empty input; ordered collection runtime and failure matrix pending |
+| GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: COUNT, MIN/MAX and pinned-profile SUM/AVG execute through packed Local/Remote, including empty input; bounded STRING_AGG over Values also executes, while keyed ARRAY_AGG has checker evidence only; collection failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering, including JOIN output and hidden input order through packed Local/Remote; captured DISTINCT→ORDER runtime passes, broader ties/limits pending |
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each used declaration lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin with hidden ORDER/LIMIT, a sequential chain, two branches from one predecessor and a join inside a declaration body; physical provider read counter and broader joins remain |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands and two terms sharing one captured source execute through packed Local/HTTP Clients; different captured sources, different physical source filters, CTE reuse and broader type/order cases remain |
@@ -410,8 +410,12 @@ semantic validation, while materializing them could perform extra acquisition.
 A physical provider read counter is still pending.
 ARRAY_AGG requires the adopted `IGNORE NULLS` and explicit order spelling;
 STRING_AGG requires a literal delimiter and explicit order. Both lower to the
-existing group call. The independent checker accepts the bounded ARRAY_AGG
-example; STRING_AGG reports the missing Host string-byte limit instead of
-inventing one.
+existing group call with caller-supplied item and byte ceilings. The
+independent checker accepts the bounded ARRAY_AGG example on a keyed captured
+input. It refuses ordered ARRAY_AGG over unkeyed duplicate Values rather than
+inventing a candidate key. Bounded STRING_AGG over the Values input passes
+the checker and publishes `y|x|x|n` through packed Local and HTTP Remote
+Clients. Ordered ARRAY_AGG Result delivery still needs a keyed physical input
+fixture; the source-free Values example cannot establish its required key.
 LIMIT and OFFSET now parse the full exact safe-integer range, rejecting zero
 LIMIT, fractions, and values above `2^53-1` before Program construction.

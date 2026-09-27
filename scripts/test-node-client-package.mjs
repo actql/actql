@@ -305,6 +305,12 @@ const setRight = {values: {schema: {
   d: {type: 'string', nullable: false}},
 rows: [{c: 1, d: 'x'}, {c: 3, d: 'z'}, {c: null, d: 'n'}]},
 as: 'set_right'};
+const collectionQuery = queryFrontend.compileValuesQueryJson(
+  "SELECT STRING_AGG(b, '|' ORDER BY a DESC) AS labels FROM set_left",
+  'set_left', 'set_left', JSON.stringify(setLeft),
+  JSON.stringify(['a', 'b']), 'fixture.collection_query');
+assert.notEqual(collectionQuery, '');
+await writeFile(join(root, 'collection-query.json'), collectionQuery);
 const filteredSubqueryJoin = queryFrontend.compileTwoValuesSetQueryJson(
   'FROM (SELECT a, b FROM set_left) AS l |> WHERE l.a > 1 '
     + '|> LEFT JOIN (SELECT c, d FROM set_right) AS r ON l.a = r.c '
@@ -1109,6 +1115,16 @@ async function checkOrderedJoin(client, suffix) {
     JSON.stringify(collisionStatus));
   assert.deepEqual(await collision.result('answer').all(), [{d: 2}]);
 }
+async function checkCollectionQuery(client, suffix) {
+  const execution = await client.aql(
+    readFileSync('collection-query.json', 'utf8'),
+    {format: 'json', requestId: 'packed-collection-' + suffix});
+  const status = await execution.wait();
+  assert.equal(status.status, 'succeeded', JSON.stringify(status));
+  const rows = await execution.result('answer').all();
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].labels, 'y|x|x|n');
+}
 async function checkSetQueries(client, suffix) {
   for (const [name, expected] of setExpectations) {
     const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
@@ -1339,6 +1355,7 @@ assert.equal(setQueryLocalStatus.status, 'succeeded',
 assert.deepEqual(await setQueryLocal.result('answer').all(), expectedUnionRows);
 await checkSetQueries(installedLocal, 'local');
 await checkJoinCases(installedLocal, 'local');
+await checkCollectionQuery(installedLocal, 'local');
 await checkOrderedJoin(installedLocal, 'local');
 const pipeUnionLocal = await installedLocal.aql(pipeUnionQueryDocument,
   {format: 'json', requestId: 'packed-pipe-union-local'});
@@ -1534,6 +1551,7 @@ assert.equal((await setQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await setQueryRemote.result('answer').all(), expectedUnionRows);
 await checkSetQueries(installedRemote, 'remote');
 await checkJoinCases(installedRemote, 'remote');
+await checkCollectionQuery(installedRemote, 'remote');
 await checkOrderedJoin(installedRemote, 'remote');
 const pipeUnionRemote = await installedRemote.aql(pipeUnionQueryDocument,
   {format: 'json', requestId: 'packed-pipe-union-remote'});

@@ -16,6 +16,8 @@ fn construction_limits() -> Limits {
     program: { source: source.source, tree: source.tree, max_stages: 20, },
     max_expression_work: 10000,
     max_join_output_rows: 1000L,
+    max_collection_items: 1000L,
+    max_collection_bytes: 10000L,
   }
 }
 
@@ -1465,6 +1467,37 @@ test "SQL exact BY NAME and positional shape reject mismatched outputs" {
 
 ///|
 test "ordered collection aggregates retain literal and order contracts" {
+  let source_free = compile(
+    @query.parse_query(
+      "SELECT STRING_AGG(b, '|' ORDER BY a DESC) AS labels FROM left_rows",
+      syntax_limits(),
+    ).unwrap(),
+    set_context(),
+    construction_limits(),
+  ).unwrap()
+  match
+    @check.check_parsed(source_free, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("source-free collection should be bounded")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let unkeyed_array = compile(
+    @query.parse_query(
+      "SELECT ARRAY_AGG(DISTINCT a IGNORE NULLS ORDER BY a DESC) AS ids FROM left_rows",
+      syntax_limits(),
+    ).unwrap(),
+    set_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_true(
+    @check.check_parsed(
+      unkeyed_array,
+      check_environment(),
+      None,
+      check_limits(),
+    )
+    is Rejected(_),
+  )
   let array_query = @query.parse_query(
     "SELECT customer_id, ARRAY_AGG(DISTINCT id IGNORE NULLS ORDER BY id) AS ids FROM orders GROUP BY customer_id",
     syntax_limits(),
@@ -1506,15 +1539,18 @@ test "ordered collection aggregates retain literal and order contracts" {
     construction_limits(),
   ).unwrap()
   assert_true(semantic(string_program).contains("\"delimiter\":\"|\""))
-  assert_true(
+  assert_true(semantic(string_program).contains("\"max_bytes\":10000"))
+  match
     @check.check_parsed(
       string_program,
       check_environment(),
       None,
       check_limits(),
-    )
-    is NeedsInputs(_),
-  )
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("ordered string bound should be selected")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
   for
     text in [
       "SELECT ARRAY_AGG(id ORDER BY id) AS ids FROM orders", "SELECT ARRAY_AGG(id IGNORE NULLS) AS ids FROM orders",
