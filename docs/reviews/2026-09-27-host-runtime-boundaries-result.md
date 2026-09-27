@@ -27,6 +27,32 @@ Rollback failure preserves the initiating error as the primary cause and the
 rollback error as secondary evidence. A failed journal write is not reported
 as a durable transition.
 
+The installed dispatch owner receives the captured execution before fallible
+publication, independently of the thrown error. Wrapping an error cannot lose
+that owner; close failure remains retryable without repeating Compute.
+Both HTTP and in-process ingress report authentication/authorization faults
+through the existing private Host observer. Ordinary denial emits no fault;
+public responses contain neither the cause nor request details. A failing
+diagnostic observer never permits access.
+
+## Completion evidence map
+
+| Requirement | Executable evidence |
+| --- | --- |
+| Durable terminal outcome versus unknown start | `client-request-journal.test.mjs` records confirmed failure across reopen and rejects another physical start; `remote-checkpoint-host.test.mjs` attaches after lost execution observation without dispatching again |
+| Cancellation and publication precedence | Installed HTTP Checkpoint C5 retains an unconfirmed stop; the late-observation-failure test preserves the committed Result |
+| Primary and secondary errors | Real SQLite acceptance and Run-start rollback fault tests retain both causes; dispatch-owner tests retain cleanup after failure |
+| Explicit cleanup handoff | `client-dispatch-owner.test.mjs` wraps the publication error and retries failed close without Compute; the acquired Program test checks the real execution handoff |
+| Authentication fault versus denial | `client-http.test.mjs` exercises both ingress ports, faulting auth callbacks and a faulting observer, with unchanged public denial |
+| Validated journal projection | All definition lookup variants reject corrupt retained Result inventory; missing terminal evidence remains unknown |
+| Typed ABI and runtime ownership | `run-host-core` negative TypeScript fixture rejects forged and wrong-role handles; runtime tests reject foreign owners and invalid observations; publication action tests reject unknown codes |
+| Independent acquisition and deadline fixtures | The query-amount fixture has its own pinned identity; SQLite Checkpoint tests inject `clock.ms`, including the exact approval expiry instant, while packed process/network coverage remains |
+
+The installed Host treats a failed control projection as `InvalidRunControl`,
+not as a missing Run. The controlled unpublished-state bridge preserves typed
+issuance failure instead of returning absence. Other unrelated optional bridge
+APIs are outside this refactor.
+
 ## Validation
 
 The original implementation was tested at
@@ -53,10 +79,25 @@ allowlist fix and its direct verification are at
   observations, restart uncertainty, cancellation, rollback causes, and
   acquisition binding. No Salesforce or external provider was exercised.
 
-The final documentation commit, unrelated local jobs, and Linux CI are not
-covered by these local checks. The first H3 CI run identified the missing
-Workers module allowance; it must be rerun at the pushed fix SHA. The PR must
-distinguish this pending CI result from the checks above.
+The earlier final stack passed Linux CI at these exact SHAs:
+
+- H1 `42409c6ad782fb2b7ead4ff1ed865046477e1942`:
+  [CI](https://github.com/actql/actql/actions/runs/36300566770).
+- H2 `c3d63d26d163517a09078db65f78a35521f736b0`:
+  [CI](https://github.com/actql/actql/actions/runs/36300650261).
+- H3 `52428424a8c252a1811abf2cb77b5786a51c45a8`:
+  [CI](https://github.com/actql/actql/actions/runs/36301076753).
+
+The completion audit added explicit execution handoff and private auth fault
+observations. At `0d83eca3a`, `check:distribution-client` passed 163 tests,
+packed Node/browser and Checkpoint acceptance, and native Client mTLS. The
+merged tree at `d543b352d2051aa9c03330313309cb712af0b6b7` is identical.
+The focused owner/Program tests passed 26/26 and ingress tests passed 14/14.
+The Host gate also passed on the merged implementation, including retained
+storage, remote runtime, Checkpoint, packed Run Host and packed Local assets.
+The updated PR heads require their own CI results; the older runs above do not
+prove those heads. Each PR records its exact validation SHA and CI link.
+Performance remeasurement and external provider tests are not claimed.
 
 ## Compatibility and follow-up
 
