@@ -145,9 +145,12 @@ of original and new values. Both return the independently expected swap,
 including a NULL source value. For a Pipe SELECT followed by ORDER BY, the
 projection is deferred so the old range alias remains available to sorting;
 the SELECT output alias takes precedence over the input column of the same
-name. The checker accepts both distinct sort targets. Grouping/analytic after
-a scope mutation and additional operators after a Pipe SELECT still need the
-next scope pass before this milestone closes.
+name. The checker accepts both distinct sort targets. Pipe AGGREGATE after a
+column edit materializes the current visible names before grouping and closes
+the old range scope. Both packed Hosts return `id=20,n=1` and `id=30,n=2`
+after replacing `id` with `amount` and grouping. Analytic after a scope
+mutation and additional operators after a Pipe SELECT still need the next
+scope pass before this milestone closes.
 ARRAY_AGG requires the adopted `IGNORE NULLS` and explicit order spelling;
 STRING_AGG requires a literal delimiter and explicit order. Both lower to the
 existing group call. The independent checker accepts the bounded ARRAY_AGG

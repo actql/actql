@@ -145,6 +145,16 @@ const pipeSetQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.pipe_set_query');
 assert.notEqual(pipeSetQuery, '');
 await writeFile(join(root, 'pipe-set-query.json'), pipeSetQuery);
+const pipeSetGroupedQuery = queryFrontend.compileCapturedQueryJson(
+  'FROM records |> WHERE amount > 0 |> SET id = amount '
+    + '|> AGGREGATE COUNT(*) AS n GROUP BY id |> SELECT id, n '
+    + '|> ORDER BY id',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.pipe_set_grouped_query');
+assert.notEqual(pipeSetGroupedQuery, '');
+await writeFile(join(root, 'pipe-set-grouped-query.json'),
+  pipeSetGroupedQuery);
 const sourceCatalog = await readFile(join(repository,
   'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
 const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
@@ -251,6 +261,8 @@ const groupedQueryDocument = readFileSync('grouped-query.json', 'utf8');
 const analyticQueryDocument = readFileSync('analytic-query.json', 'utf8');
 const extendedQueryDocument = readFileSync('extended-query.json', 'utf8');
 const pipeSetQueryDocument = readFileSync('pipe-set-query.json', 'utf8');
+const pipeSetGroupedDocument = readFileSync('pipe-set-grouped-query.json',
+  'utf8');
 async function runApplication(options, requestId) {
   const client = await connect(options);
   const execution = await client.aql(document, {format: 'json', requestId});
@@ -348,6 +360,12 @@ assert.deepEqual(await pipeSetQueryLocal.result('answer').all(),
     {old_id: 1, old_amount: null, id: null, amount: 1},
     {old_id: 2, old_amount: 20, id: 20, amount: 2},
     {old_id: 3, old_amount: 30, id: 30, amount: 3}]);
+const pipeSetGroupedLocal = await acquiredLocal.client.aql(
+  pipeSetGroupedDocument,
+  {format: 'json', requestId: 'packed-pipe-set-grouped-local'});
+assert.equal((await pipeSetGroupedLocal.wait()).status, 'succeeded');
+assert.deepEqual(await pipeSetGroupedLocal.result('answer').all(),
+  [{id: 20, n: 1}, {id: 30, n: 2}]);
 assert.deepEqual((await acquiredLocal.client.attach(
   acquiredLocal.execution.ref)).ref, acquiredLocal.execution.ref);
 const acquiredStarted = await acquiredLocal.client.start(
@@ -505,6 +523,12 @@ assert.deepEqual(await pipeSetQueryRemote.result('answer').all(),
     {old_id: 1, old_amount: null, id: null, amount: 1},
     {old_id: 2, old_amount: 20, id: 20, amount: 2},
     {old_id: 3, old_amount: 30, id: 30, amount: 3}]);
+const pipeSetGroupedRemote = await acquiredRemote.client.aql(
+  pipeSetGroupedDocument,
+  {format: 'json', requestId: 'packed-pipe-set-grouped-remote'});
+assert.equal((await pipeSetGroupedRemote.wait()).status, 'succeeded');
+assert.deepEqual(await pipeSetGroupedRemote.result('answer').all(),
+  [{id: 20, n: 1}, {id: 30, n: 2}]);
 assert.deepEqual(acquiredRemote.b, acquiredLocal.b);
 assert.deepEqual(acquiredRemote.c, acquiredLocal.c);
 assert.deepEqual((await acquiredRemote.client.attach(

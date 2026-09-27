@@ -544,6 +544,33 @@ test "Pipe DROP and AS separate current names from old range snapshots" {
 }
 
 ///|
+test "Pipe AGGREGATE sees replaced top-level fields and closes old ranges" {
+  let query = @query.parse_query(
+    "FROM pair AS before |> SET x = y |> AGGREGATE COUNT(*) AS n GROUP BY x |> SELECT x, n",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, pair_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"select\":[{\"x\":\"aql_pipe_set_2\"},\"y\"]"))
+  assert_true(
+    wire.contains("\"group\":{\"aggregates\":{\"n\":{\"fn\":\"count\"}}"),
+  )
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("materialized grouping should be closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let old_range = @query.parse_query(
+    "FROM pair AS before |> SET x = y |> AGGREGATE COUNT(*) AS n GROUP BY x |> SELECT before.x AS old_x, n",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(old_range, pair_context(), construction_limits()) is Err(_),
+  )
+}
+
+///|
 test "ordered collection aggregates retain literal and order contracts" {
   let array_query = @query.parse_query(
     "SELECT customer_id, ARRAY_AGG(DISTINCT id IGNORE NULLS ORDER BY id) AS ids FROM orders GROUP BY customer_id",

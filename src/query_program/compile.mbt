@@ -471,12 +471,10 @@ fn group_key_expression(
 }
 
 ///|
-fn lower_aggregate(
+fn lower_aggregate_resolved(
   construction : Construction,
   call : @query.AggregateCall,
-  query : @query.Query,
-  input : Input,
-  fields : Array[String],
+  resolve : (Array[@query.NamePart]) -> String?,
   max_work : Int,
 ) -> @builder.Node raise Abort {
   let name = match call.function_name {
@@ -501,7 +499,7 @@ fn lower_aggregate(
       ).unwrap()
       match root.kind {
         Reference(path) =>
-          match resolve_column(path, query, input, fields) {
+          match resolve(path) {
             Some(field) => entries.push(("field", construction.text(field)))
             None => raise Abort(UnknownColumn)
           }
@@ -509,9 +507,16 @@ fn lower_aggregate(
           entries.push(
             (
               "expr",
-              append_expression(
-                construction, argument, query, input, fields, max_work,
-              ),
+              match
+                @expression.append(
+                  argument,
+                  resolve,
+                  construction.builder,
+                  max_work,
+                ) {
+                Ok(value) => value
+                Err(error) => raise Abort(Expression(error))
+              },
             ),
           )
       }
@@ -534,7 +539,7 @@ fn lower_aggregate(
       guard root.kind is Reference(path) else {
         raise Abort(UnsupportedAggregate)
       }
-      let field = match resolve_column(path, query, input, fields) {
+      let field = match resolve(path) {
         Some(field) => field
         None => raise Abort(UnknownColumn)
       }
@@ -553,6 +558,23 @@ fn lower_aggregate(
     None => ()
   }
   construction.object(entries)
+}
+
+///|
+fn lower_aggregate(
+  construction : Construction,
+  call : @query.AggregateCall,
+  query : @query.Query,
+  input : Input,
+  fields : Array[String],
+  max_work : Int,
+) -> @builder.Node raise Abort {
+  lower_aggregate_resolved(
+    construction,
+    call,
+    path => resolve_column(path, query, input, fields),
+    max_work,
+  )
 }
 
 ///|
@@ -861,7 +883,7 @@ fn compile_steps(
     Some(name) => name
     None => @query.relation(query).last().unwrap()
   }
-  let pipe_ranges = [(initial_range, pipe_visible.copy())]
+  let mut pipe_ranges = [(initial_range, pipe_visible.copy())]
   let mut pipe_changed = false
   let mut pipe_selected = false
   for i in start_at..<@query.operation_count(query) {
@@ -1060,8 +1082,30 @@ fn compile_steps(
         pipe_changed = true
         deferred = true
       }
-      Group(_, _) if pipe_changed => raise Abort(UnsupportedGrouping)
       Group(keys, projections) => {
+        let scoped = pipe_changed
+        if scoped {
+          let materialize : Array[(String, @builder.Node)] = []
+          if entries.length() == 1 && entries[0].0 == "from" {
+            materialize.push(entries[0])
+            entries.clear()
+          }
+          let visible : Array[@builder.Node] = []
+          for entry in pipe_visible {
+            visible.push(
+              if entry.0 == entry.1 {
+                construction.text(entry.1)
+              } else {
+                construction.object([(entry.0, construction.text(entry.1))])
+              },
+            )
+          }
+          materialize.push(("select", construction.array(visible)))
+          step_entries.push(materialize)
+          active_fields = pipe_visible.map(entry => entry.0)
+          pipe_visible = active_fields.map(name => (name, name))
+          pipe_ranges = []
+        }
         let derives : Array[(String, @builder.Node)] = []
         let key_names : Array[String] = []
         let by : Array[@builder.Node] = []
@@ -1075,7 +1119,12 @@ fn compile_steps(
           let root = @query.expression_node(expression, root_index).unwrap()
           let name = match root.kind {
             Reference(path) =>
-              match resolve_column(path, query, input, active_fields) {
+              match
+                (if scoped {
+                  pipe_slot(path, pipe_visible, pipe_ranges)
+                } else {
+                  resolve_column(path, query, input, active_fields)
+                }) {
                 Some(field) => field
                 None => raise Abort(UnknownColumn)
               }
@@ -1087,9 +1136,15 @@ fn compile_steps(
               derives.push(
                 (
                   name,
-                  append_expression(
-                    construction, expression, query, input, active_fields, max_work,
-                  ),
+                  if scoped {
+                    append_pipe_expression(
+                      construction, expression, pipe_visible, pipe_ranges, max_work,
+                    )
+                  } else {
+                    append_expression(
+                      construction, expression, query, input, active_fields, max_work,
+                    )
+                  },
                 ),
               )
               name
@@ -1126,9 +1181,18 @@ fn compile_steps(
               aggregates.push(
                 (
                   name,
-                  lower_aggregate(
-                    construction, call, query, input, active_fields, max_work,
-                  ),
+                  if scoped {
+                    lower_aggregate_resolved(
+                      construction,
+                      call,
+                      path => pipe_slot(path, pipe_visible, pipe_ranges),
+                      max_work,
+                    )
+                  } else {
+                    lower_aggregate(
+                      construction, call, query, input, active_fields, max_work,
+                    )
+                  },
                 ),
               )
               result_fields.push(name)
@@ -1148,6 +1212,10 @@ fn compile_steps(
         active_fields = result_fields.copy()
         output = result_fields
         pipe_visible = result_fields.map(name => (name, name))
+        if scoped {
+          pipe_ranges = []
+          pipe_changed = true
+        }
         grouped = true
       }
       Having(predicate) => {
