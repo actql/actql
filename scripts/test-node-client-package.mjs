@@ -209,6 +209,15 @@ const distinctQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.distinct_query');
 assert.notEqual(distinctQuery, '');
 await writeFile(join(root, 'distinct-query.json'), distinctQuery);
+const distinctExpressionQuery = queryFrontend.compileCapturedQueryJson(
+  'SELECT DISTINCT id + 1 AS next FROM records WHERE id > 0 '
+    + 'ORDER BY id + 1',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.distinct_expression');
+assert.notEqual(distinctExpressionQuery, '');
+await writeFile(join(root, 'distinct-expression-query.json'),
+  distinctExpressionQuery);
 const groupedQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT id, COUNT(*) AS n FROM records WHERE id > 0 GROUP BY id HAVING n > 1 ORDER BY id',
   'records', 'remote',
@@ -454,6 +463,15 @@ async function checkSetQueries(client, suffix) {
 const acquiredDocument = readFileSync('source-program.json', 'utf8');
 const capturedQueryDocument = readFileSync('captured-query.json', 'utf8');
 const distinctQueryDocument = readFileSync('distinct-query.json', 'utf8');
+const distinctExpressionDocument = readFileSync(
+  'distinct-expression-query.json', 'utf8');
+async function checkDistinctExpression(client, suffix) {
+  const execution = await client.aql(distinctExpressionDocument,
+    {format: 'json', requestId: 'packed-distinct-expression-' + suffix});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  assert.deepEqual(await execution.result('answer').all(),
+    [{next: 2}, {next: 3}, {next: 4}]);
+}
 const groupedQueryDocument = readFileSync('grouped-query.json', 'utf8');
 const analyticQueryDocument = readFileSync('analytic-query.json', 'utf8');
 async function checkAnalyticCases(client, suffix) {
@@ -564,6 +582,7 @@ const distinctQueryLocal = await acquiredLocal.client.aql(distinctQueryDocument,
 assert.equal((await distinctQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await distinctQueryLocal.result('answer').all(),
   [{id: 2}, {id: 3}]);
+await checkDistinctExpression(acquiredLocal.client, 'local');
 const groupedQueryLocal = await acquiredLocal.client.aql(groupedQueryDocument,
   {format: 'json', requestId: 'packed-grouped-query-local'});
 assert.equal((await groupedQueryLocal.wait()).status, 'succeeded');
@@ -741,6 +760,7 @@ const distinctQueryRemote = await acquiredRemote.client.aql(
 assert.equal((await distinctQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await distinctQueryRemote.result('answer').all(),
   [{id: 2}, {id: 3}]);
+await checkDistinctExpression(acquiredRemote.client, 'remote');
 const groupedQueryRemote = await acquiredRemote.client.aql(
   groupedQueryDocument,
   {format: 'json', requestId: 'packed-grouped-query-remote'});

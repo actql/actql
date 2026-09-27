@@ -24,7 +24,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: two Values operands support direct-column INNER/LEFT and bounded CROSS; FULL requires stable input identity that these Values stages cannot prove |
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: scalar reductions and ordered ARRAY_AGG/STRING_AGG lower through group; captured COUNT/GROUP/HAVING runtime passes, ordered collection runtime and failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
-| Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Pending |
+| Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: bounded declaration syntax; Program construction explicitly rejects until shared Stage lowering and acquisition reuse are connected |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands execute through packed Local/HTTP Clients; captured operands, Pipe set, CTE reuse and broader type/order cases remain |
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND, scoped SET/DROP/RENAME/AS, one JOIN before other Pipe operators, and a parenthesized SQL right operand for Pipe set; post-projection JOIN and other scope forms remain |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK Result; full negative and frame matrix pending |
@@ -69,6 +69,10 @@ An acquired-input case also separates the two ORDER scopes:
 `SELECT amount AS id, ROW_NUMBER() OVER (ORDER BY id) AS pos ... ORDER BY id
 DESC` ranks original input `id` values and finally sorts by the projected
 `id` alias. Packed Local and HTTP Remote both return `(20,2),(NULL,1)`.
+For DISTINCT, both packed Clients execute `SELECT DISTINCT id + 1 AS next
+... ORDER BY id + 1` over a duplicate acquired input and return `2,3,4`.
+This checks selected-expression correspondence; the source field `id` does
+not leak into the Result or enter the DISTINCT equality row.
 
 GQL patterns, VecA/TEA-specific surfaces, INFER/Artifact spelling, INSERT,
 installed raw-text routing, deployment and other owners' runtime redesigns
