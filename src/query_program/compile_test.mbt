@@ -55,7 +55,8 @@ fn fixture_context() -> Context {
       {
         relation: [{ value: "orders", quoted: false, }],
         name: "orders",
-        declaration,
+        source: Captured(declaration),
+        visible_fields: ["id", "customer_id", "status", "amount"],
       },
     ],
   }
@@ -293,4 +294,34 @@ test "DISTINCT compares projected fields and refuses inaccessible source order" 
   let wire = semantic(selected_expression)
   assert_true(wire.contains("\"distinct\":[\"x\"]"))
   assert_true(wire.contains("\"sort\":[{\"dir\":\"asc\",\"field\":\"x\""))
+}
+
+///|
+test "source-free Values context enters the same query Program path" {
+  let seed = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"id":{"type":"string","nullable":false},"customer_id":{"type":"string","nullable":false},"status":{"type":"string","nullable":false},"amount":{"type":"number","nullable":false}},"rows":[{"id":"o1","customer_id":"c1","status":"open","amount":120},{"id":"o2","customer_id":"c1","status":"closed","amount":30},{"id":"o3","customer_id":"c2","status":"open","amount":80}]},"as":"orders"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let context = fixture_context()
+  let input = { ..context.inputs[0], source: GeneratedValues(seed), }
+  let generated = { ..context, inputs: [input], }
+  let query = @query.parse_query(
+    "SELECT id, customer_id, amount FROM orders WHERE status = 'open' ORDER BY amount DESC, id ASC",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, generated, construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"inputs\":{}"))
+  assert_true(wire.contains("\"values\":{\"rows\":["))
+  assert_true(wire.contains("\"fields\":[\"id\",\"customer_id\",\"amount\"]"))
+  let wrong = { ..input, name: "other", }
+  assert_true(
+    compile(query, { ..context, inputs: [wrong], }, construction_limits())
+    is Err(InvalidContext),
+  )
 }

@@ -46,6 +46,9 @@ function runAsync(command, args, cwd, extraEnvironment = {}) {
 // intentionally a separate delivery unit.
 run('moon', ['build', '--target', 'js', 'src/aql_text_test_bridge'], repository);
 run('node', ['--test', 'scripts/aql-text.test.mjs'], repository);
+run('moon', ['build', '--target', 'js', 'src/query_program_test_bridge'],
+  repository);
+run('node', ['--test', 'scripts/query-program.test.mjs'], repository);
 const frontend = await import(pathToFileURL(join(repository,
   '_build/js/debug/build/aql_text_test_bridge/aql_text_test_bridge.js')));
 const structuralValues = frontend.structuralToJson(await readFile(join(repository,

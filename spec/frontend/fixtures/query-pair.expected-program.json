@@ -1,0 +1,90 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.query_pair",
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {
+        "orders": {
+          "carrier": "relation",
+          "schema": {
+            "id": {
+              "type": "string",
+              "nullable": false
+            },
+            "customer_id": {
+              "type": "string",
+              "nullable": false
+            },
+            "status": {
+              "type": "string",
+              "nullable": false
+            },
+            "amount": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "primary_key": [
+            "id"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "from": "orders",
+          "filter": {
+            "eq": [
+              {
+                "field": "status"
+              },
+              {
+                "literal": "open"
+              }
+            ]
+          }
+        },
+        {
+          "select": [
+            "id",
+            "customer_id",
+            "amount"
+          ]
+        },
+        {
+          "sort": [
+            {
+              "field": "amount",
+              "dir": "desc",
+              "nulls": "last"
+            },
+            {
+              "field": "id",
+              "dir": "asc",
+              "nulls": "first"
+            }
+          ],
+          "as": "aql_gen_0"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "aql_gen_0",
+          "fields": [
+            "id",
+            "customer_id",
+            "amount"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}

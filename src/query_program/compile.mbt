@@ -2,7 +2,14 @@
 pub(all) struct Input {
   relation : Array[@query.NamePart]
   name : String
-  declaration : @wire.Cursor
+  source : InputSource
+  visible_fields : Array[String]
+}
+
+///|
+pub(all) enum InputSource {
+  Captured(@wire.Cursor)
+  GeneratedValues(@wire.Cursor)
 }
 
 ///|
@@ -165,17 +172,51 @@ fn selected_input(query : @query.Query, context : Context) -> Input raise Abort 
 
 ///|
 fn columns(input : Input) -> Array[String] raise Abort {
-  let declaration = match @wire.open_object(input.declaration) {
+  let source = match input.source {
+    Captured(declaration) => declaration
+    GeneratedValues(step) => {
+      let step = match @wire.open_object(step) {
+        Ok(object) => object
+        Err(_) => raise Abort(InvalidContext)
+      }
+      let name = match @wire.lookup(step, "as") {
+        Some(name) =>
+          match @wire.text(name) {
+            Ok(value) => value
+            Err(_) => raise Abort(InvalidContext)
+          }
+        None => raise Abort(InvalidContext)
+      }
+      if name != input.name {
+        raise Abort(InvalidContext)
+      }
+      match @wire.lookup(step, "values") {
+        Some(values) => values
+        None => raise Abort(InvalidContext)
+      }
+    }
+  }
+  let declaration = match @wire.open_object(source) {
     Ok(object) => object
     Err(_) => raise Abort(InvalidContext)
   }
-  let schema = match @wire.required(declaration, "schema") {
-    Ok(schema) => schema
-    Err(_) => raise Abort(InvalidContext)
-  }
-  match @wire.object_field_names(schema) {
-    Ok(fields) => fields
-    Err(_) => raise Abort(InvalidContext)
+  match @wire.lookup(declaration, "schema") {
+    Some(schema) => {
+      let actual = match @wire.object_field_names(schema) {
+        Ok(fields) => fields
+        Err(_) => raise Abort(InvalidContext)
+      }
+      if actual.length() != input.visible_fields.length() {
+        raise Abort(InvalidContext)
+      }
+      for i in 0..<actual.length() {
+        if actual[i] != input.visible_fields[i] {
+          raise Abort(InvalidContext)
+        }
+      }
+      actual
+    }
+    None => input.visible_fields.copy()
   }
 }
 
@@ -536,8 +577,8 @@ fn compile_steps(
 }
 
 ///|
-// The supplied Input declaration is an admitted catalog projection. This
-// frontend does not ask a provider for rows or infer schema during checking.
+// Supplied source fragments are admitted projections of a compile context.
+// This frontend does not ask a provider for rows or infer schema during check.
 pub fn compile(
   query : @query.Query,
   context : Context,
@@ -562,10 +603,17 @@ pub fn compile(
   }
   let construction : Construction = { builder, generated, }
   try {
-    let declaration = match
-      @builder.import_cursor(builder, input.declaration, generated) {
+    let fragment = match input.source {
+      Captured(declaration) => declaration
+      GeneratedValues(step) => step
+    }
+    let imported = match @builder.import_cursor(builder, fragment, generated) {
       Ok(node) => node
       Err(issue) => raise Abort(Construction(issue))
+    }
+    let (input_entries, seed_steps) = match input.source {
+      Captured(_) => ([(input.name, imported)], [])
+      GeneratedValues(_) => ([], [imported])
     }
     let (steps, output) = compile_steps(
       construction,
@@ -574,6 +622,7 @@ pub fn compile(
       fields,
       limits.max_expression_work,
     )
+    let all_steps = seed_steps + steps
     let result_source = if steps.is_empty() { input.name } else { "aql_gen_0" }
     let result = construction.object([
       ("from", construction.text(result_source)),
@@ -584,8 +633,8 @@ pub fn compile(
     ])
     let stage = construction.object([
       ("id", construction.text(context.stage_id)),
-      ("inputs", construction.object([(input.name, declaration)])),
-      ("steps", construction.array(steps)),
+      ("inputs", construction.object(input_entries)),
+      ("steps", construction.array(all_steps)),
       ("results", construction.object([(context.stage_result, result)])),
     ])
     let root = construction.object([
