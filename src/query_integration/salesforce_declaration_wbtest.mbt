@@ -175,11 +175,13 @@ test "a generated Salesforce declaration passes the existing Check Environment a
 }
 
 ///|
-fn mapping_shape_outcome(
+/// Where an environment with these Catalogs, manifest entries and the
+/// generated Mappings stops: "read", "mappings", or "admitted".
+fn manifest_outcome(
   catalogs : Array[String],
   declaration : @salesforce_catalog.StaticDeclaration,
   entries : Array[String],
-) -> Result[@environment.MappingContractShapes, @environment.MappingShapeIssue] {
+) -> String {
   let (wire, cid) = declaration_environment(
     catalogs,
     declaration.contracts,
@@ -188,52 +190,61 @@ fn mapping_shape_outcome(
     manifest_entries=entries,
   )
   let caps = declaration_limits_for_admission()
-  @environment.check_mapping_contract_shapes(
-    @environment.read(@utf8.encode(wire), cid, caps).unwrap(),
-    caps,
-    1000000,
-  )
+  match @environment.read(@utf8.encode(wire), cid, caps) {
+    Err(InvalidManifest(CatalogMismatch(id))) => "read:CatalogMismatch:" + id
+    Err(InvalidManifest(DuplicateConnector(id))) =>
+      "read:DuplicateConnector:" + id
+    Err(_) => "read"
+    Ok(raw) =>
+      match @environment.check_mapping_contract_shapes(raw, caps, 1000000) {
+        Ok(_) => "admitted"
+        Err(ManifestUnresolved(_)) => "mappings:ManifestUnresolved"
+        Err(_) => "mappings"
+      }
+  }
 }
 
 ///|
 test "a generated Mapping must resolve to its connection's manifest entry" {
   let declaration = salesforce_declaration_fixture()
   let catalogs = [declaration.catalog]
+  assert_eq(
+    manifest_outcome(catalogs, declaration, [declaration.manifest_entry]),
+    "admitted",
+  )
   // No manifest: the Mapping's reference resolves to nothing.
   assert_true(
-    mapping_shape_outcome(catalogs, declaration, [])
-    is Err(ManifestUnresolved(_)),
+    manifest_outcome(catalogs, declaration, []) == "mappings:ManifestUnresolved",
   )
   // A replaced entry (another version) no longer matches the Catalog.
   let replaced = declaration.manifest_entry.replace(
     old="salesforce/0.1",
     new="salesforce/0.2",
   )
-  assert_true(
-    mapping_shape_outcome(catalogs, declaration, [replaced])
-    is Err(Manifest(CatalogMismatch("crm-main"))),
+  assert_eq(
+    manifest_outcome(catalogs, declaration, [replaced]),
+    "read:CatalogMismatch:crm-main",
   )
   // Another connection's entry and Catalog: the Mappings do not name it.
   let other = salesforce_declaration_fixture(connector_id="crm-other")
   assert_true(
-    mapping_shape_outcome([other.catalog], declaration, [other.manifest_entry])
-    is Err(ManifestUnresolved(_)),
+    manifest_outcome([other.catalog], declaration, [other.manifest_entry]) ==
+    "mappings:ManifestUnresolved",
   )
-  // An entry without its Catalog is refused, and two entries of one
-  // connection id are refused.
-  assert_true(
-    mapping_shape_outcome([], declaration, [declaration.manifest_entry])
-    is Err(Manifest(CatalogMismatch("crm-main"))),
+  // An entry without its Catalog, and two entries of one connection id.
+  assert_eq(
+    manifest_outcome([], declaration, [declaration.manifest_entry]),
+    "read:CatalogMismatch:crm-main",
   )
-  assert_true(
-    mapping_shape_outcome(catalogs, declaration, [
+  assert_eq(
+    manifest_outcome(catalogs, declaration, [
       declaration.manifest_entry,
       declaration.manifest_entry.replace(
         old="\"salesforce\",",
         new="\"other\",",
       ),
-    ])
-    is Err(Manifest(DuplicateConnector("crm-main"))),
+    ]),
+    "read:DuplicateConnector:crm-main",
   )
 }
 

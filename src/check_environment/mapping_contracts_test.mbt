@@ -177,7 +177,7 @@ fn manifest_fixture_environment(
   mapping : String,
   catalogs? : String = "{\"catalog_cid\":\"sha256:9faf09f5a3177d36dc7c9fab868f6fe4437e4597dd12bcdc051166ec2e6ad8fd\",\"commands\":[],\"connector_id\":\"crm\",\"connector_version\":\"fixture\",\"contracts\":[],\"schema\":\"actql.connector_catalog/0.1\",\"source_views\":[]}",
   connectors? : String = "{\"connector\":\"crm\",\"connector_id\":\"crm\",\"connector_version\":\"fixture\"}",
-) -> WireEnvironment {
+) -> Result[WireEnvironment, Issue] {
   let before = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[" +
     catalogs +
     "],\"connector_manifest\":{\"connectors\":[" +
@@ -191,14 +191,14 @@ fn manifest_fixture_environment(
     @utf8.encode(before + "\"evidence_bundle_cid\":\"" + cid + "\"," + after),
     cid,
     mapping_shape_limits(),
-  ).unwrap()
+  )
 }
 
 ///|
 test "a Mapping resolves its connector manifest entry, connection and Catalog" {
   let limits = mapping_shape_limits()
   let admitted = check_connector_manifest(
-    manifest_fixture_environment(mapping_shape_body()),
+    manifest_fixture_environment(mapping_shape_body()).unwrap(),
     limits,
   ).unwrap()
   let entry = connector_manifest_entry(
@@ -213,7 +213,7 @@ test "a Mapping resolves its connector manifest entry, connection and Catalog" {
   )
   assert_true(
     check_mapping_contract_shapes(
-      manifest_fixture_environment(mapping_shape_body()),
+      manifest_fixture_environment(mapping_shape_body()).unwrap(),
       limits,
       100,
     )
@@ -228,7 +228,7 @@ test "a Mapping resolves its connector manifest entry, connection and Catalog" {
   )
   assert_true(
     check_mapping_contract_shapes(
-      manifest_fixture_environment(unresolved),
+      manifest_fixture_environment(unresolved).unwrap(),
       limits,
       100,
     )
@@ -243,51 +243,73 @@ test "a Mapping resolves its connector manifest entry, connection and Catalog" {
   )
   assert_true(
     check_mapping_contract_shapes(
-      manifest_fixture_environment(foreign),
+      manifest_fixture_environment(foreign).unwrap(),
       limits,
       100,
     )
     is Err(ForeignTarget(0)),
   )
-  // A replaced entry (another version) has another CID and no Catalog.
+  // A replaced entry (another version) has no Catalog; malformed entries
+  // and unordered entries are refused when the environment is read.
   assert_true(
-    check_mapping_contract_shapes(
-      manifest_fixture_environment(
-        mapping_shape_body(),
-        connectors="{\"connector\":\"crm\",\"connector_id\":\"crm\",\"connector_version\":\"other\"}",
-      ),
-      limits,
-      100,
+    manifest_fixture_environment(
+      mapping_shape_body(),
+      connectors="{\"connector\":\"crm\",\"connector_id\":\"crm\",\"connector_version\":\"other\"}",
     )
-    is Err(Manifest(CatalogMismatch("crm"))),
+    is Err(InvalidManifest(CatalogMismatch("crm"))),
   )
-  // Entries are closed, and ordered by entry CID.
   assert_true(
-    check_connector_manifest(
-      manifest_fixture_environment(
-        mapping_shape_body(),
-        connectors="{\"connector\":\"crm\",\"connector_id\":\"crm\",\"connector_version\":\"fixture\",\"path\":\"x\"}",
-      ),
-      limits,
+    manifest_fixture_environment(
+      mapping_shape_body(),
+      connectors="{\"connector\":\"crm\",\"connector_id\":\"crm\",\"connector_version\":\"fixture\",\"path\":\"x\"}",
     )
-    is Err(InvalidEntry(0)),
+    is Err(InvalidManifest(InvalidEntry(0))),
   )
-  let high = "{\"connector\":\"crm\",\"connector_id\":\"crm\",\"connector_version\":\"fixture\"}"
-  let low = "{\"connector\":\"zz\",\"connector_id\":\"zz\",\"connector_version\":\"fixture\"}"
-  let (first, second) = if "sha256:" + @sha.hex(@utf8.encode(high)) <
-    "sha256:" + @sha.hex(@utf8.encode(low)) {
-    (low, high)
-  } else {
-    (high, low)
-  }
+}
+
+///|
+/// An environment without Mappings that still carries `connectors`.
+fn manifest_only_environment(
+  connectors : String,
+  version? : String = "actql-connectors/0.1",
+) -> Result[WireEnvironment, Issue] {
+  let before = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[{\"catalog_cid\":\"sha256:9faf09f5a3177d36dc7c9fab868f6fe4437e4597dd12bcdc051166ec2e6ad8fd\",\"commands\":[],\"connector_id\":\"crm\",\"connector_version\":\"fixture\",\"contracts\":[],\"schema\":\"actql.connector_catalog/0.1\",\"source_views\":[]}],\"connector_manifest\":{\"connectors\":[" +
+    connectors +
+    "],\"version\":\"" +
+    version +
+    "\"},\"contract_registry\":[],"
+  let after = "\"host_policy_profile\":{},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
+  let cid = "sha256:" + @sha.hex(@utf8.encode(before + after))
+  read(
+    @utf8.encode(before + "\"evidence_bundle_cid\":\"" + cid + "\"," + after),
+    cid,
+    mapping_shape_limits(),
+  )
+}
+
+///|
+test "a supplied manifest is admitted even when no Mapping names it" {
+  let entry = "{\"connector\":\"crm\",\"connector_id\":\"crm\",\"connector_version\":\"fixture\"}"
+  assert_true(manifest_only_environment(entry) is Ok(_))
+  assert_true(manifest_only_environment("") is Ok(_))
   assert_true(
-    check_connector_manifest(
-      manifest_fixture_environment(
-        mapping_shape_body(),
-        connectors=first + "," + second,
-      ),
-      limits,
+    manifest_only_environment(entry, version="definitely-invalid")
+    is Err(InvalidManifest(InvalidManifest)),
+  )
+  assert_true(
+    manifest_only_environment(
+      "{\"connector\":\"crm\",\"connector_id\":\"missing\",\"connector_version\":\"fixture\"}",
     )
-    is Err(UnsortedEntries),
+    is Err(InvalidManifest(CatalogMismatch("missing"))),
+  )
+  assert_true(
+    manifest_only_environment(entry + "," + entry)
+    is Err(InvalidManifest(UnsortedEntries)),
+  )
+  assert_true(
+    manifest_only_environment(
+      "{\"connector\":\"crm\",\"connector_id\":\"crm\"}",
+    )
+    is Err(InvalidManifest(InvalidEntry(0))),
   )
 }

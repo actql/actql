@@ -28,6 +28,8 @@ pub(all) enum Issue {
   UnsortedEvidence(Section)
   DuplicateSnapshot(String)
   DuplicateContract(String)
+  /// A supplied `connector_manifest` is not an admissible manifest.
+  InvalidManifest(ConnectorManifestIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -262,7 +264,7 @@ pub fn read(
     if manifest is Some(value) && @decode.object_length(value) is None {
       raise Stop(InvalidEnvelope)
     }
-    Ok({
+    let environment : WireEnvironment = {
       root,
       policy,
       manifest,
@@ -271,7 +273,13 @@ pub fn read(
       bytes: size,
       nodes,
       members,
-    })
+    }
+    // A supplied manifest is admitted for every environment, whether or not
+    // any Mapping names it; an environment without one stays valid.
+    match check_connector_manifest(environment, limits) {
+      Ok(_) => Ok(environment)
+      Err(issue) => Err(InvalidManifest(issue))
+    }
   } catch {
     Stop(e) => Err(e)
     @encode.OutputLimit => Err(BudgetExceeded)

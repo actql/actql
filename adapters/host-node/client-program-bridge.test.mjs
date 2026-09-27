@@ -4848,3 +4848,39 @@ function admittedLocalEffectEvidenceContext(control, prepared, evidence,
       moon.strategyRunEvidenceJson(observation), publicationLimits),
   });
 }
+
+test('a supplied connector manifest is checked without any Mapping', async () => {
+  const [document, environmentBody] = await Promise.all([
+    readFile(new URL('values.json', fixture), 'utf8'),
+    readFile(new URL('values.environment.json', fixture), 'utf8'),
+  ]);
+  const base = JSON.parse(environmentBody);
+  delete base.evidence_bundle_cid;
+  const environment = changes => {
+    const body = {...base, ...changes};
+    const cid = machineCid(body);
+    return moon.clientProgramCheckEnvironment(
+      canonicalText({...body, evidence_bundle_cid: cid}), cid,
+      false, false, true, false, false, false, false);
+  };
+  const withConnector = {};
+  withFixtureConnector(withConnector, 'connector://crm/account');
+  // A valid manifest, or none, still checks the Values Program.
+  for (const changes of [{}, withConnector]) {
+    const admitted = environment(changes);
+    assert.ok(admitted);
+    assert.ok(moon.clientProgramPrepareEffectFree(document, 'json', admitted));
+  }
+  // An invalid version, an entry without its Catalog and an unknown member
+  // are refused at environment admission, before any Program is checked.
+  const entry = withConnector.connector_manifest.connectors[0];
+  for (const manifest of [
+    {...withConnector.connector_manifest, version: 'definitely-invalid'},
+    {connectors: [{...entry, connector_id: 'missing'}],
+      version: 'actql-connectors/0.1'},
+    {connectors: [{...entry, path: 'x'}], version: 'actql-connectors/0.1'},
+  ]) {
+    assert.equal(environment({...withConnector, connector_manifest: manifest}),
+      undefined);
+  }
+});

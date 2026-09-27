@@ -765,6 +765,7 @@ pub(all) enum Issue {
   UnsortedEvidence(Section)
   DuplicateSnapshot(String)
   DuplicateContract(String)
+  InvalidManifest(ConnectorManifestIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {
