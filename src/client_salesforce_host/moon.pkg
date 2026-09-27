@@ -1,0 +1,13 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/connectors/salesforce/host" @salesforce_host,
+  "actql/actql/query_planning" @planning,
+  "actql/actql/connector_sdk" @connector,
+  "actql/actql/canonical_json" @identity,
+  "actql/actql/execution_query" @query,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/run_publication" @publication,
+  "moonbitlang/core/json",
+}

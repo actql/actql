@@ -28,6 +28,13 @@ pub(all) enum QueryEvidenceContractIssue {
 let query_evidence_contract_cid : String = "sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89"
 
 ///|
+/// The admitted process-evidence contract's identity: the capability contract
+/// a broad-receipt connector lists for its source evidence.
+pub fn query_evidence_contract_identity() -> String {
+  query_evidence_contract_cid
+}
+
+///|
 /// The complete pinned evidence body includes its exact acquisition dependency
 /// and record schema. Accepting the schema or matching a version is insufficient.
 /// Bytes and nodes are cumulative across both bodies, with no per-body reset.

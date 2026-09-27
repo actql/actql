@@ -3,6 +3,18 @@
     {
       "path": "actql/actql/connectors/duckdb/host",
       "alias": "duckdb_host"
+    },
+    {
+      "path": "actql/actql/connectors/salesforce/catalog",
+      "alias": "salesforce_catalog"
+    },
+    {
+      "path": "actql/actql/connectors/salesforce/host",
+      "alias": "salesforce_host"
+    },
+    {
+      "path": "actql/actql/client_salesforce_host",
+      "alias": "client_salesforce_host"
     }
   ]
 }
