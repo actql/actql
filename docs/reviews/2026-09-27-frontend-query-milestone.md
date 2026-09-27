@@ -108,6 +108,10 @@ Global COUNT over source-free Values now runs in both packed modes:
 `[1,NULL,2]` yields `COUNT(x)=2` and `COUNT(*)=3`, while an empty typed
 Relation yields one aggregate row with `COUNT(*)=0`. SUM/AVG remain separate
 numeric-profile work; these COUNT results do not establish their execution.
+Pipe column edits also retain the input snapshot in both packed modes.
+`SET x=y,y=x` on `(2,1),(1,2)` publishes old and new values
+`(2,1,1,2),(1,2,2,1)`, and `DROP x` still permits `before.x` while omitting
+top-level `x` from the named output.
 
 GQL patterns, VecA/TEA-specific surfaces, INFER/Artifact spelling, INSERT,
 installed raw-text routing, deployment and other owners' runtime redesigns

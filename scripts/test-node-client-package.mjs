@@ -133,6 +133,18 @@ const aliasRows = {values: {schema: {
   x: {type: 'number', nullable: false},
   y: {type: 'number', nullable: false}},
 rows: [{x: 2, y: 1}, {x: 1, y: 2}]}, as: 'rows'};
+for (const [name, sql] of [
+  ['pipe-swap', 'FROM rows AS before |> SET x = y, y = x '
+    + '|> SELECT before.x AS old_x, before.y AS old_y, x, y'],
+  ['pipe-drop-old', 'FROM rows AS before |> DROP x '
+    + '|> SELECT before.x AS old_x, y'],
+]) {
+  const query = queryFrontend.compileValuesQueryJson(sql,
+    'rows', 'rows', JSON.stringify(aliasRows), JSON.stringify(['x', 'y']),
+    'fixture.' + name);
+  assert.notEqual(query, '', name);
+  await writeFile(join(root, name + '.json'), query);
+}
 const nullOrderRows = {values: {schema: {
   a: {type: 'number', nullable: true}},
 rows: [{a: null}, {a: 1}, {a: 2}]}, as: 'rows'};
@@ -771,6 +783,19 @@ async function checkValuesCte(client, suffix) {
   assert.deepEqual(await execution.result('answer').all(),
     [{x: 2}, {x: 1}]);
 }
+async function checkPipeSnapshots(client, suffix) {
+  for (const [name, expected] of [
+    ['pipe-swap', [{old_x: 2, old_y: 1, x: 1, y: 2},
+      {old_x: 1, old_y: 2, x: 2, y: 1}]],
+    ['pipe-drop-old', [{old_x: 2, y: 1}, {old_x: 1, y: 2}]],
+  ]) {
+    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+      {format: 'json', requestId: 'packed-' + name + '-' + suffix});
+    const status = await execution.wait();
+    assert.equal(status.status, 'succeeded', JSON.stringify(status));
+    assert.deepEqual(await execution.result('answer').all(), expected);
+  }
+}
 async function checkNullOrder(client, suffix) {
   for (const [name, expected] of [
     ['null-order-asc', [{a: null}, {a: 1}, {a: 2}]],
@@ -1100,6 +1125,7 @@ assert.deepEqual(await computedValuesQueryLocal.result('answer').all(),
 await checkOrderScopes(installedLocal, 'local');
 await checkQueryPair(installedLocal, 'local');
 await checkValuesCte(installedLocal, 'local');
+await checkPipeSnapshots(installedLocal, 'local');
 await checkNullOrder(installedLocal, 'local');
 await checkGlobalCounts(installedLocal, 'local');
 await checkAnalyticPeers(installedLocal, 'local');
@@ -1292,6 +1318,7 @@ assert.deepEqual(await computedValuesQueryRemote.result('answer').all(),
 await checkOrderScopes(installedRemote, 'remote');
 await checkQueryPair(installedRemote, 'remote');
 await checkValuesCte(installedRemote, 'remote');
+await checkPipeSnapshots(installedRemote, 'remote');
 await checkNullOrder(installedRemote, 'remote');
 await checkGlobalCounts(installedRemote, 'remote');
 await checkAnalyticPeers(installedRemote, 'remote');
