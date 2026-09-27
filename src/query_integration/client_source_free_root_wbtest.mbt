@@ -734,7 +734,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
       @remote.StatusReply,
     ).unwrap()
     let observed = @remote.remote_dispatch_response_projection(response)
-    // The public Cloud cancel may arrive after native computation settled.
+    // Public Run cancellation may arrive after native computation settled.
     // In either case the physical Site must have completed its cleanup.
     assert_true(observed[1] == 3 || observed[1] == 5)
     assert_eq(observed[3], 2)
