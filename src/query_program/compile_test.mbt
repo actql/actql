@@ -803,6 +803,35 @@ test "CTE chain references prior declarations without source substitution" {
 }
 
 ///|
+test "CTE branches share one checked producer and skip unused declarations" {
+  let branched = @query.parse_query(
+    "WITH base AS (SELECT a, b FROM left_rows), first AS (SELECT a FROM base WHERE a = 1), second AS (SELECT a FROM base WHERE a = 2) SELECT l.a AS left_a, r.a AS right_a FROM first AS l JOIN second AS r ON l.a = r.a",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(branched, set_context(), construction_limits()).unwrap()
+  assert_eq(@program.stage_count(program), 4)
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("branched CTE should remain closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let unused = @query.parse_query(
+    "WITH unused AS (SELECT a FROM left_rows), selected AS (SELECT a FROM left_rows WHERE a > 1) SELECT a FROM selected",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(unused, set_context(), construction_limits()).unwrap()
+  assert_eq(@program.stage_count(program), 2)
+  assert_true(!semantic(program).contains("\"id\":\"aql_cte_0\""))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("unused CTE should not create an input")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+}
+
+///|
 test "FULL CTE join retains keyed input identity for common closure" {
   let query = @query.parse_query(
     "WITH chosen AS (SELECT id, customer_id FROM orders) SELECT l.id AS left_id, r.id AS right_id FROM chosen AS l FULL JOIN chosen AS r ON l.customer_id = r.customer_id",

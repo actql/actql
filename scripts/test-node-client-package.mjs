@@ -245,9 +245,10 @@ await writeFile(join(root, 'using-cte-query.json'), usingCteQuery);
 const fullUsingCteQuery = queryFrontend.compileCapturedQueryJson(
   'WITH acquired AS (SELECT id FROM records WHERE id > 1), '
     + 'chosen AS (SELECT DISTINCT id FROM acquired), '
-    + 'subset AS (SELECT id FROM chosen WHERE id = 2) '
+    + 'left_part AS (SELECT id FROM chosen WHERE id = 2), '
+    + 'right_part AS (SELECT id FROM chosen WHERE id = 3) '
     + 'SELECT id, l.id AS left_id, r.id AS right_id '
-    + 'FROM subset AS l FULL JOIN chosen AS r USING (id)',
+    + 'FROM left_part AS l FULL JOIN right_part AS r USING (id)',
   'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
   JSON.stringify(['id', 'amount']), 'fixture.full_using_cte');
@@ -568,7 +569,7 @@ async function checkCapturedCte(client, suffix) {
     {format: 'json', requestId: 'packed-full-using-cte-' + suffix});
   assert.equal((await fullUsing.wait()).status, 'succeeded');
   assert.deepEqual(sortedRows(await fullUsing.result('answer').all()),
-    sortedRows([{id: 2, left_id: 2, right_id: 2},
+    sortedRows([{id: 2, left_id: 2, right_id: null},
       {id: 3, left_id: null, right_id: 3}]));
   const chained = await client.aql(chainedCteDocument,
     {format: 'json', requestId: 'packed-chained-cte-' + suffix});

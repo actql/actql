@@ -24,7 +24,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: direct Values joins support INNER/LEFT and bounded CROSS; a DISTINCT CTE supplies identity for packed source-free and captured-input FULL/USING; general join scope remains |
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: scalar reductions and ordered ARRAY_AGG/STRING_AGG lower through group; captured COUNT/GROUP/HAVING runtime passes, ordered collection runtime and failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
-| Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each declaration in a linear chain lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin, a two-declaration chain, and an outer join to a prior CTE; physical read counter, branching declaration bodies and subqueries remain |
+| Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each used declaration lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin, a sequential chain and two branches from one predecessor; physical read counter, joins inside CTE bodies and subqueries remain |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands execute through packed Local/HTTP Clients; captured operands, Pipe set, CTE reuse and broader type/order cases remain |
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND, scoped SET/DROP/RENAME/AS, one JOIN before other Pipe operators, and a parenthesized SQL right operand for Pipe set; post-projection JOIN and other scope forms remain |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK, ROW_NUMBER, LAG and framed COUNT Results; full negative and frame matrix pending |
@@ -215,8 +215,9 @@ key slots, derives the unqualified key with the existing typed `coalesce`
 expression, and selects only requested fields into the Result. The common
 checker accepts this shape. Packed Local and HTTP Remote Clients execute
 source-free FULL/USING self-joins and a captured-input FULL/USING join of
-two different CTE Results. The latter joins a filtered subset to the
-deduplicated source: the right-only `id=3` row is published as
+two different CTE Results. The latter branches from one deduplicated CTE
+into `id=2` and `id=3` inputs. The left-only row is published as
+`{id:2,left_id:2,right_id:null}` and the right-only row as
 `{id:3,left_id:null,right_id:3}`. Private key slots do not enter the Named
 Result. The captured Program uses a simple acquisition CTE, then a DISTINCT
 CTE to supply stable identity before the FULL JOIN. Placing
@@ -236,8 +237,8 @@ Remote Clients execute both source-free and acquired CTEs. The acquired
 self-join of filtered `id` rows `3,2,3` returns five rows, including four
 `(3,3)` matches. The Program has one acquisition Stage; a physical provider
 read counter has not yet been added, so the once-only read acceptance case
-remains open. Branching declaration bodies, CTE joins inside the body and general
-subqueries still fail closed rather than being textually substituted.
+remains open. CTE joins inside a declaration body and general subqueries
+still fail closed rather than being textually substituted.
 The same packed path accepts `JOIN ... USING(id)` and exposes one unqualified
 `id` Result column while retaining qualified left and right key bindings.
 FULL JOIN uses the coalesced-key lowering described above instead of taking
@@ -246,9 +247,10 @@ independent right-only key case. General multi-relation join chains remain
 open.
 Two sequential CTE declarations also execute with each later body referring
 to its immediate predecessor. A packed acquired-input example produces
-`3,2,3` after the second filter. The compiler currently requires a used
-linear chain; unused or branching declarations fail closed rather than
-causing speculative extra acquisition.
+`3,2,3` after the second filter. The compiler now selects only declarations
+reachable from the outer query, so unused definitions do not create work.
+Two branches may refer to one prior Stage Result without copying its
+acquisition. A physical provider read counter is still pending.
 ARRAY_AGG requires the adopted `IGNORE NULLS` and explicit order spelling;
 STRING_AGG requires a literal delimiter and explicit order. Both lower to the
 existing group call. The independent checker accepts the bounded ARRAY_AGG

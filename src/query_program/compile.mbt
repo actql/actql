@@ -2027,17 +2027,44 @@ fn compile_cte_query(
     context.result_name == "" {
     return Err(UnsupportedCte)
   }
-  for index in 0..<(@query.cte_count(query) - 1) {
-    let current = @query.cte_at(query, index).unwrap()
-    let next = @query.cte_at(query, index + 1).unwrap()
-    if !same_path(@query.relation(next.query), [current.name]) {
-      return Err(UnsupportedCte)
+  if @query.relation(query).length() != 1 {
+    return Err(UnsupportedCte)
+  }
+  let used = Array::make(@query.cte_count(query), false)
+  let joined_relation = if @query.join_part_count(query) == 1 {
+    Some(@query.join_part_at(query, 0).unwrap().relation)
+  } else {
+    None
+  }
+  for index in 0..<@query.cte_count(query) {
+    let cte = @query.cte_at(query, index).unwrap()
+    for earlier in 0..<index {
+      if same_name(cte.name, @query.cte_at(query, earlier).unwrap().name) {
+        return Err(UnsupportedCte)
+      }
+    }
+    let joined = match joined_relation {
+      Some(path) => same_path(path, [cte.name])
+      None => false
+    }
+    if same_path(@query.relation(query), [cte.name]) || joined {
+      used[index] = true
     }
   }
-  if !same_path(@query.relation(query), [
-      @query.cte_at(query, @query.cte_count(query) - 1).unwrap().name,
-    ]) {
+  if !used.any(value => value) {
     return Err(UnsupportedCte)
+  }
+  let mut index = @query.cte_count(query) - 1
+  while index >= 0 {
+    if used[index] {
+      let relation = @query.relation(@query.cte_at(query, index).unwrap().query)
+      for earlier in 0..<index {
+        if same_path(relation, [@query.cte_at(query, earlier).unwrap().name]) {
+          used[earlier] = true
+        }
+      }
+    }
+    index -= 1
   }
   let document = @query.query_document(query)
   let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
@@ -2051,10 +2078,24 @@ fn compile_cte_query(
     let used_stage_names : Array[String] = []
     let mut known = context.inputs.copy()
     let cte_inputs : Array[Input] = []
+    let mut captured_owner = false
     for index in 0..<@query.cte_count(query) {
+      if !used[index] {
+        continue
+      }
       let cte = @query.cte_at(query, index).unwrap()
-      let stage_name = if index == 0 {
-        context.captured_stage.unwrap_or("aql_cte_0")
+      let body_relation = @query.relation(cte.query)
+      let captures_source = context.inputs.any(input => {
+        same_path(body_relation, input.relation) && input.source is Captured(_)
+      })
+      if captures_source && captured_owner {
+        raise Abort(UnsupportedCte)
+      }
+      if captures_source {
+        captured_owner = true
+      }
+      let stage_name = if captures_source {
+        context.captured_stage.unwrap_or("aql_cte_" + index.to_string())
       } else {
         "aql_cte_" + index.to_string()
       }
@@ -2062,7 +2103,6 @@ fn compile_cte_query(
         raise Abort(InvalidContext)
       }
       used_stage_names.push(stage_name)
-      let body_relation = @query.relation(cte.query)
       for future in index..<@query.cte_count(query) {
         if same_path(body_relation, [@query.cte_at(query, future).unwrap().name]) {
           raise Abort(UnsupportedCte)
