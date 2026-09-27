@@ -35,6 +35,9 @@ export async function openSalesforceEffectSiteFixture(t, {
   collectionPartial = true,
   writeOperation = 'update',
   authorization,
+  // Further listed objects, each with a minimal describe, for orgs that list
+  // more than the tested object.
+  extraObjects = [],
 }) {
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
   const openssl = (...args) => execFileSync('openssl', args,
@@ -93,8 +96,20 @@ export async function openSalesforceEffectSiteFixture(t, {
     if (request.method === 'GET' && request.url ===
         `${prefix}sobjects/`) {
       response.writeHead(200, {'content-type': 'application/json'});
-      response.end(JSON.stringify({sobjects: [{name: 'Test_Record__c',
-        queryable: true, createable: true, updateable: true}]}));
+      response.end(JSON.stringify({sobjects: [
+        ...extraObjects.map(name => ({name, queryable: true,
+          createable: false, updateable: false})),
+        {name: 'Test_Record__c', queryable: true, createable: true,
+          updateable: true}]}));
+      return;
+    }
+    const extra = extraObjects.find(name => request.method === 'GET' &&
+      request.url === `${prefix}sobjects/${name}/describe`);
+    if (extra !== undefined) {
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end(JSON.stringify({name: extra, queryable: true,
+        createable: false, updateable: false,
+        fields: [{name: 'Id', type: 'id', nillable: false}]}));
       return;
     }
     if (request.method === 'GET' && request.url ===

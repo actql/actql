@@ -157,6 +157,8 @@ pub fn salesforce_project_collection_write_response(@catalog.WriteCollectionRequ
 
 pub fn salesforce_project_listing(Bytes, Int, Int, Int, Int, Int, Int) -> @catalog.ResourceListing raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_project_listing_for(Bytes, Int, Int, Int, Int, Int, Int, Array[String]) -> @catalog.ResourceListing raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_project_single_effect_outcome(@run_publication.EffectPreviewIdentity, Int, Int, @catalog.SingleWriteRequest, @catalog.WriteSingleResponse, Int, Int, Int, Int) -> @catalog.WriteRowEffectProjection raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_project_single_write_success(@catalog.SingleWriteRequest, Int, Bytes, Int, Int, Int) -> @catalog.WriteSingleResponse raise SalesforceCatalogBridgeIssue

@@ -216,7 +216,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   function catalogSyncRequest({occurrence, retainResponses = false,
     maxRetainedBytes = 0, limits = defaultCatalogLimits,
     runInvocationCid: runCid, dispatchRequestCid: dispatchCid,
-    taskAttempt = 1, grantUses} = {}) {
+    taskAttempt = 1, grantUses, resources} = {}) {
     const sequence = syncSequence++;
     const syncOccurrence = occurrence ?? `catalog-sync-${now()}-${sequence}`;
     if ((runCid === undefined) !== (dispatchCid === undefined)) {
@@ -247,6 +247,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       authorizationForDescribe: async name => ({...describe,
         useId: `${syncOccurrence}-describe-${name}`}),
       listLimits: limits.list, describeLimits: limits.describe,
+      ...(resources === undefined ? {} : {resources: [...resources]}),
     });
     return Object.freeze({request, grants: Object.freeze({list, describe})});
   }
@@ -291,10 +292,12 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     const dispatchRequestCid = cid({version:
       'actql-salesforce-peek-dispatch/0.1', runInvocationCid});
     // The first sync plans the query; the query read rechecks it once under
-    // its own occurrence and the same dispatch.
+    // its own occurrence and the same dispatch. Each describes only the
+    // previewed Resource, so the grants cover one list and one describe per
+    // sync however many objects the org lists.
     const sync = suffix => catalogSyncRequest({
       occurrence: `${occurrence}-${suffix}`, runInvocationCid,
-      dispatchRequestCid, grantUses: 2}).request;
+      dispatchRequestCid, grantUses: 2, resources: [resource]}).request;
     const catalog = await syncSalesforceCatalog({...sync('plan'),
       moon: salesforceMoon, credential, signal});
     if (catalog.status === 'interrupted') {

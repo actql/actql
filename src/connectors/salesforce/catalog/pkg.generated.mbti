@@ -86,6 +86,8 @@ pub fn project_query_page(Bytes, ReadProjection, String, QueryPageLimits) -> Res
 
 pub fn project_resource_listing(Bytes, ListLimits) -> Result[ResourceListing, ListingIssue]
 
+pub fn project_resource_listing_for(Bytes, ListLimits, Array[String]) -> Result[ResourceListing, ListingIssue]
+
 pub fn project_single_effect_outcome(WriteSingleResponse, String, Int, Int, Int) -> Result[WriteRowEffectProjection, WriteCollectionResponseIssue]
 
 pub fn project_write_collection_response(Bytes, WriteCollectionKind, Int, WriteCollectionResponseLimits) -> Result[WriteCollectionResponse, WriteCollectionResponseIssue]

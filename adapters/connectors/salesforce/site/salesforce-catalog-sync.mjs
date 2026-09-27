@@ -70,6 +70,11 @@ export async function syncSalesforceCatalog({
   maxRetainedBytes = 0,
   callResource = callHttpsCredentialResource,
   signal,
+  // Describe only these listed resources. The observation is then marked
+  // truncated unless it covers the whole visible listing: a targeted sync is
+  // never a complete Catalog. Without it, the first `maxSelected` are
+  // described.
+  resources,
 }) {
   if (!moon || !versionPattern.test(apiVersion) ||
       typeof connectionRevision !== 'string' ||
@@ -81,7 +86,13 @@ export async function syncSalesforceCatalog({
       (retainResponses && (!count(maxRetainedBytes) ||
         maxRetainedBytes === 0)) ||
       typeof authorizationForDescribe !== 'function' ||
-      !credential || typeof callResource !== 'function') {
+      !credential || typeof callResource !== 'function' ||
+      (resources !== undefined && (!Array.isArray(resources) ||
+        resources.length === 0 ||
+        resources.some(name => typeof name !== 'string' ||
+          !namePattern.test(name)) ||
+        new Set(resources).size !== resources.length ||
+        (retainResponses && resources !== undefined)))) {
     fail('InvalidSalesforceCatalogSync');
   }
   validateLimits(requestedListLimits);
@@ -116,15 +127,26 @@ export async function syncSalesforceCatalog({
       code: 'SalesforceCatalogListRejected', reason,
     });
   }
-  const listing = checked(moon.salesforceProjectListing(
-    listResponse.body,
-    listLimits.maxBytes,
-    listLimits.maxNodes,
-    listLimits.maxDepth,
-    listLimits.maxResources,
-    listLimits.maxSelected,
-    listLimits.maxNameUnits,
-  ));
+  const listing = checked(resources === undefined
+    ? moon.salesforceProjectListing(
+      listResponse.body,
+      listLimits.maxBytes,
+      listLimits.maxNodes,
+      listLimits.maxDepth,
+      listLimits.maxResources,
+      listLimits.maxSelected,
+      listLimits.maxNameUnits,
+    )
+    : moon.salesforceProjectListingFor(
+      listResponse.body,
+      listLimits.maxBytes,
+      listLimits.maxNodes,
+      listLimits.maxDepth,
+      listLimits.maxResources,
+      listLimits.maxSelected,
+      listLimits.maxNameUnits,
+      [...resources],
+    ));
   const sync = moon.salesforceCatalogBegin(listing);
   const selectedNames = moon.salesforceCatalogResourceNames(listing);
   const listBytes = retainResponses ? Buffer.from(listResponse.body) : undefined;
