@@ -396,6 +396,14 @@ const hiddenOrderedPipe = queryFrontend.compileTwoValuesSetQueryJson(
 assert.deepEqual(JSON.parse(hiddenOrderedPipe),
   JSON.parse(hiddenOrderedJoin));
 await writeFile(join(root, 'join-hidden-order.json'), hiddenOrderedJoin);
+const collisionOrderedJoin = queryFrontend.compileTwoValuesSetQueryJson(
+  'SELECT l.a AS d FROM set_left AS l CROSS JOIN set_right AS r '
+    + 'ORDER BY d DESC LIMIT 1',
+  'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+  'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+  'fixture.join_alias_priority');
+assert.notEqual(collisionOrderedJoin, '');
+await writeFile(join(root, 'join-alias-priority.json'), collisionOrderedJoin);
 const computedJoin = queryFrontend.compileTwoValuesSetQueryJson(
   'SELECT l.a + r.c AS total, r.d AS label FROM set_left AS l '
     + 'JOIN set_right AS r ON l.a = r.c',
@@ -1077,6 +1085,13 @@ async function checkOrderedJoin(client, suffix) {
   assert.equal(hiddenStatus.status, 'succeeded', JSON.stringify(hiddenStatus));
   assert.deepEqual(await hidden.result('answer').all(),
     [{x: 2}, {x: 1}, {x: 1}]);
+  const collision = await client.aql(
+    readFileSync('join-alias-priority.json', 'utf8'),
+    {format: 'json', requestId: 'packed-join-alias-priority-' + suffix});
+  const collisionStatus = await collision.wait();
+  assert.equal(collisionStatus.status, 'succeeded',
+    JSON.stringify(collisionStatus));
+  assert.deepEqual(await collision.result('answer').all(), [{d: 2}]);
 }
 async function checkSetQueries(client, suffix) {
   for (const [name, expected] of setExpectations) {
