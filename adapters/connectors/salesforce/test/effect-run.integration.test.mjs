@@ -4246,6 +4246,43 @@ test('public Effect submit rejects an unsupported checked Program before accepta
     } finally { database.close(); }
   });
 
+test('Effect publication preparation failure reserves no physical start',
+  async t => {
+    const fixture = await effectFixture();
+    const prepare = installNodeClientEffectProgramPreparation({moon,
+      environment: fixture.environment});
+    const prepared = prepare({kind: 'aql', input: {text: fixture.document,
+      format: 'json'}, parameters: null});
+    await mkdir(scratch, {recursive: true});
+    const directory = await mkdtemp(join(scratch.pathname,
+      'effect-plan-failure-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const journal = openClientRequestJournal(directory);
+    t.after(() => journal.close());
+    let physicalStarts = 0;
+    const runs = installNodeClientEffectRun({moon, journal,
+      authorizeRequest: async () => ({executionContextCid: cid('a'),
+        hostPolicyCid: cid('b'), createdAt: '2026-09-24T00:00:00.000Z',
+        expiresAt: '2027-01-01T00:00:00.000Z'}),
+      authorizeRunStart: async () => true,
+      prepareExecution() { throw new Error('PlanIssuanceFailed'); },
+      execute() { physicalStarts++; },
+    });
+    const accepted = await runs.accept({prepared,
+      authorityScopeCid: cid('e'), requestId: 'effect-plan-failure',
+      tenantId: 'tenant-a', principalId: 'principal-a',
+      connection: {mode: 'local', owner: 'local'},
+      lookupExpiresAt: '2027-01-01T00:00:00.000Z'});
+    await assert.rejects(runs.start(accepted), /PlanIssuanceFailed/);
+    const retained = journal.lookupRunDefinition(accepted.ref, moon,
+      runtimeCore(moon).publicationControl);
+    assert.equal(retained.preDispatchFailureConfirmed, true);
+    assert.equal(retained.physicalStartReserved, false);
+    assert.equal(physicalStarts, 0);
+    assert.equal((await runs.start(accepted)).kind, 'reconcile');
+    assert.equal(physicalStarts, 0);
+  });
+
 function publicationEvidence(program, parameters, semantics,
   checkEnvironmentCid, aoaLogicalCid = cid('9')) {
   const limits = [100000, 10000, 64];
