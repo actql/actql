@@ -23,7 +23,11 @@ import {
 }
 
 // Values
+pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles) -> @program_check.CheckEnvironment?
+
 pub fn admit_client_compilation_manifests(String, String, Int, Int, Int) -> Result[ClientCompilationManifests, ClientCompilationManifestIssue]
+
+pub fn admit_client_compiled_run_definition(ClientCompiledRun, String) -> Result[@run_publication.PublicationContract, ClientCompiledRunIssue]
 
 pub fn admit_client_effect_allowed_run(ClientEffectCompilation, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ClientEffectAllowedRun, ClientEffectCompiledRunIssue]
 
@@ -81,6 +85,8 @@ pub fn bind_prepared_client_effect_run(PreparedClientEffectComputation, @run_pub
 
 pub fn bind_source_free_client_values_run(PreparedClientProgram, ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientValuesRunBinding, ClientValuesRunBindingIssue]
 
+pub fn check_client_compiled_run_definition(ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, ClientCompiledRunIssue]
+
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
 
 pub fn check_source_free_client_effect_preview_identities(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, ClientEffectLocalIdentityIssue]
@@ -88,6 +94,18 @@ pub fn check_source_free_client_effect_preview_identities(PreparedClientEffectCo
 pub fn client_compilation_barrier_manifest_cid(ClientCompilationManifests) -> String
 
 pub fn client_compilation_grammar_manifest_cid(ClientCompilationManifests) -> String
+
+pub fn client_compiled_run_admission(ClientCompiledRun) -> @run_publication.RunPublicationAdmission
+
+pub fn client_compiled_run_authorization(ClientCompiledRun) -> @run_publication.RunEvidenceValue
+
+pub fn client_compiled_run_matches(ClientCompiledRun, PreparedClientProgram) -> Bool
+
+pub fn client_compiled_run_plan(ClientCompiledRun) -> @run_publication.PublicationContract
+
+pub fn client_compiled_run_prepared(ClientCompiledRun) -> @run_publication.RunEvidenceValue
+
+pub fn client_compiled_run_template(ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
 pub fn client_direct_result_root_name(ClientDirectResultRoot) -> String
 
@@ -307,6 +325,12 @@ pub fn issue_captured_client_effect_local_result_definition(PreparedClientEffect
 
 pub fn issue_client_allowed_run_evidence(@run_publication.RunEvidenceValue, @run_publication.PublicationContract, String, String, String) -> Result[(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue), ClientAllowedRunEvidenceIssue]
 
+pub fn issue_client_compiled_run_definition(ClientCompiledRun, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientCompiledRunIssue]
+
+pub fn issue_client_compiled_task_invocation(ClientCompiledRun, @run_publication.PublicationContract, String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
+pub fn issue_client_compiled_values_invocation(ClientCompiledRun, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
 pub fn issue_client_effect_allowed_run(ClientEffectCompilation, String, String, String) -> Result[ClientEffectAllowedRun, ClientEffectCompiledRunIssue]
 
 pub fn issue_client_effect_local_manifest(PreparedClientEffectComputation, ClientEffectLocalInvocation, Array[ClientEffectLocalResultArtifact], Int, Int, Int) -> Result[ClientEffectLocalManifest, ClientEffectLocalManifestIssue]
@@ -316,6 +340,12 @@ pub fn issue_client_effect_local_result_definition(PreparedClientEffectComputati
 pub fn issue_client_effect_run_definition(ClientEffectAllowedRun, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientEffectCompiledRunIssue]
 
 pub fn issue_client_effect_source_free_invocation(ClientEffectCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
+pub fn issue_client_task_compiled_run(PreparedClientProgram, ClientTaskCompilation, String, String, String) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
+
+pub fn issue_client_task_invocation(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
+pub fn issue_client_values_compiled_run(PreparedClientProgram, ClientValuesCompilation, String, String, String) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
 pub fn issue_client_values_source_free_invocation(ClientValuesCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
@@ -487,6 +517,25 @@ pub(all) enum ClientCompilationManifestIssue {
 pub struct ClientCompilationManifests {
   grammar_manifest_cid : String
   barrier_contract_manifest_cid : String
+}
+
+pub struct ClientCompiledRun {
+  owner : PreparedClientProgram
+  compilation : ClientRunCompilation
+  template : @run_publication.RunEvidenceValue
+  plan : @run_publication.PublicationContract
+  prepared : @run_publication.RunEvidenceValue
+  authorization : @run_publication.RunEvidenceValue
+  admission : @run_publication.RunPublicationAdmission
+}
+
+pub(all) enum ClientCompiledRunIssue {
+  ForeignOwner
+  Policy(ClientAllowedRunEvidenceIssue)
+  Admission(@run_publication.RunPublicationAdmissionIssue)
+  Contract(@run_publication.PublicationContractIssue)
+  ValuesBinding(ClientValuesRunBindingIssue)
+  TaskBinding(ClientTaskRunBindingIssue)
 }
 
 pub struct ClientDirectResultRoot {
@@ -845,6 +894,8 @@ pub(all) enum ClientRunCancellationAction {
   AlreadyTerminal
 } derive(Eq, @debug.Debug)
 
+type ClientRunCompilation
+
 pub(all) enum ClientRunOpenIssue {
   Ledger(@physical_resources.LedgerIssue)
   Run(@physical_strategy.RunIssue)
@@ -882,6 +933,7 @@ pub(all) enum ClientTaskBoundTemplateIssue {
 }
 
 pub struct ClientTaskCompilation {
+  owner : PreparedClientProgram
   plan : ClientTaskExecutablePlan
   template : @run_publication.RunEvidenceValue
   compiled_plan : @run_publication.PublicationContract
@@ -994,6 +1046,7 @@ pub(all) enum ClientValuesAoAIdentityIssue {
 }
 
 pub struct ClientValuesCompilation {
+  owner : PreparedClientProgram
   plan : ClientValuesExecutablePlan
   template : @run_publication.RunEvidenceValue
   compiled_plan : @run_publication.PublicationContract

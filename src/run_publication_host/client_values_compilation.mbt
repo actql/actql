@@ -18,6 +18,7 @@ pub(all) enum ClientValuesCompilationAdmissionIssue {
 /// Owner-issued private compilation evidence for one direct Values Program.
 /// Host policy and request authorization are separate from this compilation.
 pub struct ClientValuesCompilation {
+  owner : PreparedClientProgram
   plan : ClientValuesExecutablePlan
   template : @publication.RunEvidenceValue
   compiled_plan : @publication.PublicationContract
@@ -154,7 +155,7 @@ pub fn issue_prepared_client_values_compilation(
     }
     result_names.push(name)
   }
-  Ok({ plan, template, compiled_plan, fragment, result_names, })
+  Ok({ owner: value, plan, template, compiled_plan, fragment, result_names, })
 }
 
 ///|
