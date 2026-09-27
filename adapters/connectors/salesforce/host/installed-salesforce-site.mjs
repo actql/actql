@@ -309,6 +309,34 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       observationCid: catalog.observationCid});
   }
 
+  const writeKinds = Object.freeze({create: 0, createFromResult: 1,
+    update: 2, upsert: 3});
+  // The executable Mapping of one Effect, from a declaration this Site
+  // generated. `connectorManifestCid` is the manifest identity the Host
+  // admitted this Connector under; it is not derived here.
+  function prepareExecutionMapping({declaration, resource, write,
+    connectorManifestCid,
+    limits = {maxBytes: 400_000, maxNodes: 40_000, maxDepth: 64}} = {}) {
+    if (!declarations.has(declaration) || !text(resource) ||
+        writeKinds[write?.kind] === undefined ||
+        !Array.isArray(write.fields ?? []) ||
+        !Array.isArray(write.sources ?? [])) {
+      fail('InvalidSalesforceExecutionMapping');
+    }
+    const sources = write.sources ?? [];
+    const mapping = checked(salesforceMoon.salesforcePrepareExecutionMapping(
+      declaration, resource, writeKinds[write.kind], [...(write.fields ?? [])],
+      write.key ?? '', sources.map(source => source.target),
+      sources.map(source => source.field),
+      sources.map(source => source.nullBehavior),
+      connectorManifestCid, limits.maxBytes, limits.maxNodes,
+      limits.maxDepth));
+    return Object.freeze({mapping,
+      mappingRef: salesforceMoon.salesforceExecutionMappingRef(mapping),
+      mappingCid: salesforceMoon.salesforceExecutionMappingCid(mapping),
+      body: salesforceMoon.salesforceExecutionMappingBody(mapping)});
+  }
+
   let peekSequence = 0;
   // One authorized preview of at most `maxRows` rows of `resource`. The
   // decision must be the installed gate's read dispatch for this exact
@@ -398,7 +426,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     connectionRevision: profile.connectionRevision,
     connectorRegistration: 'salesforce', connectorRevision: 'salesforce/0.1',
     principal: principalId, context, authorization, credential,
-    issueGrant, refreshCatalog, declareCatalog, peek,
+    issueGrant, refreshCatalog, declareCatalog, prepareExecutionMapping,
+    peek,
     // Whether this Site generated `declaration`.
     ownsDeclaration: declaration => declarations.has(declaration),
     close() {

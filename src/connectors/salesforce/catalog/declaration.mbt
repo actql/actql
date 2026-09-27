@@ -60,16 +60,17 @@ pub struct DeclaredView {
 }
 
 ///|
-pub struct DeclaredMapping {
+/// What one Resource can write under this declaration: the candidate fields
+/// per operation, never an executable Mapping. An executable Mapping is
+/// prepared per Effect from these (`prepare_execution_mapping`).
+pub struct DeclaredWritable {
   resource : String
-  mapping_ref : String
   target_ref : String
-  mapping_cid : String
   create_fields : Array[String]?
   update_fields : Array[String]?
   upsert_fields : Array[String]?
   upsert_keys : Array[String]
-  body : String
+  required_fields : Array[String]
 }
 
 ///|
@@ -87,8 +88,11 @@ pub struct StaticDeclaration {
   contracts : Array[String]
   views : Array[DeclaredView]
   view_bodies : Array[String]
-  mappings : Array[DeclaredMapping]
+  writables : Array[DeclaredWritable]
   exclusions : Array[DeclarationExclusion]
+  // The described Resources as declared; a later projection must still mean
+  // the same for every field it uses.
+  resources : Array[ResourceMetadata]
 }
 
 ///|
@@ -300,20 +304,6 @@ priv struct Envelopes {
 }
 
 ///|
-priv struct PendingMapping {
-  resource : ResourceMetadata
-  base : String
-  rules : Array[Json]
-  writable : Array[String]
-  required : Array[String]
-  target_schema : Json
-  create_fields : Array[String]?
-  update_fields : Array[String]?
-  upsert_fields : Array[String]?
-  keys : Array[String]
-}
-
-///|
 fn Envelopes::add(
   self : Envelopes,
   name : String,
@@ -404,9 +394,8 @@ pub fn generate_static_declaration(
     let views = []
     let view_members = []
     let view_bodies = []
-    let mappings = []
     let exclusions = []
-    let mapping_members : Array[PendingMapping] = []
+    let writables : Array[DeclaredWritable] = []
     for resource in resources {
       let base = "connector://" + connector_id + "/" + resource.name
       // Read side: one SourceView of the exactly typed fields.
@@ -553,7 +542,6 @@ pub fn generate_static_declaration(
       }
       let createable = []
       let updateable = []
-      let target_fields : Array[(String, Json)] = []
       let mut create_blocked : String? = None
       let required = []
       for field in resource.fields {
@@ -571,8 +559,7 @@ pub fn generate_static_declaration(
             required.push(field.name)
           }
         }
-        guard writable && contract is Some(value) else { continue }
-        target_fields.push((field.name, value))
+        guard writable && contract is Some(_) else { continue }
         if field.createable {
           createable.push(field.name)
         }
@@ -580,10 +567,6 @@ pub fn generate_static_declaration(
           updateable.push(field.name)
         }
       }
-      let id_contract = object([
-        ("nullable", false.to_json()),
-        ("type", "string".to_json()),
-      ])
       let keys = resource.fields
         .filter(field => {
           field.external_id &&
@@ -627,47 +610,17 @@ pub fn generate_static_declaration(
       } else {
         None
       }
-      let rules = []
-      let rule = (kind : String, selector : String, fields : Array[String]) => {
-        object([
-          ("effect_kind", kind.to_json()),
-          ("selector_class", selector.to_json()),
-          ("write_fields", strings(fields)),
-          ("permissions", strings(["salesforce:record:" + kind])),
-        ])
-      }
-      if create_fields is Some(value) {
-        rules.push(rule("create", "none", value))
-      }
-      if update_fields is Some(value) {
-        rules.push(rule("update", "id", value))
-      }
-      if upsert_fields is Some(value) {
-        rules.push(rule("upsert", "key", value))
-      }
-      if rules.is_empty() {
+      if create_fields is None && update_fields is None && upsert_fields is None {
         continue
       }
-      let writable = sorted_strings(
-        createable.filter(name => !updateable.contains(name)) + updateable,
-      )
-      let target_schema = object([
-        ("type", "object".to_json()),
-        ("nullable", false.to_json()),
-        ("additional_properties", false.to_json()),
-        ("fields", object([("Id", id_contract), ..target_fields])),
-      ])
-      mapping_members.push({
-        resource,
-        base,
-        rules,
-        writable,
-        required,
-        target_schema,
+      writables.push({
+        resource: resource.name,
+        target_ref: base,
         create_fields,
         update_fields,
         upsert_fields,
-        keys,
+        upsert_keys: sorted_strings(keys),
+        required_fields: sorted_strings(required),
       })
     }
     view_members.sort_by((a, b) => {
@@ -708,52 +661,6 @@ pub fn generate_static_declaration(
     for entry in view_members {
       view_bodies.push(canonical_text(entry.1, limits))
     }
-    for pending in mapping_members {
-      let resource = pending.resource
-      let base = pending.base
-      let target_schema = pending.target_schema
-      let target_identity = canonical_cid(target_schema, limits)
-      let mapping_ref = "mapping:" + connector_id + "/" + resource.name + ".v1"
-      let (mapping, mapping_cid) = seal(
-        [
-          ("schema", "actql.mapping_contract/0.1".to_json()),
-          ("mapping_ref", mapping_ref.to_json()),
-          ("version", connector_version.to_json()),
-          ("target_ref", base.to_json()),
-          // No Connector manifest contract is admitted today; the Catalog
-          // is the only published identity this Mapping belongs to.
-          ("connector_manifest_cid", catalog_cid.to_json()),
-          (
-            "resource_identity_cid",
-            canonical_cid(resource_identity(), limits).to_json(),
-          ),
-          ("target_schema", target_schema),
-          ("target_schema_identity", target_identity.to_json()),
-          ("primary_identity", "Id".to_json()),
-          ("writable_fields", strings(pending.writable)),
-          ("required_fields", strings(sorted_strings(pending.required))),
-          ("conversions", Json::array([])),
-          ("permission_rules", Json::array(pending.rules)),
-          ("required_permissions", Json::array([])),
-          ("minimum_approval", "none".to_json()),
-          // Program write selection names every written field.
-          ("row_mapping", object([])),
-        ],
-        "mapping_contract_cid",
-        limits,
-      )
-      mappings.push({
-        resource: resource.name,
-        mapping_ref,
-        target_ref: base,
-        mapping_cid,
-        create_fields: pending.create_fields,
-        update_fields: pending.update_fields,
-        upsert_fields: pending.upsert_fields,
-        upsert_keys: sorted_strings(pending.keys),
-        body: canonical_text(mapping, limits),
-      })
-    }
     Ok({
       connector_id,
       connector_version,
@@ -772,8 +679,9 @@ pub fn generate_static_declaration(
         found
       }),
       view_bodies,
-      mappings,
+      writables,
       exclusions,
+      resources,
     })
   } catch {
     _ => Err(OutputLimit)
@@ -789,7 +697,54 @@ pub(all) enum DeclarationUseIssue {
   Undeclared
   UndeclaredField(String)
   UndeclaredKey(String)
+  /// The field no longer means what was declared; declare again first.
+  SchemaChanged(String)
 } derive(Eq, Debug)
+
+///|
+/// Every described member a declaration or its use depends on.
+fn same_field_meaning(
+  declared : FieldMetadata,
+  current : FieldMetadata,
+) -> Bool {
+  declared.name == current.name &&
+  declared.native_type == current.native_type &&
+  declared.nullable == current.nullable &&
+  declared.nullability_confirmed == current.nullability_confirmed &&
+  declared.defaulted_on_create == current.defaulted_on_create &&
+  declared.default_on_create_confirmed == current.default_on_create_confirmed &&
+  declared.createable == current.createable &&
+  declared.updateable == current.updateable &&
+  declared.filterable == current.filterable &&
+  declared.sortable == current.sortable &&
+  declared.external_id == current.external_id &&
+  declared.unique == current.unique &&
+  declared.case_sensitive == current.case_sensitive &&
+  declared.reference_to == current.reference_to
+}
+
+///|
+fn check_declared_fields(
+  declaration : StaticDeclaration,
+  resource : String,
+  fields : Array[FieldMetadata],
+) -> Result[Unit, DeclarationUseIssue] {
+  guard declaration.resources.search_by(value => value.name == resource)
+    is Some(index) else {
+    return Err(Undeclared)
+  }
+  let declared = declaration.resources[index].fields
+  for field in fields {
+    guard declared.search_by(value => value.name == field.name)
+      is Some(position) else {
+      return Err(UndeclaredField(field.name))
+    }
+    if !same_field_meaning(declared[position], field) {
+      return Err(SchemaChanged(field.name))
+    }
+  }
+  Ok(())
+}
 
 ///|
 /// The installed Site identity a declaration is valid for. Dispatch and sync
@@ -830,43 +785,8 @@ pub fn check_declared_read(
           return Err(UndeclaredField(field.name))
         }
       }
-      return Ok(())
+      return check_declared_fields(declaration, plan.resource, plan.fields)
     }
-  }
-  Err(Undeclared)
-}
-
-///|
-/// Before any provider I/O: a write projection must fall under a declared
-/// Mapping rule of this Site's declaration for its Resource and operation.
-pub fn check_declared_write(
-  declaration : StaticDeclaration,
-  projection : WriteProjection,
-) -> Result[Unit, DeclarationUseIssue] {
-  if !declaration_site_matches(declaration.binding, projection.binding) {
-    return Err(ForeignDeclaration)
-  }
-  for mapping in declaration.mappings {
-    if mapping.resource != projection.resource {
-      continue
-    }
-    let allowed = match projection.operation {
-      WriteCreate => mapping.create_fields
-      WriteUpdateById => mapping.update_fields
-      WriteUpsertByExternalId(key) => {
-        if !mapping.upsert_keys.contains(key) {
-          return Err(UndeclaredKey(key))
-        }
-        mapping.upsert_fields
-      }
-    }
-    guard allowed is Some(fields) else { return Err(Undeclared) }
-    for name in projection.field_names {
-      if !fields.contains(name) {
-        return Err(UndeclaredField(name))
-      }
-    }
-    return Ok(())
   }
   Err(Undeclared)
 }
@@ -940,19 +860,17 @@ pub fn static_declaration_json(
       ),
     ),
     (
-      "mappings",
+      "writables",
       Json::array(
-        declaration.mappings.map(mapping => {
+        declaration.writables.map(writable => {
           object([
-            ("resource", mapping.resource.to_json()),
-            ("mapping_ref", mapping.mapping_ref.to_json()),
-            ("target_ref", mapping.target_ref.to_json()),
-            ("mapping_cid", mapping.mapping_cid.to_json()),
-            ("create_fields", optional_strings(mapping.create_fields)),
-            ("update_fields", optional_strings(mapping.update_fields)),
-            ("upsert_fields", optional_strings(mapping.upsert_fields)),
-            ("upsert_keys", strings(mapping.upsert_keys)),
-            ("body", mapping.body.to_json()),
+            ("resource", writable.resource.to_json()),
+            ("target_ref", writable.target_ref.to_json()),
+            ("create_fields", optional_strings(writable.create_fields)),
+            ("update_fields", optional_strings(writable.update_fields)),
+            ("upsert_fields", optional_strings(writable.upsert_fields)),
+            ("upsert_keys", strings(writable.upsert_keys)),
+            ("required_fields", strings(writable.required_fields)),
           ])
         }),
       ),
@@ -978,17 +896,328 @@ pub fn static_declaration_json(
 }
 
 ///|
-pub fn check_declared_single_write(
-  declaration : StaticDeclaration,
-  request : SingleWriteRequest,
-) -> Result[Unit, DeclarationUseIssue] {
-  check_declared_write(declaration, request.projection)
+/// The Result field feeding one target field of a Result-backed create.
+pub(all) struct RowSource {
+  target : String
+  source : String
+  null_behavior : String
+} derive(Eq, Debug)
+
+///|
+/// One Effect's write, as the Program will state it.
+pub(all) enum ExecutionWrite {
+  /// `create` with an inline `payload` naming these fields.
+  CreatePayload(Array[String])
+  /// `create` from a Named Result through these field sources.
+  CreateFromResult(Array[RowSource])
+  /// `update` by record Id of exactly these fields.
+  UpdateById(Array[String])
+  /// `upsert` on this external ID of exactly these body fields.
+  UpsertByExternalId(String, Array[String])
+} derive(Eq, Debug)
+
+///|
+pub(all) enum ExecutionMappingIssue {
+  NotWritable(String)
+  OperationNotDeclared
+  EmptyWrite
+  DuplicateField(String)
+  FieldNotWritable(String)
+  KeyNotDeclared(String)
+  KeyInBody(String)
+  MissingRequiredField(String)
+  InvalidNullBehavior(String)
+  InvalidManifest
+  OutputLimit
+} derive(Eq, Debug)
+
+///|
+/// The executable Mapping for one declared write. Its single permission rule
+/// is exactly this write, so the common Effect Check's exact rule match and
+/// the provider's request coincide.
+pub struct ExecutionMapping {
+  declaration : StaticDeclaration
+  resource : String
+  operation : WriteOperation
+  fields : Array[String]
+  mapping_ref : String
+  mapping_cid : String
+  body : String
 }
 
 ///|
-pub fn check_declared_collection_write(
+fn field_in(resource : ResourceMetadata, name : String) -> FieldMetadata? {
+  match resource.fields.search_by(field => field.name == name) {
+    Some(index) => Some(resource.fields[index])
+    None => None
+  }
+}
+
+///|
+fn unique_names(names : Array[String]) -> Result[Unit, ExecutionMappingIssue] {
+  let seen : Map[String, Bool] = Map([])
+  for name in names {
+    if seen.contains(name) {
+      return Err(DuplicateField(name))
+    }
+    seen[name] = true
+  }
+  Ok(())
+}
+
+///|
+/// Prepare the Mapping one Effect uses. The connector manifest identity is
+/// supplied by the Host that admitted the Connector; this Connector does not
+/// derive it from any other contract.
+pub fn prepare_execution_mapping(
   declaration : StaticDeclaration,
+  resource_name : String,
+  write : ExecutionWrite,
+  connector_manifest_cid : String,
+  limits : DeclarationLimits,
+) -> Result[ExecutionMapping, ExecutionMappingIssue] {
+  if !observation_cid(connector_manifest_cid) {
+    return Err(InvalidManifest)
+  }
+  guard declaration.writables.search_by(value => value.resource == resource_name)
+    is Some(writable_index) else {
+    return Err(NotWritable(resource_name))
+  }
+  let writable = declaration.writables[writable_index]
+  guard declaration.resources.search_by(value => value.name == resource_name)
+    is Some(resource_index) else {
+    return Err(NotWritable(resource_name))
+  }
+  let resource = declaration.resources[resource_index]
+  let (kind, selector, operation, fields, allowed, key) = match write {
+    CreatePayload(fields) =>
+      ("create", "none", WriteCreate, fields, writable.create_fields, None)
+    CreateFromResult(sources) =>
+      (
+        "create",
+        "none",
+        WriteCreate,
+        sources.map(source => source.target),
+        writable.create_fields,
+        None,
+      )
+    UpdateById(fields) =>
+      ("update", "id", WriteUpdateById, fields, writable.update_fields, None)
+    UpsertByExternalId(key, fields) =>
+      (
+        "upsert",
+        "key",
+        WriteUpsertByExternalId(key),
+        fields,
+        writable.upsert_fields,
+        Some(key),
+      )
+  }
+  guard allowed is Some(candidates) else { return Err(OperationNotDeclared) }
+  if fields.is_empty() && !(write is CreateFromResult(_)) {
+    return Err(EmptyWrite)
+  }
+  match unique_names(fields) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  if key is Some(name) {
+    if !writable.upsert_keys.contains(name) {
+      return Err(KeyNotDeclared(name))
+    }
+    // Salesforce selects the record by the key; it is not also a body field.
+    if fields.contains(name) {
+      return Err(KeyInBody(name))
+    }
+  }
+  for name in fields {
+    if !candidates.contains(name) {
+      return Err(FieldNotWritable(name))
+    }
+  }
+  if kind == "create" {
+    for name in writable.required_fields {
+      if !fields.contains(name) {
+        return Err(MissingRequiredField(name))
+      }
+    }
+  }
+  let row_mapping : Array[(String, Json)] = []
+  if write is CreateFromResult(sources) {
+    for source in sources {
+      let field = field_in(resource, source.target).unwrap()
+      let valid = match source.null_behavior {
+        "reject" => true
+        "write_null" => field.nullable
+        "omit" => !writable.required_fields.contains(source.target)
+        _ => false
+      }
+      if !valid || source.source.length() == 0 {
+        return Err(InvalidNullBehavior(source.target))
+      }
+      row_mapping.push(
+        (
+          source.target,
+          object([
+            ("field", source.source.to_json()),
+            ("null_behavior", source.null_behavior.to_json()),
+          ]),
+        ),
+      )
+    }
+  }
+  let schema_fields : Array[(String, Json)] = [
+    (
+      "Id",
+      object([("nullable", false.to_json()), ("type", "string".to_json())]),
+    ),
+  ]
+  // The upsert key is part of the target schema, so the Mapping identity
+  // names the external ID it selects by.
+  let described = match key {
+    Some(name) => [..fields, name]
+    None => fields
+  }
+  for name in described {
+    guard field_in(resource, name) is Some(field) &&
+      field_contract(field) is Some(contract) else {
+      return Err(FieldNotWritable(name))
+    }
+    if name != "Id" {
+      schema_fields.push((name, contract))
+    }
+  }
+  let written = sorted_strings(fields)
+  let required = if kind == "create" {
+    sorted_strings(writable.required_fields)
+  } else {
+    []
+  }
+  let target_schema = object([
+    ("type", "object".to_json()),
+    ("nullable", false.to_json()),
+    ("additional_properties", false.to_json()),
+    ("fields", object(schema_fields)),
+  ])
+  try {
+    let request_identity = canonical_cid(
+      object([
+        ("resource", resource_name.to_json()),
+        ("kind", kind.to_json()),
+        ("key", key.map(value => value.to_json()).unwrap_or(Json::null())),
+        ("target_schema", target_schema),
+        ("write_fields", strings(written)),
+        ("row_mapping", object(row_mapping)),
+      ]),
+      limits,
+    )
+    // A distinct reference per distinct write, so several can share one
+    // Check Environment.
+    let mapping_ref = "mapping:" +
+      declaration.connector_id +
+      "/" +
+      resource_name +
+      "/" +
+      kind +
+      "-" +
+      request_identity[7:23].to_owned() +
+      ".v1"
+    let (mapping, mapping_cid) = seal(
+      [
+        ("schema", "actql.mapping_contract/0.1".to_json()),
+        ("mapping_ref", mapping_ref.to_json()),
+        ("version", declaration.connector_version.to_json()),
+        ("target_ref", writable.target_ref.to_json()),
+        ("connector_manifest_cid", connector_manifest_cid.to_json()),
+        (
+          "resource_identity_cid",
+          canonical_cid(resource_identity(), limits).to_json(),
+        ),
+        ("target_schema", target_schema),
+        (
+          "target_schema_identity",
+          canonical_cid(target_schema, limits).to_json(),
+        ),
+        ("primary_identity", "Id".to_json()),
+        ("writable_fields", strings(written)),
+        ("required_fields", strings(required)),
+        ("conversions", Json::array([])),
+        (
+          "permission_rules",
+          Json::array([
+            object([
+              ("effect_kind", kind.to_json()),
+              ("selector_class", selector.to_json()),
+              ("write_fields", strings(written)),
+              ("permissions", strings(["salesforce:record:" + kind])),
+            ]),
+          ]),
+        ),
+        ("required_permissions", Json::array([])),
+        ("minimum_approval", "none".to_json()),
+        ("row_mapping", object(row_mapping)),
+      ],
+      "mapping_contract_cid",
+      limits,
+    )
+    Ok({
+      declaration,
+      resource: resource_name,
+      operation,
+      fields: written,
+      mapping_ref,
+      mapping_cid,
+      body: canonical_text(mapping, limits),
+    })
+  } catch {
+    _ => Err(OutputLimit)
+  }
+}
+
+///|
+/// Before any provider I/O: the write request must be exactly this
+/// execution Mapping's write, for the declaring Site, and every field it uses
+/// (the upsert key included) must still mean what was declared.
+pub fn check_execution_write(
+  mapping : ExecutionMapping,
+  projection : WriteProjection,
+) -> Result[Unit, DeclarationUseIssue] {
+  let declaration = mapping.declaration
+  if !declaration_site_matches(declaration.binding, projection.binding) {
+    return Err(ForeignDeclaration)
+  }
+  if projection.resource != mapping.resource ||
+    projection.operation != mapping.operation {
+    return Err(Undeclared)
+  }
+  let requested = sorted_strings(projection.field_names)
+  if requested != mapping.fields {
+    for name in requested {
+      if !mapping.fields.contains(name) {
+        return Err(UndeclaredField(name))
+      }
+    }
+    return Err(Undeclared)
+  }
+  let used = match projection.external_target {
+    Some(target) => [..projection.fields, target]
+    None => projection.fields
+  }
+  check_declared_fields(declaration, projection.resource, used)
+}
+
+///|
+pub fn check_execution_single_write(
+  mapping : ExecutionMapping,
+  request : SingleWriteRequest,
+) -> Result[Unit, DeclarationUseIssue] {
+  check_execution_write(mapping, request.projection)
+}
+
+///|
+pub fn check_execution_collection_write(
+  mapping : ExecutionMapping,
   request : WriteCollectionRequest,
 ) -> Result[Unit, DeclarationUseIssue] {
-  check_declared_write(declaration, request.projection)
+  check_execution_write(mapping, request.projection)
 }

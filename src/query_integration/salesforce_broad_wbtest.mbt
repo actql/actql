@@ -87,6 +87,7 @@ fn salesforce_broad_declaration(
   resource? : String = "r",
   connector_id? : String = "crm/main",
   site_generation? : Int = 1,
+  filterable? : Bool = false,
 ) -> @salesforce_catalog.StaticDeclaration {
   let listing = @salesforce_catalog.project_resource_listing(
     @utf8.encode(
@@ -104,7 +105,9 @@ fn salesforce_broad_declaration(
   let sync = @salesforce_catalog.begin_catalog_sync(listing)
   let description = "{\"name\":\"" +
     resource +
-    "\",\"queryable\":true,\"fields\":[{\"name\":\"id\",\"type\":\"int\",\"nillable\":false,\"filterable\":false}]}"
+    "\",\"queryable\":true,\"fields\":[{\"name\":\"id\",\"type\":\"int\",\"nillable\":false,\"filterable\":" +
+    filterable.to_string() +
+    "}]}"
   @salesforce_catalog.catalog_sync_describe(
     sync,
     resource,
@@ -253,7 +256,7 @@ test "Salesforce pushes an exact checked integer comparison and retains residual
     requirement,
     salesforce_broad_plan(filterable=true),
     "crm/main",
-    salesforce_broad_declaration(),
+    salesforce_broad_declaration(filterable=true),
   ).unwrap()
   assert_eq(
     @salesforce_catalog.read_projection_soql(
@@ -335,7 +338,7 @@ test "Salesforce pushes an exact checked integer comparison and retains residual
       requirement,
       salesforce_broad_plan(native_type="double", filterable=true),
       "crm/main",
-      salesforce_broad_declaration(),
+      salesforce_broad_declaration(filterable=true),
     )
     is Err(Undeclared(UndeclaredField("id"))),
   )

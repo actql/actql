@@ -22,11 +22,12 @@ const capacity = Object.freeze({
   version: 'actql-capacity-host-policy/0.1',
 });
 
-export function declarationEnvironment(declared) {
+// `mappings` are the execution Mapping bodies the Program's Effects use.
+export function declarationEnvironment(declared, mappings = []) {
   const body = {
     version: 'actql-check-environment/0.1',
     schema_snapshots: [], connector_capabilities: [],
-    mapping_contracts: byBody(declared.mappings.map(mapping => mapping.body)),
+    mapping_contracts: byBody(mappings),
     source_views: byBody(declared.source_views),
     command_contracts: [], model_task_contracts: [],
     contract_registry: byBody(declared.contracts),

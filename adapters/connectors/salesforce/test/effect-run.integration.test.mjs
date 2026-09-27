@@ -39,7 +39,8 @@ import {issueSalesforceEffectCapability, inspectSalesforceEffectCapability} from
   '../site/salesforce-effect-capability.mjs';
 import {installSalesforceAuthorization} from
   '../host/installed-salesforce-site.mjs';
-import {openSalesforceEffectSiteFixture, salesforceSiteAccountConfiguration} from
+import {fixtureWrites, openSalesforceEffectSiteFixture,
+  salesforceSiteAccountConfiguration} from
   './salesforce-effect-site.fixture.mjs';
 import {recoverRetainedSalesforceCatalog} from
   '../site/salesforce-catalog-recovery.mjs';
@@ -416,51 +417,74 @@ function effectInputPreview(prepared, evidence, definition, invocation,
     authoring.authoring_context_cid, keys};
 }
 
+// One create request of the fixture Site, projected from `observation`.
+function capabilityRequest(site, observation = site.catalog.observation) {
+  const binding = JSON.parse(
+    salesforceMoon.salesforceCatalogObservationJson(observation)).binding;
+  const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
+    observation, binding.tenant, binding.principal, binding.environment,
+    binding.connection_revision, binding.org_id, binding.site_key,
+    binding.site_generation, binding.connector_registration,
+    binding.connector_revision, binding.resource_origin,
+    binding.run_invocation_cid, binding.dispatch_request_cid,
+    binding.sync_occurrence,
+    'Test_Record__c', 0, '', ['Name', 'External_Key__c'], 2));
+  const body = checked(salesforceMoon.salesforcePrepareWriteBody(projection,
+    Buffer.from('{"Name":"value","External_Key__c":"value"}'), 1024, 32, 5));
+  return checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
+    body, 'v62.0', 0, '', 0, 256, 128, 1024));
+}
+
 async function capabilitySite(t) {
   const site = await openSalesforceEffectSiteFixture(t, {
     commonMoon: moon, salesforceMoon, runInvocationCid: cid('b'),
     dispatchRequestCid: cid('c'), writeOperation: 'create',
   });
-  const scope = site.write.scope;
-  const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
-    site.catalog.observation, scope.tenant, scope.principal, scope.environment,
-    'connection-revision-a', site.orgId, scope.siteKey, scope.siteGeneration,
-    scope.connectorRegistration, scope.connectorRevision, scope.resourceOrigin,
-    scope.runInvocationCid, scope.dispatchRequestCid, 'catalog-sync-a',
-    'Test_Record__c', 0, '', ['Name', 'External_Key__c'], 2));
-  const body = checked(salesforceMoon.salesforcePrepareWriteBody(projection,
-    Buffer.from('{"Name":"value","External_Key__c":"value"}'), 1024, 32, 5));
-  const request = checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
-    body, 'v62.0', 0, '', 0, 256, 128, 1024));
+  const request = capabilityRequest(site);
   const options = {moon: salesforceMoon, requests: [request],
     currentObservation: site.catalog.observation,
     authorization: site.write, credential: site.credential,
-    declaration: site.declaration, maxRows: 2, maxBytes: 20000};
+    mapping: site.executionMapping(fixtureWrites.create).mapping,
+    maxRows: 2, maxBytes: 20000};
   return {site, request, options};
 }
 
-test('Salesforce capability requires this Site\'s declaration before any use',
+test('Salesforce capability requires the exact execution Mapping before any use',
   async t => {
     const {site, options} = await capabilitySite(t);
     const other = await openSalesforceEffectSiteFixture(t, {
       commonMoon: moon, salesforceMoon, runInvocationCid: cid('b'),
       dispatchRequestCid: cid('c'), writeOperation: 'create',
       orgId: '00D000000000002EAA'});
-    // A declaration whose create rule omits Name (declared from a later
-    // describe of the same Site) refuses a write of Name.
+    // A later declaration that no longer allows creating Name cannot even
+    // prepare this write's Mapping.
     site.setNameCreateable(false);
     const narrowed = await site.refreshDeclaration();
     site.setNameCreateable(true);
-    assert.equal(narrowed.mappings[0].create_fields.includes('Name'), false);
+    assert.equal(narrowed.writables[0].create_fields.includes('Name'), false);
+    assert.throws(() => site.executionMapping(fixtureWrites.create,
+      narrowed.declaration), {code: 'MoonBitHostFailure'});
+    // The schema changes under the same Site binding: a request projected
+    // from the new describe no longer matches what was declared.
+    site.setNameUpdateable(false);
+    const changed = await site.refreshCatalog();
+    const drifted = capabilityRequest(site, changed.observation);
+    site.setNameUpdateable(true);
     const uses = site.journal.recover().length;
     const sent = site.seen.length;
     assert.throws(() => issueSalesforceEffectCapability({...options,
-      declaration: undefined}), {code: 'InvalidSalesforceEffectCapability'});
-    // Same connection id and schema, another org: a foreign declaration.
+      mapping: undefined}), {code: 'InvalidSalesforceEffectCapability'});
+    // Same connection id and schema, another org: a foreign Mapping.
     assert.throws(() => issueSalesforceEffectCapability({...options,
-      declaration: other.declaration}), {code: 'MoonBitHostFailure'});
+      mapping: other.executionMapping(fixtureWrites.create).mapping}),
+    {code: 'MoonBitHostFailure'});
+    // Another write's Mapping: an update of Name is not this create.
     assert.throws(() => issueSalesforceEffectCapability({...options,
-      declaration: narrowed.declaration}), {code: 'MoonBitHostFailure'});
+      mapping: site.executionMapping(fixtureWrites.update).mapping}),
+    {code: 'MoonBitHostFailure'});
+    assert.throws(() => issueSalesforceEffectCapability({...options,
+      requests: [drifted], currentObservation: changed.observation}),
+    {code: 'MoonBitHostFailure'});
     // Refused before any credential use or request.
     assert.equal(site.journal.recover().length, uses);
     assert.equal(site.seen.length, sent);
@@ -1741,7 +1765,7 @@ test(`two-member captured Effect Run ${
           requests: siteRequests[index],
           currentObservation: currentCatalogs[index],
           authorization: site.write, credential: site.credential,
-          declaration: site.declaration,
+          mapping: site.executionMapping(fixtureWrites[writeKind]).mapping,
           collection: collectionMode && index === 0,
           maxRows: 4, maxBytes: 20000}));
       let targetRead = 0;
@@ -2591,6 +2615,7 @@ test(`two-member captured Effect Run ${
               maxRetainedBytes: 30000,
               ...(processPreparedIntent ? {
                 sites: sites.map(site => site.recoveryConnection),
+                writes: sites.map(() => fixtureWrites[writeKind]),
               } : {}),
             },
           };

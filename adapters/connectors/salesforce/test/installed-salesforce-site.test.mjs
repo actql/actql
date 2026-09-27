@@ -365,10 +365,11 @@ test('installed Salesforce Site declares only its selected, typed Resources',
       view.source_ref, view.fields]), [['Test_Record__c',
       'connector://crm-main/Test_Record__c#records',
       ['Id', 'Name', 'External_Key__c']]]);
-    const [mapping] = declared.mappings;
-    assert.equal(mapping.target_ref, 'connector://crm-main/Test_Record__c');
-    assert.deepEqual(mapping.create_fields, ['External_Key__c', 'Name']);
-    assert.deepEqual(mapping.upsert_keys, ['External_Key__c']);
+    const [writable] = declared.writables;
+    assert.equal(writable.target_ref, 'connector://crm-main/Test_Record__c');
+    assert.deepEqual(writable.create_fields, ['External_Key__c', 'Name']);
+    assert.deepEqual(writable.upsert_keys, ['External_Key__c']);
+    assert.deepEqual(writable.required_fields, ['External_Key__c', 'Name']);
     // The Catalog is the generator's canonical text; its CID is recomputed
     // here independently from the canonical bytes.
     const catalog = JSON.parse(declared.catalog);

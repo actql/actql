@@ -3,6 +3,8 @@ pub(all) suberror SalesforceDeclarationBridgeIssue {
   UnknownRevision
   Declaration(@catalog.DeclarationIssue)
   DeclaredUse(@catalog.DeclarationUseIssue)
+  ExecutionMapping(@catalog.ExecutionMappingIssue)
+  InvalidWrite
   OutputLimit
 }
 
@@ -92,24 +94,100 @@ pub fn salesforce_static_declaration_json(
 }
 
 ///|
-#export_name("salesforceCheckDeclaredSingleWrite")
-pub fn salesforce_check_declared_single_write(
+/// One Effect's executable Mapping from the Site's declaration. `kind` is
+/// 0 create with payload `fields`, 1 create from a Result through
+/// `targets`/`sources`/`null_behaviors`, 2 update by Id of `fields`, 3 upsert
+/// on `key` of `fields`.
+#export_name("salesforcePrepareExecutionMapping")
+pub fn salesforce_prepare_execution_mapping(
   declaration : @catalog.StaticDeclaration,
+  resource : String,
+  kind : Int,
+  fields : Array[String],
+  key : String,
+  targets : Array[String],
+  sources : Array[String],
+  null_behaviors : Array[String],
+  connector_manifest_cid : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @catalog.ExecutionMapping raise SalesforceDeclarationBridgeIssue {
+  let write : @catalog.ExecutionWrite = match kind {
+    0 => CreatePayload(fields)
+    1 => {
+      if targets.length() != sources.length() ||
+        targets.length() != null_behaviors.length() {
+        raise InvalidWrite
+      }
+      CreateFromResult(
+        targets.mapi((index, target) => {
+          target,
+          source: sources[index],
+          null_behavior: null_behaviors[index],
+        }),
+      )
+    }
+    2 => UpdateById(fields)
+    3 => UpsertByExternalId(key, fields)
+    _ => raise InvalidWrite
+  }
+  match
+    @catalog.prepare_execution_mapping(
+      declaration,
+      resource,
+      write,
+      connector_manifest_cid,
+      { max_bytes, max_nodes, max_depth, },
+    ) {
+    Ok(value) => value
+    Err(issue) => raise ExecutionMapping(issue)
+  }
+}
+
+///|
+#export_name("salesforceExecutionMappingRef")
+pub fn salesforce_execution_mapping_ref(
+  mapping : @catalog.ExecutionMapping,
+) -> String {
+  mapping.mapping_ref
+}
+
+///|
+#export_name("salesforceExecutionMappingCid")
+pub fn salesforce_execution_mapping_cid(
+  mapping : @catalog.ExecutionMapping,
+) -> String {
+  mapping.mapping_cid
+}
+
+///|
+#export_name("salesforceExecutionMappingBody")
+pub fn salesforce_execution_mapping_body(
+  mapping : @catalog.ExecutionMapping,
+) -> String {
+  mapping.body
+}
+
+///|
+#export_name("salesforceCheckExecutionSingleWrite")
+pub fn salesforce_check_execution_single_write(
+  mapping : @catalog.ExecutionMapping,
   request : @catalog.SingleWriteRequest,
 ) -> Unit raise SalesforceDeclarationBridgeIssue {
-  match @catalog.check_declared_single_write(declaration, request) {
+  match @catalog.check_execution_single_write(mapping, request) {
     Ok(_) => ()
     Err(issue) => raise DeclaredUse(issue)
   }
 }
 
 ///|
-#export_name("salesforceCheckDeclaredCollectionWrite")
-pub fn salesforce_check_declared_collection_write(
-  declaration : @catalog.StaticDeclaration,
+#export_name("salesforceCheckExecutionCollectionWrite")
+pub fn salesforce_check_execution_collection_write(
+  mapping : @catalog.ExecutionMapping,
   request : @catalog.WriteCollectionRequest,
 ) -> Unit raise SalesforceDeclarationBridgeIssue {
-  match @catalog.check_declared_collection_write(declaration, request) {
+  match @catalog.check_execution_collection_write(mapping, request) {
     Ok(_) => ()
     Err(issue) => raise DeclaredUse(issue)
   }

@@ -72,6 +72,26 @@ fn salesforce_declaration_fixture(
 }
 
 ///|
+/// Execution Mappings of the fixture Resource: update of Name and upsert on
+/// the external ID, under a placeholder manifest identity.
+fn salesforce_execution_bodies(
+  declaration : @salesforce_catalog.StaticDeclaration,
+) -> Array[String] {
+  [
+    @salesforce_catalog.UpdateById(["Name"]),
+    @salesforce_catalog.UpsertByExternalId("External_Key__c", ["Name"]),
+  ].map(write => {
+    @salesforce_catalog.prepare_execution_mapping(
+      declaration,
+      "Record__c",
+      write,
+      "sha256:" + "a".repeat(64),
+      { max_bytes: 200000, max_nodes: 20000, max_depth: 32, },
+    ).unwrap().body
+  })
+}
+
+///|
 fn text_cid(text : String) -> String {
   "sha256:" + @sha.hex(@utf8.encode(text))
 }
@@ -121,7 +141,7 @@ test "a generated Salesforce declaration passes the existing Check Environment a
     [declaration.catalog],
     declaration.contracts,
     declaration.view_bodies,
-    declaration.mappings.map(mapping => mapping.body),
+    salesforce_execution_bodies(declaration),
   )
   // The same chain the existing Catalog fixtures use, through request
   // contracts; this panics on any rejection.
@@ -137,7 +157,7 @@ test "a generated Salesforce declaration passes the existing Check Environment a
 test "admission rejects an altered or duplicated Salesforce declaration" {
   let declaration = salesforce_declaration_fixture()
   let caps = declaration_limits_for_admission()
-  let mappings = declaration.mappings.map(mapping => mapping.body)
+  let mappings = salesforce_execution_bodies(declaration)
   // A declared type changed without resealing no longer matches its CIDs.
   let altered = declaration.catalog.replace(
     old="\"Count__c\":{\"nullable\":true,\"type\":\"number\"}",

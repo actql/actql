@@ -219,13 +219,20 @@ try {
         checked(salesforceMoon.salesforceImplementation('salesforce/0.1')),
         'crm-main', ['Test_Record__c'], 400000, 40000, 64));
     };
+    const executionWrite = write => [
+      {create: 0, update: 2, upsert: 3}[write.kind], write.fields,
+      write.key ?? '', [], [], []];
     const prepareCurrentUse = () => {
       const capabilities = activeSites.map((site, memberIndex) =>
         issueSalesforceEffectCapability({moon: salesforceMoon,
           requests: recoveredSalesforce.requests[memberIndex],
           currentObservation: recoveredSalesforce.catalogs[memberIndex],
           authorization: site.write, credential: site.credential,
-          declaration: redeclare(recoveredSalesforce.catalogs[memberIndex]),
+          mapping: checked(salesforceMoon.salesforcePrepareExecutionMapping(
+            redeclare(recoveredSalesforce.catalogs[memberIndex]),
+            'Test_Record__c', ...executionWrite(
+              input.salesforceRecovery.writes[memberIndex]),
+            `sha256:${'a'.repeat(64)}`, 400000, 40000, 64)),
           maxRows: input.maxRows, maxBytes: 20000}));
       return installSalesforceEffectCurrentUse({
         moon: salesforceMoon, commonMoon: moon,
