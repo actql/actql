@@ -15,11 +15,12 @@ import {sourceFreeValuesPlan, acquiredTaskRunAdmission} from
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const hash = body => `sha256:${createHash('sha256')
   .update(canonicalText(body)).digest('hex')}`;
-// Compatibility snapshots from the pre-refactor compiler. These supplement,
+// Compatibility snapshots from the standalone compiler under main's pins.
+// These supplement,
 // not replace, the independent logical-plan vectors in run-host-core tests.
 const planCids = {
-  values: 'sha256:5bb63ee040f2988dc694fc75b91bbab154053283588653a4f4bae0b4d1406dd4',
-  tasks: 'sha256:88c46b0d0a30df30c7bb7efbbd7d2452a6b8baf183aa5203040d8900f4397e47',
+  values: 'sha256:513346f1e064e10fda56ac3037c5cfcdd3fa21edf8abe3fc36aac7024771c529',
+  tasks: 'sha256:9f2ef3d4d2908a1693fecf4873885de150f6553187923461deab710dacb5e99f',
 };
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 const policy = Object.freeze({executionContextCid: cid('a'),

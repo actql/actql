@@ -1,0 +1,20 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/aql_text_test_bridge"
+
+// Values
+pub fn json_admission_diagnostic(String) -> String
+
+pub fn json_to_structural(String) -> String
+
+pub fn structural_to_json(String) -> String
+
+// Errors
+pub suberror FixtureRejected {
+  FixtureRejected
+}
+
+// Types and methods
+
+// Type aliases
+
+// Traits

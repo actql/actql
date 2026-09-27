@@ -1,0 +1,35 @@
+(* Structural frontend r1. Keywords are ASCII case-insensitive. *)
+text_document = header, program, EOF ;
+header = "AQL", version_string, ";" ;
+program = "PROGRAM", string, "{", { program_member }, "}" ;
+program_member = meta | params | bindings | stage | result ;
+meta = "META", json_object, ";" ;
+params = "PARAMS", json_object, ";" ;
+bindings = "BINDINGS", json_object, ";" ;
+stage = "STAGE", name, [ "AFTER", ( "ACCEPTED" | "COMPLETED" ) ],
+        "{", { stage_member }, "}" ;
+stage_member = meta | input | initial_from | step | data | result
+             | effect | empty_effects ;
+input = "INPUT", name, "=", json_value, ";" ;
+initial_from = "FROM", name, ";" ;
+step = "STEP", json_object, ";" ;
+data = "DATA", name, "=", native_query, ";" ;
+native_query = "FROM", name, { "|>", native_op }
+             | native_op, { "|>", native_op } ;
+native_op = "OP", operation_name, json_value ;
+result = "RESULT", name, "=", json_object, ";" ;
+effect = "EFFECT", name, "=", json_object, ";" ;
+empty_effects = "EFFECTS", "{", "}", ";" ;
+name = identifier | quoted_identifier | string ;
+identifier = identifier_start, { identifier_start | digit } ;
+identifier_start = "A".."Z" | "a".."z" | "_" ;
+digit = "0".."9" ;
+quoted_identifier = "`", quoted_identifier_character,
+                    { quoted_identifier_character }, "`" ;
+string = "'", { string_character }, "'" ;
+version_string = string ; (* Decoded value must be exactly 0.1. *)
+operation_name = identifier ; (* Exact closed Grammar Manifest spelling. *)
+json_object = ? RFC 8259 object, admitted by the existing source parser ? ;
+json_value = ? RFC 8259 value, admitted by the existing source parser ? ;
+quoted_identifier_character = ? Scalar or allowed escape; see structural-text.md ? ;
+string_character = ? Scalar or allowed escape; see structural-text.md ? ;

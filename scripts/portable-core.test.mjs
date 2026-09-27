@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync, mkdirSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {inspectCore, packageImports} from './portable-core.mjs';
+import {inspectCore, packageImports, copyProductionCore} from './portable-core.mjs';
 
 const manifest = 'supported_targets = "+js+wasm+native"\n';
 function fixture(t) {
@@ -109,4 +109,31 @@ test('actual explicitly rooted product closure passes', () => {
   assert.ok(result.roots.includes('execution_relation'));
   assert.ok(result.packages.includes('lowering_relation'));
   assert.ok(Object.keys(result.external).every(key => !key.endsWith('/env')));
+});
+
+
+test('isolated build retains production aliases and excludes test-only packages and files', t => {
+  const f = fixture(t);
+  f.put('root', 'moon.pkg', manifest + `
+    import { "actql/actql/helper" @production, }
+    import { "actql/actql/aql_text" @frontend, } for "test"
+    import { "moonbitlang/core/env" @host, } for "wbtest"
+    formatter(ignore: ["example_test.mbt"],)
+  `);
+  f.put('helper', 'moon.pkg', manifest);
+  f.put('helper', 'helper.mbt', 'pub fn value() -> Int { 1 }');
+  f.put('root', 'main.mbt', 'pub fn identity() -> Int { @production.value() }');
+  f.put('root', 'example_test.mbt', 'test { @frontend.parse() }');
+  f.put('root', 'example_wbtest.mbt', 'test { @host.now() }');
+  const isolated = join(f.root, 'isolated');
+  const audit = copyProductionCore(f.root, isolated, ['root']);
+  assert.deepEqual(audit.packages, ['helper', 'root']);
+  assert.deepEqual(readdirSync(join(isolated, 'src', 'root')).sort(),
+    ['main.mbt', 'moon.pkg']);
+  assert.deepEqual(packageImports(readFileSync(join(isolated, 'src', 'root', 'moon.pkg'), 'utf8')),
+    [{path: 'actql/actql/helper', alias: 'production', scope: 'production'}]);
+  assert.equal(readFileSync(join(isolated, 'src', 'root', 'main.mbt'), 'utf8'),
+    readFileSync(join(f.root, 'src', 'root', 'main.mbt'), 'utf8'));
+  assert.equal(existsSync(join(isolated, 'src', 'aql_text')), false);
+  assert.deepEqual(inspectCore(isolated, ['root']).packages, audit.packages);
 });

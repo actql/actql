@@ -5,6 +5,14 @@
 Base: `87530f7185c26a3663ae0a6c0bf6f95dd8c33dd3` (main after PR #18).
 Implementation: `d72d8a9353d69c3a5a5ee8709f7b654c5be52791`.
 
+Main subsequently advanced to `02c279a39567febbc11fb75a463bd6fbe92fb284`
+(Frontend PR #20). Integration retains its structural-AQL packed smoke and
+this branch's removal of the extra runtime package. Main's grammar pins change
+Plan identities independently of this refactor. Compatibility snapshots were
+refreshed against the standalone compiler under those exact pins; the Template
+expectation already reads the pinned manifests. The measurements below retain
+their original same-pin baseline and are not comparisons across grammar pins.
+
 This unit removes duplicate initial preparation and compilation in the
 installed Local Values and acquired Task paths. It does not add execution
 profiles, change algorithms, redesign the SDK, or optimize Effect processing.
