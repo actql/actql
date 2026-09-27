@@ -136,6 +136,53 @@ test('allow runs without a Checkpoint; deny and missing configuration start noth
     }
   });
 
+test('a claimed start with lost execution observation reconciles after restart',
+  async t => {
+    const directory = await mkdtemp(join(scratch, 'unknown-run-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const first = await remoteHost(t, protectedHost('allow', {
+      observe(name) {
+        if (name === 'physical_start_reserved') {
+          throw new Error('LostExecutionObservation');
+        }
+      },
+    }), {directory});
+    const client = await first.as('owner-token');
+    const execution = await client.aql(document, {format: 'json',
+      requestId: 'unknown-start'});
+    const unknown = await waitFor(async () => {
+      const state = await execution.status();
+      return state.status === 'needs_reconciliation' ? state : undefined;
+    });
+    assert.deepEqual(unknown.next_action,
+      {kind: 'reconcile_run', reason: 'execution_unknown'});
+    assert.equal(first.dispatches(), 1);
+    await first.close();
+    const restarted = await remoteHost(t, protectedHost('allow'),
+      {directory});
+    const attached = await (await restarted.as('owner-token'))
+      .attach(execution.ref);
+    assert.equal((await attached.status()).status, 'needs_reconciliation');
+    assert.equal(restarted.dispatches(), 0);
+    await restarted.close();
+  });
+
+test('a late Host observation failure does not overwrite publication',
+  async t => {
+    const host = await remoteHost(t, protectedHost('allow', {
+      observe(name) {
+        if (name === 'computed') throw new Error('LateObservationFailure');
+      },
+    }));
+    const client = await host.as('owner-token');
+    const execution = await client.aql(document, {format: 'json',
+      requestId: 'late-observation'});
+    assert.equal((await execution.wait()).status, 'succeeded');
+    assert.deepEqual(await execution.result('answer').all(),
+      [{id: 1}, {id: 2}]);
+    assert.equal(host.dispatches(), 1);
+  });
+
 test('delegate immediate permit runs and immediate reject records nothing',
   async t => {
     const decide = view => ({decision: view.subject.subject_cid ===

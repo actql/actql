@@ -9,6 +9,7 @@ import * as moon from
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 
 const root = new URL('../../_build/client-request-journal-tests/', import.meta.url);
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -792,6 +793,47 @@ test('started cancellation never invents stop and terminal completion wins',
     assert.equal(journal.requestCancellation(accepted.ref, {
       currentAuthorization: true, publicationCommitted: true,
     }, moon, publicationControl).kind, 'already_terminal');
+  });
+
+test('started Run records only a confirmed terminal outcome across restart',
+  async t => {
+    const path = await directory(t);
+    let journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const requested = identity();
+    const accepted = journal.acceptDefinition(requested, {
+      tenantId: 'tenant-a', runDefinition: runDefinition(),
+      lookupExpiresAt: expires, resultNames: ['answer'],
+    }, moon, publicationControl);
+    journal.reserveDispatch(requested, {tenantId: 'tenant-a',
+      currentAuthorization: true}, moon, publicationControl);
+    assert.equal(claimPhysicalStart(journal, accepted.ref), true);
+    journal.close();
+    journal = openClientRequestJournal(path);
+    const state = () => {
+      const retained = journal.lookupRunDefinition(accepted.ref, moon,
+        publicationControl);
+      return JSON.parse(checked(
+        moon.clientProgramIssueControlledUnpublishedRunState(
+          publicationControl.runDefinitionRunId(retained.runDefinition),
+          '2026-09-27T00:00:00.000Z', retained.resultNames,
+          retained.dispatchReserved, retained.preDispatchFailureConfirmed,
+          false, retained.observedTerminalOutcome ?? 'none',
+          retained.physicalStartReserved === true &&
+            retained.observedTerminalOutcome === null)));
+    };
+    assert.equal(state().status, 'needs_reconciliation');
+    assert.deepEqual(state().next_action,
+      {kind: 'reconcile_run', reason: 'execution_unknown'});
+    journal.markPhysicalClose(accepted.ref, 'failed');
+    assert.equal(state().status, 'failed');
+    journal.markPhysicalClose(accepted.ref, 'failed');
+    assert.throws(() => journal.markPhysicalClose(accepted.ref,
+      'cancelled'), {code: 'ClientRunStopObservationDenied'});
+    journal.close();
+    journal = openClientRequestJournal(path);
+    assert.equal(state().status, 'failed');
+    assert.equal(claimPhysicalStart(journal, accepted.ref), false);
   });
 
 test('a started Run keeps one reconciliation state across a restart',
