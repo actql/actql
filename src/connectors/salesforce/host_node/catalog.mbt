@@ -50,6 +50,39 @@ pub fn salesforce_project_listing(
 }
 
 ///|
+/// The listing with only the named resources selected for description; a
+/// targeted selection is always marked truncated unless it is the whole
+/// visible listing.
+#export_name("salesforceProjectListingFor")
+pub fn salesforce_project_listing_for(
+  bytes : Bytes,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_resources : Int,
+  max_selected : Int,
+  max_name_units : Int,
+  names : Array[String],
+) -> @catalog.ResourceListing raise SalesforceCatalogBridgeIssue {
+  match
+    @catalog.project_resource_listing_for(
+      bytes,
+      {
+        max_bytes,
+        max_nodes,
+        max_depth,
+        max_resources,
+        max_selected,
+        max_name_units,
+      },
+      names,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Listing(issue)
+  }
+}
+
+///|
 #export_name("salesforceCatalogBegin")
 pub fn salesforce_catalog_begin(
   listing : @catalog.ResourceListing,
@@ -574,6 +607,34 @@ pub fn salesforce_read_projection_soql(
   plan : @catalog.ReadProjection,
 ) -> String {
   @catalog.read_projection_soql(plan)
+}
+
+///|
+/// The same read projection in ascending record Id order where the described
+/// Resource reports a sortable `id` field; otherwise the plan is returned
+/// unchanged and stays in unspecified provider order. It fails rather than
+/// dropping the order when the query budget cannot hold it.
+#export_name("salesforceReadProjectionWithIdOrderIfSortable")
+pub fn salesforce_read_projection_with_id_order_if_sortable(
+  plan : @catalog.ReadProjection,
+) -> @catalog.ReadProjection raise SalesforceCatalogBridgeIssue {
+  match @catalog.with_id_order(plan) {
+    Some(value) => value
+    None =>
+      if @catalog.read_projection_id_sortable(plan) {
+        raise ReadProjection(@catalog.QueryLimit)
+      } else {
+        plan
+      }
+  }
+}
+
+///|
+#export_name("salesforceReadProjectionOrderedById")
+pub fn salesforce_read_projection_ordered_by_id(
+  plan : @catalog.ReadProjection,
+) -> Bool {
+  @catalog.read_projection_ordered_by_id(plan)
 }
 
 ///|

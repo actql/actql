@@ -331,3 +331,119 @@ test "read projection does not infer nullability from partial metadata" {
     is Err(UnconfirmedNullability("Name")),
   )
 }
+
+///|
+fn account_observation(
+  id_field : String,
+  occurrence : String,
+) -> (CatalogObservation, CatalogObservationBinding) {
+  let listing = project_resource_listing(
+    @utf8.encode(
+      (
+        #|{"sobjects":[{"name":"Account","queryable":true}]}
+      ),
+    ),
+    {
+      max_bytes: 1000,
+      max_nodes: 100,
+      max_depth: 10,
+      max_resources: 10,
+      max_selected: 10,
+      max_name_units: 100,
+    },
+  ).unwrap()
+  let sync = begin_catalog_sync(listing)
+  catalog_sync_describe(
+    sync,
+    "Account",
+    @utf8.encode(
+      "{\"name\":\"Account\",\"queryable\":true,\"fields\":[" + id_field + "]}",
+    ),
+    {
+      max_bytes: 1000,
+      max_nodes: 100,
+      max_depth: 10,
+      max_fields: 10,
+      max_name_units: 100,
+    },
+  ).unwrap()
+  finish_catalog_sync(sync).unwrap()
+  let binding = { ..observation_test_binding(), sync_occurrence: occurrence, }
+  let response_digest = match catalog_sync_outcome(sync, "Account") {
+    Some(Described(resource)) => resource.response_sha256
+    _ => abort("expected described Account")
+  }
+  let observation = prepare_catalog_observation(
+    sync,
+    binding,
+    "sha256:" + "c".repeat(64),
+    [Some("sha256:" + "d".repeat(64))],
+    [Some(response_digest)],
+    4096,
+  ).unwrap()
+  (observation, binding)
+}
+
+///|
+test "Id order applies only to a described sortable Id and is rechecked" {
+  let sortable = "{\"name\":\"Id\",\"type\":\"id\",\"nillable\":false,\"sortable\":true}"
+  let unsorted = "{\"name\":\"Id\",\"type\":\"id\",\"nillable\":false}"
+  let (observation, binding) = account_observation(sortable, "a")
+  let plan = prepare_read_projection(
+    observation,
+    binding,
+    "Account",
+    ["Id"],
+    100,
+  ).unwrap()
+  let ordered = with_id_order(plan).unwrap()
+  assert_true(read_projection_ordered_by_id(ordered))
+  assert_true(with_id_order(ordered) is None)
+  let preview = with_row_limit(ordered, 5).unwrap()
+  assert_eq(
+    read_projection_soql(preview),
+    "SELECT Id FROM Account ORDER BY Id LIMIT 5",
+  )
+  // Order precedes the limit and admits no later filter.
+  assert_true(with_id_order(with_row_limit(plan, 5).unwrap()) is None)
+  assert_true(with_exact_int_comparison(ordered, "Id", Equal, 1) is None)
+  let tight = prepare_read_projection(
+    observation,
+    binding,
+    "Account",
+    ["Id"],
+    "SELECT Id FROM Account".length(),
+  ).unwrap()
+  assert_true(read_projection_id_sortable(tight))
+  assert_true(with_id_order(tight) is None)
+  let (plain, plain_binding) = account_observation(unsorted, "b")
+  let unordered = prepare_read_projection(
+    plain,
+    plain_binding,
+    "Account",
+    ["Id"],
+    100,
+  ).unwrap()
+  assert_false(read_projection_id_sortable(unordered))
+  assert_true(with_id_order(unordered) is None)
+  // A refresh that no longer reports Id as sortable rejects a plan ordered
+  // by Id even when Id is not projected; the unordered plan is admitted.
+  let name = ",{\"name\":\"Name\",\"type\":\"string\",\"nillable\":false}"
+  let (named, named_binding) = account_observation(sortable + name, "c")
+  let by_name = prepare_read_projection(
+    named,
+    named_binding,
+    "Account",
+    ["Name"],
+    100,
+  ).unwrap()
+  let by_name_ordered = with_id_order(by_name).unwrap()
+  let (refreshed, _) = account_observation(unsorted + name, "d")
+  assert_true(
+    recheck_read_projection(by_name_ordered, refreshed)
+    is Err(SchemaChanged("Id")),
+  )
+  assert_true(recheck_read_projection(by_name, refreshed) is Ok(_))
+  let (still, _) = account_observation(sortable + name, "e")
+  assert_true(recheck_read_projection(by_name_ordered, still) is Ok(_))
+}

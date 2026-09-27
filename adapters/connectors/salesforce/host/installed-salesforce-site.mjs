@@ -216,7 +216,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   function catalogSyncRequest({occurrence, retainResponses = false,
     maxRetainedBytes = 0, limits = defaultCatalogLimits,
     runInvocationCid: runCid, dispatchRequestCid: dispatchCid,
-    taskAttempt = 1, grantUses} = {}) {
+    taskAttempt = 1, grantUses, resources} = {}) {
     const sequence = syncSequence++;
     const syncOccurrence = occurrence ?? `catalog-sync-${now()}-${sequence}`;
     if ((runCid === undefined) !== (dispatchCid === undefined)) {
@@ -247,6 +247,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       authorizationForDescribe: async name => ({...describe,
         useId: `${syncOccurrence}-describe-${name}`}),
       listLimits: limits.list, describeLimits: limits.describe,
+      ...(resources === undefined ? {} : {resources: [...resources]}),
     });
     return Object.freeze({request, grants: Object.freeze({list, describe})});
   }
@@ -264,8 +265,10 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // One authorized preview of at most `maxRows` rows of `resource`. The
   // decision must be the installed gate's read dispatch for this exact
   // Resource. The preview syncs its own current Catalog, reads one page
-  // under a one-use query grant, and returns a provider-order prefix for
-  // display only: never complete-read evidence or a Result.
+  // under a one-use query grant, and returns a prefix for display only:
+  // never complete-read evidence or a Result. `limited` means the reply
+  // reached `maxRows`, so more rows may exist; `order` is `id` when the
+  // query fixed ascending Id order and `provider` otherwise.
   async function peek({decision, resource, fields, maxRows,
     maxBytes = 65536, maxNodes = 10000, signal} = {}) {
     if (!issuedDecisions.has(decision) || decision.action !== 'dispatch' ||
@@ -291,17 +294,22 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     const dispatchRequestCid = cid({version:
       'actql-salesforce-peek-dispatch/0.1', runInvocationCid});
     // The first sync plans the query; the query read rechecks it once under
-    // its own occurrence and the same dispatch.
+    // its own occurrence and the same dispatch. Each describes only the
+    // previewed Resource, so the grants cover one list and one describe per
+    // sync however many objects the org lists.
     const sync = suffix => catalogSyncRequest({
       occurrence: `${occurrence}-${suffix}`, runInvocationCid,
-      dispatchRequestCid, grantUses: 2}).request;
+      dispatchRequestCid, grantUses: 2, resources: [resource]}).request;
     const catalog = await syncSalesforceCatalog({...sync('plan'),
       moon: salesforceMoon, credential, signal});
     if (catalog.status === 'interrupted') {
       fail('SalesforceCatalogRefreshInterrupted');
     }
     const binding = JSON.parse(catalog.observationJson).binding;
+    // Ascending Id where the describe reports it sortable: the order of this
+    // one reply, not a snapshot or a rerun guarantee.
     const plan = checked(salesforceMoon.salesforceReadProjectionWithRowLimit(
+      checked(salesforceMoon.salesforceReadProjectionWithIdOrderIfSortable(
       checked(salesforceMoon.salesforcePrepareReadProjection(
         catalog.observation, binding.tenant, binding.principal,
         binding.environment, binding.connection_revision, binding.org_id,
@@ -309,7 +317,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
         binding.connector_registration, binding.connector_revision,
         binding.resource_origin, binding.run_invocation_cid,
         binding.dispatch_request_cid, binding.sync_occurrence, resource,
-        fields, 4096)), maxRows));
+        fields, 4096)))), maxRows));
     const query = sign({operation: 'salesforce:query:read', runInvocationCid,
       taskAttempt: 1, dispatchRequestCid, maxUses: 1});
     const rows = [];
@@ -329,6 +337,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       observationCid: result.currentCatalog.observationCid, resource,
       fields: Object.freeze([...fields]), rows: Object.freeze(rows),
       limited: rows.length === maxRows,
+      order: salesforceMoon.salesforceReadProjectionOrderedById(plan)
+        ? 'id' : 'provider',
     });
   }
 

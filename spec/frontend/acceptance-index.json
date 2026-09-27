@@ -1,0 +1,1637 @@
+{
+  "status": "requirements_only",
+  "case_count": 140,
+  "requirement_digest_encoding": "UTF-8, sorted object keys, compact JSON, original Unicode preserved",
+  "cases": [
+    {
+      "id": "STR-01",
+      "required": true,
+      "imported_requirement_sha256": "12788869f100f9b4799b0934a5a8a4ba9e22e101961f608d56b689d2d4ded4c7",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "text.total"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "All valid structured fixtures roundtrip to the same canonical Program."
+    },
+    {
+      "id": "STR-02",
+      "required": true,
+      "imported_requirement_sha256": "78430e06b69106be2ac825928bc395014ef72d40fb0491eca24e5cada02797b2",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "text.envelope"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Preserve root, stage, input, step, Result and Effect metadata."
+    },
+    {
+      "id": "STR-03",
+      "required": true,
+      "imported_requirement_sha256": "b18c4c493ce4cf17c116b7e62c936b6c312d6c9fe9fff898675e9802acbee7f2",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "text.envelope"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Preserve parameters, composite defaults and opaque bindings separately from DATA."
+    },
+    {
+      "id": "STR-04",
+      "required": true,
+      "imported_requirement_sha256": "0f1e7c1d5decd895ef30e725efb3dc443e6958e519c609001e3748cdf91ef715",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "text.envelope"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Preserve AFTER ACCEPTED and completion-only Receipt gating without fabricated receipts."
+    },
+    {
+      "id": "STR-05",
+      "required": true,
+      "imported_requirement_sha256": "da8c12de555ed4281c7d2bd01fb792a9e1fe1359198601175b770298c64c8821",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "text.total"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Retain explicit sort:[], rename:{} and drop:[] steps."
+    },
+    {
+      "id": "STR-06",
+      "required": true,
+      "imported_requirement_sha256": "d7b726415e4686d7bd27e23d3f7aee7d73dfe6497a92718f7a5b58979bda1150",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "text.total"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Retain unused explicit steps, including fixed windows."
+    },
+    {
+      "id": "STR-07",
+      "required": true,
+      "imported_requirement_sha256": "b31cd086fa4a8d9617349158ab16959fab06b0a25e7e6dc529f2e4536492bef4",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "text.envelope"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject forward operation references and stage self-import with original source locations."
+    },
+    {
+      "id": "STR-08",
+      "required": true,
+      "imported_requirement_sha256": "a151aa0b0001372fe5838bb93f2faa1444578109311f4d5dc81738cf62c0e965",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "text.envelope"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject a Program without nonempty root Results through ordinary admission."
+    },
+    {
+      "id": "STR-09",
+      "required": true,
+      "imported_requirement_sha256": "3ec67d4431e5ed3fe506c404867955add8ad2c8f6f901d25372f9cd68949d56d",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "text.envelope"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Keep same-named local inputs scoped to their respective stages."
+    },
+    {
+      "id": "STR-10",
+      "required": true,
+      "imported_requirement_sha256": "30e37f5821b6029450c772e0f2ef511fcf15d3d2a25a9effbe7e07a7f63d1a00",
+      "delivery_unit": "PR-2",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Keep legacy literal SELECT sql_source/selected/rows/answer structure."
+    },
+    {
+      "id": "LEX-01",
+      "required": true,
+      "imported_requirement_sha256": "0c33392626a9b8b5b82723c13686e42b9c37bbc79402d5401d954739189be808",
+      "delivery_unit": "PR-2",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Accept quoted Japanese identifiers and emoji comments with byte, scalar and UTF-16 positions."
+    },
+    {
+      "id": "LEX-02",
+      "required": true,
+      "imported_requirement_sha256": "6bb52459fd6aba8ea22b6a00e8d7b60e49b876cbba77eedb87fefc52adecefcc",
+      "delivery_unit": "PR-1",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject invalid UTF-8 and unpaired surrogates before provider I/O."
+    },
+    {
+      "id": "LEX-03",
+      "required": true,
+      "imported_requirement_sha256": "b83dd0eefa3b98305cce968e0b926fcca0f20bf6f2b84a3cdf0a9c4d50d6efa6",
+      "delivery_unit": "PR-3",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject double-quoted identifiers in the query profile without changing YAML."
+    },
+    {
+      "id": "LEX-04",
+      "required": true,
+      "imported_requirement_sha256": "69ead61ce4b0792eaaa0c1630a1e7253ef32088cadd8402c7ab7b30e74361be8",
+      "delivery_unit": "PR-1",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject duplicate JSON body keys without collapsing them first."
+    },
+    {
+      "id": "LEX-05",
+      "required": true,
+      "imported_requirement_sha256": "ef463fe33656fa3a890b20eacd4b05717c2ca88899d64b65c32dd35fca0135f1",
+      "delivery_unit": "PR-2",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject unknown escapes and nonfinite numbers lexically."
+    },
+    {
+      "id": "LEX-06",
+      "required": true,
+      "imported_requirement_sha256": "4ffdc63c8a154e835c4db1f6b7c2ae49cbdf371187345861fba59d72e712009f",
+      "delivery_unit": "PR-3",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Lower typed @threshold to the existing parameter node, never string interpolation."
+    },
+    {
+      "id": "LEX-07",
+      "required": true,
+      "imported_requirement_sha256": "232e5f77d8dfe424bb8e81f0cd6fa546d33cf205451eee5b35e8614b22d68079",
+      "delivery_unit": "PR-2",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Retain the legacy YAML $threshold expression tree."
+    },
+    {
+      "id": "LEX-08",
+      "required": true,
+      "imported_requirement_sha256": "f18159034c68da8739852a24bdea94238c5f64e374820113136b4d8952344f48",
+      "delivery_unit": "PR-3",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Do not treat pipe text in comments or comment delimiters in strings as syntax."
+    },
+    {
+      "id": "LEX-09",
+      "required": true,
+      "imported_requirement_sha256": "82dab3593f2afcb564aa1a225b93612e782741a57d027e467dcf01a54d6e326c",
+      "delivery_unit": "PR-1",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Accept exactly inclusive token, node and depth limits."
+    },
+    {
+      "id": "LEX-10",
+      "required": true,
+      "imported_requirement_sha256": "a892b93aa0986c067a8b8d60c43e2750d63b13c97065fd3dce46de9b3f154af0",
+      "delivery_unit": "PR-1",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject one-over limits before expansion, without a partial Program."
+    },
+    {
+      "id": "LEX-11",
+      "required": true,
+      "imported_requirement_sha256": "b8b7b8a0c6126359964233122816bddcc387748f11e18fbc62d1b9ce853d114f",
+      "delivery_unit": "PR-3",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Do not reinterpret a selected SQL frontend type error as YAML or another format."
+    },
+    {
+      "id": "LEX-12",
+      "required": true,
+      "imported_requirement_sha256": "8d8c88d7c94fd185dfff0fd56f91ff84d1cc25fc83975df67063839c4a051826",
+      "delivery_unit": "PR-1",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Keep original NFC-equivalent and CRLF source ranges separate from normalized values."
+    },
+    {
+      "id": "SQL-01",
+      "required": true,
+      "imported_requirement_sha256": "b4a03f33ef9e9bb18455c9d4ec364ed5ab5a0ab79244d97f1d88786adbf42aa4",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.select",
+        "query.pipe"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Compile the independent standard/pipe orders pair to the same Program and rows o1/o3."
+    },
+    {
+      "id": "SQL-02",
+      "required": true,
+      "imported_requirement_sha256": "7208bad7cf49ce9c255f83dcff3c32f7f820e4927ad78c728bf3b14c46b02ac3",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.pipe"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "For x=7,y=9, SET x=y,y=x preserves alias old_x=7,old_y=9 and new x=9,y=7."
+    },
+    {
+      "id": "SQL-03",
+      "required": true,
+      "imported_requirement_sha256": "21a2c9c28facd8c41c85a4456fa729e54707bac3eda313eee3b9f9a06cae6e20",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.pipe"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "After DROP x, before.x remains 7 while unqualified x is unknown."
+    },
+    {
+      "id": "SQL-04",
+      "required": true,
+      "imported_requirement_sha256": "125807a4f9e21e44373dfd9a6f7b2aa607886e19a06bd03ccef4a95a89c46083",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.pipe"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject same-list reference to newly introduced y in EXTEND x+1 AS y,y+1 AS z."
+    },
+    {
+      "id": "SQL-05",
+      "required": true,
+      "imported_requirement_sha256": "a6b69d7d28c78ca469ffbb9601d074504df7c566f50dfef9561779705823d013",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.pipe"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "For x=1,y=100, EXTEND x+1 AS a,y+1 AS b yields a=2,b=101."
+    },
+    {
+      "id": "SQL-06",
+      "required": true,
+      "imported_requirement_sha256": "646bff88e891a9e76ee267b749b110bee38d91fd3238e82ac0231b7abb22a738",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.pipe"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject EXTEND that duplicates existing column x."
+    },
+    {
+      "id": "SQL-07",
+      "required": true,
+      "imported_requirement_sha256": "796d7ed61377a9629a860716f667e4f648b010432b4a0a973f47aeaaa5cbac9e",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.select",
+        "query.join"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject ambiguous unqualified id across joined sources."
+    },
+    {
+      "id": "SQL-08",
+      "required": true,
+      "imported_requirement_sha256": "563fdd1fbab2652997969ba3eacbb939ab4252eb5b188198feaf4b4d7e45b5c9",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.join"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "LEFT JOIN keeps a NULL-key left row without matching it."
+    },
+    {
+      "id": "SQL-09",
+      "required": true,
+      "imported_requirement_sha256": "ee8d046ee2fade5c1fbe72ec146ad677e7046ab7198136a89f1fa39400242e3a",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.join"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "FULL USING coalesces the key while retaining original aliases and nullable contracts."
+    },
+    {
+      "id": "SQL-10",
+      "required": true,
+      "imported_requirement_sha256": "edce8085984508e7224cfa04ffefed4e3afc6f4e1dfb888d93f1073a182530b1",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.set"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "UNION ALL of [1,1,2] and [2,3] preserves [1,1,2,2,3]."
+    },
+    {
+      "id": "SQL-11",
+      "required": true,
+      "imported_requirement_sha256": "17c2f412bc30d797a345a2485d1f8b418c136aa3ed997a441efa9e84b53e8ec3",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.set"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "UNION aligns right columns by position even when names are reversed."
+    },
+    {
+      "id": "SQL-12",
+      "required": true,
+      "imported_requirement_sha256": "1c7658c312987ef3125254118e996a06660185460a670f5f182f92843fe17f26",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.set"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "INTERSECT/EXCEPT DISTINCT use typed complete-row equality including NULL."
+    },
+    {
+      "id": "SQL-13",
+      "required": true,
+      "imported_requirement_sha256": "15780a74f49c9dcf65fcb27105d934fcbeb08a3580674427fca0f9c7e143c3e5",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.aggregate"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Global aggregation of an empty relation yields one row with count=0,sum=NULL."
+    },
+    {
+      "id": "SQL-14",
+      "required": true,
+      "imported_requirement_sha256": "b1c9cf0defda11fb8dfc9b2b2494b6aca7cd265c7a4f9af48f206651f5a3e095",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.aggregate"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "For x=[1,NULL,2], COUNT(x)=2 and COUNT(*)=3."
+    },
+    {
+      "id": "SQL-15",
+      "required": true,
+      "imported_requirement_sha256": "4555b456ceec6fffe59b65d5d5b2632359fecb9497db2b3f598bde615889025e",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.aggregate"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject ungrouped output fields instead of choosing representative rows."
+    },
+    {
+      "id": "SQL-16",
+      "required": true,
+      "imported_requirement_sha256": "4baa7aa292254e1b8581bc46624d496f2cde3acd46c217c6e5dff09057a79032",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.aggregate"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "HAVING filters aggregate rows without leaking original input scope."
+    },
+    {
+      "id": "SQL-17",
+      "required": true,
+      "imported_requirement_sha256": "305114f3aa30b644dfe2ce31c78117ec6d47e2e1a02de89d50d7bd88ef64989c",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.order_limit"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Sort [NULL,1,2] ascending as NULL,1,2 and descending as 2,1,NULL."
+    },
+    {
+      "id": "SQL-18",
+      "required": true,
+      "imported_requirement_sha256": "e8c54646f49d75bda0e6cf80c448d51d9df63b823755ad445c12249f8a11b012",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.order_limit"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject total-order boundaries when ORDER+LIMIT has no sufficient witness or key."
+    },
+    {
+      "id": "SQL-19",
+      "required": true,
+      "imported_requirement_sha256": "4fbe2b912ffed99904de19243e866c8c77dac1082790374f111898ac1b7e673f",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.order_limit"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "LIMIT 2 OFFSET 1 over ordered [1,2,3,4] yields [2,3]."
+    },
+    {
+      "id": "SQL-20",
+      "required": true,
+      "imported_requirement_sha256": "350eaa9e4beed803aa8e9199fa30178d400664bbb7b390971dfa5279f0cd37ec",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.limit_zero"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject LIMIT 0 before reads or writes."
+    },
+    {
+      "id": "SQL-21",
+      "required": true,
+      "imported_requirement_sha256": "061e1129d3f37d52ac72e99eb36cc6f6a2774438f7981d13978eec8449bc1f9f",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.order_limit"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject parameterized LIMIT under the literal-only profile."
+    },
+    {
+      "id": "SQL-22",
+      "required": true,
+      "imported_requirement_sha256": "db779de15b5a9c6e6296e5067df3e9190c967ccb1f2c7ffc59e6a288526c095f",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.large_types"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject integer literal 9007199254740993 rather than rounding."
+    },
+    {
+      "id": "SQL-23",
+      "required": true,
+      "imported_requirement_sha256": "9140ea05e9d8400a36c0cbc6b3df5703d2d6adac379d0626407854d7fc572672",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.concat"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Query CONCAT('a',NULL) yields NULL."
+    },
+    {
+      "id": "SQL-24",
+      "required": true,
+      "imported_requirement_sha256": "1a5943b4c79eb9d6f2df716d28adc1b3542c7a141769fdf48ec710ef0d80de7e",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.concat"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Explicit legacy ACTQL.CONCAT('a',NULL) yields a."
+    },
+    {
+      "id": "SQL-25",
+      "required": true,
+      "imported_requirement_sha256": "f043d372886de12dcd9713f8be30da21483eb21f392c187904090aaf5adfc30f",
+      "delivery_unit": "PR-4",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "At x=0, x<>0 AND 10/x>1 preserves eager failure."
+    },
+    {
+      "id": "SQL-26",
+      "required": true,
+      "imported_requirement_sha256": "f57a46769ae39914f368e6bd5073ca1295573a73c5e7426a2e57129576496dae",
+      "delivery_unit": "PR-4",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "At x=0, CASE WHEN x=0 THEN 0 ELSE 10/x END yields 0 lazily."
+    },
+    {
+      "id": "SQL-27",
+      "required": true,
+      "imported_requirement_sha256": "427b6c49547078c629e452e92b3f1db19a9970666b568c0ddfcf61437a4a9173",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.cte"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Two references to a CTE reuse captured stage input without a fresh read."
+    },
+    {
+      "id": "SQL-28",
+      "required": true,
+      "imported_requirement_sha256": "96dd70f7db875ebf34cbadc69bdc30e8a9f93e28a247fde01215145cf2876f84",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.cte",
+        "query.recursive"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject recursive/self-referencing WITH."
+    },
+    {
+      "id": "SQL-29",
+      "required": true,
+      "imported_requirement_sha256": "8bdf4273f84ebfdba1798bbdf1be2072c5cc25f035f9bd2d90c5b63816390a23",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.join",
+        "query.right_theta"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject a nonequality outer-join ON predicate rather than moving it to WHERE."
+    },
+    {
+      "id": "SQL-30",
+      "required": true,
+      "imported_requirement_sha256": "88a0fea71431b87659db97fcad41bc0b2ea13b9311e4cdb2bb95ca9ff34e1090",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.analytic"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Keep RANK/DENSE_RANK peers; position completion applies only to ROW_NUMBER."
+    },
+    {
+      "id": "SQL-31",
+      "required": true,
+      "imported_requirement_sha256": "744a48d144b4c8257ec0a2b8e3e335272df7293bf35726864a28b2d0a534100f",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.analytic"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Preserve the distinct existing NULL laws of FIRST_VALUE and group FIRST."
+    },
+    {
+      "id": "SQL-32",
+      "required": true,
+      "imported_requirement_sha256": "584375b0d95aa79eb856638ea387f6bf8775151bd591704212655d89e9abedb1",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.analytic"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject RANGE frames under the ROWS-only profile."
+    },
+    {
+      "id": "SQL-33",
+      "required": true,
+      "imported_requirement_sha256": "c9a57f72db72b6a159f2065960ae785efd4ed7d2096beda17c720e122dfb4fcd",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.select"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "SELECT * retains array/vector types without exposing hidden helpers."
+    },
+    {
+      "id": "SQL-34",
+      "required": true,
+      "imported_requirement_sha256": "af57453a0d11b37792cc38bde400fef153aa9242eb29317d49e1c4f891211aab",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.select"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject unknown source schema instead of reading samples to infer it."
+    },
+    {
+      "id": "GRF-01",
+      "required": true,
+      "imported_requirement_sha256": "25a6e400b8e8e5b154e5e95ffb9caace8dcbdb422ba638111c09a9a7f7544077",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.fixed"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Projecting endpoints of diamond A-B-D/A-C-D preserves two A,D paths."
+    },
+    {
+      "id": "GRF-02",
+      "required": true,
+      "imported_requirement_sha256": "245a3a10b1ff118a69f998e4ce7bea5c0dc7147203f2144cab795eccac9adffa",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.fixed"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Two-hop WALK accepts A,B,A in a cycle."
+    },
+    {
+      "id": "GRF-03",
+      "required": true,
+      "imported_requirement_sha256": "7a9f7fa37ac382288b81672a52655fb5a843c3254b73ea1dc242f005e0eb8bba",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.fixed"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "ACYCLIC excludes paths that revisit a node."
+    },
+    {
+      "id": "GRF-04",
+      "required": true,
+      "imported_requirement_sha256": "25c9ce296ec22ecb43390d9b24b7d6a7d89ccdb689b613a7e956b78d00e8f151",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.fixed"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "TRAIL excludes reuse of edge A-B in A-B-A-B."
+    },
+    {
+      "id": "GRF-05",
+      "required": true,
+      "imported_requirement_sha256": "632169dae1f97e90d694b67c9b28b82ab0b6c88fd6c120923eb02c114cca31f4",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.fixed"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "For self-loop A-A, WALK/TRAIL yield one match and ACYCLIC zero."
+    },
+    {
+      "id": "GRF-06",
+      "required": true,
+      "imported_requirement_sha256": "3d6161bdc41c5cbdb1888dcfe12d5ff7d11a23d0f4cac983fff8e740aacdc9c7",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.fixed"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "A zero-hop node pattern yields one length-zero match per node."
+    },
+    {
+      "id": "GRF-07",
+      "required": true,
+      "imported_requirement_sha256": "8078422c18151308a3e2773c5947969fbd21026c221c2a390377e381d5d97f40",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.fixed"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "A missing business ID property filter yields no match, not membership failure."
+    },
+    {
+      "id": "GRF-08",
+      "required": true,
+      "imported_requirement_sha256": "69135fbf8e9c76314cd922412b1ee2f002a9cb16232f2dde9a69a29c94f840d2",
+      "delivery_unit": "PR-5",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Native traverse.start.ids with a missing ID retains membership failure."
+    },
+    {
+      "id": "GRF-09",
+      "required": true,
+      "imported_requirement_sha256": "77d6b1f131175b887f9b566c2c40482133ef812c294d48dfa471b3d95a8737cd",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.labels"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject node label syntax without LABELS mapping."
+    },
+    {
+      "id": "GRF-10",
+      "required": true,
+      "imported_requirement_sha256": "3f0467591b1901aa4e24876fc447f79f78f97057883003cb089cc106799944c8",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.labels"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Map Person explicitly to the configured type field, not an inferred property."
+    },
+    {
+      "id": "GRF-11",
+      "required": true,
+      "imported_requirement_sha256": "8d2b160be452eb58099af1ef111b754fdc7c923343b604fd3eda7dbbfc0eedf6",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.labels"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "A NULL label field does not match and confers no canonical entity identity."
+    },
+    {
+      "id": "GRF-12",
+      "required": true,
+      "imported_requirement_sha256": "a5ecd217fa28bba6fd7b5692cd58dc02132686aa5faaace666924b15decb78ea",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.labels"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject edge type constraints without the static label contract."
+    },
+    {
+      "id": "GRF-13",
+      "required": true,
+      "imported_requirement_sha256": "3a3bf98dafb45c71f10499ea396e6b9bd51df3fe4063140e95fcf32c9836be60",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.bounded"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Bounded ACYCLIC {1,2} preserves separate one-hop and two-hop paths."
+    },
+    {
+      "id": "GRF-14",
+      "required": true,
+      "imported_requirement_sha256": "d2c832cabc16efe7383d81d2f7fa1fc814c046d18df96355c5c62ffb414ca672",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.bounded",
+        "graph.general"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject open quantifiers rather than filling their bound from Host limits."
+    },
+    {
+      "id": "GRF-15",
+      "required": true,
+      "imported_requirement_sha256": "a41c4c7d7d300e5bf7e655ae1cc1603ed1ba34d36fd1210c16ea7aa3e74d3e35",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.bounded",
+        "graph.general"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject quantified internal edge variables as unsupported group variables."
+    },
+    {
+      "id": "GRF-16",
+      "required": true,
+      "imported_requirement_sha256": "f833dfa229bc8d4cdf588b5b012933d52727f2965d698dfda21555841601fded",
+      "delivery_unit": "PR-5",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Identical edge tuple and payload rows collapse under the existing law."
+    },
+    {
+      "id": "GRF-17",
+      "required": true,
+      "imported_requirement_sha256": "4fd00d1c46d136fcaa934ad17b7a2404e3a389dc14d940b84a420c01b4ebe126",
+      "delivery_unit": "PR-5",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Same edge tuple with conflicting payload fails instead of creating parallel edges."
+    },
+    {
+      "id": "GRF-18",
+      "required": true,
+      "imported_requirement_sha256": "ef27a926941b752d7773ce767377d48ebc74eb258da23475aefe72ad218cafaa",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.fixed"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Preserve Ref-valued IDs rather than replacing them with strings or CIDs."
+    },
+    {
+      "id": "GRF-19",
+      "required": true,
+      "imported_requirement_sha256": "b71a096fd79245e8ac61528af5de7cd868524f6f8d30930bc2c0f706c15ac86c",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.fixed"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject unknown graph properties even on an empty matching input."
+    },
+    {
+      "id": "GRF-20",
+      "required": true,
+      "imported_requirement_sha256": "c381d2580c01ea6e958f87ea275a832cb15da3de7fb8db4034494927f1466b07",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.fixed"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Do not hoist hop predicates onto unrelated nodes that would fail."
+    },
+    {
+      "id": "GRF-21",
+      "required": true,
+      "imported_requirement_sha256": "a029c1eeae70aef14e120d174702f214643019a4c763d7eb13fbff815b60287d",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.fixed"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Preserve demanded failure in a prefix even when a later hop removes that path."
+    },
+    {
+      "id": "GRF-22",
+      "required": true,
+      "imported_requirement_sha256": "1840b3af62ca32969f5f5273bfc15dc98735825955588f4cf88c0ee1028f14f6",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.fixed"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Fail bounded temporary-binding overflow without publishing partial output."
+    },
+    {
+      "id": "GRF-23",
+      "required": true,
+      "imported_requirement_sha256": "4cdd786d5b6197c877d87292ba04d5d4d21abf4bf2abf713824d31dffb65c34d",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.fixed",
+        "graph.general"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject projecting a graph variable as a generic value."
+    },
+    {
+      "id": "GRF-24",
+      "required": true,
+      "imported_requirement_sha256": "9a84229be15914f9201bfffce840f5e73825607e021bbc8229041a503f78b777",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.binary"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Native/alias number_sum union of identical value 2 yields 4, not idempotent 2."
+    },
+    {
+      "id": "GRF-25",
+      "required": true,
+      "imported_requirement_sha256": "f7b557070791357a630d30b84c20c068bc977ca681737c8be17a58481fa24746",
+      "delivery_unit": "PR-5",
+      "feature_ids": [
+        "graph.binary"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Applying graph_diff(A,B) to another base C fails."
+    },
+    {
+      "id": "VEC-01",
+      "required": true,
+      "imported_requirement_sha256": "f9e3f8956fd4850c887385762b440c6771631f3c14c63b071a477ed32a00f787",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "vector.nearest"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "NEAREST with two queries and k=1 yields up to two rows, not one globally."
+    },
+    {
+      "id": "VEC-02",
+      "required": true,
+      "imported_requirement_sha256": "e1a99f124b78b17d84fa7fbf5cd7eb64ab0a755fa2c738ca60a04a05a53a1a19",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "vector.scalar"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "L2 distance between [0,0] and [3,4] is 5, not score -5."
+    },
+    {
+      "id": "VEC-03",
+      "required": true,
+      "imported_requirement_sha256": "2b8f1476d0c7a551c779d441d286a6263c4255092544f774d4067385eabd0ef0",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "vector.nearest"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Equal-score candidate IDs b,a choose a under the existing tie law."
+    },
+    {
+      "id": "VEC-04",
+      "required": true,
+      "imported_requirement_sha256": "3beb6d8b18c6940bfb43fea5eca995c6e5d09bea8bb667e9ce6c21af910f63b0",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "vector.scalar"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject vector dimension 2 versus 3 mismatch."
+    },
+    {
+      "id": "VEC-05",
+      "required": true,
+      "imported_requirement_sha256": "7c843bbab3c7613b081295c0b3c57b76a821f9158ce6a7ddc5aedce2dad593b0",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "vector.scalar"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Preserve existing metric zero-vector and NULL laws."
+    },
+    {
+      "id": "VEC-06",
+      "required": true,
+      "imported_requirement_sha256": "5a69d8b92da19ab6bb194c814144be5283e09ae8377495da8cae7a833be3b650",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "vector.nearest"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "NEAREST uses the filtered corpus, not the original source."
+    },
+    {
+      "id": "VEC-07",
+      "required": true,
+      "imported_requirement_sha256": "f2925ee7557e2dd48d845713c851d83dec5f910c7d4f99ce97a4bdba258f3afd",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "vector.search"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "ANN acquisition plus exact reranking retains partial coverage and is not full exact search."
+    },
+    {
+      "id": "VEC-08",
+      "required": true,
+      "imported_requirement_sha256": "a2c963d1c8d30e9fb80d3ccc5ff89ddcaa5e3578bca134b545a19d717ded5b23",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "vector.approximate_pure"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject NEAREST APPROXIMATE as a pure computation."
+    },
+    {
+      "id": "VEC-09",
+      "required": true,
+      "imported_requirement_sha256": "d25e0beef1af35694146555faff29abc35cc86735e09a22d264a6c30160e93f3",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "vector.nearest"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Explicit metadata join preserves rank/identity without inventing authority."
+    },
+    {
+      "id": "VEC-10",
+      "required": true,
+      "imported_requirement_sha256": "c0059537c4f7d4a7b765562f4fdbdaa3f8a5e6ef5064b0dbcb18d62dbdccc599",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "text.total"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Structural OP merge_rankings roundtrip preserves input list order and RRF/score laws."
+    },
+    {
+      "id": "EVT-01",
+      "required": true,
+      "imported_requirement_sha256": "dd69f86d071afe820923cdf974081fa10817bae1d45249fc6ca12502ff876f2a",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.window"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "TUMBLE 5m assigns time 300000 to the next window."
+    },
+    {
+      "id": "EVT-02",
+      "required": true,
+      "imported_requirement_sha256": "84a4cae7128872e386f1e7da0f15759129079c9d75fcb46c3f090f6ef9333af0",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.window"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "HOP 10m step5m gives two memberships and retains negative starts."
+    },
+    {
+      "id": "EVT-03",
+      "required": true,
+      "imported_requirement_sha256": "86a405013e71036e444d6c425dc0af0e6258c2b3af7189606b0981e1ce471430",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.window"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "TUMBLE 5m assigns time -1 to [-300000,0)."
+    },
+    {
+      "id": "EVT-04",
+      "required": true,
+      "imported_requirement_sha256": "0327a2cfb6928ab5a8a3b0f4d2461c8f199afb8357c6762d0a1d8246eef7f070",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.window"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Retain a 60000ms window-grid offset."
+    },
+    {
+      "id": "EVT-05",
+      "required": true,
+      "imported_requirement_sha256": "d1546adb59e0d74d606fd22ee1089a9dab6fe8b8d3d1b73071f31052f590ba34",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.session"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "SESSION gap30m separates events exactly 1800000ms apart."
+    },
+    {
+      "id": "EVT-06",
+      "required": true,
+      "imported_requirement_sha256": "2d7307c1fdca5d27b9f1b17ebb557cb386d894332391812f5af725f8250f654a",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.sequence"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Equal-time sequence events use typed ID order 1,2, not arrival order."
+    },
+    {
+      "id": "EVT-07",
+      "required": true,
+      "imported_requirement_sha256": "0aa13000b4883028e2ef6acd94a86f27f8760ef3a26424edcdfed4b2abf96d7f",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.session",
+        "event.sequence"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject duplicate event IDs before sequence/session."
+    },
+    {
+      "id": "EVT-08",
+      "required": true,
+      "imported_requirement_sha256": "03fc28482ce329c84b5b30f5369ca2b69f8c655e54eb75d813c547d4addb7b03",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.sequence"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "ADJACENT A B does not match A@0,X@1,B@2."
+    },
+    {
+      "id": "EVT-09",
+      "required": true,
+      "imported_requirement_sha256": "2764f9c3703b0f9a7392739d504a3f1e1bf0869778fcbf1c8ed324c44f2ff656",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.sequence"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "SUBSEQUENCE A B matches A@0,X@1,B@2 once."
+    },
+    {
+      "id": "EVT-10",
+      "required": true,
+      "imported_requirement_sha256": "5a053713f17a0b8870f55639373171539d91541c9cade1e5cfbeb807294e730e",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.sequence"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "ALLOW over A@0,A@1,B@2 returns both matches."
+    },
+    {
+      "id": "EVT-11",
+      "required": true,
+      "imported_requirement_sha256": "600f8f120e6c3d0fc148de12f214f88ca0107b5502a024fa7b4a4fe4ef843034",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.sequence"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "DISALLOW chooses the earliest complete A0,B2 match."
+    },
+    {
+      "id": "EVT-12",
+      "required": true,
+      "imported_requirement_sha256": "de8b651cfc200ad39141215af623cc6b7ebdc6640d40ae26db9ceba758c5ee07",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.sequence"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "WITHIN30m includes the exact 1800000ms boundary."
+    },
+    {
+      "id": "EVT-13",
+      "required": true,
+      "imported_requirement_sha256": "9824f8b87fd70171a673cb2d60d73bb046655f02a0157f741446e834bc0bf948",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.sequence"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject a one-element pattern; at least two labels are required."
+    },
+    {
+      "id": "EVT-14",
+      "required": true,
+      "imported_requirement_sha256": "844bf14635c088dcb932c9a850db04fa906f76e6ff99782ea609e842a6c50b06",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.regex"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject regex quantification in PATTERN(A B+ C)."
+    },
+    {
+      "id": "EVT-15",
+      "required": true,
+      "imported_requirement_sha256": "af60ae7d0b2c9b4cbd11cbeca80b9a268e8ddc701f93b6cc6099da04b30023a9",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.sequence"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject timestamp sequence clocks where numeric milliseconds are required."
+    },
+    {
+      "id": "EVT-16",
+      "required": true,
+      "imported_requirement_sha256": "bcf82bd349e3a509e7281f7985d81aeff1dfc43d25aa2e15114b73a6d47f154d",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.native_alias"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "At the watermark threshold, late=false."
+    },
+    {
+      "id": "EVT-17",
+      "required": true,
+      "imported_requirement_sha256": "396d741cdf51646be9d6eda1313a4b5ecce629866fd443ee93098ce4e3ca8141",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.native_alias",
+        "event.continuous"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject source AS OF as temporal snapshots, not asof_join."
+    },
+    {
+      "id": "EVT-18",
+      "required": true,
+      "imported_requirement_sha256": "243e4ea46f225311882a9e4c0167d6e36fbc31e657369e847907256c985da06a",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.continuous"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject CHANGES/SUBSCRIBE pending temporal semantics."
+    },
+    {
+      "id": "EVT-19",
+      "required": true,
+      "imported_requirement_sha256": "1a021bcac5431d0851b09b5a0b775543ddb03295c4e9563014fe3d180ff8c409",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.session"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject SESSION output-field collision with session_start_ms."
+    },
+    {
+      "id": "EVT-20",
+      "required": true,
+      "imported_requirement_sha256": "d4fe88e2e4cddd27ad49f7929a60111f0be113aed3145f5e20b789fee27969d3",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "event.window"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject Graph to WINDOW carrier mismatch without an implicit bridge."
+    },
+    {
+      "id": "FX-01",
+      "required": true,
+      "imported_requirement_sha256": "e5ee30549e721608ee8026e9c8ebf8680202a08be4753ea256729b6032c2a365",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "effect.declaration"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Check/explain causes zero provider, model and write calls."
+    },
+    {
+      "id": "FX-02",
+      "required": true,
+      "imported_requirement_sha256": "52e813a90137f176c67ac1dd152abb87d5037411efdb2cbea8ac4fe0eaec8b11",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "acquisition.infer"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "INFER mapped to title sends title only, not secret/helper fields."
+    },
+    {
+      "id": "FX-03",
+      "required": true,
+      "imported_requirement_sha256": "79cd901d3319e2cb4512884d19dd4d9d016cf4f5469ac3393ddd0318f67e0ed2",
+      "delivery_unit": "PR-6",
+      "feature_ids": [
+        "acquisition.infer"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject non-success infer value access before outcome refinement."
+    },
+    {
+      "id": "FX-04",
+      "required": true,
+      "imported_requirement_sha256": "9dd6e4723060c2dc5ffd04923a46ad30f59d77d5e3e9ab4f51d40aab1bcb212c",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "effect.declaration"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reversing peer Effect declarations does not create sequencing."
+    },
+    {
+      "id": "FX-05",
+      "required": true,
+      "imported_requirement_sha256": "2f724d53fef5246c4b8fbf02e1b8c669c5ab70a5c264f1dee751b848e6848af1",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "effect.declaration"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Default completed stage gating does not notify before update completion."
+    },
+    {
+      "id": "FX-06",
+      "required": true,
+      "imported_requirement_sha256": "d778da05553d5ddcb29ee32b28987800abcae600d1736ec6e04ac0f36eb0d44d",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "effect.declaration"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "AFTER ACCEPTED does not manufacture a completion-only Receipt."
+    },
+    {
+      "id": "FX-07",
+      "required": true,
+      "imported_requirement_sha256": "55f0abaa2bf07077e0bbef651ddedd52cc43b8391bf5944bfeda0edcff307b62",
+      "delivery_unit": "PR-7",
+      "feature_ids": [
+        "effect.declaration"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Recovery retains failed/unknown Effect receipts without treating them as success or reissuing all."
+    },
+    {
+      "id": "FX-08",
+      "required": true,
+      "imported_requirement_sha256": "b672960a5069d49a75dfc318df4c0898033dd0b00daa868b165353bfdb874c98",
+      "delivery_unit": "PR-7",
+      "feature_ids": [
+        "sql.insert"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject INSERT without an explicit Program ID."
+    },
+    {
+      "id": "FX-09",
+      "required": true,
+      "imported_requirement_sha256": "7d5cbc3417c8a96425802656bbdce05ca43117ac761ea6552529034c7c479fec",
+      "delivery_unit": "PR-7",
+      "feature_ids": [
+        "sql.insert"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject INSERT without WriteTarget mapping; do not infer write aliases from read aliases."
+    },
+    {
+      "id": "FX-10",
+      "required": true,
+      "imported_requirement_sha256": "851b0b4f49c0726da0c4a72beccd6bcef8552f0f9ddbb9f38a5aa8aa9253d50c",
+      "delivery_unit": "PR-7",
+      "feature_ids": [
+        "sql.insert"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Three requested INSERT rows with one unknown outcome are not three confirmed successes."
+    },
+    {
+      "id": "FX-11",
+      "required": true,
+      "imported_requirement_sha256": "d61da97ab2a31b86f3c6b55e6d4b73ec9be0ad2f09a3799fc02be6e092cf12de",
+      "delivery_unit": "PR-7",
+      "feature_ids": [
+        "effect.declaration"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Delivery retry after successful Effect does not reexecute that Effect."
+    },
+    {
+      "id": "FX-12",
+      "required": true,
+      "imported_requirement_sha256": "e80a7d06249fcefcc7390e4c65224e2175ac6e409d0e1815df88572883e33036",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "effect.hidden"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject pipe EFFECT and scalar infer at their explicit boundaries."
+    },
+    {
+      "id": "FX-13",
+      "required": true,
+      "imported_requirement_sha256": "56fea59f74f812f361ddca17d9dfa7f765853fd1875e511c7655d6bd9c7d1ae6",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "text.total",
+        "effect.hidden"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject unknown OP/raw HTTP without Host forwarding."
+    },
+    {
+      "id": "SYS-01",
+      "required": true,
+      "imported_requirement_sha256": "4b5e736eeae27bb902bdaeb5789342806587e8f430ca2736a1aaac332de288aa",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "text.total"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Across JS/Wasm/native, JSON/YAML/STEP yield the same Program CID under the same pins."
+    },
+    {
+      "id": "SYS-02",
+      "required": true,
+      "imported_requirement_sha256": "083e2b639a3187fa1aa89575916fea3005290a0cb5775431b1810bb8865e4296",
+      "delivery_unit": "PR-4",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Across targets, SQL/Pipe generate the same Program; source digests may differ."
+    },
+    {
+      "id": "SYS-03",
+      "required": true,
+      "imported_requirement_sha256": "558f62bafd0dc391647a8e7a507d1405e90352ed50404fce7503455e16ca5820",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "text.total"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Whitespace/comment-only changes preserve Program while positions refer to the original source."
+    },
+    {
+      "id": "SYS-04",
+      "required": true,
+      "imported_requirement_sha256": "2f1f706b0e45e8ac3f1516dd3dc3d79b7850eb8a35759f664507a9478ba4e15b",
+      "delivery_unit": "PR-2",
+      "feature_ids": [
+        "effect.declaration"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Preserve meaningful identity changes from Program ID or Effect name changes."
+    },
+    {
+      "id": "SYS-05",
+      "required": true,
+      "imported_requirement_sha256": "09d69a389bae34c92cfb58818b507dcd8fc373398947480b5aed41e3980f9c4b",
+      "delivery_unit": "PR-2",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Grammar Manifest changes distinguish affected Plan preimages; do not claim every identity unchanged."
+    },
+    {
+      "id": "SYS-06",
+      "required": true,
+      "imported_requirement_sha256": "8d1547a734253237e1d57f669603c0902e2a67a2fcdb88df6b997fe6eb21e937",
+      "delivery_unit": "PR-4",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Replay fixed captured SUM/AVG observations without recomputation."
+    },
+    {
+      "id": "SYS-07",
+      "required": true,
+      "imported_requirement_sha256": "11b7eaada42b0f192c644c9f02a113ddc3efcc54f83f9fa3c0da8b2ac304f217",
+      "delivery_unit": "PR-1",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject forged generated-AST usage by actual admission accounting."
+    },
+    {
+      "id": "SYS-08",
+      "required": true,
+      "imported_requirement_sha256": "c4b3a351f6225a6785e3ede56444d296ade66f56209693e9de5c051ee167efbf",
+      "delivery_unit": "PR-4",
+      "feature_ids": [
+        "query.cte"
+      ],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Fail one-over CTE/pattern/symbol expansion without returning a partial Program."
+    },
+    {
+      "id": "SYS-09",
+      "required": true,
+      "imported_requirement_sha256": "ddbb1a55c009b4f8882aa57fc049ec4b474f6733209a423e21d093f5127789b6",
+      "delivery_unit": "PR-4",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Generate deterministic noncolliding helper names without reserved-name exceptions."
+    },
+    {
+      "id": "SYS-10",
+      "required": true,
+      "imported_requirement_sha256": "a0f968309b95bc7c89d6eaf025903858d475d03dd907fdca639a31572434c5c1",
+      "delivery_unit": "PR-7",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Use registered ordinary CLI/TS/Python/Wasmtime Host paths with normal Result/Receipt contracts."
+    },
+    {
+      "id": "SYS-11",
+      "required": true,
+      "imported_requirement_sha256": "5b8e5aefe96afe71f9a87f4d151a4fc83e00f96def2b41bbdde66d082bfda522",
+      "delivery_unit": "PR-7",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "A Python-only environment does not require Node or a subprocess for raw source."
+    },
+    {
+      "id": "SYS-12",
+      "required": true,
+      "imported_requirement_sha256": "d67cf96a89ddb2d6c9420c4ee1c6a8fa43832a2eb1cef82c28ee582f4c6dd2eb",
+      "delivery_unit": "PR-7",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Reject unsupported Host family profiles before execution, without opaque substitute code."
+    },
+    {
+      "id": "SYS-13",
+      "required": true,
+      "imported_requirement_sha256": "2d18a72e3d3a98f40b9b76311485ccb60e4696ef13db3c9d4880dd973adffc0f",
+      "delivery_unit": "PR-7",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Distinguish frontend not installed from runtime unsupported."
+    },
+    {
+      "id": "SYS-14",
+      "required": true,
+      "imported_requirement_sha256": "fd67fc7c281f0dcd722ba0c80b47b423e4465854c16ee11ed2bed78744145673",
+      "delivery_unit": "PR-8",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Doctor detects installed Skill/CLI Grammar Manifest mismatch."
+    },
+    {
+      "id": "SYS-15",
+      "required": true,
+      "imported_requirement_sha256": "fc9ed8399c9968bf4dd5d67eacf97d8b5d77c9e5e53d3d6cb94bdcd153d40350",
+      "delivery_unit": "PR-8",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Report warm 10KiB frontend overhead against admission+10ms p95 target, cold separately."
+    },
+    {
+      "id": "SYS-16",
+      "required": true,
+      "imported_requirement_sha256": "95c8ee286a2ead0a21a139beb6ca6214a9fcc0bd209ac24dcfb686747d8c0bd6",
+      "delivery_unit": "PR-8",
+      "feature_ids": [],
+      "status": "not_run",
+      "evidence": [],
+      "expectation": "Keep release incomplete while required cases are not_run or skipped."
+    }
+  ]
+}

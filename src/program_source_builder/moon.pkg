@@ -1,0 +1,12 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/frontend_source_map" @origin,
+  "actql/actql/source_map" @map,
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @wire,
+  "actql/actql/decode_scalar" @scalar,
+  "actql/actql/decode_shape" @shape,
+  "actql/actql/canonical_value" @canonical,
+  "actql/actql/encode_core" @encode,
+}
