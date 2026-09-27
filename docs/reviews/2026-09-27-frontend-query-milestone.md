@@ -34,9 +34,9 @@ records reference terms, frontend and existing IR meanings, and differences.
 | UTF-8, tokens, escaping, numeric domain, original spans | Original source owner and bounded query lexer | Positive, negative and exact-limit cases | Partial: exact lexer and query syntax/work limits, original Unicode error span and unadopted OVER rejection pass; full diagnostic matrix pending |
 | Closed scalar expressions, precedence, NULL and CONCAT | Structured Expression admission/typing | Independent trees, demand/failure and legacy regression | Partial: shared AST and direct tree lowering; strict and legacy CONCAT execute through packed Local/Remote; full typing/failure matrix pending |
 | SELECT, FROM-only, subqueries, WHERE | Existing Program derive/select/filter | SQL/Pipe expected Program and rows | Partial: base SELECT/FROM/WHERE and named noncorrelated FROM subqueries, including nesting, execute through captured Host; one JOIN-right subquery from an earlier CTE executes through packed Local/Remote; broader joins, set operands and additional source forms remain |
-| INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: direct Values joins support INNER/LEFT, bounded CROSS and output-only DISTINCT; a DISTINCT CTE supplies identity for packed source-free and captured-input FULL/USING; general join scope remains |
+| INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: direct Values joins support INNER/LEFT, bounded CROSS, DISTINCT and output/non-output ORDER with LIMIT; a DISTINCT CTE supplies identity for packed source-free and captured-input FULL/USING; general join scope remains |
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: COUNT, MIN/MAX and pinned-profile SUM/AVG execute through packed Local/Remote, including empty input; ordered collection runtime and failure matrix pending |
-| DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
+| DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering, including JOIN output and hidden input order through packed Local/Remote; captured DISTINCT→ORDER runtime passes, broader ties/limits pending |
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each used declaration lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin, a sequential chain, two branches from one predecessor and a join inside a declaration body; physical provider read counter and broader joins remain |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands and two terms sharing one captured source execute through packed Local/HTTP Clients; different captured sources, different physical source filters, CTE reuse and broader type/order cases remain |
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND, scoped SET/DROP/RENAME/AS, one JOIN with an optional preceding WHERE, and a parenthesized SQL right operand for Pipe set; post-projection JOIN and other scope forms remain |
@@ -51,7 +51,7 @@ profile difference is distinct from an unimplemented adopted feature. The
 former includes eager ActQL boolean/failure rules, explicit new-query NULL
 sort directions, no implicit set-column type promotion or padding, and the
 specified exclusion of recursive/correlated CTEs. The latter includes
-JOIN-output sort and the remaining Pipe JOIN scope forms. No
+CTE JOIN-output sort and the remaining Pipe JOIN scope forms. No
 unimplemented item is reclassified as an intentional incompatibility.
 
 The common expression lowering and Local evaluator now retain distinct
@@ -332,20 +332,19 @@ runs after NULL extension: `LEFT JOIN ... WHERE r.c IS NULL` publishes only
 unmatched left rows in packed Local and HTTP Remote. The Pipe spelling emits
 the same Program. Two packed zero-input cases preserve demand: the post-join
 WHERE excludes a division by zero before projection, and an unselected CASE
-branch does not divide by zero. General post-join grouping, order and multiple
+branch does not divide by zero. General post-join grouping and multiple
 joins remain open. JOIN DISTINCT now removes duplicate matched rows using only
 the named output columns; packed Local and HTTP Remote reduce two equal
 matches to one `{a:1}` Result. CTE JOIN DISTINCT also selects the deduplicated
-Stage Result in checker tests. An attempted `ORDER BY` after a checked JOIN
-also reached
-the standard Host but `run-host-core.compileTasks` rejected it with
-`RunHostTaskCompilationRejected`. This reproduced with source-free CROSS JOIN
-and with two DISTINCT CTE inputs and DISTINCT joined output; both Programs
-passed frontend admission and query checker. The tentative frontend lowering
-was removed, so this branch does not claim executable JOIN ordering. The
-Compute/Host owners need to identify the sort-order or task-compilation
-obligation on the joined result before the frontend can publish this surface.
-No candidate key or total-order witness is fabricated here. FULL JOIN is parsed
+Stage Result in checker tests. A prior JOIN sort attempt failed task
+compilation before the common Plan issuer preserved exact segmented task
+outputs. With that boundary corrected, direct Values JOIN now sorts by
+selected aliases and non-output input expressions, takes a bounded prefix,
+then removes private sort columns. SQL and Pipe emit the same Program; packed
+Local and HTTP Remote Clients return the independently expected rows and do
+not expose private fields. DISTINCT rejects a non-output sort expression.
+CTE JOIN-output ordering and broader sort/failure cases remain open. No
+candidate key or total-order witness is fabricated here. FULL JOIN is parsed
 but the
 Values compiler refuses it before issuing a Program: the checked FULL JOIN
 requires stable identity on both inputs, which the generated Values Stage

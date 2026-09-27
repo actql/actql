@@ -370,6 +370,32 @@ assert.deepEqual(JSON.parse(pipeJoinQuery),
   JSON.parse(await readFile(join(root, 'join-inner.json'), 'utf8')));
 await writeFile(join(root, 'join-pipe.json'), pipeJoinQuery);
 await writeFile(join(root, 'join-cases.json'), JSON.stringify(joinCases));
+const orderedJoinSql = 'SELECT l.a AS a, r.d AS d FROM set_left AS l '
+  + 'LEFT JOIN set_right AS r ON l.a = r.c ORDER BY a DESC, d ASC LIMIT 2';
+const orderedJoin = queryFrontend.compileTwoValuesSetQueryJson(
+  orderedJoinSql,
+  'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+  'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+  'fixture.join_ordered');
+assert.notEqual(orderedJoin, '');
+await writeFile(join(root, 'join-ordered.json'), orderedJoin);
+const hiddenOrderedJoinSql = 'SELECT l.a AS x FROM set_left AS l '
+  + 'CROSS JOIN set_right AS r ORDER BY r.d DESC, x DESC LIMIT 3';
+const hiddenOrderedJoin = queryFrontend.compileTwoValuesSetQueryJson(
+  hiddenOrderedJoinSql,
+  'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+  'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+  'fixture.join_hidden_order');
+assert.notEqual(hiddenOrderedJoin, '');
+const hiddenOrderedPipe = queryFrontend.compileTwoValuesSetQueryJson(
+  'FROM set_left AS l |> CROSS JOIN set_right AS r |> SELECT l.a AS x '
+    + '|> ORDER BY r.d DESC, x DESC |> LIMIT 3',
+  'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+  'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+  'fixture.join_hidden_order');
+assert.deepEqual(JSON.parse(hiddenOrderedPipe),
+  JSON.parse(hiddenOrderedJoin));
+await writeFile(join(root, 'join-hidden-order.json'), hiddenOrderedJoin);
 const computedJoin = queryFrontend.compileTwoValuesSetQueryJson(
   'SELECT l.a + r.c AS total, r.d AS label FROM set_left AS l '
     + 'JOIN set_right AS r ON l.a = r.c',
@@ -1036,6 +1062,22 @@ async function checkJoinCases(client, suffix) {
     assert.deepEqual(await attempt.result('answer').all(), expected);
   }
 }
+async function checkOrderedJoin(client, suffix) {
+  const execution = await client.aql(
+    readFileSync('join-ordered.json', 'utf8'),
+    {format: 'json', requestId: 'packed-join-ordered-' + suffix});
+  const status = await execution.wait();
+  assert.equal(status.status, 'succeeded', JSON.stringify(status));
+  assert.deepEqual(await execution.result('answer').all(),
+    [{a: 2, d: null}, {a: 1, d: 'x'}]);
+  const hidden = await client.aql(
+    readFileSync('join-hidden-order.json', 'utf8'),
+    {format: 'json', requestId: 'packed-join-hidden-order-' + suffix});
+  const hiddenStatus = await hidden.wait();
+  assert.equal(hiddenStatus.status, 'succeeded', JSON.stringify(hiddenStatus));
+  assert.deepEqual(await hidden.result('answer').all(),
+    [{x: 2}, {x: 1}, {x: 1}]);
+}
 async function checkSetQueries(client, suffix) {
   for (const [name, expected] of setExpectations) {
     const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
@@ -1266,6 +1308,7 @@ assert.equal(setQueryLocalStatus.status, 'succeeded',
 assert.deepEqual(await setQueryLocal.result('answer').all(), expectedUnionRows);
 await checkSetQueries(installedLocal, 'local');
 await checkJoinCases(installedLocal, 'local');
+await checkOrderedJoin(installedLocal, 'local');
 const pipeUnionLocal = await installedLocal.aql(pipeUnionQueryDocument,
   {format: 'json', requestId: 'packed-pipe-union-local'});
 assert.equal((await pipeUnionLocal.wait()).status, 'succeeded');
@@ -1460,6 +1503,7 @@ assert.equal((await setQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await setQueryRemote.result('answer').all(), expectedUnionRows);
 await checkSetQueries(installedRemote, 'remote');
 await checkJoinCases(installedRemote, 'remote');
+await checkOrderedJoin(installedRemote, 'remote');
 const pipeUnionRemote = await installedRemote.aql(pipeUnionQueryDocument,
   {format: 'json', requestId: 'packed-pipe-union-remote'});
 assert.equal((await pipeUnionRemote.wait()).status, 'succeeded');

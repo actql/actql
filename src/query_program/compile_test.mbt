@@ -909,6 +909,57 @@ test "LEFT JOIN WHERE filters null-extended rows after matching" {
 }
 
 ///|
+test "JOIN output ordering and LIMIT use selected aliases" {
+  for
+    text in [
+      "SELECT l.a AS y, r.d AS detail FROM left_rows AS l LEFT JOIN right_rows AS r ON l.a = r.c ORDER BY y DESC LIMIT 2",
+      "FROM left_rows AS l |> LEFT JOIN right_rows AS r ON l.a = r.c |> SELECT l.a AS y, r.d AS detail |> ORDER BY y DESC |> LIMIT 2",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    let program = compile(query, set_context(), construction_limits()).unwrap()
+    let wire = semantic(program)
+    assert_true(wire.contains("\"sort\":[{\"dir\":\"desc\",\"field\":\"y\""))
+    assert_true(wire.contains("\"from\":\"aql_join_taken\""))
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      NeedsInputs(_) => fail("joined ordering should be statically closed")
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    }
+  }
+}
+
+///|
+test "JOIN orders by hidden input without exposing it or weakening DISTINCT" {
+  for
+    text in [
+      "SELECT l.a AS x FROM left_rows AS l CROSS JOIN right_rows AS r ORDER BY r.d DESC, x DESC LIMIT 3",
+      "FROM left_rows AS l |> CROSS JOIN right_rows AS r |> SELECT l.a AS x |> ORDER BY r.d DESC, x DESC |> LIMIT 3",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    let program = compile(query, set_context(), construction_limits()).unwrap()
+    let wire = semantic(program)
+    assert_true(wire.contains("aql_join_sort_"))
+    assert_true(wire.contains("\"from\":\"aql_join_visible\""))
+    assert_true(wire.contains("\"fields\":[\"x\"]"))
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      NeedsInputs(_) => fail("hidden JOIN sort should be statically closed")
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    }
+  }
+  let distinct = @query.parse_query(
+    "SELECT DISTINCT l.a AS x FROM left_rows AS l CROSS JOIN right_rows AS r ORDER BY r.d",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(distinct, set_context(), construction_limits())
+    is Err(UnsupportedOrdering),
+  )
+}
+
+///|
 test "Pipe WHERE before JOIN filters the left seed before null extension" {
   let query = @query.parse_query(
     "FROM left_rows AS l |> WHERE l.a > 1 |> LEFT JOIN right_rows AS r ON l.a = r.c |> SELECT l.a AS a, r.d AS d",

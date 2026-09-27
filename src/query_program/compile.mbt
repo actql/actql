@@ -3953,7 +3953,7 @@ fn compile_join_query(
 ) -> Result[@program.Program, Issue] {
   if @query.join_part_count(query) != 1 ||
     @query.operation_count(query) < 1 ||
-    @query.operation_count(query) > 2 ||
+    @query.operation_count(query) > 4 ||
     context.captured_stage is Some(_) ||
     context.program_id == "" ||
     context.stage_id == "" ||
@@ -3991,22 +3991,95 @@ fn compile_join_query(
     let keys = join_keys(
       part, left_qualifier, right_qualifier, left_fields, right_fields,
     )
-    let predicate = if @query.operation_count(query) == 2 {
-      match @query.operation_at(query, 0) {
-        Some(Where(expression)) => Some(expression)
-        _ => raise Abort(UnsupportedJoin)
-      }
-    } else {
-      None
+    let predicate = match @query.operation_at(query, 0) {
+      Some(Where(expression)) => Some(expression)
+      _ => None
     }
     let select_index = if predicate is Some(_) { 1 } else { 0 }
     guard @query.operation_at(query, select_index)
       is Some(Select(projections, distinct)) else {
       raise Abort(UnsupportedJoin)
     }
+    let visible_names : Array[String] = []
+    for projection in projections {
+      let name = match projection.name {
+        Some(name) => name.value
+        None =>
+          match projection.expression {
+            Some(expression) =>
+              match
+                @query.expression_node(
+                  expression,
+                  @query.expression_root(expression),
+                ).unwrap().kind {
+                Reference(path) => path.last().unwrap().value
+                _ => raise Abort(UnsupportedJoin)
+              }
+            None => raise Abort(UnsupportedJoin)
+          }
+      }
+      if visible_names.any(prior => ascii_upper(prior) == ascii_upper(name)) {
+        raise Abort(DuplicateOutput)
+      }
+      visible_names.push(name)
+    }
+    let projected = projections.copy()
+    let order_fields : Array[(String, String, String)] = []
+    let mut next = select_index + 1
+    match @query.operation_at(query, next) {
+      Some(Order(terms)) => {
+        let reserved = visible_names + left_fields + right_fields
+        for term in terms {
+          let expression = term.expression
+          let mut selected : String? = None
+          match
+            @query.expression_node(
+              expression,
+              @query.expression_root(expression),
+            ).unwrap().kind {
+            Reference(path) if path.length() == 1 =>
+              for name in visible_names {
+                if same_name(path[0], { value: name, quoted: false, }) {
+                  selected = Some(name)
+                }
+              }
+            _ => ()
+          }
+          if selected is None {
+            for index in 0..<projections.length() {
+              if projections[index].expression is Some(value) &&
+                same_expression(expression, value) {
+                if selected is Some(_) {
+                  raise Abort(UnsupportedOrdering)
+                }
+                selected = Some(visible_names[index])
+              }
+            }
+          }
+          if selected is None {
+            if distinct {
+              raise Abort(UnsupportedOrdering)
+            }
+            let hidden = pipe_physical_name(reserved, "aql_join_sort_")
+            reserved.push(hidden)
+            projected.push({
+              expression: Some(expression),
+              aggregate: None,
+              analytic: None,
+              name: Some({ value: hidden, quoted: false, }),
+              star: None,
+            })
+            selected = Some(hidden)
+          }
+          order_fields.push((selected.unwrap(), term.direction, term.nulls))
+        }
+        next += 1
+      }
+      _ => ()
+    }
     let (select, computed_steps, output, joined) = joined_projection(
       construction,
-      projections,
+      projected,
       predicate,
       part,
       left_qualifier,
@@ -4026,6 +4099,69 @@ fn compile_join_query(
           ("as", construction.text("aql_join_unique")),
         ]),
       )
+    }
+    let mut result_from = if distinct {
+      "aql_join_unique"
+    } else {
+      "aql_join_output"
+    }
+    if !order_fields.is_empty() {
+      let order : Array[@builder.Node] = []
+      for (field, direction, nulls) in order_fields {
+        order.push(
+          construction.object([
+            ("field", construction.text(field)),
+            ("dir", construction.text(direction)),
+            ("nulls", construction.text(nulls)),
+          ]),
+        )
+      }
+      computed_steps.push(
+        construction.object([
+          ("from", construction.text(result_from)),
+          ("sort", construction.array(order)),
+          ("as", construction.text("aql_join_sorted")),
+        ]),
+      )
+      result_from = "aql_join_sorted"
+    }
+    match @query.operation_at(query, next) {
+      Some(Limit(count, offset)) => {
+        computed_steps.push(
+          construction.object([
+            ("from", construction.text(result_from)),
+            (
+              "take",
+              construction.object([
+                ("count", construction.add(Number(count.to_double()))),
+                ("offset", construction.add(Number(offset.to_double()))),
+              ]),
+            ),
+            ("as", construction.text("aql_join_taken")),
+          ]),
+        )
+        result_from = "aql_join_taken"
+        next += 1
+      }
+      _ => ()
+    }
+    if next != @query.operation_count(query) {
+      raise Abort(UnsupportedJoin)
+    }
+    if output.length() != visible_names.length() {
+      computed_steps.push(
+        construction.object([
+          ("from", construction.text(result_from)),
+          (
+            "select",
+            construction.array(
+              visible_names.map(name => construction.text(name)),
+            ),
+          ),
+          ("as", construction.text("aql_join_visible")),
+        ]),
+      )
+      result_from = "aql_join_visible"
     }
     let left_rows = join_values_rows(left).to_int64()
     let right_rows = join_values_rows(right).to_int64()
@@ -4129,19 +4265,12 @@ fn compile_join_query(
           (
             context.stage_result,
             construction.object([
-              (
-                "from",
-                construction.text(
-                  if distinct {
-                    "aql_join_unique"
-                  } else {
-                    "aql_join_output"
-                  },
-                ),
-              ),
+              ("from", construction.text(result_from)),
               (
                 "fields",
-                construction.array(output.map(name => construction.text(name))),
+                construction.array(
+                  visible_names.map(name => construction.text(name)),
+                ),
               ),
             ]),
           ),
