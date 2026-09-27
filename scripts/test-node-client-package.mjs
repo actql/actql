@@ -117,6 +117,13 @@ for (const [name, sql] of [
   assert.notEqual(query, '', name);
   await writeFile(join(root, `${name}.json`), query);
 }
+const concatQuery = queryFrontend.compileValuesQueryJson(
+  "SELECT CONCAT('a', NULL) AS strict, ACTQL.CONCAT('a', NULL) "
+    + 'AS legacy FROM rows',
+  'rows', 'rows', JSON.stringify(aliasRows), JSON.stringify(['x', 'y']),
+  'fixture.concat_null');
+assert.notEqual(concatQuery, '');
+await writeFile(join(root, 'concat-query.json'), concatQuery);
 const setLeft = {values: {schema: {
   a: {type: 'number', nullable: true},
   b: {type: 'string', nullable: false}},
@@ -400,6 +407,11 @@ async function checkOrderScopes(client, suffix) {
     assert.deepEqual(await execution.result('answer').all(), expected);
   }
 }
+async function checkConcat(client, suffix) {
+  await assert.rejects(client.aql(readFileSync('concat-query.json', 'utf8'),
+    {format: 'json', requestId: 'packed-concat-' + suffix}),
+  {code: 'RunHostCompilationRejected'});
+}
 const setQueryDocument = readFileSync('set-query.json', 'utf8');
 const pipeUnionQueryDocument = readFileSync('pipe-union-query.json', 'utf8');
 const expectedUnionRows = [{a: 1, b: 'x'}, {a: 1, b: 'x'},
@@ -525,6 +537,7 @@ assert.equal((await computedValuesQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await computedValuesQueryLocal.result('answer').all(),
   [{id: 2}]);
 await checkOrderScopes(installedLocal, 'local');
+await checkConcat(installedLocal, 'local');
 const setQueryLocal = await installedLocal.aql(setQueryDocument,
   {format: 'json', requestId: 'packed-set-query-local'});
 const setQueryLocalStatus = await setQueryLocal.wait();

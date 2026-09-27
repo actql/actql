@@ -32,6 +32,22 @@ records reference terms, frontend and existing IR meanings, and differences.
 | Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Partial: source-free direct and filtered Values plus captured filter/query run through packed Local and HTTP Remote Host; CTE reuse pending |
 | Core isolation and SDK dependency boundary | Existing gates | No frontend production dependency or tracked runtime bundles | Pending |
 
+The current Local expression IR rejects `concat_strict` and `concat` during
+`lowering_relation.lower_expression_measured`: `ExpressionNotImplemented`
+is the concrete boundary. The query compiler emits the adopted distinct
+expression trees and the common checker accepts them, but the packed Host
+rejects a Values query before Run creation with
+`RunHostCompilationRejected`. The packed embedded Local test records that
+explicit refusal; the public HTTP Client correctly reports an uncertain
+submission when the server fails before returning a Run reference, so this
+known compiler gap is not asserted as a remote Run failure.
+The Local Compute owner must extend the existing lowering and evaluation
+of these two operators, preserving strict NULL propagation versus legacy
+null skipping and bounded output accounting. The frontend must then change
+this expected refusal into independent Local and HTTP Remote Result rows.
+It must not rewrite strict CONCAT as legacy concat or invent a parallel
+expression evaluator.
+
 ## Reference evidence
 
 GoogleSQL reference revision: `d82db99a923a46571f543a13899dc791a7b6f743`.
