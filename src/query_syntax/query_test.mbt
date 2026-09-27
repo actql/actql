@@ -73,6 +73,34 @@ test "query source clauses reject partial and unsupported input" {
 }
 
 ///|
+test "query construction charges syntax nodes and work at exact limits" {
+  let text = "SELECT id FROM rows ORDER BY id"
+  let admitted = parse_query(text, { ..query_limits(), max_syntax_nodes: 2, }).unwrap()
+  assert_true(
+    parse_query(text, { ..query_limits(), max_syntax_nodes: 1, }) is Err(_),
+  )
+  let work = query_work(admitted)
+  assert_true(work > 0)
+  assert_true(parse_query(text, { ..query_limits(), max_work: work, }) is Ok(_))
+  assert_true(
+    parse_query(text, { ..query_limits(), max_work: work - 1, }) is Err(_),
+  )
+}
+
+///|
+test "query diagnostics point into the original Unicode source" {
+  let text = "--😀\r\nSELECT id FROM rows LIMIT 0"
+  match parse_query(text, query_limits(), source_path="query.sql") {
+    Err({ issue: Syntax(_), span: Some(span), }) => {
+      assert_eq(span.source_path, "query.sql")
+      assert_eq(span.start_line, 2)
+      assert_eq(span.start_column, 27)
+    }
+    _ => fail("expected a bounded LIMIT diagnostic")
+  }
+}
+
+///|
 test "noncorrelated FROM subqueries keep bounded dataflow and source alias" {
   let sql = parse_query(
     "SELECT s.id FROM (SELECT id FROM orders WHERE id > 1) AS s",
@@ -167,6 +195,20 @@ test "SQL set operators keep explicit multiplicity and final ordering" {
     text in [
       "SELECT a FROM left_rows INTERSECT ALL SELECT a FROM left_rows", "SELECT a FROM left_rows UNION SELECT a FROM left_rows",
       "SELECT a FROM left_rows UNION ALL SELECT a FROM left_rows EXCEPT DISTINCT SELECT a FROM left_rows",
+    ] {
+    assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
+  }
+}
+
+///|
+test "inline OVER syntax rejects unadopted windows and frame kinds" {
+  for
+    text in [
+      "SELECT ROW_NUMBER() OVER w AS pos FROM rows", "SELECT ROW_NUMBER() OVER (PARTITION BY id) AS pos FROM rows",
+      "SELECT ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS pos FROM rows",
+      "SELECT ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS pos FROM rows",
+      "SELECT ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW EXCLUDE CURRENT ROW) AS pos FROM rows",
+      "SELECT ROW_NUMBER() OVER (ORDER BY id) AS pos FROM rows WINDOW w AS (ORDER BY id)",
     ] {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
