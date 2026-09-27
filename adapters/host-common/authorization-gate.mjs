@@ -221,6 +221,8 @@ export function createAuthorizationGate({
   answeringAuthorities = [],
   requiredClaims = [],
   decisionTimeoutMs = 30_000,
+  maxInFlightDecisions = 16,
+  maxRetainedDecisions = 1024,
   deferral,
   protectedSites = [],
 } = {}) {
@@ -237,6 +239,10 @@ export function createAuthorizationGate({
   }
   if (!Number.isSafeInteger(decisionTimeoutMs) || decisionTimeoutMs < 1) {
     fail('InvalidAuthorizationTimeout');
+  }
+  if (![maxInFlightDecisions, maxRetainedDecisions].every(value =>
+    Number.isSafeInteger(value) && value > 0)) {
+    fail('InvalidAuthorizationCapacity');
   }
   if (!Array.isArray(protectedSites) || !protectedSites.every(text)) {
     fail('InvalidProtectedSites');
@@ -284,11 +290,15 @@ export function createAuthorizationGate({
     answeringAuthorities: Object.freeze([...answering]),
     requiredClaims: Object.freeze([...requiredClaims]),
     decisionTimeoutMs,
+    maxInFlightDecisions,
+    maxRetainedDecisions,
     deferral: durable,
     protectedSites: new Set(protectedSites),
     counts: Object.fromEntries(COUNTERS.map(name => [name, 0])),
-    // Exact-scope reuse: keyed by the full subject under this configuration.
-    cache: new Map(),
+    // Shared capacity, not shared judgments. Pending callbacks keep their
+    // physical slot until settlement, including after deadline or close.
+    pending: new Set(),
+    retention: {entries: 0},
   });
   return gateFor(core, Object.freeze({
     principal: context.principal,
@@ -297,6 +307,25 @@ export function createAuthorizationGate({
 }
 
 function gateFor(core, context) {
+  const cache = new Map();
+  const pending = new Set();
+  let closed = false;
+  const ensureOpen = () => {
+    if (closed) fail('AuthorizationDecisionScopeClosed');
+  };
+  const release = (key, entry) => {
+    if (cache.get(key) !== entry) return;
+    cache.delete(key);
+    core.retention.entries--;
+  };
+  const closeScope = () => {
+    closed = true;
+    for (const [key, entry] of cache) {
+      if (entry.settled) release(key, entry);
+    }
+    for (const entry of pending) entry.abort();
+    return cache.size === 0 && pending.size === 0;
+  };
   const count = (name, delta = 1) => { core.counts[name] += delta; };
   const record = decision => {
     if (decision.action === 'dispatch') count('protectedDispatches');
@@ -307,30 +336,44 @@ function gateFor(core, context) {
   };
 
   async function askHost(view, signal) {
-    count('hostDecisionCalls');
+    if (closed || signal?.aborted) {
+      return {kind: 'failure', failure: 'unavailable'};
+    }
+    if (core.pending.size >= core.maxInFlightDecisions) {
+      return {kind: 'failure', failure: 'adapter_error',
+        error: new Error('AuthorizationDecisionCapacity')};
+    }
+    const controller = new AbortController();
     let timer;
     let onAbort;
-    const pending = [
-      Promise.resolve().then(() => core.decide(view, {signal})).then(
+    let stop;
+    const stopped = new Promise(resolve => { stop = resolve; });
+    const entry = {abort(reason = 'unavailable') {
+      stop({kind: 'failure', failure: reason});
+      controller.abort(reason);
+    }};
+    core.pending.add(entry);
+    pending.add(entry);
+    const operation = Promise.resolve().then(() => {
+      if (controller.signal.aborted) return {decision: 'unavailable'};
+      count('hostDecisionCalls');
+      return core.decide(view, {signal: controller.signal});
+    }).then(
         answerOf,
         error => ({kind: 'failure', failure: 'adapter_error', error}),
-      ),
-      new Promise(resolve => {
-        timer = setTimeout(
-          () => resolve({kind: 'failure', failure: 'timeout'}),
-          core.decisionTimeoutMs,
-        );
-      }),
-    ];
+    ).finally(() => {
+      core.pending.delete(entry);
+      pending.delete(entry);
+    });
+    entry.operation = operation;
+    timer = setTimeout(() => entry.abort('timeout'), core.decisionTimeoutMs);
     if (signal !== undefined) {
-      pending.push(new Promise(resolve => {
-        onAbort = () => resolve({kind: 'failure', failure: 'unavailable'});
-        if (signal.aborted) onAbort();
-        else signal.addEventListener('abort', onAbort, {once: true});
-      }));
+      onAbort = () => entry.abort();
+      if (signal.aborted) onAbort();
+      else signal.addEventListener('abort', onAbort, {once: true});
     }
     try {
-      return await Promise.race(pending);
+      return await Promise.race([operation, stopped]);
     } finally {
       clearTimeout(timer);
       if (onAbort !== undefined) signal.removeEventListener('abort', onAbort);
@@ -378,6 +421,7 @@ function gateFor(core, context) {
     try {
       bindingCid = await decisionSubjectCid(view.subject);
       const described = await deferral.describe(sealedView);
+      ensureOpen();
       const supplied = described?.body?.required_artifact?.artifact_cid;
       // `describe` may not substitute another artifact for the subject.
       if (supplied !== undefined && supplied !== artifactCid) {
@@ -509,6 +553,7 @@ function gateFor(core, context) {
         reason: 'adapter_error', detail: bound.issue});
     }
     const boundSubjectCid = await decisionSubjectCid(bound.subject);
+    ensureOpen();
     signal?.throwIfAborted();
     // From here on nothing awaits: the admission read below and the answer
     // it produces describe the journal at one Host trusted instant. The
@@ -615,6 +660,7 @@ function gateFor(core, context) {
     signal?.throwIfAborted();
     // No decision function: the durable journal and its answer path are the
     // Host's decision route, so the bound subject is deferred as is.
+    ensureOpen();
     const answer = core.decide === undefined
       ? {kind: 'defer', subject: SUBJECT_FIELDS.map(name => view.subject[name])}
       : immediateBinding(await askHost(view, signal), view);
@@ -671,6 +717,7 @@ function gateFor(core, context) {
     // and nothing is persisted.
     async authorize(boundary, scope, {subjectCid, signal,
       sealDeferredSubject} = {}) {
+      ensureOpen();
       if (!AUTHORIZATION_BOUNDARIES.includes(boundary)) {
         fail('InvalidAuthorizationBoundary');
       }
@@ -689,23 +736,44 @@ function gateFor(core, context) {
         resource: scope.resource,
         operation: scope.operation,
       });
+      // Bound retained key material before serialization. This is a Host
+      // capacity failure, not an account rejection or a permission TTL.
+      const capacityFailure = () => record(frozenDecision({boundary, tuple,
+        subjectCid, contextCid: context.contextCid, action: 'failure',
+        reason: 'adapter_error', detail: 'AuthorizationDecisionCapacity'}));
+      if ((subjectCid?.length ?? 0) > 512) return capacityFailure();
       const key = JSON.stringify([
         boundary, tuple.principal, tuple.connection, tuple.resource,
         tuple.operation, subjectCid ?? '', context.contextCid,
       ]);
-      const cached = core.cache.get(key);
+      const cached = cache.get(key);
       if (cached !== undefined) {
+        const decision = await cached.operation;
+        ensureOpen();
+        signal?.throwIfAborted();
         count('reusedDecisions');
-        return record(cached);
+        return record(decision);
       }
-      const decision = await evaluate(boundary, tuple, subjectCid, signal,
-        sealDeferredSubject);
-      // Only final decisions are reused, and only for this exact scope.
-      // Failures, unsupported defers and waits are evaluated again.
-      if (decision.action === 'dispatch' || decision.action === 'deny') {
-        core.cache.set(key, decision);
+      if (core.retention.entries >= core.maxRetainedDecisions) {
+        return capacityFailure();
       }
-      return record(decision);
+      // Reserve before starting, so concurrent evaluations cannot overfill
+      // the installation. The exact subject joins one pending evaluation.
+      const entry = {};
+      cache.set(key, entry);
+      core.retention.entries++;
+      entry.operation = evaluate(boundary, tuple, subjectCid, signal,
+        sealDeferredSubject).then(decision => {
+        ensureOpen();
+        if (decision.action !== 'dispatch' && decision.action !== 'deny') {
+          release(key, entry);
+        }
+        return decision;
+      }).catch(error => { release(key, entry); throw error; }).finally(() => {
+        entry.settled = true;
+        if (closed) release(key, entry);
+      });
+      return record(await entry.operation);
     },
 
     // Continue a deferred boundary from its committed Resolution. The
@@ -737,6 +805,7 @@ function gateFor(core, context) {
     // `admission.reconcile(identity)`, or leave the intent unresolved.
     async resume(boundary, scope, {subjectCid, signal, resumption,
       sealedSubjectCid} = {}) {
+      ensureOpen();
       if (!AUTHORIZATION_BOUNDARIES.includes(boundary)) {
         fail('InvalidAuthorizationBoundary');
       }
@@ -760,6 +829,7 @@ function gateFor(core, context) {
     // Explicit no-protected-scope coverage for pure compute over captured
     // inputs on an unprotected in-process Site. No evaluation, no Host call.
     cover(boundary, scope) {
+      ensureOpen();
       if (!AUTHORIZATION_BOUNDARIES.includes(boundary)) {
         fail('InvalidAuthorizationBoundary');
       }
@@ -773,9 +843,11 @@ function gateFor(core, context) {
 
     isProtectedSite(key) { return core.protectedSites.has(key); },
 
-    // Same installation under another trusted context. Counters and cache are
-    // shared; the cache key includes the context, so nothing is widened.
+    // A new execution-owned decision scope under the same immutable account
+    // and shared capacity. Reuse this returned scope within that execution;
+    // close it at the end. No installation-wide Map retains old contexts.
     withContext(next) {
+      ensureOpen();
       if (next === null || typeof next !== 'object' ||
           !text(next.principal) || !cid(next.contextCid)) {
         fail('InvalidAuthorizationContext');
@@ -787,6 +859,14 @@ function gateFor(core, context) {
     },
 
     counters() { return Object.freeze({...core.counts}); },
+    resourceUsage() {
+      return Object.freeze({retainedDecisions: core.retention.entries,
+        scopeDecisions: cache.size, inFlightDecisions: core.pending.size,
+        scopeInFlightDecisions: pending.size});
+    },
+    close: closeScope,
+    cleanupPending() { return cache.size !== 0 || pending.size !== 0; },
+    cleanup: closeScope,
   });
 }
 
