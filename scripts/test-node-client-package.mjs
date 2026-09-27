@@ -129,6 +129,13 @@ const analyticQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.analytic_query');
 assert.notEqual(analyticQuery, '');
 await writeFile(join(root, 'analytic-query.json'), analyticQuery);
+const extendedQuery = queryFrontend.compileCapturedQueryJson(
+  'FROM records |> WHERE id > 0 |> EXTEND amount + 1 AS adjusted |> SELECT id, adjusted',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.extended_query');
+assert.notEqual(extendedQuery, '');
+await writeFile(join(root, 'extended-query.json'), extendedQuery);
 const sourceCatalog = await readFile(join(repository,
   'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
 const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
@@ -233,6 +240,7 @@ const capturedQueryDocument = readFileSync('captured-query.json', 'utf8');
 const distinctQueryDocument = readFileSync('distinct-query.json', 'utf8');
 const groupedQueryDocument = readFileSync('grouped-query.json', 'utf8');
 const analyticQueryDocument = readFileSync('analytic-query.json', 'utf8');
+const extendedQueryDocument = readFileSync('extended-query.json', 'utf8');
 async function runApplication(options, requestId) {
   const client = await connect(options);
   const execution = await client.aql(document, {format: 'json', requestId});
@@ -316,6 +324,12 @@ assert.equal((await analyticQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await analyticQueryLocal.result('answer').all(),
   [{id: 3, ranking: 3}, {id: 1, ranking: 1},
     {id: 2, ranking: 2}, {id: 3, ranking: 3}]);
+const extendedQueryLocal = await acquiredLocal.client.aql(extendedQueryDocument,
+  {format: 'json', requestId: 'packed-extended-query-local'});
+assert.equal((await extendedQueryLocal.wait()).status, 'succeeded');
+assert.deepEqual(await extendedQueryLocal.result('answer').all(),
+  [{id: 3, adjusted: 31}, {id: 1, adjusted: null},
+    {id: 2, adjusted: 21}, {id: 3, adjusted: 31}]);
 assert.deepEqual((await acquiredLocal.client.attach(
   acquiredLocal.execution.ref)).ref, acquiredLocal.execution.ref);
 const acquiredStarted = await acquiredLocal.client.start(
@@ -457,6 +471,13 @@ assert.equal((await analyticQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await analyticQueryRemote.result('answer').all(),
   [{id: 3, ranking: 3}, {id: 1, ranking: 1},
     {id: 2, ranking: 2}, {id: 3, ranking: 3}]);
+const extendedQueryRemote = await acquiredRemote.client.aql(
+  extendedQueryDocument,
+  {format: 'json', requestId: 'packed-extended-query-remote'});
+assert.equal((await extendedQueryRemote.wait()).status, 'succeeded');
+assert.deepEqual(await extendedQueryRemote.result('answer').all(),
+  [{id: 3, adjusted: 31}, {id: 1, adjusted: null},
+    {id: 2, adjusted: 21}, {id: 3, adjusted: 31}]);
 assert.deepEqual(acquiredRemote.b, acquiredLocal.b);
 assert.deepEqual(acquiredRemote.c, acquiredLocal.c);
 assert.deepEqual((await acquiredRemote.client.attach(

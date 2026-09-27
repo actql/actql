@@ -26,7 +26,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Pending |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Pending |
-| Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Pending |
+| Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT and snapshot EXTEND; SET/DROP/RENAME/AS/JOIN/set still reject in lowering |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK Result; full negative and frame matrix pending |
 | Bounds, origin maps and Grammar Manifest | Existing owners | Before-allocation bounds, source diagnostics, pins/vectors | Pending |
 | Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Partial: source-free `SELECT *` and captured filter/query run through packed Local and HTTP Remote Host; multi-step Values and CTE pending |
@@ -123,3 +123,13 @@ surface and the broader SQL/Pipe scope remain pending. The packed Local and
 HTTP Remote Host route also executes `RANK() OVER (ORDER BY id)` on captured
 rows with a duplicated sort key and returns ranks `3, 1, 2, 3` in input order.
 The test Host explicitly supplies analytic resource ceilings.
+Pipe `EXTEND` lowers a batch of expressions against one input snapshot, so
+sibling aliases are not visible. A packed captured-source query with
+`EXTEND amount + 1 AS adjusted` returns the expected NULL-preserving values
+from both Local and HTTP Remote Hosts. Its Result fields are `id, adjusted`;
+the direct Result-root admission now compares checked projection fields in
+canonical schema order while retaining authored Result order. Previously it
+rejected non-lexical field order as requiring an extra transformation.
+An unfiltered captured DuckDB query still lacks source-evidence facts at
+physical source preparation, so this result does not establish FROM-only
+acquisition support.
