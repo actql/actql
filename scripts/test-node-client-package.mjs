@@ -102,6 +102,13 @@ const capturedQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.captured_query');
 assert.notEqual(capturedQuery, '');
 await writeFile(join(root, 'captured-query.json'), capturedQuery);
+const distinctQuery = queryFrontend.compileCapturedQueryJson(
+  'SELECT DISTINCT id FROM records WHERE id > 1 ORDER BY id',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.distinct_query');
+assert.notEqual(distinctQuery, '');
+await writeFile(join(root, 'distinct-query.json'), distinctQuery);
 const sourceCatalog = await readFile(join(repository,
   'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
 const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
@@ -197,6 +204,7 @@ const document = readFileSync('values.json', 'utf8');
 const valuesQueryDocument = readFileSync('query-values.json', 'utf8');
 const acquiredDocument = readFileSync('source-program.json', 'utf8');
 const capturedQueryDocument = readFileSync('captured-query.json', 'utf8');
+const distinctQueryDocument = readFileSync('distinct-query.json', 'utf8');
 async function runApplication(options, requestId) {
   const client = await connect(options);
   const execution = await client.aql(document, {format: 'json', requestId});
@@ -264,6 +272,11 @@ const capturedQueryLocal = await acquiredLocal.client.aql(capturedQueryDocument,
 assert.equal((await capturedQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await capturedQueryLocal.result('answer').all(),
   [{id: 3}, {id: 2}, {id: 3}]);
+const distinctQueryLocal = await acquiredLocal.client.aql(distinctQueryDocument,
+  {format: 'json', requestId: 'packed-distinct-query-local'});
+assert.equal((await distinctQueryLocal.wait()).status, 'succeeded');
+assert.deepEqual(await distinctQueryLocal.result('answer').all(),
+  [{id: 2}, {id: 3}]);
 assert.deepEqual((await acquiredLocal.client.attach(
   acquiredLocal.execution.ref)).ref, acquiredLocal.execution.ref);
 const acquiredStarted = await acquiredLocal.client.start(
@@ -386,6 +399,12 @@ const capturedQueryRemote = await acquiredRemote.client.aql(
 assert.equal((await capturedQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await capturedQueryRemote.result('answer').all(),
   [{id: 3}, {id: 2}, {id: 3}]);
+const distinctQueryRemote = await acquiredRemote.client.aql(
+  distinctQueryDocument,
+  {format: 'json', requestId: 'packed-distinct-query-remote'});
+assert.equal((await distinctQueryRemote.wait()).status, 'succeeded');
+assert.deepEqual(await distinctQueryRemote.result('answer').all(),
+  [{id: 2}, {id: 3}]);
 assert.deepEqual(acquiredRemote.b, acquiredLocal.b);
 assert.deepEqual(acquiredRemote.c, acquiredLocal.c);
 assert.deepEqual((await acquiredRemote.client.attach(

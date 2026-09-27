@@ -23,7 +23,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | SELECT, FROM-only, subqueries, WHERE | Existing Program derive/select/filter | SQL/Pipe expected Program and rows | Partial: base SELECT/FROM/WHERE equivalence and captured Host Result; subqueries pending |
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Pending |
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Pending |
-| DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; ordered runtime/ties pending |
+| DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Pending |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Pending |
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Pending |
@@ -99,3 +99,8 @@ product route for that query shape, not a claim that the full SQL/Pipe profile
 or arbitrary physical acquisition shape is complete. Source-free queries with
 more than one Values task step still hit the installed Host's direct-Values
 compilation boundary; the ordinary Values-only packed route remains intact.
+The same captured route also executes `SELECT DISTINCT id FROM records WHERE
+id > 1 ORDER BY id`, returning `2, 3` in order. The source includes duplicate
+`id=3` rows; DISTINCT supplies a proven key before sorting. Arbitrary source
+ORDER BY still requires the existing total-order evidence and is not inferred
+from the SQL spelling alone.
