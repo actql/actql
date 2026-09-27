@@ -10,6 +10,7 @@ import {createHash, randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {acquisitionFailure} from '../../../host-common/acquisition-outcome.mjs';
 import {authorizationRuntimeCode} from
   '../../../host-common/authorization-gate.mjs';
 import {installSalesforceAuthorization, loadInstalledSalesforceSite} from
@@ -257,9 +258,23 @@ function installedSalesforceAdapter({moon, site, authorization, declaration,
   // Acquire the prepared read: describe the Resource under this dispatch,
   // plan and start the selected attempt in the standard runtime, read its
   // pages under one query grant, recheck the Resource, then capture. The
-  // returned capture owns the live source until `close`.
-  async function open({preparedProgram, registry, values, fragment, ordered,
-    sourceAccess: access = sourceAccess, signal, preparedSource}) {
+  // returned capture owns the live source until `close`. A failure states
+  // how the acquisition ended: nothing before the first provider request
+  // (the preparation check and the current read decision) starts it; after
+  // it, every provider request was awaited and the attempt closed, so it
+  // has stopped, unless closing the attempt itself failed.
+  async function open(options) {
+    const state = {started: false, closeFailed: false};
+    try {
+      return await acquire(state, options);
+    } catch (error) {
+      throw acquisitionFailure(error, !state.started ? 'not_started'
+        : state.closeFailed ? 'unknown' : 'stopped');
+    }
+  }
+
+  async function acquire(state, {preparedProgram, registry, values, fragment,
+    ordered, sourceAccess: access = sourceAccess, signal, preparedSource}) {
     const prepared = preparedSource ?? await prepare({preparedProgram,
       registry, values, fragment, ordered, sourceAccess: access});
     const owner = preparations.get(prepared);
@@ -283,6 +298,7 @@ function installedSalesforceAdapter({moon, site, authorization, declaration,
         observationCid: described.observationCid,
         observationJson: described.evidence.observationJson});
     };
+    state.started = true;
     const current = await describe('plan');
     const acquisition = checked(moon.clientProgramPrepareSalesforceAcquisition(
       declaration, owner.requirement, current.observation, queryContract,
@@ -339,7 +355,8 @@ function installedSalesforceAdapter({moon, site, authorization, declaration,
         },
         close});
     } catch (error) {
-      close();
+      try { close(); }
+      catch { state.closeFailed = true; }
       throw error;
     }
   }

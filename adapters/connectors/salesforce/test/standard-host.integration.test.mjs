@@ -50,10 +50,11 @@ const runtimeBundleCid = `sha256:${createHash('sha256').update(
     '../../../../_build/js/release/build/connectors_builtin_node/' +
     'connectors_builtin_node.js', import.meta.url))).digest('hex')}`;
 const secret = async () => 'test-only-secret';
-const accountConfiguration = (orgId, readable) => canonicalJson({
+const accountConfiguration = (orgId, readable, outcome = 'allow') =>
+  canonicalJson({
   version: 'actql-execution-account-config/0.1',
   account_id: 'salesforce-source-account',
-  entries: [{entry_id: 'records-read', outcome: 'allow', exclusions: [],
+  entries: [{entry_id: 'records-read', outcome, exclusions: [],
     principal: {all: true}, connection: {any_of: [`salesforce:${orgId}`]},
     resource: {any_of: [...readable].sort()}, operation: {any_of: ['read']}}],
 });
@@ -74,9 +75,11 @@ const program = JSON.stringify({version: 'actql/0.1', id: 'salesforce-read',
   ],
   results: {records: {from: {stage: 'compute', result: 'r'}}}});
 
-async function installation(t, {readable = ['Test_Record__c']} = {}) {
+async function installation(t, {readable = ['Test_Record__c'],
+  queryFailureStatus} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
-    salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2')});
+    salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
+    queryFailureStatus});
   const root = await mkdtemp(join(scratch, 'host-'));
   // Hosts close before their directory is removed.
   const closers = [];
@@ -246,4 +249,91 @@ test('a publication of another connection or Site generation is refused',
     await writeFile(setup.profile.publicationPath, JSON.stringify(body));
     await assert.rejects(setup.open());
     assert.equal(setup.queries().length, 0);
+  });
+
+// A Run whose acquisition ended without a capture: the Run fails, nothing is
+// retried, and the Host still closes (its dispatch owner holds nothing).
+async function assertEndedRun(setup, client, requestId) {
+  const execution = await client.aql(program, {format: 'json', requestId});
+  assert.equal((await execution.wait()).status, 'failed');
+  const requests = setup.org.seen.length;
+  assert.equal((await client.lookupRequest(requestId)).kind, 'found');
+  assert.equal((await execution.wait()).status, 'failed');
+  assert.equal(setup.org.seen.length, requests);
+}
+
+test('a delegated read with no Checkpoint is refused at submit', async t => {
+  const setup = await installation(t);
+  await setup.publish();
+  // The account delegates the read and this Host installs no Checkpoint:
+  // there is no answer path, so the read is refused before any Run.
+  await writeFile(setup.profilePath, JSON.stringify({...setup.profile,
+    accountConfigurationWire: accountConfiguration(setup.org.orgId,
+      ['Test_Record__c'], 'delegate')}));
+  const {client, close} = await setup.open();
+  const before = setup.org.seen.length;
+  await assert.rejects(client.aql(program, {format: 'json',
+    requestId: 'delegated-1'}), error => error.code === 'SubmissionUnknown' &&
+    error.cause?.code === 'ACTQL_E_DELEGATION_UNAVAILABLE');
+  assert.deepEqual(await client.lookupRequest('delegated-1'),
+    {kind: 'not_found'});
+  assert.equal(setup.org.seen.length, before);
+  await close();
+});
+
+test('a read denied when the acquisition opens is stated as not started',
+  async t => {
+    const setup = await installation(t);
+    await setup.publish();
+    const {loadInstalledSource} = await import(
+      '../../../host-node/installed-source.mjs');
+    const spec = name => readFile(join(repository, name), 'utf8');
+    const base = (await spec('spec/local-check-environment.json')).trimEnd();
+    const adapter = await loadInstalledSource(setup.profilePath, {
+      root: join(setup.root, 'adapter-state'), principalId: owner,
+      moon: commonMoon, runtimeUrl: new URL(
+        '../../../../_build/js/release/build/connectors_builtin_node/' +
+        'connectors_builtin_node.js', import.meta.url),
+      baseEnvironmentWire: base, resolveSecret: secret});
+    try {
+      const environment = commonMoon.clientProgramCheckEnvironment(
+        adapter.environmentWire, JSON.parse(adapter.environmentWire)
+          .evidence_bundle_cid, false, false, true, false, false, false, false);
+      const preparedProgram = commonMoon.clientProgramPreparationReady(
+        commonMoon.clientProgramPrepareEffectFreeWithParameters(program, 'json',
+          environment, undefined));
+      const aoa = JSON.parse(await spec('spec/contracts/actql-aoa.json'));
+      const common = {preparedProgram,
+        registry: await spec('spec/dependencies/aoa-pipeline-registry.json'),
+        values: JSON.stringify(aoa.execution_contracts['REL.values']),
+        fragment: JSON.stringify(
+          aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+        ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
+      // The read is allowed when prepared and revoked before the dispatch.
+      let decisions = 0;
+      const access = {...adapter.sourceAccess, authorization: {
+        authorize: async (...args) => ++decisions === 1
+          ? adapter.sourceAccess.authorization.authorize(...args)
+          : Object.freeze({action: 'deny', reason: 'no_match'})}};
+      const preparedSource = await adapter.prepare({...common,
+        sourceAccess: access});
+      const before = setup.org.seen.length;
+      await assert.rejects(adapter.open({...common, sourceAccess: access,
+        preparedSource}), error => error.outcome === 'not_started' &&
+        error.code === 'ExecutionAuthorizationDenied');
+      assert.equal(setup.org.seen.length, before);
+    } finally {
+      adapter.close();
+    }
+  });
+
+test('a provider failure after the read started ends its Run once',
+  async t => {
+    const setup = await installation(t, {queryFailureStatus: 503});
+    await setup.publish();
+    const {client, close} = await setup.open();
+    await assertEndedRun(setup, client, 'failed-after-start');
+    // One query was sent and none repeated.
+    assert.equal(setup.queries().length, 1);
+    await close();
   });

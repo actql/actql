@@ -57,6 +57,8 @@ export async function openSalesforceEffectSiteFixture(t, {
   optionalText = false,
   // The Host's logical connection id the Site declares under.
   connectorId = 'crm-main',
+  // An HTTP status every query request is answered with instead of rows.
+  queryFailureStatus,
 }) {
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
   const openssl = (...args) => execFileSync('openssl', args,
@@ -92,6 +94,12 @@ export async function openSalesforceEffectSiteFixture(t, {
       return;
     }
     const prefix = '/services/data/v62.0/';
+    if (queryFailureStatus !== undefined && request.method === 'GET' &&
+        request.url?.startsWith(`${prefix}query?q=`)) {
+      response.writeHead(queryFailureStatus, {'content-type': 'application/json'});
+      response.end('[{"errorCode":"SERVER_UNAVAILABLE"}]');
+      return;
+    }
     if (request.method === 'GET' && request.url?.startsWith(`${prefix}query?q=`)) {
       // Three stored records answer a bounded preview query, or a whole
       // acquisition query without a limit.
