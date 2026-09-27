@@ -126,9 +126,13 @@ pub fn read_projection_fields(ReadProjection) -> Array[String]
 
 pub fn read_projection_has_prefilter(ReadProjection) -> Bool
 
+pub fn read_projection_id_sortable(ReadProjection) -> Bool
+
 pub fn read_projection_matches_site_scope(ReadProjection, String, String, String, String, Int, String, String, String, String, String) -> Bool
 
 pub fn read_projection_observation(ReadProjection) -> String
+
+pub fn read_projection_ordered_by_id(ReadProjection) -> Bool
 
 pub fn read_projection_resource(ReadProjection) -> String
 
@@ -207,6 +211,8 @@ pub fn target_preview_row_guard_cid(TargetPreviewRow) -> String
 pub fn target_preview_row_target_wire(TargetPreviewRow) -> String
 
 pub fn with_exact_int_comparison(ReadProjection, String, ExactIntComparison, Int) -> ReadProjection?
+
+pub fn with_id_order(ReadProjection) -> ReadProjection?
 
 pub fn with_row_limit(ReadProjection, Int) -> ReadProjection?
 
@@ -486,6 +492,8 @@ pub struct ReadProjection {
   soql : String
   max_soql_bytes : Int
   prefiltered : Bool
+  id_sortable : Bool
+  ordered_by_id : Bool
   row_limit : Int?
 }
 

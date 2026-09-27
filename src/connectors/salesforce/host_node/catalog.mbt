@@ -610,6 +610,34 @@ pub fn salesforce_read_projection_soql(
 }
 
 ///|
+/// The same read projection in ascending record Id order where the described
+/// Resource reports a sortable `id` field; otherwise the plan is returned
+/// unchanged and stays in unspecified provider order. It fails rather than
+/// dropping the order when the query budget cannot hold it.
+#export_name("salesforceReadProjectionWithIdOrderIfSortable")
+pub fn salesforce_read_projection_with_id_order_if_sortable(
+  plan : @catalog.ReadProjection,
+) -> @catalog.ReadProjection raise SalesforceCatalogBridgeIssue {
+  match @catalog.with_id_order(plan) {
+    Some(value) => value
+    None =>
+      if @catalog.read_projection_id_sortable(plan) {
+        raise ReadProjection(@catalog.QueryLimit)
+      } else {
+        plan
+      }
+  }
+}
+
+///|
+#export_name("salesforceReadProjectionOrderedById")
+pub fn salesforce_read_projection_ordered_by_id(
+  plan : @catalog.ReadProjection,
+) -> Bool {
+  @catalog.read_projection_ordered_by_id(plan)
+}
+
+///|
 /// A row-limited preview of one read projection. It fails rather than
 /// dropping the limit when the query budget cannot hold it.
 #export_name("salesforceReadProjectionWithRowLimit")

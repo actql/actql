@@ -25,10 +25,10 @@ const configuration = entries => canonicalJson({
 // supplied by the test; the account gate comes from the Host installation and
 // the credential authority and org binding from the installed profile.
 async function installed(t, {entries, profile = {}, secret,
-  extraObjects} = {}) {
+  extraObjects, idSortable, storedOrder} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
-    extraObjects});
+    extraObjects, idSortable, storedOrder});
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-salesforce-'));
   // Close every loaded Site before its journal directory is removed.
   const sites = [];
@@ -213,6 +213,8 @@ test('installed Salesforce peek reads a bounded prefix under its own grant',
       {Id: 'a00000000000002', Name: 'record-2'},
     ]);
     assert.equal(preview.limited, true);
+    // Id is not described as sortable here, so no order is imposed.
+    assert.equal(preview.order, 'provider');
     assert.match(preview.observationCid, /^sha256:[0-9a-f]{64}$/u);
     assert.deepEqual(queries().map(item => decodeURIComponent(item.path)), [
       '/services/data/v62.0/query?q=SELECT Id,Name FROM Test_Record__c LIMIT 2',
@@ -266,6 +268,27 @@ test('installed Salesforce peek describes only its Resource in a larger org',
     assert.equal(full.status, 'complete');
     assert.equal(setup.org.seen.slice(fullStart).filter(item =>
       item.path.endsWith('/describe')).length, extraObjects.length + 1);
+  });
+
+test('installed Salesforce peek orders by Id only where Id is sortable',
+  async t => {
+    const setup = await installed(t, {idSortable: true,
+      storedOrder: [3, 1, 2]});
+    const site = await setup.load();
+    const decision = await site.authorization.authorize('acquisition', {
+      connection: site.connection, resource: 'Test_Record__c',
+      operation: 'read'}, {subjectCid: cid('a')});
+    const preview = await site.peek({decision, resource: 'Test_Record__c',
+      fields: ['Id'], maxRows: 2});
+    assert.equal(preview.order, 'id');
+    assert.deepEqual(preview.rows, [{Id: 'a00000000000001'},
+      {Id: 'a00000000000002'}]);
+    assert.equal(preview.limited, true);
+    assert.deepEqual(setup.org.seen.filter(item =>
+      item.path.startsWith('/services/data/v62.0/query'))
+      .map(item => decodeURIComponent(item.path)), [
+      '/services/data/v62.0/query?q=SELECT Id FROM Test_Record__c ORDER BY Id LIMIT 2',
+    ]);
   });
 
 test('a targeted Catalog sync is never a complete Catalog', async t => {

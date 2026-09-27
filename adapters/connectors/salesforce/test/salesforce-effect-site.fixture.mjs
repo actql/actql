@@ -38,6 +38,10 @@ export async function openSalesforceEffectSiteFixture(t, {
   // Further listed objects, each with a minimal describe, for orgs that list
   // more than the tested object.
   extraObjects = [],
+  // Whether Test_Record__c's describe reports Id as sortable, and the order
+  // in which the stored records are returned without ORDER BY.
+  idSortable = false,
+  storedOrder = [1, 2, 3],
 }) {
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
   const openssl = (...args) => execFileSync('openssl', args,
@@ -76,16 +80,19 @@ export async function openSalesforceEffectSiteFixture(t, {
       // Three stored records answer a bounded preview query.
       const soql = decodeURIComponent(request.url.slice(
         `${prefix}query?q=`.length));
-      const match = /^SELECT ([A-Za-z_,]+) FROM Test_Record__c LIMIT ([0-9]+)$/u
-        .exec(soql);
+      const match =
+        /^SELECT ([A-Za-z_,]+) FROM Test_Record__c( ORDER BY Id)? LIMIT ([0-9]+)$/u
+          .exec(soql);
       if (match === null) {
         response.writeHead(400, {'content-type': 'application/json'});
         response.end('[{"errorCode":"MALFORMED_QUERY"}]');
         return;
       }
-      const stored = [1, 2, 3].map(index => ({Id: `a0000000000000${index}`,
+      const stored = (match[2] === undefined ? storedOrder
+        : [...storedOrder].sort()).map(index => ({
+        Id: `a0000000000000${index}`,
         Name: `record-${index}`, External_Key__c: `key-${index}`}));
-      const records = stored.slice(0, Number(match[2])).map(record =>
+      const records = stored.slice(0, Number(match[3])).map(record =>
         Object.fromEntries([['attributes', {type: 'Test_Record__c'}],
           ...match[1].split(',').map(name => [name, record[name]])]));
       response.writeHead(200, {'content-type': 'application/json'});
@@ -117,7 +124,7 @@ export async function openSalesforceEffectSiteFixture(t, {
       response.writeHead(200, {'content-type': 'application/json'});
       response.end(JSON.stringify({name: 'Test_Record__c', queryable: true,
         createable: true, updateable: true, fields: [
-          {name: 'Id', type: 'id', nillable: false},
+          {name: 'Id', type: 'id', nillable: false, sortable: idSortable},
           {name: 'Name', type: 'string', nillable: false,
             defaultedOnCreate: false, createable: true,
             updateable: nameUpdateable},

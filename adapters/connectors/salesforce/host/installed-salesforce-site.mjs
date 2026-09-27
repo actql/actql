@@ -265,8 +265,10 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // One authorized preview of at most `maxRows` rows of `resource`. The
   // decision must be the installed gate's read dispatch for this exact
   // Resource. The preview syncs its own current Catalog, reads one page
-  // under a one-use query grant, and returns a provider-order prefix for
-  // display only: never complete-read evidence or a Result.
+  // under a one-use query grant, and returns a prefix for display only:
+  // never complete-read evidence or a Result. `limited` means the reply
+  // reached `maxRows`, so more rows may exist; `order` is `id` when the
+  // query fixed ascending Id order and `provider` otherwise.
   async function peek({decision, resource, fields, maxRows,
     maxBytes = 65536, maxNodes = 10000, signal} = {}) {
     if (!issuedDecisions.has(decision) || decision.action !== 'dispatch' ||
@@ -304,7 +306,10 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       fail('SalesforceCatalogRefreshInterrupted');
     }
     const binding = JSON.parse(catalog.observationJson).binding;
+    // Ascending Id where the describe reports it sortable: the order of this
+    // one reply, not a snapshot or a rerun guarantee.
     const plan = checked(salesforceMoon.salesforceReadProjectionWithRowLimit(
+      checked(salesforceMoon.salesforceReadProjectionWithIdOrderIfSortable(
       checked(salesforceMoon.salesforcePrepareReadProjection(
         catalog.observation, binding.tenant, binding.principal,
         binding.environment, binding.connection_revision, binding.org_id,
@@ -312,7 +317,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
         binding.connector_registration, binding.connector_revision,
         binding.resource_origin, binding.run_invocation_cid,
         binding.dispatch_request_cid, binding.sync_occurrence, resource,
-        fields, 4096)), maxRows));
+        fields, 4096)))), maxRows));
     const query = sign({operation: 'salesforce:query:read', runInvocationCid,
       taskAttempt: 1, dispatchRequestCid, maxUses: 1});
     const rows = [];
@@ -332,6 +337,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       observationCid: result.currentCatalog.observationCid, resource,
       fields: Object.freeze([...fields]), rows: Object.freeze(rows),
       limited: rows.length === maxRows,
+      order: salesforceMoon.salesforceReadProjectionOrderedById(plan)
+        ? 'id' : 'provider',
     });
   }
 

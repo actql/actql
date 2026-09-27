@@ -185,9 +185,13 @@ pub fn salesforce_query_read_row_count(@catalog.QueryRead) -> Int64
 
 pub fn salesforce_read_projection_observation_cid(@catalog.ReadProjection) -> String
 
+pub fn salesforce_read_projection_ordered_by_id(@catalog.ReadProjection) -> Bool
+
 pub fn salesforce_read_projection_scope_matches(@catalog.ReadProjection, String, String, String, String, Int, String, String, String, String, String) -> Bool
 
 pub fn salesforce_read_projection_soql(@catalog.ReadProjection) -> String
+
+pub fn salesforce_read_projection_with_id_order_if_sortable(@catalog.ReadProjection) -> @catalog.ReadProjection raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_read_projection_with_row_limit(@catalog.ReadProjection, Int) -> @catalog.ReadProjection raise SalesforceCatalogBridgeIssue
 
