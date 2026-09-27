@@ -70,6 +70,8 @@ import {canonicalJson} from
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {sourceFreeEffectPublicationPlan} from
   '../../../host-node/local-values-plan.mjs';
+import {createInstalledEffectSite} from
+  '../../../host-node/installed-effect-site.mjs';
 import {issueCompletedEffectfulComputationEvidence,
   prepareCompletedEffectfulPublication,
   publishCompletedEffectfulRun,
@@ -1445,7 +1447,9 @@ async function verifyEffectCommitAuthorization(t, {
   return lost;
 }
 
-for (const physical of ['simulated', 'simulated-authorization',
+for (const physical of ['simulated', 'simulated-installed-factory',
+  'simulated-installed-recovered-factory',
+  'simulated-authorization',
   'salesforce',
   'salesforce-recovered', 'salesforce-terminal-restart',
   'salesforce-upsert', 'salesforce-create',
@@ -1493,7 +1497,8 @@ test(`two-member captured Effect Run ${
     const restartAfterTerminal = physical === 'salesforce-terminal-restart';
     const restartAfterPublication =
       physical === 'salesforce-publication-restart';
-    const restartBeforeApply = physical === 'salesforce-preapply-restart';
+    const restartBeforeApply = physical === 'salesforce-preapply-restart' ||
+      physical === 'simulated-installed-recovered-factory';
     const processUnknownIntent =
       physical === 'salesforce-process-unknown-restart';
     const processSavedResponse =
@@ -1545,7 +1550,7 @@ test(`two-member captured Effect Run ${
     })() : undefined;
     const mappingRef = generated?.ref ?? (siteRun
       ? 'mapping:salesforce.test-record.v1' : 'mapping:crm.account.v1');
-    const {document, environment, mappingCid} = await effectFixture({
+    const {document, environment, environmentWire, mappingCid} = await effectFixture({
       writeKind, memberIds, target, mappingRef, sourceIds,
       continueMembers, generated, labels,
     });
@@ -3268,11 +3273,177 @@ test(`two-member captured Effect Run ${
             outcomeWire: canonicalJson({state: 'applied',
               result: {record_id: `member-${memberIndex}-row-${rowIndex}`}}),
           });
-          ledger.commitAdmittedRowOutcome({
-            claim, preview: applyPreview, memberIndex,
-            previewRowIndex: rowIndex,
-          });
+        ledger.commitAdmittedRowOutcome({
+          claim, preview: applyPreview, memberIndex,
+          previewRowIndex: rowIndex,
+        });
       };
+      if (physical === 'simulated-installed-factory') {
+        let opens = 0;
+        let retained;
+        const installed = createInstalledEffectSite({
+          environmentWire,
+          prepareCaptured({execution: active}) {
+            assert.equal(active, execution);
+            return {
+              preview: admittedPreview, computation, storedResults,
+              apply: {...applyOptions, ledger, dispatchRow},
+              receipt: {ledger, preview: applyPreview, commonMoon: moon,
+                publicationPreview: admittedPreview,
+                authorizeEvidenceRead: async () => true,
+                members: members.map(member => ({rowOwners:
+                  member.claims.map(claim => ({claim})), replayed: false})),
+                limits: publicationLimits},
+              publication: {execution, store, storedResults, control,
+                computation, preview: admittedPreview, ledger,
+                request: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+                  publicationPolicyCid: cid('e'),
+                  publicationTargetCid: cid('f'),
+                  requestedAt: '2026-09-24T00:00:01.000Z'},
+                attempt: {attemptId: 'installed-two-effects-attempt',
+                  fenceCid: cid('0'), externalIdempotencyKey: undefined,
+                  startedAt: '2026-09-24T00:00:02.000Z'},
+                contractLimits: publicationLimits,
+                now: () => '2026-09-24T00:00:03.000Z'},
+              scopes: commitScopes, continuationWire: '{}',
+            };
+          },
+          prepareRecovered() {
+            assert.fail('The first apply must not recover Compute');
+          },
+        });
+        const completed = await installed.execute({moon, control, store,
+          ref: {runDefinitionCid: runDefinition.identity}, runDefinition,
+          compilation: effectCompilation,
+          openComputation: async () => { opens++; return execution; },
+          retainExecution: owner => { retained = owner; },
+          effectAuthorization: async ({reviewWire, declaredResults}) => {
+            assert.equal(reviewWire, preview.wire);
+            assert.deepEqual(declaredResults, ['answer']);
+            return {authorize: async () => ({action: 'dispatch'}),
+              close() {}};
+          },
+        });
+        assert.equal(opens, 1);
+        assert.equal(retained, execution);
+        assert.equal(completed.status, 'published');
+        assert.equal(completed.result.progress.dispatched, 4);
+        assert.equal(completed.result.completed.publication.state,
+          'succeeded');
+        assert.deepEqual(sent, [[0, 0], [0, 1], [1, 0], [1, 1]]);
+        published = true;
+        return;
+      }
+      if (physical === 'simulated-installed-recovered-factory') {
+        assert.equal(ledger.prepareCapturedSetIntents(
+          previewInputs, members, 64), 4);
+        const durable = await recoverCompletedEffectfulComputation({
+          store, control, runDefinition, contractLimits: publicationLimits,
+        });
+        const recovered = {requestScope, computation: durable};
+        const exactPreview = durable.preview;
+        const recoveredClaims = ledger.recoverClaimFacts({
+          preview: control.effectComputationPreviewLedgerIdentity(
+            exactPreview),
+          scope: requestScope, programId: 'program-1', nodeId: 'node-1',
+          maxRows: 4, maxWork: 100,
+        }).members;
+        const dispatched = [];
+        const installed = createInstalledEffectSite({environmentWire,
+          prepareCaptured() {
+            assert.fail('Recovered apply must not compute again');
+          },
+          prepareRecovered({recovered: actual}) {
+            assert.equal(actual, recovered);
+            return {preview: exactPreview,
+              computation: durable.computation,
+              storedResults: durable.storedResults,
+              apply: {moon, store, publicationControl: control,
+                computation: durable.computation, preview: exactPreview,
+                ledger, requestScope, programId: 'program-1',
+                nodeId: 'node-1', maxRows: 4, maxFrontierWork: 64,
+                maxRecoveryWork: 100,
+                keyLimits: {maxBytes: 128, maxNodes: 8, maxDepth: 3,
+                  maxWork: 100},
+                refreshPreflight: async () => preflight,
+                async dispatchRow({memberIndex, rowIndex, claim}) {
+                  dispatched.push([memberIndex, rowIndex]);
+                  await captureClaimedEffectResponse({ledger, claim,
+                    requestCid: claim.canonicalRequestCid,
+                    execute: async () => ({observation: {useCid: cid('4'),
+                      statusCode: 204, body: Buffer.alloc(0)}})});
+                  ledger.recordAdmittedRowOutcome({claim,
+                    preview: applyPreview, memberIndex,
+                    previewRowIndex: rowIndex,
+                    outcomeWire: canonicalJson({state: 'applied',
+                      result: {record_id:
+                        `member-${memberIndex}-row-${rowIndex}`}})});
+                  ledger.commitAdmittedRowOutcome({claim,
+                    preview: applyPreview, memberIndex,
+                    previewRowIndex: rowIndex});
+                }},
+              receipt: {ledger, preview: applyPreview, commonMoon: moon,
+                publicationPreview: exactPreview,
+                authorizeEvidenceRead: async () => true,
+                members: recoveredClaims.map(member => ({rowOwners:
+                  member.claims.map(claim => ({claim})), replayed: true})),
+                limits: publicationLimits},
+              publication: {execution: null, store,
+                storedResults: durable.storedResults, control,
+                computation: durable.computation, preview: exactPreview,
+                ledger, request: {tenantId: 'tenant-a',
+                  authorityScopeCid: cid('a'),
+                  publicationPolicyCid: cid('e'),
+                  publicationTargetCid: cid('f'),
+                  requestedAt: '2026-09-24T00:00:01.000Z'},
+                attempt: {attemptId: 'installed-recovered-attempt',
+                  fenceCid: cid('0'), externalIdempotencyKey: undefined,
+                  startedAt: '2026-09-24T00:00:02.000Z'},
+                contractLimits: publicationLimits,
+                now: () => '2026-09-24T00:00:03.000Z'},
+              scopes: commitScopes, continuationWire: '{}'};
+          }});
+        let claims = 0;
+        let completedResume;
+        const previewCid = control.effectComputationPreviewSemanticCid(
+          exactPreview);
+        const response = await installed.resume({moon, control, store,
+          ref: {runDefinitionCid: runDefinition.identity},
+          view: {runId: control.runDefinitionRunId(runDefinition)},
+          retained: {runDefinition, resultNames: ['answer']},
+          continuation: {version:
+            'actql-installed-effect-continuation/0.1',
+            run_definition_cid: runDefinition.identity,
+            preview_cid: previewCid, provider: {}},
+          recoverCapture: async () => recovered,
+          checkpointBinding: {}, checkpointJournal: {
+            claimResume() { claims++; return {action: 'claimed',
+              claim: {runId: control.runDefinitionRunId(runDefinition)}}; },
+            completeResume(claim, outcome) {
+              completedResume = {claim, outcome};
+            },
+          },
+          effectAuthorization: async ({reviewWire}) => {
+            assert.equal(reviewWire, preview.wire);
+            return {authorize: async () => ({action: 'dispatch'}),
+              resume: async () => ({action: 'dispatch', admission: {
+                enter: () => ({mode: 'dispatch'})}}), close() {}};
+          },
+          observeRun: async () => ({version: 'actql-run-state/0.1',
+            run_id: control.runDefinitionRunId(runDefinition),
+            status: 'succeeded', control: {revision: 1}}),
+        });
+        assert.equal(claims, 1);
+        assert.equal(response.status, 'published');
+        assert.equal(response.result.progress.dispatched, 4);
+        assert.equal(response.result.completed.publication.state,
+          'succeeded');
+        assert.deepEqual(dispatched, [[0, 0], [0, 1], [1, 0], [1, 1]]);
+        assert.equal(JSON.parse(completedResume.outcome.runStateWire).status,
+          'succeeded');
+        published = true;
+        return;
+      }
       if (recoverAfterResponse) {
         await assert.rejects(applyCapturedEffectSet({
           ...applyOptions, dispatchRow,

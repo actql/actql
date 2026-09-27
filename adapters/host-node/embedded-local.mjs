@@ -11,6 +11,7 @@ import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
+import {runCapturedEffectComputation} from './entry.mjs';
 import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
@@ -474,6 +475,15 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
           Object.freeze({...facts, signal, retainExecution, moon, control,
             publicationPlan: facts.preparedExecution,
             store, storeAuthorityCid, authorityScopeCid,
+            observeRun: ({ref}) => observeRun({ref, principalId}),
+            openComputation: () => {
+              const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
+                facts.owner, registry, values, 1n, 0n, 0n, 0n);
+              if (setup === undefined) {
+                throw new Error('InstalledEffectProgramUnsupported');
+              }
+              return runCapturedEffectComputation(setup, {}, signal);
+            },
             recoverCapture: ({signal: recoverySignal} = {}) =>
               recoverEffectCapture(facts.ref, recoverySignal),
             effectAuthorization: checkpoints?.effectAuthorization,
@@ -914,6 +924,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
                 continuation, retained, moon, control, store,
                 storeAuthorityCid, authorityScopeCid, signal,
                 retainExecution,
+                observeRun: ({ref}) => observeRun({ref, principalId}),
                 recoverCapture: ({signal: recoverySignal} = {}) =>
                   recoverEffectCapture(ref, recoverySignal),
                 checkpointJournal: checkpoints.journal,

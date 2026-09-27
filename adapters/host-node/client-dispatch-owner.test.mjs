@@ -235,3 +235,25 @@ test('Effect no-send report without a cleanup owner remains unresolved',
     assert.equal(observed, 0);
     assert.equal(owner.operation(ref), operation);
   });
+
+test('known failed Effect Set is terminal only after retained cleanup',
+  async () => {
+    const ref = {runDefinitionCid: 'effect-known-failed'};
+    const stopped = [];
+    let ready = false;
+    let runs = 0;
+    const owner = installNodeClientDispatchOwner({});
+    const physical = {async close() {}, async cleanup() { return ready; },
+      cleanupPending: () => !ready};
+    const operation = owner.track(ref, {run: ({retainExecution}) => {
+      runs++;
+      retainExecution(physical);
+      return {status: 'failed_effect_set'};
+    }, observeStopped: outcome => stopped.push(outcome)});
+    await assert.rejects(operation, {message: 'ClientDispatchCleanupPending'});
+    assert.deepEqual(stopped, []);
+    ready = true;
+    await owner.drain();
+    assert.equal(runs, 1);
+    assert.deepEqual(stopped, ['failed']);
+  });

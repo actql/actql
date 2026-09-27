@@ -88,19 +88,20 @@ Branch: `feat/host-effect-commit-checkpoint`.
    The current simulated continuation deliberately ends in reconciliation; it
    does not prove typed row receipts, complete apply or publication.
 
-The Connector-owned product installation remains the concrete cross-owner
-dependency. `openInstalledRemoteHttpHost({effectInstallation})` now passes the
-accepted `publicationPlan`, checked `owner`, and exact-Ref `recoverCapture`
-to `effectInstallation.execute`; its restart sweep passes `recoverCapture`,
-the retained Checkpoint continuation and its claim journal to
-`effectInstallation.resume`. The Connector implementation must compose its
-existing capture, Preview, `completeCapturedEffectRun` and
-`completeRecoveredEffectRun` through those callbacks, preserving the same
-request, Run, Effect ledger, Store holdings and unknown-row responsibilities.
-The Connector branch has no production factory for this installed interface
-at the verified Connector HEAD `9911151e3`; its comprehensive integration
-composition remains in a test. C must not replace it with another compiler,
-Effect state machine or provider-specific Host branch.
+The installed Effect Site factory is owned by the Host workstream, not a
+Connector deliverable. At origin/main `c1ed3f526`, the Effect application,
+Ledger and Salesforce provider routes from `9911151e3` are already present.
+The later Salesforce branches were checked through `933c3f9da` (standard
+Host source installation) and `d72baeaed` (provider conformance); neither
+supplies this Effect factory. `openInstalledRemoteHttpHost({effectInstallation})`
+passes the
+accepted `publicationPlan`, checked `owner`, exact-Ref `recoverCapture`, and
+the installed Host's computation and Run-state ports to its callbacks.
+`createInstalledEffectSite` now owns common completion ordering, suspension
+and continuation binding, while provider hooks must supply Preview and
+current-use/physical request facts. This is a building block until a complete
+captured/apply/publication installation passes the public Client test. Do not
+replace the shared compiler or Effect progress state machine.
 
 ## Verification so far
 
@@ -132,3 +133,16 @@ Working-tree verification, not a fixed-SHA or Linux CI completion claim:
   `check:salesforce-site` job passed 198/198 tests. Its multi-member apply,
   unknown-row and publication cases use the Connector test composition;
   they do not exercise the installed Host's Effect Checkpoint callbacks.
+- The new Host-owned factory passed its focused custody and continuation
+  tests. Two multi-member, multi-row integration variants used its execute
+  and recovered-apply callbacks against the existing durable capture,
+  Effect ledger, receipt and publication implementations. The complete
+  Salesforce integration test file passed locally; these variants use
+  simulated Checkpoint admission, not the installed Host journal.
+- After adding the factory test to `check:distribution-client`, that local
+  job passed: 199/199 Node tests, packed Node/browser smoke, packed Client
+  Checkpoint acceptance and native Client mTLS. This verifies no regression
+  in the installed Client path, not complete Effect commit acceptance.
+- `@actql/local-node/effect-site` now exports the Host factory. A separate
+  packed-package smoke verified that the published subpath imports after
+  `npm pack` and install without package-side build hooks.

@@ -314,7 +314,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       // A trusted installed Site may confirm that a pre-Preview refusal
       // performed no external Effect dispatch. Record that observation only
       // after its physical owner has stopped and cleanup has completed.
-      if (result?.status === 'failed_without_effect_dispatch') {
+      if (result?.status === 'failed_without_effect_dispatch' ||
+          result?.status === 'failed_effect_set') {
         entry.terminalOutcome = 'failed';
       }
       await settleCleanup(entry);
