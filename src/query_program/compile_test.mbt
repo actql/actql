@@ -836,6 +836,49 @@ test "CTE branches share one checked producer and reject unchecked declarations"
 }
 
 ///|
+test "SQL and Pipe FROM subqueries reuse the ordinary checked Stage Result" {
+  let sql = @query.parse_query(
+    "SELECT s.id FROM (SELECT id FROM orders WHERE status = 'open') AS s",
+    syntax_limits(),
+  ).unwrap()
+  let pipe = @query.parse_query(
+    "FROM (SELECT id FROM orders WHERE status = 'open') AS s |> SELECT s.id",
+    syntax_limits(),
+  ).unwrap()
+  let sql_program = compile(sql, fixture_context(), construction_limits()).unwrap()
+  let pipe_program = compile(pipe, fixture_context(), construction_limits()).unwrap()
+  assert_eq(semantic(sql_program), semantic(pipe_program))
+  assert_eq(@program.stage_count(sql_program), 2)
+  match
+    @check.check_parsed(sql_program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("FROM subquery should remain statically closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let inside_cte = @query.parse_query(
+    "WITH chosen AS (SELECT s.id FROM (SELECT id FROM orders) AS s) SELECT id FROM chosen",
+    syntax_limits(),
+  ).unwrap()
+  let inside_program = compile(
+    inside_cte,
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_eq(@program.stage_count(inside_program), 3)
+  match
+    @check.check_parsed(
+      inside_program,
+      check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("nested CTE source should remain statically closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+}
+
+///|
 test "FULL CTE join retains keyed input identity for common closure" {
   let query = @query.parse_query(
     "WITH chosen AS (SELECT id, customer_id FROM orders) SELECT l.id AS left_id, r.id AS right_id FROM chosen AS l FULL JOIN chosen AS r ON l.customer_id = r.customer_id",

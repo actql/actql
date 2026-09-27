@@ -225,6 +225,15 @@ const capturedCteQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.captured_cte');
 assert.notEqual(capturedCteQuery, '');
 await writeFile(join(root, 'captured-cte-query.json'), capturedCteQuery);
+const capturedSubquery = queryFrontend.compileCapturedQueryJson(
+  'SELECT outer_rows.id FROM '
+    + '(SELECT inner_rows.id FROM '
+    + '(SELECT id FROM records WHERE id > 1) AS inner_rows) AS outer_rows',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.captured_subquery');
+assert.notEqual(capturedSubquery, '');
+await writeFile(join(root, 'captured-subquery.json'), capturedSubquery);
 const reusedCteQuery = queryFrontend.compileCapturedQueryJson(
   'WITH chosen AS (SELECT id, amount FROM records WHERE id > 1) '
     + 'SELECT l.id AS left_id, r.id AS right_id '
@@ -541,6 +550,7 @@ async function checkSetQueries(client, suffix) {
 const acquiredDocument = readFileSync('source-program.json', 'utf8');
 const capturedQueryDocument = readFileSync('captured-query.json', 'utf8');
 const capturedCteDocument = readFileSync('captured-cte-query.json', 'utf8');
+const capturedSubqueryDocument = readFileSync('captured-subquery.json', 'utf8');
 const reusedCteDocument = readFileSync('reused-cte-query.json', 'utf8');
 const usingCteDocument = readFileSync('using-cte-query.json', 'utf8');
 const fullUsingCteDocument = readFileSync('full-using-cte-query.json', 'utf8');
@@ -575,6 +585,13 @@ async function checkCapturedCte(client, suffix) {
     {format: 'json', requestId: 'packed-chained-cte-' + suffix});
   assert.equal((await chained.wait()).status, 'succeeded');
   assert.deepEqual(await chained.result('answer').all(),
+    [{id: 3}, {id: 2}, {id: 3}]);
+}
+async function checkCapturedSubquery(client, suffix) {
+  const execution = await client.aql(capturedSubqueryDocument,
+    {format: 'json', requestId: 'packed-captured-subquery-' + suffix});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  assert.deepEqual(await execution.result('answer').all(),
     [{id: 3}, {id: 2}, {id: 3}]);
 }
 const distinctQueryDocument = readFileSync('distinct-query.json', 'utf8');
@@ -695,6 +712,7 @@ assert.deepEqual(await capturedQueryLocal.result('answer').all(),
   [{id: 3}, {id: 2}, {id: 3}]);
 await checkAnalyticCases(acquiredLocal.client, 'local');
 await checkCapturedCte(acquiredLocal.client, 'local');
+await checkCapturedSubquery(acquiredLocal.client, 'local');
 const distinctQueryLocal = await acquiredLocal.client.aql(distinctQueryDocument,
   {format: 'json', requestId: 'packed-distinct-query-local'});
 assert.equal((await distinctQueryLocal.wait()).status, 'succeeded');
@@ -875,6 +893,7 @@ assert.deepEqual(await capturedQueryRemote.result('answer').all(),
   [{id: 3}, {id: 2}, {id: 3}]);
 await checkAnalyticCases(acquiredRemote.client, 'remote');
 await checkCapturedCte(acquiredRemote.client, 'remote');
+await checkCapturedSubquery(acquiredRemote.client, 'remote');
 const distinctQueryRemote = await acquiredRemote.client.aql(
   distinctQueryDocument,
   {format: 'json', requestId: 'packed-distinct-query-remote'});

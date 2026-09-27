@@ -218,6 +218,8 @@ priv struct QueryParser {
   mut work : Int
   mut expression_nodes : Int
   mut syntax_nodes : Int
+  mut source_depth : Int
+  mut synthetic_sources : Int
 }
 
 ///|
@@ -315,7 +317,14 @@ fn QueryParser::source_name(
   self : QueryParser,
 ) -> (Array[NamePart], NamePart?) raise QueryAbort {
   let relation = self.path()
-  let source_alias = if self.has("AS") {
+  (relation, self.optional_source_alias())
+}
+
+///|
+fn QueryParser::optional_source_alias(
+  self : QueryParser,
+) -> NamePart? raise QueryAbort {
+  if self.has("AS") {
     self.keyword("AS")
     Some(self.name())
   } else if self.peek().value is Word(value) &&
@@ -327,7 +336,42 @@ fn QueryParser::source_name(
   } else {
     None
   }
-  (relation, source_alias)
+}
+
+///|
+fn QueryParser::query_source(
+  self : QueryParser,
+) -> (Array[NamePart], NamePart?, Array[CtePart]) raise QueryAbort {
+  if self.peek().value != Symbol(40) {
+    let (relation, source_alias) = self.source_name()
+    return (relation, source_alias, [])
+  }
+  self.node()
+  if self.source_depth >= 32 {
+    raise QueryAbort("Subquery depth limit", self.peek().start)
+  }
+  let serial = self.synthetic_sources
+  self.synthetic_sources += 1
+  self.source_depth += 1
+  ignore(self.advance())
+  let inner = self.sql_term()
+  self.source_depth -= 1
+  if self.advance().value != Symbol(41) {
+    raise QueryAbort("Expected subquery closing parenthesis", self.peek().start)
+  }
+  let source_alias = match self.optional_source_alias() {
+    Some(value) => value
+    None => raise QueryAbort("Subquery requires an alias", self.peek().start)
+  }
+  let generated : NamePart = {
+    value: "aql_query_source_" + serial.to_string(),
+    quoted: false,
+  }
+  let ctes = inner.ctes + [{ name: generated, query: { ..inner, ctes: [], }, }]
+  if ctes.length() > self.limits.max_cte_count {
+    raise QueryAbort("CTE count limit", self.peek().start)
+  }
+  ([generated], Some(source_alias), ctes)
 }
 
 ///|
@@ -723,7 +767,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   }
   let projections = self.projections()
   self.keyword("FROM")
-  let (relation, source_alias) = self.source_name()
+  let (relation, source_alias, ctes) = self.query_source()
   let joins : Array[JoinPart] = []
   while self.starts_join() {
     joins.push(self.join_part())
@@ -754,7 +798,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   operations.push(Select(projections, distinct))
   {
     source: self.source,
-    ctes: [],
+    ctes,
     relation,
     source_alias,
     joins,
@@ -790,7 +834,16 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       if self.advance().value != Symbol(41) {
         raise QueryAbort("Expected CTE closing parenthesis", self.peek().start)
       }
-      ctes.push({ name, query: body, })
+      for nested in body.ctes {
+        if ctes.length() >= self.limits.max_cte_count {
+          raise QueryAbort("CTE count limit", self.peek().start)
+        }
+        ctes.push(nested)
+      }
+      if ctes.length() >= self.limits.max_cte_count {
+        raise QueryAbort("CTE count limit", self.peek().start)
+      }
+      ctes.push({ name, query: { ..body, ctes: [], }, })
       if self.peek().value != Symbol(44) {
         break
       }
@@ -854,17 +907,26 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
     tail.push(self.limit())
   }
   self.end()
+  let all_ctes = ctes + term.ctes
+  if all_ctes.length() > self.limits.max_cte_count {
+    raise QueryAbort("CTE count limit", self.peek().start)
+  }
   if sets.is_empty() {
-    { ..term, ctes, operations: term.operations + tail, work: self.work, }
+    {
+      ..term,
+      ctes: all_ctes,
+      operations: term.operations + tail,
+      work: self.work,
+    }
   } else {
-    { ..term, ctes, sets, final_operations: tail, work: self.work, }
+    { ..term, ctes: all_ctes, sets, final_operations: tail, work: self.work, }
   }
 }
 
 ///|
 fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
   self.keyword("FROM")
-  let (relation, source_alias) = self.source_name()
+  let (relation, source_alias, ctes) = self.query_source()
   let joins : Array[JoinPart] = []
   let operations : Array[QueryOperation] = []
   let sets : Array[SetPart] = []
@@ -1033,7 +1095,7 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
   self.end()
   {
     source: self.source,
-    ctes: [],
+    ctes,
     relation,
     source_alias,
     joins,
@@ -1066,6 +1128,8 @@ pub fn parse_query(
     work: 0,
     expression_nodes: 0,
     syntax_nodes: 0,
+    source_depth: 0,
+    synthetic_sources: 0,
   }
   try {
     let query = if parser.has("SELECT") || parser.has("WITH") {

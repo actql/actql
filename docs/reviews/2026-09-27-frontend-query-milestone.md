@@ -20,7 +20,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | --- | --- | --- | --- |
 | UTF-8, tokens, escaping, numeric domain, original spans | Original source owner and bounded query lexer | Positive, negative and exact-limit cases | Pending |
 | Closed scalar expressions, precedence, NULL and CONCAT | Structured Expression admission/typing | Independent trees, demand/failure and legacy regression | Partial: shared AST and direct tree lowering; full typing/failure matrix pending |
-| SELECT, FROM-only, subqueries, WHERE | Existing Program derive/select/filter | SQL/Pipe expected Program and rows | Partial: base SELECT/FROM/WHERE equivalence and captured Host Result; subqueries pending |
+| SELECT, FROM-only, subqueries, WHERE | Existing Program derive/select/filter | SQL/Pipe expected Program and rows | Partial: base SELECT/FROM/WHERE and named noncorrelated FROM subqueries, including nesting, execute through captured Host; subquery joins, set operands and additional source forms remain |
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: direct Values joins support INNER/LEFT and bounded CROSS; a DISTINCT CTE supplies identity for packed source-free and captured-input FULL/USING; general join scope remains |
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: scalar reductions and ordered ARRAY_AGG/STRING_AGG lower through group; captured COUNT/GROUP/HAVING runtime passes, ordered collection runtime and failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
@@ -47,6 +47,15 @@ null skipping and bounded output accounting. The frontend must then change
 this expected refusal into independent Local and HTTP Remote Result rows.
 It must not rewrite strict CONCAT as legacy concat or invent a parallel
 expression evaluator.
+
+Named noncorrelated SQL and Pipe `FROM (SELECT ...) AS source` now use the
+same checked Stage Result binding as a CTE. The bounded parser preserves
+the source alias and accumulates nested source stages without reparsing
+expressions or copying acquisition. A two-level captured-input subquery
+returns `id=3,2,3` through packed Local and HTTP Remote Named Results.
+Missing aliases and source-count overruns are rejected. JOIN subqueries,
+correlation and set operands containing subqueries remain outside the
+implemented path.
 
 ## Reference evidence
 
@@ -237,8 +246,9 @@ Remote Clients execute both source-free and acquired CTEs. The acquired
 self-join of filtered `id` rows `3,2,3` returns five rows, including four
 `(3,3)` matches. The Program has one acquisition Stage; a physical provider
 read counter has not yet been added, so the once-only read acceptance case
-remains open. CTE joins inside a declaration body and general subqueries
-still fail closed rather than being textually substituted.
+remains open. CTE joins inside a declaration body and subqueries outside
+the named noncorrelated FROM form still fail closed rather than being
+textually substituted.
 The same packed path accepts `JOIN ... USING(id)` and exposes one unqualified
 `id` Result column while retaining qualified left and right key bindings.
 FULL JOIN uses the coalesced-key lowering described above instead of taking

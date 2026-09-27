@@ -73,6 +73,45 @@ test "query source clauses reject partial and unsupported input" {
 }
 
 ///|
+test "noncorrelated FROM subqueries keep bounded dataflow and source alias" {
+  let sql = parse_query(
+    "SELECT s.id FROM (SELECT id FROM orders WHERE id > 1) AS s",
+    query_limits(),
+  ).unwrap()
+  assert_eq(cte_count(sql), 1)
+  assert_eq(relation(sql), [cte_at(sql, 0).unwrap().name])
+  assert_eq(relation_alias(sql), Some({ value: "s", quoted: false, }))
+  assert_eq(relation(cte_at(sql, 0).unwrap().query), [
+    { value: "orders", quoted: false, },
+  ])
+  let pipe = parse_query(
+    "FROM (SELECT id FROM orders WHERE id > 1) AS s |> SELECT s.id",
+    query_limits(),
+  ).unwrap()
+  assert_eq(cte_count(pipe), 1)
+  assert_eq(relation_alias(pipe), relation_alias(sql))
+  let nested = parse_query(
+    "SELECT outer_rows.id FROM (SELECT inner_rows.id FROM (SELECT id FROM orders) AS inner_rows) AS outer_rows",
+    query_limits(),
+  ).unwrap()
+  assert_eq(cte_count(nested), 2)
+  assert_eq(relation(cte_at(nested, 1).unwrap().query), [
+    cte_at(nested, 0).unwrap().name,
+  ])
+  assert_true(
+    parse_query(
+      "SELECT outer_rows.id FROM (SELECT inner_rows.id FROM (SELECT id FROM orders) AS inner_rows) AS outer_rows",
+      { ..query_limits(), max_cte_count: 1, },
+    )
+    is Err(_),
+  )
+  assert_true(
+    parse_query("SELECT id FROM (SELECT id FROM orders)", query_limits())
+    is Err(_),
+  )
+}
+
+///|
 test "LIMIT and OFFSET admit only exact safe integers" {
   let query = parse_query(
     "SELECT id FROM orders LIMIT 9007199254740991 OFFSET 9007199254740991",
