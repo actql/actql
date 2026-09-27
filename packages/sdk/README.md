@@ -56,12 +56,23 @@ received or saved every value. A reader reaches `complete` only after the
 normal wire terminator; values yielded before a failure are a prefix.
 An empty JSONL record fails the attempt instead of silently omitting a row.
 
-The Client also caps each JSON control response at 1 MiB of wire bytes,
-including connection, submission, status, lookup and Host error bodies. It
+The Client caps ordinary JSON control responses at 1 MiB of wire bytes,
+including connection, submission, status, lookup and Host error bodies. Review
+uses the requested body bound expanded for base64 plus a bounded envelope.
+Resource inspection and peek use the requested JSON-text bound expanded for
+JSON string escaping plus bounded metadata. Decoded payload limits still apply;
+`Content-Length` never overrides the counted wire limit. The Client
 cancels an oversized delivery without treating a submit ACK as a known
 failure: `SubmissionUnknown` still carries the original request ID. This is
 a Client transport bound, separate from Result read limits and from the
 Host's Run resource accounting.
+
+HTTP and installed in-process submit use the same reply admission, including
+legal held requests. Explicit request, preparation, policy and admission
+refusals remain known failures. Internal errors and invalid acceptance replies
+are `SubmissionUnknown` with the original request ID and lookup context, even
+when the in-process exception is a `ClientError`. A public-looking error code
+is not by itself a refusal contract. Neither transport retries submission.
 
 The read limits use separate byte measures:
 

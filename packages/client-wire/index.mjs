@@ -48,6 +48,7 @@ const submitRejections = new Set([
   'ClientAuthenticationDenied', 'ClientConnectionDenied',
   'ClientRunStartDenied', 'ClientRequestIntentConflict',
   'ACTQL_E_ACCOUNT_DENIED', 'ACTQL_E_ACCOUNT_NO_MATCH',
+  'ACTQL_E_ACCOUNT_CONFIG_INVALID',
   'ACTQL_E_DELEGATION_REJECTED',
 ]);
 export function isClientSubmitRejection(code) {
