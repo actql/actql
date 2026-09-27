@@ -114,9 +114,14 @@ export function installNodeClientEffectRun({moon,
         connection, compile});
       return handle;
     },
-    async start(handle) {
+    async start(handle, {beforePhysicalStart, started, signal} = {}) {
       const owned = handles.get(handle);
-      if (owned === undefined) throw denied();
+      if (owned === undefined ||
+          beforePhysicalStart !== undefined &&
+            typeof beforePhysicalStart !== 'function' ||
+          started !== undefined && typeof started !== 'function') {
+        throw denied();
+      }
       const {prepared, identity, tenantId, principalId, connection, compile} = owned;
       const start = await startRun({identity, tenantId, principalId, connection});
       const retained = journal.resolveDefinition(identity, {tenantId}, moon, control);
@@ -160,16 +165,22 @@ export function installNodeClientEffectRun({moon,
         }
         throw expired(start.ref);
       }
+      signal?.throwIfAborted();
+      // A resumed Checkpoint enters its current claim immediately before the
+      // durable physical-start reservation. The answer alone is not a send
+      // permit; no asynchronous work separates these two admissions.
+      beforePhysicalStart?.();
       if (!journal.reservePhysicalStart(identity, {tenantId, ref: start.ref,
         currentAuthorization: authorized === true}, moon, control)) {
         return Object.freeze({kind: 'reconcile', ref: start.ref});
       }
+      started?.();
       // Only the claim winner receives the bound owner. The callback owns all
       // capture/apply/publication and cleanup, including after a thrown error.
       // No catch path resets the durable physical-start claim.
       const value = await execute(Object.freeze({ref: start.ref, identity,
         owner, prepared, compilation, allowed, definition,
-        runDefinition: retained.runDefinition}));
+        runDefinition: retained.runDefinition, signal}));
       return Object.freeze({kind: 'started', ref: start.ref, value});
     },
   });

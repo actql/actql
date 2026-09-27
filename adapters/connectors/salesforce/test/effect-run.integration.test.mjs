@@ -4484,10 +4484,31 @@ test('shared Effect Client admission and physical claim survive races and restar
   assert.deepEqual(resumed.ref, unstarted.ref);
   assert.equal((await host.start(resumed)).kind, 'started');
   assert.equal(starts, 2);
+  const gated = await host.accept(request('gated-start'));
+  const gateCalls = [];
+  await assert.rejects(host.start(gated, {
+    beforePhysicalStart() {
+      gateCalls.push('before');
+      throw new Error('ResumeClaimStale');
+    },
+    started() { gateCalls.push('started'); },
+  }), /ResumeClaimStale/);
+  assert.deepEqual(gateCalls, ['before']);
+  assert.equal(starts, 2);
+  const gatedIdentity = moon.clientProgramEffectRequestIdentity(prepared,
+    cid('a'), 'gated-start', moon.clientProgramSourceFreeInputIntentCid());
+  assert.equal(journal.resolveDefinition(gatedIdentity, {tenantId: 'tenant-a'},
+    moon, control).physicalStartReserved, false);
+  assert.equal((await host.start(gated, {
+    beforePhysicalStart() { gateCalls.push('before'); },
+    started() { gateCalls.push('started'); },
+  })).kind, 'started');
+  assert.deepEqual(gateCalls, ['before', 'before', 'started']);
+  assert.equal(starts, 3);
   failAfterCapture = true;
   const unknown = await host.accept(request('unknown'));
   await assert.rejects(host.start(unknown), /LostEffectExecutionReply/);
-  assert.equal(starts, 3);
+  assert.equal(starts, 4);
   journal.close();
   journal = openClientRequestJournal(directory);
   t.after(() => journal.close());
@@ -4495,7 +4516,7 @@ test('shared Effect Client admission and physical claim survive races and restar
   const recovered = await host.accept(request('unknown'));
   assert.deepEqual(recovered.ref, unknown.ref);
   assert.equal((await host.start(recovered)).kind, 'reconcile');
-  assert.equal(starts, 3, 'unknown Effect outcome never retries capture/apply');
+  assert.equal(starts, 4, 'unknown Effect outcome never retries capture/apply');
   const pendingProcess = await host.accept(request('process-unstarted'));
   journal.close();
   const child = spawnSync(process.execPath, [fileURLToPath(new URL(
