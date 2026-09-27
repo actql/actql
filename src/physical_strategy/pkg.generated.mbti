@@ -352,6 +352,8 @@ pub fn expand_internal_carrier_tasks(CheckedDAG, Int, Int) -> Result[CheckedDAG,
 
 pub fn explain_captured_strategy(CapturedDAG, Int, Int, excluded? : Array[(Int, String, String)]) -> Result[String, @encode_core.EncodeFailure]
 
+pub fn fail_task_execution(CapturedDAG, TaskExecution, RunIssue) -> Bool
+
 pub fn finish_captured_effect_plan_verifier(CapturedEffectPlanVerifier) -> Result[CapturedEffectPlanProof, CapturedEffectPlanVerifyIssue]
 
 pub fn finish_captured_effect_proposal_plan(CapturedEffectProposalPlan, Int) -> Result[Unit, CapturedEffectProposalIssue]

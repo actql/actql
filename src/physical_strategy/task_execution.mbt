@@ -876,6 +876,23 @@ pub fn complete_deferred_materializing_task_execution(
 }
 
 ///|
+/// Record the running attempt's computation failure as the task's primary
+/// failure. A foreign or no longer running execution records nothing.
+pub fn fail_task_execution(
+  run : CapturedDAG,
+  execution : TaskExecution,
+  issue : RunIssue,
+) -> Bool {
+  guard run.running is Some((task, active)) &&
+    physical_equal(active, execution) &&
+    task_execution_matches(run, execution) else {
+    return false
+  }
+  fail_captured_task(run, task, issue)
+  true
+}
+
+///|
 pub fn close_task_execution(
   run : CapturedDAG,
   execution : TaskExecution,

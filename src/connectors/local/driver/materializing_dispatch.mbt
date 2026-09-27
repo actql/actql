@@ -128,7 +128,7 @@ pub fn[C, E] start_local_dispatch(
         }),
         execute: () => {
           @local.execute_local_materializing_attempt(attempt).map_err(issue => {
-            local_materializing_issue(attempt, issue)
+            local_materializing_failure(run, ticket, attempt, issue)
           })
         },
         advance: quantum => {
@@ -138,7 +138,9 @@ pub fn[C, E] start_local_dispatch(
             progress: value.progress,
             work: value.work,
           })
-          .map_err(issue => local_materializing_issue(attempt, issue))
+          .map_err(issue => {
+            local_materializing_failure(run, ticket, attempt, issue)
+          })
         },
         request_cancel: () => @local.cancel_local_materializing_attempt(attempt),
         execution_stopped: () => @local.local_materializing_stopped(attempt),
@@ -180,4 +182,19 @@ fn local_materializing_issue(
   } else {
     Preparation(Materializing(issue))
   }
+}
+
+///|
+/// A failed computation is the task's primary failure, as for the retired
+/// synchronous lane, so its typed evaluation evidence stays observable.
+fn local_materializing_failure(
+  run : @strategy.CapturedDAG,
+  ticket : @strategy.TaskExecution,
+  attempt : @local.LocalMaterializingAttempt,
+  issue : @local.LocalMaterializingIssue,
+) -> LocalDispatchIssue {
+  if issue is Candidate(computation) {
+    @strategy.fail_task_execution(run, ticket, Compute(computation)) |> ignore
+  }
+  local_materializing_issue(attempt, issue)
 }
