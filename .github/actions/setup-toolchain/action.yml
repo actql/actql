@@ -1,0 +1,37 @@
+name: Set up the pinned toolchain
+description: >-
+  Node, the root and native DuckDB transport dependencies, and the pinned
+  MoonBit toolchain for one job. Every job prepares its own state; nothing
+  is taken from another job.
+inputs:
+  python:
+    description: Also set up Python 3.12
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      with:
+        node-version: 22.22.0
+        cache: npm
+        cache-dependency-path: |
+          package-lock.json
+          adapters/connectors/duckdb/node/package-lock.json
+    - if: inputs.python == 'true'
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      with:
+        python-version: '3.12'
+    - shell: bash
+      run: npm ci
+    - name: Install pinned native DuckDB transport
+      shell: bash
+      run: npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
+    - name: Install pinned MoonBit
+      shell: bash
+      run: |
+        node scripts/setup-moonbit.mjs
+        toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
+        echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
+        echo "$toolchain/bin" >> "$GITHUB_PATH"
+    - shell: bash
+      run: moon version --all
