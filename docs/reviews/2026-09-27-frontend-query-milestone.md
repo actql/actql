@@ -257,7 +257,10 @@ INNER and LEFT JOINs; unmatched right rows produce NULL, and SQL/Pipe compile
 to the same Program. A post-join WHERE uses the same private input slots and
 runs after NULL extension: `LEFT JOIN ... WHERE r.c IS NULL` publishes only
 unmatched left rows in packed Local and HTTP Remote. The Pipe spelling emits
-the same Program. General post-join grouping, order and multiple joins
+the same Program. Two packed zero-input cases preserve demand: the post-join
+WHERE excludes a division by zero before projection, and an unselected CASE
+branch does not divide by zero. General post-join grouping, order and multiple
+joins
 remain open. FULL JOIN is parsed but the
 Values compiler refuses it before issuing a Program: the checked FULL JOIN
 requires stable identity on both inputs, which the generated Values Stage

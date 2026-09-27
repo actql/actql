@@ -298,6 +298,25 @@ const filteredPipeJoin = queryFrontend.compileTwoValuesSetQueryJson(
   'fixture.join_filtered_left');
 assert.deepEqual(JSON.parse(filteredPipeJoin), JSON.parse(filteredLeftJoin));
 await writeFile(join(root, 'join-filtered-left.json'), filteredLeftJoin);
+const demandLeft = {values: {schema: {
+  a: {type: 'number', nullable: false}},
+rows: [{a: 0}, {a: 1}]}, as: 'set_left'};
+const demandRight = {values: {schema: {
+  c: {type: 'number', nullable: false}},
+rows: [{c: 0}, {c: 1}]}, as: 'set_right'};
+for (const [name, sql] of [
+  ['filtered-demand', 'SELECT 10 / l.a AS ratio FROM set_left AS l '
+    + 'JOIN set_right AS r ON l.a = r.c WHERE l.a <> 0'],
+  ['case-demand', 'SELECT CASE WHEN l.a = 0 THEN 0 ELSE 10 / l.a END '
+    + 'AS ratio FROM set_left AS l JOIN set_right AS r ON l.a = r.c'],
+]) {
+  const query = queryFrontend.compileTwoValuesSetQueryJson(sql,
+    'set_left', JSON.stringify(demandLeft), JSON.stringify(['a']),
+    'set_right', JSON.stringify(demandRight), JSON.stringify(['c']),
+    `fixture.join_${name}`);
+  assert.notEqual(query, '', name);
+  await writeFile(join(root, `join-${name}.json`), query);
+}
 const capturedQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT id FROM records WHERE id > 1', 'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
@@ -720,6 +739,16 @@ async function checkJoinCases(client, suffix) {
   assert.equal((await filteredLeft.wait()).status, 'succeeded');
   assert.deepEqual(await filteredLeft.result('answer').all(),
     [{a: 2}, {a: null}]);
+  for (const [name, expected] of [
+    ['filtered-demand', [{ratio: 10}]],
+    ['case-demand', [{ratio: 0}, {ratio: 10}]],
+  ]) {
+    const attempt = await client.aql(readFileSync('join-' + name + '.json',
+      'utf8'), {format: 'json', requestId: 'packed-join-' + name + '-'
+        + suffix});
+    assert.equal((await attempt.wait()).status, 'succeeded');
+    assert.deepEqual(await attempt.result('answer').all(), expected);
+  }
 }
 async function checkSetQueries(client, suffix) {
   for (const [name, expected] of setExpectations) {
