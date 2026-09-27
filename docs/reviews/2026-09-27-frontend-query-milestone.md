@@ -152,10 +152,18 @@ with `RunHostTaskCompilationRejected`. The nested MoonBit issue is
 `ClientTaskPlanGraphIssue::InvalidEdge`: the generated JS enum tags are
 `Compilation(Plan(TaskGraph(InvalidEdge)))`. Moving the filter into a separate
 checked Stage preserved the same rejection, so stage splitting alone is not
-a supported fix. This source-free Stage Result case is not counted as an
-executed query. Frontend and Host/ABI owners must identify the exact producer
-and consumer contracts that disagree, keep the filter before the join, and
-rerun the packed Result case after closing that edge.
+a supported fix. The concrete program has two Values subquery Stages followed
+by a main Stage with pre-JOIN filter and LEFT JOIN. `prepare_checked_dag_owned`
+expands that Stage into internal tasks; `emit_prepared_client_task_pipeline`
+still emits the full Stage pipeline for each expanded task, and
+`issue_client_task_plan_graph` tries to resolve every internal data edge as a
+declared Stage input contract. The second lookup returns `InvalidEdge`.
+The shared Plan issuer must emit each selected task prefix and bind its
+internal producer/consumer port using the checked graph's operation-input
+coordinate. It must retain the full owner and existing edge admission. This
+source-free Stage Result case is not counted as an executed query. The
+frontend should keep the filter before the join and rerun the packed Result
+case after the shared boundary is fixed.
 
 GQL patterns, VecA/TEA-specific surfaces, INFER/Artifact spelling, INSERT,
 installed raw-text routing, deployment and other owners' runtime redesigns
