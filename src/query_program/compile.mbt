@@ -2046,7 +2046,7 @@ fn compile_cte_query(
     let body = cte.query
     if @query.cte_count(body) != 0 ||
       @query.set_part_count(body) != 0 ||
-      @query.join_part_count(body) != 0 {
+      @query.join_part_count(body) > 1 {
       return Err(UnsupportedCte)
     }
     let body_relation = @query.relation(body)
@@ -2066,6 +2066,18 @@ fn compile_cte_query(
     if !known_relation {
       return Err(UnknownRelation)
     }
+    if @query.join_part_count(body) == 1 {
+      let right = @query.join_part_at(body, 0).unwrap().relation
+      let mut known_right = false
+      for earlier in 0..<index {
+        if same_path(right, [@query.cte_at(query, earlier).unwrap().name]) {
+          known_right = true
+        }
+      }
+      if !known_right {
+        return Err(UnsupportedCte)
+      }
+    }
     let joined = match joined_relation {
       Some(path) => same_path(path, [cte.name])
       None => false
@@ -2081,8 +2093,20 @@ fn compile_cte_query(
   while index >= 0 {
     if used[index] {
       let relation = @query.relation(@query.cte_at(query, index).unwrap().query)
+      let right = if @query.join_part_count(
+          @query.cte_at(query, index).unwrap().query,
+        ) ==
+        1 {
+        Some(
+          @query.join_part_at(@query.cte_at(query, index).unwrap().query, 0).unwrap().relation,
+        )
+      } else {
+        None
+      }
       for earlier in 0..<index {
-        if same_path(relation, [@query.cte_at(query, earlier).unwrap().name]) {
+        let name = [@query.cte_at(query, earlier).unwrap().name]
+        if same_path(relation, name) ||
+          (right is Some(right_relation) && same_path(right_relation, name)) {
           used[earlier] = true
         }
       }
@@ -2276,9 +2300,81 @@ fn compile_cte_stage(
 ) -> (@builder.Node, Input) raise Abort {
   let body = cte.query
   if @query.set_part_count(body) != 0 ||
-    @query.join_part_count(body) != 0 ||
+    @query.join_part_count(body) > 1 ||
     @query.cte_count(body) != 0 {
     raise Abort(UnsupportedCte)
+  }
+  if @query.join_part_count(body) == 1 {
+    let left = selected_input(body, { ..context, inputs: known, })
+    let right_relation = @query.join_part_at(body, 0).unwrap().relation
+    let mut right : Input? = None
+    for input in known {
+      if same_path(input.relation, right_relation) {
+        right = Some(input)
+      }
+    }
+    guard right is Some(right_input) &&
+      left.source is StageResult(left_stage, left_result) &&
+      right_input.source is StageResult(right_stage, right_result) else {
+      raise Abort(UnsupportedCte)
+    }
+    let stage_ref = fn(producer : String, result : String) raise Abort {
+      construction.object([
+        (
+          "result",
+          construction.object([
+            ("stage", construction.text(producer)),
+            ("result", construction.text(result)),
+          ]),
+        ),
+      ])
+    }
+    let (steps, output) = compile_cte_join_steps(
+      construction,
+      body,
+      @query.relation(body)[0],
+      columns(left),
+      right_relation[0],
+      columns(right_input),
+      limits,
+    )
+    let stage = construction.object([
+      ("id", construction.text(stage_name)),
+      (
+        "inputs",
+        construction.object([
+          ("l", stage_ref(left_stage, left_result)),
+          ("r", stage_ref(right_stage, right_result)),
+        ]),
+      ),
+      ("steps", construction.array(steps)),
+      (
+        "results",
+        construction.object([
+          (
+            "rows",
+            construction.object([
+              ("from", construction.text("aql_join_output")),
+              (
+                "fields",
+                construction.array(
+                  output.map(field => construction.text(field)),
+                ),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    ])
+    return (
+      stage,
+      {
+        relation: [cte.name],
+        name: cte.name.value,
+        source: StageResult(stage_name, "rows"),
+        visible_fields: output,
+      },
+    )
   }
   let input = selected_input(body, { ..context, inputs: known, })
   let fields = columns(input)

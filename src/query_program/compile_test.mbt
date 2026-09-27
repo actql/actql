@@ -940,6 +940,34 @@ test "named JOIN subquery reuses an earlier checked CTE result" {
 }
 
 ///|
+test "CTE join body consumes prior checked results without source replay" {
+  let query = @query.parse_query(
+    "WITH base AS (SELECT id FROM orders), chosen AS (SELECT id FROM base WHERE id = 'a'), matched AS (SELECT l.id AS id FROM base AS l JOIN chosen AS r ON l.id = r.id) SELECT id FROM matched",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, values_context(), construction_limits()).unwrap()
+  assert_eq(@program.stage_count(program), 4)
+  let wire = semantic(program)
+  assert_eq(wire.split("\"values\"").length(), 2)
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("CTE join body should use prior checked Results")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  for
+    text in [
+      "WITH base AS (SELECT id FROM orders), matched AS (SELECT l.id AS id FROM base AS l JOIN later AS r ON l.id = r.id), later AS (SELECT id FROM base) SELECT id FROM matched",
+      "WITH base AS (SELECT id FROM orders), matched AS (SELECT l.id AS id FROM orders AS l JOIN base AS r ON l.id = r.id) SELECT id FROM matched",
+    ] {
+    let rejected = @query.parse_query(text, syntax_limits()).unwrap()
+    assert_true(
+      compile(rejected, values_context(), construction_limits()) is Err(_),
+    )
+  }
+}
+
+///|
 test "FULL CTE join retains keyed input identity for common closure" {
   let query = @query.parse_query(
     "WITH chosen AS (SELECT id, customer_id FROM orders) SELECT l.id AS left_id, r.id AS right_id FROM chosen AS l FULL JOIN chosen AS r ON l.customer_id = r.customer_id",

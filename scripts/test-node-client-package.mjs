@@ -166,6 +166,15 @@ const joinSubquery = queryFrontend.compileValuesQueryJson(
   'fixture.join_subquery');
 assert.notEqual(joinSubquery, '');
 await writeFile(join(root, 'join-subquery.json'), joinSubquery);
+const cteJoinBody = queryFrontend.compileValuesQueryJson(
+  'WITH base AS (SELECT id FROM rows), '
+    + 'chosen AS (SELECT id FROM base WHERE id > 1), '
+    + 'matched AS (SELECT l.id AS id FROM base AS l '
+    + 'JOIN chosen AS r ON l.id = r.id) SELECT id FROM matched',
+  'rows', 'rows', JSON.stringify({...valuesStep, as: 'rows'}),
+  JSON.stringify(['id']), 'fixture.cte_join_body');
+assert.notEqual(cteJoinBody, '');
+await writeFile(join(root, 'cte-join-body.json'), cteJoinBody);
 const setLeft = {values: {schema: {
   a: {type: 'number', nullable: true},
   b: {type: 'string', nullable: false}},
@@ -300,6 +309,18 @@ const chainedCteQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.chained_cte');
 assert.notEqual(chainedCteQuery, '');
 await writeFile(join(root, 'chained-cte-query.json'), chainedCteQuery);
+const capturedCteJoinBody = queryFrontend.compileCapturedQueryJson(
+  'WITH acquired AS (SELECT id, amount FROM records WHERE id > 1), '
+    + 'chosen AS (SELECT id FROM acquired WHERE id = 3), '
+    + 'matched AS (SELECT l.id AS id, l.amount AS amount '
+    + 'FROM acquired AS l JOIN chosen AS r ON l.id = r.id) '
+    + 'SELECT id, amount FROM matched',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.captured_cte_join_body');
+assert.notEqual(capturedCteJoinBody, '');
+await writeFile(join(root, 'captured-cte-join-body.json'),
+  capturedCteJoinBody);
 const distinctQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT DISTINCT id FROM records WHERE id > 1 ORDER BY id',
   'records', 'remote',
@@ -546,6 +567,13 @@ async function checkJoinSubquery(client, suffix) {
   assert.deepEqual(await execution.result('answer').all(),
     [{left_id: 2, right_id: 2}]);
 }
+async function checkCteJoinBody(client, suffix) {
+  const execution = await client.aql(
+    readFileSync('cte-join-body.json', 'utf8'),
+    {format: 'json', requestId: 'packed-cte-join-body-' + suffix});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  assert.deepEqual(await execution.result('answer').all(), [{id: 2}]);
+}
 async function checkFullUsingValues(client, suffix) {
   const execution = await client.aql(fullUsingValuesDocument,
     {format: 'json', requestId: 'packed-full-using-values-' + suffix});
@@ -600,6 +628,8 @@ const reusedCteDocument = readFileSync('reused-cte-query.json', 'utf8');
 const usingCteDocument = readFileSync('using-cte-query.json', 'utf8');
 const fullUsingCteDocument = readFileSync('full-using-cte-query.json', 'utf8');
 const chainedCteDocument = readFileSync('chained-cte-query.json', 'utf8');
+const capturedCteJoinBodyDocument = readFileSync(
+  'captured-cte-join-body.json', 'utf8');
 async function checkCapturedCte(client, suffix) {
   const execution = await client.aql(capturedCteDocument,
     {format: 'json', requestId: 'packed-captured-cte-' + suffix});
@@ -631,6 +661,13 @@ async function checkCapturedCte(client, suffix) {
   assert.equal((await chained.wait()).status, 'succeeded');
   assert.deepEqual(await chained.result('answer').all(),
     [{id: 3}, {id: 2}, {id: 3}]);
+  const joinedBody = await client.aql(capturedCteJoinBodyDocument,
+    {format: 'json', requestId: 'packed-captured-cte-join-body-' + suffix});
+  assert.equal((await joinedBody.wait()).status, 'succeeded');
+  assert.deepEqual((await joinedBody.result('answer').all())
+    .map(row => ({id: row.id, amount: row.amount})),
+  [{id: 3, amount: 30}, {id: 3, amount: 30},
+    {id: 3, amount: 30}, {id: 3, amount: 30}]);
 }
 async function checkCapturedSubquery(client, suffix) {
   const execution = await client.aql(capturedSubqueryDocument,
@@ -735,6 +772,7 @@ await checkOrderScopes(installedLocal, 'local');
 await checkQueryPair(installedLocal, 'local');
 await checkValuesCte(installedLocal, 'local');
 await checkJoinSubquery(installedLocal, 'local');
+await checkCteJoinBody(installedLocal, 'local');
 await checkFullUsingValues(installedLocal, 'local');
 await checkConcat(installedLocal, 'local');
 const setQueryLocal = await installedLocal.aql(setQueryDocument,
@@ -921,6 +959,7 @@ await checkOrderScopes(installedRemote, 'remote');
 await checkQueryPair(installedRemote, 'remote');
 await checkValuesCte(installedRemote, 'remote');
 await checkJoinSubquery(installedRemote, 'remote');
+await checkCteJoinBody(installedRemote, 'remote');
 await checkFullUsingValues(installedRemote, 'remote');
 const setQueryRemote = await installedRemote.aql(setQueryDocument,
   {format: 'json', requestId: 'packed-set-query-remote'});

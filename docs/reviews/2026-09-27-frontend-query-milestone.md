@@ -24,7 +24,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: direct Values joins support INNER/LEFT and bounded CROSS; a DISTINCT CTE supplies identity for packed source-free and captured-input FULL/USING; general join scope remains |
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: scalar reductions and ordered ARRAY_AGG/STRING_AGG lower through group; captured COUNT/GROUP/HAVING runtime passes, ordered collection runtime and failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
-| Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each used declaration lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin, a sequential chain and two branches from one predecessor; physical read counter, joins inside CTE bodies and subqueries remain |
+| Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each used declaration lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin, a sequential chain, two branches from one predecessor and a join inside a declaration body; physical provider read counter and broader joins remain |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands execute through packed Local/HTTP Clients; captured operands, Pipe set, CTE reuse and broader type/order cases remain |
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND, scoped SET/DROP/RENAME/AS, one JOIN before other Pipe operators, and a parenthesized SQL right operand for Pipe set; post-projection JOIN and other scope forms remain |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK, ROW_NUMBER, LAG and framed COUNT Results; full negative and frame matrix pending |
@@ -258,9 +258,16 @@ Remote Clients execute both source-free and acquired CTEs. The acquired
 self-join of filtered `id` rows `3,2,3` returns five rows, including four
 `(3,3)` matches. The Program has one acquisition Stage; a physical provider
 read counter has not yet been added, so the once-only read acceptance case
-remains open. CTE joins inside a declaration body and subqueries outside
-the named noncorrelated FROM form still fail closed rather than being
-textually substituted.
+remains open. A CTE declaration body can now join two prior checked CTE
+Results through the same bounded join operation; a packed Local and HTTP
+Remote example returns `{id:2}` from one source-free base CTE and two
+consumers. An acquired DuckDB input runs the same shape and publishes four
+`{id:3,amount:30}` rows from two duplicate left rows and two duplicate right
+rows. The generated Programs retain one Values seed or one acquisition stage,
+respectively. A physical provider read counter is still needed to establish
+the once-only acquisition claim. Direct captured
+JOIN inputs, longer join chains and correlated subqueries still fail closed
+rather than being textually substituted.
 The same packed path accepts `JOIN ... USING(id)` and exposes one unqualified
 `id` Result column while retaining qualified left and right key bindings.
 FULL JOIN uses the coalesced-key lowering described above instead of taking
