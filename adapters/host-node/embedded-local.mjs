@@ -451,7 +451,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
             effectAuthorization: checkpoints?.effectAuthorization,
             recordReconciliation: (...args) =>
               effectRun.recordReconciliation(...args)})),
-        observeStopped: () => journal.markPhysicalClose(facts.ref),
+        observeStopped: terminalOutcome => journal.markPhysicalClose(
+          facts.ref, terminalOutcome),
       }),
     });
   const runIdOf = accepted => control.runDefinitionRunId(
@@ -890,7 +891,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
                 effectAuthorization: checkpoints.effectAuthorization,
                 recordReconciliation: (...args) =>
                   effectRun.recordReconciliation(...args)})),
-            observeStopped: () => journal.markPhysicalClose(ref),
+            observeStopped: terminalOutcome => journal.markPhysicalClose(
+              ref, terminalOutcome),
           });
           effectResumeFlights.set(key, flight);
           void flight.catch(error => {

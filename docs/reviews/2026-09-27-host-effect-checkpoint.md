@@ -51,6 +51,11 @@ Branch: `feat/host-effect-commit-checkpoint`.
   atomically fences an unsent resume against its dispatch admission. An
   admitted send remains a reconciliation duty. The Host also reconciles a
   cancellation recorded just before the Checkpoint became visible.
+- A trusted installed Site can report a known pre-Preview refusal with no
+  external Effect dispatch. The common dispatch owner records a failed Run
+  only after its physical cleanup completes; an exception without that
+  observation remains unknown. The public Client test covers deferred target
+  read, zero Site reads/writes, no unanswerable Checkpoint, and restart.
 
 ## Remaining product connections
 
@@ -63,9 +68,9 @@ Branch: `feat/host-effect-commit-checkpoint`.
    public Run observation and cancellation. Do not mark an
    admitted-but-unconfirmed send as cancelled. Complete or reclaim retained
    captures on the appropriate existing terminal transitions.
-4. Run public Client / installed Host fault-injection acceptance, including
-   unsupported read deferral's public state, zero sends and cleanup. Service
-   admission tests alone are not evidence that the installed Program path works.
+4. Run public Client / installed Host fault-injection acceptance against a
+   complete captured/apply installation. The current deferred-read test uses
+   a trusted mock Site observation, not a provider Ledger or captured input.
 5. Publish an approved Effect Set and Named Result through the installed Host.
    The current simulated continuation deliberately ends in reconciliation; it
    does not prove typed row receipts, complete apply or publication.

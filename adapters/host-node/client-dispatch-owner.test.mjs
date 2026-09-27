@@ -193,3 +193,45 @@ test('Effect owner retains an unobserved start after callback failure',
     assert.equal(owner.live(ref), false);
     assert.equal(owner.operation(ref), first);
   });
+
+test('Effect no-send failure is terminal only after physical cleanup',
+  async () => {
+    const ref = {runDefinitionCid: 'effect-no-send'};
+    let cleanups = 0;
+    let ready = false;
+    const stopped = [];
+    const owner = installNodeClientDispatchOwner({});
+    const physical = {async close() {}, async cleanup() {
+      cleanups++;
+      return ready;
+    }, cleanupPending: () => !ready};
+    const operation = owner.track(ref, {run: ({retainExecution}) => {
+      retainExecution(physical);
+      return {status: 'failed_without_effect_dispatch'};
+    }, observeStopped: outcome => stopped.push(outcome)});
+    await assert.rejects(operation, {message: 'ClientDispatchCleanupPending'});
+    assert.deepEqual(stopped, []);
+    await assert.rejects(owner.drain(),
+      {code: 'ClientDispatchCleanupPending'});
+    assert.deepEqual(stopped, []);
+    ready = true;
+    await owner.drain();
+    assert.ok(cleanups >= 3);
+    assert.deepEqual(stopped, ['failed']);
+    assert.equal(owner.operation(ref), undefined);
+  });
+
+test('Effect no-send report without a cleanup owner remains unresolved',
+  async () => {
+    const ref = {runDefinitionCid: 'effect-no-owner'};
+    let observed = 0;
+    const owner = installNodeClientDispatchOwner({});
+    const operation = owner.track(ref, {run: () =>
+      ({status: 'failed_without_effect_dispatch'}),
+    observeStopped: () => { observed++; }});
+    await assert.rejects(operation, {message: 'ClientDispatchStopUnknown'});
+    await assert.rejects(owner.drain(),
+      {code: 'ClientDispatchCleanupPending'});
+    assert.equal(observed, 0);
+    assert.equal(owner.operation(ref), operation);
+  });

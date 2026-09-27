@@ -94,7 +94,7 @@ export function runAcceptanceConfiguration(outcome, {siteKey =
   });
 }
 
-function effectCommitConfiguration() {
+function effectCommitConfiguration(targetRead = 'allow') {
   return canonicalJson({version: 'actql-execution-account-config/0.1',
     account_id: 'remote-effect-account', entries: [
       {entry_id: 'effect-commit', outcome: 'delegate',
@@ -106,7 +106,7 @@ function effectCommitConfiguration() {
         connection: {any_of: ['actql-remote-host']},
         resource: {any_of: ['source-free-values']},
         operation: {any_of: ['write']}, exclusions: []},
-      {entry_id: 'target-read', outcome: 'allow',
+      {entry_id: 'target-read', outcome: targetRead,
         principal: {all: true}, connection: {any_of: ['reference']},
         resource: {any_of: ['records']},
         operation: {any_of: ['read']}, exclusions: []},
@@ -617,6 +617,68 @@ test('installed Effect commit resumes the same Run without resending',
     assert.equal(sends, 1);
     assert.equal(computes, 3);
     await sixth.close();
+  });
+
+test('deferred target read starts no Effect and leaves no held Checkpoint',
+  async t => {
+    const fixture = await effectFixture();
+    const directory = await mkdtemp(join(scratch, 'effect-read-deferred-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    let reads = 0;
+    let sends = 0;
+    const effectInstallation = {
+      environmentWire: fixture.environmentWire,
+      async execute({control, runDefinition, effectAuthorization,
+        retainExecution}) {
+        retainExecution({async close() {}, async cleanup() { return true; },
+          cleanupPending() { return false; }});
+        const gate = await effectAuthorization({runId:
+          control.runDefinitionRunId(runDefinition),
+        runDefinitionCid: runDefinition.identity, unitId: 'values',
+        declaredResults: ['answer'], reviewWire: '{}',
+        continuationWire: '{}', beforeDefer() {
+          assert.fail('Target-read deferral must not persist a Checkpoint');
+        }});
+        try {
+          const decision = await gate.authorize('acquisition',
+            {connection: 'reference', resource: 'records', operation: 'read'},
+            {subjectCid: contentCid({target: 'read-before-effect'})});
+          if (decision.action === 'dispatch') {
+            reads++;
+            sends++;
+            assert.fail('Deferred read must not reach the physical Site');
+          }
+          assert.equal(decision.action, 'unsupported');
+          return {status: 'failed_without_effect_dispatch'};
+        } finally { gate.close(); }
+      },
+      async resume() { sends++; assert.fail('No resume is available'); },
+    };
+    const authorization = {...protectedHost(),
+      accountConfiguration: effectCommitConfiguration('delegate')};
+    const host = await remoteHost(t, authorization,
+      {directory, effectInstallation});
+    const client = await host.as('owner-token');
+    const run = await client.aql(fixture.document,
+      {format: 'json', requestId: 'effect-target-read-deferred'});
+    const state = await waitFor(async () => {
+      const current = await run.status();
+      return current.status === 'running' ? false : current;
+    });
+    assert.equal(state.status, 'failed');
+    assert.equal(reads, 0);
+    assert.equal(sends, 0);
+    assert.deepEqual((await (await host.as('reviewer-token'))
+      .checkpoints()).items, []);
+    await host.close();
+    const restarted = await remoteHost(t, authorization,
+      {directory, effectInstallation});
+    const owner = await restarted.as('owner-token');
+    assert.equal((await (await owner.attach(run.ref)).status()).status,
+      'failed');
+    assert.equal(reads, 0);
+    assert.equal(sends, 0);
+    await restarted.close();
   });
 
 test('rejected answers end the request without a Run; answers are per item',
