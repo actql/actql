@@ -123,6 +123,36 @@ pub fn project_resource_listing(
 }
 
 ///|
+/// The same authorized listing, selecting only the named resources for
+/// description. Every listed entry is still admitted against the budget, and
+/// the selection is marked truncated whenever it is not the whole visible
+/// listing, so a targeted observation is never a complete Catalog.
+pub fn project_resource_listing_for(
+  bytes : Bytes,
+  limits : ListLimits,
+  names : Array[String],
+) -> Result[ResourceListing, ListingIssue] {
+  if names.is_empty() || names.length() > limits.max_selected {
+    return Err(InvalidLimits)
+  }
+  let full = match
+    project_resource_listing(bytes, {
+      ..limits,
+      max_selected: limits.max_resources,
+    }) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let selected = full.selected.filter(entry => names.contains(entry.name))
+  Ok({
+    selected,
+    visible_count: full.visible_count,
+    truncated: selected.length() != full.visible_count,
+    response_sha256: full.response_sha256,
+  })
+}
+
+///|
 pub(all) enum ResourceSelectionIssue {
   ListingTruncated
   NotVisible

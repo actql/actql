@@ -1,0 +1,64 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/frontend_source_map"
+
+import {
+  "actql/actql/source_span",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn belongs_to(Document, Origin) -> Bool
+
+pub fn document(String, Int, source_path? : String) -> Result[Document, Issue]
+
+pub fn document_bytes(Bytes, Int, source_path? : String) -> Result[Document, Issue]
+
+pub fn end(Origin) -> Position
+
+pub fn input_bytes(Document) -> Int
+
+pub fn kind(Origin) -> Kind
+
+pub fn position(Document, Int) -> Position?
+
+pub fn range(Document, Int, Int, kind? : Kind) -> Result[Origin, Issue]
+
+pub fn span(Origin) -> @source_span.Span
+
+pub fn start(Origin) -> Position
+
+pub fn validate_span(Document, @source_span.Span, kind? : Kind) -> Result[Origin, Issue]
+
+// Errors
+
+// Types and methods
+type Document
+
+pub(all) enum Issue {
+  InvalidLimit
+  InputLimit
+  InvalidUnicode
+  InvalidUtf8
+  InvalidRange
+  InvalidSpan
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Kind {
+  Authored
+  Generated
+} derive(Eq, @debug.Debug)
+
+type Origin
+
+pub(all) struct Position {
+  byte_offset : Int
+  scalar_offset : Int
+  utf16_offset : Int
+  line : Int
+  scalar_column : Int
+  utf16_column : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,84 @@
+{
+  "version": "actql/0.1",
+  "id": "customer.open_orders",
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {
+        "orders": {
+          "carrier": "relation",
+          "schema": {
+            "id": {
+              "type": "string",
+              "nullable": false
+            },
+            "customer_id": {
+              "type": "string",
+              "nullable": false
+            },
+            "status": {
+              "type": "string",
+              "nullable": false
+            },
+            "amount": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "primary_key": [
+            "id"
+          ]
+        }
+      },
+      "from": "orders",
+      "steps": [
+        {
+          "filter": "status = 'open'"
+        },
+        {
+          "group": {
+            "by": [
+              "customer_id"
+            ],
+            "aggregates": {
+              "order_count": {
+                "fn": "count"
+              },
+              "total_amount": {
+                "fn": "sum",
+                "field": "amount"
+              }
+            }
+          },
+          "as": "customer_totals"
+        }
+      ],
+      "results": {
+        "main": {
+          "from": "customer_totals",
+          "fields": [
+            "customer_id",
+            "order_count",
+            "total_amount"
+          ],
+          "order_by": [
+            {
+              "total_amount": "desc"
+            },
+            {
+              "customer_id": "asc"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "main": {
+      "from": {
+        "stage": "main",
+        "result": "main"
+      }
+    }
+  }
+}

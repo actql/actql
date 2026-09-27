@@ -1,5 +1,13 @@
 # Salesforce Effect review R2 status
 
+> Correction (2026-09-27): "connected", "served" and "installed" below mean
+> assembled by the provider entry points in test Hosts. The standard
+> installed Host (`embedded-local`) serves neither Salesforce discovery nor
+> Salesforce Effects. Peek also failed in any org listing more than one
+> object until 2026-09-27. The current capability, authorization and
+> verification scope is in
+> [Salesforce provider conformance](2026-09-27-salesforce-provider-conformance.md).
+
 ## Fixed completion unit at current HEAD
 
 | Required view | Current boundary |

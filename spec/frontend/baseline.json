@@ -1,0 +1,245 @@
+{
+  "base_sha": "07edcbb60f9e2eb994b7233dc24c93231f1a84e7",
+  "base_includes": "PR #3 bounded Local execution and PR #4 tiered verification",
+  "branch": "feat/frontend-structural-aql",
+  "contract_version": "actql/0.1",
+  "grammar_manifest": {
+    "version": "actql-grammar-manifest/0.1",
+    "source_grammar_cid": "sha256:a6bfc4b6c00d89f521ccee9e99e1dbbd7385675fd55478f1536f36f860b1ef0a",
+    "operations": [
+      "analytic",
+      "append",
+      "apply_graph_delta",
+      "asof_join",
+      "assert_rows",
+      "calendar_bucket",
+      "calendar_series",
+      "components",
+      "cross_join",
+      "dedupe_events",
+      "dedupe_rows",
+      "degree",
+      "derive",
+      "distinct",
+      "drop",
+      "edge_rows",
+      "events",
+      "except",
+      "filter",
+      "graft_graph",
+      "graph",
+      "graph_bounds",
+      "graph_diff",
+      "graphs_equal",
+      "group",
+      "infer",
+      "intersect",
+      "interval_join",
+      "join",
+      "json_pick",
+      "lag",
+      "match_edges",
+      "match_nodes",
+      "mean_graphs",
+      "merge_rankings",
+      "nearest",
+      "nest",
+      "node_rows",
+      "normalize_graph",
+      "normalize_vectors",
+      "pivot",
+      "pool_vectors",
+      "reach",
+      "rename",
+      "row_window",
+      "score_vectors",
+      "search_candidates",
+      "select",
+      "sequence",
+      "serialize",
+      "session",
+      "shortest_path",
+      "sort",
+      "subgraph",
+      "subtract_graphs",
+      "take",
+      "text_rank",
+      "time_series",
+      "to_events",
+      "to_vectors",
+      "top_k",
+      "top_k_by",
+      "traverse",
+      "union_graphs",
+      "unnest",
+      "unpivot",
+      "values",
+      "vectors",
+      "watermark_events",
+      "watermark_rows",
+      "window_events",
+      "window_group"
+    ],
+    "expression_contract_cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
+    "expression_text_grammar_sha256": "af7d4d19de39d888daff8195773a8599c8246602d41e450da6975e336de96fd7",
+    "expression_text_rules_sha256": "997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2",
+    "grammar_manifest_cid": "sha256:a203bf073a9d3ad122fd6e8428e713617a3ce812d8171e3d684c250d70aa0c7a"
+  },
+  "operation_comparison": {
+    "imported_count": 72,
+    "baseline_count": 72,
+    "missing": [],
+    "additional": [],
+    "local_execution_path_count_is_separate": true
+  },
+  "adopted_source": {
+    "date": "2026-09-25",
+    "files": [
+      {
+        "name": "ACCEPTANCE_MATRIX.md",
+        "sha256": "c8e6fdba3ef78c1d6ef1e26ab1d7173c445235fcc9a822e38fde8f36a0737772"
+      },
+      {
+        "name": "IMPLEMENTATION_SPEC.md",
+        "sha256": "89b0f3ecde4c1ac5b8bb166441aff2f1615481e560be822d3776c153a1c63288"
+      },
+      {
+        "name": "README.md",
+        "sha256": "60e9dffd7f46e73aa00781137ae98b848281cf95bcf1687275c824bb52591e60"
+      },
+      {
+        "name": "VALIDATION.md",
+        "sha256": "42421d8103c01616a603e4deeea56d7c48c29bad9eafc8a2275bb34c99394d57"
+      },
+      {
+        "name": "acceptance-cases.json",
+        "sha256": "949bf37e3939e8cb28e3d32964627051bab07a3286ace8e1763c3065c4562d53"
+      },
+      {
+        "name": "examples/orders.canonical.json",
+        "sha256": "d4922e6e64b25c6da622337a64f0835cbf9208e8ae3866ed8cb17e6306e8d88a"
+      },
+      {
+        "name": "examples/orders.ergonomic.aql",
+        "sha256": "07f50cb1fd0a11914e15478fa0af0415b66c897e24b523b184321a664da2f73b"
+      },
+      {
+        "name": "examples/orders.expected.json",
+        "sha256": "42a8a5c0b63f6df945da6a2a07e5237143faf16410e4a5ac2540a4701f387c27"
+      },
+      {
+        "name": "examples/orders.jsonl",
+        "sha256": "ed4460ca0530dce07a29aa70af4ef702024077c16e4953a41c76bfa41521e127"
+      },
+      {
+        "name": "examples/orders.structural.aql",
+        "sha256": "d4176744fe51f6c57840014bfd77e72b84896b8ea68878d1263ea912a947f1cb"
+      },
+      {
+        "name": "examples/query_pair.context.json",
+        "sha256": "101cc19f9ddf5295c7f61bde617246daae433cb737e979352df1a3be3302f155"
+      },
+      {
+        "name": "examples/query_pair.expected_program.json",
+        "sha256": "526c268c518f532cc5b4f41232e974a93fcb17a4a91bbd0efd5bd21f8c7f3383"
+      },
+      {
+        "name": "examples/query_pair.expected_rows.json",
+        "sha256": "9cbdf259c188d18a1d3f1b2a6d1dea9ed488f62854671c69408f066beb83c667"
+      },
+      {
+        "name": "examples/query_pair.pipe.sql",
+        "sha256": "14ceb33a56f1f2681994632ef2242fef2fd4f2855e1e94662e64dbabf8a35ea5"
+      },
+      {
+        "name": "examples/query_pair.standard.sql",
+        "sha256": "0b8357c0c58c11d8968f2951d0504d5eaadc9ca77ac8bb07c9a4bc1a3f4152d7"
+      },
+      {
+        "name": "frontend-profile-r1.json",
+        "sha256": "5267d3139323452c395f0f915f36b88f73329d3749257df8ea9c88a7b13db084"
+      },
+      {
+        "name": "source-index.json",
+        "sha256": "6757a3c9ae0343ad997b1e0bee13bb5220dc1197169fb8b7b9ed23833a40425f"
+      },
+      {
+        "name": "validate_bundle.py",
+        "sha256": "da8585d3b375cee6be85fea044528456f6b3c480a6fd9d17bfa0ae29c09cf4ce"
+      }
+    ]
+  },
+  "fixtures": [
+    {
+      "path": "spec/frontend/fixtures/orders.structural.aql",
+      "sha256": "d4176744fe51f6c57840014bfd77e72b84896b8ea68878d1263ea912a947f1cb",
+      "oracle_origin": "independently authored imported requirement; not product output",
+      "execution_status": "not_run"
+    },
+    {
+      "path": "spec/frontend/fixtures/orders.canonical.json",
+      "sha256": "d4922e6e64b25c6da622337a64f0835cbf9208e8ae3866ed8cb17e6306e8d88a",
+      "oracle_origin": "independently authored imported requirement; not product output",
+      "execution_status": "not_run"
+    },
+    {
+      "path": "spec/frontend/fixtures/orders.expected.json",
+      "sha256": "42a8a5c0b63f6df945da6a2a07e5237143faf16410e4a5ac2540a4701f387c27",
+      "oracle_origin": "independently authored imported requirement; not product output",
+      "execution_status": "not_run"
+    },
+    {
+      "path": "spec/frontend/fixtures/orders.jsonl",
+      "sha256": "ed4460ca0530dce07a29aa70af4ef702024077c16e4953a41c76bfa41521e127",
+      "oracle_origin": "independently authored imported requirement; not product output",
+      "execution_status": "not_run"
+    }
+  ],
+  "existing_identity_oracles": [
+    {
+      "path": "portability/corpus/stage-definition.json",
+      "sha256": "4dda592809dc518800294186f303c64eed3eb77fce4eaa39047c33df2fce1e9c",
+      "policy": "Retain independent expected CIDs; do not regenerate from the frontend."
+    },
+    {
+      "path": "portability/corpus/parameter-identities.json",
+      "sha256": "d438ce0c7d685235b3531dd936b68f2eb2dd6af8fbb0dc86c00b89710d3bc1ca",
+      "policy": "Retain independent expected CIDs; do not regenerate from the frontend."
+    },
+    {
+      "path": "portability/corpus/local-unit-stage-body.json",
+      "sha256": "03f8a58ac61929338bad6e9bda5012f3c8dc4de3a1d2caeb82345cd456f4025d",
+      "policy": "Retain independent expected CIDs; do not regenerate from the frontend."
+    },
+    {
+      "path": "portability/corpus/local-result-definition.json",
+      "sha256": "bf035c51bdf3a58cca1d81a05d6f71cae505ba9859dd66686da93890fdfe549a",
+      "policy": "Retain independent expected CIDs; do not regenerate from the frontend."
+    },
+    {
+      "path": "portability/corpus/result-import-interface.json",
+      "sha256": "ddac01bdbfa4554596ce86941de3c463874b136ec8b5074fd5b7d9ba7cec1d95",
+      "policy": "Retain independent expected CIDs; do not regenerate from the frontend."
+    }
+  ],
+  "toolchain": {
+    "version": "0.10.12+1634b282e",
+    "moon": "0.1.20260904 (94521db 2026-09-04)",
+    "moonc": "v0.10.12+1634b282e (2026-09-07)",
+    "archives": {
+      "darwin-arm64": {
+        "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+        "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+      },
+      "linux-x64": {
+        "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+        "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+      }
+    },
+    "core": {
+      "url": "https://cli.moonbitlang.com/cores/core-0.10.12%2B1634b282e.tar.gz",
+      "sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1"
+    }
+  },
+  "frontend_runtime_cases_executed": 0
+}
