@@ -50,13 +50,13 @@ pub fn catalog_sync_resource(CatalogSync, String) -> Result[ResourceMetadata, Re
 
 pub fn catalog_sync_unavailable(CatalogSync, String, DescribeFailure) -> Result[Unit, CatalogSyncIssue]
 
-pub fn check_declared_collection_write(StaticDeclaration, WriteCollectionRequest) -> Result[Unit, DeclarationUseIssue]
-
 pub fn check_declared_read(StaticDeclaration, ReadProjection, String) -> Result[Unit, DeclarationUseIssue]
 
-pub fn check_declared_single_write(StaticDeclaration, SingleWriteRequest) -> Result[Unit, DeclarationUseIssue]
+pub fn check_execution_collection_write(ExecutionMapping, WriteCollectionRequest) -> Result[Unit, DeclarationUseIssue]
 
-pub fn check_declared_write(StaticDeclaration, WriteProjection) -> Result[Unit, DeclarationUseIssue]
+pub fn check_execution_single_write(ExecutionMapping, SingleWriteRequest) -> Result[Unit, DeclarationUseIssue]
+
+pub fn check_execution_write(ExecutionMapping, WriteProjection) -> Result[Unit, DeclarationUseIssue]
 
 pub fn check_write_capability_request(WriteCapabilityEvidence, SingleWriteRequest, String) -> Result[Unit, WriteCapabilityIssue]
 
@@ -71,6 +71,8 @@ pub fn interrupt_query_read(QueryRead) -> Bool
 pub fn prepare_catalog_observation(CatalogSync, CatalogObservationBinding, String, Array[String?], Array[String?], Int) -> Result[CatalogObservation, CatalogObservationIssue]
 
 pub fn prepare_continue_write_collection(Array[WriteCollectionItem], String, WriteCollectionRequestLimits) -> Result[WriteCollectionRequest, WriteCollectionRequestIssue]
+
+pub fn prepare_execution_mapping(StaticDeclaration, String, ExecutionWrite, DeclarationLimits) -> Result[ExecutionMapping, ExecutionMappingIssue]
 
 pub fn prepare_observed_target_preview_row(SingleWriteRequest, TargetObservation, Int) -> Result[TargetPreviewRow, TargetObservationIssue]
 
@@ -406,25 +408,24 @@ pub(all) enum DeclarationUseIssue {
   Undeclared
   UndeclaredField(String)
   UndeclaredKey(String)
+  SchemaChanged(String)
 } derive(Eq, @debug.Debug)
-
-pub struct DeclaredMapping {
-  resource : String
-  mapping_ref : String
-  target_ref : String
-  mapping_cid : String
-  create_fields : Array[String]?
-  update_fields : Array[String]?
-  upsert_fields : Array[String]?
-  upsert_keys : Array[String]
-  body : String
-}
 
 pub struct DeclaredView {
   resource : String
   source_ref : String
   view_cid : String
   fields : Array[String]
+}
+
+pub struct DeclaredWritable {
+  resource : String
+  target_ref : String
+  create_fields : Array[String]?
+  update_fields : Array[String]?
+  upsert_fields : Array[String]?
+  upsert_keys : Array[String]
+  required_fields : Array[String]
 }
 
 pub(all) enum DescribeFailure {
@@ -459,6 +460,36 @@ pub(all) enum ExactIntComparison {
   LessEqual
   Greater
   GreaterEqual
+} derive(Eq, @debug.Debug)
+
+pub struct ExecutionMapping {
+  declaration : StaticDeclaration
+  resource : String
+  operation : WriteOperation
+  fields : Array[String]
+  mapping_ref : String
+  mapping_cid : String
+  body : String
+}
+
+pub(all) enum ExecutionMappingIssue {
+  NotWritable(String)
+  OperationNotDeclared
+  EmptyWrite
+  DuplicateField(String)
+  FieldNotWritable(String)
+  KeyNotDeclared(String)
+  KeyInBody(String)
+  MissingRequiredField(String)
+  InvalidNullBehavior(String)
+  OutputLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ExecutionWrite {
+  CreatePayload(Array[String])
+  CreateFromResult(Array[RowSource])
+  UpdateById(Array[String])
+  UpsertByExternalId(String, Array[String])
 } derive(Eq, @debug.Debug)
 
 pub struct FieldMetadata {
@@ -628,6 +659,12 @@ pub(all) enum ResourceSelectionIssue {
   DescribeMismatch
 } derive(Eq, @debug.Debug)
 
+pub(all) struct RowSource {
+  target : String
+  source : String
+  null_behavior : String
+} derive(Eq, @debug.Debug)
+
 pub struct SalesforceImplementation {
   connector_revision : String
   scan_read : Bool
@@ -658,8 +695,11 @@ pub struct StaticDeclaration {
   contracts : Array[String]
   views : Array[DeclaredView]
   view_bodies : Array[String]
-  mappings : Array[DeclaredMapping]
+  writables : Array[DeclaredWritable]
   exclusions : Array[DeclarationExclusion]
+  resources : Array[ResourceMetadata]
+  manifest_entry : String
+  manifest_entry_cid : String
 }
 
 pub struct TargetObservation {

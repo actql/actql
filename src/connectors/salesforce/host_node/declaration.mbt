@@ -108,7 +108,6 @@ pub fn salesforce_prepare_execution_mapping(
   targets : Array[String],
   sources : Array[String],
   null_behaviors : Array[String],
-  connector_manifest_cid : String,
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -133,13 +132,11 @@ pub fn salesforce_prepare_execution_mapping(
     _ => raise InvalidWrite
   }
   match
-    @catalog.prepare_execution_mapping(
-      declaration,
-      resource,
-      write,
-      connector_manifest_cid,
-      { max_bytes, max_nodes, max_depth, },
-    ) {
+    @catalog.prepare_execution_mapping(declaration, resource, write, {
+      max_bytes,
+      max_nodes,
+      max_depth,
+    }) {
     Ok(value) => value
     Err(issue) => raise ExecutionMapping(issue)
   }

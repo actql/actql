@@ -232,7 +232,7 @@ try {
             redeclare(recoveredSalesforce.catalogs[memberIndex]),
             'Test_Record__c', ...executionWrite(
               input.salesforceRecovery.writes[memberIndex]),
-            `sha256:${'a'.repeat(64)}`, 400000, 40000, 64)),
+            400000, 40000, 64)),
           maxRows: input.maxRows, maxBytes: 20000}));
       return installSalesforceEffectCurrentUse({
         moon: salesforceMoon, commonMoon: moon,

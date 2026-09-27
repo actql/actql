@@ -1,3 +1,4 @@
+import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import assert from 'node:assert/strict';import {createHash, generateKeyPairSync, sign, verify} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
 import {createServer} from 'node:http';
@@ -542,11 +543,11 @@ test('private Plan binding uses the escaped checked Unit Result name', async () 
     binding.resolved_limit_cid,
     binding.binding_cid,
   ], [
-    'sha256:9de344cbc92db77400f994f6c715ea01c4fcd63bb4201f10559029ec52bc644c',
+    'sha256:87fbe52e6d002927b0ef3808c1e34b64cc05f5fe72636a7b3e3b1bc26b4c55d0',
     'a~/b',
-    'unit:sha256:9de344cbc92db77400f994f6c715ea01c4fcd63bb4201f10559029ec52bc644c#/results/a~0~1b/rows',
-    'sha256:e47649e6011f9d358e265777f049faaee825cf51364b16ef6353adcc76d61075',
-    'sha256:3ae102d0ca13694483e6c0a6d63ba6bb485333c7fa59bab00f947e33e3c1b3ad',
+    'unit:sha256:87fbe52e6d002927b0ef3808c1e34b64cc05f5fe72636a7b3e3b1bc26b4c55d0#/results/a~0~1b/rows',
+    'sha256:af61d9586bf003fcbc3b11b9ae73618a17eba72f93fa05a858fa83a9d5df949c',
+    'sha256:ecc6be2770eb2454dae19082be8a632b494dfa296af148a884752232698c81fa',
   ]);
   assert.equal(binding.binding_cid,
     hashWithoutSelf(binding, 'binding_cid'));
@@ -898,7 +899,7 @@ test('Node ABI derives the checked named Result and request identity', async () 
   const resultPlanWire = moon.clientProgramResultPlanWire(resultPlan);
   assert.equal(moon.clientProgramResultPlanName(resultPlan), 'answer');
   assert.equal(moon.clientProgramResultPlanCid(resultPlan),
-    'sha256:d55633378a13c8b55ac9dcd275459728a00e837f365dbc315cd6a865d583426e');
+    'sha256:8d2ad95f6f8b7be42c550d922d0614e68be2700bba05d7af2c7e03a4fcbbcc38');
   assert.equal(moon.clientProgramResultPlanCid(resultPlan),
     canonicalHashWithoutSelf(JSON.parse(resultPlanWire),
       'result_plan_logical_cid'));
@@ -907,7 +908,7 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.deepEqual(JSON.parse(resultPlanWire), {
     version: 'actql-result-plan/0.1', result_name: 'answer',
     unit_definition_cid:
-      'sha256:9e2921794c471aa3c76933f0730032e74934c898e54f55675080bd0d858e159f',
+      'sha256:63464270481cf4518c2fcc0be076d6ec2cc7986d53031f0d919ab8d57772eca9',
     unit_result_name: 'rows', unit_result_ordinal: 0,
     projection: [{input: 'id', output: 'id', value_contract_cid:
       'sha256:8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d'}],
@@ -1100,7 +1101,7 @@ test('Node ABI derives the checked named Result and request identity', async () 
   const rowsLimit = JSON.parse(rowsLimitBody);
   const bytesLimit = JSON.parse(bytesLimitBody);
   const unit =
-    'unit:sha256:9e2921794c471aa3c76933f0730032e74934c898e54f55675080bd0d858e159f';
+    'unit:sha256:63464270481cf4518c2fcc0be076d6ec2cc7986d53031f0d919ab8d57772eca9';
   assert.deepEqual([rowsLimit.subject_ref, bytesLimit.subject_ref],
     [`${unit}#/results/rows/rows`, `${unit}#/results/rows/bytes`]);
   assert.deepEqual([rowsLimit.unit, rowsLimit.effective_max,
@@ -1141,10 +1142,10 @@ test('Node ABI derives the checked named Result and request identity', async () 
     rowsLimit.resolved_limit_cid, bytesLimit.resolved_limit_cid,
     rowsBinding.binding_cid, bytesBinding.binding_cid,
   ], [
-    'sha256:2f5dc21f619a51134aef30d05ba8853df7eba0555d24ab36b7a0045b6a1c8817',
-    'sha256:e9b31174ac3a307327d2de83168a00f9fcac9b514c653d513c89f68daad24058',
-    'sha256:8c33dda920512416407269b35cff1c4b61795c3266c7e378349ac373a2b8bc10',
-    'sha256:9ade91d64dc29574366e1d3824be3cbb30d8737670d4cc7c0536752a3aed4090',
+    'sha256:d1b8cac20c88b332522c591586126319f5bd20393c081fb0bc9a27d38eece4d1',
+    'sha256:1d01310da1218b834d27dbcd7363f3c4a46f9b38a87173474e7ef45e0fede8da',
+    'sha256:cd90e6f813ff852cb0b453e2d862ee91e8051802217323fa950862e6d09edd51',
+    'sha256:82ab94c9ff4d94f6b11d7c9e27ddbcfd2a4b1c7b7312f062690a1c1963a581b7',
   ]);
   for (const [binding, limit, measure] of [
     [rowsBinding, rowsLimit, 'rows'],
@@ -2173,6 +2174,10 @@ async function effectFixture({splitSource = false,
     ? canonicalHashWithoutSelf(mapping, 'mapping_contract_cid')
     : hashWithoutSelf(mapping, 'mapping_contract_cid');
   const environmentDocument = JSON.parse(environmentBody);
+  mapping.connector_manifest_cid = withFixtureConnector(environmentDocument,
+    mapping.target_ref);
+  mapping.mapping_contract_cid = canonicalHashWithoutSelf(mapping,
+    'mapping_contract_cid');
   environmentDocument.mapping_contracts = [mapping];
   if (splitSource) {
     environmentDocument.host_policy_profile.capacity = JSON.parse(
@@ -2183,14 +2188,10 @@ async function effectFixture({splitSource = false,
         max_graph_construction_nodes: 1000,
       }));
   }
-  environmentDocument.evidence_bundle_cid = writeKind === 'create' &&
-    sourceIds ? canonicalHashWithoutSelf(environmentDocument,
-      'evidence_bundle_cid') : hashWithoutSelf(
-      environmentDocument, 'evidence_bundle_cid');
+  environmentDocument.evidence_bundle_cid = canonicalHashWithoutSelf(
+    environmentDocument, 'evidence_bundle_cid');
   const environment = moon.clientProgramCheckEnvironment(
-    writeKind === 'create' && sourceIds ?
-      canonicalJson(environmentDocument) :
-      JSON.stringify(environmentDocument),
+    canonicalJson(environmentDocument),
     environmentDocument.evidence_bundle_cid,
     false, false, true, splitSource, false, false, false,
   );

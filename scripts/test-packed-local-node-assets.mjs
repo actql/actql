@@ -5,6 +5,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
+import {withFixtureConnector} from '../adapters/host-common/connector-manifest.fixture.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -123,8 +124,6 @@ try {
     ['answer']);
   assert.equal(executed.completed[0].outputRows, 2);
 } finally { await executed.close(); }
-const hashWithoutSelf = (body, name) => {
-  const copy = {...body};
   delete copy[name];
   return 'sha256:' + createHash('sha256')
     .update(JSON.stringify(copy)).digest('hex');
@@ -149,13 +148,15 @@ const mapping = {
     .update(JSON.stringify(targetSchema)).digest('hex'),
   version: 'salesforce-v1', writable_fields: ['Name'],
 };
-mapping.mapping_contract_cid = hashWithoutSelf(mapping,
-  'mapping_contract_cid');
 const effectEnvironmentBody = JSON.parse(wire);
+mapping.connector_manifest_cid = withFixtureConnector(effectEnvironmentBody,
+  mapping.target_ref);
+mapping.mapping_contract_cid = machineCid(Object.fromEntries(
+  Object.entries(mapping).filter(([key]) => key !== 'mapping_contract_cid')));
 effectEnvironmentBody.mapping_contracts = [mapping];
-effectEnvironmentBody.evidence_bundle_cid = hashWithoutSelf(
-  effectEnvironmentBody, 'evidence_bundle_cid');
-const effectEnvironmentWire = JSON.stringify(effectEnvironmentBody);
+delete effectEnvironmentBody.evidence_bundle_cid;
+effectEnvironmentBody.evidence_bundle_cid = machineCid(effectEnvironmentBody);
+const effectEnvironmentWire = canonicalText(effectEnvironmentBody);
 const effectEnvironment = owner.clientProgramCheckEnvironment(
   effectEnvironmentWire, effectEnvironmentBody.evidence_bundle_cid,
   false, false, true, false, false, false, false);

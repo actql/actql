@@ -312,10 +312,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   const writeKinds = Object.freeze({create: 0, createFromResult: 1,
     update: 2, upsert: 3});
   // The executable Mapping of one Effect, from a declaration this Site
-  // generated. `connectorManifestCid` is the manifest identity the Host
-  // admitted this Connector under; it is not derived here.
+  // generated. It names the declaration's own manifest entry.
   function prepareExecutionMapping({declaration, resource, write,
-    connectorManifestCid,
     limits = {maxBytes: 400_000, maxNodes: 40_000, maxDepth: 64}} = {}) {
     if (!declarations.has(declaration) || !text(resource) ||
         writeKinds[write?.kind] === undefined ||
@@ -329,7 +327,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       write.key ?? '', sources.map(source => source.target),
       sources.map(source => source.field),
       sources.map(source => source.nullBehavior),
-      connectorManifestCid, limits.maxBytes, limits.maxNodes,
+      limits.maxBytes, limits.maxNodes,
       limits.maxDepth));
     return Object.freeze({mapping,
       mappingRef: salesforceMoon.salesforceExecutionMappingRef(mapping),

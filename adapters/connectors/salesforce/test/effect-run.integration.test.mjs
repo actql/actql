@@ -1,3 +1,4 @@
+import {withFixtureConnector} from '../../../host-common/connector-manifest.fixture.mjs';
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
 import {createHash, generateKeyPairSync, sign, verify} from 'node:crypto';
@@ -220,6 +221,10 @@ async function effectFixture({splitSource = false,
     ? canonicalHashWithoutSelf(mapping, 'mapping_contract_cid')
     : hashWithoutSelf(mapping, 'mapping_contract_cid');
   const environmentDocument = JSON.parse(environmentBody);
+  mapping.connector_manifest_cid = withFixtureConnector(environmentDocument,
+    mapping.target_ref);
+  mapping.mapping_contract_cid = canonicalHashWithoutSelf(mapping,
+    'mapping_contract_cid');
   environmentDocument.mapping_contracts = [mapping];
   if (splitSource) {
     environmentDocument.host_policy_profile.capacity = JSON.parse(
@@ -230,14 +235,10 @@ async function effectFixture({splitSource = false,
         max_graph_construction_nodes: 1000,
       }));
   }
-  environmentDocument.evidence_bundle_cid = writeKind === 'create' &&
-    sourceIds ? canonicalHashWithoutSelf(environmentDocument,
-      'evidence_bundle_cid') : hashWithoutSelf(
-      environmentDocument, 'evidence_bundle_cid');
+  environmentDocument.evidence_bundle_cid = canonicalHashWithoutSelf(
+    environmentDocument, 'evidence_bundle_cid');
   const environment = moon.clientProgramCheckEnvironment(
-    writeKind === 'create' && sourceIds ?
-      canonicalJson(environmentDocument) :
-      JSON.stringify(environmentDocument),
+    canonicalJson(environmentDocument),
     environmentDocument.evidence_bundle_cid,
     false, false, true, splitSource, false, false, false,
   );

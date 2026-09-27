@@ -8,6 +8,11 @@ pub(all) enum MappingShapeIssue {
   TargetSchemaMismatch(Int)
   InvalidTargetSchema(Int)
   DuplicateMapping(String)
+  Manifest(ConnectorManifestIssue)
+  /// `connector_manifest_cid` names no entry of the environment's manifest.
+  ManifestUnresolved(Int)
+  /// `target_ref` is not a Resource of the referenced entry's connection.
+  ForeignTarget(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -253,6 +258,14 @@ pub fn check_mapping_contract_shapes(
   if count > limits.max_members {
     return Err(MappingLimit)
   }
+  let manifest = if count == 0 {
+    { entries: [], }
+  } else {
+    match check_connector_manifest(environment, limits) {
+      Ok(value) => value
+      Err(issue) => return Err(Manifest(issue))
+    }
+  }
   let work = Ref(0)
   let entries = []
   let by_ref : Map[String, Int] = Map([])
@@ -288,7 +301,19 @@ pub fn check_mapping_contract_shapes(
         raise MappingShapeStop(InvalidMapping(index))
       }
       ignore(mapping_shape_text(object, "version", index))
-      ignore(mapping_shape_cid_text(object, "connector_manifest_cid", index))
+      // The Mapping belongs to exactly one admitted connector entry, and
+      // targets a Resource of that entry's connection.
+      let manifest_cid = mapping_shape_cid_text(
+        object, "connector_manifest_cid", index,
+      )
+      guard connector_manifest_entry(manifest, manifest_cid) is Some(entry) else {
+        raise MappingShapeStop(ManifestUnresolved(index))
+      }
+      let prefix = "connector://" + entry.connector_id + "/"
+      if !target_ref.has_prefix(prefix) ||
+        target_ref.length() == prefix.length() {
+        raise MappingShapeStop(ForeignTarget(index))
+      }
       ignore(mapping_shape_cid_text(object, "resource_identity_cid", index))
       let cid = mapping_shape_cid_text(object, "mapping_contract_cid", index)
       if cid != mapping_shape_identity(root, limits) {

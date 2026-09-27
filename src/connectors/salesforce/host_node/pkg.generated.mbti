@@ -65,11 +65,11 @@ pub fn salesforce_catalog_response_sha256(Bytes) -> String
 
 pub fn salesforce_catalog_unavailable(@catalog.CatalogSync, String, Int) -> Bool raise SalesforceCatalogBridgeIssue
 
-pub fn salesforce_check_declared_collection_write(@catalog.StaticDeclaration, @catalog.WriteCollectionRequest) -> Unit raise SalesforceDeclarationBridgeIssue
-
 pub fn salesforce_check_declared_read(@catalog.StaticDeclaration, @catalog.ReadProjection, String) -> Unit raise SalesforceDeclarationBridgeIssue
 
-pub fn salesforce_check_declared_single_write(@catalog.StaticDeclaration, @catalog.SingleWriteRequest) -> Unit raise SalesforceDeclarationBridgeIssue
+pub fn salesforce_check_execution_collection_write(@catalog.ExecutionMapping, @catalog.WriteCollectionRequest) -> Unit raise SalesforceDeclarationBridgeIssue
+
+pub fn salesforce_check_execution_single_write(@catalog.ExecutionMapping, @catalog.SingleWriteRequest) -> Unit raise SalesforceDeclarationBridgeIssue
 
 pub fn salesforce_check_write_capability_request(@catalog.WriteCapabilityEvidence, @catalog.SingleWriteRequest, String) -> Unit raise SalesforceCatalogBridgeIssue
 
@@ -104,6 +104,12 @@ pub fn salesforce_collection_write_response_row_applied(@catalog.WriteCollection
 pub fn salesforce_collection_write_response_row_cid(@catalog.WriteCollectionResponse, Int) -> String raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_collection_write_response_row_count(@catalog.WriteCollectionResponse) -> Int
+
+pub fn salesforce_execution_mapping_body(@catalog.ExecutionMapping) -> String
+
+pub fn salesforce_execution_mapping_cid(@catalog.ExecutionMapping) -> String
+
+pub fn salesforce_execution_mapping_ref(@catalog.ExecutionMapping) -> String
 
 pub fn salesforce_generate_static_declaration(@catalog.CatalogObservation, String, String, String, String, String, String, Int, String, String, String, String, String, String, @catalog.SalesforceImplementation, String, Array[String], Int, Int, Int) -> @catalog.StaticDeclaration raise SalesforceDeclarationBridgeIssue
 
@@ -142,6 +148,8 @@ pub fn salesforce_observed_preview_row_fields(@catalog.TargetPreviewRow) -> Arra
 pub fn salesforce_prepare_catalog_observation(@catalog.CatalogSync, String, String, String, String, String, String, Int, String, String, String, String, String, String, String, Array[String?], Array[String?], Int) -> @catalog.CatalogObservation raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_prepare_continue_write_collection(Array[String], Array[@catalog.WriteBody], Array[Int], Array[String], Array[Int], String, Int, Int, Int, Int, Int, Int) -> @catalog.WriteCollectionRequest raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_prepare_execution_mapping(@catalog.StaticDeclaration, String, Int, Array[String], String, Array[String], Array[String], Array[String], Int, Int, Int) -> @catalog.ExecutionMapping raise SalesforceDeclarationBridgeIssue
 
 pub fn salesforce_prepare_managed_query(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64, @execution_relation.ManagedOutputValues) -> @host.ManagedQuery raise SalesforceCatalogBridgeIssue
 
@@ -305,6 +313,8 @@ pub(all) suberror SalesforceDeclarationBridgeIssue {
   UnknownRevision
   Declaration(@catalog.DeclarationIssue)
   DeclaredUse(@catalog.DeclarationUseIssue)
+  ExecutionMapping(@catalog.ExecutionMappingIssue)
+  InvalidWrite
   OutputLimit
 }
 

@@ -938,6 +938,28 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/connector-manifest.a-check-environment-may-carry-the-manifest-entries-that-its-mappings-name",
+      "statement_sha256": "14539b0c42ade1887a480873858aad4a5ccf89c7557fa65a28f3ef75fc0b4dc1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "connector-manifest",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/connector-manifest.a-mapping-must-name-exactly-one-entry-whose-connection-owns-its-target",
+      "statement_sha256": "b8e065c79a4327115348439580190eda03af32f12f0ba071ba9d9f655254b405",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "connector-manifest",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/connector-manifest.a-connector-must-reject-absolute-drive-qualified-unc-parent-segment-and-intermediate-symlink",
       "statement_sha256": "445428b2223f058f5725cb5ee8485484e564d67d4d5b30f632679047e0e7e8be",
       "status": "pending",
@@ -1676,7 +1698,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "ae2691f95bca13e702814b028bc52d667fe28762a59a53c5c66c695590bfbd46",
+      "statement_sha256": "be98ec6c07cd72557ac747ae743b50eb417cbf72d4e0a421c7aa8dbd568683ad",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

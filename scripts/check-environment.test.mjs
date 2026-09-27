@@ -166,6 +166,18 @@ test('Mapping 0.1 body pins the complete resolved target and permission dimensio
   assert.equal(mapping.semantics.preimage,'entire_canonical_body_except_mapping_contract_cid');
   assert.equal(mapping.semantics.authority,
     'static_contract_not_current_resource_permission_or_apply_permit');
+  // The Mapping names one connector manifest entry by the entry's own CID.
+  verifyIdentity(fixture.connector_manifest_entry,
+    fixture.connector_manifest_entry_cid);
+  assert.equal(body.connector_manifest_cid, fixture.connector_manifest_entry_cid);
+  const entrySchema=contract.schema.properties.connector_manifest.properties
+    .connectors.items;
+  assert.equal(entrySchema.additionalProperties,false);
+  assert.deepEqual(Object.keys(fixture.connector_manifest_entry).sort(),
+    [...entrySchema.required].sort());
+  assert.equal(contract.schema.required.includes('connector_manifest'),false);
+  assert.equal(mapping.semantics.connector_manifest,
+    'connector_manifest_cid_is_the_entry_cid_of_one_environment_manifest_entry_whose_connector_id_owns_target_ref');
   const changed={...preimage,target_ref:'connector://crm/contact'};
   assert.notEqual(createHash('sha256').update(canonicalText(changed)).digest('hex'),
     mapping_contract_cid.slice('sha256:'.length));

@@ -9,6 +9,8 @@ import * as commonMoon from
 import * as salesforceMoon from
   '../../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {machineCid} from '../../../../scripts/actql-spec-family.mjs';
+import {canonicalText} from '../../../../scripts/check-canonical-json.mjs';
 import {openSalesforceEffectSiteFixture} from
   './salesforce-effect-site.fixture.mjs';
 import {declarationEnvironment} from
@@ -74,6 +76,15 @@ test('generated execution Mappings pass Effect Check and compile', async t => {
   // Each Mapping carries exactly its own write: an update of more fields,
   // an upsert through the update's Mapping, and an update through the
   // create's Mapping all fail Check.
+  // The same Mappings without their manifest entry resolve to nothing.
+  const bare = JSON.parse(text);
+  delete bare.connector_manifest;
+  delete bare.evidence_bundle_cid;
+  const bareEnvironment = commonMoon.clientProgramCheckEnvironment(
+    canonicalText({...bare, evidence_bundle_cid: machineCid(bare)}),
+    machineCid(bare), false, false, true, false, false, false, false);
+  assert.equal(prepare(bareEnvironment, program(effects.update)).prepared,
+    undefined);
   for (const effect of [
     {update: {...effects.update.update, set: {Name: {field: 'label'},
       External_Key__c: {field: 'key'}}}},

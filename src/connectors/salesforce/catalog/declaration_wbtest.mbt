@@ -183,8 +183,11 @@ test "an unwritable required field withholds create and upsert only" {
 }
 
 ///|
-fn manifest_fixture() -> String {
-  "sha256:" + "5".repeat(64)
+/// Computed independently with the repository's JavaScript canonical JSON
+/// from {"connector":"salesforce","connector_id":"crm-main",
+/// "connector_version":"salesforce/0.1"}.
+fn manifest_entry_cid_fixture() -> String {
+  "sha256:7904bd9ee967d1e25402eadc6e666e0c8e83e6f5614df37327868bae73f62695"
 }
 
 ///|
@@ -196,7 +199,6 @@ fn execution(
     declaration,
     "Record__c",
     write,
-    manifest_fixture(),
     declaration_limits(),
   )
 }
@@ -220,7 +222,7 @@ test "an execution Mapping is exactly one write the provider accepts" {
   assert_true(update.body.contains("\"row_mapping\":{}"))
   assert_true(
     update.body.contains(
-      "\"connector_manifest_cid\":\"" + manifest_fixture() + "\"",
+      "\"connector_manifest_cid\":\"" + manifest_entry_cid_fixture() + "\"",
     ),
   )
   assert_false(update.body.contains(declaration.catalog_cid))
@@ -305,15 +307,11 @@ test "an execution Mapping is exactly one write the provider accepts" {
     execution(declaration, UpdateById(["Name", "Name"]))
     is Err(DuplicateField("Name")),
   )
-  assert_true(
-    prepare_execution_mapping(
-      declaration,
-      "Record__c",
-      UpdateById(["Name"]),
-      declaration.catalog_cid[0:10].to_owned(),
-      declaration_limits(),
-    )
-    is Err(InvalidManifest),
+  // The manifest entry is this connection's, derived from the declaration.
+  assert_eq(declaration.manifest_entry_cid, manifest_entry_cid_fixture())
+  assert_eq(
+    declaration.manifest_entry,
+    "{\"connector\":\"salesforce\",\"connector_id\":\"crm-main\",\"connector_version\":\"salesforce/0.1\"}",
   )
   // Distinct writes have distinct references; the same write is stable.
   let again = execution(declaration, UpdateById(["Name"])).unwrap()

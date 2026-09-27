@@ -85,7 +85,6 @@ fn salesforce_execution_bodies(
       declaration,
       "Record__c",
       write,
-      "sha256:" + "a".repeat(64),
       { max_bytes: 200000, max_nodes: 20000, max_depth: 32, },
     ).unwrap().body
   })
@@ -113,10 +112,22 @@ fn declaration_environment(
   views : Array[String],
   mappings : Array[String],
   host_policy? : String = "{}",
+  manifest_entries? : Array[String] = [],
 ) -> (String, String) {
+  let manifest = if manifest_entries.is_empty() {
+    ""
+  } else {
+    let sorted = manifest_entries.copy()
+    sorted.sort_by((a, b) => text_cid(a).compare(text_cid(b)))
+    ",\"connector_manifest\":{\"connectors\":[" +
+    sorted.join(",") +
+    "],\"version\":\"actql-connectors/0.1\"}"
+  }
   let head = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[" +
     catalogs.join(",") +
-    "],\"contract_registry\":" +
+    "]" +
+    manifest +
+    ",\"contract_registry\":" +
     by_body(contracts)
   let tail = ",\"host_policy_profile\":" +
     host_policy +
@@ -142,6 +153,7 @@ test "a generated Salesforce declaration passes the existing Check Environment a
     declaration.contracts,
     declaration.view_bodies,
     salesforce_execution_bodies(declaration),
+    manifest_entries=[declaration.manifest_entry],
   )
   // The same chain the existing Catalog fixtures use, through request
   // contracts; this panics on any rejection.
@@ -150,6 +162,78 @@ test "a generated Salesforce declaration passes the existing Check Environment a
   let raw = @environment.read(@utf8.encode(wire), cid, caps).unwrap()
   assert_true(
     @environment.check_mapping_contract_shapes(raw, caps, 1000000) is Ok(_),
+  )
+  let manifest = @environment.check_connector_manifest(raw, caps).unwrap()
+  let entry = @environment.connector_manifest_entry(
+    manifest,
+    declaration.manifest_entry_cid,
+  ).unwrap()
+  assert_eq(
+    @environment.connector_manifest_entry_identity(entry),
+    (declaration.manifest_entry_cid, "salesforce", "crm-main", "salesforce/0.1"),
+  )
+}
+
+///|
+fn mapping_shape_outcome(
+  catalogs : Array[String],
+  declaration : @salesforce_catalog.StaticDeclaration,
+  entries : Array[String],
+) -> Result[@environment.MappingContractShapes, @environment.MappingShapeIssue] {
+  let (wire, cid) = declaration_environment(
+    catalogs,
+    declaration.contracts,
+    declaration.view_bodies,
+    salesforce_execution_bodies(declaration),
+    manifest_entries=entries,
+  )
+  let caps = declaration_limits_for_admission()
+  @environment.check_mapping_contract_shapes(
+    @environment.read(@utf8.encode(wire), cid, caps).unwrap(),
+    caps,
+    1000000,
+  )
+}
+
+///|
+test "a generated Mapping must resolve to its connection's manifest entry" {
+  let declaration = salesforce_declaration_fixture()
+  let catalogs = [declaration.catalog]
+  // No manifest: the Mapping's reference resolves to nothing.
+  assert_true(
+    mapping_shape_outcome(catalogs, declaration, [])
+    is Err(ManifestUnresolved(_)),
+  )
+  // A replaced entry (another version) no longer matches the Catalog.
+  let replaced = declaration.manifest_entry.replace(
+    old="salesforce/0.1",
+    new="salesforce/0.2",
+  )
+  assert_true(
+    mapping_shape_outcome(catalogs, declaration, [replaced])
+    is Err(Manifest(CatalogMismatch("crm-main"))),
+  )
+  // Another connection's entry and Catalog: the Mappings do not name it.
+  let other = salesforce_declaration_fixture(connector_id="crm-other")
+  assert_true(
+    mapping_shape_outcome([other.catalog], declaration, [other.manifest_entry])
+    is Err(ManifestUnresolved(_)),
+  )
+  // An entry without its Catalog is refused, and two entries of one
+  // connection id are refused.
+  assert_true(
+    mapping_shape_outcome([], declaration, [declaration.manifest_entry])
+    is Err(Manifest(CatalogMismatch("crm-main"))),
+  )
+  assert_true(
+    mapping_shape_outcome(catalogs, declaration, [
+      declaration.manifest_entry,
+      declaration.manifest_entry.replace(
+        old="\"salesforce\",",
+        new="\"other\",",
+      ),
+    ])
+    is Err(Manifest(DuplicateConnector("crm-main"))),
   )
 }
 

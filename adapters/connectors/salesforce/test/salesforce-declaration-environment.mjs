@@ -32,6 +32,8 @@ export function declarationEnvironment(declared, mappings = []) {
     command_contracts: [], model_task_contracts: [],
     contract_registry: byBody(declared.contracts),
     connector_catalogs: [JSON.parse(declared.catalog)],
+    connector_manifest: {version: 'actql-connectors/0.1',
+      connectors: [JSON.parse(declared.manifest_entry)]},
     host_policy_profile: {capacity},
   };
   const evidenceCid = machineCid(body);

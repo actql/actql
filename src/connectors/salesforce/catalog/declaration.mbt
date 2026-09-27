@@ -93,6 +93,10 @@ pub struct StaticDeclaration {
   // The described Resources as declared; a later projection must still mean
   // the same for every field it uses.
   resources : Array[ResourceMetadata]
+  // This connection's entry of the `actql-connectors/0.1` manifest and its
+  // CID, which each execution Mapping names as `connector_manifest_cid`.
+  manifest_entry : String
+  manifest_entry_cid : String
 }
 
 ///|
@@ -661,7 +665,16 @@ pub fn generate_static_declaration(
     for entry in view_members {
       view_bodies.push(canonical_text(entry.1, limits))
     }
+    let entry = object([
+      ("connector", current.connector_registration.to_json()),
+      ("connector_id", connector_id.to_json()),
+      ("connector_version", connector_version.to_json()),
+    ])
+    let manifest_entry = canonical_text(entry, limits)
+    let manifest_entry_cid = canonical_cid(entry, limits)
     Ok({
+      manifest_entry,
+      manifest_entry_cid,
       connector_id,
       connector_version,
       binding: current,
@@ -843,6 +856,8 @@ pub fn static_declaration_json(
     ("connector_id", declaration.connector_id.to_json()),
     ("connector_version", declaration.connector_version.to_json()),
     ("catalog", declaration.catalog.to_json()),
+    ("manifest_entry", declaration.manifest_entry.to_json()),
+    ("manifest_entry_cid", declaration.manifest_entry_cid.to_json()),
     ("catalog_cid", declaration.catalog_cid.to_json()),
     ("contracts", strings(declaration.contracts)),
     ("source_views", strings(declaration.view_bodies)),
@@ -927,7 +942,6 @@ pub(all) enum ExecutionMappingIssue {
   KeyInBody(String)
   MissingRequiredField(String)
   InvalidNullBehavior(String)
-  InvalidManifest
   OutputLimit
 } derive(Eq, Debug)
 
@@ -966,19 +980,16 @@ fn unique_names(names : Array[String]) -> Result[Unit, ExecutionMappingIssue] {
 }
 
 ///|
-/// Prepare the Mapping one Effect uses. The connector manifest identity is
-/// supplied by the Host that admitted the Connector; this Connector does not
-/// derive it from any other contract.
+/// Prepare the Mapping one Effect uses. It names this connection's manifest
+/// entry (`connector_manifest_cid`), which the Host publishes in the Check
+/// Environment beside the declaration's Catalog.
 pub fn prepare_execution_mapping(
   declaration : StaticDeclaration,
   resource_name : String,
   write : ExecutionWrite,
-  connector_manifest_cid : String,
   limits : DeclarationLimits,
 ) -> Result[ExecutionMapping, ExecutionMappingIssue] {
-  if !observation_cid(connector_manifest_cid) {
-    return Err(InvalidManifest)
-  }
+  let connector_manifest_cid = declaration.manifest_entry_cid
   guard declaration.writables.search_by(value => value.resource == resource_name)
     is Some(writable_index) else {
     return Err(NotWritable(resource_name))

@@ -7,7 +7,7 @@ fn effect_mapping_shape_fixture_with_body(
   target_nullable? : Bool = true,
   row_mapping? : String = "",
 ) -> @environment.MappingContractShapes {
-  let before = "{\"connector_manifest_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"conversions\":[],"
+  let before = "{\"connector_manifest_cid\":\"sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1\",\"conversions\":[],"
   let target_schema = "{\"additional_properties\":false,\"fields\":{\"Id\":{\"nullable\":false,\"type\":\"string\"},\"Name\":{\"nullable\":" +
     target_nullable.to_string() +
     ",\"type\":\"" +
@@ -35,7 +35,7 @@ fn effect_mapping_shape_fixture_with_body(
     "\",\"version\":\"salesforce-v1\",\"writable_fields\":[\"Name\"]}"
   let cid = "sha256:" + @sha.hex(@utf8.encode(before + after))
   let body = before + "\"mapping_contract_cid\":\"" + cid + "\"," + after
-  let prefix = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],"
+  let prefix = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[{\"catalog_cid\":\"sha256:9faf09f5a3177d36dc7c9fab868f6fe4437e4597dd12bcdc051166ec2e6ad8fd\",\"commands\":[],\"connector_id\":\"crm\",\"connector_version\":\"fixture\",\"contracts\":[],\"schema\":\"actql.connector_catalog/0.1\",\"source_views\":[]}],\"connector_manifest\":{\"connectors\":[{\"connector\":\"crm\",\"connector_id\":\"crm\",\"connector_version\":\"fixture\"}],\"version\":\"actql-connectors/0.1\"},\"contract_registry\":[],"
   let suffix = "\"host_policy_profile\":{},\"mapping_contracts\":[" +
     body +
     "],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"

@@ -10,8 +10,6 @@ import {INSTALLED_SALESFORCE_SITE_VERSION, installSalesforceAuthorization,
   loadInstalledSalesforceSite} from '../host/installed-salesforce-site.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
-// Placeholder manifest identity, as in the other Mapping fixtures.
-export const fixtureManifestCid = cid('a');
 // The execution request of each fixture write kind.
 export const fixtureWrites = Object.freeze({
   create: {kind: 'create', fields: ['External_Key__c', 'Name']},
@@ -333,8 +331,7 @@ export async function openSalesforceEffectSiteFixture(t, {
     // The execution Mapping of one write under this Site's declaration.
     executionMapping: (write, declaration = declared.declaration) =>
       installed.prepareExecutionMapping({declaration,
-        resource: 'Test_Record__c', write,
-        connectorManifestCid: fixtureManifestCid}),
+        resource: 'Test_Record__c', write}),
     refreshDeclaration: () => installed.declareCatalog({
       connectorId: 'crm-main', resources: ['Test_Record__c']}),
     setTargetName(name) { observedName = name; },
