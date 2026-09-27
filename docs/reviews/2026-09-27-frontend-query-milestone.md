@@ -4,6 +4,19 @@
 
 BASE_SHA: `02c279a39567febbc11fb75a463bd6fbe92fb284` (fetched origin/main).
 Branch: `feat/frontend-query-sql-pipe`.
+The branch was rebased onto fetched `origin/main`
+`c1ed3f526e2e5576e3cdd172b4b6a66c893fdd4f`. The pre-rebase
+`686965b916e3dbb43f1f1756393593aa85fb8b46` is retained at
+`backup/frontend-query-before-c1ed3f5`. The generated Run Host interfaces and
+the combined normative import hash were regenerated from the merged sources;
+`git range-diff` found no dropped change. The current source-free task Host
+path issues its Invocation through the compiled Run owner instead of calling
+the removed standalone Run bridge. The Host unit test covers issuance and a
+foreign Definition rejection; `check-moonbit-api` and the independent query
+Program test pass at `07c96ecf4`. The packed Local run reached source-free
+CTE, SQL/Pipe, JOIN, and acquired-input setup, but its full Local/Remote run
+was interrupted during slow captured-input cases. It is not a passing final
+product gate at this SHA.
 PR-0 through PR-2 are already merged; this milestone reuses their source builder,
 origin mapping, structural envelope, checker boundary and Grammar Manifest.
 One PR covers shared query expressions, SQL/Pipe and the adopted analytic subset.
@@ -47,10 +60,9 @@ The current Local expression IR rejects `concat_strict` and `concat` during
 is the concrete boundary. The query compiler emits the adopted distinct
 expression trees and the common checker accepts them, but the packed Host
 rejects a Values query before Run creation with
-`RunHostCompilationRejected`. The packed embedded Local test records that
-explicit refusal; the public HTTP Client correctly reports an uncertain
-submission when the server fails before returning a Run reference, so this
-known compiler gap is not asserted as a remote Run failure.
+`RunHostCompilationRejected`. The packed Client reports `SubmissionUnknown`
+with the original request ID and retains the Host rejection as its cause;
+this pre-acceptance compiler gap is not asserted as a Run failure.
 The Local Compute owner must extend the existing lowering and evaluation
 of these two operators, preserving strict NULL propagation versus legacy
 null skipping and bounded output accounting. The frontend must then change
