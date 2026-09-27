@@ -12,8 +12,9 @@ import {createHash, createPublicKey, createPrivateKey, randomUUID, sign,
 import {mkdir, open as openFile, readFile, rename} from
   'node:fs/promises';
 import {join} from 'node:path';
-import {ExecutionAuthorizationError} from
+import {ExecutionAuthorizationError, createAuthorizationDecisionBudget} from
   '../host-common/authorization-gate.mjs';
+import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {canonicalJson, contentCid, createLocalAuthorizationGate} from
   './local-account-config.mjs';
 import {createPrivateEvidenceKey, loadPrivateEvidenceKey,
@@ -86,7 +87,10 @@ export async function installRemoteCheckpoints({root, tenantId,
   const {accountConfig, accountConfiguration, reviewers, reviewReaders,
     hostKey, decide, answeringAuthorities, checkpointTtlMs = 24 * 60 * 60 * 1000,
     leaseMs = 60_000, maxReviewBytes = MAX_REVIEW_BYTES,
-    resumeAfterAnswer = true, observe, sweepPage = PAGE} = authorization;
+    decisionTimeoutMs = 30_000, maxInFlightDecisions = 16,
+    maxRetainedDecisions = 1024,
+    resumeAfterAnswer = true, observe, faultInjection,
+    sweepPage = PAGE} = authorization;
   const trusted = trustedReviewers(reviewers);
   const readers = principals(reviewReaders, 'InvalidReviewReaders');
   const answerers = new Set([...trusted.values()].map(item => item.principalId));
@@ -96,11 +100,16 @@ export async function installRemoteCheckpoints({root, tenantId,
       !Number.isSafeInteger(leaseMs) || leaseMs < 1000 ||
       !Number.isSafeInteger(maxReviewBytes) || maxReviewBytes < 1 ||
       maxReviewBytes > 1024 * 1024 ||
+      !Number.isSafeInteger(decisionTimeoutMs) || decisionTimeoutMs < 1 ||
       typeof resumeAfterAnswer !== 'boolean' ||
       observe !== undefined && typeof observe !== 'function' ||
+      faultInjection !== undefined && typeof faultInjection !== 'function' ||
       !Number.isSafeInteger(sweepPage) || sweepPage < 1 || sweepPage > 1000) {
     fail('InvalidRemoteHostAuthorization');
   }
+  const decisionBudget = createAuthorizationDecisionBudget({
+    maxInFlightDecisions, maxRetainedDecisions});
+  const decisionOptions = {decisionBudget, decisionTimeoutMs};
   const state = join(root, 'checkpoints');
   let privateKey;
   try { privateKey = await loadPrivateEvidenceKey(state); }
@@ -114,7 +123,7 @@ export async function installRemoteCheckpoints({root, tenantId,
   // admitted configuration identity. A resume under another one fails
   // revalidation before any protected work.
   const gate = await createLocalAuthorizationGate({accountConfig,
-    accountConfiguration, principal: ownerPrincipal});
+    accountConfiguration, principal: ownerPrincipal, ...decisionOptions});
   const configured = gate.configurationCid !== undefined;
   // The source's read decision uses the source installation's own account
   // configuration and context (the same one its adapter rechecks before
@@ -123,7 +132,7 @@ export async function installRemoteCheckpoints({root, tenantId,
   const sourceGate = source === undefined ? undefined :
     await createLocalAuthorizationGate({
       accountConfiguration: source.accountConfiguration,
-      context: source.context});
+      context: source.context, ...decisionOptions});
   const binding = Object.freeze({
     authorizationContextCid: contentCid({principal: ownerPrincipal,
       account_id: gate.accountId ?? null,
@@ -234,13 +243,15 @@ export async function installRemoteCheckpoints({root, tenantId,
   // The gate that continues approved requests: the same configuration and
   // durable journal; a resume never defers again.
   const resumeGate = await createLocalAuthorizationGate({accountConfig,
-    accountConfiguration, principal: ownerPrincipal, deferral: {journal,
+    accountConfiguration, principal: ownerPrincipal, ...decisionOptions,
+    deferral: {journal,
       authorities, binding,
       describe() { fail('ResumeDoesNotDefer'); }}});
   const readResumeGate = source === undefined ? undefined :
     await createLocalAuthorizationGate({
       accountConfiguration: source.accountConfiguration,
-      context: source.context, deferral: {journal, authorities, binding,
+      context: source.context, ...decisionOptions,
+      deferral: {journal, authorities, binding,
         describe() { fail('ResumeDoesNotDefer'); }}});
   // The read approval admitted immediately before a held request's physical
   // start, for the source adapter's current-authority check that follows in
@@ -477,15 +488,17 @@ export async function installRemoteCheckpoints({root, tenantId,
     captured, port, earlier, signal}) {
     const answering = answeringAuthorities ??
       authorities.map(item => item.reviewerId);
+    const intentCid = contentCid(acquisitionIntent(requestCid, captured));
     const deferring = await createLocalAuthorizationGate({
       accountConfiguration: source.accountConfiguration,
-      context: source.context, decide,
+      context: source.context, ...decisionOptions, decide,
       answeringAuthorities: decide === undefined ? undefined : answering,
       deferral: readDeferralFor({prepareAttemptId, request, requestCid,
         captured, answering, port, earlier})});
-    const intentCid = contentCid(acquisitionIntent(requestCid, captured));
-    return deferring.authorize('acquisition',
-      captured.acquisition.readTuple, {subjectCid: intentCid, signal});
+    try {
+      return await deferring.authorize('acquisition',
+        captured.acquisition.readTuple, {subjectCid: intentCid, signal});
+    } finally { deferring.close(); }
   }
 
   // The exact held evidence of one prepare attempt, from its ledger: the
@@ -524,7 +537,11 @@ export async function installRemoteCheckpoints({root, tenantId,
     await recordHeld(prepareAttemptId, captured.requestId);
     return captured.requestId;
   }
-  const step = async (name, detail) => { await observe?.(name, detail); };
+  const diagnostic = diagnosticObserver(observe);
+  const step = async (name, detail) => {
+    diagnostic(name, detail);
+    await faultInjection?.(name, detail);
+  };
 
   const heldCheckpoint = checkpointCid => {
     const view = checkpointCid === null ? undefined
@@ -971,12 +988,14 @@ export async function installRemoteCheckpoints({root, tenantId,
       const answering = answeringAuthorities ??
         authorities.map(item => item.reviewerId);
       const deferring = await createLocalAuthorizationGate({accountConfig,
-        accountConfiguration, principal: ownerPrincipal, decide,
+        accountConfiguration, principal: ownerPrincipal, ...decisionOptions,
+        decide,
         answeringAuthorities: decide === undefined ? undefined : answering,
         deferral: deferralFor({prepareAttemptId, request, requestCid,
           captured, answering})});
       let sealed;
-      const decision = await deferring.authorize('preparation', tuple, {
+      let decision;
+      try { decision = await deferring.authorize('preparation', tuple, {
         subjectCid: request.subject_cid, signal,
         // Two-phase: the account outcome and any immediate Host answer are
         // decided on the request subject; only a deferred decision seals the
@@ -992,7 +1011,7 @@ export async function installRemoteCheckpoints({root, tenantId,
           });
           return sealed;
         },
-      });
+      }); } finally { deferring.close(); }
       if (decision.action === 'dispatch') return {kind: 'dispatch'};
       if (decision.action === 'waiting') {
         return {kind: 'held', held: held(prepareAttemptId,
@@ -1219,16 +1238,19 @@ export async function installRemoteCheckpoints({root, tenantId,
     // the next owner (retention that could not complete yet).
     async close() {
       await stop();
+      decisionBudget.close();
       let retention;
       try { retention = await evidence.settle(); }
       finally {
         await evidence.close();
         journal.close();
       }
-      return Object.freeze({pendingRetention: retention.pending});
+      return Object.freeze({pendingRetention: retention.pending,
+        pendingAuthorization: decisionBudget.cleanupPending()});
     },
   });
   } catch (cause) {
+    decisionBudget.close();
     throw await retainInstalledHostInitializationFailure(cause,
       {journal, store: evidence});
   }

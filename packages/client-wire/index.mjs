@@ -38,6 +38,8 @@ const boundedText = (value, maximum = 256) => typeof value === 'string' &&
 
 // These are the installed submit boundary's explicit refusal contracts:
 // request validation, preparation, connection policy and admission checks.
+// A technical delegation failure is here only when the installed Host stops
+// before creating a Run; inside a Run it is an observed Run outcome instead.
 // A public-looking code, exception class, or an arbitrary 4xx response is not
 // evidence of refusal. In particular, journal and start uncertainty are absent.
 const submitRejections = new Set([
@@ -50,6 +52,7 @@ const submitRejections = new Set([
   'ACTQL_E_ACCOUNT_DENIED', 'ACTQL_E_ACCOUNT_NO_MATCH',
   'ACTQL_E_ACCOUNT_CONFIG_INVALID',
   'ACTQL_E_DELEGATION_REJECTED',
+  'ACTQL_E_DELEGATION_UNAVAILABLE',
 ]);
 export function isClientSubmitRejection(code) {
   return submitRejections.has(code);

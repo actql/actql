@@ -178,7 +178,7 @@ const host = await openInstalledRemoteHttpHost({
     resumeAfterAnswer: process.env.RESUME_AFTER_ANSWER !== '0',
     leaseMs: Number(process.env.LEASE_MS ?? 10000),
     checkpointTtlMs: Number(process.env.TTL_MS ?? 86400000),
-    observe: mark,
+    faultInjection: mark,
   },
 });
 const server = createServer({key: readFileSync('remote.key'),

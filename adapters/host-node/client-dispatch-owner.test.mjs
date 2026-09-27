@@ -2,6 +2,51 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 
+test('diagnostic failure cannot stop Compute or bypass required ownership',
+  async () => {
+    for (const kind of ['throw', 'reject', 'pending']) {
+      let starts = 0;
+      let closes = 0;
+      let retained = 0;
+      const stopped = [];
+      const ref = {runDefinitionCid: `diagnostic-${kind}`};
+      const physical = {async close() { closes++; }, async cleanup() {},
+        cleanupPending: () => false};
+      const owner = installNodeClientDispatchOwner({
+        moon: {clientProgramOpenSourceFreeLocalHost: () => ({})},
+        control: {},
+        journal: {reservePhysicalStart: () => true,
+          markPhysicalClose: (...args) => stopped.push(args)},
+        store: {confirmCommittedIndex: async () => ({})},
+        startRun: async () => ({kind: 'reserved', ref}),
+        hostConnection: () => true,
+        observed: () => {
+          if (kind === 'throw') throw new Error('SinkFailed');
+          if (kind === 'reject') return Promise.reject(new Error('SinkFailed'));
+          return new Promise(() => {});
+        },
+        planFor: () => ({runDefinition: {wire: 'definition'}}),
+        runPublished: async (_setup, _publication, _options, _signal,
+          _observer, retainExecution) => {
+          starts++;
+          retainExecution(physical);
+          retained++;
+          return physical;
+        }, tenantId: 'tenant-a',
+      });
+      const accepted = {ref, runDefinition: {wire: 'definition'},
+        dispatchReserved: false, cancellationRequested: false};
+      await owner.start({preparedProgram: {}, principalId: 'owner',
+        connection: {}, requestId: 'request-a'}, {}, accepted, {});
+      await owner.drain();
+      assert.equal(starts, 1);
+      assert.equal(retained, 1);
+      assert.equal(closes, 1);
+      assert.deepEqual(stopped, [[ref, null]]);
+      assert.equal(owner.operation(ref), undefined);
+    }
+  });
+
 test('publication ownership survives a wrapped error and cleanup retry',
   async () => {
     const ref = {runDefinitionCid: 'wrapped-run'};
