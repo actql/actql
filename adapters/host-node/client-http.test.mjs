@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {createClientHttpHandler} from './client-http.mjs';
+import {createNodeInProcessClientHost} from './in-process-client.mjs';
 
 const ref = {tenantId: 'tenant-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
@@ -21,6 +22,57 @@ async function withServer(handler, run) {
   } finally {
     await new Promise(resolve => server.close(resolve));
   }
+}
+
+for (const boundary of ['authenticate', 'authorize_connection']) {
+  test(`authorization faults stay private at ${boundary} on both ports`,
+    async () => {
+      for (const fault of [false, true]) {
+        const cause = new Error('private authentication service detail');
+        const observations = [];
+        let invoked = 0;
+        const deny = () => {
+          if (fault) throw cause;
+          return false;
+        };
+        const options = {
+          authenticate: boundary === 'authenticate' ? deny : () => 'owner',
+          authorizeConnection: boundary === 'authorize_connection'
+            ? deny : () => true,
+          observe: async (name, detail) => {
+            observations.push({name, detail});
+            throw new Error('DiagnosticSinkFailed');
+          },
+          negotiate: () => { invoked++; },
+          observeRun: () => { invoked++; },
+          maxRowBytes: 1024,
+        };
+        const body = {connection: {mode: 'remote', owner: 'remote',
+          runners: [], consentRefs: []}, ref};
+        const code = boundary === 'authenticate'
+          ? 'ClientAuthenticationDenied' : 'ClientConnectionDenied';
+        await withServer(createClientHttpHandler(options), async base => {
+          const response = await fetch(`${base}/actql/client/0.1/status`, {
+            method: 'POST', headers: {'content-type': 'application/json'},
+            body: JSON.stringify(body),
+          });
+          assert.equal(response.status, 403);
+          assert.deepEqual(await response.json(), {code});
+        });
+        await assert.rejects(
+          createNodeInProcessClientHost(options).perform('status', body),
+          error => error.code === code && error.cause === undefined);
+        assert.equal(invoked, 0);
+        assert.equal(observations.length, fault ? 2 : 0);
+        for (const {name, detail} of observations) {
+          assert.equal(name, 'client_authorization_failed');
+          assert.deepEqual(Object.keys(detail), ['failure']);
+          assert.equal(detail.failure.cause, cause);
+          assert.equal(detail.failure.operation, 'status');
+          assert.equal(detail.failure.boundary, boundary);
+        }
+      }
+    });
 }
 
 test('Client Host rejects missing authentication before touching state', async () => {

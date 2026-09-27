@@ -811,6 +811,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     value.connection.owner === mode &&
     checkpoints.admitsCheckpointPrincipal(value.principalId);
   const hostOperations = {
+    observe: observed,
     authorizeConnection: value => checkpointOperation.has(value.operation)
       ? checkpointConnection(value)
       : hostConnection(value) || value.operation === 'connect' &&
