@@ -769,6 +769,30 @@ test "one CTE lowers to a shared checked Stage Result" {
 }
 
 ///|
+test "CTE chain references prior declarations without source substitution" {
+  let query = @query.parse_query(
+    "WITH first AS (SELECT a, b FROM left_rows), second AS (SELECT a, b FROM first WHERE a > 1) SELECT a FROM second",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, set_context(), construction_limits()).unwrap()
+  assert_eq(@program.stage_count(program), 3)
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("source-free CTE chain should be closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let forward = @query.parse_query(
+    "WITH first AS (SELECT a FROM second), second AS (SELECT a FROM first) SELECT a FROM second",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(forward, set_context(), construction_limits())
+    is Err(UnsupportedCte),
+  )
+}
+
+///|
 test "JOIN USING binds both checked keys and rejects ambiguous columns" {
   let using_query = @query.parse_query(
     "SELECT l.a AS a, r.b AS right_b FROM left_rows AS l INNER JOIN left_rows AS r USING (a)",

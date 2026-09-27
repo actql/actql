@@ -234,6 +234,15 @@ const usingCteQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.using_cte');
 assert.notEqual(usingCteQuery, '');
 await writeFile(join(root, 'using-cte-query.json'), usingCteQuery);
+const chainedCteQuery = queryFrontend.compileCapturedQueryJson(
+  'WITH first AS (SELECT id, amount FROM records WHERE id > 1), '
+    + 'second AS (SELECT id FROM first WHERE amount >= 20) '
+    + 'SELECT id FROM second',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.chained_cte');
+assert.notEqual(chainedCteQuery, '');
+await writeFile(join(root, 'chained-cte-query.json'), chainedCteQuery);
 const distinctQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT DISTINCT id FROM records WHERE id > 1 ORDER BY id',
   'records', 'remote',
@@ -505,6 +514,7 @@ const capturedQueryDocument = readFileSync('captured-query.json', 'utf8');
 const capturedCteDocument = readFileSync('captured-cte-query.json', 'utf8');
 const reusedCteDocument = readFileSync('reused-cte-query.json', 'utf8');
 const usingCteDocument = readFileSync('using-cte-query.json', 'utf8');
+const chainedCteDocument = readFileSync('chained-cte-query.json', 'utf8');
 async function checkCapturedCte(client, suffix) {
   const execution = await client.aql(capturedCteDocument,
     {format: 'json', requestId: 'packed-captured-cte-' + suffix});
@@ -525,6 +535,11 @@ async function checkCapturedCte(client, suffix) {
   assert.equal((await using.wait()).status, 'succeeded');
   assert.deepEqual(sortedRows(await using.result('answer').all()),
     sortedRows([{id: 3}, {id: 3}, {id: 2}, {id: 3}, {id: 3}]));
+  const chained = await client.aql(chainedCteDocument,
+    {format: 'json', requestId: 'packed-chained-cte-' + suffix});
+  assert.equal((await chained.wait()).status, 'succeeded');
+  assert.deepEqual(await chained.result('answer').all(),
+    [{id: 3}, {id: 2}, {id: 3}]);
 }
 const distinctQueryDocument = readFileSync('distinct-query.json', 'utf8');
 const distinctExpressionDocument = readFileSync(

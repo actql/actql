@@ -24,7 +24,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: two Values operands support direct-column INNER/LEFT and bounded CROSS; FULL requires stable input identity that these Values stages cannot prove |
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: scalar reductions and ordered ARRAY_AGG/STRING_AGG lower through group; captured COUNT/GROUP/HAVING runtime passes, ordered collection runtime and failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
-| Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: one declaration lowers to one checked Stage Result; packed Local/Remote execute Values and acquired SELECT, including two references in an equijoin; physical read counter and multiple declarations/subqueries remain |
+| Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each declaration in a linear chain lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin and a two-declaration chain; physical read counter, branching CTE graphs and subqueries remain |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands execute through packed Local/HTTP Clients; captured operands, Pipe set, CTE reuse and broader type/order cases remain |
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND, scoped SET/DROP/RENAME/AS, one JOIN before other Pipe operators, and a parenthesized SQL right operand for Pipe set; post-projection JOIN and other scope forms remain |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK Result; full negative and frame matrix pending |
@@ -224,6 +224,11 @@ expressions still fail closed rather than being textually substituted.
 The same packed path accepts `JOIN ... USING(id)` and exposes one unqualified
 `id` Result column while retaining qualified left and right key bindings.
 This is not FULL JOIN's coalesced-key behavior; that shape remains refused.
+Two sequential CTE declarations also execute with each later body referring
+to its immediate predecessor. A packed acquired-input example produces
+`3,2,3` after the second filter. The compiler currently requires a used
+linear chain; unused or branching declarations fail closed rather than
+causing speculative extra acquisition.
 ARRAY_AGG requires the adopted `IGNORE NULLS` and explicit order spelling;
 STRING_AGG requires a literal delimiter and explicit order. Both lower to the
 existing group call. The independent checker accepts the bounded ARRAY_AGG
