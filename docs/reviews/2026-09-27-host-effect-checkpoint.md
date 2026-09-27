@@ -64,6 +64,11 @@ Branch: `feat/host-effect-commit-checkpoint`.
   remains separate. The current mock Site proves the exact lookup and
   absence result; a retained-capture success through this port is still
   required.
+- The installed Host issues the source-free publication Plan and Invocation
+  from the accepted checked owner before the physical-start claim and passes
+  that exact Plan to the Effect execution callback. No second preparation or
+  compilation is performed. Plan issuance failure is recorded before any
+  physical start; this wiring does not by itself publish an Effectful Run.
 
 ## Remaining product connections
 

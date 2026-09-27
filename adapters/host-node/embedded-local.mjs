@@ -34,7 +34,8 @@ import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
-  sourceFreeValuesPlan, acquiredTaskRunAdmission} from
+  sourceFreeValuesPlan, sourceFreeEffectPublicationPlan,
+  acquiredTaskRunAdmission} from
   './local-values-plan.mjs';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
@@ -464,9 +465,14 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       },
       authorizeRunStart: ({principalId: actual, connection, ref}) =>
         hostConnection({principalId: actual, connection, ref}),
+      prepareExecution: ({prepared, compilation, allowed, definition}) =>
+        sourceFreeEffectPublicationPlan({moon, control, prepared,
+          compilation, allowed, definition, authorityScopeCid, tenantId,
+          storeAuthorityCid, now}),
       execute: facts => dispatchOwner.track(facts.ref, {
         run: ({signal, retainExecution}) => effectInstallation.execute(
           Object.freeze({...facts, signal, retainExecution, moon, control,
+            publicationPlan: facts.preparedExecution,
             store, storeAuthorityCid, authorityScopeCid,
             recoverCapture: ({signal: recoverySignal} = {}) =>
               recoverEffectCapture(facts.ref, recoverySignal),

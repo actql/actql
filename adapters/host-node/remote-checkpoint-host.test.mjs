@@ -455,8 +455,12 @@ test('installed Effect commit resumes the same Run without resending',
     const effectInstallation = {
       environmentWire: fixture.environmentWire,
       async execute({owner: checkedOwner, moon, control, ref, runDefinition,
-        effectAuthorization, retainExecution}) {
+        publicationPlan, effectAuthorization, retainExecution}) {
         computes++;
+        assert.equal(publicationPlan.runDefinition.identity,
+          runDefinition.identity);
+        assert.equal(publicationPlan.results.length, 1);
+        assert.ok(publicationPlan.invocation.identity);
         const subjectCid = subjectFor(ref);
         const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
           checkedOwner, registry, values, 1n, 0n, 0n, 0n);

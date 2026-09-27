@@ -20,10 +20,12 @@ const unsupported = () => Object.assign(new Error('ClientProgramUnsupported'),
 
 export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
-  journal, authorizeRequest, authorizeRunStart, execute,
+  journal, authorizeRequest, authorizeRunStart, prepareExecution, execute,
   now = () => new Date().toISOString()}) {
   if (typeof moon?.clientProgramEffectCompilationIssueCode !== 'function' ||
       typeof authorizeRequest !== 'function' ||
+      (prepareExecution !== undefined &&
+        typeof prepareExecution !== 'function') ||
       typeof execute !== 'function' ||
       typeof journal?.reservePhysicalStart !== 'function' ||
       typeof now !== 'function' ||
@@ -175,6 +177,30 @@ export function installNodeClientEffectRun({moon,
         throw expired(start.ref);
       }
       signal?.throwIfAborted();
+      let preparedExecution;
+      if (prepareExecution !== undefined && authorized === true) {
+        try {
+          preparedExecution = prepareExecution(Object.freeze({ref: start.ref,
+            identity, owner, prepared, compilation, allowed, definition,
+            runDefinition: retained.runDefinition}));
+          if (typeof preparedExecution?.then === 'function') {
+            throw new TypeError('AsyncClientEffectPreparation');
+          }
+        } catch (error) {
+          try { journal.markPreDispatchFailure(start.ref); }
+          catch (observationFailure) {
+            const latest = journal.resolveDefinition(identity, {tenantId},
+              moon, control);
+            if (latest?.physicalStartReserved !== false) {
+              return Object.freeze({kind: 'reconcile', ref: start.ref});
+            }
+            throw Object.assign(new Error('ClientEffectPreparationUnknown',
+              {cause: error}), {code: 'ClientEffectPreparationUnknown',
+              primaryFailure: error, observationFailure, ref: start.ref});
+          }
+          throw error;
+        }
+      }
       // A resumed Checkpoint enters its current claim immediately before the
       // durable physical-start reservation. The answer alone is not a send
       // permit; no asynchronous work separates these two admissions.
@@ -189,7 +215,7 @@ export function installNodeClientEffectRun({moon,
       // No catch path resets the durable physical-start claim.
       const value = await execute(Object.freeze({ref: start.ref, identity,
         owner, prepared, compilation, allowed, definition,
-        runDefinition: retained.runDefinition, signal}));
+        runDefinition: retained.runDefinition, preparedExecution, signal}));
       return Object.freeze({kind: 'started', ref: start.ref, value});
     },
   });
