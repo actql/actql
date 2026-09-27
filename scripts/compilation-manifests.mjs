@@ -35,6 +35,8 @@ function grammarBody() {
     expression_text_rules_sha256: digest(Buffer.from(rules, 'utf8')),
     structural_text_grammar_sha256: digest(readFileSync('spec/grammar/actql-text-0.1.ebnf')),
     structural_text_rules_sha256: digest(readFileSync('docs/spec/structural-text.md')),
+    query_text_grammar_sha256: digest(readFileSync('spec/grammar/actql-query-0.1.ebnf')),
+    query_text_rules_sha256: digest(readFileSync('docs/spec/query-text.md')),
   };
   return {...body, grammar_manifest_cid: machineCid(body)};
 }
@@ -68,7 +70,8 @@ function contractBody() {
     required: ['version', 'source_grammar_cid', 'operations',
       'expression_contract_cid', 'expression_text_grammar_sha256',
       'expression_text_rules_sha256', 'structural_text_grammar_sha256',
-      'structural_text_rules_sha256', 'grammar_manifest_cid'],
+      'structural_text_rules_sha256', 'query_text_grammar_sha256',
+      'query_text_rules_sha256', 'grammar_manifest_cid'],
     properties: {
       version: {const: 'actql-grammar-manifest/0.1'},
       source_grammar_cid: cid,
@@ -79,6 +82,8 @@ function contractBody() {
       expression_text_rules_sha256: sha256,
       structural_text_grammar_sha256: sha256,
       structural_text_rules_sha256: sha256,
+      query_text_grammar_sha256: sha256,
+      query_text_rules_sha256: sha256,
       grammar_manifest_cid: cid,
     },
   };
