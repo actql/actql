@@ -88,6 +88,20 @@ Branch: `feat/host-effect-commit-checkpoint`.
    The current simulated continuation deliberately ends in reconciliation; it
    does not prove typed row receipts, complete apply or publication.
 
+The Connector-owned product installation remains the concrete cross-owner
+dependency. `openInstalledRemoteHttpHost({effectInstallation})` now passes the
+accepted `publicationPlan`, checked `owner`, and exact-Ref `recoverCapture`
+to `effectInstallation.execute`; its restart sweep passes `recoverCapture`,
+the retained Checkpoint continuation and its claim journal to
+`effectInstallation.resume`. The Connector implementation must compose its
+existing capture, Preview, `completeCapturedEffectRun` and
+`completeRecoveredEffectRun` through those callbacks, preserving the same
+request, Run, Effect ledger, Store holdings and unknown-row responsibilities.
+The Connector branch has no production factory for this installed interface
+at the verified Connector HEAD `9911151e3`; its comprehensive integration
+composition remains in a test. C must not replace it with another compiler,
+Effect state machine or provider-specific Host branch.
+
 ## Verification so far
 
 Working-tree verification, not a fixed-SHA or Linux CI completion claim:
@@ -109,3 +123,8 @@ Working-tree verification, not a fixed-SHA or Linux CI completion claim:
   tree, including the new Effect restart cases. The shared Effect Run race
   case passed 1/1 with the pinned MoonBit toolchain. These do not replace the
   remaining complete-apply and publication acceptance tests.
+- At code SHA `27601313c10af02f8e9e2f498abb21eb6f71e15e`, the complete
+  `check:distribution-client` job passed locally: 195/195 Node tests, packed
+  Node/browser smoke, packed Checkpoint acceptance, and native Client mTLS.
+  The preparation-failure regression also passed 1/1 with the pinned
+  MoonBit toolchain. This is not Linux CI or a complete Effect apply test.
