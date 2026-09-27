@@ -25,7 +25,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: scalar reductions and ordered ARRAY_AGG/STRING_AGG lower through group; captured COUNT/GROUP/HAVING runtime passes, ordered collection runtime and failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each used declaration lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin, a sequential chain, two branches from one predecessor and a join inside a declaration body; physical provider read counter and broader joins remain |
-| UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands execute through packed Local/HTTP Clients; captured operands, Pipe set, CTE reuse and broader type/order cases remain |
+| UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands and two terms sharing one captured source execute through packed Local/HTTP Clients; different captured sources, different physical source filters, CTE reuse and broader type/order cases remain |
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND, scoped SET/DROP/RENAME/AS, one JOIN before other Pipe operators, and a parenthesized SQL right operand for Pipe set; post-projection JOIN and other scope forms remain |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK, ROW_NUMBER, LAG and framed COUNT Results; Pipe EXTEND/SET before OVER preserves updated and prior alias snapshots; full negative and frame matrix pending |
 | Bounds, origin maps and Grammar Manifest | Existing owners | Before-allocation bounds, source diagnostics, pins/vectors | Partial: query grammar/rules now bind the 0.1 Grammar Manifest with schema, generated pin and independent vector; exact-limit and origin diagnostics matrix remains |
@@ -237,8 +237,15 @@ The packed Clients also execute `UNION DISTINCT BY NAME` with the right
 SELECT columns reversed. The visible Result order follows the left operand;
 the checker rejects the same names when their typed columns are swapped.
 The common Result-plan issuer maps physical task indices back to checked Unit
-indices when a Stage splits. These SQL fixtures do not establish captured set
-operands, mixed operator grouping or CTE acquisition reuse.
+indices when a Stage splits. Two captured set terms using the same checked
+DuckDB source and identical `id > 1` predicate now share one acquisition
+Stage. Packed Local and HTTP Remote each return six `id` rows for the three
+matching source rows repeated by UNION ALL. The common predicate is moved to
+the acquisition Stage once; term predicates are retained when they differ.
+The installed physical candidate does not yet admit a broad unfiltered
+capture for differing predicates, so this latter shape has only Program and
+checker evidence. Distinct captured sources and CTE acquisition reuse remain
+open; no physical provider read counter has yet established once-only I/O.
 The first Pipe set form, `FROM set_left |> SELECT a, b |> UNION ALL
 (SELECT c, d FROM set_right)`, now emits the same admitted Program as its SQL
 counterpart. Packed Local and HTTP Remote Clients read the same independently

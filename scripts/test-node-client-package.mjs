@@ -414,6 +414,14 @@ const capturedComputedCteJoinBody = queryFrontend.compileCapturedQueryJson(
 assert.notEqual(capturedComputedCteJoinBody, '');
 await writeFile(join(root, 'captured-computed-cte-join-body.json'),
   capturedComputedCteJoinBody);
+const capturedSetQuery = queryFrontend.compileCapturedQueryJson(
+  'SELECT id FROM records WHERE id > 1 UNION ALL '
+    + 'SELECT id FROM records WHERE id > 1',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.captured_set_query');
+assert.notEqual(capturedSetQuery, '');
+await writeFile(join(root, 'captured-set-query.json'), capturedSetQuery);
 const distinctQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT DISTINCT id FROM records WHERE id > 1 ORDER BY id',
   'records', 'remote',
@@ -798,6 +806,16 @@ const fullUsingCteDocument = readFileSync('full-using-cte-query.json', 'utf8');
 const chainedCteDocument = readFileSync('chained-cte-query.json', 'utf8');
 const capturedCteJoinBodyDocument = readFileSync(
   'captured-cte-join-body.json', 'utf8');
+const capturedSetDocument = readFileSync('captured-set-query.json', 'utf8');
+async function checkCapturedSet(client, suffix) {
+  const execution = await client.aql(capturedSetDocument,
+    {format: 'json', requestId: 'packed-captured-set-' + suffix});
+  const status = await execution.wait();
+  assert.equal(status.status, 'succeeded', JSON.stringify(status));
+  assert.deepEqual(sortedRows(await execution.result('answer').all()),
+    sortedRows([{id: 3}, {id: 2}, {id: 3},
+      {id: 3}, {id: 2}, {id: 3}]));
+}
 async function checkCapturedCte(client, suffix) {
   const execution = await client.aql(capturedCteDocument,
     {format: 'json', requestId: 'packed-captured-cte-' + suffix});
@@ -972,6 +990,7 @@ assert.deepEqual(await capturedQueryLocal.result('answer').all(),
   [{id: 3}, {id: 2}, {id: 3}]);
 await checkAnalyticCases(acquiredLocal.client, 'local');
 await checkCapturedCte(acquiredLocal.client, 'local');
+await checkCapturedSet(acquiredLocal.client, 'local');
 await checkCapturedSubquery(acquiredLocal.client, 'local');
 const distinctQueryLocal = await acquiredLocal.client.aql(distinctQueryDocument,
   {format: 'json', requestId: 'packed-distinct-query-local'});
@@ -1157,6 +1176,7 @@ assert.deepEqual(await capturedQueryRemote.result('answer').all(),
   [{id: 3}, {id: 2}, {id: 3}]);
 await checkAnalyticCases(acquiredRemote.client, 'remote');
 await checkCapturedCte(acquiredRemote.client, 'remote');
+await checkCapturedSet(acquiredRemote.client, 'remote');
 await checkCapturedSubquery(acquiredRemote.client, 'remote');
 const distinctQueryRemote = await acquiredRemote.client.aql(
   distinctQueryDocument,

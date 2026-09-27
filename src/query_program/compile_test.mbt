@@ -704,6 +704,35 @@ test "SQL set operations align positions before existing row-set kernels" {
 }
 
 ///|
+test "captured set terms share one checked acquisition stage" {
+  let query = @query.parse_query(
+    "SELECT id FROM orders WHERE amount > 1 UNION ALL SELECT id FROM orders WHERE amount > 1",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, fixture_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_eq(wire.split("\"id\":\"aql_set_capture_0\"").length(), 2)
+  assert_true(wire.contains("\"result\":\"source\""))
+  assert_true(wire.contains("\"append\":{\"with\":\"r\"}"))
+  assert_eq(wire.split("\"gt\":").length(), 2)
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) | NeedsInputs(_) => ()
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let distinct_predicates = @query.parse_query(
+    "SELECT id FROM orders WHERE amount > 1 UNION ALL SELECT id FROM orders WHERE status = 'open'",
+    syntax_limits(),
+  ).unwrap()
+  let preserved = compile(
+    distinct_predicates,
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_eq(semantic(preserved).split("\"gt\":").length(), 2)
+}
+
+///|
 test "BY NAME aligns selected names and retains checker type rejection" {
   let valid = @query.parse_query(
     "SELECT a, b FROM left_rows UNION DISTINCT BY NAME SELECT d AS b, c AS a FROM right_rows",

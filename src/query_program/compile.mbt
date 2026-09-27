@@ -2761,7 +2761,8 @@ fn compile_set_query(
     context.stage_id == "" ||
     context.stage_result == "" ||
     context.result_name == "" ||
-    context.captured_stage is Some(_) {
+    context.captured_stage == Some("") ||
+    context.captured_stage == Some(context.stage_id) {
     return Err(InvalidContext)
   }
   let document = @query.query_document(query)
@@ -2779,6 +2780,7 @@ fn compile_set_query(
     let stages : Array[@builder.Node] = []
     let sources : Array[String] = []
     let outputs : Array[Array[String]] = []
+    let captured : Array[(String, String, Bool)] = []
     for index in 0..<terms.length() {
       let term = terms[index]
       if @query.join_part_count(term) > 0 {
@@ -2786,39 +2788,161 @@ fn compile_set_query(
       }
       let input = selected_input(term, context)
       let fields = columns(input)
-      let fragment = match input.source {
-        GeneratedValues(step) => step
-        Captured(_) | StageResult(_, _) => raise Abort(UnsupportedSet)
-      }
-      let seed = match @builder.import_cursor(builder, fragment, generated) {
-        Ok(node) => node
-        Err(issue) => raise Abort(Construction(issue))
-      }
-      let seed_stage = "aql_set_seed_" + index.to_string()
-      stages.push(
-        construction.object([
-          ("id", construction.text(seed_stage)),
-          ("inputs", construction.object([])),
-          ("steps", construction.array([seed])),
-          (
-            "results",
+      let mut common_capture_filter = false
+      let (seed_stage, seed_result) = match input.source {
+        GeneratedValues(step) => {
+          if context.captured_stage is Some(_) {
+            raise Abort(InvalidContext)
+          }
+          let seed = match @builder.import_cursor(builder, step, generated) {
+            Ok(node) => node
+            Err(issue) => raise Abort(Construction(issue))
+          }
+          let seed_stage = "aql_set_seed_" + index.to_string()
+          stages.push(
             construction.object([
+              ("id", construction.text(seed_stage)),
+              ("inputs", construction.object([])),
+              ("steps", construction.array([seed])),
               (
-                seed_stage,
+                "results",
                 construction.object([
-                  ("from", construction.text(input.name)),
                   (
-                    "fields",
-                    construction.array(
-                      fields.map(name => construction.text(name)),
-                    ),
+                    seed_stage,
+                    construction.object([
+                      ("from", construction.text(input.name)),
+                      (
+                        "fields",
+                        construction.array(
+                          fields.map(name => construction.text(name)),
+                        ),
+                      ),
+                    ]),
                   ),
                 ]),
               ),
             ]),
-          ),
-        ]),
-      )
+          )
+          (seed_stage, seed_stage)
+        }
+        Captured(declaration) => {
+          let mut prior : String? = None
+          for pair in captured {
+            if pair.0 == input.name {
+              prior = Some(pair.1)
+              common_capture_filter = pair.2
+            }
+          }
+          let capture_stage = match prior {
+            Some(name) => name
+            None => {
+              // The installed Host currently owns one physical acquisition
+              // for a set query. Multiple distinct sources need separate
+              // checked Host bindings before they can be admitted here.
+              if !captured.is_empty() {
+                raise Abort(UnsupportedSet)
+              }
+              let first_filter = match @query.operation_at(term, 0) {
+                Some(Where(expression)) => Some(expression)
+                _ => None
+              }
+              let mut common = first_filter is Some(_)
+              for other in terms {
+                let other_input = selected_input(other, context)
+                if other_input.name == input.name {
+                  match (first_filter, @query.operation_at(other, 0)) {
+                    (Some(first), Some(Where(next))) =>
+                      if !same_expression(first, next) {
+                        common = false
+                      }
+                    _ => common = false
+                  }
+                }
+              }
+              common_capture_filter = common
+              let predicate = if common {
+                append_expression(
+                  construction,
+                  first_filter.unwrap(),
+                  term,
+                  input,
+                  fields,
+                  limits.max_expression_work,
+                )
+              } else {
+                construction.object([("literal", construction.add(Bool(true)))])
+              }
+              let name = if captured.is_empty() {
+                context.captured_stage.unwrap_or("aql_set_capture_0")
+              } else {
+                "aql_set_capture_" + captured.length().to_string()
+              }
+              let mut reserved = name == context.stage_id
+              for term_index in 0..<terms.length() {
+                reserved = reserved ||
+                  name == "aql_set_seed_" + term_index.to_string() ||
+                  name == "aql_set_term_" + term_index.to_string() ||
+                  name == "aql_set_aligned_" + term_index.to_string() ||
+                  name == "aql_set_merge_" + term_index.to_string() ||
+                  name == "aql_set_unique_" + term_index.to_string()
+              }
+              if reserved {
+                raise Abort(InvalidContext)
+              }
+              let imported = match
+                @builder.import_cursor(builder, declaration, generated) {
+                Ok(node) => node
+                Err(issue) => raise Abort(Construction(issue))
+              }
+              stages.push(
+                construction.object([
+                  ("id", construction.text(name)),
+                  ("inputs", construction.object([(input.name, imported)])),
+                  (
+                    "steps",
+                    construction.array([
+                      construction.object([
+                        ("from", construction.text(input.name)),
+                        ("filter", predicate),
+                      ]),
+                      construction.object([
+                        (
+                          "select",
+                          construction.array(
+                            fields.map(field => construction.text(field)),
+                          ),
+                        ),
+                        ("as", construction.text("aql_capture_0")),
+                      ]),
+                    ]),
+                  ),
+                  (
+                    "results",
+                    construction.object([
+                      (
+                        "source",
+                        construction.object([
+                          ("from", construction.text("aql_capture_0")),
+                          (
+                            "fields",
+                            construction.array(
+                              fields.map(field => construction.text(field)),
+                            ),
+                          ),
+                        ]),
+                      ),
+                    ]),
+                  ),
+                ]),
+              )
+              captured.push((input.name, name, common))
+              name
+            }
+          }
+          (capture_stage, "source")
+        }
+        StageResult(_, _) => raise Abort(UnsupportedSet)
+      }
       let term_stage = "aql_set_term_" + index.to_string()
       if context.inputs.any(other => other.name == term_stage) {
         raise Abort(InvalidContext)
@@ -2830,8 +2954,12 @@ fn compile_set_query(
         input,
         fields,
         limits.max_expression_work,
-        0,
-        false,
+        if common_capture_filter {
+          1
+        } else {
+          0
+        },
+        input.source is Captured(_),
         term_name,
       )
       let term_steps : Array[@builder.Node] = []
@@ -2863,7 +2991,7 @@ fn compile_set_query(
                     "result",
                     construction.object([
                       ("stage", construction.text(seed_stage)),
-                      ("result", construction.text(seed_stage)),
+                      ("result", construction.text(seed_result)),
                     ]),
                   ),
                 ]),
