@@ -79,7 +79,7 @@ jobs:
       # execution on about one CPU; one job per CPU shortened execution on
       # every target with no change in memory. Building is unaffected.
       - name: Test common core
-        run: moon test --target "${{ matrix.target }}" --deny-warn -j "$(nproc)"
+        run: moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
   # Host, authorization, Checkpoint and retained-state owners.
   host:
     if: ${{ !inputs.performance_matrix }}
