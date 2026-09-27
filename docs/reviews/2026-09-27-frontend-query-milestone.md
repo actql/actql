@@ -205,11 +205,17 @@ over two source-free Values relations now execute
 through packed Local and HTTP Remote Clients, preserving duplicate rows and
 NULL-key nonmatches. A bounded CROSS JOIN uses the existing product operation.
 The Pipe INNER JOIN emits the same Program as SQL. This lowering currently
-permits one join and direct selected fields. FULL JOIN
-is parsed but the Values compiler refuses it before issuing a Program: the
-checked FULL JOIN requires stable identity on both inputs, which the generated
-Values Stage Results do not carry. No representative row or synthetic key is
-inferred. Acquired keyed inputs and correct FULL/USING projection remain open.
+permits one join and direct selected fields. FULL JOIN is parsed but the
+Values compiler refuses it before issuing a Program: the checked FULL JOIN
+requires stable identity on both inputs, which the generated Values Stage
+Results do not carry. No representative row or synthetic key is inferred.
+A keyed captured-input CTE FULL JOIN passes the common checker, showing that
+the existing IR can represent that shape; packed runtime and FULL/USING
+merged-key projection remain open.
+SQL source aliases with and without `AS` emit the same checked Program.
+The keyed FULL acceptance is paired with an unkeyed Values CTE rejection
+by the common checker; the frontend does not claim an identity witness from
+duplicated literal rows.
 
 One nonrecursive CTE now lowers its body into a single Stage Result and the
 outer SELECT refers to that result. A second form uses the same CTE Result
@@ -219,11 +225,12 @@ Remote Clients execute both source-free and acquired CTEs. The acquired
 self-join of filtered `id` rows `3,2,3` returns five rows, including four
 `(3,3)` matches. The Program has one acquisition Stage; a physical provider
 read counter has not yet been added, so the once-only read acceptance case
-remains open. More than one CTE declaration, outer joins and general CTE
-expressions still fail closed rather than being textually substituted.
+remains open. Branching declarations, CTE joins inside the body and general
+subqueries still fail closed rather than being textually substituted.
 The same packed path accepts `JOIN ... USING(id)` and exposes one unqualified
 `id` Result column while retaining qualified left and right key bindings.
-This is not FULL JOIN's coalesced-key behavior; that shape remains refused.
+This is not FULL JOIN's coalesced-key behavior; an unqualified FULL/USING key
+is refused rather than incorrectly taking only the left key.
 Two sequential CTE declarations also execute with each later body referring
 to its immediate predecessor. A packed acquired-input example produces
 `3,2,3` after the second filter. The compiler currently requires a used

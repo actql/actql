@@ -683,6 +683,16 @@ test "source-free equijoin enters the ordinary checker" {
     semantic(program),
     semantic(compile(piped, set_context(), construction_limits()).unwrap()),
   )
+  let implicit_alias = @query.parse_query(
+    "SELECT l.a AS a, r.d AS d FROM left_rows l INNER JOIN right_rows r ON l.a = r.c",
+    syntax_limits(),
+  ).unwrap()
+  assert_eq(
+    semantic(program),
+    semantic(
+      compile(implicit_alias, set_context(), construction_limits()).unwrap(),
+    ),
+  )
   let wire = semantic(program)
   assert_true(wire.contains("\"join\":{\"kind\":\"inner\""))
   assert_true(wire.contains("\"left\":\"a\",\"right\":\"c\""))
@@ -789,6 +799,43 @@ test "CTE chain references prior declarations without source substitution" {
   assert_true(
     compile(forward, set_context(), construction_limits())
     is Err(UnsupportedCte),
+  )
+}
+
+///|
+test "FULL CTE join retains keyed input identity for common closure" {
+  let query = @query.parse_query(
+    "WITH chosen AS (SELECT id, customer_id FROM orders) SELECT l.id AS left_id, r.id AS right_id FROM chosen AS l FULL JOIN chosen AS r ON l.customer_id = r.customer_id",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, fixture_context(), construction_limits()).unwrap()
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("keyed FULL CTE should be statically closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let using_query = @query.parse_query(
+    "WITH chosen AS (SELECT id, customer_id FROM orders) SELECT customer_id FROM chosen AS l FULL JOIN chosen AS r USING (customer_id)",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(using_query, fixture_context(), construction_limits())
+    is Err(UnsupportedJoin),
+  )
+  let unkeyed = @query.parse_query(
+    "WITH chosen AS (SELECT a, b FROM left_rows) SELECT l.a AS left_a, r.a AS right_a FROM chosen AS l FULL JOIN chosen AS r ON l.a = r.a",
+    syntax_limits(),
+  ).unwrap()
+  let unkeyed_program = compile(unkeyed, set_context(), construction_limits()).unwrap()
+  assert_true(
+    @check.check_parsed(
+      unkeyed_program,
+      check_environment(),
+      None,
+      check_limits(),
+    )
+    is Rejected(_),
   )
 }
 

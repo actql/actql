@@ -151,6 +151,18 @@ test "SQL JOIN retains qualifier and equality condition" {
   assert_eq(part.relation, [{ value: "right_rows", quoted: false, }])
   assert_eq(part.source_alias, Some({ value: "r", quoted: false, }))
   assert_true(part.on is Some(_))
+  let implicit_alias = parse_query(
+    "SELECT l.a AS a, r.d AS d FROM left_rows l JOIN right_rows r ON l.a = r.c",
+    query_limits(),
+  ).unwrap()
+  assert_eq(
+    relation_alias(implicit_alias),
+    Some({ value: "l", quoted: false, }),
+  )
+  assert_eq(
+    join_part_at(implicit_alias, 0).unwrap().source_alias,
+    Some({ value: "r", quoted: false, }),
+  )
   let piped = parse_query(
     "FROM left_rows AS l |> LEFT JOIN right_rows AS r ON l.a = r.c |> SELECT l.a AS a, r.d AS d",
     query_limits(),

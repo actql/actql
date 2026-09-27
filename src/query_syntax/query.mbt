@@ -318,6 +318,12 @@ fn QueryParser::source_name(
   let source_alias = if self.has("AS") {
     self.keyword("AS")
     Some(self.name())
+  } else if self.peek().value is Word(value) &&
+    ![
+      "JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "WHERE", "GROUP", "HAVING",
+      "ORDER", "LIMIT", "UNION", "INTERSECT", "EXCEPT", "ON", "USING",
+    ].contains(value.to_upper()) {
+    Some(self.name())
   } else {
     None
   }

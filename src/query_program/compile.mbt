@@ -2300,7 +2300,7 @@ fn compile_cte_join_steps(
     raise Abort(UnsupportedCte)
   }
   let part = @query.join_part_at(query, 0).unwrap()
-  if !same_path(part.relation, [cte_name]) || part.kind == "full" {
+  if !same_path(part.relation, [cte_name]) {
     raise Abort(UnsupportedCte)
   }
   let left_qualifier = @query.relation_alias(query).unwrap_or(cte_name)
@@ -2985,6 +2985,9 @@ fn join_projection_field(
   if path.length() == 1 {
     for using_name in part.using_columns {
       if same_name(path[0], using_name) {
+        if part.kind == "full" {
+          raise Abort(UnsupportedJoin)
+        }
         // INNER and LEFT USING expose one key while retaining qualified
         // access to both originals. FULL requires a coalesced output key.
         return join_field(
