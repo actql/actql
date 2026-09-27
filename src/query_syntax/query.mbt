@@ -11,6 +11,7 @@ pub(all) struct QueryLimits {
 pub(all) struct Projection {
   expression : Expression?
   aggregate : AggregateCall?
+  analytic : AnalyticCall?
   name : NamePart?
   star : String?
 }
@@ -20,6 +21,35 @@ pub(all) struct AggregateCall {
   function_name : String
   argument : Expression?
   distinct : Bool
+}
+
+///|
+pub(all) enum FrameBoundary {
+  UnboundedPreceding
+  CurrentRow
+  UnboundedFollowing
+  Preceding(Int64)
+  Following(Int64)
+} derive(Eq, Debug)
+
+///|
+pub(all) struct AnalyticFrame {
+  start : FrameBoundary
+  end : FrameBoundary
+} derive(Eq, Debug)
+
+///|
+pub(all) struct AnalyticWindow {
+  partition_by : Array[Array[NamePart]]
+  order_by : Array[SortTerm]
+  frame : AnalyticFrame?
+}
+
+///|
+pub(all) struct AnalyticCall {
+  expression : Expression?
+  aggregate : AggregateCall?
+  window : AnalyticWindow
 }
 
 ///|
@@ -34,6 +64,7 @@ pub(all) enum QueryOperation {
   Where(Expression)
   Group(Array[Expression], Array[Projection])
   Having(Expression)
+  Analytic(Array[Projection])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
   Limit(Int, Int)
@@ -82,6 +113,7 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     Where(e) => Some(Where(e))
     Group(keys, projections) => Some(Group(keys.copy(), projections.copy()))
     Having(e) => Some(Having(e))
+    Analytic(projections) => Some(Analytic(projections.copy()))
     Select(xs, distinct) => Some(Select(xs.copy(), distinct))
     Order(xs) => Some(Order(xs.copy()))
     Limit(count, offset) => Some(Limit(count, offset))
@@ -222,7 +254,13 @@ fn QueryParser::projections(
     self.node()
     let projection = if self.peek().value == Symbol(42) {
       ignore(self.advance())
-      { expression: None, aggregate: None, name: None, star: Some("*"), }
+      {
+        expression: None,
+        aggregate: None,
+        analytic: None,
+        name: None,
+        star: Some("*"),
+      }
     } else {
       let aggregate = if self.aggregate_head() {
         Some(self.aggregate())
@@ -234,16 +272,35 @@ fn QueryParser::projections(
       } else {
         Some(self.expression())
       }
+      let analytic = if self.has("OVER") {
+        Some({ expression, aggregate, window: self.over(), })
+      } else {
+        None
+      }
       let name = if self.has("AS") {
         self.keyword("AS")
         Some(self.name())
       } else {
         None
       }
-      if aggregate is Some(_) && name is None {
-        raise QueryAbort("Aggregate output requires AS name", self.peek().start)
+      if (aggregate is Some(_) || analytic is Some(_)) && name is None {
+        raise QueryAbort("Function output requires AS name", self.peek().start)
       }
-      { expression, aggregate, name, star: None, }
+      {
+        expression: if analytic is Some(_) {
+          None
+        } else {
+          expression
+        },
+        aggregate: if analytic is Some(_) {
+          None
+        } else {
+          aggregate
+        },
+        analytic,
+        name,
+        star: None,
+      }
     }
     values.push(projection)
     if self.peek().value != Symbol(44) {
@@ -252,6 +309,72 @@ fn QueryParser::projections(
     ignore(self.advance())
   }
   values
+}
+
+///|
+fn QueryParser::frame_boundary(
+  self : QueryParser,
+) -> FrameBoundary raise QueryAbort {
+  if self.has("UNBOUNDED") {
+    self.keyword("UNBOUNDED")
+    if self.has("PRECEDING") {
+      self.keyword("PRECEDING")
+      return UnboundedPreceding
+    }
+    self.keyword("FOLLOWING")
+    return UnboundedFollowing
+  }
+  if self.has("CURRENT") {
+    self.keyword("CURRENT")
+    self.keyword("ROW")
+    return CurrentRow
+  }
+  let distance = self.safe_integer(false)
+  if self.has("PRECEDING") {
+    self.keyword("PRECEDING")
+    Preceding(distance)
+  } else {
+    self.keyword("FOLLOWING")
+    Following(distance)
+  }
+}
+
+///|
+fn QueryParser::over(self : QueryParser) -> AnalyticWindow raise QueryAbort {
+  self.keyword("OVER")
+  if self.advance().value != Symbol(40) {
+    raise QueryAbort("Expected OVER opening parenthesis", self.peek().start)
+  }
+  let partition_by : Array[Array[NamePart]] = []
+  if self.has("PARTITION") {
+    self.keyword("PARTITION")
+    self.keyword("BY")
+    while true {
+      self.node()
+      partition_by.push(self.path())
+      if self.peek().value != Symbol(44) {
+        break
+      }
+      ignore(self.advance())
+    }
+  }
+  self.keyword("ORDER")
+  self.keyword("BY")
+  let order_by = self.order()
+  let frame = if self.has("ROWS") {
+    self.keyword("ROWS")
+    self.keyword("BETWEEN")
+    let start = self.frame_boundary()
+    self.keyword("AND")
+    let end = self.frame_boundary()
+    Some({ start, end, })
+  } else {
+    None
+  }
+  if self.advance().value != Symbol(41) {
+    raise QueryAbort("Expected OVER closing parenthesis", self.peek().start)
+  }
+  { partition_by, order_by, frame, }
 }
 
 ///|
@@ -392,6 +515,33 @@ fn QueryParser::small_limit(
 }
 
 ///|
+fn QueryParser::safe_integer(
+  self : QueryParser,
+  zero_allowed : Bool,
+) -> Int64 raise QueryAbort {
+  let token = self.advance()
+  let text = match token.value {
+    Numeric(text) => text
+    _ => raise QueryAbort("Expected safe integer literal", token.start)
+  }
+  let mut result = 0L
+  for unit in text {
+    self.spend(1)
+    let digit = unit.to_int() - 48
+    if digit < 0 ||
+      digit > 9 ||
+      result > (9007199254740991L - digit.to_int64()) / 10L {
+      raise QueryAbort("Integer literal exceeds safe range", token.start)
+    }
+    result = result * 10L + digit.to_int64()
+  }
+  if !zero_allowed && result == 0L {
+    raise QueryAbort("Expected positive integer literal", token.start)
+  }
+  result
+}
+
+///|
 fn QueryParser::limit(self : QueryParser) -> QueryOperation raise QueryAbort {
   self.keyword("LIMIT")
   let count = self.small_limit(false)
@@ -444,6 +594,9 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
     self.keyword("HAVING")
     operations.push(Having(self.expression()))
   }
+  if projections.any(projection => projection.analytic is Some(_)) {
+    operations.push(Analytic(projections))
+  }
   operations.push(Select(projections, distinct))
   if self.has("ORDER") {
     self.keyword("ORDER")
@@ -483,7 +636,11 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
       if distinct {
         self.keyword("DISTINCT")
       }
-      operations.push(Select(self.projections(), distinct))
+      let projections = self.projections()
+      if projections.any(projection => projection.analytic is Some(_)) {
+        operations.push(Analytic(projections))
+      }
+      operations.push(Select(projections, distinct))
     } else if self.has("ORDER") {
       self.keyword("ORDER")
       self.keyword("BY")

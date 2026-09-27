@@ -14,5 +14,7 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/check_environment" @environment,
   "actql/actql/program_check" @check,
+  "actql/actql/pipeline_typing" @pipeline,
+  "moonbitlang/core/debug",
   "moonbitlang/core/encoding/utf8",
 } for "test"

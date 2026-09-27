@@ -111,3 +111,12 @@ filter through the normal Host, with the SELECT alias `n` resolved after
 aggregation. The corresponding Pipe `AGGREGATE` and post-group `WHERE` emit
 the same canonical Program under the same compile context. The broader
 aggregate signature, empty/NULL and failure-order matrix remains pending.
+
+Inline `OVER` now lowers the r1 ranking, navigation, value, and selected frame
+aggregate spellings to the existing `analytic` operation. `PARTITION BY` and
+the window's `ORDER BY` resolve against the input snapshot, independently of
+the query's final `ORDER BY` alias scope. Matching windows combine their calls
+in one analytic operation. The ordinary checker accepts row-number/navigation
+and framed COUNT over bounded Values with explicit Host analytic ceilings;
+missing ceilings are not inferred. Physical Result verification for this
+surface and the broader SQL/Pipe scope remain pending.

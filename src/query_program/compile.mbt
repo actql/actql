@@ -41,6 +41,7 @@ pub(all) enum Issue {
   UnsupportedAggregate
   UnsupportedHaving
   UnsupportedOrdering
+  UnsupportedAnalytic
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   Admission(@program.SyntaxError)
@@ -447,6 +448,226 @@ fn lower_aggregate(
 }
 
 ///|
+fn analytic_boundary(
+  construction : Construction,
+  boundary : @query.FrameBoundary,
+) -> @builder.Node raise Abort {
+  match boundary {
+    UnboundedPreceding => construction.text("unbounded_preceding")
+    CurrentRow => construction.text("current_row")
+    UnboundedFollowing => construction.text("unbounded_following")
+    Preceding(distance) =>
+      construction.object([
+        ("preceding", construction.add(Number(distance.to_double()))),
+      ])
+    Following(distance) =>
+      construction.object([
+        ("following", construction.add(Number(distance.to_double()))),
+      ])
+  }
+}
+
+///|
+fn lower_analytic_call(
+  construction : Construction,
+  call : @query.AnalyticCall,
+  query : @query.Query,
+  input : Input,
+  fields : Array[String],
+  max_work : Int,
+) -> @builder.Node raise Abort {
+  match call.aggregate {
+    Some(aggregate) => {
+      if call.window.frame is None {
+        raise Abort(UnsupportedAnalytic)
+      }
+      if !["COUNT", "SUM", "AVG", "MIN", "MAX"].contains(
+          aggregate.function_name,
+        ) {
+        raise Abort(UnsupportedAnalytic)
+      }
+      lower_aggregate(construction, aggregate, query, input, fields, max_work)
+    }
+    None => {
+      let expression = call.expression.unwrap()
+      let root = @query.expression_node(
+        expression,
+        @query.expression_root(expression),
+      ).unwrap()
+      guard root.kind is Call(path, arguments) && path.length() == 1 else {
+        raise Abort(UnsupportedAnalytic)
+      }
+      let name = ascii_upper(path[0].value)
+      let needs_frame = name == "FIRST_VALUE" || name == "LAST_VALUE"
+      if needs_frame != (call.window.frame is Some(_)) {
+        raise Abort(UnsupportedAnalytic)
+      }
+      let wire_name = match name {
+        "ROW_NUMBER" => "row_number"
+        "RANK" => "rank"
+        "DENSE_RANK" => "dense_rank"
+        "LAG" => "lag"
+        "LEAD" => "lead"
+        "FIRST_VALUE" => "first_value"
+        "LAST_VALUE" => "last_value"
+        _ => raise Abort(UnsupportedAnalytic)
+      }
+      let entries = [("fn", construction.text(wire_name))]
+      if name == "ROW_NUMBER" || name == "RANK" || name == "DENSE_RANK" {
+        if !arguments.is_empty() {
+          raise Abort(UnsupportedAnalytic)
+        }
+      } else {
+        if arguments.is_empty() ||
+          arguments.length() >
+          (if name == "LAG" || name == "LEAD" { 2 } else { 1 }) {
+          raise Abort(UnsupportedAnalytic)
+        }
+        let argument = @query.expression_child(expression, arguments[0]).unwrap()
+        entries.push(
+          (
+            "expr",
+            append_expression(
+              construction, argument, query, input, fields, max_work,
+            ),
+          ),
+        )
+        if arguments.length() == 2 {
+          let offset = @query.expression_node(expression, arguments[1]).unwrap()
+          match offset.kind {
+            Number(text) => {
+              let mut value = 0L
+              for unit in text {
+                let digit = unit.to_int() - 48
+                if digit < 0 ||
+                  digit > 9 ||
+                  value > (9007199254740991L - digit.to_int64()) / 10L {
+                  raise Abort(UnsupportedAnalytic)
+                }
+                value = value * 10L + digit.to_int64()
+              }
+              entries.push(
+                ("offset", construction.add(Number(value.to_double()))),
+              )
+            }
+            ParameterReference(parameter) =>
+              entries.push(
+                (
+                  "offset",
+                  construction.object([("$param", construction.text(parameter))]),
+                ),
+              )
+            _ => raise Abort(UnsupportedAnalytic)
+          }
+        }
+      }
+      construction.object(entries)
+    }
+  }
+}
+
+///|
+fn same_analytic_window(
+  left : @query.AnalyticWindow,
+  right : @query.AnalyticWindow,
+) -> Bool {
+  if left.partition_by.length() != right.partition_by.length() ||
+    left.order_by.length() != right.order_by.length() ||
+    left.frame != right.frame {
+    return false
+  }
+  for index in 0..<left.partition_by.length() {
+    if !same_path(left.partition_by[index], right.partition_by[index]) {
+      return false
+    }
+  }
+  for index in 0..<left.order_by.length() {
+    let a = left.order_by[index]
+    let b = right.order_by[index]
+    if a.direction != b.direction ||
+      a.nulls != b.nulls ||
+      !same_expression(a.expression, b.expression) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn lower_analytic(
+  construction : Construction,
+  projections : Array[@query.Projection],
+  query : @query.Query,
+  input : Input,
+  fields : Array[String],
+  max_work : Int,
+) -> @builder.Node raise Abort {
+  let call = projections[0].analytic.unwrap()
+  let partitions : Array[@builder.Node] = []
+  for path in call.window.partition_by {
+    let field = match resolve_column(path, query, input, fields) {
+      Some(field) => field
+      None => raise Abort(UnknownColumn)
+    }
+    partitions.push(construction.text(field))
+  }
+  let order : Array[@builder.Node] = []
+  for term in call.window.order_by {
+    let root = @query.expression_node(
+      term.expression,
+      @query.expression_root(term.expression),
+    ).unwrap()
+    guard root.kind is Reference(path) else { raise Abort(UnsupportedOrdering) }
+    let field = match resolve_column(path, query, input, fields) {
+      Some(field) => field
+      None => raise Abort(UnknownColumn)
+    }
+    order.push(
+      construction.object([
+        ("field", construction.text(field)),
+        ("dir", construction.text(term.direction)),
+        ("nulls", construction.text(term.nulls)),
+      ]),
+    )
+  }
+  let functions : Array[(String, @builder.Node)] = []
+  for projection in projections {
+    functions.push(
+      (
+        projection.name.unwrap().value,
+        lower_analytic_call(
+          construction,
+          projection.analytic.unwrap(),
+          query,
+          input,
+          fields,
+          max_work,
+        ),
+      ),
+    )
+  }
+  let body = [
+    ("partition_by", construction.array(partitions)),
+    ("order_by", construction.array(order)),
+    ("functions", construction.object(functions)),
+  ]
+  match call.window.frame {
+    Some(frame) =>
+      body.push(
+        (
+          "frame",
+          construction.object([
+            ("start", analytic_boundary(construction, frame.start)),
+            ("end", analytic_boundary(construction, frame.end)),
+          ]),
+        ),
+      )
+    None => ()
+  }
+  construction.object(body)
+}
+
+///|
 fn having_column(
   path : Array[@query.NamePart],
   query : @query.Query,
@@ -655,6 +876,54 @@ fn compile_steps(
         }
         entries.push(("filter", value))
       }
+      Analytic(projections) => {
+        if projections.is_empty() {
+          raise Abort(UnsupportedAnalytic)
+        }
+        let snapshot = active_fields.copy()
+        let groups : Array[Array[@query.Projection]] = []
+        for projection in projections {
+          if projection.analytic is None {
+            continue
+          }
+          let name = projection.name.unwrap().value
+          if active_fields.any(field => ascii_upper(field) == ascii_upper(name)) {
+            raise Abort(DuplicateOutput)
+          }
+          let mut found = false
+          for group in groups {
+            if same_analytic_window(
+                group[0].analytic.unwrap().window,
+                projection.analytic.unwrap().window,
+              ) {
+              group.push(projection)
+              found = true
+              break
+            }
+          }
+          if !found {
+            groups.push([projection])
+          }
+          active_fields.push(name)
+        }
+        for group in groups {
+          let operation = [
+            (
+              "analytic",
+              lower_analytic(
+                construction, group, query, input, snapshot, max_work,
+              ),
+            ),
+          ]
+          if !entries.is_empty() {
+            operation.insert(0, entries[0])
+            entries.clear()
+          }
+          step_entries.push(operation)
+        }
+        output = active_fields.copy()
+        deferred = true
+      }
       Select(projections, distinct) if !preserve_identity_select &&
         !distinct &&
         projections.length() == 1 &&
@@ -683,8 +952,10 @@ fn compile_steps(
             None => {
               let name = output_name(projection, query, input, active_fields)
               names.push(name)
-              if projection.aggregate is Some(_) {
-                if !grouped || !active_fields.contains(name) {
+              if projection.aggregate is Some(_) ||
+                projection.analytic is Some(_) {
+                if (projection.aggregate is Some(_) && !grouped) ||
+                  !active_fields.contains(name) {
                   raise Abort(UnsupportedAggregate)
                 }
                 selected.push(construction.text(name))

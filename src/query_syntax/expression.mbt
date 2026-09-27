@@ -89,6 +89,77 @@ pub fn expression_node(expression : Expression, index : Int) -> ExpressionNode? 
 }
 
 ///|
+// A child retains the parsed owner and source spans; it is never reparsed.
+pub fn expression_child(expression : Expression, index : Int) -> Expression? {
+  if index < 0 || index >= expression.nodes.length() {
+    return None
+  }
+  let reachable = Array::make(expression.nodes.length(), false)
+  let pending = [index]
+  while !pending.is_empty() {
+    let next = pending.pop().unwrap()
+    if reachable[next] {
+      continue
+    }
+    reachable[next] = true
+    match expression.nodes[next].kind {
+      Unary(_, child) | Parenthesized(child) | Cast(child, _) =>
+        pending.push(child)
+      Binary(_, left, right) => {
+        pending.push(left)
+        pending.push(right)
+      }
+      Call(_, arguments) | Predicate(_, arguments) =>
+        for argument in arguments {
+          pending.push(argument)
+        }
+      SearchedCase(branches, otherwise) => {
+        pending.push(otherwise)
+        for branch in branches {
+          pending.push(branch.0)
+          pending.push(branch.1)
+        }
+      }
+      _ => ()
+    }
+  }
+  let remap = Array::make(expression.nodes.length(), -1)
+  let mut count = 0
+  for old in 0..<reachable.length() {
+    if reachable[old] {
+      remap[old] = count
+      count += 1
+    }
+  }
+  let nodes : Array[ExpressionNode] = []
+  for old in 0..<reachable.length() {
+    if !reachable[old] {
+      continue
+    }
+    let node = expression.nodes[old]
+    let kind = match node.kind {
+      Unary(op, child) => Unary(op, remap[child])
+      Binary(op, left, right) => Binary(op, remap[left], remap[right])
+      Parenthesized(child) => Parenthesized(remap[child])
+      Cast(child, target) => Cast(remap[child], target)
+      Call(path, arguments) =>
+        Call(path.copy(), arguments.map(argument => remap[argument]))
+      Predicate(op, arguments) =>
+        Predicate(op, arguments.map(argument => remap[argument]))
+      SearchedCase(branches, otherwise) =>
+        SearchedCase(
+          branches.map(branch => (remap[branch.0], remap[branch.1])),
+          remap[otherwise],
+        )
+      Reference(path) => Reference(path.copy())
+      kind => kind
+    }
+    nodes.push({ ..node, kind, })
+  }
+  Some({ ..expression, nodes, root: remap[index], })
+}
+
+///|
 pub fn expression_origin(
   expression : Expression,
   index : Int,

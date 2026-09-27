@@ -64,6 +64,22 @@ fn fixture_context() -> Context {
 }
 
 ///|
+fn values_context() -> Context {
+  let step = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"id":{"type":"string","nullable":false},"customer_id":{"type":"string","nullable":false},"status":{"type":"string","nullable":false},"amount":{"type":"number","nullable":false}},"rows":[{"id":"a","customer_id":"one","status":"open","amount":1},{"id":"b","customer_id":"two","status":"open","amount":2}]},"as":"orders"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let base = fixture_context()
+  let inputs = [{ ..base.inputs[0], source: GeneratedValues(step), }]
+  { ..base, inputs, }
+}
+
+///|
 fn semantic(program : @program.Program) -> String raise {
   let writer = @encode.writer(100000, 10000, 100)
   @program.emit_metadata_stripped_program(program, writer)
@@ -106,11 +122,11 @@ fn check_limits() -> @check.CheckLimits {
 
 ///|
 fn check_environment() -> @check.CheckEnvironment {
-  let cid = "sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904"
+  let cid = "sha256:04185e37572a0a791a18909c4bc09da47f393976a9b6bb940ed9658a0497de07"
   let wire = @environment.read(
     @utf8.encode(
       (
-        #|{"command_contracts":[],"connector_capabilities":[],"connector_catalogs":[],"contract_registry":[],"evidence_bundle_cid":"sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904","host_policy_profile":{"capacity":{"max_aggregate_array_items":1000,"max_artifact_bytes":1000,"max_artifact_rows":1000,"max_effect_items":1000,"max_graph_input_edges":1000,"max_graph_input_nodes":1000,"max_graph_output_rows":1000,"max_graph_paths":1000,"max_infer_items":1000,"max_model_input_tokens_per_item":1000,"max_model_request_bytes_per_item":1000,"max_model_total_duration_ms":1000,"max_nested_value_bytes":1000,"max_nested_value_depth":1000,"max_relation_output_rows":1000,"max_temporal_matches_per_key":1000,"max_temporal_output_rows":1000,"version":"actql-capacity-host-policy/0.1"}},"mapping_contracts":[],"model_task_contracts":[],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
+        #|{"command_contracts":[],"connector_capabilities":[],"connector_catalogs":[],"contract_registry":[],"evidence_bundle_cid":"sha256:04185e37572a0a791a18909c4bc09da47f393976a9b6bb940ed9658a0497de07","host_policy_profile":{"capacity":{"max_aggregate_array_items":1000,"max_analytic_frame_memberships":1000,"max_analytic_input_wire_bytes":1000,"max_analytic_output_wire_bytes":1000,"max_analytic_partition_wire_bytes":1000,"max_artifact_bytes":1000,"max_artifact_rows":1000,"max_effect_items":1000,"max_graph_input_edges":1000,"max_graph_input_nodes":1000,"max_graph_output_rows":1000,"max_graph_paths":1000,"max_infer_items":1000,"max_model_input_tokens_per_item":1000,"max_model_request_bytes_per_item":1000,"max_model_total_duration_ms":1000,"max_nested_value_bytes":1000,"max_nested_value_depth":1000,"max_relation_output_rows":1000,"max_temporal_matches_per_key":1000,"max_temporal_output_rows":1000,"version":"actql-capacity-host-policy/0.1"}},"mapping_contracts":[],"model_task_contracts":[],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
       ),
     ),
     cid,
@@ -284,6 +300,97 @@ test "WHERE and peer SELECT expressions cannot use new SELECT aliases" {
     let query = @query.parse_query(text, syntax_limits()).unwrap()
     assert_true(
       compile(query, fixture_context(), construction_limits()) is Err(_),
+      msg=text,
+    )
+  }
+}
+
+///|
+test "OVER uses the input scope and lowers through ordinary Program admission" {
+  let text = "SELECT id AS renamed, ROW_NUMBER() OVER (PARTITION BY status ORDER BY id) AS pos FROM orders ORDER BY renamed"
+  let query = @query.parse_query(text, syntax_limits()).unwrap()
+  let program = compile(query, values_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(
+    wire.contains(
+      "\"analytic\":{\"functions\":{\"pos\":{\"fn\":\"row_number\"}}",
+    ),
+  )
+  assert_true(wire.contains("\"partition_by\":[\"status\"]"))
+  assert_true(wire.contains("\"field\":\"id\""))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("analytic input should be statically closed")
+    Rejected(diagnostic) =>
+      match @check.diagnostic_cause(diagnostic) {
+        Closure(UnresolvedOperation(site)) =>
+          match site.requirement {
+            @pipeline.RelationRequirement(pending) =>
+              fail(@debug.to_string(pending.kind))
+            _ => fail("non-relation requirement")
+          }
+        _ => fail("other rejection")
+      }
+  }
+  let invalid = @query.parse_query(
+    "SELECT id AS renamed, ROW_NUMBER() OVER (ORDER BY renamed) AS pos FROM orders",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(invalid, values_context(), construction_limits()) is Err(_),
+  )
+}
+
+///|
+test "OVER frame aggregate is not a group or final ORDER BY" {
+  let text = "SELECT id, COUNT(amount) OVER (PARTITION BY status ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running FROM orders"
+  let query = @query.parse_query(text, syntax_limits()).unwrap()
+  let program = compile(query, values_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(
+    wire.contains(
+      "\"analytic\":{\"frame\":{\"end\":\"current_row\",\"start\":\"unbounded_preceding\"}",
+    ),
+  )
+  assert_true(
+    wire.contains("\"running\":{\"field\":\"amount\",\"fn\":\"count\"}"),
+  )
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("analytic input should be statically closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+}
+
+///|
+test "matching OVER windows share one analytic operation" {
+  let text = "SELECT id, ROW_NUMBER() OVER (PARTITION BY status ORDER BY id) AS pos, LAG(amount, 2) OVER (PARTITION BY status ORDER BY id) AS previous FROM orders"
+  let query = @query.parse_query(text, syntax_limits()).unwrap()
+  let program = compile(query, values_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_eq(wire.split("\"analytic\":").length(), 2)
+  assert_true(wire.contains("\"pos\":{\"fn\":\"row_number\"}"))
+  assert_true(
+    wire.contains(
+      "\"previous\":{\"expr\":{\"field\":\"amount\"},\"fn\":\"lag\",\"offset\":2}",
+    ),
+  )
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("rank and navigation need no numeric profile")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  for
+    text in [
+      "SELECT ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS pos FROM orders",
+      "SELECT LAG(amount, 9007199254740992) OVER (ORDER BY id) AS previous FROM orders",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    assert_true(
+      compile(query, values_context(), construction_limits()) is Err(_),
       msg=text,
     )
   }
