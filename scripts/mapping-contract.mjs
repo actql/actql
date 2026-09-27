@@ -64,6 +64,7 @@ export function mappingContractBody() {
       target_schema_identity:'canonical_cid_of_complete_target_schema_or_exact_external_schema_reference',
       permission_selection:'exactly_one_nonempty_rule_for_effect_kind_selector_class_and_exact_write_fields',
       row_mapping:'explicit_target_field_sources_no_implicit_same_name_copy',
+      connector_manifest:'connector_manifest_cid_is_the_entry_cid_of_one_environment_manifest_entry_whose_connector_id_owns_target_ref',
       authority:'static_contract_not_current_resource_permission_or_apply_permit',
     },
   };

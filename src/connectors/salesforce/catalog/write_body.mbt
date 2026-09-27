@@ -103,6 +103,19 @@ pub fn prepare_write_body(
   bytes : Bytes,
   limits : WriteBodyLimits,
 ) -> Result[WriteBody, WriteBodyIssue] {
+  prepare_write_body_omitting(projection, bytes, limits, [])
+}
+
+///|
+/// As `prepare_write_body`, except that a field named in `omittable` may be
+/// absent from this row: its Mapping omits it when the source value is null.
+/// Any other absent field is still `MissingField`.
+pub fn prepare_write_body_omitting(
+  projection : WriteProjection,
+  bytes : Bytes,
+  limits : WriteBodyLimits,
+  omittable : Array[String],
+) -> Result[WriteBody, WriteBodyIssue] {
   if limits.max_bytes < 0 || limits.max_nodes < 1 || limits.max_depth < 1 {
     return Err(InvalidLimits)
   }
@@ -166,6 +179,9 @@ pub fn prepare_write_body(
   }
   for field in ordered {
     guard @decode.lookup(object, field.name) is Some(cursor) else {
+      if omittable.contains(field.name) {
+        continue
+      }
       return Err(MissingField(field.name))
     }
     @encode.key(output, field.name) catch {

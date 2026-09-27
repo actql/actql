@@ -106,6 +106,8 @@ pub fn check_catalog_contents(ContractRegistry, Limits) -> Result[CatalogContent
 
 pub fn check_catalog_references(CatalogContents, ReferenceLimits) -> Result[CatalogReferences, ReferenceIssue]
 
+pub fn check_connector_manifest(WireEnvironment, Limits) -> Result[ConnectorManifest, ConnectorManifestIssue]
+
 pub fn check_contract_registry(WireEnvironment, Limits) -> Result[ContractRegistry, ContractIssue]
 
 pub fn check_lookup_body_dependencies(LookupCapacities, ContractEnvelope) -> Result[CatalogBodyDependencies, BodyDependencyIssue]
@@ -159,6 +161,12 @@ pub fn compiler_grammar_manifest_cid() -> String
 pub fn compiler_grammar_manifest_wire() -> String
 
 pub fn compiler_version_token() -> String
+
+pub fn connector_manifest(WireEnvironment) -> @decode_core.Cursor?
+
+pub fn connector_manifest_entry(ConnectorManifest, String) -> ConnectorManifestEntry?
+
+pub fn connector_manifest_entry_identity(ConnectorManifestEntry) -> (String, String, String, String)
 
 pub fn connector_source_evidence_member_cids(ConnectorSourceEvidenceMembers) -> (String, String)
 
@@ -637,6 +645,26 @@ pub(all) enum CommandTargetIssue {
   InvalidCommand(String)
 } derive(Eq, @debug.Debug)
 
+pub struct ConnectorManifest {
+  entries : Array[ConnectorManifestEntry]
+}
+
+pub struct ConnectorManifestEntry {
+  cid : String
+  connector : String
+  connector_id : String
+  connector_version : String
+}
+
+pub(all) enum ConnectorManifestIssue {
+  InvalidManifest
+  InvalidEntry(Int)
+  UnsortedEntries
+  DuplicateConnector(String)
+  CatalogMismatch(String)
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
+
 type ConnectorSourceEvidenceMembers
 
 pub(all) struct ConnectorSourceEvidenceSelector {
@@ -737,6 +765,7 @@ pub(all) enum Issue {
   UnsortedEvidence(Section)
   DuplicateSnapshot(String)
   DuplicateContract(String)
+  InvalidManifest(ConnectorManifestIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {
@@ -889,6 +918,9 @@ pub(all) enum MappingShapeIssue {
   TargetSchemaMismatch(Int)
   InvalidTargetSchema(Int)
   DuplicateMapping(String)
+  Manifest(ConnectorManifestIssue)
+  ManifestUnresolved(Int)
+  ForeignTarget(Int)
 } derive(Eq, @debug.Debug)
 
 type Member

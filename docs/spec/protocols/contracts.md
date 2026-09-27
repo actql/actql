@@ -851,6 +851,25 @@ The SPI separates static `describeViews`, side-effect
 free `planRead`, and `executeRead`; one opaque callback MUST NOT hide contract
 resolution and network execution in the same phase.
 
+<!-- requirement-block: connector-manifest.a-check-environment-may-carry-the-manifest-entries-that-its-mappings-name connector-manifest.a-mapping-must-name-exactly-one-entry-whose-connection-owns-its-target -->
+A Check Environment MAY carry the manifest as `connector_manifest`:
+`{version: "actql-connectors/0.1", connectors}`. Each entry there is exactly
+`{connector, connector_id, connector_version}`: the Connector registration,
+the Host's logical connection id, and the Connector version. The entry's
+identity is the canonical CID of the entry body alone, not of the manifest,
+its Catalog, a Host path or an `auth_binding`, so adding another connection,
+regenerating a Catalog or rebinding authorization does not change it.
+Entries are strictly ordered by that CID and have unique `connector_id`
+values. Each entry MUST match exactly one Connector Catalog of the same
+environment by `connector_id` and `connector_version`. A Mapping's
+`connector_manifest_cid` is the CID of one such entry, and its `target_ref`
+MUST be a Resource of that entry's connection
+(`connector://<connector_id>/<resource>`). Check rejects a Mapping whose
+reference resolves to no entry, an entry without its Catalog, and a Mapping
+targeting another connection. Admission is static identity, not an
+installed implementation, current authority or an apply permit; the Site
+still checks each write against its own declaration before provider I/O.
+
 <!-- requirement-block: connector-manifest.a-connector-must-reject-absolute-drive-qualified-unc-parent-segment-and-intermediate-symlink -->
 Every filesystem-backed Connector path declared by this portable local
 manifest is a relative path confined to the manifest directory. A Connector
@@ -893,8 +912,9 @@ admission MUST validate the inline mapping against the resolved static contract.
 The program and preview MUST bind both the authored mapping reference and the
 complete resolved mapping evidence as
 `resolved_mapping_contract_cid`. The canonical resolved contract contains its
-version, mapping and target references, connector-manifest and resource
-identity, target-schema identity, complete target schema and nullability,
+version, mapping and target references, connector-manifest entry identity
+(the `connector_manifest_cid` of its connection's manifest entry) and
+resource identity, target-schema identity, complete target schema and nullability,
 primary identity, writable fields, conversions, permission rules, and required
 permissions. It carries no approval minimum: permission rules are exact
 technical provider requirements, not execution-account grants or approval
@@ -1600,7 +1620,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:52d76d2076977a16f78f35797b00f65aa7796d9aaf75ae6376ffa8d5e74d9129
+../../../spec/contracts/actql-check-environment.json# sha256:50a14e0c2454d439df53fc4be570d6e008299ba1005cc442838a985337cb3dd8
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:b59aff026e4853a370475e7b25c7fa6ddf0890aacbd57af0a3ec4b7aa14b65b5
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2

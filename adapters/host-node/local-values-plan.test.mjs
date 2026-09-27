@@ -19,12 +19,13 @@ import {admitEnvironment as admitStandaloneEnvironment,
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const hash = body => `sha256:${createHash('sha256')
   .update(canonicalText(body)).digest('hex')}`;
-// Compatibility snapshots from the standalone compiler under main's pins.
+// Compatibility snapshots from the standalone compiler under this checkout's
+// pins (the Check Environment contract pin included).
 // These supplement,
 // not replace, the independent logical-plan vectors in run-host-core tests.
 const planCids = {
-  values: 'sha256:513346f1e064e10fda56ac3037c5cfcdd3fa21edf8abe3fc36aac7024771c529',
-  tasks: 'sha256:9f2ef3d4d2908a1693fecf4873885de150f6553187923461deab710dacb5e99f',
+  values: 'sha256:41a2171a7444034d81ab545ac20bd21f7806c821ab077565b8ec7e0ab8228c81',
+  tasks: 'sha256:a9a4fabb9455df6f32a226c69e36650f82f6c971c8852c6bbd46d8d6136d6905',
 };
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 const policy = Object.freeze({executionContextCid: cid('a'),

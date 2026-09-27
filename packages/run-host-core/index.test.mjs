@@ -686,7 +686,7 @@ test('portable Host package compiles the ordinary Values Program', () => {
   assert.deepEqual(plan.plan_facts, facts.plan_facts);
   assert.deepEqual(plan.root_refs.map(root => root.name), ['answer']);
   assert.deepEqual(plan.execution_material.result_plan_logical_cids,
-    {answer: 'sha256:d55633378a13c8b55ac9dcd275459728a00e837f365dbc315cd6a865d583426e'});
+    {answer: 'sha256:8d2ad95f6f8b7be42c550d922d0614e68be2700bba05d7af2c7e03a4fcbbcc38'});
   assert.equal(template.bound_invocation_template_cid,
     without(template, 'bound_invocation_template_cid'));
   assert.equal(compiled.compiled_plan_cid,

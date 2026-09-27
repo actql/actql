@@ -28,6 +28,8 @@ pub(all) enum Issue {
   UnsortedEvidence(Section)
   DuplicateSnapshot(String)
   DuplicateContract(String)
+  /// A supplied `connector_manifest` is not an admissible manifest.
+  InvalidManifest(ConnectorManifestIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -42,6 +44,9 @@ priv struct Entry {
 struct WireEnvironment {
   root : @decode.Cursor
   policy : @decode.Cursor
+  // The optional `actql-connectors/0.1` manifest; admitted by
+  // `check_connector_manifest`.
+  manifest : @decode.Cursor?
   cid : String
   sections : Array[Array[Entry]]
   bytes : Int
@@ -175,7 +180,7 @@ pub fn read(
       @decode.closed_object(root, [
         "version", "evidence_bundle_cid", "host_policy_profile", "schema_snapshots",
         "connector_capabilities", "mapping_contracts", "source_views", "command_contracts",
-        "model_task_contracts", "contract_registry", "connector_catalogs",
+        "model_task_contracts", "contract_registry", "connector_catalogs", "connector_manifest",
       ]) {
       Ok(v) => v
       Err(_) => raise Stop(InvalidEnvelope)
@@ -255,12 +260,36 @@ pub fn read(
       }
       sections.push(entries)
     }
-    Ok({ root, policy, cid: identity, sections, bytes: size, nodes, members, })
+    let manifest = @decode.lookup(object, "connector_manifest")
+    if manifest is Some(value) && @decode.object_length(value) is None {
+      raise Stop(InvalidEnvelope)
+    }
+    let environment : WireEnvironment = {
+      root,
+      policy,
+      manifest,
+      cid: identity,
+      sections,
+      bytes: size,
+      nodes,
+      members,
+    }
+    // A supplied manifest is admitted for every environment, whether or not
+    // any Mapping names it; an environment without one stays valid.
+    match check_connector_manifest(environment, limits) {
+      Ok(_) => Ok(environment)
+      Err(issue) => Err(InvalidManifest(issue))
+    }
   } catch {
     Stop(e) => Err(e)
     @encode.OutputLimit => Err(BudgetExceeded)
     _ => Err(NonCanonicalBytes)
   }
+}
+
+///|
+pub fn connector_manifest(v : WireEnvironment) -> @decode.Cursor? {
+  v.manifest
 }
 
 ///|

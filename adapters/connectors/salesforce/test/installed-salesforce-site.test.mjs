@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -16,6 +16,8 @@ import {DEFAULT_SALESFORCE_CATALOG_LIMITS, INSTALLED_SALESFORCE_SITE_VERSION,
   '../host/installed-salesforce-site.mjs';
 import {openSalesforceEffectSiteFixture} from
   './salesforce-effect-site.fixture.mjs';
+import {declarationEnvironment, declaredReadProgram} from
+  './salesforce-declaration-environment.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const configuration = entries => canonicalJson({
@@ -342,4 +344,79 @@ test('default Catalog limits admit a full listing of provider-shaped entries',
       list.maxSelected, list.maxNameUnits));
     assert.equal(salesforceMoon.salesforceCatalogResourceNames(listing).length,
       list.maxSelected);
+  });
+
+test('installed Salesforce Site declares only its selected, typed Resources',
+  async t => {
+    const setup = await installed(t, {extraObjects: ['Account']});
+    const site = await setup.load();
+    const before = setup.org.seen.length;
+    const declared = await site.declareCatalog({connectorId: 'crm-main',
+      resources: ['Test_Record__c']});
+    // One list and one describe of the selected Resource, no query.
+    assert.deepEqual(setup.org.seen.slice(before).map(item =>
+      decodeURIComponent(item.path)), [
+      '/services/data/v62.0/sobjects/',
+      '/services/data/v62.0/sobjects/Test_Record__c/describe',
+    ]);
+    assert.equal(site.ownsDeclaration(declared.declaration), true);
+    assert.equal(site.ownsDeclaration({...declared.declaration}), false);
+    assert.deepEqual(declared.views.map(view => [view.resource,
+      view.source_ref, view.fields]), [['Test_Record__c',
+      'connector://crm-main/Test_Record__c#records',
+      ['Id', 'Name', 'External_Key__c']]]);
+    const [writable] = declared.writables;
+    assert.equal(writable.target_ref, 'connector://crm-main/Test_Record__c');
+    assert.deepEqual(writable.create_fields, ['External_Key__c', 'Name']);
+    assert.deepEqual(writable.upsert_keys, ['External_Key__c']);
+    assert.deepEqual(writable.required_fields, ['External_Key__c', 'Name']);
+    // The Catalog is the generator's canonical text; its CID is recomputed
+    // here independently from the canonical bytes.
+    const catalog = JSON.parse(declared.catalog);
+    const {catalog_cid: catalogCid, ...unsealed} = catalog;
+    assert.equal(catalogCid, declared.catalog_cid);
+    assert.equal(canonicalJson(catalog), declared.catalog);
+    assert.equal(`sha256:${createHash('sha256')
+      .update(canonicalJson(unsealed)).digest('hex')}`, catalogCid);
+    for (const view of catalog.source_views) {
+      const {contract_cid: viewCid, ...body} = view;
+      assert.equal(`sha256:${createHash('sha256')
+        .update(canonicalJson(body)).digest('hex')}`, viewCid);
+    }
+    // Account was listed but not selected: it is outside the declaration,
+    // not declared absent.
+    assert.equal(declared.catalog.includes('Account'), false);
+    // The same selection again is the same declaration.
+    const again = await site.declareCatalog({connectorId: 'crm-main',
+      resources: ['Test_Record__c']});
+    assert.equal(again.catalog_cid, declared.catalog_cid);
+    await assert.rejects(site.declareCatalog({connectorId: 'crm main',
+      resources: ['Test_Record__c']}), {code: 'MoonBitHostFailure'});
+    await assert.rejects(site.declareCatalog({connectorId: 'crm-main',
+      resources: []}), {code: 'InvalidSalesforceDeclaration'});
+  });
+
+test('a Program is checked against the Site\'s generated declaration',
+  async t => {
+    const setup = await installed(t);
+    const site = await setup.load();
+    const declared = await site.declareCatalog({connectorId: 'crm-main',
+      resources: ['Test_Record__c']});
+    const {text, evidenceCid} = declarationEnvironment(declared);
+    const environment = commonMoon.clientProgramCheckEnvironment(text,
+      evidenceCid, false, false, true, false, false, false, false);
+    assert.ok(environment);
+    const prepare = (resource, fields) =>
+      commonMoon.clientProgramPrepareEffectFreeWithParameters(
+        declaredReadProgram('crm-main', resource, fields), 'json',
+        environment, undefined);
+    const outcome = prepare('Test_Record__c', ['Id', 'Name']);
+    assert.ok(commonMoon.clientProgramPreparationReady(outcome),
+      String(commonMoon.clientProgramPreparationIssueCode(outcome)));
+    // A field outside the declaration, and a Resource outside it, fail Check.
+    for (const [resource, fields] of [['Test_Record__c', ['Id', 'Missing__c']],
+      ['Account', ['Id']]]) {
+      assert.equal(commonMoon.clientProgramPreparationReady(
+        prepare(resource, fields)), undefined);
+    }
   });

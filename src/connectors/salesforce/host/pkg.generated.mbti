@@ -72,7 +72,7 @@ pub fn prepare_managed_query(@catalog.ReadProjection, String, @catalog.QueryPage
 
 pub fn prepare_salesforce_broad_issuer(@query_planning.QueryEvidenceContracts, @query_planning.QueryRequirement, String, Int, (SalesforceBroadAttempt) -> Bool) -> Result[SalesforceBroadIssuer, SalesforceEvidenceIssue]
 
-pub fn prepare_salesforce_broad_query(@query_planning.QueryRequirement, @catalog.ReadProjection, String) -> Result[SalesforceBroadPreparation, SalesforceBroadIssue]
+pub fn prepare_salesforce_broad_query(@query_planning.QueryRequirement, @catalog.ReadProjection, String, @catalog.StaticDeclaration) -> Result[SalesforceBroadPreparation, SalesforceBroadIssue]
 
 pub fn retain_salesforce_broad_attempt(SalesforceBroadAttempt, @query_planning.QueryRetentionLimits) -> Result[Unit, SalesforceBroadAttemptIssue]
 
@@ -165,6 +165,7 @@ pub(all) enum SalesforceBroadIssue {
   ForeignSource
   InvalidInputSchema
   UnexpectedPrefilter
+  Undeclared(@catalog.DeclarationUseIssue)
   Query(@catalog.QueryReadIssue)
   Capture(@execution_relation.CaptureIssue)
   Closed

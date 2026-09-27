@@ -3,6 +3,7 @@ pub(all) enum SalesforceBroadIssue {
   ForeignSource
   InvalidInputSchema
   UnexpectedPrefilter
+  Undeclared(@catalog.DeclarationUseIssue)
   Query(@catalog.QueryReadIssue)
   Capture(@execution.CaptureIssue)
   Closed
@@ -60,10 +61,13 @@ fn exact_int_prefilter(
 }
 
 ///|
+/// The checked source must be a SourceView of this Site's declaration for
+/// the planned Resource and fields; otherwise nothing is prepared.
 pub fn prepare_salesforce_broad_query(
   requirement : @planning.QueryRequirement,
   plan : @catalog.ReadProjection,
   connector_instance : String,
+  site_declaration : @catalog.StaticDeclaration,
 ) -> Result[SalesforceBroadPreparation, SalesforceBroadIssue] {
   if @catalog.read_projection_has_prefilter(plan) {
     return Err(UnexpectedPrefilter)
@@ -98,6 +102,18 @@ pub fn prepare_salesforce_broad_query(
   let (columns, bound) = match projection_columns(plan, schema) {
     Some(value) => value
     None => return Err(InvalidInputSchema)
+  }
+  if connector_instance != site_declaration.connector_id {
+    return Err(ForeignSource)
+  }
+  match
+    @catalog.check_declared_read(
+      site_declaration,
+      bound,
+      @planning.query_requirement_source(requirement).1,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Undeclared(issue))
   }
   let filtered = exact_int_prefilter(
     owner,

@@ -204,12 +204,35 @@ try {
         reconciledResponse = true;
       } : undefined;
     const effects = previewBody.effects;
+    // A restarted Site declares again from its recovered observation; the
+    // same selected schema reproduces the same declaration.
+    const redeclare = observation => {
+      const binding = JSON.parse(
+        salesforceMoon.salesforceCatalogObservationJson(observation)).binding;
+      return checked(salesforceMoon.salesforceGenerateStaticDeclaration(
+        observation, binding.tenant, binding.principal, binding.environment,
+        binding.connection_revision, binding.org_id, binding.site_key,
+        binding.site_generation, binding.connector_registration,
+        binding.connector_revision, binding.resource_origin,
+        binding.run_invocation_cid, binding.dispatch_request_cid,
+        binding.sync_occurrence,
+        checked(salesforceMoon.salesforceImplementation('salesforce/0.1')),
+        'crm-main', ['Test_Record__c'], 400000, 40000, 64));
+    };
+    const executionWrite = write => [
+      {create: 0, update: 2, upsert: 3}[write.kind], write.fields,
+      write.key ?? '', [], [], []];
     const prepareCurrentUse = () => {
       const capabilities = activeSites.map((site, memberIndex) =>
         issueSalesforceEffectCapability({moon: salesforceMoon,
           requests: recoveredSalesforce.requests[memberIndex],
           currentObservation: recoveredSalesforce.catalogs[memberIndex],
           authorization: site.write, credential: site.credential,
+          mapping: checked(salesforceMoon.salesforcePrepareExecutionMapping(
+            redeclare(recoveredSalesforce.catalogs[memberIndex]),
+            'Test_Record__c', ...executionWrite(
+              input.salesforceRecovery.writes[memberIndex]),
+            400000, 40000, 64)),
           maxRows: input.maxRows, maxBytes: 20000}));
       return installSalesforceEffectCurrentUse({
         moon: salesforceMoon, commonMoon: moon,

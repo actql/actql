@@ -149,10 +149,24 @@ const mapping = {
     .update(JSON.stringify(targetSchema)).digest('hex'),
   version: 'salesforce-v1', writable_fields: ['Name'],
 };
+// The Mapping names its connection's manifest entry, whose Catalog the
+// environment carries; keys are written in canonical order.
+const manifestEntry = {connector: 'crm', connector_id: 'crm',
+  connector_version: 'fixture'};
+const catalogBody = {commands: [], connector_id: 'crm',
+  connector_version: 'fixture', contracts: [],
+  schema: 'actql.connector_catalog/0.1', source_views: []};
+const catalog = {catalog_cid: 'sha256:' + createHash('sha256')
+  .update(JSON.stringify(catalogBody)).digest('hex'), ...catalogBody};
+mapping.connector_manifest_cid = 'sha256:' + createHash('sha256')
+  .update(JSON.stringify(manifestEntry)).digest('hex');
 mapping.mapping_contract_cid = hashWithoutSelf(mapping,
   'mapping_contract_cid');
-const effectEnvironmentBody = JSON.parse(wire);
-effectEnvironmentBody.mapping_contracts = [mapping];
+const effectEnvironmentBody = Object.fromEntries(Object.entries({
+  ...JSON.parse(wire), connector_catalogs: [catalog],
+  connector_manifest: {connectors: [manifestEntry],
+    version: 'actql-connectors/0.1'},
+  mapping_contracts: [mapping]}).sort(([a], [b]) => a < b ? -1 : 1));
 effectEnvironmentBody.evidence_bundle_cid = hashWithoutSelf(
   effectEnvironmentBody, 'evidence_bundle_cid');
 const effectEnvironmentWire = JSON.stringify(effectEnvironmentBody);

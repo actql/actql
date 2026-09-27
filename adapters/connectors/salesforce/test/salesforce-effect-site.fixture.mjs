@@ -10,6 +10,17 @@ import {INSTALLED_SALESFORCE_SITE_VERSION, installSalesforceAuthorization,
   loadInstalledSalesforceSite} from '../host/installed-salesforce-site.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
+// The execution request of each fixture write kind.
+export const fixtureWrites = Object.freeze({
+  create: {kind: 'create', fields: ['External_Key__c', 'Name']},
+  update: {kind: 'update', fields: ['Name']},
+  upsert: {kind: 'upsert', key: 'External_Key__c', fields: ['Name']},
+  // A Result-backed create that omits a null label.
+  createOmit: {kind: 'createFromResult', sources: [
+    {target: 'External_Key__c', field: 'id', nullBehavior: 'reject'},
+    {target: 'Name', field: 'id', nullBehavior: 'reject'},
+    {target: 'Optional_Text__c', field: 'label', nullBehavior: 'omit'}]},
+});
 
 // The Host account configuration for the local orgs: Test_Record__c reads
 // and Effects are allowed; nothing else is configured.
@@ -42,6 +53,10 @@ export async function openSalesforceEffectSiteFixture(t, {
   // in which the stored records are returned without ORDER BY.
   idSortable = false,
   storedOrder = [1, 2, 3],
+  // A nullable, writable Optional_Text__c on Test_Record__c.
+  optionalText = false,
+  // The Host's logical connection id the Site declares under.
+  connectorId = 'crm-main',
 }) {
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
   const openssl = (...args) => execFileSync('openssl', args,
@@ -67,6 +82,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   let rateLimitReply = rateLimitWriteOnce;
   let observedName = 'before';
   let nameUpdateable = true;
+  let nameCreateable = true;
   const server = createServer({cert, key}, (request, response) => {
     const observed = {method: request.method, path: request.url,
       authorization: request.headers.authorization};
@@ -126,12 +142,15 @@ export async function openSalesforceEffectSiteFixture(t, {
         createable: true, updateable: true, fields: [
           {name: 'Id', type: 'id', nillable: false, sortable: idSortable},
           {name: 'Name', type: 'string', nillable: false,
-            defaultedOnCreate: false, createable: true,
+            defaultedOnCreate: false, createable: nameCreateable,
             updateable: nameUpdateable},
           {name: 'External_Key__c', type: 'string', externalId: true,
             unique: true, caseSensitive: true, nillable: false,
             defaultedOnCreate: false, createable: true,
             updateable: true},
+          ...(optionalText ? [{name: 'Optional_Text__c', type: 'string',
+            nillable: true, defaultedOnCreate: false, createable: true,
+            updateable: true}] : []),
         ]}));
       return;
     }
@@ -150,10 +169,11 @@ export async function openSalesforceEffectSiteFixture(t, {
       request.on('data', chunk => chunks.push(chunk));
       request.on('end', () => {
         observed.body = Buffer.concat(chunks).toString('utf8');
-        assert.deepEqual(JSON.parse(observed.body), {
-          External_Key__c: JSON.parse(observed.body).Name,
-          Name: JSON.parse(observed.body).Name,
-        });
+        const {Optional_Text__c: optional, ...required} =
+          JSON.parse(observed.body);
+        assert.deepEqual(required, {External_Key__c: required.Name,
+          Name: required.Name});
+        assert.ok(optional === undefined || optionalText);
         if (loseReply) {
           loseReply = false;
           request.socket.destroy();
@@ -298,6 +318,10 @@ export async function openSalesforceEffectSiteFixture(t, {
   };
   const catalog = await refreshCatalog();
   assert.equal(catalog.status, 'complete');
+  // The Site's static declaration for its writable Resource: the explicit
+  // publication step that gates its write capability.
+  const declared = await installed.declareCatalog({connectorId,
+    resources: ['Test_Record__c']});
   const recoveryGrant = authorization => Object.freeze({
     cid: control.identity(authorization.grant),
     wire: control.json(authorization.grant),
@@ -315,7 +339,15 @@ export async function openSalesforceEffectSiteFixture(t, {
     write: recoveryGrant(write),
   });
   return {seen, journal, orgId, origin, catalog, observe, write, credential,
-    refreshCatalog, recoveryConnection,
+    refreshCatalog, recoveryConnection, declared,
+    declaration: declared.declaration,
+    // The execution Mapping of one write under this Site's declaration.
+    executionMapping: (write, declaration = declared.declaration) =>
+      installed.prepareExecutionMapping({declaration,
+        resource: 'Test_Record__c', write}),
+    refreshDeclaration: () => installed.declareCatalog({
+      connectorId, resources: ['Test_Record__c']}),
     setTargetName(name) { observedName = name; },
-    setNameUpdateable(value) { nameUpdateable = value; }};
+    setNameUpdateable(value) { nameUpdateable = value; },
+    setNameCreateable(value) { nameCreateable = value; }};
 }

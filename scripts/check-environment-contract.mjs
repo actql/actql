@@ -20,6 +20,22 @@ const body = {
       ...Object.fromEntries(sections.map(s=>[s,records])),
       host_policy_profile:{type:'object'},
       evidence_bundle_cid:{type:'string',pattern:'^sha256:[0-9a-f]{64}$'},
+      connector_manifest:{
+        type:'object',additionalProperties:false,
+        required:['version','connectors'],
+        properties:{
+          version:{const:'actql-connectors/0.1'},
+          connectors:{type:'array',items:{
+            type:'object',additionalProperties:false,
+            required:['connector','connector_id','connector_version'],
+            properties:{
+              connector:{type:'string',minLength:1},
+              connector_id:{type:'string',minLength:1},
+              connector_version:{type:'string',minLength:1},
+            },
+          }},
+        },
+      },
     },
   },
   semantics:{
@@ -33,6 +49,8 @@ const body = {
     catalog_preimage:'complete_catalog_except_root_catalog_cid',
     catalog_member_preimages:'source_view_and_command_except_root_contract_cid_contract_envelope_except_root_cid',
     catalog_member_order:'strict_ascending_self_cid_per_array_no_repair',
+    connector_manifest:'optional_actql_connectors_0_1_manifest_entries_closed_ascending_entry_cid_unique_connector_id_each_matching_one_catalog_connector_id_and_connector_version',
+    connector_manifest_entry_identity:'canonical_cid_of_the_entry_body_alone_not_the_manifest_or_its_catalog',
     catalog_membership:'each_reference_resolves_inside_its_own_catalog_shared_envelopes_deduplicate_only_in_derived_registry',
     policy:'validate_selected_profile_and_every_supplied_policy_component',
     authority:'shape_hash_and_membership_are_not_authorization_or_runtime_evidence',
