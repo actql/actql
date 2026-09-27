@@ -6,6 +6,7 @@ declare const requestBrand: unique symbol;
 declare const admissionBrand: unique symbol;
 declare const definitionBrand: unique symbol;
 declare const publicationBrand: unique symbol;
+declare const deliveryContractBrand: unique symbol;
 declare const resultOccurrenceBrand: unique symbol;
 declare const runEvidenceBrand: unique symbol;
 declare const capturedSnapshotBrand: unique symbol;
@@ -61,12 +62,22 @@ export interface PublicationContract {
   readonly wire: string;
 }
 
-export interface DeliveryContractView {
-  readonly name: string;
+export interface DeliveryContractView<Kind extends string = string> {
+  readonly [deliveryContractBrand]: Kind;
+  readonly name: Kind;
   readonly identityField: string;
   readonly identity: string;
   readonly wire: string;
 }
+
+type IndexView = DeliveryContractView<'public_index_entry'>;
+type ManifestView = DeliveryContractView<'result_manifest'>;
+type RetentionView = DeliveryContractView<'result_retention_policy'>;
+type ExtensionView = RetentionView;
+type GrantView = DeliveryContractView<'result_read_grant'>;
+type AttemptView = DeliveryContractView<'delivery_attempt'>;
+type ReceiptView = DeliveryContractView<'result_delivery_receipt'>;
+type RecordView = DeliveryContractView<'delivery_record'>;
 
 declare const resultAccessBrand: unique symbol;
 declare const resultSerializerBrand: unique symbol;
@@ -82,10 +93,13 @@ export interface DurableResultRowFrames {
 }
 
 export interface ResultDeliveryControl {
-  admit(name: string, wire: string,
-    limits: PublicationLimits): DeliveryContractView;
+  admit<Kind extends string>(name: Kind, wire: string,
+    limits: PublicationLimits): DeliveryContractView<Kind>;
   beginResultAccessProgress(): ResultAccessProgress;
-  resultAccessProgressAction(progress: ResultAccessProgress): number;
+  resultAccessProgressAction(progress: ResultAccessProgress):
+    'authorize_request' | 'resolve_committed_result' |
+    'check_initial_availability' | 'admit_read' | 'issue_grant' |
+    'start_delivery' | 'reject';
   recordResultAccessRequestAuthorization(progress: ResultAccessProgress,
     value: boolean): boolean;
   recordResultAccessResolution(progress: ResultAccessProgress,
@@ -96,59 +110,62 @@ export interface ResultDeliveryControl {
     value: boolean): boolean;
   recordResultAccessGrant(progress: ResultAccessProgress,
     value: boolean): boolean;
-  resultReadRetentionPolicyCid(manifest: DeliveryContractView,
+  resultReadRetentionPolicyCid(manifest: ManifestView,
     resultName: string): string;
-  resultReadDefinitionCid(manifest: DeliveryContractView,
+  resultReadDefinitionCid(manifest: ManifestView,
     resultName: string): string;
-  resultReadAvailability(manifest: DeliveryContractView,
-    resultName: string, retention: DeliveryContractView,
+  resultReadAvailability(manifest: ManifestView,
+    resultName: string, retention: RetentionView,
     observedAt: string): string;
-  resultReadExtendedAvailability(manifest: DeliveryContractView,
-    resultName: string, retention: DeliveryContractView,
-    extension: DeliveryContractView, observedAt: string): string;
-  resultRetentionClockContractCid(retention: DeliveryContractView): string;
-  issueResultReadGrant(index: DeliveryContractView,
-    manifest: DeliveryContractView, grant: Readonly<{
+  resultReadExtendedAvailability(manifest: ManifestView,
+    resultName: string, retention: RetentionView,
+    extension: ExtensionView, observedAt: string): string;
+  resultRetentionClockContractCid(retention: RetentionView): string;
+  issueResultReadGrant(index: IndexView,
+    manifest: ManifestView, grant: Readonly<{
       resultNames: readonly string[]; formats: readonly string[];
       principalId: string; purpose: string; dataCeilingCid: string;
       maxBytes: number; maxUses: number; expiresAt: string;
       authorizationContextCid: string; egressAdmissionCid: string;
-    }>, limits: PublicationLimits): DeliveryContractView;
-  resultReadGrantValidAt(grant: DeliveryContractView,
+    }>, limits: PublicationLimits): GrantView;
+  resultReadGrantValidAt(grant: GrantView,
     observedAt: string): boolean;
-  resultReadGrantAllowsBytes(grant: DeliveryContractView,
+  resultReadGrantAllowsBytes(grant: GrantView,
     count: number): boolean;
-  issueDeliveryAttempt(index: DeliveryContractView,
-    manifest: DeliveryContractView, grant: DeliveryContractView,
+  issueDeliveryAttempt(index: IndexView,
+    manifest: ManifestView, grant: GrantView,
     attempt: Readonly<{resultName: string; format: string;
       attemptId: string; requestedAt: string}>,
-    limits: PublicationLimits): DeliveryContractView;
-  deliveryResultDefinitionCid(manifest: DeliveryContractView,
-    attempt: DeliveryContractView): string;
-  issueResultDeliveryReceipt(index: DeliveryContractView,
-    manifest: DeliveryContractView, grant: DeliveryContractView,
-    attempt: DeliveryContractView,
+    limits: PublicationLimits): AttemptView;
+  deliveryResultDefinitionCid(manifest: ManifestView,
+    attempt: AttemptView): string;
+  issueResultDeliveryReceipt(index: IndexView,
+    manifest: ManifestView, grant: GrantView,
+    attempt: AttemptView,
     delivered: Readonly<{byteCount: number; sha256: string}>,
-    limits: PublicationLimits): DeliveryContractView;
-  issueDeliveryRecord(attempt: DeliveryContractView,
-    previous: DeliveryContractView | undefined,
+    limits: PublicationLimits): ReceiptView;
+  issueDeliveryRecord(attempt: AttemptView,
+    previous: RecordView | undefined,
     update: Readonly<{state: string; confirmedByteCount: number;
       exposure: string; possibleUnconfirmedMaxBytes?: number;
-      deliveredSha256?: string; receipt?: DeliveryContractView;
+      deliveredSha256?: string; receipt?: ReceiptView;
       failureCid?: string; observedAt: string;
       cleanupOwnerCids: readonly string[]}>,
-    limits: PublicationLimits): DeliveryContractView;
-  existingDeliveryAttemptAction(record?: DeliveryContractView): number;
-  deliveryFailureTerminalAction(observed: boolean): number;
-  deliveryRecordRetryAction(next: number, count: number): number;
-  deliveryTransition(previous: DeliveryContractView | undefined,
-    next: DeliveryContractView): boolean;
-  deliverySuccessValid(attempt: DeliveryContractView,
-    receipt: DeliveryContractView, record: DeliveryContractView): boolean;
+    limits: PublicationLimits): RecordView;
+  existingDeliveryAttemptAction(record?: RecordView):
+    'confirm_succeeded_record' | 'reject_unresolved_attempt' |
+    'reject_terminal_attempt' | 'invalid';
+  deliveryFailureTerminalAction(observed: boolean): 'failed' | 'cancelled';
+  deliveryRecordRetryAction(next: number, count: number):
+    'append_next_record' | 'finished' | 'invalid';
+  deliveryTransition(previous: RecordView | undefined,
+    next: RecordView): boolean;
+  deliverySuccessValid(attempt: AttemptView,
+    receipt: ReceiptView, record: RecordView): boolean;
   trustedClockNotBefore(previous: string | undefined,
     observedAt: string): boolean;
-  prepareDeliveryGrantUsageClaim(grant: DeliveryContractView,
-    existingWire: string | undefined, attempt: DeliveryContractView,
+  prepareDeliveryGrantUsageClaim(grant: GrantView,
+    existingWire: string | undefined, attempt: AttemptView,
     limits: PublicationLimits): Readonly<{
       wire: string; newlyClaimed: boolean;
     }>;
@@ -352,9 +369,9 @@ export function privateRunDefinition(definition: RunDefinition): Readonly<{
 export function issueUnpublishedRunStateWire(prepared: PreparedProgram,
   compilation: ValuesCompilation, admission: RunAdmission,
   definition: RunDefinition, observedAt: string,
-  dispatchReserved: boolean,
-  preDispatchFailureConfirmed: boolean, cancelledBeforeStart?: boolean,
-  executionUnknown?: boolean): string;
+  observation: Readonly<{dispatchReserved: boolean;
+    preDispatchFailureConfirmed: boolean; cancelledBeforeStart?: boolean;
+    executionUnknown?: boolean}>): string;
 /** Project a committed Run with current physical availability observations. */
 export function issueSucceededRunStateWire(prepared: PreparedProgram,
   compilation: ValuesCompilation, admission: RunAdmission,
@@ -623,6 +640,7 @@ export function prepareRunCancellation(definition: RunDefinition,
   definitionCid: string, authorized: boolean, terminal: boolean,
   requested: boolean): 'accepted' | 'already_requested' | 'already_terminal';
 export function issueRunControlObservation(revision: number,
-  requested: boolean, unstarted: boolean, stopped: boolean): Readonly<{
+  observation: Readonly<{requested: boolean; unstarted: boolean;
+    stopped: boolean}>): Readonly<{
     revision: number; cancellation_requested: boolean;
     physical_stop: 'unknown' | 'confirmed'}>;

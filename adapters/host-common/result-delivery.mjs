@@ -168,11 +168,13 @@ function pendingRecordFailure(
         const action = control.deliveryRecordRetryAction(
           nextRecord, records.length,
         );
-        if (action === 1) {
+        if (action === 'finished') {
           pending = false;
           break;
         }
-        if (action !== 0) fail('InvalidResultDeliveryRecordRetry');
+        if (action !== 'append_next_record') {
+          fail('InvalidResultDeliveryRecordRetry');
+        }
         try {
           await appendExactRecord(store, records[nextRecord]);
           nextRecord++;
@@ -255,7 +257,7 @@ export async function deliverPublishedResult(options) {
     if (existing !== undefined) {
       const action = control.existingDeliveryAttemptAction(existing);
       const value = JSON.parse(existing.wire);
-      if (action === 0) {
+      if (action === 'confirm_succeeded_record') {
         try { await store.confirmDeliveryRecord(existing.wire); }
         catch (recordFailure) {
           throw pendingRecordFailure(
@@ -286,8 +288,12 @@ export async function deliverPublishedResult(options) {
           idempotent: true,
         });
       }
-      if (action === 1) fail('ResultDeliveryAttemptUnresolved');
-      if (action === 2) fail('ResultDeliveryAttemptTerminal');
+      if (action === 'reject_unresolved_attempt') {
+        fail('ResultDeliveryAttemptUnresolved');
+      }
+      if (action === 'reject_terminal_attempt') {
+        fail('ResultDeliveryAttemptTerminal');
+      }
       fail('InvalidResultDeliveryAttemptState');
     }
   }
@@ -499,11 +505,11 @@ export async function deliverPublishedResult(options) {
     const terminalAction = control.deliveryFailureTerminalAction(
       signal?.aborted === true,
     );
-    if (terminalAction !== 0 && terminalAction !== 1) {
+    if (terminalAction !== 'failed' && terminalAction !== 'cancelled') {
       fail('InvalidResultDeliveryTerminalAction');
     }
     const terminal = control.issueDeliveryRecord(attempt, streaming, {
-      state: terminalAction === 1 ? 'cancelled' : 'failed',
+      state: terminalAction,
       confirmedByteCount,
       exposure: writeFailure?.exposure ?? 'exact',
       possibleUnconfirmedMaxBytes:
