@@ -1,0 +1,143 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/query_syntax"
+
+import {
+  "actql/actql/frontend_source_map",
+  "actql/actql/source_span",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn expression_document(Expression) -> @frontend_source_map.Document
+
+pub fn expression_node(Expression, Int) -> ExpressionNode?
+
+pub fn expression_node_count(Expression) -> Int
+
+pub fn expression_origin(Expression, Int) -> @frontend_source_map.Origin?
+
+pub fn expression_root(Expression) -> Int
+
+pub fn expression_work(Expression) -> Int
+
+pub fn parse_expression(String, ExpressionLimits, source_path? : String) -> Result[Expression, Diagnostic]
+
+pub fn token_at(Tokens, Int) -> Token?
+
+pub fn token_count(Tokens) -> Int
+
+pub fn token_origin(Tokens, Int) -> @frontend_source_map.Origin?
+
+pub fn tokenize(String, LexicalLimits, source_path? : String) -> Result[Tokens, Diagnostic]
+
+pub fn tokenize_bytes(Bytes, LexicalLimits, source_path? : String) -> Result[Tokens, Diagnostic]
+
+pub fn usage(Tokens, Resource) -> Int
+
+// Errors
+
+// Types and methods
+pub(all) enum CastType {
+  Boolean
+  String
+  Number
+  Timestamp
+  Decimal(Int, Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Diagnostic {
+  issue : Issue
+  span : @source_span.Span?
+} derive(@debug.Debug)
+
+type Expression
+
+pub(all) enum ExpressionKind {
+  Null
+  Boolean(Bool)
+  Number(String)
+  StringLiteral(String)
+  Reference(Array[NamePart])
+  ParameterReference(String)
+  Unary(String, Int)
+  Binary(String, Int, Int)
+  Call(Array[NamePart], Array[Int])
+  Parenthesized(Int)
+  Predicate(String, Array[Int])
+  SearchedCase(Array[(Int, Int)], Int)
+  Cast(Int, CastType)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ExpressionLimits {
+  lexical : LexicalLimits
+  max_nodes : Int
+  max_depth : Int
+  max_work : Int
+}
+
+pub struct ExpressionNode {
+  kind : ExpressionKind
+  start : Int
+  end : Int
+}
+
+pub(all) enum Issue {
+  InvalidLimits
+  Syntax(String)
+  Source(@frontend_source_map.Issue)
+  Lexical(LexicalIssue)
+  Limit(Resource)
+} derive(@debug.Debug)
+
+pub(all) enum Lexeme {
+  Word(String)
+  QuotedName(String)
+  Text(String)
+  Numeric(String)
+  Parameter(String)
+  Operator(String)
+  Symbol(Int)
+  Pipe
+  End
+} derive(Eq, @debug.Debug)
+
+pub(all) enum LexicalIssue {
+  UnexpectedEnd
+  UnexpectedToken
+  InvalidEscape
+  InvalidScalar
+  EmptyIdentifier
+  UnterminatedComment
+  InvalidNumber
+  InvalidParameter
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LexicalLimits {
+  max_source_bytes : Int
+  max_tokens : Int
+  max_literal_bytes : Int
+  max_work : Int
+}
+
+pub(all) struct NamePart {
+  value : String
+  quoted : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Resource {
+  Tokens
+  LiteralBytes
+  Work
+} derive(Eq, @debug.Debug)
+
+pub struct Token {
+  value : Lexeme
+  start : Int
+  end : Int
+} derive(Eq, @debug.Debug)
+
+type Tokens
+
+// Type aliases
+
+// Traits
