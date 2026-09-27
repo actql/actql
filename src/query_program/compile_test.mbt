@@ -322,16 +322,7 @@ test "OVER uses the input scope and lowers through ordinary Program admission" {
     @check.check_parsed(program, check_environment(), None, check_limits()) {
     Checked(_) => ()
     NeedsInputs(_) => fail("analytic input should be statically closed")
-    Rejected(diagnostic) =>
-      match @check.diagnostic_cause(diagnostic) {
-        Closure(UnresolvedOperation(site)) =>
-          match site.requirement {
-            @pipeline.RelationRequirement(pending) =>
-              fail(@debug.to_string(pending.kind))
-            _ => fail("non-relation requirement")
-          }
-        _ => fail("other rejection")
-      }
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
   }
   let invalid = @query.parse_query(
     "SELECT id AS renamed, ROW_NUMBER() OVER (ORDER BY renamed) AS pos FROM orders",
@@ -394,6 +385,31 @@ test "matching OVER windows share one analytic operation" {
       msg=text,
     )
   }
+}
+
+///|
+test "Pipe EXTEND resolves every expression against its input snapshot" {
+  let accepted = @query.parse_query(
+    "FROM orders |> EXTEND amount + 1 AS adjusted, amount + 2 AS next |> SELECT id, adjusted, next",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(accepted, fixture_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"derive\":{\"adjusted\""))
+  assert_true(wire.contains("\"next\":{\"add\""))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("bounded scalar extension should be closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let invalid = @query.parse_query(
+    "FROM orders |> EXTEND amount + 1 AS adjusted, adjusted + 1 AS next",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(invalid, fixture_context(), construction_limits()) is Err(_),
+  )
 }
 
 ///|

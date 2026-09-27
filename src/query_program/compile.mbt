@@ -767,6 +767,39 @@ fn compile_steps(
             ),
           ),
         )
+      Extend(projections) => {
+        let derived : Array[(String, @builder.Node)] = []
+        let new_fields : Array[String] = []
+        let snapshot = active_fields.copy()
+        for projection in projections {
+          let name = projection.name.unwrap().value
+          if snapshot.any(field => ascii_upper(field) == ascii_upper(name)) ||
+            new_fields.any(field => ascii_upper(field) == ascii_upper(name)) {
+            raise Abort(DuplicateOutput)
+          }
+          derived.push(
+            (
+              name,
+              append_expression(
+                construction,
+                projection.expression.unwrap(),
+                query,
+                input,
+                snapshot,
+                max_work,
+              ),
+            ),
+          )
+          new_fields.push(name)
+        }
+        entries.push(("derive", construction.object(derived)))
+        for name in new_fields {
+          active_fields.push(name)
+          output.push(name)
+        }
+      }
+      Set(_) | Drop(_) | Rename(_) | Alias(_) =>
+        raise Abort(UnsupportedProjection)
       Group(keys, projections) => {
         let derives : Array[(String, @builder.Node)] = []
         let key_names : Array[String] = []

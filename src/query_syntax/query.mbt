@@ -62,6 +62,11 @@ pub(all) struct SortTerm {
 ///|
 pub(all) enum QueryOperation {
   Where(Expression)
+  Extend(Array[Projection])
+  Set(Array[(NamePart, Expression)])
+  Drop(Array[NamePart])
+  Rename(Array[(NamePart, NamePart)])
+  Alias(NamePart)
   Group(Array[Expression], Array[Projection])
   Having(Expression)
   Analytic(Array[Projection])
@@ -111,6 +116,11 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
   }
   match query.operations[index] {
     Where(e) => Some(Where(e))
+    Extend(xs) => Some(Extend(xs.copy()))
+    Set(xs) => Some(Set(xs.copy()))
+    Drop(xs) => Some(Drop(xs.copy()))
+    Rename(xs) => Some(Rename(xs.copy()))
+    Alias(name) => Some(Alias(name))
     Group(keys, projections) => Some(Group(keys.copy(), projections.copy()))
     Having(e) => Some(Having(e))
     Analytic(projections) => Some(Analytic(projections.copy()))
@@ -622,6 +632,61 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
     if self.has("WHERE") {
       self.keyword("WHERE")
       operations.push(Where(self.expression()))
+    } else if self.has("EXTEND") {
+      self.keyword("EXTEND")
+      let values = self.projections()
+      if values.any(p => p.name is None || p.expression is None) {
+        raise QueryAbort(
+          "EXTEND requires named scalar expressions",
+          self.peek().start,
+        )
+      }
+      operations.push(Extend(values))
+    } else if self.has("SET") {
+      self.keyword("SET")
+      let values : Array[(NamePart, Expression)] = []
+      while true {
+        self.node()
+        let name = self.name()
+        if self.advance().value != Symbol(61) {
+          raise QueryAbort("SET requires an equals sign", self.peek().start)
+        }
+        values.push((name, self.expression()))
+        if self.peek().value != Symbol(44) {
+          break
+        }
+        ignore(self.advance())
+      }
+      operations.push(Set(values))
+    } else if self.has("DROP") {
+      self.keyword("DROP")
+      let values : Array[NamePart] = []
+      while true {
+        self.node()
+        values.push(self.name())
+        if self.peek().value != Symbol(44) {
+          break
+        }
+        ignore(self.advance())
+      }
+      operations.push(Drop(values))
+    } else if self.has("RENAME") {
+      self.keyword("RENAME")
+      let values : Array[(NamePart, NamePart)] = []
+      while true {
+        self.node()
+        let from = self.name()
+        self.keyword("AS")
+        values.push((from, self.name()))
+        if self.peek().value != Symbol(44) {
+          break
+        }
+        ignore(self.advance())
+      }
+      operations.push(Rename(values))
+    } else if self.has("AS") {
+      self.keyword("AS")
+      operations.push(Alias(self.name()))
     } else if self.has("AGGREGATE") {
       self.keyword("AGGREGATE")
       let aggregates = self.projections()
