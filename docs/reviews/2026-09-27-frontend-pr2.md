@@ -164,3 +164,32 @@ PR-3 through PR-8 remain separate: query/Pipe sugar, graph/domain syntax,
 installed raw-text routing and the full frontend release. The 140-case index
 is retained as the imported baseline, with the executed subsets mapped above;
 it is not a claim that all Frontend r1 acceptance cases have passed.
+
+## Workers CI isolation correction
+
+The Workers job at `c09d8959b266324168d498a9fe0f8a93906a45e9`
+failed before compilation: production dependency discovery excluded
+`aql_text`, but copying complete package manifests retained the checker's
+test-only import of it. The isolated build therefore had an unresolved import.
+
+Fix `b69c6671376dfa438bb8b4ad75213dd156268cb1` audits the original
+manifests and sources, then copies only production MoonBit sources and
+production imports into the isolated tree. Production aliases and all three
+targets are retained. Test and white-box test files/imports are excluded;
+no frontend dependency is added to production Core, and no check is skipped.
+Existing checker integration tests remain with their shared evidence fixture.
+
+Local checks passed on the exact source tree committed by that fix:
+
+- `node --test scripts/portable-core.test.mjs`: 10 tests, including isolated
+  production import/source preservation and test-only dependency exclusion.
+- `node scripts/local-checks.mjs run workers`: the 101-package isolated
+  closure checks on all targets, followed by the complete Workers job.
+- `moon test --target js src/program_check/structural_text_test.mbt
+  --deny-warn`: both frontend/checker integration tests passed.
+- `node scripts/local-checks.mjs run lint` and `git diff --check`: passed.
+
+The initial local Workers invocation passed isolation but lacked its installed
+`acorn` dependency. Installing the committed Workers lockfile resolved that
+setup issue; the full repeated job passed. CI on the updated pushed revision
+remains the final check; these results do not claim the original CI was green.
