@@ -261,6 +261,32 @@ test "non-output ORDER BY stays hidden and output aliases take precedence" {
   assert_true(wire.contains("\"sort\":[{\"dir\":\"asc\",\"field\":\"amount\""))
   assert_true(wire.contains("\"field\":\"id\""))
   assert_true(wire.contains("\"select\":[{\"status\":\"amount\"}]"))
+  let qualified_input = compile(
+    @query.parse_query(
+      "SELECT amount AS status FROM orders AS o ORDER BY o.status",
+      syntax_limits(),
+    ).unwrap(),
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  let wire = semantic(qualified_input)
+  assert_true(wire.contains("\"field\":\"status\""))
+  assert_true(wire.contains("\"steps\":[{\"from\":\"orders\",\"sort\""))
+  assert_true(wire.contains("\"select\":[{\"status\":\"amount\"}]"))
+}
+
+///|
+test "WHERE and peer SELECT expressions cannot use new SELECT aliases" {
+  for
+    text in [
+      "SELECT amount AS adjusted FROM orders WHERE adjusted > 0", "SELECT amount AS adjusted, adjusted + 1 AS next FROM orders",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    assert_true(
+      compile(query, fixture_context(), construction_limits()) is Err(_),
+      msg=text,
+    )
+  }
 }
 
 ///|
