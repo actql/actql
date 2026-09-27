@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
@@ -12,6 +13,14 @@ import {sourceFreeValuesPlan, acquiredTaskRunAdmission} from
   './local-values-plan.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
+const hash = body => `sha256:${createHash('sha256')
+  .update(canonicalText(body)).digest('hex')}`;
+// Compatibility snapshots from the pre-refactor compiler. These supplement,
+// not replace, the independent logical-plan vectors in run-host-core tests.
+const planCids = {
+  values: 'sha256:5bb63ee040f2988dc694fc75b91bbab154053283588653a4f4bae0b4d1406dd4',
+  tasks: 'sha256:88c46b0d0a30df30c7bb7efbbd7d2452a6b8baf183aa5203040d8900f4397e47',
+};
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 const policy = Object.freeze({executionContextCid: cid('a'),
   hostPolicyCid: cid('b'), expiresAt: '2027-01-01T00:00:00.000Z'});
@@ -73,6 +82,52 @@ for (const kind of ['values', 'tasks']) {
 
       const compiled = control.prepareCheckedClientCompiledRun(
         preparedProgram, kind, policy);
+      const grammar = JSON.parse(await read(
+        '../../spec/manifests/actql-grammar-0.1.json'));
+      const barriers = JSON.parse(await read(
+        '../../spec/manifests/actql-barrier-contracts-0.1.json'));
+      // Assemble the expected envelope from fixture inputs and pinned
+      // manifests, not by removing the self CID from the issued envelope.
+      const templateBody = {
+        version: 'actql-bound-invocation-template/0.1',
+        program_definition_cid: moon.clientProgramDefinitionCid(preparedProgram),
+        parameter_values_cid: hash({version: 'actql-parameter-values/0.1',
+          values: parameters ?? {}}),
+        invocation_bindings_cid: hash({
+          version: 'actql-invocation-bindings/0.1', bindings: {}}),
+        check_environment_cid: JSON.parse(environmentWire).evidence_bundle_cid,
+        grammar_manifest_cid: grammar.grammar_manifest_cid,
+        barrier_contract_manifest_cid: barriers.barrier_contract_manifest_cid,
+        required_profile_contracts: [], source_evidence: 'unbound',
+      };
+      assert.deepEqual(JSON.parse(compiled.template.wire), {...templateBody,
+        bound_invocation_template_cid: hash(templateBody)});
+      assert.equal(compiled.compiledPlan.identity, planCids[kind]);
+      const definitionBody = {
+        version: 'actql-run-definition/0.1',
+        authorization_context_cid: policy.executionContextCid,
+        compiled_plan_cid: planCids[kind],
+        invocation_template_cid: hash(templateBody),
+        input_artifact_set_cid: hash({
+          version: 'actql-initial-input-artifact-set/0.1',
+          captured_artifact_cids: []}),
+        scope_id: 'local', run_id: `fixed-${kind}-run`,
+        created_at: '2026-09-27T00:00:00.000Z',
+        valid_until: policy.expiresAt,
+      };
+      const definition = control.defineCheckedClientCompiledRun(compiled, {
+        tenantId: definitionBody.scope_id, runId: definitionBody.run_id,
+        createdAt: definitionBody.created_at,
+        validUntil: definitionBody.valid_until,
+      });
+      assert.deepEqual(JSON.parse(definition.wire), {...definitionBody,
+        run_definition_cid: hash(definitionBody)});
+      const restore = wire => control.defineCheckedClientCompiledRun(compiled,
+        {retainedDefinitionWire: wire});
+      assert.equal(restore(definition.wire).identity, definition.identity);
+      const substituted = {...definitionBody, compiled_plan_cid: cid('0')};
+      assert.throws(() => restore(canonicalText({...substituted,
+        run_definition_cid: hash(substituted)})));
       control.checkClientCompiledRunOwner(compiled, preparedProgram);
       assert.throws(() => control.checkClientCompiledRunOwner(compiled,
         foreign), /Foreign Client compiled Run/);

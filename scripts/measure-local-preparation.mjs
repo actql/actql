@@ -1,6 +1,8 @@
 // Small same-input preparation probe. Build each checkout before running;
 // compilation of runtime bundles and provider I/O are outside these samples.
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {loadavg} from 'node:os';
 import {readFile} from 'node:fs/promises';
 import {Session} from 'node:inspector/promises';
 import {resolve} from 'node:path';
@@ -93,4 +95,8 @@ for (const kind of ['values', 'tasks']) {
   results.push({kind, milliseconds, medianMs: sorted[3], boundaries,
     definition: JSON.parse(plan.runDefinition.wire)});
 }
-console.log(JSON.stringify({node: process.version, samples: results}, null, 2));
+console.log(JSON.stringify({
+  checkoutSha: execFileSync('git', ['rev-parse', 'HEAD'],
+    {cwd: root, encoding: 'utf8'}).trim(),
+  node: process.version, loadAverage: loadavg(), samples: results,
+}, null, 2));
