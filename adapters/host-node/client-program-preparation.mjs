@@ -74,12 +74,16 @@ export function installNodeClientProgramPreparation({moon, environment}) {
       environment === undefined) {
     throw new TypeError('InvalidClientProgramPreparationInstallation');
   }
-  return Object.freeze(request => {
+  const owned = new WeakSet();
+  const prepare = request => {
     const {document, format, supplied} = serializeProgram(request);
     const outcome = moon.clientProgramPrepareEffectFreeWithParameters(
       document, format, environment, supplied);
     const prepared = moon.clientProgramPreparationReady(outcome);
-    if (prepared !== undefined) return prepared;
+    if (prepared !== undefined) {
+      owned.add(prepared);
+      return prepared;
+    }
     const issue = moon.clientProgramPreparationIssue(outcome);
     const category = moon.clientProgramPreparationIssueCode(outcome);
     const code = issueCodes[category];
@@ -87,7 +91,16 @@ export function installNodeClientProgramPreparation({moon, environment}) {
       fail('ClientProgramPreparationFailure');
     }
     fail(code, issue);
-  });
+  };
+  // The Local planner accepts only this installation's checked owner. This
+  // keeps the exact runtime and environment binding without parsing it again.
+  return Object.freeze(Object.assign(prepare, {
+    assertOwned(prepared) {
+      if (!owned.has(prepared)) {
+        throw new TypeError('Foreign Client preparation');
+      }
+    },
+  }));
 }
 
 // Effect preparation shares Client serialization and checked Program

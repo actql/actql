@@ -41,7 +41,7 @@ function runAsync(command, args, cwd, extraEnvironment = {}) {
   });
 }
 
-for (const name of ['client-wire', 'sdk', 'run-host-core', 'local-node',
+for (const name of ['client-wire', 'sdk', 'local-node',
   'node']) {
   run('npm', ['pack', '--pack-destination', root, '--json'],
     join(repository, 'packages', name));
@@ -49,15 +49,14 @@ for (const name of ['client-wire', 'sdk', 'run-host-core', 'local-node',
 const sdk = join(root, 'actql-sdk-0.0.0-development.tgz');
 const node = join(root, 'actql-node-0.0.0-development.tgz');
 const wire = join(root, 'actql-client-wire-0.0.0-development.tgz');
-const runHost = join(root, 'actql-run-host-core-0.0.0-development.tgz');
 const local = join(root, 'actql-local-node-0.0.0-development.tgz');
 await writeFile(join(root, 'package.json'),
   '{"private":true,"type":"module"}\n');
 run('npm', ['install', '--ignore-scripts', '--no-save',
-  wire, sdk, runHost, local, node],
+  wire, sdk, local, node],
   root);
 assert.deepEqual((await readdir(join(root, 'node_modules', '@actql'))).sort(),
-  ['client-wire', 'local-node', 'node', 'run-host-core', 'sdk']);
+  ['client-wire', 'local-node', 'node', 'sdk']);
 for (const name of ['client-host.generated.js',
   'client-host.generated.d.ts']) {
   assert((await readFile(join(root, 'node_modules', '@actql',
