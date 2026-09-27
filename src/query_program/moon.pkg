@@ -12,4 +12,7 @@ import {
 import {
   "actql/actql/source_value" @source,
   "actql/actql/encode_core" @encode,
+  "actql/actql/check_environment" @environment,
+  "actql/actql/program_check" @check,
+  "moonbitlang/core/encoding/utf8",
 } for "test"

@@ -69,6 +69,61 @@ fn semantic(program : @program.Program) -> String raise {
 }
 
 ///|
+fn check_limits() -> @check.CheckLimits {
+  {
+    input: construction_limits().program,
+    compilation: {
+      work: 10000000,
+      artifacts: { bytes: 1000000, nodes: 100000, depth: 100, },
+      structure: {
+        stages: 2,
+        steps: 20,
+        results: 2,
+        parameters: 10,
+        bindings: 100,
+        slots: 1000,
+        references: 1000,
+        requirements: 1000,
+        tokens: 10000,
+      },
+      traversal: {
+        nodes: 100000,
+        depth: 100,
+        text_bytes: 10000000,
+        string_bytes: 100000,
+        name_bytes: 1000000,
+        pointer_units: 1000000,
+        comparison_pairs: 1000000,
+      },
+      values: { nodes: 1000000, depth: 100, text_bytes: 100000, },
+      policy: { bytes: 10000, nodes: 1000000, depth: 100, },
+      patterns: { bytes: 1000000, nodes: 1000000, depth: 100, },
+    },
+  }
+}
+
+///|
+fn check_environment() -> @check.CheckEnvironment {
+  let cid = "sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904"
+  let wire = @environment.read(
+    @utf8.encode(
+      (
+        #|{"command_contracts":[],"connector_capabilities":[],"connector_catalogs":[],"contract_registry":[],"evidence_bundle_cid":"sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904","host_policy_profile":{"capacity":{"max_aggregate_array_items":1000,"max_artifact_bytes":1000,"max_artifact_rows":1000,"max_effect_items":1000,"max_graph_input_edges":1000,"max_graph_input_nodes":1000,"max_graph_output_rows":1000,"max_graph_paths":1000,"max_infer_items":1000,"max_model_input_tokens_per_item":1000,"max_model_request_bytes_per_item":1000,"max_model_total_duration_ms":1000,"max_nested_value_bytes":1000,"max_nested_value_depth":1000,"max_relation_output_rows":1000,"max_temporal_matches_per_key":1000,"max_temporal_output_rows":1000,"version":"actql-capacity-host-policy/0.1"}},"mapping_contracts":[],"model_task_contracts":[],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
+      ),
+    ),
+    cid,
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 100, max_members: 10, },
+  ).unwrap()
+  @check.checking_environment(wire, { text_time: false, veca: false, }, {
+    rela: true,
+    sga: false,
+    tea: false,
+    calendar: false,
+    text_rank: false,
+  })
+}
+
+///|
 test "independent SQL and Pipe pair enters the same admitted Program" {
   let expected = @program.parse(
     (
@@ -85,6 +140,25 @@ test "independent SQL and Pipe pair enters the same admitted Program" {
     let parsed = @query.parse_query(text, syntax_limits()).unwrap()
     let compiled = compile(parsed, fixture_context(), construction_limits()).unwrap()
     assert_eq(semantic(compiled), semantic(expected))
+  }
+}
+
+///|
+test "query pair reaches the ordinary Program checker" {
+  for
+    text in [
+      "SELECT id, customer_id, amount FROM orders WHERE status = 'open' ORDER BY amount DESC, id ASC",
+      "SELECT id FROM orders ORDER BY amount DESC", "SELECT amount AS status FROM orders ORDER BY status, id",
+      "SELECT DISTINCT amount AS x FROM orders ORDER BY x",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    let program = compile(query, fixture_context(), construction_limits()).unwrap()
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      NeedsInputs(_) => fail("typed local input should be statically closed")
+      Rejected(_) => fail("query failed the ordinary checker")
+    }
   }
 }
 
