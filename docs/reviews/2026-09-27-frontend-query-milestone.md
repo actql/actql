@@ -26,7 +26,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Pending |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Pending |
-| Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT and snapshot EXTEND; SET/DROP/RENAME/AS/JOIN/set still reject in lowering |
+| Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND and scoped SET/DROP/RENAME/AS; JOIN/set and some post-projection scope remain |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK Result; full negative and frame matrix pending |
 | Bounds, origin maps and Grammar Manifest | Existing owners | Before-allocation bounds, source diagnostics, pins/vectors | Pending |
 | Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Partial: source-free `SELECT *` and captured filter/query run through packed Local and HTTP Remote Host; multi-step Values and CTE pending |
@@ -130,9 +130,21 @@ from both Local and HTTP Remote Hosts. Its Result fields are `id, adjusted`;
 the direct Result-root admission now compares checked projection fields in
 canonical schema order while retaining authored Result order. Previously it
 rejected non-lexical field order as requiring an extra transformation.
-An unfiltered captured DuckDB query still lacks source-evidence facts at
-physical source preparation, so this result does not establish FROM-only
-acquisition support.
+An unfiltered captured DuckDB query passes Source Evidence context selection
+but cannot select the installed native acquisition candidate. Its physical
+compiler currently accepts a bound field comparison, not the checked true
+filter used for a FROM-only capture. This is a physical capability gap, not a
+grant or evidence failure; the frontend does not insert a value-changing
+predicate to hide it.
+Pipe SET now derives all replacement values against the pre-SET snapshot and
+rebinds top-level names to new physical slots. DROP and RENAME change visible
+names while older range aliases retain their prior slots; AS captures a new
+range snapshot and is not an ActQL step alias. The packed Local and HTTP
+Remote Hosts both execute `SET id = amount, amount = id` followed by a SELECT
+of original and new values. Both return the independently expected swap,
+including a NULL source value. The current lowering fails closed on qualified
+range ordering after a subsequent Pipe SELECT and on grouping/analytic after
+a scope mutation; these need the next scope pass before this milestone closes.
 ARRAY_AGG requires the adopted `IGNORE NULLS` and explicit order spelling;
 STRING_AGG requires a literal delimiter and explicit order. Both lower to the
 existing group call. The independent checker accepts the bounded ARRAY_AGG

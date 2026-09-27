@@ -136,6 +136,15 @@ const extendedQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.extended_query');
 assert.notEqual(extendedQuery, '');
 await writeFile(join(root, 'extended-query.json'), extendedQuery);
+const pipeSetQuery = queryFrontend.compileCapturedQueryJson(
+  'FROM records AS before |> WHERE id > 0 '
+    + '|> SET id = amount, amount = id '
+    + '|> SELECT before.id AS old_id, before.amount AS old_amount, id, amount',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.pipe_set_query');
+assert.notEqual(pipeSetQuery, '');
+await writeFile(join(root, 'pipe-set-query.json'), pipeSetQuery);
 const sourceCatalog = await readFile(join(repository,
   'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
 const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
@@ -241,6 +250,7 @@ const distinctQueryDocument = readFileSync('distinct-query.json', 'utf8');
 const groupedQueryDocument = readFileSync('grouped-query.json', 'utf8');
 const analyticQueryDocument = readFileSync('analytic-query.json', 'utf8');
 const extendedQueryDocument = readFileSync('extended-query.json', 'utf8');
+const pipeSetQueryDocument = readFileSync('pipe-set-query.json', 'utf8');
 async function runApplication(options, requestId) {
   const client = await connect(options);
   const execution = await client.aql(document, {format: 'json', requestId});
@@ -330,6 +340,14 @@ assert.equal((await extendedQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await extendedQueryLocal.result('answer').all(),
   [{id: 3, adjusted: 31}, {id: 1, adjusted: null},
     {id: 2, adjusted: 21}, {id: 3, adjusted: 31}]);
+const pipeSetQueryLocal = await acquiredLocal.client.aql(pipeSetQueryDocument,
+  {format: 'json', requestId: 'packed-pipe-set-query-local'});
+assert.equal((await pipeSetQueryLocal.wait()).status, 'succeeded');
+assert.deepEqual(await pipeSetQueryLocal.result('answer').all(),
+  [{old_id: 3, old_amount: 30, id: 30, amount: 3},
+    {old_id: 1, old_amount: null, id: null, amount: 1},
+    {old_id: 2, old_amount: 20, id: 20, amount: 2},
+    {old_id: 3, old_amount: 30, id: 30, amount: 3}]);
 assert.deepEqual((await acquiredLocal.client.attach(
   acquiredLocal.execution.ref)).ref, acquiredLocal.execution.ref);
 const acquiredStarted = await acquiredLocal.client.start(
@@ -478,6 +496,15 @@ assert.equal((await extendedQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await extendedQueryRemote.result('answer').all(),
   [{id: 3, adjusted: 31}, {id: 1, adjusted: null},
     {id: 2, adjusted: 21}, {id: 3, adjusted: 31}]);
+const pipeSetQueryRemote = await acquiredRemote.client.aql(
+  pipeSetQueryDocument,
+  {format: 'json', requestId: 'packed-pipe-set-query-remote'});
+assert.equal((await pipeSetQueryRemote.wait()).status, 'succeeded');
+assert.deepEqual(await pipeSetQueryRemote.result('answer').all(),
+  [{old_id: 3, old_amount: 30, id: 30, amount: 3},
+    {old_id: 1, old_amount: null, id: null, amount: 1},
+    {old_id: 2, old_amount: 20, id: 20, amount: 2},
+    {old_id: 3, old_amount: 30, id: 30, amount: 3}]);
 assert.deepEqual(acquiredRemote.b, acquiredLocal.b);
 assert.deepEqual(acquiredRemote.c, acquiredLocal.c);
 assert.deepEqual((await acquiredRemote.client.attach(

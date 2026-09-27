@@ -413,6 +413,116 @@ test "Pipe EXTEND resolves every expression against its input snapshot" {
 }
 
 ///|
+fn pair_context() -> Context {
+  let step = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":7,"y":9}]},"as":"pair"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  {
+    program_id: "fixture.pipe_slots",
+    stage_id: "main",
+    stage_result: "rows",
+    result_name: "answer",
+    captured_stage: None,
+    inputs: [
+      {
+        relation: [{ value: "pair", quoted: false, }],
+        name: "pair",
+        source: GeneratedValues(step),
+        visible_fields: ["x", "y"],
+      },
+    ],
+  }
+}
+
+///|
+test "Pipe SET keeps old range slots and evaluates replacements together" {
+  let query = @query.parse_query(
+    "FROM pair AS before |> SET x = y, y = x |> SELECT before.x AS old_x, before.y AS old_y, x, y",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, pair_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"aql_pipe_set_2\":{\"field\":\"y\"}"))
+  assert_true(wire.contains("\"aql_pipe_set_3\":{\"field\":\"x\"}"))
+  assert_true(
+    wire.contains(
+      "\"select\":[{\"old_x\":\"x\"},{\"old_y\":\"y\"},{\"x\":\"aql_pipe_set_2\"},{\"y\":\"aql_pipe_set_3\"}]",
+    ),
+  )
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("static pair is closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+}
+
+///|
+test "Pipe DROP and AS separate current names from old range snapshots" {
+  let context = pair_context()
+  let retained = compile(
+    @query.parse_query(
+      "FROM pair AS before |> DROP x |> SELECT before.x AS old_x, y",
+      syntax_limits(),
+    ).unwrap(),
+    context,
+    construction_limits(),
+  ).unwrap()
+  assert_true(
+    semantic(retained).contains("\"select\":[{\"old_x\":\"x\"},\"y\"]"),
+  )
+  for
+    text in [
+      "FROM pair AS before |> DROP x |> SELECT x", "FROM pair |> SET z = x", "FROM pair |> RENAME x AS y",
+      "FROM pair |> SET x = y, x = x",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    assert_true(
+      compile(query, pair_context(), construction_limits()) is Err(_),
+      msg=text,
+    )
+  }
+  let renamed = compile(
+    @query.parse_query(
+      "FROM pair |> RENAME x AS z |> AS later |> SELECT later.z AS new_x, pair.x AS old_x",
+      syntax_limits(),
+    ).unwrap(),
+    pair_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_true(
+    semantic(renamed).contains(
+      "\"select\":[{\"new_x\":\"x\"},{\"old_x\":\"x\"}]",
+    ),
+  )
+  let implicit = compile(
+    @query.parse_query("FROM pair |> DROP x", syntax_limits()).unwrap(),
+    pair_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_true(
+    semantic(implicit).contains("\"from\":\"pair\",\"select\":[\"y\"]"),
+  )
+  assert_true(
+    compile(
+      @query.parse_query(
+        "FROM pair AS before |> SET x = y |> SELECT x |> ORDER BY before.x",
+        syntax_limits(),
+      ).unwrap(),
+      pair_context(),
+      construction_limits(),
+    )
+    is Err(UnsupportedOrdering),
+  )
+}
+
+///|
 test "ordered collection aggregates retain literal and order contracts" {
   let array_query = @query.parse_query(
     "SELECT customer_id, ARRAY_AGG(DISTINCT id IGNORE NULLS ORDER BY id) AS ids FROM orders GROUP BY customer_id",

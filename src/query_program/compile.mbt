@@ -299,6 +299,84 @@ fn resolve_column(
 }
 
 ///|
+// Pipe's visible names and range aliases refer to immutable physical slots.
+// SET and DROP may change visibility without changing an older alias snapshot.
+fn pipe_slot(
+  path : Array[@query.NamePart],
+  visible : Array[(String, String)],
+  ranges : Array[(@query.NamePart, Array[(String, String)])],
+) -> String? {
+  if path.length() == 0 || path.length() > 2 {
+    return None
+  }
+  let mut scope = visible
+  if path.length() == 2 {
+    let mut found = false
+    for range in ranges {
+      if same_name(path[0], range.0) {
+        if found {
+          return None
+        }
+        scope = range.1
+        found = true
+      }
+    }
+    if !found {
+      return None
+    }
+  }
+  let mut selected : String? = None
+  for entry in scope {
+    if same_name(path[path.length() - 1], { value: entry.0, quoted: false, }) {
+      if selected is Some(_) {
+        return None
+      }
+      selected = Some(entry.1)
+    }
+  }
+  selected
+}
+
+///|
+fn append_pipe_expression(
+  construction : Construction,
+  expression : @query.Expression,
+  visible : Array[(String, String)],
+  ranges : Array[(@query.NamePart, Array[(String, String)])],
+  max_work : Int,
+) -> @builder.Node raise Abort {
+  match
+    @expression.append(
+      expression,
+      path => pipe_slot(path, visible, ranges),
+      construction.builder,
+      max_work,
+    ) {
+    Ok(node) => node
+    Err(error) => raise Abort(Expression(error))
+  }
+}
+
+///|
+fn pipe_name_exists(
+  entries : Array[(String, String)],
+  name : @query.NamePart,
+) -> Bool {
+  entries.any(entry => same_name(name, { value: entry.0, quoted: false, }))
+}
+
+///|
+fn pipe_physical_name(physical : Array[String], prefix : String) -> String {
+  let mut index = physical.length()
+  let mut name = prefix + index.to_string()
+  while physical.contains(name) {
+    index += 1
+    name = prefix + index.to_string()
+  }
+  name
+}
+
+///|
 fn output_name(
   projection : @query.Projection,
   query : @query.Query,
@@ -778,6 +856,14 @@ fn compile_steps(
   let mut pending_select : Array[(String, @builder.Node)]? = None
   let mut pending_bindings : Array[(String, String)] = []
   let mut selected_expressions : Array[(@query.Expression, String)] = []
+  let mut pipe_visible = fields.map(field => (field, field))
+  let initial_range = match @query.relation_alias(query) {
+    Some(name) => name
+    None => @query.relation(query).last().unwrap()
+  }
+  let pipe_ranges = [(initial_range, pipe_visible.copy())]
+  let mut pipe_changed = false
+  let mut pipe_selected = false
   for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
     let entries : Array[(String, @builder.Node)] = []
@@ -788,6 +874,15 @@ fn compile_steps(
       first = false
     }
     match operation {
+      Where(predicate) if pipe_changed =>
+        entries.push(
+          (
+            "filter",
+            append_pipe_expression(
+              construction, predicate, pipe_visible, pipe_ranges, max_work,
+            ),
+          ),
+        )
       Where(predicate) =>
         entries.push(
           (
@@ -797,6 +892,35 @@ fn compile_steps(
             ),
           ),
         )
+      Extend(projections) if pipe_changed => {
+        let snapshot = pipe_visible.copy()
+        let derived : Array[(String, @builder.Node)] = []
+        let next = snapshot.copy()
+        for projection in projections {
+          let name = projection.name.unwrap()
+          if pipe_name_exists(next, name) {
+            raise Abort(DuplicateOutput)
+          }
+          let physical = pipe_physical_name(active_fields, "aql_pipe_extend_")
+          active_fields.push(physical)
+          derived.push(
+            (
+              physical,
+              append_pipe_expression(
+                construction,
+                projection.expression.unwrap(),
+                snapshot,
+                pipe_ranges,
+                max_work,
+              ),
+            ),
+          )
+          next.push((name.value, physical))
+        }
+        entries.push(("derive", construction.object(derived)))
+        pipe_visible = next
+        output = next.map(entry => entry.0)
+      }
       Extend(projections) => {
         let derived : Array[(String, @builder.Node)] = []
         let new_fields : Array[String] = []
@@ -826,10 +950,114 @@ fn compile_steps(
         for name in new_fields {
           active_fields.push(name)
           output.push(name)
+          pipe_visible.push((name, name))
         }
       }
-      Set(_) | Drop(_) | Rename(_) | Alias(_) =>
-        raise Abort(UnsupportedProjection)
+      Set(assignments) => {
+        let snapshot = pipe_visible.copy()
+        let derived : Array[(String, @builder.Node)] = []
+        let targets : Array[String] = []
+        let replacements : Array[(String, String)] = []
+        for assignment in assignments {
+          if !pipe_name_exists(snapshot, assignment.0) ||
+            targets.any(name => {
+              same_name(assignment.0, { value: name, quoted: false, })
+            }) {
+            raise Abort(UnsupportedProjection)
+          }
+          let physical = pipe_physical_name(active_fields, "aql_pipe_set_")
+          active_fields.push(physical)
+          derived.push(
+            (
+              physical,
+              append_pipe_expression(
+                construction,
+                assignment.1,
+                snapshot,
+                pipe_ranges,
+                max_work,
+              ),
+            ),
+          )
+          targets.push(assignment.0.value)
+          replacements.push((assignment.0.value, physical))
+        }
+        let next : Array[(String, String)] = []
+        for current in snapshot {
+          let mut slot = current.1
+          for replacement in replacements {
+            if same_name({ value: current.0, quoted: false, }, {
+                value: replacement.0,
+                quoted: false,
+              }) {
+              slot = replacement.1
+            }
+          }
+          next.push((current.0, slot))
+        }
+        entries.push(("derive", construction.object(derived)))
+        pipe_visible = next
+        output = pipe_visible.map(entry => entry.0)
+        pipe_changed = true
+      }
+      Drop(names) => {
+        let next : Array[(String, String)] = []
+        for name in names {
+          if !pipe_name_exists(pipe_visible, name) ||
+            names.filter(other => same_name(name, other)).length() != 1 {
+            raise Abort(UnsupportedProjection)
+          }
+        }
+        for current in pipe_visible {
+          if !names.any(name => {
+              same_name(name, { value: current.0, quoted: false, })
+            }) {
+            next.push(current)
+          }
+        }
+        pipe_visible = next
+        output = next.map(entry => entry.0)
+        if next.is_empty() {
+          raise Abort(UnsupportedProjection)
+        }
+        pipe_changed = true
+        deferred = true
+      }
+      Rename(names) => {
+        let next : Array[(String, String)] = []
+        for current in pipe_visible {
+          let mut name = current.0
+          for replacement in names {
+            if same_name(replacement.0, { value: current.0, quoted: false, }) {
+              name = replacement.1.value
+            }
+          }
+          if pipe_name_exists(next, { value: name, quoted: false, }) {
+            raise Abort(DuplicateOutput)
+          }
+          next.push((name, current.1))
+        }
+        for replacement in names {
+          if !pipe_name_exists(pipe_visible, replacement.0) ||
+            names.filter(other => same_name(other.0, replacement.0)).length() !=
+            1 {
+            raise Abort(UnsupportedProjection)
+          }
+        }
+        pipe_visible = next
+        output = next.map(entry => entry.0)
+        pipe_changed = true
+        deferred = true
+      }
+      Alias(name) => {
+        if pipe_ranges.any(range => same_name(range.0, name)) {
+          raise Abort(AmbiguousRelation)
+        }
+        pipe_ranges.push((name, pipe_visible.copy()))
+        pipe_changed = true
+        deferred = true
+      }
+      Group(_, _) if pipe_changed => raise Abort(UnsupportedGrouping)
       Group(keys, projections) => {
         let derives : Array[(String, @builder.Node)] = []
         let key_names : Array[String] = []
@@ -916,6 +1144,7 @@ fn compile_steps(
         )
         active_fields = result_fields.copy()
         output = result_fields
+        pipe_visible = result_fields.map(name => (name, name))
         grouped = true
       }
       Having(predicate) => {
@@ -939,6 +1168,7 @@ fn compile_steps(
         }
         entries.push(("filter", value))
       }
+      Analytic(_) if pipe_changed => raise Abort(UnsupportedAnalytic)
       Analytic(projections) => {
         if projections.is_empty() {
           raise Abort(UnsupportedAnalytic)
@@ -986,6 +1216,106 @@ fn compile_steps(
         }
         output = active_fields.copy()
         deferred = true
+      }
+      Select(projections, distinct) if pipe_changed => {
+        let names : Array[String] = []
+        let selected : Array[@builder.Node] = []
+        let derives : Array[(String, @builder.Node)] = []
+        let physical = active_fields.copy()
+        for projection in projections {
+          match projection.star {
+            Some("*") =>
+              for visible in pipe_visible {
+                names.push(visible.0)
+                selected.push(
+                  if visible.0 == visible.1 {
+                    construction.text(visible.1)
+                  } else {
+                    construction.object([
+                      (visible.0, construction.text(visible.1)),
+                    ])
+                  },
+                )
+              }
+            Some(_) => raise Abort(UnsupportedProjection)
+            None => {
+              if projection.aggregate is Some(_) ||
+                projection.analytic is Some(_) {
+                raise Abort(UnsupportedProjection)
+              }
+              let expression = projection.expression.unwrap()
+              let source = match
+                @query.expression_node(
+                  expression,
+                  @query.expression_root(expression),
+                ).unwrap().kind {
+                Reference(path) =>
+                  match pipe_slot(path, pipe_visible, pipe_ranges) {
+                    Some(slot) => slot
+                    None => raise Abort(UnknownColumn)
+                  }
+                _ => {
+                  let slot = pipe_physical_name(physical, "aql_pipe_expr_")
+                  physical.push(slot)
+                  derives.push(
+                    (
+                      slot,
+                      append_pipe_expression(
+                        construction, expression, pipe_visible, pipe_ranges, max_work,
+                      ),
+                    ),
+                  )
+                  slot
+                }
+              }
+              let name = match projection.name {
+                Some(name) => name.value
+                None =>
+                  match
+                    @query.expression_node(
+                      expression,
+                      @query.expression_root(expression),
+                    ).unwrap().kind {
+                    Reference(path) => path.last().unwrap().value
+                    _ => raise Abort(UnsupportedProjection)
+                  }
+              }
+              names.push(name)
+              selected.push(
+                if name == source {
+                  construction.text(source)
+                } else {
+                  construction.object([(name, construction.text(source))])
+                },
+              )
+            }
+          }
+        }
+        for a in 0..<names.length() {
+          for b in 0..<a {
+            if ascii_upper(names[a]) == ascii_upper(names[b]) {
+              raise Abort(DuplicateOutput)
+            }
+          }
+        }
+        if !derives.is_empty() {
+          let derive_step : Array[(String, @builder.Node)] = []
+          if entries.length() == 1 {
+            derive_step.push(entries[0])
+            entries.clear()
+          }
+          derive_step.push(("derive", construction.object(derives)))
+          step_entries.push(derive_step)
+        }
+        entries.push(("select", construction.array(selected)))
+        output = names
+        active_fields = names.copy()
+        pipe_visible = names.map(name => (name, name))
+        pipe_changed = false
+        pipe_selected = true
+        if distinct {
+          add_distinct = true
+        }
       }
       Select(projections, distinct) if !preserve_identity_select &&
         !distinct &&
@@ -1100,6 +1430,7 @@ fn compile_steps(
         }
         entries.push(("select", construction.array(selected)))
         output = names
+        pipe_visible = names.map(name => (name, name))
         selected_expressions = expressions
         add_distinct = distinct
         let needs_input_order = if distinct {
@@ -1135,6 +1466,42 @@ fn compile_steps(
         } else {
           active_fields = names.copy()
         }
+      }
+      Order(terms) if pipe_selected &&
+        terms.any(term => {
+          match
+            @query.expression_node(
+              term.expression,
+              @query.expression_root(term.expression),
+            ).unwrap().kind {
+            Reference(path) => path.length() == 2
+            _ => false
+          }
+        }) => raise Abort(UnsupportedOrdering)
+      Order(terms) if pipe_changed => {
+        let sort : Array[@builder.Node] = []
+        for term in terms {
+          let name = match
+            @query.expression_node(
+              term.expression,
+              @query.expression_root(term.expression),
+            ).unwrap().kind {
+            Reference(path) =>
+              match pipe_slot(path, pipe_visible, pipe_ranges) {
+                Some(slot) => slot
+                None => raise Abort(UnsupportedOrdering)
+              }
+            _ => raise Abort(UnsupportedOrdering)
+          }
+          sort.push(
+            construction.object([
+              ("field", construction.text(name)),
+              ("dir", construction.text(term.direction)),
+              ("nulls", construction.text(term.nulls)),
+            ]),
+          )
+        }
+        entries.push(("sort", construction.array(sort)))
       }
       Order(terms) => {
         let sort : Array[@builder.Node] = []
@@ -1230,6 +1597,9 @@ fn compile_steps(
           ),
         )
     }
+    if deferred && entries.length() == 1 && entries[0].0 == "from" {
+      first = true
+    }
     if !deferred {
       step_entries.push(entries)
     }
@@ -1252,6 +1622,25 @@ fn compile_steps(
         None => ()
       }
     }
+  }
+  if pipe_changed {
+    let selected : Array[@builder.Node] = []
+    for field in pipe_visible {
+      selected.push(
+        if field.0 == field.1 {
+          construction.text(field.1)
+        } else {
+          construction.object([(field.0, construction.text(field.1))])
+        },
+      )
+    }
+    let entries : Array[(String, @builder.Node)] = []
+    if first {
+      entries.push(("from", construction.text(input.name)))
+    }
+    entries.push(("select", construction.array(selected)))
+    step_entries.push(entries)
+    output = pipe_visible.map(field => field.0)
   }
   if step_entries.is_empty() {
     return ([], output)
