@@ -223,6 +223,18 @@ priv struct QueryParser {
 }
 
 ///|
+fn ascii_upper(value : String) -> String {
+  let out = StringBuilder()
+  for char in value {
+    let code = char.to_int()
+    out.write_char(
+      (if code >= 97 && code <= 122 { code - 32 } else { code }).unsafe_to_char(),
+    )
+  }
+  out.to_string()
+}
+
+///|
 fn QueryParser::peek(self : QueryParser) -> Token {
   self.source.tokens[self.index]
 }
@@ -350,8 +362,20 @@ fn QueryParser::query_source(
   if self.source_depth >= 32 {
     raise QueryAbort("Subquery depth limit", self.peek().start)
   }
-  let serial = self.synthetic_sources
-  self.synthetic_sources += 1
+  let mut serial = self.synthetic_sources
+  let mut generated_name = "aql_query_source_" + serial.to_string()
+  while self.source.tokens.any(token => {
+          match token.value {
+            Word(value) | QuotedName(value) =>
+              ascii_upper(value) == ascii_upper(generated_name)
+            _ => false
+          }
+        }) {
+    self.spend(self.source.tokens.length())
+    serial += 1
+    generated_name = "aql_query_source_" + serial.to_string()
+  }
+  self.synthetic_sources = serial + 1
   self.source_depth += 1
   ignore(self.advance())
   let term = self.sql_term()
@@ -373,10 +397,7 @@ fn QueryParser::query_source(
     Some(value) => value
     None => raise QueryAbort("Subquery requires an alias", self.peek().start)
   }
-  let generated : NamePart = {
-    value: "aql_query_source_" + serial.to_string(),
-    quoted: false,
-  }
+  let generated : NamePart = { value: generated_name, quoted: false, }
   let ctes = inner.ctes + [{ name: generated, query: { ..inner, ctes: [], }, }]
   if ctes.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)

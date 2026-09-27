@@ -57,6 +57,10 @@ through packed Local and HTTP Remote Named Results.
 Missing aliases and source-count overruns are rejected. JOIN subqueries,
 correlation and set operands containing subqueries remain outside the
 implemented path.
+Generated source bindings avoid names already present in the input tokens;
+a user CTE named `aql_query_source_0` retains its own binding while the
+subquery uses the next available internal name. The name search is charged
+to the existing query work budget.
 
 ## Reference evidence
 

@@ -876,6 +876,27 @@ test "SQL and Pipe FROM subqueries reuse the ordinary checked Stage Result" {
     NeedsInputs(_) => fail("nested CTE source should remain statically closed")
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
   }
+  let collision = @query.parse_query(
+    "WITH aql_query_source_0 AS (SELECT id FROM orders) SELECT s.id FROM (SELECT id FROM aql_query_source_0) AS s",
+    syntax_limits(),
+  ).unwrap()
+  let collision_program = compile(
+    collision,
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_eq(@program.stage_count(collision_program), 3)
+  match
+    @check.check_parsed(
+      collision_program,
+      check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("source names should not capture generated bindings")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
   let ordered = @query.parse_query(
     "SELECT s.id FROM (SELECT id FROM orders ORDER BY id LIMIT 2) AS s",
     syntax_limits(),

@@ -114,6 +114,13 @@ test "noncorrelated FROM subqueries keep bounded dataflow and source alias" {
     parse_query("SELECT id FROM (SELECT id FROM orders)", query_limits())
     is Err(_),
   )
+  let reserved = parse_query(
+    "WITH aql_query_source_0 AS (SELECT id FROM orders) SELECT s.id FROM (SELECT id FROM aql_query_source_0) AS s",
+    query_limits(),
+  ).unwrap()
+  assert_eq(cte_count(reserved), 2)
+  assert_eq(cte_at(reserved, 0).unwrap().name.value, "aql_query_source_0")
+  assert_eq(cte_at(reserved, 1).unwrap().name.value, "aql_query_source_1")
 }
 
 ///|
