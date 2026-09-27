@@ -5,7 +5,6 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
-import {withFixtureConnector} from '../adapters/host-common/connector-manifest.fixture.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -124,6 +123,8 @@ try {
     ['answer']);
   assert.equal(executed.completed[0].outputRows, 2);
 } finally { await executed.close(); }
+const hashWithoutSelf = (body, name) => {
+  const copy = {...body};
   delete copy[name];
   return 'sha256:' + createHash('sha256')
     .update(JSON.stringify(copy)).digest('hex');
@@ -148,15 +149,27 @@ const mapping = {
     .update(JSON.stringify(targetSchema)).digest('hex'),
   version: 'salesforce-v1', writable_fields: ['Name'],
 };
-const effectEnvironmentBody = JSON.parse(wire);
-mapping.connector_manifest_cid = withFixtureConnector(effectEnvironmentBody,
-  mapping.target_ref);
-mapping.mapping_contract_cid = machineCid(Object.fromEntries(
-  Object.entries(mapping).filter(([key]) => key !== 'mapping_contract_cid')));
-effectEnvironmentBody.mapping_contracts = [mapping];
-delete effectEnvironmentBody.evidence_bundle_cid;
-effectEnvironmentBody.evidence_bundle_cid = machineCid(effectEnvironmentBody);
-const effectEnvironmentWire = canonicalText(effectEnvironmentBody);
+// The Mapping names its connection's manifest entry, whose Catalog the
+// environment carries; keys are written in canonical order.
+const manifestEntry = {connector: 'crm', connector_id: 'crm',
+  connector_version: 'fixture'};
+const catalogBody = {commands: [], connector_id: 'crm',
+  connector_version: 'fixture', contracts: [],
+  schema: 'actql.connector_catalog/0.1', source_views: []};
+const catalog = {catalog_cid: 'sha256:' + createHash('sha256')
+  .update(JSON.stringify(catalogBody)).digest('hex'), ...catalogBody};
+mapping.connector_manifest_cid = 'sha256:' + createHash('sha256')
+  .update(JSON.stringify(manifestEntry)).digest('hex');
+mapping.mapping_contract_cid = hashWithoutSelf(mapping,
+  'mapping_contract_cid');
+const effectEnvironmentBody = Object.fromEntries(Object.entries({
+  ...JSON.parse(wire), connector_catalogs: [catalog],
+  connector_manifest: {connectors: [manifestEntry],
+    version: 'actql-connectors/0.1'},
+  mapping_contracts: [mapping]}).sort(([a], [b]) => a < b ? -1 : 1));
+effectEnvironmentBody.evidence_bundle_cid = hashWithoutSelf(
+  effectEnvironmentBody, 'evidence_bundle_cid');
+const effectEnvironmentWire = JSON.stringify(effectEnvironmentBody);
 const effectEnvironment = owner.clientProgramCheckEnvironment(
   effectEnvironmentWire, effectEnvironmentBody.evidence_bundle_cid,
   false, false, true, false, false, false, false);
