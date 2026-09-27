@@ -6,7 +6,7 @@ machine contract. It covers all 72 public operation spellings, including
 acquisition and serialization vocabulary outside the current pure-checker
 implementation scope. Their presence is classification, not execution support.
 
-`check:bound-transfer`, included in `check:docs`, compares the registry's exact
+`check:bound-transfer`, included in `check:spec`, compares the registry's exact
 key set with the authoritative operation inventory and rejects missing/extra
 operations and unrecognized classifications. Mutant tests exercise each of
 those failures. Normative text distinguishes upper bounds from exact counts,

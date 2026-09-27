@@ -31,47 +31,67 @@ jobs:
   performance-matrix:
     if: github.event_name == 'workflow_dispatch' && inputs.performance_matrix
     uses: ./.github/workflows/performance-matrix.yml
-  check:
+  # Quick checks that need no full test build: they report version, format,
+  # interface and environment problems within minutes.
+  lint:
     if: ${{ !inputs.performance_matrix }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-toolchain
         with:
-          node-version: 22.22.0
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            adapters/connectors/duckdb/node/package-lock.json
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: '3.12'
+          python: 'true'
       - name: Check owned contract versions
         run: npm run check:contract-versions
-      - run: npm ci
-      - name: Install pinned native DuckDB transport
-        run: npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
-      - name: Install pinned MoonBit
-        run: |
-          node scripts/setup-moonbit.mjs
-          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
-          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
-          echo "$toolchain/bin" >> "$GITHUB_PATH"
-      - run: moon version --all
       - run: moon fmt --check
-      - name: Check and test common core
-        run: |
-          for target in js wasm native; do
-            moon check --target "$target" --deny-warn
-            moon test --target "$target" --deny-warn
-          done
       - name: Check public interfaces
         run: node scripts/check-moonbit-api.mjs
       - name: Test environment guards
         run: node --test scripts/moonbit-environment.test.mjs
+      - name: Test portable dependency inspection and injected violations
+        run: node --test scripts/portable-core.test.mjs
+      - name: Execute standard module subsets without DuckDB dependencies
+        run: node scripts/check-node-without-duckdb.mjs
+  # One runner per target: check, then test, each with --deny-warn, as
+  # before. A target never shares a runner or _build with another.
+  core:
+    if: ${{ !inputs.performance_matrix }}
+    name: core (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [js, wasm, native]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
+      - name: Check common core
+        run: moon check --target "${{ matrix.target }}" --deny-warn
+      # Measured on these 2-vCPU runners: the default left native test
+      # execution on about one CPU; one job per CPU shortened execution on
+      # every target with no change in memory. Building is unaffected.
+      - name: Test common core
+        run: moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
+  # Host, authorization, Checkpoint and retained-state owners.
+  host:
+    if: ${{ !inputs.performance_matrix }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
       - name: Test bounded retained storage and process lifecycle
         run: npm run check:retained-boundary
       - name: Test portable publication control with the durable Store
@@ -88,16 +108,40 @@ jobs:
         run: npm run check:native-retained-task-file
       - name: Test portable Remote Transfer owner package
         run: npm run check:transfer-core
-      - name: Test distribution Client wire, Host and packed Node assembly
-        env:
-          TMPDIR: ${{ github.workspace }}/_build
-        run: npm run check:distribution-client
       - name: Test portable Run Host compilation package
         run: npm run check:run-host-core
       - name: Test packed Local runtime assets
         run: npm run check:local-node-assets
+  # Public Client, packed distribution and the Salesforce Site.
+  client:
+    if: ${{ !inputs.performance_matrix }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
+      - name: Test distribution Client wire, Host and packed Node assembly
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: npm run check:distribution-client
       - name: Test Salesforce Site Catalog and bounded query acquisition
         run: npm run check:salesforce-site
+  # Native storage, publication and control, and the Native retained path.
+  native:
+    if: ${{ !inputs.performance_matrix }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
       - name: Test Node-free native storage publication and control
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ github.workspace }}/.native-tests
@@ -114,11 +158,40 @@ jobs:
             "$RUNNER_TEMP/native-retained-calibration.json"
           ACTQL_NATIVE_CALIBRATION_PROFILE="$RUNNER_TEMP/native-retained-calibration.json" \
             node scripts/test-native-direct-pair.mjs
-      - name: Test portable dependency inspection and injected violations
-        run: node --test scripts/portable-core.test.mjs
-      - name: Execute standard module subsets without DuckDB dependencies
-        run: node scripts/check-node-without-duckdb.mjs
-  documents:
+  # The single result: every required job succeeded. A failure, a
+  # cancellation or an unexpected skip fails it; it runs even when a
+  # dependency failed. The macOS job may be skipped only where it is not
+  # scheduled (see its condition).
+  check:
+    if: ${{ always() && !inputs.performance_matrix }}
+    needs: [lint, core, host, client, native, spec, native-macos,
+      native-separated-network, workers, connector-addition, duckdb-node]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every job
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+          MACOS_SCHEDULED: >-
+            ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+              (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+              (github.event_name == 'workflow_dispatch' && inputs.native_macos) }}
+        run: |
+          node -e '
+            const results = JSON.parse(process.env.RESULTS);
+            const macos = process.env.MACOS_SCHEDULED.trim() === "true";
+            let failed = false;
+            for (const [job, {result}] of Object.entries(results)) {
+              const ok = result === "success" ||
+                (job === "native-macos" && !macos && result === "skipped");
+              console.log(`${ok ? "ok  " : "FAIL"} ${job}: ${result}`);
+              if (!ok) failed = true;
+            }
+            if (failed) process.exit(1);
+          '
+  # Specifications, machine contracts, generated artifacts, boundaries and
+  # documented examples.
+  spec:
     if: ${{ !inputs.performance_matrix }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -140,7 +213,7 @@ jobs:
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
-      - run: npm run check:docs
+      - run: npm run check:spec
   # macOS minutes cost ten times Linux ones: run for main, pull requests to
   # main, and on demand.
   native-macos:
