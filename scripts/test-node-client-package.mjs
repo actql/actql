@@ -375,6 +375,18 @@ const analyticCases = [
     'SELECT amount AS id, ROW_NUMBER() OVER (ORDER BY id) AS pos '
       + 'FROM records WHERE id < 3 ORDER BY id DESC',
     [{id: 20, pos: 2}, {id: null, pos: 1}]],
+  ['pipe-extend-over',
+    'FROM records |> WHERE id < 3 '
+      + '|> EXTEND amount + 1 AS adjusted '
+      + '|> SELECT id, adjusted, ROW_NUMBER() OVER (ORDER BY id) AS pos',
+    [{id: 1, adjusted: null, pos: 1},
+      {id: 2, adjusted: 21, pos: 2}]],
+  ['pipe-set-over-snapshot',
+    'FROM records AS before |> WHERE id < 3 |> SET id = amount '
+      + '|> SELECT before.id AS old_id, id, '
+      + 'ROW_NUMBER() OVER (ORDER BY before.id) AS pos',
+    [{old_id: 1, id: null, pos: 1},
+      {old_id: 2, id: 20, pos: 2}]],
 ];
 for (const [name, sql] of analyticCases) {
   const query = queryFrontend.compileCapturedQueryJson(sql,

@@ -617,9 +617,7 @@ fn analytic_boundary(
 fn lower_analytic_call(
   construction : Construction,
   call : @query.AnalyticCall,
-  query : @query.Query,
-  input : Input,
-  fields : Array[String],
+  resolve : (Array[@query.NamePart]) -> String?,
   max_work : Int,
 ) -> @builder.Node raise Abort {
   match call.aggregate {
@@ -632,7 +630,7 @@ fn lower_analytic_call(
         ) {
         raise Abort(UnsupportedAnalytic)
       }
-      lower_aggregate(construction, aggregate, query, input, fields, max_work)
+      lower_aggregate_resolved(construction, aggregate, resolve, max_work)
     }
     None => {
       let expression = call.expression.unwrap()
@@ -673,9 +671,16 @@ fn lower_analytic_call(
         entries.push(
           (
             "expr",
-            append_expression(
-              construction, argument, query, input, fields, max_work,
-            ),
+            match
+              @expression.append(
+                argument,
+                resolve,
+                construction.builder,
+                max_work,
+              ) {
+              Ok(node) => node
+              Err(error) => raise Abort(Expression(error))
+            },
           ),
         )
         if arguments.length() == 2 {
@@ -743,15 +748,13 @@ fn same_analytic_window(
 fn lower_analytic(
   construction : Construction,
   projections : Array[@query.Projection],
-  query : @query.Query,
-  input : Input,
-  fields : Array[String],
+  resolve : (Array[@query.NamePart]) -> String?,
   max_work : Int,
 ) -> @builder.Node raise Abort {
   let call = projections[0].analytic.unwrap()
   let partitions : Array[@builder.Node] = []
   for path in call.window.partition_by {
-    let field = match resolve_column(path, query, input, fields) {
+    let field = match resolve(path) {
       Some(field) => field
       None => raise Abort(UnknownColumn)
     }
@@ -764,7 +767,7 @@ fn lower_analytic(
       @query.expression_root(term.expression),
     ).unwrap()
     guard root.kind is Reference(path) else { raise Abort(UnsupportedOrdering) }
-    let field = match resolve_column(path, query, input, fields) {
+    let field = match resolve(path) {
       Some(field) => field
       None => raise Abort(UnknownColumn)
     }
@@ -784,9 +787,7 @@ fn lower_analytic(
         lower_analytic_call(
           construction,
           projection.analytic.unwrap(),
-          query,
-          input,
-          fields,
+          resolve,
           max_work,
         ),
       ),
@@ -1256,12 +1257,12 @@ fn compile_steps(
         }
         entries.push(("filter", value))
       }
-      Analytic(_) if pipe_changed => raise Abort(UnsupportedAnalytic)
       Analytic(projections) => {
         if projections.is_empty() {
           raise Abort(UnsupportedAnalytic)
         }
         let snapshot = active_fields.copy()
+        let analytic_visible = pipe_visible.copy()
         let groups : Array[Array[@query.Projection]] = []
         for projection in projections {
           if projection.analytic is None {
@@ -1286,15 +1287,20 @@ fn compile_steps(
             groups.push([projection])
           }
           active_fields.push(name)
+          if pipe_changed {
+            pipe_visible.push((name, name))
+          }
+        }
+        let resolve = fn(path : Array[@query.NamePart]) -> String? {
+          if pipe_changed {
+            pipe_slot(path, analytic_visible, pipe_ranges)
+          } else {
+            resolve_column(path, query, input, snapshot)
+          }
         }
         for group in groups {
           let operation = [
-            (
-              "analytic",
-              lower_analytic(
-                construction, group, query, input, snapshot, max_work,
-              ),
-            ),
+            ("analytic", lower_analytic(construction, group, resolve, max_work)),
           ]
           if !entries.is_empty() {
             operation.insert(0, entries[0])
@@ -1330,9 +1336,24 @@ fn compile_steps(
               }
             Some(_) => raise Abort(UnsupportedProjection)
             None => {
-              if projection.aggregate is Some(_) ||
-                projection.analytic is Some(_) {
+              if projection.aggregate is Some(_) {
                 raise Abort(UnsupportedProjection)
+              }
+              if projection.analytic is Some(_) {
+                let name = projection.name.unwrap().value
+                let source = match
+                  pipe_slot(
+                    [{ value: name, quoted: false, }],
+                    pipe_visible,
+                    pipe_ranges,
+                  ) {
+                  Some(slot) => slot
+                  None => raise Abort(UnknownColumn)
+                }
+                names.push(name)
+                bindings.push((name, source))
+                selected.push(construction.text(source))
+                continue
               }
               let expression = projection.expression.unwrap()
               let source = match

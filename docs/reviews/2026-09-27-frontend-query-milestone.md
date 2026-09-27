@@ -27,7 +27,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each used declaration lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin, a sequential chain, two branches from one predecessor and a join inside a declaration body; physical provider read counter and broader joins remain |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands execute through packed Local/HTTP Clients; captured operands, Pipe set, CTE reuse and broader type/order cases remain |
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND, scoped SET/DROP/RENAME/AS, one JOIN before other Pipe operators, and a parenthesized SQL right operand for Pipe set; post-projection JOIN and other scope forms remain |
-| Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK, ROW_NUMBER, LAG and framed COUNT Results; full negative and frame matrix pending |
+| Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK, ROW_NUMBER, LAG and framed COUNT Results; Pipe EXTEND/SET before OVER preserves updated and prior alias snapshots; full negative and frame matrix pending |
 | Bounds, origin maps and Grammar Manifest | Existing owners | Before-allocation bounds, source diagnostics, pins/vectors | Partial: query grammar/rules now bind the 0.1 Grammar Manifest with schema, generated pin and independent vector; exact-limit and origin diagnostics matrix remains |
 | Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Partial: source-free and captured query, analytic, set and CTE examples run through packed Local and HTTP Remote Host; independent acquisition count remains |
 | Core isolation and SDK dependency boundary | Existing gates | No frontend production dependency or tracked runtime bundles | Pending |
@@ -178,7 +178,11 @@ The same packed route reads independently specified rows for ROW_NUMBER, LAG
 and an explicit ROWS-frame COUNT over a two-row acquired input. The Pipe
 ROW_NUMBER spelling emits the same admitted Program as SQL and returns the same
 rows through both Clients. This covers those signatures and frame; the full
-adopted analytic matrix and post-mutation Pipe scopes remain unverified.
+adopted analytic matrix remains unverified. Pipe EXTEND followed by ROW_NUMBER
+reads the updated input snapshot and returns NULL-preserving adjusted values.
+Pipe SET retains an earlier range alias inside OVER: after replacing `id` with
+`amount`, `ORDER BY before.id` ranks the original input values. Packed Local
+and HTTP Remote both return `(old_id,id,pos)=(1,NULL,1),(2,20,2)`.
 Pipe `EXTEND` lowers a batch of expressions against one input snapshot, so
 sibling aliases are not visible. A packed captured-source query with
 `EXTEND amount + 1 AS adjusted` returns the expected NULL-preserving values

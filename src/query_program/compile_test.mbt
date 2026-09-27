@@ -343,6 +343,29 @@ test "OVER uses the input scope and lowers through ordinary Program admission" {
 }
 
 ///|
+test "Pipe analytic resolves a changed input snapshot" {
+  let text = "FROM orders AS before |> SET amount = amount + 1 |> SELECT before.amount AS old_amount, amount, ROW_NUMBER() OVER (ORDER BY amount) AS pos"
+  let query = @query.parse_query(text, syntax_limits()).unwrap()
+  let program = compile(query, fixture_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"analytic\""))
+  assert_true(wire.contains("\"old_amount\""))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("Pipe analytic should resolve changed input")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let sibling = @query.parse_query(
+    "FROM orders |> SET amount = amount + 1 |> SELECT ROW_NUMBER() OVER (ORDER BY pos) AS pos",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(sibling, fixture_context(), construction_limits()) is Err(_),
+  )
+}
+
+///|
 test "OVER frame aggregate is not a group or final ORDER BY" {
   let text = "SELECT id, COUNT(amount) OVER (PARTITION BY status ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running FROM orders"
   let query = @query.parse_query(text, syntax_limits()).unwrap()
