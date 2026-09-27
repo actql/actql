@@ -134,22 +134,62 @@ fn same_path(
 }
 
 ///|
-// Node indices are local to each parsed expression. Equal syntax trees have
-// the same postorder indices; spans and whitespace are deliberately ignored.
+// Compare semantic source trees, ignoring grouping parentheses and spans.
+// Indices are local to each expression owner and cannot be compared directly.
 fn same_expression(left : @query.Expression, right : @query.Expression) -> Bool {
-  let count = @query.expression_node_count(left)
-  if count != @query.expression_node_count(right) {
-    return false
-  }
-  for i in 0..<count {
-    let a = @query.expression_node(left, i).unwrap().kind
-    let b = @query.expression_node(right, i).unwrap().kind
+  let pending = [(@query.expression_root(left), @query.expression_root(right))]
+  while pending.pop() is Some((a_index, b_index)) {
+    let a = @query.expression_node(left, a_index).unwrap().kind
+    let b = @query.expression_node(right, b_index).unwrap().kind
     match (a, b) {
+      (Parenthesized(child), _) => pending.push((child, b_index))
+      (_, Parenthesized(child)) => pending.push((a_index, child))
       (Reference(x), Reference(y)) => if !same_path(x, y) { return false }
-      (Call(x, ax), Call(y, ay)) =>
-        if !same_path(x, y) || ax != ay {
+      (Call(x, ax), Call(y, ay)) => {
+        if !same_path(x, y) || ax.length() != ay.length() {
           return false
         }
+        for i in 0..<ax.length() {
+          pending.push((ax[i], ay[i]))
+        }
+      }
+      (Unary(x, child_a), Unary(y, child_b)) => {
+        if x != y {
+          return false
+        }
+        pending.push((child_a, child_b))
+      }
+      (Binary(x, left_a, right_a), Binary(y, left_b, right_b)) => {
+        if x != y {
+          return false
+        }
+        pending.push((left_a, left_b))
+        pending.push((right_a, right_b))
+      }
+      (Predicate(x, ax), Predicate(y, ay)) => {
+        if x != y || ax.length() != ay.length() {
+          return false
+        }
+        for i in 0..<ax.length() {
+          pending.push((ax[i], ay[i]))
+        }
+      }
+      (SearchedCase(ax, a_else), SearchedCase(ay, b_else)) => {
+        if ax.length() != ay.length() {
+          return false
+        }
+        for i in 0..<ax.length() {
+          pending.push((ax[i].0, ay[i].0))
+          pending.push((ax[i].1, ay[i].1))
+        }
+        pending.push((a_else, b_else))
+      }
+      (Cast(a_child, a_type), Cast(b_child, b_type)) => {
+        if a_type != b_type {
+          return false
+        }
+        pending.push((a_child, b_child))
+      }
       _ => if a != b { return false }
     }
   }
@@ -323,7 +363,12 @@ fn group_key_expression(
   key : @query.Expression,
   projections : Array[@query.Projection],
 ) -> @query.Expression raise Abort {
-  let root = @query.expression_node(key, @query.expression_root(key)).unwrap()
+  let mut root_index = @query.expression_root(key)
+  while @query.expression_node(key, root_index).unwrap().kind
+        is Parenthesized(child) {
+    root_index = child
+  }
+  let root = @query.expression_node(key, root_index).unwrap()
   if root.kind is Number(_) {
     raise Abort(UnsupportedGrouping)
   }
@@ -507,10 +552,12 @@ fn compile_steps(
         let by : Array[@builder.Node] = []
         for index in 0..<keys.length() {
           let expression = group_key_expression(keys[index], projections)
-          let root = @query.expression_node(
-            expression,
-            @query.expression_root(expression),
-          ).unwrap()
+          let mut root_index = @query.expression_root(expression)
+          while @query.expression_node(expression, root_index).unwrap().kind
+                is Parenthesized(child) {
+            root_index = child
+          }
+          let root = @query.expression_node(expression, root_index).unwrap()
           let name = match root.kind {
             Reference(path) =>
               match resolve_column(path, query, input, active_fields) {

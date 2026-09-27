@@ -308,11 +308,11 @@ fn QueryParser::group_keys(
 ) -> Array[Expression] raise QueryAbort {
   self.keyword("GROUP")
   self.keyword("BY")
-  if self.peek().value == Symbol(40) {
+  if self.peek().value == Symbol(40) &&
+    self.source.tokens.get(self.index + 1).map(token => token.value) ==
+    Some(Symbol(41)) {
     ignore(self.advance())
-    if self.advance().value != Symbol(41) {
-      raise QueryAbort("Expected empty global grouping", self.peek().start)
-    }
+    ignore(self.advance())
     return []
   }
   let keys : Array[Expression] = []

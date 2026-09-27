@@ -321,6 +321,23 @@ test "DISTINCT compares projected fields and refuses inaccessible source order" 
   let wire = semantic(selected_expression)
   assert_true(wire.contains("\"distinct\":[\"x\"]"))
   assert_true(wire.contains("\"sort\":[{\"dir\":\"asc\",\"field\":\"x\""))
+  let parenthesized = compile(
+    @query.parse_query(
+      "SELECT DISTINCT amount + 1 AS x FROM orders ORDER BY (amount + 1)",
+      syntax_limits(),
+    ).unwrap(),
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_true(semantic(parenthesized).contains("\"field\":\"x\""))
+  let different_call = @query.parse_query(
+    "SELECT DISTINCT LOWER(status) AS x FROM orders ORDER BY LOWER(customer_id)",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(different_call, fixture_context(), construction_limits())
+    is Err(UnsupportedOrdering),
+  )
 }
 
 ///|
@@ -478,6 +495,19 @@ test "GROUP BY and HAVING resolve SELECT names in the GoogleSQL scope" {
   )
   assert_true(
     wire.contains("\"select\":[{\"bucket\":\"aql_group_key_0\"},\"n\"]"),
+  )
+  let parenthesized_key = compile(
+    @query.parse_query(
+      "SELECT amount + 1 AS bucket, COUNT(*) AS n FROM orders GROUP BY (amount + 1)",
+      syntax_limits(),
+    ).unwrap(),
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_true(
+    semantic(parenthesized_key).contains(
+      "\"select\":[{\"bucket\":\"aql_group_key_0\"},\"n\"]",
+    ),
   )
 }
 
