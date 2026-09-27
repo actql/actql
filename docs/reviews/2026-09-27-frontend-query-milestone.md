@@ -249,7 +249,13 @@ over two source-free Values relations now execute
 through packed Local and HTTP Remote Clients, preserving duplicate rows and
 NULL-key nonmatches. A bounded CROSS JOIN uses the existing product operation.
 The Pipe INNER JOIN emits the same Program as SQL. This lowering currently
-permits one join and direct selected fields. FULL JOIN is parsed but the
+permits one join. When a SELECT contains a computed scalar expression, the
+join retains only its referenced inputs in private slots, then uses the
+ordinary Expression derive once after matching and projects only the named
+outputs. Packed Local and HTTP Remote execute an arithmetic expression over
+INNER and LEFT JOINs; unmatched right rows produce NULL, and SQL/Pipe compile
+to the same Program. General post-join grouping, order and multiple joins
+remain open. FULL JOIN is parsed but the
 Values compiler refuses it before issuing a Program: the checked FULL JOIN
 requires stable identity on both inputs, which the generated Values Stage
 Results do not carry. No representative row or synthetic key is inferred.

@@ -786,6 +786,54 @@ test "source-free equijoin enters the ordinary checker" {
 }
 
 ///|
+test "JOIN computes SELECT expressions once after matching rows" {
+  let sql = @query.parse_query(
+    "SELECT l.a + r.c AS total, r.d AS label FROM left_rows AS l JOIN right_rows AS r ON l.a = r.c",
+    syntax_limits(),
+  ).unwrap()
+  let pipe = @query.parse_query(
+    "FROM left_rows AS l |> JOIN right_rows AS r ON l.a = r.c |> SELECT l.a + r.c AS total, r.d AS label",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(sql, set_context(), construction_limits()).unwrap()
+  assert_eq(
+    semantic(program),
+    semantic(compile(pipe, set_context(), construction_limits()).unwrap()),
+  )
+  let wire = semantic(program)
+  assert_true(wire.contains("\"derive\":{\"total\":{\"add\""))
+  assert_true(wire.contains("\"from\":\"aql_join_derived\",\"select\""))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("joined Values expression should be closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let missing_alias = @query.parse_query(
+    "SELECT l.a + r.c FROM left_rows AS l JOIN right_rows AS r ON l.a = r.c",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(missing_alias, set_context(), construction_limits())
+    is Err(UnsupportedJoin),
+  )
+  let unknown = @query.parse_query(
+    "SELECT l.a + r.missing AS total FROM left_rows AS l JOIN right_rows AS r ON l.a = r.c",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(compile(unknown, set_context(), construction_limits()) is Err(_))
+  let reversed = @query.parse_query(
+    "SELECT r.c - l.a AS gap FROM left_rows AS l JOIN right_rows AS r ON l.a = r.c",
+    syntax_limits(),
+  ).unwrap()
+  let reordered = semantic(
+    compile(reversed, set_context(), construction_limits()).unwrap(),
+  )
+  assert_true(reordered.contains("\"aql_join_input_5\":\"right.c\""))
+  assert_true(reordered.contains("\"aql_join_input_6\":\"left.a\""))
+}
+
+///|
 test "FULL Values join refuses to invent stable row identities" {
   let query = @query.parse_query(
     "SELECT l.a AS a, r.d AS d FROM left_rows AS l FULL JOIN right_rows AS r ON l.a = r.c",

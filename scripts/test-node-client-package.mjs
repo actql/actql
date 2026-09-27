@@ -260,6 +260,29 @@ assert.deepEqual(JSON.parse(pipeJoinQuery),
   JSON.parse(await readFile(join(root, 'join-inner.json'), 'utf8')));
 await writeFile(join(root, 'join-pipe.json'), pipeJoinQuery);
 await writeFile(join(root, 'join-cases.json'), JSON.stringify(joinCases));
+const computedJoin = queryFrontend.compileTwoValuesSetQueryJson(
+  'SELECT l.a + r.c AS total, r.d AS label FROM set_left AS l '
+    + 'JOIN set_right AS r ON l.a = r.c',
+  'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+  'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+  'fixture.join_computed');
+assert.notEqual(computedJoin, '');
+const computedPipeJoin = queryFrontend.compileTwoValuesSetQueryJson(
+  'FROM set_left AS l |> JOIN set_right AS r ON l.a = r.c '
+    + '|> SELECT l.a + r.c AS total, r.d AS label',
+  'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+  'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+  'fixture.join_computed');
+assert.deepEqual(JSON.parse(computedPipeJoin), JSON.parse(computedJoin));
+await writeFile(join(root, 'join-computed.json'), computedJoin);
+const computedLeftJoin = queryFrontend.compileTwoValuesSetQueryJson(
+  'SELECT l.a + r.c AS total, r.d AS label FROM set_left AS l '
+    + 'LEFT JOIN set_right AS r ON l.a = r.c',
+  'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+  'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+  'fixture.join_computed_left');
+assert.notEqual(computedLeftJoin, '');
+await writeFile(join(root, 'join-computed-left.json'), computedLeftJoin);
 const capturedQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT id FROM records WHERE id > 1', 'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
@@ -663,6 +686,19 @@ async function checkJoinCases(client, suffix) {
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.deepEqual(sortedRows(await execution.result('answer').all()),
     sortedRows(cases[0][1]));
+  const computed = await client.aql(
+    readFileSync('join-computed.json', 'utf8'),
+    {format: 'json', requestId: 'packed-join-computed-' + suffix});
+  assert.equal((await computed.wait()).status, 'succeeded');
+  assert.deepEqual(await computed.result('answer').all(),
+    [{total: 2, label: 'x'}, {total: 2, label: 'x'}]);
+  const computedLeft = await client.aql(
+    readFileSync('join-computed-left.json', 'utf8'),
+    {format: 'json', requestId: 'packed-join-computed-left-' + suffix});
+  assert.equal((await computedLeft.wait()).status, 'succeeded');
+  assert.deepEqual(await computedLeft.result('answer').all(),
+    [{total: 2, label: 'x'}, {total: 2, label: 'x'},
+      {total: null, label: null}, {total: null, label: null}]);
 }
 async function checkSetQueries(client, suffix) {
   for (const [name, expected] of setExpectations) {
