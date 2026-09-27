@@ -560,6 +560,15 @@ const aliasGroupedQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.alias_grouped_query');
 assert.notEqual(aliasGroupedQuery, '');
 await writeFile(join(root, 'alias-grouped-query.json'), aliasGroupedQuery);
+const computedGroupedQuery = queryFrontend.compileCapturedQueryJson(
+  'SELECT amount + 1 AS bucket, COUNT(*) AS n '
+    + 'FROM records WHERE id > 0 GROUP BY bucket',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.computed_grouped_query');
+assert.notEqual(computedGroupedQuery, '');
+await writeFile(join(root, 'computed-grouped-query.json'),
+  computedGroupedQuery);
 const analyticQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT id, RANK() OVER (ORDER BY id) AS ranking FROM records WHERE id > 0',
   'records', 'remote',
@@ -1071,6 +1080,15 @@ async function checkAliasGrouped(client, suffix) {
   assert.equal(status.status, 'succeeded', JSON.stringify(status));
   assert.deepEqual(await execution.result('answer').all(), [{id: 30, n: 2}]);
 }
+async function checkComputedGrouped(client, suffix) {
+  const execution = await client.aql(
+    readFileSync('computed-grouped-query.json', 'utf8'),
+    {format: 'json', requestId: 'packed-computed-grouped-' + suffix});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  assert.deepEqual(sortedRows(await execution.result('answer').all()),
+    sortedRows([{bucket: 31, n: 2}, {bucket: null, n: 1},
+      {bucket: 21, n: 1}]));
+}
 const analyticQueryDocument = readFileSync('analytic-query.json', 'utf8');
 async function checkAnalyticCases(client, suffix) {
   const cases = JSON.parse(readFileSync('analytic-cases.json', 'utf8'));
@@ -1187,6 +1205,7 @@ await checkAnalyticCases(acquiredLocal.client, 'local');
 await checkCapturedCte(acquiredLocal.client, 'local');
 await checkCapturedSet(acquiredLocal.client, 'local');
 await checkAliasGrouped(acquiredLocal.client, 'local');
+await checkComputedGrouped(acquiredLocal.client, 'local');
 await checkCapturedSubquery(acquiredLocal.client, 'local');
 const distinctQueryLocal = await acquiredLocal.client.aql(distinctQueryDocument,
   {format: 'json', requestId: 'packed-distinct-query-local'});
@@ -1377,6 +1396,7 @@ await checkAnalyticCases(acquiredRemote.client, 'remote');
 await checkCapturedCte(acquiredRemote.client, 'remote');
 await checkCapturedSet(acquiredRemote.client, 'remote');
 await checkAliasGrouped(acquiredRemote.client, 'remote');
+await checkComputedGrouped(acquiredRemote.client, 'remote');
 await checkCapturedSubquery(acquiredRemote.client, 'remote');
 const distinctQueryRemote = await acquiredRemote.client.aql(
   distinctQueryDocument,

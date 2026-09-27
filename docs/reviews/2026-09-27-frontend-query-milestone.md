@@ -108,6 +108,10 @@ The acquired-input alias collision `SELECT amount AS id, COUNT(*) AS n ...
 GROUP BY id HAVING n > 1` returns only `{id:30,n:2}` through packed Local and
 HTTP Remote. The source has an input `id` column, so this verifies SELECT
 alias precedence in grouping and HAVING through the ordinary Host.
+The computed alias `amount + 1 AS bucket` is also grouped through both packed
+Hosts, yielding `(bucket,n)=(31,2),(NULL,1),(21,1)` from the acquired rows.
+This checks one evaluated key slot and NULL grouping without a representative
+row choice.
 Source-free Values `(NULL,1,2)` also execute through packed Local and HTTP
 Remote: ascending ORDER returns `NULL,1,2` and descending ORDER returns
 `2,1,NULL`. These are the query profile's explicit NULL directions, not a
