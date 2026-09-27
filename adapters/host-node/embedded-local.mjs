@@ -169,7 +169,9 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     for (let attempt = 0; attempt < 8; attempt++) {
       const retained = journal.lookupRunDefinition(ref, moon, control);
       if (retained === undefined) throw new Error('RunStateAccessDenied');
+      const runId = control.runDefinitionRunId(retained.runDefinition);
       let state;
+      let continuation;
       if (await store.confirmCommittedIndex(ref) !== undefined) {
         state = await inspectAuthorizedRunState(stateService, {
           indexKey: ref, principalId: actual, purpose: 'inspect',
@@ -178,22 +180,40 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         if (!Array.isArray(retained.resultNames)) {
           throw new Error('RunStateInventoryUnknown');
         }
-        const liveExecution = dispatchOwner.live(ref);
-        const executionUnknown = retained.dispatchReserved &&
-          !retained.preDispatchFailureConfirmed &&
-          retained.physicalStartReserved !== false &&
-          retained.observedTerminalOutcome === null && !liveExecution;
-        const wire = checked(moon.clientProgramIssueControlledUnpublishedRunState(
-          control.runDefinitionRunId(retained.runDefinition), now(),
-          retained.resultNames, retained.dispatchReserved,
-          retained.preDispatchFailureConfirmed,
-          retained.cancellationRequested &&
-            retained.physicalStartReserved === false,
-          retained.observedTerminalOutcome ?? 'none', executionUnknown));
-        state = JSON.parse(wire);
+        continuation = checkpoints?.effectRunState(runId,
+          ref.runDefinitionCid);
+        if (continuation?.status === 'succeeded') {
+          // A second journal cannot establish Publication Store success.
+          // Reobserve the committed index instead of issuing success from
+          // the Checkpoint lifecycle alone.
+          continue;
+        }
+        if (continuation !== undefined &&
+            continuation.status !== 'running') {
+          state = continuation.runState;
+        } else {
+          const liveExecution = dispatchOwner.live(ref);
+          const executionUnknown = retained.dispatchReserved &&
+            !retained.preDispatchFailureConfirmed &&
+            retained.physicalStartReserved !== false &&
+            retained.observedTerminalOutcome === null && !liveExecution;
+          const wire = checked(
+            moon.clientProgramIssueControlledUnpublishedRunState(
+              runId, now(), retained.resultNames, retained.dispatchReserved,
+              retained.preDispatchFailureConfirmed,
+              retained.cancellationRequested &&
+                retained.physicalStartReserved === false,
+              retained.observedTerminalOutcome ?? 'none', executionUnknown));
+          state = JSON.parse(wire);
+        }
       }
       const after = journal.lookupRunDefinition(ref, moon, control);
       if (after?.revision !== retained.revision) continue;
+      if (continuation !== undefined) {
+        const afterContinuation = checkpoints.effectRunState(runId,
+          ref.runDefinitionCid);
+        if (afterContinuation?.version !== continuation.version) continue;
+      }
       if (state.status === 'running' && !dispatchOwner.live(ref) &&
           retained.physicalStartReserved === true) {
         continue;

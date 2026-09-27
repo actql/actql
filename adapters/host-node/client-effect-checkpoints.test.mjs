@@ -85,6 +85,12 @@ test('Effect review and signed answer survive installed service restart',
     const summary = page.items[0];
     assert.equal(summary.subject.runId, 'run-a');
     assert.deepEqual(summary.requirements, ['effect_scope_approved']);
+    assert.equal(installed.effectRunState('run-a', cid('1')).status,
+      'waiting_checkpoint');
+    assert.throws(() => installed.effectRunState('run-a', cid('9')),
+      {code: 'EffectContinuationRunMismatch'});
+    assert.equal(installed.effectRunState('other-run', cid('1')),
+      undefined);
     await close(installed);
     installed = await open();
     const view = installed.journal.listRunCheckpoints()[0];
@@ -112,6 +118,8 @@ test('Effect review and signed answer survive installed service restart',
       items: [answer]});
     assert.equal(resolved.results[0].status, 'committed',
       JSON.stringify(resolved));
+    assert.equal(installed.effectRunState('run-a', cid('1')).status,
+      'resuming');
     const duplicate = await installed.resolve({principalId: 'reviewer',
       items: [answer]});
     assert.equal(duplicate.results[0].status, 'duplicate');

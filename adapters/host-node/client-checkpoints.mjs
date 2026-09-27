@@ -1051,6 +1051,20 @@ export async function installRemoteCheckpoints({root, tenantId,
       }
       return held.record('continuation_record', view.continuationStateCid);
     },
+    effectRunState(runId, runDefinitionCid) {
+      if (!IDENTIFIER.test(runId ?? '') ||
+          typeof runDefinitionCid !== 'string') {
+        fail('InvalidEffectContinuation');
+      }
+      const view = journal.inspect(`${runId}-effect-commit`);
+      if (view === undefined) return undefined;
+      if (view.kind !== 'effect_set' || view.runId !== runId ||
+          view.runDefinitionCid !== runDefinitionCid ||
+          view.prepareAttemptId !== null) {
+        fail('EffectContinuationRunMismatch');
+      }
+      return journal.getRunState(runId);
+    },
     // Principals admitted to the Checkpoint operations at all. Each
     // operation still applies its own authorization.
     admitsCheckpointPrincipal: principal => principal === ownerPrincipal ||
