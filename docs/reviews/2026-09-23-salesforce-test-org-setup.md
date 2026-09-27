@@ -1,5 +1,12 @@
 # Proposed Salesforce Connector test-org setup
 
+> Update (2026-09-27): this setup was applied to an isolated Developer org;
+> see [Salesforce provider conformance](2026-09-27-salesforce-provider-conformance.md#live-org).
+> Two additions apply: the local CLI resolver needs an `sf` release with
+> `org auth show-access-token`, and fields deployed through the Metadata API
+> need a dedicated permission set for field-level security before the API
+> user can describe them.
+
 Status: proposal only. No org alias, instance URL, credentials, schema-change
 approval, or write authorization has been supplied. Do not run these steps
 against an existing unrelated service connection or any production org.

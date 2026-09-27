@@ -444,6 +444,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         return {diagnostic: {realization: 'local', importedRows,
           importedBytes: String(importedBytes),
           ...measuredGuardUsage, ...exported},
+          publicationOutput: operations.publication_output?.(),
           close: output ? async () => {
             output?.close();
             operations.close();

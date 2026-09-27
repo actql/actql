@@ -1,4 +1,5 @@
 import {checked} from './runtime-result.mjs';
+import {publicationAction} from './publication-action.mjs';
 import {
   validOutputLimits,
   validResultOutputLimits,
@@ -2449,15 +2450,17 @@ function publicationControl(moon) {
       );
     },
     existingDeliveryAttemptAction(record) {
-      return moon.strategyExistingDeliveryAttemptAction(
-        record === undefined ? undefined : token(record),
-      );
+      return publicationAction('existingDelivery',
+        moon.strategyExistingDeliveryAttemptAction(
+          record === undefined ? undefined : token(record),
+        ));
     },
     beginResultAccessProgress() {
       return moon.strategyBeginResultAccessProgress();
     },
     resultAccessProgressAction(progress) {
-      return moon.strategyResultAccessProgressAction(progress);
+      return publicationAction('resultAccess',
+        moon.strategyResultAccessProgressAction(progress));
     },
     recordResultAccessRequestAuthorization(progress, authorized) {
       if (!moon.strategyRecordResultAccessRequestAuthorization(
@@ -2485,12 +2488,12 @@ function publicationControl(moon) {
       }
     },
     deliveryFailureTerminalAction(cancellationObserved) {
-      return moon.strategyDeliveryFailureTerminalAction(
-        cancellationObserved,
-      );
+      return publicationAction('failureTerminal',
+        moon.strategyDeliveryFailureTerminalAction(cancellationObserved));
     },
     deliveryRecordRetryAction(nextRecord, recordCount) {
-      return moon.strategyDeliveryRecordRetryAction(nextRecord, recordCount);
+      return publicationAction('recordRetry',
+        moon.strategyDeliveryRecordRetryAction(nextRecord, recordCount));
     },
     publicationPreparedReleaseAction(
       currentIndex,
@@ -3180,12 +3183,16 @@ function outputExportControl(moon, publications) {
         limits.maxBatchBytes,
       ));
     },
-    beginResult(host, result, limits) {
+    beginResult(host, result, limits, convertedOutput) {
       if (!Number.isSafeInteger(result) || result < 0 ||
           !validResultOutputLimits(limits)) {
         throw new TypeError('Invalid Result output export request');
       }
-      return checked(moon.strategyHostResultOutputExportBegin(
+      const converted = convertedOutput != null;
+      const begin = converted
+        ? moon.strategyHostResultOutputExportBeginConverted
+        : moon.strategyHostResultOutputExportBegin;
+      return checked(begin(
         host,
         result,
         limits.maxResultFields,
@@ -3210,6 +3217,7 @@ function outputExportControl(moon, publications) {
         limits.maxSchemaNodes,
         limits.maxSchemaDepth,
         limits.maxBatchBytes,
+        ...(converted ? [convertedOutput] : []),
       ));
     },
     beginManagedResultImport(host, result, output, material, limits) {

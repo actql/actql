@@ -13,12 +13,14 @@ import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
+import {prepareCapturedDuckDBSource} from
   './captured-duckdb-source.mjs';
 import {loadInstalledDuckDBSource} from './installed-duckdb-source.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
-import {runPublishedCapturedStrategy} from './entry.mjs';
+import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
+import {retainInstalledHostInitializationFailure} from
+  './installed-host-cleanup.mjs';
 import {installNodeResultAccessService,
   installResultAccessAuthority} from './result-access.mjs';
 import {installRunStateAuthority, installRunStateService,
@@ -28,8 +30,8 @@ import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
-  sourceFreeValuesPlan, acquiredTaskRunAdmission,
-  acquiredTaskPublicationPlan} from './local-values-plan.mjs';
+  sourceFreeValuesPlan, acquiredTaskRunAdmission} from
+  './local-values-plan.mjs';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
 const runtimeUrl = new URL('../../_build/js/release/build/' +
@@ -90,6 +92,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   await mkdir(journalDirectory, {recursive: true, mode: 0o700});
   const journal = openClientRequestJournal(journalDirectory);
   let store;
+  let checkpoints;
+  let dispatchOwner;
   try {
     store = await openLocalPublicationStore({
       directory: join(root, 'publication'), storeAuthorityCid,
@@ -98,10 +102,6 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       maxObjects: 10000, maxContractNodes: 10000,
       maxContractDepth: 64,
     }, control);
-  } catch (error) {
-    journal.close();
-    throw error;
-  }
   const hostConnection = ({principalId: actual, connection, ref}) =>
     actual === principalId &&
     connection.mode === mode && connection.owner === mode &&
@@ -147,8 +147,6 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       ref.authorityScopeCid === authorityScopeCid});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment});
-  let checkpoints;
-  try {
     checkpoints = await installRemoteCheckpoints({root, tenantId,
       authorityScopeCid, ownerPrincipal: principalId,
       siteKey: authorization?.siteKey ?? 'actql-remote-host',
@@ -156,12 +154,6 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         : 'duckdb-acquired', environmentCid: evidenceCid,
       contractControl: control, authorization,
       source: sourceProfile?.readAuthorization});
-  } catch (error) {
-    journal.close();
-    await store.close();
-    throw error;
-  }
-  const activeDispatches = new Map();
   const observeRun = async ({ref, principalId: actual}) => {
     if (actual !== principalId || ref.tenantId !== tenantId ||
         ref.authorityScopeCid !== authorityScopeCid) {
@@ -181,17 +173,26 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         if (!Array.isArray(retained.resultNames)) {
           throw new Error('RunStateInventoryUnknown');
         }
-        const wire = moon.clientProgramIssueControlledUnpublishedRunState(
+        const liveExecution = dispatchOwner.live(ref);
+        const executionUnknown = retained.dispatchReserved &&
+          !retained.preDispatchFailureConfirmed &&
+          retained.physicalStartReserved !== false &&
+          retained.observedTerminalOutcome === null && !liveExecution;
+        const wire = checked(moon.clientProgramIssueControlledUnpublishedRunState(
           control.runDefinitionRunId(retained.runDefinition), now(),
           retained.resultNames, retained.dispatchReserved,
           retained.preDispatchFailureConfirmed,
           retained.cancellationRequested &&
-            retained.physicalStartReserved === false);
-        if (wire === undefined) throw new Error('InvalidRunStateProjection');
+            retained.physicalStartReserved === false,
+          retained.observedTerminalOutcome ?? 'none', executionUnknown));
         state = JSON.parse(wire);
       }
       const after = journal.lookupRunDefinition(ref, moon, control);
       if (after?.revision !== retained.revision) continue;
+      if (state.status === 'running' && !dispatchOwner.live(ref) &&
+          retained.physicalStartReserved === true) {
+        continue;
+      }
       const observation = moon.clientRunControlObservation(retained.revision,
         retained.cancellationRequested,
         retained.physicalStartReserved === false,
@@ -213,8 +214,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       currentAuthorization: true, publicationCommitted,
     }, moon, control);
     if (accepted.kind !== 'already_terminal') {
-      activeDispatches.get(ref.runDefinitionCid)?.abort.abort(
-        new Error('ClientRunCancellationRequested'));
+      dispatchOwner.cancel(ref);
     }
     return accepted;
   };
@@ -257,8 +257,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     if (['succeeded', 'failed', 'cancelled'].includes(current.status)) {
       return current;
     }
-    const active = activeDispatches.get(ref.runDefinitionCid);
-    if (active === undefined) return current;
+    const operation = dispatchOwner.operation(ref);
+    if (operation === undefined) return current;
     if (signal?.aborted) throw new Error('WaitAborted');
     let abort;
     const interrupted = new Promise((_, reject) => {
@@ -266,7 +266,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       signal?.addEventListener('abort', abort, {once: true});
     });
     try {
-      await Promise.race([active.promise, interrupted]);
+      await Promise.race([operation, interrupted]);
     } finally {
       signal?.removeEventListener('abort', abort);
     }
@@ -337,166 +337,14 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     }, moon, control);
     return accepted;
   };
-  // Start the admitted Run's single physical dispatch unless it is already
-  // active or started; `finished(status)` reports its end.
-  // Host instrumentation of the protected steps (a Host-supplied observer;
-  // it never changes a decision).
+  // Composition installs one owner for dispatch, cancellation, stop, and
+  // cleanup. Checkpoint and HTTP paths share this owner.
   const observed = (name, detail) => authorization?.observe?.(name, detail);
-  // `gate` (a resumed held request only): {beforePhysicalStart(), started()}
-  // called synchronously immediately before and after the physical start
-  // reservation. A throwing `beforePhysicalStart` starts nothing and leaves
-  // the Run unstarted for its owner. Returns a promise that settles once the
-  // physical start is reserved ('started'), refused by the gate
-  // ({refused: error}) or not reached ('not_started').
-  const startDispatch = (submission, requested, accepted, held,
-    finished, gate) => {
-    const {preparedProgram, principalId: actual, connection} = submission;
-    const unstarted = accepted.dispatchReserved !== true ||
-      accepted.physicalStartReserved === false &&
-      !accepted.preDispatchFailureConfirmed;
-    if (activeDispatches.has(accepted.ref.runDefinitionCid) || !unstarted ||
-        accepted.cancellationRequested) {
-      return Promise.resolve('not_started');
-    }
-    // Defense in depth: a Run from a held request starts only with its
-    // resumed admission. Its origin is read from the Host's own Checkpoint
-    // journal, never from the caller.
-    if (gate === undefined && checkpoints?.heldOrigin(submission.requestId)) {
-      return Promise.resolve('not_started');
-    }
-    let reached;
-    const physical = new Promise(resolve => { reached = resolve; });
-    const active = {promise: undefined, reserved: false,
-      abort: new AbortController(),
-      physicalStarted: false, physicalStartClaimAttempted: false};
-    activeDispatches.set(accepted.ref.runDefinitionCid, active);
-    active.promise = Promise.resolve().then(async () => {
-      const start = await startRun({identity: requested, tenantId,
-        principalId: actual, connection});
-      if (start.kind !== 'reserved' &&
-          !(start.kind === 'reconcile' &&
-            accepted.dispatchReserved === true &&
-            accepted.physicalStartReserved === false &&
-            !accepted.preDispatchFailureConfirmed)) return;
-      active.reserved = true;
-      await observed('dispatch_reserved', {ref: start.ref});
-      if (beforeDispatch !== undefined) await beforeDispatch(start.ref);
-      if (active.abort.signal.aborted) return;
-      if (held.plan === undefined) {
-        held.plan = planFor(submission, accepted.runDefinition.wire);
-      }
-      const acquiring = sourceProfile !== undefined &&
-        moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0)
-          ?.$tag === 1;
-      let setup;
-      if (!acquiring) {
-        setup = moon.clientProgramOpenSourceFreeLocalHost(
-          preparedProgram, registry, values, 1n, 0n, 0n, 0n,
-          fragment, ordered);
-        if (setup === undefined) throw new Error('ClientProgramNeedsInputs');
-      }
-      // No await from the resumed admission to the start reservation.
-      if (gate !== undefined) {
-        try { gate.beforePhysicalStart(); }
-        catch (error) {
-          reached({refused: error});
-          return;
-        }
-      }
-      active.physicalStartClaimAttempted = true;
-      if (!journal.reservePhysicalStart(requested, {
-        tenantId, ref: accepted.ref,
-        currentAuthorization: hostConnection({principalId: actual,
-          connection, ref: accepted.ref}),
-      }, moon, control)) return;
-      active.physicalStarted = true;
-      gate?.started();
-      reached('started');
-      await observed('physical_start_reserved', {ref: accepted.ref});
-      // A held and approved read uses its own admitted approval for the
-      // adapter's current-authority check; every other request uses the
-      // installed source access.
-      const sourceAccess = checkpoints?.acquisitionAccess(
-        submission.requestId, sourceProfile?.sourceAccess) ??
-        sourceProfile?.sourceAccess;
-      if (acquiring) {
-        if (held.preparedSourceAccess !== sourceAccess) {
-          held.preparedSource = await prepareAcquisition(preparedProgram,
-            sourceAccess);
-          held.preparedSourceAccess = sourceAccess;
-        }
-        const captureStartedAt = now();
-        await observed('acquisition_started', {ref: accepted.ref});
-        active.sourceCapture = await openCapturedDuckDBSource({moon,
-          preparedProgram, registry, values, fragment, ordered,
-          database: sourceProfile.database, schema: sourceProfile.schema,
-          table: sourceProfile.table, sourceAccess,
-          transportLimits: sourceProfile.transportLimits,
-          signal: active.abort.signal,
-          preparedSource: held.preparedSource});
-        const captureCompletedAt = now();
-        await observed('acquisition_completed', {ref: accepted.ref});
-        const sourceEvidenceWire = await active.sourceCapture.issueSourceEvidence({
-          authorityScopeCid,
-          effectiveDataPolicyCid:
-            active.sourceCapture.checkedSource.sourceDataPolicyCid});
-        held.plan = acquiredTaskPublicationPlan({moon, control,
-          acquired: held.plan, preparedProgram,
-          captured: active.sourceCapture, sourceEvidenceWire,
-          authorityScopeCid,
-          effectiveDataPolicyCid:
-            active.sourceCapture.checkedSource.sourceDataPolicyCid,
-          captureStartedAt, captureCompletedAt, tenantId,
-          requestId: submission.requestId, storeAuthorityCid, now});
-        setup = active.sourceCapture.setup;
-      }
-      const published = await runPublishedCapturedStrategy(setup,
-        {store, plan: held.plan},
-        sourceProfile === undefined ? {} :
-          {authorization: sourceAccess.authorization},
-        active.abort.signal);
-      await observed('computed', {ref: accepted.ref});
-      await published.close();
-      await published.cleanup();
-      if (published.cleanupPending()) {
-        active.cleanupOwner = published;
-      } else {
-        active.sourceCapture?.close();
-        active.sourceCapture = undefined;
-        journal.markPhysicalClose(accepted.ref);
-      }
-      await finished?.();
-    }).catch(async cause => {
-      if (cause?.cleanupPending === true) active.cleanupOwner = cause;
-      if (active.reserved && !active.physicalStartClaimAttempted &&
-          !active.abort.signal.aborted) {
-        try { journal.markPreDispatchFailure(accepted.ref); } catch {}
-      }
-      if (cause?.execution) {
-        try {
-          await cause.execution.close();
-          await cause.execution.cleanup();
-          if (!cause.execution.cleanupPending()) {
-            journal.markPhysicalClose(accepted.ref);
-          }
-        } catch { active.cleanupOwner = cause.execution; }
-        if (cause.execution.cleanupPending()) {
-          active.cleanupOwner = cause.execution;
-        }
-        // Failed cleanup remains with its existing execution owner. It is
-        // never converted to physical stop by the cancellation request.
-      }
-      if (active.physicalStarted) await finished?.();
-    }).finally(() => {
-      reached('not_started');
-      checkpoints?.releaseAcquisition(submission.requestId);
-      if (active.cleanupOwner === undefined) {
-        active.sourceCapture?.close();
-        activeDispatches.delete(accepted.ref.runDefinitionCid);
-      }
-    });
-    return physical;
-  };
+  dispatchOwner = installNodeClientDispatchOwner({moon, control,
+    journal, store, checkpoints, startRun, hostConnection, beforeDispatch,
+    observed, prepareAcquisition, planFor, sourceProfile, registry, values,
+    fragment, ordered, tenantId, authorityScopeCid, storeAuthorityCid, now});
+  const startDispatch = dispatchOwner.start;
   const runIdOf = accepted => control.runDefinitionRunId(
     accepted.runDefinition?.wire === undefined
       ? journal.lookupRunDefinition(accepted.ref, moon, control).runDefinition
@@ -691,8 +539,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     const result = journal.requestCancellation(accepted.ref, {
       currentAuthorization: true, publicationCommitted}, moon, control);
     if (result.kind !== 'already_terminal') {
-      activeDispatches.get(accepted.ref.runDefinitionCid)?.abort.abort(
-        new Error('ClientRunCancellationRequested'));
+      dispatchOwner.cancel(accepted.ref);
     }
   };
   const resumeHeld = async ({captured, beforePhysicalStart, started,
@@ -788,6 +635,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     value.connection.owner === mode &&
     checkpoints.admitsCheckpointPrincipal(value.principalId);
   const hostOperations = {
+    observe: observed,
     authorizeConnection: value => checkpointOperation.has(value.operation)
       ? checkpointConnection(value)
       : hostConnection(value) || value.operation === 'connect' &&
@@ -806,7 +654,11 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
   return {port, store, journal, hostOperations, checkpoints,
-    activeDispatches, inspectAcquisition};
+    dispatchOwner, inspectAcquisition};
+  } catch (cause) {
+    throw await retainInstalledHostInitializationFailure(cause,
+      {journal, store, checkpoints, dispatchOwner});
+  }
 }
 
 // This HTTP ingress uses the installed Host's common owner and physical
@@ -863,16 +715,7 @@ export async function openInstalledRemoteHttpHost({directory,
         await Promise.allSettled([...handling]);
       }
       await host.checkpoints?.stop();
-      // Each dispatch is awaited once; an entry kept for its cleanup owner
-      // stays with that owner.
-      const awaited = new Set();
-      for (;;) {
-        const next = [...host.activeDispatches.values()]
-          .filter(active => !awaited.has(active));
-        if (next.length === 0) break;
-        for (const active of next) awaited.add(active);
-        await Promise.all(next.map(active => active.promise));
-      }
+      await host.dispatchOwner.drain();
       const checkpoints = await host.checkpoints?.close();
       host.journal.close();
       // A Store with a pending deletion keeps its durable deletion record;

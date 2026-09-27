@@ -215,6 +215,7 @@ export function openSqliteCheckpointJournal(root, {
     enableForeignKeyConstraints: true,
   });
   let closed = false;
+  let databaseClosed = false;
   try {
     // Several Host processes (run, approve, resume) share one journal; a
     // writer waits for the current transaction instead of failing.
@@ -1627,9 +1628,10 @@ export function openSqliteCheckpointJournal(root, {
     },
 
     close() {
-      if (closed) return;
       closed = true;
+      if (databaseClosed) return;
       database.close();
+      databaseClosed = true;
     },
   });
 
