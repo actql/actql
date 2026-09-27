@@ -201,13 +201,14 @@ const pipeUnionQuery = queryFrontend.compileTwoValuesSetQueryJson(
 assert.deepEqual(JSON.parse(pipeUnionQuery), JSON.parse(setQuery));
 await writeFile(join(root, 'pipe-union-query.json'), pipeUnionQuery);
 const setQueries = [
-  ['union-distinct', 'UNION DISTINCT'],
-  ['intersect-distinct', 'INTERSECT DISTINCT'],
-  ['except-distinct', 'EXCEPT DISTINCT'],
+  ['union-distinct', 'UNION DISTINCT', 'SELECT c, d'],
+  ['union-by-name', 'UNION DISTINCT BY NAME', 'SELECT d AS b, c AS a'],
+  ['intersect-distinct', 'INTERSECT DISTINCT', 'SELECT c, d'],
+  ['except-distinct', 'EXCEPT DISTINCT', 'SELECT c, d'],
 ];
-for (const [name, operator] of setQueries) {
+for (const [name, operator, right] of setQueries) {
   const query = queryFrontend.compileTwoValuesSetQueryJson(
-    `SELECT a, b FROM set_left ${operator} SELECT c, d FROM set_right`,
+    `SELECT a, b FROM set_left ${operator} ${right} FROM set_right`,
     'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
     'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
     `fixture.${name}`);
@@ -618,6 +619,8 @@ const expectedUnionRows = [{a: 1, b: 'x'}, {a: 1, b: 'x'},
   {a: 3, b: 'z'}, {a: null, b: 'n'}];
 const setExpectations = [
   ['union-distinct', [{a: 1, b: 'x'}, {a: 2, b: 'y'},
+    {a: null, b: 'n'}, {a: 3, b: 'z'}]],
+  ['union-by-name', [{a: 1, b: 'x'}, {a: 2, b: 'y'},
     {a: null, b: 'n'}, {a: 3, b: 'z'}]],
   ['intersect-distinct', [{a: 1, b: 'x'}, {a: null, b: 'n'}]],
   ['except-distinct', [{a: 2, b: 'y'}]],

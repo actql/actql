@@ -229,6 +229,9 @@ alignment projection occupies its own Stage so each physical task retains the
 correct input and output contract. The packed Local and HTTP Remote Clients
 read independently expected Named Results for UNION ALL, UNION DISTINCT,
 INTERSECT DISTINCT and EXCEPT DISTINCT, including duplicate and NULL rows.
+The packed Clients also execute `UNION DISTINCT BY NAME` with the right
+SELECT columns reversed. The visible Result order follows the left operand;
+the checker rejects the same names when their typed columns are swapped.
 The common Result-plan issuer maps physical task indices back to checked Unit
 indices when a Stage splits. These SQL fixtures do not establish captured set
 operands, mixed operator grouping or CTE acquisition reuse.

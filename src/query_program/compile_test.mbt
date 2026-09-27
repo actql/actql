@@ -704,6 +704,32 @@ test "SQL set operations align positions before existing row-set kernels" {
 }
 
 ///|
+test "BY NAME aligns selected names and retains checker type rejection" {
+  let valid = @query.parse_query(
+    "SELECT a, b FROM left_rows UNION DISTINCT BY NAME SELECT d AS b, c AS a FROM right_rows",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(valid, set_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"select\":[{\"b\":\"d\"},{\"a\":\"c\"}]"))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("BY NAME operands should be statically closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let incompatible = @query.parse_query(
+    "SELECT a, b FROM left_rows UNION DISTINCT BY NAME SELECT d AS a, c AS b FROM right_rows",
+    syntax_limits(),
+  ).unwrap()
+  let wrong = compile(incompatible, set_context(), construction_limits()).unwrap()
+  match @check.check_parsed(wrong, check_environment(), None, check_limits()) {
+    Rejected(_) => ()
+    _ => fail("BY NAME must not promote mismatched column contracts")
+  }
+}
+
+///|
 test "SQL and Pipe set expressions share checked Program meaning" {
   let sql = @query.parse_query(
     "SELECT a, b FROM left_rows UNION ALL SELECT c, d FROM right_rows",
