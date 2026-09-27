@@ -26,123 +26,49 @@ Branch: `feat/host-effect-commit-checkpoint`.
 - Submit one PR; do not merge it. Real Salesforce installed-Host support is
   distinct from the simulated Site acceptance of this Host boundary.
 
-## Implemented building blocks, not end-to-end completion
+## Current implementation and acceptance
 
-- The Client signs the existing Effect approval-attestation profile and
-  Run-bound Resolution. An approving signer supplies the Run authority scope;
-  the installed Host verifies that scope and the trusted reviewer signature.
-  Only Host-requested partial-application claims are included.
-- The installed Checkpoint service retains encrypted review and continuation
-  evidence, lists Run continuations, and can admit the same approval after a
-  service restart. Read deferral has no continuation port and returns the
-  existing unsupported decision before provider I/O.
-- Captured computation suspension releases process-local prepared payloads
-  without retiring the exact durable capture. It cannot be used with a foreign
-  owner or changed into terminal retirement on the same released owner.
-- The installed Host routes source-free checked Effect Programs through the
-  shared Effect Run owner. Unsupported shapes are rejected before a deferred
-  Run-acceptance Checkpoint is saved, and acceptance reuses its compilation.
-- The existing Checkpoint sweep invokes an installed Effect continuation after
-  answer or restart. A simulated Site test covers the same Run, a durable
-  claim, send-time admission, one send with an unknown reply, duplicate answer,
-  request replay, and another restart. This is not publication acceptance.
-- Cancelling a waiting Effect Run now closes its exact open Checkpoint and
-  exposes a cancelled Run with no Effect send. After approval, cancellation
-  atomically fences an unsent resume against its dispatch admission. An
-  admitted send remains a reconciliation duty. The Host also reconciles a
-  cancellation recorded just before the Checkpoint became visible.
-- A trusted installed Site can report a known pre-Preview refusal with no
-  external Effect dispatch. The common dispatch owner records a failed Run
-  only after its physical cleanup completes; an exception without that
-  observation remains unknown. The public Client test covers deferred target
-  read, zero Site reads/writes, no unanswerable Checkpoint, and restart.
-- The installed Host now supplies a scoped `recoverCapture` operation to its
-  Effect callbacks. It resolves the original request ID from the exact
-  accepted RunRef and reuses the common evidence-read admission. It never
-  reissues an Invocation or reruns Compute. Evidence recovery may proceed
-  under its own signal after execution cancellation, but mutation admission
-  remains separate. The current mock Site proves the exact lookup and
-  absence result; a retained-capture success through this port is still
-  required.
-- The installed Host issues the source-free publication Plan and Invocation
-  from the accepted checked owner before the physical-start claim and passes
-  that exact Plan to the Effect execution callback. No second preparation or
-  compilation is performed. Plan issuance failure is recorded before any
-  physical start; this wiring does not by itself publish an Effectful Run.
+The installed Host now composes the shared checked Effect Run owner, the
+source-free Values compiler, the captured computation and Effect-source
+holdings, the complete Effect Set Preview, the existing Effect ledger, the
+Checkpoint journal, common apply, row/Set receipts, and Named Result
+publication. Provider hooks supply current observations and physical
+requests; they do not own a second apply or retry state machine.
 
-## Remaining product connections
+The public Client and installed HTTP Host tests exercise two members with two
+rows each. They prove direct account allow, direct deny with zero sends, a
+deferred whole-Set approval answered after a Host restart, the same Run's
+publication and Result read, duplicate answer and request replay without
+resending, and another restart. A failed row halts only its member; the
+independent member continues. A lost reply leaves one exact unknown row and
+its capture/source holdings for reconciliation; it is not resent on restart.
+Changing the account to deny after an approved answer sends nothing and
+reclaims the captured holdings. Known failure, unknown send, and cleanup
+responsibility remain distinct.
 
-1. Connect captured computation, Preview, row intents and commit authorization
-   to the installed Checkpoint service. Keep live cleanup with the existing
-   dispatch owner; a suspended computation is not a failed Run.
-2. Recover the exact durable capture and Effect ledger after an answer or
-   restart, without reclaiming Run-start permission or rerunning Compute.
-3. Connect admitted-send reconciliation and retained-capture cleanup to
-   public Run observation and cancellation. Do not mark an
-   admitted-but-unconfirmed send as cancelled. Complete or reclaim retained
-   captures on the appropriate existing terminal transitions.
-4. Run public Client / installed Host fault-injection acceptance against a
-   complete captured/apply installation. The current deferred-read test uses
-   a trusted mock Site observation, not a provider Ledger or captured input.
-5. Publish an approved Effect Set and Named Result through the installed Host.
-   The current simulated continuation deliberately ends in reconciliation; it
-   does not prove typed row receipts, complete apply or publication.
+The installed Site's target-confirmation read deferral remains unsupported in
+this profile. The public Client regression confirms zero reads and writes,
+no unanswerable Checkpoint, and no permanently running Run. It uses a trusted
+Site observation rather than the full captured/apply factory. Read allow and
+immediate delegated permit remain subject to current admission.
 
-The installed Effect Site factory is owned by the Host workstream, not a
-Connector deliverable. At origin/main `c1ed3f526`, the Effect application,
-Ledger and Salesforce provider routes from `9911151e3` are already present.
-The later Salesforce branches were checked through `933c3f9da` (standard
-Host source installation) and `d72baeaed` (provider conformance); neither
-supplies this Effect factory. `openInstalledRemoteHttpHost({effectInstallation})`
-passes the
-accepted `publicationPlan`, checked `owner`, exact-Ref `recoverCapture`, and
-the installed Host's computation and Run-state ports to its callbacks.
-`createInstalledEffectSite` now owns common completion ordering, suspension
-and continuation binding, while provider hooks must supply Preview and
-current-use/physical request facts. This is a building block until a complete
-captured/apply/publication installation passes the public Client test. Do not
-replace the shared compiler or Effect progress state machine.
+At code SHA `c4335405ddb0d19c18b25ef2728903f90f8a3699`, the installed
+Host/Checkpoint focused suite passed 37/37 locally. It uses a deterministic
+reference Effect dispatcher, real HTTPS Host, SQLite journals, and the product
+MoonBit controls; it does not use a live Salesforce org. This SHA has not yet
+passed the complete Client gate or Linux CI. The branch has not been pushed
+or merged.
 
-## Verification so far
+The existing multi-member fixture uses one Host authorization tuple for both
+members. Distinct delegated target tuples under one whole-Set Checkpoint have
+not been validated in this branch. This is not evidence that one approval
+authorizes an unrelated target. The exact target and current account checks
+must continue to precede each send; no broadened approval is inferred from
+the successful shared-tuple test.
 
-Working-tree verification, not a fixed-SHA or Linux CI completion claim:
-
-- Built the Node Host, Checkpoint and Salesforce test runtimes with the pinned
-  MoonBit toolchain. No generated runtime bundle is tracked.
-- 79 targeted tests passed across Effect Run integration, Client Checkpoint
-  signatures, installed Checkpoint service, prepared-result cleanup and the
-  SQLite Checkpoint journal.
-- The pre-apply restart integration uses the new capture suspension operation,
-  restores the saved capture in another process and reaches publication.
-- These are local tests and simulated provider tests. No real Salesforce
-  authentication or mutation was performed. Full Host/Client/packed jobs and
-  Linux CI remain unverified for this branch.
-- The prepared-result cleanup test had an obsolete synthetic retention object;
-  its successful-export case now uses an admitted retention contract so that
-  it reaches the intended physical release/retry assertions.
-- The installed Host and Checkpoint test files passed 29/29 on the working
-  tree, including the new Effect restart cases. The shared Effect Run race
-  case passed 1/1 with the pinned MoonBit toolchain. These do not replace the
-  remaining complete-apply and publication acceptance tests.
-- At code SHA `27601313c10af02f8e9e2f498abb21eb6f71e15e`, the complete
-  `check:distribution-client` job passed locally: 195/195 Node tests, packed
-  Node/browser smoke, packed Checkpoint acceptance, and native Client mTLS.
-  The preparation-failure regression also passed 1/1 with the pinned
-  MoonBit toolchain. This is not Linux CI or a complete Effect apply test.
-- At `00d4f77eaa11f213de98853451a8af8468891a33`, the local
-  `check:salesforce-site` job passed 198/198 tests. Its multi-member apply,
-  unknown-row and publication cases use the Connector test composition;
-  they do not exercise the installed Host's Effect Checkpoint callbacks.
-- The new Host-owned factory passed its focused custody and continuation
-  tests. Two multi-member, multi-row integration variants used its execute
-  and recovered-apply callbacks against the existing durable capture,
-  Effect ledger, receipt and publication implementations. The complete
-  Salesforce integration test file passed locally; these variants use
-  simulated Checkpoint admission, not the installed Host journal.
-- After adding the factory test to `check:distribution-client`, that local
-  job passed: 199/199 Node tests, packed Node/browser smoke, packed Client
-  Checkpoint acceptance and native Client mTLS. This verifies no regression
-  in the installed Client path, not complete Effect commit acceptance.
-- `@actql/local-node/effect-site` now exports the Host factory. A separate
-  packed-package smoke verified that the published subpath imports after
-  `npm pack` and install without package-side build hooks.
+Real Salesforce standard-Host installation is a separate provider connection
+and requires its own allowed test org and scope. No live mutation is claimed
+here. The remaining handoff for this Host unit is to run the affected Client,
+packed, Host and documentation gates on a fixed SHA, reconcile the branch with
+current main, and obtain Linux CI for the pushed PR SHA. The PR is not a
+release or merge claim.
