@@ -102,6 +102,16 @@ targeted test, lint and core jobs ran at
 - `node scripts/local-checks.mjs run spec` passed with this result record and
   the package README update present, including links and generated contracts.
 
+After merging Frontend main at `b5669a863e928a34d300b3bb9ba110d9eaa1809f`,
+the ignored Local and standalone Core runtime packages were rebuilt from the
+integrated sources. The test-only same-pin compiler comparison passed for both
+Values and acquired Tasks. The Host, lint, spec, and core JS jobs passed; core
+JS reported 6,769/6,769. The Client job passed its Node tests (172/172),
+packed Node/browser smoke, packed Checkpoint acceptance, native Client mTLS,
+and Salesforce regression (192/192). An earlier Client attempt was interrupted
+while its native build waited on a MoonBit lock; the later complete run passed.
+Linux CI on the final pushed SHA remains a separate check.
+
 Linux CI on the PR's final pushed SHA is separate evidence and must be checked
 on the PR. This local record does not assert that CI or a main merge occurred.
 
