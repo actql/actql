@@ -133,6 +133,19 @@ const aliasRows = {values: {schema: {
   x: {type: 'number', nullable: false},
   y: {type: 'number', nullable: false}},
 rows: [{x: 2, y: 1}, {x: 1, y: 2}]}, as: 'rows'};
+const nullOrderRows = {values: {schema: {
+  a: {type: 'number', nullable: true}},
+rows: [{a: null}, {a: 1}, {a: 2}]}, as: 'rows'};
+for (const [name, direction] of [
+  ['null-order-asc', 'ASC'], ['null-order-desc', 'DESC'],
+]) {
+  const query = queryFrontend.compileValuesQueryJson(
+    `SELECT a FROM rows ORDER BY a ${direction}`,
+    'rows', 'rows', JSON.stringify(nullOrderRows),
+    JSON.stringify(['a']), 'fixture.' + name);
+  assert.notEqual(query, '', name);
+  await writeFile(join(root, name + '.json'), query);
+}
 for (const [name, sql] of [
   ['alias-order', 'SELECT x AS y FROM rows ORDER BY y'],
   ['hidden-order', 'SELECT x FROM rows ORDER BY y'],
@@ -735,6 +748,17 @@ async function checkValuesCte(client, suffix) {
   assert.deepEqual(await execution.result('answer').all(),
     [{x: 2}, {x: 1}]);
 }
+async function checkNullOrder(client, suffix) {
+  for (const [name, expected] of [
+    ['null-order-asc', [{a: null}, {a: 1}, {a: 2}]],
+    ['null-order-desc', [{a: 2}, {a: 1}, {a: null}]],
+  ]) {
+    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+      {format: 'json', requestId: 'packed-' + name + '-' + suffix});
+    assert.equal((await execution.wait()).status, 'succeeded');
+    assert.deepEqual(await execution.result('answer').all(), expected);
+  }
+}
 async function checkAnalyticPeers(client, suffix) {
   const execution = await client.aql(
     readFileSync('analytic-peers.json', 'utf8'),
@@ -1039,6 +1063,7 @@ assert.deepEqual(await computedValuesQueryLocal.result('answer').all(),
 await checkOrderScopes(installedLocal, 'local');
 await checkQueryPair(installedLocal, 'local');
 await checkValuesCte(installedLocal, 'local');
+await checkNullOrder(installedLocal, 'local');
 await checkAnalyticPeers(installedLocal, 'local');
 await checkJoinSubquery(installedLocal, 'local');
 await checkCteJoinBody(installedLocal, 'local');
@@ -1229,6 +1254,7 @@ assert.deepEqual(await computedValuesQueryRemote.result('answer').all(),
 await checkOrderScopes(installedRemote, 'remote');
 await checkQueryPair(installedRemote, 'remote');
 await checkValuesCte(installedRemote, 'remote');
+await checkNullOrder(installedRemote, 'remote');
 await checkAnalyticPeers(installedRemote, 'remote');
 await checkJoinSubquery(installedRemote, 'remote');
 await checkCteJoinBody(installedRemote, 'remote');

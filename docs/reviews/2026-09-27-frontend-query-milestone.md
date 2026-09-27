@@ -98,6 +98,10 @@ The acquired-input alias collision `SELECT amount AS id, COUNT(*) AS n ...
 GROUP BY id HAVING n > 1` returns only `{id:30,n:2}` through packed Local and
 HTTP Remote. The source has an input `id` column, so this verifies SELECT
 alias precedence in grouping and HAVING through the ordinary Host.
+Source-free Values `(NULL,1,2)` also execute through packed Local and HTTP
+Remote: ascending ORDER returns `NULL,1,2` and descending ORDER returns
+`2,1,NULL`. These are the query profile's explicit NULL directions, not a
+change to the legacy AQL sort default.
 
 GQL patterns, VecA/TEA-specific surfaces, INFER/Artifact spelling, INSERT,
 installed raw-text routing, deployment and other owners' runtime redesigns
