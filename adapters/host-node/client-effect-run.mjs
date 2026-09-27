@@ -33,6 +33,18 @@ export function installNodeClientEffectRun({moon,
   const startRun = installNodeClientRunStart({journal, requestControl: moon,
     publicationControl: control, authorizeRunStart});
   const handles = new WeakMap();
+  const compilations = new WeakMap();
+  const compile = prepared => {
+    if (prepared === null || typeof prepared !== 'object') throw denied();
+    let compilation = compilations.get(prepared);
+    if (compilation !== undefined) return compilation;
+    const outcome = moon.clientProgramCompileLocalEffects(prepared);
+    if (moon.clientProgramEffectCompilationIssueCode(outcome) ===
+        'unsupported_program') throw unsupported();
+    compilation = checked(outcome);
+    compilations.set(prepared, compilation);
+    return compilation;
+  };
   const admitEvidence = (name, wire) => checked(
     moon.strategyRunEvidenceAdmit(name, wire, limits.maxWireBytes,
       limits.maxNodes, limits.maxDepth));
@@ -40,6 +52,10 @@ export function installNodeClientEffectRun({moon,
     'run_definition', definition.wire, limits.maxWireBytes,
     limits.maxNodes, limits.maxDepth));
   return Object.freeze({
+    // A held Run-acceptance Checkpoint must never be opened for a Program
+    // this installed Host cannot compile. The exact compiled owner is reused
+    // by acceptance; this check neither issues a Run nor starts physical I/O.
+    checkSupported(prepared) { compile(prepared); },
     // Record the public state of a started Run whose complete admitted Effect
     // Set has unknown outcomes. The owner names exactly those Effects; the
     // journal keeps the state for status and reconcile in any later process.
@@ -75,27 +91,20 @@ export function installNodeClientEffectRun({moon,
       const identity = moon.clientProgramEffectRequestIdentity(prepared,
         authorityScopeCid, requestId, moon.clientProgramSourceFreeInputIntentCid());
       if (identity === undefined) throw denied();
-      let compilation;
-      const compile = () => {
-        if (compilation !== undefined) return compilation;
-        const outcome = moon.clientProgramCompileLocalEffects(prepared);
-        if (moon.clientProgramEffectCompilationIssueCode(outcome) ===
-            'unsupported_program') throw unsupported();
-        compilation = checked(outcome);
-        return compilation;
-      };
+      const compiled = () => compile(prepared);
       const accepted = await journal.admitOrLookupDefinition(identity, {
         tenantId, lookupExpiresAt,
         issueDefinition() {
           const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
-            compile(), policy.executionContextCid, policy.hostPolicyCid,
+            compiled(), policy.executionContextCid, policy.hostPolicyCid,
             policy.expiresAt));
           const definition = checked(moon.clientProgramIssueEffectRunDefinition(
             allowed, tenantId, randomUUID(), policy.createdAt, policy.expiresAt));
           if (!moon.clientProgramEffectRunStartCurrent(allowed,
             definition, now())) throw expired();
           return {
-            resultNames: moon.clientProgramEffectCompilationResultNames(compile()),
+            resultNames: moon.clientProgramEffectCompilationResultNames(
+              compiled()),
             runDefinition: control.admit('run_definition',
               moon.strategyPublicationContractJson(definition), limits),
             runAdmissionEvidence: {
@@ -111,7 +120,7 @@ export function installNodeClientEffectRun({moon,
         durability: accepted.durability, revision: accepted.revision,
         lookupExpiresAt: accepted.lookupExpiresAt});
       handles.set(handle, {prepared, identity, tenantId, principalId,
-        connection, compile});
+        connection, compile: compiled});
       return handle;
     },
     async start(handle, {beforePhysicalStart, started, signal} = {}) {

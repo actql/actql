@@ -4429,7 +4429,13 @@ test('shared Effect Client admission and physical claim survive races and restar
   let starts = 0;
   let failAfterCapture = false;
   let currentAuthorization = true;
-  const install = journal => installNodeClientEffectRun({moon,
+  let preflightCompiles = 0;
+  const countedMoon = {...moon,
+    clientProgramCompileLocalEffects(...args) {
+      preflightCompiles++;
+      return moon.clientProgramCompileLocalEffects(...args);
+    }};
+  const install = (journal, runtime = moon) => installNodeClientEffectRun({moon: runtime,
     publicationControl: control, journal,
     authorizeRequest: async () => currentAuthorization ? {
       executionContextCid: cid('a'), hostPolicyCid: cid('b'),
@@ -4457,11 +4463,15 @@ test('shared Effect Client admission and physical claim survive races and restar
     lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
   let journal = openClientRequestJournal(directory);
   let other = openClientRequestJournal(directory);
-  let host = install(journal);
+  let host = install(journal, countedMoon);
   let competing = install(other);
+  host.checkSupported(prepared);
+  assert.equal(preflightCompiles, 1);
   const [first, second] = await Promise.all([
     host.accept(request('race')), competing.accept(request('race')),
   ]);
+  assert.equal(preflightCompiles, 1,
+    'accepted Run reuses the checked preflight compilation');
   assert.deepEqual(first.ref, second.ref);
   assert.equal(starts, 0, 'acceptance never starts capture');
   assert.deepEqual((await Promise.all([host.start(first), competing.start(second)]))
