@@ -668,6 +668,67 @@ test "SQL and Pipe set expressions share checked Program meaning" {
 }
 
 ///|
+test "source-free equijoin enters the ordinary checker" {
+  let parsed = @query.parse_query(
+    "SELECT l.a AS a, r.d AS d FROM left_rows AS l INNER JOIN right_rows AS r ON l.a = r.c",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(parsed, set_context(), construction_limits()).unwrap()
+  let piped = @query.parse_query(
+    "FROM left_rows AS l |> INNER JOIN right_rows AS r ON l.a = r.c |> SELECT l.a AS a, r.d AS d",
+    syntax_limits(),
+  ).unwrap()
+  assert_eq(
+    semantic(program),
+    semantic(compile(piped, set_context(), construction_limits()).unwrap()),
+  )
+  let wire = semantic(program)
+  assert_true(wire.contains("\"join\":{\"kind\":\"inner\""))
+  assert_true(wire.contains("\"left\":\"a\",\"right\":\"c\""))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("source-free join should be closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+}
+
+///|
+test "FULL Values join refuses to invent stable row identities" {
+  let query = @query.parse_query(
+    "SELECT l.a AS a, r.d AS d FROM left_rows AS l FULL JOIN right_rows AS r ON l.a = r.c",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(query, set_context(), construction_limits()) is Err(UnsupportedJoin),
+  )
+}
+
+///|
+test "JOIN USING binds both checked keys and rejects ambiguous columns" {
+  let using_query = @query.parse_query(
+    "SELECT l.a AS a, r.b AS right_b FROM left_rows AS l INNER JOIN left_rows AS r USING (a)",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(using_query, set_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"left\":\"a\",\"right\":\"a\""))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("source-free USING join should be closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let ambiguous = @query.parse_query(
+    "SELECT a FROM left_rows AS l INNER JOIN left_rows AS r ON l.a = r.a",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(ambiguous, set_context(), construction_limits()) is Err(_),
+  )
+}
+
+///|
 test "SQL exact BY NAME and positional shape reject mismatched outputs" {
   let named = @query.parse_query(
     "SELECT a, b FROM left_rows UNION ALL BY NAME SELECT b, a FROM left_rows",

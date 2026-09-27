@@ -43,6 +43,7 @@ pub(all) enum Issue {
   UnsupportedOrdering
   UnsupportedAnalytic
   UnsupportedSet
+  UnsupportedJoin
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   Admission(@program.SyntaxError)
@@ -200,7 +201,14 @@ fn same_expression(left : @query.Expression, right : @query.Expression) -> Bool 
 
 ///|
 fn selected_input(query : @query.Query, context : Context) -> Input raise Abort {
-  let relation = @query.relation(query)
+  selected_relation(@query.relation(query), context)
+}
+
+///|
+fn selected_relation(
+  relation : Array[@query.NamePart],
+  context : Context,
+) -> Input raise Abort {
   let mut found : Input? = None
   for input in context.inputs {
     if same_path(relation, input.relation) {
@@ -1823,6 +1831,9 @@ pub fn compile(
   if @query.set_part_count(query) > 0 {
     return compile_set_query(query, context, limits)
   }
+  if @query.join_part_count(query) > 0 {
+    return compile_join_query(query, context, limits)
+  }
   if limits.max_expression_work < 0 ||
     context.program_id == "" ||
     context.stage_id == "" ||
@@ -2020,6 +2031,9 @@ fn compile_set_query(
     let outputs : Array[Array[String]] = []
     for index in 0..<terms.length() {
       let term = terms[index]
+      if @query.join_part_count(term) > 0 {
+        raise Abort(UnsupportedJoin)
+      }
       let input = selected_input(term, context)
       let fields = columns(input)
       let fragment = match input.source {
@@ -2505,6 +2519,420 @@ fn compile_set_query(
       Ok(program) => Ok(program)
       Err(issue) => Err(Admission(issue))
     }
+  } catch {
+    Abort(issue) => {
+      @builder.discard(builder)
+      Err(issue)
+    }
+  }
+}
+
+///|
+fn join_field(
+  path : Array[@query.NamePart],
+  left_qualifier : @query.NamePart,
+  right_qualifier : @query.NamePart,
+  left_fields : Array[String],
+  right_fields : Array[String],
+) -> (String, String) raise Abort {
+  if path.is_empty() || path.length() > 2 {
+    raise Abort(UnknownColumn)
+  }
+  let mut left = path.length() == 1 || same_name(path[0], left_qualifier)
+  let mut right = path.length() == 1 || same_name(path[0], right_qualifier)
+  if path.length() == 2 && left && right {
+    raise Abort(AmbiguousRelation)
+  }
+  let name = path[path.length() - 1]
+  let mut field : String? = None
+  if left {
+    for candidate in left_fields {
+      if same_name(name, { value: candidate, quoted: false, }) {
+        if field is Some(_) {
+          raise Abort(UnknownColumn)
+        }
+        field = Some(candidate)
+      }
+    }
+    if field is None {
+      left = false
+    }
+  }
+  let left_field = field
+  field = None
+  if right {
+    for candidate in right_fields {
+      if same_name(name, { value: candidate, quoted: false, }) {
+        if field is Some(_) {
+          raise Abort(UnknownColumn)
+        }
+        field = Some(candidate)
+      }
+    }
+    if field is None {
+      right = false
+    }
+  }
+  if left && right {
+    raise Abort(UnknownColumn)
+  }
+  if left {
+    return ("left", left_field.unwrap())
+  }
+  if right {
+    return ("right", field.unwrap())
+  }
+  raise Abort(UnknownColumn)
+}
+
+///|
+fn join_keys(
+  part : @query.JoinPart,
+  left_qualifier : @query.NamePart,
+  right_qualifier : @query.NamePart,
+  left_fields : Array[String],
+  right_fields : Array[String],
+) -> Array[(String, String)] raise Abort {
+  let pairs : Array[(String, String)] = []
+  if part.on is Some(expression) {
+    let pending = [@query.expression_root(expression)]
+    while pending.pop() is Some(index) {
+      let node = @query.expression_node(expression, index).unwrap()
+      match node.kind {
+        Parenthesized(child) => pending.push(child)
+        Binary("AND", left, right) => {
+          pending.push(right)
+          pending.push(left)
+        }
+        Binary("=", left, right) => {
+          guard @query.expression_node(expression, left).unwrap().kind
+            is Reference(left_path) &&
+            @query.expression_node(expression, right).unwrap().kind
+            is Reference(right_path) else {
+            raise Abort(UnsupportedJoin)
+          }
+          let a = join_field(
+            left_path, left_qualifier, right_qualifier, left_fields, right_fields,
+          )
+          let b = join_field(
+            right_path, left_qualifier, right_qualifier, left_fields, right_fields,
+          )
+          if a.0 == "left" && b.0 == "right" {
+            pairs.push((a.1, b.1))
+          } else if a.0 == "right" && b.0 == "left" {
+            pairs.push((b.1, a.1))
+          } else {
+            raise Abort(UnsupportedJoin)
+          }
+        }
+        _ => raise Abort(UnsupportedJoin)
+      }
+    }
+  } else {
+    for name in part.using_columns {
+      let left = join_field(
+        [left_qualifier, name],
+        left_qualifier,
+        right_qualifier,
+        left_fields,
+        right_fields,
+      )
+      let right = join_field(
+        [right_qualifier, name],
+        left_qualifier,
+        right_qualifier,
+        left_fields,
+        right_fields,
+      )
+      pairs.push((left.1, right.1))
+    }
+  }
+  if pairs.is_empty() && part.kind != "cross" {
+    raise Abort(UnsupportedJoin)
+  }
+  pairs
+}
+
+///|
+fn join_values_rows(input : Input) -> Int raise Abort {
+  guard input.source is GeneratedValues(step) else {
+    raise Abort(UnsupportedJoin)
+  }
+  let step = match @wire.open_object(step) {
+    Ok(value) => value
+    Err(_) => raise Abort(InvalidContext)
+  }
+  let values = match @wire.lookup(step, "values") {
+    Some(value) => value
+    None => raise Abort(InvalidContext)
+  }
+  let values = match @wire.open_object(values) {
+    Ok(value) => value
+    Err(_) => raise Abort(InvalidContext)
+  }
+  let rows = match @wire.lookup(values, "rows") {
+    Some(value) => value
+    None => raise Abort(InvalidContext)
+  }
+  match @wire.elements(rows) {
+    Ok(value) => value.length()
+    Err(_) => raise Abort(InvalidContext)
+  }
+}
+
+///|
+fn join_seed_stage(
+  construction : Construction,
+  input : Input,
+  fields : Array[String],
+  stage_name : String,
+) -> @builder.Node raise Abort {
+  guard input.source is GeneratedValues(step) else {
+    raise Abort(UnsupportedJoin)
+  }
+  let seed = match
+    @builder.import_cursor(construction.builder, step, construction.generated) {
+    Ok(value) => value
+    Err(issue) => raise Abort(Construction(issue))
+  }
+  construction.object([
+    ("id", construction.text(stage_name)),
+    ("inputs", construction.object([])),
+    ("steps", construction.array([seed])),
+    (
+      "results",
+      construction.object([
+        (
+          stage_name,
+          construction.object([
+            ("from", construction.text(input.name)),
+            (
+              "fields",
+              construction.array(fields.map(field => construction.text(field))),
+            ),
+          ]),
+        ),
+      ]),
+    ),
+  ])
+}
+
+///|
+fn compile_join_query(
+  query : @query.Query,
+  context : Context,
+  limits : Limits,
+) -> Result[@program.Program, Issue] {
+  if @query.join_part_count(query) != 1 ||
+    @query.operation_count(query) != 1 ||
+    context.captured_stage is Some(_) ||
+    context.program_id == "" ||
+    context.stage_id == "" ||
+    context.stage_result == "" ||
+    context.result_name == "" {
+    return Err(UnsupportedJoin)
+  }
+  let document = @query.query_document(query)
+  let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
+  let builder = match @builder.create(document, limits.source) {
+    Ok(value) => value
+    Err(issue) => return Err(Construction(issue))
+  }
+  let construction : Construction = { builder, generated, }
+  try {
+    let part = @query.join_part_at(query, 0).unwrap()
+    // A FULL JOIN requires stable row identity on both sides. Generated
+    // Values stages do not currently carry that proof across stage Results.
+    if part.kind == "full" {
+      raise Abort(UnsupportedJoin)
+    }
+    let left = selected_input(query, context)
+    let right = selected_relation(part.relation, context)
+    let left_fields = columns(left)
+    let right_fields = columns(right)
+    let left_qualifier = @query.relation_alias(query).unwrap_or(
+      @query.relation(query).last().unwrap(),
+    )
+    let right_qualifier = part.source_alias.unwrap_or(
+      part.relation.last().unwrap(),
+    )
+    if same_name(left_qualifier, right_qualifier) {
+      raise Abort(AmbiguousRelation)
+    }
+    let keys = join_keys(
+      part, left_qualifier, right_qualifier, left_fields, right_fields,
+    )
+    guard @query.operation_at(query, 0) is Some(Select(projections, false)) else {
+      raise Abort(UnsupportedJoin)
+    }
+    let select : Array[(String, @builder.Node)] = []
+    let output : Array[String] = []
+    for projection in projections {
+      guard projection.expression is Some(expression) &&
+        projection.aggregate is None &&
+        projection.analytic is None &&
+        @query.expression_node(expression, @query.expression_root(expression))
+        is Some({ kind: Reference(path), .. }) else {
+        raise Abort(UnsupportedJoin)
+      }
+      let resolved = join_field(
+        path, left_qualifier, right_qualifier, left_fields, right_fields,
+      )
+      let name = projection.name
+        .map(value => value.value)
+        .unwrap_or(path.last().unwrap().value)
+      if output.contains(name) {
+        raise Abort(DuplicateOutput)
+      }
+      output.push(name)
+      select.push((name, construction.text(resolved.0 + "." + resolved.1)))
+    }
+    if output.is_empty() {
+      raise Abort(UnsupportedJoin)
+    }
+    let left_rows = join_values_rows(left).to_int64()
+    let right_rows = join_values_rows(right).to_int64()
+    let factor = if part.kind == "inner" || part.kind == "cross" {
+      right_rows
+    } else if right_rows == 0L {
+      1L
+    } else {
+      right_rows
+    }
+    let extra = if part.kind == "full" { right_rows } else { 0L }
+    if extra > 9007199254740991L ||
+      (factor != 0L && left_rows > (9007199254740991L - extra) / factor) {
+      raise Abort(UnsupportedJoin)
+    }
+    let raw_bound = left_rows * factor + extra
+    let bound = if raw_bound == 0L { 1L } else { raw_bound }
+    let left_stage = "aql_join_left"
+    let right_stage = "aql_join_right"
+    let operation = if part.kind == "cross" {
+      (
+        "cross_join",
+        construction.object([
+          ("with", construction.text("r")),
+          ("max_output_rows", construction.add(Number(bound.to_double()))),
+          ("select", construction.object(select)),
+        ]),
+      )
+    } else {
+      (
+        "join",
+        construction.object([
+          ("with", construction.text("r")),
+          ("kind", construction.text(part.kind)),
+          (
+            "on",
+            construction.array(
+              keys.map(pair => {
+                construction.object([
+                  ("left", construction.text(pair.0)),
+                  ("right", construction.text(pair.1)),
+                ])
+              }),
+            ),
+          ),
+          ("max_output_rows", construction.add(Number(bound.to_double()))),
+          ("select", construction.object(select)),
+        ]),
+      )
+    }
+    let joined = "aql_join_output"
+    let stage = construction.object([
+      ("id", construction.text(context.stage_id)),
+      (
+        "inputs",
+        construction.object([
+          (
+            "l",
+            construction.object([
+              (
+                "result",
+                construction.object([
+                  ("stage", construction.text(left_stage)),
+                  ("result", construction.text(left_stage)),
+                ]),
+              ),
+            ]),
+          ),
+          (
+            "r",
+            construction.object([
+              (
+                "result",
+                construction.object([
+                  ("stage", construction.text(right_stage)),
+                  ("result", construction.text(right_stage)),
+                ]),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+      (
+        "steps",
+        construction.array([
+          construction.object([
+            ("from", construction.text("l")),
+            operation,
+            ("as", construction.text(joined)),
+          ]),
+        ]),
+      ),
+      (
+        "results",
+        construction.object([
+          (
+            context.stage_result,
+            construction.object([
+              ("from", construction.text(joined)),
+              (
+                "fields",
+                construction.array(output.map(name => construction.text(name))),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    ])
+    let root = construction.object([
+      ("version", construction.text("actql/0.1")),
+      ("id", construction.text(context.program_id)),
+      (
+        "stages",
+        construction.array([
+          join_seed_stage(construction, left, left_fields, left_stage),
+          join_seed_stage(construction, right, right_fields, right_stage),
+          stage,
+        ]),
+      ),
+      (
+        "results",
+        construction.object([
+          (
+            context.result_name,
+            construction.object([
+              (
+                "from",
+                construction.object([
+                  ("stage", construction.text(context.stage_id)),
+                  ("result", construction.text(context.stage_result)),
+                ]),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    ])
+    let source = match @builder.finish(builder, root) {
+      Ok(value) => value
+      Err(issue) => raise Abort(Construction(issue))
+    }
+    @program.admit_generated_source(source, limits.program).map_err(issue => {
+      Admission(issue)
+    })
   } catch {
     Abort(issue) => {
       @builder.discard(builder)

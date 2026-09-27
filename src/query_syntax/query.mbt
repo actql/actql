@@ -86,10 +86,20 @@ pub(all) struct SetPart {
 }
 
 ///|
+pub(all) struct JoinPart {
+  kind : String
+  relation : Array[NamePart]
+  source_alias : NamePart?
+  on : Expression?
+  using_columns : Array[NamePart]
+}
+
+///|
 struct Query {
   source : Tokens
   relation : Array[NamePart]
   source_alias : NamePart?
+  joins : Array[JoinPart]
   operations : Array[QueryOperation]
   sets : Array[SetPart]
   final_operations : Array[QueryOperation]
@@ -99,6 +109,16 @@ struct Query {
 ///|
 pub fn set_part_count(query : Query) -> Int {
   query.sets.length()
+}
+
+///|
+pub fn join_part_count(query : Query) -> Int {
+  query.joins.length()
+}
+
+///|
+pub fn join_part_at(query : Query, index : Int) -> JoinPart? {
+  query.joins.get(index)
 }
 
 ///|
@@ -285,6 +305,74 @@ fn QueryParser::source_name(
     None
   }
   (relation, source_alias)
+}
+
+///|
+fn QueryParser::join_part(self : QueryParser) -> JoinPart raise QueryAbort {
+  self.node()
+  let kind = if self.has("INNER") {
+    self.keyword("INNER")
+    "inner"
+  } else if self.has("LEFT") {
+    self.keyword("LEFT")
+    if self.has("OUTER") {
+      self.keyword("OUTER")
+    }
+    "left"
+  } else if self.has("FULL") {
+    self.keyword("FULL")
+    if self.has("OUTER") {
+      self.keyword("OUTER")
+    }
+    "full"
+  } else if self.has("CROSS") {
+    self.keyword("CROSS")
+    "cross"
+  } else {
+    "inner"
+  }
+  self.keyword("JOIN")
+  let (relation, source_alias) = self.source_name()
+  if kind == "cross" {
+    return { kind, relation, source_alias, on: None, using_columns: [], }
+  }
+  if self.has("ON") {
+    self.keyword("ON")
+    self.node()
+    return {
+      kind,
+      relation,
+      source_alias,
+      on: Some(self.expression()),
+      using_columns: [],
+    }
+  }
+  self.keyword("USING")
+  if self.advance().value != Symbol(40) {
+    raise QueryAbort("Expected USING opening parenthesis", self.peek().start)
+  }
+  let using_columns : Array[NamePart] = []
+  while true {
+    self.node()
+    using_columns.push(self.name())
+    if self.peek().value != Symbol(44) {
+      break
+    }
+    ignore(self.advance())
+  }
+  if self.advance().value != Symbol(41) {
+    raise QueryAbort("Expected USING closing parenthesis", self.peek().start)
+  }
+  { kind, relation, source_alias, on: None, using_columns, }
+}
+
+///|
+fn QueryParser::starts_join(self : QueryParser) -> Bool {
+  self.has("JOIN") ||
+  self.has("INNER") ||
+  self.has("LEFT") ||
+  self.has("FULL") ||
+  self.has("CROSS")
 }
 
 ///|
@@ -613,6 +701,10 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   let projections = self.projections()
   self.keyword("FROM")
   let (relation, source_alias) = self.source_name()
+  let joins : Array[JoinPart] = []
+  while self.starts_join() {
+    joins.push(self.join_part())
+  }
   let operations : Array[QueryOperation] = []
   if self.has("WHERE") {
     self.keyword("WHERE")
@@ -641,6 +733,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     source: self.source,
     relation,
     source_alias,
+    joins,
     operations,
     sets: [],
     final_operations: [],
@@ -718,6 +811,7 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
 fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
   self.keyword("FROM")
   let (relation, source_alias) = self.source_name()
+  let joins : Array[JoinPart] = []
   let operations : Array[QueryOperation] = []
   let sets : Array[SetPart] = []
   let final_operations : Array[QueryOperation] = []
@@ -777,6 +871,14 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
         "Unsupported operation after Pipe set",
         self.peek().start,
       )
+    } else if self.starts_join() {
+      if !operations.is_empty() || !sets.is_empty() {
+        raise QueryAbort(
+          "Pipe JOIN must precede other operators",
+          self.peek().start,
+        )
+      }
+      joins.push(self.join_part())
     } else if self.has("WHERE") {
       self.keyword("WHERE")
       operations.push(Where(self.expression()))
@@ -879,6 +981,7 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
     source: self.source,
     relation,
     source_alias,
+    joins,
     operations,
     sets,
     final_operations,

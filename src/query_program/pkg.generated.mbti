@@ -49,6 +49,7 @@ pub(all) enum Issue {
   UnsupportedOrdering
   UnsupportedAnalytic
   UnsupportedSet
+  UnsupportedJoin
   Construction(@program_source_builder.Issue)
   Expression(@query_expression.Diagnostic)
   Admission(@stage_syntax.SyntaxError)

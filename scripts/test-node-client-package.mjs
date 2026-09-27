@@ -156,6 +156,39 @@ for (const [name, operator] of setQueries) {
   assert.notEqual(query, '', name);
   await writeFile(join(root, `${name}.json`), query);
 }
+const joinCases = [
+  ['inner', [{a: 1, d: 'x'}, {a: 1, d: 'x'}]],
+  ['left', [{a: 1, d: 'x'}, {a: 1, d: 'x'},
+    {a: 2, d: null}, {a: null, d: null}]],
+  ['cross', [
+    {a: 1, d: 'x'}, {a: 1, d: 'z'}, {a: 1, d: 'n'},
+    {a: 1, d: 'x'}, {a: 1, d: 'z'}, {a: 1, d: 'n'},
+    {a: 2, d: 'x'}, {a: 2, d: 'z'}, {a: 2, d: 'n'},
+    {a: null, d: 'x'}, {a: null, d: 'z'}, {a: null, d: 'n'},
+  ]],
+];
+for (const [kind] of joinCases) {
+  const clause = kind === 'cross'
+    ? 'CROSS JOIN set_right AS r'
+    : `${kind.toUpperCase()} JOIN set_right AS r ON l.a = r.c`;
+  const query = queryFrontend.compileTwoValuesSetQueryJson(
+    `SELECT l.a AS a, r.d AS d FROM set_left AS l ${clause}`,
+    'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+    'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+    `fixture.join_${kind}`);
+  assert.notEqual(query, '', kind);
+  await writeFile(join(root, `join-${kind}.json`), query);
+}
+const pipeJoinQuery = queryFrontend.compileTwoValuesSetQueryJson(
+  'FROM set_left AS l |> INNER JOIN set_right AS r ON l.a = r.c '
+    + '|> SELECT l.a AS a, r.d AS d',
+  'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+  'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+  'fixture.join_inner');
+assert.deepEqual(JSON.parse(pipeJoinQuery),
+  JSON.parse(await readFile(join(root, 'join-inner.json'), 'utf8')));
+await writeFile(join(root, 'join-pipe.json'), pipeJoinQuery);
+await writeFile(join(root, 'join-cases.json'), JSON.stringify(joinCases));
 const capturedQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT id FROM records WHERE id > 1', 'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
@@ -375,6 +408,23 @@ const setExpectations = [
   ['except-distinct', [{a: 2, b: 'y'}]],
 ];
 const sortedRows = rows => rows.map(row => JSON.stringify(row)).sort();
+async function checkJoinCases(client, suffix) {
+  const cases = JSON.parse(readFileSync('join-cases.json', 'utf8'));
+  for (const [kind, expected] of cases) {
+    const execution = await client.aql(
+      readFileSync('join-' + kind + '.json', 'utf8'),
+      {format: 'json', requestId: 'packed-join-' + kind + '-' + suffix});
+    const status = await execution.wait();
+    assert.equal(status.status, 'succeeded', JSON.stringify(status));
+    assert.deepEqual(sortedRows(await execution.result('answer').all()),
+      sortedRows(expected));
+  }
+  const execution = await client.aql(readFileSync('join-pipe.json', 'utf8'),
+    {format: 'json', requestId: 'packed-join-pipe-' + suffix});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  assert.deepEqual(sortedRows(await execution.result('answer').all()),
+    sortedRows(cases[0][1]));
+}
 async function checkSetQueries(client, suffix) {
   for (const [name, expected] of setExpectations) {
     const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
@@ -478,6 +528,7 @@ assert.equal(setQueryLocalStatus.status, 'succeeded',
   JSON.stringify(setQueryLocalStatus));
 assert.deepEqual(await setQueryLocal.result('answer').all(), expectedUnionRows);
 await checkSetQueries(installedLocal, 'local');
+await checkJoinCases(installedLocal, 'local');
 const pipeUnionLocal = await installedLocal.aql(pipeUnionQueryDocument,
   {format: 'json', requestId: 'packed-pipe-union-local'});
 assert.equal((await pipeUnionLocal.wait()).status, 'succeeded');
@@ -653,6 +704,7 @@ const setQueryRemote = await installedRemote.aql(setQueryDocument,
 assert.equal((await setQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await setQueryRemote.result('answer').all(), expectedUnionRows);
 await checkSetQueries(installedRemote, 'remote');
+await checkJoinCases(installedRemote, 'remote');
 const pipeUnionRemote = await installedRemote.aql(pipeUnionQueryDocument,
   {format: 'json', requestId: 'packed-pipe-union-remote'});
 assert.equal((await pipeUnionRemote.wait()).status, 'succeeded');

@@ -138,3 +138,34 @@ test "Pipe set inputs are parenthesized and retain final ordering" {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
 }
+
+///|
+test "SQL JOIN retains qualifier and equality condition" {
+  let query = parse_query(
+    "SELECT l.a AS a, r.d AS d FROM left_rows AS l LEFT JOIN right_rows AS r ON l.a = r.c",
+    query_limits(),
+  ).unwrap()
+  assert_eq(join_part_count(query), 1)
+  let part = join_part_at(query, 0).unwrap()
+  assert_eq(part.kind, "left")
+  assert_eq(part.relation, [{ value: "right_rows", quoted: false, }])
+  assert_eq(part.source_alias, Some({ value: "r", quoted: false, }))
+  assert_true(part.on is Some(_))
+  let piped = parse_query(
+    "FROM left_rows AS l |> LEFT JOIN right_rows AS r ON l.a = r.c |> SELECT l.a AS a, r.d AS d",
+    query_limits(),
+  ).unwrap()
+  assert_eq(join_part_count(piped), 1)
+  assert_eq(join_part_at(piped, 0).unwrap().kind, "left")
+  for
+    text in [
+      "SELECT l.a FROM left_rows AS l JOIN right_rows AS r ON l.a > r.c", "SELECT l.a FROM left_rows AS l RIGHT JOIN right_rows AS r ON l.a = r.c",
+    ] {
+    let parsed = parse_query(text, query_limits())
+    if text.contains("RIGHT JOIN") {
+      assert_true(parsed is Err(_))
+    } else {
+      assert_true(parsed is Ok(_))
+    }
+  }
+}

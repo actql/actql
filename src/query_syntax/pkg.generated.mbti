@@ -26,6 +26,10 @@ pub fn final_operation_at(Query, Int) -> QueryOperation?
 
 pub fn final_operation_count(Query) -> Int
 
+pub fn join_part_at(Query, Int) -> JoinPart?
+
+pub fn join_part_count(Query) -> Int
+
 pub fn operation_at(Query, Int) -> QueryOperation?
 
 pub fn operation_count(Query) -> Int
@@ -147,6 +151,14 @@ pub(all) enum Issue {
   Lexical(LexicalIssue)
   Limit(Resource)
 } derive(@debug.Debug)
+
+pub(all) struct JoinPart {
+  kind : String
+  relation : Array[NamePart]
+  source_alias : NamePart?
+  on : Expression?
+  using_columns : Array[NamePart]
+}
 
 pub(all) enum Lexeme {
   Word(String)

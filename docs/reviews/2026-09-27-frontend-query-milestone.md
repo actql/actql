@@ -21,12 +21,12 @@ records reference terms, frontend and existing IR meanings, and differences.
 | UTF-8, tokens, escaping, numeric domain, original spans | Original source owner and bounded query lexer | Positive, negative and exact-limit cases | Pending |
 | Closed scalar expressions, precedence, NULL and CONCAT | Structured Expression admission/typing | Independent trees, demand/failure and legacy regression | Partial: shared AST and direct tree lowering; full typing/failure matrix pending |
 | SELECT, FROM-only, subqueries, WHERE | Existing Program derive/select/filter | SQL/Pipe expected Program and rows | Partial: base SELECT/FROM/WHERE equivalence and captured Host Result; subqueries pending |
-| INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Pending |
+| INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: two Values operands support direct-column INNER/LEFT and bounded CROSS; FULL requires stable input identity that these Values stages cannot prove |
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: scalar reductions and ordered ARRAY_AGG/STRING_AGG lower through group; captured COUNT/GROUP/HAVING runtime passes, ordered collection runtime and failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Pending |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands execute through packed Local/HTTP Clients; captured operands, Pipe set, CTE reuse and broader type/order cases remain |
-| Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND, scoped SET/DROP/RENAME/AS and a parenthesized SQL right operand for Pipe set; JOIN and other post-projection scope remain |
+| Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND, scoped SET/DROP/RENAME/AS, one JOIN before other Pipe operators, and a parenthesized SQL right operand for Pipe set; post-projection JOIN and other scope forms remain |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK Result; full negative and frame matrix pending |
 | Bounds, origin maps and Grammar Manifest | Existing owners | Before-allocation bounds, source diagnostics, pins/vectors | Pending |
 | Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Partial: source-free direct and filtered Values plus captured filter/query run through packed Local and HTTP Remote Host; CTE reuse pending |
@@ -176,6 +176,16 @@ The first Pipe set form, `FROM set_left |> SELECT a, b |> UNION ALL
 counterpart. Packed Local and HTTP Remote Clients read the same independently
 specified rows. Further Pipe chaining, multiple right operands and acquired
 inputs remain unverified.
+SQL and Pipe INNER equijoins, SQL LEFT equijoins, and SQL finite CROSS JOINs
+over two source-free Values relations now execute
+through packed Local and HTTP Remote Clients, preserving duplicate rows and
+NULL-key nonmatches. A bounded CROSS JOIN uses the existing product operation.
+The Pipe INNER JOIN emits the same Program as SQL. This lowering currently
+permits one join and direct selected fields. FULL JOIN
+is parsed but the Values compiler refuses it before issuing a Program: the
+checked FULL JOIN requires stable identity on both inputs, which the generated
+Values Stage Results do not carry. No representative row or synthetic key is
+inferred. Acquired keyed inputs and correct FULL/USING projection remain open.
 ARRAY_AGG requires the adopted `IGNORE NULLS` and explicit order spelling;
 STRING_AGG requires a literal delimiter and explicit order. Both lower to the
 existing group call. The independent checker accepts the bounded ARRAY_AGG
