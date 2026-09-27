@@ -4,12 +4,15 @@ package "actql/actql/stage_syntax"
 import {
   "actql/actql/decode_core",
   "actql/actql/encode_core",
+  "actql/actql/program_source_builder",
   "actql/actql/source_span",
   "actql/actql/source_value",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn admit_generated_source(@program_source_builder.Source, Limits) -> Result[Program, SyntaxError]
+
 pub fn collect_effect_headers(Program, Int, Int) -> Result[EffectHeaders, EffectHeaderIssue]
 
 pub fn effect_header_at(EffectHeaders, Int) -> EffectHeader?

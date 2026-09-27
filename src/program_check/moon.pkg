@@ -1,6 +1,8 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/program_source_builder" @builder,
+  "actql/actql/frontend_source_map" @origin,
   "actql/actql/sha256" @sha,
   "actql/actql/canonical_json" @json,
   "actql/actql/lowering_relation" @lower,
