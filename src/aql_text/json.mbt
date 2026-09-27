@@ -71,6 +71,8 @@ fn Parser::read_json(
       (
         n == 0x3b ||
         n == 0x7c ||
+        (n == 0x2f && self.scanner.peek(ahead=1) == Some(0x2a)) ||
+        (n == 0x2d && self.scanner.peek(ahead=1) == Some(0x2d)) ||
         n == 0x20 ||
         n == 0x09 ||
         n == 0x0a ||

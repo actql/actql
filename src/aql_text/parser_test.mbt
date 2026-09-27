@@ -376,6 +376,26 @@ test "nonfinite JSON numbers and raw transport operations are not admitted" {
 }
 
 ///|
+test "comments delimit scalar JSON islands but never occur inside JSON bodies" {
+  let prefix = "AQL '0.1'; PROGRAM 'p' { STAGE s { INPUT rows = {}; DATA x = FROM rows |> OP take "
+  let suffix = "; RESULT r = {\"from\":\"x\"}; } RESULT r = {\"from\":{\"stage\":\"s\",\"result\":\"r\"}}; }"
+  let expected = program(parse(prefix + "1" + suffix, limits()).unwrap())
+  for scalar in ["1/* adjacent */", "1-- adjacent\n", "1 /* spaced */"] {
+    let parsed = parse(prefix + scalar + suffix, limits()).unwrap()
+    same_values(
+      @syntax.program_body(program(parsed)),
+      @syntax.program_body(expected),
+    )
+  }
+  for
+    invalid in [
+      "[1/* not JSON */]", "{\"n\":1-- not JSON\n}", "1e/* incomplete exponent */",
+    ] {
+    assert_true(parse(prefix + invalid + suffix, limits()) is Err(_))
+  }
+}
+
+///|
 test "native chains and aliases preserve explicit computation without identity steps" {
   let text =
     #|AQL '0.1'; PROGRAM 'chain' {
