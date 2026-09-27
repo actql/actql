@@ -90,6 +90,24 @@ assert.deepEqual(JSON.parse(sourceRoundtrip), JSON.parse(sourceProgram));
 await writeFile(join(root, 'source-program.json'), sourceRoundtrip);
 const queryFrontend = await import(pathToFileURL(join(repository,
   '_build/js/debug/build/query_program_test_bridge/query_program_test_bridge.js')));
+const pairExpectedProgram = JSON.parse(await readFile(join(repository,
+  'spec/frontend/fixtures/query-pair.expected-program.json'), 'utf8'));
+const pairExpectedRows = JSON.parse(await readFile(join(repository,
+  'spec/frontend/fixtures/query-pair.expected-rows.json'), 'utf8'));
+const pairRows = (await readFile(join(repository,
+  'spec/frontend/fixtures/orders.jsonl'), 'utf8')).trim()
+  .split('\n').map(line => JSON.parse(line));
+const pairSql = await readFile(join(repository,
+  'spec/frontend/fixtures/query-pair.standard.sql'), 'utf8');
+const pairSchema = pairExpectedProgram.stages[0].inputs.orders.schema;
+const pairValues = {values: {schema: pairSchema, rows: pairRows}, as: 'orders'};
+const pairQuery = queryFrontend.compileValuesQueryJson(pairSql,
+  'orders', 'orders', JSON.stringify(pairValues),
+  JSON.stringify(Object.keys(pairSchema)), 'fixture.query_pair');
+assert.notEqual(pairQuery, '');
+await writeFile(join(root, 'query-pair.json'), pairQuery);
+await writeFile(join(root, 'query-pair.expected-rows.json'),
+  JSON.stringify(pairExpectedRows));
 const valuesStep = JSON.parse(structuralValues).stages[0].steps[0];
 const valuesQuery = queryFrontend.compileValuesQueryJson(
   'SELECT * FROM rows', 'rows', 'selected', JSON.stringify(valuesStep),
@@ -475,6 +493,15 @@ const document = readFileSync('values.json', 'utf8');
 const valuesQueryDocument = readFileSync('query-values.json', 'utf8');
 const computedValuesQueryDocument = readFileSync('query-computed-values.json',
   'utf8');
+const pairQueryDocument = readFileSync('query-pair.json', 'utf8');
+const pairExpectedRows = JSON.parse(readFileSync(
+  'query-pair.expected-rows.json', 'utf8'));
+async function checkQueryPair(client, suffix) {
+  const execution = await client.aql(pairQueryDocument,
+    {format: 'json', requestId: 'packed-query-pair-' + suffix});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  assert.deepEqual(await execution.result('answer').all(), pairExpectedRows);
+}
 const fullUsingValuesDocument = readFileSync('query-full-using-values.json',
   'utf8');
 async function checkOrderScopes(client, suffix) {
@@ -688,6 +715,7 @@ assert.equal((await computedValuesQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await computedValuesQueryLocal.result('answer').all(),
   [{id: 2}]);
 await checkOrderScopes(installedLocal, 'local');
+await checkQueryPair(installedLocal, 'local');
 await checkValuesCte(installedLocal, 'local');
 await checkFullUsingValues(installedLocal, 'local');
 await checkConcat(installedLocal, 'local');
@@ -872,6 +900,7 @@ assert.equal((await computedValuesQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await computedValuesQueryRemote.result('answer').all(),
   [{id: 2}]);
 await checkOrderScopes(installedRemote, 'remote');
+await checkQueryPair(installedRemote, 'remote');
 await checkValuesCte(installedRemote, 'remote');
 await checkFullUsingValues(installedRemote, 'remote');
 const setQueryRemote = await installedRemote.aql(setQueryDocument,

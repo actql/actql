@@ -79,6 +79,9 @@ Values rows `(x,y)=(2,1),(1,2)`: `SELECT x AS y ... ORDER BY y` returns
 `y=1,2`, while `SELECT x ... ORDER BY y` returns `x=2,1`. The source has an
 input column named `y` in the first case, so the output tests alias precedence
 at runtime rather than only checking a generated sort field.
+The separately authored `query-pair.expected-program.json` remains the
+SQL/Pipe Program comparison, and its independent expected rows are now read
+through both packed Client modes: the open orders sort to `o1,o3`.
 An acquired-input case also separates the two ORDER scopes:
 `SELECT amount AS id, ROW_NUMBER() OVER (ORDER BY id) AS pos ... ORDER BY id
 DESC` ranks original input `id` values and finally sorts by the projected
