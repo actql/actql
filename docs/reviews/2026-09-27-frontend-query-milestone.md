@@ -44,6 +44,11 @@ The adopted alias precedence and non-output ORDER BY decisions are not new SQL
 semantics. Duplicate names, grouped visibility and OVER scopes still require
 individual validation. DISTINCT ordering must recognize selected expressions,
 not merely compare column spelling. No hidden representative is chosen.
+The packed Local and HTTP Clients now distinguish both scopes on independent
+Values rows `(x,y)=(2,1),(1,2)`: `SELECT x AS y ... ORDER BY y` returns
+`y=1,2`, while `SELECT x ... ORDER BY y` returns `x=2,1`. The source has an
+input column named `y` in the first case, so the output tests alias precedence
+at runtime rather than only checking a generated sort field.
 
 GQL patterns, VecA/TEA-specific surfaces, INFER/Artifact spelling, INSERT,
 installed raw-text routing, deployment and other owners' runtime redesigns

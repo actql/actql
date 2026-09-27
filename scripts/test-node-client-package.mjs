@@ -103,6 +103,20 @@ const computedValuesQuery = queryFrontend.compileValuesQueryJson(
 assert.notEqual(computedValuesQuery, '');
 await writeFile(join(root, 'query-computed-values.json'),
   computedValuesQuery);
+const aliasRows = {values: {schema: {
+  x: {type: 'number', nullable: false},
+  y: {type: 'number', nullable: false}},
+rows: [{x: 2, y: 1}, {x: 1, y: 2}]}, as: 'rows'};
+for (const [name, sql] of [
+  ['alias-order', 'SELECT x AS y FROM rows ORDER BY y'],
+  ['hidden-order', 'SELECT x FROM rows ORDER BY y'],
+]) {
+  const query = queryFrontend.compileValuesQueryJson(sql, 'rows', 'rows',
+    JSON.stringify(aliasRows), JSON.stringify(['x', 'y']),
+    `fixture.${name}`);
+  assert.notEqual(query, '', name);
+  await writeFile(join(root, `${name}.json`), query);
+}
 const setLeft = {values: {schema: {
   a: {type: 'number', nullable: true},
   b: {type: 'string', nullable: false}},
@@ -294,6 +308,18 @@ const document = readFileSync('values.json', 'utf8');
 const valuesQueryDocument = readFileSync('query-values.json', 'utf8');
 const computedValuesQueryDocument = readFileSync('query-computed-values.json',
   'utf8');
+async function checkOrderScopes(client, suffix) {
+  for (const [name, expected] of [
+    ['alias-order', [{y: 1}, {y: 2}]],
+    ['hidden-order', [{x: 2}, {x: 1}]],
+  ]) {
+    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+      {format: 'json', requestId: 'packed-' + name + '-' + suffix});
+    const status = await execution.wait();
+    assert.equal(status.status, 'succeeded', JSON.stringify(status));
+    assert.deepEqual(await execution.result('answer').all(), expected);
+  }
+}
 const setQueryDocument = readFileSync('set-query.json', 'utf8');
 const setExpectations = [
   ['union-distinct', [{a: 1, b: 'x'}, {a: 2, b: 'y'},
@@ -386,6 +412,7 @@ const computedValuesQueryLocal = await installedLocal.aql(
 assert.equal((await computedValuesQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await computedValuesQueryLocal.result('answer').all(),
   [{id: 2}]);
+await checkOrderScopes(installedLocal, 'local');
 const setQueryLocal = await installedLocal.aql(setQueryDocument,
   {format: 'json', requestId: 'packed-set-query-local'});
 const setQueryLocalStatus = await setQueryLocal.wait();
@@ -560,6 +587,7 @@ const computedValuesQueryRemote = await installedRemote.aql(
 assert.equal((await computedValuesQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await computedValuesQueryRemote.result('answer').all(),
   [{id: 2}]);
+await checkOrderScopes(installedRemote, 'remote');
 const setQueryRemote = await installedRemote.aql(setQueryDocument,
   {format: 'json', requestId: 'packed-set-query-remote'});
 assert.equal((await setQueryRemote.wait()).status, 'succeeded');
