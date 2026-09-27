@@ -155,10 +155,7 @@ pub(all) enum LocalBoundedRelationCheck {
   Analytic
   Pivot
   RowWindow
-  Lag
-  TopK
   Dedupe
-  Assertion
 }
 
 type LocalComputeModule

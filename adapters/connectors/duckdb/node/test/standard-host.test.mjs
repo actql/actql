@@ -7745,18 +7745,24 @@ async function exerciseStrategyGraph(
   }
   for (const {name: mode} of [
     {name: 'cancel'}, {name: 'cancel-after-filter'},
+    {name: 'cancel-after-group'},
     {name: 'compute-failure'},
     {name: 'store-failure'}, {name: 'finalize-failure'},
   ]) {
+    const grouped = mode === 'cancel-after-group';
     const program = retainedBinaryChain(externalAppendProgram,
-      [{filter: mode === 'compute-failure'
-        ? '1 / (id - id) > 0' : 'id >= 10'}], ['id']);
+      grouped
+        ? [{group: {by: ['id'], aggregates: {n: {fn: 'count'}}}},
+          {filter: 'n > 0'}]
+        : [{filter: mode === 'compute-failure'
+          ? '1 / (id - id) > 0' : 'id >= 10'}],
+      grouped ? ['id', 'n'] : ['id']);
     program.results = {
       producer: {from: {stage: 'crossed', result: 'r'}},
       first: {from: {stage: 'external_cross_consumer_a', result: 'r'}},
       second: {from: {stage: 'external_cross_consumer_b', result: 'r'}},
     };
-    if (mode === 'cancel-after-filter') {
+    if (mode === 'cancel-after-filter' || grouped) {
       // Three rows give the Append child exactly 28 work units. Its bounded
       // handoff costs one more; work above 29 proves the filter has advanced.
       program.stages.find(stage => stage.id === 'cross_left')
@@ -7814,7 +7820,7 @@ async function exerciseStrategyGraph(
           });
         },
         close() {
-          if ((mode === 'cancel' || mode === 'cancel-after-filter') &&
+          if ((mode === 'cancel' || mode === 'cancel-after-filter' || grouped) &&
               cancellation.signal.aborted) {
             assert.equal(sawStop, true, 'input release must follow confirmed stop');
           }
@@ -7831,10 +7837,10 @@ async function exerciseStrategyGraph(
     });
     const cancellation = new AbortController();
     let sawWork = false, sawStop = false, scheduled = false;
-    let producerWork = 0n, sawFilterWork = false;
+    let producerWork = 0n, sawLaterWork = false;
     let dispatches = 0;
     const observedRuntime = (mode === 'cancel' ||
-      mode === 'cancel-after-filter') ? new Proxy(hostRuntime, {
+      mode === 'cancel-after-filter' || grouped) ? new Proxy(hostRuntime, {
       get(target, property, receiver) {
         if (property !== 'strategyModule_local_Dispatch') {
           return Reflect.get(target, property, receiver);
@@ -7865,15 +7871,15 @@ async function exerciseStrategyGraph(
                 if (dispatch === 3 && !cancellation.signal.aborted) {
                   const poll = checked(result);
                   producerWork += poll.work;
-                  if (mode === 'cancel-after-filter' &&
+                  if ((mode === 'cancel-after-filter' || grouped) &&
                       producerWork > 29n && !poll.complete) {
-                    sawFilterWork = true;
+                    sawLaterWork = true;
                   }
                   if (!poll.complete && poll.progress > 0n) {
                     sawWork = true;
                   }
                   if (!scheduled && (mode === 'cancel'
-                    ? sawWork : sawFilterWork)) {
+                    ? sawWork : sawLaterWork)) {
                     scheduled = true;
                     setTimeout(() => cancellation.abort(), 0);
                   }
@@ -7922,11 +7928,11 @@ async function exerciseStrategyGraph(
       );
       assert.equal(execution.status, 'host-tasks-failed', mode);
       assert.deepEqual(execution.completed.map(item => item.task), [1, 2], mode);
-      if (mode === 'cancel' || mode === 'cancel-after-filter') {
+      if (mode === 'cancel' || mode === 'cancel-after-filter' || grouped) {
         assert.equal(dispatches, 3);
         assert.equal(sawWork, true);
-        if (mode === 'cancel-after-filter') {
-          assert.equal(sawFilterWork, true);
+        if (mode === 'cancel-after-filter' || grouped) {
+          assert.equal(sawLaterWork, true);
         }
         assert.equal(sawStop, true);
         assert.equal(execution.failure?.name, 'AbortError');
@@ -7954,7 +7960,7 @@ async function exerciseStrategyGraph(
       await execution?.close();
       if (execution) {
         assert.equal(await execution.cleanup(), true);
-        if (mode === 'cancel' || mode === 'cancel-after-filter') {
+        if (mode === 'cancel' || mode === 'cancel-after-filter' || grouped) {
           assert.equal(dispatches, 3, 'cleanup must not redispatch Compute');
         }
         assert.equal(execution.cleanupPending(), false);

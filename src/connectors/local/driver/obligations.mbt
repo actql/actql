@@ -56,39 +56,12 @@ pub fn local_dispatch_rejection(
             ) {
             return Some("unsupported_execution_obligation")
           }
-        LagExecution(_) =>
-          if !@local.local_module_bounded_relation_obligation(
-              installed.implementation,
-              local_task_slot(installed, task),
-              requirement.site.step,
-              @local.Lag,
-            ) {
-            return Some("unsupported_execution_obligation")
-          }
-        TopKExecution(_) =>
-          if !@local.local_module_bounded_relation_obligation(
-              installed.implementation,
-              local_task_slot(installed, task),
-              requirement.site.step,
-              @local.TopK,
-            ) {
-            return Some("unsupported_execution_obligation")
-          }
         DedupeTopTie(_) =>
           if !@local.local_module_bounded_relation_obligation(
               installed.implementation,
               local_task_slot(installed, task),
               requirement.site.step,
               @local.Dedupe,
-            ) {
-            return Some("unsupported_execution_obligation")
-          }
-        RowAssertion(_) =>
-          if !@local.local_module_bounded_relation_obligation(
-              installed.implementation,
-              local_task_slot(installed, task),
-              requirement.site.step,
-              @local.Assertion,
             ) {
             return Some("unsupported_execution_obligation")
           }
