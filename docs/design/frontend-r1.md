@@ -89,3 +89,46 @@ or treating a runtime capability declaration as execution evidence.
 
 Known gaps in the imported acceptance matrix are explicit fixture requirements
 in the registry. They remain work to do; an empty evidence array is never a pass.
+
+## Shared query vocabulary and scope
+
+SQL and Pipe use the adopted GoogleSQL vocabulary and one query expression
+representation before lowering to existing Program expressions and operations.
+They do not roundtrip generated expression strings through the legacy parser.
+The source remains bounded and carries original byte positions into admission.
+See [semantic decision criteria](semantic-decisions.md#vocabulary-across-representations).
+
+SELECT aliases take precedence over input names in GROUP BY, HAVING and final
+ORDER BY, subject to ambiguity, grouping and clause-visibility checks. WHERE and
+the same SELECT list cannot refer to newly introduced SELECT aliases. Qualified
+references retain their source binding; qualification does not authorize an
+ungrouped reference after aggregation. Analytic arguments and OVER use their
+own context-dependent scopes, not a copy of final ORDER BY's scope.
+
+Ordinary SELECT may order by visible, unprojected source expressions. DISTINCT
+orders only by expressions legally resolved from its projected output, including
+selected-expression and alias references. Hidden sort fields never participate
+in DISTINCT equality or leak into Results. Alias resolution reuses the relevant
+computed slot and does not duplicate evaluation or change failure/resource
+accounting. Proof-only tie completion remains the existing compiler's concern.
+
+These name-resolution rules follow [GoogleSQL query syntax](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax)
+and [window function calls](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls).
+The selected ActQL profile still rejects unsupported forms and retains its
+explicit NULL, numeric, acquisition and failure semantics.
+
+| Reference term | Frontend representation | Existing semantic representation | Difference or boundary |
+| --- | --- | --- | --- |
+| SELECT list | Ordered projection expressions | derive and select | Preserve evaluation once and output order; duplicate output names rejected |
+| Range variable / SELECT alias | Separate scope bindings | Resolved field slots | Pipe SET/DROP retain prior range slots; no helper egress |
+| WHERE / HAVING | Pre-/post-aggregate predicate | filter plus existing expression tree | Eager boolean and failure rules remain ActQL's |
+| GROUP BY / aggregate call | Group keys and aggregate expressions | group | Not an analytic partition; canonical aggregate failure order retained |
+| Analytic partition / window frame | OVER partition, order and ROWS frame | analytic | Not TEA event-time windows; only adopted signatures/frames |
+| Final ORDER BY | Query output ordering | sort | Explicit ASC NULLS FIRST / DESC NULLS LAST; proof-driven tie completion |
+| UNION / INTERSECT / EXCEPT | Positional or exact BY NAME alignment | projection plus append/distinct/row-set | No implicit type promotion or missing-column padding |
+| Nonrecursive CTE | Query-local dataflow binding | Shared Stage captured input and step references | No reacquisition per reference; no recursive CTE |
+| Parameter | Named query parameter | Existing parameter expression | New @name spelling; legacy $name remains unchanged |
+| CONCAT / ACTQL.CONCAT | Closed function mapping | concat_strict / concat | Strict STRING NULL propagation versus explicit legacy null-skipping |
+
+The table defines obligations, not implementation status. Delivery evidence
+records unimplemented features separately from intentional incompatibilities.
