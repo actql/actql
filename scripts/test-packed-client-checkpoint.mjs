@@ -652,12 +652,14 @@ for (const [name, crashAt, restart, extra, step] of [
   ['deny-reserved', 'hook', {OUTCOME: 'deny'}, {LEASE_MS: '2000'},
     'finished'],
   ['expired-defined', 'definition_admitted', {},
-    {TTL_MS: '10000', LEASE_MS: '2000'}, 'finished'],
+    {TTL_MS: '90000', LEASE_MS: '2000'}, 'finished'],
   // The owner submits the same request again after the restart: it is
   // the existing Run, still started only under the resumed authorization.
   ['expired-resubmit', 'definition_admitted', {},
-    {TTL_MS: '10000', LEASE_MS: '2000'}, 'resubmitted'],
+    {TTL_MS: '90000', LEASE_MS: '2000'}, 'resubmitted'],
 ]) {
+  // Two Host starts, review and signing must fit before these expiry cases
+  // inject their pre-start crash. Expiry is then observed after the crash.
   await approvedAndStopped(name, name, extra);
   await crashed(name, {CRASH_AT: crashAt, ...extra});
   // Past the Checkpoint's answer deadline, which bounds the approval.
