@@ -40,8 +40,11 @@ const recordOperations = Object.freeze(new Map([
 const catalogOperations = Object.freeze(new Set([
   'salesforce:catalog:list', 'salesforce:catalog:describe',
 ]));
-const defaultCatalogLimits = Object.freeze({
-  list: Object.freeze({maxBytes: 1_000_000, maxNodes: 100_000, maxDepth: 32,
+// The list budget admits `maxResources` listed objects: a Salesforce listing
+// entry carries its flags and URLs, about 1.2 KB and 33 JSON nodes each (a
+// Developer org lists about 1,600 objects in about 1.9 MB).
+export const DEFAULT_SALESFORCE_CATALOG_LIMITS = Object.freeze({
+  list: Object.freeze({maxBytes: 4_000_000, maxNodes: 100_000, maxDepth: 32,
     maxResources: 2000, maxSelected: 200, maxNameUnits: 100_000}),
   describe: Object.freeze({maxBytes: 4_000_000, maxNodes: 400_000,
     maxDepth: 32, maxFields: 1000, maxNameUnits: 200_000}),
@@ -214,7 +217,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // (`runInvocationCid`, `dispatchRequestCid`, `taskAttempt`); otherwise the
   // sync is the Site's own.
   function catalogSyncRequest({occurrence, retainResponses = false,
-    maxRetainedBytes = 0, limits = defaultCatalogLimits,
+    maxRetainedBytes = 0, limits = DEFAULT_SALESFORCE_CATALOG_LIMITS,
     runInvocationCid: runCid, dispatchRequestCid: dispatchCid,
     taskAttempt = 1, grantUses, resources} = {}) {
     const sequence = syncSequence++;

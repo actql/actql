@@ -8,10 +8,11 @@ import * as commonMoon from
   '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as salesforceMoon from
   '../../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
+import {checked} from '../../../host-common/runtime-result.mjs';
 import {accountEntry} from '../../../host-node/authorization-fixture.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
-import {INSTALLED_SALESFORCE_SITE_VERSION, installSalesforceAuthorization,
-  loadInstalledSalesforceSite} from
+import {DEFAULT_SALESFORCE_CATALOG_LIMITS, INSTALLED_SALESFORCE_SITE_VERSION,
+  installSalesforceAuthorization, loadInstalledSalesforceSite} from
   '../host/installed-salesforce-site.mjs';
 import {openSalesforceEffectSiteFixture} from
   './salesforce-effect-site.fixture.mjs';
@@ -306,3 +307,39 @@ test('a targeted Catalog sync is never a complete Catalog', async t => {
     resources: ['Test_Record__c'], retainResponses: true,
     maxRetainedBytes: 30000}), {code: 'InvalidSalesforceCatalogSync'});
 });
+
+test('default Catalog limits admit a full listing of provider-shaped entries',
+  () => {
+    // A listing entry as Salesforce returns it: flags plus URLs.
+    const entry = index => {
+      const name = `Generated_Object_${String(index).padStart(4, '0')}__c`;
+      const base = `/services/data/v62.0/sobjects/${name}`;
+      return {activateable: false, associateEntityType: null,
+        associateParentEntity: null, createable: true, custom: true,
+        customSetting: false, deepCloneable: false, deletable: true,
+        deprecatedAndHidden: false, feedEnabled: false, hasSubtypes: false,
+        isInterface: false, isSubtype: false, keyPrefix: 'a0X',
+        label: `Generated Object ${index}`,
+        labelPlural: `Generated Objects ${index}`, layoutable: true,
+        mergeable: false, mruEnabled: true, name, queryable: true,
+        replicateable: true, retrieveable: true, searchable: true,
+        triggerable: true, undeletable: true, updateable: true,
+        urls: {compactLayouts: `${base}/describe/compactLayouts`,
+          rowTemplate: `${base}/{ID}`, approvalLayouts:
+            `${base}/describe/approvalLayouts`, defaultValues:
+            `${base}/defaultValues?recordTypeId&fields`, listviews:
+            `${base}/listviews`, describe: `${base}/describe`,
+          quickActions: `${base}/quickActions`, layouts:
+            `${base}/describe/layouts`, sobject: base}};
+    };
+    const {list} = DEFAULT_SALESFORCE_CATALOG_LIMITS;
+    const body = Buffer.from(JSON.stringify({encoding: 'UTF-8',
+      maxBatchSize: 200, sobjects: Array.from({length: list.maxResources},
+        (_, index) => entry(index))}));
+    assert.ok(body.byteLength > 2_000_000);
+    const listing = checked(salesforceMoon.salesforceProjectListing(body,
+      list.maxBytes, list.maxNodes, list.maxDepth, list.maxResources,
+      list.maxSelected, list.maxNameUnits));
+    assert.equal(salesforceMoon.salesforceCatalogResourceNames(listing).length,
+      list.maxSelected);
+  });
