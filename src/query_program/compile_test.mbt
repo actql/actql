@@ -640,6 +640,26 @@ test "SQL set operations align positions before existing row-set kernels" {
 }
 
 ///|
+test "SQL and Pipe set expressions share checked Program meaning" {
+  let sql = @query.parse_query(
+    "SELECT a, b FROM left_rows UNION ALL SELECT c, d FROM right_rows",
+    syntax_limits(),
+  ).unwrap()
+  let pipe = @query.parse_query(
+    "FROM left_rows |> SELECT a, b |> UNION ALL (SELECT c, d FROM right_rows)",
+    syntax_limits(),
+  ).unwrap()
+  let standard = compile(sql, set_context(), construction_limits()).unwrap()
+  let piped = compile(pipe, set_context(), construction_limits()).unwrap()
+  assert_eq(semantic(standard), semantic(piped))
+  match @check.check_parsed(piped, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("Pipe set operands should be closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+}
+
+///|
 test "SQL exact BY NAME and positional shape reject mismatched outputs" {
   let named = @query.parse_query(
     "SELECT a, b FROM left_rows UNION ALL BY NAME SELECT b, a FROM left_rows",

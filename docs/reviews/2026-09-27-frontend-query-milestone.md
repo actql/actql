@@ -26,7 +26,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Pending |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands execute through packed Local/HTTP Clients; captured operands, Pipe set, CTE reuse and broader type/order cases remain |
-| Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND and scoped SET/DROP/RENAME/AS; JOIN/set and some post-projection scope remain |
+| Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND, scoped SET/DROP/RENAME/AS and a parenthesized SQL right operand for Pipe set; JOIN and other post-projection scope remain |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK Result; full negative and frame matrix pending |
 | Bounds, origin maps and Grammar Manifest | Existing owners | Before-allocation bounds, source diagnostics, pins/vectors | Pending |
 | Ordinary execution and Named Result | Packed Local and HTTP Host test connection | Values and acquired input; CTE acquisition counter | Partial: source-free direct and filtered Values plus captured filter/query run through packed Local and HTTP Remote Host; CTE reuse pending |
@@ -164,8 +164,13 @@ correct input and output contract. The packed Local and HTTP Remote Clients
 read independently expected Named Results for UNION ALL, UNION DISTINCT,
 INTERSECT DISTINCT and EXCEPT DISTINCT, including duplicate and NULL rows.
 The common Result-plan issuer maps physical task indices back to checked Unit
-indices when a Stage splits. These fixtures do not establish captured set
-operands, Pipe set syntax, mixed operator grouping or CTE acquisition reuse.
+indices when a Stage splits. These SQL fixtures do not establish captured set
+operands, mixed operator grouping or CTE acquisition reuse.
+The first Pipe set form, `FROM set_left |> SELECT a, b |> UNION ALL
+(SELECT c, d FROM set_right)`, now emits the same admitted Program as its SQL
+counterpart. Packed Local and HTTP Remote Clients read the same independently
+specified rows. Further Pipe chaining, multiple right operands and acquired
+inputs remain unverified.
 ARRAY_AGG requires the adopted `IGNORE NULLS` and explicit order spelling;
 STRING_AGG requires a literal delimiter and explicit order. Both lower to the
 existing group call. The independent checker accepts the bounded ARRAY_AGG

@@ -719,10 +719,65 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
   self.keyword("FROM")
   let (relation, source_alias) = self.source_name()
   let operations : Array[QueryOperation] = []
+  let sets : Array[SetPart] = []
+  let final_operations : Array[QueryOperation] = []
   while self.peek().value == Pipe {
     ignore(self.advance())
     self.node()
-    if self.has("WHERE") {
+    if self.has("UNION") || self.has("INTERSECT") || self.has("EXCEPT") {
+      if !final_operations.is_empty() {
+        raise QueryAbort(
+          "Set input cannot follow final ordering",
+          self.peek().start,
+        )
+      }
+      let kind = if self.has("UNION") {
+        self.keyword("UNION")
+        "union"
+      } else if self.has("INTERSECT") {
+        self.keyword("INTERSECT")
+        "intersect"
+      } else {
+        self.keyword("EXCEPT")
+        "except"
+      }
+      let duplicates = if self.has("ALL") {
+        self.keyword("ALL")
+        if kind != "union" {
+          raise QueryAbort("Set operator requires DISTINCT", self.peek().start)
+        }
+        "all"
+      } else {
+        self.keyword("DISTINCT")
+        "distinct"
+      }
+      let by_name = if self.has("BY") {
+        self.keyword("BY")
+        self.keyword("NAME")
+        true
+      } else {
+        false
+      }
+      if self.advance().value != Symbol(40) {
+        raise QueryAbort(
+          "Pipe set input must be parenthesized",
+          self.peek().start,
+        )
+      }
+      let right = self.sql_term()
+      if self.advance().value != Symbol(41) {
+        raise QueryAbort(
+          "Expected Pipe set closing parenthesis",
+          self.peek().start,
+        )
+      }
+      sets.push({ kind, duplicates, by_name, right, })
+    } else if !sets.is_empty() && !(self.has("ORDER") || self.has("LIMIT")) {
+      raise QueryAbort(
+        "Unsupported operation after Pipe set",
+        self.peek().start,
+      )
+    } else if self.has("WHERE") {
       self.keyword("WHERE")
       operations.push(Where(self.expression()))
     } else if self.has("EXTEND") {
@@ -802,9 +857,19 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
     } else if self.has("ORDER") {
       self.keyword("ORDER")
       self.keyword("BY")
-      operations.push(Order(self.order()))
+      let operation = Order(self.order())
+      if sets.is_empty() {
+        operations.push(operation)
+      } else {
+        final_operations.push(operation)
+      }
     } else if self.has("LIMIT") {
-      operations.push(self.limit())
+      let operation = self.limit()
+      if sets.is_empty() {
+        operations.push(operation)
+      } else {
+        final_operations.push(operation)
+      }
     } else {
       raise QueryAbort("Unknown Pipe operation", self.peek().start)
     }
@@ -815,8 +880,8 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
     relation,
     source_alias,
     operations,
-    sets: [],
-    final_operations: [],
+    sets,
+    final_operations,
     work: self.work,
   }
 }

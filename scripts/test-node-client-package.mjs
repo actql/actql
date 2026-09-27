@@ -134,6 +134,14 @@ const setQuery = queryFrontend.compileTwoValuesSetQueryJson(
   'fixture.set_query');
 assert.notEqual(setQuery, '');
 await writeFile(join(root, 'set-query.json'), setQuery);
+const pipeUnionQuery = queryFrontend.compileTwoValuesSetQueryJson(
+  'FROM set_left |> SELECT a, b |> UNION ALL '
+    + '(SELECT c, d FROM set_right)',
+  'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+  'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+  'fixture.set_query');
+assert.deepEqual(JSON.parse(pipeUnionQuery), JSON.parse(setQuery));
+await writeFile(join(root, 'pipe-union-query.json'), pipeUnionQuery);
 const setQueries = [
   ['union-distinct', 'UNION DISTINCT'],
   ['intersect-distinct', 'INTERSECT DISTINCT'],
@@ -321,6 +329,10 @@ async function checkOrderScopes(client, suffix) {
   }
 }
 const setQueryDocument = readFileSync('set-query.json', 'utf8');
+const pipeUnionQueryDocument = readFileSync('pipe-union-query.json', 'utf8');
+const expectedUnionRows = [{a: 1, b: 'x'}, {a: 1, b: 'x'},
+  {a: 2, b: 'y'}, {a: null, b: 'n'}, {a: 1, b: 'x'},
+  {a: 3, b: 'z'}, {a: null, b: 'n'}];
 const setExpectations = [
   ['union-distinct', [{a: 1, b: 'x'}, {a: 2, b: 'y'},
     {a: null, b: 'n'}, {a: 3, b: 'z'}]],
@@ -418,11 +430,12 @@ const setQueryLocal = await installedLocal.aql(setQueryDocument,
 const setQueryLocalStatus = await setQueryLocal.wait();
 assert.equal(setQueryLocalStatus.status, 'succeeded',
   JSON.stringify(setQueryLocalStatus));
-assert.deepEqual(await setQueryLocal.result('answer').all(),
-  [{a: 1, b: 'x'}, {a: 1, b: 'x'}, {a: 2, b: 'y'},
-    {a: null, b: 'n'}, {a: 1, b: 'x'}, {a: 3, b: 'z'},
-    {a: null, b: 'n'}]);
+assert.deepEqual(await setQueryLocal.result('answer').all(), expectedUnionRows);
 await checkSetQueries(installedLocal, 'local');
+const pipeUnionLocal = await installedLocal.aql(pipeUnionQueryDocument,
+  {format: 'json', requestId: 'packed-pipe-union-local'});
+assert.equal((await pipeUnionLocal.wait()).status, 'succeeded');
+assert.deepEqual(await pipeUnionLocal.result('answer').all(), expectedUnionRows);
 const acquiredLocal = await runAcquiredApplication(
   {mode: 'local', owner: 'local', durability: 'durable'},
   'packed-acquired-local');
@@ -591,11 +604,12 @@ await checkOrderScopes(installedRemote, 'remote');
 const setQueryRemote = await installedRemote.aql(setQueryDocument,
   {format: 'json', requestId: 'packed-set-query-remote'});
 assert.equal((await setQueryRemote.wait()).status, 'succeeded');
-assert.deepEqual(await setQueryRemote.result('answer').all(),
-  [{a: 1, b: 'x'}, {a: 1, b: 'x'}, {a: 2, b: 'y'},
-    {a: null, b: 'n'}, {a: 1, b: 'x'}, {a: 3, b: 'z'},
-    {a: null, b: 'n'}]);
+assert.deepEqual(await setQueryRemote.result('answer').all(), expectedUnionRows);
 await checkSetQueries(installedRemote, 'remote');
+const pipeUnionRemote = await installedRemote.aql(pipeUnionQueryDocument,
+  {format: 'json', requestId: 'packed-pipe-union-remote'});
+assert.equal((await pipeUnionRemote.wait()).status, 'succeeded');
+assert.deepEqual(await pipeUnionRemote.result('answer').all(), expectedUnionRows);
 const acquiredRemote = await runAcquiredApplication(remoteOptions,
   'packed-acquired-remote');
 const capturedQueryRemote = await acquiredRemote.client.aql(
