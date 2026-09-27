@@ -2,7 +2,8 @@
 // Provider hooks supply only Preview/current-use and physical dispatch facts;
 // the common Effect application, receipt, publication and recovery order stays
 // here. The Host's durable Run-start and Checkpoint owners remain external.
-import {completeCapturedEffectRun, completeRecoveredEffectRun} from
+import {completeCapturedEffectRun, completeRecoveredEffectRun,
+  completeInterruptedEffectRun} from
   './entry.mjs';
 import {suspendCompletedEffectfulComputation} from
   '../host-common/completed-run-publication.mjs';
@@ -196,8 +197,25 @@ export function createInstalledEffectSite({environmentWire,
             control: facts.control, computation: stage.computation,
             preview: stage.preview});
         });
-        const result = await completeCapturedEffectRun(
-          completionOptions(stage, gate, signal));
+        const options = completionOptions(stage, gate, signal);
+        let result;
+        try { result = await completeCapturedEffectRun(options); }
+        catch (error) {
+          try { result = await completeInterruptedEffectRun(options, false); }
+          catch (completionError) {
+            if (completionError?.code === 'EffectRunNoUncertainSend') {
+              throw error;
+            }
+            throw completionError;
+          }
+        }
+        if (result.status === 'needs_reconciliation' ||
+            result.status === 'failed') {
+          await suspendCompletedEffectfulComputation({execution,
+            store: facts.store, storedResults: stage.storedResults,
+            control: facts.control, computation: stage.computation,
+            preview: stage.preview});
+        }
         recordUnknown(facts, result, stage);
         return finishStatus(result);
       } finally {
@@ -252,10 +270,28 @@ export function createInstalledEffectSite({environmentWire,
         gate = await authorization(facts, stage, () => {
           fail('InstalledEffectRepeatDeferralUnsupported');
         });
-        const result = await completeRecoveredEffectRun(completionOptions(
-          stage, gate, signal, Object.freeze({claim: claimed})));
+        const options = completionOptions(stage, gate, signal,
+          Object.freeze({claim: claimed}));
+        let result;
+        try { result = await completeRecoveredEffectRun(options); }
+        catch (error) {
+          try { result = await completeInterruptedEffectRun(options, true); }
+          catch (completionError) {
+            if (completionError?.code === 'EffectRunNoUncertainSend') {
+              throw error;
+            }
+            throw completionError;
+          }
+        }
         if (result.status === 'waiting') {
           fail('InstalledEffectRepeatDeferralUnsupported');
+        }
+        if (result.status === 'needs_reconciliation' ||
+            result.status === 'failed') {
+          await suspendCompletedEffectfulComputation({execution: null,
+            store: facts.store, storedResults: stage.storedResults,
+            control: facts.control, computation: stage.computation,
+            preview: stage.preview});
         }
         if (result.status === 'failed') {
           checkpointJournal.completeResume(claimed.claim, {status: 'failed'});

@@ -233,13 +233,18 @@ function referencePreflight({moon, preview, mappingCids, requestScope,
     maxFootprintWork: 4, maxWork: effectLimits.maxWork};
 }
 
-function referenceDispatch({ledger, preview, sends}) {
+function referenceDispatch({ledger, preview, sends, loseReply}) {
   return async ({memberIndex, rowIndex, claim}) => {
     sends.push([memberIndex, rowIndex]);
     await captureClaimedEffectResponse({ledger, claim,
       requestCid: claim.canonicalRequestCid,
-      execute: async () => ({observation: {useCid: referenceCid('use'),
-        statusCode: 204, body: Buffer.alloc(0)}})});
+      execute: async () => {
+        if (loseReply?.(memberIndex, rowIndex)) {
+          throw new Error('ReferenceEffectReplyLost');
+        }
+        return {observation: {useCid: referenceCid('use'),
+          statusCode: 204, body: Buffer.alloc(0)}};
+      }});
     ledger.recordAdmittedRowOutcome({claim, preview,
       memberIndex, previewRowIndex: rowIndex,
       outcomeWire: canonicalJson({state: 'applied',
@@ -257,7 +262,7 @@ function referenceLedger(directory, moon, requestIdentity) {
 }
 
 async function prepareReferenceCapture(facts, {directory, mappingCids,
-  sends}) {
+  sends, loseReply}) {
   const {moon, control, store, execution, publicationPlan: plan,
     prepared, checkedHost, identity} = facts;
   const storedResults = await storeCompletedRunResultSet({execution,
@@ -336,7 +341,7 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
       ledger, members, maxFrontierWork: effectLimits.maxFrontierWork,
       refreshPreflight: async () => preflight,
       dispatchRow: referenceDispatch({ledger, preview: applyPreview,
-        sends})},
+        sends, loseReply})},
     receipt: {ledger, preview: applyPreview, commonMoon: moon,
       publicationPreview: preview,
       authorizeEvidenceRead: async () => true,
@@ -353,7 +358,8 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
     dispose: () => ledger.close()};
 }
 
-function prepareReferenceRecovery(facts, {directory, mappingCids, sends}) {
+function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
+  loseReply}) {
   const {moon, control, store, recovered, continuation} = facts;
   const {requestIdentity, requestScope, computation: durable} = recovered;
   const {computation, preview, storedResults} = durable;
@@ -385,7 +391,7 @@ function prepareReferenceRecovery(facts, {directory, mappingCids, sends}) {
         maxWork: effectLimits.maxWork},
       refreshPreflight: async () => preflight,
       dispatchRow: referenceDispatch({ledger, preview: applyPreview,
-        sends})},
+        sends, loseReply})},
     receipt: {ledger, preview: applyPreview, commonMoon: moon,
       publicationPreview: preview,
       authorizeEvidenceRead: async () => true,
@@ -467,7 +473,7 @@ async function remoteHost(t, authorization, {directory,
     closed = true;
     server.closeAllConnections?.();
     await new Promise(resolve => server.close(resolve));
-    await host.close();
+    return host.close();
   };
   // Close the Host (and its Store owner) before removing its state.
   t.after(async () => {
@@ -866,6 +872,81 @@ test('installed Effect factory resumes an approved captured Set',
       [{id: 1}, {id: 2}]);
     assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
     await finalHost.close();
+  });
+
+test('installed Effect reply loss retains the unknown row after restart',
+  async t => {
+    const fixture = await effectFixture({twoMembers: true});
+    const directory = await mkdtemp(join(scratch, 'effect-reply-loss-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const sends = [];
+    const diagnostics = [];
+    let loseFirst = true;
+    const hooks = {directory, mappingCids: fixture.mappingCids, sends,
+      loseReply(memberIndex, rowIndex) {
+        if (memberIndex !== 0 || rowIndex !== 0 || !loseFirst) return false;
+        loseFirst = false;
+        return true;
+      }};
+    const effectInstallation = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 5),
+      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
+      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+    });
+    const account = () => protectedHost(undefined, {
+      accountConfiguration: effectCommitConfiguration(),
+      observe: (name, detail) => diagnostics.push({name, detail}),
+    });
+    const first = await remoteHost(t, account(), {directory,
+      effectInstallation});
+    const submitted = await (await first.as('owner-token'))
+      .aql(fixture.document, {format: 'json',
+        requestId: 'effect-reply-loss-a'});
+    await waitFor(async () => (await submitted.status()).status ===
+      'waiting_checkpoint');
+    const [checkpoint] = (await (await first.as('reviewer-token'))
+      .checkpoints()).items;
+    await first.close();
+    const answered = await remoteHost(t, {...account(),
+      resumeAfterAnswer: false}, {directory, effectInstallation});
+    const reviewer = await answered.as('reviewer-token');
+    const result = await reviewer.resolveCheckpoints([
+      {checkpoint, decision: 'approved'}], {signer: {...signer,
+        authorityScopeCid: submitted.ref.authorityScopeCid}});
+    assert.deepEqual(result.results.map(item => item.status), ['committed']);
+    await answered.close();
+    const active = await remoteHost(t, account(), {directory,
+      effectInstallation});
+    const activeClient = await active.as('owner-token');
+    const activeRun = await activeClient.attach(submitted.ref);
+    await waitFor(async () => (await activeRun.status()).status ===
+      'needs_reconciliation').catch(async error => {
+      error.message = JSON.stringify({state: await activeRun.status(),
+        sends, diagnostics: diagnostics.slice(-5)});
+      throw error;
+    });
+    assert.deepEqual(sends, [[0, 0]], JSON.stringify(diagnostics));
+    const closedActive = await active.close();
+    assert.equal(closedActive.storeCleanupPending, false,
+      JSON.stringify(diagnostics.slice(-5)));
+    const recovered = await remoteHost(t, account(), {directory,
+      effectInstallation}).catch(error => {
+        throw error.primaryFailure ?? error;
+      });
+    const attached = await (await recovered.as('owner-token'))
+      .attach(submitted.ref);
+    const state = await waitFor(async () => {
+      const current = await attached.status();
+      return current.status === 'needs_reconciliation' ? current : undefined;
+    }).catch(async error => {
+      error.message = JSON.stringify({state: await attached.status(),
+        sends, diagnostics: diagnostics.slice(-5)});
+      throw error;
+    });
+    assert.equal(state.status, 'needs_reconciliation');
+    assert.deepEqual(sends, [[0, 0]]);
+    await recovered.close();
   });
 
 test('installed Effect commit resumes the same Run without resending',
