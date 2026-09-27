@@ -31,13 +31,22 @@ export class RequestHeld extends ClientError {
   }
 }
 
-async function boundedHostJson(response) {
+// Payload bytes and JSON wire bytes are different budgets. A JSON string
+// needs at most six wire bytes per UTF-8 byte (escaped ASCII controls).
+// Resource metadata has at most 102 bounded names of 256 characters each;
+// six bytes per UTF-16 code unit also bounds escaped surrogate pairs.
+const resourceEnvelopeBytes = 102 * (256 * 6 + 3) + 1024;
+const reviewEnvelopeBytes = 1024;
+const jsonPayloadWireBytes = bytes => 6 * bytes + resourceEnvelopeBytes;
+
+async function boundedHostJson(response,
+  maxWireBytes = maxControlResponseBytes) {
   const declared = response.headers.get('content-length');
   const reader = response.body?.getReader();
   if (!reader) throw new Error('InvalidHostControlResponse');
   let complete = false;
   try {
-    if (declared !== null && Number(declared) > maxControlResponseBytes) {
+    if (declared !== null && Number(declared) > maxWireBytes) {
       throw new Error('HostControlResponseLimit');
     }
     const chunks = [];
@@ -46,7 +55,7 @@ async function boundedHostJson(response) {
       const {done, value} = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > maxControlResponseBytes) {
+      if (size > maxWireBytes) {
         throw new Error('HostControlResponseLimit');
       }
       chunks.push(value);
@@ -69,8 +78,8 @@ async function boundedHostJson(response) {
   }
 }
 
-const controlValue = response => response instanceof Response
-  ? boundedHostJson(response) : response;
+const controlValue = (response, maxWireBytes) => response instanceof Response
+  ? boundedHostJson(response, maxWireBytes) : response;
 
 function inProcessOptions(options) {
   if (options === null || typeof options !== 'object' ||
@@ -652,7 +661,7 @@ async function connectSelected(selected, port) {
         ...body})) fail('InvalidResourceInspection');
       let inspection;
       try { inspection = await controlValue(await exchange('resource-inspect',
-        body, signal)); }
+        body, signal), jsonPayloadWireBytes(maxBytes)); }
       catch (cause) {
         if (cause instanceof ClientError) throw cause;
         throw new ClientError('InvalidHostResourceInspection', {cause});
@@ -676,7 +685,7 @@ async function connectSelected(selected, port) {
         ...body})) fail('InvalidResourcePeek');
       let peek;
       try { peek = await controlValue(await exchange('resource-peek', body,
-        signal)); }
+        signal), jsonPayloadWireBytes(maxBytes)); }
       catch (cause) {
         if (cause instanceof ClientError) throw cause;
         throw new ClientError('InvalidHostResourcePeek', {cause});
@@ -722,7 +731,8 @@ async function connectSelected(selected, port) {
       const response = await exchange('checkpoint-review',
         {checkpointCid, maxBytes}, signal);
       let review;
-      try { review = await controlValue(response); }
+      try { review = await controlValue(response,
+        4 * Math.ceil(maxBytes / 3) + reviewEnvelopeBytes); }
       catch (cause) { throw new ClientError('ReviewReadUnknown', {cause}); }
       if (!validCheckpointReview(review, {checkpointCid, maxBytes})) {
         fail('InvalidHostCheckpointReview');
