@@ -1516,6 +1516,17 @@ test "ordered collection aggregates retain literal and order contracts" {
     )
     is Rejected(_),
   )
+  let unbounded_string = @query.parse_query(
+    "SELECT STRING_AGG(b, '|' ORDER BY a) AS labels FROM left_rows",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(unbounded_string, set_context(), {
+      ..construction_limits(),
+      max_collection_bytes: 0L,
+    })
+    is Err(UnsupportedAggregate),
+  )
   let array_query = @query.parse_query(
     "SELECT customer_id, ARRAY_AGG(DISTINCT id IGNORE NULLS ORDER BY id) AS ids FROM orders GROUP BY customer_id",
     syntax_limits(),
@@ -1525,6 +1536,13 @@ test "ordered collection aggregates retain literal and order contracts" {
     fixture_context(),
     construction_limits(),
   ).unwrap()
+  assert_true(
+    compile(array_query, fixture_context(), {
+      ..construction_limits(),
+      max_collection_items: 0L,
+    })
+    is Err(UnsupportedAggregate),
+  )
   let wire = semantic(array_program)
   assert_true(
     wire.contains(

@@ -37,7 +37,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: direct Values joins support INNER/LEFT, bounded CROSS, DISTINCT and output/non-output ORDER with LIMIT; a DISTINCT CTE supplies identity for packed source-free and captured-input FULL/USING; general join scope remains |
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: COUNT, MIN/MAX and pinned-profile SUM/AVG execute through packed Local/Remote, including empty input; bounded STRING_AGG over Values also executes, while keyed ARRAY_AGG has checker evidence only; collection failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering, including JOIN output and hidden input order through packed Local/Remote; captured DISTINCT→ORDER runtime passes, broader ties/limits pending |
-| Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each used declaration lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin with hidden ORDER/LIMIT, a sequential chain, two branches from one predecessor and a join inside a declaration body; physical provider read counter and broader joins remain |
+| Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each used declaration lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin with hidden ORDER/LIMIT, a sequential chain, two branches from one predecessor and a join inside a declaration body; packed Local physical statement counts match a single-reference acquisition, while broader joins and Remote physical counting remain |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands and two terms sharing one captured source execute through packed Local/HTTP Clients; different captured sources, different physical source filters, CTE reuse and broader type/order cases remain |
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND, scoped SET/DROP/RENAME/AS, one JOIN with an optional preceding WHERE, and a parenthesized SQL right operand for Pipe set; post-projection JOIN and other scope forms remain |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed ranking, navigation, framed COUNT, SUM and AVG Results; Pipe EXTEND/SET before OVER preserves updated and prior alias snapshots; full negative and frame matrix pending |
@@ -309,7 +309,10 @@ the acquisition Stage once; term predicates are retained when they differ.
 The installed physical candidate does not yet admit a broad unfiltered
 capture for differing predicates, so this latter shape has only Program and
 checker evidence. Distinct captured sources and CTE acquisition reuse remain
-open; no physical provider read counter has yet established once-only I/O.
+open; the packed embedded Local test observes the same number of physical
+DuckDB source statements for one and two CTE references. The HTTP Remote
+Host runs in a separate process, so its physical statement count remains
+unobserved by that counter.
 The first Pipe set form, `FROM set_left |> SELECT a, b |> UNION ALL
 (SELECT c, d FROM set_right)`, now emits the same admitted Program as its SQL
 counterpart. Packed Local and HTTP Remote Clients read the same independently
@@ -378,16 +381,19 @@ twice as left and right equijoin inputs, with an explicit requested output-row
 ceiling that the common capacity owner checks again. Packed Local and HTTP
 Remote Clients execute both source-free and acquired CTEs. The acquired
 self-join of filtered `id` rows `3,2,3` returns five rows, including four
-`(3,3)` matches. The Program has one acquisition Stage; a physical provider
-read counter has not yet been added, so the once-only read acceptance case
-remains open. A CTE declaration body can now join two prior checked CTE
+`(3,3)` matches. The Program has one acquisition Stage. The packed Local
+test observes DuckDB's prepared SQL for the physical source and checks that
+the two-reference CTE issues exactly as many source statements as the
+single-reference CTE over the same filter. Result delivery adds no source
+statement. The HTTP Remote Result path passes, but that Host's SQL runs in
+the parent test process and is outside this counter. A CTE declaration body can now join two prior checked CTE
 Results through the same bounded join operation; a packed Local and HTTP
 Remote example returns `{id:2}` from one source-free base CTE and two
 consumers. An acquired DuckDB input runs the same shape and publishes four
 `{id:3,amount:30}` rows from two duplicate left rows and two duplicate right
 rows. The generated Programs retain one Values seed or one acquisition stage,
-respectively. A physical provider read counter is still needed to establish
-the once-only acquisition claim. JOIN projection and post-JOIN filtering now
+respectively. The Local physical comparison covers the CTE self-join;
+separate Remote physical counting remains. JOIN projection and post-JOIN filtering now
 share one lowering path between source-free queries and CTE bodies. Packed
 Local and HTTP Remote runs compute `{total:4}` from source-free rows after
 filtering, and four `{total:6}` rows from one acquired input with duplicate
@@ -407,7 +413,8 @@ to its immediate predecessor. A packed acquired-input example produces
 Result without copying its acquisition. Unused declarations currently fail
 closed: admitting them without checking their fields and types would skip
 semantic validation, while materializing them could perform extra acquisition.
-A physical provider read counter is still pending.
+The packed Local physical comparison also covers the two-reference CTE
+self-join; it does not establish a count for every declaration topology.
 ARRAY_AGG requires the adopted `IGNORE NULLS` and explicit order spelling;
 STRING_AGG requires a literal delimiter and explicit order. Both lower to the
 existing group call with caller-supplied item and byte ceilings. The

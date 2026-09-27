@@ -837,8 +837,21 @@ environment.ACTQL_LOCAL_SOURCE_PROFILE = sourceProfilePath;
 await writeFile(join(root, 'smoke.mjs'), `
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
+import {createRequire} from 'node:module';
 import {connect, ClientError} from '@actql/node';
 import {connectInProcess} from '@actql/sdk/host-port';
+
+// Count actual prepared statements against the physical source. Both the
+// single-use and reused-CTE Programs use the same checked acquisition.
+const {DuckDBConnection} = createRequire(import.meta.url)('@duckdb/node-api');
+const originalExtractStatements = DuckDBConnection.prototype.extractStatements;
+const physicalSourceStatements = [];
+DuckDBConnection.prototype.extractStatements = function(sql) {
+  if (sql.toLowerCase().includes('records')) {
+    physicalSourceStatements.push(sql);
+  }
+  return originalExtractStatements.call(this, sql);
+};
 
 const calls = [];
 const originalFetch = globalThis.fetch;
@@ -1174,20 +1187,37 @@ async function checkCapturedSet(client, suffix) {
   }
 }
 async function checkCapturedCte(client, suffix) {
+  const beforeSingle = physicalSourceStatements.length;
   const execution = await client.aql(capturedCteDocument,
     {format: 'json', requestId: 'packed-captured-cte-' + suffix});
   assert.equal((await execution.wait()).status, 'succeeded');
+  const beforeSingleRead = physicalSourceStatements.length;
   assert.deepEqual(await execution.result('answer').all(),
     [{id: 3}, {id: 2}, {id: 3}]);
+  if (suffix === 'local') {
+    assert.equal(physicalSourceStatements.length, beforeSingleRead);
+  }
+  const singleAcquisitionStatements = physicalSourceStatements.length -
+    beforeSingle;
+  if (suffix === 'local') assert.ok(singleAcquisitionStatements > 0);
+  const beforeReuse = physicalSourceStatements.length;
   const reused = await client.aql(reusedCteDocument,
     {format: 'json', requestId: 'packed-reused-cte-' + suffix});
   assert.equal((await reused.wait()).status, 'succeeded');
+  const beforeReusedRead = physicalSourceStatements.length;
   assert.deepEqual(sortedRows(await reused.result('answer').all()),
     sortedRows([
       {left_id: 3, right_id: 3}, {left_id: 3, right_id: 3},
       {left_id: 2, right_id: 2}, {left_id: 3, right_id: 3},
       {left_id: 3, right_id: 3},
     ]));
+  // The HTTP Remote Host runs in the parent process; this child-process
+  // counter observes only the embedded Local provider.
+  if (suffix === 'local') {
+    assert.equal(physicalSourceStatements.length, beforeReusedRead);
+    assert.equal(physicalSourceStatements.length - beforeReuse,
+      singleAcquisitionStatements);
+  }
   const using = await client.aql(usingCteDocument,
     {format: 'json', requestId: 'packed-using-cte-' + suffix});
   assert.equal((await using.wait()).status, 'succeeded');
