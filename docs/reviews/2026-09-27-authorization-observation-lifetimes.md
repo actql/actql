@@ -27,6 +27,13 @@ after diagnostic owner close. The existing held-read, restart, cancellation,
 dispatch cleanup, packed Checkpoint, and native Client tests remain in the
 Client and Host jobs.
 
+A joined caller now owns its wait independently of the first caller's shared
+decision operation. Its own abort ends that wait and removes its listener
+without cancelling the physical callback or returning the in-flight slot.
+The first caller's abort still stops the shared decision; joined callers
+observe that failure. Scope close ends every waiter while an uncooperative
+callback retains its slot until it settles.
+
 ## Validation
 
 - Implementation SHAs: `da46295e22f48f4efd21c1b717239e11cd26598e`
@@ -42,7 +49,11 @@ Client and Host jobs.
 - `node scripts/local-checks.mjs run host`: passed on the rebased code with a
   workspace-local npm cache. An earlier attempt could not write the
   pre-existing home npm cache and stopped before code tests.
-- Linux CI on the final PR SHA: pending at the time of this record.
+- Linux CI on `9aa171839a3d4493402bf5961e49b21eee40f34e`: all 14 required
+  jobs passed. That result predates the joined-wait correction.
+- After the correction, the authorization, dispatch-owner, and HTTP tests
+  passed together: 55/55. Linux CI on the corrected SHA is required before
+  merge and is not represented by the earlier green run.
 
 This unit does not implement the separate Effect commit Checkpoint connection
 or the Local Compute accounting-checker review item.

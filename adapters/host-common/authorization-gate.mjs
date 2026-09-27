@@ -374,6 +374,31 @@ function gateFor(core, context) {
     return decision;
   };
 
+  // A joined caller owns only its wait. The first caller still owns the
+  // shared decision's physical lifetime; a later caller's abort must not
+  // cancel that decision or release its in-flight capacity slot.
+  const awaitJoined = (operation, signal) => {
+    if (signal === undefined) return operation;
+    signal.throwIfAborted();
+    return new Promise((resolve, reject) => {
+      let done = false;
+      const finish = (accept, value) => {
+        if (done) return;
+        done = true;
+        signal.removeEventListener('abort', abort);
+        (accept ? resolve : reject)(value);
+      };
+      const abort = () => {
+        try { signal.throwIfAborted(); }
+        catch (error) { finish(false, error); }
+      };
+      signal.addEventListener('abort', abort, {once: true});
+      operation.then(value => finish(true, value),
+        error => finish(false, error));
+      if (signal.aborted) abort();
+    });
+  };
+
   async function askHost(view, signal) {
     if (closed || signal?.aborted) {
       return {kind: 'failure', failure: 'unavailable'};
@@ -787,7 +812,7 @@ function gateFor(core, context) {
       ]);
       const cached = cache.get(key);
       if (cached !== undefined) {
-        const decision = await cached.operation;
+        const decision = await awaitJoined(cached.operation, signal);
         ensureOpen();
         signal?.throwIfAborted();
         count('reusedDecisions');
