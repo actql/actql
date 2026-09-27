@@ -566,9 +566,12 @@ test('prepared dispatch ownership has one common state machine and no connector 
   const bridge = readFileSync('src/connectors/duckdb/standard_host/dispatch.mbt', 'utf8');
   assert.doesNotMatch(bridge, /mut (?:pending|consumed)\s*:/);
   assert.doesNotMatch(bridge, /@host_driver\.take_installed_task\(/);
-  for (const implementation of ['local', 'duckdb']) {
-    const driver = readFileSync(`src/connectors/${implementation}/driver/dispatch.mbt`, 'utf8');
-    assert.match(driver, /@host\.take_installed_task\(/);
+  // Local takes staged work where it starts the bounded materializing attempt.
+  for (const file of [
+    'src/connectors/local/driver/materializing_dispatch.mbt',
+    'src/connectors/duckdb/driver/dispatch.mbt',
+  ]) {
+    assert.match(readFileSync(file, 'utf8'), /@host\.take_installed_task\(/);
   }
   assert.doesNotMatch(bridge, /enum DispatchWork|work is (?:Native|Synchronous)/);
   const channel = readFileSync('src/physical_host/dispatch_channel.mbt', 'utf8');
@@ -605,10 +608,16 @@ test('Local installed preparation owns candidate construction and bounded sequen
   assert.match(readFileSync('src/connectors/local/driver/contribution.mbt', 'utf8'), /prepare_local_dispatch\(installed, task, revision, request\)/);
   assert.doesNotMatch(source, /local_fixed_compute_candidate\(|choose_fixed_compute_candidate\(|prepare_local_compute_execution\(/);
   assert.match(source, /ComputeHost\[Unit, @strategy\.RunIssue\]/);
+  // Every staged Local task is a bounded materializing attempt; the
+  // synchronous whole-sequence lane is retired.
   const driver = readFileSync('src/connectors/local/driver/dispatch.mbt', 'utf8');
-  assert.match(driver, /@local\.prepare_local_module_compute\(/);
-  assert.match(driver, /@host\.take_installed_task\(/);
-  assert.match(driver, /@strategy\.execute_captured_synchronous_task\(/);
+  assert.match(driver, /@local\.prepare_local_module_materializing_compute\(/);
+  assert.doesNotMatch(driver, /@local\.prepare_local_module_compute\(/);
+  assert.doesNotMatch(driver, /@strategy\.execute_captured_synchronous_task\(/);
+  const attempt = readFileSync(
+    'src/connectors/local/driver/materializing_dispatch.mbt', 'utf8');
+  assert.match(attempt, /@host\.take_installed_task\(/);
+  assert.doesNotMatch(attempt, /@strategy\.execute_captured_synchronous_task\(/);
   const host = readFileSync('src/connectors/duckdb/standard_host/dispatch.mbt', 'utf8');
   assert.doesNotMatch(host, /local_channel|execute_captured_synchronous_task\(/);
   assert.match(host, /@builtin\.execute_configured_in_process\(/);

@@ -3225,6 +3225,40 @@ async function exerciseStrategyGraph(
     }],
     fields: ['equal'],
   }, {
+    name: 'graph-diff-in-flight',
+    rows: 2,
+    advanceQuantum: 1,
+    constructionProgress: 8,
+    steps: [{
+      graph: {
+        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g', graph_diff: {with: 'right_graph'}, as: 'out',
+    }],
+    fields: ['delta'],
+  }, {
+    name: 'graph-apply-delta-in-flight',
+    rows: 2,
+    advanceQuantum: 1,
+    // The delta Stage constructs two two-node, two-edge Graphs.
+    constructionProgress: 8,
+    deltaStage: true,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    cancelOnManagedStart: 3,
+    steps: [{
+      from: 'g', apply_graph_delta: {with: 'changes', field: 'delta'},
+      as: 'applied',
+    }, {
+      from: 'applied', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'graph-bounds',
     rows: 40,
     step: {
@@ -3706,7 +3740,11 @@ async function exerciseStrategyGraph(
       cancellationCase.family === 'sequence';
     const vecaFamily = cancellationCase.family === 'veca';
     const graphFamily = !teaFamily && !vecaFamily;
-    const unsizedGraph = cancellationCase.name === 'graphs-equal-in-flight';
+    // Structural two-Graph comparisons use the unsized Graph fixture.
+    const unsizedGraph = [
+      'graphs-equal-in-flight', 'graph-diff-in-flight',
+      'graph-apply-delta-in-flight',
+    ].includes(cancellationCase.name);
     const teaTransform = cancellationCase.operation === 'window-fixed'
       ? {window_events: {kind: 'fixed', size: 10}}
       : cancellationCase.operation === 'window-sliding'
@@ -4511,6 +4549,20 @@ async function exerciseStrategyGraph(
     }
     if (cancellationCase.name === 'normalize-filter-sort-take') {
       graphCancellationProgram.stages.splice(graphStageIndex + 1);
+    }
+    if (graphFamily && cancellationCase.deltaStage === true) {
+      // A separate Stage computes the Graph delta the Graph Stage applies.
+      const graphStage = graphCancellationProgram.stages[graphStageIndex];
+      graphStage.inputs.changes = {result: {stage: 'graph_delta', result: 'r'}};
+      graphCancellationProgram.stages.splice(graphStageIndex, 0, {
+        id: 'graph_delta',
+        inputs: {rows: {result: {stage: 'values', result: 'r'}}},
+        steps: [structuredClone(graphStage.steps[0]), {
+          ...structuredClone(graphStage.steps[0]),
+          as: 'right_graph',
+        }, {from: 'g', graph_diff: {with: 'right_graph'}, as: 'out'}],
+        results: {r: {from: 'out', fields: ['delta']}},
+      });
     }
     if (cancellationCase.resultAliases === 2) {
       graphCancellationProgram.results = {
@@ -7257,6 +7309,10 @@ async function exerciseStrategyGraph(
     {name: 'ordinary-pivot-in-flight', kind: 'pivot'},
     {name: 'ordinary-analytic-in-flight', kind: 'analytic'},
     {name: 'ordinary-window-group-in-flight', kind: 'window-group'},
+    {name: 'ordinary-row-window-in-flight', kind: 'row-window'},
+    {name: 'ordinary-unpivot-in-flight', kind: 'unpivot'},
+    {name: 'ordinary-json-pick-in-flight', kind: 'json-pick'},
+    {name: 'ordinary-unnest-in-flight', kind: 'unnest'},
   ]) {
     const ordinaryUnaryProgram = structuredClone(selectProgram);
     const hasPreliminary = ordinaryUnaryCase.kind === 'top-k' ||
@@ -7270,8 +7326,23 @@ async function exerciseStrategyGraph(
         ...(ordinaryUnaryCase.kind === 'top-k-by' ||
           ordinaryUnaryCase.kind === 'pivot'
           ? {group: index % 2 === 0 ? 'a' : 'b'} : {}),
+        ...(ordinaryUnaryCase.kind === 'json-pick'
+          ? {payload: {inner: {leaf: index}}} : {}),
+        ...(ordinaryUnaryCase.kind === 'unnest'
+          ? {items: [index, index + 1]} : {}),
       }),
     );
+    if (ordinaryUnaryCase.kind === 'json-pick') {
+      source.steps[0].values.schema.payload = {type: 'object', nullable: false,
+        fields: {inner: {type: 'object', nullable: false,
+          fields: {leaf: {type: 'number', nullable: false}}}}};
+      source.results.r.fields = ['id', 'amount', 'payload'];
+    }
+    if (ordinaryUnaryCase.kind === 'unnest') {
+      source.steps[0].values.schema.items = {type: 'array', nullable: false,
+        items: {type: 'number', nullable: false}, max_items: 2};
+      source.results.r.fields = ['id', 'amount', 'items'];
+    }
     if (ordinaryUnaryCase.kind === 'top-k-by' ||
         ordinaryUnaryCase.kind === 'pivot') {
       source.steps[0].values.schema.group = {type: 'string', nullable: false};
@@ -7303,8 +7374,18 @@ async function exerciseStrategyGraph(
         }, as: 'out'},
         analytic: {analytic: {
           partition_by: [], order_by: [{id: 'asc'}],
-          functions: {position: {fn: 'row_number'}},
+          frame: {start: 'unbounded_preceding', end: 'current_row'},
+          functions: {n: {fn: 'count', field: 'amount'}},
         }, as: 'out'},
+        'row-window': {row_window: {kind: 'fixed', time: 'id', size: 10}, as: 'out'},
+        unpivot: {unpivot: {
+          columns: ['amount'], keep: ['id'],
+          name_column: 'metric', value_column: 'value',
+        }, as: 'out'},
+        'json-pick': {json_pick: {
+          column: 'payload', path: ['inner', 'leaf'], output: 'picked',
+        }, as: 'out'},
+        unnest: {unnest: {column: 'items', as: 'item', outer: false}, as: 'out'},
         'window-group': [
           {row_window: {kind: 'fixed', time: 'id', size: 10}, as: 'windowed'},
           {from: 'windowed', window_group: {by: [], aggregates: {
@@ -7326,9 +7407,16 @@ async function exerciseStrategyGraph(
               ? ['id', 'amount', 'group']
             : ordinaryUnaryCase.kind === 'pivot' ? ['a', 'b', 'id']
             : ordinaryUnaryCase.kind === 'analytic'
-              ? ['amount', 'id', 'position']
+              ? ['amount', 'id', 'n']
             : ordinaryUnaryCase.kind === 'window-group'
               ? ['lowest', 'window_end', 'window_start']
+            : ordinaryUnaryCase.kind === 'row-window'
+              ? ['amount', 'id', 'window_end', 'window_start']
+            : ordinaryUnaryCase.kind === 'unpivot' ? ['id', 'metric', 'value']
+            : ordinaryUnaryCase.kind === 'json-pick'
+              ? ['amount', 'id', 'payload', 'picked']
+            : ordinaryUnaryCase.kind === 'unnest'
+              ? ['amount', 'id', 'item', 'items']
             : ['id', 'amount'];
       unary.results.r.fields = fields;
       for (const consumer of ordinaryUnaryProgram.stages.filter(stage =>
@@ -7337,9 +7425,15 @@ async function exerciseStrategyGraph(
         consumer.results.r.fields = fields;
       }
     }
-    const ordinaryUnaryFixture = fixture.strategyFixtureCreate(
-      ...args, JSON.stringify(ordinaryUnaryProgram),
-    );
+    let ordinaryUnaryFixture;
+    try {
+      ordinaryUnaryFixture = fixture.strategyFixtureCreate(
+        ...(ordinaryUnaryCase.kind === 'analytic' ? analyticArgs : args),
+        JSON.stringify(ordinaryUnaryProgram),
+      );
+    } catch (error) {
+      throw new Error(`${ordinaryUnaryCase.name}: fixture rejected`, {cause: error});
+    }
     const ordinaryUnaryCapture = await runNativeHostQuery(
       grant,
       fixture.strategyFixtureAcquisition(ordinaryUnaryFixture),
@@ -7433,6 +7527,143 @@ async function exerciseStrategyGraph(
       await execution?.close();
       if (execution) {
         assert.equal(await execution.cleanup(), true);
+        assert.equal(execution.cleanupPending(), false);
+        assert.equal(execution.usage().heldBytes, 0n);
+        assert.equal(execution.usage().reservedExecutionBytes, 0n);
+      }
+    }
+  }
+  // Binary bounded operations: two external value inputs feed the operation
+  // stage, which is aborted after positive work at quantum one.
+  for (const binaryCase of [
+    {name: 'ordinary-except-in-flight', kind: 'except'},
+    {name: 'ordinary-intersect-in-flight', kind: 'intersect'},
+    {name: 'ordinary-nest-in-flight', kind: 'nest'},
+    {name: 'ordinary-equality-join-in-flight', kind: 'join'},
+  ]) {
+    const nest = binaryCase.kind === 'nest';
+    const join = binaryCase.kind === 'join';
+    const leftSchema = nest
+      ? {id: {type: 'number', nullable: false}, key: {type: 'number', nullable: false}}
+      : {id: {type: 'number', nullable: false}};
+    const rightSchema = nest
+      ? {key: {type: 'number', nullable: false}, value: {type: 'number', nullable: false}}
+      : {id: {type: 'number', nullable: false}};
+    const fields = nest ? ['id', 'items', 'key']
+      : join ? ['id', 'other'] : ['id'];
+    const binaryProgram = structuredClone(zeroInputProgram);
+    binaryProgram.stages.splice(1, 3, {
+      id: 'binary_left', inputs: {},
+      steps: [{values: {schema: leftSchema, rows: Array.from({length: 20},
+        (_, index) => nest ? {id: index, key: index % 5} : {id: index % 12})}, as: 'out'}],
+      results: {r: {from: 'out', fields: Object.keys(leftSchema)}},
+    }, {
+      id: 'binary_right', inputs: {},
+      steps: [{values: {schema: rightSchema, rows: Array.from({length: 20},
+        (_, index) => nest ? {key: index % 5, value: index} : {id: index % 8})}, as: 'out'}],
+      results: {r: {from: 'out', fields: Object.keys(rightSchema)}},
+    }, {
+      id: 'binary_op',
+      inputs: {l: {result: {stage: 'binary_left', result: 'r'}},
+        r: {result: {stage: 'binary_right', result: 'r'}}},
+      steps: [nest
+        ? {from: 'l', nest: {with: 'r', on: [{left: 'key', right: 'key'}],
+          into: 'items', fields: [{amount: 'value'}], max_items: 4}, as: 'out'}
+        : join
+          ? {from: 'l', join: {with: 'r', kind: 'inner',
+            on: [{left: 'id', right: 'id'}],
+            select: {id: 'left.id', other: 'right.id'}}, as: 'out'}
+          : {from: 'l', [binaryCase.kind]: {with: 'r', duplicates: 'all'}, as: 'out'}],
+      results: {r: {from: 'out', fields}},
+    }, ...['a', 'b'].map(id => ({
+      id: `binary_consumer_${id}`,
+      inputs: {x: {result: {stage: 'binary_op', result: 'r'}}},
+      steps: [{select: id === 'a' ? fields : [...fields].reverse(), as: 'out'}],
+      results: {r: {from: 'out', fields: id === 'a' ? fields : [...fields].reverse()}},
+    })));
+    binaryProgram.results = {
+      a: {from: {stage: 'binary_consumer_a', result: 'r'}},
+      b: {from: {stage: 'binary_consumer_b', result: 'r'}},
+    };
+    const binaryFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(binaryProgram));
+    const binaryCapture = await runNativeHostQuery(grant,
+      fixture.strategyFixtureAcquisition(binaryFixture), suppliedLimits);
+    const cancellation = new AbortController();
+    let execution, starts = 0, scheduled = false, workBeforeAbort = 0n;
+    let deliveredAt, stoppedAt;
+    cancellation.signal.addEventListener('abort', () => {
+      deliveredAt = performance.now();
+    }, {once: true});
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        binaryFixture, binaryCapture.source()), true);
+      const setup = fixture.strategyFixtureModuleSubset(binaryFixture, 0);
+      const observedRuntime = new Proxy(hostRuntime, {
+        get(target, property, receiver) {
+          if (property !== 'strategyModule_local_ManagedStart') {
+            return Reflect.get(target, property, receiver);
+          }
+          return configuration => {
+            const start = ++starts;
+            const operation = checked(
+              target.strategyModule_local_ManagedStart(configuration));
+            return {$tag: 1, _0: new Proxy(operation, {
+              get(active, name, operationReceiver) {
+                if (name === 'execution_stopped') {
+                  return () => {
+                    const stopped = active.execution_stopped();
+                    if (stopped && cancellation.signal.aborted &&
+                        stoppedAt === undefined) stoppedAt = performance.now();
+                    return stopped;
+                  };
+                }
+                if (name !== 'advance') {
+                  return Reflect.get(active, name, operationReceiver);
+                }
+                return quantum => {
+                  const step = start === 3 ? 1 : quantum;
+                  const result = active.advance(step);
+                  const poll = checked(result);
+                  if (start === 3) {
+                    assert(poll.work <= BigInt(step));
+                    if (poll.complete === false && poll.work > 0n) {
+                      workBeforeAbort += poll.work;
+                      if (!scheduled && workBeforeAbort >= 5n) {
+                        scheduled = true;
+                        setTimeout(() => cancellation.abort(), 0);
+                      }
+                    }
+                  }
+                  return result;
+                };
+              },
+            })};
+          };
+        },
+      });
+      execution = await runInstalledStrategy(setup, runtimeCore(hostRuntime),
+        [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+        cancellation.signal);
+      assert.equal(starts, 3, binaryCase.name);
+      assert(workBeforeAbort >= 5n, `${binaryCase.name}: work precedes abort`);
+      assert.equal(cancellation.signal.aborted, true);
+      assert.equal(Number.isFinite(deliveredAt), true);
+      assert.equal(Number.isFinite(stoppedAt), true);
+      assert(stoppedAt >= deliveredAt);
+      assert.equal(execution.status, 'host-tasks-failed');
+      assert.equal(execution.failure?.name, 'AbortError');
+      assert.deepEqual(execution.completed.map(item => item.task), [1, 2],
+        `${binaryCase.name}: no partial output`);
+    } finally {
+      binaryCapture.close();
+      await execution?.close();
+      if (execution) {
+        let cleaned = false;
+        for (let attempt = 0; attempt < 3 && !cleaned; attempt++) {
+          cleaned = await execution.cleanup();
+        }
+        assert.equal(cleaned, true);
         assert.equal(execution.cleanupPending(), false);
         assert.equal(execution.usage().heldBytes, 0n);
         assert.equal(execution.usage().reservedExecutionBytes, 0n);
