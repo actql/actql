@@ -3,8 +3,9 @@
 ## Scope and source
 
 The implementation starts from `292dbecc79eb0058bc3f89ff6ffb918f7ed730db`,
-which includes the merged bounded builder from PR #8. The validated local
-implementation is `d38ca5bbc26c667b334e9ad7d09fc8c27282cb2b`. The final
+which includes the merged bounded builder from PR #8. Initial local
+validation used `d38ca5bbc26c667b334e9ad7d09fc8c27282cb2b`; the subsequent
+main integration and its validation are recorded below. The final
 PR revision may add evidence-only documentation; its CI result is recorded
 in the PR. PR-0 and PR-1 are merged; PR-2 is ready for review, not merged.
 
@@ -80,7 +81,8 @@ during each job.
 | Same SHA | `node scripts/local-checks.mjs run spec` | Pass, including generated vocabulary, schemas, pins, independent vectors, metadata and links |
 | Same SHA | `node scripts/local-checks.mjs run client` | Pass: 152 Client/Host tests, packed Node/browser smoke, packed Checkpoint acceptance, native Client mTLS and 191 Salesforce Site tests |
 
-The only code change after the JS/Wasm full-core runs was the scalar JSON
+Within the frontend patch series, the only code change after the JS/Wasm
+full-core runs was the scalar JSON
 comment delimiter correction, covered by the three-target 22-test run.
 The following commit regenerated three current schema/manifest fixtures from
 existing specification pins, covered by canonical tests and the successful
@@ -114,6 +116,34 @@ the transport SDK free of parser, kernel, DuckDB and Store dependencies.
   --ignore-scripts` resolved the setup failure; the repeated job passed.
 
 ## Delivery boundary
+
+### Main integration
+
+PR #20 initially conflicted with the newer runtime package build policy on
+main. Main `87530f7185c26a3663ae0a6c0bf6f95dd8c33dd3` was merged into the
+feature branch as `050c9a5cd39defcaee0827ce0f4f1a0e30ca30b5`. Main itself
+was not changed and no force push was used.
+
+The only conflicts were two modified/deleted generated runtime bundles. Their
+tracked deletion was retained; all four runtime packages were regenerated
+from integrated sources with `npm run build:runtime-packages`. The packed
+Client test preserves both the structural source adapter and main's longer
+prepack timeout. Generated bundles remain ignored and are built by prepack;
+tarball consumers still install without a MoonBit toolchain.
+
+At the clean integration SHA, the following passed:
+
+- Frontend tests on JS, Wasm and native: 22 on each target.
+- `node scripts/local-checks.mjs run lint`, including generated interfaces.
+- `node scripts/local-checks.mjs run client`: 170 Client/Host tests, packed
+  Node/browser and Checkpoint acceptance, native Client mTLS, and 192
+  Salesforce Site tests.
+
+The integration leaves the frontend, common checker, builder, structural
+specification, schemas and manifest pins identical to the validated patch
+series. Full core/spec jobs were not repeated solely for the main merge;
+the impacted runtime/package jobs above were repeated. Linux CI checks the
+complete pushed PR revision.
 
 Before publication, two commit-body lines were wrapped to the repository's
 72-character limit. Every corresponding commit tree was compared and is
