@@ -49,6 +49,10 @@ Values rows `(x,y)=(2,1),(1,2)`: `SELECT x AS y ... ORDER BY y` returns
 `y=1,2`, while `SELECT x ... ORDER BY y` returns `x=2,1`. The source has an
 input column named `y` in the first case, so the output tests alias precedence
 at runtime rather than only checking a generated sort field.
+An acquired-input case also separates the two ORDER scopes:
+`SELECT amount AS id, ROW_NUMBER() OVER (ORDER BY id) AS pos ... ORDER BY id
+DESC` ranks original input `id` values and finally sorts by the projected
+`id` alias. Packed Local and HTTP Remote both return `(20,2),(NULL,1)`.
 
 GQL patterns, VecA/TEA-specific surfaces, INFER/Artifact spelling, INSERT,
 installed raw-text routing, deployment and other owners' runtime redesigns

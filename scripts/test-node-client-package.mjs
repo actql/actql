@@ -236,6 +236,10 @@ const analyticCases = [
       + 'ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running '
       + 'FROM records WHERE id < 3',
     [{id: 1, running: 1}, {id: 2, running: 2}]],
+  ['over-alias-scope',
+    'SELECT amount AS id, ROW_NUMBER() OVER (ORDER BY id) AS pos '
+      + 'FROM records WHERE id < 3 ORDER BY id DESC',
+    [{id: 20, pos: 2}, {id: null, pos: 1}]],
 ];
 for (const [name, sql] of analyticCases) {
   const query = queryFrontend.compileCapturedQueryJson(sql,
