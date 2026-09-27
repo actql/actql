@@ -124,6 +124,13 @@ const concatQuery = queryFrontend.compileValuesQueryJson(
   'fixture.concat_null');
 assert.notEqual(concatQuery, '');
 await writeFile(join(root, 'concat-query.json'), concatQuery);
+const valuesCteQuery = queryFrontend.compileValuesQueryJson(
+  'WITH chosen AS (SELECT x, y FROM rows WHERE x > 0) '
+    + 'SELECT x FROM chosen',
+  'rows', 'rows', JSON.stringify(aliasRows), JSON.stringify(['x', 'y']),
+  'fixture.values_cte');
+assert.notEqual(valuesCteQuery, '');
+await writeFile(join(root, 'values-cte-query.json'), valuesCteQuery);
 const setLeft = {values: {schema: {
   a: {type: 'number', nullable: true},
   b: {type: 'string', nullable: false}},
@@ -202,6 +209,23 @@ const capturedQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.captured_query');
 assert.notEqual(capturedQuery, '');
 await writeFile(join(root, 'captured-query.json'), capturedQuery);
+const capturedCteQuery = queryFrontend.compileCapturedQueryJson(
+  'WITH chosen AS (SELECT id, amount FROM records WHERE id > 1) '
+    + 'SELECT id FROM chosen',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.captured_cte');
+assert.notEqual(capturedCteQuery, '');
+await writeFile(join(root, 'captured-cte-query.json'), capturedCteQuery);
+const reusedCteQuery = queryFrontend.compileCapturedQueryJson(
+  'WITH chosen AS (SELECT id, amount FROM records WHERE id > 1) '
+    + 'SELECT l.id AS left_id, r.id AS right_id '
+    + 'FROM chosen AS l JOIN chosen AS r ON l.id = r.id',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.reused_cte');
+assert.notEqual(reusedCteQuery, '');
+await writeFile(join(root, 'reused-cte-query.json'), reusedCteQuery);
 const distinctQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT DISTINCT id FROM records WHERE id > 1 ORDER BY id',
   'records', 'remote',
@@ -421,6 +445,14 @@ async function checkConcat(client, suffix) {
     {format: 'json', requestId: 'packed-concat-' + suffix}),
   {code: 'RunHostCompilationRejected'});
 }
+async function checkValuesCte(client, suffix) {
+  const execution = await client.aql(
+    readFileSync('values-cte-query.json', 'utf8'),
+    {format: 'json', requestId: 'packed-values-cte-' + suffix});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  assert.deepEqual(await execution.result('answer').all(),
+    [{x: 2}, {x: 1}]);
+}
 const setQueryDocument = readFileSync('set-query.json', 'utf8');
 const pipeUnionQueryDocument = readFileSync('pipe-union-query.json', 'utf8');
 const expectedUnionRows = [{a: 1, b: 'x'}, {a: 1, b: 'x'},
@@ -462,6 +494,24 @@ async function checkSetQueries(client, suffix) {
 }
 const acquiredDocument = readFileSync('source-program.json', 'utf8');
 const capturedQueryDocument = readFileSync('captured-query.json', 'utf8');
+const capturedCteDocument = readFileSync('captured-cte-query.json', 'utf8');
+const reusedCteDocument = readFileSync('reused-cte-query.json', 'utf8');
+async function checkCapturedCte(client, suffix) {
+  const execution = await client.aql(capturedCteDocument,
+    {format: 'json', requestId: 'packed-captured-cte-' + suffix});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  assert.deepEqual(await execution.result('answer').all(),
+    [{id: 3}, {id: 2}, {id: 3}]);
+  const reused = await client.aql(reusedCteDocument,
+    {format: 'json', requestId: 'packed-reused-cte-' + suffix});
+  assert.equal((await reused.wait()).status, 'succeeded');
+  assert.deepEqual(sortedRows(await reused.result('answer').all()),
+    sortedRows([
+      {left_id: 3, right_id: 3}, {left_id: 3, right_id: 3},
+      {left_id: 2, right_id: 2}, {left_id: 3, right_id: 3},
+      {left_id: 3, right_id: 3},
+    ]));
+}
 const distinctQueryDocument = readFileSync('distinct-query.json', 'utf8');
 const distinctExpressionDocument = readFileSync(
   'distinct-expression-query.json', 'utf8');
@@ -555,6 +605,7 @@ assert.equal((await computedValuesQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await computedValuesQueryLocal.result('answer').all(),
   [{id: 2}]);
 await checkOrderScopes(installedLocal, 'local');
+await checkValuesCte(installedLocal, 'local');
 await checkConcat(installedLocal, 'local');
 const setQueryLocal = await installedLocal.aql(setQueryDocument,
   {format: 'json', requestId: 'packed-set-query-local'});
@@ -577,6 +628,7 @@ assert.equal((await capturedQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await capturedQueryLocal.result('answer').all(),
   [{id: 3}, {id: 2}, {id: 3}]);
 await checkAnalyticCases(acquiredLocal.client, 'local');
+await checkCapturedCte(acquiredLocal.client, 'local');
 const distinctQueryLocal = await acquiredLocal.client.aql(distinctQueryDocument,
   {format: 'json', requestId: 'packed-distinct-query-local'});
 assert.equal((await distinctQueryLocal.wait()).status, 'succeeded');
@@ -735,6 +787,7 @@ assert.equal((await computedValuesQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await computedValuesQueryRemote.result('answer').all(),
   [{id: 2}]);
 await checkOrderScopes(installedRemote, 'remote');
+await checkValuesCte(installedRemote, 'remote');
 const setQueryRemote = await installedRemote.aql(setQueryDocument,
   {format: 'json', requestId: 'packed-set-query-remote'});
 assert.equal((await setQueryRemote.wait()).status, 'succeeded');
@@ -754,6 +807,7 @@ assert.equal((await capturedQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await capturedQueryRemote.result('answer').all(),
   [{id: 3}, {id: 2}, {id: 3}]);
 await checkAnalyticCases(acquiredRemote.client, 'remote');
+await checkCapturedCte(acquiredRemote.client, 'remote');
 const distinctQueryRemote = await acquiredRemote.client.aql(
   distinctQueryDocument,
   {format: 'json', requestId: 'packed-distinct-query-remote'});

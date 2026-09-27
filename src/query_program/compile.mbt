@@ -10,6 +10,7 @@ pub(all) struct Input {
 pub(all) enum InputSource {
   Captured(@wire.Cursor)
   GeneratedValues(@wire.Cursor)
+  StageResult(String, String)
 }
 
 ///|
@@ -27,6 +28,7 @@ pub(all) struct Limits {
   source : @builder.Limits
   program : @program.Limits
   max_expression_work : Int
+  max_join_output_rows : Int64
 }
 
 ///|
@@ -227,6 +229,9 @@ fn selected_relation(
 
 ///|
 fn columns(input : Input) -> Array[String] raise Abort {
+  if input.source is StageResult(_, _) {
+    return input.visible_fields.copy()
+  }
   let source = match input.source {
     Captured(declaration) => declaration
     GeneratedValues(step) => {
@@ -250,6 +255,7 @@ fn columns(input : Input) -> Array[String] raise Abort {
         None => raise Abort(InvalidContext)
       }
     }
+    StageResult(_, _) => raise Abort(InvalidContext)
   }
   let declaration = match @wire.open_object(source) {
     Ok(object) => object
@@ -1830,7 +1836,7 @@ pub fn compile(
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
   if @query.cte_count(query) > 0 {
-    return Err(UnsupportedCte)
+    return compile_cte_query(query, context, limits)
   }
   if @query.set_part_count(query) > 0 {
     return compile_set_query(query, context, limits)
@@ -1862,6 +1868,7 @@ pub fn compile(
     let fragment = match input.source {
       Captured(declaration) => declaration
       GeneratedValues(step) => step
+      StageResult(_, _) => raise Abort(InvalidContext)
     }
     let imported = match @builder.import_cursor(builder, fragment, generated) {
       Ok(node) => node
@@ -1934,6 +1941,7 @@ pub fn compile(
         }
         ([], [imported], None)
       }
+      StageResult(_, _) => raise Abort(InvalidContext)
     }
     let (steps, output) = compile_steps(
       construction,
@@ -2003,6 +2011,304 @@ pub fn compile(
 }
 
 ///|
+// A CTE is a checked Stage Result binding. The body is built once, then the
+// consumer refers to that Result; text substitution would duplicate acquisition.
+fn compile_cte_query(
+  query : @query.Query,
+  context : Context,
+  limits : Limits,
+) -> Result[@program.Program, Issue] {
+  if @query.cte_count(query) != 1 ||
+    @query.set_part_count(query) != 0 ||
+    @query.join_part_count(query) > 1 ||
+    context.program_id == "" ||
+    context.stage_id == "" ||
+    context.stage_result == "" ||
+    context.result_name == "" {
+    return Err(UnsupportedCte)
+  }
+  let cte = @query.cte_at(query, 0).unwrap()
+  let body = cte.query
+  let cte_relation = [cte.name]
+  if @query.set_part_count(body) != 0 ||
+    @query.join_part_count(body) != 0 ||
+    @query.cte_count(body) != 0 ||
+    same_path(@query.relation(body), cte_relation) ||
+    !same_path(@query.relation(query), cte_relation) {
+    return Err(UnsupportedCte)
+  }
+  let input = selected_input(body, context) catch {
+    Abort(issue) => return Err(issue)
+  }
+  let fields = columns(input) catch { Abort(issue) => return Err(issue) }
+  let stage_name = context.captured_stage.unwrap_or("aql_cte_0")
+  if stage_name == context.stage_id {
+    return Err(InvalidContext)
+  }
+  let document = @query.query_document(query)
+  let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
+  let builder = match @builder.create(document, limits.source) {
+    Ok(value) => value
+    Err(issue) => return Err(Construction(issue))
+  }
+  let construction : Construction = { builder, generated, }
+  try {
+    let fragment = match input.source {
+      Captured(declaration) => declaration
+      GeneratedValues(step) => step
+      StageResult(_, _) => raise Abort(UnsupportedCte)
+    }
+    let imported = match @builder.import_cursor(builder, fragment, generated) {
+      Ok(node) => node
+      Err(issue) => raise Abort(Construction(issue))
+    }
+    let (cte_inputs, seed) = match input.source {
+      Captured(_) => ([(input.name, imported)], [])
+      GeneratedValues(_) => ([], [imported])
+      StageResult(_, _) => raise Abort(UnsupportedCte)
+    }
+    if context.captured_stage is Some(_) && input.source is GeneratedValues(_) {
+      raise Abort(InvalidContext)
+    }
+    let (body_steps, body_output) = compile_steps(
+      construction,
+      body,
+      input,
+      fields,
+      limits.max_expression_work,
+      0,
+      input.source is Captured(_),
+      "aql_cte_final",
+    )
+    let body_from = if body_steps.is_empty() {
+      input.name
+    } else {
+      "aql_cte_final"
+    }
+    let cte_stage = construction.object([
+      ("id", construction.text(stage_name)),
+      ("inputs", construction.object(cte_inputs)),
+      ("steps", construction.array(seed + body_steps)),
+      (
+        "results",
+        construction.object([
+          (
+            "rows",
+            construction.object([
+              ("from", construction.text(body_from)),
+              (
+                "fields",
+                construction.array(
+                  body_output.map(field => construction.text(field)),
+                ),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    ])
+    let cte_input : Input = {
+      relation: cte_relation,
+      name: cte.name.value,
+      source: StageResult(stage_name, "rows"),
+      visible_fields: body_output,
+    }
+    let cte_ref = construction.object([
+      (
+        "result",
+        construction.object([
+          ("stage", construction.text(stage_name)),
+          ("result", construction.text("rows")),
+        ]),
+      ),
+    ])
+    let (outer_steps, output, outer_inputs, outer_from) = if @query.join_part_count(
+        query,
+      ) ==
+      1 {
+      let (steps, fields) = compile_cte_join_steps(
+        construction,
+        query,
+        cte.name,
+        body_output,
+        limits,
+      )
+      (steps, fields, [("l", cte_ref), ("r", cte_ref)], "aql_join_output")
+    } else {
+      let (steps, fields) = compile_steps(
+        construction,
+        query,
+        cte_input,
+        body_output,
+        limits.max_expression_work,
+        0,
+        false,
+        "aql_gen_0",
+      )
+      let from = if steps.is_empty() { cte_input.name } else { "aql_gen_0" }
+      (steps, fields, [(cte_input.name, cte_ref)], from)
+    }
+    let stage = construction.object([
+      ("id", construction.text(context.stage_id)),
+      ("inputs", construction.object(outer_inputs)),
+      ("steps", construction.array(outer_steps)),
+      (
+        "results",
+        construction.object([
+          (
+            context.stage_result,
+            construction.object([
+              ("from", construction.text(outer_from)),
+              (
+                "fields",
+                construction.array(
+                  output.map(field => construction.text(field)),
+                ),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    ])
+    let root = construction.object([
+      ("version", construction.text("actql/0.1")),
+      ("id", construction.text(context.program_id)),
+      ("stages", construction.array([cte_stage, stage])),
+      (
+        "results",
+        construction.object([
+          (
+            context.result_name,
+            construction.object([
+              (
+                "from",
+                construction.object([
+                  ("stage", construction.text(context.stage_id)),
+                  ("result", construction.text(context.stage_result)),
+                ]),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    ])
+    let source = match @builder.finish(builder, root) {
+      Ok(value) => value
+      Err(issue) => raise Abort(Construction(issue))
+    }
+    match @program.admit_generated_source(source, limits.program) {
+      Ok(program) => Ok(program)
+      Err(issue) => Err(Admission(issue))
+    }
+  } catch {
+    Abort(issue) => {
+      @builder.discard(builder)
+      Err(issue)
+    }
+  }
+}
+
+///|
+fn compile_cte_join_steps(
+  construction : Construction,
+  query : @query.Query,
+  cte_name : @query.NamePart,
+  fields : Array[String],
+  limits : Limits,
+) -> (Array[@builder.Node], Array[String]) raise Abort {
+  if @query.operation_count(query) != 1 ||
+    limits.max_join_output_rows < 1L ||
+    limits.max_join_output_rows > 9007199254740991L {
+    raise Abort(UnsupportedCte)
+  }
+  let part = @query.join_part_at(query, 0).unwrap()
+  if !same_path(part.relation, [cte_name]) || part.kind == "full" {
+    raise Abort(UnsupportedCte)
+  }
+  let left_qualifier = @query.relation_alias(query).unwrap_or(cte_name)
+  let right_qualifier = part.source_alias.unwrap_or(cte_name)
+  if same_name(left_qualifier, right_qualifier) {
+    raise Abort(AmbiguousRelation)
+  }
+  let keys = join_keys(part, left_qualifier, right_qualifier, fields, fields)
+  guard @query.operation_at(query, 0) is Some(Select(projections, false)) else {
+    raise Abort(UnsupportedCte)
+  }
+  let select : Array[(String, @builder.Node)] = []
+  let output : Array[String] = []
+  for projection in projections {
+    guard projection.expression is Some(expression) &&
+      projection.aggregate is None &&
+      projection.analytic is None &&
+      @query.expression_node(expression, @query.expression_root(expression))
+      is Some({ kind: Reference(path), .. }) else {
+      raise Abort(UnsupportedCte)
+    }
+    let resolved = join_field(
+      path, left_qualifier, right_qualifier, fields, fields,
+    )
+    let name = projection.name
+      .map(value => value.value)
+      .unwrap_or(path.last().unwrap().value)
+    if output.contains(name) {
+      raise Abort(DuplicateOutput)
+    }
+    output.push(name)
+    select.push((name, construction.text(resolved.0 + "." + resolved.1)))
+  }
+  if output.is_empty() {
+    raise Abort(UnsupportedCte)
+  }
+  let operation = if part.kind == "cross" {
+    (
+      "cross_join",
+      construction.object([
+        ("with", construction.text("r")),
+        (
+          "max_output_rows",
+          construction.add(Number(limits.max_join_output_rows.to_double())),
+        ),
+        ("select", construction.object(select)),
+      ]),
+    )
+  } else {
+    (
+      "join",
+      construction.object([
+        ("with", construction.text("r")),
+        ("kind", construction.text(part.kind)),
+        (
+          "on",
+          construction.array(
+            keys.map(pair => {
+              construction.object([
+                ("left", construction.text(pair.0)),
+                ("right", construction.text(pair.1)),
+              ])
+            }),
+          ),
+        ),
+        (
+          "max_output_rows",
+          construction.add(Number(limits.max_join_output_rows.to_double())),
+        ),
+        ("select", construction.object(select)),
+      ]),
+    )
+  }
+  (
+    [
+      construction.object([
+        ("from", construction.text("l")),
+        operation,
+        ("as", construction.text("aql_join_output")),
+      ]),
+    ],
+    output,
+  )
+}
+
+///|
 // Set operands remain checked Program steps. Position matching is expressed
 // as an ordinary simultaneous projection before the existing row-set kernel.
 fn compile_set_query(
@@ -2042,7 +2348,7 @@ fn compile_set_query(
       let fields = columns(input)
       let fragment = match input.source {
         GeneratedValues(step) => step
-        Captured(_) => raise Abort(UnsupportedSet)
+        Captured(_) | StageResult(_, _) => raise Abort(UnsupportedSet)
       }
       let seed = match @builder.import_cursor(builder, fragment, generated) {
         Ok(node) => node
@@ -2810,6 +3116,9 @@ fn compile_join_query(
     }
     let raw_bound = left_rows * factor + extra
     let bound = if raw_bound == 0L { 1L } else { raw_bound }
+    if limits.max_join_output_rows < 1L || bound > limits.max_join_output_rows {
+      raise Abort(UnsupportedJoin)
+    }
     let left_stage = "aql_join_left"
     let right_stage = "aql_join_right"
     let operation = if part.kind == "cross" {

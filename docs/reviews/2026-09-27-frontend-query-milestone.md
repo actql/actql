@@ -24,7 +24,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: two Values operands support direct-column INNER/LEFT and bounded CROSS; FULL requires stable input identity that these Values stages cannot prove |
 | GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: scalar reductions and ordered ARRAY_AGG/STRING_AGG lower through group; captured COUNT/GROUP/HAVING runtime passes, ordered collection runtime and failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
-| Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: bounded declaration syntax; Program construction explicitly rejects until shared Stage lowering and acquisition reuse are connected |
+| Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: one declaration lowers to one checked Stage Result; packed Local/Remote execute Values and acquired SELECT, including two references in an equijoin; physical read counter and multiple declarations/subqueries remain |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands execute through packed Local/HTTP Clients; captured operands, Pipe set, CTE reuse and broader type/order cases remain |
 | Pipe SELECT/WHERE/EXTEND/SET/DROP/RENAME/AS/AGGREGATE/JOIN/order/limit/set | Shared query scope and Relation lowering | Snapshot RHS, old range slots, SQL/Pipe pairs | Partial: SELECT/WHERE/AGGREGATE/ORDER/LIMIT, EXTEND, scoped SET/DROP/RENAME/AS, one JOIN before other Pipe operators, and a parenthesized SQL right operand for Pipe set; post-projection JOIN and other scope forms remain |
 | Adopted analytic/OVER | Existing analytic | Closed signatures, inline scope, frame/order rejection | Partial: inline OVER, bounded checker and packed RANK Result; full negative and frame matrix pending |
@@ -210,6 +210,17 @@ is parsed but the Values compiler refuses it before issuing a Program: the
 checked FULL JOIN requires stable identity on both inputs, which the generated
 Values Stage Results do not carry. No representative row or synthetic key is
 inferred. Acquired keyed inputs and correct FULL/USING projection remain open.
+
+One nonrecursive CTE now lowers its body into a single Stage Result and the
+outer SELECT refers to that result. A second form uses the same CTE Result
+twice as left and right equijoin inputs, with an explicit requested output-row
+ceiling that the common capacity owner checks again. Packed Local and HTTP
+Remote Clients execute both source-free and acquired CTEs. The acquired
+self-join of filtered `id` rows `3,2,3` returns five rows, including four
+`(3,3)` matches. The Program has one acquisition Stage; a physical provider
+read counter has not yet been added, so the once-only read acceptance case
+remains open. More than one CTE declaration, outer joins and general CTE
+expressions still fail closed rather than being textually substituted.
 ARRAY_AGG requires the adopted `IGNORE NULLS` and explicit order spelling;
 STRING_AGG requires a literal delimiter and explicit order. Both lower to the
 existing group call. The independent checker accepts the bounded ARRAY_AGG

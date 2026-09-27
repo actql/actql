@@ -34,6 +34,7 @@ pub(all) struct Input {
 pub(all) enum InputSource {
   Captured(@decode_core.Cursor)
   GeneratedValues(@decode_core.Cursor)
+  StageResult(String, String)
 }
 
 pub(all) enum Issue {
@@ -60,6 +61,7 @@ pub(all) struct Limits {
   source : @program_source_builder.Limits
   program : @stage_syntax.Limits
   max_expression_work : Int
+  max_join_output_rows : Int64
 }
 
 // Type aliases

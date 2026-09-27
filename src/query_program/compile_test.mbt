@@ -15,6 +15,7 @@ fn construction_limits() -> Limits {
     source,
     program: { source: source.source, tree: source.tree, max_stages: 20, },
     max_expression_work: 10000,
+    max_join_output_rows: 1000L,
   }
 }
 
@@ -705,14 +706,47 @@ test "FULL Values join refuses to invent stable row identities" {
 }
 
 ///|
-test "CTE declarations cannot be ignored during Program construction" {
+test "one CTE lowers to a shared checked Stage Result" {
   let query = @query.parse_query(
-    "WITH left_rows AS (SELECT c FROM right_rows) SELECT a FROM left_rows",
+    "WITH chosen AS (SELECT a, b FROM left_rows WHERE a > 1) SELECT a FROM chosen",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, set_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_eq(@program.stage_count(program), 2)
+  assert_true(wire.contains("\"id\":\"aql_cte_0\""))
+  assert_true(wire.contains("\"stage\":\"aql_cte_0\""))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("source-free CTE should be closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let shadow = @query.parse_query(
+    "WITH left_rows AS (SELECT a FROM left_rows) SELECT a FROM left_rows",
     syntax_limits(),
   ).unwrap()
   assert_true(
-    compile(query, set_context(), construction_limits()) is Err(UnsupportedCte),
+    compile(shadow, set_context(), construction_limits()) is Err(UnsupportedCte),
   )
+  let reused = @query.parse_query(
+    "WITH chosen AS (SELECT a, b FROM left_rows WHERE a > 0) SELECT l.a AS a, r.b AS right_b FROM chosen AS l JOIN chosen AS r ON l.a = r.a",
+    syntax_limits(),
+  ).unwrap()
+  let joined = compile(reused, set_context(), construction_limits()).unwrap()
+  assert_eq(@program.stage_count(joined), 2)
+  assert_true(
+    compile(reused, set_context(), {
+      ..construction_limits(),
+      max_join_output_rows: 0L,
+    })
+    is Err(UnsupportedCte),
+  )
+  match @check.check_parsed(joined, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("reused CTE should remain closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
 }
 
 ///|
