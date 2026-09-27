@@ -542,11 +542,11 @@ test('private Plan binding uses the escaped checked Unit Result name', async () 
     binding.resolved_limit_cid,
     binding.binding_cid,
   ], [
-    'sha256:9445693442d1a27f17a86bdd7b7a8b6d2a7093df00ecaadc38483a7da192d9be',
+    'sha256:9de344cbc92db77400f994f6c715ea01c4fcd63bb4201f10559029ec52bc644c',
     'a~/b',
-    'unit:sha256:9445693442d1a27f17a86bdd7b7a8b6d2a7093df00ecaadc38483a7da192d9be#/results/a~0~1b/rows',
-    'sha256:c99f4a217bb2a72b92811208427cba8fe1a71563ca90f18dcb86d5e8d4624547',
-    'sha256:50f87086189225f9458d7899230a169360b2e9dde08367ac12d57852101e7356',
+    'unit:sha256:9de344cbc92db77400f994f6c715ea01c4fcd63bb4201f10559029ec52bc644c#/results/a~0~1b/rows',
+    'sha256:e47649e6011f9d358e265777f049faaee825cf51364b16ef6353adcc76d61075',
+    'sha256:3ae102d0ca13694483e6c0a6d63ba6bb485333c7fa59bab00f947e33e3c1b3ad',
   ]);
   assert.equal(binding.binding_cid,
     hashWithoutSelf(binding, 'binding_cid'));
@@ -898,7 +898,7 @@ test('Node ABI derives the checked named Result and request identity', async () 
   const resultPlanWire = moon.clientProgramResultPlanWire(resultPlan);
   assert.equal(moon.clientProgramResultPlanName(resultPlan), 'answer');
   assert.equal(moon.clientProgramResultPlanCid(resultPlan),
-    'sha256:afedcffbda84224f2bc05783fe2e4903cf25319af7e6ec2f2c62f4a8d4b99488');
+    'sha256:d55633378a13c8b55ac9dcd275459728a00e837f365dbc315cd6a865d583426e');
   assert.equal(moon.clientProgramResultPlanCid(resultPlan),
     canonicalHashWithoutSelf(JSON.parse(resultPlanWire),
       'result_plan_logical_cid'));
@@ -907,7 +907,7 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.deepEqual(JSON.parse(resultPlanWire), {
     version: 'actql-result-plan/0.1', result_name: 'answer',
     unit_definition_cid:
-      'sha256:80f53bb9be0d58ed4bfb976855124cff09b88b221508ccb579bc79dcb5c6bdec',
+      'sha256:9e2921794c471aa3c76933f0730032e74934c898e54f55675080bd0d858e159f',
     unit_result_name: 'rows', unit_result_ordinal: 0,
     projection: [{input: 'id', output: 'id', value_contract_cid:
       'sha256:8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d'}],
@@ -968,7 +968,7 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.deepEqual(executableBody.execution_material.result_plan_logical_cids,
     {answer: moon.clientProgramResultPlanCid(resultPlan)});
   assert.equal(executableBody.execution_material.aoa_contract_cid,
-    'sha256:26fbe956d369ada84612a9c93414c8c04bd20f3e11dccf3308f4b5e2a296658d');
+    'sha256:4b6f51d57ca1d3cb16e28e04eeef20bebee34d4d3b89271de84b982a8ac74005');
   assert.equal(executableBody.resolved_limits.length, 2);
   assert.equal(executableBody.limit_bindings.length, 2);
   assert.ok(executableBody.bound_witnesses.length > 1);
@@ -1100,7 +1100,7 @@ test('Node ABI derives the checked named Result and request identity', async () 
   const rowsLimit = JSON.parse(rowsLimitBody);
   const bytesLimit = JSON.parse(bytesLimitBody);
   const unit =
-    'unit:sha256:80f53bb9be0d58ed4bfb976855124cff09b88b221508ccb579bc79dcb5c6bdec';
+    'unit:sha256:9e2921794c471aa3c76933f0730032e74934c898e54f55675080bd0d858e159f';
   assert.deepEqual([rowsLimit.subject_ref, bytesLimit.subject_ref],
     [`${unit}#/results/rows/rows`, `${unit}#/results/rows/bytes`]);
   assert.deepEqual([rowsLimit.unit, rowsLimit.effective_max,
@@ -1141,10 +1141,10 @@ test('Node ABI derives the checked named Result and request identity', async () 
     rowsLimit.resolved_limit_cid, bytesLimit.resolved_limit_cid,
     rowsBinding.binding_cid, bytesBinding.binding_cid,
   ], [
-    'sha256:6a7443ea17834cb41af4535274f9abfb182278e9494865ce08c65b479464f15e',
-    'sha256:a801922828cbf50d156b9e94da893c147896e8c719968d5c8121ca19981cd1e5',
-    'sha256:ada893a970814642737caa28f80b874702603757c3fa844ec1dab4cf01183928',
-    'sha256:8ec92c3a6f16580b7d897ccb845dbc1405a857f9eff0a5cbca17b4e90e92cdd4',
+    'sha256:2f5dc21f619a51134aef30d05ba8853df7eba0555d24ab36b7a0045b6a1c8817',
+    'sha256:e9b31174ac3a307327d2de83168a00f9fcac9b514c653d513c89f68daad24058',
+    'sha256:8c33dda920512416407269b35cff1c4b61795c3266c7e378349ac373a2b8bc10',
+    'sha256:9ade91d64dc29574366e1d3824be3cbb30d8737670d4cc7c0536752a3aed4090',
   ]);
   for (const [binding, limit, measure] of [
     [rowsBinding, rowsLimit, 'rows'],

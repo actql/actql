@@ -668,7 +668,7 @@ test('portable Host package compiles the ordinary Values Program', () => {
   assert.deepEqual(plan.plan_facts, facts.plan_facts);
   assert.deepEqual(plan.root_refs.map(root => root.name), ['answer']);
   assert.deepEqual(plan.execution_material.result_plan_logical_cids,
-    {answer: 'sha256:afedcffbda84224f2bc05783fe2e4903cf25319af7e6ec2f2c62f4a8d4b99488'});
+    {answer: 'sha256:d55633378a13c8b55ac9dcd275459728a00e837f365dbc315cd6a865d583426e'});
   assert.equal(template.bound_invocation_template_cid,
     without(template, 'bound_invocation_template_cid'));
   assert.equal(compiled.compiled_plan_cid,
@@ -678,7 +678,7 @@ test('portable Host package compiles the ordinary Values Program', () => {
     {name: 'TypeError', message: 'ForeignRunHostHandle'});
   assert.equal(compiled.executable_plan_cid, plan.executable_plan_cid);
   assert.equal(compiled.aoa_contract_cid,
-    'sha256:26fbe956d369ada84612a9c93414c8c04bd20f3e11dccf3308f4b5e2a296658d');
+    'sha256:4b6f51d57ca1d3cb16e28e04eeef20bebee34d4d3b89271de84b982a8ac74005');
   assert.throws(() => compileValues({kind: 'prepared-program'}),
     {name: 'TypeError', message: 'ForeignRunHostHandle'});
 });
