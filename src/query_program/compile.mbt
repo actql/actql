@@ -37,6 +37,9 @@ pub(all) enum Issue {
   UnknownColumn
   DuplicateOutput
   UnsupportedProjection
+  UnsupportedGrouping
+  UnsupportedAggregate
+  UnsupportedHaving
   UnsupportedOrdering
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
@@ -305,6 +308,162 @@ fn append_expression(
 }
 
 ///|
+fn selected_projections(query : @query.Query) -> Array[@query.Projection] {
+  for index in 0..<@query.operation_count(query) {
+    match @query.operation_at(query, index) {
+      Some(Select(projections, _)) => return projections
+      _ => ()
+    }
+  }
+  []
+}
+
+///|
+fn group_key_expression(
+  key : @query.Expression,
+  projections : Array[@query.Projection],
+) -> @query.Expression raise Abort {
+  let root = @query.expression_node(key, @query.expression_root(key)).unwrap()
+  if root.kind is Number(_) {
+    raise Abort(UnsupportedGrouping)
+  }
+  guard root.kind is Reference(path) && path.length() == 1 else { return key }
+  let mut matched : @query.Expression? = None
+  for projection in projections {
+    match projection.name {
+      Some(name) if same_name(name, path[0]) => {
+        if matched is Some(_) || projection.aggregate is Some(_) {
+          raise Abort(UnsupportedGrouping)
+        }
+        matched = projection.expression
+      }
+      _ => ()
+    }
+  }
+  match matched {
+    Some(expression) => expression
+    None => key
+  }
+}
+
+///|
+fn lower_aggregate(
+  construction : Construction,
+  call : @query.AggregateCall,
+  query : @query.Query,
+  input : Input,
+  fields : Array[String],
+  max_work : Int,
+) -> @builder.Node raise Abort {
+  let name = match call.function_name {
+    "COUNT" => "count"
+    "COUNTIF" => "count_if"
+    "SUM" => "sum"
+    "AVG" => "avg"
+    "MIN" => "min"
+    "MAX" => "max"
+    _ => raise Abort(UnsupportedAggregate)
+  }
+  let entries : Array[(String, @builder.Node)] = [
+    ("fn", construction.text(name)),
+  ]
+  match call.argument {
+    Some(argument) => {
+      let root = @query.expression_node(
+        argument,
+        @query.expression_root(argument),
+      ).unwrap()
+      match root.kind {
+        Reference(path) =>
+          match resolve_column(path, query, input, fields) {
+            Some(field) => entries.push(("field", construction.text(field)))
+            None => raise Abort(UnknownColumn)
+          }
+        _ =>
+          entries.push(
+            (
+              "expr",
+              append_expression(
+                construction, argument, query, input, fields, max_work,
+              ),
+            ),
+          )
+      }
+    }
+    None =>
+      if name != "count" || call.distinct {
+        raise Abort(UnsupportedAggregate)
+      }
+  }
+  if call.distinct {
+    entries.push(("distinct", construction.add(Bool(true))))
+  }
+  construction.object(entries)
+}
+
+///|
+fn having_column(
+  path : Array[@query.NamePart],
+  query : @query.Query,
+  input : Input,
+  active_fields : Array[String],
+  projections : Array[@query.Projection],
+  group_keys : Array[(@query.Expression, String)],
+) -> String? {
+  if path.length() == 1 {
+    let mut selected : String? = None
+    let mut matched = false
+    let mut ambiguous = false
+    for projection in projections {
+      match projection.name {
+        Some(name) if same_name(name, path[0]) => {
+          matched = true
+          if selected is Some(_) {
+            ambiguous = true
+          }
+          if projection.aggregate is Some(_) {
+            selected = Some(name.value)
+          } else {
+            match projection.expression {
+              Some(expression) => {
+                let mut slot : String? = None
+                for pair in group_keys {
+                  if same_expression(pair.0, expression) {
+                    slot = Some(pair.1)
+                  }
+                }
+                selected = match slot {
+                  Some(_) => slot
+                  None =>
+                    match
+                      @query.expression_node(
+                        expression,
+                        @query.expression_root(expression),
+                      ).unwrap().kind {
+                      Reference(source) =>
+                        resolve_column(source, query, input, active_fields)
+                      _ => None
+                    }
+                }
+              }
+              None => selected = None
+            }
+          }
+        }
+        _ => ()
+      }
+    }
+    if ambiguous {
+      return None
+    }
+    if matched {
+      return selected
+    }
+  }
+  resolve_column(path, query, input, active_fields)
+}
+
+///|
 fn compile_steps(
   construction : Construction,
   query : @query.Query,
@@ -316,6 +475,9 @@ fn compile_steps(
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
+  let mut active_fields = fields.copy()
+  let mut grouped = false
+  let grouped_keys : Array[(@query.Expression, String)] = []
   let mut first = true
   let mut pending_select : Array[(String, @builder.Node)]? = None
   let mut pending_bindings : Array[(String, String)] = []
@@ -335,10 +497,118 @@ fn compile_steps(
           (
             "filter",
             append_expression(
-              construction, predicate, query, input, fields, max_work,
+              construction, predicate, query, input, active_fields, max_work,
             ),
           ),
         )
+      Group(keys) => {
+        let projections = selected_projections(query)
+        let derives : Array[(String, @builder.Node)] = []
+        let key_names : Array[String] = []
+        let by : Array[@builder.Node] = []
+        for index in 0..<keys.length() {
+          let expression = group_key_expression(keys[index], projections)
+          let root = @query.expression_node(
+            expression,
+            @query.expression_root(expression),
+          ).unwrap()
+          let name = match root.kind {
+            Reference(path) =>
+              match resolve_column(path, query, input, active_fields) {
+                Some(field) => field
+                None => raise Abort(UnknownColumn)
+              }
+            _ => {
+              let name = "aql_group_key_" + index.to_string()
+              if active_fields.contains(name) || key_names.contains(name) {
+                raise Abort(UnsupportedGrouping)
+              }
+              derives.push(
+                (
+                  name,
+                  append_expression(
+                    construction, expression, query, input, active_fields, max_work,
+                  ),
+                ),
+              )
+              name
+            }
+          }
+          key_names.push(name)
+          by.push(construction.text(name))
+          grouped_keys.push((expression, name))
+        }
+        if !derives.is_empty() {
+          let derive_step : Array[(String, @builder.Node)] = []
+          if entries.length() == 1 {
+            derive_step.push(entries[0])
+            entries.clear()
+          }
+          derive_step.push(("derive", construction.object(derives)))
+          step_entries.push(derive_step)
+        }
+        let aggregates : Array[(String, @builder.Node)] = []
+        let result_fields : Array[String] = []
+        for name in key_names {
+          if !result_fields.contains(name) {
+            result_fields.push(name)
+          }
+        }
+        for projection in projections {
+          match projection.aggregate {
+            Some(call) => {
+              let name = projection.name.unwrap().value
+              if result_fields.contains(name) ||
+                aggregates.any(entry => entry.0 == name) {
+                raise Abort(DuplicateOutput)
+              }
+              aggregates.push(
+                (
+                  name,
+                  lower_aggregate(
+                    construction, call, query, input, active_fields, max_work,
+                  ),
+                ),
+              )
+              result_fields.push(name)
+            }
+            None => ()
+          }
+        }
+        entries.push(
+          (
+            "group",
+            construction.object([
+              ("by", construction.array(by)),
+              ("aggregates", construction.object(aggregates)),
+            ]),
+          ),
+        )
+        active_fields = result_fields.copy()
+        output = result_fields
+        grouped = true
+      }
+      Having(predicate) => {
+        if !grouped {
+          raise Abort(UnsupportedHaving)
+        }
+        let projections = selected_projections(query)
+        let value = match
+          @expression.append(
+            predicate,
+            path => {
+              having_column(
+                path, query, input, active_fields, projections, grouped_keys,
+              )
+            },
+            construction.builder,
+            max_work,
+          ) {
+          Ok(value) => value
+          Err(error) => raise Abort(Expression(error))
+        }
+        entries.push(("filter", value))
+      }
       Select(projections, distinct) if !preserve_identity_select &&
         !distinct &&
         projections.length() == 1 &&
@@ -359,30 +629,52 @@ fn compile_steps(
         for projection in projections {
           match projection.star {
             Some(_) =>
-              for field in fields {
+              for field in active_fields {
                 names.push(field)
                 selected.push(construction.text(field))
                 bindings.push((field, field))
               }
             None => {
-              let name = output_name(projection, query, input, fields)
+              let name = output_name(projection, query, input, active_fields)
               names.push(name)
+              if projection.aggregate is Some(_) {
+                if !grouped || !active_fields.contains(name) {
+                  raise Abort(UnsupportedAggregate)
+                }
+                selected.push(construction.text(name))
+                bindings.push((name, name))
+                continue
+              }
               let expression = projection.expression.unwrap()
               expressions.push((expression, name))
+              let mut grouped_slot : String? = None
+              for pair in grouped_keys {
+                if same_expression(pair.0, expression) {
+                  grouped_slot = Some(pair.1)
+                }
+              }
               let direct = match
                 @query.expression_node(
                   expression,
                   @query.expression_root(expression),
                 ).unwrap().kind {
-                Reference(path) => resolve_column(path, query, input, fields)
+                Reference(path) =>
+                  match grouped_slot {
+                    Some(_) => grouped_slot
+                    None => resolve_column(path, query, input, active_fields)
+                  }
                 _ => None
+              }
+              let direct = match grouped_slot {
+                Some(_) => grouped_slot
+                None => direct
               }
               let source = if direct is Some(column) {
                 column
               } else {
                 let mut suffix = names.length() - 1
                 let mut temporary = "aql_query_expr_" + suffix.to_string()
-                while fields.contains(temporary) ||
+                while active_fields.contains(temporary) ||
                       names.contains(temporary) ||
                       temporary_names.contains(temporary) {
                   suffix += 1
@@ -393,7 +685,7 @@ fn compile_steps(
                   (
                     temporary,
                     append_expression(
-                      construction, expression, query, input, fields, max_work,
+                      construction, expression, query, input, active_fields, max_work,
                     ),
                   ),
                 )
@@ -460,6 +752,8 @@ fn compile_steps(
           pending_select = Some(entries)
           pending_bindings = bindings
           deferred = true
+        } else {
+          active_fields = names.copy()
         }
       }
       Order(terms) => {
@@ -493,7 +787,7 @@ fn compile_steps(
                     }
                   None =>
                     if pending_select is Some(_) {
-                      match resolve_column(path, query, input, fields) {
+                      match resolve_column(path, query, input, active_fields) {
                         Some(field) => field
                         None => raise Abort(UnsupportedOrdering)
                       }
@@ -502,7 +796,7 @@ fn compile_steps(
                     }
                 }
               } else if pending_select is Some(_) {
-                match resolve_column(path, query, input, fields) {
+                match resolve_column(path, query, input, active_fields) {
                   Some(field) => field
                   None => raise Abort(UnsupportedOrdering)
                 }
@@ -573,6 +867,7 @@ fn compile_steps(
           step_entries.push(selection)
           pending_select = None
           pending_bindings = []
+          active_fields = output.copy()
         }
         None => ()
       }

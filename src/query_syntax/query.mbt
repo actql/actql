@@ -10,8 +10,16 @@ pub(all) struct QueryLimits {
 ///|
 pub(all) struct Projection {
   expression : Expression?
+  aggregate : AggregateCall?
   name : NamePart?
   star : String?
+}
+
+///|
+pub(all) struct AggregateCall {
+  function_name : String
+  argument : Expression?
+  distinct : Bool
 }
 
 ///|
@@ -24,6 +32,8 @@ pub(all) struct SortTerm {
 ///|
 pub(all) enum QueryOperation {
   Where(Expression)
+  Group(Array[Expression])
+  Having(Expression)
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
   Limit(Int, Int)
@@ -70,6 +80,8 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
   }
   match query.operations[index] {
     Where(e) => Some(Where(e))
+    Group(keys) => Some(Group(keys.copy()))
+    Having(e) => Some(Having(e))
     Select(xs, distinct) => Some(Select(xs.copy(), distinct))
     Order(xs) => Some(Order(xs.copy()))
     Limit(count, offset) => Some(Limit(count, offset))
@@ -210,16 +222,28 @@ fn QueryParser::projections(
     self.node()
     let projection = if self.peek().value == Symbol(42) {
       ignore(self.advance())
-      { expression: None, name: None, star: Some("*"), }
+      { expression: None, aggregate: None, name: None, star: Some("*"), }
     } else {
-      let expression = self.expression()
+      let aggregate = if self.aggregate_head() {
+        Some(self.aggregate())
+      } else {
+        None
+      }
+      let expression = if aggregate is Some(_) {
+        None
+      } else {
+        Some(self.expression())
+      }
       let name = if self.has("AS") {
         self.keyword("AS")
         Some(self.name())
       } else {
         None
       }
-      { expression: Some(expression), name, star: None, }
+      if aggregate is Some(_) && name is None {
+        raise QueryAbort("Aggregate output requires AS name", self.peek().start)
+      }
+      { expression, aggregate, name, star: None, }
     }
     values.push(projection)
     if self.peek().value != Symbol(44) {
@@ -228,6 +252,79 @@ fn QueryParser::projections(
     ignore(self.advance())
   }
   values
+}
+
+///|
+fn QueryParser::aggregate_head(self : QueryParser) -> Bool {
+  match self.peek().value {
+    Word(name) =>
+      [
+        "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "ARRAY_AGG", "STRING_AGG",
+      ].contains(upper_ascii(name)) &&
+      self.source.tokens.get(self.index + 1).map(token => token.value) ==
+      Some(Symbol(40))
+    _ => false
+  }
+}
+
+///|
+fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort {
+  let token = self.advance()
+  let function_name = match token.value {
+    Word(name) => upper_ascii(name)
+    _ => raise QueryAbort("Expected aggregate function", token.start)
+  }
+  if self.advance().value != Symbol(40) {
+    raise QueryAbort("Expected aggregate opening parenthesis", token.start)
+  }
+  let distinct = self.has("DISTINCT")
+  if distinct {
+    self.keyword("DISTINCT")
+  }
+  let argument = if self.peek().value == Symbol(42) {
+    ignore(self.advance())
+    if function_name != "COUNT" || distinct {
+      raise QueryAbort("Invalid aggregate star", token.start)
+    }
+    None
+  } else {
+    Some(self.expression())
+  }
+  if self.advance().value != Symbol(41) {
+    raise QueryAbort("Expected aggregate closing parenthesis", token.start)
+  }
+  if argument is None && function_name != "COUNT" {
+    raise QueryAbort("Aggregate argument required", token.start)
+  }
+  if distinct && ["COUNTIF", "MIN", "MAX"].contains(function_name) {
+    raise QueryAbort("DISTINCT is not valid for this aggregate", token.start)
+  }
+  { function_name, argument, distinct, }
+}
+
+///|
+fn QueryParser::group_keys(
+  self : QueryParser,
+) -> Array[Expression] raise QueryAbort {
+  self.keyword("GROUP")
+  self.keyword("BY")
+  if self.peek().value == Symbol(40) {
+    ignore(self.advance())
+    if self.advance().value != Symbol(41) {
+      raise QueryAbort("Expected empty global grouping", self.peek().start)
+    }
+    return []
+  }
+  let keys : Array[Expression] = []
+  while true {
+    self.node()
+    keys.push(self.expression())
+    if self.peek().value != Symbol(44) {
+      break
+    }
+    ignore(self.advance())
+  }
+  keys
 }
 
 ///|
@@ -332,6 +429,20 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
     self.keyword("WHERE")
     self.node()
     operations.push(Where(self.expression()))
+  }
+  let grouped = self.has("GROUP") ||
+    projections.any(projection => projection.aggregate is Some(_))
+  if self.has("GROUP") {
+    operations.push(Group(self.group_keys()))
+  } else if grouped {
+    operations.push(Group([]))
+  }
+  if self.has("HAVING") {
+    if !grouped {
+      raise QueryAbort("HAVING requires grouping", self.peek().start)
+    }
+    self.keyword("HAVING")
+    operations.push(Having(self.expression()))
   }
   operations.push(Select(projections, distinct))
   if self.has("ORDER") {

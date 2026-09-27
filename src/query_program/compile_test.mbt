@@ -418,3 +418,91 @@ test "source-free SELECT star preserves direct Values publication" {
   assert_true(!wire.contains("\"select\""))
   assert_true(wire.contains("\"fields\":[\"id\"]"))
 }
+
+///|
+test "GROUP BY and HAVING resolve SELECT names in the GoogleSQL scope" {
+  let grouped = compile(
+    @query.parse_query(
+      "SELECT amount AS status, COUNT(*) AS n FROM orders GROUP BY status HAVING n > 1",
+      syntax_limits(),
+    ).unwrap(),
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  let wire = semantic(grouped)
+  assert_true(
+    wire.contains(
+      "\"group\":{\"aggregates\":{\"n\":{\"fn\":\"count\"}},\"by\":[\"amount\"]}",
+    ),
+  )
+  assert_true(
+    wire.contains("\"filter\":{\"gt\":[{\"field\":\"n\"},{\"literal\":1}]}"),
+  )
+  assert_true(wire.contains("\"select\":[{\"status\":\"amount\"},\"n\"]"))
+  match
+    @check.check_parsed(grouped, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    _ => fail("grouped query failed the ordinary checker")
+  }
+  let shadowed = compile(
+    @query.parse_query(
+      "SELECT status AS amount, COUNT(*) AS n FROM orders GROUP BY amount HAVING amount = 'open'",
+      syntax_limits(),
+    ).unwrap(),
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  let wire = semantic(shadowed)
+  assert_true(wire.contains("\"by\":[\"status\"]"))
+  assert_true(wire.contains("\"field\":\"status\""))
+  match
+    @check.check_parsed(shadowed, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    _ => fail("shadowed group alias failed the ordinary checker")
+  }
+  let derived = compile(
+    @query.parse_query(
+      "SELECT amount + 1 AS bucket, COUNT(DISTINCT customer_id) AS n FROM orders GROUP BY bucket",
+      syntax_limits(),
+    ).unwrap(),
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  let wire = semantic(derived)
+  assert_true(wire.contains("\"derive\":{\"aql_group_key_0\""))
+  assert_true(wire.contains("\"by\":[\"aql_group_key_0\"]"))
+  assert_true(
+    wire.contains(
+      "\"n\":{\"distinct\":true,\"field\":\"customer_id\",\"fn\":\"count\"}",
+    ),
+  )
+  assert_true(
+    wire.contains("\"select\":[{\"bucket\":\"aql_group_key_0\"},\"n\"]"),
+  )
+}
+
+///|
+test "grouped SELECT rejects nongrouped field and invalid aggregate form" {
+  let query = @query.parse_query(
+    "SELECT customer_id, COUNT(*) AS n FROM orders GROUP BY status",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(query, fixture_context(), construction_limits()) is Err(_),
+  )
+  for
+    text in [
+      "SELECT COUNT(DISTINCT *) AS n FROM orders", "SELECT MIN(DISTINCT amount) AS n FROM orders",
+      "SELECT COUNT(*) FROM orders",
+    ] {
+    assert_true(@query.parse_query(text, syntax_limits()) is Err(_), msg=text)
+  }
+  let ordinal = @query.parse_query(
+    "SELECT amount, COUNT(*) AS n FROM orders GROUP BY 1",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(ordinal, fixture_context(), construction_limits())
+    is Err(UnsupportedGrouping),
+  )
+}

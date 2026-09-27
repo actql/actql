@@ -22,7 +22,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | Closed scalar expressions, precedence, NULL and CONCAT | Structured Expression admission/typing | Independent trees, demand/failure and legacy regression | Partial: shared AST and direct tree lowering; full typing/failure matrix pending |
 | SELECT, FROM-only, subqueries, WHERE | Existing Program derive/select/filter | SQL/Pipe expected Program and rows | Partial: base SELECT/FROM/WHERE equivalence and captured Host Result; subqueries pending |
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Pending |
-| GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Pending |
+| GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: COUNT/SUM/AVG/MIN/MAX/COUNTIF syntax and checked lowering; captured COUNT/GROUP/HAVING runtime passes, ordered aggregates/failure matrix pending |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering; captured DISTINCT→ORDER runtime passes, ties/limits pending |
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Pending |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Pending |
@@ -104,3 +104,9 @@ id > 1 ORDER BY id`, returning `2, 3` in order. The source includes duplicate
 `id=3` rows; DISTINCT supplies a proven key before sorting. Arbitrary source
 ORDER BY still requires the existing total-order evidence and is not inferred
 from the SQL spelling alone.
+The captured route also executes `SELECT id, COUNT(*) AS n FROM records WHERE
+id > 0 GROUP BY id HAVING n > 1 ORDER BY id`, returning `{id:3,n:2}` in Local
+and HTTP Remote. This exercises the existing `group` operation and post-group
+filter through the normal Host, with the SELECT alias `n` resolved after
+aggregation. The broader aggregate signature, empty/NULL and failure-order
+matrix remains pending.

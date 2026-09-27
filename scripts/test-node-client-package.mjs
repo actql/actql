@@ -109,6 +109,13 @@ const distinctQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.distinct_query');
 assert.notEqual(distinctQuery, '');
 await writeFile(join(root, 'distinct-query.json'), distinctQuery);
+const groupedQuery = queryFrontend.compileCapturedQueryJson(
+  'SELECT id, COUNT(*) AS n FROM records WHERE id > 0 GROUP BY id HAVING n > 1 ORDER BY id',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.grouped_query');
+assert.notEqual(groupedQuery, '');
+await writeFile(join(root, 'grouped-query.json'), groupedQuery);
 const sourceCatalog = await readFile(join(repository,
   'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
 const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
@@ -205,6 +212,7 @@ const valuesQueryDocument = readFileSync('query-values.json', 'utf8');
 const acquiredDocument = readFileSync('source-program.json', 'utf8');
 const capturedQueryDocument = readFileSync('captured-query.json', 'utf8');
 const distinctQueryDocument = readFileSync('distinct-query.json', 'utf8');
+const groupedQueryDocument = readFileSync('grouped-query.json', 'utf8');
 async function runApplication(options, requestId) {
   const client = await connect(options);
   const execution = await client.aql(document, {format: 'json', requestId});
@@ -277,6 +285,11 @@ const distinctQueryLocal = await acquiredLocal.client.aql(distinctQueryDocument,
 assert.equal((await distinctQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await distinctQueryLocal.result('answer').all(),
   [{id: 2}, {id: 3}]);
+const groupedQueryLocal = await acquiredLocal.client.aql(groupedQueryDocument,
+  {format: 'json', requestId: 'packed-grouped-query-local'});
+assert.equal((await groupedQueryLocal.wait()).status, 'succeeded');
+assert.deepEqual(await groupedQueryLocal.result('answer').all(),
+  [{id: 3, n: 2}]);
 assert.deepEqual((await acquiredLocal.client.attach(
   acquiredLocal.execution.ref)).ref, acquiredLocal.execution.ref);
 const acquiredStarted = await acquiredLocal.client.start(
@@ -405,6 +418,12 @@ const distinctQueryRemote = await acquiredRemote.client.aql(
 assert.equal((await distinctQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await distinctQueryRemote.result('answer').all(),
   [{id: 2}, {id: 3}]);
+const groupedQueryRemote = await acquiredRemote.client.aql(
+  groupedQueryDocument,
+  {format: 'json', requestId: 'packed-grouped-query-remote'});
+assert.equal((await groupedQueryRemote.wait()).status, 'succeeded');
+assert.deepEqual(await groupedQueryRemote.result('answer').all(),
+  [{id: 3, n: 2}]);
 assert.deepEqual(acquiredRemote.b, acquiredLocal.b);
 assert.deepEqual(acquiredRemote.c, acquiredLocal.c);
 assert.deepEqual((await acquiredRemote.client.attach(
