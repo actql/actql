@@ -12972,6 +12972,28 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/remote-site-wire.single-current-format",
+      "statement_sha256": "10ecc3ed598e41dac68e50ba3bf7decc5458477d8847e5d6bf89c7d9df373735",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "remote-site-wire",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/remote-site-wire.reject-obsolete-records",
+      "statement_sha256": "7907ed3cbba44c384aae748ae530fda9f71cddf2d1e88292f9e2dbd4c073c354",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "remote-site-wire",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/machine-contracts.product-29677c2581a3",
       "statement_sha256": "29677c2581a3b63d9c5859073201b3196398308975d62397e2fca23c0bc4df5f",
       "status": "pending",
@@ -12984,7 +13006,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "f7a0d8901ab762f593f43bbf4b9c08970e5c7f51ab234551255fd1621a46e4c0",
+      "statement_sha256": "00f79a598dd5858adaa91ba4116773d9f2a379f9f3874f79b9068ff39423196e",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

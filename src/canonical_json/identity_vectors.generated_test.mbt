@@ -3993,6 +3993,38 @@ test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effe
 }
 
 ///|
+test "contract spec/contracts/actql-remote-site-wire.json#/schemas/dispatch_request" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"budget_cid\",\"connector_registration\",\"connector_revision\",\"coordinator_authority\",\"dispatch_id\",\"evidence_issuer_capability_cid\",\"grant_cid\",\"input_binding_cid\",\"obligations_cid\",\"run_definition_cid\",\"runtime_bundle_cid\",\"site_generation\",\"site_key\",\"strategy_revision\",\"task_attempt\",\"task_key\",\"version\"],\"properties\":{\"budget_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"connector_registration\":{\"type\":\"string\",\"minLength\":1},\"connector_revision\":{\"type\":\"string\",\"minLength\":1},\"coordinator_authority\":{\"type\":\"string\",\"minLength\":1},\"dispatch_id\":{\"type\":\"string\",\"minLength\":1},\"evidence_issuer_capability_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"grant_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"input_binding_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"obligations_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"run_definition_cid",
+    "\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"runtime_bundle_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"site_generation\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":2147483647},\"site_key\":{\"type\":\"string\",\"minLength\":1},\"strategy_revision\":{\"type\":\"string\",\"minLength\":1},\"task_attempt\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":2147483647},\"task_key\":{\"type\":\"string\",\"minLength\":1},\"version\":{\"const\":\"actql-remote-dispatch-request/0.1\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 75, 3, 1483)
+  assert_eq(@canonical_json.cid_value(value, 1483, 75, 3), "sha256:6625db4f9182af1d5b56e07227e194ac0665d198f5c17d4c5e36421d1f079e86")
+  assert_eq(@canonical_json.measure_value(value, 1483, 75, 3), 1483)
+}
+
+///|
+test "contract spec/contracts/actql-remote-site-wire.json#/schemas/managed_output_subject" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"dispatch_request_cid\",\"holding_evidence_cid\",\"logical_view_cid\",\"managed_profile_cid\",\"material_generation\",\"measurement_evidence_cid\",\"physical_manifest_cid\",\"representation_codec_cid\",\"result_schema_cid\",\"retained_bytes\",\"row_count\",\"version\"],\"properties\":{\"dispatch_request_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"holding_evidence_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"logical_view_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"managed_profile_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"material_generation\":{\"type\":\"string\",\"minLength\":1},\"measurement_evidence_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"physical_manifest_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"representation_codec_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"result_schema_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{",
+    "64}$\"},\"retained_bytes\":{\"type\":\"string\",\"pattern\":\"^(0|[1-9][0-9]*)$\",\"maxLength\":19},\"row_count\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":2147483647},\"version\":{\"const\":\"actql-remote-managed-output-subject/0.1\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 55, 3, 1238)
+  assert_eq(@canonical_json.cid_value(value, 1238, 55, 3), "sha256:26bc383f313192dfa296e2e298b2a3ae5fbfc3ac3eb2ea695bb87c3eb0ed692f")
+  assert_eq(@canonical_json.measure_value(value, 1238, 55, 3), 1238)
+}
+
+///|
+test "contract spec/contracts/actql-remote-site-wire.json#/schemas/poll_dispatch" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"dispatch_request_cid\",\"input_binding_cid\",\"input_binding_json\",\"request_json\",\"version\"],\"properties\":{\"version\":{\"const\":\"actql-remote-poll-dispatch/0.1\"},\"dispatch_request_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"input_binding_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"input_binding_json\":{\"type\":\"string\",\"minLength\":1},\"request_json\":{\"type\":\"string\",\"minLength\":1}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 25, 3, 520)
+  assert_eq(@canonical_json.cid_value(value, 520, 25, 3), "sha256:ca7951b1ccab716fdf738573b94f402f92ccbdaeadbf4ab699b00a777003ab56")
+  assert_eq(@canonical_json.measure_value(value, 520, 25, 3), 520)
+}
+
+///|
 test "contract spec/contracts/actql-discovery.json#/schemas/host_capabilities" {
   let input = @json.parse([
     "{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"version\":{\"const\":\"actql-host-capabilities/0.1\"},\"supported_profiles\":{\"type\":\"array\",\"minItems\":0,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"profile_id\":{\"type\":\"string\",\"minLength\":1},\"contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[a-f0-9]{64}$\"},\"status\":{\"enum\":[\"conformant\",\"partial\"]}},\"required\":[\"profile_id\",\"contract_cid\",\"status\"]}},\"interfaces\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"enum\":[\"discovery\",\"read_collection\"]},\"uniqueItems\":true,\"contains\":{\"const\":\"discovery\"}}},\"required\":[\"version\",\"supported_profiles\",\"interfaces\"]}",

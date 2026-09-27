@@ -117,7 +117,7 @@ pub fn remote_poll_dispatch_json(
     @encode.key(writer, "request_json")
     @encode.string_value(writer, request_json)
     @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-remote-poll-dispatch/0.2")
+    @encode.string_value(writer, "actql-remote-poll-dispatch/0.1")
     @encode.end_object(writer)
   } catch {
     _ => return Err(InvalidDispatch)
@@ -238,7 +238,7 @@ pub fn admit_remote_poll_dispatch_json(
       "dispatch_request_cid", "input_binding_cid", "input_binding_json", "request_json",
       "version",
     ])
-    if evidence_text(object, "version") != "actql-remote-poll-dispatch/0.2" {
+    if evidence_text(object, "version") != "actql-remote-poll-dispatch/0.1" {
       raise EvidenceJsonStop
     }
     let request = match

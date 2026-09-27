@@ -496,6 +496,35 @@ identifier that only `all` contains; the configuration conflicts exactly when
 some point of that finite grid lies outside every exclusion. The result is
 therefore independent of discovered connections, resources and operations.
 
+<a id="remote-site-wire"></a>
+
+## Remote Site internal wire
+
+<!-- requirement-block: remote-site-wire.single-current-format remote-site-wire.reject-obsolete-records -->
+Remote dispatch requests, managed-output subjects and outbound poll dispatches
+MUST use one current 0.1 form with the closed field sets pinned below. A reader
+MUST reject unsupported labels and obsolete field sets, including old bodies
+relabeled as current. It must not invent missing input bindings, measurement
+identities or physical observations. An unreadable saved record is not an empty
+journal and does not authorize another execution.
+
+A dispatch identity hashes its entire canonical request body, including the
+version and exact input-binding CID, and excludes the self CID. A managed-output
+subject identity hashes its entire canonical body, including the dispatch,
+holding and measurement identities, excluding its self CID. Holding and
+execution-evidence identities transitively bind the corrected dispatch and
+subject preimages. Canonical bodies use UTF-8, sorted keys and the existing
+canonical JSON scalar encoding. The outbound poll envelope has no independent
+execution authority: its embedded canonical request, claimed dispatch CID,
+input-binding body and CID must all agree. Schema shape validation alone does
+not prove those relationships, integer/byte capacity or current authorization;
+the existing MoonBit admission owner enforces them.
+
+The independent fixed preimages and digests are in
+`spec/fixtures/remote-site-wire-vectors.json`. Unsupported historical bytes
+remain owned and preserved pending an explicit migration decision outside
+controlled development fixtures. A version correction is not a migration.
+
 <a id="machine-contracts"></a>
 
 ## Machine contracts
@@ -514,6 +543,9 @@ closure only after its typed correspondence and authority have been admitted.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
+../../../spec/contracts/actql-remote-site-wire.json#/schemas/dispatch_request sha256:6625db4f9182af1d5b56e07227e194ac0665d198f5c17d4c5e36421d1f079e86
+../../../spec/contracts/actql-remote-site-wire.json#/schemas/managed_output_subject sha256:26bc383f313192dfa296e2e298b2a3ae5fbfc3ac3eb2ea695bb87c3eb0ed692f
+../../../spec/contracts/actql-remote-site-wire.json#/schemas/poll_dispatch sha256:ca7951b1ccab716fdf738573b94f402f92ccbdaeadbf4ab699b00a777003ab56
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/observation_facts sha256:bb63f5ddcba12a33225cc5fefc2ddf69ceed007524cb890d96004363b4ad0db4
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/event_delivery_evidence sha256:e9e5f043206fdf00720bbd14f12a765796b3686a4485505f77ba0a2533767582
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/effect_outcome sha256:e1c2f7c0f3b894c66c9fb205fdef574cba048873ecbc79f2981a0b8bf4450b0f

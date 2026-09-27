@@ -150,7 +150,7 @@ pub fn admit_remote_managed_output_subject_json(
       "version",
     ])
     if evidence_text(object, "version") !=
-      "actql-remote-managed-output-subject/0.2" {
+      "actql-remote-managed-output-subject/0.1" {
       raise EvidenceJsonStop
     }
     let subject = match
