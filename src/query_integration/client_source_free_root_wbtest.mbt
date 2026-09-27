@@ -368,7 +368,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   }
   let definition = @publication.issue_run_definition(
     admission,
-    "native-values-scope",
+    native_values_scope_id(),
     run_id,
     @publication.empty_initial_input_artifact_set_cid(),
     created_at,
@@ -384,7 +384,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   }
   let request = @publication_host.prepare_source_free_client_request_identity(
     prepared,
-    native_publication_cid("native-values-coordinator"),
+    native_values_coordinator_authority(),
     "native-values-request-1",
   ).unwrap()
   let run_binding = @publication_host.bind_source_free_client_values_run(
@@ -564,7 +564,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     ),
     result_definition_cid,
     ordering_evidence_cid: native_publication_cid("values-ordering"),
-    coordinator_authority: native_publication_cid("native-values-coordinator"),
+    coordinator_authority: native_values_coordinator_authority(),
     transfer_attempt: "values-transfer-1",
     transfer_route: @transfer.DirectStream,
     destination_site_key: "values-store",
@@ -581,7 +581,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     runtime,
     journal,
     executor,
-    native_publication_cid("native-values-coordinator"),
+    native_values_coordinator_authority(),
     "native-values-site",
     1,
   ).unwrap()
@@ -837,7 +837,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     runtime,
     reopened_journal,
     executor,
-    native_publication_cid("native-values-coordinator"),
+    native_values_coordinator_authority(),
     "native-values-site",
     1,
   ).unwrap()
@@ -1222,4 +1222,21 @@ test "captured Values output supports shared Effect and publication borrows" {
   assert_eq(usage.reserved_execution_bytes, 0L)
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
+}
+
+///|
+/// An external acceptance driver may bind the fixture to its own tenant
+/// scope; without it the standalone fixture keeps its fixed scope.
+fn native_values_scope_id() -> String {
+  @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_SCOPE_ID").unwrap_or(
+    "native-values-scope",
+  )
+}
+
+///|
+fn native_values_coordinator_authority() -> String {
+  match @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_COORDINATOR_AUTHORITY") {
+    Some(authority) => authority
+    None => native_publication_cid("native-values-coordinator")
+  }
 }
