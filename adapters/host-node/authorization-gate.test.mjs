@@ -6,6 +6,7 @@ import test from 'node:test';
 import {
   ExecutionAuthorizationError,
   createAuthorizationGate,
+  createAuthorizationDecisionBudget,
   decisionSubjectCid,
   missingAuthorizationGate,
   requireAuthorizedDispatch,
@@ -154,6 +155,40 @@ test('cooperative decisions settle after timeout without occupying capacity',
     }
     assert.equal(stopped, 3);
     assert.equal(gate.close(), true);
+  });
+
+test('one installation bounds callbacks across independently built gates',
+  async () => {
+    const budget = createAuthorizationDecisionBudget({
+      maxInFlightDecisions: 1, maxRetainedDecisions: 2});
+    const pending = [];
+    const options = {decisionBudget: budget, decisionTimeoutMs: 10,
+      answeringAuthorities: ['reviewer'],
+      decide: (view, {signal}) => new Promise(resolve => {
+        pending.push({signal, finish: () => resolve(permitWith()(view))});
+      })};
+    const first = await fixtureAuthorization(delegateEntries, options);
+    const second = await fixtureAuthorization(delegateEntries, options);
+    assert.equal((await first.authorize('acquisition', scope,
+      {subjectCid})).reason, 'timeout');
+    first.close();
+    const refused = await second.authorize('acquisition', scope,
+      {subjectCid});
+    assert.equal(refused.detail, 'AuthorizationDecisionCapacity');
+    assert.equal(pending.length, 1);
+    assert.equal(budget.usage().inFlightDecisions, 1);
+    pending[0].finish();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(budget.usage().inFlightDecisions, 0);
+    assert.equal((await second.authorize('acquisition', scope,
+      {subjectCid})).reason, 'timeout');
+    assert.equal(pending.length, 2);
+    assert.equal(budget.close(), false);
+    assert.equal(pending[1].signal.aborted, true);
+    pending[1].finish();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(budget.cleanupPending(), false);
+    assert.equal(budget.usage().scopes, 0);
   });
 
 async function workspace(t) {

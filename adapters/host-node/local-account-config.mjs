@@ -10,7 +10,6 @@ import {createHash} from 'node:crypto';
 import {readFile, stat} from 'node:fs/promises';
 import {isAbsolute, resolve} from 'node:path';
 import {createNodeAuthorizationGate} from './authorization.mjs';
-import {missingAuthorizationGate} from '../host-common/authorization-gate.mjs';
 
 export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';
 const MAX_CONFIGURATION_BYTES = 1_000_000;
@@ -119,8 +118,8 @@ export async function createLocalAuthorizationGate({
     fail(ACCOUNT_CONFIG_INVALID, 'ConflictingAccountConfiguration');
   }
   if (none(accountConfig) && none(accountConfiguration)) {
-    return missingAuthorizationGate(context ??
-      localAuthorizationContext(principal, undefined));
+    return createNodeAuthorizationGate({...options, context: context ??
+      localAuthorizationContext(principal, undefined)});
   }
   if (!none(accountConfiguration) && typeof accountConfiguration !== 'string') {
     fail(ACCOUNT_CONFIG_INVALID, 'AccountConfigurationText');

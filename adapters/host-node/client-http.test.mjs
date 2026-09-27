@@ -5,6 +5,8 @@ import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {ClientError, connect} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
+import {createDiagnosticObserver, diagnosticObserver} from
+  '../host-common/diagnostic-observer.mjs';
 
 const ref = {tenantId: 'tenant-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
@@ -122,6 +124,75 @@ test('submit has one outcome contract over HTTP and in-process', async () => {
     }
   }
 });
+
+test('unsettled authentication diagnostics do not block refusal or grow forever',
+  async () => {
+    let calls = 0;
+    let finish;
+    const observe = () => {
+      calls++;
+      return new Promise(resolve => { finish = resolve; });
+    };
+    const options = {authenticate: () => { throw new Error('Unavailable'); },
+      authorizeConnection: () => true, negotiate: () => {}, observe,
+      maxRowBytes: 1024};
+    const body = {connection: {mode: 'remote', owner: 'remote',
+      runners: [], consentRefs: []}, ref};
+    const port = createNodeInProcessClientHost(options);
+    for (let request = 0; request < 50; request++) {
+      await assert.rejects(port.perform('status', body),
+        {code: 'ClientAuthenticationDenied'});
+    }
+    await withServer(createClientHttpHandler(options), async base => {
+      const response = await fetch(`${base}/actql/client/0.1/status`, {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify(body), signal: AbortSignal.timeout(2000),
+      });
+      assert.equal(response.status, 403);
+      assert.deepEqual(await response.json(), {code: 'ClientAuthenticationDenied'});
+    });
+    assert.equal(calls, 1);
+    const sink = diagnosticObserver(observe);
+    assert.equal(sink.status().active, 1);
+    assert.equal(sink.status().queued, 32);
+    assert.equal(sink.status().dropped, 18);
+    sink.close();
+    assert.equal(sink.status().queued, 0);
+    assert.equal(sink.status().active, 1);
+    finish();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(sink.status().active, 0);
+  });
+
+test('diagnostic delivery consumes throw and rejection without changing callers',
+  async () => {
+    for (const observe of [() => { throw new Error('SinkFailed'); },
+      () => Promise.reject(new Error('SinkFailed'))]) {
+      const sink = createDiagnosticObserver(observe, {maxQueued: 1});
+      assert.equal(sink('event', {}), undefined);
+      await new Promise(resolve => setImmediate(resolve));
+      assert.equal(sink.status().failures, 1);
+      assert.equal(sink.status().active, 0);
+      sink.close();
+    }
+  });
+
+test('closing one diagnostic owner does not poison a later installation',
+  async () => {
+    let calls = 0;
+    const observe = () => { calls++; };
+    const first = diagnosticObserver(observe);
+    first('before-close', {});
+    first.close();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(calls, 0);
+    const later = diagnosticObserver(observe);
+    assert.notEqual(later, first);
+    later('later-host', {});
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(calls, 1);
+    later.close();
+  });
 
 for (const boundary of ['authenticate', 'authorize_connection']) {
   test(`authorization faults stay private at ${boundary} on both ports`,

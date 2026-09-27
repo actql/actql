@@ -41,6 +41,34 @@ const COUNTERS = Object.freeze([
   'unsupportedDefers', 'hostRejections', 'reusedDecisions',
   'coveredOperations', 'resumedDecisions',
 ]);
+const decisionBudgets = new WeakMap();
+
+// A Host installation shares physical callback capacity across its short-lived
+// decision scopes. Judgments remain private to each scope, never global.
+export function createAuthorizationDecisionBudget({maxInFlightDecisions = 16,
+  maxRetainedDecisions = 1024} = {}) {
+  if (![maxInFlightDecisions, maxRetainedDecisions].every(value =>
+    Number.isSafeInteger(value) && value > 0)) {
+    fail('InvalidAuthorizationCapacity');
+  }
+  const state = {pending: new Set(), retention: {entries: 0},
+    scopes: new Set(), maxInFlightDecisions, maxRetainedDecisions,
+    closed: false};
+  const budget = Object.freeze({
+    usage: () => Object.freeze({inFlightDecisions: state.pending.size,
+      retainedDecisions: state.retention.entries,
+      scopes: state.scopes.size, closed: state.closed}),
+    close() {
+      state.closed = true;
+      for (const close of [...state.scopes]) close();
+      return state.pending.size === 0 && state.retention.entries === 0;
+    },
+    cleanupPending: () => state.pending.size !== 0 ||
+      state.retention.entries !== 0,
+  });
+  decisionBudgets.set(budget, state);
+  return budget;
+}
 
 const ERROR_CODES = Object.freeze({
   deny: 'ExecutionAuthorizationDenied',
@@ -223,6 +251,7 @@ export function createAuthorizationGate({
   decisionTimeoutMs = 30_000,
   maxInFlightDecisions = 16,
   maxRetainedDecisions = 1024,
+  decisionBudget,
   deferral,
   protectedSites = [],
 } = {}) {
@@ -243,6 +272,13 @@ export function createAuthorizationGate({
   if (![maxInFlightDecisions, maxRetainedDecisions].every(value =>
     Number.isSafeInteger(value) && value > 0)) {
     fail('InvalidAuthorizationCapacity');
+  }
+  const capacity = decisionBudget === undefined
+    ? decisionBudgets.get(createAuthorizationDecisionBudget({
+      maxInFlightDecisions, maxRetainedDecisions}))
+    : decisionBudgets.get(decisionBudget);
+  if (capacity === undefined || capacity.closed) {
+    fail('InvalidAuthorizationDecisionBudget');
   }
   if (!Array.isArray(protectedSites) || !protectedSites.every(text)) {
     fail('InvalidProtectedSites');
@@ -290,15 +326,16 @@ export function createAuthorizationGate({
     answeringAuthorities: Object.freeze([...answering]),
     requiredClaims: Object.freeze([...requiredClaims]),
     decisionTimeoutMs,
-    maxInFlightDecisions,
-    maxRetainedDecisions,
+    maxInFlightDecisions: capacity.maxInFlightDecisions,
+    maxRetainedDecisions: capacity.maxRetainedDecisions,
     deferral: durable,
     protectedSites: new Set(protectedSites),
     counts: Object.fromEntries(COUNTERS.map(name => [name, 0])),
     // Shared capacity, not shared judgments. Pending callbacks keep their
     // physical slot until settlement, including after deadline or close.
-    pending: new Set(),
-    retention: {entries: 0},
+    pending: capacity.pending,
+    retention: capacity.retention,
+    capacity,
   });
   return gateFor(core, Object.freeze({
     principal: context.principal,
@@ -320,12 +357,14 @@ function gateFor(core, context) {
   };
   const closeScope = () => {
     closed = true;
+    core.capacity.scopes.delete(closeScope);
     for (const [key, entry] of cache) {
       if (entry.settled) release(key, entry);
     }
     for (const entry of pending) entry.abort();
     return cache.size === 0 && pending.size === 0;
   };
+  core.capacity.scopes.add(closeScope);
   const count = (name, delta = 1) => { core.counts[name] += delta; };
   const record = decision => {
     if (decision.action === 'dispatch') count('protectedDispatches');
