@@ -310,6 +310,14 @@ test "OVER uses the input scope and lowers through ordinary Program admission" {
   let text = "SELECT id AS renamed, ROW_NUMBER() OVER (PARTITION BY status ORDER BY id) AS pos FROM orders ORDER BY renamed"
   let query = @query.parse_query(text, syntax_limits()).unwrap()
   let program = compile(query, values_context(), construction_limits()).unwrap()
+  let pipe = @query.parse_query(
+    "FROM orders |> SELECT id AS renamed, ROW_NUMBER() OVER (PARTITION BY status ORDER BY id) AS pos |> ORDER BY renamed",
+    syntax_limits(),
+  ).unwrap()
+  assert_eq(
+    semantic(program),
+    semantic(compile(pipe, values_context(), construction_limits()).unwrap()),
+  )
   let wire = semantic(program)
   assert_true(
     wire.contains(

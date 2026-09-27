@@ -125,10 +125,15 @@ the query's final `ORDER BY` alias scope. Matching windows combine their calls
 in one analytic operation. The ordinary checker accepts row-number/navigation
 and framed COUNT over bounded Values with explicit Host analytic ceilings;
 missing ceilings are not inferred. Physical Result verification for this
-surface and the broader SQL/Pipe scope remain pending. The packed Local and
+surface is partial; the broader SQL/Pipe scope remains pending. The packed Local and
 HTTP Remote Host route also executes `RANK() OVER (ORDER BY id)` on captured
 rows with a duplicated sort key and returns ranks `3, 1, 2, 3` in input order.
 The test Host explicitly supplies analytic resource ceilings.
+The same packed route reads independently specified rows for ROW_NUMBER, LAG
+and an explicit ROWS-frame COUNT over a two-row acquired input. The Pipe
+ROW_NUMBER spelling emits the same admitted Program as SQL and returns the same
+rows through both Clients. This covers those signatures and frame; the full
+adopted analytic matrix and post-mutation Pipe scopes remain unverified.
 Pipe `EXTEND` lowers a batch of expressions against one input snapshot, so
 sibling aliases are not visible. A packed captured-source query with
 `EXTEND amount + 1 AS adjusted` returns the expected NULL-preserving values

@@ -189,6 +189,41 @@ const analyticQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.analytic_query');
 assert.notEqual(analyticQuery, '');
 await writeFile(join(root, 'analytic-query.json'), analyticQuery);
+const analyticCases = [
+  ['row-number',
+    'SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS pos '
+      + 'FROM records WHERE id < 3',
+    [{id: 1, pos: 1}, {id: 2, pos: 2}]],
+  ['lag',
+    'SELECT id, LAG(id) OVER (ORDER BY id) AS previous '
+      + 'FROM records WHERE id < 3',
+    [{id: 1, previous: null}, {id: 2, previous: 1}]],
+  ['frame-count',
+    'SELECT id, COUNT(id) OVER (ORDER BY id '
+      + 'ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running '
+      + 'FROM records WHERE id < 3',
+    [{id: 1, running: 1}, {id: 2, running: 2}]],
+];
+for (const [name, sql] of analyticCases) {
+  const query = queryFrontend.compileCapturedQueryJson(sql,
+    'records', 'remote',
+    JSON.stringify({connector: 'crm/main', resource: 'r'}),
+    JSON.stringify(['id', 'amount']), `fixture.analytic_${name}`);
+  assert.notEqual(query, '', name);
+  await writeFile(join(root, `analytic-${name}.json`), query);
+}
+const pipeRowNumber = queryFrontend.compileCapturedQueryJson(
+  'FROM records |> WHERE id < 3 '
+    + '|> SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS pos',
+  'records', 'remote',
+  JSON.stringify({connector: 'crm/main', resource: 'r'}),
+  JSON.stringify(['id', 'amount']), 'fixture.analytic_row-number');
+assert.deepEqual(JSON.parse(pipeRowNumber),
+  JSON.parse(await readFile(join(root, 'analytic-row-number.json'), 'utf8')));
+await writeFile(join(root, 'analytic-pipe-row-number.json'), pipeRowNumber);
+analyticCases.push(['pipe-row-number', '', [{id: 1, pos: 1}, {id: 2, pos: 2}]]);
+await writeFile(join(root, 'analytic-cases.json'),
+  JSON.stringify(analyticCases.map(([name, , expected]) => [name, expected])));
 const extendedQuery = queryFrontend.compileCapturedQueryJson(
   'FROM records |> WHERE id > 0 |> EXTEND amount + 1 AS adjusted |> SELECT id, adjusted',
   'records', 'remote',
@@ -355,6 +390,17 @@ const capturedQueryDocument = readFileSync('captured-query.json', 'utf8');
 const distinctQueryDocument = readFileSync('distinct-query.json', 'utf8');
 const groupedQueryDocument = readFileSync('grouped-query.json', 'utf8');
 const analyticQueryDocument = readFileSync('analytic-query.json', 'utf8');
+async function checkAnalyticCases(client, suffix) {
+  const cases = JSON.parse(readFileSync('analytic-cases.json', 'utf8'));
+  for (const [name, expected] of cases) {
+    const execution = await client.aql(
+      readFileSync('analytic-' + name + '.json', 'utf8'),
+      {format: 'json', requestId: 'packed-analytic-' + name + '-' + suffix});
+    const status = await execution.wait();
+    assert.equal(status.status, 'succeeded', JSON.stringify(status));
+    assert.deepEqual(await execution.result('answer').all(), expected);
+  }
+}
 const extendedQueryDocument = readFileSync('extended-query.json', 'utf8');
 const pipeSetQueryDocument = readFileSync('pipe-set-query.json', 'utf8');
 const pipeSetGroupedDocument = readFileSync('pipe-set-grouped-query.json',
@@ -444,6 +490,7 @@ const capturedQueryLocal = await acquiredLocal.client.aql(capturedQueryDocument,
 assert.equal((await capturedQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await capturedQueryLocal.result('answer').all(),
   [{id: 3}, {id: 2}, {id: 3}]);
+await checkAnalyticCases(acquiredLocal.client, 'local');
 const distinctQueryLocal = await acquiredLocal.client.aql(distinctQueryDocument,
   {format: 'json', requestId: 'packed-distinct-query-local'});
 assert.equal((await distinctQueryLocal.wait()).status, 'succeeded');
@@ -618,6 +665,7 @@ const capturedQueryRemote = await acquiredRemote.client.aql(
 assert.equal((await capturedQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await capturedQueryRemote.result('answer').all(),
   [{id: 3}, {id: 2}, {id: 3}]);
+await checkAnalyticCases(acquiredRemote.client, 'remote');
 const distinctQueryRemote = await acquiredRemote.client.aql(
   distinctQueryDocument,
   {format: 'json', requestId: 'packed-distinct-query-remote'});
