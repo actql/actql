@@ -428,7 +428,9 @@ function releaseCompletedResultOwner(storedResults, control, retainCapture) {
         throw error;
       }
     }
-    if (!retainCapture) {
+    // A committed publication's metadata inventory still owns these source
+    // holdings. Only an unpublished terminal capture may retire them.
+    if (!retainCapture && !owner.capturePublished) {
       for (const holdingCid of owner.effectSourceHoldingCids ?? []) {
         const retired = await owner.store.retirePhysicalHolding(holdingCid);
         if (retired.cleanup.status().pending) {
