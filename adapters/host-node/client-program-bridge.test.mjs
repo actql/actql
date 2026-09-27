@@ -2478,6 +2478,12 @@ test('one installed preparation distinguishes Effect and pure owners',
     const effect = prepare(effectRequest);
     assert.equal(prepare.kindOf(effect), 'effectful');
     prepare.assertOwned(effect);
+    assert.equal(moon.clientProgramEffectResultCount(effect), 1);
+    assert.equal(moon.clientProgramEffectResultName(effect, 0), 'answer');
+    assert.equal(moon.clientProgramEffectResultName(effect, 1), undefined);
+    const compiled = checked(moon.clientProgramCompileLocalEffects(effect));
+    assert.deepEqual(moon.clientProgramEffectCompilationResultNames(compiled),
+      ['answer']);
     const pureDocument = JSON.parse(document);
     delete pureDocument.stages[0].effects;
     const pure = prepare({kind: 'program', input: pureDocument,
