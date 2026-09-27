@@ -74,7 +74,7 @@ pub(all) enum QueryOperation {
   Analytic(Array[Projection])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
-  Limit(Int, Int)
+  Limit(Int64, Int64)
 }
 
 ///|
@@ -524,32 +524,6 @@ fn QueryParser::order(self : QueryParser) -> Array[SortTerm] raise QueryAbort {
 }
 
 ///|
-fn QueryParser::small_limit(
-  self : QueryParser,
-  zero_allowed : Bool,
-) -> Int raise QueryAbort {
-  let token = self.advance()
-  let text = match token.value {
-    Numeric(text) => text
-    _ =>
-      raise QueryAbort("LIMIT and OFFSET require integer literals", token.start)
-  }
-  let mut result = 0
-  for unit in text {
-    self.spend(1)
-    let digit = unit.to_int() - 48
-    if digit < 0 || digit > 9 || result > (2147483646 - digit) / 10 {
-      raise QueryAbort("LIMIT or OFFSET out of range", token.start)
-    }
-    result = result * 10 + digit
-  }
-  if !zero_allowed && result == 0 {
-    raise QueryAbort("LIMIT zero is not supported", token.start)
-  }
-  result
-}
-
-///|
 fn QueryParser::safe_integer(
   self : QueryParser,
   zero_allowed : Bool,
@@ -579,12 +553,12 @@ fn QueryParser::safe_integer(
 ///|
 fn QueryParser::limit(self : QueryParser) -> QueryOperation raise QueryAbort {
   self.keyword("LIMIT")
-  let count = self.small_limit(false)
+  let count = self.safe_integer(false)
   let offset = if self.has("OFFSET") {
     self.keyword("OFFSET")
-    self.small_limit(true)
+    self.safe_integer(true)
   } else {
-    0
+    0L
   }
   Limit(count, offset)
 }

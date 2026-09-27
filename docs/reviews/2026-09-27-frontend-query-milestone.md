@@ -138,3 +138,5 @@ STRING_AGG requires a literal delimiter and explicit order. Both lower to the
 existing group call. The independent checker accepts the bounded ARRAY_AGG
 example; STRING_AGG reports the missing Host string-byte limit instead of
 inventing one.
+LIMIT and OFFSET now parse the full exact safe-integer range, rejecting zero
+LIMIT, fractions, and values above `2^53-1` before Program construction.

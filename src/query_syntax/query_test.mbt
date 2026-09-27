@@ -71,3 +71,25 @@ test "query source clauses reject partial and unsupported input" {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
 }
+
+///|
+test "LIMIT and OFFSET admit only exact safe integers" {
+  let query = parse_query(
+    "SELECT id FROM orders LIMIT 9007199254740991 OFFSET 9007199254740991",
+    query_limits(),
+  ).unwrap()
+  match operation_at(query, operation_count(query) - 1) {
+    Some(Limit(count, offset)) => {
+      assert_eq(count, 9007199254740991L)
+      assert_eq(offset, 9007199254740991L)
+    }
+    _ => fail("expected admitted LIMIT")
+  }
+  for
+    text in [
+      "SELECT id FROM orders LIMIT 0", "SELECT id FROM orders LIMIT 9007199254740992",
+      "SELECT id FROM orders LIMIT 1 OFFSET 9007199254740992", "SELECT id FROM orders LIMIT 1.5",
+    ] {
+    assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
+  }
+}
