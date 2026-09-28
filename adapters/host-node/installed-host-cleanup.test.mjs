@@ -5,7 +5,8 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {generateKeyPairSync} from 'node:crypto';
 import {DatabaseSync} from 'node:sqlite';
-import {retainInstalledHostInitializationFailure} from
+import {createInstalledHostShutdown,
+  retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 
@@ -185,4 +186,97 @@ test('initialization retains journals and Store until active owners settle',
     assert.deepEqual(calls,
       ['stop', 'stop', 'drain', 'drain', 'checkpoints', 'journal', 'store']);
     assert.equal(failure.cleanupPending, false);
+  });
+
+test('Source and Effect initialization cleanup retain independent owners',
+  async () => {
+    const primary = new Error('EffectInstallationFailed');
+    let retry = false;
+    const calls = [];
+    const failure = await retainInstalledHostInitializationFailure(primary, {
+      sourceProfile: {close() {
+        calls.push('source');
+        if (!retry) throw new Error('SourceCloseFailed');
+      }},
+      installedEffect: {close() {
+        calls.push('effect');
+        if (!retry) throw new Error('EffectCloseFailed');
+      }},
+    });
+    assert.equal(failure.primaryFailure, primary);
+    assert.deepEqual(calls, ['source', 'effect']);
+    assert.deepEqual(failure.cleanupHandle.status().owners,
+      ['source-profile', 'effect-profile']);
+    retry = true;
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.deepEqual(calls, ['source', 'effect', 'source', 'effect']);
+  });
+
+test('Host shutdown retries one failed adapter without closing another twice',
+  async () => {
+    const calls = [];
+    let sourceReady = false;
+    const shutdown = createInstalledHostShutdown({
+      stop: () => calls.push('stop'),
+      drain: () => calls.push('drain'),
+      retire: () => calls.push('retire'),
+      checkpoint: () => { calls.push('checkpoint'); return {}; },
+      journal: () => calls.push('journal'),
+      source: () => {
+        calls.push('source');
+        if (!sourceReady) throw new Error('SourceCloseFailed');
+      },
+      effect: () => calls.push('effect'),
+      store: () => calls.push('store'),
+    });
+    await assert.rejects(shutdown.close(), error => {
+      assert.equal(error.code, 'InstalledHostCleanupPending');
+      assert.deepEqual(error.cleanupErrors.map(item => item.owner),
+        ['source']);
+      assert.deepEqual(error.cleanupHandle.status().pending, ['source']);
+      return true;
+    });
+    assert.deepEqual(calls, ['stop', 'drain', 'retire', 'checkpoint',
+      'journal', 'source', 'effect', 'store']);
+    sourceReady = true;
+    const first = shutdown.close();
+    const second = shutdown.close();
+    assert.equal(first, second);
+    await first;
+    assert.deepEqual(calls, ['stop', 'drain', 'retire', 'checkpoint',
+      'journal', 'source', 'effect', 'store', 'source']);
+    assert.deepEqual(shutdown.status().pending, []);
+  });
+
+test('Host shutdown retains both installations behind a failed drain',
+  async () => {
+    const calls = [];
+    let ready = false;
+    const shutdown = createInstalledHostShutdown({
+      stop: () => calls.push('stop'),
+      drain: () => {
+        calls.push('drain');
+        if (!ready) throw new Error('DispatchStillOwned');
+      },
+      retire: () => calls.push('retire'),
+      checkpoint: () => calls.push('checkpoint'),
+      journal: () => calls.push('journal'),
+      source: () => calls.push('source'),
+      effect: () => calls.push('effect'),
+      store: () => calls.push('store'),
+    });
+    let pending;
+    await assert.rejects(shutdown.close(), error => {
+      pending = error;
+      assert.equal(error.message, 'DispatchStillOwned');
+      assert.equal(error.cleanupPending, true);
+      assert.ok(error.cleanupHandle.status().pending.includes('source'));
+      assert.ok(error.cleanupHandle.status().pending.includes('effect'));
+      return true;
+    });
+    assert.deepEqual(calls, ['stop', 'drain']);
+    ready = true;
+    await pending.cleanupHandle.retry();
+    assert.deepEqual(calls, ['stop', 'drain', 'drain', 'retire',
+      'checkpoint', 'journal', 'source', 'effect', 'store']);
   });
