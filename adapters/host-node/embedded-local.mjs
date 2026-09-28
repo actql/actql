@@ -32,8 +32,12 @@ import {createDiagnosticObserver} from
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
-import {retainInstalledHostInitializationFailure} from
+import {createInstalledHostShutdown,
+  retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
+import {composeInstalledCheckEnvironment,
+  verifyInstalledConnectorBindings} from
+  './installed-check-environment.mjs';
 import {installNodeResultAccessService,
   installResultAccessAuthority} from './result-access.mjs';
 import {installRunStateAuthority, installRunStateService,
@@ -67,9 +71,6 @@ async function embeddedInstallationIdentity(root, installation) {
     process.env.ACTQL_LOCAL_SOURCE_PROFILE;
   const effectPath = installation?.effectProfilePath ??
     process.env.ACTQL_LOCAL_EFFECT_PROFILE;
-  if (sourcePath !== undefined && effectPath !== undefined) {
-    throw new TypeError('InvalidInstalledEffectSite');
-  }
   const source = sourcePath === undefined ? null :
     await installedSourceIdentity(sourcePath);
   const effect = effectPath === undefined ? null :
@@ -124,9 +125,11 @@ const REALIZATION_KEY = 'source-free-values';
 async function openInstalledHost({root, mode = 'local', beforeDispatch,
   authorization, sourceProfilePath, resolveSourceSecret,
   effectProfilePath, resolveEffectSecret, effectInstallation}) {
-  if (effectInstallation !== undefined && effectProfilePath !== undefined ||
-      (effectInstallation !== undefined || effectProfilePath !== undefined) &&
-        sourceProfilePath !== undefined) {
+  const selectedSourcePath = sourceProfilePath ??
+    process.env.ACTQL_LOCAL_SOURCE_PROFILE;
+  const selectedEffectPath = effectProfilePath ??
+    process.env.ACTQL_LOCAL_EFFECT_PROFILE;
+  if (effectInstallation !== undefined && selectedEffectPath !== undefined) {
     throw new TypeError('InvalidInstalledEffectSite');
   }
   await mkdir(root, {recursive: true, mode: 0o700});
@@ -135,56 +138,48 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const principalId = userInfo().username;
   const baseEnvironmentWire = (await readFile(join(packageRoot,
     'spec/local-check-environment.json'), 'utf8')).trimEnd();
-  const selectedEffectPath = effectProfilePath ??
-    process.env.ACTQL_LOCAL_EFFECT_PROFILE;
-  if (selectedEffectPath !== undefined &&
-      (sourceProfilePath !== undefined ||
-        process.env.ACTQL_LOCAL_SOURCE_PROFILE !== undefined)) {
-    throw new TypeError('InvalidInstalledEffectSite');
-  }
-  // Both installed adapters restore published declarations without provider
-  // I/O. Only one may supply the Host's Check Environment.
-  const sourceProfile = await loadInstalledSource(
-    sourceProfilePath ?? process.env.ACTQL_LOCAL_SOURCE_PROFILE,
-    {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
-      resolveSecret: resolveSourceSecret});
+  // Both adapters restore published declarations without provider I/O. The
+  // combined environment is admitted before either can dispatch work.
+  let sourceProfile;
   let installedEffect;
+  let environmentWire;
   try {
+    sourceProfile = await loadInstalledSource(selectedSourcePath,
+      {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
+        resolveSecret: resolveSourceSecret});
     installedEffect = selectedEffectPath === undefined ? undefined :
       await loadInstalledEffect(selectedEffectPath, {root, principalId, moon,
         runtimeUrl, baseEnvironmentWire, resolveSecret: resolveEffectSecret});
-  } catch (error) {
-    sourceProfile?.close();
-    throw error;
-  }
-  if (effectInstallation !== undefined && installedEffect !== undefined ||
-      (effectInstallation !== undefined || installedEffect !== undefined) &&
-        sourceProfile !== undefined) {
-    installedEffect?.close();
-    sourceProfile?.close();
-    throw new TypeError('InvalidInstalledEffectSite');
-  }
-  if (installedEffect !== undefined) {
-    if (authorization === undefined) {
-      installedEffect.close();
-      throw new TypeError('InstalledEffectAuthorizationRequired');
+    if (installedEffect !== undefined) {
+      if (authorization === undefined) {
+        throw new TypeError('InstalledEffectAuthorizationRequired');
+      }
+      effectInstallation = createInstalledEffectSite(installedEffect);
     }
-    effectInstallation = createInstalledEffectSite(installedEffect);
+    if (effectInstallation !== undefined &&
+        (typeof effectInstallation.environmentWire !== 'string' ||
+          typeof effectInstallation.execute !== 'function' ||
+          typeof effectInstallation.resume !== 'function' ||
+          effectInstallation.privateEvidenceKey !== undefined &&
+            (!(effectInstallation.privateEvidenceKey instanceof Uint8Array) ||
+              effectInstallation.privateEvidenceKey.byteLength !== 32))) {
+      throw new TypeError('InvalidInstalledEffectSite');
+    }
+    environmentWire = composeInstalledCheckEnvironment(moon,
+      baseEnvironmentWire, sourceProfile?.environmentWire,
+      effectInstallation?.environmentWire);
+    verifyInstalledConnectorBindings(sourceProfile,
+      installedEffect ?? effectInstallation);
+  } catch (cause) {
+    // An adapter that failed before returning its owner must clean up its
+    // own partial acquisition. Preserve its original public failure when the
+    // Host has acquired nothing else.
+    if (sourceProfile === undefined && installedEffect === undefined) {
+      throw cause;
+    }
+    throw await retainInstalledHostInitializationFailure(cause,
+      {sourceProfile, installedEffect});
   }
-  if (effectInstallation !== undefined &&
-      (typeof effectInstallation.environmentWire !== 'string' ||
-        typeof effectInstallation.execute !== 'function' ||
-        typeof effectInstallation.resume !== 'function' ||
-        effectInstallation.privateEvidenceKey !== undefined &&
-          (!(effectInstallation.privateEvidenceKey instanceof Uint8Array) ||
-            effectInstallation.privateEvidenceKey.byteLength !== 32))) {
-    installedEffect?.close();
-    sourceProfile?.close();
-    throw new TypeError('InvalidInstalledEffectSite');
-  }
-  const environmentWire = effectInstallation?.environmentWire ??
-    sourceProfile?.environmentWire ??
-    baseEnvironmentWire;
   const evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
   const numericProfile = JSON.parse(await readFile(join(packageRoot,
     'spec/contracts/actql-numeric-reduction.json'), 'utf8'));
@@ -194,26 +189,20 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     environmentWire, evidenceCid, false, false, true, false, false, false,
     false, numericProfileCid);
   if (environment === undefined) {
-    sourceProfile?.close();
-    installedEffect?.close();
-    throw new Error('InvalidInstalledLocalEnvironment');
+    throw await retainInstalledHostInitializationFailure(
+      new Error('InvalidInstalledLocalEnvironment'),
+      {sourceProfile, installedEffect});
   }
-  const registry = await readFile(join(packageRoot,
-    'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
-  const aoa = JSON.parse(await readFile(join(packageRoot,
-    'spec/contracts/actql-aoa.json'), 'utf8'));
-  const values = JSON.stringify(aoa.execution_contracts['REL.values']);
-  const fragment = JSON.stringify(
-    aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
-  const ordered = JSON.stringify(
-    aoa.execution_contracts['REL.derive.ordered']);
+  let registry;
+  let values;
+  let fragment;
+  let ordered;
   const tenantId = 'local';
   const authorityScopeCid = cid({version: 'actql-local-owner-scope/0.1',
     root, principalId});
   const storeAuthorityCid = cid({version: 'actql-local-store-owner/0.1',
     root, principalId});
   const journalDirectory = join(root, 'requests');
-  await mkdir(journalDirectory, {recursive: true, mode: 0o700});
   let journal;
   let effectEvidenceKey;
   let store;
@@ -221,6 +210,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   let dispatchOwner;
   const diagnostic = createDiagnosticObserver(authorization?.observe);
   try {
+    registry = await readFile(join(packageRoot,
+      'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
+    const aoa = JSON.parse(await readFile(join(packageRoot,
+      'spec/contracts/actql-aoa.json'), 'utf8'));
+    values = JSON.stringify(aoa.execution_contracts['REL.values']);
+    fragment = JSON.stringify(
+      aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+    ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    await mkdir(journalDirectory, {recursive: true, mode: 0o700});
     journal = openClientRequestJournal(journalDirectory);
     if (effectInstallation !== undefined &&
         effectInstallation.privateEvidenceKey === undefined) {
@@ -1233,6 +1231,23 @@ export async function openInstalledRemoteHttpHost({directory,
   // refused before they touch the Store.
   const handling = new Set();
   let closing = false;
+  let shutdown;
+  shutdown = createInstalledHostShutdown({
+    stop: () => host.checkpoints?.stop(),
+    drain: () => host.dispatchOwner.drain(),
+    retire: () => host.retireTerminalEffects(),
+    checkpoint: () => host.checkpoints?.close(),
+    journal: () => host.journal.close(),
+    source: () => host.sourceProfile?.close(),
+    effect: () => host.installedEffect?.close(),
+    store: async () => {
+      try { await host.store.close(); }
+      catch (error) {
+        if (error?.code !== 'PublicationStoreCleanupPending') throw error;
+        shutdown.noteStoreCleanupPending();
+      }
+    },
+  });
   return Object.freeze({
     handler(request, response) {
       if (closing) {
@@ -1256,25 +1271,8 @@ export async function openInstalledRemoteHttpHost({directory,
       while (handling.size > 0) {
         await Promise.allSettled([...handling]);
       }
-      await host.checkpoints?.stop();
-      await host.dispatchOwner.drain();
-      await host.retireTerminalEffects();
-      const checkpoints = await host.checkpoints?.close();
-      host.journal.close();
-      host.sourceProfile?.close();
-      host.installedEffect?.close();
-      // A Store with a pending deletion keeps its durable deletion record;
-      // the next owner recovers it.
-      let storeCleanupPending = false;
-      try { await host.store.close(); }
-      catch (error) {
-        if (error?.code !== 'PublicationStoreCleanupPending') throw error;
-        storeCleanupPending = true;
-      }
-      return Object.freeze({storeCleanupPending,
-        pendingRetention: checkpoints?.pendingRetention ?? [],
-        authorizationCleanupPending:
-          checkpoints?.pendingAuthorization ?? false,
+      const result = await shutdown.close();
+      return Object.freeze({...result,
         diagnosticDeliveryPending: host.diagnostic.status().active !== 0});
     },
   });
