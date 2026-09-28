@@ -7681,6 +7681,32 @@ async function exerciseStrategyGraph(
       }),
     expected: [{id: 1, total: 5}, {id: 2, total: 4}],
     fields: ['id', 'total']},
+    {name: 'group-sum-avg-filter-select', source: retainedUnaryChain(
+      [{group: {by: ['id'], aggregates: {
+        mean: {fn: 'avg', field: 'amount'},
+        total: {fn: 'sum', field: 'amount'},
+      }}}], [{filter: 'total > 0'},
+        {select: ['id', 'mean', 'total']}],
+      ['id', 'mean', 'total'], [
+        {id: 1, amount: 2}, {id: 1, amount: 4},
+        {id: 2, amount: 8},
+      ], {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false},
+      }),
+    expected: [
+      {id: 1, mean: 3, total: 6}, {id: 2, mean: 8, total: 8},
+    ], fields: ['id', 'mean', 'total']},
+    {name: 'group-sum-avg-empty-global', source: retainedUnaryChain(
+      [{filter: 'id < 0'}, {group: {by: [], aggregates: {
+        mean: {fn: 'avg', field: 'amount'},
+        total: {fn: 'sum', field: 'amount'},
+      }}}], [{select: ['mean', 'total']}],
+      ['mean', 'total'], [{id: 1, amount: 2}], {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false},
+      }),
+    expected: [{mean: null, total: null}], fields: ['mean', 'total']},
     {name: 'group-sum-global-sum', source: retainedUnaryChain(
       [{group: {by: ['id'], aggregates: {
         total: {fn: 'sum', field: 'amount'},

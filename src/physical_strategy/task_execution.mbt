@@ -46,6 +46,16 @@ fn numeric_reduction_slot_open(counts : Array[Int?], index : Int) -> Bool {
 }
 
 ///|
+/// No selected slot may reach either materializing completion form while its
+/// attempt-wide seal is open. A task without numeric slots needs no seal.
+fn numeric_reductions_ready_for_completion(
+  selected_count : Int,
+  is_sealed : Bool,
+) -> Bool {
+  selected_count == 0 || is_sealed
+}
+
+///|
 fn select_declared_numeric_member(
   profile : @numeric.Profile,
   declarations : Array[@connector.NumericReductionSupport],
@@ -800,7 +810,12 @@ fn complete_materialized_execution(
     task_execution_matches(run, execution) else {
     return Err(ForeignCandidate)
   }
-  if execution.disposed || !execution.execution_settled {
+  if execution.disposed ||
+    !execution.execution_settled ||
+    !numeric_reductions_ready_for_completion(
+      execution.numeric.length(),
+      execution.numeric_sealed,
+    ) {
     return Err(Physical(InvalidCharge))
   }
   if execution.resident is Some(resource) {
