@@ -129,6 +129,53 @@ Bundle size (`moon build --target js --release`, compared with the base commit):
 | `connectors_builtin_node.js` | 24,766,982 B | 27,190,666 B | +2,423,684 B (+9.8%) |
 | `connectors_builtin_node_rela.js` | 22,510,113 B | 24,935,604 B | +2,425,491 B (+10.8%) |
 
+## Review follow-up: stop, approval, input limits, distribution
+
+The first review held the PR for four gaps. Each fix is in its own commit,
+labeled with the owner whose boundary it changes (C: dispatch and
+Checkpoint, A: Local input, D: provider, adapter and distribution).
+
+- **Acquisition end (C, D).** An installed source's `open` that returns no
+  capture now states how the acquisition ended
+  (`adapters/host-common/acquisition-outcome.mjs`):
+  - `not_started`: confirmed that no provider request began;
+  - `stopped`: provider I/O ended and was released;
+  - `unknown`: the end cannot be confirmed, optionally with a recovery owner.
+
+  How the dispatch owner uses it:
+  - A confirmed end becomes the Run's physical stop, so the Run fails, the entry drains and the Host closes.
+  - An unknown end stays with its recovery owner, or stays unresolved. Nothing is inferred from an error without a stated end.
+
+  How the adapters state it:
+  - Salesforce: `not_started` before the first provider request, `stopped` after it.
+  - DuckDB: `not_started` for a mismatch or denial, `stopped` after the capture opened, `unknown` for other native failures.
+- **Checkpoint approval handoff (C, D).**
+  - The Checkpoint records each resumed read approval with the exact read it admits: read tuple, physical binding, checked source and principal (`adapters/host-common/checkpoint-approval.mjs`).
+  - The Site's `admitCheckpointReadApproval` accepts only such a record, and only when it names this installation: principal, org, connection revision, Site key and generation, origin and Resource. The adapter also requires it to be the approval of the exact prepared read.
+  - An admitted approval grants that Resource's query read and covers its describe in the same dispatch. A metadata decision still grants no query, and a hand-made decision is never admitted.
+  - Currency, cancellation and expiry remain the Checkpoint's own checks.
+  - A read is refused at submit only when the account denies it. With no Checkpoint, a delegated read ends at dispatch before any provider request.
+- **Local input limits (A, D).** The standard Host's Local limits were fixed below what an acquisition admits (see the table). They now follow the surrounding bounds. A Local failure over these limits keeps its cause:
+  - `IdentityExport(...)` for an identity export over the import limits;
+  - `ManagedValues(...)` for an output over its value limits.
+
+  Neither is reported as `LogicalIdentityUnsupported` or `InvalidLimits`.
+- **Distribution (D).**
+  - The Local Node package now builds and ships the Salesforce Site's provider runtime and its installation adapter.
+  - It exports `publishSource`, the explicit publication step.
+  - A packed test installs the tarballs outside the checkout and runs with no MoonBit on PATH.
+
+| Bound | Before | After | Follows |
+| --- | ---: | ---: | --- |
+| Salesforce capture text | 1 MB | 500 KB | what Local evaluates at once |
+| Local import row / batch | 100 B / 64 B | 64 KiB / 64 KiB | the Store's batch; a row fits one batch |
+| Local import wire | 10 KB, 1,000 nodes, 10 columns | 1 MB, 100,000 nodes, 100 columns | encoded capture; Store columns |
+| Local input values (text, nodes, work) | 10 KB, 10,000, 100,000 | 500 KB, 20,000, 20M | capture; 100 rows by 100 columns |
+| Fragment live values | 100 KB | 500 KB for an acquisition stage, 100 KB otherwise | whole capture vs one evaluation |
+| Fragment work | 100,000 | 10M | work per admitted byte |
+| Run transfer budget | 500 KB | 10 MB | 10 attempts of one import |
+| Result snapshot (contract limits) | 100 KB, 10,000 nodes | 1 MB, 100,000 nodes | Local import wire |
+
 ## Shared with the Host owner
 
 The shared points are the installation seam and the authorization handoff. The
@@ -169,12 +216,6 @@ Run, Checkpoint and dispatch owners are unchanged.
 
 ## Remaining
 
-- **Local compute input size.** Local compute rejects an acquired input above its inline import size with `FixedComputeIssue::LogicalIdentityUnsupported`:
-  - for the test object this is about 2 rows of 9 declared fields with keys of 16 or more characters;
-  - it was reproduced offline with the provider's real reply; the live check therefore used short values;
-  - DuckDB acquisition is also tightly bounded (it fails while receiving about 60 passing rows);
-  - this belongs to the Local managed lane, not to this unit.
-- **Checkpoint-resumed read approvals.** The Salesforce Site grants only the installed gate's own decisions. A resumed read approval (`basis: resumed_approval`) is therefore refused (fail-closed), and the held→approve→resume path is not available for Salesforce yet. This needs an agreed handoff from the Checkpoint's resumed approval to the Site: which approval covers the read's describes and query grant in one dispatch.
-- **Revocation between submit and dispatch.** A read revoked after submit and before dispatch is refused before provider I/O. The Run still projects `needs_reconciliation`, because the dispatch owner marks physical work as possible before the source opens.
-- **Compiler shapes.** Only a scan→filter→select acquisition followed by a compute stage is supported. An `IN` filter over text cannot be planned (now `ClientProgramUnsupported`).
-- **Packaging.** The Salesforce adapter runs from a repository checkout. The packaged Local Host does not include it.
+- **Local compute stages.** A compute stage's expressions keep the per-evaluation live bound (100 KB). A compute-stage filter over a larger input stops with its limit cause; only the acquisition stage evaluates a whole capture.
+- **Acquisition shape.** One acquisition captures at most 100 rows and 500 KB of text. Larger reads are refused while capturing, with nothing published.
+- **Compiler shapes.** Only a scan→filter→select acquisition followed by a compute stage is supported. An `IN` filter over text cannot be planned (`ClientProgramUnsupported`).
