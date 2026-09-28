@@ -51,6 +51,7 @@ fn start_local_managed_test_task_operations(
     Err(ManagedCopy(_)) => fail("Local managed copy setup failed")
     Err(ManagedRetention(_)) => fail("Local managed retention setup failed")
     Err(ManagedCompletion(_)) => fail("Local managed completion setup failed")
+    Err(IdentityExport(_)) => fail("Local managed identity export failed")
   }
   if grant is Some(value) {
     @strategy.authorize_captured_task_activation(run, task, value).unwrap()
@@ -105,6 +106,7 @@ fn start_local_managed_test_task_operations(
     Err(ManagedCopy(_)) => fail("Local managed start copy setup failed")
     Err(ManagedRetention(_)) => fail("Local managed start retention failed")
     Err(ManagedCompletion(_)) => fail("Local managed start completion failed")
+    Err(IdentityExport(_)) => fail("Local managed identity export failed")
   }
   assert_eq(operations.inputs.length(), rows.length())
   for index, transfer in operations.inputs {
@@ -128,12 +130,16 @@ fn start_local_managed_test_task_operations(
           fail("Local managed row retention setup failed")
         Err(ManagedCompletion(_)) =>
           fail("Local managed row completion setup failed")
+        Err(IdentityExport(_)) => fail("Local managed identity export failed")
       }
     }
     (transfer.finish)().unwrap()
   }
   operations
 }
+
+///|
+suberror ManagedFinalizationStopped
 
 ///|
 fn run_local_managed_test_task(
@@ -153,6 +159,7 @@ fn run_local_managed_test_task(
     (@execution.CarrierManagedCompletedOutput, @carrier_runtime.Material),
   ] = [],
   grant? : @strategy.TaskActivationGrant,
+  finalization_failure? : Ref[@local_driver.LocalDispatchIssue?],
 ) -> (
   @local_driver.LocalManagedDispatchOperations[Int],
   @execution.ManagedCompletedOutput[Int],
@@ -316,6 +323,8 @@ fn run_local_managed_test_task(
       fail("Local managed retention setup failed")
     Err(@local_driver.ManagedCompletion(_)) =>
       fail("Local managed completion setup failed")
+    Err(@local_driver.IdentityExport(_)) =>
+      fail("Local managed identity export failed")
     Err(
       @local_driver.Configuration(
         @connector.Execution(@execution.Rows(_, @execution.InvalidRows))
@@ -338,6 +347,11 @@ fn run_local_managed_test_task(
     let observation = match
       (operations.advance_finalization)(finalization_quantum) {
       Ok(value) => value
+      // A caller that expects finalization to stop receives its issue.
+      Err(issue) if finalization_failure is Some(expected) => {
+        expected.val = Some(issue)
+        raise ManagedFinalizationStopped
+      }
       Err(Configuration(LogicalIdentityUnsupported)) =>
         fail("Local managed finalization lacked logical identity support")
       Err(Configuration(InvalidLimits)) =>
@@ -357,6 +371,7 @@ fn run_local_managed_test_task(
         fail("Local managed finalization retention failed")
       Err(ManagedCompletion(_)) =>
         fail("Local managed finalization completion failed")
+      Err(IdentityExport(_)) => fail("Local managed identity export failed")
     }
     assert_true(observation.progress >= finalization_progress)
     assert_true(observation.work >= 0L)

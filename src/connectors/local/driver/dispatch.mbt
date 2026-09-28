@@ -40,6 +40,10 @@ pub(all) enum LocalDispatchIssue {
   ManagedCopy(@execution.ManagedIndependentOutputIssue)
   ManagedRetention(@execution.ManagedOutputRetentionIssue)
   ManagedCompletion(@execution.TrustedOutputIssue)
+  // A completed output could not be exported under the Host's import limits
+  // while establishing a result identity: a resource limit, not an
+  // unsupported identity.
+  IdentityExport(@execution.CompletedExportIssue)
 }
 
 ///|

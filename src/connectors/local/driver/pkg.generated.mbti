@@ -90,6 +90,7 @@ pub(all) enum LocalDispatchIssue {
   ManagedCopy(@execution_relation.ManagedIndependentOutputIssue)
   ManagedRetention(@execution_relation.ManagedOutputRetentionIssue)
   ManagedCompletion(@execution_relation.TrustedOutputIssue)
+  IdentityExport(@execution_relation.CompletedExportIssue)
 }
 
 type LocalDispatchModule
