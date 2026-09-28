@@ -7458,7 +7458,7 @@ async function exerciseStrategyGraph(
     }
     return program;
   };
-  for (const {name, source, expected, fields} of [
+  for (const {name, source, expected, producerCidRows, fields} of [
     {name: 'append', source: externalAppendProgram,
       expected: [{id: 1}, {id: 2}, {id: 3}, {id: 4}], fields: ['id']},
     {name: 'except-all', source: retainedSetProgram('except'),
@@ -7542,10 +7542,90 @@ async function exerciseStrategyGraph(
         {top_k: {k: 2, by: [{id: 'desc'}]}}],
       [{filter: 'id > 0'}, {select: ['id']}], ['id']),
     expected: [{id: 4}, {id: 3}], fields: ['id']},
+    {name: 'partitioned-top-k-filter-select', source: retainedUnaryChain(
+      [{assert_rows: {unique_by: ['id']}},
+        {top_k_by: {
+          partition_by: ['group'], k: 1, by: [{id: 'desc'}],
+        }}],
+      [{filter: 'id > 0'}, {select: ['id', 'group']}],
+      ['id', 'group'], [
+        {id: 1, group: 'a'}, {id: 2, group: 'a'},
+        {id: 3, group: 'b'}, {id: 4, group: 'b'},
+      ], {
+        id: {type: 'number', nullable: false},
+        group: {type: 'string', nullable: false},
+      }),
+    expected: [{id: 2, group: 'a'}, {id: 4, group: 'b'}],
+    producerCidRows: [{group: 'a', id: 2}, {group: 'b', id: 4}],
+    fields: ['id', 'group']},
+    {name: 'dedupe-filter-select', source: retainedUnaryChain(
+      [{dedupe_rows: {by: ['id'], order_by: [{amount: 'desc'}]}}],
+      [{filter: 'amount > 0'}, {select: ['id', 'amount']}],
+      ['id', 'amount'], [
+        {id: 1, amount: 10}, {id: 1, amount: 20},
+        {id: 1, amount: 15},
+      ], {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false},
+      }),
+    expected: [{id: 1, amount: 20}],
+    producerCidRows: [{amount: 20, id: 1}], fields: ['id', 'amount']},
     {name: 'assert-filter-select', source: retainedUnaryChain(
       [{assert_rows: {where: 'id > 0'}}],
       [{filter: 'id > 0'}, {select: ['id']}], ['id']),
     expected: [1, 2, 3, 4].map(id => ({id})), fields: ['id']},
+    {name: 'lag-filter-select', source: retainedUnaryChain(
+      [{assert_rows: {unique_by: ['id']}},
+        {lag: {
+          partition_by: [], order_by: [{id: 'asc'}],
+          field: 'id', output: 'previous', offset: 1,
+        }}],
+      [{filter: 'id > 0'}, {select: ['id', 'previous']}],
+      ['id', 'previous']),
+    expected: [
+      {id: 1, previous: null}, {id: 2, previous: 1},
+      {id: 3, previous: 2}, {id: 4, previous: 3},
+    ], fields: ['id', 'previous']},
+    {name: 'json-pick-filter-select', source: retainedUnaryChain(
+      [{json_pick: {
+        column: 'payload', path: ['inner', 'leaf'], output: 'picked',
+      }}],
+      [{filter: 'id > 0'}, {select: ['id', 'picked']}],
+      ['id', 'picked'], [
+        {id: 1, payload: {inner: {leaf: 3}}},
+        {id: 2, payload: null},
+      ], {
+        id: {type: 'number', nullable: false},
+        payload: {type: 'object', nullable: true, fields: {
+          inner: {type: 'object', nullable: false, fields: {
+            leaf: {type: 'number', nullable: false},
+          }},
+        }},
+      }),
+    expected: [{id: 1, picked: 3}, {id: 2, picked: null}],
+    fields: ['id', 'picked']},
+    {name: 'watermark-filter-select', source: retainedUnaryChain(
+      [{watermark_rows: {
+        time: 'time', late_policy: 'mark', watermark_ms: 90,
+      }}],
+      [{filter: 'id > 0'}, {select: [
+        'id', 'time', 'watermark_decision', 'watermark_late', 'watermark_ms',
+      ]}],
+      ['id', 'time', 'watermark_decision', 'watermark_late', 'watermark_ms'],
+      [{id: 1, time: 100}, {id: 2, time: 80}, {id: 3, time: 95}], {
+        id: {type: 'number', nullable: false},
+        time: {type: 'number', nullable: false},
+      }),
+    expected: [
+      {id: 1, time: 100, watermark_decision: 'keep',
+        watermark_late: false, watermark_ms: 90},
+      {id: 2, time: 80, watermark_decision: 'mark',
+        watermark_late: true, watermark_ms: 90},
+      {id: 3, time: 95, watermark_decision: 'keep',
+        watermark_late: false, watermark_ms: 90},
+    ], fields: [
+      'id', 'time', 'watermark_decision', 'watermark_late', 'watermark_ms',
+    ]},
     {name: 'group-filter-select', source: retainedUnaryChain(
       [{group: {by: ['id'], aggregates: {n: {fn: 'count'}}}}],
       [{filter: 'n > 0'}, {select: ['id', 'n']}],
@@ -7672,7 +7752,8 @@ async function exerciseStrategyGraph(
         item.outputRepresentation === 'retained-file'), name);
       assert.equal(leases.length, 5, name);
       // Task output identity precedes the Named Result field projection;
-      // publication below checks the second consumer's reversed field order.
+      // producerCidRows fixes the canonical task-field order when it differs
+      // from the authored Result projection. Publication checks both views.
       const authority = installResultAccessAuthority({
         authorizeResultReadRequest: () => true,
         admitResultRead: () => ({
@@ -7730,7 +7811,7 @@ async function exerciseStrategyGraph(
       // above; the producer and first consumer still share the exact CID.
       if (!name.includes('derive') && !name.includes('window')) {
         assert.equal(fixture.strategyFixtureCid(binaryFixture, 3),
-          hash(expected), `${name}: producer task`);
+          hash(producerCidRows ?? expected), `${name}: producer task`);
       }
     } finally {
       binaryCapture.close();
