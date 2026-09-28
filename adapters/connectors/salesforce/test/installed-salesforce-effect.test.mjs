@@ -4,6 +4,8 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {accountConfiguration, effectHost, effectProgram, installedEffect,
   recordEntry} from './installed-salesforce-effect.fixture.mjs';
+import {checkInstalledSalesforceEffectProfile} from
+  '../host/installed-salesforce-effect.mjs';
 
 const writesOf = org => org.seen.filter(item => item.method === 'PATCH' ||
   item.method === 'POST');
@@ -135,9 +137,21 @@ test('a published generation is restored only as it was published',
       {code: 'ForeignSalesforceDeclaration'});
     // Nothing was read to restore any of them.
     assert.equal(writesOf(installation.org).length, 0);
-    // An unknown profile is refused before anything is installed.
+    // An unknown profile is refused before anything is installed; a checked
+    // profile keeps its shape and checks again.
     await assert.rejects(installation.load({version: 'unknown/0.1'}),
       {code: 'InvalidInstalledEffectProfile'});
+    const checkedProfile = checkInstalledSalesforceEffectProfile(
+      installation.profile);
+    assert.deepEqual(checkInstalledSalesforceEffectProfile(checkedProfile),
+      checkedProfile);
+    for (const write of [{resource: 'Test_Record__c', kind: 'create',
+      fields: ['Name']}, {...update, extra: true},
+    {resource: 'Test_Record__c', kind: 'upsert', fields: ['Name']}]) {
+      assert.throws(() => checkInstalledSalesforceEffectProfile({
+        ...installation.profile, writes: [write]}),
+      {code: 'InvalidInstalledEffectProfile'});
+    }
   });
 
 const other = {resource: 'Other_Record__c', kind: 'update', fields: ['Name']};
