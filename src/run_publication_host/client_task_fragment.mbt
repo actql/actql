@@ -95,12 +95,12 @@ pub fn issue_prepared_client_task_fragment(
   }
   let prepared = @lower.bound_preparation(owner)
   let checked = @lower.pipeline(prepared)
-  let last = @strategy.graph_task_selected_step(value.graph, task).unwrap_or(
-    @strategy.graph_task_prefix_end(value.graph, task).unwrap_or(
-      @pipeline.step_count(checked) - 1,
-    ),
-  )
-  guard last >= 0 &&
+  guard client_task_output_step(
+      value.graph,
+      task,
+      @pipeline.step_count(checked),
+    )
+    is Some(last) &&
     @lower.node_at(prepared, last) is Some(output) &&
     @schema.as_object(@lower.node_output_schema(output)) is Some(row) else {
     return Err(MissingOutput)
