@@ -2224,128 +2224,155 @@ test "registered Events provider shares Carrier with Bridge consumer" {
 }
 
 ///|
-test "selected Events steps retain original checked coordinates" {
-  let source_owner = carrier_events_source_owner()
-  let source = carrier_events_source_output(source_owner)
-  let owner = carrier_events_owner(source_owner, variant="session")
-  let generated = task_test_generated(owner)
-  let limits = carrier_events_storage_limits()
-  let capacity = @execution.generated_sequence_capacity(
-    generated,
-    dispatch_test_limits().local_execution,
-    dispatch_test_limits().guards,
-  ).unwrap()
-  let provider = @local_tea_provider.provider(limits, 4096L, capacity)
-  let rows = @execution.prepare_producer_read(
-    owner,
-    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
-    100,
-    1000,
-  ).unwrap()
-  let produce = @execution.select_generated_sequence_step(generated, 0).unwrap()
-  assert_true(@local_connector.managed_provider_accepts(provider, produce))
-  let producing = @local_connector.start_managed_provider(
-    provider,
-    produce,
-    [rows],
-    10,
-    1000,
-  ).unwrap()
-  let mut produced = None
-  while produced is None {
-    match @local_connector.advance_managed_provider(producing, 1).unwrap() {
-      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
-      @local_connector.CarrierComplete(value, ..) => produced = Some(value)
-      @local_connector.Complete(_, ..) => fail("producer returned rows")
-      @local_connector.Failed(_, ..) => fail("producer failed")
-      @local_connector.Stopped(..) => fail("producer stopped")
-    }
-  }
-  let produced = produced.unwrap()
-  assert_true(@carrier_runtime.material_available(produced))
-  assert_true(
-    @carrier_runtime.completion_reference_matches_port(
-      @carrier_runtime.material_reference(produced),
+test "selected Events transforms retain original checked coordinates" {
+  for variant in ["session", "watermark"] {
+    let source_owner = carrier_events_source_owner()
+    let source = carrier_events_source_output(source_owner)
+    let owner = carrier_events_owner(source_owner, variant~)
+    let generated = task_test_generated(owner)
+    let limits = carrier_events_storage_limits()
+    let capacity = @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap()
+    let provider = @local_tea_provider.provider(limits, 4096L, capacity)
+    let rows = @execution.prepare_producer_read(
       owner,
-      @pipeline.Step(0),
-    ),
-  )
-  assert_eq(
-    @lower.node_input_target(
-      @lower.node_at(@lower.bound_preparation(owner), 1).unwrap(),
-      0,
-    ),
-    Some(@pipeline.Step(0)),
-  )
-  let session_view = @carrier_runtime.material_prepare_operation_view(
-    produced, owner, 1, 0, owner,
-  ).unwrap()
-  assert_true(
-    @local_connector.cleanup_managed_provider(producing).unwrap_or(false),
-  )
-  let session_sequence = @execution.select_generated_sequence_step(generated, 1).unwrap()
-  assert_eq(
-    @execution.generated_sequence_step_index_at(session_sequence, 0),
-    Some(1),
-  )
-  assert_true(
-    @local_connector.managed_provider_accepts(provider, session_sequence),
-  )
-  let session = @local_connector.start_managed_provider_with_inputs(
-    provider,
-    session_sequence,
-    [@local_connector.managed_provider_carrier_input(session_view)],
-    10,
-    1000,
-  ).unwrap()
-  let mut session_output = None
-  while session_output is None {
-    match @local_connector.advance_managed_provider(session, 1).unwrap() {
-      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
-      @local_connector.CarrierComplete(value, ..) =>
-        session_output = Some(value)
-      @local_connector.Complete(_, ..) => fail("session returned rows")
-      @local_connector.Failed(_, ..) => fail("session failed")
-      @local_connector.Stopped(..) => fail("session stopped")
+      @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+      100,
+      1000,
+    ).unwrap()
+    let produce = @execution.select_generated_sequence_step(generated, 0).unwrap()
+    assert_true(@local_connector.managed_provider_accepts(provider, produce))
+    let producing = @local_connector.start_managed_provider(
+      provider,
+      produce,
+      [rows],
+      10,
+      1000,
+    ).unwrap()
+    let mut produced = None
+    while produced is None {
+      match @local_connector.advance_managed_provider(producing, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+        @local_connector.CarrierComplete(value, ..) => produced = Some(value)
+        @local_connector.Complete(_, ..) => fail("producer returned rows")
+        @local_connector.Failed(_, ..) => fail("producer failed")
+        @local_connector.Stopped(..) => fail("producer stopped")
+      }
     }
-  }
-  assert_true(
-    @local_connector.cleanup_managed_provider(session).unwrap_or(false),
-  )
-  assert_true(@carrier_runtime.reclaim_material(produced))
-  let session_output = session_output.unwrap()
-  let projection_view = @carrier_runtime.material_prepare_operation_view(
-    session_output, owner, 2, 0, owner,
-  ).unwrap()
-  let projection_sequence = @execution.select_generated_sequence_step(
-    generated, 2,
-  ).unwrap()
-  assert_true(
-    @local_connector.managed_provider_accepts(provider, projection_sequence),
-  )
-  let projection = @local_connector.start_managed_provider_with_inputs(
-    provider,
-    projection_sequence,
-    [@local_connector.managed_provider_carrier_input(projection_view)],
-    10,
-    1000,
-  ).unwrap()
-  let mut output = None
-  while output is None {
-    match @local_connector.advance_managed_provider(projection, 1).unwrap() {
-      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
-      @local_connector.Complete(value, ..) => output = Some(value)
-      @local_connector.CarrierComplete(_, ..) =>
-        fail("projection returned Carrier")
-      @local_connector.Failed(_, ..) => fail("projection failed")
-      @local_connector.Stopped(..) => fail("projection stopped")
+    let produced = produced.unwrap()
+    assert_true(@carrier_runtime.material_available(produced))
+    assert_true(
+      @carrier_runtime.completion_reference_matches_port(
+        @carrier_runtime.material_reference(produced),
+        owner,
+        @pipeline.Step(0),
+      ),
+    )
+    assert_eq(
+      @lower.node_input_target(
+        @lower.node_at(@lower.bound_preparation(owner), 1).unwrap(),
+        0,
+      ),
+      Some(@pipeline.Step(0)),
+    )
+    let session_view = @carrier_runtime.material_prepare_operation_view(
+      produced, owner, 1, 0, owner,
+    ).unwrap()
+    assert_true(
+      @local_connector.cleanup_managed_provider(producing).unwrap_or(false),
+    )
+    let session_sequence = @execution.select_generated_sequence_step(
+      generated, 1,
+    ).unwrap()
+    assert_eq(
+      @execution.generated_sequence_step_index_at(session_sequence, 0),
+      Some(1),
+    )
+    assert_true(
+      @local_connector.managed_provider_accepts(provider, session_sequence),
+    )
+    let session = @local_connector.start_managed_provider_with_inputs(
+      provider,
+      session_sequence,
+      [@local_connector.managed_provider_carrier_input(session_view)],
+      10,
+      1000,
+    ).unwrap()
+    let mut session_output = None
+    while session_output is None {
+      match @local_connector.advance_managed_provider(session, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+        @local_connector.CarrierComplete(value, ..) =>
+          session_output = Some(value)
+        @local_connector.Complete(_, ..) => fail("session returned rows")
+        @local_connector.Failed(_, ..) => fail("session failed")
+        @local_connector.Stopped(..) => fail("session stopped")
+      }
     }
+    assert_true(
+      @local_connector.cleanup_managed_provider(session).unwrap_or(false),
+    )
+    let cancel_view = @carrier_runtime.material_prepare_operation_view(
+      produced, owner, 1, 0, owner,
+    ).unwrap()
+    let cancelling = @local_connector.start_managed_provider_with_inputs(
+      provider,
+      session_sequence,
+      [@local_connector.managed_provider_carrier_input(cancel_view)],
+      10,
+      1000,
+    ).unwrap()
+    match @local_connector.advance_managed_provider(cancelling, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      _ => fail("selected transform did not advance")
+    }
+    assert_true(@local_connector.cancel_managed_provider(cancelling))
+    assert_true(
+      @local_connector.advance_managed_provider(cancelling, 1).unwrap()
+      is @local_connector.Stopped(..),
+    )
+    assert_true(
+      @local_connector.cleanup_managed_provider(cancelling).unwrap_or(false),
+    )
+    assert_true(@carrier_runtime.material_available(produced))
+    assert_true(@carrier_runtime.reclaim_material(produced))
+    let session_output = session_output.unwrap()
+    let projection_view = @carrier_runtime.material_prepare_operation_view(
+      session_output, owner, 2, 0, owner,
+    ).unwrap()
+    let projection_sequence = @execution.select_generated_sequence_step(
+      generated, 2,
+    ).unwrap()
+    assert_true(
+      @local_connector.managed_provider_accepts(provider, projection_sequence),
+    )
+    let projection = @local_connector.start_managed_provider_with_inputs(
+      provider,
+      projection_sequence,
+      [@local_connector.managed_provider_carrier_input(projection_view)],
+      10,
+      1000,
+    ).unwrap()
+    let mut output = None
+    while output is None {
+      match @local_connector.advance_managed_provider(projection, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+        @local_connector.Complete(value, ..) => output = Some(value)
+        @local_connector.CarrierComplete(_, ..) =>
+          fail("projection returned Carrier")
+        @local_connector.Failed(_, ..) => fail("projection failed")
+        @local_connector.Stopped(..) => fail("projection stopped")
+      }
+    }
+    assert_eq(@execution.completed_row_count(output.unwrap()), 2)
+    assert_true(
+      @local_connector.cleanup_managed_provider(projection).unwrap_or(false),
+    )
+    assert_true(@carrier_runtime.reclaim_material(session_output))
   }
-  assert_eq(@execution.completed_row_count(output.unwrap()), 2)
-  assert_true(
-    @local_connector.cleanup_managed_provider(projection).unwrap_or(false),
-  )
-  assert_true(@carrier_runtime.reclaim_material(session_output))
 }
 
 ///|

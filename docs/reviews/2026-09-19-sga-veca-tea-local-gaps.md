@@ -638,7 +638,7 @@ multi-step Relation tasks are rejected.
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |
 | Other Relation obligations outside the selected bounded binary chains | In progress | The exact bounded Relation children listed below discharge their checked obligations, including unpivot and unnest output envelopes and selected binary64 numeric observations. Other unlisted obligations remain closed to this retained lane. |
-| Mixed retained Store and Carrier paths | In progress | The typed managed route runs alongside row-file retention for Graph, Events, and Vectors. Direct inter-task Events/Vectors handoffs are covered for the minimal Bridge routes below, and Events session assignment is covered between construction and projection; other Carrier variants still need route-specific evidence. |
+| Mixed retained Store and Carrier paths | In progress | The typed managed route runs alongside row-file retention for Graph, Events, and Vectors. Direct inter-task Events/Vectors handoffs are covered for the minimal Bridge routes below, and selected Events watermark and session assignment are covered between construction and projection; other Carrier variants still need route-specific evidence. |
 | Native Host in-flight cancellation | Separate completion unit | Do not count JS Host cancellation as native request delivery. |
 
 The above is local route evidence. A final verification SHA and Linux CI result
@@ -752,11 +752,12 @@ Separate cases place Values, Carrier construction, and the formal Relation
 projection in one authored Stage. The physical tasks retain the exact Events
 or Vectors generation between construction and projection; the real Store
 publishes the resulting Relation and two downstream consumers read
-independently checked Named Results. An Events case also runs bounded session
-assignment as another physical task between construction and projection and
-checks the authored session boundaries. These cases establish direct
-inter-task handoff for the Bridge-only routes and the selected Events session
-route, not for the fused watermark or vector-normalization variants above.
+independently checked Named Results. Events cases also run bounded watermark
+labeling or session assignment as another physical task between construction
+and projection and check the authored labels or session boundaries. These
+cases establish direct inter-task handoff for the Bridge-only routes and the
+selected Events transforms, not for every Events variant or the fused
+vector-normalization variant above.
 
 A separate Graph fixture delivers timer cancellation after positive work in
 the later Relation filter, then checks stop, nonpublication, no redispatch and

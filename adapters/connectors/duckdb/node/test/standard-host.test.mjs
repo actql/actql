@@ -2763,6 +2763,32 @@ async function exerciseStrategyGraph(
       {event_id: 2, occurred_at: 15, payload: 'second'},
     ],
   }, {
+    name: 'events-watermark',
+    source: eventPublicationProgram,
+    create: program => fixture.strategyFixtureTeaCreate(
+      ...args, JSON.stringify(program)),
+    configure: value => fixture.strategyFixtureTeaRetainedSubset(value),
+    transform: {
+      from: 'source',
+      watermark_events: {watermark_ms: 10, policy: 'mark'},
+      as: 'marked',
+    },
+    fields: [
+      'event_id', 'occurred_at', 'payload',
+      'watermark_ms', 'late', 'watermark_decision',
+    ],
+    secondFields: ['watermark_decision', 'late', 'event_id'],
+    rows: [
+      {event_id: 1, occurred_at: 5, payload: 'first'},
+      {event_id: 2, occurred_at: 15, payload: 'second'},
+    ],
+    expectedRows: [
+      {event_id: 1, occurred_at: 5, payload: 'first',
+        watermark_ms: 10, late: true, watermark_decision: 'mark'},
+      {event_id: 2, occurred_at: 15, payload: 'second',
+        watermark_ms: 10, late: false, watermark_decision: 'keep'},
+    ],
+  }, {
     name: 'events-session',
     source: eventPublicationProgram,
     create: program => fixture.strategyFixtureTeaCreate(
@@ -2811,8 +2837,8 @@ async function exerciseStrategyGraph(
       ...(carrierCase.transform ? [carrierCase.transform] : []),
       carrierStage.steps.at(-1),
     ];
-    carrierStage.steps.at(-1).from = carrierCase.transform
-      ? 'sessioned' : 'source';
+    carrierStage.steps.at(-1).from =
+      carrierCase.transform?.as ?? 'source';
     carrierStage.results.r.fields = carrierCase.fields;
     directProgram.stages.splice(1, 1);
     for (const consumer of directProgram.stages.slice(2)) {

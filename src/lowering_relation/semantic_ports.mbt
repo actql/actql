@@ -63,6 +63,7 @@ pub fn node_accepts_managed_carrier_view(
   }
   match operation(node) {
     "SGA.normalize"
+    | "TEA.watermark.label"
     | "TEA.window.session_assign"
     | "TEA.sequence.match"
     | "BRIDGE.events.to_rows"
@@ -86,6 +87,7 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     VectorValue(_) => operation(node) == "BRIDGE.rows.to_vectors"
     EventValue(_) =>
       operation(node) == "BRIDGE.rows.to_events" ||
+      operation(node) == "TEA.watermark.label" ||
       operation(node) == "TEA.window.session_assign"
     SequenceRows(_) => operation(node) == "TEA.sequence.match"
     CarrierProjection(_) =>
@@ -188,7 +190,9 @@ pub fn node_prefers_fused_without_relation_consumer(
 ) -> Bool {
   match node.payload {
     BasicGraph(_) => operation(node) == "SGA.normalize"
-    EventValue(_) => operation(node) == "TEA.window.session_assign"
+    EventValue(_) =>
+      operation(node) == "TEA.watermark.label" ||
+      operation(node) == "TEA.window.session_assign"
     CarrierProjection(_) =>
       operation(node) == "BRIDGE.graph.to_edge_rows" ||
       operation(node) == "BRIDGE.vectors.to_rows"

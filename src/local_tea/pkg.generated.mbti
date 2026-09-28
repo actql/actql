@@ -64,6 +64,8 @@ pub fn start_time_series(@bounded_execution.Control, @execution_relation.Complet
 
 pub fn start_watermark(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[WatermarkExecution, WatermarkIssue]
 
+pub fn start_watermark_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[WatermarkExecution, WatermarkIssue]
+
 pub fn time_series_cleanup_pending(TimeSeriesExecution) -> Bool
 
 pub fn watermark_cleanup_pending(WatermarkExecution) -> Bool

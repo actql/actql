@@ -74,7 +74,13 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
     match (current, step) {
       (0, @lower.EventStep(_)) =>
         @lower.operation(node) == "BRIDGE.rows.to_events" ||
-        (count == 1 && @lower.operation(node) == "TEA.window.session_assign")
+        (
+          count == 1 &&
+          (
+            @lower.operation(node) == "TEA.watermark.label" ||
+            @lower.operation(node) == "TEA.window.session_assign"
+          )
+        )
       (0, @lower.CarrierProjectionStep(projection)) if count == 1 =>
         @lower.operation(node) == "BRIDGE.events.to_rows" &&
         @lower.carrier_projection_operation(projection) ==
@@ -286,18 +292,36 @@ fn advance_execution(
         }
         match @lower.operation(node) {
           "TEA.watermark.label" =>
-            match
-              @tea.start_watermark(
-                value.control,
-                value.sequence,
-                value.event_step,
-                input.unwrap(),
-                value.limits,
-                value.storage_bytes,
-                fn() { true },
-              ) {
-              Ok(execution) => value.watermark = Some(execution)
-              Err(_) => return fail_execution(value)
+            match (input, value.carrier_input) {
+              (Some(input), _) =>
+                match
+                  @tea.start_watermark(
+                    value.control,
+                    value.sequence,
+                    value.event_step,
+                    input,
+                    value.limits,
+                    value.storage_bytes,
+                    fn() { true },
+                  ) {
+                  Ok(execution) => value.watermark = Some(execution)
+                  Err(_) => return fail_execution(value)
+                }
+              (None, Some(view)) =>
+                match
+                  @tea.start_watermark_view(
+                    value.control,
+                    value.sequence,
+                    value.event_step,
+                    view,
+                    value.limits,
+                    value.storage_bytes,
+                    fn() { true },
+                  ) {
+                  Ok(execution) => value.watermark = Some(execution)
+                  Err(_) => return fail_execution(value)
+                }
+              _ => return fail_execution(value)
             }
           "TEA.dedupe" =>
             match
@@ -385,9 +409,30 @@ fn advance_execution(
               return Ok(poll)
             }
             Ok(@tea.Complete(output, progress~, work~)) => {
-              guard continue_poll(value, progress, work) is Some(poll) else {
+              guard delta(progress, value.stage_progress)
+                is Some(progress_delta) &&
+                delta(work, value.stage_work) is Some(work_delta) else {
                 return fail_execution(value)
               }
+              if value.projection_step is None {
+                let material = match @records.completed_material(output) {
+                  Ok(value) => value
+                  Err(_) => {
+                    @records.discard_completed(output) |> ignore
+                    return fail_execution(value)
+                  }
+                }
+                value.terminal = true
+                value.phase = Terminal
+                return Ok(
+                  @local.managed_provider_carrier_complete(
+                    material, progress_delta, work_delta,
+                  ),
+                )
+              }
+              let poll = @local.managed_provider_continue(
+                progress_delta, work_delta,
+              )
               value.watermarked = Some(output)
               discard(value.row_events) |> ignore
               value.row_events = None
@@ -804,6 +849,10 @@ pub fn provider(
         @lower.node_at(@lower.bound_preparation(owner), first_step)
         is Some(node) &&
         @lower.operation(node) == "TEA.window.session_assign"
+      let direct_watermark = step_count == 1 &&
+        @lower.node_at(@lower.bound_preparation(owner), first_step)
+        is Some(node) &&
+        @lower.operation(node) == "TEA.watermark.label"
       let direct_projection = step_count == 1 &&
         @lower.node_at(@lower.bound_preparation(owner), first_step)
         is Some(node) &&
@@ -841,7 +890,7 @@ pub fn provider(
         if relations.length() != 1 || carrier_input is Some(_) {
           return Err(@connector.InvalidLimits)
         }
-      } else if direct_session || direct_projection {
+      } else if direct_session || direct_watermark || direct_projection {
         if relations.length() != 0 || carrier_input is None {
           return Err(@connector.InvalidLimits)
         }
@@ -864,14 +913,14 @@ pub fn provider(
         } else {
           0
         },
-        event_step: if direct_session {
+        event_step: if direct_session || direct_watermark {
           first_step
         } else {
           1
         },
         projection_step: if direct_projection {
           Some(first_step)
-        } else if direct_session {
+        } else if direct_session || direct_watermark {
           None
         } else if step_count == 3 {
           Some(2)
@@ -885,7 +934,7 @@ pub fn provider(
         max_value_bytes,
         phase: if direct_projection {
           StartProjection
-        } else if direct_session {
+        } else if direct_session || direct_watermark {
           StartWatermark
         } else {
           StartRows
