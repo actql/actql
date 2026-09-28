@@ -355,6 +355,26 @@ const pipeUnionQuery = queryFrontend.compileTwoValuesSetQueryJson(
   'fixture.set_query');
 assert.deepEqual(JSON.parse(pipeUnionQuery), JSON.parse(setQuery));
 await writeFile(join(root, 'pipe-union-query.json'), pipeUnionQuery);
+const chainedSetSql = 'SELECT a, b FROM set_left UNION ALL '
+  + 'SELECT c, d FROM set_right UNION ALL SELECT a, b FROM set_left '
+  + 'ORDER BY a DESC LIMIT 4';
+const chainedSetPipe = 'FROM set_left |> SELECT a, b |> UNION ALL '
+  + '(SELECT c, d FROM set_right) |> UNION ALL '
+  + '(SELECT a, b FROM set_left) |> ORDER BY a DESC |> LIMIT 4';
+for (const [name, source] of [
+  ['chained-set-sql', chainedSetSql],
+  ['chained-set-pipe', chainedSetPipe],
+]) {
+  const query = queryFrontend.compileTwoValuesSetQueryJson(source,
+    'set_left', JSON.stringify(setLeft), JSON.stringify(['a', 'b']),
+    'set_right', JSON.stringify(setRight), JSON.stringify(['c', 'd']),
+    'fixture.chained_set');
+  assert.notEqual(query, '', name);
+  await writeFile(join(root, name + '.json'), query);
+}
+assert.deepEqual(
+  JSON.parse(await readFile(join(root, 'chained-set-sql.json'), 'utf8')),
+  JSON.parse(await readFile(join(root, 'chained-set-pipe.json'), 'utf8')));
 const setQueries = [
   ['union-distinct', 'UNION DISTINCT', 'SELECT c, d'],
   ['union-by-name', 'UNION DISTINCT BY NAME', 'SELECT d AS b, c AS a'],
@@ -1192,6 +1212,17 @@ async function checkSetQueries(client, suffix) {
       sortedRows(expected));
   }
 }
+async function checkChainedSet(client, suffix) {
+  const expected = [{a: 3, b: 'z'}, {a: 2, b: 'y'},
+    {a: 2, b: 'y'}, {a: 1, b: 'x'}];
+  for (const name of ['chained-set-sql', 'chained-set-pipe']) {
+    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+      {format: 'json', requestId: 'packed-' + name + '-' + suffix});
+    const status = await execution.wait();
+    assert.equal(status.status, 'succeeded', JSON.stringify(status));
+    assert.deepEqual(await execution.result('answer').all(), expected);
+  }
+}
 const acquiredDocument = readFileSync('source-program.json', 'utf8');
 const capturedQueryDocument = readFileSync('captured-query.json', 'utf8');
 const capturedCteDocument = readFileSync('captured-cte-query.json', 'utf8');
@@ -1428,6 +1459,7 @@ assert.equal(setQueryLocalStatus.status, 'succeeded',
   JSON.stringify(setQueryLocalStatus));
 assert.deepEqual(await setQueryLocal.result('answer').all(), expectedUnionRows);
 await checkSetQueries(installedLocal, 'local');
+await checkChainedSet(installedLocal, 'local');
 await checkJoinCases(installedLocal, 'local');
 await checkCollectionQuery(installedLocal, 'local');
 await checkExpressionFailure(installedLocal, 'local');
@@ -1625,6 +1657,7 @@ const setQueryRemote = await installedRemote.aql(setQueryDocument,
 assert.equal((await setQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await setQueryRemote.result('answer').all(), expectedUnionRows);
 await checkSetQueries(installedRemote, 'remote');
+await checkChainedSet(installedRemote, 'remote');
 await checkJoinCases(installedRemote, 'remote');
 await checkCollectionQuery(installedRemote, 'remote');
 await checkExpressionFailure(installedRemote, 'remote');

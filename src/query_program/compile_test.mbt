@@ -799,6 +799,30 @@ test "SQL and Pipe set expressions share checked Program meaning" {
 }
 
 ///|
+test "three SQL and Pipe set terms keep authored order and one final limit" {
+  let sql = @query.parse_query(
+    "SELECT a, b FROM left_rows UNION ALL SELECT c, d FROM right_rows UNION ALL SELECT a, b FROM left_rows ORDER BY a DESC LIMIT 4",
+    syntax_limits(),
+  ).unwrap()
+  let pipe = @query.parse_query(
+    "FROM left_rows |> SELECT a, b |> UNION ALL (SELECT c, d FROM right_rows) |> UNION ALL (SELECT a, b FROM left_rows) |> ORDER BY a DESC |> LIMIT 4",
+    syntax_limits(),
+  ).unwrap()
+  let standard = compile(sql, set_context(), construction_limits()).unwrap()
+  let piped = compile(pipe, set_context(), construction_limits()).unwrap()
+  assert_eq(semantic(standard), semantic(piped))
+  let wire = semantic(standard)
+  assert_eq(wire.split("\"append\":").length(), 3)
+  assert_eq(wire.split("\"take\":").length(), 2)
+  match
+    @check.check_parsed(standard, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("source-free set terms should be closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+}
+
+///|
 test "source-free equijoin enters the ordinary checker" {
   let parsed = @query.parse_query(
     "SELECT l.a AS a, r.d AS d FROM left_rows AS l INNER JOIN right_rows AS r ON l.a = r.c",
