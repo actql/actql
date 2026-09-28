@@ -593,3 +593,42 @@ test('an Effect runtime without the value refusal entry is refused before provid
       {code: 'InvalidSalesforceEffectRuntime'});
     assert.equal(installation.org.seen.length, before);
   });
+
+// An update of the Number(15,2) `Amount__c` from a Result of ActQL decimals.
+const numberUpdate = {resource: 'Test_Record__c', kind: 'update',
+  fields: ['Amount__c']};
+const numberRows = (mappings, rows) => effectProgram({save: {update: {
+  target: mappings[0].target, mapping: mappings[0].mappingRef,
+  from: {result: 'rows'}, id: 'id', set: {Amount__c: {field: 'amount'}}}}},
+rows, {id: {type: 'string', nullable: false},
+  amount: {type: 'decimal', precision: 15, scale: 2, nullable: false}});
+const numberEffect = t => installedEffect(t, {writes: [numberUpdate],
+  org: {numberFields: true, patchFields: ['Amount__c']}});
+
+test('an approved decimal is previewed as decimal text and sent as the same number text',
+  async t => {
+    const installation = await numberEffect(t);
+    const host = await effectHost(t, installation,
+      join(installation.root, 'host'));
+    const rows = [{id: ids[0], amount: '9999999999999.99'},
+      {id: ids[1], amount: '-0.10'}];
+    const {started} = await host.run(numberRows(host.installed.mappings,
+      rows), 'number-update');
+    assert.equal(started.value.status, 'published');
+    // Independently expected: the provider bodies spell the approved digits
+    // as JSON numbers, trailing zero kept.
+    assert.deepEqual(writesOf(installation.org).map(item => [
+      item.path.split('/').slice(-2).join('/'), item.body]), [
+      [`Test_Record__c/${ids[0]}`, '{"Amount__c":9999999999999.99}'],
+      [`Test_Record__c/${ids[1]}`, '{"Amount__c":-0.10}'],
+    ]);
+    // The Preview states the approved decimal text, and the observed
+    // `1.2345678E7` as the same decimal at scale 2.
+    const preview = JSON.parse(host.control.effectComputationPreviewWire(
+      host.outcomes[0].stage.preview));
+    const changes = preview.effects[0].changes;
+    assert.deepEqual(changes.map(change => change.before), ids.map(() => ({
+      state: 'present', value: {Amount__c: '12345678.00'}})));
+    assert.deepEqual(changes.map(change => change.after.value.Amount__c)
+      .sort(), ['-0.10', '9999999999999.99']);
+  });

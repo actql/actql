@@ -39,10 +39,18 @@ pub struct SingleWriteRequest {
   verb : String
   path : String
   body : String
+  // The same row as ActQL values: what the Preview states and approves.
+  value : String
   kind : WriteSingleKind
   projection : WriteProjection
   target : WriteTargetValue
   max_target_bytes : Int
+}
+
+///|
+/// The request's row as ActQL values, the Preview's value of this row.
+pub fn single_write_request_value(value : SingleWriteRequest) -> String {
+  value.value
 }
 
 ///|
@@ -425,6 +433,7 @@ pub fn prepare_single_write_request(
     verb,
     path: prefix + suffix,
     body: text,
+    value: body.value_json,
     kind,
     api_version,
     projection,

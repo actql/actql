@@ -145,3 +145,29 @@ test "node depth and numeric validity apply before successful finish" {
     assert_true(rejected)
   }
 }
+
+///|
+test "decimal text is written as the same JSON number" {
+  for
+    text in [
+      "0", "12", "-12", "12.50", "0.001", "-0.10", "123456789012345.000", "99999999999999999999999999999999999999",
+    ] {
+    let w = writer(100, 10, 2)
+    decimal_number_value(w, text)
+    assert_eq(finish(w), text)
+  }
+  for
+    text in [
+      "", "-", "+1", "01", "-0", "-0.00", "1.", ".5", "1e3", "1.2E3", "1,5", " 1",
+      "NaN",
+    ] {
+    let w = writer(100, 10, 2)
+    let refused = try decimal_number_value(w, text) catch {
+      InvalidNumber => true
+      _ => false
+    } noraise {
+      _ => false
+    }
+    assert_true(refused, msg=text)
+  }
+}

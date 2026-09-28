@@ -16,7 +16,7 @@ when its written value means what was approved.
 |---|---|---|---|---|---|
 | `date` | `"2024-05-22"` (`yyyy-MM-dd`, no offset). Range 1700-01-01 to 4000-12-31 | `date` | Closed | Closed | Same spelling. A written value outside the range is refused before sending. |
 | `datetime` | Read in UTC as `"2012-07-12T17:49:01.000+0000"`. Write accepts `...SSSZ` | `timestamp` | Closed | Whole seconds only | Read: only the `+0000` spelling is admitted, as the same instant ending in `Z`. Write: `.000` only, within 1700-01-01T00:00:00Z to 4000-12-31T00:00:00Z. |
-| `double` (Number) | JSON number, possibly in exponent form. `precision` and `scale` in the describe | `decimal(P,S)` (planned) | Held | Held | Held until the numeric path is settled (below). Existing inconsistency: not declared, but peek and the write body admit it as binary64 `number`. |
+| `double` (Number) | JSON number, possibly in exponent form. `precision` and `scale` in the describe | `decimal(P,S)` | P ≤ 15 | P ≤ 15 | See `2026-09-28-salesforce-decimal.md`: read from the reply's number text, written as the same number text; P 16–18 not declared. |
 | `percent` | Same JSON number form. Whether 12.5% reads as `12.5` or `0.125` is not documented in the pages checked | — | Held | Held | The scale must come from the API's official contract first. |
 | `currency` | Same JSON number form. The amount is in the record's `CurrencyIsoCode` | — | Held | Held | The amount and its currency code must stay together (proposal below). |
 | `time` | `"07:00:00.000Z"`, but the `Z` is not UTC: it is the saving user's time zone | None | Held | Held | Needs a common zone-less time-of-day type (proposal below). |
@@ -125,36 +125,10 @@ Mutation checks:
   write wbtests.
 - Accepting any offset fails the violation e2e test and the read wbtests.
 
-## Held: decimal Number (`double`)
+## Decimal Number (`double`)
 
-The next change settles the precision guarantee first. Two properties must
-be kept apart:
-- **Round trip through decimal text:** any decimal of 15 or fewer
-  significant digits survives a trip through binary64 and back to decimal
-  text.
-- **Exact value:** binary64 does not hold such a value exactly. `0.1` has
-  no exact binary64 value.
-
-So "15 digits or fewer" alone does not make a value exact.
-
-The base rule to implement:
-- **Read:** convert the original JSON number lexeme directly to
-  `decimal(P,S)`. A value with more fractional digits than S, or more
-  integer digits than P−S, is a typed violation, never rounded.
-- **Write:** generate the JSON number lexeme directly from the decimal.
-
-P and S limits must come from the REST API's guarantee and ActQL's range
-(P ≤ 38). "Salesforce stores Java doubles" alone does not settle them.
-
-Places found in this change where a number passes through binary64 today:
-- `emit_write_cell` `double`: `@decode.finite_number`, then `number_value`;
-- `read_field_contract`: `double` as `NumberType` (peek);
-- `installed-salesforce-effect.mjs`: `JSON.stringify(JSON.parse(proposal.changesWire).value)`;
-- `salesforce-effect-preview.mjs`: `parseExactJson` (a `JSON.parse` of the
-  body).
-
-The last two are harmless for strings, dates and timestamps. For a decimal
-sent as a JSON number, both must keep the lexeme.
+Implemented after this change; see `2026-09-28-salesforce-decimal.md` for
+the basis of the precision limit, the rules, and the binary64 path audit.
 
 ## Held: `percent`
 

@@ -17,6 +17,10 @@ pub(all) enum QueryPageIssue {
   NullRequiredField(String)
   UnexpectedField(String)
   ValueAdmission(String, @admitted.Issue)
+  /// A decimal reply with more integer digits than its declared type.
+  ValueOutOfRange(String)
+  /// A decimal reply with a nonzero digit beyond its declared scale.
+  ValueBeyondScale(String)
 } derive(Eq, Debug)
 
 ///|
@@ -96,6 +100,57 @@ fn admit_datetime_cell(
     Err(_) => return Err(BudgetExceeded)
   }
   admit_query_cell(converted, contract, field_name, budget)
+}
+
+///|
+/// A Salesforce Number (`double`) cell: the reply's JSON number text is read
+/// as the declared `decimal(P,S)` from its digits alone, never through
+/// binary64. Text that is not a JSON number is the wrong type; a value with
+/// too many integer digits or a nonzero digit beyond the scale is refused,
+/// never rounded.
+fn admit_decimal_cell(
+  cursor : @decode.Cursor,
+  source : Bytes,
+  field : FieldMetadata,
+  contract : @contract.Contract,
+  budget : QueryValueBudget,
+) -> Result[@admitted.CheckedValue, QueryPageIssue] {
+  let span = @decode.cursor_span(cursor)
+  guard @decode.finite_number(cursor) is Ok(_) else {
+    return Err(
+      ValueAdmission(
+        field.name,
+        @admitted.ValueIssue(@admitted.WrongType, path=[], span~),
+      ),
+    )
+  }
+  guard double_decimal(field) is Some((precision, scale)) &&
+    source_lexeme(source, cursor) is Some(lexeme) else {
+    return Err(InvalidResponse)
+  }
+  let text = match json_number_decimal(lexeme, precision, scale) {
+    Ok(value) => value
+    Err(DecimalRange) => return Err(ValueOutOfRange(field.name))
+    Err(DecimalScale) => return Err(ValueBeyondScale(field.name))
+    Err(DecimalFormat) =>
+      return Err(
+        ValueAdmission(
+          field.name,
+          @admitted.ValueIssue(@admitted.InvalidDecimal, path=[], span~),
+        ),
+      )
+  }
+  let converted = match
+    @decode.admit({ value: String(text), span, }, {
+      max_nodes: budget.nodes,
+      max_depth: budget.max_depth,
+      max_string_bytes: budget.text_bytes,
+      max_total_string_bytes: budget.text_bytes,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(BudgetExceeded)
+  }
+  admit_query_cell(converted, contract, field.name, budget)
 }
 
 ///|
@@ -259,6 +314,8 @@ pub fn project_query_page(
           let admitted = if field.native_type == "datetime" &&
             !@decode.is_null(value) {
             admit_datetime_cell(value, contract, field.name, budget)
+          } else if field.native_type == "double" && !@decode.is_null(value) {
+            admit_decimal_cell(value, bytes, field, contract, budget)
           } else {
             admit_query_cell(value, contract, field.name, budget)
           }
@@ -346,13 +403,17 @@ pub(all) struct QueryValueViolation {
 ///|
 /// The value violation behind a page failure, if the failure is one: the
 /// wrong type (`type`), a null or missing required value (`null`,
-/// `missing`), or a value that is not a valid spelling of its type
-/// (`format`). Budget and response failures are not value violations.
+/// `missing`), a value that is not a valid spelling of its type (`format`),
+/// or a decimal with too many integer digits (`range`) or a nonzero digit
+/// beyond its scale (`scale`). Budget and response failures are not value
+/// violations.
 pub fn query_page_value_violation(
   issue : QueryPageIssue,
   plan : ReadProjection,
 ) -> QueryValueViolation? {
   let (field, kind) = match issue {
+    ValueOutOfRange(field) => (field, "range")
+    ValueBeyondScale(field) => (field, "scale")
     MissingRequiredField(field) => (field, "missing")
     NullRequiredField(field) => (field, "null")
     ValueAdmission(field, @admitted.ValueIssue(kind, ..)) =>

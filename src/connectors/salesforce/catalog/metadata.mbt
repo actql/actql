@@ -35,6 +35,10 @@ pub struct FieldMetadata {
   unique : Bool
   case_sensitive : Bool?
   reference_to : Array[String]
+  // The described total digits and fractional digits of a `double` field;
+  // none for any other type.
+  precision : Int?
+  scale : Int?
 }
 
 ///|
@@ -121,6 +125,16 @@ fn references(
 }
 
 ///|
+/// A described digit count: a non-negative integer up to 1000.
+fn digit_count(object : @decode.ObjectView, name : String) -> Int?? {
+  guard @decode.lookup(object, name) is Some(value) else { return Some(None) }
+  match @decode.safe_integer(value) {
+    Ok(count) if count >= 0L && count <= 1000L => Some(Some(count.to_int()))
+    _ => None
+  }
+}
+
+///|
 fn project_field(
   cursor : @decode.Cursor,
   limits : DescribeLimits,
@@ -148,6 +162,15 @@ fn project_field(
     references(object, limits) is Some(reference_to) else {
     return Err(InvalidField(name))
   }
+  let (precision, scale) = if native_type == "double" {
+    guard digit_count(object, "precision") is Some(precision) &&
+      digit_count(object, "scale") is Some(scale) else {
+      return Err(InvalidField(name))
+    }
+    (precision, scale)
+  } else {
+    (None, None)
+  }
   Ok({
     name,
     native_type,
@@ -171,6 +194,8 @@ fn project_field(
       None => None
     },
     reference_to,
+    precision,
+    scale,
   })
 }
 

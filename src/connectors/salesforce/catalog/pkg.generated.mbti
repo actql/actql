@@ -226,6 +226,8 @@ pub fn single_write_request_resource(SingleWriteRequest) -> String
 
 pub fn single_write_request_target_identity(SingleWriteRequest, Int) -> Result[WriteTargetIdentity?, WriteCollectionRequestIssue]
 
+pub fn single_write_request_value(SingleWriteRequest) -> String
+
 pub fn static_declaration_catalog(StaticDeclaration) -> String
 
 pub fn static_declaration_catalog_cid(StaticDeclaration) -> String
@@ -257,6 +259,8 @@ pub fn with_row_limit(ReadProjection, Int) -> ReadProjection?
 pub fn write_body_json(WriteBody) -> String
 
 pub fn write_body_projection(WriteBody) -> WriteProjection
+
+pub fn write_body_value_json(WriteBody) -> String
 
 pub fn write_body_value_refusal_json(WriteBodyIssue, WriteProjection) -> String?
 
@@ -407,6 +411,7 @@ pub struct DeclarationExclusion {
 pub(all) enum DeclarationExclusionReason {
   UnconfirmedNullability
   UnsupportedType(String)
+  UnsupportedPrecision(Int?, Int?)
   NotQueryable
   CreateRequirementUnknown(String)
   NoRecordIdentity
@@ -536,6 +541,8 @@ pub struct FieldMetadata {
   unique : Bool
   case_sensitive : Bool?
   reference_to : Array[String]
+  precision : Int?
+  scale : Int?
 }
 
 pub(all) struct ListLimits {
@@ -579,6 +586,8 @@ pub(all) enum QueryPageIssue {
   NullRequiredField(String)
   UnexpectedField(String)
   ValueAdmission(String, @value_admission.Issue)
+  ValueOutOfRange(String)
+  ValueBeyondScale(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct QueryPageLimits {
@@ -715,6 +724,7 @@ pub struct SingleWriteRequest {
   verb : String
   path : String
   body : String
+  value : String
   kind : WriteSingleKind
   projection : WriteProjection
   target : WriteTargetValue
@@ -775,6 +785,7 @@ pub struct TargetPreviewRow {
 pub struct WriteBody {
   projection : WriteProjection
   json : String
+  value_json : String
 }
 
 pub(all) enum WriteBodyIssue {
@@ -787,6 +798,7 @@ pub(all) enum WriteBodyIssue {
   InvalidValue(String)
   ValueOutOfRange(String)
   SubsecondTimestamp(String)
+  ValueBeyondScale(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct WriteBodyLimits {

@@ -2024,7 +2024,7 @@ test(`two-member captured Effect Run ${
         if (physical === 'salesforce-create') {
           assert.throws(() => authorObservedSalesforceEffectPreview({
             moon, prepared, salesforceMoon: {...salesforceMoon,
-              salesforceSingleWriteRequestBody: () =>
+              salesforceSingleWriteRequestValue: () =>
                 '{"Name":9007199254740993}'},
             templateWire: previewDraft.wire, requestScope,
             members: siteRequests.map((requests, index) => ({

@@ -106,11 +106,11 @@ test "write body rejects foreign fields invalid values and undersized budgets" {
 }
 
 ///|
-test "write body admits bounded boolean integer and finite double cells" {
+test "write body admits bounded boolean integer and decimal Number cells" {
   let binding = observation_test_binding()
   let description = @utf8.encode(
     (
-      #|{"name":"ActQL_Test_Record__c","queryable":true,"createable":true,"updateable":true,"fields":[{"name":"Flag__c","type":"boolean","nillable":false,"createable":true,"updateable":true},{"name":"Count__c","type":"int","nillable":false,"createable":true,"updateable":true},{"name":"Score__c","type":"double","nillable":true,"createable":true,"updateable":true}]}
+      #|{"name":"ActQL_Test_Record__c","queryable":true,"createable":true,"updateable":true,"fields":[{"name":"Flag__c","type":"boolean","nillable":false,"createable":true,"updateable":true},{"name":"Count__c","type":"int","nillable":false,"createable":true,"updateable":true},{"name":"Score__c","type":"double","precision":12,"scale":2,"nillable":true,"createable":true,"updateable":true}]}
     ),
   )
   let observation = write_test_observation_with(description, binding)
@@ -122,21 +122,35 @@ test "write body admits bounded boolean integer and finite double cells" {
     ["Score__c", "Count__c", "Flag__c"],
     3,
   ).unwrap()
+  // A Number is approved as ActQL decimal text and sent as the same number
+  // text; the body keeps both.
+  let body = prepare_write_body(
+    plan,
+    @utf8.encode("{\"Score__c\":\"1.50\",\"Flag__c\":true,\"Count__c\":3}"),
+    write_body_test_limits(),
+  ).unwrap()
   assert_eq(
-    write_body_json(
-      prepare_write_body(
-        plan,
-        @utf8.encode("{\"Score__c\":1.5,\"Flag__c\":true,\"Count__c\":3}"),
-        write_body_test_limits(),
-      ).unwrap(),
-    ),
-    "{\"Count__c\":3,\"Flag__c\":true,\"Score__c\":1.5}",
+    write_body_json(body),
+    "{\"Count__c\":3,\"Flag__c\":true,\"Score__c\":1.50}",
+  )
+  assert_eq(
+    write_body_value_json(body),
+    "{\"Count__c\":3,\"Flag__c\":true,\"Score__c\":\"1.50\"}",
+  )
+  // A binary64 number is not an approved decimal.
+  assert_true(
+    prepare_write_body(
+      plan,
+      @utf8.encode("{\"Score__c\":1.5,\"Flag__c\":true,\"Count__c\":3}"),
+      write_body_test_limits(),
+    )
+    is Err(InvalidValue("Score__c")),
   )
   assert_true(
     prepare_write_body(
       plan,
       @utf8.encode(
-        "{\"Score__c\":1.5,\"Flag__c\":true,\"Count__c\":2147483648}",
+        "{\"Score__c\":\"1.50\",\"Flag__c\":true,\"Count__c\":2147483648}",
       ),
       write_body_test_limits(),
     )
@@ -145,7 +159,7 @@ test "write body admits bounded boolean integer and finite double cells" {
   assert_true(
     prepare_write_body(
       plan,
-      @utf8.encode("{\"Score__c\":1.5,\"Flag__c\":null,\"Count__c\":3}"),
+      @utf8.encode("{\"Score__c\":\"1.50\",\"Flag__c\":null,\"Count__c\":3}"),
       write_body_test_limits(),
     )
     is Err(NullNotAllowed("Flag__c")),

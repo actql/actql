@@ -342,8 +342,9 @@ fn emit_collection_record(
   target_key : String?,
   limits : WriteCollectionRequestLimits,
 ) -> Result[Unit, WriteCollectionRequestIssue] {
+  // Each row is rebuilt from its ActQL values, as its single body was.
   let parsed = match
-    @source.parse_json(item.body.json, {
+    @source.parse_json(item.body.value_json, {
       max_input_bytes: limits.max_body_bytes,
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
