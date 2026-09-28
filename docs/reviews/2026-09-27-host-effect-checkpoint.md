@@ -118,5 +118,9 @@ passed alone, and passed again inside the Client gate. The Client gate's Node
 suite passed 218/218, followed by packed Checkpoint, native Client, and
 Salesforce Site tests. Host, lint, and spec gates passed. The first Host-gate
 attempt stopped on an inaccessible user npm cache; rerunning with a
-worktree-local cache passed. Linux CI on the updated PR SHA remains required
-before merge. No live Salesforce operation was run.
+worktree-local cache passed. [Linux CI run 36370924733](https://github.com/actql/actql/actions/runs/36370924733)
+completed on PR SHA `0ec7361a2098b176edfbe1da68382ec655cee2c3`:
+all 13 required jobs passed, including Client and separated-network native;
+the optional performance matrix was skipped. No live Salesforce operation was
+run. The final documentation-only follow-up must be checked separately before
+the user-owned merge.
