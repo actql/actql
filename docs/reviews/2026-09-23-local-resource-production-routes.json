@@ -50,6 +50,30 @@
       }
     },
     {
+      "id": "events_window_to_rows_filter",
+      "carrier": "Events",
+      "operations": ["window_events", "events", "filter"],
+      "standalone_prefix_provider": true,
+      "standard_host": {
+        "suite": "moon:query_integration",
+        "targets": ["js", "wasm", "native"],
+        "path": "src/query_integration/local_mixed_prefix_wbtest.mbt",
+        "fixture": "standard Host runs selected Events windows into Relation consumers"
+      },
+      "in_flight_cancel": {
+        "suite": "node:duckdb_standard_host",
+        "targets": ["node"],
+        "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+        "fixture": "window-fixed-selected-filter"
+      },
+      "selected_in_flight_cancel": {
+        "suite": "node:duckdb_standard_host",
+        "targets": ["node"],
+        "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+        "fixture": "window-sliding-later-filter"
+      }
+    },
+    {
       "id": "vectors_normalize_to_rows_filter",
       "carrier": "Vectors",
       "operations": ["normalize_vectors", "vectors", "filter"],

@@ -82,6 +82,12 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
             @lower.operation(node) == "TEA.window.session_assign"
           )
         )
+      (0, @lower.WindowStep(window)) if count == 1 =>
+        @lower.window_preserves_events(window) &&
+        (
+          @lower.operation(node) == "TEA.window.fixed_label" ||
+          @lower.operation(node) == "TEA.window.sliding_assign"
+        )
       (0, @lower.CarrierProjectionStep(projection)) if count == 1 =>
         @lower.operation(node) == "BRIDGE.events.to_rows" &&
         @lower.carrier_projection_operation(projection) ==
@@ -399,18 +405,36 @@ fn advance_execution(
             }
           }
           "TEA.window.fixed_label" | "TEA.window.sliding_assign" =>
-            match
-              @tea.start_event_window(
-                value.control,
-                value.sequence,
-                value.event_step,
-                input.unwrap(),
-                value.limits,
-                value.storage_bytes,
-                fn() { true },
-              ) {
-              Ok(execution) => value.window = Some(execution)
-              Err(_) => return fail_execution(value)
+            match (input, value.carrier_input) {
+              (Some(read), _) =>
+                match
+                  @tea.start_event_window(
+                    value.control,
+                    value.sequence,
+                    value.event_step,
+                    read,
+                    value.limits,
+                    value.storage_bytes,
+                    fn() { true },
+                  ) {
+                  Ok(execution) => value.window = Some(execution)
+                  Err(_) => return fail_execution(value)
+                }
+              (None, Some(view)) =>
+                match
+                  @tea.start_event_window_view(
+                    value.control,
+                    value.sequence,
+                    value.event_step,
+                    view,
+                    value.limits,
+                    value.storage_bytes,
+                    fn() { true },
+                  ) {
+                  Ok(execution) => value.window = Some(execution)
+                  Err(_) => return fail_execution(value)
+                }
+              _ => return fail_execution(value)
             }
           _ => return fail_execution(value)
         }
@@ -539,9 +563,31 @@ fn advance_execution(
               return Ok(poll)
             }
             Ok(@tea.EventWindowComplete(output, progress~, work~)) => {
-              guard continue_poll(value, progress, work) is Some(poll) else {
+              guard delta(progress, value.stage_progress)
+                is Some(progress_delta) &&
+                delta(work, value.stage_work) is Some(work_delta) else {
+                @records.discard_completed(output) |> ignore
                 return fail_execution(value)
               }
+              if value.projection_step is None {
+                let material = match @records.completed_material(output) {
+                  Ok(material) => material
+                  Err(_) => {
+                    @records.discard_completed(output) |> ignore
+                    return fail_execution(value)
+                  }
+                }
+                value.terminal = true
+                value.phase = Terminal
+                return Ok(
+                  @local.managed_provider_carrier_complete(
+                    material, progress_delta, work_delta,
+                  ),
+                )
+              }
+              let poll = @local.managed_provider_continue(
+                progress_delta, work_delta,
+              )
               value.watermarked = Some(output)
               discard(value.row_events) |> ignore
               value.row_events = None
@@ -898,6 +944,13 @@ pub fn provider(
         @lower.node_at(@lower.bound_preparation(owner), first_step)
         is Some(node) &&
         @lower.operation(node) == "TEA.dedupe"
+      let direct_window = step_count == 1 &&
+        @lower.node_at(@lower.bound_preparation(owner), first_step)
+        is Some(node) &&
+        (
+          @lower.operation(node) == "TEA.window.fixed_label" ||
+          @lower.operation(node) == "TEA.window.sliding_assign"
+        )
       let direct_projection = step_count == 1 &&
         @lower.node_at(@lower.bound_preparation(owner), first_step)
         is Some(node) &&
@@ -938,6 +991,7 @@ pub fn provider(
       } else if direct_session ||
         direct_watermark ||
         direct_dedupe ||
+        direct_window ||
         direct_projection {
         if relations.length() != 0 || carrier_input is None {
           return Err(@connector.InvalidLimits)
@@ -961,14 +1015,20 @@ pub fn provider(
         } else {
           0
         },
-        event_step: if direct_session || direct_watermark || direct_dedupe {
+        event_step: if direct_session ||
+          direct_watermark ||
+          direct_dedupe ||
+          direct_window {
           first_step
         } else {
           1
         },
         projection_step: if direct_projection {
           Some(first_step)
-        } else if direct_session || direct_watermark || direct_dedupe {
+        } else if direct_session ||
+          direct_watermark ||
+          direct_dedupe ||
+          direct_window {
           None
         } else if step_count == 3 {
           Some(2)
@@ -982,7 +1042,10 @@ pub fn provider(
         max_value_bytes,
         phase: if direct_projection {
           StartProjection
-        } else if direct_session || direct_watermark || direct_dedupe {
+        } else if direct_session ||
+          direct_watermark ||
+          direct_dedupe ||
+          direct_window {
           StartWatermark
         } else {
           StartRows

@@ -2838,6 +2838,60 @@ async function exerciseStrategyGraph(
         session_start_ms: 5, session_end_ms: 19},
     ],
   }, {
+    name: 'events-fixed-window',
+    source: eventPublicationProgram,
+    create: program => fixture.strategyFixtureTeaCreate(
+      ...args, JSON.stringify(program)),
+    configure: value => fixture.strategyFixtureTeaRetainedSubset(value),
+    transform: {
+      from: 'source', window_events: {kind: 'fixed', size: 10},
+      as: 'windowed',
+    },
+    fields: [
+      'event_id', 'occurred_at', 'payload',
+      'window_start_ms', 'window_end_ms',
+    ],
+    secondFields: ['payload', 'window_start_ms', 'event_id'],
+    rows: [
+      {event_id: 1, occurred_at: 9, payload: 'first'},
+      {event_id: 2, occurred_at: 10, payload: 'second'},
+    ],
+    expectedRows: [
+      {event_id: 1, occurred_at: 9, payload: 'first',
+        window_start_ms: 0, window_end_ms: 10},
+      {event_id: 2, occurred_at: 10, payload: 'second',
+        window_start_ms: 10, window_end_ms: 20},
+    ],
+  }, {
+    name: 'events-sliding-window',
+    source: eventPublicationProgram,
+    create: program => fixture.strategyFixtureTeaCreate(
+      ...args, JSON.stringify(program)),
+    configure: value => fixture.strategyFixtureTeaRetainedSubset(value),
+    transform: {
+      from: 'source', window_events: {kind: 'sliding', size: 10, step: 5},
+      as: 'windowed',
+    },
+    fields: [
+      'event_id', 'occurred_at', 'payload',
+      'window_start_ms', 'window_end_ms',
+    ],
+    secondFields: ['payload', 'window_start_ms', 'event_id'],
+    rows: [
+      {event_id: 1, occurred_at: 9, payload: 'first'},
+      {event_id: 2, occurred_at: 10, payload: 'second'},
+    ],
+    expectedRows: [
+      {event_id: 1, occurred_at: 9, payload: 'first',
+        window_start_ms: 0, window_end_ms: 10},
+      {event_id: 1, occurred_at: 9, payload: 'first',
+        window_start_ms: 5, window_end_ms: 15},
+      {event_id: 2, occurred_at: 10, payload: 'second',
+        window_start_ms: 5, window_end_ms: 15},
+      {event_id: 2, occurred_at: 10, payload: 'second',
+        window_start_ms: 10, window_end_ms: 20},
+    ],
+  }, {
     name: 'vectors',
     source: carrierVectorPublicationProgram,
     create: program => fixture.strategyFixtureVecaCreate(
@@ -3886,6 +3940,38 @@ async function exerciseStrategyGraph(
       'payload',
       'window_start_ms',
       'window_end_ms',
+    ],
+    secondFields: ['window_start_ms', 'event_id'],
+  }, {
+    name: 'window-fixed-selected-filter',
+    family: 'tea',
+    operation: 'window-fixed',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    fields: [
+      'event_id', 'occurred_at', 'payload',
+      'window_start_ms', 'window_end_ms',
+    ],
+    secondFields: ['window_start_ms', 'event_id'],
+  }, {
+    name: 'window-sliding-later-filter',
+    family: 'tea',
+    operation: 'window-sliding',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    cancelOnManagedStart: 5,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
+    fields: [
+      'event_id', 'occurred_at', 'payload',
+      'window_start_ms', 'window_end_ms',
     ],
     secondFields: ['window_start_ms', 'event_id'],
   }, {

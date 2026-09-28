@@ -10,9 +10,14 @@ priv enum EventWindowPhase {
 }
 
 ///|
+priv enum EventWindowSource {
+  Stored(@records.ProducerRead, @storage.Storage)
+  Viewed(@lifecycle.ProducerView)
+}
+
+///|
 priv struct EventWindowState {
-  input : @records.ProducerRead
-  source : @storage.Storage
+  source : EventWindowSource
   mut output : @records.OutputBuilder?
   limits : @storage.Limits
   window : @lower.PreparedWindow
@@ -35,6 +40,53 @@ priv struct EventWindowState {
   mut current : @bigint.BigInt
   mut latest : @bigint.BigInt
   mut control_work_remaining : Int
+}
+
+///|
+fn event_window_source_available(source : EventWindowSource) -> Bool {
+  match source {
+    Stored(input, _) => @records.producer_read_available(input)
+    Viewed(view) => @lifecycle.producer_view_record_count(view) is Some(_)
+  }
+}
+
+///|
+fn event_window_source_record_count(source : EventWindowSource) -> Int? {
+  match source {
+    Stored(_, storage) => Some(@storage.record_count(storage))
+    Viewed(view) => @lifecycle.producer_view_record_count(view)
+  }
+}
+
+///|
+fn event_window_source_field_count(
+  source : EventWindowSource,
+  record : Int,
+) -> Int? {
+  match source {
+    Stored(_, storage) => @storage.record_field_count(storage, record)
+    Viewed(view) =>
+      match @lifecycle.producer_view_record_field_count(view, record) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn event_window_source_field(
+  source : EventWindowSource,
+  record : Int,
+  field : Int,
+) -> (@schema.FieldName, @value.CheckedValue)? {
+  match source {
+    Stored(_, storage) => @storage.record_field_at(storage, record, field)
+    Viewed(view) =>
+      match @lifecycle.producer_view_record_field(view, record, field) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
 }
 
 ///|
@@ -107,7 +159,7 @@ fn event_window_output_contract(
 fn event_window_begin_record(
   state : EventWindowState,
 ) -> Result[Unit, EventWindowIssue] {
-  guard @storage.record_field_count(state.source, state.record)
+  guard event_window_source_field_count(state.source, state.record)
     is Some(field_count) else {
     return Err(InvalidEventWindowRecord(state.record))
   }
@@ -128,7 +180,7 @@ fn event_window_begin_record(
 fn event_window_read_field(
   state : EventWindowState,
 ) -> Result[Unit, EventWindowIssue] {
-  guard @storage.record_field_at(state.source, state.record, state.field)
+  guard event_window_source_field(state.source, state.record, state.field)
     is Some((name, checked)) else {
     return Err(InvalidEventWindowRecord(state.record))
   }
@@ -255,7 +307,7 @@ fn event_window_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@records.producer_read_available(state.input) {
+    if !event_window_source_available(state.source) {
       return @bounded.Failed(EventWindowInputUnavailable, progress, used)
     }
     if used >= state.control_work_remaining {
@@ -263,7 +315,8 @@ fn event_window_step(
     }
     match state.phase {
       BeginRecord =>
-        if state.record < @storage.record_count(state.source) {
+        if state.record <
+          event_window_source_record_count(state.source).unwrap_or(-1) {
           used += 1
           match event_window_begin_record(state) {
             Ok(_) => ()
@@ -273,7 +326,7 @@ fn event_window_step(
           state.phase = Finish
         }
       ReadField => {
-        let count = @storage.record_field_count(state.source, state.record).unwrap_or(
+        let count = event_window_source_field_count(state.source, state.record).unwrap_or(
           -1,
         )
         if state.field < count {
@@ -361,39 +414,29 @@ fn event_window_output_bound(records : Int, size : Int64, step : Int64) -> Int? 
 }
 
 ///|
-pub fn start_event_window(
+fn start_event_window_source(
   control : @bounded.Control,
   sequence : @lower.PreparedSequence,
   step : Int,
-  input : @records.ProducerRead,
+  source : EventWindowSource,
+  input_carrier : @carrier.Carrier,
+  window : @lower.PreparedWindow,
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
-  control_work_limit? : Int? = None,
+  control_work_limit : Int,
 ) -> Result[EventWindowExecution, EventWindowIssue] {
   let owner = @lower.sequence_owner(sequence)
-  guard @lower.sequence_step(sequence, step) is Some(@lower.WindowStep(window)) &&
-    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.window_preserves_events(window) &&
-    (
-      @lower.operation(node) == "TEA.window.fixed_label" ||
-      @lower.operation(node) == "TEA.window.sliding_assign"
-    ) &&
-    @records.producer_read_matches_operation_input(input, owner, step, 0) else {
-    return Err(InvalidEventWindowKernel)
-  }
-  guard @records.producer_read_storage(input) is Some(source) &&
-    @storage.carrier(source) is @carrier.EventValue(events) else {
+  guard input_carrier is @carrier.EventValue(events) &&
+    event_window_source_record_count(source) is Some(records) else {
     return Err(EventWindowInputUnavailable)
   }
-  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
   if control_work_limit < 0 {
     return Err(InvalidEventWindowLimits)
   }
   if control_work_limit == 0 {
     return Err(EventWindowWorkLimit)
   }
-  let records = @storage.record_count(source)
   let size = @lower.window_size(window)
   let step_size = @lower.window_effective_step(window)
   let (start_name, end_name) = @lower.window_boundaries(window)
@@ -442,7 +485,6 @@ pub fn start_event_window(
     Err(issue) => return Err(EventWindowOutput(issue))
   }
   let state : EventWindowState = {
-    input,
     source,
     output: Some(output),
     limits,
@@ -471,6 +513,90 @@ pub fn start_event_window(
     control, state, event_window_step, cleanup_event_window_state, @records.discard_completed,
   )
   Ok({ session, token: Some(token), })
+}
+
+///|
+pub fn start_event_window(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @records.ProducerRead,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit? : Int? = None,
+) -> Result[EventWindowExecution, EventWindowIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step) is Some(@lower.WindowStep(window)) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.window_preserves_events(window) &&
+    (
+      @lower.operation(node) == "TEA.window.fixed_label" ||
+      @lower.operation(node) == "TEA.window.sliding_assign"
+    ) &&
+    @records.producer_read_matches_operation_input(input, owner, step, 0) else {
+    return Err(InvalidEventWindowKernel)
+  }
+  guard @records.producer_read_storage(input) is Some(storage) else {
+    return Err(EventWindowInputUnavailable)
+  }
+  start_event_window_source(
+    control,
+    sequence,
+    step,
+    Stored(input, storage),
+    @storage.carrier(storage),
+    window,
+    limits,
+    storage_bytes,
+    available,
+    control_work_limit.unwrap_or(limits.max_work),
+  )
+}
+
+///|
+pub fn start_event_window_view(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit? : Int? = None,
+) -> Result[EventWindowExecution, EventWindowIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step) is Some(@lower.WindowStep(window)) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.window_preserves_events(window) &&
+    (
+      @lower.operation(node) == "TEA.window.fixed_label" ||
+      @lower.operation(node) == "TEA.window.sliding_assign"
+    ) &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+    is Some(input_carrier) &&
+    @lifecycle.producer_view_kind(input) == @carrier.EventsKind &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(input),
+      owner,
+      step,
+      0,
+    ) else {
+    return Err(InvalidEventWindowKernel)
+  }
+  start_event_window_source(
+    control,
+    sequence,
+    step,
+    Viewed(input),
+    input_carrier,
+    window,
+    limits,
+    storage_bytes,
+    available,
+    control_work_limit.unwrap_or(limits.max_work),
+  )
 }
 
 ///|

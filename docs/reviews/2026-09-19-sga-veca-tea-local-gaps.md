@@ -638,7 +638,7 @@ multi-step Relation tasks are rejected.
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |
 | Other Relation obligations outside the selected bounded binary chains | In progress | The exact bounded Relation children listed below discharge their checked obligations, including unpivot and unnest output envelopes and selected binary64 numeric observations. Other unlisted obligations remain closed to this retained lane. |
-| Mixed retained Store and Carrier paths | In progress | The typed managed route runs alongside row-file retention for Graph, Events, and Vectors. Direct inter-task Events/Vectors handoffs are covered for the minimal Bridge routes below, and selected Events watermark/dedupe/session and Vectors normalization are covered between construction and projection; other Carrier variants still need route-specific evidence. |
+| Mixed retained Store and Carrier paths | In progress | The typed managed route runs alongside row-file retention for Graph, Events, and Vectors. Direct inter-task Events/Vectors handoffs are covered for the minimal Bridge routes below, and selected Events watermark/dedupe/fixed window/sliding window/session and Vectors normalization are covered between construction and projection; other Carrier variants still need route-specific evidence. |
 | Native Host in-flight cancellation | Separate completion unit | Do not count JS Host cancellation as native request delivery. |
 
 The above is local route evidence. A final verification SHA and Linux CI result
@@ -753,12 +753,12 @@ projection in one authored Stage. The physical tasks retain the exact Events
 or Vectors generation between construction and projection; the real Store
 publishes the resulting Relation and two downstream consumers read
 independently checked Named Results. Events cases also run bounded watermark
-labeling, deduplication, or session assignment as another physical task between
-construction and projection and check the authored labels, survivors, or session
-boundaries. A Vectors case runs bounded normalization between construction and
-projection and checks the f32 components. These cases establish direct
-inter-task handoff for the Bridge-only routes and the selected transforms, not
-for every Carrier variant.
+labeling, deduplication, fixed/sliding window assignment, or session assignment
+as another physical task between construction and projection and check the
+authored labels, survivors, window boundaries, or session boundaries. A Vectors
+case runs bounded normalization between construction and projection and checks
+the f32 components. These cases establish direct inter-task handoff for the
+Bridge-only routes and selected transforms, not for every Carrier variant.
 
 A separate Graph fixture delivers timer cancellation after positive work in
 the later Relation filter, then checks stop, nonpublication, no redispatch and

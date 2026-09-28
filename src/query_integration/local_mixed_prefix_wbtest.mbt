@@ -1,6 +1,9 @@
 ///|
-fn run_standard_host_selected_events_dedupe_prefix() -> Unit raise {
-  let variant = "dedupe_filter"
+fn run_standard_host_selected_events_prefix(
+  variant : String,
+  expected_rows : Int,
+  expected_cid : String,
+) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_carrier_events_chain=true,
     local_carrier_events_variant=variant,
@@ -101,7 +104,7 @@ fn run_standard_host_selected_events_dedupe_prefix() -> Unit raise {
     [values_rows],
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
-  let (dedupe_ops, dedupe, dedupe_material) = run_local_managed_carrier_test_task(
+  let (transform_ops, transform, transform_material) = run_local_managed_carrier_test_task(
     installed,
     run,
     3,
@@ -118,13 +121,18 @@ fn run_standard_host_selected_events_dedupe_prefix() -> Unit raise {
     [],
     4,
     prefix_live,
-    carrier_inputs=[(dedupe, dedupe_material)],
+    carrier_inputs=[(transform, transform_material)],
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   let prefix_rows = local_managed_test_rows(prefix_ops)
-  assert_eq(prefix_rows.length(), 2)
-  assert_true(prefix_rows[0].contains("\"event_id\":2"))
-  assert_true(prefix_rows[1].contains("\"event_id\":4"))
+  assert_eq(prefix_rows.length(), expected_rows)
+  if variant == "dedupe_filter" {
+    assert_true(prefix_rows[0].contains("\"event_id\":2"))
+    assert_true(prefix_rows[1].contains("\"event_id\":4"))
+  } else {
+    assert_true(prefix_rows[0].contains("\"window_start_ms\""))
+    assert_true(prefix_rows[0].contains("\"window_end_ms\""))
+  }
   let filtered_live = Ref(true)
   let filtered_obligations = @strategy.captured_next_managed_obligations(
     run, 10,
@@ -155,7 +163,7 @@ fn run_standard_host_selected_events_dedupe_prefix() -> Unit raise {
     Some(
       @execution.EstablishedSourceRetained(
         @execution.logical_relation_canonical_contract_cid(),
-        "sha256:058f941f294541f1b2c6a5ee64dc74b06f03433d3474a9bc0a23a4c8e5ccf00b",
+        expected_cid,
       ),
     ),
   )
@@ -181,8 +189,8 @@ fn run_standard_host_selected_events_dedupe_prefix() -> Unit raise {
     second_live,
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
-  assert_eq(local_managed_test_rows(first_ops).length(), 2)
-  assert_eq(local_managed_test_rows(second_ops).length(), 2)
+  assert_eq(local_managed_test_rows(first_ops).length(), expected_rows)
+  assert_eq(local_managed_test_rows(second_ops).length(), expected_rows)
   first_live.val = false
   @strategy.close_captured_task_output(run, 6)
   (first_ops.close)()
@@ -202,8 +210,8 @@ fn run_standard_host_selected_events_dedupe_prefix() -> Unit raise {
   (prefix_ops.close)()
   (prefix_ops.cleanup_refresh)() |> ignore
   @strategy.close_captured_task_output(run, 3)
-  (dedupe_ops.close)()
-  (dedupe_ops.cleanup_refresh)() |> ignore
+  (transform_ops.close)()
+  (transform_ops.cleanup_refresh)() |> ignore
   @strategy.close_captured_task_output(run, 2)
   (bridge_ops.close)()
   (bridge_ops.cleanup_refresh)() |> ignore
@@ -223,7 +231,19 @@ fn run_standard_host_selected_events_dedupe_prefix() -> Unit raise {
 
 ///|
 test "standard Host runs selected Events dedupe into Relation consumers" {
-  run_standard_host_selected_events_dedupe_prefix()
+  run_standard_host_selected_events_prefix(
+    "dedupe_filter", 2, "sha256:058f941f294541f1b2c6a5ee64dc74b06f03433d3474a9bc0a23a4c8e5ccf00b",
+  )
+}
+
+///|
+test "standard Host runs selected Events windows into Relation consumers" {
+  run_standard_host_selected_events_prefix(
+    "window_fixed_filter", 3, "sha256:5528c393bdc40f682c1c7271183d2c43814871a253da19ee7fa9891ee59a9007",
+  )
+  run_standard_host_selected_events_prefix(
+    "window_sliding_filter", 6, "sha256:c2ba9666c6a15ecbd0374413e5a94768d7dd66767bf17a710fbecd6a165a1cf8",
+  )
 }
 
 ///|

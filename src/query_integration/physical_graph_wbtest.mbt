@@ -177,7 +177,12 @@ test "physical DAG retains an unselected Carrier prefix before Relation filter" 
 ///|
 test "physical DAG splits selected Carrier transforms before Relation filter" {
   for
-    (events, variant) in [(true, "dedupe_filter"), (false, "normalize_filter")] {
+    (events, variant) in [
+      (true, "dedupe_filter"),
+      (true, "window_fixed_filter"),
+      (true, "window_sliding_filter"),
+      (false, "normalize_filter"),
+    ] {
     let program = query_checked_program_fixture(
       dag=true,
       local_carrier_events_chain=events,
