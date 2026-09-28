@@ -5,12 +5,14 @@ import {performClientSubmit} from './client-submit.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {validClientAdmission, validClientBody, validClientProfile,
-  validDeliveryAttemptLookup, validRequestLookup, validRunState} from
+  validDeliveryAttemptLookup, validRequestLookup, validResourceInspection,
+  validResourceListing, validResourcePeek, validRunState} from
   '../../packages/client-wire/index.mjs';
 import {inspectAuthorizedRunState} from
   '../host-common/run-state-access.mjs';
 import {inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
 import {authorizedLocalResultFrames} from './in-process-result.mjs';
+import {publicClientErrorCode} from './client-http.mjs';
 
 const fail = code => { throw new ClientError(code); };
 const publicCode = /^[A-Za-z][A-Za-z0-9_]{0,79}$/u;
@@ -18,7 +20,8 @@ const publicCode = /^[A-Za-z][A-Za-z0-9_]{0,79}$/u;
 export function createNodeInProcessClientHost({
   authenticate, authorizeConnection, negotiate, prepareSubmit, submit,
   attach, lookupRequest, stateService, resultService, observeRun, wait,
-  cancel, reconcile, maxRowBytes, observe,
+  cancel, reconcile, resources, inspectResource, peekResource, maxRowBytes,
+  observe,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
@@ -103,6 +106,29 @@ export function createNodeInProcessClientHost({
           }) : await invoke(operation === 'status' ? observeRun : wait);
         if (!validRunState(state)) fail('InvalidClientHostRunState');
         return state;
+      }
+      // Discovery shares the HTTP ingress's handlers and reply validation.
+      if (operation === 'resources' || operation === 'resource-inspect' ||
+          operation === 'resource-peek') {
+        let answer;
+        try {
+          answer = await invoke(operation === 'resources' ? resources
+            : operation === 'resource-inspect' ? inspectResource
+              : peekResource);
+        } catch (error) {
+          if (error instanceof ClientError) throw error;
+          throw new ClientError(publicClientErrorCode(error), {cause: error});
+        }
+        const {connection: _connection, ...expected} = body;
+        if (!(operation === 'resources'
+          ? validResourceListing(answer, {
+            resourceConnection: body.resourceConnection, limit: body.limit})
+          : operation === 'resource-inspect'
+            ? validResourceInspection(answer, expected)
+            : validResourcePeek(answer, expected))) {
+          fail('InvalidClientHostResourceReply');
+        }
+        return answer;
       }
       if (operation === 'cancel') return invoke(cancel);
       if (operation === 'reconcile') return invoke(reconcile);

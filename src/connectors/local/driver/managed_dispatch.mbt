@@ -1231,7 +1231,8 @@ pub fn[T] start_local_managed_dispatch(
         }
         let receipt = match @execution.finish_managed_output_values(values) {
           Ok(value) => value
-          Err(_) => return Err(Configuration(InvalidLimits))
+          // The finished output exceeds its value limits: keep the cause.
+          Err(issue) => return Err(ManagedValues(issue))
         }
         finalization_receipt.val = Some(receipt)
         guard finalization_payload.val is Some(payload) else {
@@ -1276,7 +1277,7 @@ pub fn[T] start_local_managed_dispatch(
                   setup.imports.max_batch_bytes,
                 ) {
                 Ok(value) => value
-                Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
+                Err(issue) => return Err(IdentityExport(issue))
               }
               finalization_stream.val = Some(stream)
             }
@@ -1305,8 +1306,7 @@ pub fn[T] start_local_managed_dispatch(
                     setup.imports.max_batch_bytes,
                   ) {
                   Ok(value) => value
-                  Err(_) =>
-                    return Err(Configuration(LogicalIdentityUnsupported))
+                  Err(issue) => return Err(IdentityExport(issue))
                 }
                 finalization_result_preparation.val = Some(preparation)
               }
@@ -1323,7 +1323,7 @@ pub fn[T] start_local_managed_dispatch(
                   preparation, remaining,
                 ) {
                 Ok(value) => value
-                Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
+                Err(issue) => return Err(IdentityExport(issue))
               }
               finalization_work_remaining.val -= used
               work += used
@@ -1339,7 +1339,7 @@ pub fn[T] start_local_managed_dispatch(
                   preparation,
                 ) {
                 Ok(value) => value
-                Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
+                Err(issue) => return Err(IdentityExport(issue))
               }
               finalization_result_preparation.val = None
               finalization_stream.val = Some(stream)
@@ -1367,8 +1367,7 @@ pub fn[T] start_local_managed_dispatch(
                 let receipt = match
                   @execution.finish_completed_output_export(stream) {
                   Ok((value, _)) => value
-                  Err(_) =>
-                    return Err(Configuration(LogicalIdentityUnsupported))
+                  Err(issue) => return Err(IdentityExport(issue))
                 }
                 let identity = @execution.output_stream_identity(
                     @execution.completed_export_content(receipt),
@@ -1380,8 +1379,7 @@ pub fn[T] start_local_managed_dispatch(
                 let receipt = match
                   @execution.finish_completed_relation_export(stream) {
                   Ok((value, _)) => value
-                  Err(_) =>
-                    return Err(Configuration(LogicalIdentityUnsupported))
+                  Err(issue) => return Err(IdentityExport(issue))
                 }
                 let identity = @execution.logical_relation_cid(
                   @execution.completed_relation_export_identity(receipt),
@@ -1397,7 +1395,7 @@ pub fn[T] start_local_managed_dispatch(
             finalization_work_remaining.val -= 1
             work += 1
           }
-          Err(_) => return Err(Configuration(LogicalIdentityUnsupported))
+          Err(issue) => return Err(IdentityExport(issue))
         }
       }
       if finalization_identity.val < identity_requirements.length() {

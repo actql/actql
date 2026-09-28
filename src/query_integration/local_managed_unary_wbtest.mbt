@@ -261,6 +261,8 @@ fn local_managed_unary_consumer_expected(kind : String) -> Array[String] {
 fn run_local_managed_unary_case(
   kind : String,
   publication? : Bool = false,
+  max_batch_bytes? : Int,
+  finalization_failure? : Ref[@local_driver.LocalDispatchIssue?],
 ) -> Unit raise {
   let bounded_top_k_chain = kind == "top_k" ||
     kind == "top_k_parameter" ||
@@ -348,10 +350,9 @@ fn run_local_managed_unary_case(
           100
         },
       },
-      max_batch_bytes: if large_nested_input {
-        2048
-      } else {
-        64
+      max_batch_bytes: match max_batch_bytes {
+        Some(value) => value
+        None => if large_nested_input { 2048 } else { 64 }
       },
     },
     None,
@@ -372,6 +373,7 @@ fn run_local_managed_unary_case(
     1,
     values_live,
     obligations?=values_obligations,
+    finalization_failure?,
   )
   let value_rows = local_managed_test_rows(values_ops)
   assert_eq(value_rows, local_managed_unary_input_expected(kind))
@@ -473,6 +475,7 @@ fn run_local_managed_unary_case(
     execution_quantum=if bounded_unary { 1 } else { 0 },
     execution_advances=Some(bounded_advances),
     require_provider=bounded_unary || bounded_top_k_chain,
+    finalization_failure?,
   )
   if bounded_unary {
     assert_true(bounded_advances.val > 4)
@@ -1505,4 +1508,29 @@ test "Local qualified select feeds two downstream Computes" {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "Local identity export over the import batch keeps its resource cause" {
+  // A published row larger than one import batch cannot be exported for its
+  // identity. That is a resource limit, reported as such: never as an
+  // unsupported logical identity.
+  let failure : Ref[@local_driver.LocalDispatchIssue?] = Ref(None)
+  try {
+    run_local_managed_unary_case(
+      "select",
+      publication=true,
+      max_batch_bytes=8,
+      finalization_failure=failure,
+    )
+    fail("expected the identity export to stop")
+  } catch {
+    ManagedFinalizationStopped => ()
+    error => raise error
+  }
+  assert_true(failure.val is Some(@local_driver.IdentityExport(_)))
+  assert_true(
+    !(failure.val
+    is Some(@local_driver.Configuration(@connector.LogicalIdentityUnsupported))),
+  )
 }

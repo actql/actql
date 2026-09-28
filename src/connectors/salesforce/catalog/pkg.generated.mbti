@@ -12,6 +12,8 @@ pub fn acknowledge_query_page(QueryRead, QueryPage) -> Result[Unit, QueryReadIss
 
 pub fn begin_catalog_sync(ResourceListing) -> CatalogSync
 
+pub fn begin_named_catalog_sync(Array[String]) -> Result[CatalogSync, ListingIssue]
+
 pub fn begin_query_read(ReadProjection, String, QueryPageLimits, Int, Int64) -> Result[QueryRead, QueryReadIssue]
 
 pub fn bind_read_projection_contracts(ReadProjection, Array[@value_contract.Contract]) -> ReadProjection?
@@ -41,6 +43,8 @@ pub fn catalog_response_sha256(Bytes) -> String
 pub fn catalog_sync_describe(CatalogSync, String, Bytes, DescribeLimits) -> Result[Unit, CatalogSyncIssue]
 
 pub fn catalog_sync_is_complete(CatalogSync) -> Bool
+
+pub fn catalog_sync_is_named(CatalogSync) -> Bool
 
 pub fn catalog_sync_next(CatalogSync) -> String?
 
@@ -167,6 +171,8 @@ pub fn recheck_write_collection_request(WriteCollectionRequest, CatalogObservati
 pub fn recheck_write_projection(WriteProjection, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
 
 pub fn recover_catalog_observation(String, Bytes, Array[Bytes?], Array[Int], CatalogObservationBinding, String, Array[String?], Array[String?], ListLimits, DescribeLimits, Int) -> Result[CatalogObservation, CatalogObservationRecoveryIssue]
+
+pub fn recover_named_catalog_observation(String, Array[String], Array[Bytes?], Array[Int], CatalogObservationBinding, Array[String?], Array[String?], DescribeLimits, Int) -> Result[CatalogObservation, CatalogObservationRecoveryIssue]
 
 pub fn recover_single_write_request(WriteProjection, String, String, String, WriteBodyLimits, WriteRequestLimits) -> Result[SingleWriteRequest, RecoveredWriteRequestIssue]
 
@@ -366,6 +372,7 @@ pub(all) enum CatalogObservationRecoveryIssue {
 
 pub struct CatalogSync {
   listing : ResourceListing
+  listed : Bool
   outcomes : Array[ResourceDescribeOutcome]
   mut next_index : Int
   mut finished : Bool
@@ -421,6 +428,8 @@ pub struct DeclaredView {
   source_ref : String
   view_cid : String
   fields : Array[String]
+  carrier_schema_cid : String
+  data_policy_cid : String
 }
 
 pub struct DeclaredWritable {
@@ -440,6 +449,7 @@ pub(all) enum DescribeFailure {
   TransportInterrupted
   InvalidMetadata
   Cancelled
+  NotFound
 } derive(Eq, @debug.Debug)
 
 pub(all) enum DescribeIssue {

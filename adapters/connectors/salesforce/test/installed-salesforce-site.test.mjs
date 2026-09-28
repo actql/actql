@@ -58,15 +58,19 @@ async function installed(t, {entries, profile = {}, secret,
   const path = join(root, 'salesforce-site.json');
   await writeFile(path, JSON.stringify(document));
   const scopes = [];
-  const accountConfiguration = configuration(entries ?? [
+  const defaultEntries = entries ?? [
     accountEntry('records-read', 'allow', {
       connection: `salesforce:${org.orgId}`, resource: 'Test_Record__c',
       operation: 'read'}),
-  ]);
-  const load = async (options = {}) => {
+  ];
+  // `entries` replaces the account configuration for this load only, as a
+  // Host restarted with changed permissions would.
+  const load = async ({entries: loadEntries, path: loadPath = path,
+    ...options} = {}) => {
     const authorization = await installSalesforceAuthorization({
-      accountConfiguration, principalId: 'principal-a', root});
-    const site = await loadInstalledSalesforceSite(path, {
+      accountConfiguration: configuration(loadEntries ?? defaultEntries),
+      principalId: 'principal-a', root});
+    const site = await loadInstalledSalesforceSite(loadPath, {
       commonMoon, salesforceMoon, authorization,
       runtimeBundleCid: cid('b'),
       resolveSecret: secret ?? (async scope => {
@@ -255,13 +259,11 @@ test('installed Salesforce peek describes only its Resource in a larger org',
     const preview = await site.peek({decision, resource: 'Test_Record__c',
       fields: ['Id'], maxRows: 2});
     assert.equal(preview.rows.length, 2);
-    // Two syncs (plan and recheck) each list once and describe only the
-    // previewed Resource, then one query; no other object is described.
+    // The plan and the recheck each describe only the previewed Resource,
+    // then one query; the sObject listing is never read.
     assert.deepEqual(setup.org.seen.slice(before).map(item =>
       decodeURIComponent(item.path)), [
-      '/services/data/v62.0/sobjects/',
       '/services/data/v62.0/sobjects/Test_Record__c/describe',
-      '/services/data/v62.0/sobjects/',
       '/services/data/v62.0/sobjects/Test_Record__c/describe',
       '/services/data/v62.0/query?q=SELECT Id FROM Test_Record__c LIMIT 2',
     ]);
@@ -353,10 +355,9 @@ test('installed Salesforce Site declares only its selected, typed Resources',
     const before = setup.org.seen.length;
     const declared = await site.declareCatalog({connectorId: 'crm-main',
       resources: ['Test_Record__c']});
-    // One list and one describe of the selected Resource, no query.
+    // One describe of the selected Resource: no listing, no query.
     assert.deepEqual(setup.org.seen.slice(before).map(item =>
       decodeURIComponent(item.path)), [
-      '/services/data/v62.0/sobjects/',
       '/services/data/v62.0/sobjects/Test_Record__c/describe',
     ]);
     assert.equal(site.ownsDeclaration(declared.declaration), true);
@@ -383,7 +384,7 @@ test('installed Salesforce Site declares only its selected, typed Resources',
       assert.equal(`sha256:${createHash('sha256')
         .update(canonicalJson(body)).digest('hex')}`, viewCid);
     }
-    // Account was listed but not selected: it is outside the declaration,
+    // Account exists but was not selected: it is outside the declaration,
     // not declared absent.
     assert.equal(declared.catalog.includes('Account'), false);
     // The same selection again is the same declaration.
@@ -419,4 +420,161 @@ test('a Program is checked against the Site\'s generated declaration',
       assert.equal(commonMoon.clientProgramPreparationReady(
         prepare(resource, fields)), undefined);
     }
+  });
+
+test('Catalog describe needs its own current read decision per Resource',
+  async t => {
+    const setup = await installed(t, {extraObjects: ['Account']});
+    const site = await setup.load();
+    const before = setup.org.seen.length;
+    // Account has no read entry: the declaration is refused before any
+    // provider call, including the permitted Resource's describe.
+    await assert.rejects(site.declareCatalog({connectorId: 'crm-main',
+      resources: ['Test_Record__c', 'Account']}),
+    {code: 'SalesforceCatalogDescribeNotAuthorized', resource: 'Account'});
+    assert.equal(setup.org.seen.length, before);
+    // A Host restarted without the read entry cannot describe or preview.
+    const revoked = await setup.load({entries: [
+      accountEntry('records-read', 'deny', {
+        connection: `salesforce:${setup.org.orgId}`,
+        resource: 'Test_Record__c', operation: 'read'})]});
+    await assert.rejects(revoked.declareCatalog({connectorId: 'crm-main',
+      resources: ['Test_Record__c']}),
+    {code: 'SalesforceCatalogDescribeNotAuthorized'});
+    assert.equal(setup.org.seen.length, before);
+  });
+
+test('a metadata read decision never authorizes a record or query grant',
+  async t => {
+    const setup = await installed(t);
+    const site = await setup.load({now: () => 1_000});
+    await site.declareCatalog({connectorId: 'crm-main',
+      resources: ['Test_Record__c']});
+    // The Site decided the describe under its own metadata subject. The
+    // same subject asked by a caller is the gate's cached decision, which
+    // authorizes a describe only.
+    const read = {connection: site.connection, resource: 'Test_Record__c',
+      operation: 'read'};
+    const metadata = await site.authorization.authorize('acquisition', read, {
+      subjectCid: `sha256:${createHash('sha256').update(JSON.stringify({
+        version: 'actql-salesforce-catalog-describe/0.1',
+        contextCid: site.context.contextCid, siteKey: 'salesforce-site',
+        siteGeneration: 1, connectionRevision: 'connection-revision-a',
+        resource: 'Test_Record__c', occurrence: 'declare-1000-0'}))
+        .digest('hex')}`});
+    assert.equal(metadata.action, 'dispatch');
+    for (const operation of ['salesforce:query:read',
+      'salesforce:record:observe']) {
+      assert.throws(() => site.issueGrant({operation, decision: metadata,
+        resource: 'Test_Record__c', runInvocationCid: cid('3'),
+        dispatchRequestCid: cid('4')}),
+      {code: 'SalesforceCredentialGrantNotAuthorized'});
+    }
+    // A data read decision under the caller's own subject still grants.
+    const data = await site.authorization.authorize('acquisition', read,
+      {subjectCid: cid('c')});
+    assert.equal(site.issueGrant({operation: 'salesforce:query:read',
+      decision: data, resource: 'Test_Record__c', runInvocationCid: cid('3'),
+      dispatchRequestCid: cid('4')}).scope.operation,
+    'salesforce:query:read');
+  });
+
+test('a published declaration restores without provider I/O and only for its Site',
+  async t => {
+    const setup = await installed(t);
+    const site = await setup.load();
+    const declared = await site.declareCatalog({connectorId: 'crm-main',
+      resources: ['Test_Record__c']});
+    const published = JSON.parse(JSON.stringify({evidence: declared.evidence,
+      observationCid: declared.observationCid,
+      catalogCid: declared.catalog_cid}));
+    // A restarted Host restores the same declaration from the retained
+    // describe evidence: no credential, no provider call.
+    const restarted = await setup.load({resolveSecret: async () => {
+      throw new Error('secret must not be resolved');
+    }});
+    const before = setup.org.seen.length;
+    const restored = restarted.restoreDeclaration({connectorId: 'crm-main',
+      resources: ['Test_Record__c'], ...published});
+    assert.equal(setup.org.seen.length, before);
+    assert.equal(restored.catalog, declared.catalog);
+    assert.equal(restarted.ownsDeclaration(restored.declaration), true);
+    assert.equal(site.ownsDeclaration(restored.declaration), false);
+    // Another connector id regenerates another Catalog: refused.
+    assert.throws(() => restarted.restoreDeclaration({connectorId: 'crm-b',
+      resources: ['Test_Record__c'], ...published}),
+    {code: 'ForeignSalesforceDeclaration'});
+    // Altered evidence cannot reproduce the published observation.
+    const altered = structuredClone(published);
+    altered.evidence.describeResponseSha256[0] = 'f'.repeat(64);
+    assert.throws(() => restarted.restoreDeclaration({connectorId: 'crm-main',
+      resources: ['Test_Record__c'], ...altered}));
+    // A new Site generation or connection revision is another installation:
+    // the old evidence is not carried over.
+    for (const [key, value] of [['siteGeneration', 2],
+      ['connectionRevision', 'connection-revision-b']]) {
+      const path = join(setup.root, `site-${key}.json`);
+      await writeFile(path, JSON.stringify({...setup.document,
+        [key]: value}));
+      const moved = await setup.load({path});
+      assert.throws(() => moved.restoreDeclaration({connectorId: 'crm-main',
+        resources: ['Test_Record__c'], ...published}),
+      {code: 'ForeignSalesforceDeclaration'});
+    }
+  });
+
+test('a Checkpoint read approval is admitted only for this installation',
+  async t => {
+    const {recordCheckpointApproval} = await import(
+      '../../../host-common/checkpoint-approval.mjs');
+    const setup = await installed(t);
+    const site = await setup.load();
+    const tuple = Object.freeze({connection: site.connection,
+      resource: 'Test_Record__c', operation: 'read'});
+    const binding = {version: 'actql-installed-salesforce-target/0.1',
+      org_id: site.orgId, instance_origin: site.instanceOrigin,
+      site_key: site.siteKey, site_generation: site.siteGeneration,
+      connection_revision: site.connectionRevision, catalog_cid: cid('c'),
+      resource: 'Test_Record__c', fields: ['Id', 'Name']};
+    const approval = (facts = {}) => recordCheckpointApproval(Object.freeze({
+      boundary: 'acquisition', action: 'dispatch', basis: 'resumed_approval',
+      tuple, checkpointCid: cid('d')}), {checkpointCid: cid('d'),
+      readTuple: tuple, physicalBinding: binding, principalId: 'principal-a',
+      ...facts});
+    const admitted = site.admitCheckpointReadApproval(approval());
+    assert.equal(admitted.resource, 'Test_Record__c');
+    // It grants exactly the query read of its Resource.
+    const grant = operation => site.issueGrant({operation,
+      decision: admitted, resource: 'Test_Record__c',
+      runInvocationCid: cid('3'), dispatchRequestCid: cid('4')});
+    assert.equal(grant('salesforce:query:read').scope.operation,
+      'salesforce:query:read');
+    for (const operation of ['salesforce:record:observe',
+      'salesforce:record:update']) {
+      assert.throws(() => grant(operation),
+        {code: 'SalesforceCredentialGrantNotAuthorized'});
+    }
+    assert.throws(() => site.issueGrant({operation: 'salesforce:query:read',
+      decision: admitted, resource: 'Account', runInvocationCid: cid('3'),
+      dispatchRequestCid: cid('4')}),
+    {code: 'SalesforceCredentialGrantNotAuthorized'});
+    // A hand-made decision, a copy, or another installation's approval is
+    // never admitted.
+    const forged = Object.freeze({boundary: 'acquisition', action: 'dispatch',
+      basis: 'resumed_approval', tuple, checkpointCid: cid('d')});
+    for (const decision of [forged, {...approval()},
+      approval({principalId: 'principal-b'}),
+      approval({physicalBinding: {...binding, site_generation: 2}}),
+      approval({physicalBinding: {...binding,
+        connection_revision: 'connection-revision-b'}}),
+      approval({physicalBinding: {...binding, org_id: '00D000000000009EAA'}}),
+      approval({physicalBinding: {...binding, resource: 'Account'}})]) {
+      assert.throws(() => site.admitCheckpointReadApproval(decision),
+        {code: 'SalesforceReadApprovalNotAdmitted'});
+    }
+    // A Site's own grant check never accepts a raw Checkpoint decision.
+    assert.throws(() => site.issueGrant({operation: 'salesforce:query:read',
+      decision: approval(), resource: 'Test_Record__c',
+      runInvocationCid: cid('3'), dispatchRequestCid: cid('4')}),
+    {code: 'SalesforceCredentialGrantNotAuthorized'});
   });

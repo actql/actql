@@ -78,6 +78,12 @@ function responseCode(error) {
   return 500;
 }
 
+// The public code HTTP ingress answers for `error`; in-process ingress uses
+// the same classification for operations both serve.
+export function publicClientErrorCode(error) {
+  return responseCode(error) === 500 ? 'ClientHostFailure' : error.code;
+}
+
 function sendError(response, error) {
   if (response.headersSent) {
     response.destroy(error);

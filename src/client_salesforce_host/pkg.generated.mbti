@@ -1,0 +1,74 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/client_salesforce_host"
+
+import {
+  "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/connectors/salesforce/host",
+  "actql/actql/execution_query",
+  "actql/actql/query_planning",
+  "actql/actql/run_publication",
+}
+
+// Values
+pub fn capture_client_salesforce_source(@host.SalesforceBroadHostRun) -> Result[@host.SalesforceBroadSourceCapture, ClientSalesforceIssue]
+
+pub fn client_salesforce_acquisition_plan(ClientSalesforceAcquisition) -> @catalog.ReadProjection
+
+pub fn client_salesforce_declaration_catalog_cid(ClientSalesforceDeclaration) -> String
+
+pub fn client_salesforce_site(String, String, String, String, String, String, Int, String) -> Result[ClientSalesforceSite, ClientSalesforceIssue]
+
+pub fn client_salesforce_source_target(ClientSalesforceDeclaration, @query_planning.QueryRequirement) -> Result[(String, Array[String]), ClientSalesforceIssue]
+
+pub fn issue_client_salesforce_source_evidence(ClientSalesforceAcquisition, @host.SalesforceBroadSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, ClientSalesforceIssue]
+
+pub fn prepare_client_salesforce_acquisition(ClientSalesforceDeclaration, @query_planning.QueryRequirement, @catalog.CatalogObservation, String, String, Int) -> Result[ClientSalesforceAcquisition, ClientSalesforceIssue]
+
+pub fn recover_client_salesforce_observation(ClientSalesforceSite, String, String, String, String, Array[String], Array[Bytes?], Array[Int], Array[String?], Array[String?], @catalog.DescribeLimits, Int, String?) -> Result[@catalog.CatalogObservation, ClientSalesforceIssue]
+
+pub fn restore_client_salesforce_declaration(ClientSalesforceSite, @catalog.CatalogObservation, String, String, @catalog.DeclarationLimits) -> Result[ClientSalesforceDeclaration, ClientSalesforceIssue]
+
+pub fn start_client_salesforce_acquisition(ClientSalesforceAcquisition, String, (@host.SalesforceBroadAttempt) -> Bool) -> Result[@host.SalesforceBroadHostRun, ClientSalesforceIssue]
+
+// Errors
+
+// Types and methods
+type ClientSalesforceAcquisition
+
+pub struct ClientSalesforceDeclaration {
+  site : ClientSalesforceSite
+  declaration : @catalog.StaticDeclaration
+}
+
+pub(all) enum ClientSalesforceIssue {
+  InvalidInput
+  ForeignBinding
+  Recovery(@catalog.CatalogObservationRecoveryIssue)
+  UnknownRevision
+  Declaration(@catalog.DeclarationIssue)
+  ForeignDeclaration
+  UndeclaredSource
+  Projection(@catalog.ReadProjectionIssue)
+  Broad(@host.SalesforceBroadIssue)
+  InvalidContracts
+  Registration
+  Candidate
+  Selection
+  Host(@host.SalesforceBroadHostIssue)
+  Evidence(@host.SalesforceSourceEvidenceIssue)
+}
+
+pub struct ClientSalesforceSite {
+  tenant : String
+  principal : String
+  environment : String
+  connection_revision : String
+  org_id : String
+  site_key : String
+  site_generation : Int
+  resource_origin : String
+}
+
+// Type aliases
+
+// Traits

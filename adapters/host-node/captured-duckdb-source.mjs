@@ -3,6 +3,9 @@
 // this adapter supplies only the approved database grant and bounded I/O.
 import {readFile} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
+import {acquisitionFailure} from '../host-common/acquisition-outcome.mjs';
+import {ExecutionAuthorizationError} from
+  '../host-common/authorization-gate.mjs';
 import {authorizeLocalDatabase} from
   '../connectors/duckdb/node/session.mjs';
 import {runNativeHostQuery, nativeSourceIdentityMatches, issueNativeSourceEvidence} from
@@ -82,26 +85,43 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   return prepared;
 }
 
+// A failure states how the acquisition ended: nothing before the native read
+// starts it (a denied read is decided before any session opens); a failure
+// after the capture opened closes it, so it has stopped. Any other native
+// read failure keeps its end unknown.
 export async function openCapturedDuckDBSource({moon, preparedProgram,
   registry, values, fragment, ordered, database, schema, table,
   sourceAccess, transportLimits, signal, preparedSource}) {
-  const prepared = preparedSource ?? await prepareCapturedDuckDBSource({moon,
-    preparedProgram, registry, values, fragment, ordered, database, schema,
-    table, sourceAccess});
-  const owner = preparations.get(prepared);
-  if (owner === undefined || owner.moon !== moon ||
-      owner.preparedProgram !== preparedProgram ||
-      owner.registry !== registry || owner.values !== values ||
-      owner.fragment !== fragment || owner.ordered !== ordered ||
-      owner.database !== database || owner.schema !== schema ||
-      owner.table !== table || owner.sourceAccess !== sourceAccess) {
-    throw new Error('InstalledSourcePreparationMismatch');
+  let owner;
+  let prepared;
+  let grant;
+  try {
+    prepared = preparedSource ?? await prepareCapturedDuckDBSource({moon,
+      preparedProgram, registry, values, fragment, ordered, database, schema,
+      table, sourceAccess});
+    owner = preparations.get(prepared);
+    if (owner === undefined || owner.moon !== moon ||
+        owner.preparedProgram !== preparedProgram ||
+        owner.registry !== registry || owner.values !== values ||
+        owner.fragment !== fragment || owner.ordered !== ordered ||
+        owner.database !== database || owner.schema !== schema ||
+        owner.table !== table || owner.sourceAccess !== sourceAccess) {
+      throw new Error('InstalledSourcePreparationMismatch');
+    }
+    grant = await authorizeLocalDatabase(database, sourceAccess);
+  } catch (cause) {
+    throw acquisitionFailure(cause, 'not_started');
   }
   const {checkedSource} = prepared;
   const {requirement, evidenceContext, acquisition} = owner;
-  const grant = await authorizeLocalDatabase(database, sourceAccess);
-  const capture = await runNativeHostQuery(grant, acquisition,
-    transportLimits, signal);
+  let capture;
+  try {
+    capture = await runNativeHostQuery(grant, acquisition, transportLimits,
+      signal);
+  } catch (cause) {
+    throw acquisitionFailure(cause, cause instanceof
+      ExecutionAuthorizationError ? 'not_started' : 'unknown');
+  }
   try {
     const capturedSource = capture.source();
     if (moon.clientProgramCapturedSourceMatches(preparedProgram,
@@ -125,6 +145,6 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
       close: () => capture.close()});
   } catch (cause) {
     capture.close();
-    throw cause;
+    throw acquisitionFailure(cause, 'stopped');
   }
 }

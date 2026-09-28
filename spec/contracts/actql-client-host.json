@@ -247,7 +247,7 @@
         "resource": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
         "observationCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "status": {"enum": ["ready", "catalog_required"]},
-        "reason": {"enum": ["listing_truncated", "not_visible", "describe_unavailable"]},
+        "reason": {"enum": ["listing_truncated", "not_visible", "not_observed", "not_found", "describe_unavailable"]},
         "summaryJson": {"type": "string", "minLength": 2, "maxLength": 1048576}
       }
     },

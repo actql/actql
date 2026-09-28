@@ -8,6 +8,7 @@ import {occurrences, violations} from './check-owned-contract-versions.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const local = ['connectors_builtin_node', 'connectors/duckdb/host_node',
+  'connectors/salesforce/host_node',
   'retained_host_bridge', 'process_host_bridge', 'checkpoint_runtime_node'];
 const packages = {
   'run-host-core': {sources: ['client_values_host_abi'],
