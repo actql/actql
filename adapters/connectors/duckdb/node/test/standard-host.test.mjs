@@ -7537,6 +7537,15 @@ async function exerciseStrategyGraph(
       [{distinct: true}], [{filter: 'id > 0'}, {select: ['id']}],
       ['id'], [{id: 1}, {id: 1}, {id: 2}]),
     expected: [1, 2, 3, 4].map(id => ({id})), fields: ['id']},
+    {name: 'top-k-filter-select', source: retainedUnaryChain(
+      [{assert_rows: {unique_by: ['id']}},
+        {top_k: {k: 2, by: [{id: 'desc'}]}}],
+      [{filter: 'id > 0'}, {select: ['id']}], ['id']),
+    expected: [{id: 4}, {id: 3}], fields: ['id']},
+    {name: 'assert-filter-select', source: retainedUnaryChain(
+      [{assert_rows: {where: 'id > 0'}}],
+      [{filter: 'id > 0'}, {select: ['id']}], ['id']),
+    expected: [1, 2, 3, 4].map(id => ({id})), fields: ['id']},
     {name: 'group-filter-select', source: retainedUnaryChain(
       [{group: {by: ['id'], aggregates: {n: {fn: 'count'}}}}],
       [{filter: 'n > 0'}, {select: ['id', 'n']}],

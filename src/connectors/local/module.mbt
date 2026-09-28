@@ -292,7 +292,9 @@ pub(all) enum LocalBoundedRelationCheck {
   Analytic
   Pivot
   RowWindow
+  TopK
   Dedupe
+  Assertion
 }
 
 ///|
@@ -340,7 +342,17 @@ fn local_bounded_relation_check(
             None => false
           }
         RowWindow => false
+        TopK =>
+          match @lower.kernel_body(kernel) {
+            @lower.TopK(_, _) | @lower.PartitionedTopK(_, _) => true
+            _ => false
+          }
         Dedupe => @lower.kernel_body(kernel) is @lower.DedupeRows
+        Assertion =>
+          match @lower.kernel_body(kernel) {
+            @lower.AssertAll(_) | @lower.AssertUnique(_) => true
+            _ => false
+          }
       }
     Some(@lower.WindowStep(_)) => check is RowWindow
     _ => false
