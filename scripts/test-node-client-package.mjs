@@ -210,6 +210,37 @@ for (const mode of ['WALK', 'TRAIL', 'ACYCLIC']) {
   assert.notEqual(query, '');
   await writeFile(join(root, 'graph-' + name + '-query.json'), query);
 }
+// Node 3 is unreachable from node 1, while node 2 reaches a second hop only
+// after its predicate has been evaluated. These rows fix both demand cases.
+const predicateSteps = [
+  {values: {schema: {
+    id: {type: 'number', nullable: false},
+    den: {type: 'number', nullable: false}},
+  rows: [{id: 1, den: 1}, {id: 2, den: 2}, {id: 3, den: 0}]},
+  as: 'nodes'},
+  {values: {schema: {
+    src: {type: 'number', nullable: false},
+    dst: {type: 'number', nullable: false},
+    rel: {type: 'string', nullable: true}},
+  rows: [{src: 1, dst: 2, rel: 'R'}]}, as: 'edges'},
+  {graph: {nodes: {from: 'nodes', id: 'id', fields: ['den']},
+    edges: {from: 'edges', source: 'src', target: 'dst',
+      label: 'rel', fields: []}}, as: 'g'},
+];
+for (const [name, query] of [
+  ['unreached', 'FROM GRAPH g |> MATCH WALK '
+    + '(a {id: 1})-[]->(b WHERE 10 / b.den > 1) '
+    + '|> SELECT b.id AS id'],
+  ['prefix-failure', 'FROM GRAPH g |> MATCH WALK '
+    + '(a {id: 1})-[]->(b WHERE 10 / (b.den - 2) > 1)-[]->(c) '
+    + '|> SELECT c.id AS id'],
+]) {
+  const compiled = queryFrontend.compileGeneratedGraphQueryJson(
+    query, 'g', JSON.stringify(predicateSteps), JSON.stringify(['id', 'den']),
+    JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_' + name);
+  assert.notEqual(compiled, '', name);
+  await writeFile(join(root, 'graph-' + name + '-query.json'), compiled);
+}
 const pairExpectedProgram = JSON.parse(await readFile(join(repository,
   'spec/frontend/fixtures/query-pair.expected-program.json'), 'utf8'));
 const pairExpectedRows = JSON.parse(await readFile(join(repository,
@@ -1177,6 +1208,21 @@ async function checkGraphPathModes(client, suffix) {
     assert.deepEqual(await execution.result('answer').all(), expected);
   }
 }
+async function checkGraphPredicateDemand(client, suffix) {
+  const unreached = await client.aql(readFileSync(
+    'graph-unreached-query.json', 'utf8'),
+  {format: 'json', requestId: 'packed-graph-unreached-' + suffix});
+  const unreachedStatus = await unreached.wait();
+  assert.equal(unreachedStatus.status, 'succeeded',
+    JSON.stringify(unreachedStatus));
+  assert.deepEqual(await unreached.result('answer').all(), [{id: 2}]);
+  const failed = await client.aql(readFileSync(
+    'graph-prefix-failure-query.json', 'utf8'),
+  {format: 'json', requestId: 'packed-graph-prefix-failure-' + suffix});
+  const failedStatus = await failed.wait();
+  assert.equal(failedStatus.status, 'failed', JSON.stringify(failedStatus));
+  await assert.rejects(failed.result('answer').all());
+}
 async function checkQueryPair(client, suffix) {
   const execution = await client.aql(pairQueryDocument,
     {format: 'json', requestId: 'packed-query-pair-' + suffix});
@@ -1730,6 +1776,7 @@ await checkGraphPathQuery(installedLocal, 'local');
 await checkGraphMacroQuery(installedLocal, 'local');
 await checkBoundedGraphQuery(installedLocal, 'local');
 await checkGraphPathModes(installedLocal, 'local');
+await checkGraphPredicateDemand(installedLocal, 'local');
 await checkValuesCte(installedLocal, 'local');
 await checkPipeSnapshots(installedLocal, 'local');
 await checkNullOrder(installedLocal, 'local');
@@ -1942,6 +1989,7 @@ await checkGraphPathQuery(installedRemote, 'remote');
 await checkGraphMacroQuery(installedRemote, 'remote');
 await checkBoundedGraphQuery(installedRemote, 'remote');
 await checkGraphPathModes(installedRemote, 'remote');
+await checkGraphPredicateDemand(installedRemote, 'remote');
 if (process.env.ACTQL_GRAPH_ONLY === '1') {
   installedRemote.close();
   console.log('packed Graph Local and HTTP smoke passed');
