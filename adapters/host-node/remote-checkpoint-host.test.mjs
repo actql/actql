@@ -888,11 +888,17 @@ test('installed Effect factory resumes an approved captured Set',
     const finalHost = await remoteHost(t, protectedHost(undefined,
       {accountConfiguration: effectCommitConfiguration()}),
     {directory, effectInstallation}).catch(error => {
+      // The direct cause, the primary failure and each initialization
+      // cleanup failure are kept apart; none replaces another.
       throw new Error(JSON.stringify({code: error.code,
+        causeCode: error.cause?.code, causeMessage: error.cause?.message,
         primaryCode: error.primaryFailure?.code,
         primaryMessage: error.primaryFailure?.message,
         primaryStack: error.primaryFailure?.stack,
-        cleanupPending: error.cleanupPending}), {cause: error});
+        cleanupPending: error.cleanupPending,
+        cleanupErrors: (error.cleanupErrors ?? []).map(item => ({
+          owner: item.owner, code: item.error?.code,
+          message: item.error?.message}))}), {cause: error});
     });
     const finalExecution = await (await finalHost.as('owner-token'))
       .attach(execution.ref);
