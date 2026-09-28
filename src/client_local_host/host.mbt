@@ -96,7 +96,10 @@ fn open_checked_local_host(
     holdings: 10,
     transfer_bytes: 10000000L,
     retained_bytes: 200000000L,
-    execution_bytes: 268435456L,
+    // The admitted value and retained-output reservations can exceed
+    // 256 MiB for a bounded multi-task Program. Keep the established value
+    // envelope and cap concurrent execution reservations at 512 MiB.
+    execution_bytes: 536870912L,
   }
   let opened = match source {
     None =>

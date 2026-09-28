@@ -821,6 +821,8 @@ const pipeSetGroupedQuery = queryFrontend.compileCapturedQueryJson(
 assert.notEqual(pipeSetGroupedQuery, '');
 await writeFile(join(root, 'pipe-set-grouped-query.json'),
   pipeSetGroupedQuery);
+await writeFile(join(root, 'segmented-join-program.json'), await readFile(
+  join(repository, 'adapters/host-node/fixtures/segmented-join-program.json')));
 const sourceCatalog = await readFile(join(repository,
   'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
 const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
@@ -1378,6 +1380,19 @@ const extendedQueryDocument = readFileSync('extended-query.json', 'utf8');
 const pipeSetQueryDocument = readFileSync('pipe-set-query.json', 'utf8');
 const pipeSetGroupedDocument = readFileSync('pipe-set-grouped-query.json',
   'utf8');
+const segmentedDocument = readFileSync('segmented-join-program.json', 'utf8');
+async function checkSegmentedProgram(client, suffix) {
+  const execution = await client.aql(segmentedDocument, {format: 'json',
+    requestId: 'packed-segmented-join-' + suffix});
+  const status = await execution.wait();
+  assert.equal(status.status, 'succeeded', JSON.stringify(status));
+  assert.deepEqual(await execution.result('answer').all(),
+    [{a: 2, d: null}]);
+  const attached = await client.attach(execution.ref);
+  assert.deepEqual(attached.ref, execution.ref);
+  assert.deepEqual(await attached.result('answer').all(),
+    [{a: 2, d: null}]);
+}
 async function runApplication(options, requestId) {
   const client = await connect(options);
   const execution = await client.aql(document, {format: 'json', requestId});
@@ -1562,6 +1577,7 @@ const computedLocalState = await computedLocal.wait();
 assert.equal(computedLocalState.status, 'succeeded',
   JSON.stringify(computedLocalState));
 assert.deepEqual(await computedLocal.result('answer').all(), [{id: 2}]);
+await checkSegmentedProgram(installedLocal, 'local');
 assert.deepEqual((await installedLocal.aql(document, {format: 'json',
   requestId: 'packed-standard-values'})).ref, execution.ref);
 const conflictingProgram = JSON.parse(document);
@@ -1670,6 +1686,7 @@ const pipeUnionRemote = await installedRemote.aql(pipeUnionQueryDocument,
   {format: 'json', requestId: 'packed-pipe-union-remote'});
 assert.equal((await pipeUnionRemote.wait()).status, 'succeeded');
 assert.deepEqual(await pipeUnionRemote.result('answer').all(), expectedUnionRows);
+await checkSegmentedProgram(installedRemote, 'remote');
 const acquiredRemote = await runAcquiredApplication(remoteOptions,
   'packed-acquired-remote');
 const capturedQueryRemote = await acquiredRemote.client.aql(
@@ -1866,6 +1883,18 @@ const repeatedFailure = await installedRemote.aql(document, {format: 'json',
   requestId: 'packed-remote-dispatch-failure'});
 assert.deepEqual(repeatedFailure.ref, failedRemote.ref);
 assert.equal((await repeatedFailure.status()).status, 'failed');
+const failSegmentedDispatch = await originalFetch(new URL(
+  '/__test/fail-next-dispatch', remoteOptions.endpoint), {method: 'POST'});
+assert.equal(failSegmentedDispatch.status, 200);
+const failedSegmented = await installedRemote.aql(segmentedDocument,
+  {format: 'json', requestId: 'packed-segmented-dispatch-failure'});
+const failedSegmentedState = await failedSegmented.wait();
+assert.equal(failedSegmentedState.status, 'failed');
+assert.equal(failedSegmentedState.control.physical_stop, 'confirmed');
+await assert.rejects(failedSegmented.result('answer').all());
+assert.deepEqual((await installedRemote.aql(segmentedDocument,
+  {format: 'json', requestId: 'packed-segmented-dispatch-failure'})).ref,
+failedSegmented.ref);
 installedRemote.close();
 const local = await connectInProcess({mode: 'local', owner: 'local'}, {
   async perform(operation) {
