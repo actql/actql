@@ -1,13 +1,12 @@
 // Public Resource discovery over installed Salesforce Sites. Each Site answers
-// from one current Catalog observation of that Site, installed by a sync or
-// restored from its retained responses. Listing and inspection check current
-// read disclosure per Resource; a preview needs its own read dispatch. The
-// caller must be the principal the Site was installed for.
+// from the observation of its published declaration (explicitly published,
+// or restored from the published generation); discovery never syncs or
+// describes the provider itself. Listing and inspection check current read
+// disclosure per Resource; a preview needs its own read dispatch. The caller
+// must be the principal the Site was installed for.
 import {createHash} from 'node:crypto';
 import {installSalesforceResourceDiscovery} from
   './salesforce-resource-discovery.mjs';
-import {recoverRetainedSalesforceCatalog} from
-  '../site/salesforce-catalog-recovery.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -25,11 +24,9 @@ const denied = (code, error) => {
   throw error;
 };
 
-export function installSalesforceResourceService({salesforceMoon, sites,
-  maxRetainedBytes = 8_000_000}) {
+export function installSalesforceResourceService({salesforceMoon, sites}) {
   if (salesforceMoon === undefined || !Array.isArray(sites) ||
-      sites.length === 0 || !Number.isSafeInteger(maxRetainedBytes) ||
-      maxRetainedBytes < 1) {
+      sites.length === 0) {
     fail('InvalidSalesforceResourceService');
   }
   const byConnection = new Map(sites.map(site => [site.connection, site]));
@@ -70,45 +67,32 @@ export function installSalesforceResourceService({salesforceMoon, sites,
     return site;
   };
 
-  // Install a new current observation of one Site. Its retained responses
-  // are the snapshot a restarted Host restores without provider I/O.
-  async function refresh(resourceConnection, {signal} = {}) {
+  // Answer discovery for one Site from its published declaration: one the
+  // Site itself generated or restored for its current installation.
+  function installPublished(resourceConnection, declared) {
     const site = byConnection.get(resourceConnection);
     if (site === undefined) fail('ResourceConnectionNotFound');
-    const catalog = await site.refreshCatalog({retainResponses: true,
-      maxRetainedBytes, signal});
-    if (catalog.status === 'interrupted') fail('ResourceCatalogUnavailable');
-    install(site, catalog);
-    return Object.freeze({resourceConnection,
-      observationCid: catalog.observationCid,
-      retained: catalog.retainedResponses});
+    if (!site.ownsDeclaration(declared?.declaration) ||
+        declared.observed?.observation === undefined) {
+      fail('ForeignSalesforceDeclaration');
+    }
+    install(site, declared.observed);
+    return declared.observed.observationCid;
   }
 
-  // Restore one Site's observation from its retained snapshot. The MoonBit
-  // owner must reproduce the exact observation CID; no credential is used.
-  function restore(resourceConnection, {retained, observationCid}) {
-    const site = byConnection.get(resourceConnection);
-    if (site === undefined) fail('ResourceConnectionNotFound');
-    const catalog = recoverRetainedSalesforceCatalog({moon: salesforceMoon,
-      retained, expectedObservationCid: observationCid, maxRetainedBytes});
-    install(site, catalog);
-    return catalog.observationCid;
-  }
-
-  async function discoveryFor(principalId, resourceConnection, signal) {
+  async function discoveryFor(principalId, resourceConnection) {
     const site = siteFor(principalId, resourceConnection);
-    const held = current.get(resourceConnection) ??
-      (await refresh(resourceConnection, {signal}),
-      current.get(resourceConnection));
+    const held = current.get(resourceConnection);
+    // Nothing is published for this Site: discovery never syncs it.
+    if (held === undefined) fail('ResourceCatalogUnavailable');
     return {site, discovery: held.discovery};
   }
 
   return Object.freeze({
-    refresh, restore,
+    installPublished,
     // Public `resources`: one bounded page of visible Resource names.
     async resources({principalId, resourceConnection, query, limit, signal}) {
-      const {discovery} = await discoveryFor(principalId, resourceConnection,
-        signal);
+      const {discovery} = await discoveryFor(principalId, resourceConnection);
       let listing;
       try {
         listing = await discovery.list({query, maxResults: limit, signal});
@@ -118,8 +102,7 @@ export function installSalesforceResourceService({salesforceMoon, sites,
     // Public `resource-inspect`: typed metadata or the Catalog reason.
     async inspectResource({principalId, resourceConnection, resource,
       maxBytes, signal}) {
-      const {discovery} = await discoveryFor(principalId, resourceConnection,
-        signal);
+      const {discovery} = await discoveryFor(principalId, resourceConnection);
       let inspected;
       try {
         inspected = await discovery.inspect({resource,

@@ -57,6 +57,22 @@ pub struct DeclaredView {
   source_ref : String
   view_cid : String
   fields : Array[String]
+  // The view's carrier schema and data policy contracts, for its Check
+  // Environment schema evidence member.
+  carrier_schema_cid : String
+  data_policy_cid : String
+}
+
+///|
+fn ref_cid(reference : Json) -> String {
+  match reference {
+    Object(entries) =>
+      match entries.get("cid") {
+        Some(String(cid)) => cid
+        _ => ""
+      }
+    _ => ""
+  }
 }
 
 ///|
@@ -531,6 +547,8 @@ pub fn generate_static_declaration(
           source_ref,
           view_cid,
           fields: field_names,
+          carrier_schema_cid: ref_cid(row),
+          data_policy_cid: ref_cid(policy),
         })
       }
       // Write side: one Mapping whose rules cover what this revision writes.

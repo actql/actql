@@ -88,11 +88,13 @@ fn open_checked_local_host(
     per_pair_ms < 0L {
     return None
   }
+  // Each of the Run's attempts may import one input of at most the Local
+  // import wire below (1 MB), so the Run's transfer budget covers them all.
   let limits : @resources.LedgerLimits = {
     planning_work: 100000,
     attempts: 10,
     holdings: 10,
-    transfer_bytes: 500000L,
+    transfer_bytes: 10000000L,
     retained_bytes: 200000000L,
     execution_bytes: 268435456L,
   }
@@ -127,11 +129,15 @@ fn open_checked_local_host(
     max_value_bytes: 10000,
     common_fragment: None,
   }
+  // Value budgets over one task input: the text one acquisition captures
+  // (500 KB) and a value node for every cell of 100 rows by 100 columns, with
+  // work for measuring and comparing them. Together with the fragment
+  // allowance they stay within the Run's execution budget per task.
   let values : @execution.ValueLimits = {
-    max_nodes: 10000,
-    max_text_bytes: 10000,
+    max_nodes: 20000,
+    max_text_bytes: 500000,
     max_depth: 100,
-    max_work: 100000,
+    max_work: 20000000,
   }
   let local_configuration : @local_driver.LocalComputeConfiguration = {
     sequences: compute_sequences,
@@ -146,14 +152,15 @@ fn open_checked_local_host(
         input_values: values,
         output_values: values,
       },
-      max_work: 100000,
+      // Execution and output measurement cover the same values.
+      max_work: values.max_work,
       max_frames: 100,
     },
     measurement: {
-      max_work: 10000,
-      max_bytes: 10000,
-      max_nodes: 10000,
-      max_depth: 100,
+      max_work: values.max_work,
+      max_bytes: values.max_text_bytes,
+      max_nodes: values.max_nodes,
+      max_depth: values.max_depth,
     },
     max_work: 100,
   }
@@ -204,26 +211,33 @@ fn open_checked_local_host(
   guard @builtin.configured_local_module(modules) is Some(installed) else {
     return reject_client_local_run(run)
   }
+  // Local import limits follow the bounds around them: the checked
+  // requirement's rows and value size (`capacity`), the Store's column,
+  // depth and 64 KiB batch bounds, and a whole-input wire sized for what one
+  // acquisition captures (500 KB of text, encoded). One row must fit one
+  // batch, so a row is bounded by the batch size; a larger input is split
+  // into batches. The worst-case retention these limits imply stays within
+  // the Run's capacity.
   match
     @local_driver.configure_local_retained_inputs(
       installed,
       {
-        max_rows: 100,
+        max_rows: capacity.max_rows,
         values,
         wire: {
-          max_columns: 10,
-          max_order_work: 100,
-          max_bytes: 10000,
-          max_nodes: 1000,
-          max_depth: 20,
+          max_columns: 100,
+          max_order_work: 1000000,
+          max_bytes: 1000000,
+          max_nodes: 100000,
+          max_depth: 64,
         },
         row: {
-          max_bytes: 100,
-          max_nodes: 20,
-          max_depth: 4,
-          max_text_bytes: 100,
+          max_bytes: 65536,
+          max_nodes: 10000,
+          max_depth: 64,
+          max_text_bytes: 65536,
         },
-        max_batch_bytes: 64,
+        max_batch_bytes: 65536,
       },
       Some(0L),
     ) {

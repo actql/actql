@@ -77,6 +77,8 @@ pub fn[I, A, R] query_evidence_capture_document(QueryEvidenceCaptured[I, A, R]) 
 
 pub fn[I, A, R] query_evidence_capture_usage(QueryEvidenceCaptured[I, A, R]) -> (Int, Int)
 
+pub fn query_evidence_contract_identity() -> String
+
 pub fn query_evidence_contract_usage(QueryEvidenceContracts) -> (Int, Int)
 
 pub fn[I, A, R] query_evidence_record_at(QueryEvidenceIssued[I, A, R], Int) -> (@encode_core.EncodedDocument, String)?

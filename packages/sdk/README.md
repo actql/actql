@@ -2,11 +2,11 @@
 
 This lightweight package implements the public Client, Execution and Result
 transport API for an already installed Client Host. It contains no Local
-kernel, native binding, DuckDB adapter or Cloud policy. The current OSS Host
-HTTP bridge supports real published-Result reads and status for committed
-successful Runs. Generic Program submit, durable request deduplication, and
-full active-Run status are not yet installed, so this artifact is not a
-complete standard distribution.
+kernel, native binding, DuckDB adapter or Cloud policy. The installed Node Host supports Program submission within its
+installed profile, durable request lookup and deduplication, active and terminal
+Run observations, and published Result reads. Supported Program shapes and
+connectors depend on the installation; this is not a claim that every Host
+supports every Program. See the [current implementation status](../../docs/reviews/current-product-status.md).
 
 `connect(options)` authenticates with the selected Host and returns its
 confirmed owner, durability and capability snapshot. `aql(text,
@@ -42,8 +42,8 @@ transferred through that ABI; the Client enforces wire and decoded-value
 bounds independently. The provider must enforce its own pre-transfer row
 bound, current authorization, and Run ownership before yielding a frame.
 The port's `AbortSignal` belongs only to that observation or read attempt.
-This boundary does not install a provider or imply that the current
-`@actql/node` artifact supports embedded Local.
+This boundary does not itself install a provider. The standard `@actql/node`
+installation includes the lazy-loaded `@actql/local-node` provider.
 
 `attach(ref)` retrieves another handle for the same Run. `result(name)` only
 selects a named Result. Each `rows()`, `batches()` or `all()` call creates a
@@ -196,6 +196,21 @@ a Resource is absent. `inspectResource(resourceConnection, resource)` returns
 typed metadata, or `catalog_required` with a reason when the Catalog cannot
 answer yet. Neither call reads business rows or grants reading or running
 anything.
+
+A Resource the caller is not currently allowed to read is refused
+(`ResourceDiscoveryDenied`) and is left out of `resources`: nothing tells
+whether it exists. For a Resource the caller may read, the reasons are:
+
+| State | Listing `outcome` | Inspect `reason` |
+| --- | --- | --- |
+| Outside a targeted (published) observation: not checked | not listed | `not_observed` |
+| An authorized describe answered not found for this principal | `not_found` | `not_found` |
+| The describe failed or the provider refused it: state unknown | the failure, e.g. `permission_denied` | `describe_unavailable` |
+| A provider listing was cut off by its limits | not listed | `listing_truncated` |
+| A complete listing did not include it | not listed | `not_visible` |
+
+A provider permission failure is never reported as `not_found`, and
+`not_found` holds only for this principal at the time of the observation.
 
 `peekResource(resourceConnection, resource, {fields, maxRows, maxBytes})` is
 authorized separately. It returns at most `maxRows` rows with exactly the

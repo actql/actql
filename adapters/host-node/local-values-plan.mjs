@@ -3,7 +3,10 @@
 import {createHash, randomUUID} from 'node:crypto';
 import {checked} from '../host-common/runtime-result.mjs';
 
-const limits = Object.freeze({maxWireBytes: 100000, maxNodes: 10000,
+// Contract and evidence issuance bounds. A captured Run's Named Result
+// snapshot is admitted under them too, so they hold what one captured Run can
+// output: the Local import wire (1 MB, 100k nodes).
+const limits = Object.freeze({maxWireBytes: 1000000, maxNodes: 100000,
   maxDepth: 64});
 export const localOutputLimits = Object.freeze({
   maxResultFields: 10, maxResultMappingWork: 1000,

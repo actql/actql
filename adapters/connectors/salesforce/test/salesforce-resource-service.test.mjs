@@ -16,6 +16,8 @@ import {INSTALLED_SALESFORCE_SITE_VERSION, installSalesforceAuthorization,
   loadInstalledSalesforceSite} from '../host/installed-salesforce-site.mjs';
 import {installSalesforceResourceService} from
   '../host/salesforce-resource-service.mjs';
+import {loadSalesforceGeneration, publishSalesforceGeneration} from
+  '../host/salesforce-publication.mjs';
 import {openSalesforceEffectSiteFixture} from
   './salesforce-effect-site.fixture.mjs';
 
@@ -57,12 +59,14 @@ async function discoveryHost(t) {
     entries: [{entry_id: 'records-read', outcome: 'allow', exclusions: [],
       principal: {all: true},
       connection: {any_of: [`salesforce:${org.orgId}`]},
-      resource: {any_of: readable},
+      resource: {any_of: [...readable].sort()},
       operation: {any_of: ['read']}}]});
   // Each open plays one Host process with the profile and account
   // configuration as installed then.
+  const generationPath = join(root, 'generation.json');
+  const targets = ['Test_Record__c', 'Missing__c'];
   const open = async ({changes = {}, principalId = 'owner-principal',
-    readable = ['Test_Record__c']} = {}) => {
+    readable = ['Test_Record__c', 'Missing__c', 'Contact']} = {}) => {
     await writeFile(profilePath, JSON.stringify({...profile, ...changes}));
     const authorization = await installSalesforceAuthorization({
       accountConfiguration: accountConfiguration(readable), principalId,
@@ -94,29 +98,60 @@ async function discoveryHost(t) {
     servers.push(server);
     const client = token => connect({mode: 'local', owner: 'local',
       endpoint: `http://127.0.0.1:${server.address().port}/`, token});
-    return {site, service, client};
+    // The explicit publication step, and a Host start from it.
+    const publish = async () => {
+      const published = await publishSalesforceGeneration({site,
+        path: generationPath, connectorId: 'crm-main', resources: targets});
+      service.installPublished(site.connection, published.declared);
+      return published;
+    };
+    const load = async () => {
+      const loaded = await loadSalesforceGeneration({site,
+        path: generationPath, connectorId: 'crm-main', resources: targets});
+      service.installPublished(site.connection, loaded.declared);
+      return loaded;
+    };
+    return {site, service, client, publish, load};
   };
-  return {org, open, connection: `salesforce:${org.orgId}`};
+  return {org, open, generationPath, connection: `salesforce:${org.orgId}`};
 }
 
-test('public Client discovers, inspects and previews an installed org',
+test('public Client discovers, inspects and previews a published org',
   async t => {
     const host = await discoveryHost(t);
-    const {service, client: connectAs} = await host.open();
+    const {client: connectAs, publish} = await host.open();
     const client = await connectAs('owner-token');
     t.after(() => client.close());
+    // Nothing is published yet: discovery does not sync the org itself.
+    const before = host.org.seen.length;
+    await assert.rejects(client.resources(host.connection),
+      {code: 'ResourceCatalogUnavailable'});
+    assert.equal(host.org.seen.length, before);
+    const published = await publish();
+    // The publication described exactly its targets: no listing.
+    assert.deepEqual(host.org.seen.slice(before).map(item => item.path), [
+      '/services/data/v62.0/sobjects/Test_Record__c/describe',
+      '/services/data/v62.0/sobjects/Missing__c/describe']);
     const listing = await client.resources(host.connection);
+    assert.equal(listing.observationCid, published.declared.observationCid);
     assert.deepEqual(listing.resources, [
-      {name: 'Test_Record__c', outcome: 'described'}]);
-    assert.equal(listing.snapshotComplete, true);
+      {name: 'Test_Record__c', outcome: 'described'},
+      {name: 'Missing__c', outcome: 'not_found'}]);
+    assert.equal(listing.snapshotComplete, false);
     assert.equal(listing.resultTruncated, false);
-    assert.deepEqual((await client.resources(host.connection,
-      {query: 'account'})).resources, []);
     const inspected = await client.inspectResource(host.connection,
       'Test_Record__c');
     assert.equal(inspected.status, 'ready');
     assert.deepEqual(inspected.summary.fields.map(field => field.name).sort(),
       ['External_Key__c', 'Id', 'Name']);
+    // A published name the org did not find and a readable Resource the
+    // publication did not target are different answers; a targeted
+    // publication is not a cut-off listing.
+    assert.equal((await client.inspectResource(host.connection,
+      'Missing__c')).reason, 'not_found');
+    assert.equal((await client.inspectResource(host.connection,
+      'Contact')).reason, 'not_observed');
+    const describes = host.org.seen.length;
     const preview = await client.peekResource(host.connection,
       'Test_Record__c', {fields: ['Id', 'Name'], maxRows: 2});
     assert.deepEqual(preview.rows, [
@@ -124,11 +159,16 @@ test('public Client discovers, inspects and previews an installed org',
       {Id: 'a00000000000002', Name: 'record-2'},
     ]);
     assert.equal(preview.limited, true);
-    // Listing and inspection read no rows; only the preview queried once.
-    assert.equal(host.org.seen.filter(item =>
-      item.path.startsWith('/services/data/v62.0/query')).length, 1);
+    // Listing and inspection read nothing; the preview described its
+    // Resource twice (plan and recheck) and queried once.
+    assert.deepEqual(host.org.seen.slice(describes).map(item =>
+      item.path.split('?')[0]), [
+      '/services/data/v62.0/sobjects/Test_Record__c/describe',
+      '/services/data/v62.0/sobjects/Test_Record__c/describe',
+      '/services/data/v62.0/query']);
     // Another principal, an unknown connection and an unconfigured
-    // Resource are refused before any provider query.
+    // Resource are refused before any provider request.
+    const requests = host.org.seen.length;
     const other = await connectAs('other-token');
     t.after(() => other.close());
     await assert.rejects(other.resources(host.connection),
@@ -139,100 +179,68 @@ test('public Client discovers, inspects and previews an installed org',
       {fields: ['Id']}), {code: 'ResourcePeekDenied'});
     await assert.rejects(client.inspectResource(host.connection, 'Account'),
       {code: 'ResourceDiscoveryDenied'});
-    assert.equal(host.org.seen.filter(item =>
-      item.path.startsWith('/services/data/v62.0/query')).length, 1);
-    assert.equal(typeof service.refresh, 'function');
+    assert.equal(host.org.seen.length, requests);
   });
 
-test('a restarted Host restores discovery from the retained snapshot',
+test('a restarted Host restores discovery from the published generation',
   async t => {
     const host = await discoveryHost(t);
     const first = await host.open();
-    const snapshot = await first.service.refresh(host.connection);
-    assert.ok(snapshot.retained);
+    const published = await first.publish();
     first.site.close();
     const second = await host.open();
     const requests = host.org.seen.length;
-    assert.equal(second.service.restore(host.connection, snapshot),
-      snapshot.observationCid);
+    const loaded = await second.load();
+    assert.equal(loaded.generationCid, published.generationCid);
+    assert.deepEqual(loaded.resourceStates, [
+      {name: 'Test_Record__c', state: 'described'},
+      {name: 'Missing__c', state: 'not_found'}]);
     const client = await second.client('owner-token');
     t.after(() => client.close());
     const listing = await client.resources(host.connection);
-    assert.equal(listing.observationCid, snapshot.observationCid);
-    assert.deepEqual(listing.resources.map(item => item.name),
-      ['Test_Record__c']);
+    assert.equal(listing.observationCid, published.declared.observationCid);
     assert.equal((await client.inspectResource(host.connection,
       'Test_Record__c')).status, 'ready');
-    // Restoring and answering from the snapshot used no provider request.
+    // Restoring and answering from the generation used no provider request.
     assert.equal(host.org.seen.length, requests);
-    // A foreign restore is refused and the current view stays.
-    assert.throws(() => second.service.restore(host.connection, {
-      ...snapshot, observationCid: cid('9')}),
-    {code: 'ForeignRetainedSalesforceCatalog'});
+    // A declaration of another Site is never installed.
+    assert.throws(() => second.service.installPublished(host.connection,
+      published.declared), {code: 'ForeignSalesforceDeclaration'});
     assert.equal((await client.resources(host.connection)).observationCid,
-      snapshot.observationCid);
+      published.declared.observationCid);
   });
 
-test('a snapshot of another Site installation never becomes current discovery',
+test('a generation of another Site installation never becomes current discovery',
   async t => {
     const host = await discoveryHost(t);
     const first = await host.open();
-    const snapshot = await first.service.refresh(host.connection);
+    await first.publish();
     first.site.close();
-    for (const [name, options, field] of [
-      ['tenant', {changes: {tenant: 'tenant-other'}}, 'tenant'],
-      ['environment', {changes: {environment: 'staging'}}, 'environment'],
-      ['Site key', {changes: {siteKey: 'other-site'}}, 'site_key'],
-      ['Site generation', {changes: {siteGeneration: 99}}, 'site_generation'],
+    for (const [name, options] of [
+      ['tenant', {changes: {tenant: 'tenant-other'}}],
+      ['environment', {changes: {environment: 'staging'}}],
+      ['Site key', {changes: {siteKey: 'other-site'}}],
+      ['Site generation', {changes: {siteGeneration: 99}}],
       ['connection revision', {changes: {
-        connectionRevision: 'connection-revision-b'}}, 'connection_revision'],
-      ['origin', {changes: {instanceOrigin: 'https://127.0.0.1:1'}},
-        'resource_origin'],
-      ['principal', {principalId: 'other-principal'}, 'principal'],
+        connectionRevision: 'connection-revision-b'}}],
+      ['origin', {changes: {instanceOrigin: 'https://127.0.0.1:1'}}],
+      ['principal', {principalId: 'other-principal'}],
+      ['org', {changes: {orgId: '00D000000000009EAA'}}],
     ]) {
       const reopened = await host.open(options);
       const requests = host.org.seen.length;
-      assert.throws(() => reopened.service.restore(host.connection, snapshot),
-        error => error.code === 'ResourceCatalogBindingMismatch' &&
-          error.fields.includes(field), name);
+      await assert.rejects(reopened.load(),
+        {code: 'ForeignSalesforceDeclaration'}, name);
       assert.equal(host.org.seen.length, requests, name);
       reopened.site.close();
     }
-    // A different org is another connection: nothing to restore into.
-    const otherOrg = await host.open({changes: {orgId: '00D000000000009EAA'}});
-    assert.throws(() => otherOrg.service.restore(host.connection, snapshot),
-      {code: 'ResourceConnectionNotFound'});
-    otherOrg.site.close();
-    // A snapshot another generation observed is refused by the current
-    // installation, which keeps answering from its own observation.
-    const changed = await host.open({changes: {siteGeneration: 99}});
-    const foreign = await changed.service.refresh(host.connection);
-    changed.site.close();
-    const same = await host.open();
-    assert.equal(same.service.restore(host.connection, snapshot),
-      snapshot.observationCid);
-    const client = await same.client('owner-token');
-    t.after(() => client.close());
-    const requests = host.org.seen.length;
-    assert.throws(() => same.service.restore(host.connection, foreign),
-      error => error.code === 'ResourceCatalogBindingMismatch' &&
-        error.fields.includes('site_generation'));
-    assert.equal((await client.resources(host.connection)).observationCid,
-      snapshot.observationCid);
-    // A snapshot whose bytes do not reproduce the named observation is
-    // refused before any binding check, and the current view still stays.
-    assert.throws(() => same.service.restore(host.connection, {
-      ...snapshot, observationCid: cid('9')}),
-    {code: 'ForeignRetainedSalesforceCatalog'});
-    assert.equal((await client.resources(host.connection)).observationCid,
-      snapshot.observationCid);
-    assert.equal(host.org.seen.length, requests);
   });
 
 test('discovery refuses another principal before any Catalog request',
   async t => {
     const host = await discoveryHost(t);
-    const {client: connectAs} = await host.open();
+    const {client: connectAs, publish} = await host.open();
+    await publish();
     const before = host.org.seen.length;
     const other = await connectAs('other-token');
     t.after(() => other.close());
@@ -244,29 +252,97 @@ test('discovery refuses another principal before any Catalog request',
     t.after(() => owner.close());
     await assert.rejects(owner.resources('salesforce:00D000000000009EAA'),
       {code: 'ResourceConnectionNotFound'});
-    // No listing, describe or query reached the org.
+    // No describe or query reached the org.
     assert.equal(host.org.seen.length, before);
   });
 
-test('a restored snapshot is disclosed only under current read authority',
+test('a restored generation is disclosed only under current read authority',
   async t => {
     const host = await discoveryHost(t);
     const first = await host.open();
-    const snapshot = await first.service.refresh(host.connection);
+    await first.publish();
     first.site.close();
     // The same installation, now configured to read nothing on this org.
     const revoked = await host.open({readable: ['Other_Object__c']});
     const requests = host.org.seen.length;
-    assert.equal(revoked.service.restore(host.connection, snapshot),
-      snapshot.observationCid);
+    await revoked.load();
     const client = await revoked.client('owner-token');
     t.after(() => client.close());
-    // The snapshot is bound to this Site, but binding is not permission:
-    // the Resource it described is no longer disclosed.
+    // The generation is bound to this Site, but binding is not permission:
+    // the Resources it described are no longer disclosed or described.
     assert.deepEqual((await client.resources(host.connection)).resources, []);
     await assert.rejects(client.inspectResource(host.connection,
       'Test_Record__c'), {code: 'ResourceDiscoveryDenied'});
     await assert.rejects(client.peekResource(host.connection,
       'Test_Record__c', {fields: ['Id']}), {code: 'ResourcePeekDenied'});
+    await assert.rejects(publishSalesforceGeneration({site: revoked.site,
+      path: host.generationPath, connectorId: 'crm-main',
+      resources: ['Test_Record__c']}),
+    {code: 'SalesforceCatalogDescribeNotAuthorized'});
     assert.equal(host.org.seen.length, requests);
   });
+
+test('a published generation is replaced whole and checked against its targets',
+  async t => {
+    const host = await discoveryHost(t);
+    const first = await host.open();
+    await first.publish();
+    const {readFile: read, writeFile: write} = await import(
+      'node:fs/promises');
+    const body = await read(host.generationPath, 'utf8');
+    // Another target set or connector id is another publication.
+    await assert.rejects(loadSalesforceGeneration({site: first.site,
+      path: host.generationPath, connectorId: 'crm-main',
+      resources: ['Test_Record__c']}),
+    {code: 'SalesforcePublicationTargetMismatch'});
+    await assert.rejects(loadSalesforceGeneration({site: first.site,
+      path: host.generationPath, connectorId: 'crm-other',
+      resources: ['Test_Record__c', 'Missing__c']}),
+    {code: 'SalesforcePublicationTargetMismatch'});
+    // Reformatted or edited text is not the published generation.
+    await write(host.generationPath, JSON.stringify(JSON.parse(body),
+      null, 2));
+    await assert.rejects(first.load(), {code: 'InvalidSalesforcePublication'});
+    const edited = JSON.parse(body);
+    edited.catalog_cid = cid('7');
+    await write(host.generationPath, JSON.stringify(edited));
+    await assert.rejects(first.load(), {code: 'ForeignSalesforceDeclaration'});
+    await write(host.generationPath, body);
+    await first.load();
+    const {rm: remove} = await import('node:fs/promises');
+    await remove(host.generationPath);
+    await assert.rejects(first.load(), {code: 'SalesforcePublicationMissing'});
+  });
+
+test('a non-disclosed target leaks neither existence nor absence',
+  async t => {
+    const host = await discoveryHost(t);
+    const first = await host.open();
+    await first.publish();
+    first.site.close();
+    // Missing__c was published as not found; the caller may no longer read
+    // it, so neither the listing nor inspection says anything about it.
+    const narrowed = await host.open({readable: ['Test_Record__c']});
+    await narrowed.load();
+    const client = await narrowed.client('owner-token');
+    t.after(() => client.close());
+    assert.deepEqual((await client.resources(host.connection)).resources, [
+      {name: 'Test_Record__c', outcome: 'described'}]);
+    await assert.rejects(client.inspectResource(host.connection,
+      'Missing__c'), {code: 'ResourceDiscoveryDenied'});
+  });
+
+test('catalog_required reasons map the five observation states', async () => {
+  const {catalogRequiredReason} = await import(
+    '../host/salesforce-resource-resolver.mjs');
+  // Named (targeted) observations never report a cut-off listing.
+  assert.equal(catalogRequiredReason(-2, true), 'not_observed');
+  assert.equal(catalogRequiredReason(-2, false), 'listing_truncated');
+  assert.equal(catalogRequiredReason(-1, false), 'not_visible');
+  assert.equal(catalogRequiredReason(8, true), 'not_found');
+  // Pending, permission denied (provider 403), rate limited, unavailable,
+  // interrupted, invalid metadata and cancelled are all unknown states.
+  for (const state of [0, 2, 3, 4, 5, 6, 7]) {
+    assert.equal(catalogRequiredReason(state, true), 'describe_unavailable');
+  }
+});

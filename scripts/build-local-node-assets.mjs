@@ -7,6 +7,9 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const bundles = [
   'connectors_builtin_node/connectors_builtin_node.js',
   'connectors/duckdb/host_node/host_node.js',
+  // The Salesforce Site's provider runtime, loaded only for an installed
+  // Salesforce source.
+  'connectors/salesforce/host_node/host_node.js',
   'retained_host_bridge/retained_host_bridge.js',
   'process_host_bridge/process_host_bridge.js',
   // The Checkpoint journal runtime of the Remote Host's Run-acceptance

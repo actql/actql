@@ -171,7 +171,7 @@ export type WireResourceInspectionShape = Readonly<{
   resource: string;
   observationCid: string;
   status: "ready" | "catalog_required";
-  reason?: "listing_truncated" | "not_visible" | "describe_unavailable";
+  reason?: "listing_truncated" | "not_visible" | "not_observed" | "not_found" | "describe_unavailable";
   summaryJson?: string;
 }>;
 
