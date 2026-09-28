@@ -73,8 +73,12 @@ const server = await (async () => {
       response.writeHead(200, {'content-type': 'application/json'});
       response.end(JSON.stringify(value));
     };
-    if (request.url === `${prefix}sobjects/Test_Record__c/describe`) {
-      json({name: 'Test_Record__c', queryable: true, createable: true,
+    // Test_Record__c is read and written; Other_Record__c, of the same
+    // shape, is the second Resource of an Effect Set.
+    const described = ['Test_Record__c', 'Other_Record__c'].find(name =>
+      request.url === `${prefix}sobjects/${name}/describe`);
+    if (described !== undefined) {
+      json({name: described, queryable: true, createable: true,
         updateable: true, fields: [
           {name: 'Id', type: 'id', nillable: false, sortable: false},
           {name: 'Name', type: 'string', nillable: false,
@@ -95,15 +99,15 @@ const server = await (async () => {
           [name, record[name]])]))});
       return;
     }
-    if (request.method === 'GET' && request.url?.startsWith(
-      `${prefix}sobjects/Test_Record__c/`)) {
+    const record = ['Test_Record__c', 'Other_Record__c'].find(name =>
+      request.url?.startsWith(`${prefix}sobjects/${name}/`));
+    if (request.method === 'GET' && record !== undefined) {
       const id = decodeURIComponent(request.url.slice(
-        `${prefix}sobjects/Test_Record__c/`.length));
+        `${prefix}sobjects/${record}/`.length));
       json({Id: id, Name: 'prior-name', External_Key__c: id});
       return;
     }
-    if (request.method === 'PATCH' && request.url?.startsWith(
-      `${prefix}sobjects/Test_Record__c/`)) {
+    if (request.method === 'PATCH' && record !== undefined) {
       const chunks = [];
       request.on('data', chunk => chunks.push(chunk));
       request.on('end', () => {
@@ -242,7 +246,7 @@ try {
       {entry_id: 'effect-commit', outcome: 'delegate', exclusions: [],
         principal: {all: true},
         connection: {any_of: [`salesforce:${orgId}`]},
-        resource: {any_of: ['Test_Record__c']},
+        resource: {any_of: ['Other_Record__c', 'Test_Record__c']},
         operation: {any_of: ['effect']}},
       {entry_id: 'host-run', outcome: 'allow', exclusions: [],
         principal: {all: true}, connection: {all: true},
@@ -250,7 +254,7 @@ try {
       {entry_id: 'target-read', outcome: 'allow', exclusions: [],
         principal: {all: true},
         connection: {any_of: [`salesforce:${orgId}`]},
-        resource: {any_of: ['Test_Record__c']},
+        resource: {any_of: ['Other_Record__c', 'Test_Record__c']},
         operation: {any_of: ['read']}},
     ]});
   await writeFile(join(root, 'authorization.json'), JSON.stringify({
@@ -269,7 +273,8 @@ try {
     siteProfilePath: join(root, 'site.json'),
     publicationPath: join(root, 'effect-publication.json'),
     connectorId: 'salesforce',
-    writes: [{resource: 'Test_Record__c', kind: 'update', fields: ['Name']}],
+    writes: ['Test_Record__c', 'Other_Record__c'].map(resource =>
+      ({resource, kind: 'update', fields: ['Name']})),
     accountConfigurationWire: effectAccount}));
   await writeFile(join(root, 'publish-effect.mjs'), `
 import {publishEffect} from '@actql/local-node';
@@ -283,13 +288,15 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
   effectEnvironment.ACTQL_LOCAL_EFFECT_PROFILE = join(root, 'effect.json');
   const effect = JSON.parse((await runChild('publish-effect.mjs',
     effectEnvironment)).trim());
-  assert.deepEqual(effect, [['Test_Record__c', 'update']]);
+  assert.deepEqual(effect, [['Test_Record__c', 'update'],
+    ['Other_Record__c', 'update']]);
   const generation = JSON.parse(await readFile(join(root,
     'effect-publication.json'), 'utf8'));
   assert.deepEqual(Object.keys(generation),
     ['environment_cid', 'mappings', 'source', 'version']);
   assert.deepEqual(server.seen.slice(4).map(item => item.path), [
-    '/services/data/v62.0/sobjects/Test_Record__c/describe']);
+    '/services/data/v62.0/sobjects/Test_Record__c/describe',
+    '/services/data/v62.0/sobjects/Other_Record__c/describe']);
   console.log('packed Local Host Salesforce Effect publication passed');
 
   // Every step runs in a fresh process with only the installed tarballs.
@@ -322,16 +329,19 @@ try {
   if (step === 'submit') {
     const generation = JSON.parse(readFileSync('effect-publication.json',
       'utf8'));
-    const mapping = generation.mappings[0].mapping_ref;
+    // One member per installed Resource: an Effect Set over two Resources.
+    const effects = Object.fromEntries(generation.mappings.map(
+      (entry, index) => ['save_' + index, {update: {
+        target: 'connector://salesforce/' + entry.write.resource,
+        mapping: entry.mapping_ref, from: {result: 'rows'}, id: 'id',
+        set: {Name: {field: 'id'}}}}]));
     const program = {version: 'actql/0.1', id: 'packed-effect', stages: [{
       id: 'source', inputs: {},
       steps: [{values: {schema: {id: {type: 'string', nullable: false}},
         rows: [{id: 'a00000000000001'}, {id: 'a00000000000002'}]},
         as: 'selected'}],
       results: {rows: {from: 'selected', fields: ['id']}},
-      effects: {save: {update: {
-        target: 'connector://salesforce/Test_Record__c', mapping,
-        from: {result: 'rows'}, id: 'id', set: {Name: {field: 'id'}}}}},
+      effects,
     }], results: {answer: {from: {stage: 'source', result: 'rows'}}}};
     const execution = await client.aql(JSON.stringify(program), {
       format: 'json', requestId: 'packed-effect-1'});
@@ -377,10 +387,14 @@ try {
   assert.equal(server.seen.filter(item => item.method === 'PATCH').length, 0);
   assert.equal((await runChild('effect-run.mjs', effectEnvironment,
     ['resume'])).trim(), 'published');
-  assert.equal(server.seen.filter(item => item.method === 'PATCH').length, 2);
+  // Each row of each Resource once.
+  assert.deepEqual(server.seen.filter(item => item.method === 'PATCH')
+    .map(item => item.path.split('/').slice(-2).join('/')).sort(),
+  ['Other_Record__c', 'Test_Record__c'].flatMap(resource =>
+    ['a00000000000001', 'a00000000000002'].map(id => `${resource}/${id}`)));
   assert.equal((await runChild('effect-run.mjs', effectEnvironment,
     ['recheck'])).trim(), 'published');
-  assert.equal(server.seen.filter(item => item.method === 'PATCH').length, 2);
+  assert.equal(server.seen.filter(item => item.method === 'PATCH').length, 4);
   console.log('packed public Client Effect approval, restart, write and ' +
     'Named Result passed');
 } finally {
