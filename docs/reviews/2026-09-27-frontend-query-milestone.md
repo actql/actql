@@ -35,7 +35,7 @@ records reference terms, frontend and existing IR meanings, and differences.
 | Closed scalar expressions, precedence, NULL and CONCAT | Structured Expression admission/typing | Independent trees, demand/failure and legacy regression | Partial: shared AST and direct tree lowering; strict and legacy CONCAT execute through packed Local/Remote; full typing/failure matrix pending |
 | SELECT, FROM-only, subqueries, WHERE | Existing Program derive/select/filter | SQL/Pipe expected Program and rows | Partial: base SELECT/FROM/WHERE and named noncorrelated FROM subqueries, including nesting, execute through captured Host; one JOIN-right subquery from an earlier CTE executes through packed Local/Remote; broader joins, set operands and additional source forms remain |
 | INNER/LEFT/FULL equijoin, USING, finite CROSS JOIN | Existing join and checked bounds | NULL extension, aliases, shape and multiplicity | Partial: direct Values joins support INNER/LEFT, bounded CROSS, DISTINCT and output/non-output ORDER with LIMIT; a DISTINCT CTE supplies identity for packed source-free and captured-input FULL/USING; general join scope remains |
-| GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: COUNT, MIN/MAX and pinned-profile SUM/AVG execute through packed Local/Remote, including empty input; bounded STRING_AGG over Values also executes, while keyed ARRAY_AGG has checker evidence only; collection failure matrix pending |
+| GROUP BY, aggregates, HAVING | Existing group | Alias collisions, empty/NULL input, aggregate failure order | Partial: COUNT, MIN/MAX and pinned-profile SUM/AVG execute through packed Local/Remote, including empty input; bounded STRING_AGG and nonnullable keyed ARRAY_AGG over Values execute; nullable ordered ARRAY_AGG and the collection failure matrix remain |
 | DISTINCT, ORDER BY, LIMIT/OFFSET | Existing distinct/sort/take | Output-only equality, hidden fields, ties, limits | Partial: alias priority, private selected-expression slots and non-output ordering, including JOIN output and hidden input order through packed Local/Remote; captured DISTINCT→ORDER runtime passes, broader ties/limits pending |
 | Nonrecursive CTE | Shared Stage input and dataflow | Multiple references with one physical acquisition | Partial: each used declaration lowers to one checked Stage Result; packed Local/Remote execute Values, acquired SELECT, a two-reference equijoin with hidden ORDER/LIMIT, a sequential chain, two branches from one predecessor and a join inside a declaration body; packed Local physical statement counts match a single-reference acquisition, while broader joins and Remote physical counting remain |
 | UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT, exact BY NAME | Existing append/row-set | Positional alignment, type mismatch, duplicate rows | Partial: two source-free Values operands and two terms sharing one captured source execute through packed Local/HTTP Clients; different captured sources, different physical source filters, CTE reuse and broader type/order cases remain |
@@ -62,6 +62,15 @@ Packed Local and HTTP Remote Clients read two Result rows with
 `{strict:NULL,legacy:"a",joined:"é😀"}` from a source-free Values query.
 The evaluator regression also covers all-NULL legacy concatenation. This
 does not establish the full scalar typing and failure matrix.
+
+For a sole global `ARRAY_AGG(DISTINCT a IGNORE NULLS ORDER BY a DESC)` on a
+nonnullable Values field, the frontend first projects `a` and applies the
+existing row DISTINCT. This yields an actual candidate key without choosing a
+representative for any other column. Both packed Local and HTTP Remote return
+`{ids:[2,1]}` from input values `1,1,2`. A nullable `a` still fails the
+common ordered-aggregate checker; the frontend does not invent a nonnull key
+from `IGNORE NULLS`. Other aggregates and grouped keys do not use this
+transformation because pre-deduplication could change their input.
 
 Named noncorrelated SQL and Pipe `FROM (SELECT ...) AS source` now use the
 same checked Stage Result binding as a CTE. The bounded parser preserves

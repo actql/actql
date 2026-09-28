@@ -1154,6 +1154,55 @@ fn compile_steps(
           pipe_visible = active_fields.map(name => (name, name))
           pipe_ranges = []
         }
+        // A sole global DISTINCT ARRAY_AGG ordered by the same referenced
+        // value can obtain its candidate key from ordinary row DISTINCT.
+        // Project the value first so no unrelated column supplies a chosen
+        // representative. The checker still rejects nullable keys.
+        if !scoped && keys.is_empty() && projections.length() == 1 {
+          match projections[0].aggregate {
+            Some(call) if call.function_name == "ARRAY_AGG" &&
+              call.distinct &&
+              call.order_by.length() == 1 =>
+              match call.argument {
+                Some(argument) if same_expression(
+                    argument,
+                    call.order_by[0].expression,
+                  ) => {
+                  let root = @query.expression_node(
+                    argument,
+                    @query.expression_root(argument),
+                  ).unwrap()
+                  match root.kind {
+                    Reference(path) => {
+                      let field = match
+                        resolve_column(path, query, input, active_fields) {
+                        Some(field) => field
+                        None => raise Abort(UnknownColumn)
+                      }
+                      let selected = entries.copy()
+                      entries.clear()
+                      selected.push(
+                        (
+                          "select",
+                          construction.array([construction.text(field)]),
+                        ),
+                      )
+                      step_entries.push(selected)
+                      step_entries.push([
+                        (
+                          "distinct",
+                          construction.array([construction.text(field)]),
+                        ),
+                      ])
+                    }
+                    _ => ()
+                  }
+                }
+                _ => ()
+              }
+            _ => ()
+          }
+        }
         let derives : Array[(String, @builder.Node)] = []
         let key_names : Array[String] = []
         let by : Array[@builder.Node] = []

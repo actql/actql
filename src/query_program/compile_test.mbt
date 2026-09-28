@@ -1516,6 +1516,40 @@ test "ordered collection aggregates retain literal and order contracts" {
     )
     is Rejected(_),
   )
+  let keyed_seed = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"a":{"type":"number","nullable":false},"b":{"type":"string","nullable":false}},"rows":[{"a":1,"b":"x"},{"a":1,"b":"y"},{"a":2,"b":"z"}]},"as":"left_rows"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let base = set_context()
+  let context = {
+    ..base,
+    inputs: [
+      { ..base.inputs[0], source: GeneratedValues(keyed_seed), },
+      base.inputs[1],
+    ],
+  }
+  let keyed_array = compile(
+    @query.parse_query(
+      "SELECT ARRAY_AGG(DISTINCT a IGNORE NULLS ORDER BY a DESC) AS ids FROM left_rows",
+      syntax_limits(),
+    ).unwrap(),
+    context,
+    construction_limits(),
+  ).unwrap()
+  let keyed_wire = semantic(keyed_array)
+  assert_true(keyed_wire.contains("\"select\":[\"a\"]"))
+  assert_true(keyed_wire.contains("\"distinct\":[\"a\"]"))
+  match
+    @check.check_parsed(keyed_array, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("deduplicated array input should be bounded")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
   let unbounded_string = @query.parse_query(
     "SELECT STRING_AGG(b, '|' ORDER BY a) AS labels FROM left_rows",
     syntax_limits(),

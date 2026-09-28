@@ -311,6 +311,17 @@ const collectionQuery = queryFrontend.compileValuesQueryJson(
   JSON.stringify(['a', 'b']), 'fixture.collection_query');
 assert.notEqual(collectionQuery, '');
 await writeFile(join(root, 'collection-query.json'), collectionQuery);
+const keyedCollectionRows = {values: {schema: {
+  a: {type: 'number', nullable: false}},
+rows: [{a: 1}, {a: 1}, {a: 2}]}, as: 'keyed_rows'};
+const keyedCollectionQuery = queryFrontend.compileValuesQueryJson(
+  'SELECT ARRAY_AGG(DISTINCT a IGNORE NULLS ORDER BY a DESC) AS ids '
+    + 'FROM keyed_rows',
+  'keyed_rows', 'keyed_rows', JSON.stringify(keyedCollectionRows),
+  JSON.stringify(['a']), 'fixture.keyed_collection_query');
+assert.notEqual(keyedCollectionQuery, '');
+await writeFile(join(root, 'keyed-collection-query.json'),
+  keyedCollectionQuery);
 const filteredSubqueryJoin = queryFrontend.compileTwoValuesSetQueryJson(
   'FROM (SELECT a, b FROM set_left) AS l |> WHERE l.a > 1 '
     + '|> LEFT JOIN (SELECT c, d FROM set_right) AS r ON l.a = r.c '
@@ -1137,6 +1148,12 @@ async function checkCollectionQuery(client, suffix) {
   const rows = await execution.result('answer').all();
   assert.equal(rows.length, 1);
   assert.equal(rows[0].labels, 'y|x|x|n');
+  const keyed = await client.aql(
+    readFileSync('keyed-collection-query.json', 'utf8'),
+    {format: 'json', requestId: 'packed-keyed-collection-' + suffix});
+  const keyedStatus = await keyed.wait();
+  assert.equal(keyedStatus.status, 'succeeded', JSON.stringify(keyedStatus));
+  assert.deepEqual(await keyed.result('answer').all(), [{ids: [2, 1]}]);
 }
 async function checkSetQueries(client, suffix) {
   for (const [name, expected] of setExpectations) {
