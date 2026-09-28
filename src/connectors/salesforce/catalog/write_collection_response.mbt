@@ -114,13 +114,16 @@ pub fn project_write_collection_response_for_request(
 }
 
 ///|
+/// One Collections row error. Its `statusCode` must be a Salesforce error
+/// enumeration name, the same form a rejection requires; any other text
+/// makes the whole response unclassified, so no row is published from it.
 fn collection_error(
   cursor : @decode.Cursor,
 ) -> Result[WriteProviderError, WriteCollectionResponseIssue] {
   guard @decode.open_object(cursor) is Ok(object) &&
     @decode.lookup(object, "statusCode") is Some(code_cursor) &&
     @decode.text(code_cursor) is Ok(code) &&
-    !code.is_empty() &&
+    write_error_code_valid(code) &&
     @decode.lookup(object, "message") is Some(message_cursor) &&
     @decode.text(message_cursor) is Ok(message) &&
     @decode.lookup(object, "fields") is Some(fields_cursor) &&

@@ -1,20 +1,15 @@
 ///|
-/// Documented evidence that Salesforce did not save a write: the error
-/// response of a request it rejected before its save committed. The outcome
-/// code names the evidence; `http_status` is the rejecting status.
-///
-/// Salesforce saves a record in one order: validation, then the save, then
-/// triggers, then the commit, with post-commit logic last. An error reported
-/// in the response is raised before that commit, so nothing of the request
-/// was saved. The statuses admitted here are the REST rejections that report
-/// such an error with a structured body: 400 (not understood), 401 (invalid
-/// session), 403 (refused, including REQUEST_LIMIT_EXCEEDED), 404 (resource
-/// not found) and 428 (not executed because unconditional). Anything else,
-/// including a 5xx, a timeout, a malformed body or an error code that
-/// reports provider uncertainty, is not evidence and stays unknown. An
-/// upsert 300 is documented as writing nothing, but the credential transport
-/// refuses every 3xx as a redirect before its body is read, so it stays
-/// unknown too.
+/// Documented evidence that Salesforce refused a write: a REST status whose
+/// official definition is a rejection of the request, answered with a
+/// structured error body. The statuses admitted are 400 ("couldn't be
+/// understood"), 401 (expired or invalid session), 403 ("has been refused",
+/// including REQUEST_LIMIT_EXCEEDED), 404 ("couldn't be found") and 428
+/// ("wasn't executed"). The outcome code names the evidence; `http_status`
+/// is the rejecting status. Anything else, including a 5xx, a timeout, a
+/// malformed body or an error code that reports provider uncertainty, is not
+/// evidence and stays unknown. An upsert 300 is documented as writing
+/// nothing, but the credential transport refuses every 3xx as a redirect
+/// before its body is read, so it stays unknown too.
 pub(all) struct WriteRejection {
   code : String
   http_status : Int

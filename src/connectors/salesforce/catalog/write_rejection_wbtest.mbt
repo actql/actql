@@ -226,3 +226,99 @@ test "a request-level Collections rejection fails every row" {
     )
   }
 }
+
+///|
+fn collection_row_error_request() -> WriteCollectionRequest {
+  let create = write_request_body(WriteCreate)
+  let rows : Array[WriteCollectionItem] = [
+    {
+      row_preview_cid: collection_request_test_cid("1"),
+      body: create,
+      target: NoWriteTarget,
+    },
+    {
+      row_preview_cid: collection_request_test_cid("2"),
+      body: create,
+      target: NoWriteTarget,
+    },
+  ]
+  prepare_continue_write_collection(
+    rows,
+    "v66.0",
+    collection_request_test_limits(),
+  ).unwrap()
+}
+
+///|
+/// An HTTP 200 Collections response whose second row failed with `code`.
+fn collection_row_error_body(code : String) -> Bytes {
+  @utf8.encode(
+    "[{\"id\":\"a00123456789012\",\"success\":true,\"errors\":[]},{\"success\":false,\"errors\":[{\"statusCode\":" +
+    code +
+    ",\"message\":\"private record value 42\",\"fields\":[\"External_Key__c\",\"Secret__c\"]}]}]",
+  )
+}
+
+///|
+test "Collections row errors publish only enumeration codes" {
+  let request = collection_row_error_request()
+  let limits = { ..collection_response_limits(), max_bytes: 4000, }
+  // A row error whose code is not an enumeration name is not classified:
+  // the response stays unknown and nothing of it is published.
+  for
+    code in [
+      "\"private record value 42\"",
+      "\"required_field_missing\"",
+      "\"REQUIRED FIELD\"",
+      "\"REQUIRED_FIELD\\n\"",
+      "\" REQUIRED_FIELD\"",
+      "\"_REQUIRED\"",
+      "\"\"",
+      "\"" + "A".repeat(101) + "\"",
+    ] {
+    assert_true(
+      project_write_collection_response_for_request(
+        200,
+        collection_row_error_body(code),
+        request,
+        limits,
+      )
+      is Err(InvalidResponse),
+    )
+  }
+  // An ordinary row error is still a definite row failure, published with
+  // its code and declared fields only.
+  let response = project_write_collection_response_for_request(
+    200,
+    collection_row_error_body("\"REQUIRED_FIELD_MISSING\""),
+    request,
+    limits,
+  ).unwrap()
+  let applied = project_collection_effect_outcome_at(response, 0, 4096, 128, 8).unwrap()
+  assert_true(applied.outcome_wire.contains("\"state\":\"applied\""))
+  let failed = project_collection_effect_outcome_at(response, 1, 4096, 128, 8).unwrap()
+  assert_eq(
+    failed.outcome_wire,
+    "{\"error\":{\"code\":\"SalesforceRowFailed\",\"details\":{\"errors\":[{\"error_code\":\"REQUIRED_FIELD_MISSING\",\"fields\":[\"External_Key__c\"]}]},\"message\":\"Salesforce did not save the row\"},\"state\":\"failed\"}",
+  )
+  assert_false(failed.outcome_wire.contains("private record value"))
+  assert_false(failed.outcome_wire.contains("Secret__c"))
+}
+
+///|
+test "rejection codes with whitespace or excess length stay unknown" {
+  let (create, _, _) = rejection_test_requests()
+  for
+    code in [
+      "\"INVALID_FIELD\\n\"",
+      "\"INVALID FIELD\"",
+      "\" INVALID_FIELD\"",
+      "\"invalid_field\"",
+      "\"" + "A".repeat(101) + "\"",
+    ] {
+    assert_true(
+      rejected(400, "[{\"message\":\"m\",\"errorCode\":" + code + "}]", create)
+      is Err(InvalidResponse),
+    )
+  }
+}
