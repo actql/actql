@@ -11,7 +11,7 @@ claimed to read and write in one Program.
 
 ## Status
 
-- On main (this branch): the installation profile, the explicit publication,
+- On this branch (not yet on main): the installation profile, the explicit publication,
   the capture/Preview/apply/recovery factory, the Host seam and the package
   publication entry. They are tested through the common completion and
   recovery owners against a local HTTPS mock org.
