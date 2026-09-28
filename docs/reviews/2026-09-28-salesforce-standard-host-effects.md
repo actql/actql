@@ -11,10 +11,10 @@ claimed to read and write in one Program.
 
 ## Status
 
-- On this branch (not yet on main): the installation profile, the explicit publication,
-  the capture/Preview/apply/recovery factory, the Host seam and the package
+- On main (#35): the installation profile, the explicit publication, the
+  capture/Preview/apply/recovery factory, the Host seam and the package
   publication entry. They are tested through the common completion and
-  recovery owners against a local HTTPS mock org.
+  recovery owners and the public Host paths against a local HTTPS mock org.
 - The standard Host's Effect path (#29) is merged. Behind the Remote HTTP
   Host and the public Client, a multi-tuple Set is submitted, previewed,
   held for the whole-Set approval, approved, resumed after a Host restart,
