@@ -50,15 +50,15 @@ through installed Local and HTTP Clients.
 | SQL-02–06 | `src/query_program/compile_test.mbt` Pipe snapshot tests; packed SET/EXTEND/DROP/RENAME Results | Current names and prior range slots remain separate; invalid peer references reject |
 | SQL-07, SQL-29 | Typed `AmbiguousColumn`/`UnknownColumn`/`AmbiguousRelation` and `UnsupportedJoin` regressions in `compile_test.mbt` | Non-equality outer ON is rejected before any Program is issued |
 | SQL-08–12 | JOIN/USING and set compilation in `compile_test.mbt`; packed Local/HTTP rows | Includes NULL extension, duplicate multiplicity, positional and exact BY NAME alignment in exercised forms |
-| SQL-13–17, SQL-19 | Group, NULL ordering and pagination tests in `compile_test.mbt`; packed Local/HTTP rows | Covers exercised aggregate signatures and order profiles, not every numeric or tie case |
+| SQL-13–19 | Group, NULL ordering, missing total-order witness and pagination tests in `compile_test.mbt`; packed Local/HTTP rows for supported forms | Tied sort keys without a candidate key are rejected by the ordinary checker; no arbitrary representative is selected |
 | SQL-20–22 | `query_test.mbt` rejects zero, parameterized and out-of-range LIMIT; `lower_test.mbt` checks integer range | Rejection occurs during frontend parsing/lowering; explicit provider read/write counters for SQL-20 remain unverified |
 | SQL-23–26 | Strict and legacy CONCAT plus eager failure and CASE in `lower_test.mbt` and packed Results | Existing legacy behavior remains distinct from query CONCAT |
 | SQL-27–28 | CTE compilation and packed Local read counter; recursive CTE parser rejection | One Local acquisition for reused CTE; HTTP physical read count remains unverified |
 | SQL-30–32 | Limited ranking/navigation and frame tests in `compile_test.mbt`/`query_test.mbt`; packed Results | Adopted ROWS forms and RANGE rejection; remaining frame/signature matrix is pending |
+| SQL-33–34 | `SELECT *` nested array/vector check in `compile_test.mbt`; packed Local/HTTP typed rows; checker rejection without a captured schema | No helper field egress or provider sampling to invent unknown schema |
 
-SQL-18's insufficient tie-order evidence and SQL-33/34's typed star and
-unknown-schema cases still need direct acceptance evidence. The imported
-diagnostic catalog's exact code mapping is also pending; current MoonBit
+The imported diagnostic catalog's exact code mapping is still pending;
+current MoonBit
 issues and source spans must not be reported as those registered codes.
 
 The PR Validation section records the fixed SHA, current target results, and

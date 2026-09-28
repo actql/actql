@@ -298,6 +298,38 @@ test "non-output ORDER BY stays hidden and output aliases take precedence" {
 }
 
 ///|
+test "ORDER and LIMIT require a total order witness for tied source keys" {
+  let declaration = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"carrier":"relation","schema":{"id":{"type":"number","nullable":false},"status":{"type":"string","nullable":false}}}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let context = fixture_context()
+  let input = {
+    ..context.inputs[0],
+    source: Captured(declaration),
+    visible_fields: ["id", "status"],
+  }
+  let query = @query.parse_query(
+    "SELECT id FROM orders ORDER BY status LIMIT 1",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(
+    query,
+    { ..context, inputs: [input], },
+    construction_limits(),
+  ).unwrap()
+  assert_true(
+    @check.check_parsed(program, check_environment(), None, check_limits())
+    is Rejected(_),
+  )
+}
+
+///|
 test "WHERE and peer SELECT expressions cannot use new SELECT aliases" {
   for
     text in [
@@ -1852,6 +1884,61 @@ test "source-free SELECT star preserves direct Values publication" {
   assert_true(wire.contains("\"steps\":[{\"as\":\"orders\",\"values\""))
   assert_true(!wire.contains("\"select\""))
   assert_true(wire.contains("\"fields\":[\"id\"]"))
+}
+
+///|
+test "SELECT star keeps typed nested fields and refuses unknown source schema" {
+  let seed = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"id":{"type":"number","nullable":false},"items":{"type":"array","nullable":true,"items":{"type":"number","nullable":true},"max_items":2},"v":{"type":"vector","dimensions":2,"nullable":false}},"rows":[{"id":1,"items":[2,null],"v":[1,2]}]},"as":"orders"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let context = fixture_context()
+  let input = {
+    ..context.inputs[0],
+    source: GeneratedValues(seed),
+    visible_fields: ["id", "items", "v"],
+  }
+  let query = @query.parse_query("SELECT * FROM orders", syntax_limits()).unwrap()
+  let program = compile(
+    query,
+    { ..context, inputs: [input], },
+    construction_limits(),
+  ).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"fields\":[\"id\",\"items\",\"v\"]"))
+  assert_true(!wire.contains("aql_query_"))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("closed Values source must not need acquisition")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let unknown_source = @wire.admit(
+    @source.parse_json(
+      "{\"connector\":\"crm/main\",\"resource\":\"r\"}",
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let unknown = {
+    ..input,
+    source: Captured(unknown_source),
+    visible_fields: [],
+  }
+  let unresolved = compile(
+    query,
+    { ..context, inputs: [unknown], },
+    construction_limits(),
+  ).unwrap()
+  assert_true(
+    @check.check_parsed(unresolved, check_environment(), None, check_limits())
+    is Rejected(_),
+  )
 }
 
 ///|

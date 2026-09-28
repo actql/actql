@@ -120,6 +120,19 @@ const valuesQuery = queryFrontend.compileValuesQueryJson(
   JSON.stringify(['id']), 'fixture.values_query');
 assert.notEqual(valuesQuery, '');
 await writeFile(join(root, 'query-values.json'), valuesQuery);
+const nestedRows = [{id: 1, items: [2, null], v: [1, 2]},
+  {id: 2, items: [], v: [3, 4]}];
+const nestedValues = {values: {schema: {
+  id: {type: 'number', nullable: false},
+  items: {type: 'array', nullable: true,
+    items: {type: 'number', nullable: true}, max_items: 2},
+  v: {type: 'vector', dimensions: 2, nullable: false}},
+rows: nestedRows}, as: 'selected'};
+const nestedQuery = queryFrontend.compileValuesQueryJson(
+  'SELECT * FROM rows', 'rows', 'selected', JSON.stringify(nestedValues),
+  JSON.stringify(['id', 'items', 'v']), 'fixture.nested_values_query');
+assert.notEqual(nestedQuery, '');
+await writeFile(join(root, 'query-nested-values.json'), nestedQuery);
 const computedValuesQuery = queryFrontend.compileValuesQueryJson(
   'SELECT id FROM rows WHERE id > 1', 'rows', 'selected',
   JSON.stringify(valuesStep), JSON.stringify(['id']),
@@ -937,6 +950,9 @@ for (const selected of connected) {
 }
 const document = readFileSync('values.json', 'utf8');
 const valuesQueryDocument = readFileSync('query-values.json', 'utf8');
+const nestedQueryDocument = readFileSync('query-nested-values.json', 'utf8');
+const expectedNestedRows = [{id: 1, items: [2, null], v: [1, 2]},
+  {id: 2, items: [], v: [3, 4]}];
 const computedValuesQueryDocument = readFileSync('query-computed-values.json',
   'utf8');
 const pairQueryDocument = readFileSync('query-pair.json', 'utf8');
@@ -1464,6 +1480,11 @@ const valuesQueryLocal = await installedLocal.aql(valuesQueryDocument,
 assert.equal((await valuesQueryLocal.wait()).status, 'succeeded');
 assert.deepEqual(await valuesQueryLocal.result('answer').all(),
   [{id: 1}, {id: 2}]);
+const nestedQueryLocal = await installedLocal.aql(nestedQueryDocument,
+  {format: 'json', requestId: 'packed-query-nested-values-local'});
+assert.equal((await nestedQueryLocal.wait()).status, 'succeeded');
+assert.deepEqual(await nestedQueryLocal.result('answer').all(),
+  expectedNestedRows);
 const computedValuesQueryLocal = await installedLocal.aql(
   computedValuesQueryDocument,
   {format: 'json', requestId: 'packed-query-computed-values-local'});
@@ -1666,6 +1687,11 @@ const valuesQueryRemote = await installedRemote.aql(valuesQueryDocument,
 assert.equal((await valuesQueryRemote.wait()).status, 'succeeded');
 assert.deepEqual(await valuesQueryRemote.result('answer').all(),
   [{id: 1}, {id: 2}]);
+const nestedQueryRemote = await installedRemote.aql(nestedQueryDocument,
+  {format: 'json', requestId: 'packed-query-nested-values-remote'});
+assert.equal((await nestedQueryRemote.wait()).status, 'succeeded');
+assert.deepEqual(await nestedQueryRemote.result('answer').all(),
+  expectedNestedRows);
 const computedValuesQueryRemote = await installedRemote.aql(
   computedValuesQueryDocument,
   {format: 'json', requestId: 'packed-query-computed-values-remote'});
