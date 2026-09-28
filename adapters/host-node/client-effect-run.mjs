@@ -20,10 +20,12 @@ const unsupported = () => Object.assign(new Error('ClientProgramUnsupported'),
 
 export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
-  journal, authorizeRequest, authorizeRunStart, execute,
+  journal, authorizeRequest, authorizeRunStart, prepareExecution, execute,
   now = () => new Date().toISOString()}) {
   if (typeof moon?.clientProgramEffectCompilationIssueCode !== 'function' ||
       typeof authorizeRequest !== 'function' ||
+      (prepareExecution !== undefined &&
+        typeof prepareExecution !== 'function') ||
       typeof execute !== 'function' ||
       typeof journal?.reservePhysicalStart !== 'function' ||
       typeof now !== 'function' ||
@@ -33,6 +35,18 @@ export function installNodeClientEffectRun({moon,
   const startRun = installNodeClientRunStart({journal, requestControl: moon,
     publicationControl: control, authorizeRunStart});
   const handles = new WeakMap();
+  const compilations = new WeakMap();
+  const compile = prepared => {
+    if (prepared === null || typeof prepared !== 'object') throw denied();
+    let compilation = compilations.get(prepared);
+    if (compilation !== undefined) return compilation;
+    const outcome = moon.clientProgramCompileLocalEffects(prepared);
+    if (moon.clientProgramEffectCompilationIssueCode(outcome) ===
+        'unsupported_program') throw unsupported();
+    compilation = checked(outcome);
+    compilations.set(prepared, compilation);
+    return compilation;
+  };
   const admitEvidence = (name, wire) => checked(
     moon.strategyRunEvidenceAdmit(name, wire, limits.maxWireBytes,
       limits.maxNodes, limits.maxDepth));
@@ -40,6 +54,10 @@ export function installNodeClientEffectRun({moon,
     'run_definition', definition.wire, limits.maxWireBytes,
     limits.maxNodes, limits.maxDepth));
   return Object.freeze({
+    // A held Run-acceptance Checkpoint must never be opened for a Program
+    // this installed Host cannot compile. The exact compiled owner is reused
+    // by acceptance; this check neither issues a Run nor starts physical I/O.
+    checkSupported(prepared) { compile(prepared); },
     // Record the public state of a started Run whose complete admitted Effect
     // Set has unknown outcomes. The owner names exactly those Effects; the
     // journal keeps the state for status and reconcile in any later process.
@@ -75,27 +93,20 @@ export function installNodeClientEffectRun({moon,
       const identity = moon.clientProgramEffectRequestIdentity(prepared,
         authorityScopeCid, requestId, moon.clientProgramSourceFreeInputIntentCid());
       if (identity === undefined) throw denied();
-      let compilation;
-      const compile = () => {
-        if (compilation !== undefined) return compilation;
-        const outcome = moon.clientProgramCompileLocalEffects(prepared);
-        if (moon.clientProgramEffectCompilationIssueCode(outcome) ===
-            'unsupported_program') throw unsupported();
-        compilation = checked(outcome);
-        return compilation;
-      };
+      const compiled = () => compile(prepared);
       const accepted = await journal.admitOrLookupDefinition(identity, {
         tenantId, lookupExpiresAt,
         issueDefinition() {
           const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
-            compile(), policy.executionContextCid, policy.hostPolicyCid,
+            compiled(), policy.executionContextCid, policy.hostPolicyCid,
             policy.expiresAt));
           const definition = checked(moon.clientProgramIssueEffectRunDefinition(
             allowed, tenantId, randomUUID(), policy.createdAt, policy.expiresAt));
           if (!moon.clientProgramEffectRunStartCurrent(allowed,
             definition, now())) throw expired();
           return {
-            resultNames: moon.clientProgramEffectCompilationResultNames(compile()),
+            resultNames: moon.clientProgramEffectCompilationResultNames(
+              compiled()),
             runDefinition: control.admit('run_definition',
               moon.strategyPublicationContractJson(definition), limits),
             runAdmissionEvidence: {
@@ -111,12 +122,17 @@ export function installNodeClientEffectRun({moon,
         durability: accepted.durability, revision: accepted.revision,
         lookupExpiresAt: accepted.lookupExpiresAt});
       handles.set(handle, {prepared, identity, tenantId, principalId,
-        connection, compile});
+        connection, compile: compiled});
       return handle;
     },
-    async start(handle) {
+    async start(handle, {beforePhysicalStart, started, signal} = {}) {
       const owned = handles.get(handle);
-      if (owned === undefined) throw denied();
+      if (owned === undefined ||
+          beforePhysicalStart !== undefined &&
+            typeof beforePhysicalStart !== 'function' ||
+          started !== undefined && typeof started !== 'function') {
+        throw denied();
+      }
       const {prepared, identity, tenantId, principalId, connection, compile} = owned;
       const start = await startRun({identity, tenantId, principalId, connection});
       const retained = journal.resolveDefinition(identity, {tenantId}, moon, control);
@@ -160,16 +176,50 @@ export function installNodeClientEffectRun({moon,
         }
         throw expired(start.ref);
       }
+      signal?.throwIfAborted();
+      let preparedExecution;
+      if (prepareExecution !== undefined && authorized === true) {
+        try {
+          preparedExecution = prepareExecution(Object.freeze({ref: start.ref,
+            identity, owner, prepared, compilation, allowed, definition,
+            runDefinition: retained.runDefinition}));
+          if (typeof preparedExecution?.then === 'function') {
+            // A misinstalled asynchronous preparer is not a physical-start
+            // permit. Consume its eventual rejection without accepting it
+            // as evidence or retrying this Run.
+            void Promise.resolve(preparedExecution).catch(() => {});
+            throw new TypeError('AsyncClientEffectPreparation');
+          }
+        } catch (error) {
+          try { journal.markPreDispatchFailure(start.ref); }
+          catch (observationFailure) {
+            const latest = journal.resolveDefinition(identity, {tenantId},
+              moon, control);
+            if (latest?.physicalStartReserved !== false) {
+              return Object.freeze({kind: 'reconcile', ref: start.ref});
+            }
+            throw Object.assign(new Error('ClientEffectPreparationUnknown',
+              {cause: error}), {code: 'ClientEffectPreparationUnknown',
+              primaryFailure: error, observationFailure, ref: start.ref});
+          }
+          throw error;
+        }
+      }
+      // A resumed Checkpoint enters its current claim immediately before the
+      // durable physical-start reservation. The answer alone is not a send
+      // permit; no asynchronous work separates these two admissions.
+      beforePhysicalStart?.();
       if (!journal.reservePhysicalStart(identity, {tenantId, ref: start.ref,
         currentAuthorization: authorized === true}, moon, control)) {
         return Object.freeze({kind: 'reconcile', ref: start.ref});
       }
+      started?.();
       // Only the claim winner receives the bound owner. The callback owns all
       // capture/apply/publication and cleanup, including after a thrown error.
       // No catch path resets the durable physical-start claim.
       const value = await execute(Object.freeze({ref: start.ref, identity,
         owner, prepared, compilation, allowed, definition,
-        runDefinition: retained.runDefinition}));
+        runDefinition: retained.runDefinition, preparedExecution, signal}));
       return Object.freeze({kind: 'started', ref: start.ref, value});
     },
   });

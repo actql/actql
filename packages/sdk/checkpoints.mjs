@@ -76,14 +76,27 @@ async function signature(signer, text) {
 }
 
 // One signed answer for one Checkpoint, from its listed safe metadata. An
-// approval carries its own run-scope approval evidence bound to this
-// Checkpoint only; nothing covers another Checkpoint.
+// approval carries the evidence profile of this Checkpoint. Nothing covers
+// another Checkpoint, and a whole-set approval does not promise atomic writes.
 export async function signedAnswer(summary, decision, signer, decidedAt) {
   if (decision !== 'approved' && decision !== 'rejected') {
     throw new TypeError('InvalidCheckpointDecision');
   }
-  if (!['run_scope', 'read_access'].includes(summary?.kind) ||
-      summary.subject?.kind !== 'prepare_attempt') {
+  // Own the public data and callback before the first asynchronous digest or
+  // signature. A caller cannot relabel an answer while its signer is waiting.
+  summary = JSON.parse(canonicalJson(summary));
+  const sourceSigner = checkedSigner(signer);
+  const signBytes = sourceSigner.sign;
+  signer = Object.freeze({keyId: sourceSigner.keyId,
+    reviewerId: sourceSigner.reviewerId,
+    authorityScopeCid: sourceSigner.authorityScopeCid,
+    sign: bytes => signBytes.call(sourceSigner, bytes)});
+  const preparation = ['run_scope', 'read_access'].includes(summary?.kind) &&
+    summary.subject?.kind === 'prepare_attempt';
+  const effect = summary?.kind === 'effect_set' &&
+    summary.phase === 'commit' && summary.subject?.kind === 'run_unit' &&
+    summary.requiredArtifact?.type === 'effect_set_preview';
+  if (!preparation && !effect) {
     // Run acceptance and a held source read of a request before its Run
     // share the run-scope approval profile. Other kinds carry their own
     // evidence profiles (for example an Effect Set attestation).
@@ -91,7 +104,24 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
   }
   let evidence;
   if (decision === 'approved') {
-    const approval = {
+    if (effect && !/^sha256:[0-9a-f]{64}$/u.test(
+      signer.authorityScopeCid ?? '')) {
+      throw new TypeError('EffectApprovalAuthorityScopeRequired');
+    }
+    if (effect && (!Array.isArray(summary.requirements) ||
+        !summary.requirements.includes('effect_scope_approved') ||
+        summary.requirements.some(claim => !['effect_scope_approved',
+          'partial_application_accepted'].includes(claim)))) {
+      throw new TypeError('UnsupportedEffectApprovalClaims');
+    }
+    const approval = effect ? {
+      version: 'actql-approval-attestation/0.1',
+      effect_preview_cid: summary.requiredArtifact.cid,
+      review_projection_cid: summary.reviewProjectionCid,
+      authority_scope_cid: signer.authorityScopeCid,
+      claims: [...summary.requirements],
+      approver: signer.reviewerId, approved_at: decidedAt,
+    } : {
       version: 'actql-run-scope-approval/0.1',
       prepared_invocation_cid: summary.requiredArtifact.cid,
       review_projection_cid: summary.reviewProjectionCid,
@@ -102,7 +132,8 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
     };
     approval.proof = {scheme: 'ed25519-v1', key_id: signer.keyId,
       signature: await signature(signer, await contentCid(approval))};
-    approval.run_scope_approval_cid = await contentCid(approval);
+    approval[effect ? 'attestation_cid' : 'run_scope_approval_cid'] =
+      await contentCid(approval);
     evidence = {
       version: 'actql-checkpoint-approval-evidence/0.1',
       kind: summary.kind,
@@ -116,7 +147,9 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
     resolution_id: `resolution-${summary.checkpointId}-${decision}`,
     checkpoint_id: summary.checkpointId,
     checkpoint_cid: summary.checkpointCid,
-    prepare_attempt_id: summary.subject.prepareAttemptId,
+    ...(effect ? {run_id: summary.subject.runId,
+      run_definition_cid: summary.subject.runDefinitionCid} :
+      {prepare_attempt_id: summary.subject.prepareAttemptId}),
     decision,
     actor: signer.reviewerId,
     decided_at: decidedAt,

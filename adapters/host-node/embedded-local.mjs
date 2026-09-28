@@ -10,6 +10,11 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
+import {installNodeClientEffectRun} from './client-effect-run.mjs';
+import {runCapturedEffectComputation} from './entry.mjs';
+import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
+import {retireCompletedEffectfulCapture} from
+  '../host-common/completed-run-publication.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -32,7 +37,8 @@ import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
-  sourceFreeValuesPlan, acquiredTaskRunAdmission} from
+  sourceFreeValuesPlan, sourceFreeEffectPublicationPlan,
+  acquiredTaskRunAdmission} from
   './local-values-plan.mjs';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
@@ -59,7 +65,17 @@ function localStateRoot() {
 const REALIZATION_KEY = 'source-free-values';
 
 async function openInstalledHost(root, mode = 'local', beforeDispatch,
-  authorization, sourceProfilePath, resolveSourceSecret) {
+  authorization, sourceProfilePath, resolveSourceSecret,
+  effectInstallation) {
+  if (effectInstallation !== undefined &&
+      (sourceProfilePath !== undefined ||
+        typeof effectInstallation?.environmentWire !== 'string' ||
+        typeof effectInstallation.execute !== 'function' ||
+        typeof effectInstallation.resume !== 'function' ||
+        !(effectInstallation.privateEvidenceKey instanceof Uint8Array) ||
+        effectInstallation.privateEvidenceKey.byteLength !== 32)) {
+    throw new TypeError('InvalidInstalledEffectSite');
+  }
   await mkdir(root, {recursive: true, mode: 0o700});
   const moon = await import(runtimeUrl.href);
   const control = runtimeCore(moon).publicationControl;
@@ -71,7 +87,11 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     sourceProfilePath ?? process.env.ACTQL_LOCAL_SOURCE_PROFILE,
     {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
       resolveSecret: resolveSourceSecret});
-  const environmentWire = sourceProfile?.environmentWire ??
+  if (effectInstallation !== undefined && sourceProfile !== undefined) {
+    throw new TypeError('InvalidInstalledEffectSite');
+  }
+  const environmentWire = effectInstallation?.environmentWire ??
+    sourceProfile?.environmentWire ??
     baseEnvironmentWire;
   const evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
   const environment = moon.clientProgramCheckEnvironment(environmentWire,
@@ -108,6 +128,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       maxObjectBytes: localOutputLimits.maxWireBytes,
       maxObjects: 10000, maxContractNodes: 10000,
       maxContractDepth: 64,
+      ...(effectInstallation === undefined ? {} : {
+        privateEvidenceKey: effectInstallation.privateEvidenceKey}),
     }, control);
   const hostConnection = ({principalId: actual, connection, ref}) =>
     actual === principalId &&
@@ -153,7 +175,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       actual === principalId && ref.tenantId === tenantId &&
       ref.authorityScopeCid === authorityScopeCid});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
-    environment});
+    environment, allowEffects: effectInstallation !== undefined});
     checkpoints = await installRemoteCheckpoints({root, tenantId,
       authorityScopeCid, ownerPrincipal: principalId,
       siteKey: authorization?.siteKey ?? 'actql-remote-host',
@@ -173,7 +195,9 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     for (let attempt = 0; attempt < 8; attempt++) {
       const retained = journal.lookupRunDefinition(ref, moon, control);
       if (retained === undefined) throw new Error('RunStateAccessDenied');
+      const runId = control.runDefinitionRunId(retained.runDefinition);
       let state;
+      let continuation;
       if (await store.confirmCommittedIndex(ref) !== undefined) {
         state = await inspectAuthorizedRunState(stateService, {
           indexKey: ref, principalId: actual, purpose: 'inspect',
@@ -182,22 +206,40 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         if (!Array.isArray(retained.resultNames)) {
           throw new Error('RunStateInventoryUnknown');
         }
-        const liveExecution = dispatchOwner.live(ref);
-        const executionUnknown = retained.dispatchReserved &&
-          !retained.preDispatchFailureConfirmed &&
-          retained.physicalStartReserved !== false &&
-          retained.observedTerminalOutcome === null && !liveExecution;
-        const wire = checked(moon.clientProgramIssueControlledUnpublishedRunState(
-          control.runDefinitionRunId(retained.runDefinition), now(),
-          retained.resultNames, retained.dispatchReserved,
-          retained.preDispatchFailureConfirmed,
-          retained.cancellationRequested &&
-            retained.physicalStartReserved === false,
-          retained.observedTerminalOutcome ?? 'none', executionUnknown));
-        state = JSON.parse(wire);
+        continuation = checkpoints?.effectRunState(runId,
+          ref.runDefinitionCid);
+        if (continuation?.status === 'succeeded') {
+          // A second journal cannot establish Publication Store success.
+          // Reobserve the committed index instead of issuing success from
+          // the Checkpoint lifecycle alone.
+          continue;
+        }
+        if (continuation !== undefined &&
+            continuation.status !== 'running') {
+          state = continuation.runState;
+        } else {
+          const liveExecution = dispatchOwner.live(ref);
+          const executionUnknown = retained.dispatchReserved &&
+            !retained.preDispatchFailureConfirmed &&
+            retained.physicalStartReserved !== false &&
+            retained.observedTerminalOutcome === null && !liveExecution;
+          const wire = checked(
+            moon.clientProgramIssueControlledUnpublishedRunState(
+              runId, now(), retained.resultNames, retained.dispatchReserved,
+              retained.preDispatchFailureConfirmed,
+              retained.cancellationRequested &&
+                retained.physicalStartReserved === false,
+              retained.observedTerminalOutcome ?? 'none', executionUnknown));
+          state = JSON.parse(wire);
+        }
       }
       const after = journal.lookupRunDefinition(ref, moon, control);
       if (after?.revision !== retained.revision) continue;
+      if (continuation !== undefined) {
+        const afterContinuation = checkpoints.effectRunState(runId,
+          ref.runDefinitionCid);
+        if (afterContinuation?.version !== continuation.version) continue;
+      }
       if (state.status === 'running' && !dispatchOwner.live(ref) &&
           retained.physicalStartReserved === true) {
         continue;
@@ -210,6 +252,28 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       return {...state, control: JSON.parse(observation)};
     }
     throw new Error('RunStateObservationUnstable');
+  };
+  const cancelEffectContinuation = ref => {
+    if (checkpoints === undefined) return false;
+    const retained = journal.lookupRunDefinition(ref, moon, control);
+    if (retained === undefined || !retained.cancellationRequested) {
+      return false;
+    }
+    const runId = control.runDefinitionRunId(retained.runDefinition);
+    const view = checkpoints.journal.inspect(`${runId}-effect-commit`);
+    if (view?.kind !== 'effect_set' || view.runId !== runId ||
+        view.runDefinitionCid !== ref.runDefinitionCid ||
+        view.prepareAttemptId !== null) return false;
+    const state = checkpoints.journal.getRunState(runId)?.status;
+    if (state === 'waiting_checkpoint') {
+      return checkpoints.journal.cancelCheckpoint(view.checkpointCid)
+        .outcome === 'cancelled';
+    }
+    if (state === 'resuming') {
+      return checkpoints.journal.cancelUnsentResume(view.checkpointCid)
+        .outcome === 'cancelled';
+    }
+    return false;
   };
   const cancel = async ({ref, principalId: actual, connection}) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
@@ -224,6 +288,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     }, moon, control);
     if (accepted.kind !== 'already_terminal') {
       dispatchOwner.cancel(ref);
+      cancelEffectContinuation(ref);
+      void checkpoints?.sweep();
     }
     return accepted;
   };
@@ -282,6 +348,27 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     return observeRun({ref, principalId: actual});
   };
   const requestOf = ({preparedProgram, requestId}) => {
+    prepareSubmit.assertOwned(preparedProgram);
+    if (prepareSubmit.kindOf(preparedProgram) === 'effectful') {
+      const requested = moon.clientProgramEffectRequestIdentity(
+        preparedProgram, authorityScopeCid, requestId,
+        moon.clientProgramSourceFreeInputIntentCid());
+      if (requested === undefined) {
+        throw new Error('ClientProgramNeedsInputs');
+      }
+      const resultNames = [];
+      for (let index = 0;
+        index < moon.clientProgramEffectResultCount(preparedProgram);
+        index++) {
+        const name = moon.clientProgramEffectResultName(preparedProgram,
+          index);
+        if (name === undefined) {
+          throw new Error('ClientProgramResultMissing');
+        }
+        resultNames.push(name);
+      }
+      return {requested, resultNames, acquired: false, effectful: true};
+    }
     const acquisition = moon.clientProgramPrepareQueryAcquisition(
       preparedProgram, 0, 0);
     const acquired = acquisition?.$tag === 1;
@@ -318,7 +405,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       if (name === undefined) throw new Error('ClientProgramResultMissing');
       resultNames.push(name);
     }
-    return {requested, resultNames, acquired};
+    return {requested, resultNames, acquired, effectful: false};
   };
   const prepareAcquisition = (preparedProgram,
     sourceAccess = sourceProfile.sourceAccess) =>
@@ -359,17 +446,149 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     faultInjection: authorization?.faultInjection,
     fragment, ordered, tenantId, authorityScopeCid, storeAuthorityCid, now});
   const startDispatch = dispatchOwner.start;
+  const recoverEffectCapture = (ref, signal) => {
+    const retained = journal.lookupRunDefinition(ref, moon, control);
+    if (retained === undefined || typeof retained.requestId !== 'string') {
+      throw new Error('EffectRecoveryRequestMismatch');
+    }
+    const requestId = retained.requestId;
+    return recoverAdmittedEffectRun({requests: journal, store,
+      key: {tenantId, authorityScopeCid, requestId,
+        runDefinitionCid: ref.runDefinitionCid}, principalId,
+      contractLimits: localContractLimits, signal,
+      authorizeEvidenceRead: binding => hostConnection({principalId,
+        connection: {mode, owner: mode}, ref}) &&
+        binding.tenantId === tenantId &&
+        binding.authorityScopeCid === authorityScopeCid &&
+        binding.requestId === requestId &&
+        binding.runDefinitionCid === ref.runDefinitionCid &&
+        binding.storeAuthorityCid === storeAuthorityCid},
+    async () => moon);
+  };
+  const effectRun = effectInstallation === undefined ? undefined :
+    installNodeClientEffectRun({moon, publicationControl: control, journal,
+      now,
+      authorizeRequest: async ({principalId: actual, connection}) => {
+        if (!hostConnection({principalId: actual, connection})) return null;
+        const createdAt = now();
+        return Object.freeze({
+          executionContextCid: cid({version:
+            'actql-installed-effect-execution-context/0.1',
+          authorityScopeCid, evidenceCid, principalId: actual}),
+          hostPolicyCid: checkpoints?.binding.authorizationContextCid ??
+            cid({version: 'actql-installed-effect-missing-policy/0.1',
+              authorityScopeCid}),
+          createdAt, expiresAt: plus(createdAt, 24 * 60 * 60 * 1000),
+        });
+      },
+      authorizeRunStart: ({principalId: actual, connection, ref}) =>
+        hostConnection({principalId: actual, connection, ref}),
+      prepareExecution: ({prepared, compilation, allowed, definition}) =>
+        sourceFreeEffectPublicationPlan({moon, control, prepared,
+          compilation, allowed, definition, authorityScopeCid, tenantId,
+          storeAuthorityCid, now}),
+      execute: facts => dispatchOwner.track(facts.ref, {
+        run: ({signal, retainExecution, beginPhysicalWork}) =>
+          effectInstallation.execute(
+          Object.freeze({...facts, signal, retainExecution,
+            beginPhysicalWork, moon, control,
+            publicationPlan: facts.preparedExecution,
+            store, storeAuthorityCid, authorityScopeCid,
+            observeRun: ({ref}) => observeRun({ref, principalId}),
+            openComputation: () => {
+              const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
+                facts.owner, registry, values, 1n, 0n, 0n, 0n);
+              if (setup === undefined) {
+                throw new Error('InstalledEffectProgramUnsupported');
+              }
+              return runCapturedEffectComputation(setup, {}, signal).then(
+                execution => Object.freeze({execution, checkedHost: setup}));
+            },
+            recoverCapture: ({signal: recoverySignal} = {}) =>
+              recoverEffectCapture(facts.ref, recoverySignal),
+            effectAuthorization: checkpoints?.effectAuthorization,
+            recordReconciliation: (...args) =>
+              effectRun.recordReconciliation(...args)})),
+        observeStopped: terminalOutcome => journal.markPhysicalClose(
+          facts.ref, terminalOutcome),
+        barrierFailureOutcome: 'failed',
+      }),
+    });
   const runIdOf = accepted => control.runDefinitionRunId(
     accepted.runDefinition?.wire === undefined
       ? journal.lookupRunDefinition(accepted.ref, moon, control).runDefinition
       : accepted.runDefinition);
+  const admitEffectDefinition = submission => effectRun.accept({
+    prepared: submission.preparedProgram, authorityScopeCid,
+    requestId: submission.requestId, tenantId,
+    principalId: submission.principalId, connection: submission.connection,
+    lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
+  });
+  const submitEffect = async (submission, requested, resultNames) => {
+    const {requestId, principalId: actual, connection, kind, input,
+      parameters, preparedProgram} = submission;
+    // A deferred approval must be answerable by this installed profile.
+    // Reject unsupported checked shapes before retaining a Checkpoint.
+    effectRun.checkSupported(preparedProgram);
+    if (checkpoints?.heldOrigin(requestId)) {
+      const existing = journal.resolveDefinition(requested, {tenantId}, moon,
+        control);
+      if (existing !== undefined) {
+        void checkpoints.sweep();
+        return {ref: existing.ref, durability: existing.durability,
+          revision: existing.revision};
+      }
+    }
+    if (checkpoints !== undefined &&
+        (checkpoints.heldOrigin(requestId) ||
+         journal.lookup({tenantId, authorityScopeCid, requestId}, moon) ===
+           undefined)) {
+      const requestedFacts = {
+        logicalRequestScopeCid: moon.clientRequestScopeCid(requested),
+        intentFingerprintCid: moon.clientRequestIntentCid(requested),
+      };
+      const captured = {version: 'actql-remote-captured-submission/0.1',
+        requestId, principalId: actual, connection, kind, input,
+        parameters, resultNames};
+      const decided = await checkpoints.acceptRun({requested: requestedFacts,
+        captured});
+      if (decided.kind !== 'dispatch') {
+        const existing = journal.lookupDefinition({tenantId,
+          authorityScopeCid, requestId}, moon, control);
+        void checkpoints.sweep();
+        if (existing !== undefined) {
+          return {ref: existing.ref, durability: existing.durability,
+            revision: existing.revision};
+        }
+        if (decided.held === undefined) {
+          throw new Error('HeldRunDefinitionMissing');
+        }
+        return decided.held;
+      }
+    }
+    const accepted = await admitEffectDefinition(submission);
+    // The durable accepted Ref is returned before physical work settles.
+    // Its start claim cannot be reset by a lost response or a second submit.
+    void effectRun.start(accepted).catch(error => {
+      diagnostic('effect_start_failed', {ref: accepted.ref,
+        code: error?.code ?? error?.message});
+    }).finally(() => settleHeldRun(accepted, runIdOf(accepted)))
+      .catch(error => diagnostic('effect_settlement_failed', {
+        ref: accepted.ref, code: error?.code ?? error?.message}));
+    return {ref: accepted.ref, durability: accepted.durability,
+      revision: accepted.revision};
+  };
   const submit = async submission => {
     const {requestId, principalId: actual, connection, kind, input,
       parameters} = submission;
     if (!hostConnection({principalId: actual, connection})) {
       throw new Error('ClientConnectionDenied');
     }
-    const {requested, resultNames, acquired} = requestOf(submission);
+    const {requested, resultNames, acquired, effectful} =
+      requestOf(submission);
+    if (effectful) {
+      return submitEffect(submission, requested, resultNames);
+    }
     const preparedSource = acquired
       ? await prepareAcquisition(submission.preparedProgram) : undefined;
     // Run acceptance on the protected Site is decided before any Run
@@ -448,7 +667,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       kind: captured.kind, input: captured.input,
       parameters: captured.parameters};
     submission.preparedProgram = await prepareSubmit(submission);
-    const {requested, resultNames, acquired} = requestOf(submission);
+    const {requested, resultNames, acquired, effectful} =
+      requestOf(submission);
     const preparedSource = acquired
       ? await prepareAcquisition(submission.preparedProgram) : undefined;
     const acquisition = preparedSource === undefined ? undefined : {
@@ -465,7 +685,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         JSON.stringify(captured.resultNames)) {
       throw new Error('HeldRequestChanged');
     }
-    return {submission, requested, resultNames, preparedSource};
+    return {submission, requested, resultNames, preparedSource, effectful};
   };
   const definitionOf = captured => journal.lookupDefinition({tenantId,
     authorityScopeCid, requestId: captured.requestId}, moon, control);
@@ -570,7 +790,46 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       }
       throw error;
     }
-    const {submission, requested, resultNames, preparedSource} = resolved;
+    const {submission, requested, resultNames, preparedSource,
+      effectful} = resolved;
+    if (effectful) {
+      effectRun.checkSupported(submission.preparedProgram);
+      const accepted = await admitEffectDefinition(submission);
+      await step('definition_admitted', {ref: accepted.ref});
+      try { renew(); }
+      catch (error) { return {refused: error}; }
+      if (preparationCancelled()) {
+        await cancelHeldRun(captured);
+        return 'not_started';
+      }
+      if (definitionOf(captured)?.cancellationRequested) {
+        return 'not_started';
+      }
+      const runId = runIdOf(accepted);
+      let settle;
+      const observedStart = new Promise(resolve => { settle = resolve; });
+      let startObserved = false;
+      const flight = effectRun.start(accepted, {
+        beforePhysicalStart,
+        started() {
+          startObserved = true;
+          try { started(runId); }
+          finally { settle('started'); }
+        },
+      });
+      void flight.then(result => {
+        if (!startObserved) {
+          settle(result.kind === 'started' ? 'started' : 'not_started');
+        }
+      }, error => {
+        if (!startObserved) settle({refused: error});
+        diagnostic('effect_start_failed', {ref: accepted.ref,
+          code: error?.code ?? error?.message});
+      }).finally(() => settleHeldRun(accepted, runId))
+        .catch(error => diagnostic('effect_settlement_failed', {
+          ref: accepted.ref, code: error?.code ?? error?.message}));
+      return observedStart;
+    }
     const held = {preparedSource,
       preparedSourceAccess: sourceProfile?.sourceAccess};
     const accepted = await admitDefinition(submission, requested,
@@ -648,6 +907,141 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     value.ref === undefined && value.connection.mode === mode &&
     value.connection.owner === mode &&
     checkpoints.admitsCheckpointPrincipal(value.principalId);
+  const effectResumeFlights = new Map();
+  const effectRetirementFlights = new Map();
+  const retiredEffectCaptures = new Set();
+  const retireEffectCapture = ref => {
+    const key = ref.runDefinitionCid;
+    if (retiredEffectCaptures.has(key)) return Promise.resolve(false);
+    const existing = effectRetirementFlights.get(key);
+    if (existing !== undefined) return existing;
+    const flight = (async () => {
+      if (dispatchOwner.operation(ref) !== undefined) {
+        throw new Error('EffectCaptureExecutionStillOwned');
+      }
+      if (await store.confirmCommittedIndex(ref) !== undefined) {
+        retiredEffectCaptures.add(key);
+        return false;
+      }
+      const retained = journal.lookupRunDefinition(ref, moon, control);
+      if (retained?.runDefinition?.identity !== key) {
+        throw new Error('EffectRetirementRunDefinitionMissing');
+      }
+      const result = await retireCompletedEffectfulCapture({store, control,
+        runDefinition: retained.runDefinition,
+        contractLimits: localContractLimits});
+      retiredEffectCaptures.add(key);
+      return result;
+    })().finally(() => {
+      if (effectRetirementFlights.get(key) === flight) {
+        effectRetirementFlights.delete(key);
+      }
+    });
+    effectRetirementFlights.set(key, flight);
+    return flight;
+  };
+  const retireTerminalEffects = async () => {
+    if (effectRun === undefined || checkpoints === undefined) return;
+    let after = '';
+    const failures = [];
+    for (;;) {
+      const page = checkpoints.journal.listRunCheckpoints({after, limit: 100});
+      for (const view of page) {
+        if (view.kind !== 'effect_set' || view.prepareAttemptId !== null ||
+            !['failed', 'cancelled'].includes(
+              checkpoints.journal.getRunState(view.runId)?.status)) continue;
+        const ref = Object.freeze({tenantId, authorityScopeCid,
+          runDefinitionCid: view.runDefinitionCid});
+        try { await retireEffectCapture(ref); }
+        catch (error) { failures.push(error); }
+      }
+      if (page.length < 100) break;
+      after = page.at(-1).checkpointCid;
+    }
+    if (failures.length > 0) {
+      throw new AggregateError(failures, 'EffectCaptureCleanupPending');
+    }
+  };
+  const sweepEffectRuns = async () => {
+    if (effectRun === undefined || checkpoints === undefined) return false;
+    let busy = false;
+    let after = '';
+    for (;;) {
+      const page = checkpoints.journal.listRunCheckpoints({after, limit: 100});
+      for (const view of page) {
+        if (view.kind !== 'effect_set' || view.prepareAttemptId !== null) {
+          continue;
+        }
+        const key = view.runDefinitionCid;
+        const ref = Object.freeze({tenantId, authorityScopeCid,
+          runDefinitionCid: key});
+        if (cancelEffectContinuation(ref)) {
+          busy = true;
+        }
+        const runStatus = checkpoints.journal.getRunState(view.runId)?.status;
+        if (runStatus === 'failed' || runStatus === 'cancelled') {
+          try { await retireEffectCapture(ref); }
+          catch (error) {
+            busy = true;
+            diagnostic('effect_capture_retirement_failed', {ref,
+              code: error?.code ?? error?.message});
+          }
+          continue;
+        }
+        if (runStatus !== 'resuming') continue;
+        if (effectResumeFlights.has(key) ||
+            dispatchOwner.operation(ref) !== undefined) {
+          busy = true;
+          continue;
+        }
+        try {
+          const retained = journal.lookupRunDefinition(ref, moon, control);
+          if (retained === undefined ||
+              retained.runDefinition.identity !== key) {
+            throw new Error('EffectResumeRunDefinitionMissing');
+          }
+          const continuation = await checkpoints.effectContinuation(view);
+          const flight = dispatchOwner.track(ref, {
+            run: ({signal, retainExecution, beginPhysicalWork}) =>
+              effectInstallation.resume(Object.freeze({ref, view,
+                continuation, retained, moon, control, store,
+                storeAuthorityCid, authorityScopeCid, signal,
+                retainExecution, beginPhysicalWork,
+                observeRun: ({ref}) => observeRun({ref, principalId}),
+                recoverCapture: ({signal: recoverySignal} = {}) =>
+                  recoverEffectCapture(ref, recoverySignal),
+                checkpointJournal: checkpoints.journal,
+                checkpointBinding: checkpoints.binding,
+                effectAuthorization: checkpoints.effectAuthorization,
+                recordReconciliation: (...args) =>
+                  effectRun.recordReconciliation(...args)})),
+            // The original Compute stopped before the Effect Checkpoint.
+            // Its nonterminal stop observation is immutable. Effect failure
+            // and reconciliation belong to the Checkpoint and Effect owners.
+            observeStopped: () => journal.markPhysicalClose(ref, null),
+          });
+          effectResumeFlights.set(key, flight);
+          void flight.catch(error => {
+            diagnostic('effect_resume_failed', {ref,
+              code: error?.code ?? error?.message});
+          }).finally(() => {
+            effectResumeFlights.delete(key);
+            if (checkpoints.journal.getRunState(view.runId)?.status !==
+                'resuming') {
+              void checkpoints.sweep();
+            }
+          });
+        } catch (error) {
+          diagnostic('effect_resume_failed', {ref,
+            code: error?.code ?? error?.message});
+        }
+        busy = true;
+      }
+      if (page.length < 100) break;
+      after = page.at(-1).checkpointCid;
+    }
+    return busy;
+  };
   const hostOperations = {
     observe: observed,
     authorizeConnection: value => checkpointOperation.has(value.operation)
@@ -663,14 +1057,17 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   if (checkpoints !== undefined) {
     await checkpoints.start({inspect: inspectHeld, resume: resumeHeld,
       abandon: abandonHeld, observe: observeHeldRun,
-      cancelRun: cancelHeldRun});
+      cancelRun: cancelHeldRun,
+      effects: effectRun === undefined ? undefined :
+        {sweep: sweepEffectRuns}});
   }
   const port = createNodeInProcessClientHost({
     authenticate: () => principalId,
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
   return {port, store, journal, hostOperations, checkpoints, diagnostic,
-    dispatchOwner, inspectAcquisition, sourceProfile};
+    dispatchOwner, inspectAcquisition, sourceProfile,
+    retireTerminalEffects};
   } catch (cause) {
     diagnostic.close();
     sourceProfile?.close();
@@ -697,14 +1094,15 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
 // configuration the Missing account denies every request; nothing allows it.
 export async function openInstalledRemoteHttpHost({directory,
   authenticate, beforeDispatch, authorization, sourceProfilePath,
-  resolveSourceSecret}) {
+  resolveSourceSecret, effectInstallation}) {
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
     throw new TypeError('InvalidInstalledRemoteHost');
   }
   const host = await openInstalledHost(resolve(directory), 'remote',
-    beforeDispatch, authorization, sourceProfilePath, resolveSourceSecret);
+    beforeDispatch, authorization, sourceProfilePath, resolveSourceSecret,
+    effectInstallation);
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536,
   });
@@ -739,6 +1137,7 @@ export async function openInstalledRemoteHttpHost({directory,
       }
       await host.checkpoints?.stop();
       await host.dispatchOwner.drain();
+      await host.retireTerminalEffects();
       const checkpoints = await host.checkpoints?.close();
       host.journal.close();
       host.sourceProfile?.close();

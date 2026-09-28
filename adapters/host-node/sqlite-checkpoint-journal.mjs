@@ -164,6 +164,7 @@ function checkpointView(wire, row) {
       cid: artifact.required_artifact.artifact_cid,
     }),
     reviewProjectionCid: artifact.review_projection_cid,
+    continuationStateCid: artifact.continuation_state_cid,
     requirements: Object.freeze([...artifact.requirements]),
     reasonCode: artifact.reason_code,
     humanSummary: artifact.human_summary,
@@ -493,6 +494,9 @@ export function openSqliteCheckpointJournal(root, {
       FROM resume_admissions
       WHERE intent_id = ? AND generation < ? AND mode = 'start'
       ORDER BY generation LIMIT 1`),
+    startedAdmission: database.prepare(`
+      SELECT generation FROM resume_admissions
+      WHERE intent_id = ? AND mode = 'start' LIMIT 1`),
   };
 
   const alive = () => { if (closed) fail('CheckpointJournalClosed'); };
@@ -884,6 +888,41 @@ export function openSqliteCheckpointJournal(root, {
       });
     },
 
+    // A cancelled request may fence an answered continuation only before
+    // any protected dispatch was admitted. The admission and this transition
+    // use the same SQLite write transaction, so neither can overtake the
+    // other. An admitted send remains the resume owner's reconciliation duty.
+    cancelUnsentResume(reference) {
+      alive();
+      const at = iso(now());
+      return transaction(database, () => {
+        const checkpoint = rowFor(reference);
+        if (checkpoint === undefined) fail('CheckpointNotFound');
+        if (checkpoint.run_id === null || checkpoint.closure !== 'resolved') {
+          return Object.freeze({outcome: 'not_resuming'});
+        }
+        const intent = statements.intentByCheckpoint.get(
+          checkpoint.checkpoint_cid);
+        const run = statements.run.get(checkpoint.run_id);
+        if (intent === undefined || run?.status !== 'resuming' ||
+            intent.state === 'completed') {
+          return Object.freeze({outcome: 'not_resuming'});
+        }
+        if (statements.startedAdmission.get(intent.intent_id) !== undefined) {
+          return Object.freeze({outcome: 'admitted'});
+        }
+        transitionAllowed('resuming', 'cancelled');
+        const generation = Number(intent.generation) + 1;
+        changed(statements.completeIntent.run(generation, 'cancellation',
+          'cancelled', at, intent.intent_id, intent.generation),
+        'ResumeClaimStale');
+        changed(statements.moveRun.run('cancelled', at, '', '', run.run_id,
+          run.version, 'resuming'), 'RunStateConflict');
+        fault('cancelUnsentResume');
+        return Object.freeze({outcome: 'cancelled', runId: run.run_id});
+      });
+    },
+
     // Durable request cancellation of one prepare attempt, committed before
     // it is acknowledged. A waiting preparation is ended as cancelled with
     // its Checkpoint closed (a later answer is then `cancelled`). A resuming
@@ -962,10 +1001,23 @@ export function openSqliteCheckpointJournal(root, {
       });
     },
 
-    // Prepare attempts with an approved, not yet completed resume intent,
-    // for a Host sweep on start and after answers. Claims still decide who
-    // continues; this only names candidates.
-    // Pages continue after the last prepare attempt ID of the previous page.
+    // Discover retained Run continuations, including closed Checkpoints whose
+    // Run still needs reconciliation or cleanup. Discovery grants no execution.
+    listRunCheckpoints({after = '', limit = 100} = {}) {
+      alive();
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000 ||
+          typeof after !== 'string') fail('InvalidCheckpointPage');
+      return database.prepare(`SELECT * FROM checkpoints
+        WHERE run_id IS NOT NULL AND checkpoint_cid > ?
+        ORDER BY checkpoint_cid LIMIT ?`).all(after, limit).map(row => {
+        core(runtime.checkpointAdmit(row.checkpoint_wire),
+          'CheckpointJournalCorrupt');
+        return checkpointView(row.checkpoint_wire, row);
+      });
+    },
+
+    // Prepare attempts with an approved, not yet completed resume intent.
+    // Claims decide who continues; pages use the last prepare attempt ID.
     listResumablePreparations({after = '', limit = 100} = {}) {
       alive();
       if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000 ||

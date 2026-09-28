@@ -168,6 +168,158 @@ test('dispatch owner retains failed cleanup and retries without Compute',
     assert.equal(owner.operation(ref), undefined);
   });
 
+test('Effect owner retains an unobserved start after callback failure',
+  async () => {
+    const ref = {runDefinitionCid: 'effect-claimed-before-callback'};
+    let calls = 0;
+    let observed = 0;
+    const owner = installNodeClientDispatchOwner({});
+    const run = ({beginPhysicalWork}) => {
+      calls++;
+      beginPhysicalWork();
+      throw new Error('LostEffectOwner');
+    };
+    const first = owner.track(ref, {run,
+      observeStopped: () => { observed++; }});
+    await assert.rejects(first, {message: 'LostEffectOwner'});
+    assert.equal(owner.track(ref, {run,
+      observeStopped: () => { observed++; }}), first);
+    await assert.rejects(owner.drain(), error => {
+      assert.equal(error.code, 'ClientDispatchCleanupPending');
+      assert.deepEqual(error.pendingRefs, [ref]);
+      return true;
+    });
+    assert.equal(calls, 1);
+    assert.equal(observed, 0);
+    assert.equal(owner.live(ref), false);
+    assert.equal(owner.operation(ref), first);
+  });
+
+test('Effect no-send failure is terminal only after physical cleanup',
+  async () => {
+    const ref = {runDefinitionCid: 'effect-no-send'};
+    let cleanups = 0;
+    let ready = false;
+    const stopped = [];
+    const owner = installNodeClientDispatchOwner({});
+    const physical = {async close() {}, async cleanup() {
+      cleanups++;
+      return ready;
+    }, cleanupPending: () => !ready};
+    const operation = owner.track(ref, {run: ({retainExecution}) => {
+      retainExecution(physical);
+      return {status: 'failed_without_effect_dispatch'};
+    }, observeStopped: outcome => stopped.push(outcome)});
+    await assert.rejects(operation, {message: 'ClientDispatchCleanupPending'});
+    assert.deepEqual(stopped, []);
+    await assert.rejects(owner.drain(),
+      {code: 'ClientDispatchCleanupPending'});
+    assert.deepEqual(stopped, []);
+    ready = true;
+    await owner.drain();
+    assert.ok(cleanups >= 3);
+    assert.deepEqual(stopped, ['failed']);
+    assert.equal(owner.operation(ref), undefined);
+  });
+
+test('Effect no-send report without a cleanup owner remains unresolved',
+  async () => {
+    const ref = {runDefinitionCid: 'effect-no-owner'};
+    let observed = 0;
+    const owner = installNodeClientDispatchOwner({});
+    const operation = owner.track(ref, {run: ({beginPhysicalWork}) => {
+      beginPhysicalWork();
+      return {status: 'failed_without_effect_dispatch'};
+    },
+    observeStopped: () => { observed++; }});
+    await assert.rejects(operation, {message: 'ClientDispatchStopUnknown'});
+    await assert.rejects(owner.drain(),
+      {code: 'ClientDispatchCleanupPending'});
+    assert.equal(observed, 0);
+    assert.equal(owner.operation(ref), operation);
+  });
+
+test('known failed Effect Set is terminal only after retained cleanup',
+  async () => {
+    const ref = {runDefinitionCid: 'effect-known-failed'};
+    const stopped = [];
+    let ready = false;
+    let runs = 0;
+    const owner = installNodeClientDispatchOwner({});
+    const physical = {async close() {}, async cleanup() { return ready; },
+      cleanupPending: () => !ready};
+    const operation = owner.track(ref, {run: ({retainExecution}) => {
+      runs++;
+      retainExecution(physical);
+      return {status: 'failed_effect_set'};
+    }, observeStopped: outcome => stopped.push(outcome)});
+    await assert.rejects(operation, {message: 'ClientDispatchCleanupPending'});
+    assert.deepEqual(stopped, []);
+    ready = true;
+    await owner.drain();
+    assert.equal(runs, 1);
+    assert.deepEqual(stopped, ['failed']);
+  });
+
+test('Effect dispatch barrier gates both execution and refusal', async () => {
+  const ref = {runDefinitionCid: 'effect-barrier'};
+  let release;
+  const barrier = new Promise(resolve => { release = resolve; });
+  let started = 0;
+  const stopped = [];
+  const physical = {async close() {}, async cleanup() { return true; },
+    cleanupPending: () => false};
+  const owner = installNodeClientDispatchOwner({
+    beforeDispatch: () => barrier});
+  const flight = owner.track(ref, {
+    run({beginPhysicalWork, retainExecution}) {
+      started++;
+      beginPhysicalWork();
+      retainExecution(physical);
+      return {status: 'failed_without_effect_dispatch'};
+    }, observeStopped: value => stopped.push(value),
+    barrierFailureOutcome: 'failed'});
+  await Promise.resolve();
+  assert.equal(started, 0);
+  release();
+  await flight;
+  await owner.drain();
+  assert.equal(started, 1);
+  assert.deepEqual(stopped, ['failed']);
+
+  let refusedCalls = 0;
+  const denied = installNodeClientDispatchOwner({beforeDispatch() {
+    refusedCalls++;
+    throw new Error('ExecutionBarrierDenied');
+  }});
+  await assert.rejects(denied.track(ref, {
+    run() { assert.fail('No Site I/O after a barrier refusal'); },
+    observeStopped: value => stopped.push(value),
+    barrierFailureOutcome: 'failed',
+  }), {message: 'ExecutionBarrierDenied'});
+  await denied.drain();
+  assert.equal(refusedCalls, 1);
+  assert.deepEqual(stopped, ['failed', 'failed']);
+
+  let releaseCancelled;
+  const cancellationBarrier = new Promise(resolve => {
+    releaseCancelled = resolve;
+  });
+  const cancelled = installNodeClientDispatchOwner({
+    beforeDispatch: () => cancellationBarrier});
+  const cancelledFlight = cancelled.track(ref, {
+    run() { assert.fail('Cancellation before the barrier cannot dispatch'); },
+    observeStopped: value => stopped.push(value),
+    barrierFailureOutcome: 'failed',
+  });
+  cancelled.cancel(ref);
+  releaseCancelled();
+  await assert.rejects(cancelledFlight, {message:
+    'ClientRunCancellationRequested'});
+  await cancelled.drain();
+  assert.deepEqual(stopped, ['failed', 'failed', 'cancelled']);
+});
+
 // An acquiring dispatch whose source adapter returns no capture.
 function acquiringOwner(open) {
   const ref = {runDefinitionCid: 'acquiring-run'};

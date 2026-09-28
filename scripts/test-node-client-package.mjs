@@ -69,6 +69,10 @@ run('npm', ['install', '--ignore-scripts', '--no-save',
   root);
 assert.deepEqual((await readdir(join(root, 'node_modules', '@actql'))).sort(),
   ['client-wire', 'local-node', 'node', 'sdk']);
+run('node', ['--input-type=module', '-e',
+  "import {createInstalledEffectSite} from '@actql/local-node/effect-site'; " +
+  "if (typeof createInstalledEffectSite !== 'function') " +
+  "throw new Error('MissingInstalledEffectSiteFactory');"], root);
 for (const name of ['client-host.generated.js',
   'client-host.generated.d.ts']) {
   assert((await readFile(join(root, 'node_modules', '@actql',

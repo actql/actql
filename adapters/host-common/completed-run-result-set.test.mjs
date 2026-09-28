@@ -85,6 +85,17 @@ test('a foreign export cannot strand its prepared payload', async () => {
 test('explicit prepared release is single-flight and retryable', async () => {
   const definition = contract(cid('1'));
   const control = runtimeCore(moon).publicationControl;
+  const limits = {maxWireBytes: 4096, maxNodes: 128, maxDepth: 8};
+  const retention = control.seal('result_retention_policy', JSON.stringify({
+    version: 'actql-result-retention-policy/0.1',
+    retention_contract_cid: cid('b'), effective_data_policy_cid: cid('a'),
+    available_until: '2026-09-27T01:00:00.000Z',
+    delete_by: '2026-09-27T02:00:00.000Z',
+    extension_ceiling_at: '2026-09-27T03:00:00.000Z',
+    metadata_retention_policy_cid: cid('c'),
+    metadata_delete_by: '2026-09-27T04:00:00.000Z',
+    clock_contract_cid: cid('d'),
+  }), limits);
   let pending = true;
   let releases = 0;
   let retries = 0;
@@ -115,8 +126,8 @@ test('explicit prepared release is single-flight and retryable', async () => {
   const stored = await storeCompletedRunResultSet({
     execution, store: {}, control,
     runDefinition: contract(cid('2')), invocation: contract(cid('3')),
-    results: [{retention: contract(cid('4')), evidenceContext: {}}],
-    outputLimits: {}, contractLimits: {},
+    results: [{retention, evidenceContext: {}}],
+    outputLimits: {}, contractLimits: limits,
   });
   const first = releaseCompletedRunPreparedPayloads(stored, control);
   const joined = releaseCompletedRunPreparedPayloads(stored, control);

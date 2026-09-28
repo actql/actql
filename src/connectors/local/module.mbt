@@ -293,6 +293,9 @@ pub(all) enum LocalBoundedRelationCheck {
   Pivot
   RowWindow
   TopK
+  Lag
+  JsonPick
+  Watermark
   Dedupe
   Assertion
 }
@@ -347,6 +350,9 @@ fn local_bounded_relation_check(
             @lower.TopK(_, _) | @lower.PartitionedTopK(_, _) => true
             _ => false
           }
+        Lag => @lower.kernel_body(kernel) is @lower.Lag(_, _)
+        JsonPick => @lower.kernel_body(kernel) is @lower.JsonPick(_, _, _)
+        Watermark => @lower.kernel_body(kernel) is @lower.Watermark(_, _, _, _)
         Dedupe => @lower.kernel_body(kernel) is @lower.DedupeRows
         Assertion =>
           match @lower.kernel_body(kernel) {

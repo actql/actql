@@ -288,6 +288,10 @@ pub fn client_program_effect_request_authority(@logical_request_scope.LogicalReq
 
 pub fn client_program_effect_request_identity(@run_publication_host.PreparedClientEffectComputation, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
+pub fn client_program_effect_result_count(@run_publication_host.PreparedClientEffectComputation) -> Int
+
+pub fn client_program_effect_result_name(@run_publication_host.PreparedClientEffectComputation, Int) -> String?
+
 pub fn client_program_effect_risk_unsigned_payload_cid(@effect_application.EffectRiskAcceptanceBody) -> String
 
 pub fn client_program_effect_run_start_current(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Bool

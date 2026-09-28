@@ -566,8 +566,9 @@ async function approvedAndStopped(name, requestId, extra = {}) {
   });
 }
 // Wait (bounded) until the running Host has released the held evidence.
-async function untilRetired(name) {
-  for (let attempt = 0; attempt < 100; attempt++) {
+async function untilRetired(name, maxWaitMs = 20_000) {
+  const deadline = Date.now() + maxWaitMs;
+  while (Date.now() < deadline) {
     try { await assertRetired(name); return; }
     catch {}
     await new Promise(resolve => setTimeout(resolve, 200));
@@ -651,12 +652,14 @@ for (const [name, crashAt, restart, extra, step] of [
   ['deny-reserved', 'hook', {OUTCOME: 'deny'}, {LEASE_MS: '2000'},
     'finished'],
   ['expired-defined', 'definition_admitted', {},
-    {TTL_MS: '10000', LEASE_MS: '2000'}, 'finished'],
+    {TTL_MS: '90000', LEASE_MS: '2000'}, 'finished'],
   // The owner submits the same request again after the restart: it is
   // the existing Run, still started only under the resumed authorization.
   ['expired-resubmit', 'definition_admitted', {},
-    {TTL_MS: '10000', LEASE_MS: '2000'}, 'resubmitted'],
+    {TTL_MS: '90000', LEASE_MS: '2000'}, 'resubmitted'],
 ]) {
+  // Two Host starts, review and signing must fit before these expiry cases
+  // inject their pre-start crash. Expiry is then observed after the crash.
   await approvedAndStopped(name, name, extra);
   await crashed(name, {CRASH_AT: crashAt, ...extra});
   // Past the Checkpoint's answer deadline, which bounds the approval.
@@ -695,7 +698,10 @@ for (const [name, crashAt, restart, extra, step] of [
   // The running Host settles once the killed claimant's lease lapses.
   await withHost(name, {LEASE_MS: '2000'}, async started => {
     client(started, 'finished', [name], {EXPECT_STATUS: 'cancelled'});
-    await untilRetired(name);
+    // The killed claimant held a 30-second lease. A fast restart can observe
+    // the cancelled Run before that lease permits its preparation to retire.
+    // Allow for a loaded runner to start and sweep after that lease expires.
+    await untilRetired(name, 90_000);
   });
   const counted = await counts(name);
   assert.equal(counted.physical_start_reserved, 0, name);
