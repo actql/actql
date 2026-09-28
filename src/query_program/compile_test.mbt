@@ -55,6 +55,7 @@ fn fixture_context() -> Context {
     stage_result: "rows",
     result_name: "answer",
     captured_stage: None,
+    parameter_declarations: None,
     inputs: [
       {
         relation: [{ value: "orders", quoted: false, }],
@@ -80,6 +81,23 @@ fn values_context() -> Context {
   let base = fixture_context()
   let inputs = [{ ..base.inputs[0], source: GeneratedValues(step), }]
   { ..base, inputs, }
+}
+
+///|
+fn number_parameter_declarations() -> @parameters.Declarations {
+  let root = @wire.admit(
+    @source.parse_json(
+      "{\"p\":{\"type\":\"number\"}}",
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  @parameters.read_declarations(Some(root), {
+    max_parameters: 10,
+    max_nodes: 1000,
+    max_depth: 100,
+    max_text_bytes: 10000,
+  }).unwrap()
 }
 
 ///|
@@ -545,6 +563,7 @@ fn pair_context() -> Context {
     stage_result: "rows",
     result_name: "answer",
     captured_stage: None,
+    parameter_declarations: None,
     inputs: [
       {
         relation: [{ value: "pair", quoted: false, }],
@@ -712,6 +731,7 @@ fn set_context() -> Context {
     stage_result: "rows",
     result_name: "answer",
     captured_stage: None,
+    parameter_declarations: None,
     inputs: [
       {
         relation: [{ value: "left_rows", quoted: false, }],
@@ -2014,6 +2034,90 @@ test "GROUP BY and HAVING resolve SELECT names in the GoogleSQL scope" {
       "\"select\":[{\"bucket\":\"aql_group_key_0\"},\"n\"]",
     ),
   )
+}
+
+///|
+test "declared query parameters reach checking and binding on every Program path" {
+  let declared = number_parameter_declarations()
+  let context = { ..values_context(), parameter_declarations: Some(declared), }
+  let query = @query.parse_query(
+    "SELECT id FROM orders WHERE amount = @p",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, context, construction_limits()).unwrap()
+  assert_true(
+    semantic(program).contains("\"params\":{\"p\":{\"type\":\"number\"}}"),
+  )
+  assert_true(
+    @check.check_parsed(program, check_environment(), None, check_limits())
+    is NeedsInputs(_),
+  )
+  let value = @wire.admit(
+    @source.parse_json("{\"p\":1}", construction_limits().source.source).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  assert_true(
+    @check.check_parsed(
+      program,
+      check_environment(),
+      Some(value),
+      check_limits(),
+    )
+    is Checked(_),
+  )
+  let wrong = @wire.admit(
+    @source.parse_json("{\"p\":\"one\"}", construction_limits().source.source).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  assert_true(
+    @check.check_parsed(
+      program,
+      check_environment(),
+      Some(wrong),
+      check_limits(),
+    )
+    is Rejected(_),
+  )
+  let undeclared = compile(query, values_context(), construction_limits()).unwrap()
+  assert_true(
+    @check.check_parsed(
+      undeclared,
+      check_environment(),
+      Some(value),
+      check_limits(),
+    )
+    is Rejected(_),
+  )
+  for
+    text in [
+      "WITH chosen AS (SELECT id, amount FROM orders WHERE amount = @p) SELECT id FROM chosen",
+      "SELECT a FROM left_rows WHERE a = @p UNION ALL SELECT c AS a FROM right_rows WHERE c = @p",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    let base = if text.has_prefix("WITH") {
+      values_context()
+    } else {
+      set_context()
+    }
+    let program = compile(
+      query,
+      { ..base, parameter_declarations: Some(declared), },
+      construction_limits(),
+    ).unwrap()
+    assert_true(
+      semantic(program).contains("\"params\":{\"p\":{\"type\":\"number\"}}"),
+    )
+    assert_true(
+      @check.check_parsed(
+        program,
+        check_environment(),
+        Some(value),
+        check_limits(),
+      )
+      is Checked(_),
+      msg=text,
+    )
+  }
 }
 
 ///|

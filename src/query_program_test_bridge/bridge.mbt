@@ -171,6 +171,7 @@ fn compile_query_json_checked(
     stage_result: "rows",
     result_name: "answer",
     captured_stage,
+    parameter_declarations: None,
     inputs: [
       {
         relation: [{ value: relation, quoted: false, }],
@@ -259,6 +260,7 @@ pub fn compile_two_values_set_query_json(
       stage_result: "rows",
       result_name: "answer",
       captured_stage: None,
+      parameter_declarations: None,
       inputs: [
         values_input(left_name, left_json, left_fields_json),
         values_input(right_name, right_json, right_fields_json),

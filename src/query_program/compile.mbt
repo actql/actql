@@ -20,6 +20,7 @@ pub(all) struct Context {
   stage_result : String
   result_name : String
   captured_stage : String?
+  parameter_declarations : @parameters.Declarations?
   inputs : Array[Input]
 }
 
@@ -103,6 +104,53 @@ fn Construction::array(
   elements : Array[@builder.Node],
 ) -> @builder.Node raise Abort {
   self.add(Array(elements))
+}
+
+///|
+fn program_root(
+  construction : Construction,
+  context : Context,
+  stages : Array[@builder.Node],
+) -> @builder.Node raise Abort {
+  let entries = [
+    ("version", construction.text("actql/0.1")),
+    ("id", construction.text(context.program_id)),
+    ("stages", construction.array(stages)),
+    (
+      "results",
+      construction.object([
+        (
+          context.result_name,
+          construction.object([
+            (
+              "from",
+              construction.object([
+                ("stage", construction.text(context.stage_id)),
+                ("result", construction.text(context.stage_result)),
+              ]),
+            ),
+          ]),
+        ),
+      ]),
+    ),
+  ]
+  if context.parameter_declarations is Some(declarations) {
+    let parameters : Array[(String, @builder.Node)] = []
+    for declaration in @parameters.declarations(declarations) {
+      let imported = match
+        @builder.import_cursor(
+          construction.builder,
+          @parameters.declaration_source(declaration),
+          construction.generated,
+        ) {
+        Ok(value) => value
+        Err(issue) => raise Abort(Construction(issue))
+      }
+      parameters.push((declaration.name, imported))
+    }
+    entries.push(("params", construction.object(parameters)))
+  }
+  construction.object(entries)
 }
 
 ///|
@@ -2078,28 +2126,7 @@ pub fn compile(
       Some(capture) => [capture, stage]
       None => [stage]
     }
-    let root = construction.object([
-      ("version", construction.text("actql/0.1")),
-      ("id", construction.text(context.program_id)),
-      ("stages", construction.array(stages)),
-      (
-        "results",
-        construction.object([
-          (
-            context.result_name,
-            construction.object([
-              (
-                "from",
-                construction.object([
-                  ("stage", construction.text(context.stage_id)),
-                  ("result", construction.text(context.stage_result)),
-                ]),
-              ),
-            ]),
-          ),
-        ]),
-      ),
-    ])
+    let root = program_root(construction, context, stages)
     let source = match @builder.finish(builder, root) {
       Ok(source) => source
       Err(issue) => raise Abort(Construction(issue))
@@ -2359,28 +2386,7 @@ fn compile_cte_query(
       ),
     ])
     stages.push(stage)
-    let root = construction.object([
-      ("version", construction.text("actql/0.1")),
-      ("id", construction.text(context.program_id)),
-      ("stages", construction.array(stages)),
-      (
-        "results",
-        construction.object([
-          (
-            context.result_name,
-            construction.object([
-              (
-                "from",
-                construction.object([
-                  ("stage", construction.text(context.stage_id)),
-                  ("result", construction.text(context.stage_result)),
-                ]),
-              ),
-            ]),
-          ),
-        ]),
-      ),
-    ])
+    let root = program_root(construction, context, stages)
     let source = match @builder.finish(builder, root) {
       Ok(value) => value
       Err(issue) => raise Abort(Construction(issue))
@@ -3534,28 +3540,7 @@ fn compile_set_query(
       ("results", construction.object([(context.stage_result, result)])),
     ])
     stages.push(stage)
-    let root = construction.object([
-      ("version", construction.text("actql/0.1")),
-      ("id", construction.text(context.program_id)),
-      ("stages", construction.array(stages)),
-      (
-        "results",
-        construction.object([
-          (
-            context.result_name,
-            construction.object([
-              (
-                "from",
-                construction.object([
-                  ("stage", construction.text(context.stage_id)),
-                  ("result", construction.text(context.stage_result)),
-                ]),
-              ),
-            ]),
-          ),
-        ]),
-      ),
-    ])
+    let root = program_root(construction, context, stages)
     let source = match @builder.finish(builder, root) {
       Ok(source) => source
       Err(issue) => raise Abort(Construction(issue))
@@ -4421,50 +4406,26 @@ fn compile_join_query(
         ]),
       ),
     ])
-    let root = construction.object([
-      ("version", construction.text("actql/0.1")),
-      ("id", construction.text(context.program_id)),
-      (
-        "stages",
-        construction.array([
-          join_seed_stage(
-            construction,
-            left,
-            left_fields,
-            left_stage,
-            query,
-            part.pre_join_filter,
-            limits.max_expression_work,
-          ),
-          join_seed_stage(
-            construction,
-            right,
-            right_fields,
-            right_stage,
-            query,
-            None,
-            limits.max_expression_work,
-          ),
-          stage,
-        ]),
+    let root = program_root(construction, context, [
+      join_seed_stage(
+        construction,
+        left,
+        left_fields,
+        left_stage,
+        query,
+        part.pre_join_filter,
+        limits.max_expression_work,
       ),
-      (
-        "results",
-        construction.object([
-          (
-            context.result_name,
-            construction.object([
-              (
-                "from",
-                construction.object([
-                  ("stage", construction.text(context.stage_id)),
-                  ("result", construction.text(context.stage_result)),
-                ]),
-              ),
-            ]),
-          ),
-        ]),
+      join_seed_stage(
+        construction,
+        right,
+        right_fields,
+        right_stage,
+        query,
+        None,
+        limits.max_expression_work,
       ),
+      stage,
     ])
     let source = match @builder.finish(builder, root) {
       Ok(value) => value

@@ -3,6 +3,7 @@ package "actql/actql/query_program"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/parameter_binding",
   "actql/actql/program_source_builder",
   "actql/actql/query_expression",
   "actql/actql/query_syntax",
@@ -21,6 +22,7 @@ pub(all) struct Context {
   stage_result : String
   result_name : String
   captured_stage : String?
+  parameter_declarations : @parameter_binding.Declarations?
   inputs : Array[Input]
 }
 
