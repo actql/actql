@@ -11,8 +11,10 @@ const outcomes = new Set(['not_started', 'stopped', 'unknown']);
 
 export class AcquisitionOpenError extends Error {
   constructor(cause, outcome, recovery) {
-    super(typeof cause?.code === 'string' ? cause.code : 'AcquisitionFailed',
-      {cause});
+    // The cause's own code, or its message, stays the failure's identity.
+    super(typeof cause?.code === 'string' ? cause.code
+      : typeof cause?.message === 'string' && cause.message !== ''
+        ? cause.message : 'AcquisitionFailed', {cause});
     this.code = this.message;
     this.outcome = outcome;
     this.recovery = recovery;
