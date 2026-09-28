@@ -36,6 +36,78 @@ fn graph_selected_input(
 }
 
 ///|
+/// Read the declared Graph edge-label role from the selected source. A field
+/// list supplied by a frontend caller is not evidence that a property is the
+/// semantic edge type.
+fn graph_label_role(input : GraphInput) -> String? {
+  let declarations = match input.source {
+    GeneratedGraph(steps) => steps
+    CapturedGraph(declaration) => [declaration]
+  }
+  for declaration in declarations {
+    guard @wire.open_object(declaration) is Ok(root) &&
+      @wire.lookup(root, "graph") is Some(graph_cursor) &&
+      @wire.open_object(graph_cursor) is Ok(graph) &&
+      @wire.lookup(graph, "edges") is Some(edges_cursor) &&
+      @wire.open_object(edges_cursor) is Ok(edges) &&
+      @wire.lookup(edges, "label") is Some(label_cursor) &&
+      @wire.text(label_cursor) is Ok(label) else {
+      continue
+    }
+    match input.source {
+      GeneratedGraph(_) => {
+        guard @wire.lookup(root, "as") is Some(alias_cursor) &&
+          @wire.text(alias_cursor) == Ok(input.name) else {
+          continue
+        }
+      }
+      CapturedGraph(_) => ()
+    }
+    return Some(label)
+  }
+  None
+}
+
+///|
+fn graph_macro_value(
+  path : Array[@query.NamePart],
+  argument : Array[@query.NamePart],
+  bindings : Array[GraphBinding],
+) -> @expression.MacroValue? {
+  if path.length() != 1 || path[0].quoted || argument.length() != 1 {
+    return None
+  }
+  let name = ascii_upper(path[0].value)
+  for binding in bindings {
+    if !same_name(argument[0], binding.variable) {
+      continue
+    }
+    let role = match (binding.kind, name) {
+      (Node, "NODE_ID") => "id"
+      (Edge, "EDGE_SOURCE") => "src"
+      (Edge, "EDGE_TARGET") => "dst"
+      (Edge, "EDGE_LABEL") =>
+        match binding.label_field {
+          Some(field) => field
+          None => return None
+        }
+      (Path, "PATH_LENGTH") => {
+        if binding.fields.contains("hop_count") {
+          return Some(@expression.Field(binding.prefix + "hop_count"))
+        }
+        return Some(@expression.Integer(binding.hops))
+      }
+      _ => return None
+    }
+    if !binding.fields.contains(role) {
+      return None
+    }
+    return Some(@expression.Field(binding.prefix + role))
+  }
+  None
+}
+
+///|
 fn graph_node_field(
   path : Array[@query.NamePart],
   variable : @query.NamePart?,
@@ -158,21 +230,23 @@ fn graph_edge_predicate(
   construction : Construction,
   edge : @query.GraphEdgePattern,
   fields : Array[String],
+  label_field : String?,
   prefix : String,
   max_work : Int,
 ) -> @builder.Node? raise Abort {
   let predicates : Array[@builder.Node] = []
   match edge.label {
     Some(label) => {
-      if !fields.contains("rel") {
-        raise Abort(UnknownColumn)
+      let role = match label_field {
+        Some(role) if fields.contains(role) => role
+        _ => raise Abort(UnsupportedGraph)
       }
       predicates.push(
         construction.object([
           (
             "eq",
             construction.array([
-              construction.object([("field", construction.text(prefix + "rel"))]),
+              construction.object([("field", construction.text(prefix + role))]),
               construction.object([("literal", construction.text(label.value))]),
             ]),
           ),
@@ -399,21 +473,31 @@ fn graph_fixed_pattern(
   graph : @query.GraphQuery,
   pattern : @query.GraphPattern,
   input : GraphInput,
+  label_field : String?,
   limits : Limits,
   seed : Array[@builder.Node],
+  branch? : Int = -1,
 ) -> (String, Array[String], Array[GraphBinding]) raise Abort {
+  let tag = if branch < 0 { "" } else { "b" + branch.to_string() + "_" }
+  let name = fn(base : String) -> String { "aql_graph_" + tag + base }
+  let node_prefix = fn(index : Int) -> String {
+    "aql_" + tag + "n" + index.to_string() + "_"
+  }
+  let edge_prefix = fn(index : Int) -> String {
+    "aql_" + tag + "e" + index.to_string() + "_"
+  }
   seed.push(
     construction.object([
       ("from", construction.text(input.name)),
       ("edge_rows", construction.add(Bool(true))),
-      ("as", construction.text("aql_graph_edges")),
+      ("as", construction.text(name("edges"))),
     ]),
   )
   let node_prefixes : Array[String] = []
   let edge_prefixes : Array[String] = []
   let bindings : Array[GraphBinding] = []
   for index in 0..<pattern.nodes.length() {
-    let prefix = "aql_n" + index.to_string() + "_"
+    let prefix = node_prefix(index)
     node_prefixes.push(prefix)
     seed.push(
       construction.object([
@@ -422,28 +506,35 @@ fn graph_fixed_pattern(
           "select",
           graph_renamed_fields(construction, input.node_fields, prefix),
         ),
-        ("as", construction.text("aql_graph_n" + index.to_string())),
+        ("as", construction.text(name("n" + index.to_string()))),
       ]),
     )
     match pattern.nodes[index].variable {
       Some(variable) =>
         if !bindings.any(binding => same_name(binding.variable, variable)) {
-          bindings.push({ variable, prefix, fields: input.node_fields, })
+          bindings.push({
+            variable,
+            prefix,
+            fields: input.node_fields,
+            kind: Node,
+            hops: 0,
+            label_field: None,
+          })
         }
       None => ()
     }
   }
   for index in 0..<pattern.edges.length() {
-    let prefix = "aql_e" + index.to_string() + "_"
+    let prefix = edge_prefix(index)
     edge_prefixes.push(prefix)
     seed.push(
       construction.object([
-        ("from", construction.text("aql_graph_edges")),
+        ("from", construction.text(name("edges"))),
         (
           "select",
           graph_renamed_fields(construction, input.edge_fields, prefix),
         ),
-        ("as", construction.text("aql_graph_e" + index.to_string())),
+        ("as", construction.text(name("e" + index.to_string()))),
       ]),
     )
     match pattern.edges[index].variable {
@@ -460,12 +551,19 @@ fn graph_fixed_pattern(
             raise Abort(AmbiguousColumn)
           }
         } else {
-          bindings.push({ variable, prefix, fields: input.edge_fields, })
+          bindings.push({
+            variable,
+            prefix,
+            fields: input.edge_fields,
+            kind: Edge,
+            hops: 0,
+            label_field,
+          })
         }
       None => ()
     }
   }
-  let mut current = "aql_graph_n0"
+  let mut current = name("n0")
   let mut fields = input.node_fields.map(field => node_prefixes[0] + field)
   match
     graph_node_predicate(
@@ -477,10 +575,8 @@ fn graph_fixed_pattern(
       limits.max_expression_work,
     ) {
     Some(predicate) => {
-      current = "aql_graph_selected_0"
-      seed.push(
-        graph_filter_step(construction, "aql_graph_n0", predicate, current),
-      )
+      current = name("selected_0")
+      seed.push(graph_filter_step(construction, name("n0"), predicate, current))
     }
     None => ()
   }
@@ -488,12 +584,12 @@ fn graph_fixed_pattern(
     let edge = pattern.edges[index]
     let edge_prefix = edge_prefixes[index]
     let edge_fields = input.edge_fields.map(field => edge_prefix + field)
-    let edge_alias = "aql_graph_hop_edge_" + index.to_string()
+    let edge_alias = name("hop_edge_" + index.to_string())
     seed.push(
       graph_join_step(
         construction,
         current,
-        "aql_graph_e" + index.to_string(),
+        name("e" + index.to_string()),
         node_prefixes[index] + "id",
         edge_prefix + (if edge.direction == "out" { "src" } else { "dst" }),
         fields,
@@ -508,24 +604,31 @@ fn graph_fixed_pattern(
     if pattern.mode != Walk {
       for prior in 0..<index {
         let older = edge_prefixes[prior]
+        let distincts = [
+          graph_distinct(construction, edge_prefix + "src", older + "src"),
+          graph_distinct(construction, edge_prefix + "dst", older + "dst"),
+        ]
+        match label_field {
+          Some(role) =>
+            distincts.push(
+              graph_distinct(construction, edge_prefix + role, older + role),
+            )
+          None => ()
+        }
         edge_filters.push(
-          construction.object([
-            (
-              "or",
-              construction.array([
-                graph_distinct(construction, edge_prefix + "src", older + "src"),
-                graph_distinct(construction, edge_prefix + "dst", older + "dst"),
-                graph_distinct(construction, edge_prefix + "rel", older + "rel"),
-              ]),
-            ),
-          ]),
+          construction.object([("or", construction.array(distincts))]),
         )
       }
     }
     for prior in 0..<index {
       match (pattern.edges[prior].variable, edge.variable) {
-        (Some(before), Some(after)) if same_name(before, after) =>
-          for field in ["src", "dst", "rel"] {
+        (Some(before), Some(after)) if same_name(before, after) => {
+          let identity_fields = ["src", "dst"]
+          match label_field {
+            Some(role) => identity_fields.push(role)
+            None => ()
+          }
+          for field in identity_fields {
             edge_filters.push(
               construction.object([
                 (
@@ -539,6 +642,7 @@ fn graph_fixed_pattern(
               ]),
             )
           }
+        }
         _ => ()
       }
     }
@@ -547,6 +651,7 @@ fn graph_fixed_pattern(
         construction,
         edge,
         input.edge_fields,
+        label_field,
         edge_prefix,
         limits.max_expression_work,
       ) {
@@ -554,7 +659,7 @@ fn graph_fixed_pattern(
       None => ()
     }
     if !edge_filters.is_empty() {
-      let selected_edge = "aql_graph_selected_edge_" + index.to_string()
+      let selected_edge = name("selected_edge_" + index.to_string())
       seed.push(
         graph_filter_step(
           construction,
@@ -567,12 +672,12 @@ fn graph_fixed_pattern(
     }
     let node_prefix = node_prefixes[index + 1]
     let node_fields = input.node_fields.map(field => node_prefix + field)
-    let node_alias = "aql_graph_hop_node_" + index.to_string()
+    let node_alias = name("hop_node_" + index.to_string())
     seed.push(
       graph_join_step(
         construction,
         current,
-        "aql_graph_n" + (index + 1).to_string(),
+        name("n" + (index + 1).to_string()),
         edge_prefix + (if edge.direction == "out" { "dst" } else { "src" }),
         node_prefix + "id",
         fields,
@@ -626,7 +731,7 @@ fn graph_fixed_pattern(
       None => ()
     }
     if !node_filters.is_empty() {
-      let selected_node = "aql_graph_selected_node_" + (index + 1).to_string()
+      let selected_node = name("selected_node_" + (index + 1).to_string())
       seed.push(
         graph_filter_step(
           construction,
@@ -637,6 +742,185 @@ fn graph_fixed_pattern(
       )
       current = selected_node
     }
+  }
+  (current, fields, bindings)
+}
+
+///|
+fn graph_bounded_pattern(
+  construction : Construction,
+  graph : @query.GraphQuery,
+  pattern : @query.GraphPattern,
+  input : GraphInput,
+  label_field : String?,
+  limits : Limits,
+  seed : Array[@builder.Node],
+) -> (String, Array[String], Array[GraphBinding]) raise Abort {
+  let edge = pattern.edges[0]
+  if pattern.mode != Acyclic ||
+    edge.variable is Some(_) ||
+    edge.constraint is Some(_) ||
+    pattern.nodes.length() != 2 ||
+    edge.max_hops < edge.min_hops ||
+    edge.max_hops < 1L {
+    raise Abort(UnsupportedGraph)
+  }
+  let mut start = "aql_graph_nodes_0"
+  match
+    graph_node_predicate(
+      construction,
+      graph,
+      pattern.nodes[0],
+      input.node_fields,
+      "",
+      limits.max_expression_work,
+    ) {
+    Some(predicate) => {
+      start = "aql_graph_start_nodes"
+      seed.push(
+        graph_filter_step(construction, "aql_graph_nodes_0", predicate, start),
+      )
+    }
+    None => ()
+  }
+  let traversal = [
+    (
+      "start",
+      construction.object([
+        ("from", construction.text(start)),
+        ("id", construction.text("id")),
+      ]),
+    ),
+    ("direction", construction.text(edge.direction)),
+    ("min_hops", construction.add(Number(edge.min_hops.to_double()))),
+    ("max_hops", construction.add(Number(edge.max_hops.to_double()))),
+    ("emit", construction.text("paths")),
+    (
+      "max_output_rows",
+      construction.add(Number(limits.max_join_output_rows.to_double())),
+    ),
+  ]
+  match edge.label {
+    Some(label) => {
+      if label_field is None {
+        raise Abort(UnsupportedGraph)
+      }
+      traversal.push(
+        ("edge_types", construction.array([construction.text(label.value)])),
+      )
+    }
+    None => ()
+  }
+  seed.push(
+    construction.object([
+      ("from", construction.text(input.name)),
+      ("traverse", construction.object(traversal)),
+      ("as", construction.text("aql_graph_paths")),
+    ]),
+  )
+  let path_fields = ["start_id", "end_id", "hop_count", "node_ids", "edge_ids"]
+  let path_prefix = "aql_path_"
+  seed.push(
+    construction.object([
+      ("from", construction.text("aql_graph_paths")),
+      ("select", graph_renamed_fields(construction, path_fields, path_prefix)),
+      ("as", construction.text("aql_graph_path_rows")),
+    ]),
+  )
+  let bindings : Array[GraphBinding] = []
+  let mut fields = path_fields.map(field => path_prefix + field)
+  for index in 0..<2 {
+    let prefix = "aql_n" + index.to_string() + "_"
+    seed.push(
+      construction.object([
+        ("from", construction.text("aql_graph_nodes_0")),
+        (
+          "select",
+          graph_renamed_fields(construction, input.node_fields, prefix),
+        ),
+        ("as", construction.text("aql_graph_n" + index.to_string())),
+      ]),
+    )
+    match pattern.nodes[index].variable {
+      Some(variable) => {
+        if bindings.any(binding => same_name(binding.variable, variable)) {
+          raise Abort(AmbiguousColumn)
+        }
+        bindings.push({
+          variable,
+          prefix,
+          fields: input.node_fields,
+          kind: Node,
+          hops: 0,
+          label_field: None,
+        })
+      }
+      None => ()
+    }
+  }
+  let first_fields = input.node_fields.map(field => "aql_n0_" + field)
+  let first = "aql_graph_start_binding"
+  seed.push(
+    graph_join_step(
+      construction,
+      "aql_graph_path_rows",
+      "aql_graph_n0",
+      "aql_path_start_id",
+      "aql_n0_id",
+      fields,
+      first_fields,
+      first,
+      limits.max_join_output_rows,
+    ),
+  )
+  fields = fields + first_fields
+  let end_fields = input.node_fields.map(field => "aql_n1_" + field)
+  let second = "aql_graph_end_binding"
+  seed.push(
+    graph_join_step(
+      construction,
+      first,
+      "aql_graph_n1",
+      "aql_path_end_id",
+      "aql_n1_id",
+      fields,
+      end_fields,
+      second,
+      limits.max_join_output_rows,
+    ),
+  )
+  fields = fields + end_fields
+  let mut current = second
+  match
+    graph_node_predicate(
+      construction,
+      graph,
+      pattern.nodes[1],
+      input.node_fields,
+      "aql_n1_",
+      limits.max_expression_work,
+    ) {
+    Some(predicate) => {
+      current = "aql_graph_selected_end"
+      seed.push(graph_filter_step(construction, second, predicate, current))
+    }
+    None => ()
+  }
+  match pattern.path_name {
+    Some(variable) => {
+      if bindings.any(binding => same_name(binding.variable, variable)) {
+        raise Abort(AmbiguousColumn)
+      }
+      bindings.push({
+        variable,
+        prefix: path_prefix,
+        fields: ["hop_count"],
+        kind: Path,
+        hops: 0,
+        label_field: None,
+      })
+    }
+    None => ()
   }
   (current, fields, bindings)
 }
@@ -657,8 +941,9 @@ fn compile_graph_query(
       selected = true
     }
   }
+  let bounded = pattern.edges.length() == 1 && pattern.edges[0].quantified
   if pattern.nodes.length() != pattern.edges.length() + 1 ||
-    pattern.edges.any(edge => edge.quantified) ||
+    (pattern.edges.any(edge => edge.quantified) && !bounded) ||
     @query.cte_count(query) != 0 ||
     @query.set_part_count(query) != 0 ||
     @query.join_part_count(query) != 0 ||
@@ -675,17 +960,19 @@ fn compile_graph_query(
   let input = graph_selected_input(query, context) catch {
     Abort(issue) => return Err(issue)
   }
+  let label_field = graph_label_role(input)
   if input.name == "" ||
     !input.node_fields.contains("id") ||
     (
       !pattern.edges.is_empty() &&
-      (
-        !input.edge_fields.contains("src") ||
-        !input.edge_fields.contains("dst") ||
-        !input.edge_fields.contains("rel")
-      )
+      (!input.edge_fields.contains("src") || !input.edge_fields.contains("dst"))
     ) {
     return Err(InvalidContext)
+  }
+  match label_field {
+    Some(role) if !input.edge_fields.contains(role) =>
+      return Err(InvalidContext)
+    _ => ()
   }
   let document = @query.query_document(query)
   let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
@@ -752,25 +1039,65 @@ fn compile_graph_query(
       let bindings : Array[GraphBinding] = []
       match pattern.nodes[0].variable {
         Some(variable) =>
-          bindings.push({ variable, prefix: "", fields: input.node_fields, })
+          bindings.push({
+            variable,
+            prefix: "",
+            fields: input.node_fields,
+            kind: Node,
+            hops: 0,
+            label_field: None,
+          })
         None => ()
       }
       (relation_alias, input.node_fields, bindings)
+    } else if bounded {
+      graph_bounded_pattern(
+        construction, graph, pattern, input, label_field, limits, seed,
+      )
     } else {
-      graph_fixed_pattern(construction, graph, pattern, input, limits, seed)
+      graph_fixed_pattern(
+        construction, graph, pattern, input, label_field, limits, seed,
+      )
+    }
+    match pattern.path_name {
+      Some(variable) =>
+        if !bounded {
+          if graph_bindings.any(binding => same_name(binding.variable, variable)) {
+            raise Abort(AmbiguousColumn)
+          }
+          graph_bindings.push({
+            variable,
+            prefix: "",
+            fields: [],
+            kind: Path,
+            hops: pattern.edges.length(),
+            label_field: None,
+          })
+        }
+      None => ()
     }
     let order_keys : Array[String] = []
-    if pattern.edges.is_empty() {
+    if bounded {
+      order_keys.push("aql_path_start_id")
+      order_keys.push("aql_path_end_id")
+      order_keys.push("aql_path_hop_count")
+    } else if pattern.edges.is_empty() {
       order_keys.push("id")
     } else {
       for index in 0..<pattern.nodes.length() {
         order_keys.push("aql_n" + index.to_string() + "_id")
         if index < pattern.edges.length() {
-          order_keys.push("aql_e" + index.to_string() + "_rel")
+          order_keys.push("aql_e" + index.to_string() + "_src")
+          order_keys.push("aql_e" + index.to_string() + "_dst")
+          match label_field {
+            Some(role) =>
+              order_keys.push("aql_e" + index.to_string() + "_" + role)
+            None => ()
+          }
         }
       }
     }
-    let sorted_source = if pattern.edges.is_empty() {
+    let sorted_source = if pattern.edges.is_empty() || bounded {
       relation_alias
     } else {
       // Graph construction collapses equal edge identities. The complete

@@ -31,6 +31,15 @@ pub(all) struct GraphBinding {
   variable : @query_syntax.NamePart
   prefix : String
   fields : Array[String]
+  kind : GraphBindingKind
+  hops : Int
+  label_field : String?
+}
+
+pub(all) enum GraphBindingKind {
+  Node
+  Edge
+  Path
 }
 
 pub(all) struct GraphInput {

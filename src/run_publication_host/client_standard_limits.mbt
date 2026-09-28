@@ -57,13 +57,14 @@ pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationL
 }
 
 ///|
-/// Exact sequence budget for the first direct Values execution profile.
+/// Bounded sequence budget for installed Local task execution.
 pub fn client_standard_values_sequence_limits() -> @lower.SequenceLimits {
   {
     max_steps: 100,
     max_rows: 100,
     max_cells: 10000,
-    max_bindings: 100,
+    // Fixed Graph paths retain typed endpoint and edge projections per hop.
+    max_bindings: 256,
     max_name_bytes: 10000,
     expressions: {
       max_nodes: 10000,

@@ -11,6 +11,7 @@ import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
+const graphOnly = process.argv.includes('--graph-only');
 const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
 const root = await mkdtemp(join(build, 'node-client-package-'));
@@ -143,6 +144,72 @@ const pathQuery = queryFrontend.compileGeneratedGraphQueryJson(
   JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_diamond');
 assert.notEqual(pathQuery, '');
 await writeFile(join(root, 'graph-path-query.json'), pathQuery);
+const macroQuery = queryFrontend.compileGeneratedGraphQueryJson(
+  'FROM GRAPH g |> MATCH p = WALK (a)-[e]->(b) '
+    + '|> SELECT NODE_ID(a) AS node_id, EDGE_SOURCE(e) AS source_id, '
+    + 'EDGE_TARGET(e) AS target_id, EDGE_LABEL(e) AS edge_label, '
+    + 'PATH_LENGTH(p) + 1 AS depth',
+  'g', JSON.stringify(pathSteps), JSON.stringify(['id', 'name']),
+  JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_macros');
+assert.notEqual(macroQuery, '');
+await writeFile(join(root, 'graph-macro-query.json'), macroQuery);
+const boundedGraphQuery = queryFrontend.compileGeneratedGraphQueryJson(
+  'FROM GRAPH g |> MATCH p = ACYCLIC (a)-[:R]->{1,2}(b) '
+    + '|> SELECT a.id AS start_id, b.id AS end_id, '
+    + 'PATH_LENGTH(p) AS depth',
+  'g', JSON.stringify(pathSteps), JSON.stringify(['id', 'name']),
+  JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_bounded');
+assert.notEqual(boundedGraphQuery, '');
+await writeFile(join(root, 'graph-bounded-query.json'), boundedGraphQuery);
+const cycleSteps = [
+  {values: {schema: {id: {type: 'number', nullable: false}},
+    rows: [{id: 1}, {id: 2}]}, as: 'nodes'},
+  {values: {schema: {
+    src: {type: 'number', nullable: false},
+    dst: {type: 'number', nullable: false},
+    rel: {type: 'string', nullable: true}},
+  rows: [{src: 1, dst: 2, rel: null},
+    {src: 2, dst: 1, rel: null}]}, as: 'edges'},
+  {graph: {nodes: {from: 'nodes', id: 'id', fields: []},
+    edges: {from: 'edges', source: 'src', target: 'dst',
+      label: 'rel', fields: []}}, as: 'g'},
+];
+for (const [name, pattern] of [
+  ['walk', 'WALK (a)-[]->(b)-[]->(c)'],
+  ['acyclic', 'ACYCLIC (a)-[]->(b)-[]->(c)'],
+  ['trail', 'TRAIL (a)-[]->(b)-[]->(c)-[]->(d)'],
+  ['missing', 'WALK (a {id: 9})-[]->(b)'],
+]) {
+  const query = queryFrontend.compileGeneratedGraphQueryJson(
+    'FROM GRAPH g |> MATCH ' + pattern +
+      ' |> SELECT a.id AS start_id',
+    'g', JSON.stringify(cycleSteps), JSON.stringify(['id']),
+    JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_' + name);
+  assert.notEqual(query, '');
+  await writeFile(join(root, 'graph-' + name + '-query.json'), query);
+}
+const selfLoopSteps = [
+  {values: {schema: {id: {type: 'number', nullable: false}},
+    rows: [{id: 1}]}, as: 'nodes'},
+  {values: {schema: {
+    src: {type: 'number', nullable: false},
+    dst: {type: 'number', nullable: false},
+    rel: {type: 'string', nullable: true}},
+  rows: [{src: 1, dst: 1, rel: null}]}, as: 'edges'},
+  {graph: {nodes: {from: 'nodes', id: 'id', fields: []},
+    edges: {from: 'edges', source: 'src', target: 'dst',
+      label: 'rel', fields: []}}, as: 'g'},
+];
+for (const mode of ['WALK', 'TRAIL', 'ACYCLIC']) {
+  const name = 'self-' + mode.toLowerCase();
+  const query = queryFrontend.compileGeneratedGraphQueryJson(
+    'FROM GRAPH g |> MATCH ' + mode + ' (a)-[]->(b) '
+      + '|> SELECT a.id AS start_id',
+    'g', JSON.stringify(selfLoopSteps), JSON.stringify(['id']),
+    JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_' + name);
+  assert.notEqual(query, '');
+  await writeFile(join(root, 'graph-' + name + '-query.json'), query);
+}
 const pairExpectedProgram = JSON.parse(await readFile(join(repository,
   'spec/frontend/fixtures/query-pair.expected-program.json'), 'utf8'));
 const pairExpectedRows = JSON.parse(await readFile(join(repository,
@@ -1062,9 +1129,53 @@ async function checkGraphPathQuery(client, suffix) {
     'utf8'), {format: 'json', requestId: 'packed-graph-path-' + suffix});
   const status = await execution.wait();
   assert.equal(status.status, 'succeeded', JSON.stringify(status));
-  const rows = await execution.result('answer').all();
-  assert.equal(rows.filter(row => row.start_id === 1 &&
-    row.end_id === 4).length, 2);
+  assert.deepEqual(await execution.result('answer').all(), [
+    {start_id: 1, end_id: 4},
+    {start_id: 1, end_id: 4},
+  ]);
+}
+async function checkGraphMacroQuery(client, suffix) {
+  const execution = await client.aql(readFileSync('graph-macro-query.json',
+    'utf8'), {format: 'json', requestId: 'packed-graph-macro-' + suffix});
+  const status = await execution.wait();
+  assert.equal(status.status, 'succeeded', JSON.stringify(status));
+  assert.deepEqual(await execution.result('answer').all(), [
+    {node_id: 1, source_id: 1, target_id: 2, edge_label: 'R', depth: 2},
+    {node_id: 1, source_id: 1, target_id: 3, edge_label: 'R', depth: 2},
+    {node_id: 2, source_id: 2, target_id: 4, edge_label: 'R', depth: 2},
+    {node_id: 3, source_id: 3, target_id: 4, edge_label: 'R', depth: 2},
+  ]);
+}
+async function checkBoundedGraphQuery(client, suffix) {
+  const execution = await client.aql(readFileSync('graph-bounded-query.json',
+    'utf8'), {format: 'json', requestId: 'packed-graph-bounded-' + suffix});
+  const status = await execution.wait();
+  assert.equal(status.status, 'succeeded', JSON.stringify(status));
+  assert.deepEqual(await execution.result('answer').all(), [
+    {start_id: 1, end_id: 2, depth: 1},
+    {start_id: 1, end_id: 3, depth: 1},
+    {start_id: 1, end_id: 4, depth: 2},
+    {start_id: 1, end_id: 4, depth: 2},
+    {start_id: 2, end_id: 4, depth: 1},
+    {start_id: 3, end_id: 4, depth: 1},
+  ]);
+}
+async function checkGraphPathModes(client, suffix) {
+  for (const [name, expected] of [
+    ['walk', [{start_id: 1}, {start_id: 2}]],
+    ['acyclic', []],
+    ['trail', []],
+    ['missing', []],
+    ['self-walk', [{start_id: 1}]],
+    ['self-trail', [{start_id: 1}]],
+    ['self-acyclic', []],
+  ]) {
+    const execution = await client.aql(readFileSync(
+      'graph-' + name + '-query.json', 'utf8'),
+    {format: 'json', requestId: 'packed-graph-' + name + '-' + suffix});
+    assert.equal((await execution.wait()).status, 'succeeded');
+    assert.deepEqual(await execution.result('answer').all(), expected);
+  }
 }
 async function checkQueryPair(client, suffix) {
   const execution = await client.aql(pairQueryDocument,
@@ -1616,6 +1727,9 @@ await checkOrderScopes(installedLocal, 'local');
 await checkQueryPair(installedLocal, 'local');
 await checkGraphNodeQuery(installedLocal, 'local');
 await checkGraphPathQuery(installedLocal, 'local');
+await checkGraphMacroQuery(installedLocal, 'local');
+await checkBoundedGraphQuery(installedLocal, 'local');
+await checkGraphPathModes(installedLocal, 'local');
 await checkValuesCte(installedLocal, 'local');
 await checkPipeSnapshots(installedLocal, 'local');
 await checkNullOrder(installedLocal, 'local');
@@ -1825,6 +1939,14 @@ await checkOrderScopes(installedRemote, 'remote');
 await checkQueryPair(installedRemote, 'remote');
 await checkGraphNodeQuery(installedRemote, 'remote');
 await checkGraphPathQuery(installedRemote, 'remote');
+await checkGraphMacroQuery(installedRemote, 'remote');
+await checkBoundedGraphQuery(installedRemote, 'remote');
+await checkGraphPathModes(installedRemote, 'remote');
+if (process.env.ACTQL_GRAPH_ONLY === '1') {
+  installedRemote.close();
+  console.log('packed Graph Local and HTTP smoke passed');
+  process.exit(0);
+}
 await checkValuesCte(installedRemote, 'remote');
 await checkPipeSnapshots(installedRemote, 'remote');
 await checkNullOrder(installedRemote, 'remote');
@@ -2124,11 +2246,17 @@ try {
   const endpoint = `https://127.0.0.1:${remoteServer.address().port}/`;
   await runAsync(process.execPath, ['smoke.mjs'], root, {
     ACTQL_TEST_REMOTE_ENDPOINT: endpoint,
+    ACTQL_GRAPH_ONLY: graphOnly ? '1' : '0',
     NODE_EXTRA_CA_CERTS: join(root, 'remote.crt'),
   });
 } finally {
   releaseDispatch();
   await new Promise(resolve => remoteServer.close(resolve));
+}
+if (graphOnly) {
+  await remoteHost.close();
+  console.log('packed Graph Local and HTTP smoke passed');
+  process.exit(0);
 }
 const acquiredRecoveryRequest = {requestId: 'packed-acquired-remote',
   principalId: userInfo().username,

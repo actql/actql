@@ -238,6 +238,112 @@ test "Graph path modes preserve distinct prefix eligibility" {
 }
 
 ///|
+test "Graph macros lower typed roles without publishing elements" {
+  let query = @query.parse_query(
+    "FROM GRAPH g |> MATCH p = WALK (a)-[e]->(b) |> " +
+    "SELECT NODE_ID(a) AS node_id, EDGE_SOURCE(e) AS source_id, " +
+    "EDGE_TARGET(e) AS target_id, EDGE_LABEL(e) AS edge_label, " +
+    "PATH_LENGTH(p) + 1 AS depth",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, diamond_graph_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"aql_query_expr_0\":{\"field\":\"aql_n0_id\"}"))
+  assert_true(wire.contains("\"aql_query_expr_1\":{\"field\":\"aql_e0_src\"}"))
+  assert_true(wire.contains("\"aql_query_expr_2\":{\"field\":\"aql_e0_dst\"}"))
+  assert_true(wire.contains("\"aql_query_expr_3\":{\"field\":\"aql_e0_rel\"}"))
+  assert_true(
+    wire.contains(
+      "\"aql_query_expr_4\":{\"add\":[{\"literal\":1},{\"literal\":1}]}",
+    ),
+  )
+  match
+    @check.check_parsed(
+      program,
+      graph_check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("Graph macro Program should be closed")
+    Rejected(_) => fail("Graph macro Program was rejected")
+  }
+}
+
+///|
+test "bounded ACYCLIC Graph path retains dynamic length and endpoints" {
+  let query = @query.parse_query(
+    "FROM GRAPH g |> MATCH p = ACYCLIC (a)-[:R]->{1,2}(b) |> " +
+    "SELECT a.id AS start_id, b.id AS end_id, PATH_LENGTH(p) AS depth",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, diamond_graph_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"traverse\""))
+  assert_true(wire.contains("\"emit\":\"paths\""))
+  assert_true(wire.contains("\"max_hops\":2"))
+  assert_true(wire.contains("\"aql_path_hop_count\""))
+  match
+    @check.check_parsed(
+      program,
+      graph_check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("bounded Graph Program should be closed")
+    Rejected(_) => fail("bounded Graph Program was rejected")
+  }
+}
+
+///|
+test "Graph edge type requires the source's declared label role" {
+  let base = diamond_graph_context()
+  let input = base.graph_inputs[0]
+  let unlabeled = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"graph":{"nodes":{"from":"nodes","id":"id","fields":["name"]},"edges":{"from":"edges","source":"src","target":"dst","fields":[]}},"as":"g"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let source : GraphInputSource = match input.source {
+    GeneratedGraph(steps) => GeneratedGraph([steps[0], steps[1], unlabeled])
+    CapturedGraph(_) => abort("expected generated Graph")
+  }
+  let context = {
+    ..base,
+    graph_inputs: [{ ..input, source, edge_fields: ["src", "dst"], }],
+  }
+  let typed = @query.parse_query(
+    "FROM GRAPH g |> MATCH WALK (a)-[:R]->(b) |> SELECT a.id",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(typed, context, construction_limits()) is Err(UnsupportedGraph),
+  )
+  let untyped = @query.parse_query(
+    "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT a.id",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(untyped, context, construction_limits()).unwrap()
+  assert_false(semantic(program).contains("aql_e0_rel"))
+  match
+    @check.check_parsed(
+      program,
+      graph_check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("unlabeled Graph should have closed local inputs")
+    Rejected(_) => fail("unlabeled Graph pattern was rejected")
+  }
+}
+
+///|
 test "Graph pattern rejects a property absent from checked input" {
   let query = @query.parse_query(
     "FROM GRAPH g |> MATCH WALK (a {missing: 1}) |> SELECT a.id",

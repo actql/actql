@@ -12,6 +12,16 @@ pub(all) struct GraphBinding {
   variable : @query.NamePart
   prefix : String
   fields : Array[String]
+  kind : GraphBindingKind
+  hops : Int
+  label_field : String?
+}
+
+///|
+pub(all) enum GraphBindingKind {
+  Node
+  Edge
+  Path
 }
 
 ///|
@@ -603,13 +613,21 @@ fn append_expression(
   fields : Array[String],
   max_work : Int,
 ) -> @builder.Node raise Abort {
-  match
-    @expression.append(
+  let resolve = path => resolve_column(path, query, input, fields)
+  let lowered = if input.graph_bindings.is_empty() {
+    @expression.append(expression, resolve, construction.builder, max_work)
+  } else {
+    @expression.append_with_macros(
       expression,
-      path => resolve_column(path, query, input, fields),
+      resolve,
+      (path, argument) => {
+        graph_macro_value(path, argument, input.graph_bindings)
+      },
       construction.builder,
       max_work,
-    ) {
+    )
+  }
+  match lowered {
     Ok(node) => node
     Err(error) => {
       for index in 0..<@query.expression_node_count(expression) {
@@ -652,13 +670,23 @@ fn append_order_expression(
   selected : Array[(String, String)],
   max_work : Int,
 ) -> @builder.Node raise Abort {
-  match
-    @expression.append(
+  let resolve = path => {
+    order_expression_slot(path, query, input, fields, selected)
+  }
+  let lowered = if input.graph_bindings.is_empty() {
+    @expression.append(expression, resolve, construction.builder, max_work)
+  } else {
+    @expression.append_with_macros(
       expression,
-      path => order_expression_slot(path, query, input, fields, selected),
+      resolve,
+      (path, argument) => {
+        graph_macro_value(path, argument, input.graph_bindings)
+      },
       construction.builder,
       max_work,
-    ) {
+    )
+  }
+  match lowered {
     Ok(node) => node
     Err(error) => {
       for index in 0..<@query.expression_node_count(expression) {

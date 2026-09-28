@@ -12,6 +12,8 @@ import {
 // Values
 pub fn append(@query_syntax.Expression, (Array[@query_syntax.NamePart]) -> String?, @program_source_builder.Builder, Int) -> Result[@program_source_builder.Node, Diagnostic]
 
+pub fn append_with_macros(@query_syntax.Expression, (Array[@query_syntax.NamePart]) -> String?, (Array[@query_syntax.NamePart], Array[@query_syntax.NamePart]) -> MacroValue?, @program_source_builder.Builder, Int) -> Result[@program_source_builder.Node, Diagnostic]
+
 pub fn expression(Lowered) -> @expression_syntax.Expression
 
 pub fn lower(@query_syntax.Expression, (Array[@query_syntax.NamePart]) -> String?, Limits) -> Result[Lowered, Diagnostic]
@@ -44,6 +46,11 @@ pub(all) struct Limits {
 }
 
 type Lowered
+
+pub(all) enum MacroValue {
+  Field(String)
+  Integer(Int)
+}
 
 // Type aliases
 
