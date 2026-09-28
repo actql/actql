@@ -1,0 +1,7 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/frontend_source_map" @origin,
+  "actql/actql/source_span" @span,
+  "moonbitlang/core/encoding/utf8",
+}

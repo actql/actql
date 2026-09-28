@@ -25,8 +25,8 @@ const hash = body => `sha256:${createHash('sha256')
 // These supplement,
 // not replace, the independent logical-plan vectors in run-host-core tests.
 const planCids = {
-  values: 'sha256:41a2171a7444034d81ab545ac20bd21f7806c821ab077565b8ec7e0ab8228c81',
-  tasks: 'sha256:a9a4fabb9455df6f32a226c69e36650f82f6c971c8852c6bbd46d8d6136d6905',
+  values: 'sha256:16d92f47437565639b7a637041a3615fe731c04d9e37e6cb453ff1713ffc2837',
+  tasks: 'sha256:4b9f5119277ee2c99fd670bc511066df9aee69cb762b5122f60b0055cc59ce34',
 };
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 const policy = Object.freeze({executionContextCid: cid('a'),

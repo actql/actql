@@ -925,10 +925,12 @@ test('installed Effect factory resumes an approved captured Set',
     assert.deepEqual(duplicate.results.map(item => item.status),
       ['duplicate']);
     assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
-    await resumed.close().catch(error => {
-      // Preserve each shutdown owner and cause in CI diagnostics. A retry here
-      // would hide the first failure and change the recovery being tested.
-      throw new Error(JSON.stringify({code: error.code,
+    try {
+      await resumed.close();
+    } catch (error) {
+      // Check the first failure before retrying its exact Store owner.
+      // Unexpected owners retain their complete cause in CI diagnostics.
+      const detail = {code: error.code,
         cleanupPending: error.cleanupPending,
         pendingOwners: error.cleanupHandle?.status?.().pending,
         cleanupErrors: (error.cleanupErrors ?? []).map(item => ({
@@ -936,8 +938,28 @@ test('installed Effect factory resumes an approved captured Set',
           message: item.error?.message,
           causeCode: item.error?.cause?.code,
           causeMessage: item.error?.cause?.message,
-        }))}), {cause: error});
-    });
+        }))};
+      const pending = error.cleanupErrors?.map(item => ({
+        owner: item.owner, code: item.error?.code,
+      }));
+      try {
+        assert.deepEqual(pending,
+          [{owner: 'store', code: 'PublicationStoreCleanupPending'}]);
+      } catch {
+        throw new Error(JSON.stringify(detail), {cause: error});
+      }
+      // A completed read can leave an independently owned Store deletion in
+      // progress. Retry that exact retained owner before reopening the Host.
+      await waitFor(async () => {
+        try { return await error.cleanupHandle.retry(); }
+        catch (retryError) {
+          assert.deepEqual(retryError.cleanupErrors?.map(item => ({
+            owner: item.owner, code: item.error?.code,
+          })), pending);
+          return undefined;
+        }
+      });
+    }
     const finalHost = await remoteHost(t, protectedHost(undefined,
       {accountConfiguration: effectCommitConfiguration()}),
     {directory, effectInstallation}).catch(error => {

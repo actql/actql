@@ -42,6 +42,25 @@ one global partition, while aggregation and representative-row selection still
 differ on empty input. Likewise, repeated partition keys do not create output
 columns, whereas repeated projection fields can create forbidden duplicate names.
 
+## Vocabulary across representations
+
+Use the adopted specification's vocabulary for concepts with the same meaning.
+Frontend syntax, checked Program, AoA IR, diagnostics and documentation must
+not accumulate unexplained synonyms or semantic drift. GoogleSQL is the
+reference for the adopted SQL/Pipe profile; GQL, VecA and TEA surfaces must name
+their own adopted specifications. This is not a blanket compatibility claim.
+
+Different abstraction levels need not use identical names: SELECT can lower to
+projection. Record the mapping and the preserved meaning. Distinguish aggregate
+groups, analytic partitions and window frames, event-time windows, final query
+order and partition-local order. Do not approximate a missing IR meaning in the
+frontend; identify the exact missing contract and coordinate with Compute or
+Host owners.
+
+Limit terminology cleanup to the affected implementation. Internal renames are
+separate from wire or canonical-preimage changes. The latter require their
+schema, pins and independent fixtures to move together on the agreed version.
+
 ## Keep the boundaries separate
 
 - Syntax acceptance is not proof of type correctness or execution support.

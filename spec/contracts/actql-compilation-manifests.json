@@ -1,7 +1,7 @@
 {
   "version": "actql-compilation-manifests/0.1",
   "schema_cids": {
-    "grammar_manifest": "sha256:14155c10bf32ba92399382dc439afb64beadc38bc91f4a78c44d3677bfc19ce8",
+    "grammar_manifest": "sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec",
     "barrier_contract_manifest": "sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342"
   },
   "schemas": {
@@ -20,6 +20,8 @@
         "expression_text_rules_sha256",
         "structural_text_grammar_sha256",
         "structural_text_rules_sha256",
+        "query_text_grammar_sha256",
+        "query_text_rules_sha256",
         "grammar_manifest_cid"
       ],
       "properties": {
@@ -56,6 +58,14 @@
           "pattern": "^[0-9a-f]{64}$"
         },
         "structural_text_rules_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "query_text_grammar_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "query_text_rules_sha256": {
           "type": "string",
           "pattern": "^[0-9a-f]{64}$"
         },
