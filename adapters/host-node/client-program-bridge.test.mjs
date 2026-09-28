@@ -4378,11 +4378,21 @@ test('owned update Plan matches approved rows and rejects altered intent',
         let bindings = 0;
         const advanced = await applyCapturedEffectSet({
           ...applyOptions, ledger: resumedProgress,
-          bindDispatch: ({members, subjectCid}) => {
+          bindDispatch: ({members, subjectCid, decisions}) => {
             bindings++;
             assert.equal(subjectCid,
               JSON.parse(preview.wire).effect_preview_cid);
             assert.equal(Object.isFrozen(members), true);
+            // This generation's commit decisions: dispatch for the sealed
+            // Set, one per distinct Host tuple.
+            assert.equal(Object.isFrozen(decisions), true);
+            assert.ok(decisions.length > 0);
+            for (const decision of decisions) {
+              assert.equal(decision.action, 'dispatch');
+              assert.equal(decision.boundary, 'effect_commit');
+              assert.equal(decision.subjectCid, subjectCid);
+              assert.equal(decision.tuple.operation, 'effect');
+            }
             return async ({memberIndex, rowIndex, claim}) => {
               assert.equal(claim, members[memberIndex].claims[rowIndex]);
               assert.equal(memberIndex, 1);

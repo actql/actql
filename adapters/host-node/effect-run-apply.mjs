@@ -9,6 +9,26 @@ const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
 
+const preflightRejections = new WeakSet();
+
+export function isEffectApplyPreflightRejection(error) {
+  return error !== null && typeof error === 'object' &&
+    preflightRejections.has(error);
+}
+
+// A checked preflight rejection is a definitive refusal of this Preview.
+// Provider observation failures occur before this boundary and remain
+// retryable; they must not be converted into a terminal Run result.
+function checkedPreflight(result) {
+  if (result?.$tag === 0) {
+    const error = Object.assign(new Error('MoonBitHostFailure', {
+      cause: result._0}), {code: 'MoonBitHostFailure'});
+    preflightRejections.add(error);
+    throw error;
+  }
+  return checked(result);
+}
+
 const text = value => typeof value === 'string' && value.length > 0 &&
   value.length <= 512;
 
@@ -19,10 +39,14 @@ const validDispatch = (dispatchRow, bindDispatch) =>
 // Bind physical requests to the exact claims retained by this apply owner.
 // Recovery creates new opaque claims; callers must not substitute claims from
 // an earlier ledger read. Binding is synchronous and performs no physical I/O.
+// `decisions` are this claim generation's Effect commit dispatch decisions,
+// one per distinct Host tuple in member order of first appearance; a
+// provider binds each physical write grant to its member's decision and
+// never to a decision of another tuple or an earlier generation.
 function bindOwnedDispatch(dispatchRow, bindDispatch, members, subjectCid,
-  signal) {
+  signal, decisions) {
   const dispatch = bindDispatch === undefined ? dispatchRow :
-    bindDispatch(Object.freeze({members, subjectCid, signal}));
+    bindDispatch(Object.freeze({members, subjectCid, signal, decisions}));
   if (typeof dispatch !== 'function') fail('InvalidEffectDispatchBinding');
   return dispatch;
 }
@@ -127,7 +151,10 @@ async function authorizeEffectCommit(authorization, subjectCid, signal) {
       ? await authorization.gate.authorize('effect_commit', tuple,
         {subjectCid, signal})
       : await authorization.gate.resume('effect_commit', tuple,
-        {subjectCid, signal, resumption});
+        {subjectCid, signal, resumption,
+          setApproval: decisions.find(previous =>
+            previous.basis === 'resumed' &&
+            previous.admission !== undefined)});
     decisions.push(decision);
     if (decision.action !== 'dispatch') break;
   }
@@ -293,7 +320,7 @@ export async function applyCapturedEffectSet({
   const requirePartialApplication =
     current.requirePartialApplication === true;
   signal?.throwIfAborted();
-  checked(moon.clientProgramCheckEffectApplyPreflight(
+  checkedPreflight(moon.clientProgramCheckEffectApplyPreflight(
     capturedInputs, current.proofs, current.sources,
     current.contracts, current.capabilities, current.authorities,
     current.observedRows, current.guardVersions,
@@ -327,7 +354,7 @@ export async function applyCapturedEffectSet({
   let entered;
   let prepared = false;
   const dispatch = bindOwnedDispatch(dispatchRow, bindDispatch,
-    ownedMembers, subjectCid, signal);
+    ownedMembers, subjectCid, signal, authorized.decisions);
   const result = await driveAdmittedFrontier({control, members: ownedMembers,
     maxFrontierWork, dispatchRow: dispatch, signal,
     currentPreflight: refreshed,
@@ -432,7 +459,7 @@ export async function applyRecoveredEffectSet({
     fail('InvalidRecoveredEffectApply');
   }
   signal?.throwIfAborted();
-  checked(moon.clientProgramCheckRecoveredEffectApplySemantics(
+  checkedPreflight(moon.clientProgramCheckRecoveredEffectApplySemantics(
     admittedPreview, preflight.sources, preflight.contracts,
     preflight.capabilities, preflight.authorities,
     preflight.observedRows, preflight.guardVersions, preflight.routes,
@@ -460,7 +487,7 @@ export async function applyRecoveredEffectSet({
   const identity = effectSetApplyIdentity(control, requestScope, subjectCid);
   let entered;
   const dispatch = bindOwnedDispatch(dispatchRow, bindDispatch,
-    recovered.members, subjectCid, signal);
+    recovered.members, subjectCid, signal, authorized.decisions);
   const result = await driveAdmittedFrontier({control,
     members: recovered.members, maxFrontierWork, dispatchRow: dispatch, signal,
     currentPreflight: current,

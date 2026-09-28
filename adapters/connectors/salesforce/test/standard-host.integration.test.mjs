@@ -17,7 +17,7 @@ import * as commonMoon from
 import * as salesforceMoon from
   '../../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
 import {connect, RequestHeld} from '../../../../packages/sdk/index.mjs';
-import {openInstalledRemoteHttpHost} from
+import {openInstalledRemoteHttpHost, publishInstalledEffect} from
   '../../../host-node/embedded-local.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {INSTALLED_SALESFORCE_SITE_VERSION} from
@@ -27,6 +27,7 @@ import {INSTALLED_SALESFORCE_SOURCE_VERSION,
   '../host/installed-salesforce-source.mjs';
 import {openSalesforceEffectSiteFixture} from
   './salesforce-effect-site.fixture.mjs';
+import {effectProgram} from './installed-salesforce-effect.fixture.mjs';
 
 const repository = fileURLToPath(new URL('../../../../', import.meta.url));
 const scratch = join(repository, '_build', 'salesforce-standard-host');
@@ -207,6 +208,125 @@ test('public Client reads a published Salesforce source to a Named Result',
       '/services/data/v62.0/query',
     ]);
     assert.equal(paths.includes('/services/data/v62.0/sobjects/'), false);
+  });
+
+test('public HTTP Client resumes an installed Salesforce Effect after restart',
+  async t => {
+    const setup = await installation(t);
+    const effectPath = join(setup.root, 'effect-profile.json');
+    const hostAccountWire = canonicalJson({
+      version: 'actql-execution-account-config/0.1',
+      account_id: 'salesforce-effect-host', entries: [
+        {entry_id: 'effect-commit', outcome: 'delegate', exclusions: [],
+          principal: {all: true},
+          connection: {any_of: [`salesforce:${setup.org.orgId}`]},
+          resource: {any_of: ['Test_Record__c']},
+          operation: {any_of: ['effect']}},
+        {entry_id: 'host-run', outcome: 'allow', exclusions: [],
+          principal: {all: true}, connection: {all: true},
+          resource: {all: true}, operation: {any_of: ['write']}},
+        {entry_id: 'target-read', outcome: 'allow', exclusions: [],
+          principal: {all: true},
+          connection: {any_of: [`salesforce:${setup.org.orgId}`]},
+          resource: {any_of: ['Test_Record__c']},
+          operation: {any_of: ['read']}},
+      ]});
+    await writeFile(effectPath, JSON.stringify({
+      version: 'actql-installed-salesforce-effect/0.1',
+      siteProfilePath: setup.sitePath,
+      publicationPath: join(setup.root, 'effect-publication.json'),
+      connectorId: 'crm-main',
+      accountConfigurationWire: hostAccountWire,
+      writes: [{resource: 'Test_Record__c', kind: 'update',
+        fields: ['Name']}],
+    }));
+    const published = await publishInstalledEffect({effectProfilePath:
+      effectPath, directory: join(setup.root, 'state'),
+    resolveEffectSecret: secret});
+    const beforeStart = setup.org.seen.length;
+    const diagnostics = [];
+    const authorization = checkpointAuthorization({
+      resumeAfterAnswer: false,
+      observe: (name, detail) => diagnostics.push({name, detail}),
+      accountConfiguration: hostAccountWire,
+      reviewReaders: ['reviewer-principal'],
+    });
+    const openEffect = async () => {
+      const host = await openInstalledRemoteHttpHost({
+        directory: join(setup.root, 'state'),
+        authenticate: header => tokens.get(
+          header?.replace(/^Bearer /u, '')),
+        effectProfilePath: effectPath, resolveEffectSecret: secret,
+        authorization,
+      });
+      const server = createServer({key: tlsKey, cert: tlsCertificate},
+        host.handler);
+      await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+      let closed = false;
+      const close = async () => {
+        if (closed) return;
+        closed = true;
+        server.closeAllConnections?.();
+        await new Promise(resolve => server.close(resolve));
+        await host.close();
+      };
+      t.after(close);
+      const endpoint = `https://127.0.0.1:${server.address().port}/`;
+      const as = token => connect({mode: 'remote', endpoint, token,
+        durability: 'durable'});
+      return {as, close};
+    };
+    const first = await openEffect();
+    assert.equal(setup.org.seen.length, beforeStart,
+      'generation restoration performs no provider request');
+    const ownerClient = await first.as('owner-token');
+    const mapping = published.mappings[0];
+    const program = effectProgram({save: {update: {
+      target: `connector://crm-main/Test_Record__c`,
+      mapping: mapping.mappingRef, from: {result: 'rows'}, id: 'id',
+      set: {Name: {field: 'id'}}}}},
+    [{id: 'a00000000000001'}, {id: 'a00000000000002'}]);
+    const execution = await ownerClient.aql(JSON.stringify(program), {
+      format: 'json', requestId: 'installed-effect-http'});
+    await waitFor(async () => (await execution.status()).status ===
+      'waiting_checkpoint');
+    assert.equal(setup.org.seen.filter(item => item.method === 'PATCH').length,
+      0);
+    await first.close();
+    const second = await openEffect();
+    const reviewer = await second.as('reviewer-token');
+    const [checkpoint] = (await reviewer.checkpoints()).items;
+    assert.equal(checkpoint.kind, 'effect_set');
+    const answer = await reviewer.resolveCheckpoints([
+      {checkpoint, decision: 'approved'}], {signer: {...signer,
+        authorityScopeCid: execution.ref.authorityScopeCid}});
+    assert.deepEqual(answer.results.map(item => item.status), ['committed']);
+    await second.close();
+    const third = await openEffect();
+    const resumed = await (await third.as('owner-token')).attach(execution.ref);
+    let lastState;
+    const state = await waitFor(async () => {
+      const current = await resumed.status();
+      lastState = current;
+      const failure = diagnostics.find(item =>
+        item.name === 'effect_resume_failed');
+      if (failure !== undefined) {
+        throw new Error(`EffectResumeFailed:${JSON.stringify(failure)}`);
+      }
+      return current.status === 'succeeded' ? current : undefined;
+    }).catch(error => {
+      error.message = JSON.stringify({state: lastState,
+        writes: setup.org.seen.filter(item => item.method === 'PATCH'),
+        observed: setup.org.seen.map(item => [item.method, item.path]),
+        diagnostics});
+      throw error;
+    });
+    assert.equal(state.status, 'succeeded');
+    assert.deepEqual(await resumed.result('answer').all(),
+      [{id: 'a00000000000001'}, {id: 'a00000000000002'}]);
+    assert.equal(setup.org.seen.filter(item => item.method === 'PATCH').length,
+      2);
+    await third.close();
   });
 
 test('a Program outside the published declaration fails Check without I/O',

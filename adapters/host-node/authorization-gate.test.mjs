@@ -1256,6 +1256,44 @@ test('Effect resume claims: missing, different, exact and optional partial',
     // is refused when the Effect Set decision defers (see the defer test).
   });
 
+test('one Effect Set approval admits current member tuples only', async t => {
+  const second = {...effectScope, resource: 'archive'};
+  const x = await clockedGate(t, {boundary: 'effect_commit',
+    target: effectScope, entries: [
+      accountEntry('effect-archive', 'delegate', {
+        connection: 'tickets', resource: 'archive', operation: 'effect'}),
+      accountEntry('effect-queue', 'delegate', {
+        connection: 'tickets', resource: 'queue', operation: 'effect'}),
+    ]});
+  await x.deferral.answer(x.checkpointCid, 'approved');
+  const resumption = {claim: x.claim('set-owner')};
+  const first = await x.gate.resume('effect_commit', effectScope,
+    {subjectCid, resumption});
+  assert.equal(first.action, 'dispatch');
+  assert.equal((await x.gate.resume('effect_commit', second,
+    {subjectCid, resumption})).detail, 'ResolutionSubjectMismatch');
+  const admitted = await x.gate.resume('effect_commit', second,
+    {subjectCid, resumption, setApproval: first});
+  assert.equal(admitted.action, 'dispatch');
+  assert.equal(admitted.tuple.resource, 'archive');
+  assert.equal(admitted.checkpointCid, first.checkpointCid);
+  for (const approval of [Object.freeze({...first}),
+    {...first, admission: {...first.admission, generation: 99}}]) {
+    assert.equal((await x.gate.resume('effect_commit', second,
+      {subjectCid, resumption, setApproval: approval})).detail,
+    'ResolutionSubjectMismatch');
+  }
+  assert.equal((await x.gate.resume('effect_commit', second,
+    {subjectCid: otherSubjectCid, resumption, setApproval: first})).detail,
+  'ResolutionSubjectMismatch');
+  const foreignGate = x.gate.withContext({principal: 'local-user',
+    contextCid: FIXTURE_CONTEXT.contextCid});
+  assert.equal((await foreignGate.resume('effect_commit', second,
+    {subjectCid, resumption, setApproval: first})).detail,
+  'ResolutionSubjectMismatch');
+  foreignGate.close();
+});
+
 test('immediate answers must supply exactly the Host-required claims',
   async () => {
     for (const [claims, action] of [
