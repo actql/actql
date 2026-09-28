@@ -42,6 +42,7 @@ pub struct WriteCollectionResponse {
   results : Array[WriteRowResult]
   response_sha256 : String
   row_preview_cids : Array[String]?
+  rejection : WriteRejection?
 }
 
 ///|
@@ -90,7 +91,10 @@ pub fn project_write_collection_response_for_request(
   limits : WriteCollectionResponseLimits,
 ) -> Result[WriteCollectionResponse, WriteCollectionResponseIssue] {
   if http_status != 200 {
-    return Err(UnexpectedStatus)
+    // Only a documented request-level rejection proves that no row saved.
+    return project_write_collection_rejection(
+      http_status, bytes, request, limits,
+    )
   }
   let response = match
     project_write_collection_response(
@@ -102,7 +106,11 @@ pub fn project_write_collection_response_for_request(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ ..response, row_preview_cids: Some(request.row_preview_cids.copy()), })
+  Ok({
+    ..response,
+    results: published_collection_results(response.results, request.projection),
+    row_preview_cids: Some(request.row_preview_cids.copy()),
+  })
 }
 
 ///|
@@ -270,5 +278,10 @@ pub fn project_write_collection_response(
       Err(issue) => return Err(issue)
     }
   }
-  Ok({ results, response_sha256: @sha.hex(bytes), row_preview_cids: None, })
+  Ok({
+    results,
+    response_sha256: @sha.hex(bytes),
+    row_preview_cids: None,
+    rejection: None,
+  })
 }

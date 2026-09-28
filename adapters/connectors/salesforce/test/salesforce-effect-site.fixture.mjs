@@ -68,6 +68,9 @@ export async function openSalesforceEffectSiteFixture(t, {
   // The 1-based sequence numbers of record writes the org rejects with a
   // field error.
   rejectWrites = [],
+  // Exact replies by 1-based record write sequence: {status, body} with a
+  // JSON body (or `raw` text), sent instead of the org's answer.
+  writeReplies = {},
 }) {
   const writable = ['Test_Record__c', ...extraWritable];
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
@@ -184,6 +187,12 @@ export async function openSalesforceEffectSiteFixture(t, {
       const sequence = seen.filter(item => item.method === 'POST' ||
         (item.method === 'PATCH' && item.path !==
           `${prefix}composite/sobjects`)).length;
+      const reply = writeReplies[sequence];
+      if (reply !== undefined) {
+        response.writeHead(reply.status, {'content-type': 'application/json'});
+        response.end(reply.raw ?? JSON.stringify(reply.body));
+        return true;
+      }
       if (!rejectWrites.includes(sequence)) return false;
       response.writeHead(400, {'content-type': 'application/json'});
       response.end(JSON.stringify([{message: 'Rejected field',
@@ -217,7 +226,9 @@ export async function openSalesforceEffectSiteFixture(t, {
         }
         if (rateLimitReply) {
           rateLimitReply = false;
-          response.writeHead(403, {'content-type': 'application/json'});
+          // 429 is not a documented REST write rejection: the outcome
+          // stays unknown.
+          response.writeHead(429, {'content-type': 'application/json'});
           response.end(JSON.stringify([{message: 'Request limit exceeded',
             errorCode: 'REQUEST_LIMIT_EXCEEDED'}]));
           return;
@@ -243,7 +254,9 @@ export async function openSalesforceEffectSiteFixture(t, {
         }
         if (rateLimitReply) {
           rateLimitReply = false;
-          response.writeHead(403, {'content-type': 'application/json'});
+          // 429 is not a documented REST write rejection: the outcome
+          // stays unknown.
+          response.writeHead(429, {'content-type': 'application/json'});
           response.end(JSON.stringify([{message: 'Request limit exceeded',
             errorCode: 'REQUEST_LIMIT_EXCEEDED'}]));
           return;

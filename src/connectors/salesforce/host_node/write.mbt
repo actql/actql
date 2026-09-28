@@ -550,6 +550,31 @@ pub fn salesforce_project_single_write_success(
 }
 
 ///|
+/// A single-record response that is not a success: a definite failure only
+/// on documented rejection evidence for this request, else an issue (the
+/// write stays unknown).
+#export_name("salesforceProjectSingleWriteRejection")
+pub fn salesforce_project_single_write_rejection(
+  request : @catalog.SingleWriteRequest,
+  status : Int,
+  bytes : Bytes,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @catalog.WriteSingleResponse raise SalesforceCatalogBridgeIssue {
+  match
+    @catalog.project_write_single_rejection(status, bytes, request, {
+      max_bytes,
+      max_nodes,
+      max_depth,
+      max_rows: 1,
+    }) {
+    Ok(value) => value
+    Err(issue) => raise WriteSingleResponse(issue)
+  }
+}
+
+///|
 #export_name("salesforceSingleWriteSuccessProjection")
 pub fn salesforce_single_write_success_projection(
   response : @catalog.WriteSingleResponse,
