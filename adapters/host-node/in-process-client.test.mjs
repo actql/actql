@@ -38,3 +38,30 @@ test('in-process Host checks current scope and exact attach reference',
     assert.equal(attached, 1);
     client.close();
   });
+
+test('in-process Checkpoint operations use the public Host contract',
+  async () => {
+    const calls = [];
+    const host = createNodeInProcessClientHost({
+      authenticate: () => 'local-principal',
+      authorizeConnection: ({operation}) => {
+        calls.push(operation);
+        return true;
+      },
+      negotiate: () => profile,
+      checkpoints: () => ({items: []}),
+      checkpointReview: () => {
+        throw Object.assign(new Error('CheckpointReviewDenied'),
+          {code: 'CheckpointReviewDenied'});
+      },
+      maxRowBytes: 1024,
+    });
+    const client = await connectInProcess({mode: 'local', owner: 'local'},
+      host);
+    assert.deepEqual(await client.checkpoints(), {items: []});
+    await assert.rejects(client.reviewCheckpoint(cid('c')),
+      {code: 'CheckpointReviewDenied'});
+    assert.ok(calls.includes('checkpoints'));
+    assert.ok(calls.includes('checkpoint-review'));
+    client.close();
+  });
