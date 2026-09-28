@@ -455,6 +455,7 @@ fn advance_expression_frame_impl(
               And => Boolean(true)
               Or => Boolean(false)
               Coalesce => Null
+              Concat | ConcatStrict => Text("")
             }
             frame.stack.push(Many(expr, op, children, 0, initial, None))
             frame.state = Enter(first)
@@ -702,6 +703,47 @@ fn advance_expression_frame_impl(
                 match boolean_pair(op, previous, value) {
                   Ok(v) => v
                   Err(e) => return Err({ kind: Scalar(e), expression: expr, })
+                }
+              Concat | ConcatStrict =>
+                match (previous, value) {
+                  (Text(prefix), Text(part)) => {
+                    let cap = match logical_work {
+                      Some(b) =>
+                        Int64::min(
+                          b.limits.max_value_bytes,
+                          b.host_bytes.to_int64(),
+                        ).to_int()
+                      None => 2147483647
+                    }
+                    let prefix_bytes = match
+                      @scalar.admit_utf8_length(prefix, cap) {
+                      Ok(n) => n
+                      Err(_) =>
+                        return Err({ kind: ControlLimit, expression: expr, })
+                    }
+                    let part_bytes = match
+                      @scalar.admit_utf8_length(part, cap - prefix_bytes) {
+                      Ok(n) => n
+                      Err(_) =>
+                        return Err({ kind: ControlLimit, expression: expr, })
+                    }
+                    if !spend_control(budget, prefix_bytes + part_bytes) {
+                      return Err({ kind: ControlLimit, expression: expr, })
+                    }
+                    Text(prefix + part)
+                  }
+                  (Text(prefix), Null) =>
+                    if op == @lower.Concat {
+                      Text(prefix)
+                    } else {
+                      Null
+                    }
+                  (Null, Text(_) | Null) if op == @lower.ConcatStrict => Null
+                  _ =>
+                    return Err({
+                      kind: Scalar(InvalidOperand),
+                      expression: expr,
+                    })
                 }
             }
             if release(previous_root) is Some(e) {

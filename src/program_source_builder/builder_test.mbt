@@ -14,6 +14,37 @@ fn limits() -> @program_source_builder.Limits {
 }
 
 ///|
+test "admitted contract fragments copy with generated query provenance" {
+  let parsed = @source.parse_json(
+    "{\"schema\":{\"id\":{\"type\":\"string\",\"nullable\":false}}}",
+    limits().source,
+  ).unwrap()
+  let contract = @wire.admit(parsed, limits().tree).unwrap()
+  let document = @origin.document("SELECT id FROM orders", 100).unwrap()
+  let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
+  let builder = @program_source_builder.create(document, limits()).unwrap()
+  let copy = @program_source_builder.import_cursor(builder, contract, generated).unwrap()
+  let source = @program_source_builder.finish(builder, copy).unwrap()
+  let root = @program_source_builder.cursor(source)
+  let schema = @wire.required(@wire.open_object(root).unwrap(), "schema").unwrap()
+  let id = @wire.required(@wire.open_object(schema).unwrap(), "id").unwrap()
+  let kind = @wire.required(@wire.open_object(id).unwrap(), "type").unwrap()
+  assert_eq(@wire.text(kind).unwrap(), "string")
+  assert_eq(
+    @origin.kind(@program_source_builder.origin(source, kind).unwrap()),
+    Generated,
+  )
+  let too_small = @program_source_builder.create(document, {
+    ..limits(),
+    source: { ..limits().source, max_nodes: 2, },
+  }).unwrap()
+  assert_true(
+    @program_source_builder.import_cursor(too_small, contract, generated)
+    is Err(NodeLimit),
+  )
+}
+
+///|
 test "immutable builder bounds reuse and rejects owner substitution" {
   let document = @origin.document("x", 10).unwrap()
   let origin = @origin.range(document, 0, 1).unwrap()

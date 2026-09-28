@@ -107,6 +107,7 @@ export async function loadInstalledEffect(path, {root, principalId, moon,
     ledgerRoot: join(root, 'state', 'effects', 'ledger')});
   const hooks = salesforceEffectSiteHooks(effect);
   return Object.freeze({environmentWire: effect.environmentWire,
+    connectorBindings: effect.connectorBindings,
     prepareCaptured: hooks.prepareCaptured,
     prepareRecovered: hooks.prepareRecovered,
     close: () => effect.close()});

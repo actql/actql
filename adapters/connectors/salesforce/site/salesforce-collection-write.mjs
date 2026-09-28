@@ -25,9 +25,9 @@ export function projectSalesforceCollectionObservation({
       !(observation.body instanceof Uint8Array)) {
     fail('InvalidSalesforceCollectionObservation');
   }
-  if (observation.statusCode < 200 || observation.statusCode >= 300) {
-    return Object.freeze({kind: 'provider-response', observation});
-  }
+  // A non-success status is typed only as a documented request-level
+  // rejection (every row failed); otherwise every row stays unknown.
+  const success = observation.statusCode >= 200 && observation.statusCode < 300;
   try {
     const projected = checked(moon.salesforceProjectCollectionWriteResponse(
       request, observation.statusCode, observation.body,
@@ -39,7 +39,9 @@ export function projectSalesforceCollectionObservation({
       rowCount: moon.salesforceCollectionWriteResponseRowCount(projected),
     });
   } catch (cause) {
-    return Object.freeze({kind: 'unclassified-response', observation, cause});
+    return success
+      ? Object.freeze({kind: 'unclassified-response', observation, cause})
+      : Object.freeze({kind: 'provider-response', observation});
   }
 }
 

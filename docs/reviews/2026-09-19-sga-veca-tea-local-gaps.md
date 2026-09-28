@@ -7,9 +7,10 @@ closure evidence. The early strict-gate failures below are historical, not
 current failures. At main `805a29c5f`, the later production inventory records
 68 operation boundaries and 68 lifecycle/resource closures, with 111 path
 proofs. Those counts do not close every retained-Store obligation or establish
-performance. Numeric retained aggregation, remaining Carrier obligations and
-native in-flight drain still require separate evidence. Use the later retained
-Relation sections and the [current status](current-product-status.md) when
+performance. The selected numeric Relation route is described below; remaining
+Carrier obligations and native in-flight drain still require separate evidence.
+Use the later retained Relation sections and the
+[current status](current-product-status.md) when
 assigning remaining work. Keep historical evidence at its recorded SHA.
 
 ## Historical delivery unit and acceptance boundary
@@ -636,7 +637,7 @@ multi-step Relation tasks are rejected.
 
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |
-| Other Relation obligations outside the selected bounded binary chains | In progress | The exact bounded Relation children listed below now discharge their checked obligations, including unpivot and unnest output envelopes. Numeric-observation aggregates and other unlisted obligations remain closed to this retained lane. |
+| Other Relation obligations outside the selected bounded binary chains | In progress | The exact bounded Relation children listed below discharge their checked obligations, including unpivot and unnest output envelopes and selected binary64 numeric observations. Other unlisted obligations remain closed to this retained lane. |
 | SGA, TEA, and VecA retained outputs | Open | Connect their exact Carrier completion and retention obligations without widening the Relation-only allowance. |
 | Native Host in-flight cancellation | Separate completion unit | Do not count JS Host cancellation as native request delivery. |
 
@@ -669,6 +670,7 @@ the same evidence used to constrain the bounded evaluator.
 | `assert_rows` with a predicate or unique key | Selected assertion child | Exact row assertion requirement |
 | Dedupe with a top-tie check | Selected dedupe child | Exact dedupe top-tie requirement |
 | `unpivot` and `unnest` | Selected expansion child | Exact expansion execution and output envelope |
+| `group`, `analytic`, and `pivot` with binary64 SUM/AVG | Selected bounded aggregate child | Exact numeric profile member and per-step/slot occurrence seals |
 
 The ordinary Host fixture keeps Append and each following operation in one
 producer task. It uses a real retained Store and publication service, then
@@ -705,13 +707,25 @@ proves the new routes actually select those children. These are shared
 implementation proofs, not separately measured budgets for every authored
 combination.
 
-This does not enable binary64 SUM/AVG in the retained lane: it does not yet
-select and seal numeric observation slots on the common materializing attempt.
-The admission check rejects those variants before dispatch. Nor does this
-enable nonlinear tasks or arbitrary Carrier-family output. The existing
-selected Relation provider refuses a nonlinear sequence during planning.
-The remaining Relation work is to connect numeric observation ownership and
-to cover the other checked forms outside the table. SGA, TEA and VecA retained
+The retained lane now declares the pinned numeric member in its fixed Compute
+candidate, selects it through the exact task ticket, binds its execution to
+the materializing attempt, and seals every step/slot occurrence domain before
+completion. The same seal boundary applies to bounded advances and the
+draining entrypoint. Ordinary Host programs exercise group SUM followed by
+filter/select, group SUM followed by global SUM with different occurrence
+counts, cumulative analytic SUM, and pivot SUM. Each uses a real retained
+Store and compares the producer and two consumer Named Results with independent
+ordered values. A numeric group cancellation case reaches the child after the
+Append handoff, then checks stop before release, nonpublication, no redispatch,
+and final reclamation. The common selected chain retains its existing
+exact/one-short budgets and Store failure/cleanup controls; numeric reduction
+and aggregate children retain their independent boundary tests. Final
+same-SHA CI evidence is still required for this branch.
+
+This does not enable nonlinear tasks or arbitrary Carrier-family output. The
+existing selected Relation provider refuses a nonlinear sequence during planning.
+The remaining Relation work is to cover checked forms outside the table. SGA,
+TEA and VecA retained
 outputs remain a separate Carrier completion unit.
 
 Native Host in-flight cancellation is outside this unit's acceptance

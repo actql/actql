@@ -14,6 +14,7 @@ fn query_checked_program_fixture(
   dag_join? : Bool = false,
   self_join? : Bool = false,
   numeric_dag? : Bool = false,
+  numeric_materializing_group? : Bool = false,
   sort_take? : Bool = false,
   dag_values? : Bool = false,
   local_values_two_consumer_chain? : Bool = false,
@@ -94,6 +95,13 @@ fn query_checked_program_fixture(
   }
   let text = if local_values_group_chain {
     local_values_group_program(local_values_group_variant)
+  } else {
+    text
+  }
+  let text = if numeric_materializing_group {
+    (
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{"x":{"result":{"stage":"a","result":"r"}}},"steps":[{"group":{"by":[],"aggregates":{"mean":{"fn":"avg","field":"id"},"total":{"fn":"sum","field":"id"}}},"as":"out"}],"results":{"r":{"from":"out","fields":["mean","total"]}}},{"id":"consumer","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"select":["mean","total"],"as":"out"}],"results":{"r":{"from":"out","fields":["mean","total"]}}}],"results":{"out":{"from":{"stage":"consumer","result":"r"}}}}
+    )
   } else {
     text
   }
@@ -983,7 +991,8 @@ fn query_checked_program_fixture(
           calendar: false,
           text_rank: false,
         },
-        numeric_profile=if (
+        numeric_profile=if numeric_materializing_group ||
+          (
             local_values_group_chain &&
             (
               local_values_group_variant == "numeric" ||

@@ -147,6 +147,8 @@ fn emit_frames(
                   And => "and"
                   Or => "or"
                   Coalesce => "coalesce"
+                  Concat => "concat"
+                  ConcatStrict => "concat_strict"
                 },
               ),
             )

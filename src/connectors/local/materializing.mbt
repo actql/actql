@@ -29,6 +29,7 @@ struct LocalMaterializingAttempt {
   provider : ManagedProvider
   sequence : @execution.GeneratedSequence
   execution : @execution.SequenceExecutionLimits
+  mut numeric : @execution.NumericAggregateExecution?
   max_rows : Int
   max_value_bytes : Int
   mut provider_execution : ManagedProviderExecution?
@@ -241,6 +242,7 @@ pub fn[E] prepare_local_materializing_execution(
         provider,
         sequence: constrained,
         execution,
+        numeric: None,
         max_rows: request_capacity.max_rows,
         max_value_bytes: request_capacity.max_value_bytes,
         provider_execution: None,
@@ -406,6 +408,23 @@ pub(all) struct LocalMaterializingAdvance {
 }
 
 ///|
+/// The exact task ticket supplies numeric authority after candidate selection
+/// and before the first bounded provider step.
+pub fn bind_local_materializing_numeric_execution(
+  attempt : LocalMaterializingAttempt,
+  numeric : @execution.NumericAggregateExecution,
+) -> Bool {
+  if attempt.started ||
+    attempt.closed ||
+    attempt.settled ||
+    attempt.numeric is Some(_) {
+    return false
+  }
+  attempt.numeric = Some(numeric)
+  true
+}
+
+///|
 /// Advance the attempt's bounded provider by at most `quantum` work units.
 /// The first advance requires every retained input to be fully imported.
 pub fn advance_local_materializing_attempt(
@@ -445,6 +464,7 @@ pub fn advance_local_materializing_attempt(
           attempt.max_rows,
           attempt.max_value_bytes,
           attempt.execution,
+          numeric=attempt.numeric,
         ) {
         Ok(value) => value
         Err(error) => {

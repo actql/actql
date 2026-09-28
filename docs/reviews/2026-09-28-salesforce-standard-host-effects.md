@@ -11,10 +11,10 @@ claimed to read and write in one Program.
 
 ## Status
 
-- On this branch (not yet on main): the installation profile, the explicit publication,
-  the capture/Preview/apply/recovery factory, the Host seam and the package
+- On main (#35): the installation profile, the explicit publication, the
+  capture/Preview/apply/recovery factory, the Host seam and the package
   publication entry. They are tested through the common completion and
-  recovery owners against a local HTTPS mock org.
+  recovery owners and the public Host paths against a local HTTPS mock org.
 - The standard Host's Effect path (#29) is merged. Behind the Remote HTTP
   Host and the public Client, a multi-tuple Set is submitted, previewed,
   held for the whole-Set approval, approved, resumed after a Host restart,
@@ -26,8 +26,11 @@ claimed to read and write in one Program.
   identical installation and rejects changed publication or Site generation.
   The packed Client runs approval, restart, write and Named Result from an
   installation outside the checkout.
-- Real org: not yet exercised for Effects. The mock evidence does not stand
-  in for it.
+- Live Dev org (2026-09-28, Embedded Local, the dedicated test object, one
+  Resource): held for approval with no write, approved and resumed in
+  restarted Hosts, each of two rows updated once, the Named Result published,
+  no write on a further restart, the created rows deleted. Multi-Resource Sets
+  are mock evidence only.
 
 ## Installation and publication
 
@@ -108,9 +111,10 @@ only.
   resume sends nothing and publishes the same Result.
 - A reply lost after the send: the row stays unknown; a restart sends
   nothing more.
-- A non-2xx single-record reply is not a typed Salesforce outcome in the
-  existing provider, so that row stays unknown (not failed); later rows of the
-  member are not sent under halt, and a restart sends nothing more.
+- A documented rejection (400, 401, 403, 404 or 428 with a structured error
+  body) is a definite failure; any other non-success reply stays unknown.
+  Either way nothing is resent (see
+  [write response classification](2026-09-28-salesforce-write-response-classification.md)).
 - A capture that fails after storing Results releases its unpublished
   payloads and keeps its own cause; a failed release is attached to it.
 
@@ -118,6 +122,5 @@ only.
 
 | Item | Owner | Needed | Acceptance |
 |---|---|---|---|
-| Live org Effect verification | D | Budget and cleanup reserve per the private record | Update of the dedicated test object, cleanup of created records |
-| Typed single-record failure outcomes | D (provider) | A contract for classifying non-2xx replies as definite failures | Rejected rows reported failed without resend |
+| Upsert 300 classification | common transport, then D | The credential transport delivers a write's 300 body instead of refusing it as a redirect | Upsert 300 recorded as failed (see [write response classification](2026-09-28-salesforce-write-response-classification.md)) |
 | Effects with external acquisition | shared | Effect compiler over acquired inputs | Out of this scope |

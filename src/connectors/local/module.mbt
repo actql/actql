@@ -331,18 +331,21 @@ fn local_bounded_relation_check(
       match check {
         Group =>
           (match @lower.kernel_group(kernel) {
-            Some(group) => @execution.group_execution_supported(group)
+            Some(group) =>
+              @execution.group_execution_supported_with_numeric(group)
             None => false
           }) ||
           @lower.kernel_count_group(kernel) is Some(_)
         Analytic =>
           match @lower.kernel_analytic(kernel) {
-            Some(analytic) => @execution.analytic_execution_supported(analytic)
+            Some(analytic) =>
+              @execution.analytic_execution_supported_with_numeric(analytic)
             None => false
           }
         Pivot =>
           match @lower.kernel_pivot(kernel) {
-            Some(pivot) => @execution.pivot_execution_supported(pivot)
+            Some(pivot) =>
+              @execution.pivot_execution_supported_with_numeric(pivot)
             None => false
           }
         RowWindow => false

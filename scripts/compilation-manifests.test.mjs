@@ -59,6 +59,32 @@ test('structural grammar and rules have distinct bound identity inputs', () => {
   }
 });
 
+test('query grammar and rules have independent manifest identity inputs', () => {
+  const preimage = '{"expression_contract_cid":"sha256:' + 'a'.repeat(64) +
+    '","expression_text_grammar_sha256":"' + 'b'.repeat(64) +
+    '","expression_text_rules_sha256":"' + 'c'.repeat(64) +
+    '","operations":["filter","values"],"query_text_grammar_sha256":"' +
+    '1'.repeat(64) + '","query_text_rules_sha256":"' + '2'.repeat(64) +
+    '","source_grammar_cid":"sha256:' + 'd'.repeat(64) +
+    '","structural_text_grammar_sha256":"' + 'e'.repeat(64) +
+    '","structural_text_rules_sha256":"' + 'f'.repeat(64) +
+    '","version":"actql-grammar-manifest/0.1"}';
+  // Independently hashed with Python hashlib and sorted compact JSON.
+  const expected = 'sha256:3f07536156edbf1728e2fb8da2446ab420a551d100d75e07dae16bc3e2007b48';
+  assert.equal(sha(preimage), expected);
+  const body = JSON.parse(preimage);
+  assert.equal(machineCid(body), expected);
+  const schema = expectedCompilationManifests().contract.schemas.grammar_manifest;
+  for (const key of ['query_text_grammar_sha256', 'query_text_rules_sha256']) {
+    assert.notEqual(machineCid({...body, [key]: '0'.repeat(64)}), expected);
+    const missing = {...body};
+    delete missing[key];
+    assert.notEqual(machineCid(missing), expected);
+    assert.ok(schema.required.includes(key));
+    assert.deepEqual(schema.properties[key], {type: 'string', pattern: '^[0-9a-f]{64}$'});
+  }
+});
+
 test('pinned manifests close over their source contracts and exact schemas', () => {
   const expected = expectedCompilationManifests();
   assert.deepEqual(verifyCompilationManifests(), expected);

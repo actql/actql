@@ -19,6 +19,8 @@ pub fn begin_local_materializing_input(LocalMaterializingAttempt, Int) -> Result
 
 pub fn begin_local_output_export(LocalMaterializingAttempt) -> Result[Unit, LocalMaterializingIssue]
 
+pub fn bind_local_materializing_numeric_execution(LocalMaterializingAttempt, @execution_relation.NumericAggregateExecution) -> Bool
+
 pub fn bind_local_output_export(LocalMaterializingAttempt, @execution_relation.RetainedOutputMaterial) -> Result[Unit, LocalMaterializingIssue]
 
 pub fn cancel_local_materializing_attempt(LocalMaterializingAttempt) -> Bool

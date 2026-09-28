@@ -32,3 +32,11 @@ test "numeric occurrence slots become immutable when sealed" {
   assert_false(numeric_reduction_slot_open(counts, 3))
   assert_eq(counts, [None, Some(0), Some(2)])
 }
+
+///|
+test "materializing completion requires every selected numeric slot to seal" {
+  assert_true(numeric_reductions_ready_for_completion(0, false))
+  assert_false(numeric_reductions_ready_for_completion(1, false))
+  assert_false(numeric_reductions_ready_for_completion(2, false))
+  assert_true(numeric_reductions_ready_for_completion(2, true))
+}

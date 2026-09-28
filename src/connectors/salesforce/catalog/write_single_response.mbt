@@ -14,11 +14,13 @@ pub(all) enum WriteSingleResponseIssue {
 } derive(Eq, Debug)
 
 ///|
-/// One complete successful single-record REST response. A rejected or missing
-/// response is not classified here; transport settlement owns uncertainty.
+/// One complete classified single-record REST response: a success, or a
+/// documented rejection (`rejection`). A missing or unclassified response is
+/// not represented; transport settlement owns uncertainty.
 pub struct WriteSingleResponse {
   result : WriteRowResult
   response_sha256 : String
+  rejection : WriteRejection?
 }
 
 ///|
@@ -54,6 +56,7 @@ pub fn project_write_single_success(
     return Ok({
       result: RowApplied(target_id, false),
       response_sha256: @sha.hex(bytes),
+      rejection: None,
     })
   }
   match kind {
@@ -110,5 +113,5 @@ pub fn project_write_single_success(
     }
     _ => return Err(InvalidResponse)
   }
-  Ok({ result, response_sha256: @sha.hex(bytes), })
+  Ok({ result, response_sha256: @sha.hex(bytes), rejection: None, })
 }

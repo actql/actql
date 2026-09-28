@@ -4,6 +4,9 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {accountConfiguration, effectHost, effectProgram, installedEffect,
   recordEntry} from './installed-salesforce-effect.fixture.mjs';
+import {closeFailingJournal} from './salesforce-effect-site.fixture.mjs';
+import {loadInstalledSalesforceSource} from
+  '../host/installed-salesforce-source.mjs';
 import {checkInstalledSalesforceEffectProfile} from
   '../host/installed-salesforce-effect.mjs';
 
@@ -249,7 +252,7 @@ test('a restarted Set is refused before any write when one target changed',
     }
   });
 
-test('a rejected row is kept unknown, halts its member and is never retried',
+test('a rejected row fails, halts its member and is never retried',
   async t => {
     const installation = await installedEffect(t, {writes: [update],
       org: {rejectWrites: [2]}});
@@ -258,18 +261,28 @@ test('a rejected row is kept unknown, halts its member and is never retried',
     const run = await host.run(updateProgram(host.installed.mappings,
       [...ids, 'a00000000000003'].map(id => ({id}))), 'partial-set')
       .then(value => value, error => ({error}));
-    // The first row applied. The provider's reply to the second is not a
-    // typed single-record outcome, so it stays unknown rather than failed;
-    // the third is never sent under halt.
-    assert.equal(run.started?.value?.status, 'needs_reconciliation',
+    // The first row applied. Salesforce rejected the second with a 400
+    // INVALID_FIELD error before saving it: a definite failure. The third
+    // is never sent under halt, so the Run fails.
+    assert.equal(run.started?.value?.status, 'failed',
       String(run.error?.code));
     assert.equal(writesOf(installation.org).length, 2);
+    const [, rejected] = host.outcomes[0].stage.receipt.members[0].rowOwners;
+    const entry = host.outcomes[0].stage.apply.ledger.readClaimedOutcome(
+      rejected.claim);
+    assert.deepEqual(JSON.parse(entry.outcomeJson).typed_outcome, {state: 'failed',
+      error: {code: 'SalesforceWriteRejected',
+        message: 'Salesforce rejected the write before saving it',
+        details: {http_status: 400,
+          errors: [{error_code: 'INVALID_FIELD', fields: ['Name']}]}}});
     await host.close();
+    // A restart settles nothing new and sends nothing.
     const second = await effectHost(t, installation, state);
     const resumed = await second.resume('partial-set',
       run.accepted.ref.runDefinitionCid,
-      JSON.parse(host.outcomes[0].stage.continuationWire));
-    assert.equal(resumed.result.status, 'needs_reconciliation');
+      JSON.parse(host.outcomes[0].stage.continuationWire))
+      .then(value => value, error => ({error}));
+    assert.notEqual(resumed.result?.status, 'succeeded');
     assert.equal(writesOf(installation.org).length, 2);
   });
 
@@ -337,4 +350,157 @@ test('each member writes only under its own tuple\'s commit decision for the Set
       `${label}: ${failure?.code}`);
       assert.equal(writesOf(installation.org).length, 0, label);
     }
+  });
+
+// A loader that fails after acquiring its Site: the load's own failure stays
+// the error, and an incomplete Site release travels with it as the caller's
+// retry responsibility (the Host's initialization cleanup contract).
+test('a failed Salesforce loader keeps its cause and hands over the Site release',
+  async t => {
+    const installation = await installedEffect(t, {writes: [update]});
+    // Effect load: the published generation no longer matches the writes.
+    const effectJournal = closeFailingJournal(1);
+    const effectFailure = await installation.load({writes: [{...update,
+      fields: ['Name', 'External_Key__c']}]},
+    {openCredentialJournal: effectJournal.open}).then(() => undefined,
+      error => error);
+    assert.equal(effectFailure.code, 'SalesforceEffectPublicationMismatch');
+    assert.equal(effectFailure.cleanupPending, true);
+    assert.deepEqual(effectFailure.cleanupErrors.map(error => error.code),
+      ['InjectedJournalCloseFailure']);
+    assert.equal((await effectFailure.cleanupHandle.retry()).pending, false);
+    assert.equal(effectJournal.calls.close, 2);
+    // Source load: its publication is missing.
+    const sourceJournal = closeFailingJournal(1);
+    const sourceFailure = await loadInstalledSalesforceSource({
+      version: 'actql-installed-salesforce-source/0.1',
+      siteProfilePath: installation.profile.siteProfilePath,
+      publicationPath: join(installation.root, 'missing-source.json'),
+      connectorId: 'salesforce', resources: ['Test_Record__c'],
+      accountConfigurationWire: installation.profile.accountConfigurationWire,
+    }, {...installation.options, openCredentialJournal: sourceJournal.open})
+      .then(() => undefined, error => error);
+    assert.equal(sourceFailure.code, 'SalesforcePublicationMissing');
+    assert.equal(sourceFailure.cleanupPending, true);
+    assert.equal((await sourceFailure.cleanupHandle.retry()).pending, false);
+    assert.equal(sourceJournal.calls.close, 2);
+    // A publication whose describe cannot run (the Resource is not
+    // declared) keeps that failure, not the release failure.
+    const failedPublish = closeFailingJournal(1);
+    const publishFailure = await installation.publish({writes: [{
+      resource: 'Not_Declared__c', kind: 'update', fields: ['Name']}]},
+    {openCredentialJournal: failedPublish.open}).then(() => undefined,
+      error => error);
+    assert.equal(publishFailure.code, 'SalesforceCatalogDescribeNotAuthorized');
+    assert.equal(publishFailure.cleanupPending, true);
+    assert.equal((await publishFailure.cleanupHandle.retry()).pending, false);
+    // A successful publication whose release fails reports that release
+    // failure with its retry; the generation it wrote stays published.
+    const publishedJournal = closeFailingJournal(1);
+    const releaseFailure = await installation.publish({},
+      {openCredentialJournal: publishedJournal.open}).then(() => undefined,
+      error => error);
+    assert.equal(releaseFailure.code, 'InjectedJournalCloseFailure');
+    assert.equal(releaseFailure.cleanupPending, true);
+    assert.equal(publishedJournal.calls.close, 1);
+    assert.equal((await releaseFailure.cleanupHandle.retry()).pending, false);
+    assert.equal(publishedJournal.calls.close, 2);
+    assert.ok(await installation.load());
+  });
+
+// Non-success replies to the first write of a two-row halted member. A
+// documented rejection is a definite failure recorded in the Ledger; every
+// other reply keeps the row unknown. Either way the Run never resends it,
+// even after a restart.
+test('non-success Salesforce write replies settle only on documented rejections',
+  async t => {
+    const error = (errorCode, fields) => [{message: 'provider detail 42',
+      errorCode, ...(fields === undefined ? {} : {fields})}];
+    const cases = [
+      ['403 request limit', {status: 403,
+        body: error('REQUEST_LIMIT_EXCEEDED')}, 'failed',
+      {code: 'SalesforceWriteRejected', http_status: 403,
+        errors: [{error_code: 'REQUEST_LIMIT_EXCEEDED', fields: []}]}],
+      ['400 with an undeclared field', {status: 400,
+        body: error('INVALID_FIELD', ['Name', 'Secret__c'])}, 'failed',
+      {code: 'SalesforceWriteRejected', http_status: 400,
+        errors: [{error_code: 'INVALID_FIELD', fields: ['Name']}]}],
+      ['404 record not found', {status: 404, body: error('NOT_FOUND')},
+        'failed', {code: 'SalesforceWriteRejected', http_status: 404,
+          errors: [{error_code: 'NOT_FOUND', fields: []}]}],
+      ['500 provider error', {status: 500, body: error('UNKNOWN_EXCEPTION')},
+        'needs_reconciliation'],
+      ['503 unavailable', {status: 503, body: error('SERVER_UNAVAILABLE')},
+        'needs_reconciliation'],
+      ['400 proxy page', {status: 400, raw: '<html>Bad Request</html>'},
+        'needs_reconciliation'],
+      ['400 uncertainty code', {status: 400,
+        body: error('SERVER_UNAVAILABLE')}, 'needs_reconciliation'],
+    ];
+    for (const [label, reply, expected, failure] of cases) {
+      const installation = await installedEffect(t, {writes: [update],
+        org: {writeReplies: {1: reply}}});
+      const state = join(installation.root, 'host');
+      const host = await effectHost(t, installation, state);
+      const run = await host.run(updateProgram(host.installed.mappings),
+        `reply-${label.replaceAll(' ', '-')}`)
+        .then(value => value, value => ({error: value}));
+      assert.equal(run.started?.value?.status, expected,
+        `${label}: ${run.error?.code}`);
+      // The first row was sent once; under halt the second never was.
+      assert.equal(writesOf(installation.org).length, 1, label);
+      const {stage} = host.outcomes[0];
+      const outcome = stage.apply.ledger.readClaimedOutcome(
+        stage.receipt.members[0].rowOwners[0].claim);
+      if (failure === undefined) {
+        assert.equal(outcome, undefined, label);
+      } else {
+        const typed = JSON.parse(outcome.outcomeJson).typed_outcome;
+        assert.equal(typed.state, 'failed', label);
+        assert.deepEqual({code: typed.error.code, ...typed.error.details},
+          failure, label);
+        assert.equal(JSON.stringify(typed).includes('provider detail'), false);
+      }
+      await host.close();
+      // A restart sends nothing more for this Set.
+      const second = await effectHost(t, installation, state);
+      await second.resume(`reply-${label.replaceAll(' ', '-')}`,
+        run.accepted.ref.runDefinitionCid,
+        JSON.parse(stage.continuationWire)).catch(() => undefined);
+      assert.equal(writesOf(installation.org).length, 1, `${label} restart`);
+    }
+  });
+
+// Salesforce documents an upsert 300 as writing nothing, but the credential
+// transport refuses every 3xx as a redirect before reading its body. The
+// sent row therefore stays unknown and is never resent: the gap is in the
+// transport, not in the classification.
+test('an upsert 300 stays unknown: the transport refuses it as a redirect',
+  async t => {
+    const installation = await installedEffect(t, {writes: [{
+      resource: 'Test_Record__c', kind: 'upsert', key: 'External_Key__c',
+      fields: ['Name']}], writeOperation: 'upsert',
+    org: {writeReplies: {1: {status: 300, body: [
+      '/services/data/v62.0/sobjects/Test_Record__c/a01',
+      '/services/data/v62.0/sobjects/Test_Record__c/a02']}}}});
+    const state = join(installation.root, 'host');
+    const host = await effectHost(t, installation, state);
+    const [mapping] = host.installed.mappings;
+    const program = effectProgram({save: {upsert: {target: mapping.target,
+      mapping: mapping.mappingRef, from: {result: 'rows'}, key: 'id',
+      set: {Name: {field: 'id'}}}}}, ids.map(id => ({id})));
+    const run = await host.run(program, 'upsert-300').then(value => value,
+      error => ({error}));
+    assert.equal(run.error?.code, 'RemoteCredentialRedirectRejected');
+    assert.equal(writesOf(installation.org).length, 1);
+    const {stage} = host.outcomes[0];
+    assert.equal(stage.apply.ledger.readClaimedOutcome(
+      stage.receipt.members[0].rowOwners[0].claim), undefined);
+    await host.close();
+    const second = await effectHost(t, installation, state);
+    const resumed = await second.resume('upsert-300',
+      run.error.accepted.ref.runDefinitionCid,
+      JSON.parse(stage.continuationWire));
+    assert.equal(resumed.result.status, 'needs_reconciliation');
+    assert.equal(writesOf(installation.org).length, 1);
   });

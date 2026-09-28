@@ -534,6 +534,16 @@ test "selected branches only execute; eager boolean still evaluates failure" {
 }
 
 ///|
+test "query concat propagates null while legacy concat skips it" {
+  assert_true(
+    run_expr("\"concat_strict('é', '😀')\"").unwrap() is Text("é😀"),
+  )
+  assert_true(run_expr("\"concat_strict('a', NULL, 'b')\"").unwrap() is Null)
+  assert_true(run_expr("\"concat('a', NULL, 'b')\"").unwrap() is Text("ab"))
+  assert_true(run_expr("\"concat(NULL, NULL)\"").unwrap() is Text(""))
+}
+
+///|
 test "CASE skips later conditions and unused results; implicit ELSE is null" {
   assert_true(
     run_expr(

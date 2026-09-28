@@ -342,6 +342,8 @@ pub fn strategy_fixture_module_subset(StrategyFixture, Int) -> @connectors_built
 
 pub fn strategy_fixture_next(StrategyFixture) -> Int
 
+pub fn strategy_fixture_numeric_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
+
 pub fn strategy_fixture_open(StrategyFixture, @execution_query.CapturedInputSource) -> Bool
 
 pub fn strategy_fixture_placement(StrategyFixture, Int) -> String

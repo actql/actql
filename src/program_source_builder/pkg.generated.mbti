@@ -19,6 +19,8 @@ pub fn discard(Builder) -> Unit
 
 pub fn finish(Builder, Node) -> Result[Source, Issue]
 
+pub fn import_cursor(Builder, @decode_core.Cursor, @frontend_source_map.Origin) -> Result[Node, Issue]
+
 pub fn import_parsed(Builder, @source_value.ParsedSource) -> Result[Node, Issue]
 
 pub fn key_origin(Source, @decode_core.Cursor) -> @frontend_source_map.Origin?

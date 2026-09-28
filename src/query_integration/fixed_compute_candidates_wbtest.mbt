@@ -87,6 +87,51 @@ test "registered fixed Compute candidates keep the same capture and Local execut
     local_registration, request, "opaque-payload", 5, local_estimate, quantities,
     100,
   ).unwrap()
+  let profile = @numeric.builtin_profile()
+  let support = @connector.numeric_reduction_support(
+    @numeric.cid(profile),
+    @numeric.member_cid_at(profile, 0).unwrap(),
+  ).unwrap()
+  let declarations = [support]
+  let numeric_sdk = @connector.bind_compute_candidate(
+    local_registration,
+    request,
+    "numeric-payload",
+    5,
+    local_estimate,
+    quantities,
+    100,
+    numeric_reductions=declarations,
+  ).unwrap()
+  declarations.clear()
+  let numeric_candidate = @connector.prepared_compute_candidate(numeric_sdk)
+  assert_eq(
+    @connector.fixed_compute_candidate_numeric_reduction_count(
+      numeric_candidate,
+    ),
+    1,
+  )
+  assert_eq(
+    @connector.numeric_reduction_support_member_cid(
+      @connector.fixed_compute_candidate_numeric_reduction_at(
+        numeric_candidate, 0,
+      ).unwrap(),
+    ),
+    @numeric.member_cid_at(profile, 0).unwrap(),
+  )
+  assert_true(
+    @connector.bind_compute_candidate(
+      local_registration,
+      request,
+      "duplicate-profile",
+      5,
+      local_estimate,
+      quantities,
+      100,
+      numeric_reductions=[support, support],
+    )
+    is Err(InvalidLimits),
+  )
   let equal_sdk = @connector.bind_compute_candidate(
     local_registration, request, "opaque-payload", 5, local_estimate, quantities,
     100,
