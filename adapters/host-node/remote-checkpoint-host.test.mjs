@@ -925,7 +925,19 @@ test('installed Effect factory resumes an approved captured Set',
     assert.deepEqual(duplicate.results.map(item => item.status),
       ['duplicate']);
     assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
-    await resumed.close();
+    await resumed.close().catch(error => {
+      // Preserve each shutdown owner and cause in CI diagnostics. A retry here
+      // would hide the first failure and change the recovery being tested.
+      throw new Error(JSON.stringify({code: error.code,
+        cleanupPending: error.cleanupPending,
+        pendingOwners: error.cleanupHandle?.status?.().pending,
+        cleanupErrors: (error.cleanupErrors ?? []).map(item => ({
+          owner: item.owner, code: item.error?.code,
+          message: item.error?.message,
+          causeCode: item.error?.cause?.code,
+          causeMessage: item.error?.cause?.message,
+        }))}), {cause: error});
+    });
     const finalHost = await remoteHost(t, protectedHost(undefined,
       {accountConfiguration: effectCommitConfiguration()}),
     {directory, effectInstallation}).catch(error => {

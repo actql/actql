@@ -8,6 +8,7 @@ import {
   realpathSync,
 } from 'node:fs';
 import {join} from 'node:path';
+import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 import {
   admitRemoteDispatchJson,
   admitRemoteExecutionEvidenceJson,
@@ -26,19 +27,6 @@ function syncDirectory(path) {
   const descriptor = openSync(path, 'r');
   try { fsyncSync(descriptor); }
   finally { closeSync(descriptor); }
-}
-
-function transaction(database, body) {
-  database.exec('BEGIN IMMEDIATE');
-  try {
-    const value = body();
-    database.exec('COMMIT');
-    return value;
-  } catch (error) {
-    try { database.exec('ROLLBACK'); }
-    catch (rollback) { fail('CoordinatorJournalRollbackFailed', rollback); }
-    throw error;
-  }
 }
 
 export function openSqliteCoordinatorDispatchJournal(root, {
@@ -73,6 +61,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     readOnly: false,
     enableForeignKeyConstraints: true,
   });
+  const transaction = createSqliteTransaction(database, 'CoordinatorJournal');
   let closed = false;
   try {
     database.exec('PRAGMA journal_mode = WAL');
@@ -160,7 +149,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         )
       ) STRICT;
     `);
-    transaction(database, () => {
+    transaction.run(() => {
       const version = database.prepare(
         'SELECT value FROM journal_metadata WHERE key = ?',
       ).get('schema_version');
@@ -368,6 +357,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
 
   const ensureOpen = () => {
     if (closed) fail('CoordinatorJournalClosed');
+    transaction.assertUsable();
   };
   const integer = value => Number.isSafeInteger(value);
   const bit = value => value === 0 || value === 1;
@@ -577,7 +567,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       }
       measurementJson = control.managedOutputMeasurementJson(measurement);
     }
-    transaction(database, () => persistTransition(
+    transaction.run(() => persistTransition(
       prepared,
       evidenceJson,
       subjectJson,
@@ -609,7 +599,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     if (!count(generation) || !count(attempt) || attempt === 0) {
       fail('InvalidCoordinatorJournalRequest');
     }
-    return transaction(database, () => {
+    return transaction.run(() => {
       const existing = selectDispatch.get(
         key[0], key[1], generation, key[3],
       );
@@ -735,8 +725,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       manifestJson,
     });
   };
-  const installOutput = wire => transaction(
-    database,
+  const installOutput = wire => transaction.run(
     () => {
       const key = wire.key.value;
       const existing = selectOutput.get(
@@ -804,7 +793,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     } else if (states.next[2] !== '') {
       fail('CoordinatorOutputResultMissing');
     }
-    transaction(database, () => {
+    transaction.run(() => {
       const values = key.value;
       const found = selectOutput.get(
         values[0], values[1], key.generation, values[3], values[5],
@@ -1185,8 +1174,8 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     },
     close() {
       if (closed) return false;
-      closed = true;
       database.close();
+      closed = true;
       return true;
     },
   });
