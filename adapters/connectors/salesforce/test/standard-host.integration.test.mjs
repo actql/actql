@@ -9,6 +9,7 @@ import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
 import test, {after} from 'node:test';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath} from 'node:url';
@@ -209,6 +210,43 @@ test('public Client reads a published Salesforce source to a Named Result',
       '/services/data/v62.0/query',
     ]);
     assert.equal(paths.includes('/services/data/v62.0/sobjects/'), false);
+  });
+
+test('invalid diagnostics retain an acquired source and its failed cleanup',
+  async t => {
+    const setup = await installation(t);
+    await setup.publish();
+    const seen = setup.org.seen.length;
+    const close = DatabaseSync.prototype.close;
+    const cleanup = new Error('SourceJournalCloseFailure');
+    let closes = 0;
+    DatabaseSync.prototype.close = function() {
+      if (++closes === 1) throw cleanup;
+      return close.call(this);
+    };
+    let failure;
+    try {
+      await assert.rejects(setup.open({authorization:
+        checkpointAuthorization({observe: 'invalid'})}), error => {
+        failure = error;
+        assert.equal(error.code, 'InstalledHostInitializationFailed');
+        assert.equal(error.primaryFailure.message,
+          'InvalidDiagnosticObserver');
+        assert.equal(error.cleanupPending, true);
+        assert.equal(error.cleanupErrors[0].error, cleanup);
+        assert.ok(error.cleanupHandle.status().owners.includes(
+          'source-profile'));
+        return true;
+      });
+      assert.equal(setup.org.seen.length, seen);
+      assert.equal((await failure.cleanupHandle.retry()).pending, false);
+      assert.equal(closes, 2);
+    } finally {
+      DatabaseSync.prototype.close = close;
+    }
+    const reopened = await setup.open({authorization:
+      checkpointAuthorization()});
+    await reopened.close();
   });
 
 test('public HTTP Client resumes an installed Salesforce Effect after restart',
