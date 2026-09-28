@@ -928,7 +928,13 @@ test('installed Effect factory resumes an approved captured Set',
     await resumed.close();
     const finalHost = await remoteHost(t, protectedHost(undefined,
       {accountConfiguration: effectCommitConfiguration()}),
-    {directory, effectInstallation});
+    {directory, effectInstallation}).catch(error => {
+      throw new Error(JSON.stringify({code: error.code,
+        primaryCode: error.primaryFailure?.code,
+        primaryMessage: error.primaryFailure?.message,
+        primaryStack: error.primaryFailure?.stack,
+        cleanupPending: error.cleanupPending}), {cause: error});
+    });
     const finalExecution = await (await finalHost.as('owner-token'))
       .attach(execution.ref);
     assert.equal((await finalExecution.status()).status, 'succeeded');
