@@ -39,6 +39,7 @@ pub(all) enum Issue {
   UnknownRelation
   AmbiguousRelation
   UnknownColumn
+  AmbiguousColumn
   DuplicateOutput
   UnsupportedProjection
   UnsupportedGrouping
@@ -3593,7 +3594,7 @@ fn join_field(
     for candidate in left_fields {
       if same_name(name, { value: candidate, quoted: false, }) {
         if field is Some(_) {
-          raise Abort(UnknownColumn)
+          raise Abort(AmbiguousColumn)
         }
         field = Some(candidate)
       }
@@ -3608,7 +3609,7 @@ fn join_field(
     for candidate in right_fields {
       if same_name(name, { value: candidate, quoted: false, }) {
         if field is Some(_) {
-          raise Abort(UnknownColumn)
+          raise Abort(AmbiguousColumn)
         }
         field = Some(candidate)
       }
@@ -3618,7 +3619,7 @@ fn join_field(
     }
   }
   if left && right {
-    raise Abort(UnknownColumn)
+    raise Abort(AmbiguousColumn)
   }
   if left {
     return ("left", left_field.unwrap())

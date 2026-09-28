@@ -42,6 +42,7 @@ pub(all) enum Issue {
   UnknownRelation
   AmbiguousRelation
   UnknownColumn
+  AmbiguousColumn
   DuplicateOutput
   UnsupportedProjection
   UnsupportedGrouping

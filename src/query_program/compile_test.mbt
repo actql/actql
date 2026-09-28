@@ -1480,7 +1480,23 @@ test "JOIN USING binds both checked keys and rejects ambiguous columns" {
     syntax_limits(),
   ).unwrap()
   assert_true(
-    compile(ambiguous, set_context(), construction_limits()) is Err(_),
+    compile(ambiguous, set_context(), construction_limits())
+    is Err(AmbiguousColumn),
+  )
+  let unknown = @query.parse_query(
+    "SELECT missing FROM left_rows AS l INNER JOIN left_rows AS r ON l.a = r.a",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(unknown, set_context(), construction_limits()) is Err(UnknownColumn),
+  )
+  let alias_collision = @query.parse_query(
+    "SELECT l.a FROM left_rows AS l INNER JOIN left_rows AS l ON l.a = l.a",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(alias_collision, set_context(), construction_limits())
+    is Err(AmbiguousRelation),
   )
 }
 
