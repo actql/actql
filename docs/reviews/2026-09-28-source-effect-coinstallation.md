@@ -53,6 +53,13 @@ Store and journal tests do not substitute fake Compute or provider counters
 for that product-path assertion. A separate installed Host test injects a
 physical journal close failure, observes a 503 response for a new request
 while cleanup remains pending, and reopens the same root after retry.
+An installed Salesforce Site test injects the first close failure into its
+real SQLite credential journal. The Host retains only that Site owner, the
+closing Site rejects new operations without provider I/O, and retry closes
+the journal before the same installation is reopened. Separate loader tests
+fail after acquiring a Site and verify that the original error and a
+retryable Site cleanup handle reach the caller; those tests use a controlled
+journal wrapper rather than claiming a second real-SQLite integration path.
 
 ## Product-path evidence
 
