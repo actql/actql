@@ -693,6 +693,148 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
   return issued;
 }
 
+// Retire a terminal, unpublished Effect capture from its durable private
+// record. The record is deleted last: after a crash, the remaining exact
+// holdings can still be derived without re-running Compute or an Effect.
+export async function retireCompletedEffectfulCapture({store, control,
+  runDefinition, contractLimits}) {
+  if (!contract(runDefinition) ||
+      typeof store?.storeAuthorityCid !== 'string' ||
+      !['inspectPhysicalHolding', 'readPrivateEvidence',
+        'retirePhysicalHolding'].every(name =>
+        typeof store?.[name] === 'function')) {
+    fail('InvalidCompletedEffectfulRetirement');
+  }
+  const run = ownContract(control, runDefinition, contractLimits);
+  const recordCid = control.effectComputationRecordHoldingCid(run,
+    store.storeAuthorityCid);
+  const captureCid = control.effectComputationCaptureHoldingCid(run,
+    store.storeAuthorityCid);
+  const record = await store.inspectPhysicalHolding(recordCid);
+  if (record === undefined) {
+    if (await store.inspectPhysicalHolding(captureCid) !== undefined) {
+      fail('CompletedEffectfulCaptureRecordMissing');
+    }
+    return false;
+  }
+  if (record.namespace !== 'publication-private' ||
+      record.objects.length !== 1) {
+    fail('InvalidCompletedEffectfulCaptureRecord');
+  }
+  let body;
+  try {
+    body = JSON.parse((await store.readPrivateEvidence('effect_capture',
+      record.manifest_cid, recordCid)).toString('utf8'));
+  } catch (error) {
+    fail('InvalidCompletedEffectfulCaptureRecord', error);
+  }
+  if (!exactKeys(body, [
+    'version', 'store_authority_cid', 'run_definition', 'invocation',
+    'definitions', 'artifacts', 'derivations', 'orderings', 'retentions',
+    'durable_bindings', 'result_schemas', 'manifest',
+    'computation_receipt', 'captured_run', 'preview',
+    'authoring_context', 'effect_source_artifacts', 'connector_recovery',
+  ]) || body.version !== 'actql-completed-effectful-capture/0.1' ||
+      body.store_authority_cid !== store.storeAuthorityCid ||
+      body.run_definition !== run.wire ||
+      !Array.isArray(body.effect_source_artifacts) ||
+      !Array.isArray(body.definitions) ||
+      !Array.isArray(body.artifacts)) {
+    fail('InvalidCompletedEffectfulCaptureRecord');
+  }
+  const admit = (name, wire) => control.admit(name, wire, contractLimits);
+  const chain = {
+    runDefinition: run,
+    invocation: admit('run_invocation', body.invocation),
+    definitions: body.definitions.map(wire =>
+      admit('result_definition', wire)),
+    artifacts: body.artifacts.map(wire => admit('result_artifact', wire)),
+    manifest: admit('result_manifest', body.manifest),
+    computationReceipt: admit('run_receipt', body.computation_receipt),
+    capturedRun: admit('captured_run', body.captured_run),
+  };
+  const preview = control.admitEffectComputationPreview(body.preview, run,
+    control.admitRunEvidence('authoring_context', body.authoring_context,
+      contractLimits), contractLimits);
+  const previewBinding = control.effectPrivateEvidenceBinding(preview,
+    store.storeAuthorityCid);
+  if (chain.capturedRun.identity !== record.manifest_cid ||
+      !control.effectfulComputationEvidenceChainValid(chain, preview,
+        contractLimits)) {
+    fail('InvalidCompletedEffectfulCaptureChain');
+  }
+  const sources = body.effect_source_artifacts.map(item => {
+    if (!exactKeys(item, ['member_index', 'artifact']) ||
+        !Number.isSafeInteger(item.member_index) || item.member_index < 0) {
+      fail('InvalidCompletedEffectfulCaptureSource');
+    }
+    return Object.freeze({memberIndex: item.member_index,
+      artifact: admit('effect_source_artifact', item.artifact)});
+  });
+  if (!control.capturedEffectSourceRecoveryInventoryValid(preview,
+    sources)) {
+    fail('InvalidCompletedEffectfulCaptureSource');
+  }
+  const sourceCids = sources.map(({memberIndex, artifact}) => {
+    const source = control.admitCapturedEffectSourceArtifact(preview,
+      memberIndex, chain.invocation, artifact, store.storeAuthorityCid);
+    return control.capturedEffectSourceHoldingCid(source);
+  });
+  // Validate every remaining record before starting deletion. Missing
+  // records are allowed only as progress from an earlier retirement pass.
+  for (const [index, holdingCid] of sourceCids.entries()) {
+    const holding = await store.inspectPhysicalHolding(holdingCid);
+    if (holding !== undefined &&
+        (holding.namespace !== 'effect-source' ||
+         holding.manifest_cid !== sources[index].artifact.identity)) {
+      fail('InvalidCompletedEffectfulCaptureSource');
+    }
+  }
+  const capture = await store.inspectPhysicalHolding(captureCid);
+  const expectedObjects = new Map();
+  if (!Array.isArray(body.durable_bindings)) {
+    fail('InvalidCompletedEffectfulCaptureRecord');
+  }
+  for (const wire of body.durable_bindings) {
+    const binding = JSON.parse(admit('durable_result_binding', wire).wire);
+    if (binding.store_authority_cid !== store.storeAuthorityCid ||
+        expectedObjects.has(binding.material_generation_cid) &&
+          expectedObjects.get(binding.material_generation_cid) !==
+            binding.byte_count) {
+      fail('InvalidCompletedEffectfulCaptureBinding');
+    }
+    expectedObjects.set(binding.material_generation_cid,
+      binding.byte_count);
+  }
+  if (capture !== undefined &&
+      (capture.namespace !== 'effect-capture' ||
+       capture.manifest_cid !== chain.capturedRun.identity ||
+       capture.objects.length !== expectedObjects.size ||
+       capture.objects.some(object =>
+         expectedObjects.get(object.cid) !== object.byte_count))) {
+    fail('InvalidCompletedEffectfulCaptureRecord');
+  }
+  const previewHolding = await store.inspectPhysicalHolding(
+    previewBinding.holdingCid);
+  if (previewHolding !== undefined &&
+      (previewHolding.namespace !== 'publication-private' ||
+       previewHolding.manifest_cid !== previewBinding.semanticCid)) {
+    fail('InvalidCompletedEffectfulCaptureRecord');
+  }
+  for (const holdingCid of [...sourceCids, captureCid,
+    previewBinding.holdingCid, recordCid]) {
+    const retired = await store.retirePhysicalHolding(holdingCid);
+    if (retired.cleanup.status().pending) {
+      const error = new CompletedRunPublicationError(
+        'CompletedEffectfulCaptureCleanupPending');
+      error.cleanupPending = true;
+      error.cleanupHandle = retired.cleanup;
+      throw error;
+    }
+  }
+  return true;
+}
+
 // Recover a completed computation without re-running its physical work. The
 // encrypted capture record is only a source of bytes; MoonBit re-admits and
 // validates the exact computation chain before any owner is reconstructed.

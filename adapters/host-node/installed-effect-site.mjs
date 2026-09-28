@@ -101,6 +101,15 @@ function cleanupCustody(physical) {
   let release;
   let released = false;
   return Object.freeze({
+    attachPhysical(value) {
+      if (physical !== undefined && physical !== value ||
+          typeof value?.close !== 'function' ||
+          typeof value?.cleanup !== 'function' ||
+          typeof value?.cleanupPending !== 'function') {
+        fail('InstalledEffectCleanupOwnerAlreadySet');
+      }
+      physical = value;
+    },
     attach(value) {
       if (stage !== undefined) fail('InstalledEffectCleanupOwnerAlreadySet');
       stage = value;
@@ -176,6 +185,7 @@ export function createInstalledEffectSite({environmentWire,
       if (typeof facts.openComputation !== 'function') {
         fail('InvalidInstalledEffectComputationPort');
       }
+      facts.beginPhysicalWork?.();
       const opened = await facts.openComputation();
       const {execution, checkedHost} = opened ?? {};
       if (execution === undefined || checkedHost === undefined) {
@@ -252,7 +262,21 @@ export function createInstalledEffectSite({environmentWire,
       signal?.throwIfAborted();
       // The Host resolves this Ref through its original request and current
       // evidence-read authority. No new physical-start claim exists here.
+      // Retain custody before a fallible Store read. A failed read or busy
+      // claim has not begun a new physical continuation and may be retried.
+      const custody = cleanupCustody(undefined);
+      facts.retainExecution(custody);
       const recovered = await facts.recoverCapture({signal});
+      let releaseMode = 'retain';
+      custody.requireRelease(() => releaseMode === 'retire'
+        ? releaseCompletedRunPreparedPayloads(
+          recovered.computation.storedResults, facts.control)
+        : suspendCompletedEffectfulComputation({execution: null,
+          store: facts.store,
+          storedResults: recovered.computation.storedResults,
+          control: facts.control,
+          computation: recovered.computation.computation,
+          preview: recovered.computation.preview}));
       checkContinuationBinding(facts, recovered.computation);
       const claimed = checkpointJournal.claimResume(view.runId, {
         claimant, leaseMs, binding: checkpointBinding});
@@ -260,27 +284,20 @@ export function createInstalledEffectSite({environmentWire,
         // The journal has durably failed this Run before any Effect send.
         // Transfer the recovered capture's cleanup before reporting that
         // stopped outcome to the common dispatch owner.
-        let released = false;
-        facts.retainExecution(Object.freeze({
-          async close() {},
-          async cleanup() {
-            if (!released) {
-              await releaseCompletedRunPreparedPayloads(
-                recovered.computation.storedResults, facts.control);
-              released = true;
-            }
-            return true;
-          },
-          cleanupPending() { return !released; },
-        }));
+        releaseMode = 'retire';
         // The original Compute stop was already observed as nonterminal
         // while waiting. Its earlier observation must not be rewritten to
         // failed; the Checkpoint journal already owns the failed Run state.
         return Object.freeze({status: 'failed'});
       }
       if (claimed.action !== 'claimed') return claimed;
-      const stage = await prepareRecovered(Object.freeze({
-        ...facts, recovered}));
+      const stage = await prepareRecovered(Object.freeze({...facts,
+        recovered,
+        retainRecoveryOwner: owner => custody.attachPhysical(owner)}));
+      if (stage?.cleanupOwner !== undefined) {
+        custody.attachPhysical(stage.cleanupOwner);
+      }
+      custody.attach(stage);
       ownedStage(stage, 'InvalidInstalledEffectRecovery');
       if (stage.publication.execution !== null ||
           stage.publication.store !== facts.store ||
@@ -309,9 +326,7 @@ export function createInstalledEffectSite({environmentWire,
       }
       // The resumed operation has no Compute owner. Its provider must still
       // hand over physical stop and cleanup custody before any send.
-      const custody = cleanupCustody(cleanupOwner);
-      custody.attach(stage);
-      facts.retainExecution(custody);
+      custody.attachPhysical(cleanupOwner);
       let gate;
       try {
         gate = await authorization(facts, stage, () => {
@@ -319,6 +334,7 @@ export function createInstalledEffectSite({environmentWire,
         });
         const options = completionOptions(stage, gate, signal,
           Object.freeze({claim: claimed}));
+        facts.beginPhysicalWork?.();
         let result;
         try { result = await completeRecoveredEffectRun(options); }
         catch (error) {
@@ -329,9 +345,7 @@ export function createInstalledEffectSite({environmentWire,
                   error.authorization?.action === 'deny') {
                 checkpointJournal.completeResume(claimed.claim,
                   {status: 'failed'});
-                custody.requireRelease(() =>
-                  releaseCompletedRunPreparedPayloads(
-                    stage.storedResults, facts.control));
+                releaseMode = 'retire';
                 return Object.freeze({status: 'failed'});
               }
               throw error;
@@ -342,6 +356,11 @@ export function createInstalledEffectSite({environmentWire,
         if (result.status === 'waiting') {
           fail('InstalledEffectRepeatDeferralUnsupported');
         }
+        if (result.status === 'published') {
+          // Publication may already have released an idempotent result owner.
+          // Keep later cleanup on that same terminal release mode.
+          releaseMode = 'retire';
+        }
         if (result.status === 'needs_reconciliation') {
           await suspendCompletedEffectfulComputation({execution: null,
             store: facts.store, storedResults: stage.storedResults,
@@ -350,13 +369,15 @@ export function createInstalledEffectSite({environmentWire,
         }
         if (result.status === 'failed') {
           checkpointJournal.completeResume(claimed.claim, {status: 'failed'});
-          custody.requireRelease(() => releaseCompletedRunPreparedPayloads(
-            stage.storedResults, facts.control));
+          releaseMode = 'retire';
         } else {
           const state = await currentRunState(facts, result, stage);
           checkpointJournal.completeResume(claimed.claim, {
             runStateWire: JSON.stringify(state),
           });
+          if (result.status !== 'needs_reconciliation') {
+            releaseMode = 'retire';
+          }
         }
         return finishStatus(result);
       } finally {

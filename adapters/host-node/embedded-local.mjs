@@ -13,6 +13,8 @@ import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
+import {retireCompletedEffectfulCapture} from
+  '../host-common/completed-run-publication.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -485,8 +487,10 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
           compilation, allowed, definition, authorityScopeCid, tenantId,
           storeAuthorityCid, now}),
       execute: facts => dispatchOwner.track(facts.ref, {
-        run: ({signal, retainExecution}) => effectInstallation.execute(
-          Object.freeze({...facts, signal, retainExecution, moon, control,
+        run: ({signal, retainExecution, beginPhysicalWork}) =>
+          effectInstallation.execute(
+          Object.freeze({...facts, signal, retainExecution,
+            beginPhysicalWork, moon, control,
             publicationPlan: facts.preparedExecution,
             store, storeAuthorityCid, authorityScopeCid,
             observeRun: ({ref}) => observeRun({ref, principalId}),
@@ -506,6 +510,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
               effectRun.recordReconciliation(...args)})),
         observeStopped: terminalOutcome => journal.markPhysicalClose(
           facts.ref, terminalOutcome),
+        barrierFailureOutcome: 'failed',
       }),
     });
   const runIdOf = accepted => control.runDefinitionRunId(
@@ -902,6 +907,60 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     value.connection.owner === mode &&
     checkpoints.admitsCheckpointPrincipal(value.principalId);
   const effectResumeFlights = new Map();
+  const effectRetirementFlights = new Map();
+  const retiredEffectCaptures = new Set();
+  const retireEffectCapture = ref => {
+    const key = ref.runDefinitionCid;
+    if (retiredEffectCaptures.has(key)) return Promise.resolve(false);
+    const existing = effectRetirementFlights.get(key);
+    if (existing !== undefined) return existing;
+    const flight = (async () => {
+      if (dispatchOwner.operation(ref) !== undefined) {
+        throw new Error('EffectCaptureExecutionStillOwned');
+      }
+      if (await store.confirmCommittedIndex(ref) !== undefined) {
+        retiredEffectCaptures.add(key);
+        return false;
+      }
+      const retained = journal.lookupRunDefinition(ref, moon, control);
+      if (retained?.runDefinition?.identity !== key) {
+        throw new Error('EffectRetirementRunDefinitionMissing');
+      }
+      const result = await retireCompletedEffectfulCapture({store, control,
+        runDefinition: retained.runDefinition,
+        contractLimits: localContractLimits});
+      retiredEffectCaptures.add(key);
+      return result;
+    })().finally(() => {
+      if (effectRetirementFlights.get(key) === flight) {
+        effectRetirementFlights.delete(key);
+      }
+    });
+    effectRetirementFlights.set(key, flight);
+    return flight;
+  };
+  const retireTerminalEffects = async () => {
+    if (effectRun === undefined || checkpoints === undefined) return;
+    let after = '';
+    const failures = [];
+    for (;;) {
+      const page = checkpoints.journal.listRunCheckpoints({after, limit: 100});
+      for (const view of page) {
+        if (view.kind !== 'effect_set' || view.prepareAttemptId !== null ||
+            !['failed', 'cancelled'].includes(
+              checkpoints.journal.getRunState(view.runId)?.status)) continue;
+        const ref = Object.freeze({tenantId, authorityScopeCid,
+          runDefinitionCid: view.runDefinitionCid});
+        try { await retireEffectCapture(ref); }
+        catch (error) { failures.push(error); }
+      }
+      if (page.length < 100) break;
+      after = page.at(-1).checkpointCid;
+    }
+    if (failures.length > 0) {
+      throw new AggregateError(failures, 'EffectCaptureCleanupPending');
+    }
+  };
   const sweepEffectRuns = async () => {
     if (effectRun === undefined || checkpoints === undefined) return false;
     let busy = false;
@@ -917,10 +976,18 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
           runDefinitionCid: key});
         if (cancelEffectContinuation(ref)) {
           busy = true;
+        }
+        const runStatus = checkpoints.journal.getRunState(view.runId)?.status;
+        if (runStatus === 'failed' || runStatus === 'cancelled') {
+          try { await retireEffectCapture(ref); }
+          catch (error) {
+            busy = true;
+            diagnostic('effect_capture_retirement_failed', {ref,
+              code: error?.code ?? error?.message});
+          }
           continue;
         }
-        if (checkpoints.journal.getRunState(view.runId)?.status !==
-            'resuming') continue;
+        if (runStatus !== 'resuming') continue;
         if (effectResumeFlights.has(key) ||
             dispatchOwner.operation(ref) !== undefined) {
           busy = true;
@@ -934,11 +1001,11 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
           }
           const continuation = await checkpoints.effectContinuation(view);
           const flight = dispatchOwner.track(ref, {
-            run: ({signal, retainExecution}) =>
+            run: ({signal, retainExecution, beginPhysicalWork}) =>
               effectInstallation.resume(Object.freeze({ref, view,
                 continuation, retained, moon, control, store,
                 storeAuthorityCid, authorityScopeCid, signal,
-                retainExecution,
+                retainExecution, beginPhysicalWork,
                 observeRun: ({ref}) => observeRun({ref, principalId}),
                 recoverCapture: ({signal: recoverySignal} = {}) =>
                   recoverEffectCapture(ref, recoverySignal),
@@ -998,7 +1065,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
   return {port, store, journal, hostOperations, checkpoints, diagnostic,
-    dispatchOwner, inspectAcquisition, sourceProfile};
+    dispatchOwner, inspectAcquisition, sourceProfile,
+    retireTerminalEffects};
   } catch (cause) {
     diagnostic.close();
     sourceProfile?.close();
@@ -1068,6 +1136,7 @@ export async function openInstalledRemoteHttpHost({directory,
       }
       await host.checkpoints?.stop();
       await host.dispatchOwner.drain();
+      await host.retireTerminalEffects();
       const checkpoints = await host.checkpoints?.close();
       host.journal.close();
       host.sourceProfile?.close();

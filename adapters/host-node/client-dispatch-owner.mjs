@@ -290,7 +290,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   // The callback must transfer cleanup custody before any fallible operation
   // that can retain resources. Its common Run observer records the stop
   // independently from waiting, failed, unknown or published outcome.
-  const track = (ref, {run, observeStopped}) => {
+  const track = (ref, {run, observeStopped,
+    barrierFailureOutcome = null}) => {
     if (typeof ref?.runDefinitionCid !== 'string' ||
         typeof run !== 'function' || typeof observeStopped !== 'function') {
       throw new TypeError('InvalidClientOwnedDispatch');
@@ -299,16 +300,23 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     if (existing !== undefined) return existing.promise;
     const entry = {ref: Object.freeze({...ref}), settled: false,
       abort: new AbortController(), observeStopped,
-      // The Effect Run's durable physical-start claim precedes this call.
-      // A callback that fails before handing over its execution owner does
-      // not prove that physical work stopped.
-      physicalStarted: true, physicalWorkMayHaveStarted: true,
+      // The original Run-start claim does not prove that this continuation
+      // began physical work. The installed Site marks that boundary itself.
+      physicalStarted: false, physicalWorkMayHaveStarted: false,
       stopObserved: false, stopObservationPending: false,
       cleanupOwner: undefined, cleanupHandle: undefined,
-      unresolvedCleanup: false};
+      unresolvedCleanup: false, runInvoked: false};
     entries.set(keyOf(ref), entry);
-    entry.promise = Promise.resolve().then(() => run(Object.freeze({
+    entry.promise = Promise.resolve().then(async () => {
+      if (beforeDispatch !== undefined) await beforeDispatch(ref);
+      entry.abort.signal.throwIfAborted();
+      entry.runInvoked = true;
+      return run(Object.freeze({
       signal: entry.abort.signal,
+      beginPhysicalWork() {
+        entry.physicalStarted = true;
+        entry.physicalWorkMayHaveStarted = true;
+      },
       retainExecution(execution) {
         if (entry.cleanupOwner !== undefined &&
             entry.cleanupOwner !== execution) {
@@ -320,10 +328,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           throw new TypeError('ClientDispatchCleanupOwnerInvalid');
         }
         entry.cleanupOwner = execution;
-        entry.physicalStarted = true;
-        entry.physicalWorkMayHaveStarted = true;
       },
-    }))).then(async result => {
+      }));
+    }).then(async result => {
       // A trusted installed Site may confirm that a pre-Preview refusal
       // performed no external Effect dispatch. Record that observation only
       // after its physical owner has stopped and cleanup has completed.
@@ -335,6 +342,13 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       return result;
     }).catch(async cause => {
       entry.primaryFailure = cause;
+      if (!entry.runInvoked) {
+        // A refused execution barrier ran no Site callback. This is a
+        // positive no-start observation, not an inferred physical stop.
+        entry.terminalOutcome = entry.abort.signal.aborted
+          ? 'cancelled' : barrierFailureOutcome;
+        entry.stopObservationPending = true;
+      }
       if (cause?.cleanupPending === true) {
         if (typeof cause.cleanupHandle?.status === 'function' &&
             typeof cause.cleanupHandle?.retry === 'function') {

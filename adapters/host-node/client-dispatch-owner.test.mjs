@@ -174,8 +174,9 @@ test('Effect owner retains an unobserved start after callback failure',
     let calls = 0;
     let observed = 0;
     const owner = installNodeClientDispatchOwner({});
-    const run = () => {
+    const run = ({beginPhysicalWork}) => {
       calls++;
+      beginPhysicalWork();
       throw new Error('LostEffectOwner');
     };
     const first = owner.track(ref, {run,
@@ -226,8 +227,10 @@ test('Effect no-send report without a cleanup owner remains unresolved',
     const ref = {runDefinitionCid: 'effect-no-owner'};
     let observed = 0;
     const owner = installNodeClientDispatchOwner({});
-    const operation = owner.track(ref, {run: () =>
-      ({status: 'failed_without_effect_dispatch'}),
+    const operation = owner.track(ref, {run: ({beginPhysicalWork}) => {
+      beginPhysicalWork();
+      return {status: 'failed_without_effect_dispatch'};
+    },
     observeStopped: () => { observed++; }});
     await assert.rejects(operation, {message: 'ClientDispatchStopUnknown'});
     await assert.rejects(owner.drain(),
@@ -257,6 +260,65 @@ test('known failed Effect Set is terminal only after retained cleanup',
     assert.equal(runs, 1);
     assert.deepEqual(stopped, ['failed']);
   });
+
+test('Effect dispatch barrier gates both execution and refusal', async () => {
+  const ref = {runDefinitionCid: 'effect-barrier'};
+  let release;
+  const barrier = new Promise(resolve => { release = resolve; });
+  let started = 0;
+  const stopped = [];
+  const physical = {async close() {}, async cleanup() { return true; },
+    cleanupPending: () => false};
+  const owner = installNodeClientDispatchOwner({
+    beforeDispatch: () => barrier});
+  const flight = owner.track(ref, {
+    run({beginPhysicalWork, retainExecution}) {
+      started++;
+      beginPhysicalWork();
+      retainExecution(physical);
+      return {status: 'failed_without_effect_dispatch'};
+    }, observeStopped: value => stopped.push(value),
+    barrierFailureOutcome: 'failed'});
+  await Promise.resolve();
+  assert.equal(started, 0);
+  release();
+  await flight;
+  await owner.drain();
+  assert.equal(started, 1);
+  assert.deepEqual(stopped, ['failed']);
+
+  let refusedCalls = 0;
+  const denied = installNodeClientDispatchOwner({beforeDispatch() {
+    refusedCalls++;
+    throw new Error('ExecutionBarrierDenied');
+  }});
+  await assert.rejects(denied.track(ref, {
+    run() { assert.fail('No Site I/O after a barrier refusal'); },
+    observeStopped: value => stopped.push(value),
+    barrierFailureOutcome: 'failed',
+  }), {message: 'ExecutionBarrierDenied'});
+  await denied.drain();
+  assert.equal(refusedCalls, 1);
+  assert.deepEqual(stopped, ['failed', 'failed']);
+
+  let releaseCancelled;
+  const cancellationBarrier = new Promise(resolve => {
+    releaseCancelled = resolve;
+  });
+  const cancelled = installNodeClientDispatchOwner({
+    beforeDispatch: () => cancellationBarrier});
+  const cancelledFlight = cancelled.track(ref, {
+    run() { assert.fail('Cancellation before the barrier cannot dispatch'); },
+    observeStopped: value => stopped.push(value),
+    barrierFailureOutcome: 'failed',
+  });
+  cancelled.cancel(ref);
+  releaseCancelled();
+  await assert.rejects(cancelledFlight, {message:
+    'ClientRunCancellationRequested'});
+  await cancelled.drain();
+  assert.deepEqual(stopped, ['failed', 'failed', 'cancelled']);
+});
 
 // An acquiring dispatch whose source adapter returns no capture.
 function acquiringOwner(open) {

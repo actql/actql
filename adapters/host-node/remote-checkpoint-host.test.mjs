@@ -459,13 +459,16 @@ const tokens = new Map([['owner-token', owner],
   ['stranger-token', 'stranger-principal']]);
 
 async function remoteHost(t, authorization, {directory,
-  effectInstallation} = {}) {
+  effectInstallation, beforeDispatch} = {}) {
   const root = directory ?? await mkdtemp(join(scratch, 'host-'));
   let dispatches = 0;
   const host = await openInstalledRemoteHttpHost({
     directory: join(root, 'state'),
     authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
-    beforeDispatch: async () => { dispatches++; },
+    beforeDispatch: async ref => {
+      dispatches++;
+      await beforeDispatch?.(ref);
+    },
     authorization, effectInstallation,
   });
   const server = createServer({key: tlsKey, cert: tlsCertificate},
@@ -841,10 +844,20 @@ test('installed Effect factory resumes an approved captured Set',
       ['committed']);
     assert.deepEqual(sends, []);
     await awaitingAnswer.close();
-    const resumed = await remoteHost(t, protectedHost(undefined,
+    let releaseResume;
+    let barrierReached = false;
+    const resumeBarrier = new Promise(resolve => { releaseResume = resolve; });
+    const opening = remoteHost(t, protectedHost(undefined,
       {accountConfiguration: effectCommitConfiguration(),
         observe: (name, detail) => diagnostics.push({name, detail})}),
-    {directory, effectInstallation});
+    {directory, effectInstallation, async beforeDispatch() {
+      barrierReached = true;
+      await resumeBarrier;
+    }});
+    await waitFor(() => barrierReached);
+    assert.deepEqual(sends, []);
+    releaseResume();
+    const resumed = await opening;
     const resumedClient = await resumed.as('owner-token');
     const attached = await resumedClient.attach(execution.ref);
     await waitFor(async () => (await attached.status()).status ===
@@ -876,6 +889,86 @@ test('installed Effect factory resumes an approved captured Set',
       [{id: 1}, {id: 2}]);
     assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
     await finalHost.close();
+  });
+
+test('installed Effect retries a transient capture read without recompute',
+  async t => {
+    const fixture = await effectFixture();
+    const directory = await mkdtemp(join(scratch, 'effect-read-retry-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const sends = [];
+    let captures = 0;
+    let recoveryReads = 0;
+    let busyClaims = 0;
+    let preparationFailures = 0;
+    let preparationCleanups = 0;
+    const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const installed = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 13), leaseMs: 1000,
+      prepareCaptured(facts) {
+        captures++;
+        return prepareReferenceCapture(facts, hooks);
+      },
+      prepareRecovered(facts) {
+        if (preparationFailures === 0) {
+          preparationFailures++;
+          facts.retainRecoveryOwner({async close() {},
+            async cleanup() { preparationCleanups++; return true; },
+            cleanupPending: () => false});
+          throw new Error('TemporaryProviderPreparationFailure');
+        }
+        return prepareReferenceRecovery(facts, hooks);
+      },
+    });
+    const effectInstallation = {...installed, resume(facts) {
+      return installed.resume({...facts,
+        checkpointJournal: busyClaims === 0 && recoveryReads >= 1
+          ? {claimResume() {
+            busyClaims++;
+            return {action: 'busy'};
+          }} : facts.checkpointJournal,
+        recoverCapture: async options => {
+          recoveryReads++;
+          if (recoveryReads === 1) {
+            throw new Error('TemporaryCaptureStoreFailure');
+          }
+          return facts.recoverCapture(options);
+        }});
+    }};
+    const account = (extra = {}) => protectedHost(undefined, {
+      accountConfiguration: effectCommitConfiguration(), leaseMs: 1000,
+      ...extra,
+    });
+    const first = await remoteHost(t, account(), {directory,
+      effectInstallation});
+    const submitted = await (await first.as('owner-token'))
+      .aql(fixture.document, {format: 'json',
+        requestId: 'effect-read-retry'});
+    await waitFor(async () => (await submitted.status()).status ===
+      'waiting_checkpoint');
+    await first.close();
+    const answering = await remoteHost(t,
+      account({resumeAfterAnswer: false}), {directory, effectInstallation});
+    const reviewer = await answering.as('reviewer-token');
+    const [checkpoint] = (await reviewer.checkpoints()).items;
+    const answer = await reviewer.resolveCheckpoints([
+      {checkpoint, decision: 'approved'}], {signer: {...signer,
+        authorityScopeCid: submitted.ref.authorityScopeCid}});
+    assert.deepEqual(answer.results.map(item => item.status), ['committed']);
+    await answering.close();
+    const resumed = await remoteHost(t, account(), {directory,
+      effectInstallation});
+    const same = await (await resumed.as('owner-token'))
+      .attach(submitted.ref);
+    await waitFor(async () => (await same.status()).status === 'succeeded');
+    assert.equal(captures, 1);
+    assert.ok(recoveryReads >= 4);
+    assert.equal(busyClaims, 1);
+    assert.equal(preparationFailures, 1);
+    assert.equal(preparationCleanups, 1);
+    assert.deepEqual(sends, [[0, 0], [0, 1]]);
+    await resumed.close();
   });
 
 test('installed Effect allow publishes without a commit Checkpoint',
@@ -917,6 +1010,64 @@ test('installed Effect allow publishes without a commit Checkpoint',
     await restarted.close();
   });
 
+test('public Effect dispatch waits for and obeys the Host barrier',
+  async t => {
+    const fixture = await effectFixture();
+    const directory = await mkdtemp(join(scratch, 'effect-barrier-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const sends = [];
+    let captures = 0;
+    let release;
+    const barrier = new Promise(resolve => { release = resolve; });
+    const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const installed = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 10),
+      prepareCaptured(facts) {
+        captures++;
+        return prepareReferenceCapture(facts, hooks);
+      },
+      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+    });
+    const account = protectedHost(undefined,
+      {accountConfiguration: effectCommitConfiguration('allow', 'allow')});
+    const first = await remoteHost(t, account, {directory,
+      effectInstallation: installed, beforeDispatch: () => barrier});
+    const run = await (await first.as('owner-token')).aql(fixture.document,
+      {format: 'json', requestId: 'effect-barrier-wait'});
+    assert.equal(captures, 0);
+    assert.deepEqual(sends, []);
+    release();
+    await waitFor(async () => (await run.status()).status === 'succeeded');
+    assert.equal(captures, 1);
+    assert.deepEqual(sends, [[0, 0], [0, 1]]);
+    await first.close();
+
+    let refusedCaptures = 0;
+    const refused = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 10),
+      prepareCaptured() {
+        refusedCaptures++;
+        assert.fail('A rejected barrier cannot start Compute');
+      },
+      prepareRecovered() {
+        assert.fail('A rejected barrier cannot resume Effects');
+      },
+    });
+    const denied = await remoteHost(t, account, {directory,
+      effectInstallation: refused, beforeDispatch() {
+        throw new Error('ExecutionBarrierDenied');
+      }});
+    const rejected = await (await denied.as('owner-token'))
+      .aql(fixture.document, {format: 'json',
+        requestId: 'effect-barrier-refused'});
+    await waitFor(async () => (await rejected.status()).status === 'failed');
+    assert.equal(refusedCaptures, 0);
+    assert.deepEqual(sends, [[0, 0], [0, 1]]);
+    await denied.close();
+  });
+
 test('installed Effect deny sends nothing and reclaims captured inputs',
   async t => {
     const fixture = await effectFixture({twoMembers: true});
@@ -951,6 +1102,116 @@ test('installed Effect deny sends nothing and reclaims captured inputs',
     assert.equal((await sameRun.status()).status, 'failed');
     assert.deepEqual(sends, []);
     await restarted.close();
+  });
+
+test('terminal Checkpoints retire captured Effect payloads after restart',
+  async t => {
+    for (const outcome of ['cancel', 'reject', 'approved-cancel']) {
+      await t.test(outcome, async child => {
+        const fixture = await effectFixture({twoMembers: true});
+        const directory = await mkdtemp(join(scratch,
+          `effect-retirement-${outcome}-`));
+        child.after(() => rm(directory, {recursive: true, force: true}));
+        const sends = [];
+        const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+        const effectInstallation = createInstalledEffectSite({
+          environmentWire: fixture.environmentWire,
+          privateEvidenceKey: Buffer.alloc(32, 11),
+          prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
+          prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+        });
+        const account = () => protectedHost(undefined, {
+          accountConfiguration: effectCommitConfiguration(),
+          resumeAfterAnswer: false,
+        });
+        const first = await remoteHost(child, account(), {directory,
+          effectInstallation});
+        const run = await (await first.as('owner-token'))
+          .aql(fixture.document, {format: 'json',
+            requestId: `effect-retire-${outcome}`});
+        await waitFor(async () => (await run.status()).status ===
+          'waiting_checkpoint');
+        const publication = join(directory, 'state', 'publication');
+        const holdings = join(publication, 'physical-holdings');
+        assert.ok((await readdir(holdings)).length > 0);
+        assert.ok((await readdir(join(publication, 'objects'))).length > 0);
+        const reviewer = await first.as('reviewer-token');
+        const [checkpoint] = (await reviewer.checkpoints()).items;
+        if (outcome !== 'cancel') {
+          const answered = await reviewer.resolveCheckpoints([
+            {checkpoint, decision: outcome === 'reject'
+              ? 'rejected' : 'approved'}], {signer: {...signer,
+                authorityScopeCid: run.ref.authorityScopeCid}});
+          assert.deepEqual(answered.results.map(item => item.status),
+            ['committed']);
+        }
+        if (outcome !== 'reject') await run.cancel();
+        await waitFor(async () => ['failed', 'cancelled'].includes(
+          (await run.status()).status));
+        await first.close();
+        const restarted = await remoteHost(child, account(), {directory,
+          effectInstallation});
+        const same = await (await restarted.as('owner-token'))
+          .attach(run.ref);
+        assert.ok(['failed', 'cancelled'].includes(
+          (await same.status()).status));
+        assert.deepEqual(await readdir(holdings), []);
+        assert.deepEqual(await readdir(join(publication, 'objects')), []);
+        assert.deepEqual(sends, []);
+        await restarted.close();
+      });
+    }
+  });
+
+test('an expired Effect Checkpoint retires the captured payload',
+  async t => {
+    const fixture = await effectFixture();
+    const directory = await mkdtemp(join(scratch, 'effect-expiry-retire-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const sends = [];
+    const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const effectInstallation = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 12),
+      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
+      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+    });
+    const account = () => protectedHost(undefined, {
+      accountConfiguration: effectCommitConfiguration(),
+      checkpointTtlMs: 1000, leaseMs: 1000,
+    });
+    const first = await remoteHost(t, account(), {directory,
+      effectInstallation});
+    const run = await (await first.as('owner-token'))
+      .aql(fixture.document, {format: 'json',
+        requestId: 'effect-expiry-retirement'});
+    await waitFor(async () => (await run.status()).status ===
+      'waiting_checkpoint');
+    const publication = join(directory, 'state', 'publication');
+    assert.ok((await readdir(join(publication,
+      'physical-holdings'))).length > 0);
+    const [checkpoint] = (await (await first.as('reviewer-token'))
+      .checkpoints()).items;
+    await first.close();
+    await new Promise(resolve => setTimeout(resolve,
+      Math.max(0, Date.parse(checkpoint.expiresAt) - Date.now() + 100)));
+    const restarted = await remoteHost(t, account(), {directory,
+      effectInstallation});
+    const same = await (await restarted.as('owner-token'))
+      .attach(run.ref);
+    await waitFor(async () => {
+      const state = await same.status();
+      return ['failed', 'cancelled'].includes(state.status) ? state : undefined;
+    }).catch(async error => {
+      error.message = JSON.stringify({state: await same.status(),
+        checkpoint, sends});
+      throw error;
+    });
+    await restarted.close();
+    assert.deepEqual(await readdir(join(publication,
+      'physical-holdings')), []);
+    assert.deepEqual(await readdir(join(publication, 'objects')), []);
+    assert.deepEqual(sends, []);
   });
 
 test('installed Effect rechecks account denial after an approved answer',

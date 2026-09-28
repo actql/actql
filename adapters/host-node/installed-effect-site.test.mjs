@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
+import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
@@ -80,6 +81,7 @@ test('installed Effect continuation rejects a foreign Preview before claim',
         declaredResults: ['answer']};
       }});
     await assert.rejects(site.resume({moon, store, control,
+      retainExecution() {},
       ref: {runDefinitionCid: cid('b')},
       view: {runId: 'run-a'},
       continuation: {version: 'actql-installed-effect-continuation/0.1',
@@ -102,10 +104,35 @@ test('missing durable Effect capture never claims an approved resume',
         assert.fail('No recovered capture can be prepared');
       }});
     await assert.rejects(site.resume({signal: undefined,
+      retainExecution() {},
       recoverCapture: async () => {
         throw Object.assign(new Error('CompletedEffectfulCaptureUnavailable'),
           {code: 'CompletedEffectfulCaptureUnavailable'});
       }, checkpointJournal: {claimResume() { claims++; }}}),
     {code: 'CompletedEffectfulCaptureUnavailable'});
     assert.equal(claims, 0);
+  });
+
+test('a failed capture read leaves no unobserved physical continuation',
+  async () => {
+    const ref = {runDefinitionCid: cid('b')};
+    let reads = 0;
+    let stopped = 0;
+    const site = createInstalledEffectSite({environmentWire: '{}',
+      prepareCaptured() { assert.fail('Compute must not restart'); },
+      prepareRecovered() { assert.fail('A busy claim cannot prepare'); }});
+    const owner = installNodeClientDispatchOwner({});
+    const run = ({signal, retainExecution, beginPhysicalWork}) =>
+      site.resume({signal, retainExecution, beginPhysicalWork, ref,
+        recoverCapture: async () => {
+          reads++;
+          throw new Error('TemporaryStoreFailure');
+        }});
+    const first = owner.track(ref, {run,
+      observeStopped: () => { stopped++; }});
+    await assert.rejects(first, {message: 'TemporaryStoreFailure'});
+    await owner.drain();
+    assert.equal(owner.operation(ref), undefined);
+    assert.equal(reads, 1);
+    assert.equal(stopped, 1);
   });
