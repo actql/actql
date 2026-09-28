@@ -3,6 +3,8 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {generateKeyPairSync} from 'node:crypto';
+import fs from 'node:fs';
+import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -181,4 +183,83 @@ test('credential journal rejects an untrusted or altered issuer envelope',
       {code: 'RemoteCredentialSignatureRejected'},
     );
     assert.equal(journal.recover().length, 0);
+  });
+
+test('close retries only directory sync after database release', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-credential-sync-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const credentialAuthorities = new Map([['authority', new Map()]]);
+  const journal = openSqliteCredentialJournal(root, {credentialAuthorities});
+  const originalSync = fs.fsyncSync;
+  let syncs = 0;
+  fs.fsyncSync = function(descriptor) {
+    if (++syncs === 1) throw new Error('DirectorySyncFailure');
+    return originalSync.call(this, descriptor);
+  };
+  const originalClose = DatabaseSync.prototype.close;
+  let databaseCloses = 0;
+  DatabaseSync.prototype.close = function() {
+    databaseCloses++;
+    return originalClose.call(this);
+  };
+  try {
+    assert.throws(() => journal.close(), {message: 'DirectorySyncFailure'});
+    assert.equal(databaseCloses, 1);
+    assert.throws(() => journal.recover(),
+      {code: 'RemoteCredentialJournalClosed'});
+    journal.close();
+    assert.equal(databaseCloses, 1);
+    assert.equal(syncs, 2);
+    journal.close();
+    assert.equal(syncs, 2);
+    const reopened = openSqliteCredentialJournal(root, {credentialAuthorities});
+    reopened.close();
+  } finally {
+    fs.fsyncSync = originalSync;
+    DatabaseSync.prototype.close = originalClose;
+  }
+});
+
+test('initial directory sync failure retains retryable cleanup ownership',
+  async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-credential-init-sync-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const originalSync = fs.fsyncSync;
+    const originalClose = DatabaseSync.prototype.close;
+    const primary = new Error('InitialDirectorySyncFailure');
+    const cleanup = new Error('CleanupDirectorySyncFailure');
+    let syncs = 0;
+    let closes = 0;
+    fs.fsyncSync = function(descriptor) {
+      if (++syncs === 1) throw primary;
+      if (syncs === 2) throw cleanup;
+      return originalSync.call(this, descriptor);
+    };
+    DatabaseSync.prototype.close = function() {
+      closes++;
+      return originalClose.call(this);
+    };
+    try {
+      let failure;
+      assert.throws(() => openSqliteCredentialJournal(root, {
+        credentialAuthorities: new Map([['authority', new Map()]]),
+      }), error => {
+        failure = error;
+        assert.equal(error.primaryFailure, primary);
+        assert.equal(error.cleanupErrors[0].error, cleanup);
+        assert.equal(error.cleanupPending, true);
+        return true;
+      });
+      assert.equal(closes, 1);
+      assert.equal(failure.cleanupHandle.retry().pending, false);
+      assert.equal(closes, 1);
+      assert.equal(syncs, 3);
+    } finally {
+      fs.fsyncSync = originalSync;
+      DatabaseSync.prototype.close = originalClose;
+    }
+    const reopened = openSqliteCredentialJournal(root, {
+      credentialAuthorities: new Map([['authority', new Map()]]),
+    });
+    reopened.close();
   });

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash, generateKeyPairSync} from 'node:crypto';
 import {mkdtemp, rm, writeFile} from 'node:fs/promises';
+import fs from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -172,6 +173,41 @@ test('Host retries a real Site journal close without restarting its owners',
     assert.equal(physicalCloses, 2);
     await setup.load();
     assert.equal(setup.org.seen.length, providerRequests);
+  });
+
+test('real Site retries directory sync without closing its database twice',
+  async t => {
+    const setup = await installed(t);
+    const syncFailure = new Error('InjectedSiteDirectorySyncFailure');
+    const site = await setup.load();
+    const providerRequests = setup.org.seen.length;
+    const originalClose = DatabaseSync.prototype.close;
+    const originalSync = fs.fsyncSync;
+    let physicalCloses = 0;
+    let syncs = 0;
+    DatabaseSync.prototype.close = function () {
+      physicalCloses++;
+      return originalClose.call(this);
+    };
+    fs.fsyncSync = function(descriptor) {
+      if (++syncs === 1) throw syncFailure;
+      return originalSync.call(this, descriptor);
+    };
+    t.after(() => {
+      DatabaseSync.prototype.close = originalClose;
+      fs.fsyncSync = originalSync;
+    });
+    assert.throws(() => site.close(), error => error === syncFailure);
+    assert.equal(site.cleanupPending(), true);
+    assert.equal(physicalCloses, 1);
+    await assert.rejects(site.refreshCatalog({occurrence: 'closed'}),
+      {code: 'SalesforceSiteClosed'});
+    site.close();
+    assert.equal(site.cleanupPending(), false);
+    assert.equal(physicalCloses, 1);
+    assert.equal(syncs, 2);
+    assert.equal(setup.org.seen.length, providerRequests);
+    await setup.load();
   });
 
 test('installed Salesforce grants follow only this Site\'s own dispatch',

@@ -65,36 +65,49 @@ export function createSqliteTransaction(database, prefix) {
 // A constructor cannot return its database owner after a failed close.
 // Keep the transaction failure and expose a retryable cleanup owner instead.
 export function throwSqliteInitializationFailure(database, primaryFailure,
-  owner) {
-  try { database.close(); }
-  catch (closeFailure) {
-    const errors = [Object.freeze({owner, error: closeFailure})];
-    let pending = true;
-    const failure = Object.assign(new Error(
-      'SqliteJournalInitializationCleanupPending',
-      {cause: primaryFailure}), {
-      code: 'SqliteJournalInitializationCleanupPending',
-      primaryFailure, cleanupPending: true,
-    });
-    const status = () => Object.freeze({pending,
-      owners: Object.freeze(pending ? [owner] : []),
-      errors: Object.freeze([...errors])});
-    const retry = () => {
-      if (pending) {
-        try {
-          database.close();
-          pending = false;
-        } catch (error) {
-          errors.push(Object.freeze({owner, error}));
-        }
+  owner, afterClose) {
+  const errors = [];
+  let databaseClosed = false;
+  let afterCloseComplete = afterClose === undefined;
+  const settle = () => {
+    if (!databaseClosed) {
+      try {
+        database.close();
+        databaseClosed = true;
+      } catch (error) {
+        errors.push(Object.freeze({owner, error}));
       }
-      failure.cleanupPending = pending;
-      failure.cleanupErrors = status().errors;
-      return status();
-    };
+    }
+    if (databaseClosed && !afterCloseComplete) {
+      try {
+        afterClose();
+        afterCloseComplete = true;
+      } catch (error) {
+        errors.push(Object.freeze({owner, error}));
+      }
+    }
+  };
+  settle();
+  if (databaseClosed && afterCloseComplete) throw primaryFailure;
+  const failure = Object.assign(new Error(
+    'SqliteJournalInitializationCleanupPending',
+    {cause: primaryFailure}), {
+    code: 'SqliteJournalInitializationCleanupPending',
+    primaryFailure, cleanupPending: true,
+  });
+  const status = () => Object.freeze({
+    pending: !databaseClosed || !afterCloseComplete,
+    owners: Object.freeze(!databaseClosed || !afterCloseComplete ?
+      [owner] : []),
+    errors: Object.freeze([...errors]),
+  });
+  const retry = () => {
+    settle();
+    failure.cleanupPending = status().pending;
     failure.cleanupErrors = status().errors;
-    failure.cleanupHandle = Object.freeze({status, retry});
-    throw failure;
-  }
-  throw primaryFailure;
+    return status();
+  };
+  failure.cleanupErrors = status().errors;
+  failure.cleanupHandle = Object.freeze({status, retry});
+  throw failure;
 }

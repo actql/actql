@@ -1,13 +1,13 @@
 import {DatabaseSync} from 'node:sqlite';
+import fs from 'node:fs';
 import {
-  closeSync,
   existsSync,
-  fsyncSync,
   mkdirSync,
-  openSync,
   realpathSync,
 } from 'node:fs';
 import {join} from 'node:path';
+import {createSqliteTransaction, throwSqliteInitializationFailure} from
+  '../host-common/sqlite-transaction.mjs';
 import {admitSignedRemoteCredentialGrant} from
   './remote-credential-signature.mjs';
 
@@ -24,24 +24,9 @@ const outcomes = Object.freeze(new Map([
 ]));
 
 function syncDirectory(path) {
-  const descriptor = openSync(path, 'r');
-  try { fsyncSync(descriptor); }
-  finally { closeSync(descriptor); }
-}
-
-function transaction(database, body) {
-  database.exec('BEGIN IMMEDIATE');
-  try {
-    const value = body();
-    database.exec('COMMIT');
-    return value;
-  } catch (error) {
-    try { database.exec('ROLLBACK'); }
-    catch (rollback) {
-      fail('RemoteCredentialJournalRollbackFailed', rollback);
-    }
-    throw error;
-  }
+  const descriptor = fs.openSync(path, 'r');
+  try { fs.fsyncSync(descriptor); }
+  finally { fs.closeSync(descriptor); }
 }
 
 export function openSqliteCredentialJournal(root, {
@@ -68,7 +53,12 @@ export function openSqliteCredentialJournal(root, {
     readOnly: false,
     enableForeignKeyConstraints: true,
   });
+  const transaction = createSqliteTransaction(database,
+    'RemoteCredentialJournal');
   let closed = false;
+  let databaseClosed = false;
+  let directorySynced = false;
+  let creationSynced = existed;
   try {
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
@@ -98,7 +88,7 @@ export function openSqliteCredentialJournal(root, {
         UNIQUE (grant_cid, use_ordinal)
       ) STRICT;
     `);
-    transaction(database, () => {
+    transaction.run(() => {
       const row = database.prepare(
         'SELECT value FROM journal_metadata WHERE key = ?',
       ).get('schema_version');
@@ -110,11 +100,10 @@ export function openSqliteCredentialJournal(root, {
         fail('UnsupportedRemoteCredentialJournalVersion');
       }
     });
-    if (!existed) syncDirectory(directory);
-  } catch (error) {
-    database.close();
-    throw error;
-  }
+    if (!creationSynced) {
+      syncDirectory(directory);
+      creationSynced = true;
+    }
 
   const selectGrant = database.prepare(
     'SELECT * FROM credential_grants WHERE grant_cid = ?',
@@ -161,6 +150,7 @@ export function openSqliteCredentialJournal(root, {
 
   const active = () => {
     if (closed) fail('RemoteCredentialJournalClosed');
+    transaction.assertUsable();
   };
   const requireControl = control => {
     if (typeof control?.identity !== 'function' ||
@@ -209,7 +199,7 @@ export function openSqliteCredentialJournal(root, {
           Buffer.byteLength(grantJson, 'utf8') > maxGrantBytes) {
         fail('InvalidRemoteCredentialGrant');
       }
-      return transaction(database, () => {
+      return transaction.run(() => {
         const existing = selectGrant.get(grantCid);
         if (existing !== undefined) {
           if (existing.grant_json !== grantJson ||
@@ -239,7 +229,7 @@ export function openSqliteCredentialJournal(root, {
       if (!text(grantCid) || typeof trustedNowMilliseconds !== 'bigint' ||
           trustedNowMilliseconds < 0n || scope === null ||
           typeof scope !== 'object') fail('InvalidRemoteCredentialUse');
-      return transaction(database, () => {
+      return transaction.run(() => {
         const row = selectGrant.get(grantCid);
         if (row === undefined) fail('RemoteCredentialGrantMissing');
         const grant = admitGrant(row, control);
@@ -262,7 +252,7 @@ export function openSqliteCredentialJournal(root, {
           typeof scope !== 'object') {
         fail('InvalidRemoteCredentialUse');
       }
-      return transaction(database, () => {
+      return transaction.run(() => {
         const grantRow = selectGrant.get(grantCid);
         if (grantRow === undefined) fail('RemoteCredentialGrantMissing');
         const grant = admitGrant(grantRow, control);
@@ -316,7 +306,7 @@ export function openSqliteCredentialJournal(root, {
           typeof scope !== 'object') {
         fail('InvalidRemoteCredentialUse');
       }
-      return transaction(database, () => {
+      return transaction.run(() => {
         const useCid = control.useIdentity(use);
         const useRow = selectUse.get(useCid);
         if (useRow === undefined) fail('RemoteCredentialUseMissing');
@@ -335,7 +325,7 @@ export function openSqliteCredentialJournal(root, {
       if (!text(useCid) || !outcomes.has(outcome) || outcome === 'claimed') {
         fail('InvalidRemoteCredentialOutcome');
       }
-      return transaction(database, () => {
+      return transaction.run(() => {
         const current = selectUse.get(useCid);
         if (current === undefined) fail('RemoteCredentialUseMissing');
         if (current.outcome === outcomes.get(outcome)) return record(current);
@@ -349,7 +339,7 @@ export function openSqliteCredentialJournal(root, {
     revoke(grantCid) {
       active();
       if (!text(grantCid)) fail('InvalidRemoteCredentialGrant');
-      return transaction(database, () => {
+      return transaction.run(() => {
         if (selectGrant.get(grantCid) === undefined) {
           fail('RemoteCredentialGrantMissing');
         }
@@ -367,11 +357,20 @@ export function openSqliteCredentialJournal(root, {
       return Object.freeze(selectAllUses.all().map(record));
     },
     close() {
-      if (closed) return;
-      database.exec('PRAGMA wal_checkpoint(TRUNCATE)');
-      database.close();
-      syncDirectory(directory);
       closed = true;
+      if (!databaseClosed) {
+        database.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+        database.close();
+        databaseClosed = true;
+      }
+      if (!directorySynced) {
+        syncDirectory(directory);
+        directorySynced = true;
+      }
     },
   });
+  } catch (error) {
+    throwSqliteInitializationFailure(database, error, 'credential-journal',
+      !creationSynced ? () => syncDirectory(directory) : undefined);
+  }
 }

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
-import {createSqliteTransaction} from './sqlite-transaction.mjs';
+import {createSqliteTransaction, throwSqliteInitializationFailure} from
+  './sqlite-transaction.mjs';
 
 test('SQLite automatic rollback is a known body failure', () => {
   const database = new DatabaseSync(':memory:');
@@ -130,4 +131,27 @@ test('primary, rollback, and state-inspection failures remain separate',
       assert.throws(() => transaction.run(() => {}),
         {code: 'TestJournalConnectionUnusable'});
     } finally { database.close(); }
+  });
+
+test('initialization retries post-close durability without closing twice',
+  () => {
+    const primary = new Error('prepare failed');
+    const syncFailure = new Error('directory sync failed');
+    let closes = 0;
+    let syncs = 0;
+    let failure;
+    assert.throws(() => throwSqliteInitializationFailure({
+      close() { closes++; },
+    }, primary, 'test-journal', () => {
+      if (++syncs === 1) throw syncFailure;
+    }), error => {
+      failure = error;
+      assert.equal(error.primaryFailure, primary);
+      assert.equal(error.cleanupErrors[0].error, syncFailure);
+      assert.equal(error.cleanupPending, true);
+      return true;
+    });
+    assert.equal(failure.cleanupHandle.retry().pending, false);
+    assert.equal(closes, 1);
+    assert.equal(syncs, 2);
   });
