@@ -829,6 +829,11 @@ fn graph_bounded_pattern(
   )
   let bindings : Array[GraphBinding] = []
   let mut fields = path_fields.map(field => path_prefix + field)
+  let same_endpoint_variable = match
+    (pattern.nodes[0].variable, pattern.nodes[1].variable) {
+    (Some(start_name), Some(end_name)) => same_name(start_name, end_name)
+    _ => false
+  }
   for index in 0..<2 {
     let prefix = "aql_n" + index.to_string() + "_"
     seed.push(
@@ -842,19 +847,21 @@ fn graph_bounded_pattern(
       ]),
     )
     match pattern.nodes[index].variable {
-      Some(variable) => {
+      Some(variable) =>
         if bindings.any(binding => same_name(binding.variable, variable)) {
-          raise Abort(AmbiguousColumn)
+          if !same_endpoint_variable {
+            raise Abort(AmbiguousColumn)
+          }
+        } else {
+          bindings.push({
+            variable,
+            prefix,
+            fields: input.node_fields,
+            kind: Node,
+            hops: 0,
+            label_field: None,
+          })
         }
-        bindings.push({
-          variable,
-          prefix,
-          fields: input.node_fields,
-          kind: Node,
-          hops: 0,
-          label_field: None,
-        })
-      }
       None => ()
     }
   }
@@ -891,6 +898,22 @@ fn graph_bounded_pattern(
   )
   fields = fields + end_fields
   let mut current = second
+  if same_endpoint_variable {
+    current = "aql_graph_same_endpoint"
+    seed.push(
+      graph_filter_step(
+        construction,
+        second,
+        construction.object([
+          (
+            "not",
+            graph_distinct(construction, "aql_path_start_id", "aql_path_end_id"),
+          ),
+        ]),
+        current,
+      ),
+    )
+  }
   match
     graph_node_predicate(
       construction,
@@ -901,8 +924,9 @@ fn graph_bounded_pattern(
       limits.max_expression_work,
     ) {
     Some(predicate) => {
+      let source = current
       current = "aql_graph_selected_end"
-      seed.push(graph_filter_step(construction, second, predicate, current))
+      seed.push(graph_filter_step(construction, source, predicate, current))
     }
     None => ()
   }

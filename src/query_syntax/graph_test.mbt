@@ -36,6 +36,36 @@ test "Graph MATCH retains bounded path and local property expressions" {
 }
 
 ///|
+test "Graph WHERE starts anonymous constraints but quoted WHERE remains a name" {
+  for
+    (text, edge) in [
+      ("FROM GRAPH g |> MATCH WALK (WHERE id = 1) |> SELECT id", false),
+      (
+        "FROM GRAPH g |> MATCH WALK (a)-[WHERE src = 1]->(b) |> SELECT b.id", true,
+      ),
+    ] {
+    let pattern = graph_query(parse_query(text, query_limits()).unwrap()).unwrap().pattern.unwrap()
+    if edge {
+      assert_true(pattern.edges[0].variable is None)
+      assert_true(pattern.edges[0].constraint is Some(Predicate(_)))
+    } else {
+      assert_true(pattern.nodes[0].variable is None)
+      assert_true(pattern.nodes[0].constraint is Some(Predicate(_)))
+    }
+  }
+  let named = graph_query(
+    parse_query(
+      "FROM GRAPH g |> MATCH WALK (`WHERE` WHERE id = 1)-[`WHERE` WHERE src = 1]->(b) |> SELECT `WHERE`.id",
+      query_limits(),
+    ).unwrap(),
+  ).unwrap().pattern.unwrap()
+  assert_true(named.nodes[0].variable.unwrap().quoted)
+  assert_eq(named.nodes[0].variable.unwrap().value, "WHERE")
+  assert_true(named.edges[0].variable.unwrap().quoted)
+  assert_eq(named.edges[0].variable.unwrap().value, "WHERE")
+}
+
+///|
 test "Graph MATCH rejects open, repeated and unowned patterns" {
   for
     text in [

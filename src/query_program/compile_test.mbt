@@ -297,6 +297,43 @@ test "bounded ACYCLIC Graph path retains dynamic length and endpoints" {
 }
 
 ///|
+test "bounded ACYCLIC shares a repeated node binding and checks both ends" {
+  for bounds in ["{0,2}", "{1,2}"] {
+    let query = @query.parse_query(
+      "FROM GRAPH g |> MATCH p = ACYCLIC (a WHERE id <= 2)-[:R]->" +
+      bounds +
+      "(a WHERE id >= 2) |> SELECT a.id AS id, PATH_LENGTH(p) AS depth",
+      syntax_limits(),
+    ).unwrap()
+    let program = compile(query, diamond_graph_context(), construction_limits()).unwrap()
+    let wire = semantic(program)
+    assert_true(wire.contains("\"aql_graph_same_endpoint\""))
+    assert_true(wire.contains("\"aql_path_start_id\""))
+    assert_true(wire.contains("\"aql_path_end_id\""))
+    assert_true(wire.contains("\"is_distinct_from\""))
+    match
+      @check.check_parsed(
+        program,
+        graph_check_environment(),
+        None,
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      NeedsInputs(_) => fail("repeated Graph node should be closed")
+      Rejected(_) => fail("repeated Graph node Program was rejected")
+    }
+  }
+  let collision = @query.parse_query(
+    "FROM GRAPH g |> MATCH a = ACYCLIC (a)-[:R]->{0,2}(b) |> SELECT a.id",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(collision, diamond_graph_context(), construction_limits())
+    is Err(AmbiguousColumn),
+  )
+}
+
+///|
 test "Graph edge type requires the source's declared label role" {
   let base = diamond_graph_context()
   let input = base.graph_inputs[0]

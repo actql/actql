@@ -131,9 +131,13 @@ fn QueryParser::graph_node(
   self.node()
   let start = self.peek().start
   self.graph_symbol(40)
-  let variable = match self.peek().value {
-    Word(_) | QuotedName(_) => Some(self.name())
-    _ => None
+  let variable = if self.has("WHERE") {
+    None
+  } else {
+    match self.peek().value {
+      Word(_) | QuotedName(_) => Some(self.name())
+      _ => None
+    }
   }
   let label = if self.peek().value == Symbol(58) {
     self.graph_symbol(58)
@@ -160,9 +164,13 @@ fn QueryParser::graph_edge(
   }
   self.graph_symbol(45)
   self.graph_symbol(91)
-  let variable = match self.peek().value {
-    Word(_) | QuotedName(_) => Some(self.name())
-    _ => None
+  let variable = if self.has("WHERE") {
+    None
+  } else {
+    match self.peek().value {
+      Word(_) | QuotedName(_) => Some(self.name())
+      _ => None
+    }
   }
   let label = if self.peek().value == Symbol(58) {
     self.graph_symbol(58)

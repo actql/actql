@@ -161,6 +161,38 @@ const boundedGraphQuery = queryFrontend.compileGeneratedGraphQueryJson(
   JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_bounded');
 assert.notEqual(boundedGraphQuery, '');
 await writeFile(join(root, 'graph-bounded-query.json'), boundedGraphQuery);
+for (const [name, pattern, projection] of [
+  ['named-node-where', 'WALK (a WHERE id = 1)', 'a.id AS id'],
+  ['anonymous-node-where', 'WALK (WHERE id = 1)', 'id AS id'],
+  ['quoted-node-where', 'WALK (`WHERE` WHERE id = 1)',
+    '`WHERE`.id AS id'],
+  ['named-edge-where', 'WALK (a)-[e WHERE src = 1]->(b)', 'b.id AS id'],
+  ['anonymous-edge-where', 'WALK (a)-[WHERE src = 1]->(b)',
+    'b.id AS id'],
+  ['quoted-edge-where', 'WALK (a)-[`WHERE` WHERE src = 1]->(b)',
+    'b.id AS id'],
+]) {
+  const query = queryFrontend.compileGeneratedGraphQueryJson(
+    'FROM GRAPH g |> MATCH ' + pattern + ' |> SELECT ' + projection,
+    'g', JSON.stringify(pathSteps), JSON.stringify(['id', 'name']),
+    JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_' + name);
+  assert.notEqual(query, '', name);
+  await writeFile(join(root, 'graph-' + name + '-query.json'), query);
+}
+for (const [name, bounds] of [
+  ['shared-node-zero', '{0,2}'],
+  ['shared-node-positive', '{1,2}'],
+]) {
+  const query = queryFrontend.compileGeneratedGraphQueryJson(
+    'FROM GRAPH g |> MATCH p = ACYCLIC '
+      + '(a WHERE id <= 2)-[:R]->' + bounds
+      + '(a WHERE id >= 2) '
+      + '|> SELECT a.id AS id, PATH_LENGTH(p) AS depth',
+    'g', JSON.stringify(pathSteps), JSON.stringify(['id', 'name']),
+    JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_' + name);
+  assert.notEqual(query, '', name);
+  await writeFile(join(root, 'graph-' + name + '-query.json'), query);
+}
 const cycleSteps = [
   {values: {schema: {id: {type: 'number', nullable: false}},
     rows: [{id: 1}, {id: 2}]}, as: 'nodes'},
@@ -1224,6 +1256,34 @@ async function checkBoundedGraphQuery(client, suffix) {
     {start_id: 3, end_id: 4, depth: 1},
   ]);
 }
+async function checkGraphWhereConstraints(client, suffix) {
+  for (const [name, expected] of [
+    ['named-node-where', [{id: 1}]],
+    ['anonymous-node-where', [{id: 1}]],
+    ['quoted-node-where', [{id: 1}]],
+    ['named-edge-where', [{id: 2}, {id: 3}]],
+    ['anonymous-edge-where', [{id: 2}, {id: 3}]],
+    ['quoted-edge-where', [{id: 2}, {id: 3}]],
+  ]) {
+    const execution = await client.aql(readFileSync(
+      'graph-' + name + '-query.json', 'utf8'),
+    {format: 'json', requestId: 'packed-graph-' + name + '-' + suffix});
+    assert.equal((await execution.wait()).status, 'succeeded', name);
+    assert.deepEqual(await execution.result('answer').all(), expected, name);
+  }
+}
+async function checkBoundedSharedNode(client, suffix) {
+  for (const [name, expected] of [
+    ['shared-node-zero', [{id: 2, depth: 0}]],
+    ['shared-node-positive', []],
+  ]) {
+    const execution = await client.aql(readFileSync(
+      'graph-' + name + '-query.json', 'utf8'),
+    {format: 'json', requestId: 'packed-graph-' + name + '-' + suffix});
+    assert.equal((await execution.wait()).status, 'succeeded', name);
+    assert.deepEqual(await execution.result('answer').all(), expected, name);
+  }
+}
 async function checkGraphPathModes(client, suffix) {
   for (const [name, expected] of [
     ['walk', [{start_id: 1}, {start_id: 2}]],
@@ -1824,6 +1884,8 @@ await checkGraphNodeQuery(installedLocal, 'local');
 await checkGraphPathQuery(installedLocal, 'local');
 await checkGraphMacroQuery(installedLocal, 'local');
 await checkBoundedGraphQuery(installedLocal, 'local');
+await checkGraphWhereConstraints(installedLocal, 'local');
+await checkBoundedSharedNode(installedLocal, 'local');
 await checkGraphPathModes(installedLocal, 'local');
 await checkGraphPredicateDemand(installedLocal, 'local');
 await checkGraphIntermediateLimit(installedLocal, 'local');
@@ -2038,6 +2100,8 @@ await checkGraphNodeQuery(installedRemote, 'remote');
 await checkGraphPathQuery(installedRemote, 'remote');
 await checkGraphMacroQuery(installedRemote, 'remote');
 await checkBoundedGraphQuery(installedRemote, 'remote');
+await checkGraphWhereConstraints(installedRemote, 'remote');
+await checkBoundedSharedNode(installedRemote, 'remote');
 await checkGraphPathModes(installedRemote, 'remote');
 await checkGraphPredicateDemand(installedRemote, 'remote');
 await checkGraphIntermediateLimit(installedRemote, 'remote');
