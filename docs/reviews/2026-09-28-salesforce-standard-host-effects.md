@@ -111,9 +111,10 @@ only.
   resume sends nothing and publishes the same Result.
 - A reply lost after the send: the row stays unknown; a restart sends
   nothing more.
-- A non-2xx single-record reply is not a typed Salesforce outcome in the
-  existing provider, so that row stays unknown (not failed); later rows of the
-  member are not sent under halt, and a restart sends nothing more.
+- A documented rejection (400, 401, 403, 404 or 428 with a structured error
+  body) is a definite failure; any other non-success reply stays unknown.
+  Either way nothing is resent (see
+  [write response classification](2026-09-28-salesforce-write-response-classification.md)).
 - A capture that fails after storing Results releases its unpublished
   payloads and keeps its own cause; a failed release is attached to it.
 
@@ -121,5 +122,5 @@ only.
 
 | Item | Owner | Needed | Acceptance |
 |---|---|---|---|
-| Typed single-record failure outcomes | D (provider) | A contract for classifying non-2xx replies as definite failures | Rejected rows reported failed without resend |
+| Upsert 300 classification | common transport, then D | The credential transport delivers a write's 300 body instead of refusing it as a redirect | Upsert 300 recorded as failed (see [write response classification](2026-09-28-salesforce-write-response-classification.md)) |
 | Effects with external acquisition | shared | Effect compiler over acquired inputs | Out of this scope |

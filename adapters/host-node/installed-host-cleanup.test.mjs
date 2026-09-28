@@ -112,6 +112,63 @@ test('installed Host exposes initialization cause and releases its Store lock',
     await host.close();
   });
 
+test('installed Host retains a failed Checkpoint initialization close',
+  async t => {
+    const {openInstalledRemoteHttpHost} = await import('./embedded-local.mjs');
+    const root = fileURLToPath(new URL('../../_build/host-init/', import.meta.url));
+    await mkdir(root, {recursive: true});
+    const directory = await mkdtemp(join(root, 'checkpoint-commit-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const keys = generateKeyPairSync('ed25519');
+    const authorization = {reviewers: [{keyId: 'reviewer-key',
+      reviewerId: 'reviewer', principalId: 'reviewer',
+      publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+    hostKey: {keyId: 'host-key', privateKey: keys.privateKey.export({
+      type: 'pkcs8', format: 'pem'})}};
+    const exec = DatabaseSync.prototype.exec;
+    const close = DatabaseSync.prototype.close;
+    const checkpointDatabases = new WeakSet();
+    const primary = new Error('CheckpointCommitFailure');
+    const cleanup = new Error('CheckpointCloseFailure');
+    let commits = 0;
+    let closes = 0;
+    DatabaseSync.prototype.exec = function(sql) {
+      if (sql.includes('CREATE TABLE IF NOT EXISTS runs')) {
+        checkpointDatabases.add(this);
+      }
+      const result = exec.call(this, sql);
+      if (sql === 'COMMIT' && checkpointDatabases.has(this) &&
+          ++commits === 1) throw primary;
+      return result;
+    };
+    DatabaseSync.prototype.close = function() {
+      if (checkpointDatabases.has(this) && ++closes <= 2) throw cleanup;
+      return close.call(this);
+    };
+    let failure;
+    try {
+      await assert.rejects(openInstalledRemoteHttpHost({directory,
+        authenticate: () => 'owner', authorization}), error => {
+        failure = error;
+        assert.equal(error.code, 'InstalledHostInitializationFailed');
+        assert.equal(error.primaryFailure.cause, primary);
+        assert.equal(error.cleanupPending, true);
+        assert.equal(error.cleanupErrors[0].error, cleanup);
+        assert.ok(error.cleanupHandle.status().owners.includes(
+          'initialization'));
+        return true;
+      });
+      assert.equal((await failure.cleanupHandle.retry()).pending, false);
+      assert.equal(closes, 3);
+    } finally {
+      DatabaseSync.prototype.exec = exec;
+      DatabaseSync.prototype.close = close;
+    }
+    const reopened = await openInstalledRemoteHttpHost({directory,
+      authenticate: () => 'owner', authorization});
+    await reopened.close();
+  });
+
 test('initialization does not discard an unresolved primary cleanup owner',
   async () => {
     let closed = 0;

@@ -1,4 +1,171 @@
 ///|
+test "materializing completion rejects open numeric slots before retaining output" {
+  for deferred in [false, true] {
+    let (run, issuer) = captured_graph_fixture(
+      numeric_materializing_group=true,
+      rows=Some(["{\"id\":3}"]),
+    )
+    let graph = @strategy.captured_dag_graph(run)
+    assert_eq(@strategy.graph_task_numeric_observation_count(graph, 1), Some(2))
+    let first = @strategy.graph_task_numeric_observation_at(graph, 1, 0).unwrap()
+    let second = @strategy.graph_task_numeric_observation_at(graph, 1, 1).unwrap()
+    assert_eq(@strategy.task_numeric_observation_name(first), "mean")
+    assert_eq(@strategy.task_numeric_observation_name(second), "total")
+    let input = @strategy.captured_task_input(run, 1, 100, 10000).unwrap()
+    let owner = @execution.producer_read_receiver(input)
+    let request = @connector.prepare_fixed_compute_request([input], {
+      contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+      max_rows: 100,
+      max_value_bytes: 10000,
+      common_fragment: None,
+    }).unwrap()
+    let registry = @connector.prepare_capability_registry(
+      [
+        {
+          name: "local",
+          acquisition: false,
+          fixed_compute: true,
+          effect: false,
+        },
+      ],
+      1,
+      100,
+    ).unwrap()
+    let candidate = @local_connector.local_fixed_compute_candidate(
+      @connector.capability_registration_at(registry, 0).unwrap(),
+      request,
+      task_test_generated(owner),
+      [],
+      { transfer_bytes: None, retained_bytes: None, money_units: None, },
+      100,
+    ).unwrap()
+    guard @connector.choose_fixed_compute_candidate(
+        registry,
+        request,
+        [@connector.prepared_compute_candidate(candidate)],
+        Some([0]),
+        100,
+      ).unwrap()
+      is Proposed(choice) else {
+      fail("numeric materializing candidate")
+    }
+    let limits = compute_test_limits()
+    let measurement : @execution.FixedInputGuardMeasureLimits = {
+      max_work: 10000,
+      max_bytes: 10000,
+      max_nodes: 10000,
+      max_depth: 100,
+    }
+    let prepared = @local_connector.prepare_local_materializing_execution(
+      choice,
+      candidate,
+      limits,
+      measurement,
+      @local_connector.local_default_import_limits(limits, measurement),
+      _ => @strategy.RunIssue::Compute(InvalidLimits),
+    ).unwrap()
+    let (attempt, ticket) = @strategy.start_captured_materializing_execution(
+      run, 1, prepared,
+    ).unwrap()
+    assert_eq(
+      @strategy.task_execution_numeric_reduction_count(run, ticket),
+      Some(2),
+    )
+    let numeric = @execution.numeric_aggregate_execution_with_steps(
+      fn(step, name, occurrence, contributors, count, work) {
+        @strategy.execute_task_numeric_reduction_for_slot(
+          run, ticket, step, name, occurrence, contributors, count, work,
+        )
+      },
+      // Omit the evaluator's slot seal while preserving its valid result.
+      fn(_, _, _) { true },
+      fn(step, name, occurrence, contributors, count, work) {
+        @strategy.start_task_numeric_reduction_for_slot(
+          run, ticket, step, name, occurrence, contributors, count, work,
+        ).map(result => {
+          result.map(pending => {
+            @execution.numeric_aggregate_step(
+              () => @strategy.advance_task_numeric_reduction(run, pending),
+              () => @strategy.close_task_numeric_reduction(run, pending),
+            )
+          })
+        })
+      },
+    )
+    assert_true(
+      @local_connector.bind_local_materializing_numeric_execution(
+        attempt, numeric,
+      ),
+    )
+    @local_connector.execute_local_materializing_attempt(attempt).unwrap()
+    @strategy.settle_task_execution(run, ticket, true).unwrap()
+    let output = @local_connector.local_materializing_completed_output(attempt).unwrap()
+    let ledger = @strategy.captured_dag_ledger(run)
+    let before = @resources.ledger_usage(ledger)
+    let finishes = Ref(0)
+    let complete = fn() {
+      if deferred {
+        @strategy.complete_deferred_materializing_task_execution(run, ticket, fn() {
+          finishes.val += 1
+          Ok(output)
+        })
+      } else {
+        @strategy.complete_materializing_task_execution(run, ticket, output)
+      }
+    }
+    for phase in 0..<2 {
+      assert_true(complete() is Err(Physical(InvalidCharge)))
+      assert_eq(@resources.ledger_usage(ledger), before)
+      assert_eq(finishes.val, 0)
+      assert_false(@strategy.captured_task_completed(run, 1))
+      assert_true(
+        @strategy.captured_task_output(
+          run,
+          1,
+          @strategy.captured_task_target(run, 1).unwrap(),
+        )
+        is None,
+      )
+      assert_true(@strategy.next_captured_task(run) is None)
+      if phase == 0 {
+        assert_true(
+          @strategy.seal_task_numeric_reduction_slot(
+            run,
+            ticket,
+            @strategy.task_numeric_observation_step(first),
+            "mean",
+            1,
+          ),
+        )
+      }
+    }
+    assert_true(
+      @strategy.seal_task_numeric_reduction_slot(
+        run,
+        ticket,
+        @strategy.task_numeric_observation_step(second),
+        "total",
+        1,
+      ),
+    )
+    assert_true(@strategy.seal_task_numeric_reductions(run, ticket))
+    complete().unwrap()
+    assert_eq(finishes.val, if deferred { 1 } else { 0 })
+    assert_true(@strategy.captured_task_completed(run, 1))
+    assert_true(
+      @strategy.captured_task_output(
+        run,
+        1,
+        @strategy.captured_task_target(run, 1).unwrap(),
+      )
+      is Some(_),
+    )
+    @strategy.close_task_execution(run, ticket)
+    @mock.close_mock_query_issuer(issuer)
+  }
+}
+
+///|
 test "Local materializing execution uses the common reservation and exact retained producer" {
   for mode in 0..<7 {
     let (run, _) = captured_graph_fixture()

@@ -1948,10 +1948,11 @@ test('Host custody binds one HTTPS Collections response to every row',
       index === 0
         ? {result: {created: true, record_id: 'a00123456789012'},
           state: 'applied'}
+        // The provider's message stays in the private response.
         : {error: {code: 'SalesforceRowFailed',
-          details: {errors: [{fields: ['External_Key__c'],
-            message: 'Rejected field', status_code: 'INVALID_FIELD'}]},
-          message: 'Salesforce row failed'}, state: 'failed'});
+          details: {errors: [{error_code: 'INVALID_FIELD',
+            fields: ['External_Key__c']}]},
+          message: 'Salesforce did not save the row'}, state: 'failed'});
       assert.equal(
         salesforceMoon.salesforceWriteEffectOutcomeWire(recovered),
         salesforceMoon.salesforceWriteEffectOutcomeWire(original));
@@ -2238,8 +2239,17 @@ test('Site Collections do not turn malformed or rejected HTTP into success',
       {collectionStatus: 201, collectionResponse: JSON.stringify([
         {id: 'a00123456789012', success: true, errors: []},
       ]), expected: 'unclassified-response'},
+      // A documented request-level rejection: no row was saved.
+      {collectionStatus: 400, collectionResponse: JSON.stringify([
+        {message: 'bad', errorCode: 'JSON_PARSER_ERROR'}]),
+      expected: 'typed-row-response', failedRows: 1},
+      // A provider failure keeps every row unknown.
+      {collectionStatus: 500, collectionResponse: JSON.stringify([
+        {message: 'bad', errorCode: 'UNKNOWN_EXCEPTION'}]),
+      expected: 'provider-response'},
     ]) {
-      await t.test(scenario.expected, async child => {
+      await t.test(`${scenario.collectionStatus} ${scenario.expected}`,
+        async child => {
         const setup = await fixture(child, scenario);
         const catalog = await syncSalesforceCatalog(request(setup));
         const binding = setup.list.scope;
@@ -2268,6 +2278,12 @@ test('Site Collections do not turn malformed or rejected HTTP into success',
             maxNodes: 64, maxDepth: 6, maxRows: 200},
         });
         assert.equal(result.kind, scenario.expected);
+        if (scenario.failedRows !== undefined) {
+          assert.equal(result.rowCount, scenario.failedRows);
+          assert.equal(checked(
+            salesforceMoon.salesforceCollectionWriteResponseRowApplied(
+              result.result, 0)), false);
+        }
         assert.equal(setup.seen.filter(item => item.path?.endsWith(
           '/composite/sobjects')).length, 1);
       });

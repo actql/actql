@@ -8,6 +8,8 @@ import {
   realpathSync,
 } from 'node:fs';
 import {join} from 'node:path';
+import {createSqliteTransaction, throwSqliteInitializationFailure} from
+  '../host-common/sqlite-transaction.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -19,19 +21,6 @@ function syncDirectory(path) {
   const descriptor = openSync(path, 'r');
   try { fsyncSync(descriptor); }
   finally { closeSync(descriptor); }
-}
-
-function transaction(database, body) {
-  database.exec('BEGIN IMMEDIATE');
-  try {
-    const value = body();
-    database.exec('COMMIT');
-    return value;
-  } catch (error) {
-    try { database.exec('ROLLBACK'); }
-    catch (rollback) { fail('RemoteTransferJournalRollbackFailed', rollback); }
-    throw error;
-  }
 }
 
 const equal = (left, right) => left.length === right.length &&
@@ -63,6 +52,8 @@ export function openSqliteTransferJournal(root, {
     readOnly: false,
     enableForeignKeyConstraints: true,
   });
+  const transaction = createSqliteTransaction(database,
+    'RemoteTransferJournal');
   let closed = false;
   try {
     database.exec('PRAGMA journal_mode = WAL');
@@ -125,7 +116,7 @@ export function openSqliteTransferJournal(root, {
         )
       ) STRICT;
     `);
-    transaction(database, () => {
+    transaction.run(() => {
       const version = database.prepare(
         'SELECT value FROM journal_metadata WHERE key = ?',
       ).get('schema_version');
@@ -161,8 +152,7 @@ export function openSqliteTransferJournal(root, {
     });
     if (!existed) syncDirectory(directory);
   } catch (error) {
-    database.close();
-    throw error;
+    throwSqliteInitializationFailure(database, error, 'transfer-journal');
   }
 
   const select = database.prepare(`
@@ -234,6 +224,7 @@ export function openSqliteTransferJournal(root, {
 
   const ensureOpen = () => {
     if (closed) fail('RemoteTransferJournalClosed');
+    transaction.assertUsable();
   };
   const state = row => Object.freeze([
     row.revision,
@@ -300,7 +291,7 @@ export function openSqliteTransferJournal(root, {
           Buffer.byteLength(manifestJson, 'utf8') > maxManifestBytes) {
         fail('InvalidRemoteTransferJournalRequest');
       }
-      return transaction(database, () => {
+      return transaction.run(() => {
         const existing = select.get(key[0], key[1], generation, key[3]);
         if (existing !== undefined) {
           if (existing.request_cid !== requestCid ||
@@ -349,7 +340,7 @@ export function openSqliteTransferJournal(root, {
           generation !== destinationSiteGeneration) {
         fail('ForeignRemoteTransferJournalSite');
       }
-      transaction(database, () => {
+      transaction.run(() => {
         const row = select.get(key[1], key[2], generation, key[4]);
         if (row === undefined) fail('RemoteTransferJournalRecordMissing');
         if (row.request_cid !== key[0]) fail('RemoteTransferCollision');
@@ -400,7 +391,7 @@ export function openSqliteTransferJournal(root, {
           Buffer.byteLength(receiptJson, 'utf8') > 4096) {
         fail('InvalidRemoteTransferDestinationReceipt');
       }
-      return transaction(database, () => {
+      return transaction.run(() => {
         const transfer = select.get(key[0], key[1], generation, key[3]);
         if (transfer === undefined || transfer.request_cid !== requestCid) {
           fail('RemoteTransferJournalRecordMissing');

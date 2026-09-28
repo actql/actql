@@ -369,7 +369,8 @@ const settleSalesforceSingleEffectResponse = ({
   ledger, claim, admittedPreview, memberIndex, rowIndex,
   moon, request, observed, limits, maxRequestIdentityBytes,
 }) => {
-  if (observed?.kind !== 'typed-success-response') return undefined;
+  if (observed?.kind !== 'typed-success-response' &&
+      observed?.kind !== 'typed-failure-response') return undefined;
   const projection = checked(moon.salesforceProjectSingleEffectOutcome(
     admittedPreview, memberIndex, rowIndex, request, observed.response,
     maxRequestIdentityBytes, limits.maxResponseBytes, limits.maxNodes,

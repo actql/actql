@@ -113,12 +113,10 @@ test "continue collection preserves row order and exact response mapping" {
     Some(
       (
         collection_request_test_cid("2"),
+        // Bound to the request, the provider message is withheld and only
+        // declared fields remain (Name is not declared here).
         RowFailed([
-          {
-            status_code: "REQUIRED_FIELD_MISSING",
-            message: "Missing Name",
-            fields: ["Name"],
-          },
+          { status_code: "REQUIRED_FIELD_MISSING", message: "", fields: [], },
         ]),
       ),
     ),
@@ -143,7 +141,7 @@ test "continue collection preserves row order and exact response mapping" {
   )
   assert_eq(
     write_row_effect_projection_wire(failed),
-    "{\"error\":{\"code\":\"SalesforceRowFailed\",\"details\":{\"errors\":[{\"fields\":[\"Name\"],\"message\":\"Missing Name\",\"status_code\":\"REQUIRED_FIELD_MISSING\"}]},\"message\":\"Salesforce row failed\"},\"state\":\"failed\"}",
+    "{\"error\":{\"code\":\"SalesforceRowFailed\",\"details\":{\"errors\":[{\"error_code\":\"REQUIRED_FIELD_MISSING\",\"fields\":[]}]},\"message\":\"Salesforce did not save the row\"},\"state\":\"failed\"}",
   )
   assert_true(
     project_collection_effect_outcome_at(count_only, 0, 2000, 100, 8)

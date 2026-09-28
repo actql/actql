@@ -30,6 +30,7 @@ fn issued_fixture_checked(
   sga_rows? : Int64? = None,
   sga_derived_rows? : Int64? = None,
   sequence_match? : Bool = false,
+  numeric? : Bool = false,
 ) -> @program_check.CheckedProgram raise {
   let source =
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}}],"results":{"out":{"from":{"stage":"a","result":"r"}}}}
@@ -93,6 +94,11 @@ fn issued_fixture_checked(
         environment,
         { text_time: false, veca, },
         { rela: true, sga, tea, calendar: false, text_rank: false, },
+        numeric_profile=if numeric {
+          Some(@numeric.builtin_profile())
+        } else {
+          None
+        },
       ),
       Some(cursor("{\"minimum\":1}")),
       evidence,

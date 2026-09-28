@@ -46,5 +46,6 @@ import {
   "actql/actql/query_planning" @planning,
   "moonbitlang/core/encoding/utf8",
   "actql/actql/physical_strategy" @strategy,
+  "actql/actql/numeric_reduction" @numeric,
   "actql/actql/parameter_references" @parameters,
 }

@@ -110,9 +110,13 @@ pub fn project_resource_listing_for(Bytes, ListLimits, Array[String]) -> Result[
 
 pub fn project_single_effect_outcome(WriteSingleResponse, String, Int, Int, Int) -> Result[WriteRowEffectProjection, WriteCollectionResponseIssue]
 
+pub fn project_write_collection_rejection(Int, Bytes, WriteCollectionRequest, WriteCollectionResponseLimits) -> Result[WriteCollectionResponse, WriteCollectionResponseIssue]
+
 pub fn project_write_collection_response(Bytes, WriteCollectionKind, Int, WriteCollectionResponseLimits) -> Result[WriteCollectionResponse, WriteCollectionResponseIssue]
 
 pub fn project_write_collection_response_for_request(Int, Bytes, WriteCollectionRequest, WriteCollectionResponseLimits) -> Result[WriteCollectionResponse, WriteCollectionResponseIssue]
+
+pub fn project_write_single_rejection(Int, Bytes, SingleWriteRequest, WriteCollectionResponseLimits) -> Result[WriteSingleResponse, WriteSingleResponseIssue]
 
 pub fn project_write_single_success(Int, Bytes, WriteSingleKind, WriteCollectionResponseLimits) -> Result[WriteSingleResponse, WriteSingleResponseIssue]
 
@@ -311,6 +315,8 @@ pub fn write_row_effect_projection_response_sha256(WriteRowEffectProjection) -> 
 pub fn write_row_effect_projection_row_cid(WriteRowEffectProjection) -> String
 
 pub fn write_row_effect_projection_wire(WriteRowEffectProjection) -> String
+
+pub fn write_single_rejection(WriteSingleResponse) -> WriteRejection?
 
 pub fn write_single_response_sha256(WriteSingleResponse) -> String
 
@@ -845,6 +851,7 @@ pub struct WriteCollectionResponse {
   results : Array[WriteRowResult]
   response_sha256 : String
   row_preview_cids : Array[String]?
+  rejection : WriteRejection?
 }
 
 pub(all) enum WriteCollectionResponseIssue {
@@ -896,6 +903,11 @@ pub(all) struct WriteProviderError {
   fields : Array[String]
 } derive(Eq, @debug.Debug)
 
+pub(all) struct WriteRejection {
+  code : String
+  http_status : Int
+} derive(Eq, @debug.Debug)
+
 pub(all) enum WriteRequestIssue {
   InvalidLimits
   InvalidVersion
@@ -933,6 +945,7 @@ pub(all) enum WriteSingleKind {
 pub struct WriteSingleResponse {
   result : WriteRowResult
   response_sha256 : String
+  rejection : WriteRejection?
 }
 
 pub(all) enum WriteSingleResponseIssue {

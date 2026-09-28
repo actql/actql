@@ -928,11 +928,26 @@ test('installed Effect factory resumes an approved captured Set',
     try {
       await resumed.close();
     } catch (error) {
+      // Check the first failure before retrying its exact Store owner.
+      // Unexpected owners retain their complete cause in CI diagnostics.
+      const detail = {code: error.code,
+        cleanupPending: error.cleanupPending,
+        pendingOwners: error.cleanupHandle?.status?.().pending,
+        cleanupErrors: (error.cleanupErrors ?? []).map(item => ({
+          owner: item.owner, code: item.error?.code,
+          message: item.error?.message,
+          causeCode: item.error?.cause?.code,
+          causeMessage: item.error?.cause?.message,
+        }))};
       const pending = error.cleanupErrors?.map(item => ({
         owner: item.owner, code: item.error?.code,
       }));
-      assert.deepEqual(pending,
-        [{owner: 'store', code: 'PublicationStoreCleanupPending'}]);
+      try {
+        assert.deepEqual(pending,
+          [{owner: 'store', code: 'PublicationStoreCleanupPending'}]);
+      } catch {
+        throw new Error(JSON.stringify(detail), {cause: error});
+      }
       // A completed read can leave an independently owned Store deletion in
       // progress. Retry that exact retained owner before reopening the Host.
       await waitFor(async () => {

@@ -3250,7 +3250,7 @@ test(`two-member captured Effect Run ${
             assert.equal(received.claimed, true);
             if (rateLimitWrite && memberIndex === 0 && rowIndex === 0) {
               assert.equal(received.physical.kind, 'provider-response');
-              assert.equal(received.physical.observation.statusCode, 403);
+              assert.equal(received.physical.observation.statusCode, 429);
               assert.equal(received.terminal, undefined);
               return;
             }
@@ -3601,7 +3601,7 @@ test(`two-member captured Effect Run ${
         ledger = openLedger();
         const savedLimitReply = ledger.readClaimedResponse(
           members[0].claims[0]);
-        assert.equal(savedLimitReply.statusCode, 403);
+        assert.equal(savedLimitReply.statusCode, 429);
         assert.equal(JSON.parse(savedLimitReply.responseBytes.toString('utf8'))
           [0].errorCode, 'REQUEST_LIMIT_EXCEEDED');
         const noReplay = await applyCapturedEffectSet({

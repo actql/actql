@@ -25,7 +25,18 @@ export function projectSalesforceSingleObservation({
     fail('InvalidSalesforceSingleObservation');
   }
   if (observation.statusCode < 200 || observation.statusCode >= 300) {
-    return Object.freeze({kind: 'provider-response', observation});
+    // Only a documented rejection of this request is a definite failure.
+    // Any other non-success response stays an unclassified provider
+    // response, and the write stays unknown.
+    try {
+      const rejected = checked(moon.salesforceProjectSingleWriteRejection(
+        request, observation.statusCode, observation.body,
+        limits.maxResponseBytes, limits.maxNodes, limits.maxDepth));
+      return Object.freeze({kind: 'typed-failure-response', observation,
+        response: rejected});
+    } catch {
+      return Object.freeze({kind: 'provider-response', observation});
+    }
   }
   try {
     const projected = checked(moon.salesforceProjectSingleWriteSuccess(

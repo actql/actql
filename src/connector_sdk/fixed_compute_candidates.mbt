@@ -4,6 +4,7 @@ struct FixedComputeCandidate {
   registration : CapabilityRegistration
   duration : @cost.DurationEstimate
   quantities : QueryQuantities
+  numeric_reductions : Array[NumericReductionSupport]
 }
 
 ///|
@@ -37,7 +38,11 @@ pub fn[T] bind_compute_candidate(
   estimates : Array[@cost.SerialEstimateLine],
   quantities : QueryQuantities,
   max_entries : Int,
+  numeric_reductions? : Array[NumericReductionSupport] = [],
 ) -> Result[PreparedCompute[T], FixedComputeIssue] {
+  if max_entries < 0 {
+    return Err(InvalidLimits)
+  }
   if !registration.owner.live {
     return Err(CapabilityClosed)
   }
@@ -49,14 +54,45 @@ pub fn[T] bind_compute_candidate(
     !valid_quantity(quantities.money_units) {
     return Err(NegativeQuantity)
   }
-  match @cost.assess_serial(work_slots, estimates, max_entries) {
+  let reductions = match
+    checked_numeric_reduction_supports(numeric_reductions, max_entries) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    @cost.assess_serial(
+      work_slots,
+      estimates,
+      max_entries - reductions.length(),
+    ) {
     Err(issue) => Err(Cost(issue))
     Ok(duration) =>
       Ok({
-        candidate: { request, registration, duration, quantities, },
+        candidate: {
+          request,
+          registration,
+          duration,
+          quantities,
+          numeric_reductions: reductions,
+        },
         payload,
       })
   }
+}
+
+///|
+pub fn fixed_compute_candidate_numeric_reduction_count(
+  candidate : FixedComputeCandidate,
+) -> Int {
+  candidate.numeric_reductions.length()
+}
+
+///|
+pub fn fixed_compute_candidate_numeric_reduction_at(
+  candidate : FixedComputeCandidate,
+  index : Int,
+) -> NumericReductionSupport? {
+  candidate.numeric_reductions.get(index)
 }
 
 ///|

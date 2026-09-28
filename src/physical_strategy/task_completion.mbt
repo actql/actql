@@ -122,7 +122,10 @@ pub fn[T] complete_managed_task_execution_with_inputs(
   if execution.disposed ||
     !execution.execution_settled ||
     execution.resident is Some(_) ||
-    (!execution.numeric.is_empty() && !execution.numeric_sealed) {
+    !numeric_reductions_ready_for_completion(
+      execution.numeric.length(),
+      execution.numeric_sealed,
+    ) {
     return Err(Physical(InvalidCharge))
   }
   match task_execution_ready(execution) {
@@ -244,7 +247,10 @@ pub fn complete_carrier_managed_task_execution_with_inputs(
   if execution.disposed ||
     !execution.execution_settled ||
     execution.resident is Some(_) ||
-    (!execution.numeric.is_empty() && !execution.numeric_sealed) {
+    !numeric_reductions_ready_for_completion(
+      execution.numeric.length(),
+      execution.numeric_sealed,
+    ) {
     return Err(Physical(InvalidCharge))
   }
   match task_execution_ready(execution) {
