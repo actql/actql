@@ -738,7 +738,7 @@ test "Effectful publication index binds the final Receipt, not computation" {
   let request = issue_publication_request(
     chain.run,
     [chain.definition],
-    "tenant-a",
+    "namespace-a",
     ordering_test_cid("1"),
     ordering_test_cid("2"),
     ordering_test_cid("3"),

@@ -39,7 +39,7 @@ fn salesforce_declaration_fixture(
   ).unwrap()
   @salesforce_catalog.finish_catalog_sync(sync).unwrap()
   let binding : @salesforce_catalog.CatalogObservationBinding = {
-    tenant: "tenant-a",
+    namespace_id: "namespace-a",
     principal: "principal-a",
     environment: "test",
     connection_revision: "connection-a",

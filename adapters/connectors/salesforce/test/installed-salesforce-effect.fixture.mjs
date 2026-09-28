@@ -93,7 +93,7 @@ export async function installedEffect(t, {writes, writeOperation = 'update',
     credentialPrivateKeyPath: join(root, 'credential.key'),
     environment: 'test', instanceOrigin: org.origin,
     journalRoot: join(root, 'credential-journal'), orgId: org.orgId,
-    siteGeneration: 1, siteKey: 'salesforce-site', tenant: 'tenant-a',
+    siteGeneration: 1, siteKey: 'salesforce-site', namespaceId: 'namespace-a',
     caPath: join(root, 'org-ca.crt'), ...siteProfile,
   };
   const sitePath = join(root, 'salesforce-site.json');
@@ -189,7 +189,7 @@ export async function effectHost(t, installation, state, {effect,
         prepared: facts.prepared,
         compilation: facts.compilation, allowed: facts.allowed,
         definition: facts.definition, authorityScopeCid: cid('e'),
-        tenantId: 'tenant-a', storeAuthorityCid: store.storeAuthorityCid,
+        namespaceId: 'namespace-a', storeAuthorityCid: store.storeAuthorityCid,
         now});
       const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
         facts.owner, registry, values, 1n, 0n, 0n, 0n);
@@ -271,7 +271,7 @@ export async function effectHost(t, installation, state, {effect,
       const prepared = prepareProgram({kind: 'program', input: document,
         parameters: null});
       const accepted = await runs.accept({prepared,
-        authorityScopeCid: cid('e'), requestId, tenantId: 'tenant-a',
+        authorityScopeCid: cid('e'), requestId, namespaceId: 'namespace-a',
         principalId: 'principal-a',
         connection: {mode: 'local', owner: 'local'},
         lookupExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
@@ -290,7 +290,7 @@ export async function effectHost(t, installation, state, {effect,
     // it through the installed factory's recovery projection.
     async resume(requestId, runDefinitionCid, continuation) {
       const recovery = await recoverAdmittedEffectRun({requests: journal,
-        store, key: {tenantId: 'tenant-a', authorityScopeCid: cid('e'),
+        store, key: {namespaceId: 'namespace-a', authorityScopeCid: cid('e'),
           requestId, runDefinitionCid},
         principalId: 'principal-a', contractLimits: limits,
         authorizeEvidenceRead: async () => true});

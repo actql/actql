@@ -6,7 +6,7 @@ fn access_test_cid(character : String) -> String {
 ///|
 test "native Result access validates the complete request before effects" {
   let request : NativeResultAccessRequest = {
-    tenant_id: "tenant",
+    namespace_id: "namespace_id",
     authority_scope_cid: access_test_cid("a"),
     run_definition_cid: access_test_cid("b"),
     principal_id: "principal",

@@ -10,7 +10,7 @@ const control = runtimeCore(moon).remoteCredentialControl;
 const grantRequest = () => Object.freeze({
   issuerAuthority: 'credential-authority-a',
   principal: 'principal-a',
-  tenant: 'tenant-a',
+  namespaceId: 'namespace-a',
   environment: 'production',
   siteKey: 'site-a',
   siteGeneration: 4,
@@ -31,7 +31,7 @@ test('Remote Credential identity is canonical and contains no secret', () => {
   const body = control.json(grant);
   assert.equal(
     control.identity(grant),
-    'sha256:fe76811ca6a170b6f8085c5ddce32e99391e1fd71bfb7229920dc80ab4fdc297',
+    'sha256:b653489c9b3dcacbfc7cd249015fa1fbc7194c1df1bf28fdb72e7a437e94f3cf',
   );
   assert.equal(body.includes('secret'), false);
   const admitted = control.admitJson(body, control.identity(grant));

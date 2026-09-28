@@ -25,7 +25,7 @@ pub fn salesforce_implementation(
 #export_name("salesforceGenerateStaticDeclaration")
 pub fn salesforce_generate_static_declaration(
   observation : @catalog.CatalogObservation,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   connection_revision : String,
@@ -46,7 +46,7 @@ pub fn salesforce_generate_static_declaration(
   max_depth : Int,
 ) -> @catalog.StaticDeclaration raise SalesforceDeclarationBridgeIssue {
   let current : @catalog.CatalogObservationBinding = {
-    tenant,
+    namespace_id,
     principal,
     environment,
     connection_revision,

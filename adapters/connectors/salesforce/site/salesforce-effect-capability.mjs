@@ -48,7 +48,7 @@ function checkRequests(owner, requests, runtimeBundleCid) {
         scope.operation !==
           moon.salesforceSingleWriteRequestGrantOperation(request) ||
         !moon.salesforceSingleWriteRequestScopeMatches(request,
-          scope.tenant, scope.principal, scope.environment,
+          scope.namespaceId, scope.principal, scope.environment,
           scope.siteKey, scope.siteGeneration, scope.connectorRegistration,
           scope.connectorRevision, scope.resourceOrigin,
           scope.runInvocationCid, scope.dispatchRequestCid)) fail();

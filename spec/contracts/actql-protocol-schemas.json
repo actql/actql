@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:cf8f6df574b401ceb5589c0a9c78ca57efbea3546cd5af795afa4fe7ba95225f",
+  "artifact_registry_cid": "sha256:23e773e0b28cd948498b2faebf7b3a12fa71f108a78bf0d64eb3e9a5dd108e4f",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10680,7 +10680,7 @@
     "effect_reconciliation_receipt": "sha256:abcfcc932af4c63ae91e9670d0cd41d2cd23a0e3bec25044cfa018cd2b5f3fb2",
     "run_receipt": "sha256:d017cd0e95bce341edd4fabf859fc521588ee8d12eadfa9fd2704d8d8a94f526",
     "runtime_error": "sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d",
-    "execution_context": "sha256:bce481b86ddcbd958ab98c54df73a7040d21ab8115088f25cb7552928cfb30de",
+    "execution_context": "sha256:49bb0acf26e64ffc1d0802b03b251f27476732ad28c80f0c89b35c5cbf5734b2",
     "run_policy": "sha256:d1c763d2ba8357fd33fa41afd690eed8088a310e4640fa615907c4866a125db6",
     "prepared_invocation": "sha256:b3aa019105b4b6db51c69b2b96771ebe184f87c1f7eff3347bf5aef1cd9482f9",
     "run_review_projection": "sha256:a883398aa5f831befbc132a18a48c4233b4596edcec616d5d3328aea62df8c38",
@@ -39386,7 +39386,7 @@
       "required": [
         "version",
         "principal",
-        "tenant",
+        "namespace_id",
         "execution_context_cid"
       ],
       "properties": {
@@ -39397,7 +39397,7 @@
           "type": "string",
           "minLength": 1
         },
-        "tenant": {
+        "namespace_id": {
           "type": "string",
           "minLength": 1
         },

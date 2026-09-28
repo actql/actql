@@ -219,15 +219,15 @@ function validateContractControl(value) {
 
 function indexKey(value) {
   if (!exactKeys(value, [
-    'tenantId', 'authorityScopeCid', 'runDefinitionCid',
-  ]) || typeof value.tenantId !== 'string' || value.tenantId.length === 0 ||
+    'namespaceId', 'authorityScopeCid', 'runDefinitionCid',
+  ]) || typeof value.namespaceId !== 'string' || value.namespaceId.length === 0 ||
       !cidPattern.test(value.authorityScopeCid) ||
       !cidPattern.test(value.runDefinitionCid)) {
     fail('InvalidPublicationIndexKey');
   }
   const hash = createHash('sha256');
   hash.update('actql-local-public-index-key/0.1\0', 'utf8');
-  for (const text of [value.tenantId, value.authorityScopeCid,
+  for (const text of [value.namespaceId, value.authorityScopeCid,
     value.runDefinitionCid]) {
     const bytes = Buffer.from(text, 'utf8');
     const length = Buffer.alloc(8);
@@ -273,6 +273,60 @@ export async function openLocalPublicationStore(
   const retentionExtensionsDirectory = resolve(root, 'retention-extensions');
   const deletionsDirectory = resolve(root, 'deletions');
   const clocksDirectory = resolve(root, 'clocks');
+  const storeContract = Object.freeze({
+    version: 'actql-local-publication-store/0.1',
+    isolation: 'execution-namespace',
+    store_authority_cid: configuration.storeAuthorityCid,
+  });
+  const storeContractBytes = Buffer.from(JSON.stringify(storeContract), 'utf8');
+  const storeContractPath = resolve(root, 'store.json');
+  let existingNames;
+  try {
+    const state = await lstat(root);
+    if (!state.isDirectory() || state.isSymbolicLink()) {
+      fail('UnknownPublicationStoreFormat');
+    }
+    existingNames = await readdir(root);
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+  }
+  if (existingNames?.length > 0) {
+    if (!existingNames.includes('store.json')) {
+      const legacy = existingNames.some(name => [
+        'objects', 'contracts', 'indexes', 'staging', 'owner',
+      ].includes(name));
+      throw Object.assign(new Error(legacy ?
+        'LegacyPublicationStoreFormat' : 'UnknownPublicationStoreFormat'), {
+        code: legacy ? 'LegacyPublicationStoreFormat' :
+          'UnknownPublicationStoreFormat', target: root,
+      });
+    }
+    let previous;
+    try {
+      previous = JSON.parse(await readBounded(storeContractPath,
+        configuration.maxObjectBytes));
+    } catch (cause) {
+      throw Object.assign(new Error('UnknownPublicationStoreFormat',
+        {cause}), {code: 'UnknownPublicationStoreFormat', target: root});
+    }
+    if (previous?.version === storeContract.version &&
+        previous?.isolation === undefined &&
+        typeof previous?.store_authority_cid === 'string') {
+      throw Object.assign(new Error('LegacyPublicationStoreFormat'), {
+        code: 'LegacyPublicationStoreFormat', target: root});
+    }
+    if (!exactKeys(previous, ['version', 'isolation',
+      'store_authority_cid']) ||
+        previous.version !== storeContract.version ||
+        previous.isolation !== storeContract.isolation) {
+      throw Object.assign(new Error('UnknownPublicationStoreFormat'), {
+        code: 'UnknownPublicationStoreFormat', target: root});
+    }
+    if (!Buffer.from(JSON.stringify(previous), 'utf8')
+      .equals(storeContractBytes)) {
+      fail('PublicationStoreAuthorityMismatch');
+    }
+  }
   for (const directory of [root, objectsDirectory, contractsDirectory,
     stagingDirectory, custodyDirectory, preparedSchemasDirectory,
     attemptsDirectory, deliveriesDirectory,
@@ -284,12 +338,6 @@ export async function openLocalPublicationStore(
     await mkdir(directory, {recursive: true, mode: 0o700});
   }
 
-  const storeContract = Object.freeze({
-    version: 'actql-local-publication-store/0.1',
-    store_authority_cid: configuration.storeAuthorityCid,
-  });
-  const storeContractBytes = Buffer.from(JSON.stringify(storeContract), 'utf8');
-  const storeContractPath = resolve(root, 'store.json');
   try {
     await writeExclusive(storeContractPath, storeContractBytes);
     await syncDirectory(root);
@@ -601,12 +649,12 @@ export async function openLocalPublicationStore(
       fail('InvalidPublicationMetadataInventoryStore', error);
     }
     if (!exactKeys(value, [
-      'version', 'tenant_id', 'authority_scope_cid', 'run_definition_cid',
+      'version', 'namespace_id', 'authority_scope_cid', 'run_definition_cid',
       'public_index_entry_cid', 'publication_attempt_cid', 'contract_objects',
       'physical_holding_cids',
     ]) ||
         value.version !== 'actql-local-publication-metadata-inventory/0.1' ||
-        typeof value.tenant_id !== 'string' || value.tenant_id.length === 0 ||
+        typeof value.namespace_id !== 'string' || value.namespace_id.length === 0 ||
         !cidPattern.test(value.authority_scope_cid) ||
         !cidPattern.test(value.run_definition_cid) ||
         !cidPattern.test(value.public_index_entry_cid) ||
@@ -703,12 +751,12 @@ export async function openLocalPublicationStore(
       return Object.freeze(value);
     }
     if (!exactKeys(value, [
-      'version', 'tenant_id', 'authority_scope_cid', 'run_definition_cid',
+      'version', 'namespace_id', 'authority_scope_cid', 'run_definition_cid',
       'public_index_entry_cid', 'results', 'contract_objects',
       'physical_holding_cids', 'requested_at',
     ]) ||
         value.version !== 'actql-local-publication-metadata-deletion/0.1' ||
-        typeof value.tenant_id !== 'string' || value.tenant_id.length === 0 ||
+        typeof value.namespace_id !== 'string' || value.namespace_id.length === 0 ||
         !cidPattern.test(value.authority_scope_cid) ||
         !cidPattern.test(value.run_definition_cid) ||
         !cidPattern.test(value.public_index_entry_cid) ||
@@ -2397,9 +2445,9 @@ export async function openLocalPublicationStore(
     if (!exactKeys(query, [
       'indexKey', 'principalId', 'purpose', 'resultName', 'attemptId',
     ]) || !exactKeys(query.indexKey, [
-      'tenantId', 'authorityScopeCid', 'runDefinitionCid',
-    ]) || typeof query.indexKey.tenantId !== 'string' ||
-        query.indexKey.tenantId.length === 0 ||
+      'namespaceId', 'authorityScopeCid', 'runDefinitionCid',
+    ]) || typeof query.indexKey.namespaceId !== 'string' ||
+        query.indexKey.namespaceId.length === 0 ||
         !cidPattern.test(query.indexKey.authorityScopeCid) ||
         !cidPattern.test(query.indexKey.runDefinitionCid) ||
         typeof query.principalId !== 'string' || !query.principalId ||
@@ -2421,7 +2469,7 @@ export async function openLocalPublicationStore(
       const grant = (await readContract(
         attempt.result_read_grant_cid, 'result_read_grant',
       )).value;
-      if (grant.tenant_id !== query.indexKey.tenantId ||
+      if (grant.namespace_id !== query.indexKey.namespaceId ||
           grant.authority_scope_cid !== query.indexKey.authorityScopeCid ||
           grant.principal_id !== query.principalId ||
           grant.purpose !== query.purpose ||
@@ -2538,7 +2586,7 @@ export async function openLocalPublicationStore(
       'public_index_entry', bytes.toString('utf8'),
     );
     const entry = parseContract(admitted);
-    if (entry.tenant_id !== key.tenantId ||
+    if (entry.namespace_id !== key.namespaceId ||
         entry.authority_scope_cid !== key.authorityScopeCid ||
         entry.run_definition_cid !== key.runDefinitionCid) {
       fail('PublicIndexBindingMismatch');
@@ -2828,7 +2876,7 @@ export async function openLocalPublicationStore(
     }
     const entry = parseContract(admitted);
     const key = {
-      tenantId: entry.tenant_id,
+      namespaceId: entry.namespace_id,
       authorityScopeCid: entry.authority_scope_cid,
       runDefinitionCid: entry.run_definition_cid,
     };
@@ -3032,7 +3080,7 @@ export async function openLocalPublicationStore(
     const admitted = admitContract('public_index_entry', suppliedWire);
     const entry = parseContract(admitted);
     const key = {
-      tenantId: entry.tenant_id,
+      namespaceId: entry.namespace_id,
       authorityScopeCid: entry.authority_scope_cid,
       runDefinitionCid: entry.run_definition_cid,
     };
@@ -3159,7 +3207,7 @@ export async function openLocalPublicationStore(
     );
     await ensureMetadataInventory(Object.freeze({
       version: 'actql-local-publication-metadata-inventory/0.1',
-      tenant_id: entry.tenant_id,
+      namespace_id: entry.namespace_id,
       authority_scope_cid: entry.authority_scope_cid,
       run_definition_cid: entry.run_definition_cid,
       public_index_entry_cid: admitted.identity,
@@ -3245,7 +3293,7 @@ export async function openLocalPublicationStore(
     const inspected = await inspectEffectfulStoredEvidence(preparation);
     const entry = parseContract(inspected.index);
     const committed = await confirmCommittedIndex({
-      tenantId: entry.tenant_id,
+      namespaceId: entry.namespace_id,
       authorityScopeCid: entry.authority_scope_cid,
       runDefinitionCid: entry.run_definition_cid,
     });
@@ -3786,7 +3834,7 @@ export async function openLocalPublicationStore(
         `sha256:${name.slice(0, -5)}`,
       );
       const keyHash = indexKey({
-        tenantId: inventory.tenant_id,
+        namespaceId: inventory.namespace_id,
         authorityScopeCid: inventory.authority_scope_cid,
         runDefinitionCid: inventory.run_definition_cid,
       });
@@ -4453,7 +4501,7 @@ export async function openLocalPublicationStore(
         const operation = metadataRetentionBusy.then(async () => {
           if (!pending) return status();
           const key = {
-            tenantId: inventory.tenant_id,
+            namespaceId: inventory.namespace_id,
             authorityScopeCid: inventory.authority_scope_cid,
             runDefinitionCid: inventory.run_definition_cid,
           };
@@ -4543,7 +4591,7 @@ export async function openLocalPublicationStore(
         `sha256:${name.slice(0, -5)}`,
       );
       const key = {
-        tenantId: inventory.tenant_id,
+        namespaceId: inventory.namespace_id,
         authorityScopeCid: inventory.authority_scope_cid,
         runDefinitionCid: inventory.run_definition_cid,
       };
@@ -4931,7 +4979,7 @@ export async function openLocalPublicationStore(
       );
       marker = await ensureMetadataDeletion(keyHash, Object.freeze({
         version: 'actql-local-publication-metadata-deletion/0.1',
-        tenant_id: entry.tenant_id,
+        namespace_id: entry.namespace_id,
         authority_scope_cid: entry.authority_scope_cid,
         run_definition_cid: entry.run_definition_cid,
         public_index_entry_cid: entry.public_index_entry_cid,
@@ -4941,7 +4989,7 @@ export async function openLocalPublicationStore(
         requested_at: requestedAt,
       }));
     }
-    if (marker.tenant_id !== key.tenantId ||
+    if (marker.namespace_id !== key.namespaceId ||
         marker.authority_scope_cid !== key.authorityScopeCid ||
         marker.run_definition_cid !== key.runDefinitionCid) {
       fail('InvalidPublicationMetadataDeletionStore');

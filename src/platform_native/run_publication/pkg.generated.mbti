@@ -146,7 +146,7 @@ type NativeRunPublicationAuthority
 
 pub(all) struct NativeRunPublicationAuthorization {
   stage : String
-  tenant_id : String
+  namespace_id : String
   authority_scope_cid : String
   run_definition_cid : String
   publication_request_cid : String
@@ -154,7 +154,7 @@ pub(all) struct NativeRunPublicationAuthorization {
 }
 
 pub(all) struct NativeRunPublicationIntent {
-  tenant_id : String
+  namespace_id : String
   authority_scope_cid : String
   publication_policy_cid : String
   publication_target_cid : String

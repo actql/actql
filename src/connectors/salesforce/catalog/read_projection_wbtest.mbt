@@ -37,7 +37,7 @@ test "read projection uses only the supplied complete resource view" {
   assert_true(
     read_projection_matches_site_scope(
       plan,
-      binding.tenant,
+      binding.namespace_id,
       binding.principal,
       binding.environment,
       binding.site_key,
@@ -52,7 +52,7 @@ test "read projection uses only the supplied complete resource view" {
   assert_false(
     read_projection_matches_site_scope(
       plan,
-      binding.tenant,
+      binding.namespace_id,
       binding.principal,
       binding.environment,
       binding.site_key,
@@ -67,7 +67,7 @@ test "read projection uses only the supplied complete resource view" {
   assert_false(
     read_projection_matches_site_scope(
       plan,
-      binding.tenant,
+      binding.namespace_id,
       binding.principal,
       binding.environment,
       binding.site_key,

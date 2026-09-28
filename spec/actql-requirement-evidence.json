@@ -10223,7 +10223,7 @@
     },
     {
       "requirement_id": "actql.execution/cursor-recovery.product-be2f85421b3a",
-      "statement_sha256": "be2f85421b3a0fbc7b4d5e35d31d29b2d0027f769b8918d14e82e51c20b0a09b",
+      "statement_sha256": "7e4233ed3692866afd31e7b7cee0e3b9fbf43227624c1e1611bebedbb4f86e12",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -12126,7 +12126,7 @@
     },
     {
       "requirement_id": "actql.protocol.artifacts/result-artifacts.a-committed-run-must-have-one-public-index-entry-for-its-authority-scoped-run-definition",
-      "statement_sha256": "e819becbe7a25919561fdd3d0f70a0720fd1a52862636da0563bf2e3fbcaa598",
+      "statement_sha256": "2bea5dc2e7f0c5af22ed4f2a4eacba20b057b773287e095a02c5ddbb140b950a",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -12137,7 +12137,7 @@
     },
     {
       "requirement_id": "actql.protocol.artifacts/result-artifacts.manifest-and-result-read-grants-must-be-separate-and-bind-an-exact-committed-manifest",
-      "statement_sha256": "9590d01ba1967b53acea72786b520f20c4bccb92a1112c1f525d8d39e2a44a5c",
+      "statement_sha256": "070b9495335ae199d2ab407178c3ca996aa75b6c15d270fdce16e1879d55b27f",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -13028,7 +13028,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "00f79a598dd5858adaa91ba4116773d9f2a379f9f3874f79b9068ff39423196e",
+      "statement_sha256": "cd46f5cf44cc43d6af68972568d75b5051558de156a962062588427eb8140a11",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

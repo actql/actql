@@ -341,7 +341,7 @@ pub struct CatalogObservation {
 }
 
 pub(all) struct CatalogObservationBinding {
-  tenant : String
+  namespace_id : String
   principal : String
   environment : String
   connection_revision : String

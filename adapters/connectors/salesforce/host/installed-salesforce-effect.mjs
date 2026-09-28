@@ -333,7 +333,7 @@ function projection(salesforceMoon, observation, member) {
   const binding = JSON.parse(
     salesforceMoon.salesforceCatalogObservationJson(observation)).binding;
   return checked(salesforceMoon.salesforcePrepareWriteProjection(
-    observation, binding.tenant, binding.principal, binding.environment,
+    observation, binding.namespace_id, binding.principal, binding.environment,
     binding.connection_revision, binding.org_id, binding.site_key,
     binding.site_generation, binding.connector_registration,
     binding.connector_revision, binding.resource_origin,

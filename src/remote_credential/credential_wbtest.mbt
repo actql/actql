@@ -8,7 +8,7 @@ fn credential_grant() -> RemoteCredentialGrant {
   prepare_grant(
     "credential-authority-a",
     "principal-a",
-    "tenant-a",
+    "namespace-a",
     "production",
     "site-a",
     4,
@@ -30,12 +30,12 @@ test "credential grant has a canonical identity without secret material" {
   let grant = credential_grant()
   let body = credential_grant_json(grant).unwrap()
   assert_eq(
-    body, "{\"connector_registration\":\"http-source\",\"connector_revision\":\"http-source/1\",\"dispatch_request_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"environment\":\"production\",\"expires_unix_ms\":\"2000000000000\",\"issuer_authority\":\"credential-authority-a\",\"max_uses\":2,\"operation\":\"records:read\",\"principal\":\"principal-a\",\"resource_origin\":\"https://resource.example\",\"run_invocation_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":4,\"site_key\":\"site-a\",\"task_attempt\":2,\"tenant\":\"tenant-a\",\"version\":\"actql-remote-credential-grant/0.1\"}",
+    body, "{\"connector_registration\":\"http-source\",\"connector_revision\":\"http-source/1\",\"dispatch_request_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"environment\":\"production\",\"expires_unix_ms\":\"2000000000000\",\"issuer_authority\":\"credential-authority-a\",\"max_uses\":2,\"operation\":\"records:read\",\"principal\":\"principal-a\",\"resource_origin\":\"https://resource.example\",\"run_invocation_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":4,\"site_key\":\"site-a\",\"task_attempt\":2,\"namespace_id\":\"namespace-a\",\"version\":\"actql-remote-credential-grant/0.1\"}",
   )
   assert_false(body.contains("secret"))
   assert_eq(
     credential_grant_cid(grant),
-    "sha256:fe76811ca6a170b6f8085c5ddce32e99391e1fd71bfb7229920dc80ab4fdc297",
+    "sha256:b653489c9b3dcacbfc7cd249015fa1fbc7194c1df1bf28fdb72e7a437e94f3cf",
   )
   assert_eq(
     credential_grant_cid(
@@ -45,6 +45,19 @@ test "credential grant has a canonical identity without secret material" {
   )
   assert_true(
     admit_grant_json(body + " ", credential_grant_cid(grant))
+    is Err(InvalidCredentialGrant),
+  )
+  let prior = body.replace(old="namespace_id", new="tenant")
+  assert_true(
+    admit_grant_json(prior, credential_grant_cid(grant))
+    is Err(InvalidCredentialGrant),
+  )
+  let mixed = body.replace(
+    old="\"version\"",
+    new="\"tenant\":\"namespace-a\",\"version\"",
+  )
+  assert_true(
+    admit_grant_json(mixed, credential_grant_cid(grant))
     is Err(InvalidCredentialGrant),
   )
 }
@@ -107,7 +120,7 @@ test "credential use binds exact scope expiry revocation and ordinal" {
     0,
     false,
     "principal-a",
-    "tenant-a",
+    "namespace-a",
     "production",
     "site-a",
     4,
@@ -138,7 +151,7 @@ test "credential use binds exact scope expiry revocation and ordinal" {
       1999999999999L,
       false,
       "principal-a",
-      "tenant-a",
+      "namespace-a",
       "production",
       "site-a",
       4,
@@ -161,7 +174,7 @@ test "credential use binds exact scope expiry revocation and ordinal" {
       1,
       false,
       "principal-a",
-      "tenant-a",
+      "namespace-a",
       "production",
       "site-a",
       4,
@@ -184,7 +197,7 @@ test "credential use binds exact scope expiry revocation and ordinal" {
       1,
       true,
       "principal-a",
-      "tenant-a",
+      "namespace-a",
       "production",
       "site-a",
       4,
@@ -207,7 +220,7 @@ test "credential use binds exact scope expiry revocation and ordinal" {
       1,
       false,
       "principal-a",
-      "tenant-a",
+      "namespace-a",
       "production",
       "site-a",
       4,

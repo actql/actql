@@ -136,7 +136,7 @@ export async function loadInstalledSalesforceSource(profile, {root,
     // The standard runtime restores the same declaration from the same
     // published bytes, bound to this Site, and must reproduce its Catalog.
     const siteHandle = checked(moon.clientProgramSalesforceSite(
-      site.tenant, site.principal, site.environment, site.connectionRevision,
+      site.namespaceId, site.principal, site.environment, site.connectionRevision,
       site.orgId, site.siteKey, site.siteGeneration, site.instanceOrigin));
     const recover = (evidence, expectedRun) => checked(
       moon.clientProgramSalesforceRecoverObservation(siteHandle,

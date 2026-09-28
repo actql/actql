@@ -522,11 +522,11 @@
       "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
     },
     {
-      "case_id": "D6.tenant-isolation",
+      "case_id": "D6.namespace-isolation",
       "decision_refs": [
         "D6"
       ],
-      "given": "Same caller ID string in different tenants",
+      "given": "Same caller ID string in different namespaces",
       "when": "Submit",
       "then": "Use separate scopes; share neither results nor authority.",
       "admission_context": "Apply the normative scope, identity and claim-admission rules.",

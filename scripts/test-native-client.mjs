@@ -27,7 +27,7 @@ for (const [name, extension] of [['server', 'server.ext'],
 
 const connection = {mode: 'remote', owner: 'remote',
   consentRefs: [], runners: []};
-const ref = {tenantId: 'tenant-a',
+const ref = {namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
 const deliveryTemplate = JSON.parse(await readFile(new URL(
@@ -226,9 +226,9 @@ try {
   assert.equal(attached.code, 0, attached.stderr);
   assert.deepEqual(JSON.parse(attached.stdout),
     {ref, durability: 'durable', revision: 1});
-  for (const field of ['tenantId', 'authorityScopeCid',
+  for (const field of ['namespaceId', 'authorityScopeCid',
     'runDefinitionCid']) {
-    attachReplyRef = {...ref, [field]: field === 'tenantId' ? 'tenant-b' :
+    attachReplyRef = {...ref, [field]: field === 'namespaceId' ? 'namespace-b' :
       `sha256:${'c'.repeat(64)}`};
     const foreign = await run('attach', '--ref-file', 'ref.json');
     assert.notEqual(foreign.code, 0);

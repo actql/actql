@@ -91,6 +91,37 @@ async function fixture(t, options = {}) {
   };
 }
 
+test('unmarked and prior-format Stores are refused without changing files',
+  async t => {
+    const parent = await mkdtemp(join(tmpdir(), 'actql-store-format-'));
+    t.after(() => rm(parent, {recursive: true, force: true}));
+    const configuration = directory => ({
+      directory, storeAuthorityCid: cids.authority,
+      capacityBytes: 1024 * 1024, maxObjectBytes: 64 * 1024,
+      maxObjects: 100, maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    });
+    for (const [name, entry, content, expected] of [
+      ['prior', 'store.json', JSON.stringify({
+        version: 'actql-local-publication-store/0.1',
+        store_authority_cid: cids.authority,
+      }), 'LegacyPublicationStoreFormat'],
+      ['unmarked', 'other-file', 'unrecognized-content',
+        'UnknownPublicationStoreFormat'],
+    ]) {
+      const directory = join(parent, name);
+      await mkdir(directory);
+      await writeFile(join(directory, entry), content);
+      const original = await readFile(join(directory, entry));
+      const names = await readdir(directory);
+      await assert.rejects(openLocalPublicationStore(configuration(directory),
+        contractControl), error => error.code === expected &&
+          error.target === directory);
+      assert.deepEqual(await readFile(join(directory, entry)), original);
+      assert.deepEqual(await readdir(directory), names);
+    }
+  });
+
 function invocation() {
   return seal('run_invocation', {
     version: 'actql-run-invocation/0.1',
@@ -118,7 +149,7 @@ function publicationRequest(result = resultDefinition(),
   runDefinitionCid = cids.run) {
   return seal('publication_request', {
     version: 'actql-publication-request/0.1',
-    tenant_id: 'tenant-a',
+    namespace_id: 'namespace-a',
     authority_scope_cid: cids.scope,
     run_definition_cid: runDefinitionCid,
     inventory: [{
@@ -162,7 +193,7 @@ function deliveryFixture(maxUses = 2) {
   const manifestCid = digest('delivery manifest');
   const grant = seal('result_read_grant', {
     version: 'actql-result-read-grant/0.1',
-    tenant_id: 'tenant-a',
+    namespace_id: 'namespace-a',
     authority_scope_cid: cids.scope,
     principal_id: 'principal-a',
     run_definition_cid: cids.run,
@@ -186,7 +217,7 @@ function deliveryFixture(maxUses = 2) {
 function manifestReadGrant(maxUses = 2) {
   return seal('manifest_read_grant', {
     version: 'actql-manifest-read-grant/0.1',
-    tenant_id: 'tenant-a',
+    namespace_id: 'namespace-a',
     authority_scope_cid: cids.scope,
     principal_id: 'principal-a',
     run_definition_cid: cids.run,
@@ -234,7 +265,7 @@ function deliveryRecord(attempt, sequence, state, prior, extra = {}) {
 function indexEntry(request, attempt, invocationValue, values = {}) {
   return seal('public_index_entry', {
     version: 'actql-public-index-entry/0.1',
-    tenant_id: 'tenant-a',
+    namespace_id: 'namespace-a',
     authority_scope_cid: cids.scope,
     run_definition_cid: request.run_definition_cid,
     invocation_cid: invocationValue.invocation_cid,
@@ -251,13 +282,13 @@ function indexEntry(request, attempt, invocationValue, values = {}) {
 }
 
 const indexKey = Object.freeze({
-  tenantId: 'tenant-a',
+  namespaceId: 'namespace-a',
   authorityScopeCid: cids.scope,
   runDefinitionCid: cids.run,
 });
 
 const indexKeyFor = request => Object.freeze({
-  tenantId: request.tenant_id,
+  namespaceId: request.namespace_id,
   authorityScopeCid: request.authority_scope_cid,
   runDefinitionCid: request.run_definition_cid,
 });
@@ -1448,7 +1479,7 @@ test('delivery attempts and records remain append-only after restart',
       failed,
     );
     const lookup = {
-      indexKey: {tenantId: 'tenant-a',
+      indexKey: {namespaceId: 'namespace-a',
         authorityScopeCid: cids.scope, runDefinitionCid: cids.run},
       principalId: 'principal-a', purpose: 'download',
       resultName: 'answer', attemptId: 'delivery-1',

@@ -32,7 +32,7 @@ test('diagnostic failure cannot stop Compute or bypass required ownership',
           retainExecution(physical);
           retained++;
           return physical;
-        }, tenantId: 'tenant-a',
+        }, namespaceId: 'namespace-a',
       });
       const accepted = {ref, runDefinition: {wire: 'definition'},
         dispatchReserved: false, cancellationRequested: false};
@@ -84,7 +84,7 @@ test('publication ownership survives a wrapped error and cleanup retry',
         retainExecution(physical);
         throw wrapped;
       },
-      tenantId: 'tenant-a',
+      namespaceId: 'namespace-a',
     });
     const submission = {preparedProgram: {}, principalId: 'owner',
       connection: {}, requestId: 'wrapped-request'};
@@ -137,7 +137,7 @@ test('dispatch owner retains failed cleanup and retries without Compute',
       observed: async () => {},
       planFor: () => ({runDefinition: {wire: 'definition'}}),
       runPublished: async () => { starts++; return physical; },
-      tenantId: 'tenant-a',
+      namespaceId: 'namespace-a',
     });
     const submission = {preparedProgram: {}, principalId: 'owner',
       connection: {}, requestId: 'request-a'};
@@ -339,7 +339,7 @@ function acquiringOwner(open) {
     sourceProfile: {sourceAccess: access, open},
     runPublished: async () => { computes++; },
     now: () => '2026-09-28T00:00:00.000Z',
-    tenantId: 'tenant-a',
+    namespaceId: 'namespace-a',
   });
   const run = async () => {
     const accepted = {ref, runDefinition: {wire: 'definition'},

@@ -4,7 +4,7 @@ import {connectInProcess} from './host-port.mjs';
 import {ClientError} from './index.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
-const ref = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+const ref = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
   runDefinitionCid: cid('b')};
 const profile = {version: 'actql-client-host/0.1',
   mode: 'local', owner: 'local', durability: 'volatile',

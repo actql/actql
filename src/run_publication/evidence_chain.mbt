@@ -885,7 +885,7 @@ fn validate_publication_commit_references(
   }
   for
     (field, expected) in [
-      ("tenant_id", evidence_string(request.value, "tenant_id")),
+      ("namespace_id", evidence_string(request.value, "namespace_id")),
       (
         "authority_scope_cid",
         evidence_string(request.value, "authority_scope_cid"),

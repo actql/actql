@@ -509,7 +509,7 @@ async function connectSelected(selected, port) {
       cancel: async ({signal} = {}) => {
         const response = await readControl('cancel', {}, signal);
         if (!validCancellation(response) ||
-            response.ref.tenantId !== ref.tenantId ||
+            response.ref.namespaceId !== ref.namespaceId ||
             response.ref.authorityScopeCid !== ref.authorityScopeCid ||
             response.ref.runDefinitionCid !== ref.runDefinitionCid) {
           fail('InvalidHostCancellation');
@@ -577,7 +577,7 @@ async function connectSelected(selected, port) {
       try { admitted = await controlValue(response); }
       catch (cause) { throw new ClientError('InvalidHostAdmission', {cause}); }
       if (!validRunRef(admitted?.ref)) fail('InvalidHostAdmission');
-      if (admitted.ref.tenantId !== requested.tenantId ||
+      if (admitted.ref.namespaceId !== requested.namespaceId ||
           admitted.ref.authorityScopeCid !== requested.authorityScopeCid ||
           admitted.ref.runDefinitionCid !== requested.runDefinitionCid) {
         fail('ForeignHostAdmission');

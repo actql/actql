@@ -60,7 +60,7 @@ async function installed(t, {entries, profile = {}, secret,
     credentialPrivateKeyPath: join(root, 'credential.key'),
     environment: 'test', instanceOrigin: org.origin,
     journalRoot: join(root, 'credential-journal'), orgId: org.orgId,
-    siteGeneration: 1, siteKey: 'salesforce-site', tenant: 'tenant-a',
+    siteGeneration: 1, siteKey: 'salesforce-site', namespaceId: 'namespace-a',
     caPath: join(root, 'org-ca.crt'), ...profile,
   };
   const path = join(root, 'salesforce-site.json');
@@ -108,8 +108,8 @@ test('installed Salesforce Site syncs its Catalog under Host-issued grants',
     assert.equal(binding.site_key, 'salesforce-site');
     // The secret source sees only the installed scope.
     assert.deepEqual([...new Set(setup.scopes.map(scope => [scope.principal,
-      scope.tenant, scope.environment, scope.siteKey, scope.resourceOrigin]
-      .join(' ')))], [`principal-a tenant-a test salesforce-site ${
+      scope.namespaceId, scope.environment, scope.siteKey, scope.resourceOrigin]
+      .join(' ')))], [`principal-a namespace-a test salesforce-site ${
       setup.org.origin}`]);
   });
 

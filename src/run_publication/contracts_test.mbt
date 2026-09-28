@@ -510,7 +510,7 @@ test "delivery transition owner preserves attempts and confirmed prefixes" {
 ///|
 test "publication inventory names and Result grants are occurrence-unique" {
   let duplicate_inventory = "{\"version\":\"actql-publication-request/0.1\"," +
-    "\"tenant_id\":\"tenant\",\"authority_scope_cid\":\"" +
+    "\"namespace_id\":\"namespace_id\",\"authority_scope_cid\":\"" +
     contract_cid("1") +
     "\",\"run_definition_cid\":\"" +
     contract_cid("2") +
@@ -659,7 +659,7 @@ test "finite publication registry admits every non-Result contract" {
     (
       "publication_request",
       "{\"version\":\"actql-publication-request/0.1\"," +
-      "\"tenant_id\":\"tenant\",\"authority_scope_cid\":\"" +
+      "\"namespace_id\":\"namespace_id\",\"authority_scope_cid\":\"" +
       c +
       "\",\"run_definition_cid\":\"" +
       c +
@@ -700,7 +700,7 @@ test "finite publication registry admits every non-Result contract" {
     (
       "manifest_read_grant",
       "{\"version\":\"actql-manifest-read-grant/0.1\"," +
-      "\"tenant_id\":\"tenant\",\"authority_scope_cid\":\"" +
+      "\"namespace_id\":\"namespace_id\",\"authority_scope_cid\":\"" +
       c +
       "\",\"principal_id\":\"principal\",\"run_definition_cid\":\"" +
       c +
@@ -717,7 +717,7 @@ test "finite publication registry admits every non-Result contract" {
     (
       "result_read_grant",
       "{\"version\":\"actql-result-read-grant/0.1\"," +
-      "\"tenant_id\":\"tenant\",\"authority_scope_cid\":\"" +
+      "\"namespace_id\":\"namespace_id\",\"authority_scope_cid\":\"" +
       c +
       "\",\"principal_id\":\"principal\",\"run_definition_cid\":\"" +
       c +
@@ -768,7 +768,7 @@ test "finite publication registry admits every non-Result contract" {
     (
       "public_index_entry",
       "{\"version\":\"actql-public-index-entry/0.1\"," +
-      "\"tenant_id\":\"tenant\",\"authority_scope_cid\":\"" +
+      "\"namespace_id\":\"namespace_id\",\"authority_scope_cid\":\"" +
       c +
       "\",\"run_definition_cid\":\"" +
       c +

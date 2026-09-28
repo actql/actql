@@ -30,14 +30,14 @@ export function installNodeClientRequestLookup({journal, control,
     } catch {
       throw denied();
     }
-    const tenantId = selected?.tenantId;
+    const namespaceId = selected?.namespaceId;
     const authorityScopeCid = selected?.authorityScopeCid;
-    if (!text(tenantId) || !cid(authorityScopeCid)) {
+    if (!text(namespaceId) || !cid(authorityScopeCid)) {
       throw denied();
     }
     let found;
     try {
-      found = journal.lookup({tenantId, authorityScopeCid, requestId},
+      found = journal.lookup({namespaceId, authorityScopeCid, requestId},
         control);
     } catch {
       return Object.freeze({kind: 'unknown',

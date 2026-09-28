@@ -68,7 +68,7 @@ fn finish_publication_body(
 pub fn issue_publication_request(
   run_definition : PublicationContract,
   definitions : Array[PublicationContract],
-  tenant_id : String,
+  namespace_id : String,
   authority_scope_cid : String,
   publication_policy_cid : String,
   publication_target_cid : String,
@@ -110,8 +110,8 @@ pub fn issue_publication_request(
     @encode.string_value(writer, requested_at)
     @encode.key(writer, "run_definition_cid")
     @encode.string_value(writer, run_definition.identity)
-    @encode.key(writer, "tenant_id")
-    @encode.string_value(writer, tenant_id)
+    @encode.key(writer, "namespace_id")
+    @encode.string_value(writer, namespace_id)
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-publication-request/0.1")
     @encode.end_object(writer)
@@ -343,7 +343,7 @@ pub fn issue_public_index_entry(
       return Err(CommitIssuanceReferenceMismatch(field))
     }
   }
-  guard contract_string(request, "tenant_id") is Some(tenant_id) &&
+  guard contract_string(request, "namespace_id") is Some(namespace_id) &&
     contract_string(request, "authority_scope_cid") is Some(authority_scope_cid) else {
     return Err(CommitIssuanceReferenceMismatch("request.authority"))
   }
@@ -395,8 +395,8 @@ pub fn issue_public_index_entry(
     @encode.string_value(writer, run_definition.identity)
     @encode.key(writer, "run_receipt_cid")
     @encode.string_value(writer, receipt.identity)
-    @encode.key(writer, "tenant_id")
-    @encode.string_value(writer, tenant_id)
+    @encode.key(writer, "namespace_id")
+    @encode.string_value(writer, namespace_id)
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-public-index-entry/0.1")
     @encode.end_object(writer)
@@ -423,7 +423,7 @@ pub fn public_index_same_committed_content(
   }
   for
     field in [
-      "tenant_id", "authority_scope_cid", "run_definition_cid", "invocation_cid",
+      "namespace_id", "authority_scope_cid", "run_definition_cid", "invocation_cid",
       "result_manifest_cid", "run_receipt_cid", "captured_run_cid", "publication_request_cid",
     ] {
     guard contract_string(committed, field) is Some(value) &&
@@ -443,18 +443,18 @@ pub fn public_index_same_committed_content(
 
 ///|
 /// Derive the Store key for the one committed Manifest allowed for an exact
-/// tenant, authority scope, and Run Definition. The key deliberately excludes
+/// namespace_id, authority scope, and Run Definition. The key deliberately excludes
 /// Invocation and attempt identities: changing either cannot create a second
 /// committed publication for the same Run.
 pub fn publication_index_scope_storage_key(
-  tenant_id : String,
+  namespace_id : String,
   authority_scope_cid : String,
   run_definition_cid : String,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[String, PublicationCommitIssuanceIssue] {
-  if tenant_id.is_empty() ||
+  if namespace_id.is_empty() ||
     !valid_contract_cid(authority_scope_cid) ||
     !valid_contract_cid(run_definition_cid) {
     return Err(CommitIssuanceReferenceMismatch("index.authority"))
@@ -468,8 +468,8 @@ pub fn publication_index_scope_storage_key(
     @encode.string_value(writer, authority_scope_cid)
     @encode.key(writer, "run_definition_cid")
     @encode.string_value(writer, run_definition_cid)
-    @encode.key(writer, "tenant_id")
-    @encode.string_value(writer, tenant_id)
+    @encode.key(writer, "namespace_id")
+    @encode.string_value(writer, namespace_id)
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-public-index-key/0.1")
     @encode.end_object(writer)
@@ -492,13 +492,13 @@ pub fn publication_index_storage_key(
   if index.name != "public_index_entry" {
     return Err(CommitIssuanceWrongContract)
   }
-  guard contract_string(index, "tenant_id") is Some(tenant_id) &&
+  guard contract_string(index, "namespace_id") is Some(namespace_id) &&
     contract_string(index, "authority_scope_cid") is Some(authority_scope_cid) &&
     contract_string(index, "run_definition_cid") is Some(run_definition_cid) else {
     return Err(CommitIssuanceReferenceMismatch("index.authority"))
   }
   publication_index_scope_storage_key(
-    tenant_id, authority_scope_cid, run_definition_cid, max_wire_bytes, max_nodes,
+    namespace_id, authority_scope_cid, run_definition_cid, max_wire_bytes, max_nodes,
     max_depth,
   )
 }

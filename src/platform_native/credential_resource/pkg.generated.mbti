@@ -66,7 +66,7 @@ pub(all) struct NativeCredentialResponse {
 
 pub(all) struct NativeCredentialScope {
   principal : String
-  tenant : String
+  namespace_id : String
   environment : String
   site_key : String
   site_generation : Int

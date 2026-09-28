@@ -236,7 +236,7 @@ pub fn salesforce_catalog_http_failure(
 #export_name("salesforcePrepareCatalogObservation")
 pub fn salesforce_prepare_catalog_observation(
   sync : @catalog.CatalogSync,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   connection_revision : String,
@@ -255,7 +255,7 @@ pub fn salesforce_prepare_catalog_observation(
   max_bytes : Int,
 ) -> @catalog.CatalogObservation raise SalesforceCatalogBridgeIssue {
   let binding : @catalog.CatalogObservationBinding = {
-    tenant,
+    namespace_id,
     principal,
     environment,
     connection_revision,
@@ -287,7 +287,7 @@ pub fn salesforce_recover_catalog_observation(
   listing_bytes : Bytes,
   describe_bytes : Array[Bytes?],
   outcomes : Array[Int],
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   connection_revision : String,
@@ -317,7 +317,7 @@ pub fn salesforce_recover_catalog_observation(
   max_observation_bytes : Int,
 ) -> @catalog.CatalogObservation raise SalesforceCatalogBridgeIssue {
   let binding : @catalog.CatalogObservationBinding = {
-    tenant,
+    namespace_id,
     principal,
     environment,
     connection_revision,
@@ -383,7 +383,7 @@ pub fn salesforce_catalog_observation_cid(
 #export_name("salesforceCatalogObservationMatchesBinding")
 pub fn salesforce_catalog_observation_matches_binding(
   observation : @catalog.CatalogObservation,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   connection_revision : String,
@@ -398,7 +398,7 @@ pub fn salesforce_catalog_observation_matches_binding(
   sync_occurrence : String,
 ) -> Bool {
   @catalog.catalog_observation_matches_binding(observation, {
-    tenant,
+    namespace_id,
     principal,
     environment,
     connection_revision,
@@ -426,7 +426,7 @@ pub fn salesforce_catalog_observation_is_complete(
 #export_name("salesforceCatalogResourceSummaryJson")
 pub fn salesforce_catalog_resource_summary_json(
   observation : @catalog.CatalogObservation,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   connection_revision : String,
@@ -443,7 +443,7 @@ pub fn salesforce_catalog_resource_summary_json(
   max_bytes : Int,
 ) -> String raise SalesforceCatalogBridgeIssue {
   let binding : @catalog.CatalogObservationBinding = {
-    tenant,
+    namespace_id,
     principal,
     environment,
     connection_revision,
@@ -472,7 +472,7 @@ pub fn salesforce_catalog_resource_summary_json(
 #export_name("salesforceCatalogObservedResourceState")
 pub fn salesforce_catalog_observed_resource_state(
   observation : @catalog.CatalogObservation,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   connection_revision : String,
@@ -488,7 +488,7 @@ pub fn salesforce_catalog_observed_resource_state(
   name : String,
 ) -> Int raise SalesforceCatalogBridgeIssue {
   let binding : @catalog.CatalogObservationBinding = {
-    tenant,
+    namespace_id,
     principal,
     environment,
     connection_revision,
@@ -526,7 +526,7 @@ pub fn salesforce_catalog_observed_resource_state(
 #export_name("salesforceCatalogFirstUnconfirmedField")
 pub fn salesforce_catalog_first_unconfirmed_field(
   observation : @catalog.CatalogObservation,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   connection_revision : String,
@@ -543,7 +543,7 @@ pub fn salesforce_catalog_first_unconfirmed_field(
   field_names : Array[String],
 ) -> String? raise SalesforceCatalogBridgeIssue {
   let binding : @catalog.CatalogObservationBinding = {
-    tenant,
+    namespace_id,
     principal,
     environment,
     connection_revision,
@@ -576,7 +576,7 @@ pub fn salesforce_catalog_response_sha256(bytes : Bytes) -> String {
 #export_name("salesforcePrepareReadProjection")
 pub fn salesforce_prepare_read_projection(
   observation : @catalog.CatalogObservation,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   connection_revision : String,
@@ -594,7 +594,7 @@ pub fn salesforce_prepare_read_projection(
   max_soql_bytes : Int,
 ) -> @catalog.ReadProjection raise SalesforceCatalogBridgeIssue {
   let current : @catalog.CatalogObservationBinding = {
-    tenant,
+    namespace_id,
     principal,
     environment,
     connection_revision,
@@ -723,7 +723,7 @@ pub fn salesforce_recheck_read_projection(
 #export_name("salesforceReadProjectionScopeMatches")
 pub fn salesforce_read_projection_scope_matches(
   plan : @catalog.ReadProjection,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   site_key : String,
@@ -735,7 +735,7 @@ pub fn salesforce_read_projection_scope_matches(
   dispatch_request_cid : String,
 ) -> Bool {
   @catalog.read_projection_matches_site_scope(
-    plan, tenant, principal, environment, site_key, site_generation, connector_registration,
+    plan, namespace_id, principal, environment, site_key, site_generation, connector_registration,
     connector_revision, resource_origin, run_invocation_cid, dispatch_request_cid,
   )
 }
@@ -936,7 +936,7 @@ pub fn salesforce_recover_named_catalog_observation(
   names : Array[String],
   describe_bytes : Array[Bytes?],
   outcomes : Array[Int],
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   connection_revision : String,
@@ -959,7 +959,7 @@ pub fn salesforce_recover_named_catalog_observation(
   max_observation_bytes : Int,
 ) -> @catalog.CatalogObservation raise SalesforceCatalogBridgeIssue {
   let binding : @catalog.CatalogObservationBinding = {
-    tenant,
+    namespace_id,
     principal,
     environment,
     connection_revision,

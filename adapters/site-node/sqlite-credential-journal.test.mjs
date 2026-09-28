@@ -17,7 +17,7 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 const scope = Object.freeze({
   issuerAuthority: 'credential-authority-a',
   principal: 'principal-a',
-  tenant: 'tenant-a',
+  namespaceId: 'namespace-a',
   environment: 'production',
   siteKey: 'site-a',
   siteGeneration: 4,

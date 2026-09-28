@@ -288,7 +288,7 @@ test "single write request retains current Catalog and exact Site scope" {
   assert_true(
     single_write_request_matches_site_scope(
       request,
-      binding.tenant,
+      binding.namespace_id,
       binding.principal,
       binding.environment,
       binding.site_key,
@@ -303,7 +303,7 @@ test "single write request retains current Catalog and exact Site scope" {
   assert_false(
     single_write_request_matches_site_scope(
       request,
-      binding.tenant,
+      binding.namespace_id,
       binding.principal,
       binding.environment,
       binding.site_key,

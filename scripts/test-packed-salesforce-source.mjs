@@ -154,7 +154,7 @@ try {
     credentialPrivateKeyPath: join(root, 'credential.key'),
     environment: 'packed', instanceOrigin: server.origin,
     journalRoot: join(root, 'credential-journal'), orgId, siteGeneration: 1,
-    siteKey: 'packed-site', tenant: 'packed-tenant',
+    siteKey: 'packed-site', namespaceId: 'packed-namespace',
     caPath: join(root, 'org.crt')}));
   await writeFile(join(root, 'source.json'), JSON.stringify({
     version: 'actql-installed-salesforce-source/0.1',

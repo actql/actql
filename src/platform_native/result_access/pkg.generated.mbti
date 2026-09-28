@@ -28,7 +28,7 @@ pub(all) enum NativeResultAccessIssue {
 }
 
 pub(all) struct NativeResultAccessRequest {
-  tenant_id : String
+  namespace_id : String
   authority_scope_cid : String
   run_definition_cid : String
   principal_id : String

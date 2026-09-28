@@ -18,7 +18,7 @@ export function installNodeClientRunAttach({journal, requestControl,
     throw new TypeError('InvalidClientRunAttachInstallation');
   }
   return async ({principalId, connection, ref}) => {
-    if (!text(principalId) || !text(ref?.tenantId) ||
+    if (!text(principalId) || !text(ref?.namespaceId) ||
         !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid)) {
       throw new TypeError('InvalidClientRunAttach');
     }
@@ -29,7 +29,7 @@ export function installNodeClientRunAttach({journal, requestControl,
         principalId, connection, ref: requested,
       }));
     } catch { throw denied(); }
-    if (selected?.tenantId !== requested.tenantId ||
+    if (selected?.namespaceId !== requested.namespaceId ||
         selected?.authorityScopeCid !== requested.authorityScopeCid) {
       throw denied();
     }

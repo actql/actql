@@ -120,7 +120,7 @@ pub(all) struct NativeEffectFreePublicationEvidence {
 /// Immutable publication intent. A retry must reuse these values so it
 /// resolves to the same canonical publication request.
 pub(all) struct NativeRunPublicationIntent {
-  tenant_id : String
+  namespace_id : String
   authority_scope_cid : String
   publication_policy_cid : String
   publication_target_cid : String
@@ -163,7 +163,7 @@ struct NativeRunPublicationPreparation {
 /// already published. The commit check binds the candidate index.
 pub(all) struct NativeRunPublicationAuthorization {
   stage : String
-  tenant_id : String
+  namespace_id : String
   authority_scope_cid : String
   run_definition_cid : String
   publication_request_cid : String
@@ -591,7 +591,7 @@ fn authorize(
   }
   if (service.authority.authorize)({
       stage,
-      tenant_id: intent.tenant_id,
+      namespace_id: intent.namespace_id,
       authority_scope_cid: intent.authority_scope_cid,
       run_definition_cid: @publication.publication_contract_identity(
         run_definition,
@@ -658,7 +658,7 @@ fn issue_request(
     @publication.issue_publication_request(
       run_definition,
       definitions,
-      intent.tenant_id,
+      intent.namespace_id,
       intent.authority_scope_cid,
       intent.publication_policy_cid,
       intent.publication_target_cid,
@@ -797,7 +797,7 @@ fn inspect_existing_commit(
   let existing = match
     store_result(
       service.store.inspect_committed_publication(
-        intent.tenant_id,
+        intent.namespace_id,
         intent.authority_scope_cid,
         @publication.publication_contract_identity(evidence.run_definition),
         service.max_wire_bytes,

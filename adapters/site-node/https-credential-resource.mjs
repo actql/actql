@@ -162,7 +162,7 @@ export async function callHttpsCredentialResource({
     const secret = await resolveSecret(Object.freeze({
       grantCid: claimed.record.grantCid,
       principal: scope.principal,
-      tenant: scope.tenant,
+      namespaceId: scope.namespaceId,
       environment: scope.environment,
       operation: scope.operation,
       resourceOrigin: scope.resourceOrigin,

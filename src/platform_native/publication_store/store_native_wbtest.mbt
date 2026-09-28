@@ -78,6 +78,34 @@ fn native_payload_fixture(
 }
 
 ///|
+test "native publication Store refuses old and unidentified roots without writes" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(library_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_LEGACY_STORE_ROOT")
+    is Some(legacy_root) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_UNKNOWN_STORE_ROOT")
+    is Some(unknown_root) else {
+    return
+  }
+  let library = @sqlite.load_library(library_path).unwrap()
+  let authority = native_payload_cid("format-test-authority")
+  guard open_store(library, legacy_root, authority, 64L, 8L, 65536L)
+    is Err(LegacyStoreFormat(path)) &&
+    path == legacy_root else {
+    fail("legacy Store root was accepted or relabeled")
+  }
+  guard open_store(library, unknown_root, authority, 64L, 8L, 65536L)
+    is Err(UnknownStoreFormat(path)) &&
+    path == unknown_root else {
+    fail("unidentified Store root was accepted or relabeled")
+  }
+}
+
+///|
 test "native publication payload streams, verifies and reclaims exactly" {
   guard native_payload_fixture("stream", 16L) is Some((store, authority, _)) else {
     return
@@ -849,7 +877,7 @@ fn native_commit_fixture(
   let request = @publication.issue_publication_request(
     run_definition,
     [definition],
-    "tenant",
+    "namespace_id",
     authority_scope_cid,
     native_payload_cid(token + "-publication-policy"),
     native_payload_cid(token + "-publication-target"),
@@ -949,7 +977,7 @@ test "native publication commit is unique durable and restart-visible" {
   assert_true(
     store
     .inspect_committed_publication(
-      "tenant",
+      "namespace_id",
       fixture.authority_scope_cid,
       @publication.publication_contract_identity(fixture.run_definition),
       65536,
@@ -985,7 +1013,7 @@ test "native publication commit is unique durable and restart-visible" {
   assert_true(
     store
     .inspect_committed_publication(
-      "tenant",
+      "namespace_id",
       fixture.authority_scope_cid,
       @publication.publication_contract_identity(fixture.run_definition),
       65536,
@@ -1087,7 +1115,7 @@ test "native publication commit is unique durable and restart-visible" {
   ).unwrap()
   let visible = reopened
     .inspect_committed_publication(
-      "tenant",
+      "namespace_id",
       fixture.authority_scope_cid,
       @publication.publication_contract_identity(fixture.run_definition),
       65536,
@@ -1106,7 +1134,7 @@ test "native publication commit is unique durable and restart-visible" {
   )
   let resolved = reopened
     .resolve_committed_result(
-      "tenant",
+      "namespace_id",
       fixture.authority_scope_cid,
       @publication.publication_contract_identity(fixture.run_definition),
       "answer",
@@ -1127,7 +1155,7 @@ test "native publication commit is unique durable and restart-visible" {
   )
   assert_true(
     reopened.resolve_committed_result(
-      "tenant",
+      "namespace_id",
       fixture.authority_scope_cid,
       @publication.publication_contract_identity(fixture.run_definition),
       "missing",

@@ -2127,7 +2127,7 @@
     },
     {
       "requirement_id": "actql.execution/cursor-recovery.product-be2f85421b3a",
-      "statement_sha256": "be2f85421b3a0fbc7b4d5e35d31d29b2d0027f769b8918d14e82e51c20b0a09b",
+      "statement_sha256": "7e4233ed3692866afd31e7b7cee0e3b9fbf43227624c1e1611bebedbb4f86e12",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -33,7 +33,7 @@ const requiredKeys = Object.freeze([
   'apiVersion', 'cliAlias', 'cliUsername',
   'connectionRevision', 'credentialAuthorityId', 'credentialKeyId',
   'credentialPrivateKeyPath', 'environment', 'instanceOrigin', 'journalRoot',
-  'orgId', 'siteGeneration', 'siteKey', 'tenant', 'version',
+  'orgId', 'siteGeneration', 'siteKey', 'namespaceId', 'version',
 ]);
 const optionalKeys = Object.freeze(['caPath']);
 // Record operations and the account boundary and operation class whose
@@ -77,7 +77,7 @@ export function installedSalesforceSiteBinding(site, connectorId) {
   return Object.freeze({connectorId, bindingCid: contentCid({
     version: 'actql-installed-salesforce-site-binding/0.1',
     contextCid: site.context.contextCid,
-    tenant: site.tenant, principal: site.principal,
+    namespace_id: site.namespaceId, principal: site.principal,
     environment: site.environment, connection: site.connection,
     connectionRevision: site.connectionRevision, orgId: site.orgId,
     instanceOrigin: site.instanceOrigin, siteKey: site.siteKey,
@@ -191,7 +191,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   const secret = resolveSecret ?? createSalesforceCliSecretResolver({
     connection: {alias: profile.cliAlias, orgId: profile.orgId,
       username: profile.cliUsername, instanceOrigin: profile.instanceOrigin},
-    principal: principalId, tenant: profile.tenant,
+    principal: principalId, namespaceId: profile.namespaceId,
     environment: profile.environment, siteKey: profile.siteKey,
     siteGeneration: profile.siteGeneration,
   });
@@ -222,7 +222,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     }
     const scope = Object.freeze({
       issuerAuthority: profile.credentialAuthorityId,
-      principal: principalId, tenant: profile.tenant,
+      principal: principalId, namespaceId: profile.namespaceId,
       environment: profile.environment, siteKey: profile.siteKey,
       siteGeneration: profile.siteGeneration, runtimeBundleCid,
       connectorRegistration: 'salesforce',
@@ -302,7 +302,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     }
     return attestSalesforceEffectCapabilityAuthority({
       scope: {issuerAuthority: profile.credentialAuthorityId,
-        principal: principalId, tenant: profile.tenant,
+        principal: principalId, namespaceId: profile.namespaceId,
         environment: profile.environment, siteKey: profile.siteKey,
         siteGeneration: profile.siteGeneration, runtimeBundleCid,
         connectorRegistration: 'salesforce',
@@ -495,7 +495,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     Number.isSafeInteger(limits?.maxDepth) && limits.maxDepth >= 1;
   // The binding an observation must carry to belong to this Site as
   // installed now.
-  const siteBinding = () => ({tenant: profile.tenant, principal: principalId,
+  const siteBinding = () => ({namespace_id: profile.namespaceId, principal: principalId,
     environment: profile.environment, org_id: profile.orgId,
     site_key: profile.siteKey, site_generation: profile.siteGeneration,
     connection_revision: profile.connectionRevision,
@@ -515,7 +515,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       salesforceMoon.salesforceCatalogObservationJson(observation)).binding;
     const declaration = checked(
       salesforceMoon.salesforceGenerateStaticDeclaration(observation,
-        binding.tenant, binding.principal, binding.environment,
+        binding.namespace_id, binding.principal, binding.environment,
         binding.connection_revision, binding.org_id, binding.site_key,
         binding.site_generation, binding.connector_registration,
         binding.connector_revision, binding.resource_origin,
@@ -724,7 +724,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     const plan = checked(salesforceMoon.salesforceReadProjectionWithRowLimit(
       checked(salesforceMoon.salesforceReadProjectionWithIdOrderIfSortable(
       checked(salesforceMoon.salesforcePrepareReadProjection(
-        catalog.observation, binding.tenant, binding.principal,
+        catalog.observation, binding.namespace_id, binding.principal,
         binding.environment, binding.connection_revision, binding.org_id,
         binding.site_key, binding.site_generation,
         binding.connector_registration, binding.connector_revision,
@@ -758,7 +758,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   return Object.freeze({
     orgId: profile.orgId, connection, apiVersion: profile.apiVersion,
     instanceOrigin: profile.instanceOrigin, siteKey: profile.siteKey,
-    siteGeneration: profile.siteGeneration, tenant: profile.tenant,
+    siteGeneration: profile.siteGeneration, namespaceId: profile.namespaceId,
     environment: profile.environment,
     connectionRevision: profile.connectionRevision,
     cliAlias: profile.cliAlias, cliUsername: profile.cliUsername,

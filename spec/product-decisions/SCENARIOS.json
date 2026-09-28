@@ -134,12 +134,12 @@
       "host_fixture": {
         "requests": [
           {
-            "scope": "tenant-a",
+            "scope": "namespace-a",
             "request_id": "event-001",
             "input_version": "v1"
           },
           {
-            "scope": "tenant-a",
+            "scope": "namespace-a",
             "request_id": "event-001",
             "input_version": "v1"
           }

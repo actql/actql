@@ -11,7 +11,7 @@ test "publication request and attempt are issued from admitted intent" {
   let request = issue_publication_request(
     run,
     [first, second],
-    "tenant-a",
+    "namespace-a",
     ordering_test_cid("3"),
     ordering_test_cid("4"),
     ordering_test_cid("5"),
@@ -114,7 +114,7 @@ fn committed_content_test_index(
 ) -> PublicationContract {
   let common = ordering_test_cid("1")
   let body = "{\"version\":\"actql-public-index-entry/0.1\"," +
-    "\"tenant_id\":\"tenant-a\",\"authority_scope_cid\":\"" +
+    "\"namespace_id\":\"namespace-a\",\"authority_scope_cid\":\"" +
     common +
     "\",\"run_definition_cid\":\"" +
     common +
@@ -187,7 +187,7 @@ test "publication issuance rejects empty inventories and foreign Runs" {
     issue_publication_request(
       run,
       [],
-      "tenant-a",
+      "namespace-a",
       ordering_test_cid("3"),
       ordering_test_cid("4"),
       ordering_test_cid("5"),
@@ -201,7 +201,7 @@ test "publication issuance rejects empty inventories and foreign Runs" {
   let request = issue_publication_request(
     run,
     [definition],
-    "tenant-a",
+    "namespace-a",
     ordering_test_cid("3"),
     ordering_test_cid("4"),
     ordering_test_cid("5"),
@@ -234,7 +234,7 @@ test "public index storage key fixes one commit per scoped Run" {
   assert_eq(key.length(), 64)
   assert_eq(
     publication_index_scope_storage_key(
-      "tenant",
+      "namespace_id",
       delivery_test_cid("4"),
       delivery_test_cid("3"),
       32768,
@@ -245,7 +245,7 @@ test "public index storage key fixes one commit per scoped Run" {
   )
   assert_true(
     publication_index_scope_storage_key(
-      "tenant",
+      "namespace_id",
       delivery_test_cid("4"),
       delivery_test_cid("0"),
       32768,
@@ -288,7 +288,7 @@ test "publication preflight fixes the complete immutable inventory" {
   let request = issue_publication_request(
     run,
     [first, second],
-    "tenant-a",
+    "namespace-a",
     ordering_test_cid("3"),
     ordering_test_cid("4"),
     ordering_test_cid("5"),
@@ -442,7 +442,7 @@ test "publication preflight fixes the complete immutable inventory" {
   let incomplete_request = issue_publication_request(
     run,
     [first],
-    "tenant-a",
+    "namespace-a",
     ordering_test_cid("3"),
     ordering_test_cid("4"),
     ordering_test_cid("5"),

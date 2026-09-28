@@ -3,6 +3,9 @@ pub(all) enum NativePublicationStoreIssue {
   UnsupportedTarget
   Closed
   InvalidConfiguration
+  LegacyStoreFormat(String)
+  UnknownStoreFormat(String)
+  StoreFormatIo(String)
   Protocol(@payload.PublicationPayloadIssue)
   Filesystem(@filesystem.NativeFilesystemIssue)
   Database(@sqlite.NativeSqliteIssue)

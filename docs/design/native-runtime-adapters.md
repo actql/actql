@@ -285,7 +285,7 @@ claimed use is not refunded merely because the process stops before delivery.
 Formal publication validates the complete Run-bound chain, including every
 Result derivation, ordering proof, retention policy, and durable binding,
 before persisting its semantic contracts. The public index is then installed
-as one absent-only SQLite row keyed by tenant, authority scope, and exact Run
+as one absent-only SQLite row keyed by namespace, authority scope, and exact Run
 Definition. That row is the visibility boundary. An exact retry returns the
 same commit, while a different Invocation, attempt, Manifest, or intent for
 the same scoped Run is a conflict. Restart lookup re-admits the exact stored

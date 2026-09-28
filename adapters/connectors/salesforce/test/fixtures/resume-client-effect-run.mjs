@@ -35,7 +35,7 @@ try {
     },
   });
   const handle = await host.accept({prepared, authorityScopeCid: cid('a'),
-    requestId: input.requestId, tenantId: 'tenant-a', principalId: 'caller',
+    requestId: input.requestId, namespaceId: 'namespace-a', principalId: 'caller',
     connection: {owner: 'local'}, lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
   const result = await host.start(handle);
   process.stdout.write(JSON.stringify({kind: result.kind, captures, ref: result.ref}));

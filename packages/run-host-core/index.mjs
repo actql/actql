@@ -913,14 +913,14 @@ export function projectPublicationSnapshot(record, index) {
 export function publicationIndexScopeKey(ref, limits) {
   if (ref === null || typeof ref !== 'object' || Array.isArray(ref) ||
       Object.keys(ref).sort().join('\0') !==
-        'authorityScopeCid\0runDefinitionCid\0tenantId' ||
-      !['tenantId', 'authorityScopeCid', 'runDefinitionCid']
+        'authorityScopeCid\0runDefinitionCid\0namespaceId' ||
+      !['namespaceId', 'authorityScopeCid', 'runDefinitionCid']
         .every(key => typeof ref[key] === 'string')) {
     throw new TypeError('InvalidRunHostPublicationIndexScope');
   }
   const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
   return checked(owner.clientValuesHostPublicationIndexScopeKey(
-    ref.tenantId, ref.authorityScopeCid, ref.runDefinitionCid,
+    ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid,
     maxWireBytes, maxNodes, maxDepth),
   'RunHostPublicationIndexScopeRejected');
 }
@@ -1090,7 +1090,7 @@ function publicationItems(values) {
 export function issuePublicationRequest(runDefinition, definitions, facts,
   limits) {
   if (facts === null || typeof facts !== 'object' ||
-      ['tenantId', 'authorityScopeCid', 'publicationPolicyCid',
+      ['namespaceId', 'authorityScopeCid', 'publicationPolicyCid',
         'publicationTargetCid', 'requestedAt'].some(key =>
         typeof facts[key] !== 'string')) {
     throw new TypeError('InvalidRunHostPublicationRequest');
@@ -1099,7 +1099,7 @@ export function issuePublicationRequest(runDefinition, definitions, facts,
   return publicationContract(checked(
     owner.clientValuesHostIssuePublicationRequest(
       publicationToken(runDefinition), publicationItems(definitions),
-      facts.tenantId, facts.authorityScopeCid,
+      facts.namespaceId, facts.authorityScopeCid,
       facts.publicationPolicyCid, facts.publicationTargetCid,
       facts.requestedAt, maxWireBytes, maxNodes, maxDepth),
     'RunHostPublicationRequestRejected'));

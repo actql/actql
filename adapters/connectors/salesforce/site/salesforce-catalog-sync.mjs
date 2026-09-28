@@ -220,7 +220,7 @@ export async function syncSalesforceCatalog({
   }
   const observation = checked(moon.salesforcePrepareCatalogObservation(
     sync,
-    listScope.tenant,
+    listScope.namespaceId,
     listScope.principal,
     listScope.environment,
     connectionRevision,

@@ -173,7 +173,7 @@ export function publicationSchemas() {
     'actql-publication-request',
     'actql-publication-request/0.1',
     [
-      'tenant_id',
+      'namespace_id',
       'authority_scope_cid',
       'run_definition_cid',
       'inventory',
@@ -183,7 +183,7 @@ export function publicationSchemas() {
       'publication_request_cid',
     ],
     {
-      tenant_id: clone(nonempty),
+      namespace_id: clone(nonempty),
       authority_scope_cid: clone(cid),
       run_definition_cid: clone(cid),
       inventory: inventory(),
@@ -261,7 +261,7 @@ export function publicationSchemas() {
     ],
   );
   const grantBase = {
-    tenant_id: clone(nonempty),
+    namespace_id: clone(nonempty),
     authority_scope_cid: clone(cid),
     principal_id: clone(nonempty),
     run_definition_cid: clone(cid),
@@ -400,7 +400,7 @@ export function publicationSchemas() {
     'actql-public-index-entry',
     'actql-public-index-entry/0.1',
     [
-      'tenant_id',
+      'namespace_id',
       'authority_scope_cid',
       'run_definition_cid',
       'invocation_cid',
@@ -414,7 +414,7 @@ export function publicationSchemas() {
       'public_index_entry_cid',
     ],
     {
-      tenant_id: clone(nonempty),
+      namespace_id: clone(nonempty),
       authority_scope_cid: clone(cid),
       run_definition_cid: clone(cid),
       invocation_cid: clone(cid),
@@ -573,7 +573,7 @@ export function publicationRegistry() {
       run_invocation:
         'template_matches_observation_set_and_all_required_observations_are_admitted',
       publication_commit:
-        'one_tenant_authority_run_definition_has_one_atomic_durable_public_index_entry',
+        'one_namespace_authority_run_definition_has_one_atomic_durable_public_index_entry',
       publication_retry:
         'unknown_reconciles_under_fencing_before_retry_and_durable_commit_wins_cancel_race',
       availability:

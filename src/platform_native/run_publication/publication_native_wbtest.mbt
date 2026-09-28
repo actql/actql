@@ -313,7 +313,7 @@ fn publication_test_fixture(
       captured_run,
     },
     {
-      tenant_id: "tenant",
+      namespace_id: "namespace_id",
       authority_scope_cid,
       publication_policy_cid: publication_test_cid(token + "-policy"),
       publication_target_cid: publication_test_cid(token + "-target"),

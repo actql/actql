@@ -10,7 +10,7 @@ import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
-  ordered, tenantId, authorityScopeCid, storeAuthorityCid, now,
+  ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
   faultInjection,
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
@@ -144,7 +144,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       unresolvedCleanup: false, sourceCapture: undefined};
     entries.set(keyOf(accepted.ref), entry);
     entry.promise = Promise.resolve().then(async () => {
-      const claim = await startRun({identity: requested, tenantId,
+      const claim = await startRun({identity: requested, namespaceId,
         principalId: actual, connection});
       if (claim.kind !== 'reserved' &&
           !(claim.kind === 'reconcile' &&
@@ -178,7 +178,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       }
       entry.physicalStartClaimAttempted = true;
       if (!journal.reservePhysicalStart(requested, {
-        tenantId, ref: accepted.ref,
+        namespaceId, ref: accepted.ref,
         currentAuthorization: hostConnection({principalId: actual,
           connection, ref: accepted.ref}),
       }, moon, control)) return;
@@ -232,7 +232,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           authorityScopeCid,
           effectiveDataPolicyCid:
             entry.sourceCapture.checkedSource.sourceDataPolicyCid,
-          captureStartedAt, captureCompletedAt, tenantId,
+          captureStartedAt, captureCompletedAt, namespaceId,
           requestId: submission.requestId, storeAuthorityCid, now});
         setup = entry.sourceCapture.setup;
       }

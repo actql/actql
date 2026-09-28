@@ -1,11 +1,28 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {connectEmbeddedLocal} from './embedded-local.mjs';
+import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
+  './embedded-local.mjs';
 import {installedEffectIdentity} from './installed-effect.mjs';
 import {installedSourceIdentity} from './installed-source.mjs';
+
+test('public Host entrypoints reject an old root before modifying it',
+  async t => {
+    const directory = await mkdtemp(join(tmpdir(), 'actql-prior-host-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const prior = Buffer.from('retained prior request state');
+    await writeFile(join(directory, 'requests'), prior);
+    const entries = await readdir(directory);
+    await assert.rejects(openInstalledRemoteHttpHost({directory,
+      authenticate: async () => ({principalId: 'caller'})}),
+    {code: 'LegacyHostRootFormat'});
+    await assert.rejects(connectEmbeddedLocal({mode: 'local', owner: 'local',
+      installation: {directory}}), {code: 'LegacyHostRootFormat'});
+    assert.deepEqual(await readdir(directory), entries);
+    assert.deepEqual(await readFile(join(directory, 'requests')), prior);
+  });
 
 test('embedded Host reuses equivalent installation options, not object identity',
   async t => {

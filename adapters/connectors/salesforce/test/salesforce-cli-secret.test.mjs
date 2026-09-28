@@ -5,7 +5,7 @@ import {createSalesforceCliSecretResolver,
 
 const binding = Object.freeze({alias: 'actql-test', orgId: '00D-ONE',
   username: 'user@example.test', instanceOrigin: 'https://sf.example.test'});
-const scope = Object.freeze({principal: 'principal-a', tenant: 'tenant-a',
+const scope = Object.freeze({principal: 'principal-a', namespaceId: 'namespace-a',
   environment: 'local', siteKey: 'site-a', siteGeneration: 3,
   connectorRegistration: 'salesforce',
   resourceOrigin: binding.instanceOrigin, operation: 'salesforce:query:read'});
@@ -19,7 +19,7 @@ const settings = invoke => ({invoke, executable: 'sf',
   maxOutputBytes: 8192, timeoutMs: 1000});
 const resolver = (invoke, overrides = {}) =>
   createSalesforceCliSecretResolver({connection: binding,
-    principal: scope.principal, tenant: scope.tenant,
+    principal: scope.principal, namespaceId: scope.namespaceId,
     environment: scope.environment, siteKey: scope.siteKey,
     siteGeneration: scope.siteGeneration, ...settings(invoke), ...overrides});
 
@@ -134,7 +134,7 @@ test('scope mismatch fails before invoking the CLI', async () => {
     return {stdout: serialized()};
   });
   for (const difference of [
-    {principal: 'other'}, {tenant: 'other'}, {environment: 'cloud'},
+    {principal: 'other'}, {namespaceId: 'other'}, {environment: 'cloud'},
     {siteGeneration: 4}, {siteKey: 'site-b'},
     {connectorRegistration: 'other'},
     {resourceOrigin: 'https://other.example.test'},
@@ -195,7 +195,7 @@ test('CLI failures are bounded, typed, and redact token-bearing output',
 test('production subprocess path rejects absent CLI without a fallback',
   async () => {
     const resolveSecret = createSalesforceCliSecretResolver({
-      connection: binding, principal: scope.principal, tenant: scope.tenant,
+      connection: binding, principal: scope.principal, namespaceId: scope.namespaceId,
       environment: scope.environment, siteKey: scope.siteKey,
       siteGeneration: scope.siteGeneration,
       executable: 'actql-nonexistent-salesforce-cli-executable',

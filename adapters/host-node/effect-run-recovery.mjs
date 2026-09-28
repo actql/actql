@@ -19,7 +19,7 @@ export async function recoverAdmittedEffectRun({
 }, loadRuntime) {
   if (typeof requests?.lookupOwnedDefinition !== 'function' ||
       typeof store?.storeAuthorityCid !== 'string' ||
-      !text(principalId) || !text(key?.tenantId) ||
+      !text(principalId) || !text(key?.namespaceId) ||
       !text(key?.requestId) || !cid(key?.authorityScopeCid) ||
       !cid(key?.runDefinitionCid) ||
       typeof authorizeEvidenceRead !== 'function' ||
@@ -30,7 +30,7 @@ export async function recoverAdmittedEffectRun({
     fail('InvalidAdmittedEffectRecovery');
   }
   const lookup = requests.lookupOwnedDefinition.bind(requests);
-  const ownedKey = Object.freeze({tenantId: key.tenantId,
+  const ownedKey = Object.freeze({namespaceId: key.namespaceId,
     authorityScopeCid: key.authorityScopeCid, requestId: key.requestId,
     runDefinitionCid: key.runDefinitionCid});
   const limits = Object.freeze({maxWireBytes: contractLimits.maxWireBytes,

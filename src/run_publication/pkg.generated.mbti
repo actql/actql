@@ -893,7 +893,7 @@ pub(all) enum ExistingDeliveryAttemptAction {
 type PendingSourceStateAdvance
 
 pub(all) struct PublicIndexRead {
-  tenant_id : String
+  namespace_id : String
   authority_scope_cid : String
   run_definition_cid : String
   invocation_cid : String

@@ -407,7 +407,7 @@ fn native_publication_run_context(
       native_publication_retention(token, 1),
     ],
     {
-      tenant_id: "tenant",
+      namespace_id: "namespace_id",
       authority_scope_cid,
       publication_policy_cid: native_publication_cid(token + "-policy"),
       publication_target_cid: native_publication_cid(token + "-target"),
@@ -615,7 +615,7 @@ fn verify_native_publication_run(
   for name in ["b", "c"] {
     let resolved = reopened
       .resolve_committed_result(
-        intent.tenant_id,
+        intent.namespace_id,
         intent.authority_scope_cid,
         @publication.publication_contract_identity(run_context.run_definition),
         name,
@@ -665,7 +665,7 @@ fn verify_native_publication_run(
       ("csv", "\"id\"\n3\n", "csv"),
     ] {
     let session = @native_result_access.open_native_result_access(access, {
-      tenant_id: intent.tenant_id,
+      namespace_id: intent.namespace_id,
       authority_scope_cid: intent.authority_scope_cid,
       run_definition_cid: @publication.publication_contract_identity(
         run_context.run_definition,

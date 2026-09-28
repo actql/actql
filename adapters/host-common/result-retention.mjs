@@ -177,9 +177,9 @@ function validateRequest(request) {
   if (!exactKeys(request, [
     'indexKey', 'resultName', 'reason',
   ]) || !exactKeys(request.indexKey, [
-    'tenantId', 'authorityScopeCid', 'runDefinitionCid',
-  ]) || typeof request.indexKey.tenantId !== 'string' ||
-      request.indexKey.tenantId.length === 0 ||
+    'namespaceId', 'authorityScopeCid', 'runDefinitionCid',
+  ]) || typeof request.indexKey.namespaceId !== 'string' ||
+      request.indexKey.namespaceId.length === 0 ||
       !cidPattern.test(request.indexKey.authorityScopeCid) ||
       !cidPattern.test(request.indexKey.runDefinitionCid) ||
       typeof request.resultName !== 'string' ||
@@ -264,9 +264,9 @@ export async function retireExpiredResult(service, request) {
 function validateMetadataRequest(request) {
   if (!exactKeys(request, ['indexKey', 'reason']) ||
       !exactKeys(request.indexKey, [
-        'tenantId', 'authorityScopeCid', 'runDefinitionCid',
-      ]) || typeof request.indexKey.tenantId !== 'string' ||
-      request.indexKey.tenantId.length === 0 ||
+        'namespaceId', 'authorityScopeCid', 'runDefinitionCid',
+      ]) || typeof request.indexKey.namespaceId !== 'string' ||
+      request.indexKey.namespaceId.length === 0 ||
       !cidPattern.test(request.indexKey.authorityScopeCid) ||
       !cidPattern.test(request.indexKey.runDefinitionCid) ||
       typeof request.reason !== 'string' || request.reason.length === 0) {
@@ -344,9 +344,9 @@ function validateExtensionRequest(request) {
   if (!exactKeys(request, [
     'indexKey', 'resultName', 'availableUntil', 'reason',
   ]) || !exactKeys(request.indexKey, [
-    'tenantId', 'authorityScopeCid', 'runDefinitionCid',
-  ]) || typeof request.indexKey.tenantId !== 'string' ||
-      request.indexKey.tenantId.length === 0 ||
+    'namespaceId', 'authorityScopeCid', 'runDefinitionCid',
+  ]) || typeof request.indexKey.namespaceId !== 'string' ||
+      request.indexKey.namespaceId.length === 0 ||
       !cidPattern.test(request.indexKey.authorityScopeCid) ||
       !cidPattern.test(request.indexKey.runDefinitionCid) ||
       typeof request.resultName !== 'string' ||

@@ -110,7 +110,7 @@ fn optional(name : String, rule : FieldRule) -> FieldSpec {
 ///|
 fn common_grant_fields() -> Array[FieldSpec] {
   [
-    required("tenant_id", NonemptyText),
+    required("namespace_id", NonemptyText),
     required("authority_scope_cid", Cid),
     required("principal_id", NonemptyText),
     required("run_definition_cid", Cid),
@@ -349,7 +349,7 @@ fn contract_spec(name : String) -> ContractSpec? {
         version: "actql-publication-request/0.1",
         identity: "publication_request_cid",
         fields: [
-          required("tenant_id", NonemptyText),
+          required("namespace_id", NonemptyText),
           required("authority_scope_cid", Cid),
           required("run_definition_cid", Cid),
           required("inventory", Inventory),
@@ -460,7 +460,7 @@ fn contract_spec(name : String) -> ContractSpec? {
         version: "actql-public-index-entry/0.1",
         identity: "public_index_entry_cid",
         fields: [
-          required("tenant_id", NonemptyText),
+          required("namespace_id", NonemptyText),
           required("authority_scope_cid", Cid),
           required("run_definition_cid", Cid),
           required("invocation_cid", Cid),

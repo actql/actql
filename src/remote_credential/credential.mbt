@@ -13,7 +13,7 @@ pub(all) enum RemoteCredentialIssue {
 struct RemoteCredentialGrant {
   issuer_authority : String
   principal : String
-  tenant : String
+  namespace_id : String
   environment : String
   site_key : String
   site_generation : Int
@@ -98,7 +98,7 @@ fn valid_origin(value : String) -> Bool {
 fn valid_grant_fields(grant : RemoteCredentialGrant) -> Bool {
   bounded_text(grant.issuer_authority, 512) &&
   bounded_text(grant.principal, 512) &&
-  bounded_text(grant.tenant, 512) &&
+  bounded_text(grant.namespace_id, 512) &&
   bounded_text(grant.environment, 512) &&
   bounded_text(grant.site_key, 512) &&
   grant.site_generation >= 0 &&
@@ -153,8 +153,8 @@ fn grant_body(
     @encode.string_value(writer, grant.site_key)
     @encode.key(writer, "task_attempt")
     @encode.number_value(writer, grant.task_attempt.to_double())
-    @encode.key(writer, "tenant")
-    @encode.string_value(writer, grant.tenant)
+    @encode.key(writer, "namespace_id")
+    @encode.string_value(writer, grant.namespace_id)
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-remote-credential-grant/0.1")
     @encode.end_object(writer)
@@ -182,7 +182,7 @@ fn grant_identity(
 pub fn prepare_grant(
   issuer_authority : String,
   principal : String,
-  tenant : String,
+  namespace_id : String,
   environment : String,
   site_key : String,
   site_generation : Int,
@@ -200,7 +200,7 @@ pub fn prepare_grant(
   let pending : RemoteCredentialGrant = {
     issuer_authority,
     principal,
-    tenant,
+    namespace_id,
     environment,
     site_key,
     site_generation,
@@ -312,7 +312,7 @@ fn admit_grant_body(
       "connector_registration", "connector_revision", "dispatch_request_cid", "environment",
       "expires_unix_ms", "issuer_authority", "max_uses", "operation", "principal",
       "resource_origin", "run_invocation_cid", "runtime_bundle_cid", "site_generation",
-      "site_key", "task_attempt", "tenant", "version",
+      "site_key", "task_attempt", "namespace_id", "version",
     ]),
   )
   if credential_text(object, "version") != "actql-remote-credential-grant/0.1" {
@@ -322,7 +322,7 @@ fn admit_grant_body(
     prepare_grant(
       credential_text(object, "issuer_authority"),
       credential_text(object, "principal"),
-      credential_text(object, "tenant"),
+      credential_text(object, "namespace_id"),
       credential_text(object, "environment"),
       credential_text(object, "site_key"),
       credential_int(object, "site_generation"),
@@ -393,7 +393,7 @@ pub fn credential_grant_projection(
     grant.grant_cid,
     grant.issuer_authority,
     grant.principal,
-    grant.tenant,
+    grant.namespace_id,
     grant.environment,
     grant.site_key,
     grant.site_generation.to_string(),
@@ -528,7 +528,7 @@ pub fn prepare_credential_use(
   used_count : Int,
   revoked : Bool,
   principal : String,
-  tenant : String,
+  namespace_id : String,
   environment : String,
   site_key : String,
   site_generation : Int,
@@ -550,7 +550,7 @@ pub fn prepare_credential_use(
     used_count >= grant.max_uses ||
     revoked ||
     principal != grant.principal ||
-    tenant != grant.tenant ||
+    namespace_id != grant.namespace_id ||
     environment != grant.environment ||
     site_key != grant.site_key ||
     site_generation != grant.site_generation ||
@@ -661,7 +661,7 @@ pub fn authorize_credential_use(
   trusted_now_ms : Int64,
   revoked : Bool,
   principal : String,
-  tenant : String,
+  namespace_id : String,
   environment : String,
   site_key : String,
   site_generation : Int,
@@ -682,7 +682,7 @@ pub fn authorize_credential_use(
     credential_use.use_ordinal > grant.max_uses ||
     revoked ||
     principal != grant.principal ||
-    tenant != grant.tenant ||
+    namespace_id != grant.namespace_id ||
     environment != grant.environment ||
     site_key != grant.site_key ||
     site_generation != grant.site_generation ||

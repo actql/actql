@@ -7,7 +7,7 @@ fn credential_test_cid(digit : String) -> String {
 fn credential_test_scope(origin : String) -> NativeCredentialScope {
   {
     principal: "principal-a",
-    tenant: "tenant-a",
+    namespace_id: "namespace-a",
     environment: "test",
     site_key: "site-a",
     site_generation: 2,
@@ -253,7 +253,7 @@ test "native credential resource consumes one durable scoped use" {
   let expired_grant = @credential.prepare_grant(
     "credential-authority-a",
     scope.principal,
-    scope.tenant,
+    scope.namespace_id,
     scope.environment,
     scope.site_key,
     scope.site_generation,

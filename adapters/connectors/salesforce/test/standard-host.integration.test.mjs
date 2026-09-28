@@ -124,7 +124,7 @@ async function installation(t, {readable = ['Test_Record__c'],
     credentialPrivateKeyPath: join(root, 'credential.key'),
     environment: 'test', instanceOrigin: org.origin,
     journalRoot: join(root, 'credential-journal'), orgId: org.orgId,
-    siteGeneration: 1, siteKey: 'salesforce-site', tenant: 'tenant-a',
+    siteGeneration: 1, siteKey: 'salesforce-site', namespaceId: 'namespace-a',
     caPath: join(root, 'org-ca.crt')};
   const sitePath = join(root, 'salesforce-site.json');
   await writeFile(sitePath, JSON.stringify(siteDocument));

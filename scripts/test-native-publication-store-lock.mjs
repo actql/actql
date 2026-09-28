@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
-import {mkdir, mkdtemp, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {once} from 'node:events';
@@ -30,11 +30,12 @@ sys.stdin.buffer.read(1)
 os.close(descriptor)
 `;
 
-const runProbe = mode => new Promise((resolve, reject) => {
+const runProbe = (mode, filter = '*cross-process root ownership*',
+  extraEnv = {}) => new Promise((resolve, reject) => {
   const child = spawn(moon, [
     'test', '--target', 'native',
     'src/platform_native/publication_store',
-    '--filter', '*cross-process root ownership*',
+    '--filter', filter,
   ], {
     cwd: repositoryRoot,
     env: {
@@ -42,6 +43,7 @@ const runProbe = mode => new Promise((resolve, reject) => {
       ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
       ACTQL_TEST_NATIVE_STORE_ROOT: root,
       ACTQL_TEST_PUBLICATION_LOCK_MODE: mode,
+      ...extraEnv,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -80,6 +82,32 @@ try {
   assert.equal(code, 0);
   holder = undefined;
   await runProbe('released');
+  const legacyRoot = await mkdtemp(join(scratchParent,
+    'publication-store-legacy-'));
+  const unknownRoot = await mkdtemp(join(scratchParent,
+    'publication-store-unknown-'));
+  try {
+    const legacyBytes = Buffer.from('legacy Store bytes');
+    const unknownBytes = Buffer.from('unidentified Store bytes');
+    await writeFile(join(legacyRoot, '.actql-publication.sqlite3'),
+      legacyBytes);
+    await writeFile(join(unknownRoot, 'unidentified-record'), unknownBytes);
+    await runProbe('released',
+      '*refuses old and unidentified roots without writes*', {
+        ACTQL_TEST_NATIVE_LEGACY_STORE_ROOT: legacyRoot,
+        ACTQL_TEST_NATIVE_UNKNOWN_STORE_ROOT: unknownRoot,
+      });
+    assert.deepEqual(await readdir(legacyRoot),
+      ['.actql-publication.sqlite3']);
+    assert.deepEqual(await readdir(unknownRoot), ['unidentified-record']);
+    assert.deepEqual(await readFile(join(legacyRoot,
+      '.actql-publication.sqlite3')), legacyBytes);
+    assert.deepEqual(await readFile(join(unknownRoot,
+      'unidentified-record')), unknownBytes);
+  } finally {
+    await rm(legacyRoot, {recursive: true, force: true});
+    await rm(unknownRoot, {recursive: true, force: true});
+  }
   console.log('Native publication Store cross-process lock passed');
 } finally {
   if (holder !== undefined && holder.exitCode === null) {

@@ -135,7 +135,7 @@
       "acceptance_cases": [
         "D6.duplicate-request",
         "D6.request-conflict",
-        "D6.tenant-isolation",
+        "D6.namespace-isolation",
         "D6.intentional-repeat",
         "D6.recovery-new-worker",
         "D6.crash-before-dispatch",

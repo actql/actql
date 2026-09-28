@@ -5,7 +5,7 @@ const fail = () => {
 };
 
 const bindingKeys = Object.freeze([
-  'issuerAuthority', 'principal', 'tenant', 'environment',
+  'issuerAuthority', 'principal', 'namespaceId', 'environment',
   'siteKey', 'siteGeneration', 'runtimeBundleCid',
   'connectorRegistration', 'connectorRevision', 'resourceOrigin',
   'runInvocationCid', 'taskAttempt', 'dispatchRequestCid',

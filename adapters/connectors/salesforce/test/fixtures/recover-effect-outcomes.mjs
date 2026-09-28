@@ -45,7 +45,7 @@ function restoreSiteConnection(connection, control, usePrefix) {
     const grant = control.admitJson(entry.wire, entry.cid);
     const p = control.projection(grant);
     return Object.freeze({grant, useId, scope: Object.freeze({
-      issuerAuthority: p[1], principal: p[2], tenant: p[3],
+      issuerAuthority: p[1], principal: p[2], namespaceId: p[3],
       environment: p[4], siteKey: p[5], siteGeneration: Number(p[6]),
       runtimeBundleCid: p[7], connectorRegistration: p[8],
       connectorRevision: p[9], resourceOrigin: p[10], operation: p[11],
@@ -94,7 +94,7 @@ try {
   let recovery;
   try {
     recovery = await recoverAdmittedEffectRun({
-      requests, store, key: {tenantId: 'tenant-a',
+      requests, store, key: {namespaceId: 'namespace-a',
         authorityScopeCid: input.authorityScopeCid,
         requestId: input.callerRequestId,
         runDefinitionCid: expectedDefinition.identity},
@@ -210,7 +210,7 @@ try {
       const binding = JSON.parse(
         salesforceMoon.salesforceCatalogObservationJson(observation)).binding;
       return checked(salesforceMoon.salesforceGenerateStaticDeclaration(
-        observation, binding.tenant, binding.principal, binding.environment,
+        observation, binding.namespace_id, binding.principal, binding.environment,
         binding.connection_revision, binding.org_id, binding.site_key,
         binding.site_generation, binding.connector_registration,
         binding.connector_revision, binding.resource_origin,
