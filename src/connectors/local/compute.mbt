@@ -41,8 +41,16 @@ pub fn local_fixed_compute_candidate(
     ) {
     return Err(ForeignPreparation)
   }
+  let numeric_reductions = local_sequence_numeric_reductions(sequence)
   @connector.bind_compute_candidate(
-    registration, request, sequence, 5, estimates, quantities, max_entries,
+    registration,
+    request,
+    sequence,
+    5,
+    estimates,
+    quantities,
+    max_entries,
+    numeric_reductions~,
   )
 }
 
@@ -83,17 +91,7 @@ pub fn[T] local_managed_fixed_compute_candidate(
     ) {
     return Err(ForeignPreparation)
   }
-  let numeric_reductions = if local_managed_sequence_requires_numeric(sequence) {
-    let profile = @numeric.builtin_profile()
-    [
-      @connector.numeric_reduction_support(
-        @numeric.cid(profile),
-        @numeric.member_cid_at(profile, 0).unwrap(),
-      ).unwrap(),
-    ]
-  } else {
-    []
-  }
+  let numeric_reductions = local_sequence_numeric_reductions(sequence)
   @connector.bind_managed_compute_candidate(
     registration,
     request,
@@ -104,6 +102,23 @@ pub fn[T] local_managed_fixed_compute_candidate(
     max_entries,
     numeric_reductions~,
   )
+}
+
+///|
+fn local_sequence_numeric_reductions(
+  sequence : @execution.GeneratedSequence,
+) -> Array[@connector.NumericReductionSupport] {
+  if local_managed_sequence_requires_numeric(sequence) {
+    let profile = @numeric.builtin_profile()
+    [
+      @connector.numeric_reduction_support(
+        @numeric.cid(profile),
+        @numeric.member_cid_at(profile, 0).unwrap(),
+      ).unwrap(),
+    ]
+  } else {
+    []
+  }
 }
 
 ///|

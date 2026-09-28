@@ -78,20 +78,10 @@ pub fn[T, P] bind_managed_compute_candidate(
     !valid_quantity(quantities.money_units) {
     return Err(NegativeQuantity)
   }
-  if numeric_reductions.length() > max_entries {
-    return Err(PlanningLimit)
-  }
-  let reductions = numeric_reductions.copy()
-  for index, reduction in reductions {
-    if !valid_content_cid(reduction.profile_cid) ||
-      !valid_content_cid(reduction.member_cid) {
-      return Err(InvalidLimits)
-    }
-    for prior in 0..<index {
-      if reductions[prior].profile_cid == reduction.profile_cid {
-        return Err(InvalidLimits)
-      }
-    }
+  let reductions = match
+    checked_numeric_reduction_supports(numeric_reductions, max_entries) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   match
     @cost.assess_serial(
@@ -112,6 +102,31 @@ pub fn[T, P] bind_managed_compute_candidate(
         payload,
       })
   }
+}
+
+///|
+/// Candidate metadata is copied and validated before either execution form
+/// may use it to select a task-owned numeric reduction.
+fn checked_numeric_reduction_supports(
+  declarations : Array[NumericReductionSupport],
+  max_entries : Int,
+) -> Result[Array[NumericReductionSupport], FixedComputeIssue] {
+  if declarations.length() > max_entries {
+    return Err(PlanningLimit)
+  }
+  let reductions = declarations.copy()
+  for index, reduction in reductions {
+    if !valid_content_cid(reduction.profile_cid) ||
+      !valid_content_cid(reduction.member_cid) {
+      return Err(InvalidLimits)
+    }
+    for prior in 0..<index {
+      if reductions[prior].profile_cid == reduction.profile_cid {
+        return Err(InvalidLimits)
+      }
+    }
+  }
+  Ok(reductions)
 }
 
 ///|

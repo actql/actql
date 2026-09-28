@@ -7668,6 +7668,62 @@ async function exerciseStrategyGraph(
       ['id', 'n'], [{id: 1}, {id: 1}, {id: 2}]),
     expected: [{id: 1, n: 2}, ...[2, 3, 4].map(id => ({id, n: 1}))],
     fields: ['id', 'n']},
+    {name: 'group-sum-filter-select', source: retainedUnaryChain(
+      [{group: {by: ['id'], aggregates: {
+        total: {fn: 'sum', field: 'amount'},
+      }}}], [{filter: 'total > 0'}, {select: ['id', 'total']}],
+      ['id', 'total'], [
+        {id: 1, amount: 2}, {id: 1, amount: 3},
+        {id: 2, amount: 4},
+      ], {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false},
+      }),
+    expected: [{id: 1, total: 5}, {id: 2, total: 4}],
+    fields: ['id', 'total']},
+    {name: 'group-sum-avg-filter-select', source: retainedUnaryChain(
+      [{group: {by: ['id'], aggregates: {
+        mean: {fn: 'avg', field: 'amount'},
+        total: {fn: 'sum', field: 'amount'},
+      }}}], [{filter: 'total > 0'},
+        {select: ['id', 'mean', 'total']}],
+      ['id', 'mean', 'total'], [
+        {id: 1, amount: 2}, {id: 1, amount: 4},
+        {id: 2, amount: 8},
+      ], {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false},
+      }),
+    expected: [
+      {id: 1, mean: 3, total: 6}, {id: 2, mean: 8, total: 8},
+    ], fields: ['id', 'mean', 'total']},
+    {name: 'group-sum-avg-empty-global', source: retainedUnaryChain(
+      [{filter: 'id < 0'}, {group: {by: [], aggregates: {
+        mean: {fn: 'avg', field: 'amount'},
+        total: {fn: 'sum', field: 'amount'},
+      }}}], [{select: ['mean', 'total']}],
+      ['mean', 'total'], [{id: 1, amount: 2}], {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false},
+      }),
+    expected: [{mean: null, total: null}], fields: ['mean', 'total']},
+    {name: 'group-sum-global-sum', source: retainedUnaryChain(
+      [{group: {by: ['id'], aggregates: {
+        total: {fn: 'sum', field: 'amount'},
+      }}}], [
+        {filter: 'total > 0'},
+        {group: {by: [], aggregates: {
+          grand: {fn: 'sum', field: 'total'},
+        }}},
+        {select: ['grand']},
+      ], ['grand'], [
+        {id: 1, amount: 2}, {id: 1, amount: 3},
+        {id: 2, amount: 4},
+      ], {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false},
+      }),
+    expected: [{grand: 9}], fields: ['grand']},
     {name: 'row-window-filter-select', source: retainedUnaryChain(
       [{row_window: {kind: 'fixed', time: 'id', size: 10}}],
       [{filter: 'id > 0'},
@@ -7683,6 +7739,22 @@ async function exerciseStrategyGraph(
         functions: {n: {fn: 'count', field: 'id'}},
       }}], [{filter: 'n > 0'}, {select: ['id', 'n']}], ['id', 'n']),
     expected: [1, 2, 3, 4].map(id => ({id, n: id})), fields: ['id', 'n']},
+    {name: 'analytic-sum-filter-select', source: retainedUnaryChain(
+      [{analytic: {
+        partition_by: [], order_by: [{id: 'asc'}],
+        frame: {start: 'unbounded_preceding', end: 'current_row'},
+        functions: {total: {fn: 'sum', field: 'amount'}},
+      }}], [{filter: 'total > 0'}, {select: ['id', 'total']}],
+      ['id', 'total'], [
+        {id: 1, amount: 2}, {id: 2, amount: 3},
+        {id: 3, amount: 4},
+      ], {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false},
+      }),
+    expected: [
+      {id: 1, total: 2}, {id: 2, total: 5}, {id: 3, total: 9},
+    ], fields: ['id', 'total']},
     {name: 'pivot-filter-select', source: retainedUnaryChain(
       [{pivot: {
         index: ['id'], column: 'status', values: ['a', 'b'],
@@ -7698,6 +7770,23 @@ async function exerciseStrategyGraph(
         amount: {type: 'number', nullable: false},
       }),
     expected: [{a: 3, b: 4, id: 1}, {a: 5, b: null, id: 2}],
+    fields: ['a', 'b', 'id']},
+    {name: 'pivot-sum-filter-select', source: retainedUnaryChain(
+      [{pivot: {
+        index: ['id'], column: 'status', values: ['a', 'b'],
+        value: 'amount', aggregate: 'sum',
+      }}], [{filter: 'id > 0'}, {select: ['a', 'b', 'id']}],
+      ['a', 'b', 'id'], [
+        {id: 1, status: 'a', amount: 2},
+        {id: 1, status: 'a', amount: 3},
+        {id: 1, status: 'b', amount: 4},
+        {id: 2, status: 'a', amount: 5},
+      ], {
+        id: {type: 'number', nullable: false},
+        status: {type: 'string', nullable: false},
+        amount: {type: 'number', nullable: false},
+      }),
+    expected: [{a: 5, b: 4, id: 1}, {a: 5, b: null, id: 2}],
     fields: ['a', 'b', 'id']},
     {name: 'window-group-filter-select', source: retainedUnaryChain(
       [{row_window: {kind: 'fixed', time: 'id', size: 10}},
@@ -7716,7 +7805,10 @@ async function exerciseStrategyGraph(
     };
     let binaryFixture;
     try {
-      binaryFixture = fixture.strategyFixtureCreate(
+      binaryFixture = name.includes('-sum-')
+        ? fixture.strategyFixtureNumericCreate(
+          ...(name.startsWith('analytic-') ? analyticArgs : args),
+          JSON.stringify(program)) : fixture.strategyFixtureCreate(
         ...(name.startsWith('analytic-') ? analyticArgs : args),
         JSON.stringify(program));
     } catch (error) {
@@ -7872,13 +7964,17 @@ async function exerciseStrategyGraph(
   for (const {name: mode} of [
     {name: 'cancel'}, {name: 'cancel-after-filter'},
     {name: 'cancel-after-group'},
+    {name: 'cancel-after-numeric-group'},
     {name: 'compute-failure'},
     {name: 'store-failure'}, {name: 'finalize-failure'},
   ]) {
-    const grouped = mode === 'cancel-after-group';
+    const numericGroup = mode === 'cancel-after-numeric-group';
+    const grouped = mode === 'cancel-after-group' || numericGroup;
     const program = retainedBinaryChain(externalAppendProgram,
       grouped
-        ? [{group: {by: ['id'], aggregates: {n: {fn: 'count'}}}},
+        ? [{group: {by: ['id'], aggregates: {
+          n: numericGroup ? {fn: 'sum', field: 'id'} : {fn: 'count'},
+        }}},
           {filter: 'n > 0'}]
         : [{filter: mode === 'compute-failure'
           ? '1 / (id - id) > 0' : 'id >= 10'}],
@@ -7901,8 +7997,9 @@ async function exerciseStrategyGraph(
       program.stages.find(stage => stage.id === 'cross_right').steps[0]
         .values.rows = Array.from({length: 30}, (_, index) => ({id: index + 30}));
     }
-    const binaryFixture = fixture.strategyFixtureCreate(
-      ...args, JSON.stringify(program));
+    const binaryFixture = numericGroup
+      ? fixture.strategyFixtureNumericCreate(...args, JSON.stringify(program))
+      : fixture.strategyFixtureCreate(...args, JSON.stringify(program));
     const binaryCapture = await runNativeHostQuery(grant,
       fixture.strategyFixtureAcquisition(binaryFixture), suppliedLimits);
     const directory = await mkdtemp(join(tmpdir(),

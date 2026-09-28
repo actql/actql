@@ -80,6 +80,19 @@ pub fn[C, E] start_local_dispatch(
         Ok(value) => value
         Err(issue) => return Err(Execution(issue))
       }
+      guard @strategy.task_execution_numeric_reduction_count(run, ticket)
+        is Some(numeric_count) else {
+        @local.close_local_materializing_attempt(attempt)
+        @strategy.fail_task_execution(run, ticket, ForeignCandidate) |> ignore
+        return Err(Execution(ForeignCandidate))
+      }
+      if local_task_numeric_execution(run, ticket, numeric_count)
+        is Some(numeric) &&
+        !@local.bind_local_materializing_numeric_execution(attempt, numeric) {
+        @local.close_local_materializing_attempt(attempt)
+        @strategy.fail_task_execution(run, ticket, ForeignCandidate) |> ignore
+        return Err(Execution(ForeignCandidate))
+      }
       let inputs = []
       let mut port = 0
       while @local.local_materializing_input(attempt, port) is Some(input) {
@@ -130,20 +143,36 @@ pub fn[C, E] start_local_dispatch(
           local_output_transfer(run, ticket, attempt, index, limits)
         }),
         execute: () => {
-          @local.execute_local_materializing_attempt(attempt).map_err(issue => {
-            local_materializing_failure(run, ticket, attempt, issue)
-          })
+          match @local.execute_local_materializing_attempt(attempt) {
+            Err(issue) =>
+              Err(local_materializing_failure(run, ticket, attempt, issue))
+            Ok(_) =>
+              seal_local_materializing_numeric_completion(
+                run, ticket, attempt, numeric_count,
+              )
+          }
         },
         advance: quantum => {
-          @local.advance_local_materializing_attempt(attempt, quantum)
-          .map(value => {
-            complete: value.complete,
-            progress: value.progress,
-            work: value.work,
-          })
-          .map_err(issue => {
-            local_materializing_failure(run, ticket, attempt, issue)
-          })
+          match @local.advance_local_materializing_attempt(attempt, quantum) {
+            Err(issue) =>
+              Err(local_materializing_failure(run, ticket, attempt, issue))
+            Ok(value) => {
+              if value.complete {
+                match
+                  seal_local_materializing_numeric_completion(
+                    run, ticket, attempt, numeric_count,
+                  ) {
+                  Err(issue) => return Err(issue)
+                  Ok(_) => ()
+                }
+              }
+              Ok({
+                complete: value.complete,
+                progress: value.progress,
+                work: value.work,
+              })
+            }
+          }
         },
         request_cancel: () => @local.cancel_local_materializing_attempt(attempt),
         execution_stopped: () => @local.local_materializing_stopped(attempt),
@@ -175,6 +204,24 @@ pub fn[C, E] start_local_dispatch(
         close: fn() { @strategy.close_task_execution(run, ticket) },
       })
     }
+  }
+}
+
+///|
+/// Both bounded and draining callers close the same selected observation
+/// domain before task completion can expose an output.
+fn seal_local_materializing_numeric_completion(
+  run : @strategy.CapturedDAG,
+  ticket : @strategy.TaskExecution,
+  attempt : @local.LocalMaterializingAttempt,
+  numeric_count : Int,
+) -> Result[Unit, LocalDispatchIssue] {
+  if numeric_count > 0 && !@strategy.seal_task_numeric_reductions(run, ticket) {
+    @local.close_local_materializing_attempt(attempt)
+    @strategy.fail_task_execution(run, ticket, ForeignCandidate) |> ignore
+    Err(Execution(ForeignCandidate))
+  } else {
+    Ok(())
   }
 }
 
