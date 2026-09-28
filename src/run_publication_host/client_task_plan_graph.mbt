@@ -126,14 +126,38 @@ fn issue_client_task_plan_graph(
       if producer < 0 || producer >= consumer || consumer >= count {
         return Err(InvalidEdge)
       }
+      let input = match @strategy.graph_task_selected_step(graph, consumer) {
+        Some(step) =>
+          match @strategy.data_edge_operation_input(edge) {
+            Some((source_step, position)) =>
+              if source_step == step &&
+                position == @strategy.data_edge_input(edge) {
+                @strategy.graph_task_owner(graph, consumer)
+                .map(@lower.bound_preparation)
+                .bind(prepared => {
+                  @lower.node_at(prepared, step)
+                  .bind(node => @lower.node_input_target(node, position))
+                  .bind(target => {
+                    @lower.preparation_carrier_at(prepared, target)
+                  })
+                })
+                .map(carrier => ("input_" + position.to_string(), carrier))
+              } else {
+                None
+              }
+            None => None
+          }
+        None =>
+          @strategy.graph_task_owner(graph, consumer).bind(owner => {
+            @pipeline.input_at(
+              @lower.pipeline(@lower.bound_preparation(owner)),
+              @strategy.data_edge_input(edge),
+            )
+          })
+      }
       guard fragments.get(producer) is Some(source) &&
         fragments.get(consumer) is Some(destination) &&
-        @strategy.graph_task_owner(graph, consumer) is Some(owner) &&
-        @pipeline.input_at(
-          @lower.pipeline(@lower.bound_preparation(owner)),
-          @strategy.data_edge_input(edge),
-        )
-        is Some((input_name, carrier)) &&
+        input is Some((input_name, carrier)) &&
         @carrier.relation_rows(carrier) is Some(_) &&
         nodes.get(consumer) is Some(consumer_node) &&
         @canonical.object_field(consumer_node, "input_contracts")

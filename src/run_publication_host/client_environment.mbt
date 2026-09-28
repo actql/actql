@@ -7,7 +7,18 @@ pub fn admit_client_check_environment(
   evidence_bundle_cid : String,
   expressions : @context.ExpressionProfiles,
   operations : @context.PureOperationProfiles,
+  numeric_profile_cid? : String? = None,
 ) -> @checked.CheckEnvironment? {
+  let numeric = match numeric_profile_cid {
+    None => None
+    Some(cid) => {
+      let selected = @numeric.builtin_profile()
+      if cid != @numeric.cid(selected) {
+        return None
+      }
+      Some(selected)
+    }
+  }
   let wire = match
     @environment.read(@utf8.encode(body), evidence_bundle_cid, {
       max_bytes: 65536,
@@ -18,5 +29,12 @@ pub fn admit_client_check_environment(
     Ok(value) => value
     Err(_) => return None
   }
-  Some(@checked.checking_environment(wire, expressions, operations))
+  Some(
+    @checked.checking_environment(
+      wire,
+      expressions,
+      operations,
+      numeric_profile=numeric,
+    ),
+  )
 }

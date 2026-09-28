@@ -1,0 +1,44 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.segmented_results",
+  "stages": [
+    {
+      "id": "left_rows",
+      "inputs": {},
+      "steps": [
+        {"values": {"schema": {"a": {"type": "number", "nullable": false}}, "rows": [{"a": 1}, {"a": 2}]}, "as": "left_values"},
+        {"from": "left_values", "select": ["a"], "as": "left_selected"}
+      ],
+      "results": {"rows": {"from": "left_selected", "fields": ["a"]}}
+    },
+    {
+      "id": "right_rows",
+      "inputs": {},
+      "steps": [
+        {"values": {"schema": {"c": {"type": "number", "nullable": false}, "d": {"type": "string", "nullable": false}}, "rows": [{"c": 1, "d": "one"}]}, "as": "right_values"},
+        {"from": "right_values", "select": ["c", "d"], "as": "right_selected"}
+      ],
+      "results": {"rows": {"from": "right_selected", "fields": ["c", "d"]}}
+    },
+    {
+      "id": "main",
+      "inputs": {
+        "l": {"result": {"stage": "left_rows", "result": "rows"}},
+        "r": {"result": {"stage": "right_rows", "result": "rows"}}
+      },
+      "steps": [
+        {"from": "l", "filter": {"gt": [{"field": "a"}, {"literal": 1}]}, "as": "filtered"},
+        {"from": "filtered", "join": {"with": "r", "kind": "left", "on": [{"left": "a", "right": "c"}], "max_output_rows": 10, "select": {"a": "left.a", "d": "right.d"}}, "as": "joined"},
+        {"from": "joined", "select": ["a"], "as": "last"}
+      ],
+      "results": {
+        "rows": {"from": "joined", "fields": ["a", "d"]},
+        "last": {"from": "last", "fields": ["a"]}
+      }
+    }
+  ],
+  "results": {
+    "answer": {"from": {"stage": "main", "result": "rows"}},
+    "last": {"from": {"stage": "main", "result": "last"}}
+  }
+}

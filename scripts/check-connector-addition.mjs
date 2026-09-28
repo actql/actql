@@ -66,6 +66,9 @@ mkdirSync(join(isolated, 'vendor/duckdb'), {recursive:true});
 cpSync(join(root, 'vendor/duckdb/1.4.3'), join(isolated, 'vendor/duckdb/1.4.3'), {
   recursive: true,
 });
+mkdirSync(join(isolated, 'vendor/cpp-httplib'), {recursive: true});
+cpSync(join(root, 'vendor/cpp-httplib/0.56.0'),
+  join(isolated, 'vendor/cpp-httplib/0.56.0'), {recursive: true});
 mkdirSync(join(isolated, 'src'));
 for (const name of readdirSync(join(root, 'src'))) {
   if (omitted.has(name)) continue;

@@ -78,7 +78,7 @@ pub fn prepare_local_dispatch_module(
           None => return Err(Configuration(ForeignPreparation))
         }
       None =>
-        match @strategy.graph_task_prefix_end(graph, index + 1) {
+        match @strategy.graph_task_prefix_end(graph, index + first) {
           Some(last) =>
             match @execution.select_generated_sequence_prefix(sequence, last) {
               Some(value) => value
