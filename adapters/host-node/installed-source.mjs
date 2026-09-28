@@ -21,7 +21,7 @@
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
-import {canonicalJson} from './local-account-config.mjs';
+import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
@@ -69,12 +69,21 @@ export async function installedSourceIdentity(path) {
   return `sha256:${hash.digest('hex')}`;
 }
 
-function duckdbAdapter(profile, moon) {
+function duckdbAdapter(profile, moon, {root, principalId}) {
   const common = {moon, database: profile.database, schema: profile.schema,
     table: profile.table};
+  const catalogIds = JSON.parse(profile.environmentWire).connector_catalogs
+    .map(catalog => catalog.connector_id);
   return Object.freeze({
     realizationKey: 'duckdb-acquired',
     environmentWire: profile.environmentWire,
+    connectorBindings: Object.freeze(catalogIds.map(connectorId =>
+      Object.freeze({connectorId, bindingCid: contentCid({
+        version: 'actql-installed-duckdb-source-binding/0.1',
+        root, principalId, database: profile.database,
+        schema: profile.schema, table: profile.table,
+        sourceRef: profile.sourceRef,
+      })}))),
     readAuthorization: profile.readAuthorization,
     sourceAccess: profile.sourceAccess,
     admitsSource: sourceRef => sourceRef === profile.sourceRef,
@@ -135,7 +144,7 @@ export async function loadInstalledSource(path, {root, principalId, moon,
   }
   if (profile?.version === INSTALLED_DUCKDB_SOURCE_VERSION) {
     return duckdbAdapter(await installDuckDBSourceProfile(profile,
-      {root, principalId}), moon);
+      {root, principalId}), moon, {root, principalId});
   }
   if (profile?.version === INSTALLED_SALESFORCE_SOURCE_VERSION) {
     // The Salesforce adapter and its provider bundle are loaded only for a
