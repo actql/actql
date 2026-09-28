@@ -341,6 +341,46 @@ test('real journal close failure retains only its Host cleanup owner',
     reopened.close();
   });
 
+test('installed Host refuses requests after a failed physical close',
+  async t => {
+    const {openInstalledRemoteHttpHost} = await import('./embedded-local.mjs');
+    const root = fileURLToPath(new URL('../../_build/host-init/',
+      import.meta.url));
+    await mkdir(root, {recursive: true});
+    const directory = await mkdtemp(join(root, 'host-close-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const host = await openInstalledRemoteHttpHost({directory,
+      authenticate: () => 'owner'});
+    const originalClose = DatabaseSync.prototype.close;
+    const injectedFailure = new Error('InjectedHostJournalCloseFailure');
+    let physicalCloses = 0;
+    DatabaseSync.prototype.close = function () {
+      if (++physicalCloses === 1) throw injectedFailure;
+      return originalClose.call(this);
+    };
+    t.after(() => { DatabaseSync.prototype.close = originalClose; });
+    let pending;
+    await assert.rejects(host.close(), error => {
+      pending = error;
+      assert.equal(error.cleanupPending, true);
+      assert.ok(error.cleanupErrors.some(item =>
+        item.error === injectedFailure));
+      return true;
+    });
+    let status;
+    let body;
+    await host.handler({}, {writeHead(code) { status = code; },
+      end(value) { body = value; }});
+    assert.equal(status, 503);
+    assert.deepEqual(JSON.parse(body), {code: 'ClientHostClosing'});
+    assert.equal((await pending.cleanupHandle.retry()).storeCleanupPending,
+      false);
+    assert.ok(physicalCloses >= 2);
+    const reopened = await openInstalledRemoteHttpHost({directory,
+      authenticate: () => 'owner'});
+    await reopened.close();
+  });
+
 test('real Store deletion owner completes before Host close retry',
   async t => {
     const root = fileURLToPath(new URL('../../_build/host-init/',

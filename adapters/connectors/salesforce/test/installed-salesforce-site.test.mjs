@@ -160,6 +160,9 @@ test('Host retries a real Site journal close without restarting its owners',
     });
     assert.deepEqual(calls, ['stop', 'drain', 'retire', 'checkpoint',
       'journal', 'source', 'effect', 'store']);
+    await assert.rejects(site.refreshCatalog({occurrence: 'after-close'}),
+      {code: 'SalesforceSiteClosed'});
+    assert.equal(setup.org.seen.length, providerRequests);
     await pending.cleanupHandle.retry();
     assert.deepEqual(shutdown.status().pending, []);
     assert.deepEqual(calls, ['stop', 'drain', 'retire', 'checkpoint',

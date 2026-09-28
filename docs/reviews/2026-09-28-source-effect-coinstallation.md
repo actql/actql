@@ -50,7 +50,9 @@ request-journal test checks that its first failed physical close remains the
 only pending Host owner and succeeds on retry. The standard Effect recovery
 test checks that reopening does not resend completed physical writes; the
 Store and journal tests do not substitute fake Compute or provider counters
-for that product-path assertion.
+for that product-path assertion. A separate installed Host test injects a
+physical journal close failure, observes a 503 response for a new request
+while cleanup remains pending, and reopens the same root after retry.
 
 ## Product-path evidence
 
@@ -76,8 +78,9 @@ provider I/O. A Program combining that acquisition with an Effect is rejected as
 The repo-external packed installation uses installed tarballs, with no
 MoonBit toolchain in the child process. It reads through `@actql/local-node`
 with both profiles set, and executes the approved Effect through
-`@actql/node` on the same state root. The physical write count stays at two
-after recheck. Another packed process reconnects with equivalent options,
+`@actql/node` on the same state root. The two-Resource Effect writes two rows
+per Resource, and the physical write count stays at four after recheck.
+Another packed process reconnects with equivalent options,
 then refuses a changed Source profile and a changed Effect profile before
 provider I/O.
 
