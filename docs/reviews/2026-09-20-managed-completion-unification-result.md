@@ -1,5 +1,15 @@
 # Managed completion unification: shared boundary result
 
+## Follow-up status (2026-09-28)
+
+At main `805a29c5f`, `src/physical_strategy/captured_dag.mbt` uses one
+`CommittedTaskOutput` boundary for materialized, managed and Carrier-managed
+outputs. The cross-branch integration prerequisite described below is no
+longer an open architecture task. This does not establish all Carrier retained
+execution obligations. The remainder is evidence for the historical Engine
+branch, not a current integration checklist. See [current status](current-product-status.md).
+
+
 Date: 2026-09-20
 
 Implementation base: `7a9bc32f` on

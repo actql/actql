@@ -2,11 +2,11 @@
 
 This lightweight package implements the public Client, Execution and Result
 transport API for an already installed Client Host. It contains no Local
-kernel, native binding, DuckDB adapter or Cloud policy. The current OSS Host
-HTTP bridge supports real published-Result reads and status for committed
-successful Runs. Generic Program submit, durable request deduplication, and
-full active-Run status are not yet installed, so this artifact is not a
-complete standard distribution.
+kernel, native binding, DuckDB adapter or Cloud policy. The installed Node Host supports Program submission within its
+installed profile, durable request lookup and deduplication, active and terminal
+Run observations, and published Result reads. Supported Program shapes and
+connectors depend on the installation; this is not a claim that every Host
+supports every Program. See the [current implementation status](../../docs/reviews/current-product-status.md).
 
 `connect(options)` authenticates with the selected Host and returns its
 confirmed owner, durability and capability snapshot. `aql(text,
@@ -42,8 +42,8 @@ transferred through that ABI; the Client enforces wire and decoded-value
 bounds independently. The provider must enforce its own pre-transfer row
 bound, current authorization, and Run ownership before yielding a frame.
 The port's `AbortSignal` belongs only to that observation or read attempt.
-This boundary does not install a provider or imply that the current
-`@actql/node` artifact supports embedded Local.
+This boundary does not itself install a provider. The standard `@actql/node`
+installation includes the lazy-loaded `@actql/local-node` provider.
 
 `attach(ref)` retrieves another handle for the same Run. `result(name)` only
 selects a named Result. Each `rows()`, `batches()` or `all()` call creates a
