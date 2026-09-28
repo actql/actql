@@ -6,6 +6,7 @@ struct LocalDispatchModule {
   registration : @connector.CapabilityRegistration
   implementation : @local.LocalComputeModule
   channel : @host.DispatchChannel[LocalDispatchPlan]
+  carrier_paths : Array[Bool]
   mut estimate_configuration : LocalEstimateConfiguration?
   mut import_policy : (@local.LocalImportLimits, Int64?)?
   mut output_policy : (@local.LocalExportLimits, Int64?)?
@@ -46,35 +47,6 @@ pub fn local_dispatch_predecessor_is_carrier(
     installed.implementation,
     local_task_slot(installed, producer),
   )
-}
-
-///|
-/// Physical splitting can turn an internal Carrier step into a task input
-/// while the authored Stage input itself remains a Relation.
-fn local_dispatch_task_has_carrier_input(
-  installed : LocalDispatchModule,
-  task : Int,
-) -> Bool {
-  if @local.local_module_sequence_has_carrier_input(
-      installed.implementation,
-      local_task_slot(installed, task),
-    ) {
-    return true
-  }
-  let graph = @strategy.captured_dag_graph(installed.run)
-  let first = @strategy.captured_compute_first_task(installed.run)
-  for edge in 0..<@strategy.graph_data_count(graph) {
-    let input = @strategy.graph_data_at(graph, edge).unwrap()
-    if input.consumer == task &&
-      input.producer >= first &&
-      @local.local_module_sequence_outputs_carrier(
-        installed.implementation,
-        local_task_slot(installed, input.producer),
-      ) {
-      return true
-    }
-  }
-  false
 }
 
 ///|
@@ -164,6 +136,7 @@ pub fn prepare_local_dispatch_module(
     Ok(value) => value
     Err(issue) => return Err(Configuration(issue))
   }
+  let carrier_paths = local_dispatch_carrier_path_table(run, implementation)
   let channel = match
     @host.open_dispatch_channel(driver, registry, registration) {
     Ok(value) => value
@@ -174,6 +147,7 @@ pub fn prepare_local_dispatch_module(
     registration,
     implementation,
     channel,
+    carrier_paths,
     estimate_configuration: None,
     import_policy: None,
     output_policy: None,

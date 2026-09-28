@@ -229,41 +229,83 @@ fn local_dispatch_offer_supported(
 ///|
 /// The bounded managed route stays selected for every descendant that must
 /// consume a managed Carrier or Relation generation from the same path.
-fn local_dispatch_carrier_path(
-  installed : LocalDispatchModule,
-  task : Int,
-) -> Bool {
-  let graph = @strategy.captured_dag_graph(installed.run)
-  let first = @strategy.captured_compute_first_task(installed.run)
-  let count = @strategy.graph_task_count(graph)
-  if task < first || task >= count {
-    return false
+/// Checked physical tasks are topologically ordered; index each dependency
+/// once, then propagate along predecessors in task order.
+fn carrier_path_table_from_edges(
+  first : Int,
+  own_carrier : Array[Bool],
+  edge_count : Int,
+  edge_at : (Int) -> (Int, Int),
+  scans : (Ref[Int], Ref[Int])?,
+) -> Array[Bool] {
+  let count = own_carrier.length()
+  let predecessors : Array[Array[Int]] = Array::makei(count, _ => [])
+  for index in 0..<edge_count {
+    let (producer, consumer) = edge_at(index)
+    if scans is Some((edge_scans, _)) {
+      edge_scans.val += 1
+    }
+    if consumer >= first &&
+      consumer < count &&
+      producer >= first &&
+      producer < consumer {
+      predecessors[consumer].push(producer)
+    }
   }
-  let path = Array::make(count, false)
-  for current in first..<=task {
-    path[current] = @local.local_module_sequence_outputs_carrier(
-        installed.implementation,
-        local_task_slot(installed, current),
-      ) ||
-      @local.local_module_sequence_contains_carrier_step(
-        installed.implementation,
-        local_task_slot(installed, current),
-      ) ||
-      local_dispatch_task_has_carrier_input(installed, current)
-    if !path[current] {
-      for edge in 0..<@strategy.graph_data_count(graph) {
-        let input = @strategy.graph_data_at(graph, edge).unwrap()
-        if input.consumer == current &&
-          input.producer >= first &&
-          input.producer < current &&
-          path[input.producer] {
-          path[current] = true
+  let paths = Array::make(count, false)
+  for task in first..<count {
+    let mut carrier = own_carrier[task]
+    if !carrier {
+      for producer in predecessors[task] {
+        if scans is Some((_, predecessor_scans)) {
+          predecessor_scans.val += 1
+        }
+        if paths[producer] {
+          carrier = true
           break
         }
       }
     }
+    paths[task] = carrier
   }
-  path[task]
+  paths
+}
+
+///|
+fn local_dispatch_carrier_path_table(
+  run : @strategy.CapturedDAG,
+  implementation : @local.LocalComputeModule,
+) -> Array[Bool] {
+  let graph = @strategy.captured_dag_graph(run)
+  let first = @strategy.captured_compute_first_task(run)
+  let count = @strategy.graph_task_count(graph)
+  let own_carrier = Array::make(count, false)
+  for task in first..<count {
+    let slot = task - first
+    own_carrier[task] = @local.local_module_sequence_outputs_carrier(
+        implementation, slot,
+      ) ||
+      @local.local_module_sequence_contains_carrier_step(implementation, slot) ||
+      @local.local_module_sequence_has_carrier_input(implementation, slot)
+  }
+  carrier_path_table_from_edges(
+    first,
+    own_carrier,
+    @strategy.graph_data_count(graph),
+    index => {
+      let edge = @strategy.graph_data_at(graph, index).unwrap()
+      (edge.producer, edge.consumer)
+    },
+    None,
+  )
+}
+
+///|
+fn local_dispatch_carrier_path(
+  installed : LocalDispatchModule,
+  task : Int,
+) -> Bool {
+  installed.carrier_paths.get(task).unwrap_or(false)
 }
 
 ///|
