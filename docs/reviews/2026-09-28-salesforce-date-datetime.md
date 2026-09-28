@@ -128,7 +128,8 @@ Mutation checks:
 ## Decimal Number (`double`)
 
 Implemented after this change; see `2026-09-28-salesforce-decimal.md` for
-the basis of the precision limit, the rules, and the binary64 path audit.
+the guarantee, the chosen precision range, the rules, and the binary64
+path audit.
 
 ## Held: `percent`
 

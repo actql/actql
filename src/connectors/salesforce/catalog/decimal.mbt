@@ -1,15 +1,13 @@
 ///|
-/// The largest described precision declared as `decimal(P,S)`. Salesforce
-/// holds a Number field as a binary64 double and replies with a JSON number.
-/// Any decimal of at most 15 significant digits is recovered unchanged from
-/// the nearest binary64 value, and two such decimals never share one. So for
-/// a field whose every value has at most 15 digits, the reply is either that
-/// decimal or carries digits outside the declared scale, which is refused.
-/// This is the round-trip property, not exactness: the binary64 value of
-/// `0.1` is not 0.1, and the connector never reads that binary64 value. At 16
-/// or more digits two stored decimals can share one double, so another
-/// decimal within the declared scale could come back; such fields are not
-/// declared.
+/// The largest described precision this revision declares as
+/// `decimal(P,S)`. It is a chosen support range, not a proof that the value
+/// Salesforce holds is recovered: a value written through the API or Apex
+/// can carry more fractional digits than the field defines, and its
+/// precision may already have been lost before the reply. What the
+/// connector guarantees is only this: a read admits the value the reply's
+/// number text denotes, without rounding, and a write sends JSON whose
+/// number denotes the approved decimal. Neither step computes the value
+/// through binary64.
 const MAX_EXACT_DOUBLE_PRECISION : Int = 15
 
 ///|
@@ -41,9 +39,9 @@ priv enum DecimalIssue {
 
 ///|
 /// The ActQL fixed-scale text of the JSON number `lexeme` as
-/// `decimal(precision, scale)`, from its digits alone: no binary64 value is
-/// formed. Trailing zeros beyond the scale are exact and dropped; a nonzero
-/// digit beyond it is `DecimalScale`, never rounded.
+/// `decimal(precision, scale)`, computed from its digits alone, not through
+/// binary64. Trailing zeros beyond the scale are exact and dropped; a
+/// nonzero digit beyond it is `DecimalScale`, never rounded.
 fn json_number_decimal(
   lexeme : String,
   precision : Int,

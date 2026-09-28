@@ -103,11 +103,12 @@ fn admit_datetime_cell(
 }
 
 ///|
-/// A Salesforce Number (`double`) cell: the reply's JSON number text is read
-/// as the declared `decimal(P,S)` from its digits alone, never through
-/// binary64. Text that is not a JSON number is the wrong type; a value with
-/// too many integer digits or a nonzero digit beyond the scale is refused,
-/// never rounded.
+/// A Salesforce Number (`double`) cell: the value the reply's JSON number
+/// text denotes is admitted as the declared `decimal(P,S)`, computed from
+/// the text's digits, not through binary64. `finite_number` only checks that
+/// the cell is a JSON number; its binary64 result is not used. Text that is
+/// not a JSON number is the wrong type; a value with too many integer digits
+/// or a nonzero digit beyond the scale is refused, never rounded.
 fn admit_decimal_cell(
   cursor : @decode.Cursor,
   source : Bytes,

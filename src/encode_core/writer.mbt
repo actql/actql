@@ -404,7 +404,8 @@ pub fn number_value(w : Writer, value : Double) -> Unit raise EncodeFailure {
 }
 
 ///|
-/// Write exact decimal text as a JSON number, never through binary64. The
+/// Write exact decimal text as the JSON number with the same digits; the
+/// text is copied, not converted through binary64. The
 /// text is `-?(0|[1-9][0-9]*)(\.[0-9]+)?`: no exponent, no leading `+`, no
 /// redundant leading zero, and no negative zero.
 pub fn decimal_number_value(

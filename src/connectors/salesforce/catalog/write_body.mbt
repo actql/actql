@@ -124,7 +124,8 @@ fn emit_write_cell(
       }
       match observed_source {
         Some(source) => {
-          // The provider's number text, read as the declared decimal.
+          // The value the provider's number text denotes, as the declared
+          // decimal. `finite_number` only checks that it is a JSON number.
           guard @decode.finite_number(cursor) is Ok(_) &&
             source_lexeme(source, cursor) is Some(lexeme) else {
             return Err(InvalidValue(field.name))

@@ -584,14 +584,18 @@ test('a written value outside its declared type is refused before any write',
     }
   });
 
-test('an Effect runtime without the value refusal entry is refused before provider I/O',
+test('an Effect runtime missing a required entry is refused before provider I/O',
   async t => {
-    const installation = await temporalEffect(t);
-    const before = installation.org.seen.length;
-    const {salesforceWriteValueRefusal: _omitted, ...runtime} = salesforceMoon;
-    await assert.rejects(installation.load({}, {salesforceMoon: runtime}),
-      {code: 'InvalidSalesforceEffectRuntime'});
-    assert.equal(installation.org.seen.length, before);
+    // The value refusal, and the row value the Preview states.
+    for (const entry of ['salesforceWriteValueRefusal',
+      'salesforceSingleWriteRequestValue']) {
+      const installation = await temporalEffect(t);
+      const before = installation.org.seen.length;
+      const {[entry]: _omitted, ...runtime} = salesforceMoon;
+      await assert.rejects(installation.load({}, {salesforceMoon: runtime}),
+        {code: 'InvalidSalesforceEffectRuntime'}, entry);
+      assert.equal(installation.org.seen.length, before, entry);
+    }
   });
 
 // An update of the Number(15,2) `Amount__c` from a Result of ActQL decimals.
