@@ -25,7 +25,8 @@ import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet} from
 import {verifyPinnedEffectPlan} from '../../../host-node/effect-plan-verify.mjs';
 import {openEffectLedger} from '../../../host-node/effect-ledger.mjs';
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
-  loadInstalledSalesforceSite} from
+  loadInstalledSalesforceSite, releaseSalesforceSite,
+  retainSalesforceSiteCleanup} from
   './installed-salesforce-site.mjs';
 import {describeSalesforceGeneration, readPublicationFile,
   replacePublicationFile, restoreSalesforceGeneration,
@@ -151,13 +152,13 @@ const resourcesOf = profile => Object.freeze([...new Set(
   profile.writes.map(write => write.resource))]);
 
 async function openSite(profile, {root, principalId, moon, salesforceMoon,
-  runtimeBundleCid, resolveSecret}) {
+  runtimeBundleCid, resolveSecret, openCredentialJournal}) {
   const authorization = await installSalesforceAuthorization({
     accountConfiguration: profile.accountConfigurationWire, principalId,
     root});
   const site = await loadInstalledSalesforceSite(profile.siteProfilePath, {
     commonMoon: moon, salesforceMoon, authorization, runtimeBundleCid,
-    resolveSecret});
+    resolveSecret, openCredentialJournal});
   return site;
 }
 
@@ -203,6 +204,7 @@ export async function publishInstalledSalesforceEffect(profile, options) {
     fail('InvalidInstalledEffectOptions');
   }
   const site = await openSite(checkedProfile, options);
+  let published;
   try {
     const {generation, declared} = await describeSalesforceGeneration({site,
       connectorId: checkedProfile.connectorId,
@@ -214,15 +216,17 @@ export async function publishInstalledSalesforceEffect(profile, options) {
     const body = JSON.stringify(publicationRecord(generation, mappings,
       environment));
     await replacePublicationFile(checkedProfile.publicationPath, body);
-    return Object.freeze({generationCid: (await readPublicationFile(
+    published = Object.freeze({generationCid: (await readPublicationFile(
       checkedProfile.publicationPath)).generationCid,
     environmentCid: environment.evidenceCid,
     mappings: Object.freeze(mappings.map(mapping => Object.freeze({
       resource: mapping.write.resource, kind: mapping.write.kind,
       mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid})))});
-  } finally {
-    site.close();
+  } catch (error) {
+    throw retainSalesforceSiteCleanup(site, error);
   }
+  releaseSalesforceSite(site);
+  return published;
 }
 
 // Restore the published generation into `site` without provider I/O. The
@@ -353,7 +357,7 @@ function mappingPolicy(member) {
 // projections of one Run over the common owners.
 export async function loadInstalledSalesforceEffect(profile, {root,
   principalId, moon, salesforceMoon, baseEnvironmentWire, runtimeBundleCid,
-  resolveSecret, ledgerRoot}) {
+  resolveSecret, ledgerRoot, openCredentialJournal}) {
   const checkedProfile = checkInstalledSalesforceEffectProfile(profile);
   if (!text(baseEnvironmentWire) || !text(ledgerRoot) ||
       !isAbsolute(ledgerRoot)) {
@@ -361,15 +365,16 @@ export async function loadInstalledSalesforceEffect(profile, {root,
   }
   await mkdir(ledgerRoot, {recursive: true, mode: 0o700});
   const site = await openSite(checkedProfile, {root, principalId, moon,
-    salesforceMoon, runtimeBundleCid, resolveSecret});
+    salesforceMoon, runtimeBundleCid, resolveSecret, openCredentialJournal});
   try {
     const installed = await restoreGeneration({site, salesforceMoon,
       profile: checkedProfile, baseEnvironmentWire});
     return installedSalesforceEffect({moon, salesforceMoon, site,
       installed, ledgerRoot, connectorId: checkedProfile.connectorId});
   } catch (error) {
-    site.close();
-    throw error;
+    // The load's own failure stays primary; an incomplete Site release
+    // travels with it to the caller.
+    throw retainSalesforceSiteCleanup(site, error);
   }
 }
 

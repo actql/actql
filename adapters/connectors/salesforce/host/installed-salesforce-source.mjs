@@ -14,7 +14,8 @@ import {acquisitionFailure} from '../../../host-common/acquisition-outcome.mjs';
 import {authorizationRuntimeCode} from
   '../../../host-common/authorization-gate.mjs';
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
-  loadInstalledSalesforceSite} from
+  loadInstalledSalesforceSite, releaseSalesforceSite,
+  retainSalesforceSiteCleanup} from
   './installed-salesforce-site.mjs';
 import {loadSalesforceGeneration, publishSalesforceGeneration,
   salesforceCheckEnvironment} from './salesforce-publication.mjs';
@@ -68,13 +69,13 @@ export function checkInstalledSalesforceSourceProfile(profile) {
 }
 
 async function openSite(profile, {root, principalId, moon, salesforceMoon,
-  runtimeBundleCid, resolveSecret}) {
+  runtimeBundleCid, resolveSecret, openCredentialJournal}) {
   const authorization = await installSalesforceAuthorization({
     accountConfiguration: profile.accountConfigurationWire, principalId,
     root});
   const site = await loadInstalledSalesforceSite(profile.siteProfilePath, {
     commonMoon: moon, salesforceMoon, authorization, runtimeBundleCid,
-    resolveSecret});
+    resolveSecret, openCredentialJournal});
   return {authorization, site};
 }
 
@@ -84,14 +85,17 @@ async function openSite(profile, {root, principalId, moon, salesforceMoon,
 export async function publishInstalledSalesforceSource(profile, options) {
   const checkedProfile = checkInstalledSalesforceSourceProfile(profile);
   const {site} = await openSite(checkedProfile, options);
+  let published;
   try {
-    return await publishSalesforceGeneration({site,
+    published = await publishSalesforceGeneration({site,
       path: checkedProfile.publicationPath,
       connectorId: checkedProfile.connectorId,
       resources: checkedProfile.resources, signal: options.signal});
-  } finally {
-    site.close();
+  } catch (error) {
+    throw retainSalesforceSiteCleanup(site, error);
   }
+  releaseSalesforceSite(site);
+  return published;
 }
 
 // The standard runtime's arguments reprojecting retained describe evidence.
@@ -114,10 +118,11 @@ function recoveryArguments(evidence) {
 // members are added to it.
 export async function loadInstalledSalesforceSource(profile, {root,
   principalId, moon, salesforceMoon, baseEnvironmentWire, runtimeBundleCid,
-  resolveSecret}) {
+  resolveSecret, openCredentialJournal}) {
   const checkedProfile = checkInstalledSalesforceSourceProfile(profile);
   const {authorization, site} = await openSite(checkedProfile, {root,
-    principalId, moon, salesforceMoon, runtimeBundleCid, resolveSecret});
+    principalId, moon, salesforceMoon, runtimeBundleCid, resolveSecret,
+    openCredentialJournal});
   try {
     const loaded = await loadSalesforceGeneration({site,
       path: checkedProfile.publicationPath,
@@ -155,8 +160,9 @@ export async function loadInstalledSalesforceSource(profile, {root,
       sourceRefs: new Set(loaded.declared.views.map(view =>
         view.source_ref))});
   } catch (error) {
-    site.close();
-    throw error;
+    // The load's own failure stays primary; an incomplete Site release
+    // travels with it to the caller.
+    throw retainSalesforceSiteCleanup(site, error);
   }
 }
 

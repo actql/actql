@@ -149,9 +149,13 @@ export async function installSalesforceAuthorization({accountConfiguration,
 // Load one installed Salesforce Site. `resolveSecret` replaces only the
 // provider secret source (the profile's sf CLI connection by default); it
 // never replaces the account gate, the credential authority or the org.
+// `openCredentialJournal` replaces only the credential journal's physical
+// opener (the SQLite journal by default); tests use it to inject close
+// failures.
 export async function loadInstalledSalesforceSite(path, {commonMoon,
   salesforceMoon, authorization, runtimeBundleCid, resolveSecret,
-  now = () => Date.now(), grantLifetimeMs = 15 * 60 * 1000} = {}) {
+  now = () => Date.now(), grantLifetimeMs = 15 * 60 * 1000,
+  openCredentialJournal = openSqliteCredentialJournal} = {}) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     fail('InvalidInstalledSalesforceSiteProfilePath');
   }
@@ -161,7 +165,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       commonMoon === undefined || salesforceMoon === undefined ||
       typeof now !== 'function' || !Number.isSafeInteger(grantLifetimeMs) ||
       grantLifetimeMs < 1 || grantLifetimeMs > 24 * 60 * 60 * 1000 ||
-      (resolveSecret !== undefined && typeof resolveSecret !== 'function')) {
+      (resolveSecret !== undefined && typeof resolveSecret !== 'function') ||
+      typeof openCredentialJournal !== 'function') {
     fail('InvalidInstalledSalesforceSiteOptions');
   }
   const principalId = authorization.context.principal;
@@ -191,16 +196,24 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     siteGeneration: profile.siteGeneration,
   });
   const control = runtimeCore(commonMoon).remoteCredentialControl;
-  const journal = openSqliteCredentialJournal(profile.journalRoot, {
+  const journal = openCredentialJournal(profile.journalRoot, {
     credentialAuthorities: new Map([[profile.credentialAuthorityId,
       new Map([[profile.credentialKeyId, createPublicKey(privateKey)]])]]),
   });
-  let closed = false;
+  // Closing refuses every new operation at once; the Site is released only
+  // once its credential journal has actually closed. A failed journal close
+  // leaves the Site closing and unreleased, and the next close retries it.
+  let closing = false;
+  let released = false;
+  const ensureOpen = () => {
+    if (closing) fail('SalesforceSiteClosed');
+  };
   const credential = Object.freeze({orgId: profile.orgId, control, journal,
     resolveSecret: secret, ca, now});
 
   function sign({operation, runInvocationCid, taskAttempt,
     dispatchRequestCid, maxUses}) {
+    ensureOpen();
     if (!cidPattern.test(runInvocationCid ?? '') ||
         !cidPattern.test(dispatchRequestCid ?? '') ||
         !Number.isSafeInteger(taskAttempt) || taskAttempt < 1 ||
@@ -231,6 +244,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // sealed Effect Set it approves.
   function issueGrant({operation, decision, resource, runInvocationCid,
     taskAttempt = 1, dispatchRequestCid, maxUses = 1, subjectCid}) {
+    ensureOpen();
     const required = recordOperations.get(operation);
     if (required === undefined || !text(resource) ||
         (required[0] === 'effect_commit' && !cidPattern.test(subjectCid ?? ''))) {
@@ -279,6 +293,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // stops attesting once the Site is closed.
   function attestEffectCapability({operation, runInvocationCid,
     dispatchRequestCid, taskAttempt = 1}) {
+    ensureOpen();
     if (recordOperations.get(operation)?.[0] !== 'effect_commit' ||
         !cidPattern.test(runInvocationCid ?? '') ||
         !cidPattern.test(dispatchRequestCid ?? '') ||
@@ -295,7 +310,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
         resourceOrigin: profile.instanceOrigin, operation, runInvocationCid,
         taskAttempt, dispatchRequestCid},
       current() {
-        if (closed) fail('SalesforceSiteClosed');
+        ensureOpen();
         return runtimeBundleCid;
       }});
   }
@@ -311,6 +326,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // for the same read, its metadata describe (`describeForAcquisition`);
   // nothing else. It is decided current by the Checkpoint when returned.
   function admitCheckpointReadApproval(decision) {
+    ensureOpen();
     const facts = checkpointApprovalFacts(decision);
     const binding = facts?.physicalBinding;
     if (facts === undefined || decision.action !== 'dispatch' ||
@@ -374,6 +390,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     runCid, dispatchRequestCid: dispatchCid, retainEvidence = false,
     maxRetainedBytes = 0, limits = DEFAULT_SALESFORCE_CATALOG_LIMITS,
     approval, signal}) {
+    ensureOpen();
     if (!Array.isArray(resources) || resources.length === 0 ||
         !resources.every(text) || !text(occurrence) ||
         (runCid === undefined) !== (dispatchCid === undefined)) {
@@ -422,6 +439,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     maxRetainedBytes = 0, limits = DEFAULT_SALESFORCE_CATALOG_LIMITS,
     runInvocationCid: runCid, dispatchRequestCid: dispatchCid,
     taskAttempt = 1, grantUses, resources} = {}) {
+    ensureOpen();
     const sequence = syncSequence++;
     const syncOccurrence = occurrence ?? `catalog-sync-${now()}-${sequence}`;
     if ((runCid === undefined) !== (dispatchCid === undefined)) {
@@ -459,6 +477,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
 
   // One bounded Catalog observation under this Site's own metadata grants.
   async function refreshCatalog({signal, ...options} = {}) {
+    ensureOpen();
     const {request, grants} = catalogSyncRequest(options);
     const catalog = await syncSalesforceCatalog({...request,
       moon: salesforceMoon, credential, signal});
@@ -519,6 +538,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   async function declareCatalog({connectorId, resources, signal,
     maxEvidenceBytes = DEFAULT_SALESFORCE_CATALOG_LIMITS.maxObservationBytes,
     limits = {maxBytes: 4_000_000, maxNodes: 400_000, maxDepth: 64}} = {}) {
+    ensureOpen();
     if (!Array.isArray(resources) || resources.length === 0 ||
         !resources.every(text) || !text(connectorId) ||
         !declarationLimits(limits) ||
@@ -550,6 +570,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   function restoreDeclaration({connectorId, resources, evidence,
     observationCid, catalogCid,
     limits = {maxBytes: 4_000_000, maxNodes: 400_000, maxDepth: 64}} = {}) {
+    ensureOpen();
     if (!Array.isArray(resources) || resources.length === 0 ||
         !resources.every(text) || !text(connectorId) ||
         !declarationLimits(limits) || !cidPattern.test(observationCid ?? '') ||
@@ -584,6 +605,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // runtime that owns the acquisition reprojects the observation itself.
   async function describeForAcquisition({resource, runInvocationCid,
     dispatchRequestCid, occurrence, approval, signal} = {}) {
+    ensureOpen();
     if (!text(resource) || !text(occurrence) ||
         !cidPattern.test(runInvocationCid ?? '') ||
         !cidPattern.test(dispatchRequestCid ?? '')) {
@@ -607,6 +629,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // evidence that restores it after a restart.
   async function describeEffectCatalog({resources, runInvocationCid,
     dispatchRequestCid, occurrence, signal} = {}) {
+    ensureOpen();
     if (!Array.isArray(resources) || resources.length === 0 ||
         !cidPattern.test(runInvocationCid ?? '') ||
         !cidPattern.test(dispatchRequestCid ?? '') || !text(occurrence)) {
@@ -630,6 +653,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // generated. It names the declaration's own manifest entry.
   function prepareExecutionMapping({declaration, resource, write,
     limits = {maxBytes: 400_000, maxNodes: 40_000, maxDepth: 64}} = {}) {
+    ensureOpen();
     if (!declarations.has(declaration) || !text(resource) ||
         writeKinds[write?.kind] === undefined ||
         !Array.isArray(write.fields ?? []) ||
@@ -660,6 +684,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // query fixed ascending Id order and `provider` otherwise.
   async function peek({decision, resource, fields, maxRows,
     maxBytes = 65536, maxNodes = 10000, signal} = {}) {
+    ensureOpen();
     if (!issuedDecisions.has(decision) || decision.action !== 'dispatch' ||
         decision.boundary !== 'acquisition' ||
         decision.contextCid !== context.contextCid ||
@@ -749,10 +774,65 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     prepareExecutionMapping, peek,
     // Whether this Site generated `declaration`.
     ownsDeclaration: declaration => declarations.has(declaration),
+    // Stop new operations, then release the credential journal. Returns
+    // once released; a failed release throws and stays retryable.
     close() {
-      if (closed) return;
-      closed = true;
+      closing = true;
+      if (released) return;
       journal.close();
+      released = true;
     },
+    // Whether this Site was closed but its journal is not yet released.
+    cleanupPending: () => closing && !released,
   });
+}
+
+// The failure of a caller that acquired `site`: the primary failure stays
+// the error, and the Site's release is attempted at once. When it does not
+// complete, the error carries the release responsibility (`cleanupPending`,
+// `cleanupErrors`, `cleanupHandle` {retry, status}) to the caller, beside any
+// cleanup responsibility it already carried. A frozen or non-object failure
+// is wrapped with `primaryFailure`.
+export function retainSalesforceSiteCleanup(site, primary) {
+  const errors = [];
+  try { site.close(); } catch (error) { errors.push(error); }
+  return handOverSiteRelease(site, primary, errors);
+}
+
+// Release `site` after its caller succeeded. A release that does not
+// complete throws its failure carrying the retry responsibility; the failed
+// attempt is not repeated here.
+export function releaseSalesforceSite(site) {
+  try { site.close(); }
+  catch (error) { throw handOverSiteRelease(site, error, [error]); }
+}
+
+function handOverSiteRelease(site, primary, errors) {
+  const failure = primary !== null && typeof primary === 'object' &&
+    Object.isExtensible(primary) ? primary
+    : Object.assign(new Error('SalesforceSiteOwnerFailed', {cause: primary}),
+      {code: primary?.code ?? 'SalesforceSiteOwnerFailed',
+        primaryFailure: primary});
+  if (site.cleanupPending() !== true) return failure;
+  const earlier = failure.cleanupHandle;
+  const status = () => {
+    const before = earlier?.status();
+    return Object.freeze({
+      pending: site.cleanupPending() === true || before?.pending === true,
+      errors: Object.freeze([...(before?.errors ?? []), ...errors])});
+  };
+  const handle = Object.freeze({status, async retry() {
+    if (earlier !== undefined) await earlier.retry();
+    if (site.cleanupPending() === true) {
+      try { site.close(); } catch (error) { errors.push(error); }
+    }
+    const current = status();
+    failure.cleanupPending = current.pending;
+    failure.cleanupErrors = current.errors;
+    return current;
+  }});
+  failure.cleanupPending = true;
+  failure.cleanupErrors = status().errors;
+  failure.cleanupHandle = handle;
+  return failure;
 }
