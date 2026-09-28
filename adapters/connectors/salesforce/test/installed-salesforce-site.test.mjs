@@ -10,6 +10,8 @@ import * as salesforceMoon from
   '../../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {accountEntry} from '../../../host-node/authorization-fixture.mjs';
+import {createLocalAuthorizationGate} from
+  '../../../host-node/local-account-config.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {DEFAULT_SALESFORCE_CATALOG_LIMITS, INSTALLED_SALESFORCE_SITE_VERSION,
   installSalesforceAuthorization, loadInstalledSalesforceSite} from
@@ -145,7 +147,7 @@ test('installed Salesforce grants follow only this Site\'s own dispatch',
     assert.throws(() => site.issueGrant({
       operation: 'salesforce:record:update', decision: allowed,
       resource: 'Test_Record__c', runInvocationCid: cid('3'),
-      dispatchRequestCid: cid('4')}),
+      dispatchRequestCid: cid('4'), subjectCid: cid('5')}),
     {code: 'SalesforceCredentialGrantNotAuthorized'});
     const denied = await site.authorization.authorize('effect_commit', {
       connection: site.connection, resource: 'Test_Record__c',
@@ -154,11 +156,116 @@ test('installed Salesforce grants follow only this Site\'s own dispatch',
     assert.throws(() => site.issueGrant({
       operation: 'salesforce:record:update', decision: denied,
       resource: 'Test_Record__c', runInvocationCid: cid('3'),
-      dispatchRequestCid: cid('4')}),
+      dispatchRequestCid: cid('4'), subjectCid: cid('6')}),
     {code: 'SalesforceCredentialGrantNotAuthorized'});
     const unconfigured = await site.authorization.authorize('acquisition',
       {...read, resource: 'Account'}, {subjectCid: cid('7')});
     assert.notEqual(unconfigured.action, 'dispatch');
+  });
+
+test('a record write is granted only for the commit decision of its Set',
+  async t => {
+    const setup = await installed(t, {entries: [
+      accountEntry('records-write', 'allow', {
+        connection: 'salesforce:00D000000000001EAA',
+        resource: 'Test_Record__c', operation: 'effect'}),
+    ]});
+    const site = await setup.load();
+    const tuple = {connection: site.connection, resource: 'Test_Record__c',
+      operation: 'effect'};
+    const decision = await site.authorization.authorize('effect_commit',
+      tuple, {subjectCid: cid('6')});
+    assert.equal(decision.action, 'dispatch');
+    const grant = subjectCid => site.issueGrant({
+      operation: 'salesforce:record:update', decision,
+      resource: 'Test_Record__c', runInvocationCid: cid('3'),
+      dispatchRequestCid: cid('4'), subjectCid});
+    assert.equal(grant(cid('6')).scope.operation, 'salesforce:record:update');
+    // Another sealed Set's approval, or none named, grants no write.
+    assert.throws(() => grant(cid('7')),
+      {code: 'SalesforceCredentialGrantNotAuthorized'});
+    assert.throws(() => grant(undefined),
+      {code: 'InvalidSalesforceCredentialGrantRequest'});
+  });
+
+test('a Host commit dispatch is admitted only for this principal and configuration',
+  async t => {
+    const entries = [accountEntry('records-write', 'allow', {
+      connection: 'salesforce:00D000000000001EAA',
+      resource: 'Test_Record__c', operation: 'effect'})];
+    const setup = await installed(t, {entries});
+    const site = await setup.load();
+    const tuple = {connection: site.connection, resource: 'Test_Record__c',
+      operation: 'effect'};
+    // Another gate of the Host (as its Checkpoint commit gate is), deciding
+    // under an account configuration and principal.
+    const hostGate = async ({principal = 'principal-a',
+      configurationEntries = entries} = {}) => {
+      const gate = await createLocalAuthorizationGate({
+        accountConfiguration: configuration(configurationEntries), principal,
+        context: {principal, contextCid: cid('0')}});
+      t.after(() => gate.close());
+      return gate;
+    };
+    const decide = async (gate, subjectCid = cid('6'), scope = tuple) =>
+      gate.authorize('effect_commit', scope, {subjectCid});
+    const grant = (decision, resource = 'Test_Record__c') => site.issueGrant({
+      operation: 'salesforce:record:update', decision, resource,
+      runInvocationCid: cid('3'), dispatchRequestCid: cid('4'),
+      subjectCid: cid('6')});
+    const host = await hostGate();
+    const allowed = await decide(host);
+    assert.equal(allowed.action, 'dispatch');
+    assert.equal(grant(allowed).scope.operation, 'salesforce:record:update');
+    const otherPrincipal = await decide(await hostGate({
+      principal: 'principal-b'}));
+    // The same allow under a configuration that also allows reads (entries
+    // in canonical order).
+    const otherConfiguration = await decide(await hostGate({
+      configurationEntries: [accountEntry('records-read', 'allow', {
+        connection: 'salesforce:00D000000000001EAA',
+        resource: 'Test_Record__c', operation: 'read'}), ...entries]}));
+    for (const decision of [
+      // Constructed or copied, another principal, another configuration,
+      // another Set, another Resource.
+      Object.freeze({...allowed}), otherPrincipal, otherConfiguration,
+      await decide(host, cid('7')),
+      await decide(host, cid('6'), {...tuple, resource: 'Account'}),
+    ]) {
+      assert.throws(() => grant(decision),
+        {code: 'SalesforceCredentialGrantNotAuthorized'});
+    }
+    assert.equal(otherPrincipal.action, 'dispatch');
+    assert.equal(otherConfiguration.action, 'dispatch');
+    // A commit decision never grants a read.
+    assert.throws(() => site.issueGrant({
+      operation: 'salesforce:record:observe', decision: allowed,
+      resource: 'Test_Record__c', runInvocationCid: cid('3'),
+      dispatchRequestCid: cid('4')}),
+    {code: 'SalesforceCredentialGrantNotAuthorized'});
+  });
+
+test('an Effect capability attestation signs no grant and uses no credential',
+  async t => {
+    const setup = await installed(t);
+    const site = await setup.load();
+    const uses = setup.org.journal.recover().length;
+    const seen = setup.org.seen.length;
+    const authority = site.attestEffectCapability({
+      operation: 'salesforce:record:update', runInvocationCid: cid('3'),
+      dispatchRequestCid: cid('4')});
+    assert.equal(authority.scope.runtimeBundleCid, cid('b'));
+    assert.equal(authority.scope.siteGeneration, 1);
+    assert.equal(authority.scope.operation, 'salesforce:record:update');
+    assert.equal('grant' in authority, false);
+    for (const operation of ['salesforce:record:observe',
+      'salesforce:query:read', 'salesforce:catalog:describe']) {
+      assert.throws(() => site.attestEffectCapability({operation,
+        runInvocationCid: cid('3'), dispatchRequestCid: cid('4')}),
+      {code: 'InvalidSalesforceCredentialGrantRequest'});
+    }
+    assert.equal(setup.org.journal.recover().length, uses);
+    assert.equal(setup.org.seen.length, seen);
   });
 
 test('installed Salesforce profile refuses incomplete or foreign settings',
@@ -546,7 +653,8 @@ test('a Checkpoint read approval is admitted only for this installation',
     // It grants exactly the query read of its Resource.
     const grant = operation => site.issueGrant({operation,
       decision: admitted, resource: 'Test_Record__c',
-      runInvocationCid: cid('3'), dispatchRequestCid: cid('4')});
+      runInvocationCid: cid('3'), dispatchRequestCid: cid('4'),
+      subjectCid: cid('5')});
     assert.equal(grant('salesforce:query:read').scope.operation,
       'salesforce:query:read');
     for (const operation of ['salesforce:record:observe',

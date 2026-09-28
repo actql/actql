@@ -12,6 +12,8 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {signedAnswer} from '../../packages/sdk/checkpoints.mjs';
+import {authorizationDispatchFacts} from
+  '../host-common/authorization-gate.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const reviewer = generateKeyPairSync('ed25519');
@@ -79,6 +81,8 @@ test('Effect review and signed answer survive installed service restart',
     const waiting = await gate.authorize('effect_commit',
       {...scope, operation: 'effect'}, {subjectCid: cid('2')});
     assert.equal(waiting.action, 'waiting', JSON.stringify(waiting));
+    // Only a dispatch carries its deciding gate's facts.
+    assert.equal(authorizationDispatchFacts(waiting), undefined);
     assert.equal(retained, 1);
     const page = await installed.listCheckpoints({principalId: 'reviewer',
       after: '', limit: 10});
@@ -134,10 +138,17 @@ test('Effect review and signed answer survive installed service restart',
         resumption: {claim}});
     assert.equal(resumed.action, 'dispatch', JSON.stringify(resumed));
     assert.equal(typeof resumed.admission?.enter, 'function');
+    // The resumed commit dispatch carries its gate's principal and admitted
+    // account configuration for an installed Site; a copy carries nothing.
+    const facts = authorizationDispatchFacts(resumed);
+    assert.equal(facts.principal, 'owner');
+    assert.match(facts.configurationCid, /^sha256:[0-9a-f]{64}$/u);
+    assert.equal(authorizationDispatchFacts({...resumed}), undefined);
     const foreign = await resumedGate.resume('effect_commit',
       {...scope, operation: 'effect'}, {subjectCid: cid('9'),
         resumption: {claim}});
     assert.notEqual(foreign.action, 'dispatch');
+    assert.equal(authorizationDispatchFacts(foreign), undefined);
     assert.equal(retained, 1);
     gate.close();
     resumedGate.close();
@@ -173,6 +184,7 @@ test('deferred target read is unsupported, not denied or checkpointed',
     const decision = await gate.authorize('acquisition',
       {...scope, operation: 'read'}, {subjectCid: cid('2')});
     assert.equal(decision.action, 'unsupported');
+    assert.equal(authorizationDispatchFacts(decision), undefined);
     assert.equal(retained, 0);
     assert.deepEqual(installed.journal.listRunCheckpoints(), []);
     assert.deepEqual(installed.journal.listPending(), []);

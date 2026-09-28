@@ -131,6 +131,21 @@ function frozenDecision(fields) {
   return Object.freeze(fields);
 }
 
+// Dispatch decisions a gate returned from `authorize` or `resume`, mapped to
+// the account configuration and principal of the gate that decided them.
+// A holder of the decision object can learn which admitted account
+// configuration decided it; a copied or constructed decision has no facts.
+// This is process-local custody of a decision the gate just returned, never
+// a durable approval: after a restart only the gate's own `resume` against
+// its journal decides again.
+const issuedDispatches = new WeakMap();
+const issuedDecisionScopes = new WeakMap();
+
+export function authorizationDispatchFacts(decision) {
+  return decision !== null && typeof decision === 'object'
+    ? issuedDispatches.get(decision) : undefined;
+}
+
 // Decision-subject binding of a deferred decision: SHA-256 over the canonical
 // JSON of the ten-field decision subject projection (all members are strings;
 // keys sorted; ECMAScript string serialization is the canonical string form).
@@ -141,7 +156,9 @@ function frozenDecision(fields) {
 // The journal stores this binding next to the
 // Checkpoint, and resume admits the approval only for the exact account
 // entry, principal, connection, resource, operation, boundary, subject and
-// context it names.
+// context it names. An Effect Set additionally permits later member tuples
+// of the same sealed Preview after this gate admitted its first tuple; each
+// later tuple is still evaluated against the current account configuration.
 export async function decisionSubjectCid(subject) {
   const body = `{${[...SUBJECT_FIELDS].sort().map(name =>
     `${JSON.stringify(name)}:${JSON.stringify(subject[name])}`).join(',')}}`;
@@ -344,6 +361,7 @@ export function createAuthorizationGate({
 }
 
 function gateFor(core, context) {
+  const gateScope = Object.freeze({});
   const cache = new Map();
   const pending = new Set();
   let closed = false;
@@ -367,6 +385,13 @@ function gateFor(core, context) {
   core.capacity.scopes.add(closeScope);
   const count = (name, delta = 1) => { core.counts[name] += delta; };
   const record = decision => {
+    if (decision.action === 'dispatch' && core.configurationCid !== undefined &&
+        Object.isFrozen(decision) && !issuedDispatches.has(decision)) {
+      issuedDispatches.set(decision, Object.freeze({
+        configurationCid: core.configurationCid,
+        principal: context.principal}));
+      issuedDecisionScopes.set(decision, gateScope);
+    }
     if (decision.action === 'dispatch') count('protectedDispatches');
     else if (decision.action === 'deny') count('deniedBeforeDispatch');
     else if (decision.action === 'failure') count('decisionFailures');
@@ -557,7 +582,8 @@ function gateFor(core, context) {
   }
 
   async function evaluateResumed(boundary, tuple, subjectCid, resumption,
-    sealedSubjectCid = subjectCid, signal = undefined) {
+    sealedSubjectCid = subjectCid, signal = undefined,
+    setApproval = undefined) {
     const base = {boundary, tuple, subjectCid, contextCid: context.contextCid};
     count('evaluations');
     if (core.moon === undefined) {
@@ -633,11 +659,34 @@ function gateFor(core, context) {
     const {admission, claims} = admitted;
     // The approval covers only the sealed artifact and the decision subject
     // bound at defer time: another artifact, Site, registration, boundary,
-    // subject, context, tuple or entry is not it. A two-phase preparation
-    // names its captured prepared invocation as `sealedSubjectCid`.
+    // subject, context, tuple or entry is not it. The one exception is a
+    // later member of an approved Effect Set, proven by this gate's first
+    // resumed decision for the same claim. A two-phase preparation names
+    // its captured prepared invocation as `sealedSubjectCid`.
+    // One Effect Set Checkpoint reviews the whole sealed Preview. Its first
+    // tuple was admitted against the original decision subject. A later
+    // member may use that same live approval only when this exact gate issued
+    // the first resumed decision for this claim and Preview. The current
+    // tuple is still evaluated above; deny and changed claims cannot pass.
+    const setWideApproval = boundary === 'effect_commit' &&
+      admission.kind === 'effect_set' &&
+      sealedSubjectCid === subjectCid &&
+      setApproval?.action === 'dispatch' &&
+      setApproval?.basis === 'resumed' &&
+      setApproval?.boundary === boundary &&
+      setApproval?.subjectCid === subjectCid &&
+      setApproval?.contextCid === context.contextCid &&
+      issuedDecisionScopes.get(setApproval) === gateScope &&
+      setApproval?.admission?.intentId === admission.intentId &&
+      setApproval?.admission?.checkpointCid === admission.checkpointCid &&
+      setApproval?.admission?.resolutionCid === admission.resolutionCid &&
+      setApproval?.admission?.generation === admission.generation &&
+      setApproval?.admission?.decisionSubjectCid ===
+        admission.decisionSubjectCid;
     if (!cid(subjectCid) || !cid(sealedSubjectCid) ||
         admission.requiredArtifactCid !== sealedSubjectCid ||
-        admission.decisionSubjectCid !== boundSubjectCid) {
+        admission.decisionSubjectCid !== boundSubjectCid &&
+          !setWideApproval) {
       return frozenDecision({...withEntry, action: 'failure',
         reason: 'adapter_error', detail: 'ResolutionSubjectMismatch'});
     }
@@ -868,7 +917,7 @@ function gateFor(core, context) {
     // caller may only re-send that exact durable dispatch identity through
     // `admission.reconcile(identity)`, or leave the intent unresolved.
     async resume(boundary, scope, {subjectCid, signal, resumption,
-      sealedSubjectCid} = {}) {
+      sealedSubjectCid, setApproval} = {}) {
       ensureOpen();
       if (!AUTHORIZATION_BOUNDARIES.includes(boundary)) {
         fail('InvalidAuthorizationBoundary');
@@ -879,6 +928,9 @@ function gateFor(core, context) {
            typeof sealedSubjectCid !== 'string')) {
         fail('InvalidAuthorizationSubject');
       }
+      if (setApproval !== undefined && boundary !== 'effect_commit') {
+        fail('InvalidAuthorizationSubject');
+      }
       signal?.throwIfAborted();
       const tuple = Object.freeze({
         principal: context.principal,
@@ -887,7 +939,7 @@ function gateFor(core, context) {
         operation: scope.operation,
       });
       return record(await evaluateResumed(boundary, tuple, subjectCid,
-        resumption, sealedSubjectCid ?? subjectCid, signal));
+        resumption, sealedSubjectCid ?? subjectCid, signal, setApproval));
     },
 
     // Explicit no-protected-scope coverage for pure compute over captured

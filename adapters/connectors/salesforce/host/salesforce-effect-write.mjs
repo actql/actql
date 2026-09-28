@@ -17,6 +17,8 @@ import {ownInvocationContext, ownInvocationLimits} from
 import {recoverProjectedEffectResponse} from '../../../host-node/effect-response-recovery.mjs';
 import {recoverRetainedSalesforceCatalog} from
   '../site/salesforce-catalog-recovery.mjs';
+import {recoverNamedSalesforceObservation} from
+  '../site/salesforce-named-describe.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -92,7 +94,9 @@ export function recoverPreparedSalesforceSingleRequests({
 // Re-admit the original bounded Catalog projection from the encrypted Run
 // capture, then rebuild each exact prepared request from its Preview row and
 // durable claim. A fresh Catalog and mutation grant are still required before
-// sending any reconstructed request.
+// sending any reconstructed request. A member's recovery entry is either a
+// retained Catalog sync (`salesforce-catalog`) or the retained describe of
+// exactly its Resource (`salesforce-named-catalog`).
 export function recoverCapturedSalesforceSingleRequests({
   moon, recovered, recorded, previewWire, runIdentityCid,
   authoringContextCid, previewLimits, bodyLimits, requestLimits,
@@ -116,7 +120,8 @@ export function recoverCapturedSalesforceSingleRequests({
   const catalogs = [];
   const members = recovered.connectorRecovery.map((entry, memberIndex) => {
     if (entry.memberIndex !== memberIndex ||
-        entry.kind !== 'salesforce-catalog' ||
+        !['salesforce-catalog', 'salesforce-named-catalog']
+          .includes(entry.kind) ||
         typeof entry.wire !== 'string') {
       fail('InvalidSalesforceCapturedRequestRecovery');
     }
@@ -138,11 +143,19 @@ export function recoverCapturedSalesforceSingleRequests({
         !profile.fieldNames.every(name => typeof name === 'string')) {
       fail('InvalidSalesforceCapturedRequestRecovery');
     }
-    const catalog = recoverRetainedSalesforceCatalog({moon,
-      retained: profile.catalog,
-      expectedObservationCid: entry.observationCid,
-      maxRetainedBytes});
-    const binding = JSON.parse(profile.catalog.observationJson).binding;
+    const named = entry.kind === 'salesforce-named-catalog';
+    const retained = named ? profile.evidence : profile.catalog;
+    // Retained describe bytes are base64 inside the saved wire.
+    if (typeof retained?.observationJson !== 'string' ||
+        (named && Buffer.byteLength(entry.wire, 'utf8') >
+          2 * maxRetainedBytes)) {
+      fail('InvalidSalesforceCapturedRequestRecovery');
+    }
+    const catalog = named ? {observation: recoverNamedSalesforceObservation({
+      moon, evidence: retained, expectedObservationCid: entry.observationCid})}
+      : recoverRetainedSalesforceCatalog({moon, retained,
+        expectedObservationCid: entry.observationCid, maxRetainedBytes});
+    const binding = JSON.parse(retained.observationJson).binding;
     if (binding.resource_origin !== profile.resourceOrigin ||
         binding.run_invocation_cid !== previewBody.invocation_cid) {
       fail('ForeignSalesforceCapturedRequestRecovery');

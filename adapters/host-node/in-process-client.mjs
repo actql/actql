@@ -4,9 +4,11 @@ import {ClientError} from '../../packages/sdk/index.mjs';
 import {performClientSubmit} from './client-submit.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
-import {validClientAdmission, validClientBody, validClientProfile,
-  validDeliveryAttemptLookup, validRequestLookup, validResourceInspection,
-  validResourceListing, validResourcePeek, validRunState} from
+import {validCheckpointPage, validCheckpointReview, validClientAdmission,
+  validClientBody, validClientProfile, validDeliveryAttemptLookup,
+  validRequestCancellation, validRequestLookup, validResolveResults,
+  validResourceInspection, validResourceListing, validResourcePeek,
+  validRunState} from
   '../../packages/client-wire/index.mjs';
 import {inspectAuthorizedRunState} from
   '../host-common/run-state-access.mjs';
@@ -20,8 +22,8 @@ const publicCode = /^[A-Za-z][A-Za-z0-9_]{0,79}$/u;
 export function createNodeInProcessClientHost({
   authenticate, authorizeConnection, negotiate, prepareSubmit, submit,
   attach, lookupRequest, stateService, resultService, observeRun, wait,
-  cancel, reconcile, resources, inspectResource, peekResource, maxRowBytes,
-  observe,
+  cancel, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
+  resources, inspectResource, peekResource, maxRowBytes, observe,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
@@ -106,6 +108,34 @@ export function createNodeInProcessClientHost({
           }) : await invoke(operation === 'status' ? observeRun : wait);
         if (!validRunState(state)) fail('InvalidClientHostRunState');
         return state;
+      }
+      if (operation === 'checkpoints') {
+        const page = await invoke(checkpoints);
+        if (!validCheckpointPage(page, body.limit)) {
+          fail('InvalidClientHostCheckpointPage');
+        }
+        return page;
+      }
+      if (operation === 'checkpoint-review') {
+        const review = await invoke(checkpointReview);
+        if (!validCheckpointReview(review, {
+          checkpointCid: body.checkpointCid, maxBytes: body.maxBytes,
+        })) fail('InvalidClientHostCheckpointReview');
+        return review;
+      }
+      if (operation === 'resolve') {
+        const answered = await invoke(resolve);
+        if (!validResolveResults(answered, body.items)) {
+          fail('InvalidClientHostResolveReply');
+        }
+        return answered;
+      }
+      if (operation === 'cancel-request') {
+        const cancelled = await invoke(cancelRequest);
+        if (!validRequestCancellation(cancelled, body.requestId)) {
+          fail('InvalidClientHostRequestCancellation');
+        }
+        return cancelled;
       }
       // Discovery shares the HTTP ingress's handlers and reply validation.
       if (operation === 'resources' || operation === 'resource-inspect' ||

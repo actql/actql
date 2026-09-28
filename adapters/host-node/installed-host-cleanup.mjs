@@ -1,13 +1,16 @@
 // Failed initialization has no returned Host to own its resources. Keep the
 // same retry/status protocol as publication cleanup, without restarting work.
 export async function retainInstalledHostInitializationFailure(cause,
-  {journal, store, checkpoints, dispatchOwner}) {
+  {journal, store, checkpoints, dispatchOwner, sourceProfile,
+    installedEffect}) {
   const pending = new Set();
   if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) {
     pending.add('initialization');
   }
   if (checkpoints !== undefined) pending.add('checkpoint-stop');
   if (dispatchOwner !== undefined) pending.add('dispatch');
+  if (sourceProfile !== undefined) pending.add('source-profile');
+  if (installedEffect !== undefined) pending.add('effect-profile');
   if (checkpoints !== undefined) pending.add('checkpoints');
   if (journal !== undefined) pending.add('journal');
   if (store !== undefined) pending.add('store');
@@ -40,6 +43,8 @@ export async function retainInstalledHostInitializationFailure(cause,
     if (!pending.has('initialization') && !pending.has('checkpoint-stop')) {
       await attempt('dispatch', () => dispatchOwner.drain());
       if (!pending.has('dispatch')) {
+        await attempt('source-profile', () => sourceProfile.close());
+        await attempt('effect-profile', () => installedEffect.close());
         await attempt('checkpoints', () => checkpoints.close());
         if (!pending.has('checkpoints')) {
           // Neither physical owner needs the other after dispatch has settled.
