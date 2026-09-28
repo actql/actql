@@ -71,23 +71,12 @@ fn select_declared_numeric_member(
 }
 
 ///|
-fn[I] select_task_numeric_reductions(
+fn select_task_numeric_reductions_from_declarations(
   run : CapturedDAG,
   task : Int,
-  candidate : @connector.ManagedFixedComputeCandidate[I],
+  declarations : Array[@connector.NumericReductionSupport],
 ) -> Array[TaskNumericReduction]? {
   guard run.graph.numeric.get(task) is Some(observations) else { return None }
-  let declarations = []
-  let declaration_count = @connector.managed_fixed_compute_candidate_numeric_reduction_count(
-    candidate,
-  )
-  for index in 0..<declaration_count {
-    declarations.push(
-      @connector.managed_fixed_compute_candidate_numeric_reduction_at(
-        candidate, index,
-      ).unwrap(),
-    )
-  }
   let selected = []
   for observation in observations {
     let profile = observation.profile
@@ -98,6 +87,44 @@ fn[I] select_task_numeric_reductions(
     selected.push({ observation, reduction, })
   }
   Some(selected)
+}
+
+///|
+fn[I] select_task_numeric_reductions(
+  run : CapturedDAG,
+  task : Int,
+  candidate : @connector.ManagedFixedComputeCandidate[I],
+) -> Array[TaskNumericReduction]? {
+  let declarations = []
+  let count = @connector.managed_fixed_compute_candidate_numeric_reduction_count(
+    candidate,
+  )
+  for index in 0..<count {
+    declarations.push(
+      @connector.managed_fixed_compute_candidate_numeric_reduction_at(
+        candidate, index,
+      ).unwrap(),
+    )
+  }
+  select_task_numeric_reductions_from_declarations(run, task, declarations)
+}
+
+///|
+fn select_fixed_task_numeric_reductions(
+  run : CapturedDAG,
+  task : Int,
+  candidate : @connector.FixedComputeCandidate,
+) -> Array[TaskNumericReduction]? {
+  let declarations = []
+  let count = @connector.fixed_compute_candidate_numeric_reduction_count(
+    candidate,
+  )
+  for index in 0..<count {
+    declarations.push(
+      @connector.fixed_compute_candidate_numeric_reduction_at(candidate, index).unwrap(),
+    )
+  }
+  select_task_numeric_reductions_from_declarations(run, task, declarations)
 }
 
 ///|
@@ -320,6 +347,10 @@ fn[T] start_task_execution(
   if !@connector.prepared_execution_available(prepared) {
     return Err(Compute(NotSelected))
   }
+  guard select_fixed_task_numeric_reductions(run, task, candidate)
+    is Some(numeric) else {
+    return Err(ForeignCandidate)
+  }
   for (step, required) in run.join_limits[task] {
     guard @connector.prepared_execution_join_output_ceiling(prepared, step)
       is Some(actual) &&
@@ -429,11 +460,11 @@ fn[T] start_task_execution(
         failed_holding: None,
         resident,
         attempt: @execution.issue_managed_execution_attempt(),
-        numeric: [],
+        numeric,
         numeric_captures: [],
         numeric_pending: [],
-        numeric_occurrence_counts: [],
-        numeric_sealed: true,
+        numeric_occurrence_counts: Array::make(numeric.length(), None),
+        numeric_sealed: numeric.is_empty(),
       }
       run.executions[task] = Some(execution)
       run.running = Some((task, execution))

@@ -37,7 +37,7 @@ pub fn analytic_envelope_step(AnalyticEnvelope) -> Int
 
 pub fn array_items_output_unit() -> AggregateOutputUnit
 
-pub fn[T] bind_compute_candidate(CapabilityRegistration, FixedComputeRequest, T, Int, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedCompute[T], FixedComputeIssue]
+pub fn[T] bind_compute_candidate(CapabilityRegistration, FixedComputeRequest, T, Int, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int, numeric_reductions? : Array[NumericReductionSupport]) -> Result[PreparedCompute[T], FixedComputeIssue]
 
 pub fn[T, P] bind_managed_compute_candidate(CapabilityRegistration, ManagedFixedComputeRequest[T], P, Int, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int, numeric_reductions? : Array[NumericReductionSupport]) -> Result[PreparedManagedCompute[T, P], FixedComputeIssue]
 
@@ -72,6 +72,10 @@ pub fn close_capability_registry(CapabilityRegistry) -> Unit
 pub fn execute_synchronous_compute(SynchronousCompute) -> Result[@execution_relation.CompletedOutput, SynchronousComputeFailure]
 
 pub fn fixed_compute_candidate_duration(FixedComputeCandidate) -> @physical_cost.DurationEstimate
+
+pub fn fixed_compute_candidate_numeric_reduction_at(FixedComputeCandidate, Int) -> NumericReductionSupport?
+
+pub fn fixed_compute_candidate_numeric_reduction_count(FixedComputeCandidate) -> Int
 
 pub fn fixed_compute_candidate_quantities(FixedComputeCandidate) -> QueryQuantities
 
