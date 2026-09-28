@@ -183,6 +183,8 @@ pub fn salesforce_project_listing_for(Bytes, Int, Int, Int, Int, Int, Int, Array
 
 pub fn salesforce_project_single_effect_outcome(@run_publication.EffectPreviewIdentity, Int, Int, @catalog.SingleWriteRequest, @catalog.WriteSingleResponse, Int, Int, Int, Int) -> @catalog.WriteRowEffectProjection raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_project_single_write_rejection(@catalog.SingleWriteRequest, Int, Bytes, Int, Int, Int) -> @catalog.WriteSingleResponse raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_project_single_write_success(@catalog.SingleWriteRequest, Int, Bytes, Int, Int, Int) -> @catalog.WriteSingleResponse raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_query_page_response_sha256(@catalog.QueryPage) -> String

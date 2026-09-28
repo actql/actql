@@ -33,6 +33,7 @@ fn project_write_row_effect_outcome(
   row_preview_cid : String,
   result : WriteRowResult,
   response_sha256 : String,
+  rejection : WriteRejection?,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -63,32 +64,48 @@ fn project_write_row_effect_outcome(
         @encode.string_value(writer, "applied")
       }
       RowFailed(errors) => {
+        // A definite failure publishes each provider error code and its
+        // declared fields; provider messages stay in the private response.
         @encode.key(writer, "error")
         @encode.begin_object(writer)
         @encode.key(writer, "code")
-        @encode.string_value(writer, "SalesforceRowFailed")
+        @encode.string_value(
+          writer,
+          match rejection {
+            Some(value) => value.code
+            None => "SalesforceRowFailed"
+          },
+        )
         @encode.key(writer, "details")
         @encode.begin_object(writer)
         @encode.key(writer, "errors")
         @encode.begin_array(writer)
         for error in errors {
           @encode.begin_object(writer)
+          @encode.key(writer, "error_code")
+          @encode.string_value(writer, error.status_code)
           @encode.key(writer, "fields")
           @encode.begin_array(writer)
           for field in error.fields {
             @encode.string_value(writer, field)
           }
           @encode.end_array(writer)
-          @encode.key(writer, "message")
-          @encode.string_value(writer, error.message)
-          @encode.key(writer, "status_code")
-          @encode.string_value(writer, error.status_code)
           @encode.end_object(writer)
         }
         @encode.end_array(writer)
+        if rejection is Some(value) {
+          @encode.key(writer, "http_status")
+          @encode.number_value(writer, value.http_status.to_double())
+        }
         @encode.end_object(writer)
         @encode.key(writer, "message")
-        @encode.string_value(writer, "Salesforce row failed")
+        @encode.string_value(
+          writer,
+          match rejection {
+            Some(_) => "Salesforce rejected the write before saving it"
+            None => "Salesforce did not save the row"
+          },
+        )
         @encode.end_object(writer)
         @encode.key(writer, "state")
         @encode.string_value(writer, "failed")
@@ -118,6 +135,7 @@ pub fn project_collection_effect_outcome_at(
     row_preview_cid,
     result,
     write_collection_response_sha256(response),
+    response.rejection,
     max_wire_bytes,
     max_nodes,
     max_depth,
@@ -134,16 +152,17 @@ pub fn project_single_effect_outcome(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[WriteRowEffectProjection, WriteCollectionResponseIssue] {
-  match write_single_result(response) {
-    RowApplied(_, _) =>
+  match (write_single_result(response), response.rejection) {
+    (RowApplied(_, _), None) | (RowFailed(_), Some(_)) =>
       project_write_row_effect_outcome(
         row_preview_cid,
         write_single_result(response),
         write_single_response_sha256(response),
+        response.rejection,
         max_wire_bytes,
         max_nodes,
         max_depth,
       )
-    RowFailed(_) => Err(InvalidResponse)
+    _ => Err(InvalidResponse)
   }
 }

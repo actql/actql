@@ -42,6 +42,7 @@ pub struct WriteCollectionResponse {
   results : Array[WriteRowResult]
   response_sha256 : String
   row_preview_cids : Array[String]?
+  rejection : WriteRejection?
 }
 
 ///|
@@ -90,7 +91,10 @@ pub fn project_write_collection_response_for_request(
   limits : WriteCollectionResponseLimits,
 ) -> Result[WriteCollectionResponse, WriteCollectionResponseIssue] {
   if http_status != 200 {
-    return Err(UnexpectedStatus)
+    // Only a documented request-level rejection proves that no row saved.
+    return project_write_collection_rejection(
+      http_status, bytes, request, limits,
+    )
   }
   let response = match
     project_write_collection_response(
@@ -102,17 +106,24 @@ pub fn project_write_collection_response_for_request(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ ..response, row_preview_cids: Some(request.row_preview_cids.copy()), })
+  Ok({
+    ..response,
+    results: published_collection_results(response.results, request.projection),
+    row_preview_cids: Some(request.row_preview_cids.copy()),
+  })
 }
 
 ///|
+/// One Collections row error. Its `statusCode` must be a Salesforce error
+/// enumeration name, the same form a rejection requires; any other text
+/// makes the whole response unclassified, so no row is published from it.
 fn collection_error(
   cursor : @decode.Cursor,
 ) -> Result[WriteProviderError, WriteCollectionResponseIssue] {
   guard @decode.open_object(cursor) is Ok(object) &&
     @decode.lookup(object, "statusCode") is Some(code_cursor) &&
     @decode.text(code_cursor) is Ok(code) &&
-    !code.is_empty() &&
+    write_error_code_valid(code) &&
     @decode.lookup(object, "message") is Some(message_cursor) &&
     @decode.text(message_cursor) is Ok(message) &&
     @decode.lookup(object, "fields") is Some(fields_cursor) &&
@@ -270,5 +281,10 @@ pub fn project_write_collection_response(
       Err(issue) => return Err(issue)
     }
   }
-  Ok({ results, response_sha256: @sha.hex(bytes), row_preview_cids: None, })
+  Ok({
+    results,
+    response_sha256: @sha.hex(bytes),
+    row_preview_cids: None,
+    rejection: None,
+  })
 }
