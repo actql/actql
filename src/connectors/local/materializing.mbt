@@ -283,6 +283,8 @@ pub fn[E] prepare_local_materializing_execution(
         ),
       )
     },
+    aggregate_output_ceilings~,
+    analytic_envelopes~,
   ).map_err(error => LocalMaterializingIssue::Candidate(error))
 }
 

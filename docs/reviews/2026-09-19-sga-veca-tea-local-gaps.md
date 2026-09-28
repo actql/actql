@@ -624,12 +624,73 @@ multi-step Relation tasks are rejected.
 
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |
-| Other Relation obligations outside the selected bounded binary chains | Open | Bind each remaining checked obligation to its exact bounded execution path, then prove ordinary Host completion, retained publication where applicable, cancellation, and cleanup. |
+| Other Relation obligations outside the selected bounded binary chains | In progress | The exact bounded Relation children listed below now discharge their checked obligations. Numeric-observation aggregates and other unlisted obligations remain closed to this retained lane. |
 | SGA, TEA, and VecA retained outputs | Open | Connect their exact Carrier completion and retention obligations without widening the Relation-only allowance. |
 | Native Host in-flight cancellation | Separate completion unit | Do not count JS Host cancellation as native request delivery. |
 
 The above is local route evidence. A final verification SHA and Linux CI result
 are not claimed by this document.
+
+#### Retained Relation obligation chains
+
+The retained materializing lane now binds checked obligations to the exact
+typed step in the installed sequence. For a multi-step task, the selected
+Relation chain provider must accept the whole linear sequence, and the
+corresponding bounded child must accept the obligation's step. A registered
+Carrier-family provider cannot discharge a Relation child obligation by
+claiming the task as a whole. Aggregate output ceilings and analytic envelopes
+are copied into the common prepared execution, so the selected task verifies
+the same evidence used to constrain the bounded evaluator.
+
+| Authored form in a linear task | Bounded child | Checked obligation |
+| --- | --- | --- |
+| `group` with nonnumeric aggregates, including keyed `count` | Group or count-group | Group execution and aggregate output ceiling |
+| `sort` followed by ordinary Relation steps | Selected stable-sort child | No additional checked operation obligation |
+| `distinct` followed by ordinary Relation steps | Selected distinct child | No additional checked operation obligation |
+| Fixed `row_window` and `window_group` | Window and group children | Window execution, membership and group limits |
+| `analytic` without binary64 numeric reduction | Analytic group child | Analytic execution and envelope |
+| `pivot` without binary64 numeric reduction | Pivot group child | Pivot execution and aggregate output ceiling |
+| Global `top_k` with an admitted candidate key | Selected top-k child | Exact top-k execution requirement |
+| `assert_rows` with a predicate or unique key | Selected assertion child | Exact row assertion requirement |
+| Dedupe with a top-tie check | Selected dedupe child | Exact dedupe top-tie requirement; retained Store Host evidence remains to be added |
+
+The ordinary Host fixture keeps Append and each following operation in one
+producer task. It uses a real retained Store and publication service, then
+reads the producer and two independent consumer Named Results against authored
+row and order expectations. Its representative routes include sort, distinct,
+global top-k, row assertion, keyed count group, fixed row-window, cumulative
+count analytic, max pivot and fixed window group. The existing retained
+binary-chain fixture supplies the shared task owner, writer failure, finalize
+failure, cleanup retry and typed
+later-filter failure evidence; a group-child cancellation case enters that
+child after Append work and confirms stop before releasing the input.
+
+The common selected Relation chain owns cumulative work across child
+advances and holds intermediate outputs through final cleanup. The retained
+Append → filter exact/one-short fixture (work 72/71, workspace 10/9) reaches
+this same owner through the materializing driver. Each newly admitted child
+reuses its independent exact/one-short bounded-kernel proof: selected sort,
+distinct, top-k and row assertions in `bounded_binding_rows_wbtest.mbt`;
+group, analytic and pivot in `bounded_group_wbtest.mbt` and
+`bounded_resource_boundary_wbtest.mbt`;
+fixed row-window in `bounded_row_window_wbtest.mbt`, and window group in
+`local_window_group_chain_resource_wbtest.mbt`. The retained Host fixture
+proves the new routes actually select those children. These are shared
+implementation proofs, not separately measured budgets for every authored
+combination.
+
+This does not enable binary64 SUM/AVG in the retained lane: it does not yet
+select and seal numeric observation slots on the common materializing attempt.
+The admission check rejects those variants before dispatch. Nor does this
+enable nonlinear tasks or arbitrary Carrier-family output. The existing
+selected Relation provider refuses a nonlinear sequence during planning.
+Lag remains outside this retained obligation change; its ordinary
+memory-output path is not treated as retained proof. Partitioned top-k and
+dedupe top-tie have bounded-child evidence but need retained Store Host
+fixtures before their authored variants count as product-route evidence.
+The remaining Relation work is to connect numeric observation ownership and
+to cover the other checked forms outside the table. SGA, TEA and VecA retained
+outputs remain a separate Carrier completion unit.
 
 Native Host in-flight cancellation is outside this unit's acceptance
 boundary, which requires standard Host cancellation and JS, Wasm and native

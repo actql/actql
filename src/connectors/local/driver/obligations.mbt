@@ -16,12 +16,73 @@ pub fn local_dispatch_rejection(
     let requirement = @strategy.graph_task_operation_at(graph, task, index).unwrap()
     if requirement.disposition is ExecutionCheck(check) {
       match check {
-        GroupExecution(_)
-        | JoinOutputLimit(_)
+        JoinOutputLimit(_)
         | JoinRowOrder(_)
         | JoinInputValidation(_)
-        | JoinIdentity(_)
-        | DedupeTopTie(_) => ()
+        | JoinIdentity(_) => ()
+        GroupExecution(_) =>
+          if !@local.local_module_bounded_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+              @local.Group,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
+        AnalyticExecution(_) | AnalyticEnvelope(_) =>
+          if !@local.local_module_bounded_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+              @local.Analytic,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
+        PivotExecution(_) =>
+          if !@local.local_module_bounded_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+              @local.Pivot,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
+        WindowExecution(_) | WindowMembershipLimit(_) =>
+          if !@local.local_module_bounded_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+              @local.RowWindow,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
+        TopKExecution(_) =>
+          if !@local.local_module_bounded_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+              @local.TopK,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
+        DedupeTopTie(_) =>
+          if !@local.local_module_bounded_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+              @local.Dedupe,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
+        RowAssertion(_) =>
+          if !@local.local_module_bounded_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+              @local.Assertion,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
         ValuesPublication(_) =>
           if !@local.local_module_bounded_values_publication(
               installed.implementation,
