@@ -4,6 +4,7 @@ import {mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {DatabaseSync} from 'node:sqlite';
 import * as commonMoon from
   '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as salesforceMoon from
@@ -13,6 +14,8 @@ import {accountEntry} from '../../../host-node/authorization-fixture.mjs';
 import {createLocalAuthorizationGate} from
   '../../../host-node/local-account-config.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
+import {createInstalledHostShutdown} from
+  '../../../host-node/installed-host-cleanup.mjs';
 import {DEFAULT_SALESFORCE_CATALOG_LIMITS, INSTALLED_SALESFORCE_SITE_VERSION,
   installSalesforceAuthorization, installedSalesforceSiteBinding,
   loadInstalledSalesforceSite} from
@@ -121,6 +124,49 @@ test('coinstalled roles bind to exact non-secret Site and principal facts',
       assert.notEqual(installedSalesforceSiteBinding({...site, ...difference},
         'crm-main').bindingCid, expected.bindingCid);
     }
+  });
+
+test('Host retries a real Site journal close without restarting its owners',
+  async t => {
+    const setup = await installed(t);
+    const site = await setup.load();
+    const providerRequests = setup.org.seen.length;
+    const originalClose = DatabaseSync.prototype.close;
+    const injectedFailure = new Error('InjectedSiteJournalCloseFailure');
+    let physicalCloses = 0;
+    DatabaseSync.prototype.close = function () {
+      if (++physicalCloses === 1) throw injectedFailure;
+      return originalClose.call(this);
+    };
+    t.after(() => { DatabaseSync.prototype.close = originalClose; });
+    const calls = [];
+    const shutdown = createInstalledHostShutdown({
+      stop: () => calls.push('stop'),
+      drain: () => calls.push('drain'),
+      retire: () => calls.push('retire'),
+      checkpoint: () => calls.push('checkpoint'),
+      journal: () => calls.push('journal'),
+      source: () => { calls.push('source'); site.close(); },
+      effect: () => calls.push('effect'),
+      store: () => calls.push('store'),
+    });
+    let pending;
+    await assert.rejects(shutdown.close(), error => {
+      pending = error;
+      assert.equal(error.code, 'InstalledHostCleanupPending');
+      assert.equal(error.cleanupErrors[0].error, injectedFailure);
+      assert.deepEqual(error.cleanupHandle.status().pending, ['source']);
+      return true;
+    });
+    assert.deepEqual(calls, ['stop', 'drain', 'retire', 'checkpoint',
+      'journal', 'source', 'effect', 'store']);
+    await pending.cleanupHandle.retry();
+    assert.deepEqual(shutdown.status().pending, []);
+    assert.deepEqual(calls, ['stop', 'drain', 'retire', 'checkpoint',
+      'journal', 'source', 'effect', 'store', 'source']);
+    assert.equal(physicalCloses, 2);
+    await setup.load();
+    assert.equal(setup.org.seen.length, providerRequests);
   });
 
 test('installed Salesforce grants follow only this Site\'s own dispatch',
