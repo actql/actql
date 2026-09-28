@@ -167,6 +167,13 @@ fn ascii_upper(value : String) -> String {
 
 ///|
 fn same_name(left : @query.NamePart, right : @query.NamePart) -> Bool {
+  ascii_upper(left.value) == ascii_upper(right.value)
+}
+
+///|
+// Relation path spelling has its own rule. Quoting does not change column,
+// field or alias lookup, but a quoted relation path remains exact.
+fn same_relation_name(left : @query.NamePart, right : @query.NamePart) -> Bool {
   if left.quoted || right.quoted {
     left.value == right.value
   } else {
@@ -184,6 +191,22 @@ fn same_path(
   }
   for i in 0..<left.length() {
     if !same_name(left[i], right[i]) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn same_relation_path(
+  left : Array[@query.NamePart],
+  right : Array[@query.NamePart],
+) -> Bool {
+  if left.length() != right.length() {
+    return false
+  }
+  for i in 0..<left.length() {
+    if !same_relation_name(left[i], right[i]) {
       return false
     }
   }
@@ -265,7 +288,7 @@ fn selected_relation(
 ) -> Input raise Abort {
   let mut found : Input? = None
   for input in context.inputs {
-    if same_path(relation, input.relation) {
+    if same_relation_path(relation, input.relation) {
       if found is Some(_) {
         raise Abort(AmbiguousRelation)
       }
@@ -366,6 +389,35 @@ fn resolve_column(
 }
 
 ///|
+fn ambiguous_column(
+  path : Array[@query.NamePart],
+  query : @query.Query,
+  fields : Array[String],
+) -> Bool {
+  if path.length() == 0 || path.length() > 2 {
+    return false
+  }
+  if path.length() == 2 {
+    let qualifier = @query.relation_alias(query).unwrap_or(
+      @query.relation(query).last().unwrap(),
+    )
+    if !same_name(path[0], qualifier) {
+      return false
+    }
+  }
+  let mut seen = false
+  for field in fields {
+    if same_name(path.last().unwrap(), { value: field, quoted: false, }) {
+      if seen {
+        return true
+      }
+      seen = true
+    }
+  }
+  false
+}
+
+///|
 // Pipe's visible names and range aliases refer to immutable physical slots.
 // SET and DROP may change visibility without changing an older alias snapshot.
 fn pipe_slot(
@@ -463,7 +515,12 @@ fn output_name(
             Reference(path) =>
               match resolve_column(path, query, input, fields) {
                 Some(column) => column
-                None => raise Abort(UnknownColumn)
+                None =>
+                  if ambiguous_column(path, query, fields) {
+                    raise Abort(AmbiguousColumn)
+                  } else {
+                    raise Abort(UnknownColumn)
+                  }
               }
             _ => raise Abort(UnsupportedProjection)
           }
@@ -489,7 +546,16 @@ fn append_expression(
       max_work,
     ) {
     Ok(node) => node
-    Err(error) => raise Abort(Expression(error))
+    Err(error) => {
+      for index in 0..<@query.expression_node_count(expression) {
+        if @query.expression_node(expression, index).unwrap().kind
+          is Reference(path) &&
+          ambiguous_column(path, query, fields) {
+          raise Abort(AmbiguousColumn)
+        }
+      }
+      raise Abort(Expression(error))
+    }
   }
 }
 
@@ -2172,7 +2238,10 @@ fn compile_cte_query(
   for index in 0..<@query.cte_count(query) {
     let cte = @query.cte_at(query, index).unwrap()
     for earlier in 0..<index {
-      if same_name(cte.name, @query.cte_at(query, earlier).unwrap().name) {
+      if same_relation_name(
+          cte.name,
+          @query.cte_at(query, earlier).unwrap().name,
+        ) {
         return Err(UnsupportedCte)
       }
     }
@@ -2184,15 +2253,19 @@ fn compile_cte_query(
     }
     let body_relation = @query.relation(body)
     for future in index..<@query.cte_count(query) {
-      if same_path(body_relation, [@query.cte_at(query, future).unwrap().name]) {
+      if same_relation_path(body_relation, [
+          @query.cte_at(query, future).unwrap().name,
+        ]) {
         return Err(UnsupportedCte)
       }
     }
     let mut known_relation = context.inputs.any(input => {
-      same_path(body_relation, input.relation)
+      same_relation_path(body_relation, input.relation)
     })
     for earlier in 0..<index {
-      if same_path(body_relation, [@query.cte_at(query, earlier).unwrap().name]) {
+      if same_relation_path(body_relation, [
+          @query.cte_at(query, earlier).unwrap().name,
+        ]) {
         known_relation = true
       }
     }
@@ -2203,7 +2276,9 @@ fn compile_cte_query(
       let right = @query.join_part_at(body, 0).unwrap().relation
       let mut known_right = false
       for earlier in 0..<index {
-        if same_path(right, [@query.cte_at(query, earlier).unwrap().name]) {
+        if same_relation_path(right, [
+            @query.cte_at(query, earlier).unwrap().name,
+          ]) {
           known_right = true
         }
       }
@@ -2212,10 +2287,10 @@ fn compile_cte_query(
       }
     }
     let joined = match joined_relation {
-      Some(path) => same_path(path, [cte.name])
+      Some(path) => same_relation_path(path, [cte.name])
       None => false
     }
-    if same_path(@query.relation(query), [cte.name]) || joined {
+    if same_relation_path(@query.relation(query), [cte.name]) || joined {
       used[index] = true
     }
   }
@@ -2238,8 +2313,11 @@ fn compile_cte_query(
       }
       for earlier in 0..<index {
         let name = [@query.cte_at(query, earlier).unwrap().name]
-        if same_path(relation, name) ||
-          (right is Some(right_relation) && same_path(right_relation, name)) {
+        if same_relation_path(relation, name) ||
+          (
+            right is Some(right_relation) &&
+            same_relation_path(right_relation, name)
+          ) {
           used[earlier] = true
         }
       }
@@ -2268,7 +2346,8 @@ fn compile_cte_query(
       let cte = @query.cte_at(query, index).unwrap()
       let body_relation = @query.relation(cte.query)
       let captures_source = context.inputs.any(input => {
-        same_path(body_relation, input.relation) && input.source is Captured(_)
+        same_relation_path(body_relation, input.relation) &&
+        input.source is Captured(_)
       })
       if captures_source && captured_owner {
         raise Abort(UnsupportedCte)
@@ -2289,13 +2368,15 @@ fn compile_cte_query(
         construction, cte, known, context, limits, stage_name,
       )
       stages.push(stage)
-      known = known.filter(input => !same_path(input.relation, [cte.name]))
+      known = known.filter(input => {
+        !same_relation_path(input.relation, [cte.name])
+      })
       known.push(binding)
       cte_inputs.push(binding)
     }
     let mut cte_input : Input? = None
     for input in cte_inputs {
-      if same_path(input.relation, @query.relation(query)) {
+      if same_relation_path(input.relation, @query.relation(query)) {
         cte_input = Some(input)
       }
     }
@@ -2320,7 +2401,7 @@ fn compile_cte_query(
       let part = @query.join_part_at(query, 0).unwrap()
       let mut right_input : Input? = None
       for input in cte_inputs {
-        if same_path(input.relation, part.relation) {
+        if same_relation_path(input.relation, part.relation) {
           right_input = Some(input)
         }
       }
@@ -2423,7 +2504,7 @@ fn compile_cte_stage(
     let right_relation = @query.join_part_at(body, 0).unwrap().relation
     let mut right : Input? = None
     for input in known {
-      if same_path(input.relation, right_relation) {
+      if same_relation_path(input.relation, right_relation) {
         right = Some(input)
       }
     }

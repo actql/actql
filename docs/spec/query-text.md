@@ -11,9 +11,13 @@ records implemented boundaries and intentional differences.
 ## Decoding and expression rules
 
 Input must be strict UTF-8 scalar text. A leading BOM follows the existing
-source policy. Keywords are ASCII case-insensitive; names retain spelling and
-are case-sensitive in ActQL resolution. Unquoted names match
-`[A-Za-z_][A-Za-z0-9_]*`. Backticks quote names. Single quotes delimit strings;
+source policy. Keywords are ASCII case-insensitive. Column, field and alias
+lookups are ASCII case-insensitive whether or not the name is backtick-quoted;
+the original spelling remains in the parsed source and authored output name.
+Relation paths use their separate rule: an unquoted component matches without
+ASCII case, while a quoted relation component requires exact spelling.
+Unquoted names match `[A-Za-z_][A-Za-z0-9_]*`. Backticks quote names and do
+not switch column lookup to exact-case mode. Single quotes delimit strings;
 only escaped quote, backslash, `n`, `r`, `t`, four-hex-digit `u`, and
 eight-hex-digit `U` are decoded. Escapes must denote valid Unicode scalars.
 Comments are line `--` and non-nested block `/* ... */` comments. Query

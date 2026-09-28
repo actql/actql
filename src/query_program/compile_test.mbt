@@ -2121,6 +2121,56 @@ test "declared query parameters reach checking and binding on every Program path
 }
 
 ///|
+test "quoted column and alias spelling does not change name matching" {
+  for
+    text in [
+      "SELECT `ID` FROM orders", "SELECT o.`ID` FROM orders AS o", "SELECT `id` AS answer FROM orders ORDER BY `ANSWER`",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    let program = compile(query, fixture_context(), construction_limits()).unwrap()
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      NeedsInputs(_) => ()
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+      Checked(_) => ()
+    }
+  }
+  let relation_case = @query.parse_query(
+    "SELECT id FROM `ORDERS`",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(relation_case, fixture_context(), construction_limits())
+    is Err(UnknownRelation),
+  )
+  let step = @wire.admit(
+    @source.parse_json(
+      "{\"values\":{\"schema\":{\"ID\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"ID\":1,\"id\":2}]},\"as\":\"dual\"}",
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let values = @wire.lookup(@wire.open_object(step).unwrap(), "values").unwrap()
+  let schema = @wire.lookup(@wire.open_object(values).unwrap(), "schema").unwrap()
+  let fields = @wire.object_field_names(schema).unwrap()
+  let context = {
+    ..values_context(),
+    inputs: [
+      {
+        relation: [{ value: "dual", quoted: false, }],
+        name: "dual",
+        source: GeneratedValues(step),
+        visible_fields: fields,
+      },
+    ],
+  }
+  let ambiguous = @query.parse_query("SELECT `ID` FROM dual", syntax_limits()).unwrap()
+  assert_true(
+    compile(ambiguous, context, construction_limits()) is Err(AmbiguousColumn),
+  )
+}
+
+///|
 test "grouped SELECT rejects nongrouped field and invalid aggregate form" {
   let query = @query.parse_query(
     "SELECT customer_id, COUNT(*) AS n FROM orders GROUP BY status",
