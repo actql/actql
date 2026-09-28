@@ -251,7 +251,7 @@ test('initialization retains journals and Store until active owners settle',
 
 test('Source and Effect initialization cleanup retain independent owners',
   async () => {
-    const primary = new Error('EffectInstallationFailed');
+    const primary = new TypeError('InvalidDiagnosticObserver');
     let retry = false;
     const calls = [];
     const failure = await retainInstalledHostInitializationFailure(primary, {

@@ -1147,6 +1147,34 @@ test('one installed Host reads and applies independent Effects', async t => {
   await restarted.close();
 });
 
+test('invalid observer releases an already acquired installed Source',
+  async t => {
+    const directory = await mkdtemp(join(scratch, 'observer-init-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const sourceProfilePath = await installedReadFixture(directory);
+    let failure;
+    await assert.rejects(openInstalledRemoteHttpHost({
+      directory: join(directory, 'state'),
+      authenticate: () => owner,
+      sourceProfilePath,
+      authorization: protectedHost(undefined, {observe: 'invalid'}),
+    }), error => {
+      failure = error;
+      assert.equal(error.code, 'InstalledHostInitializationFailed');
+      assert.equal(error.primaryFailure.message, 'InvalidDiagnosticObserver');
+      assert.equal(error.cleanupPending, false);
+      return true;
+    });
+    assert.deepEqual(failure.cleanupHandle.status().owners, []);
+    const reopened = await openInstalledRemoteHttpHost({
+      directory: join(directory, 'state'),
+      authenticate: () => owner,
+      sourceProfilePath,
+      authorization: protectedHost(),
+    });
+    assert.equal((await reopened.close()).storeCleanupPending, false);
+  });
+
 test('coinstalled read and commit approvals survive the same Host restart',
   async t => {
     const directory = await mkdtemp(join(scratch, 'source-effect-held-'));

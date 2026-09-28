@@ -350,10 +350,6 @@ export function openSqliteCheckpointJournal(root, {
         fail('UnsupportedCheckpointJournal');
       }
     });
-  } catch (error) {
-    throwSqliteInitializationFailure(database, error, 'checkpoint-journal');
-  }
-
   const statements = {
     run: database.prepare('SELECT * FROM runs WHERE run_id = ?'),
     insertRun: database.prepare(`
@@ -1833,5 +1829,8 @@ export function openSqliteCheckpointJournal(root, {
       preparation: projectPreparation(claim.prepareAttemptId),
       ...(run !== undefined ? {runState: projectRunState(run.runId)} : {}),
     });
+  }
+  } catch (error) {
+    throwSqliteInitializationFailure(database, error, 'checkpoint-journal');
   }
 }
