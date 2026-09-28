@@ -7586,6 +7586,46 @@ async function exerciseStrategyGraph(
       {id: 1, previous: null}, {id: 2, previous: 1},
       {id: 3, previous: 2}, {id: 4, previous: 3},
     ], fields: ['id', 'previous']},
+    {name: 'json-pick-filter-select', source: retainedUnaryChain(
+      [{json_pick: {
+        column: 'payload', path: ['inner', 'leaf'], output: 'picked',
+      }}],
+      [{filter: 'id > 0'}, {select: ['id', 'picked']}],
+      ['id', 'picked'], [
+        {id: 1, payload: {inner: {leaf: 3}}},
+        {id: 2, payload: null},
+      ], {
+        id: {type: 'number', nullable: false},
+        payload: {type: 'object', nullable: true, fields: {
+          inner: {type: 'object', nullable: false, fields: {
+            leaf: {type: 'number', nullable: false},
+          }},
+        }},
+      }),
+    expected: [{id: 1, picked: 3}, {id: 2, picked: null}],
+    fields: ['id', 'picked']},
+    {name: 'watermark-filter-select', source: retainedUnaryChain(
+      [{watermark_rows: {
+        time: 'time', late_policy: 'mark', watermark_ms: 90,
+      }}],
+      [{filter: 'id > 0'}, {select: [
+        'id', 'time', 'watermark_decision', 'watermark_late', 'watermark_ms',
+      ]}],
+      ['id', 'time', 'watermark_decision', 'watermark_late', 'watermark_ms'],
+      [{id: 1, time: 100}, {id: 2, time: 80}, {id: 3, time: 95}], {
+        id: {type: 'number', nullable: false},
+        time: {type: 'number', nullable: false},
+      }),
+    expected: [
+      {id: 1, time: 100, watermark_decision: 'keep',
+        watermark_late: false, watermark_ms: 90},
+      {id: 2, time: 80, watermark_decision: 'mark',
+        watermark_late: true, watermark_ms: 90},
+      {id: 3, time: 95, watermark_decision: 'keep',
+        watermark_late: false, watermark_ms: 90},
+    ], fields: [
+      'id', 'time', 'watermark_decision', 'watermark_late', 'watermark_ms',
+    ]},
     {name: 'group-filter-select', source: retainedUnaryChain(
       [{group: {by: ['id'], aggregates: {n: {fn: 'count'}}}}],
       [{filter: 'n > 0'}, {select: ['id', 'n']}],

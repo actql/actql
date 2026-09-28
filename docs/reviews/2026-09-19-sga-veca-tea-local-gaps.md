@@ -664,6 +664,8 @@ the same evidence used to constrain the bounded evaluator.
 | `pivot` without binary64 numeric reduction | Pivot group child | Pivot execution and aggregate output ceiling |
 | Global or partitioned `top_k` with an admitted candidate key | Selected top-k child | Exact top-k execution requirement |
 | `lag` with an admitted candidate key | Selected lag child | Exact lag execution requirement |
+| `json_pick` | Selected JSON-pick child | Exact JSON-pick execution requirement |
+| Fixed `watermark_rows` | Selected watermark child | Exact watermark execution requirement |
 | `assert_rows` with a predicate or unique key | Selected assertion child | Exact row assertion requirement |
 | Dedupe with a top-tie check | Selected dedupe child | Exact dedupe top-tie requirement |
 
@@ -671,8 +673,9 @@ The ordinary Host fixture keeps Append and each following operation in one
 producer task. It uses a real retained Store and publication service, then
 reads the producer and two independent consumer Named Results against authored
 row and order expectations. Its representative routes include sort, distinct,
-global and partitioned top-k, lag, dedupe, row assertion, keyed count group,
-fixed row-window, cumulative count analytic, max pivot and fixed window group.
+global and partitioned top-k, lag, dedupe, JSON pick, fixed watermark, row
+assertion, keyed count group, fixed row-window, cumulative count analytic, max
+pivot and fixed window group.
 The existing retained binary-chain fixture supplies the shared task owner,
 writer failure, finalize failure, cleanup retry and typed later-filter failure
 evidence; a group-child cancellation case enters that
@@ -684,7 +687,9 @@ Append → filter exact/one-short fixture (work 72/71, workspace 10/9) reaches
 this same owner through the materializing driver. Each newly admitted child
 reuses its independent exact/one-short bounded-kernel proof: selected sort,
 distinct, top-k, dedupe and row assertions in `bounded_binding_rows_wbtest.mbt`,
-and lag in `bounded_lag_wbtest.mbt`; group, analytic and pivot in
+lag in `bounded_lag_wbtest.mbt`, JSON pick in
+`bounded_json_pick_wbtest.mbt`, and watermark in
+`bounded_watermark_wbtest.mbt`; group, analytic and pivot in
 `bounded_group_wbtest.mbt` and `bounded_resource_boundary_wbtest.mbt`; fixed
 row-window in `bounded_row_window_wbtest.mbt`, and window group in
 `local_window_group_chain_resource_wbtest.mbt`. The retained Host fixture
@@ -698,7 +703,8 @@ The admission check rejects those variants before dispatch. Nor does this
 enable nonlinear tasks or arbitrary Carrier-family output. The existing
 selected Relation provider refuses a nonlinear sequence during planning.
 The remaining Relation work is to connect numeric observation ownership and
-to cover the other checked forms outside the table. SGA, TEA and VecA retained
+to cover the other checked forms outside the table, including expansion
+output envelopes. SGA, TEA and VecA retained
 outputs remain a separate Carrier completion unit.
 
 Native Host in-flight cancellation is outside this unit's acceptance
