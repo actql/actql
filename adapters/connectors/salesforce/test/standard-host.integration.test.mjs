@@ -4,7 +4,7 @@
 // Client, and the Named Result read. The org is a local HTTPS mock.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {createHash, generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync, sign} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
@@ -16,7 +16,7 @@ import * as commonMoon from
   '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as salesforceMoon from
   '../../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
-import {connect} from '../../../../packages/sdk/index.mjs';
+import {connect, RequestHeld} from '../../../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost} from
   '../../../host-node/embedded-local.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
@@ -50,6 +50,27 @@ const runtimeBundleCid = `sha256:${createHash('sha256').update(
     '../../../../_build/js/release/build/connectors_builtin_node/' +
     'connectors_builtin_node.js', import.meta.url))).digest('hex')}`;
 const secret = async () => 'test-only-secret';
+// Checkpoint review for Hosts installed with Run-acceptance protection.
+const reviewerKeys = generateKeyPairSync('ed25519');
+const hostKeys = generateKeyPairSync('ed25519');
+const pem = key => key.export({type: key.type === 'private' ? 'pkcs8'
+  : 'spki', format: 'pem'});
+const signer = {keyId: 'reviewer-key', reviewerId: 'reviewer',
+  sign: bytes => sign(null, bytes, reviewerKeys.privateKey)};
+const tokens = new Map([['owner-token', owner],
+  ['reviewer-token', 'reviewer-principal']]);
+const checkpointAuthorization = extra => ({
+  accountConfiguration: canonicalJson({
+    version: 'actql-execution-account-config/0.1',
+    account_id: 'host-account', entries: [{entry_id: 'host-run',
+      outcome: 'allow', principal: {all: true}, connection: {all: true},
+      resource: {all: true}, operation: {any_of: ['write']},
+      exclusions: []}]}),
+  reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
+    principalId: 'reviewer-principal', publicKey: pem(reviewerKeys.publicKey)}],
+  reviewReaders: [],
+  hostKey: {keyId: 'host-key', privateKey: pem(hostKeys.privateKey)},
+  leaseMs: 10_000, ...extra});
 const accountConfiguration = (orgId, readable, outcome = 'allow') =>
   canonicalJson({
   version: 'actql-execution-account-config/0.1',
@@ -116,9 +137,10 @@ async function installation(t, {readable = ['Test_Record__c'],
   const publish = () => publishInstalledSalesforceSource(profile, {
     root: hostRoot, principalId: owner, moon: commonMoon, salesforceMoon,
     runtimeBundleCid, resolveSecret: secret});
-  const open = async ({authenticate = () => owner} = {}) => {
+  const open = async ({authenticate = header =>
+    tokens.get(header?.replace(/^Bearer /u, '')), authorization} = {}) => {
     const host = await openInstalledRemoteHttpHost({directory: hostRoot,
-      authenticate, sourceProfilePath: profilePath,
+      authenticate, sourceProfilePath: profilePath, authorization,
       resolveSourceSecret: secret});
     const server = createServer({key: tlsKey, cert: tlsCertificate},
       host.handler);
@@ -132,11 +154,14 @@ async function installation(t, {readable = ['Test_Record__c'],
       await host.close();
     };
     closers.push(close);
-    const client = await connect({mode: 'remote',
-      endpoint: `https://127.0.0.1:${server.address().port}/`,
-      token: 'owner-token', durability: 'durable'});
-    closers.push(() => client.close());
-    return {client, close};
+    const as = async token => {
+      const connected = await connect({mode: 'remote',
+        endpoint: `https://127.0.0.1:${server.address().port}/`,
+        token, durability: 'durable'});
+      closers.push(() => connected.close());
+      return connected;
+    };
+    return {client: await as('owner-token'), as, close};
   };
   const queries = () => org.seen.filter(item =>
     item.path.startsWith('/services/data/v62.0/query'));
@@ -263,24 +288,23 @@ async function assertEndedRun(setup, client, requestId) {
   assert.equal(setup.org.seen.length, requests);
 }
 
-test('a delegated read with no Checkpoint is refused at submit', async t => {
-  const setup = await installation(t);
-  await setup.publish();
-  // The account delegates the read and this Host installs no Checkpoint:
-  // there is no answer path, so the read is refused before any Run.
-  await writeFile(setup.profilePath, JSON.stringify({...setup.profile,
-    accountConfigurationWire: accountConfiguration(setup.org.orgId,
-      ['Test_Record__c'], 'delegate')}));
-  const {client, close} = await setup.open();
-  const before = setup.org.seen.length;
-  await assert.rejects(client.aql(program, {format: 'json',
-    requestId: 'delegated-1'}), error => error.code === 'SubmissionUnknown' &&
-    error.cause?.code === 'ACTQL_E_DELEGATION_UNAVAILABLE');
-  assert.deepEqual(await client.lookupRequest('delegated-1'),
-    {kind: 'not_found'});
-  assert.equal(setup.org.seen.length, before);
-  await close();
-});
+test('a delegated read with no Checkpoint ends at dispatch and the Host closes',
+  async t => {
+    const setup = await installation(t);
+    await setup.publish();
+    // The account delegates the read and this Host installs no Checkpoint:
+    // nothing can answer it, so the dispatch's current read decision refuses
+    // it before any provider request. The Run fails once, nothing is
+    // retried, and the Host's dispatch owner holds nothing at close.
+    await writeFile(setup.profilePath, JSON.stringify({...setup.profile,
+      accountConfigurationWire: accountConfiguration(setup.org.orgId,
+        ['Test_Record__c'], 'delegate')}));
+    const {client, close} = await setup.open();
+    const before = setup.org.seen.length;
+    await assertEndedRun(setup, client, 'delegated-1');
+    assert.equal(setup.org.seen.length, before);
+    await close();
+  });
 
 test('a read denied when the acquisition opens is stated as not started',
   async t => {
@@ -381,4 +405,134 @@ test('an acquisition over its capture bound publishes nothing and ends once',
     assert.equal(setup.queries().length, 1);
     // The Host holds nothing for the Run: it closes.
     await close();
+  });
+
+// A held read: submitting it returns the held request.
+async function heldRead(client, requestId) {
+  try { await client.aql(program, {format: 'json', requestId}); }
+  catch (error) {
+    assert.equal(error instanceof RequestHeld, true, String(error?.code));
+    return error.held;
+  }
+  assert.fail('expected a held request');
+}
+
+async function waitFor(check) {
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const value = await check();
+    if (value) return value;
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  throw new Error('Timeout');
+}
+
+// Publish under a read the account allows, then install the Host with the
+// read delegated to its Checkpoint.
+async function delegatedInstallation(t, options) {
+  const setup = await installation(t, options);
+  await setup.publish();
+  await writeFile(setup.profilePath, JSON.stringify({...setup.profile,
+    accountConfigurationWire: accountConfiguration(setup.org.orgId,
+      ['Test_Record__c'], 'delegate')}));
+  return setup;
+}
+
+test('a held read is approved across a Host restart and reaches the Named Result',
+  async t => {
+    const setup = await delegatedInstallation(t);
+    const first = await setup.open({authorization:
+      checkpointAuthorization({resumeAfterAnswer: false})});
+    const before = setup.org.seen.length;
+    const hold = await heldRead(first.client, 'held-read');
+    assert.equal(hold.checkpoint.kind, 'read_access');
+    const reviewer = await first.as('reviewer-token');
+    const {items: [summary]} = await reviewer.checkpoints();
+    await reviewer.resolveCheckpoints([{checkpoint: summary,
+      decision: 'approved'}], {signer});
+    // Nothing was read while the request was held and answered.
+    assert.equal(setup.org.seen.length, before);
+    await first.close();
+    const second = await setup.open({authorization:
+      checkpointAuthorization({})});
+    const found = await waitFor(async () => {
+      const lookup = await second.client.lookupRequest('held-read');
+      return lookup.kind === 'found' ? lookup : undefined;
+    });
+    const execution = await second.client.attach(found.ref);
+    const state = await waitFor(async () => {
+      const current = await execution.wait();
+      return ['succeeded', 'failed', 'cancelled'].includes(current.status)
+        ? current : undefined;
+    });
+    assert.equal(state.status, 'succeeded');
+    const rows = await execution.result('records').all();
+    assert.deepEqual(rows.map(row => [row.External_Key__c, row.Name]).sort(),
+      [['key-1', 'record-1'], ['key-3', 'record-3']]);
+    // The approved read described its Resource and queried once.
+    assert.equal(setup.queries().length, 1);
+  });
+
+test('an expired, cancelled or retargeted approval reads nothing',
+  async t => {
+    // Expired: the approval lapses before the Host resumes the read.
+    const expired = await delegatedInstallation(t);
+    const e1 = await expired.open({authorization: checkpointAuthorization({
+      checkpointTtlMs: 8000, resumeAfterAnswer: false})});
+    await heldRead(e1.client, 'expired-read');
+    const eReviewer = await e1.as('reviewer-token');
+    const {items: [eSummary]} = await eReviewer.checkpoints();
+    await eReviewer.resolveCheckpoints([{checkpoint: eSummary,
+      decision: 'approved'}], {signer});
+    await e1.close();
+    await new Promise(resolve => setTimeout(resolve,
+      Math.max(0, Date.parse(eSummary.expiresAt) + 300 - Date.now())));
+    const eBefore = expired.org.seen.length;
+    const e2 = await expired.open({authorization: checkpointAuthorization({
+      checkpointTtlMs: 8000})});
+    await waitFor(async () => (await e2.client.lookupRequest('expired-read'))
+      .state === 'ended');
+    assert.equal(expired.org.seen.length, eBefore);
+
+    // Cancelled: the request is cancelled after approval, before resuming.
+    const cancelled = await delegatedInstallation(t);
+    const c1 = await cancelled.open({authorization:
+      checkpointAuthorization({resumeAfterAnswer: false})});
+    await heldRead(c1.client, 'cancelled-read');
+    const cReviewer = await c1.as('reviewer-token');
+    const {items: [cSummary]} = await cReviewer.checkpoints();
+    await cReviewer.resolveCheckpoints([{checkpoint: cSummary,
+      decision: 'approved'}], {signer});
+    await c1.client.cancelRequest('cancelled-read');
+    await c1.close();
+    const cBefore = cancelled.org.seen.length;
+    const c2 = await cancelled.open({authorization:
+      checkpointAuthorization({})});
+    await waitFor(async () => (await c2.client.lookupRequest(
+      'cancelled-read')).state === 'ended');
+    assert.equal(cancelled.org.seen.length, cBefore);
+
+    // Retargeted: the declaration is republished after approval with another
+    // field set, so the same Program would read another declared target.
+    const retargeted = await delegatedInstallation(t);
+    const r1 = await retargeted.open({authorization:
+      checkpointAuthorization({resumeAfterAnswer: false})});
+    await heldRead(r1.client, 'retargeted-read');
+    const rReviewer = await r1.as('reviewer-token');
+    const {items: [rSummary]} = await rReviewer.checkpoints();
+    await rReviewer.resolveCheckpoints([{checkpoint: rSummary,
+      decision: 'approved'}], {signer});
+    await r1.close();
+    retargeted.org.setOptionalText(true);
+    await writeFile(retargeted.profilePath, JSON.stringify(
+      retargeted.profile));
+    await retargeted.publish();
+    await writeFile(retargeted.profilePath, JSON.stringify({
+      ...retargeted.profile, accountConfigurationWire: accountConfiguration(
+        retargeted.org.orgId, ['Test_Record__c'], 'delegate')}));
+    const rBefore = retargeted.queries().length;
+    const r2 = await retargeted.open({authorization:
+      checkpointAuthorization({})});
+    await waitFor(async () => (await r2.client.lookupRequest(
+      'retargeted-read')).state === 'ended');
+    assert.equal(retargeted.queries().length, rBefore);
   });

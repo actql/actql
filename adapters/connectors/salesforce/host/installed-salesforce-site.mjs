@@ -18,6 +18,8 @@ import {createSalesforceCliSecretResolver} from
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {syncSalesforceCatalog} from '../site/salesforce-catalog-sync.mjs';
 import {readSalesforceQuery} from '../site/salesforce-query-read.mjs';
+import {checkpointApprovalFacts} from
+  '../../../host-common/checkpoint-approval.mjs';
 import {describeSalesforceResources, recoverNamedSalesforceObservation} from
   '../site/salesforce-named-describe.mjs';
 
@@ -204,6 +206,17 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     if (required === undefined || !text(resource)) {
       fail('InvalidSalesforceCredentialGrantRequest');
     }
+    // A read approval admitted from the Host's Checkpoint grants only the
+    // query read of its own Resource.
+    const approved = approvedReads.get(decision);
+    if (approved !== undefined) {
+      if (operation !== 'salesforce:query:read' ||
+          approved.resource !== resource) {
+        fail('SalesforceCredentialGrantNotAuthorized');
+      }
+      return sign({operation, runInvocationCid, taskAttempt,
+        dispatchRequestCid, maxUses});
+    }
     if (!issuedDecisions.has(decision) || decision.action !== 'dispatch' ||
         decision.boundary !== required[0] ||
         decision.contextCid !== context.contextCid ||
@@ -215,6 +228,45 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     }
     return sign({operation, runInvocationCid, taskAttempt,
       dispatchRequestCid, maxUses});
+  }
+
+  // Read approvals admitted from the Host's Checkpoint for this installation:
+  // the approval object the Site returns, mapped to what it covers.
+  const approvedReads = new WeakMap();
+  // Admit a read approval the Host's Checkpoint returned for one dispatch.
+  // Only a decision the Checkpoint owner recorded is considered, and only
+  // when the approved read is this installation's: the requesting principal,
+  // org, connection revision, Site key and generation, origin and Resource.
+  // The approval authorizes that Resource's data query (`issueGrant`) and,
+  // for the same read, its metadata describe (`describeForAcquisition`);
+  // nothing else. It is decided current by the Checkpoint when returned.
+  function admitCheckpointReadApproval(decision) {
+    const facts = checkpointApprovalFacts(decision);
+    const binding = facts?.physicalBinding;
+    if (facts === undefined || decision.action !== 'dispatch' ||
+        decision.basis !== 'resumed_approval' ||
+        decision.boundary !== 'acquisition' ||
+        decision.tuple?.connection !== connection ||
+        decision.tuple?.operation !== 'read' ||
+        facts.principalId !== principalId ||
+        facts.readTuple?.connection !== connection ||
+        facts.readTuple?.operation !== 'read' ||
+        facts.readTuple?.resource !== decision.tuple.resource ||
+        binding?.version !== 'actql-installed-salesforce-target/0.1' ||
+        binding.org_id !== profile.orgId ||
+        binding.instance_origin !== profile.instanceOrigin ||
+        binding.site_key !== profile.siteKey ||
+        binding.site_generation !== profile.siteGeneration ||
+        binding.connection_revision !== profile.connectionRevision ||
+        binding.resource !== decision.tuple.resource ||
+        !Array.isArray(binding.fields) || !text(binding.catalog_cid)) {
+      fail('SalesforceReadApprovalNotAdmitted');
+    }
+    const approval = Object.freeze({resource: binding.resource,
+      fields: Object.freeze([...binding.fields]),
+      catalogCid: binding.catalog_cid, checkpointCid: facts.checkpointCid});
+    approvedReads.set(approval, approval);
+    return approval;
   }
 
   // Metadata read decisions: the installed gate's `read` dispatch at the
@@ -251,15 +303,24 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   async function describeNamed({resources, occurrence, runInvocationCid:
     runCid, dispatchRequestCid: dispatchCid, retainEvidence = false,
     maxRetainedBytes = 0, limits = DEFAULT_SALESFORCE_CATALOG_LIMITS,
-    signal}) {
+    approval, signal}) {
     if (!Array.isArray(resources) || resources.length === 0 ||
         !resources.every(text) || !text(occurrence) ||
         (runCid === undefined) !== (dispatchCid === undefined)) {
       fail('InvalidSalesforceCredentialGrantRequest');
     }
     const decided = new Set();
+    // An admitted read approval covers the describe of its own Resource in
+    // its dispatch; every other describe needs its metadata decision.
+    const covered = approval === undefined ? undefined
+      : approvedReads.get(approval);
+    if (approval !== undefined && covered === undefined) {
+      fail('SalesforceCatalogDescribeNotAuthorized');
+    }
     for (const resource of resources) {
-      await authorizeDescribe(resource, {occurrence, signal});
+      if (covered?.resource !== resource) {
+        await authorizeDescribe(resource, {occurrence, signal});
+      }
       decided.add(resource);
     }
     const runInvocationCid = runCid ?? cid({version:
@@ -452,7 +513,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // own metadata read decision. The describe responses are retained so the
   // runtime that owns the acquisition reprojects the observation itself.
   async function describeForAcquisition({resource, runInvocationCid,
-    dispatchRequestCid, occurrence, signal} = {}) {
+    dispatchRequestCid, occurrence, approval, signal} = {}) {
     if (!text(resource) || !text(occurrence) ||
         !cidPattern.test(runInvocationCid ?? '') ||
         !cidPattern.test(dispatchRequestCid ?? '')) {
@@ -461,7 +522,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     const catalog = await describeNamed({resources: [resource], occurrence,
       runInvocationCid, dispatchRequestCid, retainEvidence: true,
       maxRetainedBytes: DEFAULT_SALESFORCE_CATALOG_LIMITS.maxObservationBytes,
-      signal});
+      approval, signal});
     if (catalog.status === 'interrupted') {
       fail(catalog.interruptionCode === 'SalesforceCatalogCancelled'
         ? 'SalesforceCatalogCancelled' : 'SalesforceCatalogRefreshInterrupted');
@@ -585,7 +646,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     connectorRegistration: 'salesforce', connectorRevision: 'salesforce/0.1',
     principal: principalId, context, authorization, credential,
     issueGrant, refreshCatalog, declareCatalog, restoreDeclaration,
-    describeForAcquisition, prepareExecutionMapping, peek,
+    describeForAcquisition, admitCheckpointReadApproval,
+    prepareExecutionMapping, peek,
     // Whether this Site generated `declaration`.
     ownsDeclaration: declaration => declarations.has(declaration),
     close() {

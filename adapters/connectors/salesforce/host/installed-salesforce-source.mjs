@@ -245,9 +245,11 @@ function installedSalesforceAdapter({moon, site, authorization, declaration,
         fields: Object.freeze([...fields])}),
     });
     // A read the account denies is refused here, before any Run exists; a
-    // held or delegated read is left to the Host's Checkpoint.
+    // delegated read is left to the Host's Checkpoint, or refused at
+    // dispatch when none can answer it.
     const decision = await decideRead(prepared, access);
-    const refused = authorizationRuntimeCode(decision);
+    const refused = decision?.action === 'deny'
+      ? authorizationRuntimeCode(decision) : undefined;
     if (refused !== undefined) {
       throw Object.assign(new Error(refused), {code: refused,
         authorization: decision});
@@ -285,6 +287,16 @@ function installedSalesforceAdapter({moon, site, authorization, declaration,
       fail('InstalledSourcePreparationMismatch');
     }
     const decision = await currentRead(prepared, access, signal);
+    // A read approved at the Host's Checkpoint is admitted by the Site only
+    // for this installation, and must be the approval of this exact read.
+    const approval = decision.basis === 'resumed_approval'
+      ? site.admitCheckpointReadApproval(decision) : undefined;
+    if (approval !== undefined && (approval.resource !== owner.resource ||
+        approval.catalogCid !== prepared.physicalBinding.catalog_cid ||
+        JSON.stringify(approval.fields) !==
+          JSON.stringify(prepared.physicalBinding.fields))) {
+      fail('SalesforceReadApprovalNotAdmitted');
+    }
     const nonce = randomUUID();
     const runInvocationCid = cid({
       version: 'actql-salesforce-acquisition/0.1',
@@ -294,7 +306,7 @@ function installedSalesforceAdapter({moon, site, authorization, declaration,
     const describe = async suffix => {
       const described = await site.describeForAcquisition({
         resource: owner.resource, runInvocationCid, dispatchRequestCid,
-        occurrence: `${nonce}-${suffix}`, signal});
+        occurrence: `${nonce}-${suffix}`, approval, signal});
       return Object.freeze({status: 'observed',
         observation: recover(described.evidence, runInvocationCid),
         observationCid: described.observationCid,
@@ -316,7 +328,8 @@ function installedSalesforceAdapter({moon, site, authorization, declaration,
     };
     try {
       const grant = site.issueGrant({operation: 'salesforce:query:read',
-        decision, resource: owner.resource, runInvocationCid,
+        decision: approval ?? decision, resource: owner.resource,
+        runInvocationCid,
         dispatchRequestCid, maxUses: readLimits.maxPages});
       await readSalesforceIssuedBroad({moon: broadMoon, hostRun: run,
         apiVersion: site.apiVersion, limits: readLimits,

@@ -54,7 +54,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   idSortable = false,
   storedOrder = [1, 2, 3],
   // A nullable, writable Optional_Text__c on Test_Record__c.
-  optionalText = false,
+  optionalText: initialOptionalText = false,
   // The Host's logical connection id the Site declares under.
   connectorId = 'crm-main',
   // An HTTP status every query request is answered with instead of rows.
@@ -82,6 +82,7 @@ export async function openSalesforceEffectSiteFixture(t, {
     readFile(join(root, 'resource.key')),
   ]);
   const seen = [];
+  let optionalText = initialOptionalText;
   let loseReply = loseWriteReplyOnce;
   let rateLimitReply = rateLimitWriteOnce;
   let observedName = 'before';
@@ -361,5 +362,6 @@ export async function openSalesforceEffectSiteFixture(t, {
       connectorId, resources: ['Test_Record__c']}),
     setTargetName(name) { observedName = name; },
     setNameUpdateable(value) { nameUpdateable = value; },
-    setNameCreateable(value) { nameCreateable = value; }};
+    setNameCreateable(value) { nameCreateable = value; },
+    setOptionalText(value) { optionalText = value; }};
 }

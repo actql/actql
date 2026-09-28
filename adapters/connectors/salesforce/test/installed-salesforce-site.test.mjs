@@ -522,3 +522,59 @@ test('a published declaration restores without provider I/O and only for its Sit
       {code: 'ForeignSalesforceDeclaration'});
     }
   });
+
+test('a Checkpoint read approval is admitted only for this installation',
+  async t => {
+    const {recordCheckpointApproval} = await import(
+      '../../../host-common/checkpoint-approval.mjs');
+    const setup = await installed(t);
+    const site = await setup.load();
+    const tuple = Object.freeze({connection: site.connection,
+      resource: 'Test_Record__c', operation: 'read'});
+    const binding = {version: 'actql-installed-salesforce-target/0.1',
+      org_id: site.orgId, instance_origin: site.instanceOrigin,
+      site_key: site.siteKey, site_generation: site.siteGeneration,
+      connection_revision: site.connectionRevision, catalog_cid: cid('c'),
+      resource: 'Test_Record__c', fields: ['Id', 'Name']};
+    const approval = (facts = {}) => recordCheckpointApproval(Object.freeze({
+      boundary: 'acquisition', action: 'dispatch', basis: 'resumed_approval',
+      tuple, checkpointCid: cid('d')}), {checkpointCid: cid('d'),
+      readTuple: tuple, physicalBinding: binding, principalId: 'principal-a',
+      ...facts});
+    const admitted = site.admitCheckpointReadApproval(approval());
+    assert.equal(admitted.resource, 'Test_Record__c');
+    // It grants exactly the query read of its Resource.
+    const grant = operation => site.issueGrant({operation,
+      decision: admitted, resource: 'Test_Record__c',
+      runInvocationCid: cid('3'), dispatchRequestCid: cid('4')});
+    assert.equal(grant('salesforce:query:read').scope.operation,
+      'salesforce:query:read');
+    for (const operation of ['salesforce:record:observe',
+      'salesforce:record:update']) {
+      assert.throws(() => grant(operation),
+        {code: 'SalesforceCredentialGrantNotAuthorized'});
+    }
+    assert.throws(() => site.issueGrant({operation: 'salesforce:query:read',
+      decision: admitted, resource: 'Account', runInvocationCid: cid('3'),
+      dispatchRequestCid: cid('4')}),
+    {code: 'SalesforceCredentialGrantNotAuthorized'});
+    // A hand-made decision, a copy, or another installation's approval is
+    // never admitted.
+    const forged = Object.freeze({boundary: 'acquisition', action: 'dispatch',
+      basis: 'resumed_approval', tuple, checkpointCid: cid('d')});
+    for (const decision of [forged, {...approval()},
+      approval({principalId: 'principal-b'}),
+      approval({physicalBinding: {...binding, site_generation: 2}}),
+      approval({physicalBinding: {...binding,
+        connection_revision: 'connection-revision-b'}}),
+      approval({physicalBinding: {...binding, org_id: '00D000000000009EAA'}}),
+      approval({physicalBinding: {...binding, resource: 'Account'}})]) {
+      assert.throws(() => site.admitCheckpointReadApproval(decision),
+        {code: 'SalesforceReadApprovalNotAdmitted'});
+    }
+    // A Site's own grant check never accepts a raw Checkpoint decision.
+    assert.throws(() => site.issueGrant({operation: 'salesforce:query:read',
+      decision: approval(), resource: 'Test_Record__c',
+      runInvocationCid: cid('3'), dispatchRequestCid: cid('4')}),
+    {code: 'SalesforceCredentialGrantNotAuthorized'});
+  });
