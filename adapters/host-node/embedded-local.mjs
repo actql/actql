@@ -180,14 +180,21 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     throw await retainInstalledHostInitializationFailure(cause,
       {sourceProfile, installedEffect});
   }
-  const evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
-  const numericProfile = JSON.parse(await readFile(join(packageRoot,
-    'spec/contracts/actql-numeric-reduction.json'), 'utf8'));
-  const numericProfileCid = `sha256:${createHash('sha256')
-    .update(canonicalJson(numericProfile)).digest('hex')}`;
-  const environment = moon.clientProgramCheckEnvironmentWithNumericProfile(
-    environmentWire, evidenceCid, false, false, true, false, false, false,
-    false, numericProfileCid);
+  let environment;
+  let evidenceCid;
+  try {
+    evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
+    const numericProfile = JSON.parse(await readFile(join(packageRoot,
+      'spec/contracts/actql-numeric-reduction.json'), 'utf8'));
+    const numericProfileCid = `sha256:${createHash('sha256')
+      .update(canonicalJson(numericProfile)).digest('hex')}`;
+    environment = moon.clientProgramCheckEnvironmentWithNumericProfile(
+      environmentWire, evidenceCid, false, false, true, false, false, false,
+      false, numericProfileCid);
+  } catch (cause) {
+    throw await retainInstalledHostInitializationFailure(cause,
+      {sourceProfile, installedEffect});
+  }
   if (environment === undefined) {
     throw await retainInstalledHostInitializationFailure(
       new Error('InvalidInstalledLocalEnvironment'),
