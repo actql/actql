@@ -36,6 +36,35 @@ test "producer read keeps immutable ownership and resolves receiving columns onc
 }
 
 ///|
+test "ordinary read preserves an internal operation binding for managed input" {
+  let owner = row_owner(",{\"select\":[\"b\",\"a\"]}")
+  let completion = evaluate_sequence_components(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["values_0"],
+    run_limits(),
+    { remaining: 10000, max_frames: 100, },
+  ).unwrap()
+  let output = completed_output(completion, Step(0)).unwrap()
+  let read = prepare_producer_read(
+    owner,
+    bind_completed_operation_input(owner, 1, 0, owner, output).unwrap(),
+    100,
+    100,
+  ).unwrap()
+  let binding = ordinary_relation_input_binding(read)
+  assert_true(
+    managed_input_binding_matches_operation_input(binding, owner, 1, 0),
+  )
+  assert_false(managed_input_binding_matches_input(binding, owner, 0))
+  assert_true(
+    managed_input_binding_for_operation(binding, owner, 1, 0) is Some(_),
+  )
+  assert_true(managed_input_binding_for_operation(binding, owner, 0, 0) is None)
+}
+
+///|
 test "producer read applies checked aliases without materializing projection rows" {
   let owner = row_owner("")
   let upstream = evaluate_sequence_components(

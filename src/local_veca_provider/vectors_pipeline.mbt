@@ -45,6 +45,7 @@ priv struct Execution {
   mut phase : Phase
   mut binding_execution : @execution.BoundedBindingRowsExecution?
   mut rows : @bridge.RowsToVectorsExecution?
+  row_step : Int
   mut kernel_step : Int
   mut kernel : VectorExecution?
   mut transformed : @records.Completed?
@@ -433,7 +434,7 @@ fn advance_execution(
           @bridge.start_rows_to_vectors(
             value.control,
             value.sequence,
-            0,
+            value.row_step,
             inputs[0],
             value.limits,
             value.storage_bytes,
@@ -1340,6 +1341,7 @@ pub fn provider(
           StartRows
         },
         rows: None,
+        row_step: first_step,
         binding_execution: None,
         kernel_step: if relation_pool {
           0

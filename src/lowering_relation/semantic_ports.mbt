@@ -218,6 +218,8 @@ pub fn node_accepts_managed_relation_view(
     return false
   }
   match node.payload {
+    EventValue(_) => operation(node) == "BRIDGE.rows.to_events"
+    VectorValue(_) => operation(node) == "BRIDGE.rows.to_vectors"
     Where(_)
     | Derive(_)
     | Select(_)

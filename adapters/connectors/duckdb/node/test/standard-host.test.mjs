@@ -2747,6 +2747,139 @@ async function exerciseStrategyGraph(
     });
     await carrierVectorRetained.close();
   }
+  // A zero-input row source and its Carrier Bridge share an authored Stage.
+  // The physical split must retain the Events/Vectors generation for a later
+  // Bridge task, then publish and independently consume its Relation view.
+  for (const carrierCase of [{
+    name: 'events',
+    source: eventPublicationProgram,
+    create: program => fixture.strategyFixtureTeaCreate(
+      ...args, JSON.stringify(program)),
+    configure: value => fixture.strategyFixtureTeaRetainedSubset(value),
+    fields: ['event_id', 'occurred_at', 'payload'],
+    secondFields: ['payload', 'event_id'],
+    rows: [
+      {event_id: 1, occurred_at: 5, payload: 'first'},
+      {event_id: 2, occurred_at: 15, payload: 'second'},
+    ],
+  }, {
+    name: 'vectors',
+    source: carrierVectorPublicationProgram,
+    create: program => fixture.strategyFixtureVecaCreate(
+      ...args, JSON.stringify(program), orderedContract),
+    configure: value => fixture.strategyFixtureVecaRetainedSubset(value),
+    fields: ['id', 'embedding'],
+    secondFields: ['embedding', 'id'],
+    rows: [
+      {id: 1, embedding: [3, 4]},
+      {id: 2, embedding: [0, 2]},
+    ],
+  }]) {
+    const directProgram = structuredClone(carrierCase.source);
+    const rowStep = directProgram.stages[1].steps[0];
+    rowStep.as = 'rows';
+    const carrierStage = directProgram.stages[2];
+    carrierStage.inputs = {};
+    carrierStage.steps = [
+      rowStep, carrierStage.steps[0], carrierStage.steps.at(-1),
+    ];
+    carrierStage.steps[2].from = 'source';
+    carrierStage.results.r.fields = carrierCase.fields;
+    directProgram.stages.splice(1, 1);
+    for (const consumer of directProgram.stages.slice(2)) {
+      const fields = consumer.id === 'consumer_a'
+        ? carrierCase.fields : carrierCase.secondFields;
+      consumer.steps = [{select: fields, as: 'out'}];
+      consumer.results.r.fields = fields;
+    }
+    const directFixture = carrierCase.create(directProgram);
+    const directCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(directFixture),
+      suppliedLimits,
+    );
+    const directDirectory = await mkdtemp(join(
+      root,
+      `_build/duckdb-fixtures/${carrierCase.name}-handoff-entry-`,
+    ));
+    const directRetained = await createCarrierRetainedStore(
+      `${carrierCase.name}-handoff`,
+    );
+    let directOwner;
+    let directStore;
+    try {
+      assert.equal(
+        fixture.strategyFixtureOpen(directFixture, directCapture.source()),
+        true,
+      );
+      const setup = carrierCase.configure(directFixture);
+      const runtime = runtimeCore(hostRuntime);
+      const resultCount = runtime.resultInventory(setup).length;
+      assert.equal(resultCount, 3);
+      directStore = await openLocalPublicationStore({
+        directory: directDirectory,
+        storeAuthorityCid: hash(`${carrierCase.name}-handoff-store`),
+        capacityBytes: 4 * 1024 * 1024,
+        maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+        maxObjects: 100,
+        maxContractNodes: 10000,
+        maxContractDepth: 64,
+      }, runtime.publicationControl);
+      const plan = standardPublicationPlan(
+        runtime,
+        runtime.programDefinitionCid(setup),
+        resultCount,
+        `${carrierCase.name}-handoff-attempt`,
+      );
+      directOwner = await runPublishedCapturedStrategy(
+        setup,
+        {store: directStore, plan},
+        {local: directRetained.configuration},
+        new AbortController().signal,
+      );
+      assert.equal(directOwner.status, 'published');
+      assert.equal(directOwner.publication.publication.state, 'succeeded');
+      assert(directRetained.leases.length > 0);
+      assert(directOwner.execution.completed.some(value =>
+        value.outputRepresentation === 'retained-file'));
+      assert.equal(directOwner.execution.completed.filter(value =>
+        value.outputRepresentation === 'managed-local-carrier').length, 1);
+      const expected = {
+        published: carrierCase.rows,
+        consumed_a: carrierCase.rows,
+        consumed_b: carrierCase.rows.map(row =>
+          Object.fromEntries(carrierCase.secondFields.map(
+            field => [field, row[field]]))),
+      };
+      for (const occurrence of directOwner.execution.publicationInventory
+        .occurrences) {
+        const received = [];
+        await directStore.consumeCommittedResult({
+          tenantId: plan.request.tenantId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, occurrence.definitionContract.identity, () => true,
+        chunk => received.push(Buffer.from(chunk)));
+        assert.deepEqual(
+          JSON.parse(Buffer.concat(received).toString('utf8')),
+          expected[occurrence.name],
+        );
+      }
+    } finally {
+      if (directOwner !== undefined) {
+        await directOwner.close();
+        assert.equal(directOwner.cleanupPending(), false);
+        assert.equal(await directOwner.cleanup(), true);
+        assert.equal(directOwner.execution.usage().heldBytes, 0n);
+        assert.equal(
+          directOwner.execution.usage().reservedExecutionBytes, 0n);
+      }
+      directCapture.close();
+      await directStore?.close();
+      await rm(directDirectory, {recursive: true, force: true});
+      await directRetained.close();
+    }
+  }
   const scoredVectorPublicationProgram = structuredClone(
     carrierVectorPublicationProgram,
   );

@@ -261,10 +261,7 @@ fn start_rows_to_records(
   guard @lower.sequence_step(sequence, step) is Some(prepared) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     accepts(prepared, node) &&
-    @lower.node_input_target(node, 0) ==
-    Some(@pipeline.Input(@execution.producer_read_input_index(input))) &&
-    physical_equal(@execution.producer_read_receiver(input), owner) &&
-    @execution.producer_read_available(input) else {
+    @execution.producer_read_matches_operation_input(input, owner, step, 0) else {
     return Err(InvalidKernel)
   }
   let schema = @execution.producer_read_schema(input)
