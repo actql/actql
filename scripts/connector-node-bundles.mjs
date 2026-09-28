@@ -318,7 +318,9 @@ export function checkRelaNodeAssembly(root, write = false) {
       .replace(clientGraph,
         'fn installed_client_graph_providers(\n' +
         '  _capacity : @execution.ExecutionCapacity,\n' +
-        ') -> Array[@local.ManagedProvider] { [] }\n')
+        ') -> Array[@local.ManagedProvider] {\n' +
+        '  []\n' +
+        '}\n')
       .replace('  // SELECTED_SGA_CAPABILITY\n',
         '  if sga {\n    return None\n  }\n')
       .replace('  // SELECTED_SGA_NUMERIC_CAPABILITY\n',

@@ -2038,7 +2038,9 @@ pub fn client_program_admit_local_values_aoa_identity(
 /// Open the portable installed Local Host from this JS ABI.
 fn installed_client_graph_providers(
   _capacity : @execution.ExecutionCapacity,
-) -> Array[@local.ManagedProvider] { [] }
+) -> Array[@local.ManagedProvider] {
+  []
+}
 
 ///|
 /// Open the portable installed Local Host from this JS ABI.
