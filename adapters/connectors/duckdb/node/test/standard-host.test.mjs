@@ -7574,6 +7574,42 @@ async function exerciseStrategyGraph(
       [{assert_rows: {where: 'id > 0'}}],
       [{filter: 'id > 0'}, {select: ['id']}], ['id']),
     expected: [1, 2, 3, 4].map(id => ({id})), fields: ['id']},
+    {name: 'unpivot-filter-select', source: retainedUnaryChain(
+      [{unpivot: {
+        columns: ['jan', 'feb'], keep: ['id'],
+        name_column: 'metric', value_column: 'value',
+      }}],
+      [{filter: 'id > 1'}, {select: ['id', 'metric', 'value']}],
+      ['id', 'metric', 'value'], [
+        {id: 1, jan: 10, feb: 20},
+        {id: 2, jan: null, feb: 30},
+      ], {
+        id: {type: 'number', nullable: false},
+        jan: {type: 'number', nullable: true},
+        feb: {type: 'number', nullable: true},
+      }),
+    expected: [
+      {id: 2, metric: 'jan', value: null},
+      {id: 2, metric: 'feb', value: 30},
+    ], fields: ['id', 'metric', 'value']},
+    {name: 'unnest-filter-select', source: retainedUnaryChain(
+      [{unnest: {
+        column: 'items', as: 'item', with_index: 'position', outer: true,
+      }}],
+      [{filter: 'id > 1'}, {select: ['id', 'item', 'position']}],
+      ['id', 'item', 'position'], [
+        {id: 1, items: [2, null]},
+        {id: 2, items: []},
+        {id: 3, items: null},
+      ], {
+        id: {type: 'number', nullable: false},
+        items: {type: 'array', nullable: true, max_items: 2,
+          items: {type: 'number', nullable: true}},
+      }),
+    expected: [
+      {id: 2, item: null, position: null},
+      {id: 3, item: null, position: null},
+    ], fields: ['id', 'item', 'position']},
     {name: 'lag-filter-select', source: retainedUnaryChain(
       [{assert_rows: {unique_by: ['id']}},
         {lag: {
@@ -8194,6 +8230,97 @@ async function exerciseStrategyGraph(
       await store.cleanup();
       await rm(directory, {recursive: true, force: true});
     }
+  }
+  // The output-policy ceiling is independent of the generous provider budget.
+  // Two admitted rows expand to four unpivot occurrences, exceeding only the
+  // selected three-row policy limit before any Named Result can be committed.
+  const expansionPolicyEnvironment = JSON.parse(args[0]);
+  expansionPolicyEnvironment.host_policy_profile.capacity
+    .max_relation_output_rows = 3;
+  const {evidence_bundle_cid: ignoredExpansionCid, ...expansionBody} =
+    expansionPolicyEnvironment;
+  void ignoredExpansionCid;
+  expansionPolicyEnvironment.evidence_bundle_cid = canonicalHash(expansionBody);
+  const expansionPolicyArgs = [canonical(expansionPolicyEnvironment),
+    expansionPolicyEnvironment.evidence_bundle_cid, ...args.slice(2)];
+  const expansionPolicyProgram = retainedUnaryChain(
+    [{unpivot: {columns: ['jan', 'feb'], keep: ['id'],
+      name_column: 'metric', value_column: 'value'}}], [],
+    ['id', 'metric', 'value'],
+    [{id: 1, jan: 10, feb: 20}, {id: 2, jan: 30, feb: 40}], {
+      id: {type: 'number', nullable: false},
+      jan: {type: 'number', nullable: false},
+      feb: {type: 'number', nullable: false},
+    });
+  expansionPolicyProgram.results = {
+    producer: {from: {stage: 'crossed', result: 'r'}},
+  };
+  const expansionPolicyFixture = fixture.strategyFixtureCreate(
+    ...expansionPolicyArgs, JSON.stringify(expansionPolicyProgram));
+  const expansionPolicyCapture = await runNativeHostQuery(grant,
+    fixture.strategyFixtureAcquisition(expansionPolicyFixture), suppliedLimits);
+  const expansionPolicyDirectory = await mkdtemp(join(
+    tmpdir(), 'actql-retained-expansion-policy-'));
+  const expansionPolicyStore = await createLocalRetainedStore({
+    parentDirectory: expansionPolicyDirectory,
+    capacityBytes: 8 * 1024 * 1024, maxFrameBytes: 1024 * 1024,
+  });
+  const expansionPublicationStore = await openLocalPublicationStore({
+    directory: join(expansionPolicyDirectory, 'publication'),
+    storeAuthorityCid: hash('retained-expansion-policy-store'),
+    capacityBytes: 4 * 1024 * 1024,
+    maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+    maxObjects: 100, maxContractNodes: 10000, maxContractDepth: 64,
+  }, runtimeCore(hostRuntime).publicationControl);
+  const expansionPolicyConfiguration = installLocalRetainedStore((key, bytes) => {
+    let writer, closed = false;
+    return {
+      status: () => ({reservedBytes: writer && !closed ? bytes : 0,
+        cleanupPending: writer?.cleanupHandle?.status?.().pending ?? false}),
+      reserve: value => (writer = expansionPolicyStore.reserve(value)),
+      close() { closed = true; writer?.cancel(); },
+      async cleanup() { await writer?.cleanupHandle?.retry?.(); },
+    };
+  });
+  let expansionFailure;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(expansionPolicyFixture,
+      expansionPolicyCapture.source()), true);
+    const setup = fixture.strategyFixtureRetainedLocalLimits(
+      expansionPolicyFixture, 100000, 10000);
+    const runtime = runtimeCore(hostRuntime);
+    const plan = standardPublicationPlan(runtime,
+      runtime.programDefinitionCid(setup), runtime.resultInventory(setup).length,
+      'retained-expansion-policy-attempt');
+    await assert.rejects(runPublishedCapturedStrategy(
+      setup, {store: expansionPublicationStore, plan},
+      {local: expansionPolicyConfiguration}, new AbortController().signal),
+    error => {
+      expansionFailure = error.execution;
+      return error.code === 'CapturedRunPublicationFailed';
+    });
+    assert.equal(expansionFailure.status, 'host-tasks-failed');
+    assert.deepEqual(expansionFailure.completed.map(item => item.task), [1, 2]);
+    assert.equal(expansionFailure.failure?.code, 'MoonBitHostFailure');
+    assert.equal(fixture.strategyFixtureRetainedRowLimit(
+      expansionFailure.failure.cause), true);
+    await assert.rejects(expansionPublicationStore.lookupCommittedIndex({
+      tenantId: plan.request.tenantId,
+      authorityScopeCid: plan.request.authorityScopeCid,
+      runDefinitionCid: plan.runDefinition.identity,
+    }, () => true), /PublicationLookupDenied/);
+  } finally {
+    expansionPolicyCapture.close();
+    await expansionFailure?.close();
+    if (expansionFailure) {
+      assert.equal(await expansionFailure.cleanup(), true);
+      assert.equal(expansionFailure.usage().heldBytes, 0n);
+      assert.equal(expansionFailure.usage().reservedExecutionBytes, 0n);
+    }
+    await expansionPublicationStore.close();
+    expansionPolicyStore.close();
+    await expansionPolicyStore.cleanup();
+    await rm(expansionPolicyDirectory, {recursive: true, force: true});
   }
   const cancelledValuesFixture = fixture.strategyFixtureCreate(
     ...args, JSON.stringify(retainedValuesProgram));

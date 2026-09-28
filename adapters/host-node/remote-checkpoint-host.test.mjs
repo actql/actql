@@ -857,7 +857,13 @@ test('installed Effect factory resumes an approved captured Set',
     await waitFor(() => barrierReached);
     assert.deepEqual(sends, []);
     releaseResume();
-    const resumed = await opening;
+    const resumed = await opening.catch(error => {
+      throw new Error(JSON.stringify({code: error.code,
+        primaryCode: error.primaryFailure?.code,
+        primaryMessage: error.primaryFailure?.message,
+        primaryStack: error.primaryFailure?.stack,
+        cleanupPending: error.cleanupPending}), {cause: error});
+    });
     const resumedClient = await resumed.as('owner-token');
     const attached = await resumedClient.attach(execution.ref);
     await waitFor(async () => (await attached.status()).status ===

@@ -83,6 +83,7 @@ fn evaluate_sequence_components(
   produced? : Array[BoundProducerInput] = [],
   fragments? : Array[FragmentRuntimeContext]? = None,
   join_ceilings? : Array[(Int, Int64)] = [],
+  expansion_ceilings? : Array[(Int, Int64)] = [],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
   asof_search_ceilings? : Array[(Int, Int64)] = [],
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
@@ -118,6 +119,7 @@ fn evaluate_sequence_components(
       fragments,
       ordered,
       join_ceilings~,
+      expansion_ceilings~,
       interval_search_ceilings~,
       asof_search_ceilings~,
       aggregate_outputs~,
@@ -146,6 +148,7 @@ fn evaluate_sequence_components(
   run_sequence_invocation(
     invocation,
     join_ceilings~,
+    expansion_ceilings~,
     interval_search_ceilings~,
     asof_search_ceilings~,
     aggregate_outputs~,
@@ -444,6 +447,7 @@ fn[T : RelationRows] prepare_sequence_with_importers(
 fn run_sequence_invocation(
   invocation : SequenceInvocation[Table],
   join_ceilings? : Array[(Int, Int64)] = [],
+  expansion_ceilings? : Array[(Int, Int64)] = [],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
   asof_search_ceilings? : Array[(Int, Int64)] = [],
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
@@ -465,7 +469,11 @@ fn run_sequence_invocation(
         evaluate_rows_with_workspace(
           kernel,
           input,
-          invocation.limits.max_rows,
+          selected_expansion_row_limit(
+            expansion_ceilings,
+            @lower.kernel_step(kernel),
+            invocation.limits.max_rows,
+          ),
           invocation.control,
           invocation.output_budget,
           workspace,

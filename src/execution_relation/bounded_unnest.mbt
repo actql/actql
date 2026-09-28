@@ -504,6 +504,11 @@ fn start_bounded_unnest_input(
     unnest_bounded_available(input) else {
     return Err(InvalidExecution)
   }
+  let max_rows = selected_expansion_row_limit(
+    generated.expansion_ceilings,
+    step,
+    max_rows,
+  )
   let width = @schema.field_count(unnest_bounded_schema(input))
   let output_schema = @lower.kernel_output_schema(kernel)
   let output_width = @schema.field_count(output_schema)

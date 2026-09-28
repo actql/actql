@@ -6,6 +6,7 @@ fn bounded_unpivot_fixture(
   max_rows? : Int = 10,
   max_work? : Int = 10000,
   max_entries? : Int = 100,
+  selected_ceiling? : Int64? = None,
 ) -> (@bounded.Control, BoundedUnpivotExecution, CompletedOutput) raise {
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false},\"jan\":{\"type\":\"number\",\"nullable\":true},\"feb\":{\"type\":\"number\",\"nullable\":true}" +
     (if unused_payload {
@@ -71,6 +72,11 @@ fn bounded_unpivot_fixture(
     100000,
     10000,
   ).unwrap()
+  let generated = match selected_ceiling {
+    Some(ceiling) =>
+      constrain_generated_expansion_output(generated, 0, ceiling).unwrap()
+    None => generated
+  }
   let read = prepare_producer_read(
     receiver,
     bind_completed_input(receiver, 0, source_owner, source).unwrap(),
@@ -91,6 +97,37 @@ fn bounded_unpivot_fixture(
     10000,
   ).unwrap()
   (control, execution, source)
+}
+
+///|
+test "bounded unpivot enforces the checked expansion ceiling per step" {
+  for (ceiling, accepted) in [(3L, true), (2L, false)] {
+    let (_, execution, source) = bounded_unpivot_fixture(
+      "[{\"id\":1,\"jan\":10,\"feb\":20}]",
+      selected_ceiling=Some(ceiling),
+    )
+    let mut terminal = false
+    for _ in 0..<200 {
+      if !terminal {
+        match advance_bounded_unpivot(execution, 1).unwrap() {
+          BoundedUnpivotContinue(..) => ()
+          BoundedUnpivotComplete(output, ..) => {
+            assert_true(accepted)
+            assert_eq(completed_row_count(output), 3)
+            terminal = true
+          }
+          BoundedUnpivotFailed(Rows(RowLimit), ..) => {
+            assert_false(accepted)
+            terminal = true
+          }
+          _ => fail("unpivot ended outside its selected output envelope")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_unpivot(execution).unwrap())
+    assert_true(completed_output_available(source))
+  }
 }
 
 ///|

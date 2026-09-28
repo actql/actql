@@ -298,6 +298,7 @@ pub(all) enum LocalBoundedRelationCheck {
   Watermark
   Dedupe
   Assertion
+  Expansion
 }
 
 ///|
@@ -357,6 +358,11 @@ fn local_bounded_relation_check(
         Assertion =>
           match @lower.kernel_body(kernel) {
             @lower.AssertAll(_) | @lower.AssertUnique(_) => true
+            _ => false
+          }
+        Expansion =>
+          match @lower.kernel_body(kernel) {
+            @lower.Unpivot(_, _, _, _) | @lower.Unnest(_, _, _, _, _) => true
             _ => false
           }
       }
@@ -582,6 +588,7 @@ pub fn[E] prepare_local_module_materializing_compute(
   join_output_ceiling : (Int, Int64)?,
   output_limits? : LocalExportLimits? = None,
   join_output_ceilings? : Array[(Int, Int64)] = [],
+  expansion_output_ceilings? : Array[(Int, Int64)] = [],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
   asof_search_ceilings? : Array[(Int, Int64)] = [],
   aggregate_output_ceilings? : Array[@connector.AggregateOutputCeiling] = [],
@@ -605,6 +612,7 @@ pub fn[E] prepare_local_module_materializing_compute(
     join_output_ceiling~,
     output_limits~,
     join_output_ceilings~,
+    expansion_output_ceilings~,
     interval_search_ceilings~,
     asof_search_ceilings~,
     aggregate_output_ceilings~,

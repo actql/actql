@@ -141,11 +141,63 @@ pub fn local_dispatch_rejection(
             ) {
             return Some("unsupported_execution_obligation")
           }
+        ExpansionExecution(_) =>
+          if !@local.local_module_bounded_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+              @local.Expansion,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
         _ => return Some("unsupported_execution_obligation")
       }
     }
   }
   None
+}
+
+///|
+/// Every selected expansion must carry its exact checked output envelope.
+/// A missing or foreign envelope keeps the task out of retained execution.
+fn local_task_expansion_output_ceilings(
+  run : @strategy.CapturedDAG,
+  task : Int,
+) -> Array[(Int, Int64)]? {
+  let graph = @strategy.captured_dag_graph(run)
+  guard @strategy.graph_task_operation_count(graph, task) is Some(count) else {
+    return None
+  }
+  let expansion_steps : Array[Int] = []
+  let ceilings : Array[(Int, Int64)] = []
+  for index in 0..<count {
+    let requirement = @strategy.graph_task_operation_at(graph, task, index).unwrap()
+    if requirement.disposition is ExecutionCheck(ExpansionExecution(check)) {
+      let step = requirement.site.step
+      match check.rule {
+        EmitUnpivotOccurrences | EmitArrayOccurrences =>
+          if !expansion_steps.contains(step) {
+            expansion_steps.push(step)
+          }
+        EnforceOutputEnvelope(ceiling) => {
+          let maximum = @policy.ceiling_value(ceiling)
+          if maximum < 0L || ceilings.any(entry => entry.0 == step) {
+            return None
+          }
+          ceilings.push((step, maximum))
+          if !expansion_steps.contains(step) {
+            expansion_steps.push(step)
+          }
+        }
+      }
+    }
+  }
+  for step in expansion_steps {
+    if !ceilings.any(entry => entry.0 == step) {
+      return None
+    }
+  }
+  Some(ceilings)
 }
 
 ///|

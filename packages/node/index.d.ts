@@ -5,6 +5,15 @@ export type {Client, Execution, Result, Reader, RunReference,
   ConfirmedProfile, ReadOptions, RequestLookup,
   DeliveryAttemptLookup} from '@actql/sdk';
 
+export type EmbeddedHostInstallation = Readonly<{
+  directory?: string;
+  sourceProfilePath?: string;
+  resolveSourceSecret?: (...args: any[]) => any;
+  effectProfilePath?: string;
+  resolveEffectSecret?: (...args: any[]) => any;
+  authorization?: Readonly<Record<string, unknown>>;
+}>;
+
 export type EmbeddedLocalOptions = Readonly<{
   mode: 'local';
   owner: 'local';
@@ -13,6 +22,7 @@ export type EmbeddedLocalOptions = Readonly<{
   token?: never;
   durability?: Durability;
   consentRefs?: readonly string[];
+  installation?: EmbeddedHostInstallation;
 }>;
 
 export type EmbeddedLocalHybridOptions = Readonly<{

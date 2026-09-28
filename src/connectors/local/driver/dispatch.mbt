@@ -242,6 +242,8 @@ pub fn prepare_local_dispatch(
   }
   guard local_task_join_output_ceilings(installed.run, task)
     is Some(join_output_ceilings) &&
+    local_task_expansion_output_ceilings(installed.run, task)
+    is Some(expansion_output_ceilings) &&
     local_task_interval_search_ceilings(installed.run, task)
     is Some(interval_search_ceilings) &&
     local_task_asof_search_ceilings(installed.run, task)
@@ -266,6 +268,7 @@ pub fn prepare_local_dispatch(
       None,
       output_limits~,
       join_output_ceilings~,
+      expansion_output_ceilings~,
       interval_search_ceilings~,
       asof_search_ceilings~,
       aggregate_output_ceilings~,

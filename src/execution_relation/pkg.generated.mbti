@@ -368,6 +368,8 @@ pub fn constrain_generated_analytic_envelope(GeneratedSequence, Int, Int64, Int6
 
 pub fn constrain_generated_asof_search(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
+pub fn constrain_generated_expansion_output(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
+
 pub fn constrain_generated_interval_search(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn constrain_generated_join_output(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
