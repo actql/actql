@@ -7,7 +7,7 @@ fn declaration_limits() -> DeclarationLimits {
 /// A synthetic Resource covering each declaration decision; no real org.
 fn declared_record_describe(
   name_nillable? : Bool = true,
-  required_datetime? : Bool = false,
+  required_time? : Bool = false,
 ) -> String {
   let fields = [
     "{\"name\":\"Id\",\"type\":\"id\",\"nillable\":false,\"createable\":false,\"updateable\":false,\"sortable\":true}",
@@ -18,9 +18,13 @@ fn declared_record_describe(
     "{\"name\":\"Amount__c\",\"type\":\"double\",\"nillable\":true,\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true}",
     "{\"name\":\"Count__c\",\"type\":\"int\",\"nillable\":true,\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true,\"filterable\":true}",
     "{\"name\":\"Active__c\",\"type\":\"boolean\",\"nillable\":false,\"defaultedOnCreate\":true,\"createable\":true,\"updateable\":true}",
-    "{\"name\":\"Observed_At__c\",\"type\":\"datetime\",\"nillable\":" +
-    (!required_datetime).to_string() +
+    "{\"name\":\"Observed_At__c\",\"type\":\"datetime\",\"nillable\":true,\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true}",
+    "{\"name\":\"Due_On__c\",\"type\":\"date\",\"nillable\":false,\"defaultedOnCreate\":true,\"createable\":true,\"updateable\":true}",
+    "{\"name\":\"Opens_At__c\",\"type\":\"time\",\"nillable\":" +
+    (!required_time).to_string() +
     ",\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true}",
+    "{\"name\":\"Rate__c\",\"type\":\"percent\",\"nillable\":true,\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true}",
+    "{\"name\":\"Price__c\",\"type\":\"currency\",\"nillable\":true,\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true}",
     "{\"name\":\"Read_Only__c\",\"type\":\"string\",\"nillable\":true,\"createable\":false,\"updateable\":false}",
     "{\"name\":\"Mystery__c\",\"type\":\"string\",\"createable\":false,\"updateable\":false}",
   ]
@@ -109,8 +113,11 @@ test "declaration types each field by an existing exact contract or excludes it"
   let view = declaration.views[0]
   assert_eq(view.source_ref, "connector://crm-main/Record__c#records")
   assert_eq(view.fields, [
-    "Id", "Name", "External_Key__c", "Count__c", "Active__c", "Read_Only__c",
+    "Id", "Name", "External_Key__c", "Count__c", "Active__c", "Observed_At__c", "Due_On__c",
+    "Read_Only__c",
   ])
+  // Decimal Number, Percent and Currency (`double`, `percent`, `currency`)
+  // and `time` have no exact existing contract.
   assert_eq(declaration.exclusions, [
     {
       resource: "Record__c",
@@ -119,8 +126,18 @@ test "declaration types each field by an existing exact contract or excludes it"
     },
     {
       resource: "Record__c",
-      field: "Observed_At__c",
-      reason: UnsupportedType("datetime"),
+      field: "Opens_At__c",
+      reason: UnsupportedType("time"),
+    },
+    {
+      resource: "Record__c",
+      field: "Rate__c",
+      reason: UnsupportedType("percent"),
+    },
+    {
+      resource: "Record__c",
+      field: "Price__c",
+      reason: UnsupportedType("currency"),
     },
     {
       resource: "Record__c",
@@ -144,8 +161,18 @@ test "declaration types each field by an existing exact contract or excludes it"
   assert_true(
     catalog.contains("\"Id\":{\"nullable\":false,\"type\":\"string\"}"),
   )
-  assert_false(catalog.contains("Amount__c"))
-  assert_false(catalog.contains("Observed_At__c"))
+  // A Salesforce `date` is an ActQL date; a `datetime` is a timestamp.
+  assert_true(
+    catalog.contains(
+      "\"Observed_At__c\":{\"nullable\":true,\"type\":\"timestamp\"}",
+    ),
+  )
+  assert_true(
+    catalog.contains("\"Due_On__c\":{\"nullable\":false,\"type\":\"date\"}"),
+  )
+  for name in ["Amount__c", "Opens_At__c", "Rate__c", "Price__c"] {
+    assert_false(catalog.contains(name))
+  }
   assert_true(catalog.contains("\"commands\":[]"))
 }
 
@@ -155,20 +182,24 @@ test "declaration lists writable fields per operation, not a Mapping" {
   assert_eq(declaration.writables.length(), 1)
   let writable = declaration.writables[0]
   assert_eq(writable.target_ref, "connector://crm-main/Record__c")
-  let fields = ["Active__c", "Count__c", "External_Key__c", "Name"]
+  let fields = [
+    "Active__c", "Count__c", "Due_On__c", "External_Key__c", "Name", "Observed_At__c",
+  ]
   assert_eq(writable.create_fields, Some(fields))
   assert_eq(writable.update_fields, Some(fields))
   assert_eq(writable.upsert_fields, Some(fields))
   assert_eq(writable.upsert_keys, ["External_Key__c"])
   // A defaulted or nullable field is not required; the external ID is.
   assert_eq(writable.required_fields, ["External_Key__c"])
+  // A written datetime is whole seconds only, and the declaration says so.
+  assert_eq(writable.timestamp_whole_seconds, ["Observed_At__c"])
+  let json = static_declaration_json(declaration, declaration_limits()).unwrap()
+  assert_true(json.contains("\"timestamp_whole_seconds\":[\"Observed_At__c\"]"))
 }
 
 ///|
 test "an unwritable required field withholds create and upsert only" {
-  let declaration = declared_for(
-    declared_record_describe(required_datetime=true),
-  )
+  let declaration = declared_for(declared_record_describe(required_time=true))
   let writable = declaration.writables[0]
   assert_eq(writable.create_fields, None)
   assert_eq(writable.upsert_fields, None)
@@ -176,8 +207,8 @@ test "an unwritable required field withholds create and upsert only" {
   assert_true(
     declaration.exclusions.contains({
       resource: "Record__c",
-      field: "Observed_At__c",
-      reason: CreateRequirementUnknown("Observed_At__c"),
+      field: "Opens_At__c",
+      reason: CreateRequirementUnknown("Opens_At__c"),
     }),
   )
 }

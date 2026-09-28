@@ -552,6 +552,8 @@ pub fn client_program_salesforce_broad_plan(@actql/actql/connectors/salesforce/h
 
 pub fn client_program_salesforce_broad_row_count(@actql/actql/connectors/salesforce/host.SalesforceBroadAttempt) -> Result[Int64, @actql/actql/connectors/salesforce/host.SalesforceBroadAttemptIssue]
 
+pub fn client_program_salesforce_broad_value_violation(@actql/actql/connectors/salesforce/host.SalesforceBroadAttempt, @actql/actql/connectors/salesforce/host.SalesforceBroadAttemptIssue) -> String?
+
 pub fn client_program_salesforce_capture(@actql/actql/connectors/salesforce/host.SalesforceBroadHostRun) -> Result[@actql/actql/connectors/salesforce/host.SalesforceBroadSourceCapture, @client_salesforce_host.ClientSalesforceIssue]
 
 pub fn client_program_salesforce_capture_source(@actql/actql/connectors/salesforce/host.SalesforceBroadSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]

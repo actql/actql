@@ -504,3 +504,82 @@ test('an upsert 300 stays unknown: the transport refuses it as a redirect',
     assert.equal(resumed.result.status, 'needs_reconciliation');
     assert.equal(writesOf(installation.org).length, 1);
   });
+
+// An update of the `date` Due_Date__c and the `datetime` Due_At__c from a
+// Result of ActQL dates and timestamps.
+const temporalUpdate = {resource: 'Test_Record__c', kind: 'update',
+  fields: ['Due_At__c', 'Due_Date__c']};
+const temporalRows = (mappings, rows) => effectProgram({save: {update: {
+  target: mappings[0].target, mapping: mappings[0].mappingRef,
+  from: {result: 'rows'}, id: 'id',
+  set: {Due_Date__c: {field: 'due'}, Due_At__c: {field: 'at'}}}}}, rows,
+{id: {type: 'string', nullable: false}, due: {type: 'date', nullable: false},
+  at: {type: 'timestamp', nullable: false}});
+const temporalEffect = t => installedEffect(t, {writes: [temporalUpdate],
+  org: {temporalFields: true, patchFields: ['Due_At__c', 'Due_Date__c']}});
+
+test('an approved date and whole-second timestamp are previewed and sent as they are',
+  async t => {
+    const installation = await temporalEffect(t);
+    const host = await effectHost(t, installation,
+      join(installation.root, 'host'));
+    const rows = [
+      {id: ids[0], due: '2024-06-01', at: '2024-06-01T09:30:00.000Z'},
+      {id: ids[1], due: '4000-12-31', at: '1700-01-01T00:00:00.000Z'}];
+    const {started} = await host.run(temporalRows(host.installed.mappings,
+      rows), 'temporal-update');
+    assert.equal(started.value.status, 'published');
+    // Independently expected: each value is sent exactly as approved, in
+    // canonical key order.
+    assert.deepEqual(writesOf(installation.org).map(item => [
+      item.path.split('/').slice(-2).join('/'), item.body]), [
+      [`Test_Record__c/${ids[0]}`,
+        '{"Due_At__c":"2024-06-01T09:30:00.000Z","Due_Date__c":"2024-06-01"}'],
+      [`Test_Record__c/${ids[1]}`,
+        '{"Due_At__c":"1700-01-01T00:00:00.000Z","Due_Date__c":"4000-12-31"}'],
+    ]);
+    // The approved Preview names the same values, and the observed target's
+    // `+0000` datetime as the same UTC instant ending in Z.
+    const preview = JSON.parse(host.control.effectComputationPreviewWire(
+      host.outcomes[0].stage.preview));
+    const changes = preview.effects[0].changes;
+    assert.deepEqual(changes.map(change => change.before), ids.map(() => ({
+      state: 'present', value: {Due_At__c: '2012-07-12T17:49:01.123Z',
+        Due_Date__c: '2024-05-22'}})));
+    assert.deepEqual(changes.map(change => change.after).sort((a, b) =>
+      a.value.Due_Date__c < b.value.Due_Date__c ? -1 : 1), [
+      {state: 'present', value: {Due_At__c: '2024-06-01T09:30:00.000Z',
+        Due_Date__c: '2024-06-01'}},
+      {state: 'present', value: {Due_At__c: '1700-01-01T00:00:00.000Z',
+        Due_Date__c: '4000-12-31'}}]);
+  });
+
+test('a written value outside its declared type is refused before any write',
+  async t => {
+    const cases = [
+      // Milliseconds are refused, never rounded.
+      [{due: '2024-06-01', at: '2024-06-01T09:30:00.500Z'},
+        {expected_type: 'timestamp', field: 'Due_At__c', kind: 'precision'}],
+      // Outside Salesforce's documented range.
+      [{due: '4001-01-01', at: '2024-06-01T09:30:00.000Z'},
+        {expected_type: 'date', field: 'Due_Date__c', kind: 'range'}],
+      [{due: '2024-06-01', at: '4000-12-31T00:00:01.000Z'},
+        {expected_type: 'timestamp', field: 'Due_At__c', kind: 'range'}],
+    ];
+    for (const [row, refusal] of cases) {
+      const installation = await temporalEffect(t);
+      const host = await effectHost(t, installation,
+        join(installation.root, 'host'));
+      const failure = await host.run(temporalRows(host.installed.mappings,
+        [{id: ids[0], due: '2024-06-02', at: '2024-06-02T00:00:00.000Z'},
+          {id: ids[1], ...row}]), 'temporal-refused').then(() => undefined,
+        error => error);
+      assert.equal(failure?.code, 'SalesforceWriteValueRefused',
+        String(failure?.code));
+      assert.deepEqual(failure.refusal, {...refusal,
+        resource: 'Test_Record__c'});
+      assert.equal(JSON.stringify(failure.refusal).includes(row.at), false);
+      // Refused while the Preview was authored: no row was sent.
+      assert.equal(writesOf(installation.org).length, 0);
+    }
+  });

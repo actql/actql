@@ -38,7 +38,8 @@ pub(all) enum ExactIntComparison {
 
 ///|
 /// Only wire forms that have an exact, lossless ActQL scalar admission are
-/// enabled. Decimal and temporal types need explicit provider conversion.
+/// enabled. A `datetime` is admitted after its one documented UTC spelling
+/// (`+0000`) is written with `Z`; decimal types and `time` are not.
 fn read_field_contract(field : FieldMetadata) -> @contract.Contract? {
   let kind = match field.native_type {
     "id"
@@ -52,6 +53,8 @@ fn read_field_contract(field : FieldMetadata) -> @contract.Contract? {
     | "combobox" => @contract.StringType
     "boolean" => @contract.BooleanType
     "int" | "double" => @contract.NumberType
+    "date" => @contract.DateType
+    "datetime" => @contract.TimestampType
     _ => return None
   }
   Some(@contract.primitive(kind, nullable=field.nullable))

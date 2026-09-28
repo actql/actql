@@ -293,6 +293,8 @@ pub fn salesforce_write_target_object_cid(@catalog.WriteTargetIdentity) -> Strin
 
 pub fn salesforce_write_target_scheme_cid(@catalog.WriteTargetIdentity) -> String
 
+pub fn salesforce_write_value_refusal(@catalog.WriteProjection, SalesforceCatalogBridgeIssue) -> String?
+
 // Errors
 pub(all) suberror SalesforceCatalogBridgeIssue {
   Listing(@catalog.ListingIssue)

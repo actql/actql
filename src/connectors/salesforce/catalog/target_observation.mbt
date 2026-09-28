@@ -223,7 +223,7 @@ pub fn prepare_target_observation(
     @encode.key(output, field.name) catch {
       _ => return Err(CapacityExceeded)
     }
-    match emit_write_cell(output, cursor, field) {
+    match emit_write_cell(output, cursor, field, observed=true) {
       Ok(_) => ()
       Err(BudgetExceeded) => return Err(CapacityExceeded)
       Err(_) => return Err(InvalidRecord)

@@ -40,6 +40,13 @@ export function salesforceSiteAccountConfiguration(orgIds) {
   });
 }
 
+// The stored `date` and `datetime` values by record, as Salesforce replies.
+export const temporalValues = Object.freeze({
+  1: {Due_Date__c: '2024-05-22', Due_At__c: '2012-07-12T17:49:01.123+0000'},
+  2: {Due_Date__c: null, Due_At__c: null},
+  3: {Due_Date__c: '1700-01-01', Due_At__c: '4000-12-31T00:00:00.000+0000'},
+});
+
 export async function openSalesforceEffectSiteFixture(t, {
   commonMoon, salesforceMoon, runInvocationCid, dispatchRequestCid,
   orgId = '00D000000000001EAA',
@@ -57,6 +64,12 @@ export async function openSalesforceEffectSiteFixture(t, {
   storedOrder = [1, 2, 3],
   // A nullable, writable Optional_Text__c on Test_Record__c.
   optionalText: initialOptionalText = false,
+  // A nullable, writable Salesforce `date` Due_Date__c and `datetime`
+  // Due_At__c on Test_Record__c. Stored records and target reads carry them
+  // in Salesforce's own spelling (the datetime in UTC as `+0000`).
+  temporalFields = false,
+  // The body fields every single-record PATCH must carry exactly.
+  patchFields = ['Name'],
   // The Host's logical connection id the Site declares under.
   connectorId = 'crm-main',
   // An HTTP status every query request is answered with instead of rows.
@@ -132,7 +145,8 @@ export async function openSalesforceEffectSiteFixture(t, {
       const stored = storedRecords ?? (match[2] === undefined ? storedOrder
         : [...storedOrder].sort()).map(index => ({
         Id: `a0000000000000${index}`,
-        Name: `record-${index}`, External_Key__c: `key-${index}`}));
+        Name: `record-${index}`, External_Key__c: `key-${index}`,
+        ...(temporalFields ? temporalValues[index] : {})}));
       const records = stored.slice(0, match[3] === undefined
         ? stored.length : Number(match[3])).map(record =>
         Object.fromEntries([['attributes', {type: 'Test_Record__c'}],
@@ -178,6 +192,12 @@ export async function openSalesforceEffectSiteFixture(t, {
           ...(optionalText ? [{name: 'Optional_Text__c', type: 'string',
             nillable: true, defaultedOnCreate: false, createable: true,
             updateable: true}] : []),
+          ...(temporalFields ? [
+            {name: 'Due_Date__c', type: 'date', nillable: true,
+              defaultedOnCreate: false, createable: true, updateable: true},
+            {name: 'Due_At__c', type: 'datetime', nillable: true,
+              defaultedOnCreate: false, createable: true, updateable: true},
+          ] : []),
         ]}));
       return;
     }
@@ -205,7 +225,8 @@ export async function openSalesforceEffectSiteFixture(t, {
       response.writeHead(200, {'content-type': 'application/json'});
       response.end(JSON.stringify({Id: target,
         Name: observedNames.get(record) ?? observedName,
-        External_Key__c: target}));
+        External_Key__c: target,
+        ...(temporalFields ? temporalValues[1] : {})}));
       return;
     }
     if (request.method === 'POST' && record !== undefined &&
@@ -246,7 +267,7 @@ export async function openSalesforceEffectSiteFixture(t, {
       request.on('data', chunk => chunks.push(chunk));
       request.on('end', () => {
         observed.body = Buffer.concat(chunks).toString('utf8');
-        assert.deepEqual(Object.keys(JSON.parse(observed.body)), ['Name']);
+        assert.deepEqual(Object.keys(JSON.parse(observed.body)), patchFields);
         if (loseReply) {
           loseReply = false;
           request.socket.destroy();

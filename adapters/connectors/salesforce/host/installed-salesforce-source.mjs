@@ -178,6 +178,8 @@ function installedSalesforceAdapter({moon, site, authorization, declaration,
     salesforceIssuedBroadNextPath: moon.clientProgramSalesforceBroadNextPath,
     salesforceIssuedBroadAcceptPage:
       moon.clientProgramSalesforceBroadAcceptPage,
+    salesforceIssuedBroadValueViolation:
+      moon.clientProgramSalesforceBroadValueViolation,
     salesforceIssuedBroadComplete: moon.clientProgramSalesforceBroadComplete,
     salesforceIssuedBroadRowCount: moon.clientProgramSalesforceBroadRowCount,
     salesforceIssuedBroadFinish: moon.clientProgramSalesforceBroadFinish,

@@ -227,6 +227,19 @@ pub fn salesforce_prepare_execution_write_body(
 }
 
 ///|
+/// The written value a failed row body refused, as canonical JSON, or none
+/// for any other failure. `issue` is the failure of
+/// `salesforcePrepareExecutionWriteBody` for `projection`.
+#export_name("salesforceWriteValueRefusal")
+pub fn salesforce_write_value_refusal(
+  projection : @catalog.WriteProjection,
+  issue : SalesforceCatalogBridgeIssue,
+) -> String? {
+  guard issue is WriteBody(body) else { return None }
+  @catalog.write_body_value_refusal_json(body, projection)
+}
+
+///|
 /// The declaration's Check Environment source evidence members, as
 /// `[schema snapshots, connector capabilities]` canonical texts.
 #export_name("salesforceSourceEvidenceMembers")

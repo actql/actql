@@ -4991,6 +4991,17 @@ pub fn client_program_salesforce_broad_accept_page(
 }
 
 ///|
+/// The value violation behind a failed page of this attempt, as canonical
+/// JSON, or none for any other failure.
+#export_name("clientProgramSalesforceBroadValueViolation")
+pub fn client_program_salesforce_broad_value_violation(
+  attempt : @salesforce_host.SalesforceBroadAttempt,
+  issue : @salesforce_host.SalesforceBroadAttemptIssue,
+) -> String? {
+  @salesforce_host.salesforce_broad_attempt_value_violation(attempt, issue)
+}
+
+///|
 #export_name("clientProgramSalesforceBroadComplete")
 pub fn client_program_salesforce_broad_complete(
   attempt : @salesforce_host.SalesforceBroadAttempt,
