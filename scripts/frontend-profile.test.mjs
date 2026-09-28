@@ -20,10 +20,14 @@ test('adopted structural vocabulary matches the current closed inventory', () =>
   // PR-0 is a frozen historical observation, not the live compilation manifest.
   const {grammar_manifest_cid: _oldCid, ...oldBody} = baseline.grammar_manifest;
   const {grammar_manifest_cid: _newCid, structural_text_grammar_sha256: grammar,
-    structural_text_rules_sha256: rules, ...unchangedBody} = manifest;
+    structural_text_rules_sha256: rules,
+    query_text_grammar_sha256: queryGrammar,
+    query_text_rules_sha256: queryRules, ...unchangedBody} = manifest;
   assert.deepEqual(oldBody, unchangedBody);
   assert.equal(grammar, hash(read('spec/grammar/actql-text-0.1.ebnf')));
   assert.equal(rules, hash(read('docs/spec/structural-text.md')));
+  assert.equal(queryGrammar, hash(read('spec/grammar/actql-query-0.1.ebnf')));
+  assert.equal(queryRules, hash(read('docs/spec/query-text.md')));
   for (const op of profile.structured_total_coverage) {
     assert.deepEqual(op.surface, ['STEP', 'OP']);
     assert.equal(op.runtime_support,

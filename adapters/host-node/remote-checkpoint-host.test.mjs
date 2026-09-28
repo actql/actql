@@ -925,7 +925,26 @@ test('installed Effect factory resumes an approved captured Set',
     assert.deepEqual(duplicate.results.map(item => item.status),
       ['duplicate']);
     assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
-    await resumed.close();
+    try {
+      await resumed.close();
+    } catch (error) {
+      const pending = error.cleanupErrors?.map(item => ({
+        owner: item.owner, code: item.error?.code,
+      }));
+      assert.deepEqual(pending,
+        [{owner: 'store', code: 'PublicationStoreCleanupPending'}]);
+      // A completed read can leave an independently owned Store deletion in
+      // progress. Retry that exact retained owner before reopening the Host.
+      await waitFor(async () => {
+        try { return await error.cleanupHandle.retry(); }
+        catch (retryError) {
+          assert.deepEqual(retryError.cleanupErrors?.map(item => ({
+            owner: item.owner, code: item.error?.code,
+          })), pending);
+          return undefined;
+        }
+      });
+    }
     const finalHost = await remoteHost(t, protectedHost(undefined,
       {accountConfiguration: effectCommitConfiguration()}),
     {directory, effectInstallation}).catch(error => {

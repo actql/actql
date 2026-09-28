@@ -1,0 +1,12 @@
+supported_targets = "js"
+
+pkgtype(kind: "foreign_library")
+
+import {
+  "actql/actql/query_syntax" @syntax,
+  "actql/actql/query_program" @query,
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @wire,
+  "actql/actql/stage_syntax" @program,
+  "actql/actql/encode_core" @encode,
+}

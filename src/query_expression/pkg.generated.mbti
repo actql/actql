@@ -1,0 +1,50 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/query_expression"
+
+import {
+  "actql/actql/expression_syntax",
+  "actql/actql/frontend_source_map",
+  "actql/actql/program_source_builder",
+  "actql/actql/query_syntax",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn append(@query_syntax.Expression, (Array[@query_syntax.NamePart]) -> String?, @program_source_builder.Builder, Int) -> Result[@program_source_builder.Node, Diagnostic]
+
+pub fn expression(Lowered) -> @expression_syntax.Expression
+
+pub fn lower(@query_syntax.Expression, (Array[@query_syntax.NamePart]) -> String?, Limits) -> Result[Lowered, Diagnostic]
+
+pub fn source(Lowered) -> @program_source_builder.Source
+
+// Errors
+
+// Types and methods
+pub(all) struct Diagnostic {
+  issue : Issue
+  origin : @frontend_source_map.Origin?
+}
+
+pub(all) enum Issue {
+  InvalidLimits
+  WorkLimit
+  UnknownReference
+  UnsupportedFunction
+  InvalidArguments
+  InvalidNumber
+  Construction(@program_source_builder.Issue)
+  Admission(@expression_syntax.Issue)
+} derive(@debug.Debug)
+
+pub(all) struct Limits {
+  construction : @program_source_builder.Limits
+  expression : @expression_syntax.Limits
+  max_work : Int
+}
+
+type Lowered
+
+// Type aliases
+
+// Traits

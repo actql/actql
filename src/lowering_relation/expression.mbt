@@ -63,6 +63,8 @@ pub(all) enum ManyOperator {
   And
   Or
   Coalesce
+  Concat
+  ConcatStrict
 } derive(Eq, Debug)
 
 ///|
@@ -185,6 +187,8 @@ fn expression_tag(
     | "and"
     | "or"
     | "coalesce"
+    | "concat"
+    | "concat_strict"
     | "vector_score"
     | "vector_concat"
     | "if"
@@ -715,6 +719,8 @@ fn lower_expression_measured(
         "and" => Many(And, args)
         "or" => Many(Or, args)
         "coalesce" => Many(Coalesce, args)
+        "concat" => Many(Concat, args)
+        "concat_strict" => Many(ConcatStrict, args)
         "if" => Conditional(args[0], args[1], args[2])
         "case" => {
           let count = args.length() / 2

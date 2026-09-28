@@ -1,0 +1,270 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/query_syntax"
+
+import {
+  "actql/actql/frontend_source_map",
+  "actql/actql/source_span",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn cte_at(Query, Int) -> CtePart?
+
+pub fn cte_count(Query) -> Int
+
+pub fn expression_child(Expression, Int) -> Expression?
+
+pub fn expression_document(Expression) -> @frontend_source_map.Document
+
+pub fn expression_node(Expression, Int) -> ExpressionNode?
+
+pub fn expression_node_count(Expression) -> Int
+
+pub fn expression_origin(Expression, Int) -> @frontend_source_map.Origin?
+
+pub fn expression_root(Expression) -> Int
+
+pub fn expression_work(Expression) -> Int
+
+pub fn final_operation_at(Query, Int) -> QueryOperation?
+
+pub fn final_operation_count(Query) -> Int
+
+pub fn join_part_at(Query, Int) -> JoinPart?
+
+pub fn join_part_count(Query) -> Int
+
+pub fn operation_at(Query, Int) -> QueryOperation?
+
+pub fn operation_count(Query) -> Int
+
+pub fn parse_expression(String, ExpressionLimits, source_path? : String) -> Result[Expression, Diagnostic]
+
+pub fn parse_query(String, QueryLimits, source_path? : String) -> Result[Query, Diagnostic]
+
+pub fn query_document(Query) -> @frontend_source_map.Document
+
+pub fn query_source(Query) -> Tokens
+
+pub fn query_work(Query) -> Int
+
+pub fn relation(Query) -> Array[NamePart]
+
+pub fn relation_alias(Query) -> NamePart?
+
+pub fn set_part_at(Query, Int) -> SetPart?
+
+pub fn set_part_count(Query) -> Int
+
+pub fn token_at(Tokens, Int) -> Token?
+
+pub fn token_count(Tokens) -> Int
+
+pub fn token_origin(Tokens, Int) -> @frontend_source_map.Origin?
+
+pub fn tokenize(String, LexicalLimits, source_path? : String) -> Result[Tokens, Diagnostic]
+
+pub fn tokenize_bytes(Bytes, LexicalLimits, source_path? : String) -> Result[Tokens, Diagnostic]
+
+pub fn usage(Tokens, Resource) -> Int
+
+// Errors
+
+// Types and methods
+pub(all) struct AggregateCall {
+  function_name : String
+  argument : Expression?
+  distinct : Bool
+  order_by : Array[SortTerm]
+  delimiter : String?
+}
+
+pub(all) struct AnalyticCall {
+  expression : Expression?
+  aggregate : AggregateCall?
+  window : AnalyticWindow
+}
+
+pub(all) struct AnalyticFrame {
+  start : FrameBoundary
+  end : FrameBoundary
+} derive(Eq, @debug.Debug)
+
+pub(all) struct AnalyticWindow {
+  partition_by : Array[Array[NamePart]]
+  order_by : Array[SortTerm]
+  frame : AnalyticFrame?
+}
+
+pub(all) enum CastType {
+  Boolean
+  String
+  Number
+  Timestamp
+  Decimal(Int, Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CtePart {
+  name : NamePart
+  query : Query
+}
+
+pub(all) struct Diagnostic {
+  issue : Issue
+  span : @source_span.Span?
+} derive(@debug.Debug)
+
+type Expression
+
+pub(all) enum ExpressionKind {
+  Null
+  Boolean(Bool)
+  Number(String)
+  StringLiteral(String)
+  Reference(Array[NamePart])
+  ParameterReference(String)
+  Unary(String, Int)
+  Binary(String, Int, Int)
+  Call(Array[NamePart], Array[Int])
+  Parenthesized(Int)
+  Predicate(String, Array[Int])
+  SearchedCase(Array[(Int, Int)], Int)
+  Cast(Int, CastType)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ExpressionLimits {
+  lexical : LexicalLimits
+  max_nodes : Int
+  max_depth : Int
+  max_work : Int
+}
+
+pub struct ExpressionNode {
+  kind : ExpressionKind
+  start : Int
+  end : Int
+}
+
+pub(all) enum FrameBoundary {
+  UnboundedPreceding
+  CurrentRow
+  UnboundedFollowing
+  Preceding(Int64)
+  Following(Int64)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Issue {
+  InvalidLimits
+  Syntax(String)
+  Source(@frontend_source_map.Issue)
+  Lexical(LexicalIssue)
+  Limit(Resource)
+} derive(@debug.Debug)
+
+pub(all) struct JoinPart {
+  kind : String
+  relation : Array[NamePart]
+  source_alias : NamePart?
+  on : Expression?
+  using_columns : Array[NamePart]
+  pre_join_filter : Expression?
+}
+
+pub(all) enum Lexeme {
+  Word(String)
+  QuotedName(String)
+  Text(String)
+  Numeric(String)
+  Parameter(String)
+  Operator(String)
+  Symbol(Int)
+  Pipe
+  End
+} derive(Eq, @debug.Debug)
+
+pub(all) enum LexicalIssue {
+  UnexpectedEnd
+  UnexpectedToken
+  InvalidEscape
+  InvalidScalar
+  EmptyIdentifier
+  UnterminatedComment
+  InvalidNumber
+  InvalidParameter
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LexicalLimits {
+  max_source_bytes : Int
+  max_tokens : Int
+  max_literal_bytes : Int
+  max_work : Int
+}
+
+pub(all) struct NamePart {
+  value : String
+  quoted : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Projection {
+  expression : Expression?
+  aggregate : AggregateCall?
+  analytic : AnalyticCall?
+  name : NamePart?
+  star : String?
+}
+
+type Query
+
+pub(all) struct QueryLimits {
+  lexical : LexicalLimits
+  expression : ExpressionLimits
+  max_syntax_nodes : Int
+  max_cte_count : Int
+  max_work : Int
+}
+
+pub(all) enum QueryOperation {
+  Where(Expression)
+  Extend(Array[Projection])
+  Set(Array[(NamePart, Expression)])
+  Drop(Array[NamePart])
+  Rename(Array[(NamePart, NamePart)])
+  Alias(NamePart)
+  Group(Array[Expression], Array[Projection])
+  Having(Expression)
+  Analytic(Array[Projection])
+  Select(Array[Projection], Bool)
+  Order(Array[SortTerm])
+  Limit(Int64, Int64)
+}
+
+pub(all) enum Resource {
+  Tokens
+  LiteralBytes
+  Work
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SetPart {
+  kind : String
+  duplicates : String
+  by_name : Bool
+  right : Query
+}
+
+pub(all) struct SortTerm {
+  expression : Expression
+  direction : String
+  nulls : String
+}
+
+pub struct Token {
+  value : Lexeme
+  start : Int
+  end : Int
+} derive(Eq, @debug.Debug)
+
+type Tokens
+
+// Type aliases
+
+// Traits

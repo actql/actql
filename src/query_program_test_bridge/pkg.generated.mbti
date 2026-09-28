@@ -1,0 +1,22 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/query_program_test_bridge"
+
+// Values
+pub fn compile_captured_query_json(String, String, String, String, String, String) -> String
+
+pub fn compile_query_json(String, String, String, String, String, String) -> String
+
+pub fn compile_two_values_set_query_json(String, String, String, String, String, String, String, String) -> String
+
+pub fn compile_values_query_json(String, String, String, String, String, String) -> String
+
+// Errors
+pub suberror QueryBridgeRejected {
+  QueryBridgeRejected
+}
+
+// Types and methods
+
+// Type aliases
+
+// Traits
