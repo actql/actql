@@ -166,8 +166,11 @@ fn issue_prepared_client_direct_result_root_for_output(
     return Err(RequiresResultTransformation)
   }
   for index in 0..<names.length() {
-    guard @results.port_projection_input_at(port, index) is Some(input) &&
-      @schema.reference_name(input) == names[index] &&
+    // Port projection indices follow the canonical schema, while Result
+    // `fields` retain authored order. Compare the matching port field.
+    guard @schema.field_at(@results.port_schema(port), index) is Some(output) &&
+      @results.port_projection_input_at(port, index) is Some(input) &&
+      input == output.name &&
       @schema.lookup(task_schema, input) is Some(_) else {
       return Err(RequiresResultTransformation)
     }

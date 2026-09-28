@@ -162,7 +162,8 @@ pub fn issue_prepared_client_result_plan(
     return Err(InvalidLimits)
   }
   let graph = value.graph
-  guard @strategy.graph_result_task(graph, result) is Some(unit) &&
+  guard @strategy.graph_result_task(graph, result) is Some(task) &&
+    @strategy.graph_task_unit_index(graph, task) is Some(unit) &&
     @strategy.graph_result_name(graph, result) is Some(result_name) &&
     @strategy.graph_result_occurrence(graph, result) is Some(occurrence) else {
     return Err(MissingResult)

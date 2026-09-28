@@ -33,6 +33,40 @@ test "Local capacity profile has independent fixed node text and fragment allowa
 }
 
 ///|
+test "bounded multi-task reservations cross the 256 MiB Host boundary" {
+  // The packed source-free query and acquired CTE profiles reserve these
+  // execution envelopes before physical work. The ledger must reject either
+  // envelope under the former 256 MiB cap without charging an attempt, and
+  // settle each accepted reservation under the 512 MiB Local profile.
+  for needed in [320468224L, 287722496L] {
+    let old = @resources.create_ledger({
+      planning_work: 100000,
+      attempts: 10,
+      holdings: 10,
+      transfer_bytes: 10000000L,
+      retained_bytes: 200000000L,
+      execution_bytes: 268435456L,
+    }).unwrap()
+    assert_true(
+      @resources.reserve_attempt(old, 0L, 0L, needed) is Err(ExecutionLimit),
+    )
+    assert_eq(@resources.ledger_usage(old).attempts, 0)
+    let current = @resources.create_ledger({
+      planning_work: 100000,
+      attempts: 10,
+      holdings: 10,
+      transfer_bytes: 10000000L,
+      retained_bytes: 200000000L,
+      execution_bytes: 536870912L,
+    }).unwrap()
+    let held = @resources.reserve_attempt(current, 0L, 0L, needed).unwrap()
+    assert_eq(@resources.ledger_usage(current).reserved_execution_bytes, needed)
+    @resources.settle_reservation(current, held).unwrap()
+    assert_eq(@resources.ledger_usage(current).reserved_execution_bytes, 0L)
+  }
+}
+
+///|
 test "Local reserves physical capacity before execution and releases failed work without erasing upstream retention" {
   let (run, _) = captured_graph_fixture()
   let ledger = @strategy.captured_dag_ledger(run)

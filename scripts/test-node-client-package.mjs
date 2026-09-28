@@ -85,6 +85,8 @@ const sourceRoundtrip = frontend.structuralToJson(
   frontend.jsonToStructural(sourceProgram));
 assert.deepEqual(JSON.parse(sourceRoundtrip), JSON.parse(sourceProgram));
 await writeFile(join(root, 'source-program.json'), sourceRoundtrip);
+await writeFile(join(root, 'segmented-join-program.json'), await readFile(
+  join(repository, 'adapters/host-node/fixtures/segmented-join-program.json')));
 const sourceCatalog = await readFile(join(repository,
   'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
 const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
@@ -178,6 +180,19 @@ for (const selected of connected) {
 }
 const document = readFileSync('values.json', 'utf8');
 const acquiredDocument = readFileSync('source-program.json', 'utf8');
+const segmentedDocument = readFileSync('segmented-join-program.json', 'utf8');
+async function checkSegmentedProgram(client, suffix) {
+  const execution = await client.aql(segmentedDocument, {format: 'json',
+    requestId: 'packed-segmented-join-' + suffix});
+  const status = await execution.wait();
+  assert.equal(status.status, 'succeeded', JSON.stringify(status));
+  assert.deepEqual(await execution.result('answer').all(),
+    [{a: 2, d: null}]);
+  const attached = await client.attach(execution.ref);
+  assert.deepEqual(attached.ref, execution.ref);
+  assert.deepEqual(await attached.result('answer').all(),
+    [{a: 2, d: null}]);
+}
 async function runApplication(options, requestId) {
   const client = await connect(options);
   const execution = await client.aql(document, {format: 'json', requestId});
@@ -274,6 +289,7 @@ const computedLocalState = await computedLocal.wait();
 assert.equal(computedLocalState.status, 'succeeded',
   JSON.stringify(computedLocalState));
 assert.deepEqual(await computedLocal.result('answer').all(), [{id: 2}]);
+await checkSegmentedProgram(installedLocal, 'local');
 assert.deepEqual((await installedLocal.aql(document, {format: 'json',
   requestId: 'packed-standard-values'})).ref, execution.ref);
 const conflictingProgram = JSON.parse(document);
@@ -344,6 +360,7 @@ const {client: installedRemote, execution: remoteExecution,
   rows: remoteRows} = await runApplication(remoteOptions,
   'packed-remote-values');
 assert.deepEqual(remoteRows, rows);
+await checkSegmentedProgram(installedRemote, 'remote');
 const acquiredRemote = await runAcquiredApplication(remoteOptions,
   'packed-acquired-remote');
 assert.deepEqual(acquiredRemote.b, acquiredLocal.b);
@@ -486,6 +503,18 @@ const repeatedFailure = await installedRemote.aql(document, {format: 'json',
   requestId: 'packed-remote-dispatch-failure'});
 assert.deepEqual(repeatedFailure.ref, failedRemote.ref);
 assert.equal((await repeatedFailure.status()).status, 'failed');
+const failSegmentedDispatch = await originalFetch(new URL(
+  '/__test/fail-next-dispatch', remoteOptions.endpoint), {method: 'POST'});
+assert.equal(failSegmentedDispatch.status, 200);
+const failedSegmented = await installedRemote.aql(segmentedDocument,
+  {format: 'json', requestId: 'packed-segmented-dispatch-failure'});
+const failedSegmentedState = await failedSegmented.wait();
+assert.equal(failedSegmentedState.status, 'failed');
+assert.equal(failedSegmentedState.control.physical_stop, 'confirmed');
+await assert.rejects(failedSegmented.result('answer').all());
+assert.deepEqual((await installedRemote.aql(segmentedDocument,
+  {format: 'json', requestId: 'packed-segmented-dispatch-failure'})).ref,
+failedSegmented.ref);
 installedRemote.close();
 const local = await connectInProcess({mode: 'local', owner: 'local'}, {
   async perform(operation) {

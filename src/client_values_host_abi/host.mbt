@@ -551,6 +551,30 @@ pub fn client_values_host_issue_source_free_invocation(
 }
 
 ///|
+#export_name("clientValuesHostIssueSourceFreeTaskInvocation")
+pub fn client_values_host_issue_source_free_task_invocation(
+  compilation : @host.ClientTaskCompilation,
+  data_policy_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Array[String], @publication.RunEvidenceValueIssue] {
+  let (observation, invocation) = match
+    @host.issue_client_task_source_free_invocation(
+      compilation, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok([
+    @publication.run_evidence_value_identity(observation),
+    @publication.run_evidence_value_json(observation),
+    @publication.publication_contract_identity(invocation),
+    @publication.publication_contract_json(invocation),
+  ])
+}
+
+///|
 /// Re-admit observed input wires in the common owner before a task Run may
 /// incorporate the source into its Observation Set. The Host supplies the
 /// checked source and current scope, not caller-controlled CID assertions.

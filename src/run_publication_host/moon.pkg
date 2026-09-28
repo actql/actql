@@ -29,6 +29,7 @@ import {
   "actql/actql/relation_results" @results,
   "actql/actql/stage_results",
   "actql/actql/check_environment" @environment,
+  "actql/actql/numeric_reduction" @numeric,
   "actql/actql/order_key" @order,
   "actql/actql/check_environment" @environment,
   "actql/actql/sourceview_resolution" @acquisition,

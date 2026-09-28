@@ -9,7 +9,8 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
-import {sourceFreeValuesPlan, acquiredTaskRunAdmission} from
+import {sourceFreeValuesPlan, sourceFreeTaskPlan,
+  acquiredTaskRunAdmission} from
   './local-values-plan.mjs';
 import {admitEnvironment as admitStandaloneEnvironment,
   prepare as prepareStandalone, compileValues as compileStandaloneValues,
@@ -30,6 +31,44 @@ const planCids = {
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 const policy = Object.freeze({executionContextCid: cid('a'),
   hostPolicyCid: cid('b'), expiresAt: '2027-01-01T00:00:00.000Z'});
+
+test('source-free task profile issues through the compiled Run owner',
+  async () => {
+    const document = await read('../../packages/sdk/fixtures/values.json');
+    const environmentWire = await read(
+      '../../packages/sdk/fixtures/values.environment.json');
+    const environmentBody = JSON.parse(environmentWire);
+    const environment = runtime.clientProgramCheckEnvironment(
+      canonicalText(environmentBody), environmentBody.evidence_bundle_cid,
+      false, false, true, false, false, false, false);
+    assert.ok(environment);
+    const prepare = installNodeClientProgramPreparation({moon: runtime,
+      environment});
+    const preparedProgram = prepare({kind: 'aql', input: {
+      text: document, format: 'json'}, parameters: null});
+    const control = runtimeCore(runtime).publicationControl;
+    const plan = sourceFreeTaskPlan({moon: runtime, control,
+      preparedProgram, authorityScopeCid: cid('a'), tenantId: 'local',
+      storeAuthorityCid: cid('c'),
+      now: () => '2026-09-27T00:00:00.000Z'});
+    assert.match(plan.runDefinition.identity, /^sha256:[0-9a-f]{64}$/u);
+    assert.match(plan.invocation.identity, /^sha256:[0-9a-f]{64}$/u);
+    assert.match(plan.observation.identity, /^sha256:[0-9a-f]{64}$/u);
+    assert.equal(plan.results.length, 1);
+    assert.deepEqual(plan.receiptEvidence.sourceEvidence, []);
+    const taskCompiled = control.prepareCheckedClientCompiledRun(
+      preparedProgram, 'tasks', policy);
+    const otherCompiled = control.prepareCheckedClientCompiledRun(
+      preparedProgram, 'values', policy);
+    const otherDefinition = control.defineCheckedClientCompiledRun(otherCompiled,
+      {tenantId: 'local', runId: 'other-run',
+        createdAt: '2026-09-27T00:00:00.000Z',
+        validUntil: policy.expiresAt});
+    assert.throws(() => control.issueCheckedClientCompiledInvocation(
+      taskCompiled, otherDefinition, {dataPolicyCid: cid('d')},
+      {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64}),
+    /Foreign Client compiled Run|RunHostInvocationRejected/);
+  });
 
 for (const kind of ['values', 'tasks']) {
   test(`Local ${kind} prepares and compiles once with exact owner custody`,
@@ -171,3 +210,38 @@ for (const kind of ['values', 'tasks']) {
         policy.executionContextCid, policy.hostPolicyCid, policy.expiresAt)));
     });
 }
+
+test('compiled task Plan binds an internal filtered JOIN edge', async () => {
+  const document = await read('./fixtures/segmented-join-program.json');
+  const environmentWire = await read(
+    '../../packages/sdk/fixtures/values.environment.json');
+  const environmentBody = JSON.parse(environmentWire);
+  const environment = admitStandaloneEnvironment(
+    canonicalText(environmentBody), environmentBody.evidence_bundle_cid,
+    {rela: true});
+  const owner = prepareStandalone(document, 'json', environment);
+  const compiled = compileStandaloneTasks(owner);
+  const plan = JSON.parse(privateTaskCompilationWires(compiled).executablePlan);
+  const filtered = plan.nodes.find(node => node.pipeline.steps.some(step =>
+    step.op === 'REL.where'));
+  const joined = plan.nodes.find(node => node.pipeline.steps.some(step =>
+    step.op === 'REL.join'));
+  assert.ok(filtered);
+  assert.ok(joined);
+  assert.deepEqual(filtered.pipeline.steps.map(step => step.op),
+    ['REL.where']);
+  assert.deepEqual(Object.keys(filtered.input_contracts), ['input_0']);
+  assert.deepEqual(joined.pipeline.steps.map(step => step.op),
+    ['REL.join', 'REL.select']);
+  assert.deepEqual(Object.keys(joined.input_contracts),
+    ['input_0', 'input_1']);
+  assert.deepEqual(joined.pipeline.steps[0].in,
+    ['input_0', 'input_1']);
+  assert.ok(plan.data_edges.some(edge =>
+    edge.from.node_id === filtered.node_id &&
+    edge.from.port === filtered.pipeline.output &&
+    edge.to.node_id === joined.node_id && edge.to.port === 'input_0'));
+  assert.deepEqual(plan.root_refs, [{name: 'answer',
+    ref: {node_id: joined.node_id, port: joined.pipeline.output},
+    role: 'requested_result'}]);
+});

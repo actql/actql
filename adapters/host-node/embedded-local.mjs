@@ -31,7 +31,7 @@ import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
-  sourceFreeValuesPlan, acquiredTaskRunAdmission} from
+  sourceFreeValuesPlan, sourceFreeTaskPlan, acquiredTaskRunAdmission} from
   './local-values-plan.mjs';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
@@ -73,8 +73,13 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   const environmentWire = sourceProfile?.environmentWire ??
     baseEnvironmentWire;
   const evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
-  const environment = moon.clientProgramCheckEnvironment(environmentWire,
-    evidenceCid, false, false, true, false, false, false, false);
+  const numericProfile = JSON.parse(await readFile(join(packageRoot,
+    'spec/contracts/actql-numeric-reduction.json'), 'utf8'));
+  const numericProfileCid = `sha256:${createHash('sha256')
+    .update(canonicalJson(numericProfile)).digest('hex')}`;
+  const environment = moon.clientProgramCheckEnvironmentWithNumericProfile(
+    environmentWire, evidenceCid, false, false, true, false, false, false,
+    false, numericProfileCid);
   if (environment === undefined) {
     sourceProfile?.close();
     throw new Error('InvalidInstalledLocalEnvironment');
@@ -334,7 +339,9 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0)?.$tag ===
         1
       ? acquiredTaskRunAdmission(common)
-      : sourceFreeValuesPlan(common);
+      : moon.clientProgramTaskCount(preparedProgram) > 1
+        ? sourceFreeTaskPlan(common)
+        : sourceFreeValuesPlan(common);
   };
   // Admit (or look up) the request's Run Definition: the durable Run.
   const admitDefinition = async (submission, requested, resultNames,
