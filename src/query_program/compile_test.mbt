@@ -1564,6 +1564,18 @@ test "ordered collection aggregates retain literal and order contracts" {
     NeedsInputs(_) => fail("Pipe collection should be bounded")
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
   }
+  let changed_pipe = compile(
+    @query.parse_query(
+      "FROM left_rows |> SET a = a |> AGGREGATE ARRAY_AGG(DISTINCT a IGNORE NULLS ORDER BY a DESC) AS ids",
+      syntax_limits(),
+    ).unwrap(),
+    context,
+    construction_limits(),
+  ).unwrap()
+  assert_true(
+    @check.check_parsed(changed_pipe, check_environment(), None, check_limits())
+    is Rejected(_),
+  )
   let unbounded_string = @query.parse_query(
     "SELECT STRING_AGG(b, '|' ORDER BY a) AS labels FROM left_rows",
     syntax_limits(),

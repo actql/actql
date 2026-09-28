@@ -72,9 +72,11 @@ common ordered-aggregate checker; the frontend does not invent a nonnull key
 from `IGNORE NULLS`. Other aggregates and grouped keys do not use this
 transformation because pre-deduplication could change their input.
 The corresponding Pipe `AGGREGATE` runs through both packed Clients with the
-same rows. A preceding Pipe `SET` followed by this aggregate passed the
-checker but failed before publication in packed Local, so that composition is
-not counted as executable and remains a Host-path gap.
+same rows. The final lowering leaves a preceding Pipe `SET` outside this
+special case; the common checker rejects that unkeyed composition. An
+experimental pre-deduplication after `SET` passed the checker but failed
+before publication in packed Local, so that Host-path composition remains
+unimplemented rather than being reported as executable.
 An independent source-free Values query with `a=0,1` also verifies the
 ActQL-specific eager `AND` rule through both packed Clients:
 `WHERE a <> 0 AND 10 / a > 1` fails the Run on division by zero. The
