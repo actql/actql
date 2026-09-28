@@ -13,6 +13,13 @@ source, `query_program` passed 50/50 and the packed Node/browser Client smoke
 passed through Local and HTTP Remote Hosts. The pre-rebase JavaScript Core gate
 passed 6,870/6,870 and Wasm Core passed 6,867/6,867. Those Core results do not
 replace final gates on the rebased SHA.
+At `9735c5f1b` on that rebased source, native Core passed 6,928/6,928;
+the complete `client`, `spec`, and `lint` local CI jobs passed. The Client job
+included packed Local/HTTP Remote, Checkpoint and native CLI checks. These
+results are local only: the branch has not been pushed for same-SHA Linux CI,
+and the `host` and `connector-addition` jobs have not yet been rerun after
+PR #28. The remaining adopted SQL/Pipe cases below still prevent a PR-3/PR-4
+completion claim.
 The branch was rebased onto fetched `origin/main`
 `c1ed3f526e2e5576e3cdd172b4b6a66c893fdd4f`. The pre-rebase
 `686965b916e3dbb43f1f1756393593aa85fb8b46` is retained at
