@@ -115,8 +115,8 @@ only.
 
 | Item | Owner | Needed | Acceptance |
 |---|---|---|---|
-| One Set approval over several Host tuples | C | The commit Checkpoint binds every tuple of the Set; resume admits each listed tuple whose current account outcome still permits it | Approved two-Resource Set writes each tuple once (todo test in `installed-salesforce-effect.host.test.mjs`); a tuple denied after approval sends nothing |
-| Pre-send current-state refusal on resume | C | A refusal proven before any send of the generation ends the resume as failed and retires the capture | Changed target after approval: Run failed, 0 writes, capture retired |
+| One Set approval over several Host tuples | C | The commit Checkpoint binds every tuple of the Set; resume admits each listed tuple whose current account outcome still permits it | Approved two-Resource Set: one Checkpoint, 4 writes (each row once), Run succeeded with the Named Result, 0 more writes on restart; a tuple denied at resume: 0 writes, Run failed, capture retired. The todo test in `installed-salesforce-effect.host.test.mjs` is only the reproducer, not evidence |
+| Pre-send current-state refusal on resume | C | A refusal proven before any send of the generation ends the resume as failed and retires the capture | Changed target after approval: 0 writes, Run failed, stop observed, capture and source holdings retired, no cleanup pending. With any dispatching or unknown row the Run stays needs_reconciliation, never failed, and nothing is resent |
 | Host options object and Effect profile loading; Embedded and packed entries | C | `effectProfilePath` / `ACTQL_LOCAL_EFFECT_PROFILE` through `installed-effect.mjs`; Host's own evidence key; same account text and principal as the Host | Invalid profile refused before provider I/O; source plus Effect refused |
 | Tarball and Embedded Effect run | C, D | The entries above | Preview → approval → restart → update → Named Result from an install outside the checkout |
 | Live org Effect verification | D | Budget and cleanup reserve per the private record | Update of the dedicated test object, cleanup of created records |
