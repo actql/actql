@@ -92,6 +92,8 @@ export async function openSalesforceEffectSiteFixture(t, {
   let loseReply = loseWriteReplyOnce;
   let rateLimitReply = rateLimitWriteOnce;
   let observedName = 'before';
+  // Target names of single objects, over the org-wide name.
+  const observedNames = new Map();
   let nameUpdateable = true;
   let nameCreateable = true;
   const server = createServer({cert, key}, (request, response) => {
@@ -190,7 +192,8 @@ export async function openSalesforceEffectSiteFixture(t, {
       const target = decodeURIComponent(request.url.slice(
         `${prefix}sobjects/${record}/`.length).split('/').at(-1));
       response.writeHead(200, {'content-type': 'application/json'});
-      response.end(JSON.stringify({Id: target, Name: observedName,
+      response.end(JSON.stringify({Id: target,
+        Name: observedNames.get(record) ?? observedName,
         External_Key__c: target}));
       return;
     }
@@ -380,7 +383,11 @@ export async function openSalesforceEffectSiteFixture(t, {
         resource: 'Test_Record__c', write}),
     refreshDeclaration: () => installed.declareCatalog({
       connectorId, resources: ['Test_Record__c']}),
-    setTargetName(name) { observedName = name; },
+    // Every object's target name, or only `resource`'s.
+    setTargetName(name, resource) {
+      if (resource === undefined) observedName = name;
+      else observedNames.set(resource, name);
+    },
     setNameUpdateable(value) { nameUpdateable = value; },
     setNameCreateable(value) { nameCreateable = value; },
     setOptionalText(value) { optionalText = value; }};

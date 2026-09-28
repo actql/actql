@@ -110,8 +110,9 @@ async function remoteHost(t, installation, directory, {configuration,
     closed = true;
     server.closeAllConnections?.();
     await new Promise(resolve => server.close(resolve));
-    await host.close();
+    const remaining = await host.close();
     effect.close();
+    return remaining;
   };
   installation.onClose(close);
   const endpoint = `https://127.0.0.1:${server.address().port}/`;
@@ -195,7 +196,7 @@ async function approvedSetResumes(t, targets) {
       'succeeded');
     assert.deepEqual(writesOf(x.installation.org).map(item =>
       item.path.split('/').slice(-2).join('/')).sort(),
-    targets.flatMap(resource => ids.map(id => `${resource}/${id}`)));
+    targets.flatMap(resource => ids.map(id => `${resource}/${id}`)).sort());
     assert.deepEqual(await attached.result('answer').all(),
       ids.map(id => ({id})));
     await resumed.close();
@@ -215,6 +216,9 @@ test('an approved Salesforce Effect Set resumes after a restart and publishes on
 // tuples; each tuple still has to pass its current account decision.
 test('an approved Set over two Resources resumes and writes each tuple once',
   t => approvedSetResumes(t, resources));
+
+test('the same two-Resource Set in the other member order writes each once',
+  t => approvedSetResumes(t, [...resources].reverse()));
 
 test('a rejected Salesforce Effect Set writes nothing', async t => {
   const x = await setup(t);
@@ -264,3 +268,92 @@ for (const [label, change] of [
     assert.deepEqual(await readdir(join(publication, 'objects')), []);
   });
 }
+
+// What a closed Host still holds of an unpublished capture.
+async function retained(x) {
+  const publication = join(x.directory, 'state', 'publication');
+  return {holdings: await readdir(join(publication, 'physical-holdings')),
+    objects: await readdir(join(publication, 'objects'))};
+}
+
+// A two-Resource Set, two rows each, approved and then changed only for the
+// later Resource before the restarted Host resumes. Both member orders are
+// run, so the first tuple is not special. Nothing of the Set is written, the
+// same Run fails, and its capture and source holdings are retired.
+for (const order of [resources, [...resources].reverse()]) {
+  const later = order[1];
+  for (const [label, change] of [
+    [`${later}'s commit permission is revoked`, () => ({
+      configuration: hostConfiguration({denied: [later]})})],
+    [`${later}'s target record changed`, x => {
+      x.installation.org.setTargetName('changed-after-approval', later);
+      return {};
+    }],
+  ]) {
+    test(`an approved two-Resource Set (${order.join(', ')}) writes nothing when ${label}`,
+      async t => {
+        const x = await setup(t, {targets: order});
+        x.installation.org.setTargetName('observed-before');
+        const {execution, checkpoint} = await heldSet(t, x,
+          'salesforce-two-resource-refusal');
+        await answer(t, x, checkpoint, 'approved',
+          execution.ref.authorityScopeCid);
+        const {configuration = x.configuration} = change(x);
+        const host = await remoteHost(t, x.installation, x.directory,
+          {configuration});
+        const attached = await (await host.as('owner-token'))
+          .attach(execution.ref);
+        const state = await waitFor(async () => {
+          const current = await attached.status();
+          return ['failed', 'succeeded', 'needs_reconciliation']
+            .includes(current.status) ? current : undefined;
+        });
+        assert.equal(state.status, 'failed');
+        assert.equal(writesOf(x.installation.org).length, 0);
+        const remaining = await host.close();
+        assert.equal(remaining.storeCleanupPending, false);
+        assert.deepEqual(remaining.pendingRetention, []);
+        assert.deepEqual(await retained(x), {holdings: [], objects: []});
+      });
+  }
+}
+
+// The write reply to the first row is lost after it was sent. The outcome
+// is unknown: the Run keeps reconciliation responsibility, and neither the
+// resuming Host nor a later restart sends that row, or anything, again.
+test('a lost write reply keeps the approved Set unknown and is never resent',
+  async t => {
+    const configuration = hostConfiguration();
+    const installation = await installedEffect(t, {
+      writes: [{resource: 'Test_Record__c', kind: 'update',
+        fields: ['Name']}],
+      org: {writableObjects: ['Other_Record__c'], loseWriteReplyOnce: true},
+      principalId: owner, accountConfigurationWire: configuration});
+    const directory = await mkdtemp(join(scratch, 'host-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const effect = await installation.load();
+    const [mapping] = effect.mappings;
+    effect.close();
+    const x = {installation, directory, configuration,
+      program: JSON.stringify(effectProgram({save: {update: {
+        target: mapping.target, mapping: mapping.mappingRef,
+        from: {result: 'rows'}, id: 'id', set: {Name: {field: 'id'}}}}},
+      ids.map(id => ({id}))))};
+    const {execution, checkpoint} = await heldSet(t, x, 'salesforce-lost');
+    await answer(t, x, checkpoint, 'approved',
+      execution.ref.authorityScopeCid);
+    for (let restart = 0; restart < 2; restart++) {
+      const host = await remoteHost(t, installation, directory,
+        {configuration});
+      const attached = await (await host.as('owner-token'))
+        .attach(execution.ref);
+      const state = await waitFor(async () => {
+        const current = await attached.status();
+        return ['failed', 'succeeded', 'needs_reconciliation']
+          .includes(current.status) ? current : undefined;
+      });
+      assert.equal(state.status, 'needs_reconciliation');
+      assert.equal(writesOf(installation.org).length, 1);
+      await host.close();
+    }
+  });
