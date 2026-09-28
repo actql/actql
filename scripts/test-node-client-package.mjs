@@ -96,6 +96,53 @@ assert.deepEqual(JSON.parse(sourceRoundtrip), JSON.parse(sourceProgram));
 await writeFile(join(root, 'source-program.json'), sourceRoundtrip);
 const queryFrontend = await import(pathToFileURL(join(repository,
   '_build/js/debug/build/query_program_test_bridge/query_program_test_bridge.js')));
+const graphSteps = [
+  {values: {schema: {
+    id: {type: 'number', nullable: false},
+    entity_type: {type: 'string', nullable: true},
+    name: {type: 'string', nullable: false}},
+  rows: [{id: 1, entity_type: 'Account', name: 'one'},
+    {id: 2, entity_type: null, name: 'two'}]}, as: 'nodes'},
+  {values: {schema: {
+    src: {type: 'number', nullable: false},
+    dst: {type: 'number', nullable: false},
+    rel: {type: 'string', nullable: true}}, rows: []}, as: 'edges'},
+  {graph: {nodes: {from: 'nodes', id: 'id', fields: ['entity_type', 'name']},
+    edges: {from: 'edges', source: 'src', target: 'dst', label: 'rel',
+      fields: []}}, as: 'g'},
+];
+const graphQuery = queryFrontend.compileGeneratedGraphQueryJson(
+  'FROM GRAPH g LABELS {"node":{"field":"entity_type"}} '
+    + '|> MATCH WALK (a:Account) |> SELECT a.name AS name',
+  'g', JSON.stringify(graphSteps), JSON.stringify(['id', 'entity_type', 'name']),
+  JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_node_only');
+assert.notEqual(graphQuery, '');
+await writeFile(join(root, 'graph-node-query.json'), graphQuery);
+const pathSteps = [
+  {values: {schema: {
+    id: {type: 'number', nullable: false},
+    name: {type: 'string', nullable: false}},
+  rows: [{id: 1, name: 'A'}, {id: 2, name: 'B'},
+    {id: 3, name: 'C'}, {id: 4, name: 'D'}]}, as: 'nodes'},
+  {values: {schema: {
+    src: {type: 'number', nullable: false},
+    dst: {type: 'number', nullable: false},
+    rel: {type: 'string', nullable: true}},
+  rows: [{src: 1, dst: 2, rel: 'R'},
+    {src: 1, dst: 3, rel: 'R'},
+    {src: 2, dst: 4, rel: 'R'},
+    {src: 3, dst: 4, rel: 'R'}]}, as: 'edges'},
+  {graph: {nodes: {from: 'nodes', id: 'id', fields: ['name']},
+    edges: {from: 'edges', source: 'src', target: 'dst',
+      label: 'rel', fields: []}}, as: 'g'},
+];
+const pathQuery = queryFrontend.compileGeneratedGraphQueryJson(
+  'FROM GRAPH g |> MATCH WALK (a)-[]->(b)-[]->(d) '
+    + '|> SELECT a.id AS start_id, d.id AS end_id',
+  'g', JSON.stringify(pathSteps), JSON.stringify(['id', 'name']),
+  JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_diamond');
+assert.notEqual(pathQuery, '');
+await writeFile(join(root, 'graph-path-query.json'), pathQuery);
 const pairExpectedProgram = JSON.parse(await readFile(join(repository,
   'spec/frontend/fixtures/query-pair.expected-program.json'), 'utf8'));
 const pairExpectedRows = JSON.parse(await readFile(join(repository,
@@ -1003,6 +1050,22 @@ const computedValuesQueryDocument = readFileSync('query-computed-values.json',
 const pairQueryDocument = readFileSync('query-pair.json', 'utf8');
 const pairExpectedRows = JSON.parse(readFileSync(
   'query-pair.expected-rows.json', 'utf8'));
+async function checkGraphNodeQuery(client, suffix) {
+  const execution = await client.aql(readFileSync('graph-node-query.json',
+    'utf8'), {format: 'json', requestId: 'packed-graph-node-' + suffix});
+  const status = await execution.wait();
+  assert.equal(status.status, 'succeeded', JSON.stringify(status));
+  assert.deepEqual(await execution.result('answer').all(), [{name: 'one'}]);
+}
+async function checkGraphPathQuery(client, suffix) {
+  const execution = await client.aql(readFileSync('graph-path-query.json',
+    'utf8'), {format: 'json', requestId: 'packed-graph-path-' + suffix});
+  const status = await execution.wait();
+  assert.equal(status.status, 'succeeded', JSON.stringify(status));
+  const rows = await execution.result('answer').all();
+  assert.equal(rows.filter(row => row.start_id === 1 &&
+    row.end_id === 4).length, 2);
+}
 async function checkQueryPair(client, suffix) {
   const execution = await client.aql(pairQueryDocument,
     {format: 'json', requestId: 'packed-query-pair-' + suffix});
@@ -1551,6 +1614,8 @@ assert.deepEqual(await computedValuesQueryLocal.result('answer').all(),
   [{id: 2}]);
 await checkOrderScopes(installedLocal, 'local');
 await checkQueryPair(installedLocal, 'local');
+await checkGraphNodeQuery(installedLocal, 'local');
+await checkGraphPathQuery(installedLocal, 'local');
 await checkValuesCte(installedLocal, 'local');
 await checkPipeSnapshots(installedLocal, 'local');
 await checkNullOrder(installedLocal, 'local');
@@ -1758,6 +1823,8 @@ assert.deepEqual(await computedValuesQueryRemote.result('answer').all(),
   [{id: 2}]);
 await checkOrderScopes(installedRemote, 'remote');
 await checkQueryPair(installedRemote, 'remote');
+await checkGraphNodeQuery(installedRemote, 'remote');
+await checkGraphPathQuery(installedRemote, 'remote');
 await checkValuesCte(installedRemote, 'remote');
 await checkPipeSnapshots(installedRemote, 'remote');
 await checkNullOrder(installedRemote, 'remote');

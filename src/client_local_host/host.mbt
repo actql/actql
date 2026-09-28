@@ -88,14 +88,88 @@ fn open_checked_local_host(
     per_pair_ms < 0L {
     return None
   }
-  // Each of the Run's attempts may import one input of at most the Local
-  // import wire below (1 MB), so the Run's transfer budget covers them all.
+  // The checked graph admits at most 32 tasks. Reserve one physical attempt
+  // and one retained output per task; a fixed ten-attempt cap would reject a
+  // valid longer task graph before its final computation can start.
+  let task_count = @strategy.graph_task_count(
+    @publication_host.prepared_client_graph(prepared),
+  )
+  if task_count < 1 || task_count > 32 {
+    return None
+  }
+  let generated = match
+    prepare_client_local_sequences(
+      prepared, registry_body, values_body, fragment_body, ordered_body,
+    ) {
+    Some(value) => value
+    None => return None
+  }
+  let first_compute = if source is None { 0 } else { 1 }
+  let compute_sequences : Array[@execution.GeneratedSequence] = []
+  for task in first_compute..<generated.length() {
+    compute_sequences.push(generated[task])
+  }
+  // Value budgets over one task input: the text one acquisition captures
+  // (500 KB) and a value node for every cell of 100 rows by 100 columns.
+  let values : @execution.ValueLimits = {
+    max_nodes: 20000,
+    max_text_bytes: 500000,
+    max_depth: 100,
+    max_work: 20000000,
+  }
+  let execution : @execution.SequenceExecutionLimits = {
+    rows: {
+      max_rows: 100,
+      metadata_entries: 10000,
+      retained_entries: 10000,
+      operation_entries: 10000,
+      input_values: values,
+      output_values: values,
+    },
+    max_work: values.max_work,
+    max_frames: 100,
+  }
+  let measurement : @execution.FixedInputGuardMeasureLimits = {
+    max_work: values.max_work,
+    max_bytes: values.max_text_bytes,
+    max_nodes: values.max_nodes,
+    max_depth: values.max_depth,
+  }
+  let mut retained_bytes = 0L
+  let mut execution_bytes = 0L
+  let mut total_retained_bytes = 0L
+  for sequence in compute_sequences {
+    guard @execution.generated_sequence_capacity(
+        sequence, execution, measurement,
+      )
+      is Some(required) else {
+      return None
+    }
+    let retained = @execution.execution_capacity_retained_bytes(required)
+    let executing = @execution.execution_capacity_execution_bytes(required)
+    if retained < 0L || retained > 536870912L - total_retained_bytes {
+      return None
+    }
+    total_retained_bytes += retained
+    if retained > retained_bytes {
+      retained_bytes = retained
+    }
+    if executing > execution_bytes {
+      execution_bytes = executing
+    }
+  }
+  // Each attempt may import one input of at most the Local import wire below
+  // (1 MB), so the transfer budget covers the checked task inventory.
   let limits : @resources.LedgerLimits = {
     planning_work: 100000,
-    attempts: 10,
-    holdings: 10,
-    transfer_bytes: 10000000L,
-    retained_bytes: 200000000L,
+    attempts: task_count,
+    holdings: task_count,
+    transfer_bytes: task_count.to_int64() * 1000000L,
+    retained_bytes: if total_retained_bytes > 200000000L {
+      total_retained_bytes
+    } else {
+      200000000L
+    },
     // The admitted value and retained-output reservations can exceed
     // 256 MiB for a bounded multi-task Program. Keep the established value
     // envelope and cap concurrent execution reservations at 512 MiB.
@@ -113,58 +187,37 @@ fn open_checked_local_host(
     Ok(value) => value
     Err(_) => return None
   }
-  let generated = match
-    prepare_client_local_sequences(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
-    ) {
-    Some(value) => value
-    None => return reject_client_local_run(run)
-  }
   let graph = @publication_host.prepared_client_graph(prepared)
-  let first_compute = @strategy.captured_compute_first_task(run)
-  let compute_sequences : Array[@execution.GeneratedSequence] = []
-  for task in first_compute..<generated.length() {
-    compute_sequences.push(generated[task])
-  }
   let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 100,
     max_value_bytes: 10000,
     common_fragment: None,
   }
-  // Value budgets over one task input: the text one acquisition captures
-  // (500 KB) and a value node for every cell of 100 rows by 100 columns, with
-  // work for measuring and comparing them. Together with the fragment
-  // allowance they stay within the Run's execution budget per task.
-  let values : @execution.ValueLimits = {
-    max_nodes: 20000,
-    max_text_bytes: 500000,
-    max_depth: 100,
-    max_work: 20000000,
+  let graph_limits : @graph_storage.Limits = {
+    max_input_rows: 100,
+    max_nodes: 100,
+    max_edges: 100,
+    max_value_bytes: 10000,
+    max_total_value_bytes: 10000,
+    max_retained_value_bytes: 10000,
+    max_value_nodes: 10000,
+    max_value_depth: 100,
+    max_contract_work: 10000,
+    max_work: 100000,
+    max_workspace_slots: 10000,
+  }
+  let providers = match
+    @execution.execution_capacity(retained_bytes, execution_bytes) {
+    Some(base) => [@local_sga_provider.provider(graph_limits, 10000L, base)]
+    None => return reject_client_local_run(run)
   }
   let local_configuration : @local_driver.LocalComputeConfiguration = {
     sequences: compute_sequences,
-    managed_providers: [],
+    managed_providers: providers,
     managed_capacity: capacity,
-    execution: {
-      rows: {
-        max_rows: 100,
-        metadata_entries: 10000,
-        retained_entries: 10000,
-        operation_entries: 10000,
-        input_values: values,
-        output_values: values,
-      },
-      // Execution and output measurement cover the same values.
-      max_work: values.max_work,
-      max_frames: 100,
-    },
-    measurement: {
-      max_work: values.max_work,
-      max_bytes: values.max_text_bytes,
-      max_nodes: values.max_nodes,
-      max_depth: values.max_depth,
-    },
+    execution,
+    measurement,
     max_work: 100,
   }
   let bundle : @connector.CapabilityBundle[

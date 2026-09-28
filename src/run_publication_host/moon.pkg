@@ -26,6 +26,7 @@ import {
   "actql/actql/logical_request_scope" @request_scope,
   "actql/actql/relation_schema" @schema,
   "actql/actql/carrier_contract" @carrier,
+  "actql/actql/graph_contract",
   "actql/actql/relation_results" @results,
   "actql/actql/stage_results",
   "actql/actql/check_environment" @environment,

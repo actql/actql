@@ -491,6 +491,8 @@ pub fn prepared_client_result_count(PreparedClientProgram) -> Int
 
 pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
 
+pub fn prepared_client_uses_graph_carrier(PreparedClientProgram) -> Bool
+
 pub fn source_free_caller_input_intent_cid() -> String
 
 // Errors
@@ -982,6 +984,7 @@ pub struct ClientTaskFragmentNode {
   output_port : String
   logical_cid : String
   output_contract_cid : String
+  output_carrier : String
 }
 
 pub(all) enum ClientTaskOutputSchemaIssue {

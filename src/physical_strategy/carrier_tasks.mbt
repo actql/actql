@@ -49,7 +49,9 @@ fn segmentable_relation_source(graph : CheckedDAG, start : Int) -> Bool {
 /// later row operations use their own selected tasks.
 /// -1 means that every step can be selected independently.
 fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
-  if stage <= 0 || stage >= graph.owners.length() {
+  if stage < 0 ||
+    stage >= graph.owners.length() ||
+    (stage == 0 && !graph.source_free_root) {
     return None
   }
   if graph.selected_steps[stage] is Some(_) ||
@@ -81,17 +83,6 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
       zero_input_count += 1
     } else if @lower.node_input_count(node) == 2 {
       found_binary = true
-    }
-    if @lower.operation(node) == "BRIDGE.rows.to_graph" &&
-      @lower.node_input_count(node) > 1 {
-      guard @lower.node_input_target(node, 0) is Some(first) else {
-        return None
-      }
-      for input in 1..<@lower.node_input_count(node) {
-        if @lower.node_input_target(node, input) != Some(first) {
-          return None
-        }
-      }
     }
     for input in 0..<@lower.node_input_count(node) {
       match @lower.node_input_target(node, input) {

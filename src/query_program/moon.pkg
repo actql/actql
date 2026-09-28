@@ -17,4 +17,6 @@ import {
   "actql/actql/program_check" @check,
   "actql/actql/numeric_reduction" @numeric,
   "moonbitlang/core/encoding/utf8",
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/debug",
 } for "test"

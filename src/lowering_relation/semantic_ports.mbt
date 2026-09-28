@@ -206,6 +206,7 @@ pub fn node_accepts_managed_relation_view(
 ) -> Bool {
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {
     return match node.payload {
+      GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
       InnerJoin(_)
       | CrossJoinRows(_)
       | AppendRows(_)
