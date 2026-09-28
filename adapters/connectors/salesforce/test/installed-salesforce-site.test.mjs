@@ -14,7 +14,8 @@ import {createLocalAuthorizationGate} from
   '../../../host-node/local-account-config.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {DEFAULT_SALESFORCE_CATALOG_LIMITS, INSTALLED_SALESFORCE_SITE_VERSION,
-  installSalesforceAuthorization, loadInstalledSalesforceSite} from
+  installSalesforceAuthorization, installedSalesforceSiteBinding,
+  loadInstalledSalesforceSite} from
   '../host/installed-salesforce-site.mjs';
 import {openSalesforceEffectSiteFixture} from
   './salesforce-effect-site.fixture.mjs';
@@ -105,6 +106,21 @@ test('installed Salesforce Site syncs its Catalog under Host-issued grants',
       scope.tenant, scope.environment, scope.siteKey, scope.resourceOrigin]
       .join(' ')))], [`principal-a tenant-a test salesforce-site ${
       setup.org.origin}`]);
+  });
+
+test('coinstalled roles bind to exact non-secret Site and principal facts',
+  async t => {
+    const setup = await installed(t);
+    const site = await setup.load();
+    const expected = installedSalesforceSiteBinding(site, 'crm-main');
+    assert.deepEqual(installedSalesforceSiteBinding(site, 'crm-main'),
+      expected);
+    for (const difference of [{principal: 'foreign-principal'},
+      {siteGeneration: 2}, {cliAlias: 'other-org-alias'},
+      {credentialKeyId: 'other-authority-key'}]) {
+      assert.notEqual(installedSalesforceSiteBinding({...site, ...difference},
+        'crm-main').bindingCid, expected.bindingCid);
+    }
   });
 
 test('installed Salesforce grants follow only this Site\'s own dispatch',

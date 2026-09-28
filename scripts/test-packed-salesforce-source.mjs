@@ -8,7 +8,7 @@ import {execFileSync, spawn, spawnSync} from 'node:child_process';
 import {generateKeyPairSync} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
-import {tmpdir, userInfo} from 'node:os';
+import {userInfo} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {canonicalJson} from '../adapters/host-node/local-account-config.mjs';
@@ -17,7 +17,9 @@ const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
 // Outside the checkout: nothing under it can fill in a missing file.
-const root = await mkdtemp(join(tmpdir(), 'actql-packed-salesforce-'));
+const externalScratch = join(repository, '..', '.codex-scratch');
+await mkdir(externalScratch, {recursive: true});
+const root = await mkdtemp(join(externalScratch, 'actql-packed-salesforce-'));
 const orgId = '00D000000000001EAA';
 const token = 'packed-test-only-token';
 
@@ -184,9 +186,18 @@ console.log(published.declared.catalog_cid);
 `);
   await writeFile(join(root, 'read.mjs'), `
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {connect} from '@actql/local-node';
 const client = await connect({mode: 'local', owner: 'local',
-  durability: 'durable'});
+  durability: 'durable',
+  ...(process.env.ACTQL_LOCAL_EFFECT_PROFILE === undefined ? {} : {
+    installation: {
+      directory: process.env.ACTQL_LOCAL_STATE_DIR,
+      sourceProfilePath: process.env.ACTQL_LOCAL_SOURCE_PROFILE,
+      effectProfilePath: process.env.ACTQL_LOCAL_EFFECT_PROFILE,
+      authorization: JSON.parse(readFileSync('authorization.json', 'utf8')),
+    }}),
+});
 try {
   const listing = await client.resources('salesforce:${orgId}');
   assert.deepEqual(listing.resources,
@@ -205,7 +216,8 @@ try {
         results: {r: {from: 'out', fields: ['External_Key__c', 'Name']}}}],
     results: {records: {from: {stage: 'compute', result: 'r'}}}});
   const execution = await client.aql(program, {format: 'json',
-    requestId: 'packed-read-1'});
+    requestId: process.env.ACTQL_LOCAL_EFFECT_PROFILE === undefined
+      ? 'packed-read-1' : 'packed-coinstalled-read'});
   assert.equal((await execution.wait()).status, 'succeeded');
   const rows = await execution.result('records').all();
   process.stdout.write(JSON.stringify(rows.map(row =>
@@ -268,18 +280,32 @@ try {
     version: 'actql-installed-salesforce-effect/0.1',
     siteProfilePath: join(root, 'site.json'),
     publicationPath: join(root, 'effect-publication.json'),
-    connectorId: 'salesforce',
+    connectorId: 'crm-main',
     writes: [{resource: 'Test_Record__c', kind: 'update', fields: ['Name']}],
     accountConfigurationWire: effectAccount}));
+  const alternateSource = JSON.parse(await readFile(join(root,
+    'source.json'), 'utf8'));
+  alternateSource.accountConfigurationWire = canonicalJson({
+    ...JSON.parse(alternateSource.accountConfigurationWire),
+    account_id: 'changed-source-account',
+  });
+  await writeFile(join(root, 'source-foreign.json'),
+    JSON.stringify(alternateSource));
+  const alternateEffect = JSON.parse(await readFile(join(root,
+    'effect.json'), 'utf8'));
+  alternateEffect.accountConfigurationWire = canonicalJson({
+    ...JSON.parse(alternateEffect.accountConfigurationWire),
+    account_id: 'changed-effect-account',
+  });
+  await writeFile(join(root, 'effect-foreign.json'),
+    JSON.stringify(alternateEffect));
   await writeFile(join(root, 'publish-effect.mjs'), `
 import {publishEffect} from '@actql/local-node';
 const published = await publishEffect();
 console.log(JSON.stringify(published.mappings.map(mapping =>
   [mapping.resource, mapping.kind])));
 `);
-  const {ACTQL_LOCAL_SOURCE_PROFILE: _sourceProfile, ...effectEnvironment} =
-    childEnvironment;
-  effectEnvironment.ACTQL_LOCAL_STATE_DIR = join(root, 'effect-state');
+  const effectEnvironment = {...childEnvironment};
   effectEnvironment.ACTQL_LOCAL_EFFECT_PROFILE = join(root, 'effect.json');
   const effect = JSON.parse((await runChild('publish-effect.mjs',
     effectEnvironment)).trim());
@@ -292,6 +318,13 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
     '/services/data/v62.0/sobjects/Test_Record__c/describe']);
   console.log('packed Local Host Salesforce Effect publication passed');
 
+  const coinstalledRead = (await runChild('read.mjs', effectEnvironment))
+    .trim().split('\n');
+  assert.equal(coinstalledRead[0], 'discovered');
+  assert.deepEqual(JSON.parse(coinstalledRead[1]),
+    [['key-1', 'record-1'], ['key-3', 'record-3']]);
+  console.log('packed Local Host coinstalled Source and Effect read passed');
+
   // Every step runs in a fresh process with only the installed tarballs.
   // The same public @actql/node connect() path handles submission, review,
   // recovery and the Named Result without a MoonBit toolchain.
@@ -299,12 +332,14 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
 import assert from 'node:assert/strict';
 import {createPrivateKey, sign} from 'node:crypto';
 import {readFileSync, writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
 import {connect} from '@actql/node';
 const authorization = JSON.parse(readFileSync('authorization.json', 'utf8'));
 authorization.resumeAfterAnswer = process.argv[2] === 'resume';
 const client = await connect({mode: 'local', owner: 'local',
   durability: 'durable', installation: {
     directory: process.env.ACTQL_LOCAL_STATE_DIR,
+    sourceProfilePath: process.env.ACTQL_LOCAL_SOURCE_PROFILE,
     effectProfilePath: process.env.ACTQL_LOCAL_EFFECT_PROFILE,
     authorization,
   }});
@@ -319,7 +354,26 @@ async function waitFor(check) {
 }
 try {
   const step = process.argv[2];
-  if (step === 'submit') {
+  if (step === 'identity') {
+    const installation = {
+      directory: process.env.ACTQL_LOCAL_STATE_DIR,
+      sourceProfilePath: process.env.ACTQL_LOCAL_SOURCE_PROFILE,
+      effectProfilePath: process.env.ACTQL_LOCAL_EFFECT_PROFILE,
+      authorization,
+    };
+    const same = await connect({mode: 'local', owner: 'local',
+      durability: 'durable', installation: {...installation}});
+    await same.close();
+    for (const changed of [{sourceProfilePath: resolve(
+      'source-foreign.json')}, {effectProfilePath: resolve(
+      'effect-foreign.json')}]) {
+      await assert.rejects(connect({mode: 'local', owner: 'local',
+        durability: 'durable', installation: {...installation,
+          ...changed}}),
+      {name: 'TypeError', message: 'InstalledHostConfigurationMismatch'});
+    }
+    console.log('identity-refused');
+  } else if (step === 'submit') {
     const generation = JSON.parse(readFileSync('effect-publication.json',
       'utf8'));
     const mapping = generation.mappings[0].mapping_ref;
@@ -330,7 +384,7 @@ try {
         as: 'selected'}],
       results: {rows: {from: 'selected', fields: ['id']}},
       effects: {save: {update: {
-        target: 'connector://salesforce/Test_Record__c', mapping,
+        target: 'connector://crm-main/Test_Record__c', mapping,
         from: {result: 'rows'}, id: 'id', set: {Name: {field: 'id'}}}}},
     }], results: {answer: {from: {stage: 'source', result: 'rows'}}}};
     const execution = await client.aql(JSON.stringify(program), {
@@ -369,6 +423,10 @@ try {
   await client.close();
 }
 `);
+  const beforeIdentity = server.seen.length;
+  assert.equal((await runChild('effect-run.mjs', effectEnvironment,
+    ['identity'])).trim(), 'identity-refused');
+  assert.equal(server.seen.length, beforeIdentity);
   assert.equal((await runChild('effect-run.mjs', effectEnvironment,
     ['submit'])).trim(), 'held');
   assert.equal(server.seen.filter(item => item.method === 'PATCH').length, 0);
