@@ -51,6 +51,7 @@ pub(all) enum Issue {
   UnsupportedSet
   UnsupportedJoin
   UnsupportedCte
+  UnsupportedGraph
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   Admission(@program.SyntaxError)
@@ -2129,6 +2130,9 @@ pub fn compile(
   context : Context,
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
+  if @query.graph_query(query) is Some(_) {
+    return Err(UnsupportedGraph)
+  }
   if @query.cte_count(query) > 0 {
     return compile_cte_query(query, context, limits)
   }

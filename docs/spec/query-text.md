@@ -20,6 +20,8 @@ Unquoted names match `[A-Za-z_][A-Za-z0-9_]*`. Backticks quote names and do
 not switch column lookup to exact-case mode. Single quotes delimit strings;
 only escaped quote, backslash, `n`, `r`, `t`, four-hex-digit `u`, and
 eight-hex-digit `U` are decoded. Escapes must denote valid Unicode scalars.
+Double-quoted tokens are reserved for the explicit Graph `LABELS` annotation;
+they are not query expression strings or quoted identifiers.
 Comments are line `--` and non-nested block `/* ... */` comments. Query
 parameters use `@name`; interpolation, raw/triple/byte literals and multiple
 statements are rejected. The legacy JSON/YAML expression-text dialect is
@@ -60,6 +62,38 @@ query. Finite bounds, stable-order evidence, identity requirements, captured
 source grants and current authorization remain ordinary admission obligations.
 Unsupported shapes must be rejected instead of approximated by a second
 checker or evaluator.
+
+## Graph pattern source
+
+`FROM GRAPH name` selects an existing Graph value. `MATCH` requires an explicit
+`WALK`, `TRAIL`, or `ACYCLIC` mode and yields a binding Relation. It cannot
+silently construct a Graph from a Relation, attach to an ambient Graph, or
+introduce a second implicit Graph input. One Graph source admits one MATCH;
+another pattern needs a separate source and an explicit Relation join.
+
+`LABELS {"node":{"field":"entity_type"}}` is a query-local annotation. A
+node label such as `(a:Account)` expands to equality on that declared string
+field; a null field value does not match. A node label without this annotation
+is rejected. The annotation neither changes Graph identity nor grants entity
+authority. Edge labels use the Graph's semantic edge-label evidence, never an
+arbitrary property with a similar name.
+
+A fixed directed path retains each authored node and edge occurrence. Its
+local predicates are evaluated at their demanded prefix: the starting node
+over the initial node scope, then each reached edge and node after the
+corresponding hop. WALK permits revisits, TRAIL excludes reuse of the same
+typed edge tuple, and ACYCLIC excludes node revisits. Separate paths with
+the same endpoints remain separate rows unless the query requests DISTINCT.
+Graph variables are compile-time binding names. They do not create new
+runtime Node, Edge, or Path value types.
+
+The only quantified shape is one homogeneous directed ACYCLIC edge with
+literal closed `{m,n}` bounds, where `0 <= m <= n` and `n > 0`. An open bound,
+internal quantified edge variable, nested pattern, optional match, or
+unbounded repetition is rejected. A missing property-selected start gives an
+empty match, while an explicit native traversal ID selector retains its
+existing membership-failure rule. Graph and Relation resource ceilings remain
+separate and partial path output is never published as a Result.
 
 ## Bounds, source positions and identity
 

@@ -3,6 +3,7 @@ pub(all) enum Lexeme {
   Word(String)
   QuotedName(String)
   Text(String)
+  JsonText(String)
   Numeric(String)
   Parameter(String)
   Operator(String)
@@ -171,10 +172,11 @@ fn Scanner::quoted(self : Scanner, delimiter : Int) -> String raise {
       match escaped {
         0x5c => 0x5c
         0x27 if delimiter == 0x27 => 0x27
+        0x22 if delimiter == 0x22 => 0x22
         0x60 if delimiter == 0x60 => 0x60
-        0x6e if delimiter == 0x27 => 0x0a
-        0x72 if delimiter == 0x27 => 0x0d
-        0x74 if delimiter == 0x27 => 0x09
+        0x6e if delimiter == 0x27 || delimiter == 0x22 => 0x0a
+        0x72 if delimiter == 0x27 || delimiter == 0x22 => 0x0d
+        0x74 if delimiter == 0x27 || delimiter == 0x22 => 0x09
         0x75 => self.escaped_scalar(4)
         0x55 => self.escaped_scalar(8)
         _ => raise LexicalAbort(InvalidEscape, at)
@@ -274,6 +276,7 @@ fn Scanner::next(self : Scanner) -> Token raise {
   let value = match self.peek() {
     None => End
     Some(0x27) => Text(self.quoted(0x27))
+    Some(0x22) => JsonText(self.quoted(0x22))
     Some(0x60) => QuotedName(self.quoted(0x60))
     Some(n) if identifier_start(n) => Word(self.name())
     Some(n) if digit(n) => Numeric(self.number())
@@ -323,6 +326,11 @@ fn Scanner::next(self : Scanner) -> Token raise {
       | 0x2a
       | 0x2f
       | 0x25
+      | 0x3a
+      | 0x5b
+      | 0x5d
+      | 0x7b
+      | 0x7d
     ) => Symbol(self.advance())
     _ => raise LexicalAbort(UnexpectedToken, start)
   }

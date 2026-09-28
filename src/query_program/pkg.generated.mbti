@@ -55,6 +55,7 @@ pub(all) enum Issue {
   UnsupportedSet
   UnsupportedJoin
   UnsupportedCte
+  UnsupportedGraph
   Construction(@program_source_builder.Issue)
   Expression(@query_expression.Diagnostic)
   Admission(@stage_syntax.SyntaxError)

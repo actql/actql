@@ -30,6 +30,8 @@ pub fn final_operation_at(Query, Int) -> QueryOperation?
 
 pub fn final_operation_count(Query) -> Int
 
+pub fn graph_query(Query) -> GraphQuery?
+
 pub fn join_part_at(Query, Int) -> JoinPart?
 
 pub fn join_part_count(Query) -> Int
@@ -153,6 +155,51 @@ pub(all) enum FrameBoundary {
   Following(Int64)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphConstraint {
+  Predicate(Expression)
+  Properties(Array[(NamePart, Expression)])
+}
+
+pub(all) struct GraphEdgePattern {
+  variable : NamePart?
+  label : NamePart?
+  constraint : GraphConstraint?
+  direction : String
+  quantified : Bool
+  min_hops : Int64
+  max_hops : Int64
+  start : Int
+  end : Int
+}
+
+pub(all) struct GraphNodePattern {
+  variable : NamePart?
+  label : NamePart?
+  constraint : GraphConstraint?
+  start : Int
+  end : Int
+}
+
+pub(all) enum GraphPathMode {
+  Walk
+  Trail
+  Acyclic
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GraphPattern {
+  path_name : NamePart?
+  mode : GraphPathMode
+  nodes : Array[GraphNodePattern]
+  edges : Array[GraphEdgePattern]
+  start : Int
+  end : Int
+}
+
+pub(all) struct GraphQuery {
+  label_field : String?
+  pattern : GraphPattern?
+}
+
 pub(all) enum Issue {
   InvalidLimits
   Syntax(String)
@@ -174,6 +221,7 @@ pub(all) enum Lexeme {
   Word(String)
   QuotedName(String)
   Text(String)
+  JsonText(String)
   Numeric(String)
   Parameter(String)
   Operator(String)

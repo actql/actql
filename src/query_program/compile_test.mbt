@@ -39,6 +39,18 @@ fn syntax_limits() -> @query.QueryLimits {
 }
 
 ///|
+test "Graph query cannot enter the Relation compiler before Graph lowering" {
+  let query = @query.parse_query(
+    "FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(query, fixture_context(), construction_limits())
+    is Err(UnsupportedGraph),
+  )
+}
+
+///|
 fn fixture_context() -> Context {
   let declaration = @wire.admit(
     @source.parse_json(

@@ -107,6 +107,7 @@ struct Query {
   ctes : Array[CtePart]
   relation : Array[NamePart]
   source_alias : NamePart?
+  graph : GraphQuery?
   joins : Array[JoinPart]
   operations : Array[QueryOperation]
   sets : Array[SetPart]
@@ -162,6 +163,11 @@ pub fn relation(query : Query) -> Array[NamePart] {
 ///|
 pub fn relation_alias(query : Query) -> NamePart? {
   query.source_alias
+}
+
+///|
+pub fn graph_query(query : Query) -> GraphQuery? {
+  query.graph
 }
 
 ///|
@@ -863,6 +869,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     ctes,
     relation,
     source_alias,
+    graph: None,
     joins,
     operations,
     sets: [],
@@ -988,7 +995,16 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
 ///|
 fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
   self.keyword("FROM")
-  let (relation, source_alias, ctes) = self.query_source()
+  let mut graph : GraphQuery? = None
+  let (relation, source_alias, ctes) = if self.has("GRAPH") {
+    self.keyword("GRAPH")
+    let relation = self.path()
+    let label_field = self.graph_labels()
+    graph = Some({ label_field, pattern: None, })
+    (relation, None, [])
+  } else {
+    self.query_source()
+  }
   let joins : Array[JoinPart] = []
   let operations : Array[QueryOperation] = []
   let sets : Array[SetPart] = []
@@ -996,7 +1012,28 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
   while self.peek().value == Pipe {
     ignore(self.advance())
     self.node()
-    if self.has("UNION") || self.has("INTERSECT") || self.has("EXCEPT") {
+    if self.has("MATCH") {
+      match graph {
+        Some(current) if current.pattern is None => {
+          let pattern = self.graph_match()
+          if current.label_field is None &&
+            pattern.nodes.any(node => node.label is Some(_)) {
+            raise QueryAbort("GRAPH_NODE_LABEL_MAPPING_REQUIRED", pattern.start)
+          }
+          graph = Some({ ..current, pattern: Some(pattern), })
+        }
+        Some(_) =>
+          raise QueryAbort(
+            "GRAPH_PATTERN_UNSUPPORTED_SHAPE: a second MATCH needs a separate Graph input",
+            self.peek().start,
+          )
+        None =>
+          raise QueryAbort(
+            "GRAPH_PATTERN_GRAPH_SOURCE_REQUIRED",
+            self.peek().start,
+          )
+      }
+    } else if self.has("UNION") || self.has("INTERSECT") || self.has("EXCEPT") {
       if !final_operations.is_empty() {
         raise QueryAbort(
           "Set input cannot follow final ordering",
@@ -1176,6 +1213,9 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
     }
   }
   self.end()
+  if graph is Some(current) && current.pattern is None {
+    raise QueryAbort("GRAPH_PATTERN_MATCH_REQUIRED", self.peek().start)
+  }
   if ctes.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
   }
@@ -1184,6 +1224,7 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
     ctes,
     relation,
     source_alias,
+    graph,
     joins,
     operations,
     sets,
