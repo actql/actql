@@ -42,7 +42,10 @@ function targetSet(connectorId, resources) {
 
 // Replace `path` with `body` so a reader sees the previous or the new
 // generation, never a mixture.
-async function replaceFile(path, body) {
+export async function replacePublicationFile(path, body) {
+  if (Buffer.byteLength(body, 'utf8') > maxGenerationBytes) {
+    fail('SalesforcePublicationTooLarge');
+  }
   const temporary = join(dirname(path),
     `.${randomBytes(8).toString('hex')}.publication.tmp`);
   const file = await open(temporary, 'wx', 0o600);
@@ -63,13 +66,30 @@ async function replaceFile(path, body) {
   finally { await directory.close(); }
 }
 
-// Describe the target Resources and publish them as the Site's generation
-// at `path`. A denied Resource refuses the whole publication before any
-// provider I/O; an interrupted describe publishes nothing.
-export async function publishSalesforceGeneration({site, path, connectorId,
+// The exact published text at `path` and its identity. A missing file is
+// `SalesforcePublicationMissing`; nothing is repaired or regenerated.
+export async function readPublicationFile(path) {
+  if (typeof path !== 'string' || !isAbsolute(path)) {
+    fail('InvalidSalesforcePublication');
+  }
+  let body;
+  try { body = await readFile(path, 'utf8'); }
+  catch (error) {
+    if (error?.code === 'ENOENT') fail('SalesforcePublicationMissing', error);
+    throw error;
+  }
+  if (Buffer.byteLength(body, 'utf8') > maxGenerationBytes) {
+    fail('InvalidSalesforcePublication');
+  }
+  return Object.freeze({body, generationCid: bytesCid(body)});
+}
+
+// Describe the target Resources as the Site's generation, without
+// publishing it. A denied Resource refuses the whole generation before any
+// provider I/O; an interrupted describe yields nothing.
+export async function describeSalesforceGeneration({site, connectorId,
   resources, signal}) {
-  if (typeof path !== 'string' || !isAbsolute(path) ||
-      typeof site?.declareCatalog !== 'function') {
+  if (typeof site?.declareCatalog !== 'function') {
     fail('InvalidSalesforcePublication');
   }
   const targets = targetSet(connectorId, resources);
@@ -90,41 +110,39 @@ export async function publishSalesforceGeneration({site, path, connectorId,
     resources: targets,
     version: SALESFORCE_PUBLICATION_VERSION,
   };
-  const body = JSON.stringify(generation);
-  if (Buffer.byteLength(body, 'utf8') > maxGenerationBytes) {
-    fail('SalesforcePublicationTooLarge');
+  return Object.freeze({generation, declared});
+}
+
+// Describe the target Resources and publish them as the Site's generation
+// at `path`. A denied Resource refuses the whole publication before any
+// provider I/O; an interrupted describe publishes nothing.
+export async function publishSalesforceGeneration({site, path, connectorId,
+  resources, signal}) {
+  if (typeof path !== 'string' || !isAbsolute(path)) {
+    fail('InvalidSalesforcePublication');
   }
-  await replaceFile(path, body);
+  const {generation, declared} = await describeSalesforceGeneration({site,
+    connectorId, resources, signal});
+  const body = JSON.stringify(generation);
+  await replacePublicationFile(path, body);
   return Object.freeze({generationCid: bytesCid(body), declared});
 }
 
-// Restore the published generation at `path` into `site` without provider
-// I/O. The generation must name the Host profile's connector and target
-// Resources and must be bound to the Site as installed now.
-export async function loadSalesforceGeneration({site, path, connectorId,
+// Restore one published generation (its parsed exact text) into `site`
+// without provider I/O. The generation must name the Host profile's
+// connector and target Resources and must be bound to the Site as installed
+// now.
+export function restoreSalesforceGeneration({site, generation, connectorId,
   resources}) {
-  if (typeof path !== 'string' || !isAbsolute(path) ||
-      typeof site?.restoreDeclaration !== 'function') {
+  if (typeof site?.restoreDeclaration !== 'function') {
     fail('InvalidSalesforcePublication');
   }
   const targets = targetSet(connectorId, resources);
-  let body;
-  try { body = await readFile(path, 'utf8'); }
-  catch (error) {
-    if (error?.code === 'ENOENT') fail('SalesforcePublicationMissing', error);
-    throw error;
-  }
-  if (Buffer.byteLength(body, 'utf8') > maxGenerationBytes) {
-    fail('InvalidSalesforcePublication');
-  }
-  let generation;
-  try { generation = JSON.parse(body); }
-  catch (error) { fail('InvalidSalesforcePublication', error); }
   if (generation === null || typeof generation !== 'object' ||
       Array.isArray(generation) ||
       Object.keys(generation).join('\0') !== keys.join('\0') ||
       generation.version !== SALESFORCE_PUBLICATION_VERSION ||
-      generation.complete !== false || JSON.stringify(generation) !== body ||
+      generation.complete !== false ||
       !Array.isArray(generation.resource_states)) {
     fail('InvalidSalesforcePublication');
   }
@@ -140,9 +158,29 @@ export async function loadSalesforceGeneration({site, path, connectorId,
     resources: targets, evidence: generation.evidence,
     observationCid: generation.observation_cid,
     catalogCid: generation.catalog_cid});
-  return Object.freeze({generationCid: bytesCid(body),
+  return Object.freeze({
     resourceStates: Object.freeze(generation.resource_states.map(
       state => Object.freeze({...state}))), declared: restored});
+}
+
+// Restore the published generation at `path` into `site` without provider
+// I/O. The generation must name the Host profile's connector and target
+// Resources and must be bound to the Site as installed now.
+export async function loadSalesforceGeneration({site, path, connectorId,
+  resources}) {
+  if (typeof site?.restoreDeclaration !== 'function') {
+    fail('InvalidSalesforcePublication');
+  }
+  const {body, generationCid} = await readPublicationFile(path);
+  let generation;
+  try { generation = JSON.parse(body); }
+  catch (error) { fail('InvalidSalesforcePublication', error); }
+  if (JSON.stringify(generation) !== body) {
+    fail('InvalidSalesforcePublication');
+  }
+  const restored = restoreSalesforceGeneration({site, generation,
+    connectorId, resources});
+  return Object.freeze({generationCid, ...restored});
 }
 
 const byCid = values => values.map(value => JSON.parse(value))
@@ -156,12 +194,16 @@ const byCid = values => values.map(value => JSON.parse(value))
 // Host's base environment with the declaration's Catalog, source views,
 // contracts and manifest entry, and the source evidence members generated
 // from the same declaration (`members`: schema snapshot and capability
-// texts). Built only from the published generation; Check never describes
-// or regenerates anything.
-export function salesforceCheckEnvironment(baseWire, declared, members) {
+// texts), and the execution Mapping bodies generated from it for the Host's
+// installed writes (`mappings`). Built only from the published generation;
+// Check never describes or regenerates anything.
+export function salesforceCheckEnvironment(baseWire, declared, members,
+  mappings = []) {
   const base = JSON.parse(baseWire);
   const {evidence_bundle_cid: _, ...body} = base;
   if (body.version !== 'actql-check-environment/0.1' ||
+      !Array.isArray(mappings) ||
+      (mappings.length !== 0 && body.mapping_contracts?.length !== 0) ||
       body.connector_catalogs.length !== 0 ||
       body.schema_snapshots.length !== 0 ||
       body.connector_capabilities.length !== 0 ||
@@ -179,7 +221,8 @@ export function salesforceCheckEnvironment(baseWire, declared, members) {
     contract_registry: byCid(declared.contracts),
     connector_catalogs: [JSON.parse(declared.catalog)],
     connector_manifest: {version: 'actql-connectors/0.1',
-      connectors: [JSON.parse(declared.manifest_entry)]}};
+      connectors: [JSON.parse(declared.manifest_entry)]},
+    ...(mappings.length === 0 ? {} : {mapping_contracts: byCid(mappings)})};
   const evidenceCid = contentCid(environment);
   return Object.freeze({
     wire: canonicalJson({...environment, evidence_bundle_cid: evidenceCid}),
