@@ -13,11 +13,10 @@ import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {loadInstalledSource, publishInstalledSourceProfile} from
+  './installed-source.mjs';
 import {createDiagnosticObserver} from
   '../host-common/diagnostic-observer.mjs';
-import {prepareCapturedDuckDBSource} from
-  './captured-duckdb-source.mjs';
-import {loadInstalledDuckDBSource} from './installed-duckdb-source.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
@@ -59,21 +58,25 @@ function localStateRoot() {
 const REALIZATION_KEY = 'source-free-values';
 
 async function openInstalledHost(root, mode = 'local', beforeDispatch,
-  authorization, sourceProfilePath) {
+  authorization, sourceProfilePath, resolveSourceSecret) {
   await mkdir(root, {recursive: true, mode: 0o700});
   const moon = await import(runtimeUrl.href);
   const control = runtimeCore(moon).publicationControl;
   const principalId = userInfo().username;
-  const sourceProfile = await loadInstalledDuckDBSource(
+  const baseEnvironmentWire = (await readFile(join(packageRoot,
+    'spec/local-check-environment.json'), 'utf8')).trimEnd();
+  // The installed source's adapter is selected by its profile version.
+  const sourceProfile = await loadInstalledSource(
     sourceProfilePath ?? process.env.ACTQL_LOCAL_SOURCE_PROFILE,
-    {root, principalId});
+    {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
+      resolveSecret: resolveSourceSecret});
   const environmentWire = sourceProfile?.environmentWire ??
-    (await readFile(join(packageRoot,
-      'spec/local-check-environment.json'), 'utf8')).trimEnd();
+    baseEnvironmentWire;
   const evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
   const environment = moon.clientProgramCheckEnvironment(environmentWire,
     evidenceCid, false, false, true, false, false, false, false);
   if (environment === undefined) {
+    sourceProfile?.close();
     throw new Error('InvalidInstalledLocalEnvironment');
   }
   const registry = await readFile(join(packageRoot,
@@ -153,8 +156,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     checkpoints = await installRemoteCheckpoints({root, tenantId,
       authorityScopeCid, ownerPrincipal: principalId,
       siteKey: authorization?.siteKey ?? 'actql-remote-host',
-      realizationKey: sourceProfile === undefined ? REALIZATION_KEY
-        : 'duckdb-acquired', environmentCid: evidenceCid,
+      realizationKey: sourceProfile?.realizationKey ?? REALIZATION_KEY,
+      environmentCid: evidenceCid,
       contractControl: control,
       authorization: authorization == null ? authorization :
         {...authorization, observe: diagnostic},
@@ -285,11 +288,19 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       if (sourceProfile === undefined) {
         throw new Error('ClientProgramNeedsInputs');
       }
-      const requirement = checked(
-        moon.clientProgramPrepareLocalQueryRequirement(preparedProgram,
-          0, 0, registry, values, fragment, ordered));
-      if (moon.clientProgramQueryRequirementSourceRef(requirement) !==
-          sourceProfile.sourceRef) {
+      // A checked acquisition the local planner cannot generate is an
+      // unsupported Program: refused before any Run exists.
+      let requirement;
+      try {
+        requirement = checked(
+          moon.clientProgramPrepareLocalQueryRequirement(preparedProgram,
+            0, 0, registry, values, fragment, ordered));
+      } catch (cause) {
+        throw Object.assign(new Error('ClientProgramUnsupported', {cause}),
+          {code: 'ClientProgramUnsupported'});
+      }
+      if (!sourceProfile.admitsSource(
+        moon.clientProgramQueryRequirementSourceRef(requirement))) {
         throw new Error('InstalledSourceProgramMismatch');
       }
     }
@@ -310,10 +321,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   };
   const prepareAcquisition = (preparedProgram,
     sourceAccess = sourceProfile.sourceAccess) =>
-    prepareCapturedDuckDBSource({moon, preparedProgram, registry, values,
-      fragment, ordered, database: sourceProfile.database,
-      schema: sourceProfile.schema, table: sourceProfile.table,
-      sourceAccess});
+    sourceProfile.prepare({preparedProgram, registry, values, fragment,
+      ordered, sourceAccess});
   const planFor = ({preparedProgram, requestId},
     retainedDefinitionWire) => {
     prepareSubmit.assertOwned(preparedProgram);
@@ -647,6 +656,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     negotiate, prepareSubmit, submit, attach, lookupRequest: lookupHeld,
     stateService, resultService, observeRun, wait, cancel, cancelRequest,
     ...checkpointOperations,
+    // Discovery of the installed source, when its adapter serves it.
+    ...(sourceProfile?.discovery ?? {}),
   };
   if (checkpoints !== undefined) {
     await checkpoints.start({inspect: inspectHeld, resume: resumeHeld,
@@ -658,9 +669,10 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
   return {port, store, journal, hostOperations, checkpoints, diagnostic,
-    dispatchOwner, inspectAcquisition};
+    dispatchOwner, inspectAcquisition, sourceProfile};
   } catch (cause) {
     diagnostic.close();
+    sourceProfile?.close();
     throw await retainInstalledHostInitializationFailure(cause,
       {journal, store, checkpoints, dispatchOwner});
   }
@@ -683,14 +695,15 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
 // `beforeDispatch` remains a required execution barrier. Without a
 // configuration the Missing account denies every request; nothing allows it.
 export async function openInstalledRemoteHttpHost({directory,
-  authenticate, beforeDispatch, authorization, sourceProfilePath}) {
+  authenticate, beforeDispatch, authorization, sourceProfilePath,
+  resolveSourceSecret}) {
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
     throw new TypeError('InvalidInstalledRemoteHost');
   }
   const host = await openInstalledHost(resolve(directory), 'remote',
-    beforeDispatch, authorization, sourceProfilePath);
+    beforeDispatch, authorization, sourceProfilePath, resolveSourceSecret);
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536,
   });
@@ -727,6 +740,7 @@ export async function openInstalledRemoteHttpHost({directory,
       await host.dispatchOwner.drain();
       const checkpoints = await host.checkpoints?.close();
       host.journal.close();
+      host.sourceProfile?.close();
       // A Store with a pending deletion keeps its durable deletion record;
       // the next owner recovers it.
       let storeCleanupPending = false;
@@ -742,6 +756,21 @@ export async function openInstalledRemoteHttpHost({directory,
         diagnosticDeliveryPending: host.diagnostic.status().active !== 0});
     },
   });
+}
+
+// Publish the installed source's declaration for a Host state directory
+// (the embedded Local Host's by default) from its source profile
+// (`ACTQL_LOCAL_SOURCE_PROFILE` by default). This is the explicit step a Host
+// start restores without provider I/O.
+export async function publishInstalledSource({sourceProfilePath, directory,
+  resolveSourceSecret, signal} = {}) {
+  const root = directory === undefined ? localStateRoot() : resolve(directory);
+  await mkdir(root, {recursive: true, mode: 0o700});
+  const moon = await import(runtimeUrl.href);
+  return publishInstalledSourceProfile(
+    sourceProfilePath ?? process.env.ACTQL_LOCAL_SOURCE_PROFILE, {root,
+      principalId: userInfo().username, moon, runtimeUrl,
+      resolveSecret: resolveSourceSecret, signal});
 }
 
 export async function connectEmbeddedLocal(options) {

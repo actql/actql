@@ -18,6 +18,10 @@ import {createSalesforceCliSecretResolver} from
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {syncSalesforceCatalog} from '../site/salesforce-catalog-sync.mjs';
 import {readSalesforceQuery} from '../site/salesforce-query-read.mjs';
+import {checkpointApprovalFacts} from
+  '../../../host-common/checkpoint-approval.mjs';
+import {describeSalesforceResources, recoverNamedSalesforceObservation} from
+  '../site/salesforce-named-describe.mjs';
 
 export const INSTALLED_SALESFORCE_SITE_VERSION =
   'actql-installed-salesforce-site/0.1';
@@ -106,6 +110,9 @@ export async function installSalesforceAuthorization({accountConfiguration,
     return decision;
   };
   const authorization = Object.freeze({...gate, context,
+    // The exact configuration text, for a Host Checkpoint that decides the
+    // same source's reads under the same configuration.
+    accountConfiguration,
     authorize: async (...args) => own(await gate.authorize(...args)),
     resume: async (...args) => own(await gate.resume(...args))});
   installedDecisions.set(authorization, issued);
@@ -199,16 +206,141 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     if (required === undefined || !text(resource)) {
       fail('InvalidSalesforceCredentialGrantRequest');
     }
+    // A read approval admitted from the Host's Checkpoint grants only the
+    // query read of its own Resource.
+    const approved = approvedReads.get(decision);
+    if (approved !== undefined) {
+      if (operation !== 'salesforce:query:read' ||
+          approved.resource !== resource) {
+        fail('SalesforceCredentialGrantNotAuthorized');
+      }
+      return sign({operation, runInvocationCid, taskAttempt,
+        dispatchRequestCid, maxUses});
+    }
     if (!issuedDecisions.has(decision) || decision.action !== 'dispatch' ||
         decision.boundary !== required[0] ||
         decision.contextCid !== context.contextCid ||
         decision.tuple?.connection !== connection ||
         decision.tuple?.resource !== resource ||
-        decision.tuple?.operation !== required[1]) {
+        decision.tuple?.operation !== required[1] ||
+        metadataDecisions.has(decision)) {
       fail('SalesforceCredentialGrantNotAuthorized');
     }
     return sign({operation, runInvocationCid, taskAttempt,
       dispatchRequestCid, maxUses});
+  }
+
+  // Read approvals admitted from the Host's Checkpoint for this installation:
+  // the approval object the Site returns, mapped to what it covers.
+  const approvedReads = new WeakMap();
+  // Admit a read approval the Host's Checkpoint returned for one dispatch.
+  // Only a decision the Checkpoint owner recorded is considered, and only
+  // when the approved read is this installation's: the requesting principal,
+  // org, connection revision, Site key and generation, origin and Resource.
+  // The approval authorizes that Resource's data query (`issueGrant`) and,
+  // for the same read, its metadata describe (`describeForAcquisition`);
+  // nothing else. It is decided current by the Checkpoint when returned.
+  function admitCheckpointReadApproval(decision) {
+    const facts = checkpointApprovalFacts(decision);
+    const binding = facts?.physicalBinding;
+    if (facts === undefined || decision.action !== 'dispatch' ||
+        decision.basis !== 'resumed_approval' ||
+        decision.boundary !== 'acquisition' ||
+        decision.tuple?.connection !== connection ||
+        decision.tuple?.operation !== 'read' ||
+        facts.principalId !== principalId ||
+        facts.readTuple?.connection !== connection ||
+        facts.readTuple?.operation !== 'read' ||
+        facts.readTuple?.resource !== decision.tuple.resource ||
+        binding?.version !== 'actql-installed-salesforce-target/0.1' ||
+        binding.org_id !== profile.orgId ||
+        binding.instance_origin !== profile.instanceOrigin ||
+        binding.site_key !== profile.siteKey ||
+        binding.site_generation !== profile.siteGeneration ||
+        binding.connection_revision !== profile.connectionRevision ||
+        binding.resource !== decision.tuple.resource ||
+        !Array.isArray(binding.fields) || !text(binding.catalog_cid)) {
+      fail('SalesforceReadApprovalNotAdmitted');
+    }
+    const approval = Object.freeze({resource: binding.resource,
+      fields: Object.freeze([...binding.fields]),
+      catalogCid: binding.catalog_cid, checkpointCid: facts.checkpointCid});
+    approvedReads.set(approval, approval);
+    return approval;
+  }
+
+  // Metadata read decisions: the installed gate's `read` dispatch at the
+  // acquisition boundary for one Resource, under a describe subject (the
+  // boundary kind is the subject, not the operation). They authorize only
+  // that Resource's describe grant and never a query or record grant.
+  const metadataDecisions = new WeakSet();
+  async function authorizeDescribe(resource, {occurrence, signal}) {
+    const decision = await authorization.authorize('acquisition', {
+      connection, resource, operation: 'read'}, {
+      subjectCid: cid({version: 'actql-salesforce-catalog-describe/0.1',
+        contextCid: context.contextCid, siteKey: profile.siteKey,
+        siteGeneration: profile.siteGeneration,
+        connectionRevision: profile.connectionRevision, resource,
+        occurrence}), signal});
+    if (!issuedDecisions.has(decision) || decision.action !== 'dispatch' ||
+        decision.boundary !== 'acquisition' ||
+        decision.contextCid !== context.contextCid ||
+        decision.tuple?.connection !== connection ||
+        decision.tuple?.resource !== resource ||
+        decision.tuple?.operation !== 'read') {
+      throw Object.assign(new Error('SalesforceCatalogDescribeNotAuthorized'),
+        {code: 'SalesforceCatalogDescribeNotAuthorized', resource,
+          action: decision?.action});
+    }
+    metadataDecisions.add(decision);
+    return decision;
+  }
+
+  // Describe exactly `resources`, without the provider's sObject listing.
+  // Every Resource's metadata read is decided before any provider I/O; one
+  // denial refuses the whole observation. Each describe uses its own
+  // one-use grant.
+  async function describeNamed({resources, occurrence, runInvocationCid:
+    runCid, dispatchRequestCid: dispatchCid, retainEvidence = false,
+    maxRetainedBytes = 0, limits = DEFAULT_SALESFORCE_CATALOG_LIMITS,
+    approval, signal}) {
+    if (!Array.isArray(resources) || resources.length === 0 ||
+        !resources.every(text) || !text(occurrence) ||
+        (runCid === undefined) !== (dispatchCid === undefined)) {
+      fail('InvalidSalesforceCredentialGrantRequest');
+    }
+    const decided = new Set();
+    // An admitted read approval covers the describe of its own Resource in
+    // its dispatch; every other describe needs its metadata decision.
+    const covered = approval === undefined ? undefined
+      : approvedReads.get(approval);
+    if (approval !== undefined && covered === undefined) {
+      fail('SalesforceCatalogDescribeNotAuthorized');
+    }
+    for (const resource of resources) {
+      if (covered?.resource !== resource) {
+        await authorizeDescribe(resource, {occurrence, signal});
+      }
+      decided.add(resource);
+    }
+    const runInvocationCid = runCid ?? cid({version:
+      'actql-salesforce-catalog-sync/0.1', siteKey: profile.siteKey,
+      siteGeneration: profile.siteGeneration, syncOccurrence: occurrence});
+    const dispatchRequestCid = dispatchCid ?? cid({version:
+      'actql-salesforce-catalog-dispatch/0.1', runInvocationCid});
+    return await describeSalesforceResources({moon: salesforceMoon,
+      apiVersion: profile.apiVersion,
+      connectionRevision: profile.connectionRevision, orgId: profile.orgId,
+      syncOccurrence: occurrence,
+      maxObservationBytes: limits.maxObservationBytes,
+      resources: [...resources], credential,
+      describeLimits: limits.describe, retainEvidence, maxRetainedBytes,
+      authorizationForDescribe: async name => {
+        if (!decided.has(name)) fail('SalesforceCatalogDescribeNotAuthorized');
+        return {...sign({operation: 'salesforce:catalog:describe',
+          runInvocationCid, taskAttempt: 1, dispatchRequestCid, maxUses: 1}),
+        useId: `${occurrence}-describe-${name}`};
+      }, signal});
   }
 
   let syncSequence = 0;
@@ -268,30 +400,32 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // writes; a copied or constructed object cannot.
   const declarations = new WeakSet();
   let declareSequence = 0;
-  // Generate the static declaration (Catalog and Mappings) for the selected
-  // Resources from a targeted sync under this Site's metadata grants. The
-  // result is the explicit publication input to Check; it is not current
-  // authority and issues no grant.
-  async function declareCatalog({connectorId, resources, signal,
-    limits = {maxBytes: 4_000_000, maxNodes: 400_000, maxDepth: 64}} = {}) {
-    if (!Array.isArray(resources) || resources.length === 0 ||
-        !resources.every(text) || !text(connectorId) ||
-        !Number.isSafeInteger(limits?.maxBytes) || limits.maxBytes < 1 ||
-        !Number.isSafeInteger(limits?.maxNodes) || limits.maxNodes < 1 ||
-        !Number.isSafeInteger(limits?.maxDepth) || limits.maxDepth < 1) {
-      fail('InvalidSalesforceDeclaration');
-    }
-    const {request} = catalogSyncRequest({
-      occurrence: `declare-${now()}-${declareSequence++}`,
-      resources: [...new Set(resources)]});
-    const catalog = await syncSalesforceCatalog({...request,
-      moon: salesforceMoon, credential, signal});
-    if (catalog.status === 'interrupted') {
-      fail('SalesforceCatalogRefreshInterrupted');
-    }
-    const binding = JSON.parse(catalog.observationJson).binding;
+  const declarationLimits = limits =>
+    Number.isSafeInteger(limits?.maxBytes) && limits.maxBytes >= 1 &&
+    Number.isSafeInteger(limits?.maxNodes) && limits.maxNodes >= 1 &&
+    Number.isSafeInteger(limits?.maxDepth) && limits.maxDepth >= 1;
+  // The binding an observation must carry to belong to this Site as
+  // installed now.
+  const siteBinding = () => ({tenant: profile.tenant, principal: principalId,
+    environment: profile.environment, org_id: profile.orgId,
+    site_key: profile.siteKey, site_generation: profile.siteGeneration,
+    connection_revision: profile.connectionRevision,
+    resource_origin: profile.instanceOrigin,
+    connector_registration: 'salesforce',
+    connector_revision: 'salesforce/0.1'});
+  // The declaration covers the targets the describe observed; a target the
+  // org did not find or did not answer stays in the observation only.
+  const describedTargets = (resources, evidence) => {
+    const described = resources.filter(name =>
+      evidence.outcomes[evidence.names.indexOf(name)] === 1);
+    if (described.length === 0) fail('SalesforceDeclarationUnavailable');
+    return described;
+  };
+  const generate = (observation, connectorId, resources, limits) => {
+    const binding = JSON.parse(
+      salesforceMoon.salesforceCatalogObservationJson(observation)).binding;
     const declaration = checked(
-      salesforceMoon.salesforceGenerateStaticDeclaration(catalog.observation,
+      salesforceMoon.salesforceGenerateStaticDeclaration(observation,
         binding.tenant, binding.principal, binding.environment,
         binding.connection_revision, binding.org_id, binding.site_key,
         binding.site_generation, binding.connector_registration,
@@ -305,8 +439,96 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     const summary = JSON.parse(checked(
       salesforceMoon.salesforceStaticDeclarationJson(declaration,
         limits.maxBytes, limits.maxNodes, limits.maxDepth)));
-    return Object.freeze({...summary, declaration,
-      observationCid: catalog.observationCid});
+    return {...summary, declaration};
+  };
+  // Generate the static declaration (Catalog and Mappings) for the selected
+  // Resources from a describe of exactly those Resources, each under its own
+  // metadata read decision; the provider's full listing is not read. The
+  // result, with the retained describe evidence, is the explicit publication
+  // input to Check; it is not current authority and issues no grant.
+  async function declareCatalog({connectorId, resources, signal,
+    maxEvidenceBytes = DEFAULT_SALESFORCE_CATALOG_LIMITS.maxObservationBytes,
+    limits = {maxBytes: 4_000_000, maxNodes: 400_000, maxDepth: 64}} = {}) {
+    if (!Array.isArray(resources) || resources.length === 0 ||
+        !resources.every(text) || !text(connectorId) ||
+        !declarationLimits(limits) ||
+        !Number.isSafeInteger(maxEvidenceBytes) || maxEvidenceBytes < 1) {
+      fail('InvalidSalesforceDeclaration');
+    }
+    const selected = [...new Set(resources)];
+    const catalog = await describeNamed({resources: selected,
+      occurrence: `declare-${now()}-${declareSequence++}`,
+      retainEvidence: true, maxRetainedBytes: maxEvidenceBytes, signal});
+    if (catalog.status === 'interrupted') {
+      fail(catalog.interruptionCode === 'SalesforceCatalogCancelled'
+        ? 'SalesforceCatalogCancelled' : 'SalesforceCatalogRefreshInterrupted');
+    }
+    return Object.freeze({...generate(catalog.observation, connectorId,
+      describedTargets(selected, catalog.evidence), limits), observationCid: catalog.observationCid,
+    evidence: catalog.evidence, observed: Object.freeze({
+      observation: catalog.observation,
+      observationCid: catalog.observationCid,
+      observationJson: catalog.observationJson})});
+  }
+
+  // Restore a declaration this Site published from its retained describe
+  // evidence, without credential or provider I/O. The evidence must be
+  // bound to this Site as installed now (principal, org, connection
+  // revision, Site generation, origin and connector) and must regenerate
+  // the exact published Catalog. Restoring is not current authority: every
+  // read still needs its own dispatch.
+  function restoreDeclaration({connectorId, resources, evidence,
+    observationCid, catalogCid,
+    limits = {maxBytes: 4_000_000, maxNodes: 400_000, maxDepth: 64}} = {}) {
+    if (!Array.isArray(resources) || resources.length === 0 ||
+        !resources.every(text) || !text(connectorId) ||
+        !declarationLimits(limits) || !cidPattern.test(observationCid ?? '') ||
+        !cidPattern.test(catalogCid ?? '') ||
+        typeof evidence?.observationJson !== 'string') {
+      fail('InvalidSalesforceDeclaration');
+    }
+    let binding;
+    try { binding = JSON.parse(evidence.observationJson).binding; }
+    catch (error) { fail('InvalidSalesforceDeclaration', error); }
+    const expected = siteBinding();
+    const mismatch = Object.keys(expected).filter(name =>
+      binding?.[name] !== expected[name]);
+    if (mismatch.length !== 0) {
+      throw Object.assign(new Error('ForeignSalesforceDeclaration'),
+        {code: 'ForeignSalesforceDeclaration', fields: mismatch});
+    }
+    const observation = recoverNamedSalesforceObservation({
+      moon: salesforceMoon, evidence, expectedObservationCid: observationCid});
+    const restored = generate(observation, connectorId,
+      describedTargets([...new Set(resources)], evidence), limits);
+    if (restored.catalog_cid !== catalogCid) {
+      fail('ForeignSalesforceDeclaration');
+    }
+    return Object.freeze({...restored, observationCid, evidence,
+      observed: Object.freeze({observation, observationCid,
+        observationJson: evidence.observationJson})});
+  }
+
+  // A describe of exactly `resource` for one acquisition dispatch, under its
+  // own metadata read decision. The describe responses are retained so the
+  // runtime that owns the acquisition reprojects the observation itself.
+  async function describeForAcquisition({resource, runInvocationCid,
+    dispatchRequestCid, occurrence, approval, signal} = {}) {
+    if (!text(resource) || !text(occurrence) ||
+        !cidPattern.test(runInvocationCid ?? '') ||
+        !cidPattern.test(dispatchRequestCid ?? '')) {
+      fail('InvalidSalesforceCredentialGrantRequest');
+    }
+    const catalog = await describeNamed({resources: [resource], occurrence,
+      runInvocationCid, dispatchRequestCid, retainEvidence: true,
+      maxRetainedBytes: DEFAULT_SALESFORCE_CATALOG_LIMITS.maxObservationBytes,
+      approval, signal});
+    if (catalog.status === 'interrupted') {
+      fail(catalog.interruptionCode === 'SalesforceCatalogCancelled'
+        ? 'SalesforceCatalogCancelled' : 'SalesforceCatalogRefreshInterrupted');
+    }
+    return Object.freeze({observationCid: catalog.observationCid,
+      evidence: catalog.evidence});
   }
 
   const writeKinds = Object.freeze({create: 0, createFromResult: 1,
@@ -367,15 +589,14 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       occurrence});
     const dispatchRequestCid = cid({version:
       'actql-salesforce-peek-dispatch/0.1', runInvocationCid});
-    // The first sync plans the query; the query read rechecks it once under
-    // its own occurrence and the same dispatch. Each describes only the
-    // previewed Resource, so the grants cover one list and one describe per
-    // sync however many objects the org lists.
-    const sync = suffix => catalogSyncRequest({
+    // The first describe plans the query; the query read rechecks it once
+    // under its own occurrence and the same dispatch. Each describes only
+    // the previewed Resource, under its own metadata read decision; the
+    // provider's sObject listing is never read.
+    const describe = suffix => describeNamed({resources: [resource],
       occurrence: `${occurrence}-${suffix}`, runInvocationCid,
-      dispatchRequestCid, grantUses: 2, resources: [resource]}).request;
-    const catalog = await syncSalesforceCatalog({...sync('plan'),
-      moon: salesforceMoon, credential, signal});
+      dispatchRequestCid, signal});
+    const catalog = await describe('plan');
     if (catalog.status === 'interrupted') {
       fail('SalesforceCatalogRefreshInterrupted');
     }
@@ -401,7 +622,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
         maxLocatorUnits: 2048, maxPages: 1, maxTotalRows: maxRows},
       initialAuthorization: {...query, useId: `${occurrence}-query`},
       authorizationForPage: async () => fail('SalesforcePeekPageLimit'),
-      credential, refreshCatalog: sync('recheck'),
+      credential, refreshCatalog: () => describe('recheck'),
       consumePage: async page => {
         rows.push(...JSON.parse(checked(
           salesforceMoon.salesforceQueryPageRowsJson(page, maxBytes,
@@ -424,8 +645,9 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     connectionRevision: profile.connectionRevision,
     connectorRegistration: 'salesforce', connectorRevision: 'salesforce/0.1',
     principal: principalId, context, authorization, credential,
-    issueGrant, refreshCatalog, declareCatalog, prepareExecutionMapping,
-    peek,
+    issueGrant, refreshCatalog, declareCatalog, restoreDeclaration,
+    describeForAcquisition, admitCheckpointReadApproval,
+    prepareExecutionMapping, peek,
     // Whether this Site generated `declaration`.
     ownsDeclaration: declaration => declarations.has(declaration),
     close() {

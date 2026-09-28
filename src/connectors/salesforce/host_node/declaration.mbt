@@ -225,3 +225,18 @@ pub fn salesforce_prepare_execution_write_body(
     Err(issue) => raise WriteBody(issue)
   }
 }
+
+///|
+/// The declaration's Check Environment source evidence members, as
+/// `[schema snapshots, connector capabilities]` canonical texts.
+#export_name("salesforceSourceEvidenceMembers")
+pub fn salesforce_source_evidence_members(
+  declaration : @catalog.StaticDeclaration,
+) -> Array[Array[String]] raise SalesforceDeclarationBridgeIssue {
+  let (schemas, capabilities) = @salesforce_host.salesforce_source_evidence_members(
+    declaration,
+  ) catch {
+    _ => raise OutputLimit
+  }
+  [schemas, capabilities]
+}

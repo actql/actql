@@ -2,6 +2,7 @@
 package "actql/actql/connectors/salesforce/host"
 
 import {
+  "actql/actql/check_environment",
   "actql/actql/connector_sdk",
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/encode_core",
@@ -10,6 +11,7 @@ import {
   "actql/actql/lowering_relation",
   "actql/actql/physical_cost",
   "actql/actql/query_planning",
+  "actql/actql/run_publication",
   "moonbitlang/core/debug",
 }
 
@@ -36,6 +38,8 @@ pub fn cancel_managed_query(ManagedQuery) -> Bool
 
 pub fn cancel_salesforce_broad_query(SalesforceBroadQuery) -> Bool
 
+pub fn capture_salesforce_broad_host_source(SalesforceBroadHostRun, SalesforceBroadObservation) -> Result[SalesforceBroadSourceCapture, SalesforceBroadHostIssue]
+
 pub fn capture_salesforce_broad_query(SalesforceBroadIssuer, SalesforceBroadAttempt, SalesforceBroadRecords, @query_planning.QueryEvidenceLimits) -> Result[SalesforceBroadObservation, SalesforceEvidenceIssue]
 
 pub fn close_salesforce_broad_host(SalesforceBroadHostRun) -> Unit
@@ -60,6 +64,8 @@ pub fn finish_salesforce_broad_query(SalesforceBroadQuery) -> Result[@execution_
 
 pub fn issue_salesforce_broad_records(SalesforceBroadAttempt, @query_planning.QueryMaterialLimits) -> Result[SalesforceBroadRecords, SalesforceEvidenceIssue]
 
+pub fn issue_salesforce_broad_source_evidence(SalesforceBroadSourceCapture, SalesforceSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, SalesforceSourceEvidenceIssue]
+
 pub fn managed_query_complete(ManagedQuery) -> Bool
 
 pub fn managed_query_next_path(ManagedQuery) -> Result[String?, ManagedQueryIssue]
@@ -73,6 +79,8 @@ pub fn prepare_managed_query(@catalog.ReadProjection, String, @catalog.QueryPage
 pub fn prepare_salesforce_broad_issuer(@query_planning.QueryEvidenceContracts, @query_planning.QueryRequirement, String, Int, (SalesforceBroadAttempt) -> Bool) -> Result[SalesforceBroadIssuer, SalesforceEvidenceIssue]
 
 pub fn prepare_salesforce_broad_query(@query_planning.QueryRequirement, @catalog.ReadProjection, String, @catalog.StaticDeclaration) -> Result[SalesforceBroadPreparation, SalesforceBroadIssue]
+
+pub fn prepare_salesforce_source_evidence_context(@query_planning.QueryRequirement) -> Result[SalesforceSourceEvidenceContext, SalesforceSourceEvidenceIssue]
 
 pub fn retain_salesforce_broad_attempt(SalesforceBroadAttempt, @query_planning.QueryRetentionLimits) -> Result[Unit, SalesforceBroadAttemptIssue]
 
@@ -110,7 +118,11 @@ pub fn salesforce_broad_requirement(SalesforceBroadPreparation) -> @query_planni
 
 pub fn salesforce_broad_row_count(SalesforceBroadQuery) -> Int64
 
+pub fn salesforce_broad_source_capture_source(SalesforceBroadSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
+
 pub fn salesforce_broad_work_at(Int) -> SalesforceBroadWork?
+
+pub fn salesforce_source_evidence_members(@catalog.StaticDeclaration) -> (Array[String], Array[String]) raise @encode_core.EncodeFailure
 
 pub fn settle_salesforce_broad_transport(SalesforceBroadAttempt) -> Result[Unit, SalesforceBroadAttemptIssue]
 
@@ -182,6 +194,8 @@ type SalesforceBroadQuery
 
 type SalesforceBroadRecords
 
+type SalesforceBroadSourceCapture
+
 pub(all) enum SalesforceBroadWork {
   CatalogRefresh
   SourceQuery
@@ -209,6 +223,22 @@ pub(all) enum SalesforceEvidenceIssue {
   Artifact(@query_planning.QueryArtifactIssue)
   Consumer(@execution_relation.ProducerBindingIssue)
 }
+
+pub struct SalesforceSourceEvidenceContext {
+  requirement : @query_planning.QueryRequirement
+  facts : @query_planning.QuerySourceEvidenceFacts
+  members : @check_environment.ConnectorSourceEvidenceMembers
+}
+
+pub(all) enum SalesforceSourceEvidenceIssue {
+  ObservationUnavailable
+  ObservationMismatch
+  Member(@check_environment.SourceEvidenceMemberIssue)
+  LogicalInput(@run_publication.SourceInputLogicalIssue)
+  InvalidPolicy
+  Encoding(@encode_core.EncodeFailure)
+  Evidence(@run_publication.RunEvidenceValueIssue)
+} derive(@debug.Debug)
 
 // Type aliases
 

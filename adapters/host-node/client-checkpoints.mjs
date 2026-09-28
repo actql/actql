@@ -7,6 +7,8 @@
 // Checkpoint journal; an approved request is resumed by this Host (on start
 // and after answers), never by an in-memory callback alone and never by the
 // Client. No second approval state machine lives here.
+import {recordCheckpointApproval} from
+  '../host-common/checkpoint-approval.mjs';
 import {createHash, createPublicKey, createPrivateKey, randomUUID, sign,
   verify} from 'node:crypto';
 import {mkdir, open as openFile, readFile, rename} from
@@ -823,6 +825,8 @@ export async function installRemoteCheckpoints({root, tenantId,
           admittedReads.set(captured.requestId, Object.freeze({
             checkpointCid: claimed.checkpointCid,
             readTuple: captured.acquisition.readTuple,
+            acquisition: captured.acquisition,
+            principalId: captured.principalId,
             earlier: [...(continuation.earlier_approvals ?? [])],
             prepareAttemptId}));
         } else if (readPermit) {
@@ -831,6 +835,8 @@ export async function installRemoteCheckpoints({root, tenantId,
           // request is not cancelled, and ends with the dispatch.
           admittedReads.set(captured.requestId, Object.freeze({
             readTuple: captured.acquisition.readTuple,
+            acquisition: captured.acquisition,
+            principalId: captured.principalId,
             earlier: [claimed.checkpointCid,
               ...(continuation.earlier_approvals ?? [])],
             prepareAttemptId}));
@@ -1044,7 +1050,9 @@ export async function installRemoteCheckpoints({root, tenantId,
         // this process; it is never persisted or reused elsewhere.
         if (decision.basis === 'host_permit') {
           admittedReads.set(captured.requestId, Object.freeze({
-            readTuple: captured.acquisition.readTuple, earlier: []}));
+            readTuple: captured.acquisition.readTuple,
+            acquisition: captured.acquisition,
+            principalId: captured.principalId, earlier: []}));
         }
         return {kind: 'dispatch'};
       }
@@ -1083,9 +1091,17 @@ export async function installRemoteCheckpoints({root, tenantId,
           const valid = preparation?.cancelRequested !== true &&
             [admitted.checkpointCid, ...admitted.earlier]
               .filter(cid => cid !== undefined).every(approvedNow);
-          return valid ? Object.freeze({boundary, action: 'dispatch',
-            basis: 'resumed_approval', tuple: Object.freeze({...scope}),
-            checkpointCid: admitted.checkpointCid}) : current;
+          // The returned approval carries the exact approved read, which a
+          // source adapter verifies against its own installation.
+          return valid ? recordCheckpointApproval(Object.freeze({boundary,
+            action: 'dispatch', basis: 'resumed_approval',
+            tuple: Object.freeze({...scope}),
+            checkpointCid: admitted.checkpointCid}), {
+            checkpointCid: admitted.checkpointCid,
+            readTuple: admitted.readTuple,
+            physicalBinding: admitted.acquisition?.physicalBinding,
+            checkedSource: admitted.acquisition?.checkedSource,
+            principalId: admitted.principalId}) : current;
         },
       });
       return Object.freeze({...base, authorization});

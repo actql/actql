@@ -54,9 +54,13 @@ export async function openSalesforceEffectSiteFixture(t, {
   idSortable = false,
   storedOrder = [1, 2, 3],
   // A nullable, writable Optional_Text__c on Test_Record__c.
-  optionalText = false,
+  optionalText: initialOptionalText = false,
   // The Host's logical connection id the Site declares under.
   connectorId = 'crm-main',
+  // An HTTP status every query request is answered with instead of rows.
+  queryFailureStatus,
+  // Records a query answers instead of the three stored ones.
+  storedRecords,
 }) {
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
   const openssl = (...args) => execFileSync('openssl', args,
@@ -78,6 +82,7 @@ export async function openSalesforceEffectSiteFixture(t, {
     readFile(join(root, 'resource.key')),
   ]);
   const seen = [];
+  let optionalText = initialOptionalText;
   let loseReply = loseWriteReplyOnce;
   let rateLimitReply = rateLimitWriteOnce;
   let observedName = 'before';
@@ -92,25 +97,33 @@ export async function openSalesforceEffectSiteFixture(t, {
       return;
     }
     const prefix = '/services/data/v62.0/';
+    if (queryFailureStatus !== undefined && request.method === 'GET' &&
+        request.url?.startsWith(`${prefix}query?q=`)) {
+      response.writeHead(queryFailureStatus, {'content-type': 'application/json'});
+      response.end('[{"errorCode":"SERVER_UNAVAILABLE"}]');
+      return;
+    }
     if (request.method === 'GET' && request.url?.startsWith(`${prefix}query?q=`)) {
-      // Three stored records answer a bounded preview query.
+      // Three stored records answer a bounded preview query, or a whole
+      // acquisition query without a limit.
       const soql = decodeURIComponent(request.url.slice(
         `${prefix}query?q=`.length));
       const match =
-        /^SELECT ([A-Za-z_,]+) FROM Test_Record__c( ORDER BY Id)? LIMIT ([0-9]+)$/u
+        /^SELECT ([A-Za-z_,]+) FROM Test_Record__c( ORDER BY Id)?(?: LIMIT ([0-9]+))?$/u
           .exec(soql);
       if (match === null) {
         response.writeHead(400, {'content-type': 'application/json'});
         response.end('[{"errorCode":"MALFORMED_QUERY"}]');
         return;
       }
-      const stored = (match[2] === undefined ? storedOrder
+      const stored = storedRecords ?? (match[2] === undefined ? storedOrder
         : [...storedOrder].sort()).map(index => ({
         Id: `a0000000000000${index}`,
         Name: `record-${index}`, External_Key__c: `key-${index}`}));
-      const records = stored.slice(0, Number(match[3])).map(record =>
+      const records = stored.slice(0, match[3] === undefined
+        ? stored.length : Number(match[3])).map(record =>
         Object.fromEntries([['attributes', {type: 'Test_Record__c'}],
-          ...match[1].split(',').map(name => [name, record[name]])]));
+          ...match[1].split(',').map(name => [name, record[name] ?? null])]));
       response.writeHead(200, {'content-type': 'application/json'});
       response.end(JSON.stringify({totalSize: records.length, done: true,
         records}));
@@ -349,5 +362,6 @@ export async function openSalesforceEffectSiteFixture(t, {
       connectorId, resources: ['Test_Record__c']}),
     setTargetName(name) { observedName = name; },
     setNameUpdateable(value) { nameUpdateable = value; },
-    setNameCreateable(value) { nameCreateable = value; }};
+    setNameCreateable(value) { nameCreateable = value; },
+    setOptionalText(value) { optionalText = value; }};
 }

@@ -128,6 +128,7 @@ fn observation_failure_name(failure : DescribeFailure) -> String {
     TransportInterrupted => "transport_interrupted"
     InvalidMetadata => "invalid_metadata"
     Cancelled => "cancelled"
+    NotFound => "not_found"
   }
 }
 
@@ -210,12 +211,20 @@ fn emit_observation(
       @encode.end_object(writer)
     }
     @encode.end_array(writer)
-    observation_field(
-      writer,
-      "listing_response_sha256",
-      sync.listing.response_sha256,
-    )
-    observation_field(writer, "listing_use_cid", list_use_cid)
+    // A named, describe-only sync observed no listing.
+    if sync.listed {
+      observation_field(
+        writer,
+        "listing_response_sha256",
+        sync.listing.response_sha256,
+      )
+      observation_field(writer, "listing_use_cid", list_use_cid)
+    } else {
+      @encode.key(writer, "listing_response_sha256")
+      @encode.null_value(writer)
+      @encode.key(writer, "listing_use_cid")
+      @encode.null_value(writer)
+    }
     @encode.key(writer, "truncated")
     @encode.bool_value(writer, sync.listing.truncated)
     observation_field(
@@ -246,7 +255,10 @@ pub fn prepare_catalog_observation(
   if !observation_binding_valid(binding) {
     return Err(InvalidBinding)
   }
-  if !observation_cid(list_use_cid) {
+  if sync.listed && !observation_cid(list_use_cid) {
+    return Err(InvalidUseEvidence)
+  }
+  if !sync.listed && list_use_cid != "" {
     return Err(InvalidUseEvidence)
   }
   if describe_use_cids.length() != sync.outcomes.length() ||

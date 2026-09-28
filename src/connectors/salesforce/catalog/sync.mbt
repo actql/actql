@@ -8,6 +8,10 @@ pub(all) enum DescribeFailure {
   TransportInterrupted
   InvalidMetadata
   Cancelled
+  /// The provider reported the name as not found for this principal. This
+  /// is an observed outcome, still not proof that the Resource does not
+  /// exist for another principal or later.
+  NotFound
 } derive(Eq, Debug)
 
 ///|
@@ -31,6 +35,8 @@ pub(all) enum CatalogSyncIssue {
 /// and physical failures; this state owner decides completeness and identity.
 pub struct CatalogSync {
   listing : ResourceListing
+  // False when the Resources were named, not taken from a provider listing.
+  listed : Bool
   outcomes : Array[ResourceDescribeOutcome]
   mut next_index : Int
   mut finished : Bool
@@ -47,7 +53,56 @@ pub fn begin_catalog_sync(listing : ResourceListing) -> CatalogSync {
   for _ in owned_listing.selected {
     outcomes.push(Pending)
   }
-  { listing: owned_listing, outcomes, next_index: 0, finished: false, }
+  {
+    listing: owned_listing,
+    listed: true,
+    outcomes,
+    next_index: 0,
+    finished: false,
+  }
+}
+
+///|
+/// A describe-only sync of exactly the named Resources, without the provider
+/// listing. It is always incomplete: nothing outside the names is observed,
+/// and a name the provider does not find is `NotFound`, not absent.
+pub fn begin_named_catalog_sync(
+  names : Array[String],
+) -> Result[CatalogSync, ListingIssue] {
+  if names.is_empty() {
+    return Err(InvalidLimits)
+  }
+  let selected = []
+  let seen : Map[String, Bool] = Map([])
+  for name in names {
+    if !valid_api_name(name) {
+      return Err(InvalidResponse)
+    }
+    if seen.contains(name) {
+      return Err(DuplicateResource(name))
+    }
+    seen[name] = true
+    // No listing flags constrain the describe; the describe alone decides.
+    selected.push({ name, queryable: true, createable: true, updateable: true, })
+  }
+  let outcomes = selected.map(_ => ResourceDescribeOutcome::Pending)
+  Ok({
+    listing: {
+      selected,
+      visible_count: 0,
+      truncated: true,
+      response_sha256: "",
+    },
+    listed: false,
+    outcomes,
+    next_index: 0,
+    finished: false,
+  })
+}
+
+///|
+pub fn catalog_sync_is_named(v : CatalogSync) -> Bool {
+  !v.listed
 }
 
 ///|

@@ -136,11 +136,24 @@ pub fn salesforce_catalog_unavailable(
     3 => TransportInterrupted
     4 => InvalidMetadata
     5 => Cancelled
+    6 => NotFound
     _ => raise InvalidResource
   }
   match @catalog.catalog_sync_unavailable(sync, name, failure) {
     Ok(_) => true
     Err(issue) => raise Sync(issue)
+  }
+}
+
+///|
+/// A describe-only sync of exactly these named Resources.
+#export_name("salesforceCatalogBeginNamed")
+pub fn salesforce_catalog_begin_named(
+  names : Array[String],
+) -> @catalog.CatalogSync raise SalesforceCatalogBridgeIssue {
+  match @catalog.begin_named_catalog_sync(names) {
+    Ok(value) => value
+    Err(issue) => raise Listing(issue)
   }
 }
 
@@ -183,6 +196,7 @@ pub fn salesforce_catalog_resource_state(
         TransportInterrupted => 5
         InvalidMetadata => 6
         Cancelled => 7
+        NotFound => 8
       }
     None => -1
   }
@@ -214,6 +228,7 @@ pub fn salesforce_catalog_http_failure(
     TransportInterrupted => 3
     InvalidMetadata => 4
     Cancelled => 5
+    NotFound => 6
   }
 }
 
@@ -499,6 +514,7 @@ pub fn salesforce_catalog_observed_resource_state(
         TransportInterrupted => 5
         InvalidMetadata => 6
         Cancelled => 7
+        NotFound => 8
       }
     Err(Resource(NotVisible)) => -1
     Err(Resource(ListingTruncated)) => -2
@@ -908,5 +924,74 @@ pub fn salesforce_managed_query_finish(
   match @salesforce_host.finish_managed_query(query) {
     Ok(value) => value
     Err(issue) => raise ManagedQuery(issue)
+  }
+}
+
+///|
+/// Reproject a retained describe-only observation of named Resources. The
+/// result stays incomplete and must reproduce `expected_body` exactly.
+#export_name("salesforceRecoverNamedCatalogObservation")
+pub fn salesforce_recover_named_catalog_observation(
+  expected_body : String,
+  names : Array[String],
+  describe_bytes : Array[Bytes?],
+  outcomes : Array[Int],
+  tenant : String,
+  principal : String,
+  environment : String,
+  connection_revision : String,
+  org_id : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+  sync_occurrence : String,
+  describe_use_cids : Array[String?],
+  describe_response_sha256 : Array[String?],
+  max_describe_bytes : Int,
+  max_describe_nodes : Int,
+  max_describe_depth : Int,
+  max_fields : Int,
+  max_describe_name_units : Int,
+  max_observation_bytes : Int,
+) -> @catalog.CatalogObservation raise SalesforceCatalogBridgeIssue {
+  let binding : @catalog.CatalogObservationBinding = {
+    tenant,
+    principal,
+    environment,
+    connection_revision,
+    org_id,
+    site_key,
+    site_generation,
+    connector_registration,
+    connector_revision,
+    resource_origin,
+    run_invocation_cid,
+    dispatch_request_cid,
+    sync_occurrence,
+  }
+  match
+    @catalog.recover_named_catalog_observation(
+      expected_body,
+      names,
+      describe_bytes,
+      outcomes,
+      binding,
+      describe_use_cids,
+      describe_response_sha256,
+      {
+        max_bytes: max_describe_bytes,
+        max_nodes: max_describe_nodes,
+        max_depth: max_describe_depth,
+        max_fields,
+        max_name_units: max_describe_name_units,
+      },
+      max_observation_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise ObservationRecovery(issue)
   }
 }
