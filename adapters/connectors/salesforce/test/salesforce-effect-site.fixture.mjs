@@ -61,7 +61,13 @@ export async function openSalesforceEffectSiteFixture(t, {
   queryFailureStatus,
   // Records a query answers instead of the three stored ones.
   storedRecords,
+  // Further writable objects shaped like Test_Record__c.
+  writableObjects: extraWritable = [],
+  // The 1-based sequence numbers of record writes the org rejects with a
+  // field error.
+  rejectWrites = [],
 }) {
+  const writable = ['Test_Record__c', ...extraWritable];
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
   const openssl = (...args) => execFileSync('openssl', args,
     {cwd: root, stdio: 'ignore'});
@@ -135,8 +141,8 @@ export async function openSalesforceEffectSiteFixture(t, {
       response.end(JSON.stringify({sobjects: [
         ...extraObjects.map(name => ({name, queryable: true,
           createable: false, updateable: false})),
-        {name: 'Test_Record__c', queryable: true, createable: true,
-          updateable: true}]}));
+        ...writable.map(name => ({name, queryable: true, createable: true,
+          updateable: true}))]}));
       return;
     }
     const extra = extraObjects.find(name => request.method === 'GET' &&
@@ -148,10 +154,11 @@ export async function openSalesforceEffectSiteFixture(t, {
         fields: [{name: 'Id', type: 'id', nillable: false}]}));
       return;
     }
-    if (request.method === 'GET' && request.url ===
-        `${prefix}sobjects/Test_Record__c/describe`) {
+    const described = writable.find(name => request.method === 'GET' &&
+      request.url === `${prefix}sobjects/${name}/describe`);
+    if (described !== undefined) {
       response.writeHead(200, {'content-type': 'application/json'});
-      response.end(JSON.stringify({name: 'Test_Record__c', queryable: true,
+      response.end(JSON.stringify({name: described, queryable: true,
         createable: true, updateable: true, fields: [
           {name: 'Id', type: 'id', nillable: false, sortable: idSortable},
           {name: 'Name', type: 'string', nillable: false,
@@ -167,17 +174,28 @@ export async function openSalesforceEffectSiteFixture(t, {
         ]}));
       return;
     }
-    if (request.method === 'GET' && request.url?.startsWith(
-        `${prefix}sobjects/Test_Record__c/`)) {
+    const record = writable.find(name => request.url?.startsWith(
+      `${prefix}sobjects/${name}/`));
+    const rejected = () => {
+      const sequence = seen.filter(item => item.method === 'POST' ||
+        (item.method === 'PATCH' && item.path !==
+          `${prefix}composite/sobjects`)).length;
+      if (!rejectWrites.includes(sequence)) return false;
+      response.writeHead(400, {'content-type': 'application/json'});
+      response.end(JSON.stringify([{message: 'Rejected field',
+        errorCode: 'INVALID_FIELD', fields: ['Name']}]));
+      return true;
+    };
+    if (request.method === 'GET' && record !== undefined) {
       const target = decodeURIComponent(request.url.slice(
-        `${prefix}sobjects/Test_Record__c/`.length).split('/').at(-1));
+        `${prefix}sobjects/${record}/`.length).split('/').at(-1));
       response.writeHead(200, {'content-type': 'application/json'});
       response.end(JSON.stringify({Id: target, Name: observedName,
         External_Key__c: target}));
       return;
     }
-    if (request.method === 'POST' && request.url ===
-        `${prefix}sobjects/Test_Record__c/`) {
+    if (request.method === 'POST' && record !== undefined &&
+        request.url === `${prefix}sobjects/${record}/`) {
       const chunks = [];
       request.on('data', chunk => chunks.push(chunk));
       request.on('end', () => {
@@ -199,6 +217,7 @@ export async function openSalesforceEffectSiteFixture(t, {
             errorCode: 'REQUEST_LIMIT_EXCEEDED'}]));
           return;
         }
+        if (rejected()) return;
         const sequence = seen.filter(item => item.method === 'POST').length;
         response.writeHead(201, {'content-type': 'application/json'});
         response.end(JSON.stringify({id: `a0012345678901${sequence}`,
@@ -206,8 +225,7 @@ export async function openSalesforceEffectSiteFixture(t, {
       });
       return;
     }
-    if (request.method === 'PATCH' && request.url?.startsWith(
-        `${prefix}sobjects/Test_Record__c/`)) {
+    if (request.method === 'PATCH' && record !== undefined) {
       const chunks = [];
       request.on('data', chunk => chunks.push(chunk));
       request.on('end', () => {
@@ -225,6 +243,7 @@ export async function openSalesforceEffectSiteFixture(t, {
             errorCode: 'REQUEST_LIMIT_EXCEEDED'}]));
           return;
         }
+        if (rejected()) return;
         if (writeOperation === 'upsert') {
           const sequence = seen.filter(item => item.method === 'PATCH').length;
           response.writeHead(200, {'content-type': 'application/json'});
@@ -304,7 +323,8 @@ export async function openSalesforceEffectSiteFixture(t, {
       connection: installed.connection, resource: 'Test_Record__c',
       operation: operationClass}, {subjectCid: runInvocationCid});
     return installed.issueGrant({operation, decision,
-      resource: 'Test_Record__c', ...dispatch, maxUses: 32});
+      resource: 'Test_Record__c', ...dispatch, maxUses: 32,
+      subjectCid: runInvocationCid});
   };
   const observe = await recordGrant('salesforce:record:observe',
     'acquisition', 'read');

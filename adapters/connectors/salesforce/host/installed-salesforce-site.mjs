@@ -22,6 +22,8 @@ import {checkpointApprovalFacts} from
   '../../../host-common/checkpoint-approval.mjs';
 import {describeSalesforceResources, recoverNamedSalesforceObservation} from
   '../site/salesforce-named-describe.mjs';
+import {attestSalesforceEffectCapabilityAuthority} from
+  '../site/salesforce-effect-capability.mjs';
 
 export const INSTALLED_SALESFORCE_SITE_VERSION =
   'actql-installed-salesforce-site/0.1';
@@ -199,11 +201,14 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
 
   // Issue one credential grant for a record operation on `resource`. The
   // decision must be the installed gate's dispatch for the same connection,
-  // resource and operation class at the operation's boundary.
+  // resource and operation class at the operation's boundary. A record write
+  // is granted only for the Effect commit decision of `subjectCid`, the
+  // sealed Effect Set it approves.
   function issueGrant({operation, decision, resource, runInvocationCid,
-    taskAttempt = 1, dispatchRequestCid, maxUses = 1}) {
+    taskAttempt = 1, dispatchRequestCid, maxUses = 1, subjectCid}) {
     const required = recordOperations.get(operation);
-    if (required === undefined || !text(resource)) {
+    if (required === undefined || !text(resource) ||
+        (required[0] === 'effect_commit' && !cidPattern.test(subjectCid ?? ''))) {
       fail('InvalidSalesforceCredentialGrantRequest');
     }
     // A read approval admitted from the Host's Checkpoint grants only the
@@ -223,11 +228,40 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
         decision.tuple?.connection !== connection ||
         decision.tuple?.resource !== resource ||
         decision.tuple?.operation !== required[1] ||
+        (required[0] === 'effect_commit' &&
+          decision.subjectCid !== subjectCid) ||
         metadataDecisions.has(decision)) {
       fail('SalesforceCredentialGrantNotAuthorized');
     }
     return sign({operation, runInvocationCid, taskAttempt,
       dispatchRequestCid, maxUses});
+  }
+
+  // This Site's attestation of its installed runtime and connection for one
+  // Effect dispatch: the capability evidence of a Preview, issued before any
+  // commit is decided. It signs no grant and consumes no credential use; it
+  // stops attesting once the Site is closed.
+  function attestEffectCapability({operation, runInvocationCid,
+    dispatchRequestCid, taskAttempt = 1}) {
+    if (recordOperations.get(operation)?.[0] !== 'effect_commit' ||
+        !cidPattern.test(runInvocationCid ?? '') ||
+        !cidPattern.test(dispatchRequestCid ?? '') ||
+        !Number.isSafeInteger(taskAttempt) || taskAttempt < 1) {
+      fail('InvalidSalesforceCredentialGrantRequest');
+    }
+    return attestSalesforceEffectCapabilityAuthority({
+      scope: {issuerAuthority: profile.credentialAuthorityId,
+        principal: principalId, tenant: profile.tenant,
+        environment: profile.environment, siteKey: profile.siteKey,
+        siteGeneration: profile.siteGeneration, runtimeBundleCid,
+        connectorRegistration: 'salesforce',
+        connectorRevision: 'salesforce/0.1',
+        resourceOrigin: profile.instanceOrigin, operation, runInvocationCid,
+        taskAttempt, dispatchRequestCid},
+      current() {
+        if (closed) fail('SalesforceSiteClosed');
+        return runtimeBundleCid;
+      }});
   }
 
   // Read approvals admitted from the Host's Checkpoint for this installation:
@@ -531,6 +565,29 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       evidence: catalog.evidence});
   }
 
+  // A describe of exactly `resources` for one Effect dispatch, under their
+  // own metadata read decisions: the Catalog observation its writes are
+  // projected from and rechecked against, with the retained describe
+  // evidence that restores it after a restart.
+  async function describeEffectCatalog({resources, runInvocationCid,
+    dispatchRequestCid, occurrence, signal} = {}) {
+    if (!Array.isArray(resources) || resources.length === 0 ||
+        !cidPattern.test(runInvocationCid ?? '') ||
+        !cidPattern.test(dispatchRequestCid ?? '') || !text(occurrence)) {
+      fail('InvalidSalesforceCredentialGrantRequest');
+    }
+    const catalog = await describeNamed({resources, occurrence,
+      runInvocationCid, dispatchRequestCid, retainEvidence: true,
+      maxRetainedBytes: DEFAULT_SALESFORCE_CATALOG_LIMITS.maxObservationBytes,
+      signal});
+    if (catalog.status === 'interrupted') {
+      fail(catalog.interruptionCode === 'SalesforceCatalogCancelled'
+        ? 'SalesforceCatalogCancelled' : 'SalesforceCatalogRefreshInterrupted');
+    }
+    return Object.freeze({observation: catalog.observation,
+      observationCid: catalog.observationCid, evidence: catalog.evidence});
+  }
+
   const writeKinds = Object.freeze({create: 0, createFromResult: 1,
     update: 2, upsert: 3});
   // The executable Mapping of one Effect, from a declaration this Site
@@ -645,8 +702,9 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     connectionRevision: profile.connectionRevision,
     connectorRegistration: 'salesforce', connectorRevision: 'salesforce/0.1',
     principal: principalId, context, authorization, credential,
-    issueGrant, refreshCatalog, declareCatalog, restoreDeclaration,
-    describeForAcquisition, admitCheckpointReadApproval,
+    issueGrant, attestEffectCapability, refreshCatalog, declareCatalog,
+    restoreDeclaration, describeForAcquisition, describeEffectCatalog,
+    admitCheckpointReadApproval,
     prepareExecutionMapping, peek,
     // Whether this Site generated `declaration`.
     ownsDeclaration: declaration => declarations.has(declaration),
