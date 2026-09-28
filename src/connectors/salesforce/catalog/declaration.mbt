@@ -87,6 +87,9 @@ pub struct DeclaredWritable {
   upsert_fields : Array[String]?
   upsert_keys : Array[String]
   required_fields : Array[String]
+  // Writable `datetime` fields: this revision sends whole seconds only and
+  // refuses a nonzero millisecond part before sending.
+  timestamp_whole_seconds : Array[String]
 }
 
 ///|
@@ -256,12 +259,15 @@ fn seal(
 }
 
 ///|
-/// The ActQL value type that carries this provider type exactly, if any.
-/// Salesforce `int` is a 32-bit integer and exact in binary64. `double`
-/// describes decimal Number, Currency and Percent fields: binary64 `number`
-/// does not carry their decimal values exactly, and no existing conversion
-/// law admits them as `decimal`, so they are not declared.
-fn declared_value_type(native_type : String) -> String? {
+/// The ActQL value type that carries a read of this provider type exactly,
+/// if any. Salesforce `int` is a 32-bit integer and exact in binary64.
+/// `date` is `yyyy-MM-dd`, the ActQL date spelling. `datetime` is read in
+/// UTC as `...SSS+0000` and admitted as the same instant ending in `Z`.
+/// `double` describes decimal Number, Currency and Percent fields: binary64
+/// `number` does not carry their decimal values exactly, and no existing
+/// conversion admits them as `decimal`, so they are not declared. `time` is
+/// a time of day in the saving user's time zone: ActQL has no such type.
+fn read_value_type(native_type : String) -> String? {
   match native_type {
     "id"
     | "reference"
@@ -274,16 +280,29 @@ fn declared_value_type(native_type : String) -> String? {
     | "combobox" => Some("string")
     "boolean" => Some("boolean")
     "int" => Some("number")
+    "date" => Some("date")
+    "datetime" => Some("timestamp")
     _ => None
   }
 }
 
 ///|
-fn field_contract(field : FieldMetadata) -> Json? {
-  guard field.nullability_confirmed &&
-    declared_value_type(field.native_type) is Some(kind) else {
-    return None
+/// The ActQL value type a write of this provider type accepts exactly, if
+/// any. It is decided apart from reads: a type is writable only when its
+/// written value means what was approved. A `date` is sent as it is, within
+/// Salesforce's range. A `timestamp` is sent as it is in UTC, and only in
+/// whole seconds (see `timestamp_whole_seconds`).
+fn write_value_type(native_type : String) -> String? {
+  match native_type {
+    "date" => Some("date")
+    "datetime" => Some("timestamp")
+    _ => read_value_type(native_type)
   }
+}
+
+///|
+fn typed_contract(field : FieldMetadata, kind : String?) -> Json? {
+  guard field.nullability_confirmed && kind is Some(kind) else { return None }
   Some(
     object([
       ("nullable", Json::boolean(field.nullable)),
@@ -293,8 +312,18 @@ fn field_contract(field : FieldMetadata) -> Json? {
 }
 
 ///|
+fn read_field_contract_json(field : FieldMetadata) -> Json? {
+  typed_contract(field, read_value_type(field.native_type))
+}
+
+///|
+fn write_field_contract_json(field : FieldMetadata) -> Json? {
+  typed_contract(field, write_value_type(field.native_type))
+}
+
+///|
 fn exclusion_reason(field : FieldMetadata) -> DeclarationExclusionReason {
-  if declared_value_type(field.native_type) is None {
+  if read_value_type(field.native_type) is None {
     UnsupportedType(field.native_type)
   } else {
     UnconfirmedNullability
@@ -422,7 +451,7 @@ pub fn generate_static_declaration(
       let fields : Array[(String, Json)] = []
       let field_names = []
       for field in resource.fields {
-        match field_contract(field) {
+        match read_field_contract_json(field) {
           Some(contract) => {
             fields.push((field.name, contract))
             field_names.push(field.name)
@@ -564,11 +593,12 @@ pub fn generate_static_declaration(
       }
       let createable = []
       let updateable = []
+      let whole_seconds = []
       let mut create_blocked : String? = None
       let required = []
       for field in resource.fields {
         let writable = field.createable || field.updateable
-        let contract = field_contract(field)
+        let contract = write_field_contract_json(field)
         if field.createable &&
           !(field.nullability_confirmed && field.default_on_create_confirmed) {
           create_blocked = Some(field.name)
@@ -582,6 +612,9 @@ pub fn generate_static_declaration(
           }
         }
         guard writable && contract is Some(_) else { continue }
+        if field.native_type == "datetime" {
+          whole_seconds.push(field.name)
+        }
         if field.createable {
           createable.push(field.name)
         }
@@ -643,6 +676,7 @@ pub fn generate_static_declaration(
         upsert_fields,
         upsert_keys: sorted_strings(keys),
         required_fields: sorted_strings(required),
+        timestamp_whole_seconds: sorted_strings(whole_seconds),
       })
     }
     view_members.sort_by((a, b) => {
@@ -814,7 +848,8 @@ pub fn check_declared_read(
       // Each field must be declared and still exactly typed now; the
       // checked input contract is compared with the plan separately.
       for field in plan.fields {
-        if !view.fields.contains(field.name) || field_contract(field) is None {
+        if !view.fields.contains(field.name) ||
+          read_field_contract_json(field) is None {
           return Err(UndeclaredField(field.name))
         }
       }
@@ -906,6 +941,10 @@ pub fn static_declaration_json(
             ("upsert_fields", optional_strings(writable.upsert_fields)),
             ("upsert_keys", strings(writable.upsert_keys)),
             ("required_fields", strings(writable.required_fields)),
+            (
+              "timestamp_whole_seconds",
+              strings(writable.timestamp_whole_seconds),
+            ),
           ])
         }),
       ),
@@ -1113,7 +1152,7 @@ pub fn prepare_execution_mapping(
   }
   for name in described {
     guard field_in(resource, name) is Some(field) &&
-      field_contract(field) is Some(contract) else {
+      write_field_contract_json(field) is Some(contract) else {
       return Err(FieldNotWritable(name))
     }
     if name != "Id" {

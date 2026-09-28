@@ -47,7 +47,9 @@ fn write_field_type_supported(native_type : String) -> Bool {
     | "combobox"
     | "boolean"
     | "int"
-    | "double" => true
+    | "double"
+    | "date"
+    | "datetime" => true
     _ => false
   }
 }

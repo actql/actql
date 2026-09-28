@@ -62,6 +62,43 @@ fn admit_query_cell(
 }
 
 ///|
+/// A Salesforce `datetime` cell: its documented UTC spelling
+/// `yyyy-MM-ddTHH:mm:ss.SSS+0000` is admitted as the ActQL timestamp of the
+/// same instant, ending in `Z`. Any other spelling, offset or precision is an
+/// invalid timestamp; nothing is rounded or read in a local time zone.
+fn admit_datetime_cell(
+  cursor : @decode.Cursor,
+  contract : @contract.Contract,
+  field_name : String,
+  budget : QueryValueBudget,
+) -> Result[@admitted.CheckedValue, QueryPageIssue] {
+  // A value that is not text is refused by the common admission itself.
+  guard @decode.text(cursor) is Ok(text) else {
+    return admit_query_cell(cursor, contract, field_name, budget)
+  }
+  let span = @decode.cursor_span(cursor)
+  guard salesforce_datetime_utc(text) is Some(utc) else {
+    return Err(
+      ValueAdmission(
+        field_name,
+        @admitted.ValueIssue(@admitted.InvalidTimestamp, path=[], span~),
+      ),
+    )
+  }
+  let converted = match
+    @decode.admit({ value: String(utc), span, }, {
+      max_nodes: budget.nodes,
+      max_depth: budget.max_depth,
+      max_string_bytes: budget.text_bytes,
+      max_total_string_bytes: budget.text_bytes,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(BudgetExceeded)
+  }
+  admit_query_cell(converted, contract, field_name, budget)
+}
+
+///|
 fn query_api_version_valid(version : String) -> Bool {
   if version.length() < 4 || !version.has_prefix("v") {
     return false
@@ -219,7 +256,13 @@ pub fn project_query_page(
           if @decode.is_null(value) && !field.nullable {
             return Err(NullRequiredField(field.name))
           }
-          match admit_query_cell(value, contract, field.name, budget) {
+          let admitted = if field.native_type == "datetime" &&
+            !@decode.is_null(value) {
+            admit_datetime_cell(value, contract, field.name, budget)
+          } else {
+            admit_query_cell(value, contract, field.name, budget)
+          }
+          match admitted {
             Ok(checked) => cells.push(checked)
             Err(issue) => return Err(issue)
           }
@@ -287,4 +330,67 @@ pub fn query_page_response_sha256(page : QueryPage) -> String {
 ///|
 pub fn query_page_total_size(page : QueryPage) -> Int64 {
   page.total_size
+}
+
+///|
+/// A provider value that is not a value of its declared ActQL type. It names
+/// the Resource, the field, the declared type and the kind of violation;
+/// the value itself is never part of it.
+pub(all) struct QueryValueViolation {
+  resource : String
+  field : String
+  expected_type : String
+  kind : String
+} derive(Eq, Debug)
+
+///|
+/// The value violation behind a page failure, if the failure is one: the
+/// wrong type (`type`), a null or missing required value (`null`,
+/// `missing`), or a value that is not a valid spelling of its type
+/// (`format`). Budget and response failures are not value violations.
+pub fn query_page_value_violation(
+  issue : QueryPageIssue,
+  plan : ReadProjection,
+) -> QueryValueViolation? {
+  let (field, kind) = match issue {
+    MissingRequiredField(field) => (field, "missing")
+    NullRequiredField(field) => (field, "null")
+    ValueAdmission(field, @admitted.ValueIssue(kind, ..)) =>
+      match kind {
+        WrongType => (field, "type")
+        UnexpectedNull => (field, "null")
+        InvalidNumber
+        | InvalidUnicode
+        | NonCanonicalText
+        | InvalidDecimal
+        | InvalidDate
+        | InvalidTimestamp
+        | StringConstraint => (field, "format")
+        _ => return None
+      }
+    ValueAdmission(field, @admitted.Decode(decoded)) =>
+      match decoded.kind {
+        WrongType => (field, "type")
+        UnexpectedNull => (field, "null")
+        OutOfRange | InvalidDecimal | InvalidUnicode => (field, "format")
+        _ => return None
+      }
+    _ => return None
+  }
+  guard plan.fields.search_by(value => value.name == field) is Some(index) &&
+    read_value_type(plan.fields[index].native_type) is Some(expected_type) else {
+    return None
+  }
+  Some({ resource: plan.resource, field, expected_type, kind, })
+}
+
+///|
+/// A violation as canonical JSON.
+pub fn query_value_violation_json(value : QueryValueViolation) -> String {
+  object([
+    ("expected_type", value.expected_type.to_json()),
+    ("field", value.field.to_json()),
+    ("kind", value.kind.to_json()),
+    ("resource", value.resource.to_json()),
+  ]).stringify()
 }

@@ -136,6 +136,8 @@ pub fn query_page_row_count(QueryPage) -> Int
 
 pub fn query_page_total_size(QueryPage) -> Int64
 
+pub fn query_page_value_violation(QueryPageIssue, ReadProjection) -> QueryValueViolation?
+
 pub fn query_read_accept_page(QueryRead, String, Bytes) -> Result[QueryPage, QueryReadIssue]
 
 pub fn query_read_complete(QueryRead) -> Bool
@@ -145,6 +147,8 @@ pub fn query_read_next_path(QueryRead) -> Result[String?, QueryReadIssue]
 pub fn query_read_page_count(QueryRead) -> Int
 
 pub fn query_read_row_count(QueryRead) -> Int64
+
+pub fn query_value_violation_json(QueryValueViolation) -> String
 
 pub fn read_projection_fields(ReadProjection) -> Array[String]
 
@@ -253,6 +257,8 @@ pub fn with_row_limit(ReadProjection, Int) -> ReadProjection?
 pub fn write_body_json(WriteBody) -> String
 
 pub fn write_body_projection(WriteBody) -> WriteProjection
+
+pub fn write_body_value_refusal_json(WriteBodyIssue, WriteProjection) -> String?
 
 pub fn write_capability_body(WriteCapabilityEvidence) -> String
 
@@ -446,6 +452,7 @@ pub struct DeclaredWritable {
   upsert_fields : Array[String]?
   upsert_keys : Array[String]
   required_fields : Array[String]
+  timestamp_whole_seconds : Array[String]
 }
 
 pub(all) enum DescribeFailure {
@@ -606,6 +613,13 @@ pub(all) enum QueryReadIssue {
   PageLimit
   RowLimit
   Page(QueryPageIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct QueryValueViolation {
+  resource : String
+  field : String
+  expected_type : String
+  kind : String
 } derive(Eq, @debug.Debug)
 
 pub struct ReadProjection {
@@ -771,6 +785,8 @@ pub(all) enum WriteBodyIssue {
   MissingField(String)
   NullNotAllowed(String)
   InvalidValue(String)
+  ValueOutOfRange(String)
+  SubsecondTimestamp(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct WriteBodyLimits {

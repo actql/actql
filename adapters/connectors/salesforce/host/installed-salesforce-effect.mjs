@@ -93,6 +93,20 @@ const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
 const text = value => typeof value === 'string' && value.length > 0;
+// A row body, or its typed refusal when a written value is outside its
+// declared type: the Resource, field, type and kind, never the value. It is
+// refused before any provider I/O for the row, and nothing is rounded.
+function writeBody(salesforceMoon, result, projection) {
+  const refusal = result?.$tag === 0
+    ? salesforceMoon.salesforceWriteValueRefusal(projection, result._0)
+    : undefined;
+  if (typeof refusal === 'string') {
+    throw Object.assign(new Error('SalesforceWriteValueRefused'), {
+      code: 'SalesforceWriteValueRefused',
+      refusal: Object.freeze(JSON.parse(refusal))});
+  }
+  return checked(result);
+}
 const cid = value => `sha256:${createHash('sha256')
   .update(canonicalJson(value)).digest('hex')}`;
 const names = /^[A-Za-z_][A-Za-z0-9_]{0,254}$/u;
@@ -362,6 +376,13 @@ export async function loadInstalledSalesforceEffect(profile, {root,
   if (!text(baseEnvironmentWire) || !text(ledgerRoot) ||
       !isAbsolute(ledgerRoot)) {
     fail('InvalidInstalledEffectOptions');
+  }
+  // The value refusal this Effect reports is part of its runtime; a runtime
+  // without it is refused before any provider I/O.
+  if (typeof salesforceMoon?.salesforceWriteValueRefusal !== 'function' ||
+      typeof salesforceMoon.salesforcePrepareExecutionWriteBody !==
+        'function') {
+    fail('InvalidSalesforceEffectRuntime');
   }
   await mkdir(ledgerRoot, {recursive: true, mode: 0o700});
   const site = await openSite(checkedProfile, {root, principalId, moon,
@@ -648,10 +669,12 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
       catalogs.push(catalog);
       const project = projection(salesforceMoon, catalog.observation, member);
       const memberRequests = proposals[index].map(proposal => {
-        const body = checked(salesforceMoon.salesforcePrepareExecutionWriteBody(
+        const body = writeBody(salesforceMoon,
+          salesforceMoon.salesforcePrepareExecutionWriteBody(
           member.mapping.mapping, project, Buffer.from(JSON.stringify(
             JSON.parse(proposal.changesWire).value)),
-          limits.body.maxBytes, limits.body.maxNodes, limits.body.maxDepth));
+          limits.body.maxBytes, limits.body.maxNodes, limits.body.maxDepth),
+        project);
         return checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
           body, site.apiVersion, requestCodes[member.kind],
           member.kind === 'create' ? '' : JSON.parse(proposal.selectorWire),

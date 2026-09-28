@@ -72,6 +72,10 @@ fn capability_field(
   capability_flag(writer, "sortable", field.sortable)
   capability_flag(writer, "unique", field.unique)
   capability_flag(writer, "updateable", field.updateable)
+  // A written datetime is sent in whole seconds only.
+  if field.native_type == "datetime" {
+    observation_field(writer, "write_timestamp_precision", "second")
+  }
   @encode.end_object(writer)
 }
 

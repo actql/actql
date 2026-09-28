@@ -3144,6 +3144,8 @@ test('issued broad Site driver leaves completion to the Host verifier',
         checked(salesforceMoon.salesforceQueryReadAcknowledgePage(read, page));
         return {$tag: 1, _0: page};
       },
+      // This driver reads admitted pages only; no page fails here.
+      salesforceIssuedBroadValueViolation: () => undefined,
       salesforceIssuedBroadComplete: () =>
         salesforceMoon.salesforceQueryReadComplete(read),
       salesforceIssuedBroadRowCount: () =>
@@ -3202,4 +3204,20 @@ test('invalid physical caller is rejected before a query owner or HTTP use',
     })), {code: 'InvalidSalesforceQueryRead'});
     assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
       .length, 0);
+  });
+
+test('an issued broad read without the value violation entry is refused before I/O',
+  async t => {
+    const setup = await fixture(t);
+    const plan = await queryProjection(setup);
+    const before = setup.seen.length;
+    const moon = {...salesforceMoon,
+      salesforceBroadHostAttempt: () => Object.freeze({selected: true}),
+      salesforceIssuedBroadPlan: () => plan};
+    delete moon.salesforceIssuedBroadValueViolation;
+    await assert.rejects(readSalesforceIssuedBroad(queryRequest(setup, plan, {
+      moon, hostRun: Object.freeze({owned: true}), maxCaptureRows: 3,
+      captureLimits: {maxNodes: 100, maxTextBytes: 1000, maxDepth: 10,
+        maxWork: 1000}})), {code: 'InvalidSalesforceIssuedBroadRead'});
+    assert.equal(setup.seen.length, before);
   });

@@ -241,6 +241,7 @@ export async function readSalesforceIssuedBroad(options) {
     captureLimits} = options;
   if (!moon || !hostRun ||
       typeof moon.salesforceBroadHostAttempt !== 'function' ||
+      typeof moon.salesforceIssuedBroadValueViolation !== 'function' ||
       typeof apiVersion !== 'string' ||
       !count(maxCaptureRows) || !captureLimits ||
       !count(captureLimits.maxNodes) ||
@@ -277,8 +278,21 @@ export async function readSalesforceIssuedBroad(options) {
       credential: context.credential, limits: context.limits,
     }, context.scope, {
       nextPath: () => moon.salesforceIssuedBroadNextPath(attempt),
-      acceptPage: (path, body) =>
-        moon.salesforceIssuedBroadAcceptPage(attempt, path, body),
+      acceptPage: (path, body) => {
+        const result = moon.salesforceIssuedBroadAcceptPage(attempt, path,
+          body);
+        // A provider value that is not a value of its declared type fails
+        // the whole acquisition, typed by Resource, field, type and kind.
+        const violation = result?.$tag === 0
+          ? moon.salesforceIssuedBroadValueViolation(attempt, result._0)
+          : undefined;
+        if (typeof violation === 'string') {
+          throw Object.assign(new Error('SalesforceValueViolation'), {
+            code: 'SalesforceValueViolation',
+            violation: Object.freeze(JSON.parse(violation))});
+        }
+        return result;
+      },
       complete: () => moon.salesforceIssuedBroadComplete(attempt),
       rowCount: () => moon.salesforceIssuedBroadRowCount(attempt),
       finish: () => {
