@@ -210,6 +210,39 @@ try {
     '/services/data/v62.0/query']);
   console.log('packed Local Host Salesforce publish, restart, discovery and ' +
     'Named Result passed');
+
+  // The installed Effect's explicit publication: one generation of its
+  // declaration, execution Mapping and Check Environment, from the package.
+  await writeFile(join(root, 'effect.json'), JSON.stringify({
+    version: 'actql-installed-salesforce-effect/0.1',
+    siteProfilePath: join(root, 'site.json'),
+    publicationPath: join(root, 'effect-publication.json'),
+    connectorId: 'salesforce',
+    writes: [{resource: 'Test_Record__c', kind: 'update', fields: ['Name']}],
+    accountConfigurationWire: canonicalJson({
+      version: 'actql-execution-account-config/0.1',
+      account_id: 'packed-account', entries: [{entry_id: 'records-read',
+        outcome: 'allow', exclusions: [], principal: {all: true},
+        connection: {any_of: [`salesforce:${orgId}`]},
+        resource: {any_of: ['Test_Record__c']},
+        operation: {any_of: ['read']}}]})}));
+  await writeFile(join(root, 'publish-effect.mjs'), `
+import {publishEffect} from '@actql/local-node';
+const published = await publishEffect();
+console.log(JSON.stringify(published.mappings.map(mapping =>
+  [mapping.resource, mapping.kind])));
+`);
+  const effect = JSON.parse((await runChild('publish-effect.mjs', {
+    ...childEnvironment, ACTQL_LOCAL_EFFECT_PROFILE: join(root, 'effect.json'),
+  })).trim());
+  assert.deepEqual(effect, [['Test_Record__c', 'update']]);
+  const generation = JSON.parse(await readFile(join(root,
+    'effect-publication.json'), 'utf8'));
+  assert.deepEqual(Object.keys(generation),
+    ['environment_cid', 'mappings', 'source', 'version']);
+  assert.deepEqual(server.seen.slice(4), [
+    '/services/data/v62.0/sobjects/Test_Record__c/describe']);
+  console.log('packed Local Host Salesforce Effect publication passed');
 } finally {
   await server.close();
   await rm(root, {recursive: true, force: true});

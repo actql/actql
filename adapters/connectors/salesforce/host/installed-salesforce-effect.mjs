@@ -142,10 +142,12 @@ export function checkInstalledSalesforceEffectProfile(profile) {
       writes.length) {
     fail('InvalidInstalledEffectProfile');
   }
-  return Object.freeze({...profile, writes: Object.freeze(writes),
-    resources: Object.freeze([...new Set(writes.map(write =>
-      write.resource))])});
+  return Object.freeze({...profile, writes: Object.freeze(writes)});
 }
+
+// The Resources the installed writes name, in first-write order.
+const resourcesOf = profile => Object.freeze([...new Set(
+  profile.writes.map(write => write.resource))]);
 
 async function openSite(profile, {root, principalId, moon, salesforceMoon,
   runtimeBundleCid, resolveSecret}) {
@@ -203,7 +205,7 @@ export async function publishInstalledSalesforceEffect(profile, options) {
   try {
     const {generation, declared} = await describeSalesforceGeneration({site,
       connectorId: checkedProfile.connectorId,
-      resources: checkedProfile.resources, signal: options.signal});
+      resources: resourcesOf(checkedProfile), signal: options.signal});
     const {mappings, environment} = generationFacts({site,
       salesforceMoon: options.salesforceMoon, declared,
       writes: checkedProfile.writes,
@@ -242,7 +244,7 @@ async function restoreGeneration({site, salesforceMoon, profile,
   }
   const {declared} = restoreSalesforceGeneration({site,
     generation: record.source, connectorId: profile.connectorId,
-    resources: profile.resources});
+    resources: resourcesOf(profile)});
   const {mappings, environment} = generationFacts({site, salesforceMoon,
     declared, writes: profile.writes, baseEnvironmentWire});
   if (canonicalJson(record.mappings) !== canonicalJson(
