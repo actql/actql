@@ -2763,6 +2763,30 @@ async function exerciseStrategyGraph(
       {event_id: 2, occurred_at: 15, payload: 'second'},
     ],
   }, {
+    name: 'events-session',
+    source: eventPublicationProgram,
+    create: program => fixture.strategyFixtureTeaCreate(
+      ...args, JSON.stringify(program)),
+    configure: value => fixture.strategyFixtureTeaRetainedSubset(value),
+    transform: {
+      from: 'source', session: {by: ['payload'], gap: 10}, as: 'sessioned',
+    },
+    fields: [
+      'event_id', 'occurred_at', 'payload',
+      'session_start_ms', 'session_end_ms',
+    ],
+    secondFields: ['payload', 'session_start_ms', 'event_id'],
+    rows: [
+      {event_id: 1, occurred_at: 5, payload: 'shared'},
+      {event_id: 2, occurred_at: 9, payload: 'shared'},
+    ],
+    expectedRows: [
+      {event_id: 1, occurred_at: 5, payload: 'shared',
+        session_start_ms: 5, session_end_ms: 19},
+      {event_id: 2, occurred_at: 9, payload: 'shared',
+        session_start_ms: 5, session_end_ms: 19},
+    ],
+  }, {
     name: 'vectors',
     source: carrierVectorPublicationProgram,
     create: program => fixture.strategyFixtureVecaCreate(
@@ -2778,12 +2802,17 @@ async function exerciseStrategyGraph(
     const directProgram = structuredClone(carrierCase.source);
     const rowStep = directProgram.stages[1].steps[0];
     rowStep.as = 'rows';
+    rowStep.values.rows = carrierCase.rows;
     const carrierStage = directProgram.stages[2];
     carrierStage.inputs = {};
     carrierStage.steps = [
-      rowStep, carrierStage.steps[0], carrierStage.steps.at(-1),
+      rowStep,
+      carrierStage.steps[0],
+      ...(carrierCase.transform ? [carrierCase.transform] : []),
+      carrierStage.steps.at(-1),
     ];
-    carrierStage.steps[2].from = 'source';
+    carrierStage.steps.at(-1).from = carrierCase.transform
+      ? 'sessioned' : 'source';
     carrierStage.results.r.fields = carrierCase.fields;
     directProgram.stages.splice(1, 1);
     for (const consumer of directProgram.stages.slice(2)) {
@@ -2843,11 +2872,13 @@ async function exerciseStrategyGraph(
       assert(directOwner.execution.completed.some(value =>
         value.outputRepresentation === 'retained-file'));
       assert.equal(directOwner.execution.completed.filter(value =>
-        value.outputRepresentation === 'managed-local-carrier').length, 1);
+        value.outputRepresentation === 'managed-local-carrier').length,
+      carrierCase.transform ? 2 : 1);
+      const rows = carrierCase.expectedRows ?? carrierCase.rows;
       const expected = {
-        published: carrierCase.rows,
-        consumed_a: carrierCase.rows,
-        consumed_b: carrierCase.rows.map(row =>
+        published: rows,
+        consumed_a: rows,
+        consumed_b: rows.map(row =>
           Object.fromEntries(carrierCase.secondFields.map(
             field => [field, row[field]]))),
       };
