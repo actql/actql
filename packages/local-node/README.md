@@ -13,7 +13,13 @@ and serves Result rows in process. A repeated request ID with the same intent
 attaches to the retained Run; changed intent is rejected. A reserved dispatch
 is reconciled and never automatically recomputed. The default profile has no
 external connector registrations yet, so Programs requiring acquired input
-return `ClientProgramNeedsInputs`.
+return `ClientProgramNeedsInputs`. An explicit DuckDB or Salesforce source profile selected
+with `ACTQL_LOCAL_SOURCE_PROFILE` enables the acquired-input path, including
+read approval and restart. This does not imply arbitrary multi-source support.
+See the [current implementation status](../../docs/reviews/current-product-status.md)
+for merged capabilities and work that is still in a PR. Salesforce requires
+explicit declaration publication through the packaged `publishSource` export;
+Host startup restores the publication without provider I/O.
 
 Preparation, compilation, and Run evidence issuance retain the same checked
 owner in the installed runtime. Local does not load a second Run Host Core

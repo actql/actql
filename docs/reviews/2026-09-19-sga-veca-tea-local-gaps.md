@@ -1,6 +1,18 @@
 # SGA, VecA, and TEA Local execution gaps
 
-## Current delivery unit and acceptance boundary
+## Status interpretation (2026-09-28)
+
+This document contains chronological investigation notes as well as later
+closure evidence. The early strict-gate failures below are historical, not
+current failures. At main `805a29c5f`, the later production inventory records
+68 operation boundaries and 68 lifecycle/resource closures, with 111 path
+proofs. Those counts do not close every retained-Store obligation or establish
+performance. Numeric retained aggregation, remaining Carrier obligations and
+native in-flight drain still require separate evidence. Use the later retained
+Relation sections and the [current status](current-product-status.md) when
+assigning remaining work. Keep historical evidence at its recorded SHA.
+
+## Historical delivery unit and acceptance boundary
 
 Tracked on `feat/local-family-closure` against the current product source,
 the historical Local work order, and the progress reviews. A fixed release
