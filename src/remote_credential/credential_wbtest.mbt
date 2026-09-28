@@ -30,12 +30,12 @@ test "credential grant has a canonical identity without secret material" {
   let grant = credential_grant()
   let body = credential_grant_json(grant).unwrap()
   assert_eq(
-    body, "{\"connector_registration\":\"http-source\",\"connector_revision\":\"http-source/1\",\"dispatch_request_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"environment\":\"production\",\"expires_unix_ms\":\"2000000000000\",\"issuer_authority\":\"credential-authority-a\",\"max_uses\":2,\"operation\":\"records:read\",\"principal\":\"principal-a\",\"resource_origin\":\"https://resource.example\",\"run_invocation_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":4,\"site_key\":\"site-a\",\"task_attempt\":2,\"namespace_id\":\"namespace-a\",\"version\":\"actql-remote-credential-grant/0.1\"}",
+    body, "{\"connector_registration\":\"http-source\",\"connector_revision\":\"http-source/1\",\"dispatch_request_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"environment\":\"production\",\"expires_unix_ms\":\"2000000000000\",\"issuer_authority\":\"credential-authority-a\",\"max_uses\":2,\"namespace_id\":\"namespace-a\",\"operation\":\"records:read\",\"principal\":\"principal-a\",\"resource_origin\":\"https://resource.example\",\"run_invocation_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":4,\"site_key\":\"site-a\",\"task_attempt\":2,\"version\":\"actql-remote-credential-grant/0.1\"}",
   )
   assert_false(body.contains("secret"))
   assert_eq(
     credential_grant_cid(grant),
-    "sha256:b653489c9b3dcacbfc7cd249015fa1fbc7194c1df1bf28fdb72e7a437e94f3cf",
+    "sha256:06e4af5fa870fbe558c30211879440b84757b52e5d761cdb80f65c4b0eeb6d1c",
   )
   assert_eq(
     credential_grant_cid(

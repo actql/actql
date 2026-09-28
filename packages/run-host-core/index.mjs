@@ -913,7 +913,7 @@ export function projectPublicationSnapshot(record, index) {
 export function publicationIndexScopeKey(ref, limits) {
   if (ref === null || typeof ref !== 'object' || Array.isArray(ref) ||
       Object.keys(ref).sort().join('\0') !==
-        'authorityScopeCid\0runDefinitionCid\0namespaceId' ||
+        'authorityScopeCid\0namespaceId\0runDefinitionCid' ||
       !['namespaceId', 'authorityScopeCid', 'runDefinitionCid']
         .every(key => typeof ref[key] === 'string')) {
     throw new TypeError('InvalidRunHostPublicationIndexScope');

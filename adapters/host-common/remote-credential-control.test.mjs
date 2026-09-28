@@ -31,7 +31,7 @@ test('Remote Credential identity is canonical and contains no secret', () => {
   const body = control.json(grant);
   assert.equal(
     control.identity(grant),
-    'sha256:b653489c9b3dcacbfc7cd249015fa1fbc7194c1df1bf28fdb72e7a437e94f3cf',
+    'sha256:06e4af5fa870fbe558c30211879440b84757b52e5d761cdb80f65c4b0eeb6d1c',
   );
   assert.equal(body.includes('secret'), false);
   const admitted = control.admitJson(body, control.identity(grant));

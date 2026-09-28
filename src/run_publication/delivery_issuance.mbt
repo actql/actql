@@ -548,6 +548,11 @@ fn emit_common_grant_fields(
   @encode.number_value(writer, max_bytes.to_double())
   @encode.key(writer, "max_uses")
   @encode.number_value(writer, max_uses.to_double())
+  @encode.key(writer, "namespace_id")
+  @encode.string_value(
+    writer,
+    contract_string(index, "namespace_id").unwrap_or(""),
+  )
   @encode.key(writer, "principal_id")
   @encode.string_value(writer, principal_id)
   @encode.key(writer, "purpose")
@@ -561,11 +566,6 @@ fn emit_common_grant_fields(
   @encode.string_value(
     writer,
     contract_string(index, "run_definition_cid").unwrap_or(""),
-  )
-  @encode.key(writer, "namespace_id")
-  @encode.string_value(
-    writer,
-    contract_string(index, "namespace_id").unwrap_or(""),
   )
 }
 
