@@ -23,7 +23,7 @@ test "Salesforce catalog failure classification separates rate and permission" {
     is ProviderUnavailable,
   )
   assert_true(
-    catalog_http_failure(404, @utf8.encode(rate_body), 1000) is InvalidMetadata,
+    catalog_http_failure(404, @utf8.encode(rate_body), 1000) is NotFound,
   )
 }
 

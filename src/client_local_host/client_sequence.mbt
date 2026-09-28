@@ -82,6 +82,10 @@ pub fn prepare_client_local_sequences(
     guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
       return None
     }
+    let acquiring = @publication_host.prepare_client_query_acquisition(
+        prepared, task, 0,
+      )
+      is Ok(_)
     let sequence = match
       @lower.prepare_sequence(
         owner,
@@ -132,11 +136,21 @@ pub fn prepare_client_local_sequences(
             Ok(value) => value
             Err(_) => return None
           }
+          // Work covers measuring every value these rows admit, with a small
+          // constant per byte. Live values are charged in the execution
+          // capacity (264 units each): an acquisition stage's residual
+          // evaluates the whole capture at once (up to 500 KB, the most one
+          // acquisition captures), while a compute stage keeps one
+          // evaluation's bound so several tasks fit the Run's budget.
           let logical : @lower.FragmentRowLimits = {
             max_input_rows: 100L,
             max_value_bytes: 10000L,
-            max_live_value_bytes: 100000L,
-            max_work: 100000L,
+            max_live_value_bytes: if acquiring {
+              500000L
+            } else {
+              100000L
+            },
+            max_work: 10000000L,
           }
           let ordered = @lower.kernel_body(kernel) is @lower.OrderedBindings(_)
           let request = match

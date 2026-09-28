@@ -47,6 +47,9 @@ pub fn catalog_http_failure(
   if status == 401 || status == 403 {
     return PermissionDenied
   }
+  if status == 404 {
+    return NotFound
+  }
   if status >= 500 && status <= 599 {
     return ProviderUnavailable
   }

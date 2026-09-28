@@ -38,6 +38,7 @@ const moduleRoot = join(root, 'node_modules/@actql/local-node');
 for (const name of [
   'connectors_builtin_node/connectors_builtin_node.js',
   'connectors/duckdb/host_node/host_node.js',
+  'connectors/salesforce/host_node/host_node.js',
   'retained_host_bridge/retained_host_bridge.js',
   'process_host_bridge/process_host_bridge.js',
   'checkpoint_runtime_node/checkpoint_runtime_node.js',

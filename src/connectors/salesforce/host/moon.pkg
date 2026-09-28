@@ -15,4 +15,6 @@ import {
   "actql/actql/relation_typing" @relation,
   "actql/actql/value_admission" @admitted,
   "actql/actql/encode_core" @encode,
+  "actql/actql/check_environment" @environment,
+  "actql/actql/run_publication" @publication,
 }

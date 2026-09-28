@@ -42,5 +42,8 @@ import {
   "actql/actql/sourceview_resolution" @acquisition,
   "actql/actql/query_planning" @planning,
   "actql/actql/connectors/duckdb/host" @duckdb_host,
+  "actql/actql/connectors/salesforce/catalog" @salesforce_catalog,
+  "actql/actql/connectors/salesforce/host" @salesforce_host,
+  "actql/actql/client_salesforce_host",
   "actql/actql/stage_results" @effect_results,
 }

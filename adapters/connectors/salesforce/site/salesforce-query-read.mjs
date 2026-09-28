@@ -50,7 +50,8 @@ function validateRead({
       typeof authorizationForPage !== 'function' ||
       typeof consumePage !== 'function' || !credential ||
       typeof credential !== 'object' ||
-      !refreshCatalog || typeof refreshCatalog !== 'object' ||
+      !refreshCatalog || (typeof refreshCatalog !== 'object' &&
+        typeof refreshCatalog !== 'function') ||
       typeof callResource !== 'function') {
     fail('InvalidSalesforceQueryRead');
   }
@@ -69,19 +70,24 @@ function validateRead({
     fail('ForeignSalesforceQueryProjection');
   }
   return Object.freeze({...context,
-    refreshCatalog: Object.freeze({...refreshCatalog}),
+    refreshCatalog: typeof refreshCatalog === 'function' ? refreshCatalog
+      : Object.freeze({...refreshCatalog}),
   });
 }
 
+// `refreshCatalog` is either a full-sync request or a function returning a
+// fresh observation (for example a describe-only recheck of the Resource).
 async function recheckCurrentCatalog(options) {
   const {moon, plan, credential, refreshCatalog, callResource, signal} = options;
-  const refreshed = await syncSalesforceCatalog({
-    ...refreshCatalog,
-    moon,
-    credential,
-    callResource,
-    signal,
-  });
+  const refreshed = typeof refreshCatalog === 'function'
+    ? await refreshCatalog({signal})
+    : await syncSalesforceCatalog({
+      ...refreshCatalog,
+      moon,
+      credential,
+      callResource,
+      signal,
+    });
   if (refreshed.status === 'interrupted') {
     fail('SalesforceCatalogRefreshInterrupted');
   }
