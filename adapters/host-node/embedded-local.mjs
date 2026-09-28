@@ -13,7 +13,8 @@ import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {loadInstalledSource} from './installed-source.mjs';
+import {loadInstalledSource, publishInstalledSourceProfile} from
+  './installed-source.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
@@ -741,6 +742,21 @@ export async function openInstalledRemoteHttpHost({directory,
         pendingRetention: checkpoints?.pendingRetention ?? []});
     },
   });
+}
+
+// Publish the installed source's declaration for a Host state directory
+// (the embedded Local Host's by default) from its source profile
+// (`ACTQL_LOCAL_SOURCE_PROFILE` by default). This is the explicit step a Host
+// start restores without provider I/O.
+export async function publishInstalledSource({sourceProfilePath, directory,
+  resolveSourceSecret, signal} = {}) {
+  const root = directory === undefined ? localStateRoot() : resolve(directory);
+  await mkdir(root, {recursive: true, mode: 0o700});
+  const moon = await import(runtimeUrl.href);
+  return publishInstalledSourceProfile(
+    sourceProfilePath ?? process.env.ACTQL_LOCAL_SOURCE_PROFILE, {root,
+      principalId: userInfo().username, moon, runtimeUrl,
+      resolveSecret: resolveSourceSecret, signal});
 }
 
 export async function connectEmbeddedLocal(options) {

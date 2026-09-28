@@ -52,6 +52,35 @@ function duckdbAdapter(profile, moon) {
   });
 }
 
+// The explicit publication step of an installed source that has one (a
+// Salesforce source publishes its targeted declaration). A Host start never
+// runs it; it uses the same state root and principal the Host will.
+export async function publishInstalledSourceProfile(path, {root, principalId,
+  moon, runtimeUrl, resolveSecret, signal}) {
+  if (typeof path !== 'string' || !isAbsolute(path)) {
+    throw new TypeError('InvalidInstalledSourceProfilePath');
+  }
+  let profile;
+  try { profile = JSON.parse(await readFile(path, 'utf8')); }
+  catch (cause) {
+    throw Object.assign(new TypeError('InvalidInstalledSourceProfile',
+      {cause}), {code: 'InvalidInstalledSourceProfile'});
+  }
+  if (profile?.version !== INSTALLED_SALESFORCE_SOURCE_VERSION) {
+    throw Object.assign(new TypeError('InstalledSourcePublicationUnsupported'),
+      {code: 'InstalledSourcePublicationUnsupported'});
+  }
+  const {checkInstalledSalesforceSourceProfile,
+    publishInstalledSalesforceSource} = await import(
+    '../connectors/salesforce/host/installed-salesforce-source.mjs');
+  const checked = checkInstalledSalesforceSourceProfile(profile);
+  const salesforceMoon = await import(salesforceBundle.href);
+  const runtimeBundleCid = `sha256:${createHash('sha256')
+    .update(await readFile(runtimeUrl)).digest('hex')}`;
+  return publishInstalledSalesforceSource(checked, {root, principalId, moon,
+    salesforceMoon, runtimeBundleCid, resolveSecret, signal});
+}
+
 // Load the Host's installed source from `path`, or none. An unknown version
 // or an invalid profile is refused before any provider or Site I/O.
 export async function loadInstalledSource(path, {root, principalId, moon,
