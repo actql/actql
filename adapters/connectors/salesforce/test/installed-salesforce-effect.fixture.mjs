@@ -4,7 +4,7 @@
 // Run-start and publication-plan facts stand in for the standard Host's
 // installed Effect path; the factory under test receives only them.
 import assert from 'node:assert/strict';
-import {createHash, generateKeyPairSync, randomUUID} from 'node:crypto';
+import {generateKeyPairSync} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -22,11 +22,13 @@ import {installNodeClientEffectProgramPreparation} from
 import {completeCapturedEffectRun, completeRecoveredEffectRun,
   recoverAdmittedEffectRun, runCapturedEffectComputation} from
   '../../../host-node/entry.mjs';
-import {localContractLimits, localOutputLimits} from
+import {localContractLimits, localOutputLimits,
+  sourceFreeEffectPublicationPlan} from
   '../../../host-node/local-values-plan.mjs';
 import {openLocalPublicationStore} from
   '../../../store-local/publication-store.mjs';
-import {releaseCompletedRunPreparedPayloads} from
+import {releaseCompletedRunPreparedPayloads,
+  suspendCompletedEffectfulComputation} from
   '../../../host-common/completed-run-publication.mjs';
 import {ExecutionAuthorizationError} from
   '../../../host-common/authorization-gate.mjs';
@@ -41,10 +43,6 @@ import {openSalesforceEffectSiteFixture} from
 export {moon, salesforceMoon};
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const repository = new URL('../../../../', import.meta.url);
-const contentCid = value => `sha256:${createHash('sha256')
-  .update(JSON.stringify(value)).digest('hex')}`;
-const policyCid = name => contentCid({version:
-  'actql-installed-local-policy/0.1', name});
 const limits = localContractLimits;
 
 // Entries are in the configuration's canonical order (by entry id).
@@ -138,81 +136,6 @@ export function effectProgram(effects, rows, schema = {id: {type: 'string',
     results: {answer: {from: {stage: 'source', result: 'rows'}}}};
 }
 
-// The publication plan the standard Host issues for an accepted source-free
-// Effect Run (the #29 candidate's `sourceFreeEffectPublicationPlan`,
-// reproduced for the test until that boundary is merged).
-function effectPublicationPlan({control, prepared, compilation, allowed,
-  definition, authorityScopeCid, tenantId, storeAuthorityCid, now}) {
-  const template = control.admitRunEvidence('bound_invocation_template',
-    moon.clientProgramEffectCompilationTemplateWire(compilation), limits);
-  const preparedEvidence = control.admitRunEvidence('prepared_invocation',
-    moon.strategyRunEvidenceJson(
-      moon.clientProgramAllowedEffectRunPrepared(allowed)), limits);
-  const authorization = control.admitRunEvidence('run_authorization',
-    moon.strategyRunEvidenceJson(
-      moon.clientProgramAllowedEffectRunAuthorization(allowed)), limits);
-  const compiledPlan = control.admit('compiled_plan',
-    moon.clientProgramEffectCompilationCompiledPlanWire(compilation), limits);
-  const admission = control.admitCheckedClientEffectRunPublication(prepared,
-    template, preparedEvidence, authorization, compiledPlan);
-  const runDefinition = control.admit('run_definition',
-    moon.strategyPublicationContractJson(definition), limits);
-  const dataPolicyCid = policyCid('local-result-data');
-  const sourceFree = checked(moon.clientProgramIssueEffectSourceFreeInvocation(
-    compilation, dataPolicyCid, limits.maxWireBytes, limits.maxNodes,
-    limits.maxDepth));
-  const observation = control.admitRunEvidence('observation_set',
-    moon.strategyRunEvidenceJson(sourceFree._0), limits);
-  const invocation = control.admit('run_invocation',
-    moon.strategyPublicationContractJson(sourceFree._1), limits);
-  const run = JSON.parse(runDefinition.wire);
-  const at = Date.parse(now());
-  const instant = value => new Date(value).toISOString();
-  const retention = control.seal('result_retention_policy', JSON.stringify({
-    version: 'actql-result-retention-policy/0.1',
-    retention_contract_cid: policyCid('local-result-retention'),
-    effective_data_policy_cid: dataPolicyCid,
-    available_until: run.valid_until,
-    delete_by: instant(Date.parse(run.valid_until) + 60 * 60 * 1000),
-    extension_ceiling_at: instant(at + 7 * 24 * 60 * 60 * 1000),
-    metadata_retention_policy_cid: policyCid('local-result-metadata'),
-    metadata_delete_by: instant(at + 7 * 24 * 60 * 60 * 1000),
-    clock_contract_cid: policyCid('local-clock'),
-  }), limits);
-  const resultCount = moon.clientProgramEffectCompilationResultNames(
-    compilation).length;
-  return Object.freeze({admission, runDefinition, invocation, observation,
-    normalizationJournal: control.sealRunEvidence('normalization_journal',
-      JSON.stringify({version: 'actql-normalization-journal/0.1',
-        rule_catalog_cid: policyCid('local-normalization'), entries: []}),
-      limits),
-    authoringContext: control.sealRunEvidence('authoring_context',
-      JSON.stringify({version: 'actql-authoring-context/0.1',
-        program_definition_cid: moon.clientProgramEffectDefinitionCid(
-          prepared), annotations: []}), limits),
-    results: Object.freeze(Array.from({length: resultCount}, () =>
-      Object.freeze({retention, evidenceContext: Object.freeze({
-        computationContractCid: compiledPlan.identity,
-        inputRelationCids: [], scopeCid: runDefinition.identity,
-        effectiveDataPolicyCid: dataPolicyCid, authorityScopeCid})}))),
-    receiptEvidence: Object.freeze({bindings: [], sourceEvidence: [],
-      modelEvidence: [], barrierAttemptReceiptCids: []}),
-    captureEvidence: Object.freeze({pendingSourceStateAdvances: [],
-      modelEvidence: []}),
-    request: Object.freeze({tenantId, authorityScopeCid,
-      publicationPolicyCid: policyCid('local-publication'),
-      publicationTargetCid: storeAuthorityCid, requestedAt: run.created_at}),
-    attempt: Object.freeze({attemptId: randomUUID(),
-      fenceCid: contentCid({version: 'actql-local-run-fence/0.1',
-        run_definition_cid: runDefinition.identity}),
-      externalIdempotencyKey: undefined, startedAt: run.created_at}),
-    outputLimits: localOutputLimits, contractLimits: limits, now,
-    invocationOwner: sourceFree._1,
-    localEvidenceContext: Object.freeze({admission, runDefinition,
-      runInvocation: invocation, observation}),
-  });
-}
-
 const storeConfiguration = directory => ({directory,
   storeAuthorityCid: cid('7'), capacityBytes: 64 * 1024 * 1024,
   maxObjectBytes: localOutputLimits.maxWireBytes, maxObjects: 1000,
@@ -256,7 +179,8 @@ export async function effectHost(t, installation, state, {effect,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()}),
     authorizeRunStart: async () => true,
     async execute(facts) {
-      const plan = effectPublicationPlan({control, prepared: facts.prepared,
+      const plan = sourceFreeEffectPublicationPlan({moon, control,
+        prepared: facts.prepared,
         compilation: facts.compilation, allowed: facts.allowed,
         definition: facts.definition, authorityScopeCid: cid('e'),
         tenantId: 'tenant-a', storeAuthorityCid: store.storeAuthorityCid,
@@ -283,7 +207,10 @@ export async function effectHost(t, installation, state, {effect,
         stage.apply.ledger.prepareCapturedSetIntents(
           stage.apply.capturedInputs, stage.apply.members,
           stage.apply.maxFrontierWork);
-        outcomes.push({stage});
+        await suspendCompletedEffectfulComputation({execution, store,
+          storedResults: stage.storedResults, control,
+          computation: stage.computation, preview: stage.preview});
+        outcomes.push({stage, result: {status: 'suspended'}});
         return Object.freeze({status: 'captured',
           continuation: JSON.parse(stage.continuationWire)});
       }
@@ -308,6 +235,7 @@ export async function effectHost(t, installation, state, {effect,
   // Results are released; otherwise the process stops and only its local
   // payload custody ends, while the durable capture stays for a restart.
   const endCustody = async (stage, result) => {
+    if (result?.status === 'suspended') return;
     if (result?.status === 'failed') {
       await releaseCompletedRunPreparedPayloads(stage.storedResults, control);
       return;
