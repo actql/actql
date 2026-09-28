@@ -24,9 +24,14 @@ priv enum DedupePhase {
 }
 
 ///|
+priv enum DedupeSource {
+  Stored(@records.ProducerRead, @storage.Storage)
+  Viewed(@lifecycle.ProducerView)
+}
+
+///|
 priv struct DedupeState {
-  input : @records.ProducerRead
-  source : @storage.Storage
+  source : DedupeSource
   mut output : @records.OutputBuilder?
   limits : @storage.Limits
   prepared : @lower.PreparedEvent
@@ -61,6 +66,50 @@ priv struct DedupeState {
   mut emit_field : Int
   mut emit_fields : Array[(@schema.FieldName, @value.CheckedValue)]
   mut control_work_remaining : Int
+}
+
+///|
+fn dedupe_source_available(source : DedupeSource) -> Bool {
+  match source {
+    Stored(input, _) => @records.producer_read_available(input)
+    Viewed(view) => @lifecycle.producer_view_record_count(view) is Some(_)
+  }
+}
+
+///|
+fn dedupe_source_record_count(source : DedupeSource) -> Int? {
+  match source {
+    Stored(_, storage) => Some(@storage.record_count(storage))
+    Viewed(view) => @lifecycle.producer_view_record_count(view)
+  }
+}
+
+///|
+fn dedupe_source_field_count(source : DedupeSource, record : Int) -> Int? {
+  match source {
+    Stored(_, storage) => @storage.record_field_count(storage, record)
+    Viewed(view) =>
+      match @lifecycle.producer_view_record_field_count(view, record) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn dedupe_source_field(
+  source : DedupeSource,
+  record : Int,
+  field : Int,
+) -> (@schema.FieldName, @value.CheckedValue)? {
+  match source {
+    Stored(_, storage) => @storage.record_field_at(storage, record, field)
+    Viewed(view) =>
+      match @lifecycle.producer_view_record_field(view, record, field) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
 }
 
 ///|
@@ -239,7 +288,7 @@ fn dedupe_load_step(state : DedupeState) -> Result[Unit, DedupeIssue] {
         state.phase = SortBeginPass
         return Ok(())
       }
-      guard @storage.record_field_count(state.source, state.record) is Some(_) else {
+      guard dedupe_source_field_count(state.source, state.record) is Some(_) else {
         return Err(InvalidDedupeRecord(state.record))
       }
       state.field = 0
@@ -248,7 +297,7 @@ fn dedupe_load_step(state : DedupeState) -> Result[Unit, DedupeIssue] {
       Ok(())
     }
     LoadField => {
-      let count = @storage.record_field_count(state.source, state.record).unwrap_or(
+      let count = dedupe_source_field_count(state.source, state.record).unwrap_or(
         -1,
       )
       if state.field >= count {
@@ -256,7 +305,7 @@ fn dedupe_load_step(state : DedupeState) -> Result[Unit, DedupeIssue] {
         state.phase = LoadVerify
         return Ok(())
       }
-      guard @storage.record_field_at(state.source, state.record, state.field)
+      guard dedupe_source_field(state.source, state.record, state.field)
         is Some(value) else {
         return Err(InvalidDedupeRecord(state.record))
       }
@@ -487,7 +536,7 @@ fn dedupe_emit_step(state : DedupeState) -> Result[Bool, DedupeIssue] {
         return Ok(false)
       }
       let record = state.survivors[state.emit]
-      guard @storage.record_field_count(state.source, record) is Some(fields) &&
+      guard dedupe_source_field_count(state.source, record) is Some(fields) &&
         dedupe_checked_multiply(fields, 2) is Some(field_slots) &&
         dedupe_checked_add(state.records, field_slots) is Some(temporary) else {
         return Err(InvalidDedupeRecord(record))
@@ -507,14 +556,12 @@ fn dedupe_emit_step(state : DedupeState) -> Result[Bool, DedupeIssue] {
     }
     EmitFields => {
       let record = state.survivors[state.emit]
-      let count = @storage.record_field_count(state.source, record).unwrap_or(
-        -1,
-      )
+      let count = dedupe_source_field_count(state.source, record).unwrap_or(-1)
       if state.emit_field >= count {
         state.phase = EmitCommit
         return Ok(false)
       }
-      guard @storage.record_field_at(state.source, record, state.emit_field)
+      guard dedupe_source_field(state.source, record, state.emit_field)
         is Some(field) else {
         return Err(InvalidDedupeRecord(record))
       }
@@ -552,7 +599,7 @@ fn dedupe_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@records.producer_read_available(state.input) {
+    if !dedupe_source_available(state.source) {
       return @bounded.Failed(DedupeInputUnavailable, progress, used)
     }
     if used >= state.control_work_remaining {
@@ -629,17 +676,19 @@ fn cleanup_dedupe_state(state : DedupeState) -> Bool {
 }
 
 ///|
-pub fn start_dedupe(
+fn start_dedupe_source(
   control : @bounded.Control,
   sequence : @lower.PreparedSequence,
   step : Int,
-  input : @records.ProducerRead,
+  source : DedupeSource,
+  event : @lower.PreparedEvent,
+  keys : Int,
+  order : Int,
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
-  control_work_limit? : Int? = None,
+  control_work_limit : Int,
 ) -> Result[DedupeExecution, DedupeIssue] {
-  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
   if control_work_limit < 0 {
     return Err(InvalidDedupeLimits)
   }
@@ -647,25 +696,14 @@ pub fn start_dedupe(
     return Err(DedupeControlWorkLimit)
   }
   let owner = @lower.sequence_owner(sequence)
-  guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
-    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.operation(node) == "TEA.dedupe" &&
-    @records.producer_read_matches_operation_input(input, owner, step, 0) &&
-    @lower.event_dedupe_key_count(event) is Some(keys) &&
-    @lower.event_dedupe_order_count(event) is Some(order) &&
-    order > 0 else {
-    return Err(InvalidDedupeKernel)
-  }
-  guard @records.producer_read_storage(input) is Some(source) &&
-    @storage.carrier(source) is @carrier.EventValue(_) else {
-    return Err(DedupeInputUnavailable)
-  }
   if limits.max_value_nodes < 1 ||
     limits.max_workspace_slots < 0 ||
     limits.max_input_records < 0 {
     return Err(InvalidDedupeLimits)
   }
-  let records = @storage.record_count(source)
+  guard dedupe_source_record_count(source) is Some(records) else {
+    return Err(DedupeInputUnavailable)
+  }
   if records > limits.max_input_records {
     return Err(DedupeInputLimit)
   }
@@ -692,7 +730,6 @@ pub fn start_dedupe(
   let initialized_cells = Ref(0)
   let initialized_orders = Ref(0)
   let state : DedupeState = {
-    input,
     source,
     output: Some(output),
     limits,
@@ -740,6 +777,91 @@ pub fn start_dedupe(
     initialized_cells,
     initialized_orders,
   })
+}
+
+///|
+pub fn start_dedupe(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @records.ProducerRead,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit? : Int? = None,
+) -> Result[DedupeExecution, DedupeIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.operation(node) == "TEA.dedupe" &&
+    @records.producer_read_matches_operation_input(input, owner, step, 0) &&
+    @lower.event_dedupe_key_count(event) is Some(keys) &&
+    @lower.event_dedupe_order_count(event) is Some(order) &&
+    order > 0 else {
+    return Err(InvalidDedupeKernel)
+  }
+  guard @records.producer_read_storage(input) is Some(storage) &&
+    @storage.carrier(storage) is @carrier.EventValue(_) else {
+    return Err(DedupeInputUnavailable)
+  }
+  start_dedupe_source(
+    control,
+    sequence,
+    step,
+    Stored(input, storage),
+    event,
+    keys,
+    order,
+    limits,
+    storage_bytes,
+    available,
+    control_work_limit.unwrap_or(limits.max_work),
+  )
+}
+
+///|
+pub fn start_dedupe_view(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit? : Int? = None,
+) -> Result[DedupeExecution, DedupeIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.operation(node) == "TEA.dedupe" &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+    is Some(@carrier.EventValue(_)) &&
+    @lifecycle.producer_view_kind(input) == @carrier.EventsKind &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(input),
+      owner,
+      step,
+      0,
+    ) &&
+    @lower.event_dedupe_key_count(event) is Some(keys) &&
+    @lower.event_dedupe_order_count(event) is Some(order) &&
+    order > 0 else {
+    return Err(InvalidDedupeKernel)
+  }
+  start_dedupe_source(
+    control,
+    sequence,
+    step,
+    Viewed(input),
+    event,
+    keys,
+    order,
+    limits,
+    storage_bytes,
+    available,
+    control_work_limit.unwrap_or(limits.max_work),
+  )
 }
 
 ///|

@@ -1,5 +1,5 @@
 ///|
-fn run_standard_host_fused_events_prefix() -> Unit raise {
+fn run_standard_host_selected_events_dedupe_prefix() -> Unit raise {
   let variant = "dedupe_filter"
   let (run, issuer) = captured_graph_fixture(
     local_carrier_events_chain=true,
@@ -15,8 +15,9 @@ fn run_standard_host_fused_events_prefix() -> Unit raise {
     }),
   )
   let graph = @strategy.captured_dag_graph(run)
-  assert_eq(@strategy.graph_task_count(graph), 6)
-  assert_eq(@strategy.graph_task_prefix_end(graph, 2), Some(2))
+  assert_eq(@strategy.graph_task_count(graph), 8)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 2), None)
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(1))
   assert_true(@strategy.graph_ordered_inputs_complete(graph))
   assert_true(
     @strategy.configure_captured_managed_identity_policy(
@@ -92,15 +93,32 @@ fn run_standard_host_fused_events_prefix() -> Unit raise {
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   let values_rows = local_managed_test_rows(values_ops)
+  let (bridge_ops, bridge, bridge_material) = run_local_managed_carrier_test_task(
+    installed,
+    run,
+    2,
+    [@local_driver.local_managed_relation_output(values)],
+    [values_rows],
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  let (dedupe_ops, dedupe, dedupe_material) = run_local_managed_carrier_test_task(
+    installed,
+    run,
+    3,
+    [@local_driver.local_managed_carrier_output(bridge, bridge_material)],
+    [],
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
   let prefix_live = Ref(true)
   let (prefix_ops, prefix) = run_local_managed_test_task(
     installed,
     run,
-    2,
-    [values],
-    [values_rows],
-    2,
+    4,
+    [],
+    [],
+    4,
     prefix_live,
+    carrier_inputs=[(dedupe, dedupe_material)],
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   let prefix_rows = local_managed_test_rows(prefix_ops)
@@ -114,10 +132,10 @@ fn run_standard_host_fused_events_prefix() -> Unit raise {
   let (filtered_ops, filtered) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    5,
     [prefix],
     [prefix_rows],
-    3,
+    5,
     filtered_live,
     obligations=filtered_obligations,
   )
@@ -145,10 +163,10 @@ fn run_standard_host_fused_events_prefix() -> Unit raise {
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    4,
+    6,
     [filtered],
     [prefix_rows],
-    4,
+    6,
     first_live,
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
@@ -156,33 +174,39 @@ fn run_standard_host_fused_events_prefix() -> Unit raise {
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    5,
+    7,
     [filtered],
     [prefix_rows],
-    5,
+    7,
     second_live,
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   assert_eq(local_managed_test_rows(first_ops).length(), 2)
   assert_eq(local_managed_test_rows(second_ops).length(), 2)
   first_live.val = false
-  @strategy.close_captured_task_output(run, 4)
+  @strategy.close_captured_task_output(run, 6)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
   assert_true(@execution.managed_completed_output_available(second))
   second_live.val = false
-  @strategy.close_captured_task_output(run, 5)
+  @strategy.close_captured_task_output(run, 7)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
   filtered_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, 5)
   (filtered_ops.close)()
   (filtered_ops.cleanup_refresh)() |> ignore
   prefix_live.val = false
-  @strategy.close_captured_task_output(run, 2)
+  @strategy.close_captured_task_output(run, 4)
   (prefix_ops.close)()
   (prefix_ops.cleanup_refresh)() |> ignore
+  @strategy.close_captured_task_output(run, 3)
+  (dedupe_ops.close)()
+  (dedupe_ops.cleanup_refresh)() |> ignore
+  @strategy.close_captured_task_output(run, 2)
+  (bridge_ops.close)()
+  (bridge_ops.cleanup_refresh)() |> ignore
   values_live.val = false
   @strategy.close_captured_task_output(run, 1)
   (values_ops.close)()
@@ -198,8 +222,8 @@ fn run_standard_host_fused_events_prefix() -> Unit raise {
 }
 
 ///|
-test "standard Host runs an unselected Events prefix into Relation consumers" {
-  run_standard_host_fused_events_prefix()
+test "standard Host runs selected Events dedupe into Relation consumers" {
+  run_standard_host_selected_events_dedupe_prefix()
 }
 
 ///|

@@ -64,6 +64,7 @@ pub fn node_accepts_managed_carrier_view(
   match operation(node) {
     "SGA.normalize"
     | "TEA.watermark.label"
+    | "TEA.dedupe"
     | "TEA.window.session_assign"
     | "TEA.sequence.match"
     | "VEC.normalize_l2"
@@ -91,6 +92,7 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     EventValue(_) =>
       operation(node) == "BRIDGE.rows.to_events" ||
       operation(node) == "TEA.watermark.label" ||
+      operation(node) == "TEA.dedupe" ||
       operation(node) == "TEA.window.session_assign"
     SequenceRows(_) => operation(node) == "TEA.sequence.match"
     CarrierProjection(_) =>
@@ -195,6 +197,7 @@ pub fn node_prefers_fused_without_relation_consumer(
     BasicGraph(_) => operation(node) == "SGA.normalize"
     EventValue(_) =>
       operation(node) == "TEA.watermark.label" ||
+      operation(node) == "TEA.dedupe" ||
       operation(node) == "TEA.window.session_assign"
     VectorValue(_) => operation(node) == "VEC.normalize_l2"
     CarrierProjection(_) =>

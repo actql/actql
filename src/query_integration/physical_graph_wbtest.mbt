@@ -175,7 +175,7 @@ test "physical DAG retains an unselected Carrier prefix before Relation filter" 
 }
 
 ///|
-test "physical DAG splits selected Vectors normalization before Relation filter" {
+test "physical DAG splits selected Carrier transforms before Relation filter" {
   for
     (events, variant) in [(true, "dedupe_filter"), (false, "normalize_filter")] {
     let program = query_checked_program_fixture(
@@ -191,14 +191,9 @@ test "physical DAG splits selected Vectors normalization before Relation filter"
       @program_check.unit_count(program) + 10,
       10000,
     ).unwrap()
-    assert_eq(@strategy.graph_task_count(graph), if events { 6 } else { 8 })
-    if events {
-      assert_eq(@strategy.graph_task_prefix_end(graph, 2), Some(2))
-      assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(3))
-    } else {
-      assert_eq(@strategy.graph_task_prefix_end(graph, 2), None)
-      assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(1))
-    }
+    assert_eq(@strategy.graph_task_count(graph), 8)
+    assert_eq(@strategy.graph_task_prefix_end(graph, 2), None)
+    assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(1))
     assert_true(@strategy.graph_ordered_inputs_complete(graph))
   }
 }

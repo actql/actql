@@ -2789,6 +2789,31 @@ async function exerciseStrategyGraph(
         watermark_ms: 10, late: false, watermark_decision: 'keep'},
     ],
   }, {
+    name: 'events-dedupe',
+    source: eventPublicationProgram,
+    create: program => fixture.strategyFixtureTeaCreate(
+      ...args, JSON.stringify(program)),
+    configure: value => fixture.strategyFixtureTeaRetainedSubset(value),
+    transform: {
+      from: 'source',
+      dedupe_events: {
+        by: ['payload'],
+        order_by: [{field: 'occurred_at', dir: 'asc', nulls: 'last'}],
+      },
+      as: 'deduped',
+    },
+    fields: ['event_id', 'occurred_at', 'payload'],
+    secondFields: ['payload', 'event_id'],
+    rows: [
+      {event_id: 1, occurred_at: 20, payload: 'a'},
+      {event_id: 2, occurred_at: 10, payload: 'a'},
+      {event_id: 3, occurred_at: 30, payload: 'b'},
+    ],
+    expectedRows: [
+      {event_id: 2, occurred_at: 10, payload: 'a'},
+      {event_id: 3, occurred_at: 30, payload: 'b'},
+    ],
+  }, {
     name: 'events-session',
     source: eventPublicationProgram,
     create: program => fixture.strategyFixtureTeaCreate(
@@ -3889,13 +3914,16 @@ async function exerciseStrategyGraph(
     fields: ['event_id', 'occurred_at', 'payload'],
     secondFields: ['payload', 'event_id'],
   }, {
-    name: 'dedupe-events-fused-filter',
+    name: 'dedupe-events-later-filter',
     family: 'tea',
     operation: 'dedupe',
     mixedRelationFilter: true,
     rows: 40,
     advanceQuantum: 1,
     constructionProgress: 40,
+    cancelOnManagedStart: 5,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
     fields: ['event_id', 'occurred_at', 'payload'],
     secondFields: ['payload', 'event_id'],
   }, {
@@ -4048,6 +4076,18 @@ async function exerciseStrategyGraph(
     cancelOnManagedStart: 3,
     managedStarts: 3,
     completedTasks: [1, 2],
+    fields: ['id', 'embedding'],
+  }, {
+    name: 'vector-normalize-later-filter',
+    family: 'veca',
+    operation: 'normalize',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    cancelOnManagedStart: 5,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
     fields: ['id', 'embedding'],
   }, {
     name: 'vector-expression',

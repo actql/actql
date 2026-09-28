@@ -74,6 +74,89 @@ fn finish_dedupe(execution : DedupeExecution) -> @records.Completed {
 }
 
 ///|
+test "event dedupe view observes cancellation without releasing its producer" {
+  let producer = producer_owner(false)
+  let source = dedupe_source(producer, [(1.0, 2.0, "a")])
+  let material = @records.completed_material(source).unwrap()
+  let owner = dedupe_owner(
+    producer, "[\"payload\"]", "[{\"field\":\"occurred_at\",\"dir\":\"asc\",\"nulls\":\"last\"}]",
+  )
+  let view = @lifecycle.material_prepare_view(material, owner, 0, producer).unwrap()
+  let control = @bounded.control()
+  let execution = start_dedupe_view(
+    control,
+    sequence(owner),
+    0,
+    view,
+    limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_dedupe(execution, 1).unwrap() is DedupeContinue(_))
+  assert_true(@bounded.request_cancel(control))
+  assert_true(advance_dedupe(execution, 1).unwrap() is DedupeStopped(_))
+  assert_eq(cleanup_dedupe(execution), Ok(true))
+  assert_true(@lifecycle.material_available(material))
+  assert_true(@lifecycle.reclaim_material(material))
+}
+
+///|
+test "event dedupe view retains exact work and workspace boundaries" {
+  let producer = producer_owner(false)
+  let source = dedupe_source(producer, [(1.0, 2.0, "a")])
+  let material = @records.completed_material(source).unwrap()
+  let owner = dedupe_owner(
+    producer, "[\"payload\"]", "[{\"field\":\"occurred_at\",\"dir\":\"asc\",\"nulls\":\"last\"}]",
+  )
+  for
+    (work, workspace, accepted) in [
+      (31, 7, true),
+      (30, 7, false),
+      (31, 6, false),
+    ] {
+    let view = @lifecycle.material_prepare_view(material, owner, 0, producer).unwrap()
+    let execution = start_dedupe_view(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      view,
+      limits(workspace~),
+      4096L,
+      fn() { true },
+      control_work_limit=Some(work),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<32 {
+      if !terminal {
+        match advance_dedupe(execution, 1).unwrap() {
+          DedupeContinue(..) => ()
+          DedupeComplete(output, ..) => {
+            assert_true(accepted)
+            assert_true(@records.discard_completed(output))
+            terminal = true
+          }
+          DedupeFailed(DedupeControlWorkLimit, ..) => {
+            assert_false(accepted)
+            assert_eq(work, 30)
+            terminal = true
+          }
+          DedupeFailed(DedupeWorkspaceLimit, ..) => {
+            assert_false(accepted)
+            assert_eq(workspace, 6)
+            terminal = true
+          }
+          _ => fail("unexpected dedupe view result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(cleanup_dedupe(execution), Ok(true))
+    assert_true(@lifecycle.material_available(material))
+  }
+  assert_true(@lifecycle.reclaim_material(material))
+}
+
+///|
 test "event dedupe selects authored order and emits canonical groups" {
   let producer = producer_owner(false)
   let source = dedupe_source(producer, [
