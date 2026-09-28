@@ -332,15 +332,57 @@ test "Salesforce pushes an exact checked integer comparison and retains residual
     is Err(UnexpectedPrefilter),
   )
   // A field whose current type has no exact declared contract is refused
-  // before any query, even though its name is declared.
+  // before any query, even though its name is declared: a read plan and the
+  // declaration admit the same types, so no plan of it exists. A Number
+  // (`double`) without a described precision up to 15 is one.
+  let listing = @salesforce_catalog.project_resource_listing(
+    @utf8.encode("{\"sobjects\":[{\"name\":\"r\",\"queryable\":true}]}"),
+    {
+      max_bytes: 1000,
+      max_nodes: 100,
+      max_depth: 10,
+      max_resources: 10,
+      max_selected: 10,
+      max_name_units: 100,
+    },
+  ).unwrap()
+  let sync = @salesforce_catalog.begin_catalog_sync(listing)
+  let description = "{\"name\":\"r\",\"queryable\":true,\"fields\":[{\"name\":\"id\",\"type\":\"double\",\"precision\":16,\"scale\":2,\"nillable\":false,\"filterable\":true}]}"
+  @salesforce_catalog.catalog_sync_describe(
+    sync,
+    "r",
+    @utf8.encode(description),
+    {
+      max_bytes: 1000,
+      max_nodes: 100,
+      max_depth: 10,
+      max_fields: 10,
+      max_name_units: 100,
+    },
+  ).unwrap()
+  @salesforce_catalog.finish_catalog_sync(sync).unwrap()
+  let binding = salesforce_broad_binding()
+  let observation = @salesforce_catalog.prepare_catalog_observation(
+    sync,
+    binding,
+    "sha256:" + "c".repeat(64),
+    [Some("sha256:" + "d".repeat(64))],
+    [
+      Some(
+        @salesforce_catalog.catalog_response_sha256(@utf8.encode(description)),
+      ),
+    ],
+    4096,
+  ).unwrap()
   assert_true(
-    @salesforce_host.prepare_salesforce_broad_query(
-      requirement,
-      salesforce_broad_plan(native_type="double", filterable=true),
-      "crm/main",
-      salesforce_broad_declaration(filterable=true),
+    @salesforce_catalog.prepare_read_projection(
+      observation,
+      binding,
+      "r",
+      ["id"],
+      100,
     )
-    is Err(Undeclared(UndeclaredField("id"))),
+    is Err(UnsupportedReadType("id")),
   )
 }
 
