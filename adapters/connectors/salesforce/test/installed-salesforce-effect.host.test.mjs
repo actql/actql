@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {generateKeyPairSync, sign} from 'node:crypto';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, readdir, rm} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
@@ -249,19 +249,18 @@ for (const [label, change] of [
       {configuration});
     const attached = await (await host.as('owner-token'))
       .attach(execution.ref);
-    // The resume is refused before any send. A revoked commit ends the Run
-    // failed; a current-state refusal leaves it unfinished in the merged
-    // Host (reported to C) and never succeeds.
-    const seen = diagnostics.length;
+    // A definitive pre-send refusal terminates the same Run. A Store or
+    // provider observation failure remains retryable and cannot use this path.
     const state = await waitFor(async () => {
       const current = await attached.status();
-      return ['failed', 'cancelled', 'succeeded', 'needs_reconciliation']
-        .includes(current.status) ||
-        diagnostics.slice(seen).some(item =>
-          item.name === 'effect_resume_failed') ? current : undefined;
+      return current.status === 'failed' ? current : undefined;
     });
-    assert.notEqual(state.status, 'succeeded');
+    assert.equal(state.status, 'failed');
     assert.equal(writesOf(x.installation.org).length, 0);
     await host.close();
+    const publication = join(x.directory, 'state', 'publication');
+    assert.deepEqual(await readdir(join(publication, 'physical-holdings')),
+      []);
+    assert.deepEqual(await readdir(join(publication, 'objects')), []);
   });
 }

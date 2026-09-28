@@ -11,6 +11,8 @@ import {releaseCompletedRunPreparedPayloads,
 import {canonicalJson} from './local-account-config.mjs';
 import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {isEffectApplyPreflightRejection} from './effect-run-apply.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -82,6 +84,23 @@ function completionOptions(stage, gate, signal, resume) {
     ...(resume === undefined ? {} : {resume})})};
   return Object.freeze({apply, receipt: stage.receipt,
     publication: stage.publication, signal});
+}
+
+function noEffectRowWasSent(options) {
+  const {apply, receipt} = options;
+  const control = runtimeCore(apply.moon).effectApplicationControl;
+  return receipt.members.every(member => member.rowOwners.every(owner => {
+    const entry = apply.ledger.currentAdmitted(
+      control.logicalItemLocatorCid(owner.claim.locator));
+    return entry !== undefined && control.ledgerEntryStateCode(entry) === 0;
+  }));
+}
+
+function terminalPreSendRefusal(error, options) {
+  return error instanceof ExecutionAuthorizationError &&
+      error.authorization?.action === 'deny' ||
+    isEffectApplyPreflightRejection(error) &&
+      noEffectRowWasSent(options);
 }
 
 function finishStatus(result) {
@@ -230,8 +249,7 @@ export function createInstalledEffectSite({environmentWire,
           try { result = await completeInterruptedEffectRun(options, false); }
           catch (completionError) {
             if (completionError?.code === 'EffectRunNoUncertainSend') {
-              if (error instanceof ExecutionAuthorizationError &&
-                  error.authorization?.action === 'deny') {
+              if (terminalPreSendRefusal(error, options)) {
                 custody.requireRelease(() =>
                   releaseCompletedRunPreparedPayloads(
                     stage.storedResults, facts.control));
@@ -341,8 +359,7 @@ export function createInstalledEffectSite({environmentWire,
           try { result = await completeInterruptedEffectRun(options, true); }
           catch (completionError) {
             if (completionError?.code === 'EffectRunNoUncertainSend') {
-              if (error instanceof ExecutionAuthorizationError &&
-                  error.authorization?.action === 'deny') {
+              if (terminalPreSendRefusal(error, options)) {
                 checkpointJournal.completeResume(claimed.claim,
                   {status: 'failed'});
                 releaseMode = 'retire';

@@ -9,6 +9,26 @@ const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
 
+const preflightRejections = new WeakSet();
+
+export function isEffectApplyPreflightRejection(error) {
+  return error !== null && typeof error === 'object' &&
+    preflightRejections.has(error);
+}
+
+// A checked preflight rejection is a definitive refusal of this Preview.
+// Provider observation failures occur before this boundary and remain
+// retryable; they must not be converted into a terminal Run result.
+function checkedPreflight(result) {
+  if (result?.$tag === 0) {
+    const error = Object.assign(new Error('MoonBitHostFailure', {
+      cause: result._0}), {code: 'MoonBitHostFailure'});
+    preflightRejections.add(error);
+    throw error;
+  }
+  return checked(result);
+}
+
 const text = value => typeof value === 'string' && value.length > 0 &&
   value.length <= 512;
 
@@ -300,7 +320,7 @@ export async function applyCapturedEffectSet({
   const requirePartialApplication =
     current.requirePartialApplication === true;
   signal?.throwIfAborted();
-  checked(moon.clientProgramCheckEffectApplyPreflight(
+  checkedPreflight(moon.clientProgramCheckEffectApplyPreflight(
     capturedInputs, current.proofs, current.sources,
     current.contracts, current.capabilities, current.authorities,
     current.observedRows, current.guardVersions,
@@ -439,7 +459,7 @@ export async function applyRecoveredEffectSet({
     fail('InvalidRecoveredEffectApply');
   }
   signal?.throwIfAborted();
-  checked(moon.clientProgramCheckRecoveredEffectApplySemantics(
+  checkedPreflight(moon.clientProgramCheckRecoveredEffectApplySemantics(
     admittedPreview, preflight.sources, preflight.contracts,
     preflight.capabilities, preflight.authorities,
     preflight.observedRows, preflight.guardVersions, preflight.routes,

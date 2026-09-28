@@ -16,13 +16,16 @@ claimed to read and write in one Program.
   publication entry. They are tested through the common completion and
   recovery owners against a local HTTPS mock org.
 - The standard Host's Effect path (#29) is merged. Behind the Remote HTTP
-  Host and the public Client, a single-tuple Set is submitted, previewed,
+  Host and the public Client, a multi-tuple Set is submitted, previewed,
   held for the whole-Set approval, approved, resumed after a Host restart,
   written once per row and published; a further restart writes nothing. A
-  rejected Set, a revoked commit and a changed target write nothing.
-- Not yet: the Host options object and Effect profile loading on the Remote
-  HTTP, Embedded Local and packed `connect()` entries (C), and the tarball
-  Effect run through them.
+  rejected Set, a revoked commit and a changed target write nothing. The
+  latter two terminate the Run and retire unpublished holdings and payloads.
+- The common installation options reach Remote HTTP, Embedded Local and
+  packed `connect()`. Reconnection to the same root accepts semantically
+  identical installation and rejects changed publication or Site generation.
+  The packed Client runs approval, restart, write and Named Result from an
+  installation outside the checkout.
 - Real org: not yet exercised for Effects. The mock evidence does not stand
   in for it.
 
@@ -115,10 +118,6 @@ only.
 
 | Item | Owner | Needed | Acceptance |
 |---|---|---|---|
-| One Set approval over several Host tuples | C | The commit Checkpoint binds every tuple of the Set; resume admits each listed tuple whose current account outcome still permits it | Approved two-Resource Set: one Checkpoint, 4 writes (each row once), Run succeeded with the Named Result, 0 more writes on restart; a tuple denied at resume: 0 writes, Run failed, capture retired. The todo test in `installed-salesforce-effect.host.test.mjs` is only the reproducer, not evidence |
-| Pre-send current-state refusal on resume | C | A refusal proven before any send of the generation ends the resume as failed and retires the capture | Changed target after approval: 0 writes, Run failed, stop observed, capture and source holdings retired, no cleanup pending. With any dispatching or unknown row the Run stays needs_reconciliation, never failed, and nothing is resent |
-| Host options object and Effect profile loading; Embedded and packed entries | C | `effectProfilePath` / `ACTQL_LOCAL_EFFECT_PROFILE` through `installed-effect.mjs`; Host's own evidence key; same account text and principal as the Host | Invalid profile refused before provider I/O; source plus Effect refused |
-| Tarball and Embedded Effect run | C, D | The entries above | Preview → approval → restart → update → Named Result from an install outside the checkout |
 | Live org Effect verification | D | Budget and cleanup reserve per the private record | Update of the dedicated test object, cleanup of created records |
 | Typed single-record failure outcomes | D (provider) | A contract for classifying non-2xx replies as definite failures | Rejected rows reported failed without resend |
 | Effects with external acquisition | shared | Effect compiler over acquired inputs | Out of this scope |
