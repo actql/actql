@@ -2224,6 +2224,41 @@ test "ORDER BY reuses selected expressions and hides computed input sort slots" 
 }
 
 ///|
+test "ORDER BY expression resolves SELECT aliases before input columns" {
+  let step = @wire.admit(
+    @source.parse_json(
+      "{\"values\":{\"schema\":{\"x\":{\"type\":\"number\",\"nullable\":false},\"y\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"x\":1,\"y\":20},{\"x\":2,\"y\":10}]},\"as\":\"t\"}",
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let context = {
+    ..values_context(),
+    inputs: [
+      {
+        relation: [{ value: "t", quoted: false, }],
+        name: "t",
+        source: GeneratedValues(step),
+        visible_fields: ["x", "y"],
+      },
+    ],
+  }
+  for
+    text in [
+      "SELECT x AS y FROM t ORDER BY y + 1", "SELECT x + 1 AS z FROM t ORDER BY z + 1",
+      "SELECT x AS y FROM t ORDER BY t.y + 1",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    let program = compile(query, context, construction_limits()).unwrap()
+    assert_true(
+      @check.check_parsed(program, check_environment(), None, check_limits())
+      is Checked(_),
+      msg=text,
+    )
+  }
+}
+
+///|
 test "grouped SELECT rejects nongrouped field and invalid aggregate form" {
   let query = @query.parse_query(
     "SELECT customer_id, COUNT(*) AS n FROM orders GROUP BY status",

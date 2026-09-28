@@ -560,6 +560,56 @@ fn append_expression(
 }
 
 ///|
+fn order_expression_slot(
+  path : Array[@query.NamePart],
+  query : @query.Query,
+  input : Input,
+  fields : Array[String],
+  selected : Array[(String, String)],
+) -> String? {
+  if path.length() == 1 {
+    for binding in selected {
+      if same_name(path[0], { value: binding.0, quoted: false, }) {
+        return Some(binding.1)
+      }
+    }
+  }
+  resolve_column(path, query, input, fields)
+}
+
+///|
+fn append_order_expression(
+  construction : Construction,
+  expression : @query.Expression,
+  query : @query.Query,
+  input : Input,
+  fields : Array[String],
+  selected : Array[(String, String)],
+  max_work : Int,
+) -> @builder.Node raise Abort {
+  match
+    @expression.append(
+      expression,
+      path => order_expression_slot(path, query, input, fields, selected),
+      construction.builder,
+      max_work,
+    ) {
+    Ok(node) => node
+    Err(error) => {
+      for index in 0..<@query.expression_node_count(expression) {
+        if @query.expression_node(expression, index).unwrap().kind
+          is Reference(path) &&
+          order_expression_slot(path, query, input, fields, selected) is None &&
+          ambiguous_column(path, query, fields) {
+          raise Abort(AmbiguousColumn)
+        }
+      }
+      raise Abort(Expression(error))
+    }
+  }
+}
+
+///|
 fn selected_projections(query : @query.Query) -> Array[@query.Projection] {
   for index in 0..<@query.operation_count(query) {
     match @query.operation_at(query, index) {
@@ -1965,12 +2015,13 @@ fn compile_steps(
                       derives.push(
                         (
                           field,
-                          append_expression(
+                          append_order_expression(
                             construction,
                             term.expression,
                             query,
                             input,
                             active_fields,
+                            pending_bindings,
                             max_work,
                           ),
                         ),

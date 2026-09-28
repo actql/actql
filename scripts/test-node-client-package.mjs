@@ -242,11 +242,27 @@ await writeFile(join(root, 'numeric-window.json'), numericWindowQuery);
 for (const [name, sql] of [
   ['alias-order', 'SELECT x AS y FROM rows ORDER BY y'],
   ['hidden-order', 'SELECT x FROM rows ORDER BY y'],
+  ['alias-expression-order', 'SELECT x AS y FROM rows ORDER BY y + 1'],
+  ['computed-alias-expression-order',
+    'SELECT x + 1 AS z FROM rows ORDER BY z + 1'],
+  ['qualified-input-expression-order',
+    'SELECT x AS y FROM rows AS t ORDER BY t.y + 1'],
 ]) {
   const query = queryFrontend.compileValuesQueryJson(sql, 'rows', 'rows',
     JSON.stringify(aliasRows), JSON.stringify(['x', 'y']),
     `fixture.${name}`);
   assert.notEqual(query, '', name);
+  if (name === 'computed-alias-expression-order') {
+    const program = JSON.parse(query);
+    const derivations = program.stages.flatMap(stage => stage.steps.flatMap(
+      step => Object.entries(step.derive ?? {})));
+    assert.equal(derivations.filter(([field]) =>
+      field.startsWith('aql_query_expr_')).length, 1);
+    const hidden = derivations.filter(([field]) =>
+      field.startsWith('aql_query_sort_'));
+    assert.equal(hidden.length, 1);
+    assert.match(JSON.stringify(hidden[0][1]), /"field":"aql_query_expr_\d+"/u);
+  }
   await writeFile(join(root, `${name}.json`), query);
 }
 for (const [name, sql] of [
@@ -999,6 +1015,9 @@ async function checkOrderScopes(client, suffix) {
   for (const [name, expected] of [
     ['alias-order', [{y: 1}, {y: 2}]],
     ['hidden-order', [{x: 2}, {x: 1}]],
+    ['alias-expression-order', [{y: 1}, {y: 2}]],
+    ['computed-alias-expression-order', [{z: 2}, {z: 3}]],
+    ['qualified-input-expression-order', [{y: 2}, {y: 1}]],
     ['quoted-column-order', [{id: 'o2'}, {id: 'o3'}, {id: 'o1'}]],
     ['hidden-expression-order', [{id: 'o2'}, {id: 'o3'}, {id: 'o1'}]],
     ['distinct-selected-order', [{x: 30}, {x: 80}, {x: 120}]],
