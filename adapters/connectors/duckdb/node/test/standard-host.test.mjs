@@ -1654,7 +1654,7 @@ async function exerciseStrategyGraph(
       await rm(publicationDirectory, {recursive: true, force: true});
     }
   }
-  const createCarrierRetainedStore = async name => {
+  const createCarrierRetainedStore = async (name, options = {}) => {
     const directory = await mkdtemp(join(
       root, `_build/duckdb-fixtures/${name}-retained-entry-`,
     ));
@@ -1664,19 +1664,36 @@ async function exerciseStrategyGraph(
       maxFrameBytes: 1024 * 1024,
     });
     const leases = [];
+    let permitCleanup = false;
+    let cleanupFailures = 0;
     const configuration = installLocalRetainedStore((key, bytes) => {
       leases.push(key);
-      let writer, closed = false;
+      const lease = leases.length;
+      let writer, closed = false, cleanupPending = false;
       return Object.freeze({
-        status: () => ({reservedBytes: writer && !closed ? bytes : 0,
-          cleanupPending: false}),
+        status: () => ({reservedBytes: writer && (!closed || cleanupPending)
+          ? bytes : 0, cleanupPending}),
         reserve: value => (writer = store.reserve(value)),
-        close() { closed = true; writer?.cancel(); },
-        async cleanup() { await writer?.cleanupHandle?.retry?.(); },
+        close() {
+          closed = true;
+          if (lease === options.failCleanupLease) cleanupPending = true;
+          else writer?.cancel();
+        },
+        async cleanup() {
+          if (cleanupPending && !permitCleanup) {
+            cleanupFailures++;
+            throw new Error('InjectedCarrierRetainedCleanupPending');
+          }
+          writer?.cancel();
+          await writer?.cleanupHandle?.retry?.();
+          cleanupPending = false;
+        },
       });
     });
     return Object.freeze({
       configuration, leases,
+      permitCleanup() { permitCleanup = true; },
+      cleanupFailures: () => cleanupFailures,
       async close() {
         await store.close();
         await rm(directory, {recursive: true, force: true});
@@ -2095,7 +2112,10 @@ async function exerciseStrategyGraph(
       '_build/duckdb-fixtures/sga-publication-entry-',
     ));
     const sgaRetained = publicationCase.retainedOutput
-      ? await createCarrierRetainedStore('sga')
+      ? await createCarrierRetainedStore('sga', {
+        failCleanupLease: publicationCase.name === 'retained-node-rows'
+          ? 1 : undefined,
+      })
       : undefined;
     let sgaPublicationOwner;
     let sgaPublicationStore;
@@ -2104,9 +2124,11 @@ async function exerciseStrategyGraph(
         fixture.strategyFixtureOpen(sgaFixture, sgaCapture.source()),
         true,
       );
-      const setup = publicationCase.retainedOutput
-        ? fixture.strategyFixtureSgaRetainedSubset(sgaFixture)
-        : fixture.strategyFixtureSgaSubset(sgaFixture);
+      const setup = publicationCase.name === 'retained-node-rows'
+        ? fixture.strategyFixtureSgaRetainedNodeLimit(sgaFixture, 2)
+        : publicationCase.retainedOutput
+          ? fixture.strategyFixtureSgaRetainedSubset(sgaFixture)
+          : fixture.strategyFixtureSgaSubset(sgaFixture);
       const runtime = runtimeCore(hostRuntime);
       const resultCount = runtime.resultInventory(setup).length;
       assert.equal(
@@ -2188,9 +2210,20 @@ async function exerciseStrategyGraph(
       }
     } finally {
       if (sgaPublicationOwner !== undefined) {
-        await sgaPublicationOwner.close();
-        assert.equal(sgaPublicationOwner.cleanupPending(), false);
+        if (publicationCase.name === 'retained-node-rows') {
+          assert.equal(sgaRetained.leases.length, 1);
+          await assert.rejects(
+            async () => sgaPublicationOwner.close(),
+            /InjectedCarrierRetainedCleanupPending/,
+          );
+          assert.equal(sgaPublicationOwner.cleanupPending(), true);
+          assert.equal(sgaRetained.cleanupFailures(), 1);
+          assert(sgaPublicationOwner.execution.usage().heldBytes > 0n ||
+            sgaPublicationOwner.execution.usage().reservedExecutionBytes > 0n);
+          sgaRetained.permitCleanup();
+        } else await sgaPublicationOwner.close();
         assert.equal(await sgaPublicationOwner.cleanup(), true);
+        assert.equal(sgaPublicationOwner.cleanupPending(), false);
         assert.equal(sgaPublicationOwner.execution.usage().heldBytes, 0n);
         assert.equal(
           sgaPublicationOwner.execution.usage().reservedExecutionBytes,
@@ -2201,6 +2234,101 @@ async function exerciseStrategyGraph(
       await sgaPublicationStore?.close();
       await rm(sgaPublicationDirectory, {recursive: true, force: true});
       await sgaRetained?.close();
+    }
+  }
+  for (const failureCase of ['construction-capacity', 'consumer-filter']) {
+    const failureProgram = structuredClone(graphProgramBase);
+    failureProgram.stages[2].steps.splice(1, 1, {
+      from: 'g', node_rows: true, as: 'out',
+    });
+    failureProgram.results.consumed_a = {
+      from: {stage: 'consumer_a', result: 'r'},
+    };
+    failureProgram.results.consumed_b = {
+      from: {stage: 'consumer_b', result: 'r'},
+    };
+    if (failureCase === 'consumer-filter') {
+      failureProgram.stages[3].steps = [{
+        filter: '1 / (id - id) > 0', as: 'filtered',
+      }, {
+        from: 'filtered', select: ['id', 'node_name'], as: 'out',
+      }];
+    }
+    const failureFixture = fixture.strategyFixtureSgaCreate(
+      ...sgaEnvironmentArguments(args), JSON.stringify(failureProgram),
+    );
+    const failureCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(failureFixture),
+      suppliedLimits,
+    );
+    const failureDirectory = await mkdtemp(join(
+      root, `_build/duckdb-fixtures/sga-${failureCase}-entry-`,
+    ));
+    const failureRetained = await createCarrierRetainedStore(failureCase);
+    let failurePublicationStore, failureExecution;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        failureFixture, failureCapture.source()), true);
+      const setup = failureCase === 'construction-capacity'
+        ? fixture.strategyFixtureSgaRetainedNodeLimit(failureFixture, 1)
+        : fixture.strategyFixtureSgaRetainedSubset(failureFixture);
+      const runtime = runtimeCore(hostRuntime);
+      failurePublicationStore = await openLocalPublicationStore({
+        directory: failureDirectory,
+        storeAuthorityCid: hash(`sga-${failureCase}-store`),
+        capacityBytes: 4 * 1024 * 1024,
+        maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+        maxObjects: 100,
+        maxContractNodes: 10000,
+        maxContractDepth: 64,
+      }, runtime.publicationControl);
+      const plan = standardPublicationPlan(
+        runtime,
+        runtime.programDefinitionCid(setup),
+        runtime.resultInventory(setup).length,
+        `sga-${failureCase}-attempt`,
+      );
+      await assert.rejects(runPublishedCapturedStrategy(
+        setup, {store: failurePublicationStore, plan},
+        {local: failureRetained.configuration},
+        new AbortController().signal,
+      ), error => {
+        failureExecution = error.execution;
+        return error.code === 'CapturedRunPublicationFailed';
+      });
+      assert.equal(failureExecution.status, 'host-tasks-failed');
+      assert(failureRetained.leases.length > 0);
+      assert(failureExecution.completed.some(value =>
+        value.outputRepresentation === 'retained-file'));
+      assert.equal(failureExecution.completed.some(value =>
+        value.outputRepresentation === 'managed-local-carrier'),
+      failureCase === 'consumer-filter');
+      assert.equal(failureExecution.failure?.code, 'MoonBitHostFailure');
+      assert(failureExecution.failure.cause);
+      assert.equal(failureCase === 'construction-capacity'
+        ? fixture.strategyFixtureSgaConstructionLimitFailure(
+          failureExecution.failure.cause)
+        : fixture.strategyFixtureSgaConsumerFilterArithmetic(
+          failureExecution.failure.cause), true,
+      `${failureCase}: preserve the selected typed failure`);
+      await assert.rejects(failurePublicationStore.lookupCommittedIndex({
+        tenantId: plan.request.tenantId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, () => true), /PublicationLookupDenied/);
+    } finally {
+      if (failureExecution !== undefined) {
+        await failureExecution.close();
+        assert.equal(await failureExecution.cleanup(), true);
+        assert.equal(failureExecution.cleanupPending(), false);
+        assert.equal(failureExecution.usage().heldBytes, 0n);
+        assert.equal(failureExecution.usage().reservedExecutionBytes, 0n);
+      }
+      failureCapture.close();
+      await failurePublicationStore?.close();
+      await rm(failureDirectory, {recursive: true, force: true});
+      await failureRetained.close();
     }
   }
   const vectorExpressionProgram = {
