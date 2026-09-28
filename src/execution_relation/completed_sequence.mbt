@@ -80,6 +80,7 @@ fn evaluate_physical_sequence(
   fragments : Array[FragmentRuntimeContext]?,
   ordered : OrderedExecution,
   join_ceilings? : Array[(Int, Int64)] = [],
+  expansion_ceilings? : Array[(Int, Int64)] = [],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
   asof_search_ceilings? : Array[(Int, Int64)] = [],
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
@@ -111,7 +112,11 @@ fn evaluate_physical_sequence(
         evaluate_completed_rows(
           kernel,
           input,
-          limits.max_rows,
+          selected_expansion_row_limit(
+            expansion_ceilings,
+            @lower.kernel_step(kernel),
+            limits.max_rows,
+          ),
           control,
           invocation.output_budget,
           workspace,

@@ -9,6 +9,7 @@ struct GeneratedSequence {
   contexts : Array[FragmentRuntimeContext]
   retained_ids : Array[String]
   join_ceilings : Array[(Int, Int64)]
+  expansion_ceilings : Array[(Int, Int64)]
   interval_search_ceilings : Array[(Int, Int64)]
   asof_search_ceilings : Array[(Int, Int64)]
   aggregate_outputs : Array[SelectedAggregateOutput]
@@ -98,6 +99,7 @@ pub fn prepare_generated_sequence(
         contexts,
         retained_ids,
         join_ceilings: [],
+        expansion_ceilings: [],
         interval_search_ceilings: [],
         asof_search_ceilings: [],
         aggregate_outputs: [],
@@ -134,6 +136,7 @@ pub fn execute_generated_sequence(
     produced~,
     fragments=Some(generated.contexts),
     join_ceilings=generated.join_ceilings,
+    expansion_ceilings=generated.expansion_ceilings,
     interval_search_ceilings=generated.interval_search_ceilings,
     asof_search_ceilings=generated.asof_search_ceilings,
     aggregate_outputs=generated.aggregate_outputs,
@@ -229,6 +232,48 @@ pub fn generated_join_output_ceiling(
   step : Int,
 ) -> Int64? {
   selected_step_ceiling(generated.join_ceilings, step)
+}
+
+///|
+/// Narrow one exact unpivot or unnest output to the selected Host policy.
+/// Reapplying a ceiling cannot widen a previously selected bound.
+pub fn constrain_generated_expansion_output(
+  generated : GeneratedSequence,
+  step : Int,
+  ceiling : Int64,
+) -> Result[GeneratedSequence, SequenceRunIssue] {
+  if ceiling < 0L {
+    return Err(InvalidLimits)
+  }
+  guard @lower.sequence_step(generated.sequence, step)
+    is Some(@lower.RowStep(kernel)) &&
+    (
+      @lower.kernel_body(kernel) is @lower.Unpivot(_, _, _, _) ||
+      @lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _)
+    ) else {
+    return Err(InputSet)
+  }
+  let ceilings = generated.expansion_ceilings.copy()
+  for index, (prior_step, prior) in ceilings {
+    if prior_step == step {
+      ceilings[index] = (step, Int64::min(prior, ceiling))
+      return Ok({ ..generated, expansion_ceilings: ceilings, })
+    }
+  }
+  ceilings.push((step, ceiling))
+  Ok({ ..generated, expansion_ceilings: ceilings, })
+}
+
+///|
+fn selected_expansion_row_limit(
+  ceilings : Array[(Int, Int64)],
+  step : Int,
+  max_rows : Int,
+) -> Int {
+  match selected_step_ceiling(ceilings, step) {
+    Some(value) if value < max_rows.to_int64() => value.to_int()
+    _ => max_rows
+  }
 }
 
 ///|

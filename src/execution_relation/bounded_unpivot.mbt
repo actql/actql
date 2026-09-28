@@ -506,6 +506,11 @@ fn start_bounded_unpivot_input(
     unpivot_input_available(input) else {
     return Err(InvalidExecution)
   }
+  let max_rows = selected_expansion_row_limit(
+    generated.expansion_ceilings,
+    step,
+    max_rows,
+  )
   let width = @schema.field_count(unpivot_input_schema(input))
   let output_schema = @lower.kernel_output_schema(kernel)
   let output_width = @schema.field_count(output_schema)

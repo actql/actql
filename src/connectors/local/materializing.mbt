@@ -144,6 +144,7 @@ pub fn[E] prepare_local_materializing_execution(
   join_output_ceiling? : (Int, Int64)? = None,
   output_limits? : LocalExportLimits? = None,
   join_output_ceilings? : Array[(Int, Int64)] = [],
+  expansion_output_ceilings? : Array[(Int, Int64)] = [],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
   asof_search_ceilings? : Array[(Int, Int64)] = [],
   aggregate_output_ceilings? : Array[@connector.AggregateOutputCeiling] = [],
@@ -207,6 +208,7 @@ pub fn[E] prepare_local_materializing_execution(
     constrain_local_managed_sequence(
       sequence,
       join_output_ceilings=ceilings,
+      expansion_output_ceilings~,
       interval_search_ceilings~,
       asof_search_ceilings~,
       aggregate_output_ceilings~,

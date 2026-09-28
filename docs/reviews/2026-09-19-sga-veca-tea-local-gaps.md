@@ -636,7 +636,7 @@ multi-step Relation tasks are rejected.
 
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |
-| Other Relation obligations outside the selected bounded binary chains | In progress | The exact bounded Relation children listed below now discharge their checked obligations. Numeric-observation aggregates and other unlisted obligations remain closed to this retained lane. |
+| Other Relation obligations outside the selected bounded binary chains | In progress | The exact bounded Relation children listed below now discharge their checked obligations, including unpivot and unnest output envelopes. Numeric-observation aggregates and other unlisted obligations remain closed to this retained lane. |
 | SGA, TEA, and VecA retained outputs | Open | Connect their exact Carrier completion and retention obligations without widening the Relation-only allowance. |
 | Native Host in-flight cancellation | Separate completion unit | Do not count JS Host cancellation as native request delivery. |
 
@@ -668,6 +668,7 @@ the same evidence used to constrain the bounded evaluator.
 | Fixed `watermark_rows` | Selected watermark child | Exact watermark execution requirement |
 | `assert_rows` with a predicate or unique key | Selected assertion child | Exact row assertion requirement |
 | Dedupe with a top-tie check | Selected dedupe child | Exact dedupe top-tie requirement |
+| `unpivot` and `unnest` | Selected expansion child | Exact expansion execution and output envelope |
 
 The ordinary Host fixture keeps Append and each following operation in one
 producer task. It uses a real retained Store and publication service, then
@@ -676,6 +677,13 @@ row and order expectations. Its representative routes include sort, distinct,
 global and partitioned top-k, lag, dedupe, JSON pick, fixed watermark, row
 assertion, keyed count group, fixed row-window, cumulative count analytic, max
 pivot and fixed window group.
+The same retained Store fixture runs Append, unpivot or unnest, filter, and
+select in one producer task. It retrieves the producer and both consumer Named
+Results against independent ordered expectations. The selected checked output
+envelope narrows only the matching expansion step, not every row limit in the
+task. Direct bounded-kernel fixtures prove that an exact output-row ceiling
+succeeds and one short fails with `RowLimit` before publishing a partial
+completion; both clean up while retaining the source until its own release.
 The existing retained binary-chain fixture supplies the shared task owner,
 writer failure, finalize failure, cleanup retry and typed later-filter failure
 evidence; a group-child cancellation case enters that
@@ -703,8 +711,7 @@ The admission check rejects those variants before dispatch. Nor does this
 enable nonlinear tasks or arbitrary Carrier-family output. The existing
 selected Relation provider refuses a nonlinear sequence during planning.
 The remaining Relation work is to connect numeric observation ownership and
-to cover the other checked forms outside the table, including expansion
-output envelopes. SGA, TEA and VecA retained
+to cover the other checked forms outside the table. SGA, TEA and VecA retained
 outputs remain a separate Carrier completion unit.
 
 Native Host in-flight cancellation is outside this unit's acceptance
