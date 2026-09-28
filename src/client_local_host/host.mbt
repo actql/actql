@@ -23,6 +23,9 @@ pub fn open_source_free_local_host(
   per_pair_ms : Int64,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
+  provider_factory? : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ] = _ => [],
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   open_checked_local_host(
     prepared,
@@ -35,6 +38,7 @@ pub fn open_source_free_local_host(
     per_pair_ms,
     fragment_body~,
     ordered_body~,
+    provider_factory~,
   )
 }
 
@@ -52,6 +56,9 @@ pub fn open_captured_local_host(
   per_pair_ms : Int64,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
+  provider_factory? : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ] = _ => [],
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   open_checked_local_host(
     prepared,
@@ -64,6 +71,7 @@ pub fn open_captured_local_host(
     per_pair_ms,
     fragment_body~,
     ordered_body~,
+    provider_factory~,
   )
 }
 
@@ -79,6 +87,9 @@ fn open_checked_local_host(
   per_pair_ms : Int64,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
+  provider_factory? : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ] = _ => [],
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   if registry_body.length() > 100000 ||
     values_body.length() > 100000 ||
@@ -194,22 +205,9 @@ fn open_checked_local_host(
     max_value_bytes: 10000,
     common_fragment: None,
   }
-  let graph_limits : @graph_storage.Limits = {
-    max_input_rows: 100,
-    max_nodes: 100,
-    max_edges: 100,
-    max_value_bytes: 10000,
-    max_total_value_bytes: 10000,
-    max_retained_value_bytes: 10000,
-    max_value_nodes: 10000,
-    max_value_depth: 100,
-    max_contract_work: 10000,
-    max_work: 100000,
-    max_workspace_slots: 10000,
-  }
   let providers = match
     @execution.execution_capacity(retained_bytes, execution_bytes) {
-    Some(base) => [@local_sga_provider.provider(graph_limits, 10000L, base)]
+    Some(base) => provider_factory(base)
     None => return reject_client_local_run(run)
   }
   let local_configuration : @local_driver.LocalComputeConfiguration = {

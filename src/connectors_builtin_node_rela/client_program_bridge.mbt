@@ -206,6 +206,14 @@ pub fn client_program_task_count(
 }
 
 ///|
+#export_name("clientProgramUsesGraphCarrier")
+pub fn client_program_uses_graph_carrier(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Bool {
+  @publication_host.prepared_client_uses_graph_carrier(prepared)
+}
+
+///|
 #export_name("clientProgramSemanticsCid")
 pub fn client_program_semantics_cid(
   prepared : @publication_host.PreparedClientProgram,
@@ -2028,6 +2036,12 @@ pub fn client_program_admit_local_values_aoa_identity(
 
 ///|
 /// Open the portable installed Local Host from this JS ABI.
+fn installed_client_graph_providers(
+  _capacity : @execution.ExecutionCapacity,
+) -> Array[@local.ManagedProvider] { [] }
+
+///|
+/// Open the portable installed Local Host from this JS ABI.
 #export_name("clientProgramOpenSourceFreeLocalHost")
 pub fn client_program_open_source_free_local_host(
   prepared : @publication_host.PreparedClientProgram,
@@ -2050,6 +2064,7 @@ pub fn client_program_open_source_free_local_host(
     per_pair_ms,
     fragment_body~,
     ordered_body~,
+    provider_factory=installed_client_graph_providers,
   )
 }
 
@@ -2080,6 +2095,7 @@ pub fn client_program_open_captured_local_host(
     per_pair_ms,
     fragment_body~,
     ordered_body~,
+    provider_factory=installed_client_graph_providers,
   )
 }
 

@@ -2030,6 +2030,29 @@ pub fn client_program_admit_local_values_aoa_identity(
 
 ///|
 /// Open the portable installed Local Host from this JS ABI.
+// SELECTED_CLIENT_GRAPH_PROVIDER_BEGIN
+fn installed_client_graph_providers(
+  capacity : @execution.ExecutionCapacity,
+) -> Array[@local.ManagedProvider] {
+  let graph_limits : @graph_storage.Limits = {
+    max_input_rows: 100,
+    max_nodes: 100,
+    max_edges: 100,
+    max_value_bytes: 10000,
+    max_total_value_bytes: 10000,
+    max_retained_value_bytes: 10000,
+    max_value_nodes: 10000,
+    max_value_depth: 100,
+    max_contract_work: 10000,
+    max_work: 100000,
+    max_workspace_slots: 10000,
+  }
+  [@local_sga_provider.provider(graph_limits, 10000L, capacity)]
+}
+// SELECTED_CLIENT_GRAPH_PROVIDER_END
+
+///|
+/// Open the portable installed Local Host from this JS ABI.
 #export_name("clientProgramOpenSourceFreeLocalHost")
 pub fn client_program_open_source_free_local_host(
   prepared : @publication_host.PreparedClientProgram,
@@ -2052,6 +2075,7 @@ pub fn client_program_open_source_free_local_host(
     per_pair_ms,
     fragment_body~,
     ordered_body~,
+    provider_factory=installed_client_graph_providers,
   )
 }
 
@@ -2082,6 +2106,7 @@ pub fn client_program_open_captured_local_host(
     per_pair_ms,
     fragment_body~,
     ordered_body~,
+    provider_factory=installed_client_graph_providers,
   )
 }
 
