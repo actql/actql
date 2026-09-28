@@ -196,6 +196,7 @@ test('Run Definition and request acceptance survive one atomic restart',
       publicationControl);
     assert.deepEqual(attached.ref, accepted.ref);
     assert.equal(attached.durability, 'durable');
+    assert.equal(attached.requestId, fixture.requestId);
     assert.equal(attached.runDefinition.wire, definition.wire);
     for (const foreign of [
       {...accepted.ref, tenantId: 'tenant-b'},

@@ -12,7 +12,8 @@ import {prepareCompletedEffectFreeRunPublication} from
   '../host-common/run-publication-preflight.mjs';
 import {missingAuthorizationGate} from '../host-common/authorization-gate.mjs';
 import {completeCapturedEffectRun as completeEffectRun,
-  completeRecoveredEffectRun as completeRecoveredRun} from
+  completeRecoveredEffectRun as completeRecoveredRun,
+  completeInterruptedEffectRun as completeInterruptedRun} from
   './effect-run-completion.mjs';
 import {recoverAdmittedEffectRun as recoverAdmittedRun} from
   './effect-run-recovery.mjs';
@@ -204,6 +205,13 @@ export function createNodeHostEntry(loadRuntime, install) {
       }
       return completeRecoveredRun(options);
     },
+    completeInterruptedEffectRun: async (options, recovered) => {
+      const moon = await load();
+      if (options?.apply?.moon !== moon) {
+        throw new TypeError('InvalidCapturedEffectRunRuntime');
+      }
+      return completeInterruptedRun(options, recovered);
+    },
   });
 }
 
@@ -219,4 +227,6 @@ export const completeCapturedEffectRun =
   standard.completeCapturedEffectRun;
 export const completeRecoveredEffectRun =
   standard.completeRecoveredEffectRun;
+export const completeInterruptedEffectRun =
+  standard.completeInterruptedEffectRun;
 export const recoverAdmittedEffectRun = standard.recoverAdmittedEffectRun;

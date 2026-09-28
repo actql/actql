@@ -473,6 +473,10 @@ pub fn prepared_client_effect_identity(PreparedClientEffectComputation) -> Clien
 
 pub fn prepared_client_effect_request_scope(PreparedClientEffectComputation, ClientRequestIdentity) -> Result[@logical_request_scope.LogicalRequestScope, ClientRequestIdentityIssue]
 
+pub fn prepared_client_effect_result_count(PreparedClientEffectComputation) -> Int
+
+pub fn prepared_client_effect_result_name(PreparedClientEffectComputation, Int) -> String?
+
 pub fn prepared_client_effect_run_computation(PreparedClientEffectRun) -> PreparedClientEffectComputation
 
 pub fn prepared_client_effect_run_graph(PreparedClientEffectRun) -> @physical_strategy.CheckedEffectRunDAG

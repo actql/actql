@@ -4,6 +4,7 @@ import {issueAuthorizedEffectSetReceipt} from
   './effect-response-recovery.mjs';
 import {publishCompletedEffectfulRun} from
   '../host-common/completed-run-publication.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 const fail = () => {
   throw Object.assign(new Error('InvalidCapturedEffectRunCompletion'), {
@@ -14,7 +15,7 @@ const fail = () => {
 // The Host owns the ordering of common apply, durable outcome admission and
 // publication. A provider may supply physical dispatch and current observation,
 // but cannot substitute a Set Receipt or decide that unknown rows succeeded.
-async function complete({apply, receipt, publication, signal}, recovered) {
+function validateCompletion({apply, receipt, publication}, recovered) {
   if (!apply || !receipt || !publication ||
       apply.moon !== receipt.commonMoon ||
       apply.ledger !== receipt.ledger ||
@@ -37,9 +38,10 @@ async function complete({apply, receipt, publication, signal}, recovered) {
     receipt.preview);
   if (typeof subjectCid !== 'string' || subjectCid !== publicationCid ||
       receiptCid !== publicationCid) fail();
-  const progress = recovered
-    ? await applyRecoveredEffectSet({...apply, signal})
-    : await applyCapturedEffectSet({...apply, signal});
+}
+
+async function issueAndPublish({apply, receipt, publication, signal},
+  progress) {
   if (progress.status === 'waiting') {
     return Object.freeze({status: 'waiting', progress});
   }
@@ -65,6 +67,37 @@ async function complete({apply, receipt, publication, signal}, recovered) {
     }
     throw error;
   }
+}
+
+async function complete(options, recovered) {
+  validateCompletion(options, recovered);
+  const progress = recovered
+    ? await applyRecoveredEffectSet({...options.apply, signal: options.signal})
+    : await applyCapturedEffectSet({...options.apply, signal: options.signal});
+  return issueAndPublish(options, progress);
+}
+
+// Once a physical send is durably claimed, an observation failure cannot
+// reuse the consumed resume admission or turn the row into a fresh request.
+// A dispatching/unknown head is sufficient to issue the Set's uncertainty
+// receipt; it is not evidence that any external mutation succeeded.
+export function completeInterruptedEffectRun(options, recovered) {
+  validateCompletion(options, recovered);
+  const {apply, receipt} = options;
+  const control = runtimeCore(apply.moon).effectApplicationControl;
+  const uncertain = receipt.members.some(member =>
+    member.rowOwners.some(owner => {
+      const entry = apply.ledger.currentAdmitted(
+        control.logicalItemLocatorCid(owner.claim.locator));
+      return entry !== undefined &&
+        [1, 5].includes(control.ledgerEntryStateCode(entry));
+    }));
+  if (!uncertain) {
+    throw Object.assign(new Error('EffectRunNoUncertainSend'), {
+      code: 'EffectRunNoUncertainSend'});
+  }
+  return issueAndPublish(options, Object.freeze({status: 'interrupted',
+    dispatched: 0}));
 }
 
 export function completeCapturedEffectRun(options) {

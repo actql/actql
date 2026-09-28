@@ -2248,6 +2248,23 @@ pub fn client_program_effect_definition_cid(
 }
 
 ///|
+#export_name("clientProgramEffectResultCount")
+pub fn client_program_effect_result_count(
+  value : @publication_host.PreparedClientEffectComputation,
+) -> Int {
+  @publication_host.prepared_client_effect_result_count(value)
+}
+
+///|
+#export_name("clientProgramEffectResultName")
+pub fn client_program_effect_result_name(
+  value : @publication_host.PreparedClientEffectComputation,
+  index : Int,
+) -> String? {
+  @publication_host.prepared_client_effect_result_name(value, index)
+}
+
+///|
 /// One Effectful logical request before Run admission. An equal key with a
 /// changed checked Effect intent conflicts; neither this identity nor a
 /// prepared computation permits mutation dispatch.

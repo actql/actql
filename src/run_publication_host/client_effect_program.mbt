@@ -111,6 +111,28 @@ pub fn prepared_client_effect_computation_graph(
 }
 
 ///|
+/// The checked Result inventory is available before Run acceptance. Reading
+/// it does not compile a second Program or grant execution authority.
+pub fn prepared_client_effect_result_count(
+  value : PreparedClientEffectComputation,
+) -> Int {
+  @strategy.graph_result_count(
+    @strategy.checked_effect_computation_graph(value.graph),
+  )
+}
+
+///|
+pub fn prepared_client_effect_result_name(
+  value : PreparedClientEffectComputation,
+  index : Int,
+) -> String? {
+  @strategy.graph_result_name(
+    @strategy.checked_effect_computation_graph(value.graph),
+    index,
+  )
+}
+
+///|
 pub fn prepared_client_effect_computation_candidate(
   value : PreparedClientEffectComputation,
 ) -> @checked.EffectProgramStaticCandidate {

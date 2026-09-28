@@ -49,6 +49,8 @@ export type CheckpointAnswerResult = WireResolveResult;
 export type CheckpointSigner = Readonly<{
   keyId: string;
   reviewerId: string;
+  /** Exact authority scope for an Effect approval; verified by the Host. */
+  authorityScopeCid?: string;
   sign(bytes: Uint8Array): Uint8Array | string | Promise<Uint8Array | string>;
 }>;
 
