@@ -131,6 +131,20 @@ function frozenDecision(fields) {
   return Object.freeze(fields);
 }
 
+// Dispatch decisions a gate returned from `authorize` or `resume`, mapped to
+// the account configuration and principal of the gate that decided them.
+// A holder of the decision object can learn which admitted account
+// configuration decided it; a copied or constructed decision has no facts.
+// This is process-local custody of a decision the gate just returned, never
+// a durable approval: after a restart only the gate's own `resume` against
+// its journal decides again.
+const issuedDispatches = new WeakMap();
+
+export function authorizationDispatchFacts(decision) {
+  return decision !== null && typeof decision === 'object'
+    ? issuedDispatches.get(decision) : undefined;
+}
+
 // Decision-subject binding of a deferred decision: SHA-256 over the canonical
 // JSON of the ten-field decision subject projection (all members are strings;
 // keys sorted; ECMAScript string serialization is the canonical string form).
@@ -367,6 +381,12 @@ function gateFor(core, context) {
   core.capacity.scopes.add(closeScope);
   const count = (name, delta = 1) => { core.counts[name] += delta; };
   const record = decision => {
+    if (decision.action === 'dispatch' && core.configurationCid !== undefined &&
+        Object.isFrozen(decision) && !issuedDispatches.has(decision)) {
+      issuedDispatches.set(decision, Object.freeze({
+        configurationCid: core.configurationCid,
+        principal: context.principal}));
+    }
     if (decision.action === 'dispatch') count('protectedDispatches');
     else if (decision.action === 'deny') count('deniedBeforeDispatch');
     else if (decision.action === 'failure') count('decisionFailures');
