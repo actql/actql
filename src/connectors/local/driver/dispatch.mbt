@@ -18,6 +18,66 @@ fn local_task_slot(installed : LocalDispatchModule, task : Int) -> Int {
 }
 
 ///|
+/// Pure typed path decision for the next physical task. It does not admit a
+/// candidate or turn a Carrier generation into a row Store representation.
+pub fn local_dispatch_next_carrier_path(
+  installed : LocalDispatchModule,
+) -> Bool {
+  guard @strategy.next_captured_task(installed.run) is Some(task) else {
+    return false
+  }
+  local_dispatch_carrier_path(installed, task)
+}
+
+///|
+/// A row-file predecessor may be read through captured_task_input. A
+/// Carrier predecessor must supply its exact managed material instead.
+pub fn local_dispatch_predecessor_is_carrier(
+  installed : LocalDispatchModule,
+  producer : Int,
+) -> Bool {
+  let first = @strategy.captured_compute_first_task(installed.run)
+  if producer < first ||
+    producer >=
+    @strategy.graph_task_count(@strategy.captured_dag_graph(installed.run)) {
+    return false
+  }
+  @local.local_module_sequence_outputs_carrier(
+    installed.implementation,
+    local_task_slot(installed, producer),
+  )
+}
+
+///|
+/// Physical splitting can turn an internal Carrier step into a task input
+/// while the authored Stage input itself remains a Relation.
+fn local_dispatch_task_has_carrier_input(
+  installed : LocalDispatchModule,
+  task : Int,
+) -> Bool {
+  if @local.local_module_sequence_has_carrier_input(
+      installed.implementation,
+      local_task_slot(installed, task),
+    ) {
+    return true
+  }
+  let graph = @strategy.captured_dag_graph(installed.run)
+  let first = @strategy.captured_compute_first_task(installed.run)
+  for edge in 0..<@strategy.graph_data_count(graph) {
+    let input = @strategy.graph_data_at(graph, edge).unwrap()
+    if input.consumer == task &&
+      input.producer >= first &&
+      @local.local_module_sequence_outputs_carrier(
+        installed.implementation,
+        local_task_slot(installed, input.producer),
+      ) {
+      return true
+    }
+  }
+  false
+}
+
+///|
 priv enum LocalDispatchPlan {
   Materializing(
     @connector.PreparedExecution[

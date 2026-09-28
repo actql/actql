@@ -91,6 +91,18 @@ pub fn local_module_max_work(LocalComputeModule) -> Int
 
 pub fn local_module_measurement_limits(LocalComputeModule) -> @execution_relation.FixedInputGuardMeasureLimits
 
+pub fn local_module_sequence_contains_carrier_step(LocalComputeModule, Int) -> Bool
+
+pub fn local_module_sequence_has_carrier_input(LocalComputeModule, Int) -> Bool
+
+pub fn local_module_sequence_outputs_carrier(LocalComputeModule, Int) -> Bool
+
+pub fn local_sequence_contains_carrier_step(@execution_relation.GeneratedSequence) -> Bool
+
+pub fn local_sequence_has_carrier_input(@execution_relation.GeneratedSequence) -> Bool
+
+pub fn local_sequence_outputs_carrier(@execution_relation.GeneratedSequence) -> Bool
+
 pub fn managed_provider((@execution_relation.GeneratedSequence) -> Bool, (@execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?, (@execution_relation.GeneratedSequence, Array[@execution_relation.ProducerRead], Int, Int, @execution_relation.SequenceExecutionLimits) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]) -> ManagedProvider
 
 pub fn managed_provider_accepts(ManagedProvider, @execution_relation.GeneratedSequence) -> Bool

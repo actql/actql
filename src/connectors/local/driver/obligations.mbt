@@ -201,20 +201,69 @@ fn local_task_expansion_output_ceilings(
 }
 
 ///|
-/// A memory-only managed provider cannot discharge a retained-output offer.
-/// Keep unsupported tasks out of whole-graph planning before predecessors run.
+/// A row-only retained-output offer requires the file-capable implementation.
+/// A Carrier path can instead retain its typed managed generations, including
+/// Relation views produced by a formal Bridge. Policy ineligibility is never
+/// overridden by that alternative representation.
 fn local_dispatch_offer_supported(
   installed : LocalDispatchModule,
   task : Int,
 ) -> Bool {
+  if installed.estimate_configuration is Some(configuration) &&
+    configuration.eligible.get(task - 1) is Some(false) {
+    return false
+  }
   local_dispatch_rejection(installed, task) is None ||
   (
-    installed.output_policy is None &&
     @local.local_module_managed_sequence_supported(
       installed.implementation,
       local_task_slot(installed, task),
+    ) &&
+    (
+      installed.output_policy is None ||
+      local_dispatch_carrier_path(installed, task)
     )
   )
+}
+
+///|
+/// The bounded managed route stays selected for every descendant that must
+/// consume a managed Carrier or Relation generation from the same path.
+fn local_dispatch_carrier_path(
+  installed : LocalDispatchModule,
+  task : Int,
+) -> Bool {
+  let graph = @strategy.captured_dag_graph(installed.run)
+  let first = @strategy.captured_compute_first_task(installed.run)
+  let count = @strategy.graph_task_count(graph)
+  if task < first || task >= count {
+    return false
+  }
+  let path = Array::make(count, false)
+  for current in first..<=task {
+    path[current] = @local.local_module_sequence_outputs_carrier(
+        installed.implementation,
+        local_task_slot(installed, current),
+      ) ||
+      @local.local_module_sequence_contains_carrier_step(
+        installed.implementation,
+        local_task_slot(installed, current),
+      ) ||
+      local_dispatch_task_has_carrier_input(installed, current)
+    if !path[current] {
+      for edge in 0..<@strategy.graph_data_count(graph) {
+        let input = @strategy.graph_data_at(graph, edge).unwrap()
+        if input.consumer == current &&
+          input.producer >= first &&
+          input.producer < current &&
+          path[input.producer] {
+          path[current] = true
+          break
+        }
+      }
+    }
+  }
+  path[task]
 }
 
 ///|

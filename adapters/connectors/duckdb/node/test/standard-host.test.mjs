@@ -1654,6 +1654,35 @@ async function exerciseStrategyGraph(
       await rm(publicationDirectory, {recursive: true, force: true});
     }
   }
+  const createCarrierRetainedStore = async name => {
+    const directory = await mkdtemp(join(
+      root, `_build/duckdb-fixtures/${name}-retained-entry-`,
+    ));
+    const store = await createLocalRetainedStore({
+      parentDirectory: directory,
+      capacityBytes: 8 * 1024 * 1024,
+      maxFrameBytes: 1024 * 1024,
+    });
+    const leases = [];
+    const configuration = installLocalRetainedStore((key, bytes) => {
+      leases.push(key);
+      let writer, closed = false;
+      return Object.freeze({
+        status: () => ({reservedBytes: writer && !closed ? bytes : 0,
+          cleanupPending: false}),
+        reserve: value => (writer = store.reserve(value)),
+        close() { closed = true; writer?.cancel(); },
+        async cleanup() { await writer?.cleanupHandle?.retry?.(); },
+      });
+    });
+    return Object.freeze({
+      configuration, leases,
+      async close() {
+        await store.close();
+        await rm(directory, {recursive: true, force: true});
+      },
+    });
+  };
   const graphProgramBase = {
     version: 'actql/0.1',
     id: 'p',
@@ -1732,6 +1761,21 @@ async function exerciseStrategyGraph(
       {id: 1, node_name: 'first'},
       {id: 2, node_name: 'second'},
     ],
+  }, {
+    name: 'retained-node-rows',
+    retainedOutput: true,
+    steps: [{
+      from: 'g', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', filter: 'id > 1', as: 'filtered',
+    }, {
+      from: 'filtered', sort: [{id: 'desc'}], as: 'ordered',
+    }, {
+      from: 'ordered', take: {count: 1, offset: 0}, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [{id: 2, node_name: 'second'}],
   }, {
     name: 'node-rows-filter-sort-take',
     completedTasks: 9,
@@ -2023,7 +2067,8 @@ async function exerciseStrategyGraph(
     graphProgram.stages[4].results.r.fields = publicationCase.secondFields;
     graphProgram.stages[5].steps[0].select = [publicationCase.fields[0]];
     graphProgram.stages[5].results.r.fields = [publicationCase.fields[0]];
-    if (publicationCase.name === 'node-rows-filter-sort-take') {
+    if (publicationCase.name === 'node-rows-filter-sort-take' ||
+        publicationCase.retainedOutput) {
       graphProgram.results.consumed_a = {
         from: {stage: 'consumer_a', result: 'r'},
       };
@@ -2049,6 +2094,9 @@ async function exerciseStrategyGraph(
       root,
       '_build/duckdb-fixtures/sga-publication-entry-',
     ));
+    const sgaRetained = publicationCase.retainedOutput
+      ? await createCarrierRetainedStore('sga')
+      : undefined;
     let sgaPublicationOwner;
     let sgaPublicationStore;
     try {
@@ -2056,12 +2104,15 @@ async function exerciseStrategyGraph(
         fixture.strategyFixtureOpen(sgaFixture, sgaCapture.source()),
         true,
       );
-      const setup = fixture.strategyFixtureSgaSubset(sgaFixture);
+      const setup = publicationCase.retainedOutput
+        ? fixture.strategyFixtureSgaRetainedSubset(sgaFixture)
+        : fixture.strategyFixtureSgaSubset(sgaFixture);
       const runtime = runtimeCore(hostRuntime);
       const resultCount = runtime.resultInventory(setup).length;
       assert.equal(
         resultCount,
-        publicationCase.name === 'node-rows-filter-sort-take' ? 3 : 1,
+        publicationCase.name === 'node-rows-filter-sort-take' ||
+          publicationCase.retainedOutput ? 3 : 1,
       );
       sgaPublicationStore = await openLocalPublicationStore({
         directory: sgaPublicationDirectory,
@@ -2081,7 +2132,8 @@ async function exerciseStrategyGraph(
       sgaPublicationOwner = await runPublishedCapturedStrategy(
         setup,
         {store: sgaPublicationStore, plan},
-        {},
+        sgaRetained === undefined
+          ? {} : {local: sgaRetained.configuration},
         new AbortController().signal,
       );
       assert.equal(sgaPublicationOwner.status, 'published');
@@ -2089,12 +2141,22 @@ async function exerciseStrategyGraph(
         sgaPublicationOwner.publication.publication.state,
         'succeeded',
       );
-      assert.deepEqual(
-        sgaPublicationOwner.execution.completed.map(value => value.realization),
-        Array(publicationCase.completedTasks ??
-          (publicationCase.name === 'node-rows' ? 6 : 5))
-          .fill('local-managed'),
-      );
+      if (!publicationCase.retainedOutput) {
+        assert.deepEqual(
+          sgaPublicationOwner.execution.completed.map(value => value.realization),
+          Array(publicationCase.completedTasks ??
+            (publicationCase.name === 'node-rows' ? 6 : 5))
+            .fill('local-managed'),
+        );
+      } else {
+        assert(sgaRetained.leases.length > 0);
+        assert(sgaPublicationOwner.execution.completed.some(value =>
+          value.outputRepresentation === 'retained-file'));
+        assert(sgaPublicationOwner.execution.completed.some(value =>
+          value.outputRepresentation === 'managed-local-carrier'));
+        assert(sgaPublicationOwner.execution.completed.some(value =>
+          value.outputRepresentation === 'managed-local-memory'));
+      }
       if (publicationCase.name === 'node-rows-filter-sort-take') {
         assert.deepEqual(
           sgaPublicationOwner.execution.completed.map(value => value.task),
@@ -2103,9 +2165,11 @@ async function exerciseStrategyGraph(
       }
       const expectedResults = {
         published: publicationCase.expected,
-        ...(publicationCase.name === 'node-rows-filter-sort-take' ? {
-          consumed_a: [{id: 2, node_name: 'second'}],
-          consumed_b: [{node_name: 'second'}],
+        ...(publicationCase.name === 'node-rows-filter-sort-take' ||
+          publicationCase.retainedOutput ? {
+          consumed_a: publicationCase.expected,
+          consumed_b: publicationCase.expected.map(
+            row => ({node_name: row.node_name})),
         } : {}),
       };
       for (const occurrence of
@@ -2136,6 +2200,7 @@ async function exerciseStrategyGraph(
       sgaCapture.close();
       await sgaPublicationStore?.close();
       await rm(sgaPublicationDirectory, {recursive: true, force: true});
+      await sgaRetained?.close();
     }
   }
   const vectorExpressionProgram = {
@@ -2375,7 +2440,11 @@ async function exerciseStrategyGraph(
         r: {from: 'out', fields: ['watermark_decision', 'event_id']},
       },
     }],
-    results: {published: {from: {stage: 'events', result: 'r'}}},
+    results: {
+      published: {from: {stage: 'events', result: 'r'}},
+      consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
+      consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
+    },
   };
   const eventPublicationFixture = fixture.strategyFixtureTeaCreate(
     ...args,
@@ -2390,6 +2459,7 @@ async function exerciseStrategyGraph(
     root,
     '_build/duckdb-fixtures/event-publication-entry-',
   ));
+  const eventRetained = await createCarrierRetainedStore('event');
   let eventPublicationOwner;
   let eventPublicationStore;
   try {
@@ -2400,10 +2470,12 @@ async function exerciseStrategyGraph(
       ),
       true,
     );
-    const setup = fixture.strategyFixtureTeaSubset(eventPublicationFixture);
+    const setup = fixture.strategyFixtureTeaRetainedSubset(
+      eventPublicationFixture,
+    );
     const runtime = runtimeCore(hostRuntime);
     const resultCount = runtime.resultInventory(setup).length;
-    assert.equal(resultCount, 1);
+    assert.equal(resultCount, 3);
     eventPublicationStore = await openLocalPublicationStore({
       directory: eventPublicationDirectory,
       storeAuthorityCid: hash('event-publication-store'),
@@ -2422,7 +2494,7 @@ async function exerciseStrategyGraph(
     eventPublicationOwner = await runPublishedCapturedStrategy(
       setup,
       {store: eventPublicationStore, plan},
-      {},
+      {local: eventRetained.configuration},
       new AbortController().signal,
     );
     assert.equal(eventPublicationOwner.status, 'published');
@@ -2430,24 +2502,17 @@ async function exerciseStrategyGraph(
       eventPublicationOwner.publication.publication.state,
       'succeeded',
     );
-    assert.deepEqual(
-      eventPublicationOwner.execution.completed.map(
-        value => value.realization,
-      ),
-      Array(4).fill('local-managed'),
-    );
-    const occurrence = eventPublicationOwner.execution
-      .publicationInventory.occurrences[0];
-    const received = [];
-    await eventPublicationStore.consumeCommittedResult({
-      tenantId: plan.request.tenantId,
-      authorityScopeCid: plan.request.authorityScopeCid,
-      runDefinitionCid: plan.runDefinition.identity,
-    }, occurrence.definitionContract.identity, () => true,
-    chunk => received.push(Buffer.from(chunk)));
-    assert.deepEqual(
-      JSON.parse(Buffer.concat(received).toString('utf8')),
-      [{
+    assert(eventRetained.leases.length > 0);
+    assert(eventPublicationOwner.execution.completed.some(value =>
+      value.outputRepresentation === 'retained-file'));
+    // The Events generation stays private within this task; only its formal
+    // Relation Bridge output is handed to the downstream tasks.
+    assert.equal(eventPublicationOwner.execution.completed.filter(value =>
+      value.outputRepresentation === 'managed-local-carrier').length, 0);
+    assert(eventPublicationOwner.execution.completed.some(value =>
+      value.outputRepresentation === 'managed-local-memory'));
+    const expectedResults = {
+      published: [{
         event_id: 1,
         occurred_at: 5,
         payload: 'first',
@@ -2462,7 +2527,29 @@ async function exerciseStrategyGraph(
         late: false,
         watermark_decision: 'keep',
       }],
-    );
+      consumed_a: [
+        {event_id: 1, late: true},
+        {event_id: 2, late: false},
+      ],
+      consumed_b: [
+        {watermark_decision: 'mark', event_id: 1},
+        {watermark_decision: 'keep', event_id: 2},
+      ],
+    };
+    for (const occurrence of eventPublicationOwner.execution
+      .publicationInventory.occurrences) {
+      const received = [];
+      await eventPublicationStore.consumeCommittedResult({
+        tenantId: plan.request.tenantId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, occurrence.definitionContract.identity, () => true,
+      chunk => received.push(Buffer.from(chunk)));
+      assert.deepEqual(
+        JSON.parse(Buffer.concat(received).toString('utf8')),
+        expectedResults[occurrence.name],
+      );
+    }
   } finally {
     if (eventPublicationOwner !== undefined) {
       await eventPublicationOwner.close();
@@ -2477,6 +2564,7 @@ async function exerciseStrategyGraph(
     eventCapture.close();
     await eventPublicationStore?.close();
     await rm(eventPublicationDirectory, {recursive: true, force: true});
+    await eventRetained.close();
   }
   const carrierVectorPublicationProgram = {
     version: 'actql/0.1',
@@ -2535,7 +2623,11 @@ async function exerciseStrategyGraph(
       steps: [{select: ['embedding', 'id'], as: 'out'}],
       results: {r: {from: 'out', fields: ['embedding', 'id']}},
     }],
-    results: {published: {from: {stage: 'vectors', result: 'r'}}},
+    results: {
+      published: {from: {stage: 'vectors', result: 'r'}},
+      consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
+      consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
+    },
   };
   const carrierVectorPublicationFixture = fixture.strategyFixtureVecaCreate(
     ...args,
@@ -2551,6 +2643,7 @@ async function exerciseStrategyGraph(
     root,
     '_build/duckdb-fixtures/carrier-vector-publication-entry-',
   ));
+  const carrierVectorRetained = await createCarrierRetainedStore('vector');
   let carrierVectorPublicationOwner;
   let carrierVectorPublicationStore;
   try {
@@ -2561,12 +2654,12 @@ async function exerciseStrategyGraph(
       ),
       true,
     );
-    const setup = fixture.strategyFixtureVecaSubset(
+    const setup = fixture.strategyFixtureVecaRetainedSubset(
       carrierVectorPublicationFixture,
     );
     const runtime = runtimeCore(hostRuntime);
     const resultCount = runtime.resultInventory(setup).length;
-    assert.equal(resultCount, 1);
+    assert.equal(resultCount, 3);
     carrierVectorPublicationStore = await openLocalPublicationStore({
       directory: carrierVectorPublicationDirectory,
       storeAuthorityCid: hash('carrier-vector-publication-store'),
@@ -2585,7 +2678,7 @@ async function exerciseStrategyGraph(
     carrierVectorPublicationOwner = await runPublishedCapturedStrategy(
       setup,
       {store: carrierVectorPublicationStore, plan},
-      {},
+      {local: carrierVectorRetained.configuration},
       new AbortController().signal,
     );
     assert.equal(carrierVectorPublicationOwner.status, 'published');
@@ -2593,28 +2686,44 @@ async function exerciseStrategyGraph(
       carrierVectorPublicationOwner.publication.publication.state,
       'succeeded',
     );
-    assert.deepEqual(
-      carrierVectorPublicationOwner.execution.completed.map(
-        value => value.realization,
-      ),
-      Array(4).fill('local-managed'),
-    );
-    const occurrence = carrierVectorPublicationOwner.execution
-      .publicationInventory.occurrences[0];
-    const received = [];
-    await carrierVectorPublicationStore.consumeCommittedResult({
-      tenantId: plan.request.tenantId,
-      authorityScopeCid: plan.request.authorityScopeCid,
-      runDefinitionCid: plan.runDefinition.identity,
-    }, occurrence.definitionContract.identity, () => true,
-    chunk => received.push(Buffer.from(chunk)));
-    assert.deepEqual(
-      JSON.parse(Buffer.concat(received).toString('utf8')),
-      [
+    assert(carrierVectorRetained.leases.length > 0);
+    assert(carrierVectorPublicationOwner.execution.completed.some(value =>
+      value.outputRepresentation === 'retained-file'));
+    // The Vectors generation remains private to the stage that publishes the
+    // formal Relation view; this case checks its mixed retained handoff.
+    assert.equal(carrierVectorPublicationOwner.execution.completed.filter(
+      value => value.outputRepresentation === 'managed-local-carrier'
+    ).length, 0);
+    assert(carrierVectorPublicationOwner.execution.completed.some(value =>
+      value.outputRepresentation === 'managed-local-memory'));
+    const expectedResults = {
+      published: [
         {id: 1, embedding: [0.6000000238418579, 0.800000011920929]},
         {id: 2, embedding: [0, 1]},
       ],
-    );
+      consumed_a: [
+        {id: 1, embedding: [0.6000000238418579, 0.800000011920929]},
+        {id: 2, embedding: [0, 1]},
+      ],
+      consumed_b: [
+        {embedding: [0.6000000238418579, 0.800000011920929], id: 1},
+        {embedding: [0, 1], id: 2},
+      ],
+    };
+    for (const occurrence of carrierVectorPublicationOwner.execution
+      .publicationInventory.occurrences) {
+      const received = [];
+      await carrierVectorPublicationStore.consumeCommittedResult({
+        tenantId: plan.request.tenantId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, occurrence.definitionContract.identity, () => true,
+      chunk => received.push(Buffer.from(chunk)));
+      assert.deepEqual(
+        JSON.parse(Buffer.concat(received).toString('utf8')),
+        expectedResults[occurrence.name],
+      );
+    }
   } finally {
     if (carrierVectorPublicationOwner !== undefined) {
       await carrierVectorPublicationOwner.close();
@@ -2636,10 +2745,14 @@ async function exerciseStrategyGraph(
       recursive: true,
       force: true,
     });
+    await carrierVectorRetained.close();
   }
   const scoredVectorPublicationProgram = structuredClone(
     carrierVectorPublicationProgram,
   );
+  scoredVectorPublicationProgram.results = {
+    published: {from: {stage: 'vectors', result: 'r'}},
+  };
   scoredVectorPublicationProgram.stages[1].steps[0].values.rows = [
     {id: 1, embedding: [3, 4]},
     {id: 2, embedding: [0, 5]},
@@ -2770,6 +2883,9 @@ async function exerciseStrategyGraph(
   const pooledVectorPublicationProgram = structuredClone(
     carrierVectorPublicationProgram,
   );
+  pooledVectorPublicationProgram.results = {
+    published: {from: {stage: 'vectors', result: 'r'}},
+  };
   pooledVectorPublicationProgram.stages[1].steps[0].values.schema.group =
     {type: 'number', nullable: false};
   pooledVectorPublicationProgram.stages[1].steps[0].values.rows = [
@@ -2989,6 +3105,24 @@ async function exerciseStrategyGraph(
     advanceQuantum: 1,
     cancelOnManagedStart: 5,
     managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', filter: 'id > 0', as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'normalize-retained-filter',
+    retainedOutput: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    constructionStarts: [1],
+    cancelOnManagedStart: 4,
+    managedStarts: 4,
     completedTasks: [1, 2, 3, 4],
     steps: [{
       from: 'g', normalize_graph: true, as: 'normalized',
@@ -4731,7 +4865,8 @@ async function exerciseStrategyGraph(
     const completedRowsByStart = new Map();
     const boundedValuesInputs = cancellationCase.family === 'interval' ||
       cancellationCase.family === 'asof';
-    const constructionStarts = boundedValuesInputs ? [3, 4] : [2];
+    const constructionStarts = cancellationCase.constructionStarts ??
+      (boundedValuesInputs ? [3, 4] : [2]);
     const expectedManagedStarts = cancellationCase.managedStarts ??
       (cancellationCase.family === 'time-series' ? 1 : 2);
     let maxSortResumeMs = 0;
@@ -4740,6 +4875,9 @@ async function exerciseStrategyGraph(
     const advanceObservations = [];
     const finalizationObservations = [];
     const lifecycleObservations = [];
+    const cancellationRetained = cancellationCase.retainedOutput
+      ? await createCarrierRetainedStore('cancel-graph')
+      : undefined;
     graphCancellation.signal.addEventListener('abort', () => {
       cancellationDeliveredAt = performance.now();
     }, {once: true});
@@ -4755,7 +4893,9 @@ async function exerciseStrategyGraph(
         ? fixture.strategyFixtureTeaSubset(cancellationFixture)
         : vecaFamily
           ? fixture.strategyFixtureVecaSubset(cancellationFixture)
-          : fixture.strategyFixtureSgaSubset(cancellationFixture);
+          : cancellationCase.retainedOutput
+            ? fixture.strategyFixtureSgaRetainedSubset(cancellationFixture)
+            : fixture.strategyFixtureSgaSubset(cancellationFixture);
       assert.equal(
         hostRuntime.strategyHostConfigureManagedIdentity(
           setup,
@@ -4891,7 +5031,7 @@ async function exerciseStrategyGraph(
         observedRuntime,
         setup,
         checked,
-        undefined,
+        cancellationRetained?.configuration,
       );
       cancellationExecution = await runInstalledStrategy(
         setup,
@@ -4939,6 +5079,9 @@ async function exerciseStrategyGraph(
         assert(selectedSortReportedWork > 0n);
       }
       assert.equal(graphCancellation.signal.aborted, true);
+      if (cancellationRetained !== undefined) {
+        assert(cancellationRetained.leases.length > 0);
+      }
       assert.equal(Number.isFinite(cancellationDeliveredAt), true);
       assert.equal(Number.isFinite(stopObservedAt), true);
       assert(stopObservedAt >= cancellationDeliveredAt);
@@ -5029,6 +5172,7 @@ async function exerciseStrategyGraph(
           0n,
         );
       }
+      await cancellationRetained?.close();
     }
   }
   const rejectedPublicationFixture = fixture.strategyFixtureCreate(

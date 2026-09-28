@@ -24,7 +24,10 @@ pub fn[E] local_compute_contribution(
         task in @strategy.captured_compute_first_task(installed.run)..<@strategy.graph_task_count(
           graph,
         ) {
-        if local_dispatch_rejection(installed, task) is Some(reason) {
+        if !local_dispatch_offer_supported(installed, task) {
+          let reason = local_dispatch_rejection(installed, task).unwrap_or(
+            "unsupported_output_representation",
+          )
           if excluded.length() >= max_entries {
             return None
           }

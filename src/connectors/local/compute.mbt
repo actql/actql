@@ -17,6 +17,65 @@ fn local_fixed_task_target(
 }
 
 ///|
+/// A retained Store file is a Relation representation. Carrier outputs keep
+/// their typed managed generation instead of being relabelled as row files.
+pub fn local_sequence_outputs_carrier(
+  sequence : @execution.GeneratedSequence,
+) -> Bool {
+  let prepared = @lower.bound_preparation(
+    @execution.generated_sequence_owner(sequence),
+  )
+  guard local_fixed_task_target(
+      sequence,
+      @execution.generated_sequence_owner(sequence),
+    )
+    is Some(target) &&
+    @lower.preparation_carrier_at(prepared, target) is Some(output) else {
+    return false
+  }
+  @carrier.kind(output) != @carrier.RelationKind
+}
+
+///|
+/// A task may produce and consume a Carrier before its final Relation view.
+/// Retained row files cannot represent that intermediate typed generation.
+pub fn local_sequence_contains_carrier_step(
+  sequence : @execution.GeneratedSequence,
+) -> Bool {
+  let prepared = @lower.bound_preparation(
+    @execution.generated_sequence_owner(sequence),
+  )
+  for index in 0..<@execution.generated_sequence_step_count(sequence) {
+    if @execution.generated_sequence_step_index_at(sequence, index)
+      is Some(step) &&
+      @lower.preparation_carrier_at(prepared, @pipeline.Step(step))
+      is Some(output) &&
+      @carrier.kind(output) != @carrier.RelationKind {
+      return true
+    }
+  }
+  false
+}
+
+///|
+/// A Carrier input requires its typed managed view even when the output is a
+/// Relation. A row-only materializing attempt cannot consume that view.
+pub fn local_sequence_has_carrier_input(
+  sequence : @execution.GeneratedSequence,
+) -> Bool {
+  let prepared = @lower.bound_preparation(
+    @execution.generated_sequence_owner(sequence),
+  )
+  for index in 0..<@lower.preparation_input_count(prepared) {
+    if @lower.preparation_input_carrier(prepared, index) is Some(input) &&
+      @carrier.kind(input) != @carrier.RelationKind {
+      return true
+    }
+  }
+  false
+}
+
+///|
 /// Local connector inventory: preparation, receiving admission, computation, retained
 /// output, cleanup. The existing driver still enforces selected fragment limits.
 pub fn local_fixed_compute_candidate(

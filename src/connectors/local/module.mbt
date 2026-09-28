@@ -476,6 +476,35 @@ pub fn local_module_managed_sequence_supported(
 }
 
 ///|
+/// Exact output kind of the installed physical task, including a selected
+/// prefix whose target differs from the final Stage target.
+pub fn local_module_sequence_outputs_carrier(
+  installed : LocalComputeModule,
+  slot : Int,
+) -> Bool {
+  guard installed.sequences.get(slot) is Some(sequence) else { return false }
+  local_sequence_outputs_carrier(sequence)
+}
+
+///|
+pub fn local_module_sequence_contains_carrier_step(
+  installed : LocalComputeModule,
+  slot : Int,
+) -> Bool {
+  guard installed.sequences.get(slot) is Some(sequence) else { return false }
+  local_sequence_contains_carrier_step(sequence)
+}
+
+///|
+pub fn local_module_sequence_has_carrier_input(
+  installed : LocalComputeModule,
+  slot : Int,
+) -> Bool {
+  guard installed.sequences.get(slot) is Some(sequence) else { return false }
+  local_sequence_has_carrier_input(sequence)
+}
+
+///|
 pub fn local_module_managed_capacity(
   installed : LocalComputeModule,
 ) -> @connector.FixedComputeCapacity {

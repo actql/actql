@@ -691,6 +691,10 @@ pub fn local_managed_supplied_relation_input() -> @actql/actql/connectors/local/
 
 pub fn local_managed_uses_provider(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> Bool
 
+pub fn local_next_carrier_path(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
+
+pub fn local_predecessor_is_carrier(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Bool
+
 pub fn local_registration(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @connector_sdk.CapabilityRegistration
 
 pub fn physical_manifest_admit(String, String, String, String, Int, Array[String], Array[Int64], Array[Int], Int, Int, Int64) -> Array[String]
