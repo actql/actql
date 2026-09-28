@@ -17,6 +17,7 @@ const entries = [
   'adapters/host-node/client-request-lookup.mjs',
   'adapters/host-node/client-run-start.mjs',
   'adapters/host-node/client-effect-run.mjs',
+  'adapters/host-node/installed-effect-site.mjs',
   'adapters/host-node/client-run-attach.mjs',
   'adapters/host-node/client-program-preparation.mjs',
   'adapters/host-node/result-access.mjs',

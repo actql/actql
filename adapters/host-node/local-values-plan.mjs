@@ -1,6 +1,7 @@
 // Bind the installed source-free compiler to the common Run and publication
 // owner. Physical Local policy CIDs are stable identities of this Host profile.
 import {createHash, randomUUID} from 'node:crypto';
+import {checked} from '../host-common/runtime-result.mjs';
 
 // Contract and evidence issuance bounds. A captured Run's Named Result
 // snapshot is admitted under them too, so they hold what one captured Run can
@@ -29,11 +30,14 @@ const instant = value => new Date(value).toISOString();
 function localPublicationPlan({control, admission, runDefinition, invocation,
   observation, compiledPlanCid, programDefinitionCid, inputRelationCids,
   sourceEvidence, authorityScopeCid, tenantId, storeAuthorityCid,
-  dataPolicyCid, createdAt, now, resultCount}) {
+  dataPolicyCid, createdAt, now, resultCount, retainUntil}) {
   const at = Date.parse(now());
-  const availableUntil = instant(at + 60 * 60 * 1000);
-  const deleteBy = instant(at + 2 * 60 * 60 * 1000);
-  const metadataDeleteBy = instant(at + 7 * 24 * 60 * 60 * 1000);
+  const availableAt = retainUntil === undefined ? at + 60 * 60 * 1000
+    : Math.max(at + 60 * 60 * 1000, Date.parse(retainUntil));
+  const availableUntil = instant(availableAt);
+  const deleteBy = instant(availableAt + 60 * 60 * 1000);
+  const metadataDeleteBy = instant(Math.max(at + 7 * 24 * 60 * 60 * 1000,
+    availableAt + 2 * 60 * 60 * 1000));
   const retention = control.seal('result_retention_policy', JSON.stringify({
     version: 'actql-result-retention-policy/0.1',
     retention_contract_cid: policyCid('local-result-retention'),
@@ -74,6 +78,49 @@ function localPublicationPlan({control, admission, runDefinition, invocation,
       externalIdempotencyKey: undefined, startedAt: createdAt}),
     outputLimits: localOutputLimits, contractLimits: limits, now,
   });
+}
+
+// The Effect Run acceptance owner already compiled and admitted this Run.
+// Reuse its exact compiler outputs; do not prepare or compile another Program
+// to reconstruct publication evidence. Captured inputs must outlive approval
+// waiting, so retention covers the admitted Run's validity window.
+export function sourceFreeEffectPublicationPlan({moon, control, prepared,
+  compilation, allowed, definition, authorityScopeCid, tenantId,
+  storeAuthorityCid, now}) {
+  const template = control.admitRunEvidence('bound_invocation_template',
+    moon.clientProgramEffectCompilationTemplateWire(compilation), limits);
+  const preparedEvidence = control.admitRunEvidence('prepared_invocation',
+    moon.strategyRunEvidenceJson(
+      moon.clientProgramAllowedEffectRunPrepared(allowed)), limits);
+  const authorization = control.admitRunEvidence('run_authorization',
+    moon.strategyRunEvidenceJson(
+      moon.clientProgramAllowedEffectRunAuthorization(allowed)), limits);
+  const compiledPlan = control.admit('compiled_plan',
+    moon.clientProgramEffectCompilationCompiledPlanWire(compilation), limits);
+  const admission = control.admitCheckedClientEffectRunPublication(prepared,
+    template, preparedEvidence, authorization, compiledPlan);
+  const runDefinition = control.admit('run_definition',
+    moon.strategyPublicationContractJson(definition), limits);
+  const dataPolicyCid = policyCid('local-result-data');
+  const sourceFree = checked(moon.clientProgramIssueEffectSourceFreeInvocation(
+    compilation, dataPolicyCid, limits.maxWireBytes, limits.maxNodes,
+    limits.maxDepth));
+  const observation = control.admitRunEvidence('observation_set',
+    moon.strategyRunEvidenceJson(sourceFree._0), limits);
+  const invocation = control.admit('run_invocation',
+    moon.strategyPublicationContractJson(sourceFree._1), limits);
+  const run = JSON.parse(runDefinition.wire);
+  const resultCount = moon.clientProgramEffectCompilationResultNames(
+    compilation).length;
+  const plan = localPublicationPlan({control, admission, runDefinition,
+    invocation, observation, compiledPlanCid: compiledPlan.identity,
+    programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
+    inputRelationCids: [], sourceEvidence: [], authorityScopeCid, tenantId,
+    storeAuthorityCid, dataPolicyCid, createdAt: run.created_at, now,
+    resultCount, retainUntil: run.valid_until});
+  return Object.freeze({...plan, invocationOwner: sourceFree._1,
+    localEvidenceContext: Object.freeze({admission, runDefinition,
+      runInvocation: invocation, observation})});
 }
 
 export function sourceFreeValuesPlan({moon, control, preparedProgram,
