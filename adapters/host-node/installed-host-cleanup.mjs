@@ -67,3 +67,74 @@ export async function retainInstalledHostInitializationFailure(cause,
   await retry();
   return failure;
 }
+
+// Once dispatch and Checkpoint owners have stopped, these resource closures
+// are independent. A failed close retains only that owner for the next call;
+// another adapter or the Store must not be skipped or closed twice.
+export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
+  journal, source, effect, store}) {
+  const completed = new Set();
+  const pending = Object.freeze(['stop', 'drain', 'retire', 'checkpoint',
+    'journal', 'source', 'effect', 'store']);
+  let flight;
+  let checkpointResult;
+  let storeCleanupPending = false;
+  const status = () => Object.freeze({pending: pending.filter(name =>
+    !completed.has(name))});
+  async function attempt(name, action) {
+    if (completed.has(name)) return undefined;
+    const result = await action();
+    completed.add(name);
+    return result;
+  }
+  async function closeOnce() {
+    await attempt('stop', stop);
+    await attempt('drain', drain);
+    await attempt('retire', retire);
+    const completedCheckpoint = await attempt('checkpoint', checkpoint);
+    if (completedCheckpoint !== undefined) {
+      checkpointResult = completedCheckpoint;
+    }
+    const failures = [];
+    for (const [name, action] of [['journal', journal],
+      ['source', source], ['effect', effect], ['store', store]]) {
+      try {
+        await attempt(name, action);
+        if (name === 'store') storeCleanupPending = false;
+      } catch (error) {
+        if (name === 'store' &&
+            error?.code === 'PublicationStoreCleanupPending') {
+          storeCleanupPending = true;
+        }
+        failures.push(Object.freeze({owner: name, error}));
+      }
+    }
+    if (failures.length > 0) {
+      const error = Object.assign(new AggregateError(
+        failures.map(item => item.error), 'InstalledHostCleanupPending'),
+      {code: 'InstalledHostCleanupPending', cleanupErrors: failures,
+        cleanupPending: status().pending.length > 0,
+        storeCleanupPending});
+      error.cleanupHandle = Object.freeze({status, retry: close});
+      throw error;
+    }
+    return Object.freeze({storeCleanupPending,
+      pendingRetention: checkpointResult?.pendingRetention ?? [],
+      authorizationCleanupPending:
+        checkpointResult?.pendingAuthorization ?? false});
+  }
+  function close() {
+    if (flight !== undefined) return flight;
+    flight = closeOnce().catch(error => {
+      // stop/drain/retire/checkpoint failures also leave an owned shutdown.
+      // The caller may retry without reopening either installed adapter.
+      if (error.cleanupHandle === undefined) {
+        error.cleanupHandle = Object.freeze({status, retry: close});
+      }
+      error.cleanupPending = status().pending.length > 0;
+      throw error;
+    }).finally(() => { flight = undefined; });
+    return flight;
+  }
+  return Object.freeze({close, status});
+}
