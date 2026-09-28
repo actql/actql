@@ -1,6 +1,7 @@
 # Installed Host Effect commit Checkpoints
 
-Base: `5c2cebdaa7931a8680b43fc0fb4a4324151f77f8` (main after PR #21).
+Original base: `5c2cebdaa7931a8680b43fc0fb4a4324151f77f8`.
+Current PR base: `805a29c5f1936cb1ac52ebba2cbb8cce62f5e0b9`.
 Branch: `feat/host-effect-commit-checkpoint`.
 
 ## Agreed completion scope
@@ -52,12 +53,28 @@ no unanswerable Checkpoint, and no permanently running Run. It uses a trusted
 Site observation rather than the full captured/apply factory. Read allow and
 immediate delegated permit remain subject to current admission.
 
-At code SHA `c4335405ddb0d19c18b25ef2728903f90f8a3699`, the installed
-Host/Checkpoint focused suite passed 37/37 locally. It uses a deterministic
+The installed Host/Checkpoint focused suite passed 33/33 at rebased code SHA
+`64174903cb0a439677656ebb89891f1eee1e3eae`. It uses a deterministic
 reference Effect dispatcher, real HTTPS Host, SQLite journals, and the product
-MoonBit controls; it does not use a live Salesforce org. This SHA has not yet
-passed the complete Client gate or Linux CI. The branch has not been pushed
-or merged.
+MoonBit controls; it does not use a live Salesforce org. The full Salesforce
+Site suite passed 200/200 after the published-source-holding fix. The Host
+checks passed through the packed Run
+Host admission; package packing then hit the local home-directory npm-cache
+permission error. Packing and packed Local assets passed separately with a
+worktree-local cache. The lint and spec jobs passed; common MoonBit JS and
+Wasm passed 6,785/6,785 and 6,782/6,782. Native type checks and the changed
+Run-publication package's 15 tests passed. The full native suite was stopped
+under severe local machine load and is not counted as passed.
+
+The Client job passed its 206 tests and packed Node/browser smoke, then the
+packed Checkpoint cancellation case reached a still-held capture before its
+old resume lease could retire. The test retains the physical-retirement
+assertion and now allows 90 seconds for a loaded runner to expire the lease
+and sweep. A standalone retry was stopped under the same severe local load
+before that case. The final packed test and full Client job require Linux CI
+on the pushed PR SHA. This local evidence is from code before the main rebase;
+the rebase preserved the branch patch set exactly. It is not a fixed-SHA CI
+claim.
 
 The existing multi-member fixture uses one Host authorization tuple for both
 members. Distinct delegated target tuples under one whole-Set Checkpoint have
@@ -68,7 +85,6 @@ the successful shared-tuple test.
 
 Real Salesforce standard-Host installation is a separate provider connection
 and requires its own allowed test org and scope. No live mutation is claimed
-here. The remaining handoff for this Host unit is to run the affected Client,
-packed, Host and documentation gates on a fixed SHA, reconcile the branch with
-current main, and obtain Linux CI for the pushed PR SHA. The PR is not a
-release or merge claim.
+here. The remaining handoff is to run the fixed-SHA CI, review the Client and
+native job results, and merge the PR only after those checks pass. This PR is
+not a release or merge claim.
