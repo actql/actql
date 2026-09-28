@@ -2824,6 +2824,25 @@ async function exerciseStrategyGraph(
       {id: 1, embedding: [3, 4]},
       {id: 2, embedding: [0, 2]},
     ],
+  }, {
+    name: 'vectors-normalize',
+    source: carrierVectorPublicationProgram,
+    create: program => fixture.strategyFixtureVecaCreate(
+      ...args, JSON.stringify(program), orderedContract),
+    configure: value => fixture.strategyFixtureVecaRetainedSubset(value),
+    transform: {
+      from: 'source', normalize_vectors: true, as: 'normalized',
+    },
+    fields: ['id', 'embedding'],
+    secondFields: ['embedding', 'id'],
+    rows: [
+      {id: 1, embedding: [3, 4]},
+      {id: 2, embedding: [0, 2]},
+    ],
+    expectedRows: [
+      {id: 1, embedding: [0.6000000238418579, 0.800000011920929]},
+      {id: 2, embedding: [0, 1]},
+    ],
   }]) {
     const directProgram = structuredClone(carrierCase.source);
     const rowStep = directProgram.stages[1].steps[0];
