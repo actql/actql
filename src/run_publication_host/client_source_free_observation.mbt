@@ -102,6 +102,13 @@ pub fn issue_client_task_source_free_invocation(
   (@publication.RunEvidenceValue, @publication.PublicationContract),
   @publication.RunEvidenceValueIssue,
 ] {
+  if !@strategy.graph_source_free_inputs_complete(compilation.owner.graph) {
+    return Err(
+      @publication.RunEvidenceValueIssue::RunEvidenceReferenceMismatch(
+        "source_free_compilation",
+      ),
+    )
+  }
   issue_client_source_free_invocation(
     client_task_compilation_template(compilation),
     data_policy_cid,

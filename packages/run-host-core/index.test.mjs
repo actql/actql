@@ -39,7 +39,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   issueSourceFreeDispatch,
   executionShape,
   resultDefinitions, resultSchema,
-  issueSourceFreeInvocation,
+  issueSourceFreeInvocation, issueSourceFreeTaskInvocation,
   admitCompletedSourceObservation,
   issueTaskInvocation,
   issueUnpublishedRunStateWire, issueSucceededRunStateWire, projectSiteRun,
@@ -157,6 +157,9 @@ test('checked acquired Program issues and re-admits its task Run', () => {
     allowed.admission, 'task-scope', 'task-run',
     '2026-09-26T00:00:00.000Z', '2026-09-27T00:00:00.000Z');
   const limits = {maxWireBytes: 8192, maxNodes: 256, maxDepth: 16};
+  assert.throws(() => issueSourceFreeTaskInvocation(prepared, compilation,
+    allowed.admission, definition, `sha256:${'d'.repeat(64)}`, limits),
+  {code: 'RunHostTaskInvocationRejected'});
   const sourceContractCid =
     'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3';
   const sourceRef = 'connector://crm/main/r#v';

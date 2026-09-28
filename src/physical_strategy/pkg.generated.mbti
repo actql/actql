@@ -382,6 +382,8 @@ pub fn graph_result_occurrence(CheckedDAG, Int) -> @execution_relation.ManagedRe
 
 pub fn graph_result_task(CheckedDAG, Int) -> Int?
 
+pub fn graph_source_free_inputs_complete(CheckedDAG) -> Bool
+
 pub fn graph_stage_target_task(CheckedDAG, Int, @pipeline_typing.Target) -> Int?
 
 pub fn graph_task_count(CheckedDAG) -> Int

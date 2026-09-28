@@ -181,6 +181,12 @@ for (const kind of ['values', 'tasks']) {
         createdAt: definitionBody.created_at,
         validUntil: definitionBody.valid_until,
       });
+      if (acquired) {
+        assert.throws(() => control.issueCheckedClientCompiledInvocation(
+          compiled, definition, {dataPolicyCid: cid('d')},
+          {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64}),
+        /RunHostInvocationRejected/);
+      }
       assert.deepEqual(JSON.parse(definition.wire), {...definitionBody,
         run_definition_cid: hash(definitionBody)});
       const restore = wire => control.defineCheckedClientCompiledRun(compiled,

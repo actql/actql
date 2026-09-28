@@ -248,9 +248,17 @@ fn valid_source_free_root(graph : CheckedDAG) -> Bool {
   !graph.owners.is_empty() &&
   graph.input_counts[0] == 0 &&
   graph.source_free_root &&
+  @checked.source_execution_count(graph.program) == 0 &&
   !graph.data.any(edge => edge.consumer == 0) &&
   !graph.control.any(edge => edge.consumer == 0) &&
-  !graph.supplied_slots.any(slot => slot.consumer == 0)
+  graph.supplied_slots.is_empty()
+}
+
+///|
+/// A no-external-sources observation requires the checked Program and every
+/// physical task input to be source-free, not just an omitted source argument.
+pub fn graph_source_free_inputs_complete(graph : CheckedDAG) -> Bool {
+  valid_source_free_root(graph)
 }
 
 ///|
