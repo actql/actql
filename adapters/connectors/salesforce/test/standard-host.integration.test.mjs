@@ -76,10 +76,11 @@ const program = JSON.stringify({version: 'actql/0.1', id: 'salesforce-read',
   results: {records: {from: {stage: 'compute', result: 'r'}}}});
 
 async function installation(t, {readable = ['Test_Record__c'],
-  queryFailureStatus} = {}) {
+  queryFailureStatus, storedRecords} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
-    queryFailureStatus});
+    queryFailureStatus, storedRecords,
+    optionalText: storedRecords !== undefined});
   const root = await mkdtemp(join(scratch, 'host-'));
   // Hosts close before their directory is removed.
   const closers = [];
@@ -335,5 +336,49 @@ test('a provider failure after the read started ends its Run once',
     await assertEndedRun(setup, client, 'failed-after-start');
     // One query was sent and none repeated.
     assert.equal(setup.queries().length, 1);
+    await close();
+  });
+
+// Synthetic records: long text in several columns across many rows.
+const records = (count, textBytes) => Array.from({length: count},
+  (_, index) => {
+    const tag = String(index).padStart(3, '0');
+    return {Id: `a00000000000${tag}`,
+      Name: `n${tag}`.padEnd(textBytes, 'n'),
+      External_Key__c: `k${tag}`.padEnd(textBytes, 'k'),
+      Optional_Text__c: index % 2 === 0 ? null
+        : `t${tag}`.padEnd(textBytes, 't')};
+  });
+
+test('long text in several columns and many rows reaches the Named Result',
+  async t => {
+    // 60 rows of about 3 x 1,500 characters: each row fits one Local import
+    // batch; the whole input spans several.
+    const stored = records(60, 1500);
+    const setup = await installation(t, {storedRecords: stored});
+    await setup.publish();
+    const {client, close} = await setup.open();
+    const execution = await client.aql(program, {format: 'json',
+      requestId: 'long-rows'});
+    assert.equal((await execution.wait()).status, 'succeeded');
+    const rows = await execution.result('records').all();
+    assert.deepEqual(rows.map(row => [row.External_Key__c, row.Name]).sort(),
+      stored.map(row => [row.External_Key__c, row.Name]).sort());
+    await close();
+  });
+
+test('an acquisition over its capture bound publishes nothing and ends once',
+  async t => {
+    // 100 rows of 3 x 10,000 characters exceed what one acquisition may
+    // capture (about 1 MB of text).
+    const setup = await installation(t, {storedRecords: records(100, 10000)});
+    await setup.publish();
+    const {client, close} = await setup.open();
+    const execution = await client.aql(program, {format: 'json',
+      requestId: 'over-capture'});
+    assert.equal((await execution.wait()).status, 'failed');
+    await assert.rejects(execution.result('records').all());
+    assert.equal(setup.queries().length, 1);
+    // The Host holds nothing for the Run: it closes.
     await close();
   });

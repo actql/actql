@@ -31,8 +31,10 @@ const contractRoot = new URL('../../../../spec/contracts/', import.meta.url);
 const readLimits = Object.freeze({maxBytes: 4_000_000, maxNodes: 400_000,
   maxDepth: 32, maxRows: 2000, maxLocatorUnits: 2048, maxPages: 10,
   maxTotalRows: 100});
+// One acquisition captures at most 500 KB of text: what the standard Host's
+// Local compute evaluates at once. Larger reads are refused while capturing.
 const captureLimits = Object.freeze({maxNodes: 100_000,
-  maxTextBytes: 1_000_000, maxDepth: 100, maxWork: 1_000_000});
+  maxTextBytes: 500_000, maxDepth: 100, maxWork: 20_000_000});
 const declarationLimits = Object.freeze({maxBytes: 4_000_000,
   maxNodes: 400_000, maxDepth: 64});
 

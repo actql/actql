@@ -320,11 +320,14 @@ pub fn prepare_client_salesforce_acquisition(
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
+  // The residual filter and capture measure every captured value: their work
+  // budgets cover the whole capture. The capture holds at most 500 KB of
+  // text, what the standard Host's Local fragments can evaluate at once.
   let values : @execution.ValueLimits = {
     max_nodes: 100000,
-    max_text_bytes: 1000000,
+    max_text_bytes: 500000,
     max_depth: 100,
-    max_work: 1000000,
+    max_work: 20000000,
   }
   let configuration = @salesforce_host.configure_salesforce_broad_host(
     contracts,
@@ -341,11 +344,11 @@ pub fn prepare_client_salesforce_acquisition(
           input_values: values,
           output_values: values,
         },
-        max_work: 1000000,
+        max_work: 50000000,
         max_frames: 100,
       },
       guards: {
-        max_work: 1000000,
+        max_work: 50000000,
         max_bytes: 1000000,
         max_nodes: 100000,
         max_depth: 100,
