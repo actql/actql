@@ -13,6 +13,7 @@ import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {publishInstalledEffectProfile} from './installed-effect.mjs';
 import {loadInstalledSource, publishInstalledSourceProfile} from
   './installed-source.mjs';
 import {createDiagnosticObserver} from
@@ -771,6 +772,24 @@ export async function publishInstalledSource({sourceProfilePath, directory,
     sourceProfilePath ?? process.env.ACTQL_LOCAL_SOURCE_PROFILE, {root,
       principalId: userInfo().username, moon, runtimeUrl,
       resolveSecret: resolveSourceSecret, signal});
+}
+
+// Publish the installed Effect's generation (its declaration, execution
+// Mappings and Check Environment) for a Host state directory (the embedded
+// Local Host's by default) from its Effect profile
+// (`ACTQL_LOCAL_EFFECT_PROFILE` by default). This is the explicit step a Host
+// start restores without provider I/O.
+export async function publishInstalledEffect({effectProfilePath, directory,
+  resolveEffectSecret, signal} = {}) {
+  const root = directory === undefined ? localStateRoot() : resolve(directory);
+  await mkdir(root, {recursive: true, mode: 0o700});
+  const moon = await import(runtimeUrl.href);
+  const baseEnvironmentWire = (await readFile(join(packageRoot,
+    'spec/local-check-environment.json'), 'utf8')).trimEnd();
+  return publishInstalledEffectProfile(
+    effectProfilePath ?? process.env.ACTQL_LOCAL_EFFECT_PROFILE, {root,
+      principalId: userInfo().username, moon, runtimeUrl,
+      baseEnvironmentWire, resolveSecret: resolveEffectSecret, signal});
 }
 
 export async function connectEmbeddedLocal(options) {
