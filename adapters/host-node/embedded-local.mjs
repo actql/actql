@@ -24,7 +24,8 @@ import {installedEffectIdentity, loadInstalledEffect,
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
 import {createPrivateEvidenceKey, loadPrivateEvidenceKey} from
   './local-continuation-evidence.mjs';
-import {loadInstalledSource, publishInstalledSourceProfile} from
+import {installedSourceIdentity, loadInstalledSource,
+  publishInstalledSourceProfile} from
   './installed-source.mjs';
 import {createDiagnosticObserver} from
   '../host-common/diagnostic-observer.mjs';
@@ -69,8 +70,8 @@ async function embeddedInstallationIdentity(root, installation) {
   if (sourcePath !== undefined && effectPath !== undefined) {
     throw new TypeError('InvalidInstalledEffectSite');
   }
-  const source = sourcePath === undefined ? null : bytesCid(canonicalJson(
-    JSON.parse(await readFile(sourcePath, 'utf8'))));
+  const source = sourcePath === undefined ? null :
+    await installedSourceIdentity(sourcePath);
   const effect = effectPath === undefined ? null :
     await installedEffectIdentity(effectPath);
   const authorization = installation?.authorization;

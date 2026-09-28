@@ -21,6 +21,7 @@
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
+import {canonicalJson} from './local-account-config.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
@@ -30,6 +31,43 @@ const INSTALLED_SALESFORCE_SOURCE_VERSION =
   'actql-installed-salesforce-source/0.1';
 const salesforceBundle = new URL('../../_build/js/release/build/' +
   'connectors/salesforce/host_node/host_node.js', import.meta.url);
+
+// A connected embedded Host keeps one installed source for its lifetime.
+// Compare its full published generation and Site binding on later connects,
+// without reading a credential value or probing the provider.
+export async function installedSourceIdentity(path) {
+  if (typeof path !== 'string' || !isAbsolute(path)) {
+    throw new TypeError('InvalidInstalledSourceProfilePath');
+  }
+  const read = async name => {
+    const bytes = await readFile(name);
+    if (bytes.byteLength > 8 * 1024 * 1024) {
+      throw new TypeError('InvalidInstalledSourceProfile');
+    }
+    return JSON.parse(bytes.toString('utf8'));
+  };
+  const profile = await read(path);
+  const parts = [profile];
+  if (profile?.version === INSTALLED_SALESFORCE_SOURCE_VERSION) {
+    const {checkInstalledSalesforceSourceProfile} = await import(
+      '../connectors/salesforce/host/installed-salesforce-source.mjs');
+    const checked = checkInstalledSalesforceSourceProfile(profile);
+    parts.push(await read(checked.siteProfilePath),
+      await read(checked.publicationPath));
+    profile.accountConfigurationWire = JSON.parse(
+      profile.accountConfigurationWire);
+  } else if (profile?.version !== INSTALLED_DUCKDB_SOURCE_VERSION) {
+    throw new TypeError('InvalidInstalledSourceProfile');
+  }
+  const hash = createHash('sha256');
+  for (const part of parts) {
+    const canonical = canonicalJson(part);
+    hash.update(String(Buffer.byteLength(canonical)));
+    hash.update('\0');
+    hash.update(canonical);
+  }
+  return `sha256:${hash.digest('hex')}`;
+}
 
 function duckdbAdapter(profile, moon) {
   const common = {moon, database: profile.database, schema: profile.schema,
