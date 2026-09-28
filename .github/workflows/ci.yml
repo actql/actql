@@ -130,6 +130,8 @@ jobs:
         env:
           TMPDIR: ${{ github.workspace }}/_build
         run: npm run check:distribution-client
+      - name: Test packed Embedded Local Checkpoint and Named Result
+        run: npm run check:packed-embedded-checkpoint
       - name: Test Salesforce Site Catalog and bounded query acquisition
         run: npm run check:salesforce-site
   # Native storage, publication and control, and the Native retained path.
