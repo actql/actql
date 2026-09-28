@@ -4,6 +4,15 @@
 
 BASE_SHA: `02c279a39567febbc11fb75a463bd6fbe92fb284` (fetched origin/main).
 Branch: `feat/frontend-query-sql-pipe`.
+After PR #28 merged, the branch was rebased onto `origin/main`
+`805a29c5f1936cb1ac52ebba2cbb8cce62f5e0b9`. The previous branch HEAD
+`8cce930db6369df09fc6a37bc1bcf37bf6cce5a5` is retained at
+`backup/frontend-query-before-pr28`. All 94 commits replayed without conflict;
+`git range-diff` matched each patch, and the worktree was clean. On the rebased
+source, `query_program` passed 50/50 and the packed Node/browser Client smoke
+passed through Local and HTTP Remote Hosts. The pre-rebase JavaScript Core gate
+passed 6,870/6,870 and Wasm Core passed 6,867/6,867. Those Core results do not
+replace final gates on the rebased SHA.
 The branch was rebased onto fetched `origin/main`
 `c1ed3f526e2e5576e3cdd172b4b6a66c893fdd4f`. The pre-rebase
 `686965b916e3dbb43f1f1756393593aa85fb8b46` is retained at
