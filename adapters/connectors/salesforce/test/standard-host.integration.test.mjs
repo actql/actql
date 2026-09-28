@@ -98,10 +98,11 @@ const program = JSON.stringify({version: 'actql/0.1', id: 'salesforce-read',
   results: {records: {from: {stage: 'compute', result: 'r'}}}});
 
 async function installation(t, {readable = ['Test_Record__c'],
+  sourceResources = ['Test_Record__c'], extraObjects = [],
   queryFailureStatus, storedRecords} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
-    queryFailureStatus, storedRecords,
+    queryFailureStatus, storedRecords, extraObjects,
     optionalText: storedRecords !== undefined});
   const root = await mkdtemp(join(scratch, 'host-'));
   // Hosts close before their directory is removed.
@@ -130,7 +131,7 @@ async function installation(t, {readable = ['Test_Record__c'],
   const profile = {version: INSTALLED_SALESFORCE_SOURCE_VERSION,
     siteProfilePath: sitePath,
     publicationPath: join(root, 'salesforce-publication.json'),
-    connectorId: 'crm-main', resources: ['Test_Record__c'],
+    connectorId: 'crm-main', resources: sourceResources,
     accountConfigurationWire: accountConfiguration(org.orgId, readable)};
   const profilePath = join(root, 'source-profile.json');
   await writeFile(profilePath, JSON.stringify(profile));
@@ -213,6 +214,7 @@ test('public Client reads a published Salesforce source to a Named Result',
 test('public HTTP Client resumes an installed Salesforce Effect after restart',
   async t => {
     const setup = await installation(t);
+    await setup.publish();
     const effectPath = join(setup.root, 'effect-profile.json');
     const hostAccountWire = canonicalJson({
       version: 'actql-execution-account-config/0.1',
@@ -256,6 +258,8 @@ test('public HTTP Client resumes an installed Salesforce Effect after restart',
         directory: join(setup.root, 'state'),
         authenticate: header => tokens.get(
           header?.replace(/^Bearer /u, '')),
+        sourceProfilePath: setup.profilePath,
+        resolveSourceSecret: secret,
         effectProfilePath: effectPath, resolveEffectSecret: secret,
         authorization,
       });
@@ -280,13 +284,33 @@ test('public HTTP Client resumes an installed Salesforce Effect after restart',
     assert.equal(setup.org.seen.length, beforeStart,
       'generation restoration performs no provider request');
     const ownerClient = await first.as('owner-token');
+    const read = await ownerClient.aql(program, {format: 'json',
+      requestId: 'coinstalled-salesforce-read'});
+    assert.equal((await read.wait()).status, 'succeeded');
+    assert.deepEqual((await read.result('records').all()).map(row =>
+      [row.External_Key__c, row.Name]).sort(),
+    [['key-1', 'record-1'], ['key-3', 'record-3']]);
     const mapping = published.mappings[0];
-    const program = effectProgram({save: {update: {
+    const unsupported = JSON.parse(program);
+    unsupported.id = 'unsupported-acquire-and-effect';
+    unsupported.stages[1].effects = {save: {update: {
+      target: 'connector://crm-main/Test_Record__c',
+      mapping: mapping.mappingRef, from: {result: 'r'},
+      id: 'External_Key__c', set: {Name: {field: 'Name'}},
+    }}};
+    const beforeUnsupported = setup.org.seen.length;
+    await assert.rejects(ownerClient.aql(JSON.stringify(unsupported), {
+      format: 'json', requestId: 'unsupported-acquire-and-effect'}),
+    {code: 'ClientProgramUnsupported'});
+    assert.deepEqual(await ownerClient.lookupRequest(
+      'unsupported-acquire-and-effect'), {kind: 'not_found'});
+    assert.equal(setup.org.seen.length, beforeUnsupported);
+    const effectDocument = effectProgram({save: {update: {
       target: `connector://crm-main/Test_Record__c`,
       mapping: mapping.mappingRef, from: {result: 'rows'}, id: 'id',
       set: {Name: {field: 'id'}}}}},
     [{id: 'a00000000000001'}, {id: 'a00000000000002'}]);
-    const execution = await ownerClient.aql(JSON.stringify(program), {
+    const execution = await ownerClient.aql(JSON.stringify(effectDocument), {
       format: 'json', requestId: 'installed-effect-http'});
     await waitFor(async () => (await execution.status()).status ===
       'waiting_checkpoint');
@@ -327,6 +351,99 @@ test('public HTTP Client resumes an installed Salesforce Effect after restart',
     assert.equal(setup.org.seen.filter(item => item.method === 'PATCH').length,
       2);
     await third.close();
+  });
+
+test('conflicting coinstalled Catalogs fail before provider I/O', async t => {
+  const setup = await installation(t, {
+    readable: ['Other_Record__c', 'Test_Record__c'],
+    sourceResources: ['Other_Record__c', 'Test_Record__c'],
+    extraObjects: ['Other_Record__c'],
+  });
+  await setup.publish();
+  const effectPath = join(setup.root, 'conflicting-effect.json');
+  const account = canonicalJson({
+    version: 'actql-execution-account-config/0.1',
+    account_id: 'conflicting-effect', entries: [
+      {entry_id: 'effect', outcome: 'allow', exclusions: [],
+        principal: {all: true},
+        connection: {any_of: [setup.connection]},
+        resource: {any_of: ['Test_Record__c']},
+        operation: {any_of: ['effect']}},
+      {entry_id: 'metadata', outcome: 'allow', exclusions: [],
+        principal: {all: true},
+        connection: {any_of: [setup.connection]},
+        resource: {any_of: ['Test_Record__c']},
+        operation: {any_of: ['read']}},
+    ]});
+  await writeFile(effectPath, JSON.stringify({
+    version: 'actql-installed-salesforce-effect/0.1',
+    siteProfilePath: setup.sitePath,
+    publicationPath: join(setup.root, 'conflicting-publication.json'),
+    connectorId: 'crm-main', accountConfigurationWire: account,
+    writes: [{resource: 'Test_Record__c', kind: 'update',
+      fields: ['Name']}],
+  }));
+  await publishInstalledEffect({effectProfilePath: effectPath,
+    directory: join(setup.root, 'state'), resolveEffectSecret: secret});
+  const before = setup.org.seen.length;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await assert.rejects(openInstalledRemoteHttpHost({
+      directory: join(setup.root, 'state'),
+      authenticate: () => owner, sourceProfilePath: setup.profilePath,
+      effectProfilePath: effectPath, resolveSourceSecret: secret,
+      resolveEffectSecret: secret,
+      authorization: checkpointAuthorization({
+        accountConfiguration: account}),
+    }), error => error.code === 'InstalledHostInitializationFailed' &&
+      error.cause?.code === 'InstalledCheckEnvironmentConflict' &&
+      error.cleanupPending === false);
+    assert.equal(setup.org.seen.length, before);
+  }
+});
+
+test('equal coinstalled Catalogs cannot mask another Site binding',
+  async t => {
+    const setup = await installation(t);
+    await setup.publish();
+    const foreignSitePath = join(setup.root, 'foreign-alias-site.json');
+    await writeFile(foreignSitePath, JSON.stringify({...setup.siteDocument,
+      cliAlias: 'another-explicit-alias'}));
+    const effectPath = join(setup.root, 'foreign-alias-effect.json');
+    const account = canonicalJson({
+      version: 'actql-execution-account-config/0.1',
+      account_id: 'site-binding-test', entries: [
+        {entry_id: 'effect', outcome: 'allow', exclusions: [],
+          principal: {all: true}, connection: {any_of: [setup.connection]},
+          resource: {any_of: ['Test_Record__c']},
+          operation: {any_of: ['effect']}},
+        {entry_id: 'metadata', outcome: 'allow', exclusions: [],
+          principal: {all: true}, connection: {any_of: [setup.connection]},
+          resource: {any_of: ['Test_Record__c']},
+          operation: {any_of: ['read']}},
+      ]});
+    await writeFile(effectPath, JSON.stringify({
+      version: 'actql-installed-salesforce-effect/0.1',
+      siteProfilePath: foreignSitePath,
+      publicationPath: join(setup.root, 'foreign-alias-publication.json'),
+      connectorId: 'crm-main', accountConfigurationWire: account,
+      writes: [{resource: 'Test_Record__c', kind: 'update',
+        fields: ['Name']}],
+    }));
+    await publishInstalledEffect({effectProfilePath: effectPath,
+      directory: join(setup.root, 'state'), resolveEffectSecret: secret});
+    const before = setup.org.seen.length;
+    await assert.rejects(openInstalledRemoteHttpHost({
+      directory: join(setup.root, 'state'),
+      authenticate: () => owner, sourceProfilePath: setup.profilePath,
+      effectProfilePath: effectPath, resolveSourceSecret: secret,
+      resolveEffectSecret: secret,
+      authorization: checkpointAuthorization({
+        accountConfiguration: account}),
+    }), error => error.code === 'InstalledHostInitializationFailed' &&
+      error.cause?.code === 'InstalledCheckEnvironmentConflict' &&
+      error.cause?.cause === 'ConnectorBinding' &&
+      error.cleanupPending === false);
+    assert.equal(setup.org.seen.length, before);
   });
 
 test('a Program outside the published declaration fails Check without I/O',

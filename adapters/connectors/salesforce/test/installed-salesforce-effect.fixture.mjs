@@ -116,8 +116,9 @@ export async function installedEffect(t, {writes, writeOperation = 'update',
     resolveSecret: async () => 'test-only-secret', baseEnvironmentWire};
   const ledgerRoot = join(root, 'effect-ledger');
   await mkdir(ledgerRoot, {recursive: true});
-  const publish = (overrides = {}) => publishInstalledSalesforceEffect(
-    {...profile, ...overrides}, options);
+  const publish = (overrides = {}, publishOptions = {}) =>
+    publishInstalledSalesforceEffect({...profile, ...overrides},
+      {...options, ...publishOptions});
   const load = async (overrides = {}, loadOptions = {}) => {
     const effect = await loadInstalledSalesforceEffect(
       {...profile, ...overrides}, {...options, ledgerRoot, ...loadOptions});
@@ -126,7 +127,8 @@ export async function installedEffect(t, {writes, writeOperation = 'update',
   };
   const published = await publish();
   return {org, root, profile, siteDocument, writeSite, published, publish,
-    load, baseEnvironmentWire, onClose: close => closers.push(close)};
+    load, baseEnvironmentWire, options, ledgerRoot,
+    onClose: close => closers.push(close)};
 }
 
 // A Values Program whose one Unit writes `rows` through each named Effect.
