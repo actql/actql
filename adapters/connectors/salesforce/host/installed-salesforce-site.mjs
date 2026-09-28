@@ -20,6 +20,8 @@ import {syncSalesforceCatalog} from '../site/salesforce-catalog-sync.mjs';
 import {readSalesforceQuery} from '../site/salesforce-query-read.mjs';
 import {checkpointApprovalFacts} from
   '../../../host-common/checkpoint-approval.mjs';
+import {authorizationDispatchFacts} from
+  '../../../host-common/authorization-gate.mjs';
 import {describeSalesforceResources, recoverNamedSalesforceObservation} from
   '../site/salesforce-named-describe.mjs';
 import {attestSalesforceEffectCapabilityAuthority} from
@@ -222,9 +224,20 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       return sign({operation, runInvocationCid, taskAttempt,
         dispatchRequestCid, maxUses});
     }
-    if (!issuedDecisions.has(decision) || decision.action !== 'dispatch' ||
+    // An Effect commit dispatch another gate of the Host (its Checkpoint
+    // commit gate) decided counts as this gate's only when that gate decided
+    // it for this principal under this exact admitted account configuration.
+    // Operation, Resource and sealed Set are checked below as for any
+    // decision; the gate owns its approval's currency.
+    const commitFacts = required[0] === 'effect_commit'
+      ? authorizationDispatchFacts(decision) : undefined;
+    const hostCommit = commitFacts !== undefined &&
+      commitFacts.principal === principalId &&
+      commitFacts.configurationCid === authorization.configurationCid;
+    if (!(issuedDecisions.has(decision) || hostCommit) ||
+        decision.action !== 'dispatch' ||
         decision.boundary !== required[0] ||
-        decision.contextCid !== context.contextCid ||
+        (!hostCommit && decision.contextCid !== context.contextCid) ||
         decision.tuple?.connection !== connection ||
         decision.tuple?.resource !== resource ||
         decision.tuple?.operation !== required[1] ||
