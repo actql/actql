@@ -13,6 +13,8 @@
 import {DatabaseSync} from 'node:sqlite';
 import {mkdirSync, realpathSync} from 'node:fs';
 import {join} from 'node:path';
+import {createSqliteTransaction, throwSqliteInitializationFailure} from
+  '../host-common/sqlite-transaction.mjs';
 
 const runtimeUrl = new URL(
   '../../_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js',
@@ -39,19 +41,6 @@ function core(result, code) {
 function iso(ms) {
   if (!Number.isSafeInteger(ms) || ms < 0) fail('InvalidJournalClock');
   return new Date(ms).toISOString();
-}
-
-function transaction(database, body) {
-  database.exec('BEGIN IMMEDIATE');
-  try {
-    const value = body();
-    database.exec('COMMIT');
-    return value;
-  } catch (error) {
-    try { database.exec('ROLLBACK'); }
-    catch (rollback) { fail('CheckpointJournalRollbackFailed', rollback); }
-    throw error;
-  }
 }
 
 function authoritiesJson(authorities) {
@@ -215,6 +204,7 @@ export function openSqliteCheckpointJournal(root, {
     readOnly: false,
     enableForeignKeyConstraints: true,
   });
+  const transaction = createSqliteTransaction(database, 'CheckpointJournal');
   let closed = false;
   let databaseClosed = false;
   try {
@@ -308,7 +298,7 @@ export function openSqliteCheckpointJournal(root, {
         PRIMARY KEY (intent_id, generation)
       ) STRICT;
     `);
-    transaction(database, () => {
+    transaction.run(() => {
       // A journal created before the decision-subject binding column gains
       // it with the empty (unbound) value.
       const columns = database.prepare('PRAGMA table_info(checkpoints)').all();
@@ -361,8 +351,7 @@ export function openSqliteCheckpointJournal(root, {
       }
     });
   } catch (error) {
-    database.close();
-    throw error;
+    throwSqliteInitializationFailure(database, error, 'checkpoint-journal');
   }
 
   const statements = {
@@ -499,7 +488,10 @@ export function openSqliteCheckpointJournal(root, {
       WHERE intent_id = ? AND mode = 'start' LIMIT 1`),
   };
 
-  const alive = () => { if (closed) fail('CheckpointJournalClosed'); };
+  const alive = () => {
+    if (closed) fail('CheckpointJournalClosed');
+    transaction.assertUsable();
+  };
   const changed = (result, code) => {
     if (result.changes !== 1) fail(code);
   };
@@ -735,7 +727,7 @@ export function openSqliteCheckpointJournal(root, {
       const configuration = configurationBinding(configurationCid);
       const declared = declaredJson(declaredResults);
       const at = iso(now());
-      transaction(database, () => {
+      transaction.run(() => {
         const existing = statements.checkpoint.get(sealed.checkpoint_cid);
         if (existing !== undefined) {
           if (existing.checkpoint_wire !== sealed.checkpoint_wire ||
@@ -785,7 +777,7 @@ export function openSqliteCheckpointJournal(root, {
       }
       const declared = declaredJson(declaredResults);
       const at = iso(now());
-      transaction(database, () => {
+      transaction.run(() => {
         if (statements.run.get(runId) !== undefined) fail('RunAlreadyTracked');
         statements.insertRun.run(runId, status, at, declared, '');
         fault('createRun');
@@ -806,7 +798,7 @@ export function openSqliteCheckpointJournal(root, {
       }
       transitionAllowed(from, status);
       const at = iso(now());
-      transaction(database, () => {
+      transaction.run(() => {
         const run = statements.run.get(runId);
         if (run === undefined) fail('RunNotFound');
         if (run.status !== from) fail('RunStateConflict');
@@ -846,7 +838,7 @@ export function openSqliteCheckpointJournal(root, {
       alive();
       const unknown = effectsJson(unknownEffects);
       const at = iso(now());
-      return transaction(database, () => {
+      return transaction.run(() => {
         const row = rowFor(reference);
         if (row === undefined) fail('CheckpointNotFound');
         if (row.closure === 'cancelled') {
@@ -895,7 +887,7 @@ export function openSqliteCheckpointJournal(root, {
     cancelUnsentResume(reference) {
       alive();
       const at = iso(now());
-      return transaction(database, () => {
+      return transaction.run(() => {
         const checkpoint = rowFor(reference);
         if (checkpoint === undefined) fail('CheckpointNotFound');
         if (checkpoint.run_id === null || checkpoint.closure !== 'resolved') {
@@ -935,7 +927,7 @@ export function openSqliteCheckpointJournal(root, {
       alive();
       if (!text(prepareAttemptId)) fail('InvalidPrepareAttemptId');
       const at = iso(now());
-      return transaction(database, () => {
+      return transaction.run(() => {
         const preparation = statements.preparation.get(prepareAttemptId);
         if (preparation === undefined) fail('PreparationNotFound');
         const view = () => projectPreparation(prepareAttemptId);
@@ -1112,7 +1104,7 @@ export function openSqliteCheckpointJournal(root, {
       ), 'InvalidResolution');
       const attestation = await attest(admitted.attestation_preimage);
       alive();
-      const outcome = transaction(database, () => {
+      const outcome = transaction.run(() => {
         const current = statements.checkpoint.get(checkpointCid);
         // A cancelled Checkpoint admits no Resolution and no resume intent.
         if (current.closure === 'cancelled') return {kind: 'cancelled'};
@@ -1307,7 +1299,7 @@ export function openSqliteCheckpointJournal(root, {
       const current = bindingJson(binding);
       const unknown = effectsJson(unknownEffects);
       const at = now();
-      return transaction(database, () => {
+      return transaction.run(() => {
         const intent = statements.intent.get(runId);
         if (intent === undefined) fail('ResumeIntentNotFound');
         const {checkpoint, decided} = claimLocked(intent, claimant, at,
@@ -1364,7 +1356,7 @@ export function openSqliteCheckpointJournal(root, {
       if (!text(prepareAttemptId)) fail('InvalidPrepareAttemptId');
       const current = bindingJson(binding);
       const at = now();
-      return transaction(database, () => {
+      return transaction.run(() => {
         const intent = statements.preparationIntent.get(prepareAttemptId);
         if (intent === undefined) fail('ResumeIntentNotFound');
         const {checkpoint, decided} = claimLocked(intent, claimant, at,
@@ -1416,7 +1408,7 @@ export function openSqliteCheckpointJournal(root, {
       alive();
       if (!Number.isSafeInteger(leaseMs) || leaseMs <= 0) fail('InvalidLease');
       const at = now();
-      return transaction(database, () => {
+      return transaction.run(() => {
         const intent = statements.intentById.get(claim?.intentId ?? '');
         if (intent === undefined) fail('ResumeClaimStale');
         const fence = core(runtime.resumeFenceDecide(intentView(intent),
@@ -1503,7 +1495,7 @@ export function openSqliteCheckpointJournal(root, {
     admitResume(claim, {checkpointCid} = {}) {
       alive();
       const at = now();
-      return transaction(database, () => admissionLocked(claim,
+      return transaction.run(() => admissionLocked(claim,
         checkpointCid, at));
     },
 
@@ -1526,7 +1518,7 @@ export function openSqliteCheckpointJournal(root, {
       alive();
       const identity = admissionIdentity(dispatchIdentity);
       const at = now();
-      return transaction(database, () => {
+      return transaction.run(() => {
         const admission = enteredLocked(claim, checkpointCid, resolutionCid,
           at);
         const prior = statements.priorAdmission.get(admission.intentId,
@@ -1560,7 +1552,7 @@ export function openSqliteCheckpointJournal(root, {
       const identity = admissionIdentity(dispatchIdentity);
       if (identity === '') fail('ReconciliationIdentityRequired');
       const at = now();
-      return transaction(database, () => {
+      return transaction.run(() => {
         const admission = enteredLocked(claim, checkpointCid, resolutionCid,
           at);
         const prior = statements.priorAdmission.get(admission.intentId,
@@ -1628,7 +1620,7 @@ export function openSqliteCheckpointJournal(root, {
       }
       const at = now();
       const atIso = iso(at);
-      transaction(database, () => {
+      transaction.run(() => {
         const intent = fenced(claim, at);
         const run = statements.run.get(intent.run_id);
         if (run?.status !== 'resuming') fail('RunStateConflict');
@@ -1663,7 +1655,7 @@ export function openSqliteCheckpointJournal(root, {
     expire({unknownEffects} = {}) {
       alive();
       const at = iso(now());
-      return transaction(database, () => {
+      return transaction.run(() => {
         const expired = [];
         for (const row of statements.pending.all()) {
           const result = core(runtime.checkpointExpiredAt(row.checkpoint_wire,
@@ -1803,7 +1795,7 @@ export function openSqliteCheckpointJournal(root, {
     }
     const at = now();
     const atIso = iso(at);
-    transaction(database, () => {
+    transaction.run(() => {
       const intent = fenced(claim, at);
       const preparation = statements.preparation.get(intent.prepare_attempt_id);
       if (preparation?.status !== 'resuming') fail('PreparationStateConflict');

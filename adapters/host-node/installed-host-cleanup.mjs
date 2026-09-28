@@ -19,7 +19,9 @@ export async function retainInstalledHostInitializationFailure(cause,
     {cause}), {code: 'InstalledHostInitializationFailed',
     primaryFailure: cause?.primaryFailure ?? cause});
   const status = () => Object.freeze({pending: pending.size !== 0,
-    owners: Object.freeze([...pending]), errors: Object.freeze([...errors])});
+    owners: Object.freeze([...pending]), errors: Object.freeze([
+      ...(cause?.cleanupHandle?.status?.().errors ??
+        cause?.cleanupErrors ?? []), ...errors])});
   async function attempt(name, close) {
     if (!pending.has(name)) return;
     try {

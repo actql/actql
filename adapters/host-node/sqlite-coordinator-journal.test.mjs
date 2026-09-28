@@ -31,6 +31,35 @@ const request = (dispatchId, taskAttempt = 1) => control.prepare({
   grantCid: cid('4'),
 });
 
+test('Coordinator journal retries a failed physical close', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-coordinator-close-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const journal = openSqliteCoordinatorDispatchJournal(root, {
+    coordinatorAuthority: 'coordinator-a',
+  });
+  const originalClose = DatabaseSync.prototype.close;
+  let attempts = 0;
+  DatabaseSync.prototype.close = function() {
+    attempts++;
+    if (attempts === 1) throw new Error('injected close failure');
+    return originalClose.call(this);
+  };
+  try {
+    assert.throws(() => journal.close(), /injected close failure/u);
+    assert.throws(() => journal.hasOutputOperations(),
+      {code: 'CoordinatorJournalClosed'});
+    assert.equal(journal.close(), true);
+    assert.equal(journal.close(), false);
+    assert.equal(attempts, 2);
+  } finally {
+    DatabaseSync.prototype.close = originalClose;
+  }
+  const reopened = openSqliteCoordinatorDispatchJournal(root, {
+    coordinatorAuthority: 'coordinator-a',
+  });
+  assert.equal(reopened.close(), true);
+});
+
 test('Coordinator intent persists before send and restores after restart',
   async t => {
     const root = await mkdtemp(join(tmpdir(), 'actql-coordinator-journal-'));
