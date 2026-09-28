@@ -3,7 +3,7 @@ import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
 import {accountConfiguration, effectHost, effectProgram, installedEffect,
-  recordEntry} from './installed-salesforce-effect.fixture.mjs';
+  recordEntry, salesforceMoon} from './installed-salesforce-effect.fixture.mjs';
 import {closeFailingJournal} from './salesforce-effect-site.fixture.mjs';
 import {loadInstalledSalesforceSource} from
   '../host/installed-salesforce-source.mjs';
@@ -582,4 +582,14 @@ test('a written value outside its declared type is refused before any write',
       // Refused while the Preview was authored: no row was sent.
       assert.equal(writesOf(installation.org).length, 0);
     }
+  });
+
+test('an Effect runtime without the value refusal entry is refused before provider I/O',
+  async t => {
+    const installation = await temporalEffect(t);
+    const before = installation.org.seen.length;
+    const {salesforceWriteValueRefusal: _omitted, ...runtime} = salesforceMoon;
+    await assert.rejects(installation.load({}, {salesforceMoon: runtime}),
+      {code: 'InvalidSalesforceEffectRuntime'});
+    assert.equal(installation.org.seen.length, before);
   });

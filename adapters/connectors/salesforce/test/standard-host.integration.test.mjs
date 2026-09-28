@@ -22,7 +22,7 @@ import {openInstalledRemoteHttpHost, publishInstalledEffect} from
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {INSTALLED_SALESFORCE_SITE_VERSION} from
   '../host/installed-salesforce-site.mjs';
-import {INSTALLED_SALESFORCE_SOURCE_VERSION,
+import {INSTALLED_SALESFORCE_SOURCE_VERSION, loadInstalledSalesforceSource,
   publishInstalledSalesforceSource} from
   '../host/installed-salesforce-source.mjs';
 import {openSalesforceEffectSiteFixture} from
@@ -876,3 +876,19 @@ test('a capture budget overrun is not a value violation', async t => {
     adapter.close();
   }
 });
+
+test('a runtime without the value violation entry is refused before provider I/O',
+  async t => {
+    const setup = await installation(t);
+    await setup.publish();
+    const before = setup.org.seen.length;
+    const {clientProgramSalesforceBroadValueViolation: _omitted, ...moon} =
+      commonMoon;
+    await assert.rejects(loadInstalledSalesforceSource(setup.profile, {
+      root: join(setup.root, 'runtime-check'), principalId: owner, moon,
+      salesforceMoon, runtimeBundleCid,
+      baseEnvironmentWire: (await readFile(join(repository,
+        'spec/local-check-environment.json'), 'utf8')).trimEnd(),
+      resolveSecret: secret}), {code: 'InvalidSalesforceSourceRuntime'});
+    assert.equal(setup.org.seen.length, before);
+  });

@@ -377,6 +377,13 @@ export async function loadInstalledSalesforceEffect(profile, {root,
       !isAbsolute(ledgerRoot)) {
     fail('InvalidInstalledEffectOptions');
   }
+  // The value refusal this Effect reports is part of its runtime; a runtime
+  // without it is refused before any provider I/O.
+  if (typeof salesforceMoon?.salesforceWriteValueRefusal !== 'function' ||
+      typeof salesforceMoon.salesforcePrepareExecutionWriteBody !==
+        'function') {
+    fail('InvalidSalesforceEffectRuntime');
+  }
   await mkdir(ledgerRoot, {recursive: true, mode: 0o700});
   const site = await openSite(checkedProfile, {root, principalId, moon,
     salesforceMoon, runtimeBundleCid, resolveSecret, openCredentialJournal});

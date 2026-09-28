@@ -113,6 +113,37 @@ function recoveryArguments(evidence) {
     limits.maxNameUnits, evidence.maxObservationBytes];
 }
 
+// The standard runtime's issued broad read entries, under the names the
+// Site driver calls. Every entry is required: a runtime missing one is not
+// this installation's runtime, and is refused before any provider I/O.
+function issuedBroadRuntime(moon) {
+  const runtime = {
+    salesforceBroadHostAttempt: moon.clientProgramSalesforceBroadAttempt,
+    salesforceIssuedBroadPlan: moon.clientProgramSalesforceBroadPlan,
+    salesforceIssuedBroadBegin: moon.clientProgramSalesforceBroadBegin,
+    salesforceIssuedBroadNextPath: moon.clientProgramSalesforceBroadNextPath,
+    salesforceIssuedBroadAcceptPage:
+      moon.clientProgramSalesforceBroadAcceptPage,
+    salesforceIssuedBroadValueViolation:
+      moon.clientProgramSalesforceBroadValueViolation,
+    salesforceIssuedBroadComplete: moon.clientProgramSalesforceBroadComplete,
+    salesforceIssuedBroadRowCount: moon.clientProgramSalesforceBroadRowCount,
+    salesforceIssuedBroadFinish: moon.clientProgramSalesforceBroadFinish,
+    salesforceBroadHostAbort: moon.clientProgramSalesforceBroadAbort,
+    salesforceQueryPageResponseSha256:
+      moon.clientProgramSalesforceQueryPageResponseSha256,
+    salesforceQueryPageRowCount: moon.clientProgramSalesforceQueryPageRowCount,
+    salesforceRecheckReadProjection:
+      moon.clientProgramSalesforceRecheckReadProjection,
+    salesforceReadProjectionScopeMatches:
+      moon.clientProgramSalesforceReadProjectionScopeMatches,
+  };
+  if (Object.values(runtime).some(entry => typeof entry !== 'function')) {
+    fail('InvalidSalesforceSourceRuntime');
+  }
+  return Object.freeze(runtime);
+}
+
 // Load one installed Salesforce source. `baseEnvironmentWire` is the Host's
 // base Check Environment; the published declaration and its evidence
 // members are added to it.
@@ -120,6 +151,7 @@ export async function loadInstalledSalesforceSource(profile, {root,
   principalId, moon, salesforceMoon, baseEnvironmentWire, runtimeBundleCid,
   resolveSecret, openCredentialJournal}) {
   const checkedProfile = checkInstalledSalesforceSourceProfile(profile);
+  const broadMoon = issuedBroadRuntime(moon);
   const {authorization, site} = await openSite(checkedProfile, {root,
     principalId, moon, salesforceMoon, runtimeBundleCid, resolveSecret,
     openCredentialJournal});
@@ -152,7 +184,7 @@ export async function loadInstalledSalesforceSource(profile, {root,
     const [queryContract, evidenceContract] = await Promise.all([
       'actql-query-acquisition.json', 'actql-query-process-evidence.json',
     ].map(name => readFile(new URL(name, contractRoot), 'utf8')));
-    return installedSalesforceAdapter({moon, site, authorization,
+    return installedSalesforceAdapter({moon, broadMoon, site, authorization,
       declaration, recover, discovery, queryContract, evidenceContract,
       environment, generationCid: loaded.generationCid,
       catalogCid: loaded.declared.catalog_cid,
@@ -166,32 +198,11 @@ export async function loadInstalledSalesforceSource(profile, {root,
   }
 }
 
-function installedSalesforceAdapter({moon, site, authorization, declaration,
-  recover, discovery, queryContract, evidenceContract, environment,
-  generationCid, catalogCid, connectorId, sourceRefs}) {
+function installedSalesforceAdapter({moon, broadMoon, site, authorization,
+  declaration, recover, discovery, queryContract, evidenceContract,
+  environment, generationCid, catalogCid, connectorId, sourceRefs}) {
   // Checked preparations this adapter issued; only these can be opened.
   const preparations = new WeakMap();
-  const broadMoon = Object.freeze({
-    salesforceBroadHostAttempt: moon.clientProgramSalesforceBroadAttempt,
-    salesforceIssuedBroadPlan: moon.clientProgramSalesforceBroadPlan,
-    salesforceIssuedBroadBegin: moon.clientProgramSalesforceBroadBegin,
-    salesforceIssuedBroadNextPath: moon.clientProgramSalesforceBroadNextPath,
-    salesforceIssuedBroadAcceptPage:
-      moon.clientProgramSalesforceBroadAcceptPage,
-    salesforceIssuedBroadValueViolation:
-      moon.clientProgramSalesforceBroadValueViolation,
-    salesforceIssuedBroadComplete: moon.clientProgramSalesforceBroadComplete,
-    salesforceIssuedBroadRowCount: moon.clientProgramSalesforceBroadRowCount,
-    salesforceIssuedBroadFinish: moon.clientProgramSalesforceBroadFinish,
-    salesforceBroadHostAbort: moon.clientProgramSalesforceBroadAbort,
-    salesforceQueryPageResponseSha256:
-      moon.clientProgramSalesforceQueryPageResponseSha256,
-    salesforceQueryPageRowCount: moon.clientProgramSalesforceQueryPageRowCount,
-    salesforceRecheckReadProjection:
-      moon.clientProgramSalesforceRecheckReadProjection,
-    salesforceReadProjectionScopeMatches:
-      moon.clientProgramSalesforceReadProjectionScopeMatches,
-  });
   const sourceAccess = Object.freeze({authorization,
     connection: site.connection});
 

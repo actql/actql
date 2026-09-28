@@ -88,6 +88,16 @@ refused while the Preview is authored, before any row is sent:
 - it carries `refusal: {resource, field, expected_type, kind}`;
 - `kind` is one of `precision`, `range`, `format` or `null`.
 
+**Required runtime entries.** Both entries that report these failures are
+required, with no fallback when one is missing:
+- The source load refuses a standard runtime without
+  `clientProgramSalesforceBroadValueViolation`, or any other issued broad
+  read entry, as `InvalidSalesforceSourceRuntime`, before any provider I/O.
+- The Site driver refuses a caller without
+  `salesforceIssuedBroadValueViolation` as `InvalidSalesforceIssuedBroadRead`.
+- The Effect load refuses a Salesforce runtime without
+  `salesforceWriteValueRefusal` as `InvalidSalesforceEffectRuntime`.
+
 ## Compatibility
 
 For a Resource with `date` or `datetime` fields, the generated Catalog now
@@ -108,6 +118,7 @@ must be published again. Resources without these fields are unchanged.
 | Standard Host: a `+0900` reply fails the Run, publishes nothing, sends one query; the adapter states `SalesforceValueViolation` after `stopped`; a capture overrun is not a violation | `standard-host.integration.test.mjs` |
 | Installed Effect: the Preview's after values and the provider PATCH bodies equal the approved values; the observed `+0000` before value is the UTC instant | `installed-salesforce-effect.test.mjs` "an approved date and whole-second timestamp" |
 | Installed Effect: milliseconds, and a date or datetime out of range, are refused typed with no write sent | `installed-salesforce-effect.test.mjs` "a written value outside its declared type" |
+| A missing violation or refusal entry is refused before provider I/O (source load, Site driver, Effect load) | `standard-host.integration.test.mjs`, `salesforce-catalog-sync.test.mjs`, `installed-salesforce-effect.test.mjs` "without the value … entry" |
 
 Mutation checks:
 - Removing the whole-second check fails the write refusal e2e test and the

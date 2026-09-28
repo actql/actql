@@ -241,6 +241,7 @@ export async function readSalesforceIssuedBroad(options) {
     captureLimits} = options;
   if (!moon || !hostRun ||
       typeof moon.salesforceBroadHostAttempt !== 'function' ||
+      typeof moon.salesforceIssuedBroadValueViolation !== 'function' ||
       typeof apiVersion !== 'string' ||
       !count(maxCaptureRows) || !captureLimits ||
       !count(captureLimits.maxNodes) ||
@@ -282,8 +283,7 @@ export async function readSalesforceIssuedBroad(options) {
           body);
         // A provider value that is not a value of its declared type fails
         // the whole acquisition, typed by Resource, field, type and kind.
-        const violation = result?.$tag === 0 &&
-          typeof moon.salesforceIssuedBroadValueViolation === 'function'
+        const violation = result?.$tag === 0
           ? moon.salesforceIssuedBroadValueViolation(attempt, result._0)
           : undefined;
         if (typeof violation === 'string') {
