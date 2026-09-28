@@ -68,11 +68,16 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson} from
   '../../../host-common/publication-contract-control.fixture.mjs';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
+import {sourceFreeEffectPublicationPlan} from
+  '../../../host-node/local-values-plan.mjs';
+import {createInstalledEffectSite} from
+  '../../../host-node/installed-effect-site.mjs';
 import {issueCompletedEffectfulComputationEvidence,
   prepareCompletedEffectfulPublication,
   publishCompletedEffectfulRun,
   recoverCompletedEffectfulComputation,
   releaseCompletedRunPreparedPayloads,
+  suspendCompletedEffectfulComputation,
   storeCompletedRunResultSet} from
   '../../../host-common/completed-run-publication.mjs';
 import {inspectAuthorizedRunState, installRunStateAuthority,
@@ -1442,7 +1447,9 @@ async function verifyEffectCommitAuthorization(t, {
   return lost;
 }
 
-for (const physical of ['simulated', 'simulated-authorization',
+for (const physical of ['simulated', 'simulated-installed-factory',
+  'simulated-installed-recovered-factory',
+  'simulated-authorization',
   'salesforce',
   'salesforce-recovered', 'salesforce-terminal-restart',
   'salesforce-upsert', 'salesforce-create',
@@ -1490,7 +1497,8 @@ test(`two-member captured Effect Run ${
     const restartAfterTerminal = physical === 'salesforce-terminal-restart';
     const restartAfterPublication =
       physical === 'salesforce-publication-restart';
-    const restartBeforeApply = physical === 'salesforce-preapply-restart';
+    const restartBeforeApply = physical === 'salesforce-preapply-restart' ||
+      physical === 'simulated-installed-recovered-factory';
     const processUnknownIntent =
       physical === 'salesforce-process-unknown-restart';
     const processSavedResponse =
@@ -1542,7 +1550,7 @@ test(`two-member captured Effect Run ${
     })() : undefined;
     const mappingRef = generated?.ref ?? (siteRun
       ? 'mapping:salesforce.test-record.v1' : 'mapping:crm.account.v1');
-    const {document, environment, mappingCid} = await effectFixture({
+    const {document, environment, environmentWire, mappingCid} = await effectFixture({
       writeKind, memberIds, target, mappingRef, sourceIds,
       continueMembers, generated, labels,
     });
@@ -1571,6 +1579,32 @@ test(`two-member captured Effect Run ${
       compilation: effectCompilation, allowed, definition,
       identity: clientRequest, ref: clientRef}) => {
     physicalStarts++;
+    if (physical === 'simulated') {
+      const noRecompile = {...moon,
+        clientProgramCompileLocalEffects() {
+          assert.fail('publication plan compiled the Effect Program again');
+        },
+        clientProgramPrepareEffectComputationWithParameters() {
+          assert.fail('publication plan prepared the Effect Program again');
+        }};
+      const installedPlan = sourceFreeEffectPublicationPlan({
+        moon: noRecompile, control, prepared,
+        compilation: effectCompilation, allowed, definition,
+        authorityScopeCid: cid('a'), tenantId: 'tenant-a',
+        storeAuthorityCid: cid('7'),
+        now: () => '2026-09-24T00:00:00.000Z',
+      });
+      assert.equal(installedPlan.runDefinition.identity,
+        moon.strategyPublicationContractIdentity(definition));
+      assert.equal(installedPlan.results.length,
+        moon.clientProgramEffectCompilationResultNames(effectCompilation)
+          .length);
+      assert.ok(Date.parse(JSON.parse(installedPlan.results[0].retention.wire)
+        .available_until) >= Date.parse(JSON.parse(
+        installedPlan.runDefinition.wire).valid_until));
+      assert.equal(installedPlan.localEvidenceContext.runDefinition,
+        installedPlan.runDefinition);
+    }
     const semanticInvocation = checked(
       moon.clientProgramIssueSourceFreeLocalEffectInvocation(
         prepared, 0, 4096, 64, 8));
@@ -2324,11 +2358,21 @@ test(`two-member captured Effect Run ${
           chunk => encrypted.push(Buffer.from(chunk)));
         assert.equal(Buffer.concat(encrypted).toString('utf8')
           .includes('"captured_run"'), false);
-        for (const result of storedResults.results) {
-          if (result.prepared.status().pending) {
-            await result.prepared.release();
-          }
-        }
+        const suspended = {execution, store, storedResults, control,
+          computation, preview: admittedPreview};
+        await assert.rejects(suspendCompletedEffectfulComputation({
+          ...suspended, computation: {...computation}}),
+        {code: 'InvalidCompletedEffectfulRunOwner'});
+        assert.equal(await suspendCompletedEffectfulComputation(suspended),
+          true);
+        assert.equal(await suspendCompletedEffectfulComputation(suspended),
+          false);
+        assert.throws(() => releaseCompletedRunPreparedPayloads(
+          storedResults, control),
+        {code: 'CompletedRunResultSetReleaseModeConflict'});
+        assert.equal(JSON.stringify(await store.inspectPhysicalHolding(
+          control.effectComputationCaptureHoldingCid(
+            runDefinition, store.storeAuthorityCid))), before);
         if (sourcePayload.prepared.status().pending) {
           await sourcePayload.prepared.release();
         }
@@ -3229,11 +3273,182 @@ test(`two-member captured Effect Run ${
             outcomeWire: canonicalJson({state: 'applied',
               result: {record_id: `member-${memberIndex}-row-${rowIndex}`}}),
           });
-          ledger.commitAdmittedRowOutcome({
-            claim, preview: applyPreview, memberIndex,
-            previewRowIndex: rowIndex,
-          });
+        ledger.commitAdmittedRowOutcome({
+          claim, preview: applyPreview, memberIndex,
+          previewRowIndex: rowIndex,
+        });
       };
+      if (physical === 'simulated-installed-factory') {
+        let opens = 0;
+        let retained;
+        const installed = createInstalledEffectSite({
+          environmentWire,
+          prepareCaptured({execution: active}) {
+            assert.equal(active, execution);
+            return {
+              preview: admittedPreview, computation, storedResults,
+              apply: {...applyOptions, ledger, dispatchRow},
+              receipt: {ledger, preview: applyPreview, commonMoon: moon,
+                publicationPreview: admittedPreview,
+                authorizeEvidenceRead: async () => true,
+                members: members.map(member => ({rowOwners:
+                  member.claims.map(claim => ({claim})), replayed: false})),
+                limits: publicationLimits},
+              publication: {execution, store, storedResults, control,
+                computation, preview: admittedPreview, ledger,
+                request: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+                  publicationPolicyCid: cid('e'),
+                  publicationTargetCid: cid('f'),
+                  requestedAt: '2026-09-24T00:00:01.000Z'},
+                attempt: {attemptId: 'installed-two-effects-attempt',
+                  fenceCid: cid('0'), externalIdempotencyKey: undefined,
+                  startedAt: '2026-09-24T00:00:02.000Z'},
+                contractLimits: publicationLimits,
+                now: () => '2026-09-24T00:00:03.000Z'},
+              scopes: commitScopes, continuationWire: '{}',
+            };
+          },
+          prepareRecovered() {
+            assert.fail('The first apply must not recover Compute');
+          },
+        });
+        const completed = await installed.execute({moon, control, store,
+          ref: {runDefinitionCid: runDefinition.identity}, runDefinition,
+          compilation: effectCompilation,
+          openComputation: async () => { opens++; return {execution,
+            checkedHost: owned}; },
+          retainExecution: owner => { retained = owner; },
+          effectAuthorization: async ({reviewWire, declaredResults}) => {
+            assert.equal(reviewWire, preview.wire);
+            assert.deepEqual(declaredResults, ['answer']);
+            return {authorize: async () => ({action: 'dispatch'}),
+              close() {}};
+          },
+        });
+        assert.equal(opens, 1);
+        assert.equal(typeof retained?.cleanup, 'function');
+        assert.equal(completed.status, 'published');
+        assert.equal(completed.result.progress.dispatched, 4);
+        assert.equal(completed.result.completed.publication.state,
+          'succeeded');
+        assert.deepEqual(sent, [[0, 0], [0, 1], [1, 0], [1, 1]]);
+        published = true;
+        return;
+      }
+      if (physical === 'simulated-installed-recovered-factory') {
+        assert.equal(ledger.prepareCapturedSetIntents(
+          previewInputs, members, 64), 4);
+        const durable = await recoverCompletedEffectfulComputation({
+          store, control, runDefinition, contractLimits: publicationLimits,
+        });
+        const recovered = {requestScope, computation: durable};
+        const exactPreview = durable.preview;
+        const recoveredClaims = ledger.recoverClaimFacts({
+          preview: control.effectComputationPreviewLedgerIdentity(
+            exactPreview),
+          scope: requestScope, programId: 'program-1', nodeId: 'node-1',
+          maxRows: 4, maxWork: 100,
+        }).members;
+        const dispatched = [];
+        const installed = createInstalledEffectSite({environmentWire,
+          prepareCaptured() {
+            assert.fail('Recovered apply must not compute again');
+          },
+          prepareRecovered({recovered: actual}) {
+            assert.equal(actual, recovered);
+            return {preview: exactPreview,
+              computation: durable.computation,
+              storedResults: durable.storedResults,
+              apply: {moon, store, publicationControl: control,
+                computation: durable.computation, preview: exactPreview,
+                ledger, requestScope, programId: 'program-1',
+                nodeId: 'node-1', maxRows: 4, maxFrontierWork: 64,
+                maxRecoveryWork: 100,
+                keyLimits: {maxBytes: 128, maxNodes: 8, maxDepth: 3,
+                  maxWork: 100},
+                refreshPreflight: async () => preflight,
+                async dispatchRow({memberIndex, rowIndex, claim}) {
+                  dispatched.push([memberIndex, rowIndex]);
+                  await captureClaimedEffectResponse({ledger, claim,
+                    requestCid: claim.canonicalRequestCid,
+                    execute: async () => ({observation: {useCid: cid('4'),
+                      statusCode: 204, body: Buffer.alloc(0)}})});
+                  ledger.recordAdmittedRowOutcome({claim,
+                    preview: applyPreview, memberIndex,
+                    previewRowIndex: rowIndex,
+                    outcomeWire: canonicalJson({state: 'applied',
+                      result: {record_id:
+                        `member-${memberIndex}-row-${rowIndex}`}})});
+                  ledger.commitAdmittedRowOutcome({claim,
+                    preview: applyPreview, memberIndex,
+                    previewRowIndex: rowIndex});
+                }},
+              receipt: {ledger, preview: applyPreview, commonMoon: moon,
+                publicationPreview: exactPreview,
+                authorizeEvidenceRead: async () => true,
+                members: recoveredClaims.map(member => ({rowOwners:
+                  member.claims.map(claim => ({claim})), replayed: true})),
+                limits: publicationLimits},
+              publication: {execution: null, store,
+                storedResults: durable.storedResults, control,
+                computation: durable.computation, preview: exactPreview,
+                ledger, request: {tenantId: 'tenant-a',
+                  authorityScopeCid: cid('a'),
+                  publicationPolicyCid: cid('e'),
+                  publicationTargetCid: cid('f'),
+                  requestedAt: '2026-09-24T00:00:01.000Z'},
+                attempt: {attemptId: 'installed-recovered-attempt',
+                  fenceCid: cid('0'), externalIdempotencyKey: undefined,
+                  startedAt: '2026-09-24T00:00:02.000Z'},
+                contractLimits: publicationLimits,
+                now: () => '2026-09-24T00:00:03.000Z'},
+              scopes: commitScopes, continuationWire: '{}',
+              cleanupOwner: {async close() {}, async cleanup() {
+                return true;
+              }, cleanupPending: () => false}};
+          }});
+        let claims = 0;
+        let completedResume;
+        const previewCid = control.effectComputationPreviewSemanticCid(
+          exactPreview);
+        const response = await installed.resume({moon, control, store,
+          ref: {runDefinitionCid: runDefinition.identity},
+          view: {runId: control.runDefinitionRunId(runDefinition)},
+          retained: {runDefinition, resultNames: ['answer']},
+          continuation: {version:
+            'actql-installed-effect-continuation/0.1',
+            run_definition_cid: runDefinition.identity,
+            preview_cid: previewCid, provider: {}},
+          recoverCapture: async () => recovered,
+          retainExecution() {},
+          checkpointBinding: {}, checkpointJournal: {
+            claimResume() { claims++; return {action: 'claimed',
+              claim: {runId: control.runDefinitionRunId(runDefinition)}}; },
+            completeResume(claim, outcome) {
+              completedResume = {claim, outcome};
+            },
+          },
+          effectAuthorization: async ({reviewWire}) => {
+            assert.equal(reviewWire, preview.wire);
+            return {authorize: async () => ({action: 'dispatch'}),
+              resume: async () => ({action: 'dispatch', admission: {
+                enter: () => ({mode: 'dispatch'})}}), close() {}};
+          },
+          observeRun: async () => ({version: 'actql-run-state/0.1',
+            run_id: control.runDefinitionRunId(runDefinition),
+            status: 'succeeded', control: {revision: 1}}),
+        });
+        assert.equal(claims, 1);
+        assert.equal(response.status, 'published');
+        assert.equal(response.result.progress.dispatched, 4);
+        assert.equal(response.result.completed.publication.state,
+          'succeeded');
+        assert.deepEqual(dispatched, [[0, 0], [0, 1], [1, 0], [1, 1]]);
+        assert.equal(JSON.parse(completedResume.outcome.runStateWire).status,
+          'succeeded');
+        published = true;
+        return;
+      }
       if (recoverAfterResponse) {
         await assert.rejects(applyCapturedEffectSet({
           ...applyOptions, dispatchRow,
@@ -4207,6 +4422,61 @@ test('public Effect submit rejects an unsupported checked Program before accepta
     } finally { database.close(); }
   });
 
+test('Effect publication preparation failure reserves no physical start',
+  async t => {
+    const fixture = await effectFixture();
+    const prepare = installNodeClientEffectProgramPreparation({moon,
+      environment: fixture.environment});
+    const prepared = prepare({kind: 'aql', input: {text: fixture.document,
+      format: 'json'}, parameters: null});
+    await mkdir(scratch, {recursive: true});
+    const directory = await mkdtemp(join(scratch.pathname,
+      'effect-plan-failure-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const journal = openClientRequestJournal(directory);
+    t.after(() => journal.close());
+    let physicalStarts = 0;
+    const runs = installNodeClientEffectRun({moon, journal,
+      authorizeRequest: async () => ({executionContextCid: cid('a'),
+        hostPolicyCid: cid('b'), createdAt: '2026-09-24T00:00:00.000Z',
+        expiresAt: '2027-01-01T00:00:00.000Z'}),
+      authorizeRunStart: async () => true,
+      prepareExecution() { throw new Error('PlanIssuanceFailed'); },
+      execute() { physicalStarts++; },
+    });
+    const accepted = await runs.accept({prepared,
+      authorityScopeCid: cid('e'), requestId: 'effect-plan-failure',
+      tenantId: 'tenant-a', principalId: 'principal-a',
+      connection: {mode: 'local', owner: 'local'},
+      lookupExpiresAt: '2027-01-01T00:00:00.000Z'});
+    await assert.rejects(runs.start(accepted), /PlanIssuanceFailed/);
+    const retained = journal.lookupRunDefinition(accepted.ref, moon,
+      runtimeCore(moon).publicationControl);
+    assert.equal(retained.preDispatchFailureConfirmed, true);
+    assert.equal(retained.physicalStartReserved, false);
+    assert.equal(physicalStarts, 0);
+    assert.equal((await runs.start(accepted)).kind, 'reconcile');
+    assert.equal(physicalStarts, 0);
+    const asyncRuns = installNodeClientEffectRun({moon, journal,
+      authorizeRequest: async () => ({executionContextCid: cid('a'),
+        hostPolicyCid: cid('b'), createdAt: '2026-09-24T00:00:00.000Z',
+        expiresAt: '2027-01-01T00:00:00.000Z'}),
+      authorizeRunStart: async () => true,
+      async prepareExecution() { throw new Error('LatePlanFailure'); },
+      execute() { physicalStarts++; },
+    });
+    const asynchronous = await asyncRuns.accept({prepared,
+      authorityScopeCid: cid('e'), requestId: 'effect-async-plan-failure',
+      tenantId: 'tenant-a', principalId: 'principal-a',
+      connection: {mode: 'local', owner: 'local'},
+      lookupExpiresAt: '2027-01-01T00:00:00.000Z'});
+    await assert.rejects(asyncRuns.start(asynchronous),
+      {name: 'TypeError', message: 'AsyncClientEffectPreparation'});
+    assert.equal(journal.lookupRunDefinition(asynchronous.ref, moon,
+      runtimeCore(moon).publicationControl).physicalStartReserved, false);
+    assert.equal(physicalStarts, 0);
+  });
+
 function publicationEvidence(program, parameters, semantics,
   checkEnvironmentCid, aoaLogicalCid = cid('9')) {
   const limits = [100000, 10000, 64];
@@ -4390,7 +4660,13 @@ test('shared Effect Client admission and physical claim survive races and restar
   let starts = 0;
   let failAfterCapture = false;
   let currentAuthorization = true;
-  const install = journal => installNodeClientEffectRun({moon,
+  let preflightCompiles = 0;
+  const countedMoon = {...moon,
+    clientProgramCompileLocalEffects(...args) {
+      preflightCompiles++;
+      return moon.clientProgramCompileLocalEffects(...args);
+    }};
+  const install = (journal, runtime = moon) => installNodeClientEffectRun({moon: runtime,
     publicationControl: control, journal,
     authorizeRequest: async () => currentAuthorization ? {
       executionContextCid: cid('a'), hostPolicyCid: cid('b'),
@@ -4418,11 +4694,15 @@ test('shared Effect Client admission and physical claim survive races and restar
     lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
   let journal = openClientRequestJournal(directory);
   let other = openClientRequestJournal(directory);
-  let host = install(journal);
+  let host = install(journal, countedMoon);
   let competing = install(other);
+  host.checkSupported(prepared);
+  assert.equal(preflightCompiles, 1);
   const [first, second] = await Promise.all([
     host.accept(request('race')), competing.accept(request('race')),
   ]);
+  assert.equal(preflightCompiles, 1,
+    'accepted Run reuses the checked preflight compilation');
   assert.deepEqual(first.ref, second.ref);
   assert.equal(starts, 0, 'acceptance never starts capture');
   assert.deepEqual((await Promise.all([host.start(first), competing.start(second)]))
@@ -4445,10 +4725,31 @@ test('shared Effect Client admission and physical claim survive races and restar
   assert.deepEqual(resumed.ref, unstarted.ref);
   assert.equal((await host.start(resumed)).kind, 'started');
   assert.equal(starts, 2);
+  const gated = await host.accept(request('gated-start'));
+  const gateCalls = [];
+  await assert.rejects(host.start(gated, {
+    beforePhysicalStart() {
+      gateCalls.push('before');
+      throw new Error('ResumeClaimStale');
+    },
+    started() { gateCalls.push('started'); },
+  }), /ResumeClaimStale/);
+  assert.deepEqual(gateCalls, ['before']);
+  assert.equal(starts, 2);
+  const gatedIdentity = moon.clientProgramEffectRequestIdentity(prepared,
+    cid('a'), 'gated-start', moon.clientProgramSourceFreeInputIntentCid());
+  assert.equal(journal.resolveDefinition(gatedIdentity, {tenantId: 'tenant-a'},
+    moon, control).physicalStartReserved, false);
+  assert.equal((await host.start(gated, {
+    beforePhysicalStart() { gateCalls.push('before'); },
+    started() { gateCalls.push('started'); },
+  })).kind, 'started');
+  assert.deepEqual(gateCalls, ['before', 'before', 'started']);
+  assert.equal(starts, 3);
   failAfterCapture = true;
   const unknown = await host.accept(request('unknown'));
   await assert.rejects(host.start(unknown), /LostEffectExecutionReply/);
-  assert.equal(starts, 3);
+  assert.equal(starts, 4);
   journal.close();
   journal = openClientRequestJournal(directory);
   t.after(() => journal.close());
@@ -4456,7 +4757,7 @@ test('shared Effect Client admission and physical claim survive races and restar
   const recovered = await host.accept(request('unknown'));
   assert.deepEqual(recovered.ref, unknown.ref);
   assert.equal((await host.start(recovered)).kind, 'reconcile');
-  assert.equal(starts, 3, 'unknown Effect outcome never retries capture/apply');
+  assert.equal(starts, 4, 'unknown Effect outcome never retries capture/apply');
   const pendingProcess = await host.accept(request('process-unstarted'));
   journal.close();
   const child = spawnSync(process.execPath, [fileURLToPath(new URL(

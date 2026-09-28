@@ -1219,6 +1219,49 @@ test('a journal created before the decision-subject column is upgraded',
       cid('9'));
   });
 
+test('cancellation fences an unsent resume but preserves admitted work',
+  async t => {
+    const {open} = await workspace(t);
+    const journal = open();
+    const waiting = persist(journal);
+    await journal.submitResolution({checkpointCid: waiting.checkpointCid,
+      ...resolve(stored(journal), 'approved')});
+    const first = journal.claimResume('run-1',
+      {claimant: 'worker-a', leaseMs: 60_000, binding});
+    assert.equal(journal.cancelUnsentResume(waiting.checkpointCid).outcome,
+      'cancelled');
+    assert.equal(journal.getRunState('run-1').status, 'cancelled');
+    assert.throws(() => journal.enterResumedDispatch(first.claim),
+      {code: 'ResumeClaimStale'});
+    assert.deepEqual(journal.claimResume('run-1',
+      {claimant: 'worker-b', leaseMs: 60_000, binding}),
+    {action: 'completed'});
+    assert.equal(journal.cancelUnsentResume(waiting.checkpointCid).outcome,
+      'not_resuming');
+  });
+
+test('cancellation does not terminalize an admitted unknown dispatch',
+  async t => {
+    const {open} = await workspace(t);
+    const journal = open();
+    const waiting = persist(journal);
+    await journal.submitResolution({checkpointCid: waiting.checkpointCid,
+      ...resolve(stored(journal), 'approved')});
+    const first = journal.claimResume('run-1',
+      {claimant: 'worker-a', leaseMs: 60_000, binding});
+    journal.enterResumedDispatch(first.claim,
+      {dispatchIdentity: 'effect-dispatch-a'});
+    assert.equal(journal.cancelUnsentResume(waiting.checkpointCid).outcome,
+      'admitted');
+    journal.close();
+    const restarted = open();
+    assert.equal(restarted.getRunState('run-1').status, 'resuming');
+    assert.equal(restarted.cancelUnsentResume(waiting.checkpointCid).outcome,
+      'admitted');
+    assert.equal(restarted.currentResume(waiting.checkpointCid).state,
+      'claimed');
+  });
+
 test('resumed dispatch admission reads the live claim and committed approval',
   async t => {
     const {clock, open} = await workspace(t);

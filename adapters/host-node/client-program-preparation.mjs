@@ -66,15 +66,24 @@ function serializeProgram({kind, input, parameters}) {
   return {document, format, supplied};
 }
 
-export function installNodeClientProgramPreparation({moon, environment}) {
+export function installNodeClientProgramPreparation({moon, environment,
+  allowEffects = false, effectEvidence = []}) {
   if (!moon || typeof moon.clientProgramPrepareEffectFreeWithParameters !==
       'function' || typeof moon.clientProgramPreparationReady !== 'function' ||
       typeof moon.clientProgramPreparationIssue !== 'function' ||
       typeof moon.clientProgramPreparationIssueCode !== 'function' ||
-      environment === undefined) {
+      environment === undefined || typeof allowEffects !== 'boolean' ||
+      (allowEffects &&
+        (typeof moon.clientProgramPrepareEffectComputationWithParameters !==
+          'function' || !Array.isArray(effectEvidence) ||
+          effectEvidence.length > 1024))) {
     throw new TypeError('InvalidClientProgramPreparationInstallation');
   }
   const owned = new WeakSet();
+  const effectOwned = new WeakSet();
+  const prepareEffect = !allowEffects ? undefined :
+    installNodeClientEffectProgramPreparation({moon,
+      environment, evidence: effectEvidence});
   const prepare = request => {
     const {document, format, supplied} = serializeProgram(request);
     const outcome = moon.clientProgramPrepareEffectFreeWithParameters(
@@ -86,6 +95,11 @@ export function installNodeClientProgramPreparation({moon, environment}) {
     }
     const issue = moon.clientProgramPreparationIssue(outcome);
     const category = moon.clientProgramPreparationIssueCode(outcome);
+    if (category === 'effect_not_supported' && prepareEffect !== undefined) {
+      const effect = prepareEffect(request);
+      effectOwned.add(effect);
+      return effect;
+    }
     const code = issueCodes[category];
     if (issue === undefined || code === undefined) {
       fail('ClientProgramPreparationFailure');
@@ -96,9 +110,14 @@ export function installNodeClientProgramPreparation({moon, environment}) {
   // keeps the exact runtime and environment binding without parsing it again.
   return Object.freeze(Object.assign(prepare, {
     assertOwned(prepared) {
-      if (!owned.has(prepared)) {
+      if (!owned.has(prepared) && !effectOwned.has(prepared)) {
         throw new TypeError('Foreign Client preparation');
       }
+    },
+    kindOf(prepared) {
+      if (owned.has(prepared)) return 'effect_free';
+      if (effectOwned.has(prepared)) return 'effectful';
+      throw new TypeError('Foreign Client preparation');
     },
   }));
 }
