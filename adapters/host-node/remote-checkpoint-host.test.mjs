@@ -9,6 +9,7 @@ import {createHash, generateKeyPairSync, sign} from 'node:crypto';
 import {chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
   'node:fs/promises';
 import {createServer} from 'node:https';
+import {createRequire} from 'node:module';
 import {DatabaseSync} from 'node:sqlite';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {userInfo} from 'node:os';
@@ -50,6 +51,10 @@ setDefaultCACertificates([...getCACertificates('default'),
 after(() => rm(tlsRoot, {recursive: true, force: true}));
 const document = await readFile(join(repository,
   'packages/sdk/fixtures/values.json'), 'utf8');
+const readDocument = await readFile(join(repository,
+  'adapters/connectors/duckdb/node/examples/program.json'), 'utf8');
+const {DuckDBInstance} = createRequire(join(repository,
+  'adapters/connectors/duckdb/node/package.json'))('@duckdb/node-api');
 const contentCid = value => `sha256:${createHash('sha256')
   .update(canonicalJson(value)).digest('hex')}`;
 const withoutCid = (value, key) => {
@@ -57,6 +62,42 @@ const withoutCid = (value, key) => {
   delete body[key];
   return contentCid(body);
 };
+async function installedReadFixture(directory, outcome = 'allow') {
+  const database = join(directory, 'records.duckdb');
+  const instance = await DuckDBInstance.create(database);
+  const connection = await instance.connect();
+  try {
+    await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+    await connection.run('INSERT INTO records VALUES (3,30),(1,NULL),' +
+      '(2,20),(3,30)');
+  } finally {
+    connection.closeSync();
+    instance.closeSync();
+  }
+  const environment = JSON.parse(await readFile(join(repository,
+    'adapters/host-node/fixtures/query-amount-environment.json'), 'utf8'));
+  const base = JSON.parse(await readFile(join(repository,
+    'spec/local-check-environment.json'), 'utf8'));
+  environment.host_policy_profile = base.host_policy_profile;
+  environment.evidence_bundle_cid = withoutCid(environment,
+    'evidence_bundle_cid');
+  const profilePath = join(directory, 'source-profile.json');
+  await writeFile(profilePath, JSON.stringify({
+    version: 'actql-installed-duckdb-source/0.1', database,
+    schema: 'main', table: 'records',
+    sourceRef: 'connector://crm/main/r#v',
+    checkEnvironmentWire: canonicalJson(environment),
+    accountConfigurationWire: canonicalJson({
+      version: 'actql-execution-account-config/0.1',
+      account_id: 'coinstalled-read-account',
+      entries: [{entry_id: 'read', outcome,
+        principal: {all: true}, connection: {all: true},
+        resource: {all: true}, operation: {any_of: ['read']},
+        exclusions: []}],
+    }),
+  }));
+  return profilePath;
+}
 async function effectFixture({twoMembers = false} = {}) {
   const environment = JSON.parse(await readFile(join(repository,
     'packages/sdk/fixtures/values.environment.json'), 'utf8'));
@@ -459,7 +500,7 @@ const tokens = new Map([['owner-token', owner],
   ['stranger-token', 'stranger-principal']]);
 
 async function remoteHost(t, authorization, {directory,
-  effectInstallation, beforeDispatch} = {}) {
+  effectInstallation, sourceProfilePath, beforeDispatch} = {}) {
   const root = directory ?? await mkdtemp(join(scratch, 'host-'));
   let dispatches = 0;
   const host = await openInstalledRemoteHttpHost({
@@ -469,7 +510,7 @@ async function remoteHost(t, authorization, {directory,
       dispatches++;
       await beforeDispatch?.(ref);
     },
-    authorization, effectInstallation,
+    authorization, effectInstallation, sourceProfilePath,
   });
   const server = createServer({key: tlsKey, cert: tlsCertificate},
     host.handler);
@@ -1014,6 +1055,156 @@ test('installed Effect allow publishes without a commit Checkpoint',
       [{id: 1}, {id: 2}]);
     assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
     await restarted.close();
+  });
+
+test('one installed Host reads and applies independent Effects', async t => {
+  const directory = await mkdtemp(join(scratch, 'source-effect-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const sourceProfilePath = await installedReadFixture(directory);
+  const fixture = await effectFixture({twoMembers: true});
+  const sends = [];
+  const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+  const effectInstallation = createInstalledEffectSite({
+    environmentWire: fixture.environmentWire,
+    privateEvidenceKey: Buffer.alloc(32, 16),
+    prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
+    prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+  });
+  const options = {directory, sourceProfilePath, effectInstallation};
+  const account = () => {
+    const configuration = JSON.parse(effectCommitConfiguration(
+      'allow', 'allow'));
+    configuration.entries[1].connection = {all: true};
+    configuration.entries[1].resource = {all: true};
+    return protectedHost(undefined,
+      {accountConfiguration: canonicalJson(configuration)});
+  };
+  const first = await remoteHost(t, account(), options);
+  const client = await first.as('owner-token');
+  const read = await client.aql(readDocument, {format: 'json',
+    requestId: 'coinstalled-read', parameters: {minimum: 1}});
+  assert.equal((await read.wait()).status, 'succeeded');
+  assert.deepEqual((await read.result('b').all()).map(row => row.id)
+    .sort(), [2, 3, 3]);
+  const effect = await client.aql(fixture.document, {format: 'json',
+    requestId: 'coinstalled-effect'});
+  await waitFor(async () => (await effect.status()).status === 'succeeded');
+  assert.deepEqual(await effect.result('answer').all(),
+    [{id: 1}, {id: 2}]);
+  assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
+  await first.close();
+  const restarted = await remoteHost(t, account(), options);
+  const attached = await (await restarted.as('owner-token'))
+    .attach(effect.ref);
+  assert.equal((await attached.status()).status, 'succeeded');
+  assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
+  await restarted.close();
+});
+
+test('coinstalled read and commit approvals survive the same Host restart',
+  async t => {
+    const directory = await mkdtemp(join(scratch, 'source-effect-held-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const sourceProfilePath = await installedReadFixture(directory,
+      'delegate');
+    const fixture = await effectFixture();
+    const sends = [];
+    const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const effectInstallation = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 17),
+      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
+      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+    });
+    const options = {directory, sourceProfilePath, effectInstallation};
+    const account = (extra = {}) => {
+      const configuration = JSON.parse(effectCommitConfiguration());
+      configuration.entries[1].connection = {all: true};
+      configuration.entries[1].resource = {all: true};
+      return protectedHost(undefined, {...extra,
+        accountConfiguration: canonicalJson(configuration)});
+    };
+    const first = await remoteHost(t, account({resumeAfterAnswer: false}),
+      options);
+    const client = await first.as('owner-token');
+    await assert.rejects(client.aql(readDocument, {format: 'json',
+      requestId: 'coinstalled-held-read', parameters: {minimum: 1}}),
+    RequestHeld);
+    const effect = await client.aql(fixture.document, {format: 'json',
+      requestId: 'coinstalled-held-effect'});
+    await waitFor(async () => (await effect.status()).status ===
+      'waiting_checkpoint');
+    assert.deepEqual(sends, []);
+    const reviewer = await first.as('reviewer-token');
+    const checkpoints = (await reviewer.checkpoints()).items;
+    assert.deepEqual(checkpoints.map(item => item.kind).sort(),
+      ['effect_set', 'read_access']);
+    await first.close();
+    const answering = await remoteHost(t, account({resumeAfterAnswer: false}),
+      options);
+    const resumedReviewer = await answering.as('reviewer-token');
+    for (const checkpoint of checkpoints) {
+      const approved = await resumedReviewer.resolveCheckpoints([
+        {checkpoint, decision: 'approved'}], {signer: {...signer,
+          ...(checkpoint.kind === 'effect_set'
+            ? {authorityScopeCid: effect.ref.authorityScopeCid} : {})}});
+      assert.deepEqual(approved.results.map(item => item.status),
+        ['committed']);
+    }
+    assert.deepEqual(sends, []);
+    await answering.close();
+    const resumed = await remoteHost(t, account(), options);
+    const resumedClient = await resumed.as('owner-token');
+    const readLookup = await waitFor(async () => {
+      const found = await resumedClient.lookupRequest('coinstalled-held-read');
+      return found.kind === 'found' ? found : undefined;
+    });
+    const read = await resumedClient.attach(readLookup.ref);
+    assert.equal((await read.wait()).status, 'succeeded');
+    assert.deepEqual((await read.result('b').all()).map(row => row.id)
+      .sort(), [2, 3, 3]);
+    const applied = await resumedClient.attach(effect.ref);
+    await waitFor(async () => (await applied.status()).status ===
+      'succeeded');
+    assert.deepEqual(await applied.result('answer').all(),
+      [{id: 1}, {id: 2}]);
+    assert.deepEqual(sends, [[0, 0], [0, 1]]);
+    await resumed.close();
+  });
+
+test('coinstalled read denial cannot authorize or suppress independent commit',
+  async t => {
+    const directory = await mkdtemp(join(scratch, 'source-effect-deny-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const sourceProfilePath = await installedReadFixture(directory, 'deny');
+    const fixture = await effectFixture();
+    const sends = [];
+    const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const effectInstallation = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 18),
+      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
+      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+    });
+    const configuration = JSON.parse(effectCommitConfiguration(
+      'allow', 'allow'));
+    configuration.entries[1].connection = {all: true};
+    configuration.entries[1].resource = {all: true};
+    const host = await remoteHost(t, protectedHost(undefined,
+      {accountConfiguration: canonicalJson(configuration)}),
+    {directory, sourceProfilePath, effectInstallation});
+    const client = await host.as('owner-token');
+    await assert.rejects(client.aql(readDocument, {format: 'json',
+      requestId: 'coinstalled-denied-read', parameters: {minimum: 1}}),
+    {code: 'ACTQL_E_ACCOUNT_DENIED'});
+    assert.deepEqual(await client.lookupRequest('coinstalled-denied-read'),
+      {kind: 'not_found'});
+    const applied = await client.aql(fixture.document, {format: 'json',
+      requestId: 'coinstalled-allowed-effect'});
+    await waitFor(async () => (await applied.status()).status ===
+      'succeeded');
+    assert.deepEqual(sends, [[0, 0], [0, 1]]);
+    await host.close();
   });
 
 test('public Effect dispatch waits for and obeys the Host barrier',
