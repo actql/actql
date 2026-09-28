@@ -774,56 +774,11 @@ pub fn[T] start_local_managed_dispatch(
     is Some(numeric_count) else {
     return Err(Execution(ForeignCandidate))
   }
-  let numeric = if numeric_count == 0 {
-    None
-  } else {
-    Some(
-      @execution.numeric_aggregate_execution_with_steps(
-        fn(step, name, occurrence, contributors, expected_count, max_work) {
-          @strategy.execute_task_numeric_reduction_for_slot(
-            setup.run,
-            execution,
-            step,
-            name,
-            occurrence,
-            contributors,
-            expected_count,
-            max_work,
-          )
-        },
-        fn(step, name, occurrence_count) {
-          @strategy.seal_task_numeric_reduction_slot(
-            setup.run,
-            execution,
-            step,
-            name,
-            occurrence_count,
-          )
-        },
-        fn(step, name, occurrence, contributors, expected_count, max_work) {
-          @strategy.start_task_numeric_reduction_for_slot(
-            setup.run,
-            execution,
-            step,
-            name,
-            occurrence,
-            contributors,
-            expected_count,
-            max_work,
-          ).map(result => {
-            result.map(pending => {
-              @execution.numeric_aggregate_step(
-                () => {
-                  @strategy.advance_task_numeric_reduction(setup.run, pending)
-                },
-                () => @strategy.close_task_numeric_reduction(setup.run, pending),
-              )
-            })
-          })
-        },
-      ),
-    )
-  }
+  let numeric = local_task_numeric_execution(
+    setup.run,
+    execution,
+    numeric_count,
+  )
   let transfers = []
   let mut bridge_index = 0
   for read_index, input in relation_inputs {
