@@ -285,6 +285,112 @@ pub fn local_module_bounded_cross_join_obligation(
 }
 
 ///|
+/// A retained Relation check is discharged by the exact bounded child of the
+/// selected task. A registered family provider cannot stand in for that child.
+pub(all) enum LocalBoundedRelationCheck {
+  Group
+  Analytic
+  Pivot
+  RowWindow
+  TopK
+  Dedupe
+  Assertion
+}
+
+///|
+fn local_bounded_relation_check(
+  installed : LocalComputeModule,
+  slot : Int,
+  required_step : Int,
+  check : LocalBoundedRelationCheck,
+) -> Bool {
+  guard installed.sequences.get(slot) is Some(sequence) else { return false }
+  let count = @execution.generated_sequence_step_count(sequence)
+  let mut position = -1
+  for index in 0..<count {
+    if @execution.generated_sequence_step_index_at(sequence, index) ==
+      Some(required_step) {
+      if position >= 0 {
+        return false
+      }
+      position = index
+    }
+  }
+  guard position >= 0 &&
+    @execution.select_generated_sequence_step(sequence, required_step)
+    is Some(selected) else {
+    return false
+  }
+  let matches = match
+    @execution.generated_sequence_step_at(sequence, position) {
+    Some(@lower.RowStep(kernel)) =>
+      match check {
+        Group =>
+          (match @lower.kernel_group(kernel) {
+            Some(group) => @execution.group_execution_supported(group)
+            None => false
+          }) ||
+          @lower.kernel_count_group(kernel) is Some(_)
+        Analytic =>
+          match @lower.kernel_analytic(kernel) {
+            Some(analytic) => @execution.analytic_execution_supported(analytic)
+            None => false
+          }
+        Pivot =>
+          match @lower.kernel_pivot(kernel) {
+            Some(pivot) => @execution.pivot_execution_supported(pivot)
+            None => false
+          }
+        RowWindow => false
+        TopK =>
+          match @lower.kernel_body(kernel) {
+            @lower.TopK(_, _) | @lower.PartitionedTopK(_, _) => true
+            _ => false
+          }
+        Dedupe => @lower.kernel_body(kernel) is @lower.DedupeRows
+        Assertion =>
+          match @lower.kernel_body(kernel) {
+            @lower.AssertAll(_) | @lower.AssertUnique(_) => true
+            _ => false
+          }
+      }
+    Some(@lower.WindowStep(_)) => check is RowWindow
+    _ => false
+  }
+  if !matches {
+    return false
+  }
+  for provider in installed.managed_providers {
+    if managed_provider_accepts(provider, sequence) {
+      return false
+    }
+  }
+  if count > 1 &&
+    !managed_provider_accepts(
+      selected_relation_provider(installed.execution, installed.measurement),
+      sequence,
+    ) {
+    return false
+  }
+  bounded_relation_step_provider(
+    selected,
+    installed.execution,
+    installed.measurement,
+  )
+  is Some(_)
+}
+
+///|
+pub fn local_module_bounded_relation_obligation(
+  installed : LocalComputeModule,
+  slot : Int,
+  step : Int,
+  check : LocalBoundedRelationCheck,
+) -> Bool {
+  local_bounded_relation_check(installed, slot, step, check)
+}
+
+///|
 /// The bounded provider owning `sequence`: a registered family provider first,
 /// then the built-in relation providers bound to the module limits.
 fn local_managed_provider_for(

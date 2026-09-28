@@ -15,6 +15,8 @@ import {installNodeClientProgramPreparation} from
 import {checked} from '../host-common/runtime-result.mjs';
 import {loadInstalledSource, publishInstalledSourceProfile} from
   './installed-source.mjs';
+import {createDiagnosticObserver} from
+  '../host-common/diagnostic-observer.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
@@ -97,6 +99,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   let store;
   let checkpoints;
   let dispatchOwner;
+  const diagnostic = createDiagnosticObserver(authorization?.observe);
   try {
     store = await openLocalPublicationStore({
       directory: join(root, 'publication'), storeAuthorityCid,
@@ -155,7 +158,9 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       siteKey: authorization?.siteKey ?? 'actql-remote-host',
       realizationKey: sourceProfile?.realizationKey ?? REALIZATION_KEY,
       environmentCid: evidenceCid,
-      contractControl: control, authorization,
+      contractControl: control,
+      authorization: authorization == null ? authorization :
+        {...authorization, observe: diagnostic},
       source: sourceProfile?.readAuthorization});
   const observeRun = async ({ref, principalId: actual}) => {
     if (actual !== principalId || ref.tenantId !== tenantId ||
@@ -346,10 +351,11 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   };
   // Composition installs one owner for dispatch, cancellation, stop, and
   // cleanup. Checkpoint and HTTP paths share this owner.
-  const observed = (name, detail) => authorization?.observe?.(name, detail);
+  const observed = diagnostic;
   dispatchOwner = installNodeClientDispatchOwner({moon, control,
     journal, store, checkpoints, startRun, hostConnection, beforeDispatch,
     observed, prepareAcquisition, planFor, sourceProfile, registry, values,
+    faultInjection: authorization?.faultInjection,
     fragment, ordered, tenantId, authorityScopeCid, storeAuthorityCid, now});
   const startDispatch = dispatchOwner.start;
   const runIdOf = accepted => control.runDefinitionRunId(
@@ -662,9 +668,10 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     authenticate: () => principalId,
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
-  return {port, store, journal, hostOperations, checkpoints,
+  return {port, store, journal, hostOperations, checkpoints, diagnostic,
     dispatchOwner, inspectAcquisition, sourceProfile};
   } catch (cause) {
+    diagnostic.close();
     sourceProfile?.close();
     throw await retainInstalledHostInitializationFailure(cause,
       {journal, store, checkpoints, dispatchOwner});
@@ -678,12 +685,15 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
 // {accountConfig | accountConfiguration, reviewers: [{keyId, reviewerId,
 // principalId, publicKey}], reviewReaders: [principal], hostKey: {keyId,
 // privateKey}, siteKey?, decide?, answeringAuthorities?, checkpointTtlMs?,
-// leaseMs?, maxReviewBytes?, resumeAfterAnswer?, sweepPage?, observe?}.
+// leaseMs?, maxReviewBytes?, resumeAfterAnswer?, sweepPage?, observe?,
+// faultInjection?}.
 // Approved requests are resumed at Host start and, unless
 // `resumeAfterAnswer` is false, after an answer is stored; each sweep step
 // handles at most `sweepPage` items and continues until none remain.
-// `observe(step, detail)` is Host instrumentation of the protected steps. Without a configuration the Missing account
-// denies every request; nothing defaults to allow.
+// `observe(step, detail)` is bounded best-effort diagnostics and cannot stop
+// execution. `faultInjection(step, detail)` is an explicit awaited test hook;
+// `beforeDispatch` remains a required execution barrier. Without a
+// configuration the Missing account denies every request; nothing allows it.
 export async function openInstalledRemoteHttpHost({directory,
   authenticate, beforeDispatch, authorization, sourceProfilePath,
   resolveSourceSecret}) {
@@ -722,6 +732,7 @@ export async function openInstalledRemoteHttpHost({directory,
     // owner. Returns what remains for the next owner instead of hiding it.
     async close() {
       closing = true;
+      host.diagnostic.close();
       while (handling.size > 0) {
         await Promise.allSettled([...handling]);
       }
@@ -739,7 +750,10 @@ export async function openInstalledRemoteHttpHost({directory,
         storeCleanupPending = true;
       }
       return Object.freeze({storeCleanupPending,
-        pendingRetention: checkpoints?.pendingRetention ?? []});
+        pendingRetention: checkpoints?.pendingRetention ?? [],
+        authorizationCleanupPending:
+          checkpoints?.pendingAuthorization ?? false,
+        diagnosticDeliveryPending: host.diagnostic.status().active !== 0});
     },
   });
 }

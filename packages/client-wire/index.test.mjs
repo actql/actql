@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {checkpointLimits, clientHostOperations, validCheckpointPage,
+import {checkpointLimits, clientHostOperations, isClientSubmitRejection,
+  validCheckpointPage,
   validCheckpointReview, validClientAdmission, validClientBody,
   validClientConnection, validClientProfile, validDeliveryAttemptLookup,
   validHeldRequest, validRequestCancellation, validRequestLookup, validResolveResults, validRunRef,
@@ -41,6 +42,15 @@ test('submit preparation errors follow the public Host contract', () => {
   assert.equal(validSubmitPreparationError({code: 'ClientProgramRejected',
     diagnostics: []}), false);
 });
+
+test('technical delegation failure before Run creation is known non-admission',
+  () => {
+    assert.equal(isClientSubmitRejection('ACTQL_E_DELEGATION_UNAVAILABLE'),
+      true);
+    assert.equal(isClientSubmitRejection('ClientAdmissionJournalUnavailable'),
+      false);
+    assert.equal(isClientSubmitRejection('ClientHostFailure'), false);
+  });
 
 test('public wire rejects extra fields and unscoped or implicit movement', () => {
   assert.equal(validClientBody('connect', {connection, token: 'secret'}), false);
