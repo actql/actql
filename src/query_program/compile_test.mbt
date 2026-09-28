@@ -2171,6 +2171,59 @@ test "quoted column and alias spelling does not change name matching" {
 }
 
 ///|
+test "ORDER BY reuses selected expressions and hides computed input sort slots" {
+  let hidden = @query.parse_query(
+    "SELECT id FROM orders ORDER BY amount + 1",
+    syntax_limits(),
+  ).unwrap()
+  let hidden_program = compile(hidden, fixture_context(), construction_limits()).unwrap()
+  let wire = semantic(hidden_program)
+  assert_true(wire.contains("\"derive\":{\"aql_query_sort_"))
+  assert_true(wire.contains("\"fields\":[\"id\"]"))
+  match
+    @check.check_parsed(
+      hidden_program,
+      check_environment(),
+      None,
+      check_limits(),
+    ) {
+    NeedsInputs(_) => ()
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    Checked(_) => ()
+  }
+  let distinct = @query.parse_query(
+    "SELECT DISTINCT amount AS x FROM orders ORDER BY amount",
+    syntax_limits(),
+  ).unwrap()
+  let distinct_program = compile(
+    distinct,
+    fixture_context(),
+    construction_limits(),
+  ).unwrap()
+  let distinct_wire = semantic(distinct_program)
+  assert_true(distinct_wire.contains("\"field\":\"x\""))
+  assert_false(distinct_wire.contains("aql_query_sort_"))
+  match
+    @check.check_parsed(
+      distinct_program,
+      check_environment(),
+      None,
+      check_limits(),
+    ) {
+    NeedsInputs(_) | Checked(_) => ()
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let forbidden = @query.parse_query(
+    "SELECT DISTINCT id FROM orders ORDER BY amount + 1",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(forbidden, fixture_context(), construction_limits())
+    is Err(UnsupportedOrdering),
+  )
+}
+
+///|
 test "grouped SELECT rejects nongrouped field and invalid aggregate form" {
   let query = @query.parse_query(
     "SELECT customer_id, COUNT(*) AS n FROM orders GROUP BY status",

@@ -1761,18 +1761,21 @@ fn compile_steps(
           match @query.operation_at(query, i + 1) {
             Some(Order(terms)) =>
               terms.any(term => {
-                match
+                let selected_expression = expressions.any(pair => {
+                  same_expression(term.expression, pair.0)
+                })
+                let selected_name = match
                   @query.expression_node(
                     term.expression,
                     @query.expression_root(term.expression),
                   ).unwrap().kind {
-                  Reference(path) =>
-                    path.length() != 1 ||
-                    !output.any(name => {
+                  Reference(path) if path.length() == 1 =>
+                    output.any(name => {
                       same_name(path[0], { value: name, quoted: false, })
                     })
                   _ => false
                 }
+                !selected_expression && !selected_name
               })
             _ => false
           }
@@ -1895,74 +1898,88 @@ fn compile_steps(
       }
       Order(terms) => {
         let sort : Array[@builder.Node] = []
+        let hidden : Array[(@query.Expression, String)] = []
+        let derives : Array[(String, @builder.Node)] = []
+        let reserved = active_fields + output
         for term in terms {
           let kind = @query.expression_node(
               term.expression,
               @query.expression_root(term.expression),
             ).unwrap().kind
-          let name = match kind {
-            Reference(path) =>
-              if path.length() == 1 {
-                let mut selected : String? = None
-                for field in output {
-                  if same_name(path[0], { value: field, quoted: false, }) {
-                    selected = Some(field)
+          let mut selected : String? = None
+          match kind {
+            Reference(path) if path.length() == 1 =>
+              for field in output {
+                if same_name(path[0], { value: field, quoted: false, }) {
+                  selected = Some(field)
+                }
+              }
+            _ => ()
+          }
+          if selected is None {
+            for pair in selected_expressions {
+              if same_expression(term.expression, pair.0) {
+                if selected is Some(_) {
+                  raise Abort(UnsupportedOrdering)
+                }
+                selected = Some(pair.1)
+              }
+            }
+          }
+          let name = match selected {
+            Some(field) => {
+              let mut slot = field
+              if pending_select is Some(_) {
+                for pair in pending_bindings {
+                  if pair.0 == field {
+                    slot = pair.1
                   }
                 }
-                match selected {
-                  Some(field) =>
-                    if pending_select is Some(_) {
-                      let mut slot = field
-                      for pair in pending_bindings {
-                        if pair.0 == field {
-                          slot = pair.1
-                        }
-                      }
-                      slot
-                    } else {
-                      field
-                    }
-                  None =>
-                    if pending_select is Some(_) {
-                      match resolve_column(path, query, input, active_fields) {
-                        Some(field) => field
-                        None => raise Abort(UnsupportedOrdering)
-                      }
-                    } else {
-                      raise Abort(UnsupportedOrdering)
-                    }
-                }
-              } else if pending_select is Some(_) {
-                match resolve_column(path, query, input, active_fields) {
-                  Some(field) => field
-                  None => raise Abort(UnsupportedOrdering)
-                }
-              } else {
+              }
+              slot
+            }
+            None => {
+              if pending_select is None {
                 raise Abort(UnsupportedOrdering)
               }
-            _ => {
-              let mut matched : String? = None
-              for pair in selected_expressions {
-                if same_expression(term.expression, pair.0) {
-                  if matched is Some(_) {
-                    raise Abort(UnsupportedOrdering)
+              match kind {
+                Reference(path) =>
+                  match resolve_column(path, query, input, active_fields) {
+                    Some(field) => field
+                    None => raise Abort(UnsupportedOrdering)
                   }
-                  matched = Some(pair.1)
-                }
-              }
-              match matched {
-                Some(name) => {
-                  let mut slot = name
-                  if pending_select is Some(_) {
-                    for pair in pending_bindings {
-                      if pair.0 == name {
-                        slot = pair.1
-                      }
+                _ => {
+                  let mut reused : String? = None
+                  for pair in hidden {
+                    if same_expression(term.expression, pair.0) {
+                      reused = Some(pair.1)
                     }
                   }
-                  slot
+                  match reused {
+                    Some(field) => field
+                    None => {
+                      let field = pipe_physical_name(
+                        reserved, "aql_query_sort_",
+                      )
+                      reserved.push(field)
+                      derives.push(
+                        (
+                          field,
+                          append_expression(
+                            construction,
+                            term.expression,
+                            query,
+                            input,
+                            active_fields,
+                            max_work,
+                          ),
+                        ),
+                      )
+                      hidden.push((term.expression, field))
+                      field
+                    }
+                  }
                 }
-                None => raise Abort(UnsupportedOrdering)
               }
             }
           }
@@ -1973,6 +1990,14 @@ fn compile_steps(
               ("nulls", construction.text(term.nulls)),
             ]),
           )
+        }
+        if !derives.is_empty() {
+          let derive_step : Array[(String, @builder.Node)] = []
+          if entries.length() == 1 && entries[0].0 == "from" {
+            derive_step.push(entries.remove(0))
+          }
+          derive_step.push(("derive", construction.object(derives)))
+          step_entries.push(derive_step)
         }
         entries.push(("sort", construction.array(sort)))
       }

@@ -249,6 +249,35 @@ for (const [name, sql] of [
   assert.notEqual(query, '', name);
   await writeFile(join(root, `${name}.json`), query);
 }
+for (const [name, sql] of [
+  ['quoted-column-order', 'SELECT `ID` AS id FROM orders ORDER BY amount'],
+  ['hidden-expression-order', 'SELECT id FROM orders ORDER BY amount + 1'],
+  ['distinct-selected-order',
+    'SELECT DISTINCT amount AS x FROM orders ORDER BY amount'],
+  ['selected-expression-order',
+    'SELECT amount + 1 AS x FROM orders ORDER BY amount + 1'],
+  ['failing-hidden-order',
+    'SELECT id FROM orders ORDER BY 1 / (amount - 30)'],
+]) {
+  const query = queryFrontend.compileValuesQueryJson(sql, 'orders', 'orders',
+    JSON.stringify(pairValues), JSON.stringify(Object.keys(pairSchema)),
+    `fixture.${name}`);
+  assert.notEqual(query, '', name);
+  const program = JSON.parse(query);
+  const derivations = program.stages.flatMap(stage => stage.steps.flatMap(
+    step => Object.keys(step.derive ?? {})));
+  if (name === 'hidden-expression-order') {
+    assert.equal(derivations.filter(field =>
+      field.startsWith('aql_query_sort_')).length, 1);
+  }
+  if (name === 'selected-expression-order') {
+    assert.equal(derivations.filter(field =>
+      field.startsWith('aql_query_sort_')).length, 0);
+    assert.equal(derivations.filter(field =>
+      field.startsWith('aql_query_expr_')).length, 1);
+  }
+  await writeFile(join(root, `${name}.json`), query);
+}
 const concatQuery = queryFrontend.compileValuesQueryJson(
   "SELECT CONCAT('a', NULL) AS strict, ACTQL.CONCAT('a', NULL) "
     + "AS legacy, CONCAT('é', '😀') AS joined FROM rows",
@@ -970,6 +999,10 @@ async function checkOrderScopes(client, suffix) {
   for (const [name, expected] of [
     ['alias-order', [{y: 1}, {y: 2}]],
     ['hidden-order', [{x: 2}, {x: 1}]],
+    ['quoted-column-order', [{id: 'o2'}, {id: 'o3'}, {id: 'o1'}]],
+    ['hidden-expression-order', [{id: 'o2'}, {id: 'o3'}, {id: 'o1'}]],
+    ['distinct-selected-order', [{x: 30}, {x: 80}, {x: 120}]],
+    ['selected-expression-order', [{x: 31}, {x: 81}, {x: 121}]],
   ]) {
     const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
       {format: 'json', requestId: 'packed-' + name + '-' + suffix});
@@ -977,6 +1010,12 @@ async function checkOrderScopes(client, suffix) {
     assert.equal(status.status, 'succeeded', JSON.stringify(status));
     assert.deepEqual(await execution.result('answer').all(), expected);
   }
+  const failed = await client.aql(
+    readFileSync('failing-hidden-order.json', 'utf8'),
+    {format: 'json', requestId: 'packed-failing-hidden-order-' + suffix});
+  const state = await failed.wait();
+  assert.equal(state.status, 'failed', JSON.stringify(state));
+  await assert.rejects(failed.result('answer').all());
 }
 async function checkConcat(client, suffix) {
   const execution = await client.aql(

@@ -15,8 +15,8 @@ Host. The packed test compiles SQL/Pipe into Program JSON before calling
 
 | Adopted area | Implemented and exercised in this draft | Remaining or explicitly rejected |
 | --- | --- | --- |
-| Expressions and names | Closed scalar expression tree, precedence, NULL, strict query `CONCAT`, legacy AQL `concat`, alias priority in GROUP BY/HAVING/final ORDER BY, non-output ORDER BY with a private slot | Full scalar typing/failure matrix; WHERE and peer SELECT aliases remain rejected; analytic OVER scope is distinct from final ORDER BY |
-| SELECT and source | Values and one captured source through SELECT/WHERE/projection; named noncorrelated FROM subqueries and source maps | Correlated subqueries and broader source compositions |
+| Expressions and names | Closed scalar expression tree, precedence, NULL, strict query `CONCAT`, legacy AQL `concat`, alias priority in GROUP BY/HAVING/final ORDER BY, case-insensitive column/field/alias lookup even when quoted, non-output ORDER BY expressions with a private slot | Full scalar typing/failure matrix; WHERE and peer SELECT aliases remain rejected; analytic OVER scope is distinct from final ORDER BY |
+| SELECT and source | Values and one captured source through SELECT/WHERE/projection; named noncorrelated FROM subqueries and source maps; typed declared `@parameter` references pass through the ordinary checker and value binding | Correlated subqueries and broader source compositions |
 | JOIN | Direct Values INNER/LEFT and bounded CROSS; FULL/USING via an identity-bearing DISTINCT CTE; one Pipe JOIN with an optional preceding WHERE; NULL extension, output projection and duplicate rows in packed cases | General JOIN chains, post-projection Pipe JOIN, unkeyed FULL JOIN and multiple independent physical acquisitions |
 | Aggregation | COUNT/COUNTIF/MIN/MAX, supported SUM/AVG numeric profiles, bounded STRING_AGG and nonnullable keyed ARRAY_AGG; group/HAVING aliases and empty global COUNT | Nullable ordered ARRAY_AGG, collection composition and the remaining aggregate failure matrix |
 | Order, distinct and limit | Selected-expression DISTINCT correspondence, hidden sort slots, NULL direction, OFFSET and final ORDER/LIMIT after a three-term UNION ALL; r1's explicit `LIMIT 0` rejection | Wider tie and limit matrix remains |
@@ -43,6 +43,16 @@ it does not turn all 140 imported cases into passes. `compile_test.mbt` and
 `query_test.mbt` exercise the semantic and rejection edges, while
 `scripts/test-node-client-package.mjs` reads the listed successful Results
 through installed Local and HTTP Clients.
+
+The PR #37 review corrections are exercised separately: declared parameters
+survive ordinary, CTE and set Program generation and reach the existing
+checker; absent, supplied, undeclared and wrong-type bindings stay distinct.
+Quoted column and alias spelling resolves without changing the authored
+spelling, while quoted relation paths retain their separate rule. A hidden
+ORDER BY expression is derived once before sorting and removed before Named
+Result publication; DISTINCT reuses the selected slot. Packed Local and HTTP
+Results verify the resulting order and a failing hidden expression prevents
+publication.
 
 | Cases | Evidence in this draft | Boundary |
 | --- | --- | --- |
