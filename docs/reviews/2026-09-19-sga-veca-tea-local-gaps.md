@@ -650,19 +650,20 @@ the same evidence used to constrain the bounded evaluator.
 | Fixed `row_window` and `window_group` | Window and group children | Window execution, membership and group limits |
 | `analytic` without binary64 numeric reduction | Analytic group child | Analytic execution and envelope |
 | `pivot` without binary64 numeric reduction | Pivot group child | Pivot execution and aggregate output ceiling |
-| Global `top_k` with an admitted candidate key | Selected top-k child | Exact top-k execution requirement |
+| Global or partitioned `top_k` with an admitted candidate key | Selected top-k child | Exact top-k execution requirement |
+| `lag` with an admitted candidate key | Selected lag child | Exact lag execution requirement |
 | `assert_rows` with a predicate or unique key | Selected assertion child | Exact row assertion requirement |
-| Dedupe with a top-tie check | Selected dedupe child | Exact dedupe top-tie requirement; retained Store Host evidence remains to be added |
+| Dedupe with a top-tie check | Selected dedupe child | Exact dedupe top-tie requirement |
 
 The ordinary Host fixture keeps Append and each following operation in one
 producer task. It uses a real retained Store and publication service, then
 reads the producer and two independent consumer Named Results against authored
 row and order expectations. Its representative routes include sort, distinct,
-global top-k, row assertion, keyed count group, fixed row-window, cumulative
-count analytic, max pivot and fixed window group. The existing retained
-binary-chain fixture supplies the shared task owner, writer failure, finalize
-failure, cleanup retry and typed
-later-filter failure evidence; a group-child cancellation case enters that
+global and partitioned top-k, lag, dedupe, row assertion, keyed count group,
+fixed row-window, cumulative count analytic, max pivot and fixed window group.
+The existing retained binary-chain fixture supplies the shared task owner,
+writer failure, finalize failure, cleanup retry and typed later-filter failure
+evidence; a group-child cancellation case enters that
 child after Append work and confirms stop before releasing the input.
 
 The common selected Relation chain owns cumulative work across child
@@ -670,10 +671,10 @@ advances and holds intermediate outputs through final cleanup. The retained
 Append → filter exact/one-short fixture (work 72/71, workspace 10/9) reaches
 this same owner through the materializing driver. Each newly admitted child
 reuses its independent exact/one-short bounded-kernel proof: selected sort,
-distinct, top-k and row assertions in `bounded_binding_rows_wbtest.mbt`;
-group, analytic and pivot in `bounded_group_wbtest.mbt` and
-`bounded_resource_boundary_wbtest.mbt`;
-fixed row-window in `bounded_row_window_wbtest.mbt`, and window group in
+distinct, top-k, dedupe and row assertions in `bounded_binding_rows_wbtest.mbt`,
+and lag in `bounded_lag_wbtest.mbt`; group, analytic and pivot in
+`bounded_group_wbtest.mbt` and `bounded_resource_boundary_wbtest.mbt`; fixed
+row-window in `bounded_row_window_wbtest.mbt`, and window group in
 `local_window_group_chain_resource_wbtest.mbt`. The retained Host fixture
 proves the new routes actually select those children. These are shared
 implementation proofs, not separately measured budgets for every authored
@@ -684,10 +685,6 @@ select and seal numeric observation slots on the common materializing attempt.
 The admission check rejects those variants before dispatch. Nor does this
 enable nonlinear tasks or arbitrary Carrier-family output. The existing
 selected Relation provider refuses a nonlinear sequence during planning.
-Lag remains outside this retained obligation change; its ordinary
-memory-output path is not treated as retained proof. Partitioned top-k and
-dedupe top-tie have bounded-child evidence but need retained Store Host
-fixtures before their authored variants count as product-route evidence.
 The remaining Relation work is to connect numeric observation ownership and
 to cover the other checked forms outside the table. SGA, TEA and VecA retained
 outputs remain a separate Carrier completion unit.

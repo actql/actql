@@ -156,6 +156,7 @@ pub(all) enum LocalBoundedRelationCheck {
   Pivot
   RowWindow
   TopK
+  Lag
   Dedupe
   Assertion
 }

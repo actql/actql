@@ -293,6 +293,7 @@ pub(all) enum LocalBoundedRelationCheck {
   Pivot
   RowWindow
   TopK
+  Lag
   Dedupe
   Assertion
 }
@@ -347,6 +348,7 @@ fn local_bounded_relation_check(
             @lower.TopK(_, _) | @lower.PartitionedTopK(_, _) => true
             _ => false
           }
+        Lag => @lower.kernel_body(kernel) is @lower.Lag(_, _)
         Dedupe => @lower.kernel_body(kernel) is @lower.DedupeRows
         Assertion =>
           match @lower.kernel_body(kernel) {
