@@ -39,6 +39,19 @@ active dispatch before closing Checkpoints, adapters, journal, and Store.
 Failed cleanup remains owned and retryable; retry does not restart Compute or
 provider writes.
 
+Store deletion and Host shutdown have separate owners. The Publication Store's
+`close()` refuses an unfinished deletion but does not perform that deletion
+again. The caller must retain the deletion owner, call its `retry()`
+until the deletion is confirmed, and then retry the Host shutdown handle. A
+Host close retry alone cannot recover a failed physical deletion. A real Store
+fault-injection test checks this ordering, the retained Store lock, no second
+close of completed adapters, and successful reopening. A separate real SQLite
+request-journal test checks that its first failed physical close remains the
+only pending Host owner and succeeds on retry. The standard Effect recovery
+test checks that reopening does not resend completed physical writes; the
+Store and journal tests do not substitute fake Compute or provider counters
+for that product-path assertion.
+
 ## Product-path evidence
 
 The reference-site HTTP tests submit a DuckDB-backed read and a two-member
