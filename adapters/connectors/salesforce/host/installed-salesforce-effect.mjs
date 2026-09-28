@@ -817,8 +817,13 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
   // claims. The installation must still be the one the Preview was authored
   // against: a changed Mapping, Site generation, connection or runtime is
   // refused before any provider I/O.
+  // Recovery acquires one local resource, its Effect Ledger handle. The
+  // handle's owner is given to `retainRecoveryOwner` (the Host's recovery
+  // custody) before any step that can fail, and is the stage's
+  // `cleanupOwner`; the Host, not this function, closes it on failure.
   function prepareRecovered({moon: runMoon, control, store, recovered,
-    continuation, authorizeEvidenceRead, contractLimits, signal}) {
+    continuation, authorizeEvidenceRead, contractLimits, signal,
+    retainRecoveryOwner}) {
     if (runMoon !== moon || !recovered?.computation || !continuation ||
         !contractLimits) {
       fail('InvalidInstalledEffectRecovery');
@@ -873,6 +878,15 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
       requestScope, keys, limits.preview.maxWireBytes,
       limits.preview.maxNodes, limits.preview.maxDepth);
     const ledger = openLedger(requestIdentity);
+    let closed = false;
+    const ledgerOwner = Object.freeze({
+      async close() { closed = true; ledger.close(); },
+      async cleanup() { closed = true; ledger.close(); return true; },
+      cleanupPending: () => !closed});
+    if (retainRecoveryOwner !== undefined) {
+      try { retainRecoveryOwner(ledgerOwner); }
+      catch (error) { ledger.close(); throw error; }
+    }
     try {
       const recorded = ledger.recoverClaimFacts({preview: admitted,
         scope: requestScope, programId: provider.program_id,
@@ -953,11 +967,11 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
           now: () => new Date().toISOString()},
         scopes: scopes(members),
         continuationWire: canonicalJson(provider),
-        cleanupOwner: Object.freeze({async close() {},
-          async cleanup() { return true; }, cleanupPending: () => false}),
-        dispose: () => ledger.close()});
+        cleanupOwner: ledgerOwner,
+        dispose: () => { closed = true; ledger.close(); }});
     } catch (error) {
-      ledger.close();
+      // Without a Host custody the handle is this function's to release.
+      if (retainRecoveryOwner === undefined) ledger.close();
       throw error;
     }
   }

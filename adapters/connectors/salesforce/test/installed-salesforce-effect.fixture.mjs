@@ -62,8 +62,11 @@ export const recordEntry = (orgId, operation, outcome = 'allow',
 // The local org, the installed Site profile, and a published Effect profile
 // for `writes`. `load` installs the Effect as a Host start would; `publish`
 // republishes the generation explicitly.
+// `principalId` and `accountConfigurationWire` default to a standalone
+// installation; a standard Host's installation uses the Host's own.
 export async function installedEffect(t, {writes, writeOperation = 'update',
-  entries, siteProfile = {}, org: orgOptions = {}} = {}) {
+  entries, siteProfile = {}, org: orgOptions = {},
+  principalId = 'principal-a', accountConfigurationWire} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon: moon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
     writeOperation, connectorId: 'salesforce', ...orgOptions});
@@ -101,13 +104,14 @@ export async function installedEffect(t, {writes, writeOperation = 'update',
   const profile = {
     version: INSTALLED_SALESFORCE_EFFECT_VERSION,
     siteProfilePath: sitePath,
-    accountConfigurationWire: accountConfiguration(entries ?? [
-      recordEntry(org.orgId, 'read'), recordEntry(org.orgId, 'effect')]),
+    accountConfigurationWire: accountConfigurationWire ??
+      accountConfiguration(entries ?? [recordEntry(org.orgId, 'read'),
+        recordEntry(org.orgId, 'effect')]),
     connectorId: 'salesforce',
     publicationPath: join(root, 'effect-publication.json'),
     writes,
   };
-  const options = {root, principalId: 'principal-a', moon, salesforceMoon,
+  const options = {root, principalId, moon, salesforceMoon,
     runtimeBundleCid: cid('b'),
     resolveSecret: async () => 'test-only-secret', baseEnvironmentWire};
   const ledgerRoot = join(root, 'effect-ledger');

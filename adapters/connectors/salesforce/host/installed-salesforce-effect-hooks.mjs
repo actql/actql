@@ -32,6 +32,6 @@ export function salesforceEffectSiteHooks(effect) {
     prepareRecovered: facts => effect.prepareRecovered({moon: facts.moon,
       control: facts.control, store: facts.store, recovered: facts.recovered,
       continuation: facts.continuation, contractLimits: localContractLimits,
-      signal: facts.signal}),
+      signal: facts.signal, retainRecoveryOwner: facts.retainRecoveryOwner}),
   });
 }
