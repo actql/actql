@@ -1,7 +1,7 @@
 // One installed Local Host for the current OS user. The Client talks to the
 // Host in process; the journal and publication Store own durable physical I/O.
-import {createHash} from 'node:crypto';
-import {mkdir, readFile} from 'node:fs/promises';
+import {createHash, createPublicKey} from 'node:crypto';
+import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -18,7 +18,12 @@ import {retireCompletedEffectfulCapture} from
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {publishInstalledEffectProfile} from './installed-effect.mjs';
+import {installedEffectIdentity, loadInstalledEffect,
+  publishInstalledEffectProfile} from
+  './installed-effect.mjs';
+import {createInstalledEffectSite} from './installed-effect-site.mjs';
+import {createPrivateEvidenceKey, loadPrivateEvidenceKey} from
+  './local-continuation-evidence.mjs';
 import {loadInstalledSource, publishInstalledSourceProfile} from
   './installed-source.mjs';
 import {createDiagnosticObserver} from
@@ -51,6 +56,57 @@ const plus = (date, milliseconds) => new Date(Date.parse(date) +
   milliseconds).toISOString();
 const profiles = new Map();
 
+const bytesCid = bytes => `sha256:${createHash('sha256')
+  .update(bytes).digest('hex')}`;
+const publicKeyCid = value => bytesCid(createPublicKey(value).export({
+  type: 'spki', format: 'der'}));
+
+async function embeddedInstallationIdentity(root, installation) {
+  const sourcePath = installation?.sourceProfilePath ??
+    process.env.ACTQL_LOCAL_SOURCE_PROFILE;
+  const effectPath = installation?.effectProfilePath ??
+    process.env.ACTQL_LOCAL_EFFECT_PROFILE;
+  if (sourcePath !== undefined && effectPath !== undefined) {
+    throw new TypeError('InvalidInstalledEffectSite');
+  }
+  const source = sourcePath === undefined ? null : bytesCid(canonicalJson(
+    JSON.parse(await readFile(sourcePath, 'utf8'))));
+  const effect = effectPath === undefined ? null :
+    await installedEffectIdentity(effectPath);
+  const authorization = installation?.authorization;
+  const accountIdentity = authorization?.accountConfiguration !== undefined
+    ? bytesCid(canonicalJson(JSON.parse(
+      authorization.accountConfiguration)))
+    : authorization?.accountConfig === undefined ? null :
+      bytesCid(canonicalJson(JSON.parse(await readFile(
+        authorization.accountConfig, 'utf8'))));
+  const ordinary = Object.fromEntries(Object.entries(authorization ?? {})
+    .filter(([key, value]) => !['accountConfiguration', 'accountConfig',
+      'hostKey', 'reviewers'].includes(key) &&
+      typeof value !== 'function'));
+  const identity = bytesCid(canonicalJson({
+    version: 'actql-embedded-installation/0.1', root,
+    source, effect, accountIdentity, ordinary,
+    hostKey: authorization?.hostKey === undefined ? null : {
+      keyId: authorization.hostKey.keyId,
+      publicKeyCid: publicKeyCid(authorization.hostKey.privateKey)},
+    reviewers: authorization?.reviewers?.map(reviewer => ({
+      keyId: reviewer.keyId, reviewerId: reviewer.reviewerId,
+      principalId: reviewer.principalId,
+      publicKeyCid: publicKeyCid(reviewer.publicKey)})) ?? null}));
+  return Object.freeze({identity, callbacks: Object.freeze({
+    resolveSourceSecret: installation?.resolveSourceSecret,
+    resolveEffectSecret: installation?.resolveEffectSecret,
+    decide: authorization?.decide, observe: authorization?.observe,
+    faultInjection: authorization?.faultInjection})});
+}
+
+function sameEmbeddedInstallation(left, right) {
+  return left.identity === right.identity &&
+    Object.keys(left.callbacks).every(key =>
+      left.callbacks[key] === right.callbacks[key]);
+}
+
 function localStateRoot() {
   const supplied = process.env.ACTQL_LOCAL_STATE_DIR;
   if (supplied !== undefined && !supplied) {
@@ -64,16 +120,12 @@ function localStateRoot() {
 // decides the tuple (Site key, this realization, write) for each request.
 const REALIZATION_KEY = 'source-free-values';
 
-async function openInstalledHost(root, mode = 'local', beforeDispatch,
+async function openInstalledHost({root, mode = 'local', beforeDispatch,
   authorization, sourceProfilePath, resolveSourceSecret,
-  effectInstallation) {
-  if (effectInstallation !== undefined &&
-      (sourceProfilePath !== undefined ||
-        typeof effectInstallation?.environmentWire !== 'string' ||
-        typeof effectInstallation.execute !== 'function' ||
-        typeof effectInstallation.resume !== 'function' ||
-        !(effectInstallation.privateEvidenceKey instanceof Uint8Array) ||
-        effectInstallation.privateEvidenceKey.byteLength !== 32)) {
+  effectProfilePath, resolveEffectSecret, effectInstallation}) {
+  if (effectInstallation !== undefined && effectProfilePath !== undefined ||
+      (effectInstallation !== undefined || effectProfilePath !== undefined) &&
+        sourceProfilePath !== undefined) {
     throw new TypeError('InvalidInstalledEffectSite');
   }
   await mkdir(root, {recursive: true, mode: 0o700});
@@ -82,12 +134,51 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   const principalId = userInfo().username;
   const baseEnvironmentWire = (await readFile(join(packageRoot,
     'spec/local-check-environment.json'), 'utf8')).trimEnd();
-  // The installed source's adapter is selected by its profile version.
+  const selectedEffectPath = effectProfilePath ??
+    process.env.ACTQL_LOCAL_EFFECT_PROFILE;
+  if (selectedEffectPath !== undefined &&
+      (sourceProfilePath !== undefined ||
+        process.env.ACTQL_LOCAL_SOURCE_PROFILE !== undefined)) {
+    throw new TypeError('InvalidInstalledEffectSite');
+  }
+  // Both installed adapters restore published declarations without provider
+  // I/O. Only one may supply the Host's Check Environment.
   const sourceProfile = await loadInstalledSource(
     sourceProfilePath ?? process.env.ACTQL_LOCAL_SOURCE_PROFILE,
     {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
       resolveSecret: resolveSourceSecret});
-  if (effectInstallation !== undefined && sourceProfile !== undefined) {
+  let installedEffect;
+  try {
+    installedEffect = selectedEffectPath === undefined ? undefined :
+      await loadInstalledEffect(selectedEffectPath, {root, principalId, moon,
+        runtimeUrl, baseEnvironmentWire, resolveSecret: resolveEffectSecret});
+  } catch (error) {
+    sourceProfile?.close();
+    throw error;
+  }
+  if (effectInstallation !== undefined && installedEffect !== undefined ||
+      (effectInstallation !== undefined || installedEffect !== undefined) &&
+        sourceProfile !== undefined) {
+    installedEffect?.close();
+    sourceProfile?.close();
+    throw new TypeError('InvalidInstalledEffectSite');
+  }
+  if (installedEffect !== undefined) {
+    if (authorization === undefined) {
+      installedEffect.close();
+      throw new TypeError('InstalledEffectAuthorizationRequired');
+    }
+    effectInstallation = createInstalledEffectSite(installedEffect);
+  }
+  if (effectInstallation !== undefined &&
+      (typeof effectInstallation.environmentWire !== 'string' ||
+        typeof effectInstallation.execute !== 'function' ||
+        typeof effectInstallation.resume !== 'function' ||
+        effectInstallation.privateEvidenceKey !== undefined &&
+          (!(effectInstallation.privateEvidenceKey instanceof Uint8Array) ||
+            effectInstallation.privateEvidenceKey.byteLength !== 32))) {
+    installedEffect?.close();
+    sourceProfile?.close();
     throw new TypeError('InvalidInstalledEffectSite');
   }
   const environmentWire = effectInstallation?.environmentWire ??
@@ -98,6 +189,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     evidenceCid, false, false, true, false, false, false, false);
   if (environment === undefined) {
     sourceProfile?.close();
+    installedEffect?.close();
     throw new Error('InvalidInstalledLocalEnvironment');
   }
   const registry = await readFile(join(packageRoot,
@@ -116,12 +208,29 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     root, principalId});
   const journalDirectory = join(root, 'requests');
   await mkdir(journalDirectory, {recursive: true, mode: 0o700});
-  const journal = openClientRequestJournal(journalDirectory);
+  let journal;
+  let effectEvidenceKey;
   let store;
   let checkpoints;
   let dispatchOwner;
   const diagnostic = createDiagnosticObserver(authorization?.observe);
   try {
+    journal = openClientRequestJournal(journalDirectory);
+    if (effectInstallation !== undefined &&
+        effectInstallation.privateEvidenceKey === undefined) {
+      const keyDirectory = join(root, 'checkpoints');
+      try {
+        effectEvidenceKey = await loadPrivateEvidenceKey(keyDirectory);
+      } catch (error) {
+        if (error?.code !== 'PrivateEvidenceKeyUnavailable') throw error;
+        let existing = false;
+        try { existing = (await stat(keyDirectory)).isDirectory(); }
+        catch (missing) { if (missing?.code !== 'ENOENT') throw missing; }
+        if (existing) throw error;
+        await createPrivateEvidenceKey(keyDirectory);
+        effectEvidenceKey = await loadPrivateEvidenceKey(keyDirectory);
+      }
+    }
     store = await openLocalPublicationStore({
       directory: join(root, 'publication'), storeAuthorityCid,
       capacityBytes: 512 * 1024 * 1024,
@@ -129,8 +238,10 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       maxObjects: 10000, maxContractNodes: 10000,
       maxContractDepth: 64,
       ...(effectInstallation === undefined ? {} : {
-        privateEvidenceKey: effectInstallation.privateEvidenceKey}),
+        privateEvidenceKey: effectInstallation.privateEvidenceKey ??
+          effectEvidenceKey?.key}),
     }, control);
+    effectEvidenceKey?.key.fill(0);
   const hostConnection = ({principalId: actual, connection, ref}) =>
     actual === principalId &&
     connection.mode === mode && connection.owner === mode &&
@@ -1066,13 +1177,14 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
   return {port, store, journal, hostOperations, checkpoints, diagnostic,
-    dispatchOwner, inspectAcquisition, sourceProfile,
+    dispatchOwner, inspectAcquisition, sourceProfile, installedEffect,
     retireTerminalEffects};
   } catch (cause) {
     diagnostic.close();
-    sourceProfile?.close();
+    effectEvidenceKey?.key.fill(0);
     throw await retainInstalledHostInitializationFailure(cause,
-      {journal, store, checkpoints, dispatchOwner});
+      {journal, store, checkpoints, dispatchOwner,
+        sourceProfile, installedEffect});
   }
 }
 
@@ -1094,15 +1206,16 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
 // configuration the Missing account denies every request; nothing allows it.
 export async function openInstalledRemoteHttpHost({directory,
   authenticate, beforeDispatch, authorization, sourceProfilePath,
-  resolveSourceSecret, effectInstallation}) {
+  resolveSourceSecret, effectProfilePath, resolveEffectSecret,
+  effectInstallation}) {
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
     throw new TypeError('InvalidInstalledRemoteHost');
   }
-  const host = await openInstalledHost(resolve(directory), 'remote',
+  const host = await openInstalledHost({root: resolve(directory), mode: 'remote',
     beforeDispatch, authorization, sourceProfilePath, resolveSourceSecret,
-    effectInstallation);
+    effectProfilePath, resolveEffectSecret, effectInstallation});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536,
   });
@@ -1141,6 +1254,7 @@ export async function openInstalledRemoteHttpHost({directory,
       const checkpoints = await host.checkpoints?.close();
       host.journal.close();
       host.sourceProfile?.close();
+      host.installedEffect?.close();
       // A Store with a pending deletion keeps its durable deletion record;
       // the next owner recovers it.
       let storeCleanupPending = false;
@@ -1192,13 +1306,30 @@ export async function publishInstalledEffect({effectProfilePath, directory,
 }
 
 export async function connectEmbeddedLocal(options) {
-  const root = localStateRoot();
+  const installation = options?.installation;
+  if (installation !== undefined && (installation === null ||
+      typeof installation !== 'object' || Array.isArray(installation))) {
+    throw new TypeError('InvalidInstalledHostOptions');
+  }
+  const root = installation?.directory === undefined ? localStateRoot() :
+    resolve(installation.directory);
+  const identity = await embeddedInstallationIdentity(root, installation);
   let opened = profiles.get(root);
   if (opened === undefined) {
-    opened = openInstalledHost(root);
+    opened = Object.freeze({identity,
+      host: openInstalledHost({root, authorization: installation?.authorization,
+        sourceProfilePath: installation?.sourceProfilePath,
+        resolveSourceSecret: installation?.resolveSourceSecret,
+        effectProfilePath: installation?.effectProfilePath,
+        resolveEffectSecret: installation?.resolveEffectSecret})});
     profiles.set(root, opened);
-    opened.catch(() => profiles.delete(root));
+    opened.host.catch(() => {
+      if (profiles.get(root) === opened) profiles.delete(root);
+    });
+  } else if (!sameEmbeddedInstallation(opened.identity, identity)) {
+    throw new TypeError('InstalledHostConfigurationMismatch');
   }
-  const host = await opened;
-  return connectInProcess(options, host.port);
+  const host = await opened.host;
+  const {installation: _installation, ...clientOptions} = options;
+  return connectInProcess(clientOptions, host.port);
 }

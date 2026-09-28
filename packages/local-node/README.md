@@ -21,6 +21,17 @@ for merged capabilities and work that is still in a PR. Salesforce requires
 explicit declaration publication through the packaged `publishSource` export;
 Host startup restores the publication without provider I/O.
 
+An installed Effect uses `publishEffect({effectProfilePath, directory,
+resolveEffectSecret})` to publish its declaration, execution Mappings and
+Check Environment before Host start. The public embedded connection supplies
+`installation: {directory, effectProfilePath, authorization,
+resolveEffectSecret}`; the Remote HTTP Host accepts the same installation
+fields in its options object. The profile contains credential references, not
+access tokens. Reconnecting an embedded Host root with an equivalent profile,
+generation and account configuration reuses its owner; a changed installation
+is refused instead of silently attaching to the old Host. The installed
+Effect and installed source profiles cannot be selected together in 0.1.
+
 Preparation, compilation, and Run evidence issuance retain the same checked
 owner in the installed runtime. Local does not load a second Run Host Core
 runtime or recompile the Program to compare CIDs. The separately distributed
