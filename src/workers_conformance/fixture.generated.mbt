@@ -217,6 +217,8 @@ fn captured_graph_fixture(
 /// Fixture owner: query_integration/local_carrier_events_wbtest.mbt
 fn carrier_events_relation_followup(variant : String) -> Bool {
   variant == "dedupe_filter" ||
+  variant == "window_fixed_filter" ||
+  variant == "window_sliding_filter" ||
   variant == "session_filter" ||
   variant == "session_select" ||
   variant == "session_derive" ||
@@ -532,7 +534,9 @@ fn linear_compute_program(count : Int) -> String raise {
 fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let dedupe = variant == "dedupe" || variant == "dedupe_filter"
   let window = variant == "window_fixed" ||
+    variant == "window_fixed_filter" ||
     variant == "window_sliding" ||
+    variant == "window_sliding_filter" ||
     variant == "window_parameter"
   let sequence = variant == "sequence"
   let session = variant.has_prefix("session")
@@ -587,9 +591,9 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "{\"dedupe_events\":{\"by\":[\"payload\"],\"order_by\":[{" +
     "\"field\":\"occurred_at\",\"dir\":\"asc\"," +
     "\"nulls\":\"last\"}]}}"
-  } else if variant == "window_fixed" {
+  } else if variant == "window_fixed" || variant == "window_fixed_filter" {
     "{\"window_events\":{\"kind\":\"fixed\",\"size\":10}}"
-  } else if variant == "window_sliding" {
+  } else if variant == "window_sliding" || variant == "window_sliding_filter" {
     "{\"window_events\":{\"kind\":\"sliding\",\"size\":10," + "\"step\":5}}"
   } else if variant == "window_parameter" {
     "{\"window_events\":{\"kind\":\"fixed\",\"size\":{" +
