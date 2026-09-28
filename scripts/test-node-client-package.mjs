@@ -241,6 +241,39 @@ for (const [name, query] of [
   assert.notEqual(compiled, '', name);
   await writeFile(join(root, 'graph-' + name + '-query.json'), compiled);
 }
+// One hop has 72 bindings; three hops produce 4,608 before the final
+// impossible node predicate. The final Result alone would contain no rows.
+const denseNodes = Array.from({length: 9}, (_, index) => ({id: index + 1}));
+const denseEdges = denseNodes.flatMap(source => denseNodes
+  .filter(target => target.id !== source.id)
+  .map(target => ({src: source.id, dst: target.id, rel: 'R'})));
+const denseGraphSteps = [
+  {values: {schema: {id: {type: 'number', nullable: false}},
+    rows: denseNodes}, as: 'nodes'},
+  {values: {schema: {
+    src: {type: 'number', nullable: false},
+    dst: {type: 'number', nullable: false},
+    rel: {type: 'string', nullable: true}},
+  rows: denseEdges}, as: 'edges'},
+  {graph: {nodes: {from: 'nodes', id: 'id', fields: []},
+    edges: {from: 'edges', source: 'src', target: 'dst',
+      label: 'rel', fields: []}}, as: 'g'},
+];
+const denseGraphQuery = queryFrontend.compileGeneratedGraphQueryJson(
+  'FROM GRAPH g |> MATCH WALK (a)-[]->(b)-[]->(c)-[]->(d {id: 999}) '
+    + '|> SELECT a.id AS id',
+  'g', JSON.stringify(denseGraphSteps), JSON.stringify(['id']),
+  JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_dense');
+assert.notEqual(denseGraphQuery, '');
+await writeFile(join(root, 'graph-dense-query.json'), denseGraphQuery);
+const denseControlQuery = queryFrontend.compileGeneratedGraphQueryJson(
+  'FROM GRAPH g |> MATCH WALK (a)-[]->(b {id: 999}) '
+    + '|> SELECT a.id AS id',
+  'g', JSON.stringify(denseGraphSteps), JSON.stringify(['id']),
+  JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_dense_control');
+assert.notEqual(denseControlQuery, '');
+await writeFile(join(root, 'graph-dense-control-query.json'),
+  denseControlQuery);
 const pairExpectedProgram = JSON.parse(await readFile(join(repository,
   'spec/frontend/fixtures/query-pair.expected-program.json'), 'utf8'));
 const pairExpectedRows = JSON.parse(await readFile(join(repository,
@@ -1223,6 +1256,22 @@ async function checkGraphPredicateDemand(client, suffix) {
   assert.equal(failedStatus.status, 'failed', JSON.stringify(failedStatus));
   await assert.rejects(failed.result('answer').all());
 }
+async function checkGraphIntermediateLimit(client, suffix) {
+  const control = await client.aql(readFileSync(
+    'graph-dense-control-query.json', 'utf8'),
+  {format: 'json', requestId: 'packed-graph-dense-control-' + suffix});
+  const controlStatus = await control.wait();
+  assert.equal(controlStatus.status, 'succeeded',
+    JSON.stringify(controlStatus));
+  assert.deepEqual(await control.result('answer').all(), []);
+  const execution = await client.aql(readFileSync(
+    'graph-dense-query.json', 'utf8'),
+  {format: 'json', requestId: 'packed-graph-dense-' + suffix});
+  const status = await execution.wait();
+  assert.equal(status.status, 'failed', JSON.stringify(status));
+  assert.equal(status.result_availability.answer.reason, 'not_published');
+  await assert.rejects(execution.result('answer').all());
+}
 async function checkQueryPair(client, suffix) {
   const execution = await client.aql(pairQueryDocument,
     {format: 'json', requestId: 'packed-query-pair-' + suffix});
@@ -1777,6 +1826,7 @@ await checkGraphMacroQuery(installedLocal, 'local');
 await checkBoundedGraphQuery(installedLocal, 'local');
 await checkGraphPathModes(installedLocal, 'local');
 await checkGraphPredicateDemand(installedLocal, 'local');
+await checkGraphIntermediateLimit(installedLocal, 'local');
 await checkValuesCte(installedLocal, 'local');
 await checkPipeSnapshots(installedLocal, 'local');
 await checkNullOrder(installedLocal, 'local');
@@ -1990,6 +2040,7 @@ await checkGraphMacroQuery(installedRemote, 'remote');
 await checkBoundedGraphQuery(installedRemote, 'remote');
 await checkGraphPathModes(installedRemote, 'remote');
 await checkGraphPredicateDemand(installedRemote, 'remote');
+await checkGraphIntermediateLimit(installedRemote, 'remote');
 if (process.env.ACTQL_GRAPH_ONLY === '1') {
   installedRemote.close();
   console.log('packed Graph Local and HTTP smoke passed');
