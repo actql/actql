@@ -6,6 +6,8 @@ import {createServer} from 'node:https';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
+import {openSqliteCredentialJournal} from
+  '../../../site-node/sqlite-credential-journal.mjs';
 import {INSTALLED_SALESFORCE_SITE_VERSION, installSalesforceAuthorization,
   loadInstalledSalesforceSite} from '../host/installed-salesforce-site.mjs';
 
@@ -92,6 +94,8 @@ export async function openSalesforceEffectSiteFixture(t, {
   let loseReply = loseWriteReplyOnce;
   let rateLimitReply = rateLimitWriteOnce;
   let observedName = 'before';
+  // Target names of single objects, over the org-wide name.
+  const observedNames = new Map();
   let nameUpdateable = true;
   let nameCreateable = true;
   const server = createServer({cert, key}, (request, response) => {
@@ -190,7 +194,8 @@ export async function openSalesforceEffectSiteFixture(t, {
       const target = decodeURIComponent(request.url.slice(
         `${prefix}sobjects/${record}/`.length).split('/').at(-1));
       response.writeHead(200, {'content-type': 'application/json'});
-      response.end(JSON.stringify({Id: target, Name: observedName,
+      response.end(JSON.stringify({Id: target,
+        Name: observedNames.get(record) ?? observedName,
         External_Key__c: target}));
       return;
     }
@@ -380,8 +385,30 @@ export async function openSalesforceEffectSiteFixture(t, {
         resource: 'Test_Record__c', write}),
     refreshDeclaration: () => installed.declareCatalog({
       connectorId, resources: ['Test_Record__c']}),
-    setTargetName(name) { observedName = name; },
+    // Every object's target name, or only `resource`'s.
+    setTargetName(name, resource) {
+      if (resource === undefined) observedName = name;
+      else observedNames.set(resource, name);
+    },
     setNameUpdateable(value) { nameUpdateable = value; },
     setNameCreateable(value) { nameCreateable = value; },
     setOptionalText(value) { optionalText = value; }};
+}
+
+// The real SQLite credential journal whose close fails the first `failures`
+// times, counting every close attempt.
+export function closeFailingJournal(failures) {
+  const calls = {close: 0};
+  const open = (root, options) => {
+    const real = openSqliteCredentialJournal(root, options);
+    return Object.freeze({...real, close() {
+      calls.close++;
+      if (calls.close <= failures) {
+        throw Object.assign(new Error('InjectedJournalCloseFailure'),
+          {code: 'InjectedJournalCloseFailure'});
+      }
+      return real.close();
+    }});
+  };
+  return {open, calls};
 }

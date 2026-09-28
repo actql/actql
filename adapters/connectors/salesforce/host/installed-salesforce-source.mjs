@@ -13,7 +13,9 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {acquisitionFailure} from '../../../host-common/acquisition-outcome.mjs';
 import {authorizationRuntimeCode} from
   '../../../host-common/authorization-gate.mjs';
-import {installSalesforceAuthorization, loadInstalledSalesforceSite} from
+import {installSalesforceAuthorization, installedSalesforceSiteBinding,
+  loadInstalledSalesforceSite, releaseSalesforceSite,
+  retainSalesforceSiteCleanup} from
   './installed-salesforce-site.mjs';
 import {loadSalesforceGeneration, publishSalesforceGeneration,
   salesforceCheckEnvironment} from './salesforce-publication.mjs';
@@ -67,13 +69,13 @@ export function checkInstalledSalesforceSourceProfile(profile) {
 }
 
 async function openSite(profile, {root, principalId, moon, salesforceMoon,
-  runtimeBundleCid, resolveSecret}) {
+  runtimeBundleCid, resolveSecret, openCredentialJournal}) {
   const authorization = await installSalesforceAuthorization({
     accountConfiguration: profile.accountConfigurationWire, principalId,
     root});
   const site = await loadInstalledSalesforceSite(profile.siteProfilePath, {
     commonMoon: moon, salesforceMoon, authorization, runtimeBundleCid,
-    resolveSecret});
+    resolveSecret, openCredentialJournal});
   return {authorization, site};
 }
 
@@ -83,14 +85,17 @@ async function openSite(profile, {root, principalId, moon, salesforceMoon,
 export async function publishInstalledSalesforceSource(profile, options) {
   const checkedProfile = checkInstalledSalesforceSourceProfile(profile);
   const {site} = await openSite(checkedProfile, options);
+  let published;
   try {
-    return await publishSalesforceGeneration({site,
+    published = await publishSalesforceGeneration({site,
       path: checkedProfile.publicationPath,
       connectorId: checkedProfile.connectorId,
       resources: checkedProfile.resources, signal: options.signal});
-  } finally {
-    site.close();
+  } catch (error) {
+    throw retainSalesforceSiteCleanup(site, error);
   }
+  releaseSalesforceSite(site);
+  return published;
 }
 
 // The standard runtime's arguments reprojecting retained describe evidence.
@@ -113,10 +118,11 @@ function recoveryArguments(evidence) {
 // members are added to it.
 export async function loadInstalledSalesforceSource(profile, {root,
   principalId, moon, salesforceMoon, baseEnvironmentWire, runtimeBundleCid,
-  resolveSecret}) {
+  resolveSecret, openCredentialJournal}) {
   const checkedProfile = checkInstalledSalesforceSourceProfile(profile);
   const {authorization, site} = await openSite(checkedProfile, {root,
-    principalId, moon, salesforceMoon, runtimeBundleCid, resolveSecret});
+    principalId, moon, salesforceMoon, runtimeBundleCid, resolveSecret,
+    openCredentialJournal});
   try {
     const loaded = await loadSalesforceGeneration({site,
       path: checkedProfile.publicationPath,
@@ -150,17 +156,19 @@ export async function loadInstalledSalesforceSource(profile, {root,
       declaration, recover, discovery, queryContract, evidenceContract,
       environment, generationCid: loaded.generationCid,
       catalogCid: loaded.declared.catalog_cid,
+      connectorId: checkedProfile.connectorId,
       sourceRefs: new Set(loaded.declared.views.map(view =>
         view.source_ref))});
   } catch (error) {
-    site.close();
-    throw error;
+    // The load's own failure stays primary; an incomplete Site release
+    // travels with it to the caller.
+    throw retainSalesforceSiteCleanup(site, error);
   }
 }
 
 function installedSalesforceAdapter({moon, site, authorization, declaration,
   recover, discovery, queryContract, evidenceContract, environment,
-  generationCid, catalogCid, sourceRefs}) {
+  generationCid, catalogCid, connectorId, sourceRefs}) {
   // Checked preparations this adapter issued; only these can be opened.
   const preparations = new WeakMap();
   const broadMoon = Object.freeze({
@@ -379,6 +387,8 @@ function installedSalesforceAdapter({moon, site, authorization, declaration,
   return Object.freeze({
     realizationKey: 'salesforce-acquired',
     environmentWire: environment.wire, generationCid,
+    connectorBindings: Object.freeze([
+      installedSalesforceSiteBinding(site, connectorId)]),
     // The source's own read authorization for the Host's pre-acquisition
     // Checkpoint decision: the same configuration and context as the Site's.
     readAuthorization: Object.freeze({

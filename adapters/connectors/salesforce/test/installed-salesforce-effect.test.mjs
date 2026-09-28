@@ -4,6 +4,9 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {accountConfiguration, effectHost, effectProgram, installedEffect,
   recordEntry} from './installed-salesforce-effect.fixture.mjs';
+import {closeFailingJournal} from './salesforce-effect-site.fixture.mjs';
+import {loadInstalledSalesforceSource} from
+  '../host/installed-salesforce-source.mjs';
 import {checkInstalledSalesforceEffectProfile} from
   '../host/installed-salesforce-effect.mjs';
 
@@ -337,4 +340,60 @@ test('each member writes only under its own tuple\'s commit decision for the Set
       `${label}: ${failure?.code}`);
       assert.equal(writesOf(installation.org).length, 0, label);
     }
+  });
+
+// A loader that fails after acquiring its Site: the load's own failure stays
+// the error, and an incomplete Site release travels with it as the caller's
+// retry responsibility (the Host's initialization cleanup contract).
+test('a failed Salesforce loader keeps its cause and hands over the Site release',
+  async t => {
+    const installation = await installedEffect(t, {writes: [update]});
+    // Effect load: the published generation no longer matches the writes.
+    const effectJournal = closeFailingJournal(1);
+    const effectFailure = await installation.load({writes: [{...update,
+      fields: ['Name', 'External_Key__c']}]},
+    {openCredentialJournal: effectJournal.open}).then(() => undefined,
+      error => error);
+    assert.equal(effectFailure.code, 'SalesforceEffectPublicationMismatch');
+    assert.equal(effectFailure.cleanupPending, true);
+    assert.deepEqual(effectFailure.cleanupErrors.map(error => error.code),
+      ['InjectedJournalCloseFailure']);
+    assert.equal((await effectFailure.cleanupHandle.retry()).pending, false);
+    assert.equal(effectJournal.calls.close, 2);
+    // Source load: its publication is missing.
+    const sourceJournal = closeFailingJournal(1);
+    const sourceFailure = await loadInstalledSalesforceSource({
+      version: 'actql-installed-salesforce-source/0.1',
+      siteProfilePath: installation.profile.siteProfilePath,
+      publicationPath: join(installation.root, 'missing-source.json'),
+      connectorId: 'salesforce', resources: ['Test_Record__c'],
+      accountConfigurationWire: installation.profile.accountConfigurationWire,
+    }, {...installation.options, openCredentialJournal: sourceJournal.open})
+      .then(() => undefined, error => error);
+    assert.equal(sourceFailure.code, 'SalesforcePublicationMissing');
+    assert.equal(sourceFailure.cleanupPending, true);
+    assert.equal((await sourceFailure.cleanupHandle.retry()).pending, false);
+    assert.equal(sourceJournal.calls.close, 2);
+    // A publication whose describe cannot run (the Resource is not
+    // declared) keeps that failure, not the release failure.
+    const failedPublish = closeFailingJournal(1);
+    const publishFailure = await installation.publish({writes: [{
+      resource: 'Not_Declared__c', kind: 'update', fields: ['Name']}]},
+    {openCredentialJournal: failedPublish.open}).then(() => undefined,
+      error => error);
+    assert.equal(publishFailure.code, 'SalesforceCatalogDescribeNotAuthorized');
+    assert.equal(publishFailure.cleanupPending, true);
+    assert.equal((await publishFailure.cleanupHandle.retry()).pending, false);
+    // A successful publication whose release fails reports that release
+    // failure with its retry; the generation it wrote stays published.
+    const publishedJournal = closeFailingJournal(1);
+    const releaseFailure = await installation.publish({},
+      {openCredentialJournal: publishedJournal.open}).then(() => undefined,
+      error => error);
+    assert.equal(releaseFailure.code, 'InjectedJournalCloseFailure');
+    assert.equal(releaseFailure.cleanupPending, true);
+    assert.equal(publishedJournal.calls.close, 1);
+    assert.equal((await releaseFailure.cleanupHandle.retry()).pending, false);
+    assert.equal(publishedJournal.calls.close, 2);
+    assert.ok(await installation.load());
   });
