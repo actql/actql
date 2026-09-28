@@ -79,5 +79,8 @@ export async function admitHostRootFormat(root) {
   } finally {
     await handle?.close();
   }
+  const directory = await open(root, constants.O_RDONLY);
+  try { await directory.sync(); }
+  finally { await directory.close(); }
   return 'new';
 }
