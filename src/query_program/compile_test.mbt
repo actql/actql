@@ -1501,6 +1501,17 @@ test "JOIN USING binds both checked keys and rejects ambiguous columns" {
 }
 
 ///|
+test "outer JOIN refuses a non-equality ON instead of moving it to WHERE" {
+  let query = @query.parse_query(
+    "SELECT l.a AS a FROM left_rows AS l LEFT JOIN right_rows AS r ON l.a > r.c",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(query, set_context(), construction_limits()) is Err(UnsupportedJoin),
+  )
+}
+
+///|
 test "SQL exact BY NAME and positional shape reject mismatched outputs" {
   let named = @query.parse_query(
     "SELECT a, b FROM left_rows UNION ALL BY NAME SELECT b, a FROM left_rows",

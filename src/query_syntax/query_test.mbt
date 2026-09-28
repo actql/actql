@@ -166,7 +166,7 @@ test "LIMIT and OFFSET admit only exact safe integers" {
   }
   for
     text in [
-      "SELECT id FROM orders LIMIT 0", "SELECT id FROM orders LIMIT 9007199254740992",
+      "SELECT id FROM orders LIMIT 0", "SELECT id FROM orders LIMIT @n", "SELECT id FROM orders LIMIT 9007199254740992",
       "SELECT id FROM orders LIMIT 1 OFFSET 9007199254740992", "SELECT id FROM orders LIMIT 1.5",
     ] {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
