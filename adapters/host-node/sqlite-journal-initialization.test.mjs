@@ -8,6 +8,8 @@ import * as checkpointRuntime from
   '../../_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js';
 import {openSqliteTransferJournal} from
   '../site-node/sqlite-transfer-journal.mjs';
+import {openSqliteCredentialJournal} from
+  '../site-node/sqlite-credential-journal.mjs';
 import {retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
 import {openSqliteCheckpointJournal} from
@@ -23,6 +25,8 @@ const openers = [
   ['checkpoint-journal', root => openSqliteCheckpointJournal(root,
     {runtime: checkpointRuntime, authorizeResolution() {},
       attestResolution() {}})],
+  ['credential-journal', root => openSqliteCredentialJournal(root,
+    {credentialAuthorities: new Map([['authority-a', new Map()]])})],
 ];
 
 for (const [owner, open] of openers) {
@@ -69,6 +73,73 @@ for (const [owner, open] of openers) {
       const reopened = open(root);
       reopened.close();
     });
+}
+
+for (const [owner, open] of openers) {
+  for (const failClose of [false, true]) {
+    test(`${owner} owns a post-schema prepare failure with close ${
+      failClose ? 'failure' : 'success'}`, async t => {
+      const root = await mkdtemp(join(tmpdir(), 'actql-journal-prepare-'));
+      t.after(() => rm(root, {recursive: true, force: true}));
+      const exec = DatabaseSync.prototype.exec;
+      const prepare = DatabaseSync.prototype.prepare;
+      const close = DatabaseSync.prototype.close;
+      const primary = new Error(`${owner}PrepareFailure`);
+      const cleanup = new Error(`${owner}CloseFailure`);
+      let committed = false;
+      let injected = false;
+      let closes = 0;
+      DatabaseSync.prototype.exec = function(sql) {
+        const result = exec.call(this, sql);
+        if (sql === 'COMMIT') committed = true;
+        return result;
+      };
+      DatabaseSync.prototype.prepare = function(sql) {
+        if (committed && !injected) {
+          injected = true;
+          throw primary;
+        }
+        return prepare.call(this, sql);
+      };
+      DatabaseSync.prototype.close = function() {
+        if (++closes === 1 && failClose) throw cleanup;
+        return close.call(this);
+      };
+      let failure;
+      try {
+        assert.throws(() => open(root), error => {
+          failure = error;
+          if (failClose) {
+            assert.equal(error.code,
+              'SqliteJournalInitializationCleanupPending');
+            assert.equal(error.primaryFailure, primary);
+            assert.equal(error.cleanupErrors[0].error, cleanup);
+            assert.deepEqual(error.cleanupHandle.status().owners, [owner]);
+          } else {
+            assert.equal(error, primary);
+          }
+          return true;
+        });
+        assert.equal(injected, true);
+        assert.equal(closes, 1);
+        if (failClose) {
+          assert.equal(failure.cleanupHandle.retry().pending, false);
+          assert.equal(closes, 2);
+          const outer = await retainInstalledHostInitializationFailure(
+            failure, {});
+          assert.equal(outer.primaryFailure, primary);
+          assert.equal(outer.cleanupPending, false);
+          assert.equal(outer.cleanupErrors[0].error, cleanup);
+        }
+      } finally {
+        DatabaseSync.prototype.exec = exec;
+        DatabaseSync.prototype.prepare = prepare;
+        DatabaseSync.prototype.close = close;
+      }
+      const reopened = open(root);
+      reopened.close();
+    });
+  }
 }
 
 test('Host initialization retains the transaction cause and cleanup owner',

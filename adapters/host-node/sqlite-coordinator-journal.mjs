@@ -250,6 +250,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     throwSqliteInitializationFailure(database, error, 'coordinator-journal');
   }
 
+  try {
   const selectDispatch = database.prepare(`
     SELECT dispatch_request_cid, request_json, revision, progress_state,
       site_revision, site_execution, site_evidence, site_cleanup,
@@ -1181,4 +1182,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       return true;
     },
   });
+  } catch (error) {
+    throwSqliteInitializationFailure(database, error, 'coordinator-journal');
+  }
 }

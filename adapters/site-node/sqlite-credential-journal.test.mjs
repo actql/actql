@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {chmod, mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {generateKeyPairSync} from 'node:crypto';
+import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -56,8 +57,71 @@ async function fixture(t, options = {}) {
     keyId: 'key-a',
     privateKey: keys.privateKey,
   });
-  return Object.freeze({open, sign});
+  return Object.freeze({root, open, sign});
 }
+
+test('a closed database is not closed again after directory sync fails',
+  async t => {
+    const {root, open} = await fixture(t);
+    const journal = open();
+    const close = DatabaseSync.prototype.close;
+    let databaseCloses = 0;
+    DatabaseSync.prototype.close = function() {
+      databaseCloses++;
+      return close.call(this);
+    };
+    try {
+      await chmod(root, 0o300);
+      assert.throws(() => journal.close(), error =>
+        error.code === 'EACCES' || error.code === 'EPERM');
+      assert.equal(databaseCloses, 1);
+      assert.throws(() => journal.recover(),
+        {code: 'RemoteCredentialJournalClosed'});
+      await chmod(root, 0o700);
+      assert.equal(journal.close(), true);
+      assert.equal(databaseCloses, 1);
+      assert.equal(journal.close(), false);
+    } finally {
+      await chmod(root, 0o700);
+      DatabaseSync.prototype.close = close;
+    }
+    const reopened = open();
+    assert.deepEqual(reopened.recover(), []);
+  });
+
+test('credential COMMIT uncertainty keeps its cause without replaying a grant',
+  async t => {
+    const {open, sign} = await fixture(t);
+    const journal = open();
+    const grant = control.prepare(scope);
+    const cause = new Error('CommitReplyLost');
+    const exec = DatabaseSync.prototype.exec;
+    let commits = 0;
+    DatabaseSync.prototype.exec = function(sql) {
+      const result = exec.call(this, sql);
+      if (sql === 'COMMIT' && ++commits === 1) throw cause;
+      return result;
+    };
+    try {
+      assert.throws(() => journal.acceptGrant(sign(grant), control),
+        error => {
+          assert.equal(error.code,
+            'RemoteCredentialJournalCommitOutcomeUnknown');
+          assert.equal(error.cause, cause);
+          assert.equal(error.outcome, 'unknown');
+          assert.equal(error.connectionUsable, true);
+          return true;
+        });
+    } finally {
+      DatabaseSync.prototype.exec = exec;
+    }
+    assert.equal(commits, 1);
+    // Observation is allowed; the uncertain accept was not repeated.
+    assert.equal(control.identity(journal.checkGrant(
+      control.identity(grant), 1n, scope, control)),
+      control.identity(grant));
+    assert.deepEqual(journal.recover(), []);
+  });
 
 test('credential claim is durable before I/O and never refunds uncertainty',
   async t => {
