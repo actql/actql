@@ -700,7 +700,8 @@ for (const [name, crashAt, restart, extra, step] of [
     client(started, 'finished', [name], {EXPECT_STATUS: 'cancelled'});
     // The killed claimant held a 30-second lease. A fast restart can observe
     // the cancelled Run before that lease permits its preparation to retire.
-    await untilRetired(name, 45_000);
+    // Allow for a loaded runner to start and sweep after that lease expires.
+    await untilRetired(name, 90_000);
   });
   const counted = await counts(name);
   assert.equal(counted.physical_start_reserved, 0, name);
