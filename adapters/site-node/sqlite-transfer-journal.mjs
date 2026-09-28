@@ -155,6 +155,7 @@ export function openSqliteTransferJournal(root, {
     throwSqliteInitializationFailure(database, error, 'transfer-journal');
   }
 
+  try {
   const select = database.prepare(`
     SELECT * FROM transfers
     WHERE coordinator_authority = ? AND destination_site_key = ?
@@ -476,4 +477,7 @@ export function openSqliteTransferJournal(root, {
       return true;
     },
   });
+  } catch (error) {
+    throwSqliteInitializationFailure(database, error, 'transfer-journal');
+  }
 }

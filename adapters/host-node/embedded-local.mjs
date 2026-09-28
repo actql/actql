@@ -215,8 +215,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   let store;
   let checkpoints;
   let dispatchOwner;
-  const diagnostic = createDiagnosticObserver(authorization?.observe);
+  let diagnostic;
   try {
+    diagnostic = createDiagnosticObserver(authorization?.observe);
     registry = await readFile(join(packageRoot,
       'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
     const aoa = JSON.parse(await readFile(join(packageRoot,
@@ -1193,7 +1194,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     dispatchOwner, inspectAcquisition, sourceProfile, installedEffect,
     retireTerminalEffects};
   } catch (cause) {
-    diagnostic.close();
+    diagnostic?.close();
     effectEvidenceKey?.key.fill(0);
     throw await retainInstalledHostInitializationFailure(cause,
       {journal, store, checkpoints, dispatchOwner,

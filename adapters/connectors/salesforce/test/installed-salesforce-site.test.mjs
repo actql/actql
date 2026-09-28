@@ -792,6 +792,37 @@ test('a closing Site refuses new operations until its journal is released',
     assert.equal(journal.calls.close, 2);
   });
 
+test('a real credential journal close retry releases the closing Site',
+  async t => {
+    const setup = await installed(t, {entries: [
+      accountEntry('records-write', 'allow', {
+        connection: 'salesforce:00D000000000001EAA',
+        resource: 'Test_Record__c', operation: 'effect'})]});
+    const site = await setup.load();
+    const close = DatabaseSync.prototype.close;
+    const failure = new Error('InjectedSqliteCloseFailure');
+    let attempts = 0;
+    DatabaseSync.prototype.close = function() {
+      if (++attempts === 1) throw failure;
+      return close.call(this);
+    };
+    try {
+      assert.throws(() => site.close(), error => error === failure);
+      assert.equal(site.cleanupPending(), true);
+      assert.throws(() => site.attestEffectCapability({
+        operation: 'salesforce:record:update', runInvocationCid: cid('3'),
+        dispatchRequestCid: cid('4')}), {code: 'SalesforceSiteClosed'});
+      site.close();
+      assert.equal(site.cleanupPending(), false);
+      site.close();
+      assert.equal(attempts, 2);
+    } finally {
+      DatabaseSync.prototype.close = close;
+    }
+    const reopened = await setup.load();
+    reopened.close();
+  });
+
 test('a failed Site owner keeps its primary failure and hands over the release',
   async t => {
     const setup = await installed(t);
