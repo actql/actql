@@ -6,6 +6,7 @@ fn bounded_unnest_fixture(
   max_rows? : Int = 10,
   max_work? : Int = 10000,
   max_entries? : Int = 100,
+  selected_ceiling? : Int64? = None,
 ) -> (@bounded.Control, BoundedUnnestExecution, CompletedOutput) raise {
   let item_limit = if large_items { "256" } else { "2" }
   let source_owner = bound_pipeline(
@@ -66,6 +67,11 @@ fn bounded_unnest_fixture(
     100000,
     10000,
   ).unwrap()
+  let generated = match selected_ceiling {
+    Some(ceiling) =>
+      constrain_generated_expansion_output(generated, 0, ceiling).unwrap()
+    None => generated
+  }
   let read = prepare_producer_read(
     receiver,
     bind_completed_input(receiver, 0, source_owner, source).unwrap(),
@@ -86,6 +92,37 @@ fn bounded_unnest_fixture(
     10000,
   ).unwrap()
   (control, execution, source)
+}
+
+///|
+test "bounded unnest enforces the checked expansion ceiling per step" {
+  for (ceiling, accepted) in [(2L, true), (1L, false)] {
+    let (_, execution, source) = bounded_unnest_fixture(
+      "[{\"id\":1,\"items\":[2,null]}]",
+      selected_ceiling=Some(ceiling),
+    )
+    let mut terminal = false
+    for _ in 0..<200 {
+      if !terminal {
+        match advance_bounded_unnest(execution, 1).unwrap() {
+          BoundedUnnestContinue(..) => ()
+          BoundedUnnestComplete(output, ..) => {
+            assert_true(accepted)
+            assert_eq(completed_row_count(output), 2)
+            terminal = true
+          }
+          BoundedUnnestFailed(Rows(RowLimit), ..) => {
+            assert_false(accepted)
+            terminal = true
+          }
+          _ => fail("unnest ended outside its selected output envelope")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_unnest(execution).unwrap())
+    assert_true(completed_output_available(source))
+  }
 }
 
 ///|

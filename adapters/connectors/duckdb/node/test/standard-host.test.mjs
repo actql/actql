@@ -7574,6 +7574,42 @@ async function exerciseStrategyGraph(
       [{assert_rows: {where: 'id > 0'}}],
       [{filter: 'id > 0'}, {select: ['id']}], ['id']),
     expected: [1, 2, 3, 4].map(id => ({id})), fields: ['id']},
+    {name: 'unpivot-filter-select', source: retainedUnaryChain(
+      [{unpivot: {
+        columns: ['jan', 'feb'], keep: ['id'],
+        name_column: 'metric', value_column: 'value',
+      }}],
+      [{filter: 'id > 1'}, {select: ['id', 'metric', 'value']}],
+      ['id', 'metric', 'value'], [
+        {id: 1, jan: 10, feb: 20},
+        {id: 2, jan: null, feb: 30},
+      ], {
+        id: {type: 'number', nullable: false},
+        jan: {type: 'number', nullable: true},
+        feb: {type: 'number', nullable: true},
+      }),
+    expected: [
+      {id: 2, metric: 'jan', value: null},
+      {id: 2, metric: 'feb', value: 30},
+    ], fields: ['id', 'metric', 'value']},
+    {name: 'unnest-filter-select', source: retainedUnaryChain(
+      [{unnest: {
+        column: 'items', as: 'item', with_index: 'position', outer: true,
+      }}],
+      [{filter: 'id > 1'}, {select: ['id', 'item', 'position']}],
+      ['id', 'item', 'position'], [
+        {id: 1, items: [2, null]},
+        {id: 2, items: []},
+        {id: 3, items: null},
+      ], {
+        id: {type: 'number', nullable: false},
+        items: {type: 'array', nullable: true, max_items: 2,
+          items: {type: 'number', nullable: true}},
+      }),
+    expected: [
+      {id: 2, item: null, position: null},
+      {id: 3, item: null, position: null},
+    ], fields: ['id', 'item', 'position']},
     {name: 'lag-filter-select', source: retainedUnaryChain(
       [{assert_rows: {unique_by: ['id']}},
         {lag: {

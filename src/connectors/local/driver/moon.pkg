@@ -8,5 +8,6 @@ import {
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/execution_relation" @execution,
   "actql/actql/decode_scalar" @scalar,
+  "actql/actql/capacity_policy" @policy,
   "actql/actql/managed_carrier_runtime" @carrier_runtime,
 }
