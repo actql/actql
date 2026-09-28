@@ -227,16 +227,41 @@ pub fn binary(
         Multiply => finite(a * b)
         Divide => if b == 0.0 { Err(ArithmeticFailure) } else { finite(a / b) }
         Modulo => if b == 0.0 { Err(ArithmeticFailure) } else { finite(a % b) }
-        Equal | NotEqual | Less | LessEqual | Greater | GreaterEqual | NullIf =>
-          Err(InvalidOperand)
+        Equal
+        | NotEqual
+        | IsDistinctFrom
+        | Less
+        | LessEqual
+        | Greater
+        | GreaterEqual
+        | NullIf => Err(InvalidOperand)
       }
     }
-    Equal | NotEqual | Less | LessEqual | Greater | GreaterEqual | NullIf => {
+    Equal
+    | NotEqual
+    | IsDistinctFrom
+    | Less
+    | LessEqual
+    | Greater
+    | GreaterEqual
+    | NullIf => {
       if left is Null {
-        return Ok(Null)
+        return Ok(
+          if op == @lower.IsDistinctFrom {
+            Boolean(!(right is Null))
+          } else {
+            Null
+          },
+        )
       }
       if right is Null {
-        return Ok(if op == @lower.NullIf { left } else { Null })
+        return Ok(
+          match op {
+            @lower.NullIf => left
+            @lower.IsDistinctFrom => Boolean(true)
+            _ => Null
+          },
+        )
       }
       let cmp = match compare(left, right) {
         Ok(n) => n
@@ -245,6 +270,7 @@ pub fn binary(
       match op {
         Equal => Ok(Boolean(cmp == 0))
         NotEqual => Ok(Boolean(cmp != 0))
+        IsDistinctFrom => Ok(Boolean(cmp != 0))
         Less => Ok(Boolean(cmp < 0))
         LessEqual => Ok(Boolean(cmp <= 0))
         Greater => Ok(Boolean(cmp > 0))

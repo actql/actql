@@ -1081,6 +1081,7 @@ pub(all) enum BinaryOperator {
   Modulo
   Equal
   NotEqual
+  IsDistinctFrom
   Less
   LessEqual
   Greater

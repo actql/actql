@@ -118,6 +118,22 @@ test "null comparison and nullif preserve the normative distinction" {
     @execution_relation.binary(@lower.Equal, Null, Null).unwrap() is Null,
   )
   assert_true(
+    @execution_relation.binary(@lower.IsDistinctFrom, Null, Null).unwrap()
+    is Boolean(false),
+  )
+  assert_true(
+    @execution_relation.binary(@lower.IsDistinctFrom, Null, Number(7)).unwrap()
+    is Boolean(true),
+  )
+  assert_true(
+    @execution_relation.binary(@lower.IsDistinctFrom, Number(7), Null).unwrap()
+    is Boolean(true),
+  )
+  assert_true(
+    @execution_relation.binary(@lower.IsDistinctFrom, Number(7), Number(7)).unwrap()
+    is Boolean(false),
+  )
+  assert_true(
     @execution_relation.binary(@lower.NullIf, Number(7), Null).unwrap()
     is Number(7.0),
   )

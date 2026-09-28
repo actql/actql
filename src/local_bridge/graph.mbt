@@ -351,17 +351,18 @@ fn rows_to_graph_step(
         guard state.edge_label is Some(column) else {
           return @bounded.Failed(InvalidGraphKernel, progress, used)
         }
-        match
-          graph_checked_cell(state.edges, state.row, column, state.value_limits) {
-          Some({ value: @value.Null, .. }) => state.label = None
-          Some(value) => state.label = Some(value)
-          None =>
-            return @bounded.Failed(
-              InvalidGraphRecord(state.row),
-              progress,
-              used,
-            )
+        guard graph_checked_cell(
+            state.edges,
+            state.row,
+            column,
+            state.value_limits,
+          )
+          is Some(value) else {
+          return @bounded.Failed(InvalidGraphRecord(state.row), progress, used)
         }
+        // A nullable label with a NULL value remains a present checked label.
+        // None means the Graph has no label role at all.
+        state.label = Some(value)
         state.phase = ReadEdgeProperties
         used += 1
       }
