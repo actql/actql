@@ -35,11 +35,38 @@ apply final ORDER/LIMIT to the entire set. Local acquisition counting supports
 one physical read for reused CTE input; HTTP Result success alone does not
 establish the remote physical count.
 
-At implementation parent `04ca66778b341a62c871298190ae9f9234110896`,
-`query_program` passed 51/51, `query_syntax` 27/27, and
-`query_expression` 6/6 on JS. The packed Node/browser Client smoke passed
-with installed Local and HTTP Hosts. Tests after the latest main merge and
-B2's final gate and same-SHA Linux CI remain pending at this draft stage.
+## Selected imported acceptance cases
+
+The imported `spec/frontend/acceptance-index.json` remains a frozen
+requirements index. This table records only evidence exercised by this draft;
+it does not turn all 140 imported cases into passes. `compile_test.mbt` and
+`query_test.mbt` exercise the semantic and rejection edges, while
+`scripts/test-node-client-package.mjs` reads the listed successful Results
+through installed Local and HTTP Clients.
+
+| Cases | Evidence in this draft | Boundary |
+| --- | --- | --- |
+| SQL-01 | `scripts/query-program.test.mjs`; independent expected Program and rows; packed pair Result | Exact Program under one context, then installed Host Results |
+| SQL-02–06 | `src/query_program/compile_test.mbt` Pipe snapshot tests; packed SET/EXTEND/DROP/RENAME Results | Current names and prior range slots remain separate; invalid peer references reject |
+| SQL-07, SQL-29 | Typed `AmbiguousColumn`/`UnknownColumn`/`AmbiguousRelation` and `UnsupportedJoin` regressions in `compile_test.mbt` | Non-equality outer ON is rejected before any Program is issued |
+| SQL-08–12 | JOIN/USING and set compilation in `compile_test.mbt`; packed Local/HTTP rows | Includes NULL extension, duplicate multiplicity, positional and exact BY NAME alignment in exercised forms |
+| SQL-13–17, SQL-19 | Group, NULL ordering and pagination tests in `compile_test.mbt`; packed Local/HTTP rows | Covers exercised aggregate signatures and order profiles, not every numeric or tie case |
+| SQL-20–22 | `query_test.mbt` rejects zero, parameterized and out-of-range LIMIT; `lower_test.mbt` checks integer range | Rejection occurs during frontend parsing/lowering; explicit provider read/write counters for SQL-20 remain unverified |
+| SQL-23–26 | Strict and legacy CONCAT plus eager failure and CASE in `lower_test.mbt` and packed Results | Existing legacy behavior remains distinct from query CONCAT |
+| SQL-27–28 | CTE compilation and packed Local read counter; recursive CTE parser rejection | One Local acquisition for reused CTE; HTTP physical read count remains unverified |
+| SQL-30–32 | Limited ranking/navigation and frame tests in `compile_test.mbt`/`query_test.mbt`; packed Results | Adopted ROWS forms and RANGE rejection; remaining frame/signature matrix is pending |
+
+SQL-18's insufficient tie-order evidence and SQL-33/34's typed star and
+unknown-schema cases still need direct acceptance evidence. The imported
+diagnostic catalog's exact code mapping is also pending; current MoonBit
+issues and source spans must not be reported as those registered codes.
+
+The PR Validation section records the fixed SHA, current target results, and
+remaining checks. The initial pre-merge implementation parent
+`04ca66778b341a62c871298190ae9f9234110896` passed the three focused
+query packages and packed Local/HTTP smoke. After integrating main, the
+focused query packages and packed smoke were rerun; they are not substitutes
+for final affected gates and same-SHA Linux CI.
 
 Before Ready, close the missing high-risk rejection/diagnostic cases in the work order,
 verify the affected spec and three-target Core gates, and confirm the final
