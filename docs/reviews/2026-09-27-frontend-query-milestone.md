@@ -1,5 +1,10 @@
 # Frontend query milestone: PR-3 and PR-4
 
+This document is the chronological implementation record. Its earlier SHA
+results are historical and do not validate the current tree. The current
+review scope, executed evidence, and remaining adopted requirements are in
+[the B2 draft record](2026-09-28-query-frontend-draft.md).
+
 ## Baseline and scope
 
 BASE_SHA: `02c279a39567febbc11fb75a463bd6fbe92fb284` (fetched origin/main).
