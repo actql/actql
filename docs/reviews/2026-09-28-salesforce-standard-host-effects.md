@@ -15,10 +15,14 @@ claimed to read and write in one Program.
   the capture/Preview/apply/recovery factory, the Host seam and the package
   publication entry. They are tested through the common completion and
   recovery owners against a local HTTPS mock org.
-- Not yet on main: the standard Host's Effect path (Checkpoint approval,
-  restart resume and the public Client/tarball Effect run). That path is the
-  open review #29. The factory's hooks follow #29's candidate stage shape;
-  final acceptance is checked on the merged boundary, not on the candidate.
+- The standard Host's Effect path (#29) is merged. Behind the Remote HTTP
+  Host and the public Client, a single-tuple Set is submitted, previewed,
+  held for the whole-Set approval, approved, resumed after a Host restart,
+  written once per row and published; a further restart writes nothing. A
+  rejected Set, a revoked commit and a changed target write nothing.
+- Not yet: the Host options object and Effect profile loading on the Remote
+  HTTP, Embedded Local and packed `connect()` entries (C), and the tarball
+  Effect run through them.
 - Real org: not yet exercised for Effects. The mock evidence does not stand
   in for it.
 
@@ -83,7 +87,11 @@ only.
    describe per member, a fresh check-read decision and target reads).
 3. Each row's write grant is issued only for its member's tuple decision for
    the sealed Set (`subjectCid`). A missing tuple decision, another tuple's,
-   another Set's or a copied decision sends nothing.
+   another Set's or a copied decision sends nothing. A decision of the Host's
+   Checkpoint commit gate is admitted only when that gate decided it for the
+   Site's principal under the Site's exact account configuration; the gate
+   itself records these facts on the decisions it returns, so no caller can
+   register one, and they are never a durable approval.
 
 ## Refusals and recovery (mock org evidence)
 
@@ -107,8 +115,10 @@ only.
 
 | Item | Owner | Needed | Acceptance |
 |---|---|---|---|
-| Host gate commit decisions admitted by the Site on the #29 path | C, then D | The Host's Effect commit gate records its dispatch decisions (principal, configuration) for Site admission; D admits only recorded decisions for the sealed Set and tuple | Approve → restart → one write per row through the public Client; unrecorded or foreign decisions refused |
-| `openInstalledHost` options object and Effect profile loading | C | Options object keeping source settings; `effectProfilePath` / `ACTQL_LOCAL_EFFECT_PROFILE` loaded through `installed-effect.mjs`; Host's own private evidence key | Invalid profile refused before provider I/O; source plus Effect refused |
-| Public Client, Embedded Local and tarball Effect run | D | #29 merged into main | Preview → approval → restart → update → Named Result; 0 writes before approval; 0 more over two resumes |
+| One Set approval over several Host tuples | C | The commit Checkpoint binds every tuple of the Set; resume admits each listed tuple whose current account outcome still permits it | Approved two-Resource Set writes each tuple once (todo test in `installed-salesforce-effect.host.test.mjs`); a tuple denied after approval sends nothing |
+| Pre-send current-state refusal on resume | C | A refusal proven before any send of the generation ends the resume as failed and retires the capture | Changed target after approval: Run failed, 0 writes, capture retired |
+| Host options object and Effect profile loading; Embedded and packed entries | C | `effectProfilePath` / `ACTQL_LOCAL_EFFECT_PROFILE` through `installed-effect.mjs`; Host's own evidence key; same account text and principal as the Host | Invalid profile refused before provider I/O; source plus Effect refused |
+| Tarball and Embedded Effect run | C, D | The entries above | Preview → approval → restart → update → Named Result from an install outside the checkout |
+| Live org Effect verification | D | Budget and cleanup reserve per the private record | Update of the dedicated test object, cleanup of created records |
 | Typed single-record failure outcomes | D (provider) | A contract for classifying non-2xx replies as definite failures | Rejected rows reported failed without resend |
 | Effects with external acquisition | shared | Effect compiler over acquired inputs | Out of this scope |
