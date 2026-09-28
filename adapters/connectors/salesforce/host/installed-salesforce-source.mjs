@@ -13,7 +13,8 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {acquisitionFailure} from '../../../host-common/acquisition-outcome.mjs';
 import {authorizationRuntimeCode} from
   '../../../host-common/authorization-gate.mjs';
-import {installSalesforceAuthorization, loadInstalledSalesforceSite} from
+import {installSalesforceAuthorization, installedSalesforceSiteBinding,
+  loadInstalledSalesforceSite} from
   './installed-salesforce-site.mjs';
 import {loadSalesforceGeneration, publishSalesforceGeneration,
   salesforceCheckEnvironment} from './salesforce-publication.mjs';
@@ -150,6 +151,7 @@ export async function loadInstalledSalesforceSource(profile, {root,
       declaration, recover, discovery, queryContract, evidenceContract,
       environment, generationCid: loaded.generationCid,
       catalogCid: loaded.declared.catalog_cid,
+      connectorId: checkedProfile.connectorId,
       sourceRefs: new Set(loaded.declared.views.map(view =>
         view.source_ref))});
   } catch (error) {
@@ -160,7 +162,7 @@ export async function loadInstalledSalesforceSource(profile, {root,
 
 function installedSalesforceAdapter({moon, site, authorization, declaration,
   recover, discovery, queryContract, evidenceContract, environment,
-  generationCid, catalogCid, sourceRefs}) {
+  generationCid, catalogCid, connectorId, sourceRefs}) {
   // Checked preparations this adapter issued; only these can be opened.
   const preparations = new WeakMap();
   const broadMoon = Object.freeze({
@@ -379,6 +381,8 @@ function installedSalesforceAdapter({moon, site, authorization, declaration,
   return Object.freeze({
     realizationKey: 'salesforce-acquired',
     environmentWire: environment.wire, generationCid,
+    connectorBindings: Object.freeze([
+      installedSalesforceSiteBinding(site, connectorId)]),
     // The source's own read authorization for the Host's pre-acquisition
     // Checkpoint decision: the same configuration and context as the Site's.
     readAuthorization: Object.freeze({

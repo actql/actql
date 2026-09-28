@@ -7,7 +7,7 @@ import {createHash, createPrivateKey, createPublicKey} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
-import {createLocalAuthorizationGate} from
+import {contentCid, createLocalAuthorizationGate} from
   '../../../host-node/local-account-config.mjs';
 import {openSqliteCredentialJournal} from
   '../../../site-node/sqlite-credential-journal.mjs';
@@ -66,6 +66,29 @@ const text = value => typeof value === 'string' && value.length > 0;
 const cid = value => `sha256:${createHash('sha256')
   .update(JSON.stringify(value)).digest('hex')}`;
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
+
+// Equal static Catalogs are not enough to co-install two roles for one
+// connector. The Host compares this non-secret Site binding before it admits
+// either role; read and commit decisions still remain separate.
+export function installedSalesforceSiteBinding(site, connectorId) {
+  if (!text(connectorId) || !text(site?.context?.contextCid)) {
+    fail('InvalidSalesforceSiteBinding');
+  }
+  return Object.freeze({connectorId, bindingCid: contentCid({
+    version: 'actql-installed-salesforce-site-binding/0.1',
+    contextCid: site.context.contextCid,
+    tenant: site.tenant, principal: site.principal,
+    environment: site.environment, connection: site.connection,
+    connectionRevision: site.connectionRevision, orgId: site.orgId,
+    instanceOrigin: site.instanceOrigin, siteKey: site.siteKey,
+    siteGeneration: site.siteGeneration, apiVersion: site.apiVersion,
+    cliAlias: site.cliAlias, cliUsername: site.cliUsername,
+    credentialAuthorityId: site.credentialAuthorityId,
+    credentialKeyId: site.credentialKeyId,
+    credentialPrivateKeyPath: site.credentialPrivateKeyPath,
+    caPath: site.caPath,
+  })});
+}
 
 function validProfile(profile) {
   if (profile === null || typeof profile !== 'object' ||
@@ -713,6 +736,11 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     siteGeneration: profile.siteGeneration, tenant: profile.tenant,
     environment: profile.environment,
     connectionRevision: profile.connectionRevision,
+    cliAlias: profile.cliAlias, cliUsername: profile.cliUsername,
+    credentialAuthorityId: profile.credentialAuthorityId,
+    credentialKeyId: profile.credentialKeyId,
+    credentialPrivateKeyPath: profile.credentialPrivateKeyPath,
+    caPath: profile.caPath,
     connectorRegistration: 'salesforce', connectorRevision: 'salesforce/0.1',
     principal: principalId, context, authorization, credential,
     issueGrant, attestEffectCapability, refreshCatalog, declareCatalog,

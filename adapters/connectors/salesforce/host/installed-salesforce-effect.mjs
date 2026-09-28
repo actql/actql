@@ -24,7 +24,8 @@ import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet} from
   '../../../host-node/effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from '../../../host-node/effect-plan-verify.mjs';
 import {openEffectLedger} from '../../../host-node/effect-ledger.mjs';
-import {installSalesforceAuthorization, loadInstalledSalesforceSite} from
+import {installSalesforceAuthorization, installedSalesforceSiteBinding,
+  loadInstalledSalesforceSite} from
   './installed-salesforce-site.mjs';
 import {describeSalesforceGeneration, readPublicationFile,
   replacePublicationFile, restoreSalesforceGeneration,
@@ -365,7 +366,7 @@ export async function loadInstalledSalesforceEffect(profile, {root,
     const installed = await restoreGeneration({site, salesforceMoon,
       profile: checkedProfile, baseEnvironmentWire});
     return installedSalesforceEffect({moon, salesforceMoon, site,
-      installed, ledgerRoot});
+      installed, ledgerRoot, connectorId: checkedProfile.connectorId});
   } catch (error) {
     site.close();
     throw error;
@@ -373,7 +374,7 @@ export async function loadInstalledSalesforceEffect(profile, {root,
 }
 
 function installedSalesforceEffect({moon, salesforceMoon, site, installed,
-  ledgerRoot}) {
+  ledgerRoot, connectorId}) {
   const effect = runtimeCore(moon).effectApplicationControl;
   let occurrence = 0;
   const nextOccurrence = label => `effect-${label}-${Date.now()}-${
@@ -979,6 +980,8 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
   return Object.freeze({
     environmentWire: installed.environment.wire,
     generationCid: installed.generationCid,
+    connectorBindings: Object.freeze([
+      installedSalesforceSiteBinding(site, connectorId)]),
     connection: site.connection,
     mappings: Object.freeze(installed.mappings.map(mapping => Object.freeze({
       resource: mapping.write.resource, kind: mapping.write.kind,
