@@ -12,12 +12,14 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {accountEntry} from '../../../host-node/authorization-fixture.mjs';
 import {createLocalAuthorizationGate} from
   '../../../host-node/local-account-config.mjs';
+import {retainSalesforceSiteCleanup} from
+  '../host/installed-salesforce-site.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {DEFAULT_SALESFORCE_CATALOG_LIMITS, INSTALLED_SALESFORCE_SITE_VERSION,
   installSalesforceAuthorization, installedSalesforceSiteBinding,
   loadInstalledSalesforceSite} from
   '../host/installed-salesforce-site.mjs';
-import {openSalesforceEffectSiteFixture} from
+import {closeFailingJournal, openSalesforceEffectSiteFixture} from
   './salesforce-effect-site.fixture.mjs';
 import {declarationEnvironment, declaredReadProgram} from
   './salesforce-declaration-environment.mjs';
@@ -701,4 +703,77 @@ test('a Checkpoint read approval is admitted only for this installation',
       decision: approval(), resource: 'Test_Record__c',
       runInvocationCid: cid('3'), dispatchRequestCid: cid('4')}),
     {code: 'SalesforceCredentialGrantNotAuthorized'});
+  });
+
+test('a closing Site refuses new operations until its journal is released',
+  async t => {
+    const setup = await installed(t, {entries: [
+      accountEntry('records-write', 'allow', {
+        connection: 'salesforce:00D000000000001EAA',
+        resource: 'Test_Record__c', operation: 'effect'})]});
+    const journal = closeFailingJournal(1);
+    const site = await setup.load({openCredentialJournal: journal.open});
+    const decision = await site.authorization.authorize('effect_commit', {
+      connection: site.connection, resource: 'Test_Record__c',
+      operation: 'effect'}, {subjectCid: cid('6')});
+    const seen = setup.org.seen.length;
+    // The first release fails: the Site is closing but not released.
+    assert.throws(() => site.close(), {code: 'InjectedJournalCloseFailure'});
+    assert.equal(site.cleanupPending(), true);
+    // No new operation starts, and nothing reaches the org.
+    for (const operation of [
+      () => site.issueGrant({operation: 'salesforce:record:update', decision,
+        resource: 'Test_Record__c', runInvocationCid: cid('3'),
+        dispatchRequestCid: cid('4'), subjectCid: cid('6')}),
+      () => site.attestEffectCapability({operation: 'salesforce:record:update',
+        runInvocationCid: cid('3'), dispatchRequestCid: cid('4')}),
+    ]) {
+      assert.throws(operation, {code: 'SalesforceSiteClosed'});
+    }
+    await assert.rejects(site.refreshCatalog(), {code: 'SalesforceSiteClosed'});
+    await assert.rejects(site.declareCatalog({connectorId: 'crm-main',
+      resources: ['Test_Record__c']}), {code: 'SalesforceSiteClosed'});
+    assert.equal(setup.org.seen.length, seen);
+    // The retry calls the journal's close again and releases the Site.
+    site.close();
+    assert.equal(journal.calls.close, 2);
+    assert.equal(site.cleanupPending(), false);
+    // A released Site does not close its journal again.
+    site.close();
+    assert.equal(journal.calls.close, 2);
+  });
+
+test('a failed Site owner keeps its primary failure and hands over the release',
+  async t => {
+    const setup = await installed(t);
+    const journal = closeFailingJournal(2);
+    const site = await setup.load({openCredentialJournal: journal.open});
+    const primary = Object.assign(new Error('OwnerFailed'),
+      {code: 'OwnerFailed'});
+    const failure = retainSalesforceSiteCleanup(site, primary);
+    // The owner's own failure stays the error; the release is pending.
+    assert.equal(failure, primary);
+    assert.equal(failure.cleanupPending, true);
+    assert.deepEqual(failure.cleanupErrors.map(error => error.code),
+      ['InjectedJournalCloseFailure']);
+    assert.equal(journal.calls.close, 1);
+    // A retry that fails again stays pending and keeps both failures.
+    let status = await failure.cleanupHandle.retry();
+    assert.equal(status.pending, true);
+    assert.equal(status.errors.length, 2);
+    assert.equal(journal.calls.close, 2);
+    status = await failure.cleanupHandle.retry();
+    assert.equal(status.pending, false);
+    assert.equal(failure.cleanupPending, false);
+    assert.equal(journal.calls.close, 3);
+    // A frozen failure is not modified: it is kept as the primary failure.
+    const other = await setup.load({
+      openCredentialJournal: closeFailingJournal(1).open});
+    const frozen = Object.freeze(Object.assign(new Error('Frozen'),
+      {code: 'FrozenFailure'}));
+    const wrapped = retainSalesforceSiteCleanup(other, frozen);
+    assert.equal(wrapped.primaryFailure, frozen);
+    assert.equal(wrapped.code, 'FrozenFailure');
+    assert.equal(wrapped.cleanupPending, true);
+    assert.equal((await wrapped.cleanupHandle.retry()).pending, false);
   });
