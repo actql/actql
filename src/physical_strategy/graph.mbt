@@ -863,6 +863,21 @@ pub fn graph_task_count(graph : CheckedDAG) -> Int {
 }
 
 ///|
+/// Checked Unit indices follow authored Stages; physical tasks may split a
+/// Unit into several bounded operations and therefore have different indices.
+pub fn graph_task_unit_index(graph : CheckedDAG, task : Int) -> Int? {
+  if task < 0 || task >= graph.owners.length() {
+    return None
+  }
+  for stage, tasks in graph.stage_tasks {
+    if tasks.contains(task) {
+      return Some(stage)
+    }
+  }
+  None
+}
+
+///|
 pub fn graph_task_owner(
   graph : CheckedDAG,
   index : Int,

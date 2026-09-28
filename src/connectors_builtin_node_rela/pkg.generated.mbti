@@ -114,6 +114,8 @@ pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, 
 
 pub fn client_program_check_environment_cid(@run_publication_host.PreparedClientProgram) -> String
 
+pub fn client_program_check_environment_with_numeric_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String) -> @program_check.CheckEnvironment?
+
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
 pub fn client_program_check_recovered_effect_apply_semantics(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectApplyPreflightIssue]
@@ -313,6 +315,8 @@ pub fn client_program_issue_captured_effect_input_local_result_definition(@run_p
 pub fn client_program_issue_captured_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
 
 pub fn client_program_issue_compiled_run_definition(@run_publication_host.ClientCompiledRun, String, String, String, String) -> Result[@run_publication.PublicationContract, @run_publication_host.ClientCompiledRunIssue]
+
+pub fn client_program_issue_compiled_source_free_task_invocation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn client_program_issue_compiled_task_invocation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
@@ -589,6 +593,8 @@ pub fn client_program_task_compilation_compiled_plan_wire(@run_publication_host.
 pub fn client_program_task_compilation_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
 
 pub fn client_program_task_compilation_template_wire(@run_publication_host.ClientTaskCompilation) -> String
+
+pub fn client_program_task_count(@run_publication_host.PreparedClientProgram) -> Int
 
 pub fn client_program_task_executable_plan_wire(@run_publication_host.ClientTaskExecutablePlan) -> String
 

@@ -151,12 +151,17 @@ fn issue_prepared_client_direct_result_root_for_output(
     @results.port_order_term_count(port) != 0 {
     return Err(RequiresResultTransformation)
   }
-  guard @strategy.graph_task_owner(graph, task) is Some(owner) &&
-    @lower.node_at(
-      @lower.bound_preparation(owner),
-      @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner))) - 1,
+  guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
+    return Err(RequiresResultTransformation)
+  }
+  let prepared = @lower.bound_preparation(owner)
+  guard client_task_output_step(
+      graph,
+      task,
+      @pipeline.step_count(@lower.pipeline(prepared)),
     )
-    is Some(node) else {
+    is Some(output_step) &&
+    @lower.node_at(prepared, output_step) is Some(node) else {
     return Err(RequiresResultTransformation)
   }
   let task_schema = @lower.node_output_schema(node)
@@ -166,8 +171,11 @@ fn issue_prepared_client_direct_result_root_for_output(
     return Err(RequiresResultTransformation)
   }
   for index in 0..<names.length() {
-    guard @results.port_projection_input_at(port, index) is Some(input) &&
-      @schema.reference_name(input) == names[index] &&
+    // Port projection indices follow the canonical schema, while Result
+    // `fields` retain authored order. Compare the matching port field.
+    guard @schema.field_at(@results.port_schema(port), index) is Some(output) &&
+      @results.port_projection_input_at(port, index) is Some(input) &&
+      input == output.name &&
       @schema.lookup(task_schema, input) is Some(_) else {
       return Err(RequiresResultTransformation)
     }

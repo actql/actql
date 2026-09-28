@@ -236,6 +236,30 @@ pub fn issue_client_compiled_values_invocation(
 }
 
 ///|
+pub fn issue_client_compiled_source_free_task_invocation(
+  value : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  data_policy_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  if check_client_compiled_run_definition(value, definition) is Err(_) {
+    return Err(@publication.RunEvidenceReferenceMismatch("task_run"))
+  }
+  match value.compilation {
+    Tasks(compilation) =>
+      issue_client_task_source_free_invocation(
+        compilation, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
+      )
+    Values(_) => Err(@publication.RunEvidenceReferenceMismatch("task_run"))
+  }
+}
+
+///|
 pub fn issue_client_compiled_task_invocation(
   value : ClientCompiledRun,
   definition : @publication.PublicationContract,

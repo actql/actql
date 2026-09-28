@@ -699,6 +699,34 @@ export function issueSourceFreeInvocation(prepared, compilation, admission,
   return Object.freeze({observation, invocation});
 }
 
+export function issueSourceFreeTaskInvocation(prepared, compilation,
+  admission, definition, dataPolicyCid, limits) {
+  if (typeof dataPolicyCid !== 'string') {
+    throw new TypeError('InvalidRunHostDataPolicy');
+  }
+  const compiled = requireHandle(taskCompilations, compilation);
+  if (compiled.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  checkRunBinding(prepared, admission, definition);
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  const facts = checked(owner.clientValuesHostIssueSourceFreeTaskInvocation(
+    compiled.value, dataPolicyCid, maxWireBytes, maxNodes, maxDepth),
+  'RunHostTaskInvocationRejected');
+  if (!Array.isArray(facts) || facts.length !== 4 ||
+      !facts.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostTaskInvocationProjection');
+  }
+  const observation = admitRunEvidenceValue('observation_set', facts[1],
+    limits);
+  const invocation = admitPublicationContract('run_invocation', facts[3],
+    limits);
+  if (observation.cid !== facts[0] || invocation.cid !== facts[2]) {
+    throw new Error('InvalidRunHostTaskInvocationProjection');
+  }
+  return Object.freeze({observation, invocation});
+}
+
 // Source Evidence may enter an acquired task Run only when the admitted
 // logical input, checked source, and current Host scope agree. The Host still
 // owns authorization and the live capture; this identity grants neither.
