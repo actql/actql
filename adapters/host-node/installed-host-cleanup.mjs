@@ -100,7 +100,12 @@ export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
       ['source', source], ['effect', effect], ['store', store]]) {
       try {
         await attempt(name, action);
+        if (name === 'store') storeCleanupPending = false;
       } catch (error) {
+        if (name === 'store' &&
+            error?.code === 'PublicationStoreCleanupPending') {
+          storeCleanupPending = true;
+        }
         failures.push(Object.freeze({owner: name, error}));
       }
     }
@@ -108,7 +113,8 @@ export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
       const error = Object.assign(new AggregateError(
         failures.map(item => item.error), 'InstalledHostCleanupPending'),
       {code: 'InstalledHostCleanupPending', cleanupErrors: failures,
-        cleanupPending: status().pending.length > 0});
+        cleanupPending: status().pending.length > 0,
+        storeCleanupPending});
       error.cleanupHandle = Object.freeze({status, retry: close});
       throw error;
     }
@@ -130,6 +136,5 @@ export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
     }).finally(() => { flight = undefined; });
     return flight;
   }
-  return Object.freeze({close, status,
-    noteStoreCleanupPending: () => { storeCleanupPending = true; }});
+  return Object.freeze({close, status});
 }

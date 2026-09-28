@@ -248,6 +248,48 @@ test('Host shutdown retries one failed adapter without closing another twice',
     assert.deepEqual(shutdown.status().pending, []);
   });
 
+test('Host shutdown retains a Store whose physical cleanup is pending',
+  async () => {
+    const calls = [];
+    let storeReady = false;
+    const shutdown = createInstalledHostShutdown({
+      stop: () => calls.push('stop'),
+      drain: () => calls.push('drain'),
+      retire: () => calls.push('retire'),
+      checkpoint: () => calls.push('checkpoint'),
+      journal: () => calls.push('journal'),
+      source: () => calls.push('source'),
+      effect: () => calls.push('effect'),
+      store: () => {
+        calls.push('store');
+        if (!storeReady) {
+          throw Object.assign(new Error('PublicationStoreCleanupPending'),
+            {code: 'PublicationStoreCleanupPending'});
+        }
+      },
+    });
+    let pending;
+    await assert.rejects(shutdown.close(), error => {
+      pending = error;
+      assert.equal(error.code, 'InstalledHostCleanupPending');
+      assert.equal(error.storeCleanupPending, true);
+      assert.equal(error.cleanupPending, true);
+      assert.deepEqual(error.cleanupHandle.status().pending, ['store']);
+      return true;
+    });
+    assert.deepEqual(calls, ['stop', 'drain', 'retire', 'checkpoint',
+      'journal', 'source', 'effect', 'store']);
+    storeReady = true;
+    const first = pending.cleanupHandle.retry();
+    const second = pending.cleanupHandle.retry();
+    assert.equal(first, second);
+    assert.deepEqual(await first, {storeCleanupPending: false,
+      pendingRetention: [], authorizationCleanupPending: false});
+    assert.deepEqual(shutdown.status().pending, []);
+    assert.deepEqual(calls, ['stop', 'drain', 'retire', 'checkpoint',
+      'journal', 'source', 'effect', 'store', 'store']);
+  });
+
 test('Host shutdown retains both installations behind a failed drain',
   async () => {
     const calls = [];

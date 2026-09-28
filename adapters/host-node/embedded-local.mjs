@@ -1238,8 +1238,7 @@ export async function openInstalledRemoteHttpHost({directory,
   // refused before they touch the Store.
   const handling = new Set();
   let closing = false;
-  let shutdown;
-  shutdown = createInstalledHostShutdown({
+  const shutdown = createInstalledHostShutdown({
     stop: () => host.checkpoints?.stop(),
     drain: () => host.dispatchOwner.drain(),
     retire: () => host.retireTerminalEffects(),
@@ -1247,13 +1246,7 @@ export async function openInstalledRemoteHttpHost({directory,
     journal: () => host.journal.close(),
     source: () => host.sourceProfile?.close(),
     effect: () => host.installedEffect?.close(),
-    store: async () => {
-      try { await host.store.close(); }
-      catch (error) {
-        if (error?.code !== 'PublicationStoreCleanupPending') throw error;
-        shutdown.noteStoreCleanupPending();
-      }
-    },
+    store: () => host.store.close(),
   });
   return Object.freeze({
     handler(request, response) {
