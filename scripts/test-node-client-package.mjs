@@ -322,6 +322,14 @@ const keyedCollectionQuery = queryFrontend.compileValuesQueryJson(
 assert.notEqual(keyedCollectionQuery, '');
 await writeFile(join(root, 'keyed-collection-query.json'),
   keyedCollectionQuery);
+const keyedPipeCollectionQuery = queryFrontend.compileValuesQueryJson(
+  'FROM keyed_rows |> AGGREGATE '
+    + 'ARRAY_AGG(DISTINCT a IGNORE NULLS ORDER BY a DESC) AS ids',
+  'keyed_rows', 'keyed_rows', JSON.stringify(keyedCollectionRows),
+  JSON.stringify(['a']), 'fixture.keyed_pipe_collection_query');
+assert.notEqual(keyedPipeCollectionQuery, '');
+await writeFile(join(root, 'keyed-pipe-collection-query.json'),
+  keyedPipeCollectionQuery);
 const filteredSubqueryJoin = queryFrontend.compileTwoValuesSetQueryJson(
   'FROM (SELECT a, b FROM set_left) AS l |> WHERE l.a > 1 '
     + '|> LEFT JOIN (SELECT c, d FROM set_right) AS r ON l.a = r.c '
@@ -491,6 +499,12 @@ rows: [{a: 0}, {a: 1}]}, as: 'set_left'};
 const demandRight = {values: {schema: {
   c: {type: 'number', nullable: false}},
 rows: [{c: 0}, {c: 1}]}, as: 'set_right'};
+const eagerAndQuery = queryFrontend.compileValuesQueryJson(
+  'SELECT a FROM set_left WHERE a <> 0 AND 10 / a > 1',
+  'set_left', 'set_left', JSON.stringify(demandLeft),
+  JSON.stringify(['a']), 'fixture.eager_and_failure');
+assert.notEqual(eagerAndQuery, '');
+await writeFile(join(root, 'eager-and-query.json'), eagerAndQuery);
 for (const [name, sql] of [
   ['filtered-demand', 'SELECT 10 / l.a AS ratio FROM set_left AS l '
     + 'JOIN set_right AS r ON l.a = r.c WHERE l.a <> 0'],
@@ -1154,6 +1168,19 @@ async function checkCollectionQuery(client, suffix) {
   const keyedStatus = await keyed.wait();
   assert.equal(keyedStatus.status, 'succeeded', JSON.stringify(keyedStatus));
   assert.deepEqual(await keyed.result('answer').all(), [{ids: [2, 1]}]);
+  const piped = await client.aql(
+    readFileSync('keyed-pipe-collection-query.json', 'utf8'),
+    {format: 'json', requestId: 'packed-keyed-pipe-collection-' + suffix});
+  const pipeStatus = await piped.wait();
+  assert.equal(pipeStatus.status, 'succeeded', JSON.stringify(pipeStatus));
+  assert.deepEqual(await piped.result('answer').all(), [{ids: [2, 1]}]);
+}
+async function checkExpressionFailure(client, suffix) {
+  const execution = await client.aql(
+    readFileSync('eager-and-query.json', 'utf8'),
+    {format: 'json', requestId: 'packed-eager-and-' + suffix});
+  const status = await execution.wait();
+  assert.equal(status.status, 'failed', JSON.stringify(status));
 }
 async function checkSetQueries(client, suffix) {
   for (const [name, expected] of setExpectations) {
@@ -1403,6 +1430,7 @@ assert.deepEqual(await setQueryLocal.result('answer').all(), expectedUnionRows);
 await checkSetQueries(installedLocal, 'local');
 await checkJoinCases(installedLocal, 'local');
 await checkCollectionQuery(installedLocal, 'local');
+await checkExpressionFailure(installedLocal, 'local');
 await checkOrderedJoin(installedLocal, 'local');
 const pipeUnionLocal = await installedLocal.aql(pipeUnionQueryDocument,
   {format: 'json', requestId: 'packed-pipe-union-local'});
@@ -1599,6 +1627,7 @@ assert.deepEqual(await setQueryRemote.result('answer').all(), expectedUnionRows)
 await checkSetQueries(installedRemote, 'remote');
 await checkJoinCases(installedRemote, 'remote');
 await checkCollectionQuery(installedRemote, 'remote');
+await checkExpressionFailure(installedRemote, 'remote');
 await checkOrderedJoin(installedRemote, 'remote');
 const pipeUnionRemote = await installedRemote.aql(pipeUnionQueryDocument,
   {format: 'json', requestId: 'packed-pipe-union-remote'});

@@ -1550,6 +1550,20 @@ test "ordered collection aggregates retain literal and order contracts" {
     NeedsInputs(_) => fail("deduplicated array input should be bounded")
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
   }
+  let pipe_array = compile(
+    @query.parse_query(
+      "FROM left_rows |> AGGREGATE ARRAY_AGG(DISTINCT a IGNORE NULLS ORDER BY a DESC) AS ids",
+      syntax_limits(),
+    ).unwrap(),
+    context,
+    construction_limits(),
+  ).unwrap()
+  match
+    @check.check_parsed(pipe_array, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("Pipe collection should be bounded")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
   let unbounded_string = @query.parse_query(
     "SELECT STRING_AGG(b, '|' ORDER BY a) AS labels FROM left_rows",
     syntax_limits(),
