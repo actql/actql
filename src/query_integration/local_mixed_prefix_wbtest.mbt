@@ -1,11 +1,9 @@
 ///|
-fn run_standard_host_fused_carrier_prefix(events : Bool) -> Unit raise {
-  let variant = if events { "dedupe_filter" } else { "normalize_filter" }
+fn run_standard_host_fused_events_prefix() -> Unit raise {
+  let variant = "dedupe_filter"
   let (run, issuer) = captured_graph_fixture(
-    local_carrier_events_chain=events,
+    local_carrier_events_chain=true,
     local_carrier_events_variant=variant,
-    local_carrier_vectors_chain=!events,
-    local_carrier_vectors_variant=variant,
     managed_publication=true,
     ledger_limits=Some({
       planning_work: 30000,
@@ -33,19 +31,11 @@ fn run_standard_host_fused_carrier_prefix(events : Bool) -> Unit raise {
     limits.local_execution,
     limits.guards,
   ).unwrap()
-  let provider = if events {
-    @local_tea_provider.provider(
-      carrier_events_storage_limits(),
-      4096L,
-      capacity,
-    )
-  } else {
-    @local_veca_provider.provider(
-      carrier_vectors_storage_limits(),
-      4096L,
-      capacity,
-    )
-  }
+  let provider = @local_tea_provider.provider(
+    carrier_events_storage_limits(),
+    4096L,
+    capacity,
+  )
   let modules = @builtin.configure_compute_modules(
     @host_driver.open_dispatch_driver(run),
     registry,
@@ -115,15 +105,8 @@ fn run_standard_host_fused_carrier_prefix(events : Bool) -> Unit raise {
   )
   let prefix_rows = local_managed_test_rows(prefix_ops)
   assert_eq(prefix_rows.length(), 2)
-  if events {
-    assert_true(prefix_rows[0].contains("\"event_id\":2"))
-    assert_true(prefix_rows[1].contains("\"event_id\":4"))
-  } else {
-    assert_eq(prefix_rows, [
-      "{\"code\":\"😀\",\"embedding\":[0.6000000238418579,0.800000011920929],\"group\":1,\"id\":1}",
-      "{\"code\":\"é\",\"embedding\":[0,1],\"group\":1,\"id\":2}",
-    ])
-  }
+  assert_true(prefix_rows[0].contains("\"event_id\":2"))
+  assert_true(prefix_rows[1].contains("\"event_id\":4"))
   let filtered_live = Ref(true)
   let filtered_obligations = @strategy.captured_next_managed_obligations(
     run, 10,
@@ -154,11 +137,7 @@ fn run_standard_host_fused_carrier_prefix(events : Bool) -> Unit raise {
     Some(
       @execution.EstablishedSourceRetained(
         @execution.logical_relation_canonical_contract_cid(),
-        if events {
-          "sha256:058f941f294541f1b2c6a5ee64dc74b06f03433d3474a9bc0a23a4c8e5ccf00b"
-        } else {
-          "sha256:4dcae0e6f3da74f61a0e6c3177bae62ac85ed202e6af740c4f672ffc61c2623a"
-        },
+        "sha256:058f941f294541f1b2c6a5ee64dc74b06f03433d3474a9bc0a23a4c8e5ccf00b",
       ),
     ),
   )
@@ -220,10 +199,10 @@ fn run_standard_host_fused_carrier_prefix(events : Bool) -> Unit raise {
 
 ///|
 test "standard Host runs an unselected Events prefix into Relation consumers" {
-  run_standard_host_fused_carrier_prefix(true)
+  run_standard_host_fused_events_prefix()
 }
 
 ///|
-test "standard Host runs an unselected Vectors prefix into Relation consumers" {
-  run_standard_host_fused_carrier_prefix(false)
+test "standard Host runs selected Vectors normalization into Relation consumers" {
+  run_standard_host_mixed_vectors_relation_path("normalize_filter")
 }
