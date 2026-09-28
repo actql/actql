@@ -360,6 +360,27 @@ pub(all) enum ClientTaskPipelineIssue {
 }
 
 ///|
+/// The physical task output can be an authored selected step, a retained
+/// prefix end, or the terminal step of an unsplit pipeline.
+fn client_task_output_step(
+  graph : @strategy.CheckedDAG,
+  task : Int,
+  count : Int,
+) -> Int? {
+  if count <= 0 {
+    return None
+  }
+  let step = @strategy.graph_task_selected_step(graph, task).unwrap_or(
+    @strategy.graph_task_prefix_end(graph, task).unwrap_or(count - 1),
+  )
+  if step < 0 || step >= count {
+    None
+  } else {
+    Some(step)
+  }
+}
+
+///|
 /// Emit the checked AoA pipeline of one task, including its declared input
 /// ports. A source input remains an input port; this does not claim that its
 /// physical acquisition, barrier, or Run observation has been admitted.
@@ -378,10 +399,7 @@ pub fn emit_prepared_client_task_pipeline(
   let count = @pipeline.step_count(pipeline)
   let selected = @strategy.graph_task_selected_step(value.graph, task)
   let prefix_end = @strategy.graph_task_prefix_end(value.graph, task)
-  let end_step = selected.unwrap_or(prefix_end.unwrap_or(count - 1))
-  guard count > 0 &&
-    end_step >= 0 &&
-    end_step < count &&
+  guard client_task_output_step(value.graph, task, count) is Some(end_step) &&
     @lower.node_at(@lower.bound_preparation(owner), end_step) is Some(output) else {
     return Err(MissingOutput)
   }
@@ -775,12 +793,17 @@ pub fn issue_prepared_client_task_output_schema(
     Ok(_) => ()
     Err(issue) => return Err(Fragment(issue))
   }
-  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) &&
-    @lower.node_at(
-      @lower.bound_preparation(owner),
-      @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner))) - 1,
+  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
+    return Err(MissingCheckedOutput)
+  }
+  let prepared = @lower.bound_preparation(owner)
+  guard client_task_output_step(
+      value.graph,
+      task,
+      @pipeline.step_count(@lower.pipeline(prepared)),
     )
-    is Some(node) else {
+    is Some(output_step) &&
+    @lower.node_at(prepared, output_step) is Some(node) else {
     return Err(MissingCheckedOutput)
   }
   @execution.identify_relation_schema(
@@ -961,10 +984,7 @@ fn prepare_client_task_sequence_graph(
   if count == 0 {
     return Err(EmptyTask)
   }
-  let selected = @strategy.graph_task_selected_step(graph, task)
-  let last_step = selected.unwrap_or(count - 1)
-  guard last_step >= 0 &&
-    last_step < count &&
+  guard client_task_output_step(graph, task, count) is Some(last_step) &&
     @lower.node_at(@lower.bound_preparation(owner), last_step) is Some(last) else {
     return Err(EmptyTask)
   }

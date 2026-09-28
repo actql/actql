@@ -14,7 +14,7 @@ import {sourceFreeValuesPlan, sourceFreeTaskPlan,
   './local-values-plan.mjs';
 import {admitEnvironment as admitStandaloneEnvironment,
   prepare as prepareStandalone, compileValues as compileStandaloneValues,
-  compileTasks as compileStandaloneTasks, compiledPlanCid,
+  compileTasks as compileStandaloneTasks, compiledPlanCid, taskResultSchema,
   privateTaskCompilationWires} from '../../packages/run-host-core/index.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -251,3 +251,30 @@ test('compiled task Plan binds an internal filtered JOIN edge', async () => {
     ref: {node_id: joined.node_id, port: joined.pipeline.output},
     role: 'requested_result'}]);
 });
+
+test('each segmented Result root uses its own physical task schema',
+  async () => {
+    const document = await read('./fixtures/segmented-results-program.json');
+    const environmentBody = JSON.parse(await read(
+      '../../packages/sdk/fixtures/values.environment.json'));
+    const environment = admitStandaloneEnvironment(
+      canonicalText(environmentBody), environmentBody.evidence_bundle_cid,
+      {rela: true});
+    const owner = prepareStandalone(document, 'json', environment);
+    const compiled = compileStandaloneTasks(owner);
+    assert.deepEqual(taskResultSchema(owner, compiled, 'answer').fields,
+      ['a', 'd']);
+    assert.deepEqual(taskResultSchema(owner, compiled, 'last').fields,
+      ['a']);
+    const plan = JSON.parse(privateTaskCompilationWires(compiled)
+      .executablePlan);
+    const roots = Object.fromEntries(plan.root_refs.map(root =>
+      [root.name, root.ref]));
+    assert.deepEqual(Object.keys(roots), ['answer', 'last']);
+    assert.notDeepEqual(roots.answer, roots.last);
+    for (const name of ['answer', 'last']) {
+      const node = plan.nodes.find(node => node.node_id === roots[name].node_id);
+      assert.ok(node);
+      assert.equal(roots[name].port, node.pipeline.output);
+    }
+  });
