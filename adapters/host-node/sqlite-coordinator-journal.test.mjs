@@ -46,7 +46,10 @@ test('Coordinator journal retries a failed physical close', async t => {
   };
   try {
     assert.throws(() => journal.close(), /injected close failure/u);
+    assert.throws(() => journal.hasOutputOperations(),
+      {code: 'CoordinatorJournalClosed'});
     assert.equal(journal.close(), true);
+    assert.equal(journal.close(), false);
     assert.equal(attempts, 2);
   } finally {
     DatabaseSync.prototype.close = originalClose;

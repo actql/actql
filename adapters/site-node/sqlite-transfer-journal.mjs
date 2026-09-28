@@ -8,7 +8,8 @@ import {
   realpathSync,
 } from 'node:fs';
 import {join} from 'node:path';
-import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
+import {createSqliteTransaction, throwSqliteInitializationFailure} from
+  '../host-common/sqlite-transaction.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -151,8 +152,7 @@ export function openSqliteTransferJournal(root, {
     });
     if (!existed) syncDirectory(directory);
   } catch (error) {
-    database.close();
-    throw error;
+    throwSqliteInitializationFailure(database, error, 'transfer-journal');
   }
 
   const select = database.prepare(`

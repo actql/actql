@@ -29,6 +29,16 @@ The Coordinator journal's physical close is fault-injected once and succeeds
 on retry, after which the same durable file reopens. The existing three journal
 test suites continue to exercise their records and state transitions.
 
+The first Coordinator close attempt now fences ordinary operations even if
+physical close fails; a separate flag permits only close retry. A second
+successful close does not close the database again. During initialization, all
+three journals preserve a transaction failure if physical close also fails.
+The failure carries the original transaction cause, separate cleanup errors,
+and a retryable cleanup handle. The installed Host's initialization owner
+retains that handle and its error details until close succeeds. Real SQLite
+fault-injection tests cover each journal and the installed Host wrapper; after
+cleanup the same durable journal can reopen without replaying work.
+
 The earlier D CI failure at `resumed.close()` in the reference Site recovery
 case is not yet attributed to a specific owner. This branch adds one-time
 diagnostics for pending shutdown owners and individual cleanup causes. The

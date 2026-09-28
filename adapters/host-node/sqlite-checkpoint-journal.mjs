@@ -13,7 +13,8 @@
 import {DatabaseSync} from 'node:sqlite';
 import {mkdirSync, realpathSync} from 'node:fs';
 import {join} from 'node:path';
-import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
+import {createSqliteTransaction, throwSqliteInitializationFailure} from
+  '../host-common/sqlite-transaction.mjs';
 
 const runtimeUrl = new URL(
   '../../_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js',
@@ -350,8 +351,7 @@ export function openSqliteCheckpointJournal(root, {
       }
     });
   } catch (error) {
-    database.close();
-    throw error;
+    throwSqliteInitializationFailure(database, error, 'checkpoint-journal');
   }
 
   const statements = {

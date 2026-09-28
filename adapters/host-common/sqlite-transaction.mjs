@@ -61,3 +61,40 @@ export function createSqliteTransaction(database, prefix) {
   return Object.freeze({run, assertUsable,
     get connectionUsable() { return !unusable; }});
 }
+
+// A constructor cannot return its database owner after a failed close.
+// Keep the transaction failure and expose a retryable cleanup owner instead.
+export function throwSqliteInitializationFailure(database, primaryFailure,
+  owner) {
+  try { database.close(); }
+  catch (closeFailure) {
+    const errors = [Object.freeze({owner, error: closeFailure})];
+    let pending = true;
+    const failure = Object.assign(new Error(
+      'SqliteJournalInitializationCleanupPending',
+      {cause: primaryFailure}), {
+      code: 'SqliteJournalInitializationCleanupPending',
+      primaryFailure, cleanupPending: true,
+    });
+    const status = () => Object.freeze({pending,
+      owners: Object.freeze(pending ? [owner] : []),
+      errors: Object.freeze([...errors])});
+    const retry = () => {
+      if (pending) {
+        try {
+          database.close();
+          pending = false;
+        } catch (error) {
+          errors.push(Object.freeze({owner, error}));
+        }
+      }
+      failure.cleanupPending = pending;
+      failure.cleanupErrors = status().errors;
+      return status();
+    };
+    failure.cleanupErrors = status().errors;
+    failure.cleanupHandle = Object.freeze({status, retry});
+    throw failure;
+  }
+  throw primaryFailure;
+}

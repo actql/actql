@@ -8,7 +8,8 @@ import {
   realpathSync,
 } from 'node:fs';
 import {join} from 'node:path';
-import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
+import {createSqliteTransaction, throwSqliteInitializationFailure} from
+  '../host-common/sqlite-transaction.mjs';
 import {
   admitRemoteDispatchJson,
   admitRemoteExecutionEvidenceJson,
@@ -63,6 +64,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
   });
   const transaction = createSqliteTransaction(database, 'CoordinatorJournal');
   let closed = false;
+  let databaseClosed = false;
   try {
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
@@ -245,8 +247,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     });
     if (!existed) syncDirectory(directory);
   } catch (error) {
-    database.close();
-    throw error;
+    throwSqliteInitializationFailure(database, error, 'coordinator-journal');
   }
 
   const selectDispatch = database.prepare(`
@@ -1173,9 +1174,10 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       });
     },
     close() {
-      if (closed) return false;
-      database.close();
       closed = true;
+      if (databaseClosed) return false;
+      database.close();
+      databaseClosed = true;
       return true;
     },
   });
