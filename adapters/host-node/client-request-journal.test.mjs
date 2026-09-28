@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, readdir, rm} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -609,6 +610,61 @@ test('a changed schema under the current marker is rejected before use',
       {code: 'UnknownClientRequestJournalFormat'});
     assert.deepEqual(await readFile(databasePath), original);
   });
+
+test('a mismatched WAL journal is refused without creating shared memory',
+  async t => {
+    const path = await directory(t);
+    openClientRequestJournal(path).close();
+    const databasePath = join(path, 'client-requests.sqlite3');
+    const writer = new DatabaseSync(databasePath);
+    t.after(() => writer.close());
+    writer.exec('PRAGMA wal_autocheckpoint = 0');
+    writer.exec('ALTER TABLE client_requests RENAME COLUMN namespace_id '
+      + 'TO tenant_id');
+    await rm(`${databasePath}-shm`, {force: true});
+    const snapshot = async () => new Map(await Promise.all(
+      (await readdir(path)).sort().map(async name =>
+        [name, await readFile(join(path, name))])));
+    const before = await snapshot();
+    assert.ok(before.has('client-requests.sqlite3-wal'));
+    assert.ok(!before.has('client-requests.sqlite3-shm'));
+    const journalUrl = new URL('./client-request-journal.mjs', import.meta.url);
+    const probe = spawnSync(process.execPath, ['--input-type=module', '-e',
+      `import {openClientRequestJournal} from ${JSON.stringify(journalUrl.href)};
+       try { openClientRequestJournal(process.argv[1]); process.exit(2); }
+       catch (error) {
+         if (error.code !== 'UnknownClientRequestJournalFormat') throw error;
+       }`, path], {encoding: 'utf8'});
+    assert.equal(probe.status, 0, probe.stderr);
+    const after = await snapshot();
+    assert.deepEqual([...after.keys()], [...before.keys()]);
+    for (const [name, bytes] of before) {
+      assert.deepEqual(after.get(name), bytes, name);
+    }
+  });
+
+test('a current journal remains readable with uncheckpointed WAL', async t => {
+  const path = await directory(t);
+  openClientRequestJournal(path).close();
+  const databasePath = join(path, 'client-requests.sqlite3');
+  const writer = new DatabaseSync(databasePath);
+  t.after(() => writer.close());
+  writer.exec('PRAGMA wal_autocheckpoint = 0');
+  // The main database is stale; only the uncheckpointed WAL has the
+  // current schema. Ignoring WAL must not make this valid root fail.
+  writer.exec('ALTER TABLE client_requests RENAME COLUMN namespace_id '
+    + 'TO tenant_id');
+  writer.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+  writer.exec('ALTER TABLE client_requests RENAME COLUMN tenant_id '
+    + 'TO namespace_id');
+  await rm(`${databasePath}-shm`, {force: true});
+  assert.ok((await readdir(path)).includes('client-requests.sqlite3-wal'));
+  const reopened = openClientRequestJournal(path);
+  t.after(() => reopened.close());
+  assert.equal(reopened.lookup({namespaceId: 'namespace-a',
+    authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon),
+  undefined);
+});
 
 test('the atomic key rejects changed intent and keeps the original Run',
   async t => {

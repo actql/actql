@@ -1,8 +1,10 @@
 // Physical durable storage for an owner-issued Client request and Run ref.
 // MoonBit supplies and re-admits the identity and decides intent conflicts.
 import {DatabaseSync} from 'node:sqlite';
-import {closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync,
-  readFileSync, readdirSync, realpathSync, writeFileSync} from 'node:fs';
+import {closeSync, constants, existsSync, fstatSync, fsyncSync, lstatSync,
+  mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, readSync,
+  realpathSync, rmSync, writeFileSync, writeSync} from 'node:fs';
+import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
 const cid = value => typeof value === 'string' &&
@@ -211,6 +213,79 @@ const journalColumns = [...columns.split(',').map(name => name.trim()),
   'physical_close_confirmed', 'observed_terminal_outcome',
   'reconciliation_state_wire'].sort();
 
+const sameFile = (left, right) => ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
+  .every(key => left[key] === right[key]);
+
+// A read-only SQLite connection can still create -shm beside a WAL database.
+// Inspect a private copy and refuse a source that changes during inspection.
+function inspectJournalSnapshot(directory, databasePath, markerPath) {
+  const entries = readdirSync(directory).sort();
+  const paths = [databasePath];
+  const walPath = `${databasePath}-wal`;
+  if (entries.includes('client-requests.sqlite3-wal')) paths.push(walPath);
+  // An uncommitted rollback journal cannot establish a usable snapshot.
+  if (entries.includes('client-requests.sqlite3-journal')) {
+    fail('UnknownClientRequestJournalFormat');
+  }
+  const sources = [];
+  let isolated;
+  let database;
+  try {
+    for (const path of paths) {
+      const fd = openSync(path, constants.O_RDONLY |
+        (constants.O_NOFOLLOW ?? 0));
+      const identity = fstatSync(fd, {bigint: true});
+      sources.push({path, fd, identity});
+      if (!identity.isFile() ||
+          identity.size > BigInt(Number.MAX_SAFE_INTEGER)) {
+        fail('UnknownClientRequestJournalFormat');
+      }
+    }
+    isolated = mkdtempSync(join(tmpdir(), 'actql-client-journal-check-'));
+    for (const source of sources) {
+      const target = join(isolated, source.path === walPath
+        ? 'client-requests.sqlite3-wal' : 'client-requests.sqlite3');
+      const output = openSync(target, 'wx', 0o600);
+      try {
+        const chunk = Buffer.allocUnsafe(64 * 1024);
+        let offset = 0;
+        while (offset < Number(source.identity.size)) {
+          const count = readSync(source.fd, chunk, 0,
+            Math.min(chunk.length, Number(source.identity.size) - offset),
+            offset);
+          if (count === 0) fail('UnknownClientRequestJournalFormat');
+          let written = 0;
+          while (written < count) {
+            written += writeSync(output, chunk, written, count - written);
+          }
+          offset += count;
+        }
+      } finally { closeSync(output); }
+    }
+    database = new DatabaseSync(join(isolated, 'client-requests.sqlite3'),
+      {open: true, readOnly: true});
+    const fields = database.prepare('PRAGMA table_info(client_requests)')
+      .all().map(field => field.name).sort();
+    if (JSON.stringify(fields) !== JSON.stringify(journalColumns) ||
+        !readFileSync(markerPath).equals(journalMarker) ||
+        JSON.stringify(readdirSync(directory).sort()) !==
+          JSON.stringify(entries) ||
+        sources.some(source => !sameFile(source.identity,
+          fstatSync(source.fd, {bigint: true})) ||
+          !sameFile(source.identity,
+            lstatSync(source.path, {bigint: true})))) {
+      fail('UnknownClientRequestJournalFormat');
+    }
+  } finally {
+    try { database?.close(); }
+    finally {
+      for (const source of sources) closeSync(source.fd);
+      if (isolated !== undefined) rmSync(isolated,
+        {recursive: true, force: true});
+    }
+  }
+}
+
 function admitJournalDirectory(directory) {
   if (!existsSync(directory)) return false;
   const state = lstatSync(directory);
@@ -234,19 +309,11 @@ function admitJournalDirectory(directory) {
   if (!lstatSync(databasePath).isFile()) {
     fail('UnknownClientRequestJournalFormat');
   }
-  let database;
   try {
-    database = new DatabaseSync(databasePath, {open: true, readOnly: true});
-    const fields = database.prepare('PRAGMA table_info(client_requests)')
-      .all().map(field => field.name).sort();
-    if (JSON.stringify(fields) !== JSON.stringify(journalColumns)) {
-      fail('UnknownClientRequestJournalFormat');
-    }
+    inspectJournalSnapshot(directory, databasePath, markerPath);
   } catch (cause) {
     if (cause?.code === 'UnknownClientRequestJournalFormat') throw cause;
     fail('UnknownClientRequestJournalFormat', cause);
-  } finally {
-    database?.close();
   }
   return true;
 }
