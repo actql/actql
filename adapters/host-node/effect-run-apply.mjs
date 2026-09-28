@@ -131,7 +131,10 @@ async function authorizeEffectCommit(authorization, subjectCid, signal) {
       ? await authorization.gate.authorize('effect_commit', tuple,
         {subjectCid, signal})
       : await authorization.gate.resume('effect_commit', tuple,
-        {subjectCid, signal, resumption});
+        {subjectCid, signal, resumption,
+          setApproval: decisions.find(previous =>
+            previous.basis === 'resumed' &&
+            previous.admission !== undefined)});
     decisions.push(decision);
     if (decision.action !== 'dispatch') break;
   }

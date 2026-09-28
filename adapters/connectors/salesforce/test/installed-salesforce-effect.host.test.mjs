@@ -211,12 +211,9 @@ async function approvedSetResumes(t, targets) {
 test('an approved Salesforce Effect Set resumes after a restart and publishes once',
   t => approvedSetResumes(t, ['Test_Record__c']));
 
-// One approval of a Set whose members write two Resources (two Host
-// tuples). The merged commit resume binds the Checkpoint to the first
-// tuple's decision subject, so the second tuple's resume fails with
-// ResolutionSubjectMismatch and nothing is written (fails closed).
+// One approval of the complete Set covers its two independent Resource
+// tuples; each tuple still has to pass its current account decision.
 test('an approved Set over two Resources resumes and writes each tuple once',
-  {todo: 'common Effect commit resume across tuples (C boundary)'},
   t => approvedSetResumes(t, resources));
 
 test('a rejected Salesforce Effect Set writes nothing', async t => {
