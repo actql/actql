@@ -5,6 +5,7 @@ import {mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
+import {validHeldRequest} from '../packages/client-wire/index.mjs';
 
 const root = await mkdtemp(join(tmpdir(), 'actql-native-client-'));
 const openssl = (...args) => execFileSync('openssl', args,
@@ -101,6 +102,30 @@ await writeFile(join(root, 'program.json'), await readFile(new URL(
   '../packages/sdk/fixtures/values.json', import.meta.url)));
 
 const requests = [];
+const preparationCodes = JSON.parse(await readFile(new URL(
+  '../spec/contracts/actql-client-host.json', import.meta.url), 'utf8'))
+  .schemas.submit_preparation_error.properties.code.enum;
+const heldBase = {kind: 'held', requestId: 'held-waiting',
+  prepareAttemptId: 'prepare-a', state: 'waiting_checkpoint',
+  durability: 'durable', lookupExpiresAt: '2026-10-01T00:00:00Z',
+  checkpoint: {checkpointId: 'checkpoint-a',
+    checkpointCid: `sha256:${'d'.repeat(64)}`, kind: 'run_scope',
+    expiresAt: '2026-10-01T00:00:00Z'}};
+const heldReplies = {
+  'held-waiting': heldBase,
+  'held-resuming': {...heldBase, requestId: 'held-resuming',
+    state: 'resuming', checkpoint: undefined},
+  'held-ended': {...heldBase, requestId: 'held-ended',
+    state: 'ended', endReason: 'cancelled'},
+  'held-foreign': heldBase,
+  'held-no-checkpoint': {...heldBase, requestId: 'held-no-checkpoint',
+    checkpoint: undefined},
+  'held-contradictory': {...heldBase, requestId: 'held-contradictory',
+    endReason: 'cancelled'},
+  'held-volatile': {...heldBase, requestId: 'held-volatile',
+    durability: 'volatile'},
+  'held-fabricated-run': {...heldBase, requestId: 'held-fabricated-run', ref},
+};
 let attachReplyRef = ref;
 const server = createServer({key: await readFile(join(root, 'server.key')),
   cert: await readFile(join(root, 'server.crt')),
@@ -115,6 +140,18 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
   assert.equal(request.method, 'POST');
   assert.deepEqual(body.connection, body.connection.durability === 'durable'
     ? {...connection, durability: 'durable'} : connection);
+  if ((operation === 'submit' || operation === 'lookup-request') &&
+      heldReplies[body.requestId]) {
+    response.writeHead(200, {'content-type': 'application/json'});
+    response.end(JSON.stringify(heldReplies[body.requestId]));
+    return;
+  }
+  if (operation === 'submit' && body.requestId.startsWith('input-refusal-')) {
+    const code = body.requestId.slice('input-refusal-'.length);
+    response.writeHead(400, {'content-type': 'application/json'});
+    response.end(JSON.stringify({code}));
+    return;
+  }
   if (operation === 'submit' && body.requestId === 'lost-ack') {
     response.destroy();
     return;
@@ -244,6 +281,44 @@ try {
   assert.match(invalid.stderr, /external declarations require/);
   assert.equal(requests.filter(item =>
     item.operation === 'submit').length, beforeInvalid);
+  for (const code of [...preparationCodes, 'UnregisteredInputFailure']) {
+    const requestId = 'input-refusal-' + code;
+    const rejected = await run('aql', '--program-file', 'query.sql',
+      '--format', 'sql', '--request-id', requestId);
+    assert.notEqual(rejected.code, 0);
+    if (preparationCodes.includes(code)) {
+      assert.ok(rejected.stderr.includes(code), rejected.stderr);
+      assert.doesNotMatch(rejected.stderr, /SubmissionUnknown/);
+    } else {
+      assert.ok(rejected.stderr.includes(
+        'SubmissionUnknown request-id=' + requestId), rejected.stderr);
+    }
+  }
+  for (const [requestId, reply] of Object.entries(heldReplies)) {
+    const accepted = ['held-waiting', 'held-resuming', 'held-ended']
+      .includes(requestId);
+    // Compare native transport validation with the shared wire contract.
+    assert.equal(validHeldRequest(JSON.parse(JSON.stringify(reply)),
+      requestId), accepted, requestId);
+    for (const operation of ['aql', 'lookup-request']) {
+      const result = await run(operation, '--request-id', requestId,
+        ...(operation === 'aql'
+          ? ['--program-file', 'query.sql', '--format', 'sql'] : []));
+      if (accepted) {
+        assert.equal(result.code, 0, result.stderr);
+        assert.deepEqual(JSON.parse(result.stdout),
+          JSON.parse(JSON.stringify(reply)));
+        assert.equal(JSON.parse(result.stdout).ref, undefined);
+      } else {
+        assert.notEqual(result.code, 0);
+        assert.ok(result.stderr.includes(operation === 'aql'
+          ? 'SubmissionUnknown request-id=' + requestId
+          : 'InvalidHostRequestLookup'), result.stderr);
+      }
+    }
+    assert.equal(requests.filter(item => item.operation === 'submit' &&
+      item.body.requestId === requestId).length, 1);
+  }
   const status = await run('status', '--ref-file', 'ref.json');
   assert.equal(status.code, 0, status.stderr);
   assert.deepEqual(JSON.parse(status.stdout), {status: 'succeeded'});

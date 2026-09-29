@@ -49,3 +49,14 @@ embedded Local providers. The mTLS fixture in
 published-Result test exercises a real Node Host and MoonBit publication
 owner. The mock verifies request shape; it does not prove Host frontend
 admission or a native end-to-end Program Run.
+
+A held submission prints the validated request control reply as JSON. It has
+no Run reference: `lookup-request --request-id <id>` observes the same request
+without approving or resubmitting it. Once lookup returns `found`, its Run
+reference can be used with `attach`. The native CLI does not yet provide
+Checkpoint answer commands; use the existing public Client operations for
+that workflow.
+
+Confirmed Host preparation rejections preserve the public input error code.
+An unrecognized or lost submit response remains `SubmissionUnknown` with the
+original request ID; it is not a claim that no Run was accepted.

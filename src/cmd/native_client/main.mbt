@@ -222,6 +222,36 @@ fn admitted_run(wire : String, requested_durable : Bool) -> Bool {
 }
 
 ///|
+// The closed submit_preparation_error contract is tested against its
+// registered schema. Unknown HTTP errors do not prove non-admission.
+fn preparation_refusal(bytes : Bytes) -> String? {
+  let text = @utf8.decode(bytes) catch { _ => return None }
+  if @source.parse_json(text, {
+      max_input_bytes: 4096,
+      max_nodes: 16,
+      max_depth: 4,
+    })
+    is Err(_) {
+    return None
+  }
+  let value = @json.parse(text) catch { _ => return None }
+  guard value is Object(fields) && fields.length() == 1 else { return None }
+  match json_text(fields, "code") {
+    Some(code) =>
+      match code {
+        "ClientProgramInvalidInput"
+        | "ClientParametersInvalid"
+        | "ClientParametersTooLarge"
+        | "ClientProgramUnsupported"
+        | "ClientProgramNeedsInputs"
+        | "ClientProgramRejected" => Some(code)
+        _ => None
+      }
+    None => None
+  }
+}
+
+///|
 fn valid_reference(value : Json) -> Bool {
   guard value is Object(fields) && fields.length() == 3 else { return false }
   guard json_text(fields, "namespaceId") is Some(namespace_id) &&
@@ -270,6 +300,88 @@ fn nonempty_member(fields : Map[String, Json], name : String) -> Bool {
 }
 
 ///|
+fn bounded_control_member(fields : Map[String, Json], name : String) -> Bool {
+  guard json_text(fields, name) is Some(text) &&
+    !text.is_empty() &&
+    text.length() <= 256 else {
+    return false
+  }
+  for unit in text {
+    if unit.to_int() < 32 || unit.to_int() == 127 {
+      return false
+    }
+  }
+  true
+}
+
+///|
+// A held reply is a request control result with no RunRef. Inspection never
+// approves it, starts it, or changes the Host's durable resume decision.
+fn valid_held(value : Json, request_id : String) -> Bool {
+  guard value is Object(fields) else { return false }
+  let keys = [
+    "kind", "requestId", "prepareAttemptId", "state", "durability", "lookupExpiresAt",
+    "checkpoint", "endReason", "terminalErrorCode",
+  ]
+  for key, _ in fields {
+    if !keys.contains(key) {
+      return false
+    }
+  }
+  if json_text(fields, "kind") != Some("held") ||
+    json_text(fields, "requestId") != Some(request_id) ||
+    json_text(fields, "durability") != Some("durable") ||
+    !bounded_control_member(fields, "requestId") ||
+    !bounded_control_member(fields, "prepareAttemptId") ||
+    !bounded_control_member(fields, "lookupExpiresAt") {
+    return false
+  }
+  for key in ["endReason", "terminalErrorCode"] {
+    if fields.contains(key) && !bounded_control_member(fields, key) {
+      return false
+    }
+  }
+  if fields.get("checkpoint") is Some(checkpoint) {
+    guard checkpoint is Object(checkpoint) &&
+      checkpoint.length() == 4 &&
+      bounded_control_member(checkpoint, "checkpointId") &&
+      bounded_control_member(checkpoint, "expiresAt") &&
+      json_text(checkpoint, "checkpointCid") is Some(cid) &&
+      valid_cid(cid) &&
+      json_text(checkpoint, "kind") is Some(kind) &&
+      ["run_scope", "read_access", "data_egress", "cost_scope", "effect_set"].contains(
+        kind,
+      ) else {
+      return false
+    }
+  }
+  match json_text(fields, "state") {
+    Some("waiting_checkpoint") =>
+      fields.contains("checkpoint") &&
+      !fields.contains("endReason") &&
+      !fields.contains("terminalErrorCode")
+    Some("resuming") =>
+      !fields.contains("endReason") && !fields.contains("terminalErrorCode")
+    Some("ended") => fields.contains("endReason")
+    _ => false
+  }
+}
+
+///|
+fn held_reply(text : String, request_id : String) -> Bool {
+  if @source.parse_json(text, {
+      max_input_bytes: 8192,
+      max_nodes: 64,
+      max_depth: 4,
+    })
+    is Err(_) {
+    return false
+  }
+  let value = @json.parse(text) catch { _ => return false }
+  valid_held(value, request_id)
+}
+
+///|
 fn valid_reference_member(fields : Map[String, Json]) -> Bool {
   match fields.get("ref") {
     Some(reference) => valid_reference(reference)
@@ -281,6 +393,7 @@ fn valid_reference_member(fields : Map[String, Json]) -> Bool {
 fn valid_request_lookup(value : Json, expected_request_id : String) -> Bool {
   guard value is Object(fields) else { return false }
   match json_text(fields, "kind") {
+    Some("held") => valid_held(value, expected_request_id)
     Some("not_found") => fields.length() == 1
     Some("unknown") => fields.length() == 2 && nonempty_member(fields, "reason")
     Some("found") =>
@@ -644,8 +757,12 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     Err(_) => stop("ClientTransportUnknown")
   }
   if result.status < 200 || result.status >= 300 {
-    if route == "submit" &&
-      ((result.status >= 300 && result.status < 400) || result.status >= 500) {
+    if route == "submit" {
+      if result.status >= 400 && result.status < 500 {
+        if preparation_refusal(result.body) is Some(code) {
+          stop(code)
+        }
+      }
       stop("SubmissionUnknown request-id=" + required(child, "request-id"))
     }
     if route == "read" {
@@ -662,6 +779,7 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
       }
   }
   if route == "submit" &&
+    !held_reply(text, required(child, "request-id")) &&
     !admitted_run(
       text,
       json_text(
