@@ -13,18 +13,31 @@ const root = await mkdtemp(join(scratch, 'run-'));
 const preload = new URL('../../../../scripts/fixtures/' +
   'effect-computation-probe-preload.mjs', import.meta.url).href;
 const entry = new URL('../../../host-node/entry.mjs', import.meta.url).href;
+const installed =
+  'adapters/connectors/salesforce/test/installed-salesforce-effect.test.mjs';
+// Read→Compute→Effect through the Remote HTTP Host, whose restarts run in
+// the test process: each case acquires and computes once, and no restart
+// computes again.
+const acquired =
+  'adapters/connectors/salesforce/test/read-compute-effect.acceptance.test.mjs';
 const cases = [
-  'a restart after a partial apply sends only the unsent rows',
-  'an unknown row is never resent after a restart',
+  [installed, 'a restart after a partial apply sends only the unsent rows'],
+  [installed, 'an unknown row is never resent after a restart'],
+  [acquired, 'Read→Compute→Effect previews, waits across a restart, ' +
+    'writes once and publishes'],
+  [acquired, 'a reply lost after the org applied the write is unknown and ' +
+    'never resent'],
+  [acquired, 'halt: applied, then a definite failure, and the rest never ' +
+    'sent'],
 ];
-for (const [index, name] of cases.entries()) {
+const pattern = name => `^${name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}$`;
+for (const [index, [file, name]] of cases.entries()) {
   const log = join(root, `calls-${index}.txt`);
   await writeFile(log, '');
   const result = spawnSync(process.execPath, [
     '--experimental-test-module-mocks', '--import', preload,
-    '--test', '--test-name-pattern', `^${name}$`,
-    'adapters/connectors/salesforce/test/installed-salesforce-effect.test.mjs',
-  ], {cwd: repository, encoding: 'utf8', timeout: 120_000,
+    '--test', '--test-name-pattern', pattern(name), file,
+  ], {cwd: repository, encoding: 'utf8', timeout: 180_000,
     env: {...process.env, ACTQL_TEST_EFFECT_ENTRY: entry,
       ACTQL_TEST_EFFECT_CALL_LOG: log}});
   assert.equal(result.status, 0,

@@ -2313,7 +2313,7 @@ async function exerciseStrategyGraph(
           failureExecution.failure.cause), true,
       `${failureCase}: preserve the selected typed failure`);
       await assert.rejects(failurePublicationStore.lookupCommittedIndex({
-        tenantId: plan.request.tenantId,
+        namespaceId: plan.request.namespaceId,
         authorityScopeCid: plan.request.authorityScopeCid,
         runDefinitionCid: plan.runDefinition.identity,
       }, () => true), /PublicationLookupDenied/);
@@ -3138,7 +3138,7 @@ async function exerciseStrategyGraph(
         .occurrences) {
         const received = [];
         await directStore.consumeCommittedResult({
-          tenantId: plan.request.tenantId,
+          namespaceId: plan.request.namespaceId,
           authorityScopeCid: plan.request.authorityScopeCid,
           runDefinitionCid: plan.runDefinition.identity,
         }, occurrence.definitionContract.identity, () => true,
@@ -3270,7 +3270,7 @@ async function exerciseStrategyGraph(
       .publicationInventory.occurrences) {
       const received = [];
       await retainedSequenceStore.consumeCommittedResult({
-        tenantId: plan.request.tenantId,
+        namespaceId: plan.request.namespaceId,
         authorityScopeCid: plan.request.authorityScopeCid,
         runDefinitionCid: plan.runDefinition.identity,
       }, occurrence.definitionContract.identity, () => true,

@@ -225,11 +225,23 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
   // Checked preparation for the Host's acquisition Checkpoint: the checked
   // source, its read tuple and the physical target an approval covers. It
   // performs no provider I/O and grants nothing.
-  async function prepare({preparedProgram, registry, values, fragment,
-    ordered, sourceAccess: access = sourceAccess}) {
-    checked(moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0));
-    const requirement = checked(
-      moon.clientProgramPrepareLocalQueryRequirement(preparedProgram, 0, 0,
+  // An Effect Run's acquisition is prepared from its checked Effect owner
+  // (`preparedEffect`) through the common Effect entries; a read-only Run's
+  // from its checked Program. Exactly one is given.
+  async function prepare({preparedProgram, preparedEffect, registry, values,
+    fragment, ordered, sourceAccess: access = sourceAccess}) {
+    if ((preparedProgram === undefined) === (preparedEffect === undefined)) {
+      fail('InvalidInstalledSourcePreparation');
+    }
+    const effectful = preparedEffect !== undefined;
+    const checkedOwner = preparedEffect ?? preparedProgram;
+    checked(effectful
+      ? moon.clientProgramEffectPrepareQueryAcquisition(checkedOwner, 0, 0)
+      : moon.clientProgramPrepareQueryAcquisition(checkedOwner, 0, 0));
+    const requirement = checked(effectful
+      ? moon.clientProgramEffectPrepareLocalQueryRequirement(checkedOwner, 0,
+        0, registry, values, fragment, ordered)
+      : moon.clientProgramPrepareLocalQueryRequirement(checkedOwner, 0, 0,
         registry, values, fragment, ordered));
     const facts = checked(
       moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
@@ -275,8 +287,8 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
       throw Object.assign(new Error(refused), {code: refused,
         authorization: decision});
     }
-    preparations.set(prepared, Object.freeze({preparedProgram, requirement,
-      resource, access}));
+    preparations.set(prepared, Object.freeze({checkedOwner, effectful,
+      requirement, resource, access}));
     return prepared;
   }
 
@@ -298,12 +310,16 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
     }
   }
 
-  async function acquire(state, {preparedProgram, registry, values, fragment,
-    ordered, sourceAccess: access = sourceAccess, signal, preparedSource}) {
+  async function acquire(state, {preparedProgram, preparedEffect, registry,
+    values, fragment, ordered, sourceAccess: access = sourceAccess, signal,
+    preparedSource}) {
     const prepared = preparedSource ?? await prepare({preparedProgram,
-      registry, values, fragment, ordered, sourceAccess: access});
+      preparedEffect, registry, values, fragment, ordered,
+      sourceAccess: access});
     const owner = preparations.get(prepared);
-    if (owner === undefined || owner.preparedProgram !== preparedProgram ||
+    if (owner === undefined ||
+        owner.checkedOwner !== (preparedEffect ?? preparedProgram) ||
+        owner.effectful !== (preparedEffect !== undefined) ||
         owner.access !== access) {
       fail('InstalledSourcePreparationMismatch');
     }
@@ -366,20 +382,35 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
       const capture = checked(moon.clientProgramSalesforceCapture(run));
       const source = () => checked(
         moon.clientProgramSalesforceCaptureSource(capture));
-      if (moon.clientProgramCapturedSourceMatches(preparedProgram,
-        source()) !== true) {
+      const {checkedOwner, effectful} = owner;
+      if ((effectful
+        ? moon.clientProgramEffectCapturedSourceMatches(checkedOwner,
+          source())
+        : moon.clientProgramCapturedSourceMatches(checkedOwner,
+          source())) !== true) {
         fail('InstalledSourceProgramMismatch');
       }
-      const identity = checked(
-        moon.clientProgramIdentifyCapturedSourceRelation(source()));
-      const logicalInput = checked(
-        moon.clientProgramIssueCapturedSourceLogical(preparedProgram,
+      // An Effect acquisition identifies its Relation through the common
+      // Effect entry, which retains its dependency bodies for this capture.
+      const identity = checked(effectful
+        ? moon.clientProgramIdentifyCapturedEffectSourceRelation(source())
+        : moon.clientProgramIdentifyCapturedSourceRelation(source()));
+      const logicalInput = checked(effectful
+        ? moon.clientProgramEffectIssueCapturedSourceLogical(checkedOwner,
+          source(), identity, owner.requirement)
+        : moon.clientProgramIssueCapturedSourceLogical(checkedOwner,
           source(), identity, owner.requirement));
-      const setup = moon.clientProgramOpenCapturedLocalHost(preparedProgram,
-        source(), registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
-      if (setup === undefined) fail('InstalledSourceHostUnavailable');
+      // An Effect Run's computation is opened by the common Host only after
+      // durable Run admission; the acquisition does not open it.
+      const setup = effectful ? undefined :
+        moon.clientProgramOpenCapturedLocalHost(checkedOwner, source(),
+          registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
+      if (!effectful && setup === undefined) {
+        fail('InstalledSourceHostUnavailable');
+      }
       return Object.freeze({checkedSource: prepared.checkedSource, identity,
-        logicalInput, setup, capture: Object.freeze({source}),
+        logicalInput, requirement: owner.requirement, setup,
+        capture: Object.freeze({source}),
         // Evidence is issued only while the read is still currently
         // authorized.
         issueSourceEvidence: async ({authorityScopeCid,
