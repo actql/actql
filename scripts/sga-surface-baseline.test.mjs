@@ -103,6 +103,13 @@ test('traverse paths retain a Relation seed and semantic edge identities', () =>
     fixture('traverse-paths.named.aql'))), JSON.parse(expected));
 });
 
+test('structural Graph union preserves both producers and Results', () => {
+  const expected = fixture('union-graphs.expected-program.json');
+  assert.equal(jsonAdmissionDiagnostic(expected), '');
+  assert.deepEqual(JSON.parse(structuralToJson(
+    fixture('union-graphs.named.aql'))), JSON.parse(expected));
+});
+
 const envelope = body => `AQL '0.1'; PROGRAM 'roles' { STAGE s {
   INPUT g = {"carrier":"graph"}; INPUT target = {"carrier":"graph"};
   DATA output = ${body}; RESULT r = {"from":"output"};

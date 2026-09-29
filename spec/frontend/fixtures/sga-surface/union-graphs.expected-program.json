@@ -1,0 +1,25 @@
+{
+  "version": "actql/0.1", "id": "sga.union_graphs",
+  "stages": [{
+    "id": "main", "inputs": {},
+    "steps": [
+      {"values": {"schema": {"id": {"type": "string", "nullable": false}}, "rows": [{"id": "A"}, {"id": "B"}]}, "as": "first_nodes"},
+      {"values": {"schema": {"src": {"type": "string", "nullable": false}, "dst": {"type": "string", "nullable": false}}, "rows": [{"src": "A", "dst": "B"}]}, "as": "first_edges"},
+      {"values": {"schema": {"id": {"type": "string", "nullable": false}}, "rows": [{"id": "B"}, {"id": "C"}]}, "as": "second_nodes"},
+      {"values": {"schema": {"src": {"type": "string", "nullable": false}, "dst": {"type": "string", "nullable": false}}, "rows": [{"src": "B", "dst": "C"}]}, "as": "second_edges"},
+      {"graph": {"nodes": {"from": "first_nodes", "id": "id", "fields": []}, "edges": {"from": "first_edges", "source": "src", "target": "dst", "fields": []}}, "as": "first"},
+      {"graph": {"nodes": {"from": "second_nodes", "id": "id", "fields": []}, "edges": {"from": "second_edges", "source": "src", "target": "dst", "fields": []}}, "as": "second"},
+      {"from": "first", "union_graphs": {"with": ["second"]}, "as": "combined"},
+      {"from": "combined", "node_rows": true, "as": "node_output"},
+      {"from": "combined", "edge_rows": true, "as": "edge_output"}
+    ],
+    "results": {
+      "nodes": {"from": "node_output", "fields": ["id"], "order_by": [{"id": "asc"}]},
+      "edges": {"from": "edge_output", "fields": ["src", "dst", "rel"], "order_by": [{"src": "asc"}, {"dst": "asc"}, {"rel": "asc"}]}
+    }
+  }],
+  "results": {
+    "nodes": {"from": {"stage": "main", "result": "nodes"}},
+    "edges": {"from": {"stage": "main", "result": "edges"}}
+  }
+}

@@ -41,6 +41,11 @@ Graph path. The independent Program keeps the seed as one producer, and the
 Result fixture expects the semantic string IDs, node sequence, and closed
 `{src, dst, rel}` edge identity with an explicit null label. It declares no
 extra sort or materialization.
+`union-graphs.named.aql` composes two Graph producers with a one-element
+ordered `with` list, then declares separate node and edge Results. The second
+Graph shares B with the first, adds C and B-to-C, and the expected union keeps
+exactly A, B, C and both distinct directed edges. Both Results declare their
+order; the DATA binding itself adds no Result or sort.
 `degree-rows.named.aql` computes out-degree from a Graph with two edges from A.
 The authored sort fixes A, B, C order; the independent Result fixture expects
 degrees 2, 0, 0 and keeps the `node`/`degree` schema from the existing contract.
