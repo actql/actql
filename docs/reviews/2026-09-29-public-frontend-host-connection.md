@@ -36,6 +36,16 @@ parameter and checker refusals. JSON/YAML Program requests continue through
 `clientProgramPrepareEffectFreeWithParameters`; external declarations are
 rejected for those formats.
 
+The existing `clientProgramPreparationIssueCode` projection should return
+`source_invalid_input` for source syntax or wrong language, `source_rejected`
+for unknown aliases or invalid query semantics, `source_unsupported` for an
+unsupported query form, `source_missing_input` for an unbound required input,
+`source_declarations` for malformed external parameter declarations,
+`source_limit` for frontend bounds, and `source_encoding` only for an internal
+emission failure. The Node adapter maps these to existing public typed errors;
+it does not turn a confirmed refusal into `SubmissionUnknown`. The checker
+retains its existing issue categories after lowering.
+
 The C-owned `embedded-local.mjs` call site supplies its installed publication
 and environment to `installNodeClientProgramPreparation` and otherwise keeps
 the existing submit, durable Run acceptance, dispatch, recovery and Result
@@ -43,6 +53,14 @@ owners. The installed source-profile loader publishes `queryAliases` from
 installation input after validating them against the composed environment;
 it does not infer aliases from physical table names. The same preparation
 operation is used behind in-process Local and HTTP Host transport.
+
+The proposed call-site argument is
+`sourcePublication: {environmentCid: evidenceCid, aliases:
+sourceProfile?.queryAliases ?? []}`. The B-owned Node adapter checks the exact
+generation and bounded wire shape before calling the bridge. The bridge must
+also check each member's admitted Source View and schema, parse alias names
+with `query_syntax.parse_relation_path`, and reject same-rule collisions.
+Neither the Node shape check nor an alias CID alone grants source read access.
 
 ## File ownership and acceptance
 

@@ -2,6 +2,8 @@
 // The returned prepared handle is in-process only and cannot authorize a Run.
 import {validSubmitPreparationError} from
   '../../packages/client-wire/index.mjs';
+import {installNodePublicSourcePreparation} from
+  './public-source-preparation.mjs';
 
 const issueCodes = Object.freeze({
   invalid_format: 'ClientProgramInvalidInput',
@@ -22,6 +24,13 @@ const issueCodes = Object.freeze({
   lowering_rejected: 'ClientProgramRejected',
   binding_rejected: 'ClientProgramRejected',
   graph_rejected: 'ClientProgramRejected',
+  source_invalid_input: 'ClientProgramInvalidInput',
+  source_rejected: 'ClientProgramRejected',
+  source_unsupported: 'ClientProgramUnsupported',
+  source_missing_input: 'ClientProgramNeedsInputs',
+  source_declarations: 'ClientParametersInvalid',
+  source_limit: 'ClientProgramRejected',
+  source_encoding: 'ClientProgramPreparationFailure',
 });
 const effectIssueCodes = Object.freeze({
   invalid_format: 'ClientProgramInvalidInput',
@@ -46,11 +55,17 @@ function fail(code, cause) {
 }
 
 function serializeProgram({kind, input, parameters}) {
-  let document, format, supplied;
+  let document, format, supplied, declarations;
   try {
     if (kind === 'aql') {
       document = input.text;
       format = input.format;
+      if (input.parameterDeclarations !== undefined) {
+        if (!['aql-text', 'sql'].includes(format)) {
+          fail('ClientProgramInvalidInput');
+        }
+        declarations = JSON.stringify(input.parameterDeclarations);
+      }
     } else if (kind === 'program') {
       document = JSON.stringify(input);
       format = 'json';
@@ -63,11 +78,11 @@ function serializeProgram({kind, input, parameters}) {
     if (cause?.code === 'ClientProgramInvalidInput') throw cause;
     fail('ClientProgramInvalidInput', cause);
   }
-  return {document, format, supplied};
+  return {document, format, supplied, declarations};
 }
 
 export function installNodeClientProgramPreparation({moon, environment,
-  allowEffects = false, effectEvidence = []}) {
+  allowEffects = false, effectEvidence = [], sourcePublication}) {
   if (!moon || typeof moon.clientProgramPrepareEffectFreeWithParameters !==
       'function' || typeof moon.clientProgramPreparationReady !== 'function' ||
       typeof moon.clientProgramPreparationIssue !== 'function' ||
@@ -84,10 +99,15 @@ export function installNodeClientProgramPreparation({moon, environment,
   const prepareEffect = !allowEffects ? undefined :
     installNodeClientEffectProgramPreparation({moon,
       environment, evidence: effectEvidence});
+  const sourcePreparation = installNodePublicSourcePreparation({moon,
+    environment, publication: sourcePublication});
   const prepare = request => {
-    const {document, format, supplied} = serializeProgram(request);
-    const outcome = moon.clientProgramPrepareEffectFreeWithParameters(
-      document, format, environment, supplied);
+    const {document, format, supplied, declarations} =
+      serializeProgram(request);
+    const outcome = ['aql-text', 'sql'].includes(format) ?
+      sourcePreparation.prepare({document, format, declarations, supplied}) :
+      moon.clientProgramPrepareEffectFreeWithParameters(
+        document, format, environment, supplied);
     const prepared = moon.clientProgramPreparationReady(outcome);
     if (prepared !== undefined) {
       owned.add(prepared);
