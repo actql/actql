@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {createServer} from 'node:https';
-import {mkdtemp, readFile, writeFile} from 'node:fs/promises';
+import {chmod, copyFile, mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
@@ -202,10 +202,18 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
     response.end('{}');
   }
 });
+const builtExecutable = new URL(
+  '../_build/native/release/build/cmd/native_client/native_client.exe',
+  import.meta.url).pathname;
+const executable = join(root, 'actql-native-client');
+await copyFile(builtExecutable, executable);
+await chmod(executable, 0o755);
+const emptyPath = join(root, 'empty-path');
+await mkdir(emptyPath);
+const binaryDigest = createHash('sha256')
+  .update(await readFile(executable)).digest('hex');
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const endpoint = `https://127.0.0.1:${server.address().port}/`;
-const executable = new URL('../_build/native/release/build/cmd/native_client/' +
-  'native_client.exe', import.meta.url).pathname;
 const library = process.env.ACTQL_TEST_NATIVE_HTTP_LIBRARY ??
   (process.platform === 'darwin' ? '/usr/lib/libcurl.4.dylib' : 'libcurl.so.4');
 const common = ['--endpoint', endpoint,
@@ -216,7 +224,10 @@ const common = ['--endpoint', endpoint,
 
 function runProcess(command, commandArgs) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, commandArgs);
+    // The installed binary must not rely on a repository cwd or find Node,
+    // MoonBit, curl's CLI, or another build tool through PATH.
+    const child = spawn(command, commandArgs, {cwd: root,
+      env: {...process.env, PATH: emptyPath}});
     let stdout = '', stderr = '';
     child.stdout.setEncoding('utf8').on('data', data => { stdout += data; });
     child.stderr.setEncoding('utf8').on('data', data => { stderr += data; });
@@ -418,7 +429,7 @@ try {
       assert.equal(requests[index - 1]?.operation, 'connect');
     }
   }
-  console.log('native Client mTLS tests passed');
+  console.log('native Client mTLS tests passed; binary sha256=' + binaryDigest);
 } finally {
   await new Promise(resolve => server.close(resolve));
 }
