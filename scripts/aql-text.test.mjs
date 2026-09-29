@@ -115,3 +115,6 @@ test('native ranking peer lists and score policies retain authored order', () =>
       JSON.stringify(program)))), program);
   }
 });
+
+// Existing Program baselines for the accepted, not-yet-implemented SGA surface.
+import './sga-surface-baseline.test.mjs';

@@ -1,0 +1,10 @@
+{
+  "version":"actql/0.1","id":"sga.reach_selector",
+  "stages":[{"id":"main","inputs":{},"steps":[
+    {"values":{"schema":{"id":{"type":"string","nullable":false}},"rows":[{"id":"A"},{"id":"B"}]},"as":"nodes"},
+    {"values":{"schema":{"src":{"type":"string","nullable":false},"dst":{"type":"string","nullable":false}},"rows":[{"src":"A","dst":"B"}]},"as":"edges"},
+    {"graph":{"nodes":{"from":"nodes","id":"id","fields":[]},"edges":{"from":"edges","source":"src","target":"dst","fields":[]}},"as":"g"},
+    {"from":"g","reach":{"start":{"from":"nodes","id":"id"},"direction":"out","max_depth":2},"as":"reached"}
+  ],"results":{"answer":{"from":"reached"}}}],
+  "results":{"answer":{"from":{"stage":"main","result":"answer"}}}
+}

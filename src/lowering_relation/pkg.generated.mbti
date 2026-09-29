@@ -363,7 +363,15 @@ pub fn graph_reach_max_depth(PreparedGraphReach) -> Int?
 
 pub fn graph_reach_output_schema(PreparedGraphReach) -> @relation_schema.Schema
 
-pub fn graph_reach_start(PreparedGraphReach) -> @value_admission.CheckedValue
+pub fn graph_reach_start(PreparedGraphReach) -> @graph_typing.ReachStart
+
+pub fn graph_reach_start_id_at(PreparedGraphReach, Int) -> @value_admission.CheckedValue?
+
+pub fn graph_reach_start_id_count(PreparedGraphReach) -> Int
+
+pub fn graph_reach_start_predicate(PreparedGraphReach) -> Expression?
+
+pub fn graph_reach_start_relation_field(PreparedGraphReach) -> @relation_schema.FieldName?
 
 pub fn graph_relation_apply_field(PreparedGraphRelation) -> String?
 

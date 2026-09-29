@@ -1113,13 +1113,42 @@ fn check_impl(
       continue
     }
     if key == "reach" {
+      let root = match
+        @decode.closed_object(operation_body, [
+          "start", "direction", "max_depth",
+        ]) {
+        Ok(o) => o
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let start = match @decode.required(root, "start") {
+        Ok(c) => c
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let selector = match @decode.view(start) {
+        ObjectValue(_) => {
+          let body = match
+            @decode.closed_object(start, ["ids", "from", "id", "where"]) {
+            Ok(o) => o
+            Err(_) => fail(start, InvalidBody)
+          }
+          @decode.lookup(body, "from").map(at => resolve_target(b, at, names))
+        }
+        _ => None
+      }
       let checked = match
-        @graph.check_reach(operation_body, carrier(input, inputs, steps), {
-          max_work: b.work,
-          max_nodes: b.nodes,
-          max_depth: limits.max_depth,
-          max_text_bytes: b.text,
-        }) {
+        @graph.check_reach(
+          operation_body,
+          carrier(input, inputs, steps),
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+          },
+          selector_relation=selector.map(t => carrier(t, inputs, steps)),
+          parameters~,
+          max_tokens=b.tokens,
+        ) {
         Ok(c) => c
         Err(e) => {
           let d = @graph.match_diagnostic(e, operation_body)
@@ -1136,6 +1165,11 @@ fn check_impl(
       b.work -= u.work
       b.nodes -= u.nodes
       b.text -= u.text_bytes
+      b.tokens -= u.tokens
+      let entries = [{ role: Primary, target: input, }]
+      if selector is Some(t) {
+        entries.push({ role: Right, target: t, })
+      }
       let target = Step(steps.length())
       steps.push({
         source: body,
@@ -1144,7 +1178,7 @@ fn check_impl(
         metadata: meta,
         operation: Reach(checked),
         output: @graph.reach_output(checked),
-        connections: { entries: [{ role: Primary, target: input, }], },
+        connections: { entries, },
         window: None,
       })
       if binding_name is Some(name) {
