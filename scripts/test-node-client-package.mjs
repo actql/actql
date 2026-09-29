@@ -12,6 +12,7 @@ import {canonicalText} from './check-canonical-json.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const graphOnly = process.argv.includes('--graph-only');
+const projectionOnly = process.argv.includes('--projection-only');
 const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
 const root = await mkdtemp(join(build, 'node-client-package-'));
@@ -1911,6 +1912,26 @@ async function runAcquiredApplication(options, requestId) {
   {code: 'ClientRequestIntentConflict'});
   return {client, execution, b, c};
 }
+// Focused review acceptance still uses packed artifacts and both real Hosts.
+// The default CI invocation continues to execute the full matrix.
+if (process.env.ACTQL_PROJECTION_ONLY === '1') {
+  const local = await connect({mode: 'local', owner: 'local',
+    durability: 'durable'});
+  await checkGraphNodeQuery(local, 'projection-local');
+  await checkOrderScopes(local, 'projection-local');
+  local.close();
+  globalThis.fetch = originalFetch;
+  const endpoint = process.env.ACTQL_TEST_REMOTE_ENDPOINT;
+  const released = await originalFetch(new URL('/__test/release-dispatch', endpoint),
+    {method: 'POST'});
+  assert.equal(released.status, 200);
+  const remote = await connect({mode: 'remote', endpoint,
+    token: 'packed-test-token', durability: 'durable'});
+  await checkGraphNodeQuery(remote, 'projection-remote');
+  await checkOrderScopes(remote, 'projection-remote');
+  remote.close();
+  process.exit(0);
+}
 const {client: installedLocal, execution, rows} = await runApplication(
   {mode: 'local', owner: 'local', durability: 'durable'},
   'packed-standard-values');
@@ -2175,7 +2196,9 @@ await checkGraphPredicateDemand(installedRemote, 'remote');
 await checkGraphIntermediateLimit(installedRemote, 'remote');
 if (process.env.ACTQL_GRAPH_ONLY === '1') {
   installedRemote.close();
-  console.log('packed Graph Local and HTTP smoke passed');
+  console.log(projectionOnly
+    ? 'packed projection Local and HTTP smoke passed'
+    : 'packed Graph Local and HTTP smoke passed');
   process.exit(0);
 }
 await checkValuesCte(installedRemote, 'remote');
@@ -2478,15 +2501,18 @@ try {
   await runAsync(process.execPath, ['smoke.mjs'], root, {
     ACTQL_TEST_REMOTE_ENDPOINT: endpoint,
     ACTQL_GRAPH_ONLY: graphOnly ? '1' : '0',
+    ACTQL_PROJECTION_ONLY: projectionOnly ? '1' : '0',
     NODE_EXTRA_CA_CERTS: join(root, 'remote.crt'),
   });
 } finally {
   releaseDispatch();
   await new Promise(resolve => remoteServer.close(resolve));
 }
-if (graphOnly) {
+if (graphOnly || projectionOnly) {
   await remoteHost.close();
-  console.log('packed Graph Local and HTTP smoke passed');
+  console.log(projectionOnly
+    ? 'packed projection Local and HTTP smoke passed'
+    : 'packed Graph Local and HTTP smoke passed');
   process.exit(0);
 }
 const acquiredRecoveryRequest = {requestId: 'packed-acquired-remote',
