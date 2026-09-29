@@ -193,6 +193,7 @@ pub fn strategy_fixture_task_step_count(
 fn strategy_fixture_sga_subset_with_retention(
   f : StrategyFixture,
   retained_output : Bool,
+  max_graph_nodes? : Int = 100,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   let generated = Array::makei(@strategy.graph_task_count(f.graph) - 1, i => {
     fixture_generated_with_ordered(
@@ -233,7 +234,7 @@ fn strategy_fixture_sga_subset_with_retention(
     {
       // The largest fixture has 100 declared nodes and 100 edge rows.
       max_input_rows: 200,
-      max_nodes: 100,
+      max_nodes: max_graph_nodes,
       max_edges: 100,
       max_value_bytes: 10000,
       max_total_value_bytes: 100000,
@@ -274,6 +275,48 @@ pub fn strategy_fixture_sga_retained_subset(
   f : StrategyFixture,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   strategy_fixture_sga_subset_with_retention(f, true)
+}
+
+///|
+#export_name("strategyFixtureSgaRetainedNodeLimit")
+pub fn strategy_fixture_sga_retained_node_limit(
+  f : StrategyFixture,
+  max_graph_nodes : Int,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  strategy_fixture_sga_subset_with_retention(f, true, max_graph_nodes~)
+}
+
+///|
+/// The SGA provider reports its bounded construction failure through the
+/// managed dispatch channel before a Carrier completion exists.
+#export_name("strategyFixtureSgaConstructionLimitFailure")
+pub fn strategy_fixture_sga_construction_limit_failure(
+  issue : @local_driver.LocalDispatchIssue,
+) -> Bool {
+  issue
+  is @local_driver.Configuration(@connector.Execution(@execution.InputSet))
+}
+
+///|
+#export_name("strategyFixtureSgaConsumerFilterArithmetic")
+pub fn strategy_fixture_sga_consumer_filter_arithmetic(
+  issue : @local_driver.LocalDispatchIssue,
+) -> Bool {
+  guard issue
+    is @local_driver.Configuration(
+      @connector.Execution(
+        @execution.Rows(0, @execution.Evaluation(0, 0, evaluation))
+      )
+    ) &&
+    evaluation.kind is @execution.Scalar(@execution.ArithmeticFailure) else {
+    return false
+  }
+  let location = @lower.expression_location(evaluation.expression)
+  guard @decode.text(location.source) is Ok("1 / (id - id) > 0") &&
+    location.range is Some(range) else {
+    return false
+  }
+  range.start == 0 && range.end == 13
 }
 
 ///|

@@ -372,6 +372,10 @@ pub fn strategy_fixture_sga_components_create(String, String, String, String, St
 
 pub fn strategy_fixture_sga_components_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
 
+pub fn strategy_fixture_sga_construction_limit_failure(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
+
+pub fn strategy_fixture_sga_consumer_filter_arithmetic(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
+
 pub fn strategy_fixture_sga_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
 pub fn strategy_fixture_sga_derived_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
@@ -379,6 +383,8 @@ pub fn strategy_fixture_sga_derived_create(String, String, String, String, Strin
 pub fn strategy_fixture_sga_reach_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
 pub fn strategy_fixture_sga_reach_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
+
+pub fn strategy_fixture_sga_retained_node_limit(StrategyFixture, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_sga_retained_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 

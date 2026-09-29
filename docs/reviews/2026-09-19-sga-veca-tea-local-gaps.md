@@ -753,11 +753,17 @@ are physically retained as inter-task Carrier outputs.
 
 A separate Graph fixture delivers timer cancellation after positive work in
 the later Relation filter, then checks stop, nonpublication, no redispatch and
-zero held/reserved bytes after cleanup. Existing row-only retained Store tests
-remain the shared writer, finalize-failure and cleanup controls. Direct
-Carrier completion, capacity and failure proofs for other selected variants
-still need to be bound to their exact production routes. Native Host
-in-flight cancellation remains the separate unit below.
+zero held/reserved bytes after cleanup. The retained Graph construction and
+`node_rows` route also runs at the exact two-node provider capacity and one
+node short. The one-short run and a later Relation filter arithmetic failure
+both retain the prior row-file input but publish no Named Result, preserve the
+selected typed failure and reclaim held/reserved bytes. A real Store lease on
+the successful mixed route injects a cleanup failure: the publication owner
+keeps the pending responsibility and reservation until cleanup retry succeeds.
+These checks extend, rather than replace, the existing row-only writer and
+finalize-failure controls. Direct Carrier completion and fault proofs for other
+selected variants still need to be bound to their exact production routes.
+Native Host in-flight cancellation remains the separate unit below.
 
 Native Host in-flight cancellation is outside this unit's acceptance
 boundary, which requires standard Host cancellation and JS, Wasm and native
