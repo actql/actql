@@ -343,6 +343,24 @@ const nestedQuery = queryFrontend.compileValuesQueryJson(
   JSON.stringify(['id', 'items', 'v']), 'fixture.nested_values_query');
 assert.notEqual(nestedQuery, '');
 await writeFile(join(root, 'query-nested-values.json'), nestedQuery);
+const projectionValues = {values: {schema: {
+  x: {type: 'number', nullable: false}}, rows: [{x: 2}, {x: 1}]}, as: 'rows'};
+for (const [name, source] of [
+  ['plain-select-where', 'FROM rows |> SELECT x |> WHERE x > 0 |> ORDER BY x'],
+  ['set-select-where', 'FROM rows |> SET x = x |> SELECT x '
+    + '|> WHERE x > 0 |> ORDER BY x'],
+  ['set-select-extend', 'FROM rows |> SET x = x |> SELECT x '
+    + '|> EXTEND x + 1 AS z |> SELECT z |> ORDER BY z'],
+  ['equal-selected-expressions',
+    'SELECT x + 1 AS a, x + 1 AS b FROM rows ORDER BY x + 1'],
+  ['distinct-equal-selected-expressions',
+    'SELECT DISTINCT x + 1 AS a, x + 1 AS b FROM rows ORDER BY x + 1'],
+]) {
+  const program = queryFrontend.compileValuesQueryJson(source, 'rows', 'rows',
+    JSON.stringify(projectionValues), '["x"]', 'fixture.' + name);
+  assert.notEqual(program, '', name);
+  await writeFile(join(root, name + '.json'), program);
+}
 const computedValuesQuery = queryFrontend.compileValuesQueryJson(
   'SELECT id FROM rows WHERE id > 1', 'rows', 'selected',
   JSON.stringify(valuesStep), JSON.stringify(['id']),
@@ -1341,6 +1359,20 @@ async function checkQueryPair(client, suffix) {
 const fullUsingValuesDocument = readFileSync('query-full-using-values.json',
   'utf8');
 async function checkOrderScopes(client, suffix) {
+  for (const [name, expected] of [
+    ['plain-select-where', [{x: 1}, {x: 2}]],
+    ['set-select-where', [{x: 1}, {x: 2}]],
+    ['set-select-extend', [{z: 2}, {z: 3}]],
+    ['equal-selected-expressions', [{a: 2, b: 2}, {a: 3, b: 3}]],
+    ['distinct-equal-selected-expressions', [{a: 2, b: 2}, {a: 3, b: 3}]],
+  ]) {
+    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+      {format: 'json', requestId: 'packed-' + name + '-' + suffix});
+    const status = await execution.wait();
+    assert.equal(status.status, 'succeeded', JSON.stringify(status));
+    assert.deepEqual(await execution.result('answer').all(), expected);
+  }
+
   for (const [name, expected] of [
     ['alias-order', [{y: 1}, {y: 2}]],
     ['hidden-order', [{x: 2}, {x: 1}]],
