@@ -102,8 +102,13 @@ test "structural AQL and query-only AQL use distinct parsers" {
     lower(structural, Text, Some(declared))
     is Err(ExternalDeclarationsOnProgram),
   )
+  let declared_program = lower(
+    "SELECT id FROM records WHERE id = @p",
+    Sql,
+    Some(declared),
+  ).unwrap()
   assert_true(
-    lower("SELECT id FROM records WHERE id = @p", Sql, Some(declared)) is Ok(_),
+    declared_program.document.contains("\"params\":{\"p\":{\"type\":\"number\"}}"),
   )
 }
 
