@@ -1,28 +1,30 @@
 // Install outside the checkout, then run B's unchanged public acceptance
 // against Embedded Local and HTTP without a MoonBit toolchain at runtime.
-import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
+import {readFile, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const scratch = join(repository, '..', '.codex-scratch');
-await mkdir(scratch, {recursive: true});
-const root = await mkdtemp(join(scratch, 'public-query-package-'));
+const revision = spawnSync('git', ['rev-parse', 'HEAD'], {cwd: repository,
+  encoding: 'utf8'});
+if (revision.status !== 0) throw new Error('PackedQueryRevisionUnavailable');
+await withPackedQueryEvidence({scratch, revision: revision.stdout.trim(),
+  githubOutput: process.env.GITHUB_OUTPUT,
+  keepArtifacts: process.argv.includes('--keep-artifacts')},
+async ({root, directory, run: capture, recordTarball}) => {
 const environment = {...process.env, npm_config_cache: join(root, 'npm-cache')};
 function run(command, args, cwd = root, env = environment) {
-  const result = spawnSync(command, args, {cwd, env, encoding: 'utf8',
-    timeout: 240_000, maxBuffer: 8 * 1024 * 1024});
-  assert.equal(result.status, 0,
-    `${command}: ${result.error ?? ''}\n${result.stdout}\n${result.stderr}`);
-  return result.stdout;
+  return capture(command, args, {cwd, env});
 }
-console.log(`Packed public-query evidence: ${root}`);
+console.log(`Packed public-query evidence: ${directory}`);
 const packages = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
 for (const name of packages) {
   run('npm', ['pack', '--pack-destination', root, '--json'],
     join(repository, 'packages', name));
+  recordTarball(join(root, `actql-${name}-0.0.0-development.tgz`));
 }
 await writeFile(join(root, 'package.json'), '{"private":true,"type":"module"}\n');
 run('npm', ['install', '--ignore-scripts', '--no-save', ...packages.map(name =>
@@ -57,5 +59,5 @@ for (const name of ['MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
   delete runtimeEnvironment[name];
 }
 const output = run(process.execPath, ['acceptance.mjs'], root, runtimeEnvironment);
-await writeFile(join(root, 'acceptance.log'), output);
 console.log(output.trimEnd());
+});

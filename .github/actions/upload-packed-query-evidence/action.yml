@@ -1,0 +1,21 @@
+name: Retain packed query evidence
+description: Upload only bounded command logs and the run summary, never payloads
+inputs:
+  directory:
+    required: true
+    description: Exact evidence directory published by this invocation
+  name:
+    required: true
+    description: Artifact name
+runs:
+  using: composite
+  steps:
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: ${{ inputs.name }}
+        path: |
+          ${{ inputs.directory }}/summary.json
+          ${{ inputs.directory }}/*.stdout.log
+          ${{ inputs.directory }}/*.stderr.log
+        if-no-files-found: error
+        retention-days: 7
