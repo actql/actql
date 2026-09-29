@@ -21,6 +21,7 @@ import {
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
+import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
 import {startHttpsOutboundSiteGateway} from
   '../adapters/host-node/outbound-site-gateway.mjs';
 import {signRemoteRuntimeBundle} from
@@ -195,6 +196,7 @@ const remoteInputBindingCid = `sha256:${createHash('sha256')
   .update(remoteInputBindingBody).digest('hex')}`;
 
 let server;
+let bearerServers;
 let applicationControlProxy;
 let standardGateway;
 let remoteSiteControl;
@@ -321,6 +323,17 @@ try {
       }
       response.writeHead(200, {'content-type': 'application/octet-stream'});
       response.end('chunk-b');
+      return;
+    }
+    if (request.url === '/both') {
+      // Mutual TLS was already required by this server; the bearer
+      // credential is checked in addition.
+      request.resume();
+      const authorized = request.method === 'POST' &&
+        request.headers.authorization === bearerServers?.controlAuthorization;
+      response.writeHead(authorized ? 200 : 401,
+        {'content-type': 'application/json'});
+      response.end(JSON.stringify({both: authorized}));
       return;
     }
     if (request.url === '/credential') {
@@ -976,6 +989,12 @@ try {
     throw new Error('native HTTP test listener has no TCP address');
   }
   const nativeHttpOrigin = `https://${nativeHttpHost}:${address.port}`;
+  bearerServers = await startNativeBearerServers({
+    host: nativeHttpHost,
+    key: await readFile(join(root, 'server.key')),
+    cert: await readFile(join(root, 'server.crt')),
+    root,
+  });
   const moon = join(
     process.env.MOON_HOME ?? '',
     'bin',
@@ -1107,6 +1126,9 @@ try {
     ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
     ACTQL_TEST_NATIVE_POLICY_CLOCK: join(root, 'placement-policy-clock.sqlite'),
     ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
+    ACTQL_TEST_NATIVE_HTTP_BEARER_URL: bearerServers.origin,
+    ACTQL_TEST_NATIVE_HTTP_BEARER_FOREIGN_URL: bearerServers.foreignOrigin,
+    ACTQL_TEST_NATIVE_HTTP_BEARER_ROOT: bearerServers.directory,
     ACTQL_TEST_NATIVE_HTTP_BAD_CERT: join(root, 'foreign-client.crt'),
     ACTQL_TEST_NATIVE_HTTP_BAD_KEY: join(root, 'foreign-client.key'),
     ACTQL_TEST_NATIVE_SQLITE_LIBRARY:
@@ -2662,6 +2684,9 @@ try {
   }
   if (standardGateway !== undefined) {
     await standardGateway.close();
+  }
+  if (bearerServers !== undefined) {
+    await bearerServers.close();
   }
   if (server !== undefined) {
     server.close();
