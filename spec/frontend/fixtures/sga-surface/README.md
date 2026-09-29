@@ -11,6 +11,12 @@ new-lowerer output. Both explicitly declare two Results and their order.
 The test checks ordinary source admission and exact Program equality,
 including shared producer references. It is included by `aql-text.test.mjs`.
 
+`reach-selector.named.aql` and `reach-selector.op.aql` exercise a Relation
+selector for Reach. `seeds` aliases the existing `nodes` producer without
+adding a step. The independently authored expected Program therefore binds
+`reach.start.from` to `nodes`; it also records that named and OP syntax have
+the same Program meaning.
+
 `reach-subgraph.expected-results.json` records independent expected schema and
 rows from the normative reach and induced-subgraph laws: A is included at
 zero hops, B is reached, C is excluded, and precisely the A-to-B edge remains.

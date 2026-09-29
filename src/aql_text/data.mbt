@@ -142,7 +142,7 @@ fn native_reference_paths(operation : String) -> Array[Array[String]] {
     "graph" => [["nodes", "from"], ["edges", "from"]]
     "shortest_path" => [["source", "from"], ["target", "from"]]
     "subgraph" => [["nodes", "from"]]
-    "traverse" => [["start", "from"]]
+    "traverse" | "reach" => [["start", "from"]]
     "nearest" | "text_rank" => [["queries"]]
     "join"
     | "append"
