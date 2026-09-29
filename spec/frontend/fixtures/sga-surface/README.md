@@ -44,14 +44,14 @@ the node-count violation before A's degree violation; the second is empty at
 inclusive limits. The independently authored expectations include a nullable
 `node_id` for whole-graph violations. Neither DATA expression adds a sort or
 Result order declaration.
-These expectations have not yet been checked against runtime output from the
-named source. Separate small source cases have passed the common checker for
-reach/subgraph, diff/apply and mean. The exact fixtures here still need
-checker and execution acceptance; components needs its ordinary capacity
-evidence. The normalize-rows, degree-rows and graph-bounds fixtures pass
-Program admission and common preparation with the Local Check Environment,
-but their current task compilation requires the existing Result transformation
-to be connected by the Host.
+The normalize-rows expectation passed packed Local and HTTP execution from
+named source. The other named fixtures still need independent runtime
+acceptance. Separate small source cases have passed the common checker for
+reach/subgraph, diff/apply and mean. Components still needs its ordinary
+capacity evidence. Degree-rows passes preparation but its packed Run failed
+before publication; graph-bounds passes preparation but was rejected at Run
+compilation. These are distinct from the former Result transformation gap,
+which is connected for normalize-rows.
 The distribution Client job runs `scripts/sga-surface-checker.test.mjs`
 against common preparation. It admits the four source-free Graph fixtures that
 currently prepare and rejects a Relation passed to a Graph-only operation and

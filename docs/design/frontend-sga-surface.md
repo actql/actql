@@ -220,7 +220,8 @@ records operation-level Host/kernel evidence with shared limitations. The
 tracks additional resource boundaries. Graph tests in
 `scripts/test-node-client-package.mjs` execute generated Program JSON from
 packed Local/HTTP packages; they do not prove public ingestion of the named
-surface. The named source has not yet passed packed execution acceptance.
+surface. Each named operation needs separate public-source acceptance for the
+claimed Host profile and Result contract.
 
 Report underlying operation gaps to the Compute owner; do not implement a
 second Graph runtime or approximate the meaning in Frontend. The grammar,
