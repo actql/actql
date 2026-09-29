@@ -212,6 +212,22 @@ test('query declarations travel with source without entering the SDK',
     assert.equal(requests.length, 2);
   });
 
+test('confirmed query input refusal stays typed after HTTP submit', async t => {
+  const operations = [];
+  mock.method(globalThis, 'fetch', async url => {
+    const operation = url.pathname.split('/').at(-1);
+    operations.push(operation);
+    return operation === 'connect' ? Response.json(profile) :
+      Response.json({code: 'ClientProgramInvalidInput'}, {status: 400});
+  });
+  t.after(() => mock.restoreAll());
+  const client = await connect(options);
+  await assert.rejects(client.aql('SELECT @missing FROM records', {
+    format: 'sql', requestId: 'saved-invalid-query',
+  }), {code: 'ClientProgramInvalidInput'});
+  assert.deepEqual(operations, ['connect', 'submit']);
+});
+
 test('status and wait reject malformed Host state replies', async t => {
   let reply = state;
   mock.method(globalThis, 'fetch', async url => {
