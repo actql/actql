@@ -30,6 +30,18 @@ physical strategy and installed Host owners need to determine why this
 admitted Graph Program had no selected revision; the Frontend must not invent
 one or bypass the normal selection boundary.
 
+Reach's Relation start selector is a separate shared implementation gap.
+Frontend source now resolves `reach.start.from` through the existing producer
+table: named and OP spellings both produce the same Program, including DATA
+aliases that do not create physical steps. The current common checker still
+rejects that Program in pipeline typing. `graph_typing/reach.mbt::check_reach`
+admits `start` only as one scalar ID value, and the Local Reach owner retains a
+`SingleReachStart`. The language contract permits a Relation selector, but
+Frontend cannot make it executable by changing its spelling or substituting
+Traverse. Shared Graph typing and kernel support must land before this selector
+can pass the normal checker and packed execution; the literal-ID Reach path
+remains unaffected.
+
 `scripts/reproduce-sga-baseline.mjs <packed-installation> --graphs-equal`
 replays the exact authored Program and reports public status and terminal error
 code. It uses the installed package with a fresh `ACTQL_LOCAL_STATE_DIR` and
@@ -40,8 +52,10 @@ available, including its explicit Result order.
 After the Host source connection has a committed SHA, the Frontend owner will
 submit named source through the installed SDK using `format: "aql-text"`,
 then read Named Results through packed Local and HTTP. Acceptance must compare
-independent schema, rows and declared order for representative Graph-to-Graph,
-Graph-to-Relation and Delta chains. The existing client request, cancellation,
+independent rows and declared order for representative Graph-to-Graph,
+Graph-to-Relation and Delta chains. Published schema type, nullability and
+column order require separate publication-boundary verification until the
+public Result API exposes them. The existing client request, cancellation,
 authorization and Result delivery semantics remain owned by the common Host.
 
 `scripts/accept-sga-public-source.mjs` is the pending packed acceptance
@@ -52,7 +66,10 @@ fixture directory, and `local` or `remote`. Remote mode requires
 Host backed by the same packed packages. Local mode requires a fresh
 workspace-local `ACTQL_LOCAL_STATE_DIR`. It uses the same application body
 for both modes, submits named source, checks request lookup and attach,
-compares the independently authored rows and schema shape, and reads each
-Result to normal stream termination. The script is not a passing test or a
+compares the independently authored rows and nonempty row shapes, and reads
+each Result to normal stream termination. The public Result API does not expose
+the published schema, so this script does not verify schema types, nullability,
+or column order; empty Results have no row-shape evidence. Publication boundary
+tests must verify those schema properties separately. The script is not a passing test or a
 claim of public source support until the Host connection and physical
 strategy selection are fixed and both modes complete.
