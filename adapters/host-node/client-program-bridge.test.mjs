@@ -973,8 +973,11 @@ test('Node ABI derives the checked named Result and request identity', async () 
     hashWithoutSelf(factManifest, 'plan_fact_manifest_cid'));
   assert.deepEqual(executableBody.execution_material.result_plan_logical_cids,
     {answer: moon.clientProgramResultPlanCid(resultPlan)});
+  const aoaContract = JSON.parse(await readFile(new URL(
+    '../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'));
   assert.equal(executableBody.execution_material.aoa_contract_cid,
-    'sha256:4b6f51d57ca1d3cb16e28e04eeef20bebee34d4d3b89271de84b982a8ac74005');
+    `sha256:${createHash('sha256').update(canonicalText(aoaContract))
+      .digest('hex')}`);
   assert.equal(executableBody.resolved_limits.length, 2);
   assert.equal(executableBody.limit_bindings.length, 2);
   assert.ok(executableBody.bound_witnesses.length > 1);

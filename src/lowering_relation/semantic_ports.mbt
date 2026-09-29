@@ -63,6 +63,10 @@ pub fn node_accepts_managed_carrier_view(
   }
   match operation(node) {
     "SGA.normalize"
+    | "SGA.graft"
+    | "SGA.union_structural"
+    | "SGA.diff_structural"
+    | "SGA.mean_structural"
     | "TEA.watermark.label"
     | "TEA.dedupe"
     | "TEA.window.session_assign"
@@ -70,11 +74,14 @@ pub fn node_accepts_managed_carrier_view(
     | "TEA.window.sliding_assign"
     | "TEA.sequence.match"
     | "VEC.normalize_l2"
+    | "VEC.score_sort"
+    | "VEC.pool"
     | "BRIDGE.events.to_rows"
     | "BRIDGE.vectors.to_rows"
     | "BRIDGE.graph.to_node_rows"
     | "BRIDGE.graph.to_edge_rows" => true
     "SGA.traverse" => index == 0
+    "VEC.knn_join" => true
     _ => false
   }
 }
@@ -93,9 +100,13 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       @graph.traverse_emission(checked) == @graph.TraversedPaths &&
       node.input_targets.length() == 2
     BasicGraph(_) => operation(node) == "SGA.normalize"
+    StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
     VectorValue(_) =>
       operation(node) == "BRIDGE.rows.to_vectors" ||
-      operation(node) == "VEC.normalize_l2"
+      operation(node) == "VEC.normalize_l2" ||
+      operation(node) == "VEC.score_sort"
+    NearestValue(_) => true
+    PoolValue(_) => operation(node) == "VEC.pool"
     EventValue(_) =>
       operation(node) == "BRIDGE.rows.to_events" ||
       operation(node) == "TEA.watermark.label" ||
@@ -198,6 +209,7 @@ pub fn node_prefers_fused_without_relation_consumer(
 ) -> Bool {
   match node.payload {
     BasicGraph(_) => operation(node) == "SGA.normalize"
+    StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
     EventValue(_) =>
       operation(node) == "TEA.watermark.label" ||
       operation(node) == "TEA.dedupe" ||
@@ -206,6 +218,7 @@ pub fn node_prefers_fused_without_relation_consumer(
       operation(node) == "TEA.window.fixed_label" ||
       operation(node) == "TEA.window.sliding_assign"
     VectorValue(_) => operation(node) == "VEC.normalize_l2"
+    NearestValue(_) => true
     CarrierProjection(_) =>
       operation(node) == "BRIDGE.graph.to_edge_rows" ||
       operation(node) == "BRIDGE.vectors.to_rows"

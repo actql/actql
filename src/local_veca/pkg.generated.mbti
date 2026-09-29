@@ -102,6 +102,8 @@ pub fn start_normalize_view(@bounded_execution.Control, @lowering_relation.Prepa
 
 pub fn start_pool(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[PoolExecution, PoolIssue]
 
+pub fn start_pool_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[PoolExecution, PoolIssue]
+
 pub fn start_ranking(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Array[@execution_relation.ProducerRead], Int, @execution_relation.ValueLimits, Int, Int, Int, control_work_limit? : Int?) -> Result[RankingExecution, RankingIssue]
 
 pub fn start_ranking_inputs(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Array[RankingInput], Int, @execution_relation.ValueLimits, Int, Int, Int, control_work_limit? : Int?) -> Result[RankingExecution, RankingIssue]
@@ -109,6 +111,8 @@ pub fn start_ranking_inputs(@bounded_execution.Control, @execution_relation.Comp
 pub fn start_relation_pool(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[PoolExecution, PoolIssue]
 
 pub fn start_score(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[ScoreExecution, ScoreIssue]
+
+pub fn start_score_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[ScoreExecution, ScoreIssue]
 
 // Errors
 

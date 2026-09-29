@@ -40,7 +40,9 @@ Each argument position obtains its role from the existing operation contract:
 
 - `with: target` is a producer reference; graph lists retain their authored
   order and repeated references.
-- `start: "A"` in reach is a typed value, never a guessed producer name.
+- `start: "A"` in reach is a typed ID value, never a guessed producer name.
+  `start: {from: seeds, id: "id"}` instead names a Relation producer in the
+  selector's `from` field; its `id` field designates a column.
 - `field: "delta"` is a column designation, not a value or producer reference.
 - `nodes: {from: reached, id: "node_id"}` contains a producer reference and a
   column designation at their respective existing selector positions.
@@ -91,7 +93,7 @@ named source.
 | normalize_graph | Graph | None | Graph | `normalize_graph()` | Host |
 | match_nodes | Graph | Predicate/projection arguments | Relation | `match_nodes(...)` | Host |
 | match_edges | Graph | Predicate/projection arguments | Relation | `match_edges(...)` | Host |
-| reach | Graph | Start value | Relation | `reach(...)` | Host |
+| reach | Graph | ID, Relation or predicate start selector | Relation | `reach(...)` | Host |
 | traverse | Graph | Start selector, optionally a Relation | Relation | `traverse(...)` | Host |
 | shortest_path | Graph | Source/target selectors, optionally Relations | Relation | `shortest_path(...)` | integration |
 | components | Graph | Kind | Relation | `components(...)` | Host |

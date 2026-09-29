@@ -698,8 +698,10 @@ test('portable Host package compiles the ordinary Values Program', () => {
   assert.throws(() => compiledPlanCid({kind: 'values-compilation'}),
     {name: 'TypeError', message: 'ForeignRunHostHandle'});
   assert.equal(compiled.executable_plan_cid, plan.executable_plan_cid);
+  const aoaContract = JSON.parse(readFileSync(new URL(
+    '../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'));
   assert.equal(compiled.aoa_contract_cid,
-    'sha256:4b6f51d57ca1d3cb16e28e04eeef20bebee34d4d3b89271de84b982a8ac74005');
+    cid(aoaContract));
   assert.throws(() => compileValues({kind: 'prepared-program'}),
     {name: 'TypeError', message: 'ForeignRunHostHandle'});
 });

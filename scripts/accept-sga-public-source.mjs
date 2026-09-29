@@ -7,10 +7,11 @@ import {pathToFileURL} from 'node:url';
 
 // Copy this script and the authored fixtures into a clean packed installation.
 // Only the installed Client and Host handle source compilation and execution.
-const [installation, fixtureDirectory, mode] = process.argv.slice(2);
+const [installation, fixtureDirectory, mode, requestedCase] =
+  process.argv.slice(2);
 if (!installation || !fixtureDirectory || !['local', 'remote'].includes(mode)) {
   throw new Error('Usage: node accept-sga-public-source.mjs ' +
-    '<packed-installation> <fixture-directory> <local|remote>');
+    '<packed-installation> <fixture-directory> <local|remote> [case-name]');
 }
 if (mode === 'local' && !process.env.ACTQL_LOCAL_STATE_DIR) {
   throw new Error('Local acceptance requires ACTQL_LOCAL_STATE_DIR');
@@ -26,15 +27,21 @@ if (mode === 'remote' && (!options.endpoint || !options.token)) {
 }
 
 const cases = ['components', 'reach-subgraph', 'diff-apply',
-  'mean-graphs', 'graphs-equal'];
+  'mean-graphs', 'graphs-equal', 'normalize-rows', 'degree-rows',
+  'graph-bounds'];
+if (requestedCase && !cases.includes(requestedCase)) {
+  throw new Error(`Unknown SGA acceptance case: ${requestedCase}`);
+}
 const readFixture = (name, suffix) => readFile(join(resolve(fixtureDirectory),
   `${name}.${suffix}`), 'utf8');
 
-function checkSchemaRows(rows, schema) {
-  const fields = Object.keys(schema).sort();
+// The public Result API exposes rows but not the published Result schema.
+// This checks row shape and values; it is not schema or column-order evidence.
+function checkRowShapes(rows, expectedSchema) {
+  const fields = Object.keys(expectedSchema).sort();
   for (const row of rows) {
     assert.deepEqual(Object.keys(row).sort(), fields);
-    for (const [field, column] of Object.entries(schema)) {
+    for (const [field, column] of Object.entries(expectedSchema)) {
       const value = row[field];
       if (value === null) {
         assert.equal(column.nullable, true, field);
@@ -48,7 +55,7 @@ function checkSchemaRows(rows, schema) {
 const client = await connect(options);
 try {
   assert.equal(client.profile.mode, mode);
-  for (const name of cases) {
+  for (const name of requestedCase ? [requestedCase] : cases) {
     const source = await readFixture(name, 'named.aql');
     const expected = JSON.parse(await readFixture(name,
       'expected-results.json'));
@@ -64,7 +71,7 @@ try {
       requestId})).ref, execution.ref, name);
     for (const [resultName, result] of Object.entries(expected)) {
       const rows = await attached.result(resultName).all();
-      checkSchemaRows(rows, result.schema);
+      checkRowShapes(rows, result.schema);
       assert.deepEqual(rows, result.rows, `${name}.${resultName}`);
       const reader = execution.result(resultName).rows();
       const reread = [];

@@ -19,6 +19,34 @@ test('named Graph calls retain the independently authored Program', () => {
     fixture('reach-subgraph.named.aql'))), expected);
 });
 
+test('Reach Relation selector resolves bare, quoted and DATA producers', () => {
+  const source = fixture('reach-selector.named.aql');
+  const expected = JSON.parse(fixture('reach-selector.expected-program.json'));
+  assert.equal(jsonAdmissionDiagnostic(JSON.stringify(expected)), '');
+  for (const text of [
+    source,
+    fixture('reach-selector.op.aql'),
+    source.replace('from: seeds', 'from: nodes'),
+    source.replace('DATA seeds = FROM nodes;',
+      'DATA `seed list` = FROM nodes;').replace('from: seeds',
+      'from: `seed list`'),
+  ]) {
+    assert.deepEqual(JSON.parse(structuralToJson(text)), expected);
+  }
+});
+
+test('Reach selector rejects missing, forward and JSON-string references', () => {
+  const source = fixture('reach-selector.named.aql');
+  for (const text of [
+    source.replace('from: seeds', 'from: missing'),
+    source.replace('DATA seeds = FROM nodes;', '').replace(
+      'RESULT answer =', 'DATA seeds = FROM nodes; RESULT answer ='),
+    source.replace('from: seeds', 'from: "seeds"'),
+  ]) {
+    assert.equal(structuralToJson(text), '', text);
+  }
+});
+
 test('components call and Relation SELECT preserve the authored Result', () => {
   const expected = fixture('components.expected-program.json');
   assert.equal(jsonAdmissionDiagnostic(expected), '');
@@ -45,6 +73,27 @@ test('graphs_equal reuses one Graph producer without adding a sort', () => {
   assert.equal(jsonAdmissionDiagnostic(expected), '');
   assert.deepEqual(JSON.parse(structuralToJson(
     fixture('graphs-equal.named.aql'))), JSON.parse(expected));
+});
+
+test('normalized Graph rows retain the authored sort and Result order', () => {
+  const expected = fixture('normalize-rows.expected-program.json');
+  assert.equal(jsonAdmissionDiagnostic(expected), '');
+  assert.deepEqual(JSON.parse(structuralToJson(
+    fixture('normalize-rows.named.aql'))), JSON.parse(expected));
+});
+
+test('degree rows retain Graph input and explicit node ordering', () => {
+  const expected = fixture('degree-rows.expected-program.json');
+  assert.equal(jsonAdmissionDiagnostic(expected), '');
+  assert.deepEqual(JSON.parse(structuralToJson(
+    fixture('degree-rows.named.aql'))), JSON.parse(expected));
+});
+
+test('graph_bounds retains two named Results without inventing an order', () => {
+  const expected = fixture('graph-bounds.expected-program.json');
+  assert.equal(jsonAdmissionDiagnostic(expected), '');
+  assert.deepEqual(JSON.parse(structuralToJson(
+    fixture('graph-bounds.named.aql'))), JSON.parse(expected));
 });
 
 const envelope = body => `AQL '0.1'; PROGRAM 'roles' { STAGE s {

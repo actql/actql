@@ -5,7 +5,7 @@ connection is adopted, packed Local and HTTP acceptance. The Host connection
 owner retains the shared submit, planning, dispatch and publication files.
 This record separates checks that ran from the product acceptance still needed.
 
-At source `5acb8f04d659f67f9a1e6a60a25c3003830abdb4`, independently
+At the earlier source `5acb8f04d659f67f9a1e6a60a25c3003830abdb4`, independently
 authored `graphs-equal.named.aql` and `graphs-equal.expected-program.json`
 matched exactly after Frontend lowering. The ordinary checker admitted a
 source-free Program reusing its Graph producer. The separately authored Result
@@ -30,6 +30,59 @@ physical strategy and installed Host owners need to determine why this
 admitted Graph Program had no selected revision; the Frontend must not invent
 one or bypass the normal selection boundary.
 
+The Reach Relation-selector gap above was subsequently closed on this branch:
+`reach.start.from` resolves through the ordinary producer table, the common
+checker accepts the shared selector, and Local Reach uses the existing bounded
+selector machinery. The source-free selector, duplicate, empty, missing-ID,
+nullable, capacity and cancellation cases have focused checker/kernel tests.
+Packed public-source Result acceptance for that selector remains unproved.
+
+At `ce66e22bece4582406ab41108175fb1669c4d637`, the independently authored
+`normalize-rows` source and Program match exactly and pass ordinary Program
+preparation under the Local Check Environment. The input nodes are B then A;
+the authored sort and Result order require A then B. Task compilation stops at
+`ClientDirectResultRootIssue::RequiresResultTransformation`. This is the
+existing Result Plan connection owned by the Host integration; the Frontend
+does not remove the declared order or publish the untransformed output.
+The independently authored `degree-rows` and `graph-bounds` fixtures also pass
+preparation and stop at that same Result transformation boundary. The former's
+out-degree expectations come from two authored A-to-B and A-to-C edges. The
+latter expects the node-count violation before A's degree violation, plus a
+separate empty Result at inclusive limits. Neither expectation comes from
+runtime output. `graphs-equal` passes ordinary preparation but the earlier
+packed probe failed at `Dispatch(NoStrategy)`. These are separate blockers.
+The other authored fixtures still require their exact checker and packed
+execution evidence;
+`components` additionally needs its existing capacity application, and the
+edge-row fixtures need lawful order evidence for nullable edge identity.
+The Client job now includes `scripts/sga-surface-checker.test.mjs` at the
+common preparation boundary. It rejects a Relation chained into
+`normalize_graph` and an unbounded `graph_bounds` call before Run acceptance.
+
+For the Components fixture, the exact shared gap is in
+`pipeline_check_context::derive_program_capacity`: it derives Host-owned
+engine-atomic applications for Join and Traverse/Reach, but no corresponding
+Components consumer. `capacity_program_step::check_components_applications`
+therefore returns `MissingApplication` for the checked Components step. The
+existing contract requires two distinct applications:
+`actql.bound.components-input-nodes` in nodes from the retained Graph producer,
+and `actql.bound.components-nodes` in output rows under
+`max_graph_output_rows`. The Compute/capacity owner should supply them through
+that common builder with the checked producer and policy; the Frontend must
+not issue substitute claims or raise ceilings. The acceptance fixture then
+needs normal preparation, packed Result rows and a ceiling rejection.
+
+The edge-row order gap is independent of source spelling. The Graph
+projection key includes `(src, dst, rel)`, but `edge_rows` publishes nullable
+`rel`. `relation_evidence::select_key` currently excludes nullable fields for
+`CanonicalOrder`, so an explicit sort by the edge identity still reaches
+`UnresolvedOrder`. A diagnostic with a non-null input label and an authored
+sort failed at the same boundary because the bridge output remains nullable.
+The ordering owner needs a Graph-identity-specific proof or another lawful
+completion mechanism; making all nullable Relation keys eligible would change
+general key semantics. The Frontend must retain the authored edge order and
+must not replace it with an arbitrary representative or unsorted Result.
+
 `scripts/reproduce-sga-baseline.mjs <packed-installation> --graphs-equal`
 replays the exact authored Program and reports public status and terminal error
 code. It uses the installed package with a fresh `ACTQL_LOCAL_STATE_DIR` and
@@ -40,8 +93,10 @@ available, including its explicit Result order.
 After the Host source connection has a committed SHA, the Frontend owner will
 submit named source through the installed SDK using `format: "aql-text"`,
 then read Named Results through packed Local and HTTP. Acceptance must compare
-independent schema, rows and declared order for representative Graph-to-Graph,
-Graph-to-Relation and Delta chains. The existing client request, cancellation,
+independent rows and declared order for representative Graph-to-Graph,
+Graph-to-Relation and Delta chains. Published schema type, nullability and
+column order require separate publication-boundary verification until the
+public Result API exposes them. The existing client request, cancellation,
 authorization and Result delivery semantics remain owned by the common Host.
 
 `scripts/accept-sga-public-source.mjs` is the pending packed acceptance
@@ -52,7 +107,12 @@ fixture directory, and `local` or `remote`. Remote mode requires
 Host backed by the same packed packages. Local mode requires a fresh
 workspace-local `ACTQL_LOCAL_STATE_DIR`. It uses the same application body
 for both modes, submits named source, checks request lookup and attach,
-compares the independently authored rows and schema shape, and reads each
-Result to normal stream termination. The script is not a passing test or a
+and accepts an optional final fixture name to isolate an operation during
+diagnosis without changing the public execution path. It compares the
+independently authored rows and nonempty row shapes, and reads
+each Result to normal stream termination. The public Result API does not expose
+the published schema, so this script does not verify schema types, nullability,
+or column order; empty Results have no row-shape evidence. Publication boundary
+tests must verify those schema properties separately. The script is not a passing test or a
 claim of public source support until the Host connection and physical
 strategy selection are fixed and both modes complete.

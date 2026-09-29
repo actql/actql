@@ -477,7 +477,16 @@ pub fn prepare(
           },
           1,
         )
-      GraphReachRows(_) => ("reach", 1)
+      GraphReachRows(checked) =>
+        (
+          "reach",
+          if @graph.reach_start(checked) is @graph.SelectedReachStarts(selector) &&
+            @graph.selector_form(selector) is @graph.RelationIds(..) {
+            2
+          } else {
+            1
+          },
+        )
       GraphSubgraphValue(checked) =>
         (
           "subgraph",

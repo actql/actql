@@ -480,7 +480,7 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 68 |
 | Full route work/workspace assurance | 68 |
-| Path-scoped work/workspace assurance | 111 |
+| Path-scoped work/workspace assurance | 112 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -638,7 +638,7 @@ multi-step Relation tasks are rejected.
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |
 | Other Relation obligations outside the selected bounded binary chains | In progress | The exact bounded Relation children listed below discharge their checked obligations, including unpivot and unnest output envelopes and selected binary64 numeric observations. Other unlisted obligations remain closed to this retained lane. |
-| Mixed retained Store and Carrier paths | In progress | The typed managed route runs alongside row-file retention for Graph, Events, and Vectors. Direct inter-task Events/Vectors handoffs are covered for the minimal Bridge routes below, and selected Events watermark/dedupe/fixed window/sliding window/session and Vectors normalization are covered between construction and projection; other Carrier variants still need route-specific evidence. |
+| Mixed retained Store and Carrier paths | In progress | The typed managed route runs alongside row-file retention for Graph, Events, and Vectors. Direct inter-task Events/Vectors handoffs are covered for the minimal Bridge routes below. Selected Graph graft/union/subtraction/mean, Events watermark/dedupe/fixed window/sliding window/session, and Vectors normalization can run between construction and projection. Selected structural Graph cancellation through the Node Host and other Carrier variants still need route-specific evidence. |
 | Native Host in-flight cancellation | Separate completion unit | Do not count JS Host cancellation as native request delivery. |
 
 The above is local route evidence. A final verification SHA and Linux CI result
@@ -3665,21 +3665,26 @@ delivered cancellation, and cleanup proof for that path. Composite keys,
 relation member identity encoding, and numeric reduction variants still need
 full route resource assurance.
 
-The nearest-neighbor route now records the fused
+The nearest-neighbor route records the fused
 `start_nearest_inputs_with_relations` production entrypoint separately from
-`start_nearest_inputs`. Existing standard Host fixtures cover mixed Vectors and
+`start_nearest_inputs`. Standard Host fixtures cover mixed Vectors and
 Relation inputs and inferred Relation roles. A direct Vectors-input fixture
 now counts 28/27 control-work units with quantum one, admits 23 structural
 workspace slots and rejects 22 before starting. It also verifies cancellation
 during incremental identity initialization and cleanup of the private output.
 The fused Relation-input path also admits 28/27 work and 23/22 workspace,
 reclaims its private output after kernel cancellation, and preserves both
-producer reads. The existing Node standard Host `vector-nearest` fixture
+producer reads. The Node standard Host `vector-nearest` fixture
 delivers a timer cancellation during Relation-input kernel work, confirms stop,
-and retries cleanup. Its production wrapper delegates to the same bounded
-kernel tested with an independent control-work ceiling. The Vectors-input path
-still lacks a delivered Host cancellation fixture, so the operation as a whole
-remains outside four-role and full resource assurance.
+and retries cleanup. The `vector-nearest-carrier-inputs` fixture splits two
+local Values producers and their typed Vectors Bridges into separate tasks,
+then delivers cancellation during the selected direct Carrier-input nearest
+task. It checks that four producers completed, the nearest task did not
+complete, stop was observed after delivery, and cleanup released reservations.
+The original fused Relation-input fixture remains selected for its established
+shape. These Host paths and the independent kernel ceilings establish the
+registered route boundaries; they do not certify every metric, identity width,
+or output-value combination.
 
 At `9c751e9c`, one pooled Vectors generation is shared with a real
 normalization consumer and the formal Relation Bridge on JS, Wasm, and native.
@@ -3939,3 +3944,48 @@ and reads three Named Results against hand-written ordered rows, then reclaims
 the Store and Run. The existing sequence work/workspace and in-flight
 cancellation fixtures still cover the bounded kernel; this route does not
 claim every remaining Carrier variant or mixed-path failure mode.
+
+The retained Vectors score route now accepts an exact managed Vectors view at
+its checked input position. The score kernel reuses its bounded fold, ordering,
+workspace admission, and output owner for both stored and viewed input. A
+selected score task can therefore feed the formal Vectors-to-Relation Bridge
+and a filter in the same authored Stage. Portable Host tests compare the
+ordered scored rows through two consumers on JS, Wasm, and native; direct view
+tests check exact/one-short work and workspace, foreign binding, cancellation,
+and producer custody. The Node standard Host retains and publishes the scored
+Relation with a real Store. That delivery unit did not include the Vectors
+pool or other Carrier variants as retained inter-task paths.
+
+The retained Vectors pool route now accepts an exact managed Vectors view at
+its checked input position and uses the existing bounded pool kernel. The
+selected pool task can feed the formal Vectors-to-Relation Bridge and filter
+within the same authored Stage. Portable standard-Host fixtures compare the
+pooled Relation and two downstream results with independent expected rows on
+JS, Wasm, and native. Direct view tests cover exact and one-short work and
+workspace, foreign binding, cancellation, and producer custody. The Node
+standard Host retains the filtered Relation in a real Store, reads its Named
+Result and two consumer results, and exercises in-flight cancellation. Other
+Carrier pool paths and mixed-path failure modes are not implied by this route.
+
+Selected Graph graft, finite-list union, structural subtraction, and mean now
+accept the checked Graph input views when a later Relation consumer requires a
+task split. The existing fused path remains selected when no such consumer
+exists. A selected structural completion transfers its Graph generation to the
+returned material; provider cleanup no longer discards that live output before
+the formal `node_rows` Bridge reads it. A portable selected union fixture
+checks all four authored input occurrences, repeated material positions,
+Bridge row order, producer cleanup, and cancellation after positive work on
+JS, Wasm, and native. The selected provider observes cancellation again before
+transferring a completed Graph from its pending handoff; cancellation at every
+yield returns Stopped and cleanup reclaims the untransferred output while the
+input Graphs remain available. The Node publication fixture exercises graft,
+union, mean, empty and nonempty subtraction followed by a same-Stage filter,
+real retained Store output, Named Result retrieval, and two independent
+consumers. Distinct right-side nodes and edges, asymmetric mean weights, and
+independent edge-row expectations distinguish incorrect operand binding and
+arithmetic. A selected structural task also receives a Host-delivered in-flight
+cancel, and a later consumer failure leaves the result unpublished and cleans
+up retained resources. The full Node standard-Host fixture passed after these
+changes; the portable Graph integration file passed 136/136 on each of JS,
+Wasm, and native. Same-SHA Linux CI remains unverified, and the covered routes
+do not imply every retained Graph route is complete.

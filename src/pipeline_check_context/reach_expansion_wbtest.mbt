@@ -93,7 +93,8 @@ test "reach expansion and runtime checks retain one operation without fabricated
             assert_eq(@graph.reach_direction(check.operation), expected)
             assert_eq(@graph.reach_max_depth(check.operation), expected_depth)
             assert_true(
-              @graph.reach_start(check.operation).value is Number(10.0),
+              @graph.reach_start(check.operation)
+              is @graph.SingleReachStart({ value: Number(10.0), .. }),
             )
             let phase = match site.requirement {
               @pipeline.ReachRequirement(AdmitReachGraph) => {
@@ -145,7 +146,10 @@ test "reach expansion and runtime checks retain one operation without fabricated
             assert_true(
               physical_equal(expansion.start, @graph.reach_start(operation)),
             )
-            assert_true(expansion.start.value is Number(10.0))
+            assert_true(
+              expansion.start
+              is @graph.SingleReachStart({ value: Number(10.0), .. }),
+            )
             assert_eq(expansion.input, @pipeline.Input(0))
             assert_eq(expansion.direction, expected)
             assert_eq(expansion.minimum_hops, 0.0)

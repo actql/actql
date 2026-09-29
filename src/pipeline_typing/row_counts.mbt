@@ -580,7 +580,12 @@ fn derive_row_counts(
           _ => None
         }
       GraphEquality(_) | GraphDiff(_) => Some(count(1L, true))
-      Reach(_) => reduce_count(graph_input.bind(g => g.nodes))
+      Reach(checked) =>
+        if @graph.reach_start(checked) is @graph.SingleReachStart(_) {
+          reduce_count(graph_input.bind(g => g.nodes))
+        } else {
+          None // A selector may emit one row per selected start and graph node.
+        }
       Traverse(selector~, checked~) => {
         let nodes = graph_input.bind(g => g.nodes)
         let starts = selector_count(
