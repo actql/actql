@@ -70,35 +70,43 @@ its declared list, and is rejected after `FROM` or another Pipe operation.
 
 ## Complete Graph operation inventory
 
-All rows already have structural STEP/OP forms. Named calls now cover the 19
-operations other than graph construction; those calls remain subject to the
-ordinary checked operation contracts. MATCH is separate: fixed patterns lower through
+All rows have structural STEP/OP forms. The STEP key and OP name equal the
+existing operation name in the first column. Named calls cover the 19 rows
+other than Graph construction; they remain subject to ordinary checked
+operation contracts. MATCH is separate: fixed patterns lower through
 Graph-to-Relation bridges and relational steps; bounded patterns also use
 traverse. MATCH coverage does not imply natural syntax for every SGA operation.
 
-| Existing operation | Pipe/current input | Other inputs | Output |
-| --- | --- | --- | --- |
-| graph, concise form | Relation | Existing graph field mapping | Graph |
-| graph, explicit form | None | Node Relation and edge Relation | Graph |
-| normalize_graph | Graph | None | Graph |
-| match_nodes | Graph | Predicate/projection arguments | Relation |
-| match_edges | Graph | Predicate/projection arguments | Relation |
-| reach | Graph | Start value | Relation |
-| traverse | Graph | Start selector, optionally a Relation | Relation |
-| shortest_path | Graph | Source/target selectors, optionally Relations | Relation |
-| components | Graph | Kind | Relation |
-| degree | Graph | Direction | Relation |
-| graph_bounds | Graph | Existing bounds | Diagnostic Relation |
-| subgraph | Graph | Node selector, optionally a Relation | Graph |
-| graft_graph | Graph | Graph | Graph |
-| union_graphs | Graph | Graph or ordered Graph list | Graph |
-| subtract_graphs | Graph | Graph | Graph |
-| graphs_equal | Graph | Graph | One-row boolean Relation |
-| graph_diff | Base Graph | Target Graph | One-row typed Delta Relation |
-| apply_graph_delta | Base Graph | Delta Relation and field | Graph |
-| mean_graphs | None | Explicit Graph list, weights and strategies | Graph |
-| node_rows | Graph | None | Relation |
-| edge_rows | Graph | None | Relation |
+The [Local operation inventory](../reviews/2026-09-19-sga-veca-tea-local-coverage.json)
+records operation-level Host/kernel evidence. In the last column, Host refers
+to [standard-host.test.mjs](../../adapters/connectors/duckdb/node/test/standard-host.test.mjs)
+and integration to [local_carrier_graph_wbtest.mbt](../../src/query_integration/local_carrier_graph_wbtest.mbt).
+This is evidence for existing operations, not packed execution of the new
+named source.
+
+| Existing STEP/OP | Pipe/current input | Other inputs | Output | Named DATA | Local evidence |
+| --- | --- | --- | --- | --- | --- |
+| graph, concise form | Relation | Existing graph field mapping | Graph | OP only | Host |
+| graph, explicit form | None | Node Relation and edge Relation | Graph | OP only | Host |
+| normalize_graph | Graph | None | Graph | `normalize_graph()` | Host |
+| match_nodes | Graph | Predicate/projection arguments | Relation | `match_nodes(...)` | Host |
+| match_edges | Graph | Predicate/projection arguments | Relation | `match_edges(...)` | Host |
+| reach | Graph | Start value | Relation | `reach(...)` | Host |
+| traverse | Graph | Start selector, optionally a Relation | Relation | `traverse(...)` | Host |
+| shortest_path | Graph | Source/target selectors, optionally Relations | Relation | `shortest_path(...)` | integration |
+| components | Graph | Kind | Relation | `components(...)` | Host |
+| degree | Graph | Direction | Relation | `degree(...)` | integration |
+| graph_bounds | Graph | Existing bounds | Diagnostic Relation | `graph_bounds(...)` | integration |
+| subgraph | Graph | Node selector, optionally a Relation | Graph | `subgraph(...)` | integration |
+| graft_graph | Graph | Graph | Graph | `graft_graph(...)` | Host |
+| union_graphs | Graph | Graph or ordered Graph list | Graph | `union_graphs(...)` | integration |
+| subtract_graphs | Graph | Graph | Graph | `subtract_graphs(...)` | integration |
+| graphs_equal | Graph | Graph | One-row boolean Relation | `graphs_equal(...)` | Host |
+| graph_diff | Base Graph | Target Graph | One-row typed Delta Relation | `graph_diff(...)` | integration |
+| apply_graph_delta | Base Graph | Delta Relation and field | Graph | `apply_graph_delta(...)` | integration |
+| mean_graphs | None | Explicit Graph list, weights and strategies | Graph | `mean_graphs(...)` | integration |
+| node_rows | Graph | None | Relation | `node_rows()` | Host |
+| edge_rows | Graph | None | Relation | `edge_rows()` | Host |
 
 The 17 SGA operations in the adopted profile exclude graph construction and
 the two Carrier bridges; the table includes all of them. Delta remains typed
