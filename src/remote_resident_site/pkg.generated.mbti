@@ -1,0 +1,53 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/remote_resident_site"
+
+import {
+  "actql/actql/remote_site_protocol",
+  "actql/actql/run_publication_host",
+}
+
+// Values
+pub fn check_resident_dispatch_delegation(ResidentSiteDelegation, @remote_site_protocol.DispatchRequest, Int) -> Result[Unit, ResidentDispatchRefusal]
+
+pub fn check_resident_run_current(@run_publication_host.ClientValuesRunMaterials, String) -> Result[Unit, ResidentDispatchRefusal]
+
+// Errors
+
+// Types and methods
+type ResidentAcceptedQueue
+pub fn ResidentAcceptedQueue::length(Self) -> Int
+pub fn ResidentAcceptedQueue::new(Int) -> Self?
+pub fn ResidentAcceptedQueue::next(Self) -> String?
+pub fn ResidentAcceptedQueue::remove(Self, String) -> Bool
+pub fn ResidentAcceptedQueue::reserve(Self, String) -> Result[Unit, ResidentDispatchRefusal]
+
+pub(all) enum ResidentDispatchRefusal {
+  ForeignCoordinator
+  ForeignSite
+  StaleGeneration
+  ForeignRuntime
+  ForeignConnector
+  ForeignGrant
+  ForeignIssuer
+  UnsupportedBudget
+  MaterialsMissing
+  MaterialsRejected(@run_publication_host.ClientValuesRunMaterialsIssue)
+  NotCurrent
+  QueueFull
+}
+
+pub(all) struct ResidentSiteDelegation {
+  coordinator_authority : String
+  site_key : String
+  runtime_bundle_cid : String
+  connector_registration : String
+  connector_revision : String
+  strategy_revision : String
+  grant_cid : String
+  evidence_issuer_capability_cid : String
+  budget_cids : Array[String]
+}
+
+// Type aliases
+
+// Traits
