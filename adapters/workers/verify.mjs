@@ -14,6 +14,7 @@ run('moon',['build','--target','js','--release','src/workers_conformance']);
 prepareRuntimeModules();
 run('node',['adapters/workers/build.mjs']);
 run('node',['--test',
+  'adapters/workers/shared-host.test.mjs',
   'adapters/workers/runtime.test.mjs',
   'adapters/workers/finalizer.test.mjs',
   'adapters/workers/moon-runtime.test.mjs',

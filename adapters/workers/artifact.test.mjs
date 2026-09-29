@@ -61,6 +61,9 @@ test('product Local-only Host builds separately without conformance or test Conn
   const artifact = await buildHost();
   const modules = Object.keys(artifact.metafile.inputs);
   assert.ok(modules.includes('adapters/local-node/strategy-bundle.mjs'));
+  assert.ok(modules.includes('adapters/host-common/local-js-host.mjs'));
+  assert.ok(modules.includes('adapters/host-common/scoped-strategy.mjs'));
+  assert.ok(!modules.includes('adapters/workers/invocation.mjs'));
   assert.ok(modules.every(path => !/conformance|reference|fixture|async_bridge/.test(path)));
   assert.ok(modules.every(path => !/(?:^|\/)connectors\/duckdb(?:\/|$)|duckdb-node|@duckdb/.test(path)));
   assert.doesNotMatch(artifact.source, /(?:libduckdb|@duckdb\/node-api|native-addon-marker)/);
