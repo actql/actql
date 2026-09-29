@@ -2,8 +2,9 @@
 
 This is the accepted design for a subsequent Frontend increment. It does not
 register new grammar productions or claim implemented syntax. The current
-contract baseline remains 0.1. Public SDK/CLI source routing is completed
-before this syntax is implemented. Exploration/analysis and graph
+contract baseline remains 0.1. Public SDK/CLI source routing is completed and integrated
+before this syntax reaches product acceptance. Independent syntax and lowering
+work may proceed while that routing is being connected. Exploration/analysis and graph
 composition/Delta are separate implementation units; construction, bridges,
 normalization and aggregation remain explicit items in the inventory.
 
