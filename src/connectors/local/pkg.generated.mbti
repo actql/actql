@@ -73,6 +73,10 @@ pub fn local_module_bounded_append_obligation(LocalComputeModule, Int, Int) -> B
 
 pub fn local_module_bounded_cross_join_obligation(LocalComputeModule, Int, Int) -> Bool
 
+pub fn local_module_bounded_nearest_obligation(LocalComputeModule, Int, Int) -> Bool
+
+pub fn local_module_bounded_ranking_obligation(LocalComputeModule, Int, Int) -> Bool
+
 pub fn local_module_bounded_relation_obligation(LocalComputeModule, Int, Int, LocalBoundedRelationCheck) -> Bool
 
 pub fn local_module_bounded_set_obligation(LocalComputeModule, Int, Int) -> Bool

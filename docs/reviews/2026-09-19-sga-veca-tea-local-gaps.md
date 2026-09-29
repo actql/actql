@@ -638,7 +638,7 @@ multi-step Relation tasks are rejected.
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |
 | Other Relation obligations outside the selected bounded binary chains | In progress | The exact bounded Relation children listed below discharge their checked obligations, including unpivot and unnest output envelopes and selected binary64 numeric observations. Other unlisted obligations remain closed to this retained lane. |
-| Mixed retained Store and Carrier paths | In progress | The typed managed route runs alongside row-file retention for Graph, Events, and Vectors. Direct inter-task Events/Vectors handoffs are covered for the minimal Bridge routes below. Selected Graph graft/union/subtraction/mean, Events watermark/dedupe/fixed window/sliding window/session, and Vectors normalization can run between construction and projection. Selected structural Graph cancellation through the Node Host and other Carrier variants still need route-specific evidence. |
+| Mixed retained Store and Carrier paths | In progress | The typed managed route runs alongside row-file retention for Graph, Events, and Vectors. Direct inter-task Events/Vectors handoffs are covered for the minimal Bridge routes below. Selected Graph graft/union/subtraction/mean/subgraph, Events watermark/dedupe/fixed window/sliding window/session, and Vectors normalization can run between construction and projection. Structural Graph and subgraph cancellation through the Node Host are covered below; other Carrier variants still need route-specific evidence. |
 | Native Host in-flight cancellation | Separate completion unit | Do not count JS Host cancellation as native request delivery. |
 
 The above is local route evidence. A final verification SHA and Linux CI result
@@ -3989,3 +3989,42 @@ up retained resources. The full Node standard-Host fixture passed after these
 changes; the portable Graph integration file passed 136/136 on each of JS,
 Wasm, and native. Same-SHA Linux CI remains unverified, and the covered routes
 do not imply every retained Graph route is complete.
+
+Selected `SGA.subgraph` now reads an exact managed Graph view when a later
+Relation consumer requires task splitting. Literal selectors, edge predicates,
+and a Relation selector share the existing bounded subgraph kernel; the fused
+Graph prefix remains available when splitting is unnecessary. Portable tests
+run the selected Graph through the formal `node_rows` Bridge and cancel at
+every pre-handoff yield while preserving the input Graph. The standard Node
+Host retains and publishes the resulting Relation through a real Store, reads
+two independent consumers, and delivers cancellation after the selected
+subgraph or its later filter has started. The prior unselected-prefix test now
+checks the actual selected task graph instead of assuming the old fused shape.
+The focused portable subgraph tests passed on JS, Wasm, and native, and the
+full Node standard-Host test passed locally. Same-SHA Linux CI remains
+unverified; these cases do not establish every Graph selector variant or every
+mixed Carrier failure mode.
+
+The retained Relation path now also splits a checked finite-list
+`VEC.merge_rankings` occurrence from a later `filter` in the same Stage.
+The selected ranking task receives its own ordered operation ports rather than
+the enclosing Stage input declarations; the fixed Compute request and completed
+output verify those exact bindings. A portable RRF fixture checks the split
+physical graph, ordered rows, two downstream consumers, and final reclamation.
+The Node standard Host retains and publishes the filtered Relation in a real
+Store, reads three Named Results against independent expected rows, and reclaims
+the Store and Run. This proves the RRF-to-filter delivery shape, not every
+ranking policy or every subsequent Relation operation in a retained Stage.
+
+The retained Relation path also splits a direct `VEC.knn_join` occurrence
+from a later `filter` in the same Stage. The nearest obligation is admitted
+only for the exact one-step sequence accepted by the registered bounded
+provider. When all operands are Relation views, the nearest kernel keeps
+operation-port binding for candidate and query evaluation while validating
+completion against the authored Stage input order. Portable Host fixtures
+exercise both matching and reversed Stage input declarations, the split
+physical graph, ordered results, two consumers, and reclamation. The Node
+standard Host uses the reversed declaration, retains the filtered result in
+a real Store, and compares three published Named Results with independent
+expected rows. This route does not claim all nearest input Carrier variants
+or later Relation operations beyond the checked filter shape.

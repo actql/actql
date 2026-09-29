@@ -498,8 +498,20 @@ pub fn advance_local_materializing_attempt(
     Ok(Complete(output, progress~, work~)) =>
       if bounded(progress, work, true) {
         // Anchor to the exact reads the provider was started with.
-        guard @execution.anchor_completed_output_inputs(output, attempt.reads)
-          is Some(anchored) else {
+        let anchored = match
+          @execution.completion_preparation_selected_step(
+            @execution.generated_completion_preparation(attempt.sequence),
+          ) {
+          Some(step) =>
+            @execution.anchor_completed_output_operation_inputs(
+              output,
+              step,
+              attempt.reads,
+            )
+          None =>
+            @execution.anchor_completed_output_inputs(output, attempt.reads)
+        }
+        guard anchored is Some(anchored) else {
           close_local_materializing_attempt(attempt)
           return Err(Candidate(ForeignPreparation))
         }

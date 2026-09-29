@@ -217,6 +217,8 @@ pub fn start_shortest(@bounded_execution.Control, @execution_relation.Completion
 
 pub fn start_subgraph(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @execution_relation.ProducerRead?, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[SubgraphExecution, SubgraphIssue]
 
+pub fn start_subgraph_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @execution_relation.ProducerRead?, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[SubgraphExecution, SubgraphIssue]
+
 pub fn start_traverse(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[TraverseExecution, TraverseIssue]
 
 pub fn start_traverse_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[TraverseExecution, TraverseIssue]

@@ -84,6 +84,51 @@ pub fn prepare_fixed_compute_request(
 }
 
 ///|
+/// Prepare one checked physical operation whose ordered receiving ports differ
+/// from the enclosing Stage's input declaration. Each read must match that
+/// exact operation edge; the caller cannot substitute equal row contents.
+pub fn prepare_selected_fixed_compute_request(
+  owner : @lower.BoundPrepared,
+  step : Int,
+  inputs : Array[@execution.ProducerRead],
+  capacity : FixedComputeCapacity,
+) -> Result[FixedComputeRequest, FixedComputeIssue] {
+  if capacity.contract_cid !=
+    "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f" {
+    return Err(CapacityContract)
+  }
+  if capacity.max_rows < 0 || capacity.max_value_bytes < 0 {
+    return Err(InvalidLimits)
+  }
+  let prepared = @lower.bound_preparation(owner)
+  guard @lower.node_at(prepared, step) is Some(node) &&
+    @lower.node_input_count(node) == inputs.length() else {
+    return Err(UnsupportedInputShape)
+  }
+  if capacity.common_fragment is Some(sequence) &&
+    !physical_equal(@lower.sequence_requirements_owner(sequence), owner) {
+    return Err(ForeignPreparation)
+  }
+  for index, input in inputs {
+    if !physical_equal(@execution.producer_read_receiver(input), owner) {
+      return Err(ForeignPreparation)
+    }
+    if !@execution.producer_read_available(input) {
+      return Err(InputUnavailable)
+    }
+    if !@execution.producer_read_matches_operation_input(
+        input, owner, step, index,
+      ) {
+      return Err(UnsupportedInputShape)
+    }
+    if @execution.producer_read_row_count(input) > capacity.max_rows {
+      return Err(CommonInputRows)
+    }
+  }
+  Ok({ owner, inputs: inputs.copy(), capacity, })
+}
+
+///|
 /// The checked zero-input task supplies the request owner when no producer
 /// read exists. This grants no execution; common strategy and admission still
 /// select and start the task.

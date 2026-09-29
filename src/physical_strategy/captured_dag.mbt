@@ -1596,7 +1596,11 @@ fn captured_output_inputs_match(
     guard input is Some(input) else { return false }
     inputs.push(input)
   }
-  @execution.completed_output_matches_inputs(output, inputs)
+  match graph_task_selected_step(run.graph, task) {
+    Some(step) =>
+      @execution.completed_output_matches_operation_inputs(output, step, inputs)
+    None => @execution.completed_output_matches_inputs(output, inputs)
+  }
 }
 
 ///|

@@ -150,7 +150,7 @@ test "physical DAG segments typed Carrier and Relation operation edges" {
 }
 
 ///|
-test "physical DAG retains an unselected Carrier prefix before Relation filter" {
+test "physical DAG selects subgraph and Bridge before Relation filter" {
   let program = query_checked_program_fixture(
     dag=true,
     local_carrier_graph_chain=true,
@@ -163,13 +163,14 @@ test "physical DAG retains an unselected Carrier prefix before Relation filter" 
     @program_check.unit_count(program) + 10,
     10000,
   ).unwrap()
-  assert_eq(@strategy.graph_task_count(graph), 6)
-  assert_eq(@strategy.graph_task_prefix_end(graph, 2), Some(2))
-  assert_eq(@strategy.graph_task_target(graph, 2), Some(@pipeline.Step(2)))
-  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(3))
+  assert_eq(@strategy.graph_task_count(graph), 8)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 2), None)
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(1))
+  assert_eq(@strategy.graph_task_selected_step(graph, 4), Some(2))
+  assert_eq(@strategy.graph_task_selected_step(graph, 5), Some(3))
   assert_true(@strategy.graph_ordered_inputs_complete(graph))
   assert_true(
-    @strategy.prepare_checked_dag(program, owners, 5, 10000)
+    @strategy.prepare_checked_dag(program, owners, 7, 10000)
     is Err(@strategy.TaskLimit),
   )
 }
@@ -199,6 +200,71 @@ test "physical DAG splits selected Carrier transforms before Relation filter" {
     assert_eq(@strategy.graph_task_count(graph), 8)
     assert_eq(@strategy.graph_task_prefix_end(graph, 2), None)
     assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(1))
+    assert_true(@strategy.graph_ordered_inputs_complete(graph))
+  }
+}
+
+///|
+test "physical DAG splits finite-list ranking before Relation filter" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_carrier_vectors_chain=true,
+    local_carrier_vectors_variant="ranking_rrf_filter",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 7)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 3), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 4), Some(1))
+  assert_eq(@strategy.graph_task_input_count(graph, 3), Some(2))
+  assert_eq(@strategy.graph_task_input_count(graph, 4), Some(1))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
+test "physical DAG splits selected nearest before Relation filter" {
+  for variant in ["nearest_filter", "nearest_filter_reversed"] {
+    let program = query_checked_program_fixture(
+      dag=true,
+      local_carrier_vectors_chain=true,
+      local_carrier_vectors_variant=variant,
+    )
+    let graph = @strategy.prepare_checked_dag(
+      program,
+      physical_graph_owners(program),
+      @program_check.unit_count(program) + 10,
+      10000,
+    ).unwrap()
+    assert_eq(@strategy.graph_task_count(graph), 7)
+    assert_eq(@strategy.graph_task_prefix_end(graph, 3), Some(0))
+    assert_eq(@strategy.graph_task_selected_step(graph, 3), None)
+    assert_eq(@strategy.graph_task_selected_step(graph, 4), Some(1))
+    assert_eq(@strategy.graph_task_input_count(graph, 3), Some(2))
+    assert_eq(@strategy.graph_task_input_count(graph, 4), Some(1))
+    let nearest_edges = []
+    for edge_index in 0..<@strategy.graph_data_count(graph) {
+      let edge = @strategy.graph_data_at(graph, edge_index).unwrap()
+      if @strategy.data_edge_consumer(edge) == 3 {
+        nearest_edges.push(
+          (
+            @strategy.data_edge_input(edge),
+            @strategy.data_edge_producer(edge),
+            @strategy.data_edge_operation_input(edge),
+          ),
+        )
+      }
+    }
+    if variant == "nearest_filter_reversed" {
+      assert_true(nearest_edges.contains((0, 2, None)))
+      assert_true(nearest_edges.contains((1, 1, None)))
+    } else {
+      assert_true(nearest_edges.contains((0, 1, None)))
+      assert_true(nearest_edges.contains((1, 2, None)))
+    }
     assert_true(@strategy.graph_ordered_inputs_complete(graph))
   }
 }

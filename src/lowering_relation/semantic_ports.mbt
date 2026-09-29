@@ -80,6 +80,7 @@ pub fn node_accepts_managed_carrier_view(
     | "BRIDGE.vectors.to_rows"
     | "BRIDGE.graph.to_node_rows"
     | "BRIDGE.graph.to_edge_rows" => true
+    "SGA.subgraph" => index == 0
     "SGA.traverse" => index == 0
     "VEC.knn_join" => true
     _ => false
@@ -101,12 +102,14 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       node.input_targets.length() == 2
     BasicGraph(_) => operation(node) == "SGA.normalize"
     StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
+    GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     VectorValue(_) =>
       operation(node) == "BRIDGE.rows.to_vectors" ||
       operation(node) == "VEC.normalize_l2" ||
       operation(node) == "VEC.score_sort"
     NearestValue(_) => true
     PoolValue(_) => operation(node) == "VEC.pool"
+    RankingValue(_) => operation(node) == "VEC.merge_rankings"
     EventValue(_) =>
       operation(node) == "BRIDGE.rows.to_events" ||
       operation(node) == "TEA.watermark.label" ||
@@ -192,6 +195,12 @@ pub fn node_supports_bounded_managed_prefix(
     | (Values(_), Unnest(_))
     | (Values(_), JsonPick(_))
     | (Values(_), CountGroup(_))
+    | (RankingValue(_), Where(_))
+    | (RankingValue(_), Derive(_))
+    | (RankingValue(_), Select(_))
+    | (NearestValue(_), Where(_))
+    | (NearestValue(_), Derive(_))
+    | (NearestValue(_), Select(_))
     | (CrossJoinRows(_), _) => true
     (Values(_), AssertRows(_)) =>
       operation(consumer) == "REL.assert_all" ||
@@ -210,6 +219,7 @@ pub fn node_prefers_fused_without_relation_consumer(
   match node.payload {
     BasicGraph(_) => operation(node) == "SGA.normalize"
     StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
+    GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     EventValue(_) =>
       operation(node) == "TEA.watermark.label" ||
       operation(node) == "TEA.dedupe" ||
@@ -234,15 +244,22 @@ pub fn node_accepts_managed_relation_view(
   node : PreparedNode,
   index : Int,
 ) -> Bool {
+  if node.payload is RankingValue(_) {
+    return operation(node) == "VEC.merge_rankings" &&
+      index >= 0 &&
+      index < node.input_targets.length()
+  }
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {
     return match node.payload {
       GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
       GraphTraverseRows(_) => index == 1 && operation(node) == "SGA.traverse"
+      GraphSubgraphValue(_) => index == 1 && operation(node) == "SGA.subgraph"
       InnerJoin(_)
       | CrossJoinRows(_)
       | AppendRows(_)
       | SetRows(_)
-      | NestRows(_) => true
+      | NestRows(_)
+      | NearestValue(_) => true
       _ => false
     }
   }

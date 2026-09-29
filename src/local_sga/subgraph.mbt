@@ -16,9 +16,10 @@ priv enum SubgraphPhase {
 
 ///|
 priv struct SubgraphState {
-  input : @graph.ProducerRead
+  source : GraphReadSource
   selector_input : @execution.ProducerRead?
-  source : @storage.Storage
+  node_count : Int
+  edge_count : Int
   graph : @carrier.Graph
   prepared : @lower.PreparedGraphSubgraph
   mut output : @graph.OutputBuilder?
@@ -80,7 +81,16 @@ fn copy_subgraph_node(
   index : Int,
 ) -> Result[Unit, SubgraphIssue] {
   guard state.output is Some(output) else { return Err(InvalidSubgraphKernel) }
-  match copy_graph_node(state.source, output, state.node_fields, index) {
+  let copied = match state.source {
+    Stored(read) =>
+      match @graph.producer_read_storage(read) {
+        Some(storage) =>
+          copy_graph_node(storage, output, state.node_fields, index)
+        None => Err(Unavailable)
+      }
+    Viewed(view) => copy_graph_view_node(view, output, state.node_fields, index)
+  }
+  match copied {
     Ok(_) => Ok(())
     Err(Unavailable) => Err(SubgraphInputUnavailable)
     Err(GraphCopyIssue::Output(issue)) => Err(SubgraphOutput(issue))
@@ -93,7 +103,16 @@ fn copy_subgraph_edge(
   index : Int,
 ) -> Result[Unit, SubgraphIssue] {
   guard state.output is Some(output) else { return Err(InvalidSubgraphKernel) }
-  match copy_graph_edge(state.source, output, state.edge_fields, index) {
+  let copied = match state.source {
+    Stored(read) =>
+      match @graph.producer_read_storage(read) {
+        Some(storage) =>
+          copy_graph_edge(storage, output, state.edge_fields, index)
+        None => Err(Unavailable)
+      }
+    Viewed(view) => copy_graph_view_edge(view, output, state.edge_fields, index)
+  }
+  match copied {
     Ok(_) => Ok(())
     Err(Unavailable) => Err(SubgraphInputUnavailable)
     Err(GraphCopyIssue::Output(issue)) => Err(SubgraphOutput(issue))
@@ -143,7 +162,7 @@ fn subgraph_step(
       Some(input) => !@execution.producer_read_available(input)
       None => false
     }
-    if !@graph.producer_read_available(state.input) || selector_unavailable {
+    if !graph_read_available(state.source) || selector_unavailable {
       return @bounded.Failed(SubgraphInputUnavailable, progress, used)
     }
     if used >= state.control_work_remaining {
@@ -151,7 +170,7 @@ fn subgraph_step(
     }
     match state.phase {
       InitializeSelection =>
-        if state.selected.length() < @storage.node_count(state.source) {
+        if state.selected.length() < state.node_count {
           state.selected.push(false)
           used += 1
         } else {
@@ -218,7 +237,7 @@ fn subgraph_step(
         }
       }
       BeginNode =>
-        if state.node < @storage.node_count(state.source) {
+        if state.node < state.node_count {
           match state.node_predicate {
             Some(_) => {
               state.predicate_field = 0
@@ -243,7 +262,7 @@ fn subgraph_step(
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
         } else {
-          guard @storage.node_identity(state.source, state.node)
+          guard graph_read_node_identity(state.source, state.node)
             is Some(identity) else {
             return @bounded.Failed(SubgraphInputUnavailable, progress, used)
           }
@@ -297,7 +316,7 @@ fn subgraph_step(
         if state.predicate_field <
           graph_node_predicate_binding_count(state.graph) {
           used += 1
-          guard graph_node_predicate_binding(
+          guard graph_node_predicate_binding_read(
               state.graph,
               state.source,
               state.node,
@@ -367,8 +386,8 @@ fn subgraph_step(
         }
       }
       BeginEdge =>
-        if state.edge < @storage.edge_count(state.source) {
-          guard @storage.edge_endpoints(state.source, state.edge)
+        if state.edge < state.edge_count {
+          guard graph_read_edge_endpoints(state.source, state.edge)
             is Some((source, target)) &&
             state.selected.get(source) is Some(source_selected) &&
             state.selected.get(target) is Some(target_selected) else {
@@ -398,7 +417,7 @@ fn subgraph_step(
         if state.predicate_field <
           graph_edge_predicate_binding_count(state.graph) {
           used += 1
-          guard graph_edge_predicate_binding(
+          guard graph_edge_predicate_binding_read(
               state.graph,
               state.source,
               state.edge,
@@ -502,11 +521,12 @@ fn cleanup_subgraph_state(state : SubgraphState) -> Bool {
 }
 
 ///|
-pub fn start_subgraph(
+fn start_subgraph_core(
   control : @bounded.Control,
   sequence : @lower.PreparedSequence,
   step : Int,
-  input : @graph.ProducerRead,
+  source : GraphReadSource,
+  contract : @carrier.Graph,
   selector_input : @execution.ProducerRead?,
   limits : @storage.Limits,
   storage_bytes : Int64,
@@ -514,6 +534,18 @@ pub fn start_subgraph(
   control_work_limit? : Int? = None,
 ) -> Result[SubgraphExecution, SubgraphIssue] {
   let owner = @lower.sequence_owner(sequence)
+  let input_matches = match source {
+    Stored(read) =>
+      @graph.producer_read_matches_operation_input(read, owner, step, 0)
+    Viewed(view) =>
+      @lifecycle.producer_view_kind(view) == @carrier.GraphKind &&
+      @lifecycle.producer_read_reference_matches_operation_input(
+        @lifecycle.producer_view_read_reference(view),
+        owner,
+        step,
+        0,
+      )
+  }
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphSubgraphStep(prepared)) &&
     (
@@ -525,7 +557,7 @@ pub fn start_subgraph(
       @lower.graph_subgraph_literal_edge_predicate(prepared) is Some(_) ||
       @lower.graph_subgraph_edge_predicate(prepared) is Some(_)
     ) &&
-    @graph.producer_read_matches_operation_input(input, owner, step, 0) else {
+    input_matches else {
     return Err(InvalidSubgraphKernel)
   }
   let relation_field = @lower.graph_subgraph_relation_selector_field(prepared)
@@ -549,8 +581,8 @@ pub fn start_subgraph(
     (None, None) => ()
     _ => return Err(InvalidSubgraphKernel)
   }
-  guard @graph.producer_read_storage(input) is Some(source) &&
-    @storage.carrier(source) is @carrier.GraphValue(contract) else {
+  guard graph_read_node_count(source) is Some(nodes) &&
+    graph_read_edge_count(source) is Some(edges) else {
     return Err(SubgraphInputUnavailable)
   }
   if limits.max_value_nodes < 1 || limits.max_value_nodes > (2147483647 - 1) / 4 {
@@ -563,7 +595,6 @@ pub fn start_subgraph(
   if control_work_limit == 0 {
     return Err(SubgraphWorkLimit)
   }
-  let nodes = @storage.node_count(source)
   let selector_count = match selector_input {
     Some(selector) => @execution.producer_read_row_count(selector)
     None => @lower.graph_subgraph_literal_id_count(prepared).unwrap_or(0)
@@ -610,9 +641,10 @@ pub fn start_subgraph(
     Err(issue) => return Err(SubgraphOutput(issue))
   }
   let state : SubgraphState = {
-    input,
-    selector_input,
     source,
+    selector_input,
+    node_count: nodes,
+    edge_count: edges,
     graph: contract,
     prepared,
     output: Some(output),
@@ -651,6 +683,78 @@ pub fn start_subgraph(
     token: Some(token),
     max_noninterruptible_value_nodes: limits.max_value_nodes * 4 + 1,
   })
+}
+
+///|
+pub fn start_subgraph(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @graph.ProducerRead,
+  selector_input : @execution.ProducerRead?,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit? : Int? = None,
+) -> Result[SubgraphExecution, SubgraphIssue] {
+  guard @graph.producer_read_matches_operation_input(
+    input,
+    @lower.sequence_owner(sequence),
+    step,
+    0,
+  ) else {
+    return Err(InvalidSubgraphKernel)
+  }
+  guard @graph.producer_read_storage(input) is Some(storage) &&
+    @storage.carrier(storage) is @carrier.GraphValue(contract) else {
+    return Err(SubgraphInputUnavailable)
+  }
+  start_subgraph_core(
+    control,
+    sequence,
+    step,
+    Stored(input),
+    contract,
+    selector_input,
+    limits,
+    storage_bytes,
+    available,
+    control_work_limit~,
+  )
+}
+
+///|
+/// Run the same bounded subgraph kernel against one exact managed Graph view.
+pub fn start_subgraph_view(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  selector_input : @execution.ProducerRead?,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit? : Int? = None,
+) -> Result[SubgraphExecution, SubgraphIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+    is Some(@carrier.GraphValue(contract)) else {
+    return Err(InvalidSubgraphKernel)
+  }
+  start_subgraph_core(
+    control,
+    sequence,
+    step,
+    Viewed(input),
+    contract,
+    selector_input,
+    limits,
+    storage_bytes,
+    available,
+    control_work_limit~,
+  )
 }
 
 ///|

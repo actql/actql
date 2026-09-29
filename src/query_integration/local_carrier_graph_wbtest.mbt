@@ -8316,6 +8316,51 @@ fn carrier_subtract_owner(
 }
 
 ///|
+fn carrier_selected_subgraph_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[1]}}," +
+      "\"as\":\"selected\"},{\"from\":\"selected\"," +
+      "\"node_rows\":true,\"as\":\"out\"}]",
+    ),
+    [
+      (
+        "g",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_union_owner(
   left : @lower.BoundPrepared,
   right : @lower.BoundPrepared,
@@ -9050,6 +9095,140 @@ test "selected Graph union stops at every pre-handoff yield" {
   assert_true(checked_yields > 9)
   assert_true(@carrier_runtime.reclaim_material(left_material))
   assert_true(@carrier_runtime.reclaim_material(right_material))
+}
+
+///|
+test "selected subgraph retains its Graph through the formal Bridge" {
+  let source_owner = carrier_graft_source_owner()
+  let owner = carrier_selected_subgraph_owner(source_owner)
+  let generated = task_test_generated(owner)
+  let source_material = @graphs.completed_material(
+    carrier_graft_graph(source_owner, 1.0, "left"),
+  ).unwrap()
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  let subgraph_sequence = @execution.select_generated_sequence_step(
+    generated, 0,
+  ).unwrap()
+  assert_true(
+    @local_connector.managed_provider_accepts(provider, subgraph_sequence),
+  )
+  let input = @carrier_runtime.material_prepare_view(
+    source_material, owner, 0, source_owner,
+  ).unwrap()
+  let execution = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    subgraph_sequence,
+    [@local_connector.managed_provider_carrier_input(input)],
+    10,
+    1000,
+  ).unwrap()
+  let mut graph = None
+  while graph is None {
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.CarrierComplete(material, ..) => graph = Some(material)
+      _ => fail("selected subgraph did not complete")
+    }
+  }
+  let graph = graph.unwrap()
+  assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
+  assert_true(@carrier_runtime.material_available(graph))
+  let projection = @execution.select_generated_sequence_step(generated, 1).unwrap()
+  let read = @carrier_runtime.material_prepare_operation_view(
+    graph, owner, 1, 0, owner,
+  ).unwrap()
+  let projected = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    projection,
+    [@local_connector.managed_provider_carrier_input(read)],
+    10,
+    1000,
+  ).unwrap()
+  let mut rows = None
+  while rows is None {
+    match @local_connector.advance_managed_provider(projected, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(output, ..) => rows = Some(output)
+      _ => fail("selected subgraph Bridge did not complete")
+    }
+  }
+  assert_eq(@execution.completed_row_count(rows.unwrap()), 1)
+  assert_true(
+    @execution.completed_cell(rows.unwrap(), 0, 1) is Some(Text("left")),
+  )
+  assert_true(@local_connector.cleanup_managed_provider(projected).unwrap())
+  assert_true(@carrier_runtime.reclaim_material(graph))
+  assert_true(@carrier_runtime.reclaim_material(source_material))
+}
+
+///|
+test "selected subgraph stops at every pre-handoff yield" {
+  let source_owner = carrier_graft_source_owner()
+  let owner = carrier_selected_subgraph_owner(source_owner)
+  let generated = task_test_generated(owner)
+  let source_material = @graphs.completed_material(
+    carrier_graft_graph(source_owner, 1.0, "left"),
+  ).unwrap()
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  let sequence = @execution.select_generated_sequence_step(generated, 0).unwrap()
+  let mut checked_yields = 0
+  let mut reached_handoff = false
+  for cut in 0..<100 {
+    let input = @carrier_runtime.material_prepare_view(
+      source_material, owner, 0, source_owner,
+    ).unwrap()
+    let execution = @local_connector.start_managed_provider_with_inputs(
+      provider,
+      sequence,
+      [@local_connector.managed_provider_carrier_input(input)],
+      10,
+      1000,
+    ).unwrap()
+    let mut completed_before_cut = false
+    for _ in 0..<cut {
+      match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+        @local_connector.CarrierComplete(material, ..) => {
+          assert_true(@carrier_runtime.reclaim_material(material))
+          completed_before_cut = true
+          break
+        }
+        _ => fail("subgraph reached unexpected terminal before cancellation")
+      }
+    }
+    if completed_before_cut {
+      assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
+      reached_handoff = true
+      break
+    }
+    assert_true(@local_connector.cancel_managed_provider(execution))
+    assert_true(
+      @local_connector.advance_managed_provider(execution, 1).unwrap()
+      is @local_connector.Stopped(..),
+    )
+    assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
+    assert_true(@carrier_runtime.material_available(source_material))
+    checked_yields += 1
+  }
+  assert_true(reached_handoff)
+  assert_true(checked_yields > 0)
+  assert_true(@carrier_runtime.reclaim_material(source_material))
 }
 
 ///|
@@ -11457,6 +11636,7 @@ fn run_standard_host_mixed_graph_relation_path(
   }
   let filtered_live = Ref(true)
   let execution_advances = Ref(0)
+  let filtered_obligations = graph_publication_obligations(run, true).unwrap()
   let (filtered_ops, filtered) = run_local_managed_test_task(
     installed,
     run,
@@ -11465,7 +11645,7 @@ fn run_standard_host_mixed_graph_relation_path(
     [projected_rows],
     5,
     filtered_live,
-    obligations?=graph_publication_obligations(run, true),
+    obligations=filtered_obligations,
     execution_quantum~,
     execution_advances=Some(execution_advances),
   )
@@ -11473,7 +11653,8 @@ fn run_standard_host_mixed_graph_relation_path(
     assert_true(execution_advances.val > 1)
   }
   let filtered_rows = local_managed_test_rows(filtered_ops)
-  let expected_rows = if variant == "normalize_take" {
+  let expected_rows = if variant == "normalize_take" ||
+    variant == "subgraph_filter" {
     1
   } else if variant == "normalize_filter_false" {
     0
@@ -11502,9 +11683,37 @@ fn run_standard_host_mixed_graph_relation_path(
     assert_eq(filtered_rows, projected_rows)
   } else if variant == "normalize_unique" {
     assert_eq(filtered_rows, projected_rows)
+  } else if variant == "subgraph_filter" {
+    assert_eq(filtered_rows, projected_rows)
+    assert_true(filtered_rows[0].contains("\"id\":2"))
   } else {
     assert_true(filtered_rows[0].contains("\"src\":1"))
     assert_true(filtered_rows[1].contains("\"src\":2"))
+  }
+  if variant == "subgraph_filter" {
+    let publication = @execution.managed_obligations_identities(
+      filtered_obligations,
+    ).filter(requirement => {
+      requirement.domain == @execution.LogicalRelation &&
+      requirement.subject == @execution.NamedResult
+    })
+    assert_eq(publication.length(), 1)
+    match
+      @execution.managed_completed_identity_requirement_status(
+        filtered,
+        publication[0],
+      ) {
+      Some(@execution.EstablishedSourceRetained(contract, cid)) => {
+        assert_eq(
+          contract,
+          @execution.logical_relation_canonical_contract_cid(),
+        )
+        assert_eq(
+          cid, "sha256:a2151218d0638a59beb6b366fa8f2d0803e643139fd8c19cae1f9c8d6044f78f",
+        )
+      }
+      _ => fail("selected subgraph lost its named Relation identity")
+    }
   }
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
@@ -11580,198 +11789,8 @@ test "standard Host suppresses rows after a Graph projection and false filter" {
 }
 
 ///|
-test "standard Host runs a fused Graph prefix before Relation filter and two consumers" {
-  let (run, issuer) = captured_graph_fixture(
-    local_carrier_graph_chain=true,
-    local_carrier_graph_variant="subgraph_filter",
-    managed_publication=true,
-    ledger_limits=Some({
-      planning_work: 30000,
-      attempts: 20,
-      holdings: 20,
-      transfer_bytes: 800000L,
-      retained_bytes: 96000000L,
-      execution_bytes: 402653184L,
-    }),
-  )
-  let graph = @strategy.captured_dag_graph(run)
-  assert_eq(@strategy.graph_task_count(graph), 6)
-  assert_eq(@strategy.graph_task_prefix_end(graph, 2), Some(2))
-  assert_true(@strategy.graph_ordered_inputs_complete(graph))
-  assert_true(
-    @strategy.configure_captured_managed_identity_policy(
-      run, true, false, false, false,
-    ),
-  )
-  let registry = search_registry()
-  let limits = dispatch_test_limits()
-  let sequences = dispatch_test_generated(run)
-  let provider = @local_sga_provider.provider(
-    carrier_graph_storage_limits(),
-    4096L,
-    @execution.generated_sequence_capacity(
-      sequences[1],
-      limits.local_execution,
-      limits.guards,
-    ).unwrap(),
-  )
-  let modules = @builtin.configure_compute_modules(
-    @host_driver.open_dispatch_driver(run),
-    registry,
-    1,
-    _ => @strategy.RunIssue::ForeignCandidate,
-    with_local=Some(
-      (
-        @connector.capability_registration_at(registry, 0).unwrap(),
-        {
-          sequences,
-          managed_providers: [provider],
-          managed_capacity: limits.capacity,
-          execution: limits.local_execution,
-          measurement: limits.guards,
-          max_work: limits.candidate_work,
-        },
-        _ => @strategy.RunIssue::ForeignCandidate,
-        _ => @strategy.RunIssue::ForeignCandidate,
-      ),
-    ),
-  ).unwrap()
-  let installed = @builtin.configured_local_module(modules).unwrap()
-  @local_driver.configure_local_retained_inputs(
-    installed,
-    {
-      max_rows: 100,
-      values: limits.local_execution.rows.input_values,
-      wire: {
-        ..retained_attempt_wire_limits(),
-        max_bytes: 10000,
-        max_nodes: 1000,
-        max_depth: 20,
-        max_columns: 10,
-      },
-      row: {
-        max_bytes: 3000,
-        max_nodes: 300,
-        max_depth: 10,
-        max_text_bytes: 3000,
-      },
-      max_batch_bytes: 3000,
-    },
-    None,
-  ).unwrap()
-  let values_live = Ref(true)
-  let (values_ops, values) = run_local_managed_test_task(
-    installed,
-    run,
-    1,
-    [],
-    [],
-    1,
-    values_live,
-    obligations?=graph_publication_obligations(run, true),
-  )
-  let values_rows = local_managed_test_rows(values_ops)
-  let prefix_live = Ref(true)
-  let (prefix_ops, prefix) = run_local_managed_test_task(
-    installed,
-    run,
-    2,
-    [values],
-    [values_rows],
-    2,
-    prefix_live,
-    obligations?=graph_publication_obligations(run, true),
-  )
-  let prefix_rows = local_managed_test_rows(prefix_ops)
-  assert_eq(prefix_rows.length(), 1)
-  assert_true(prefix_rows[0].contains("\"id\":2"))
-  let filtered_live = Ref(true)
-  let filtered_obligations = graph_publication_obligations(run, true).unwrap()
-  let (filtered_ops, filtered) = run_local_managed_test_task(
-    installed,
-    run,
-    3,
-    [prefix],
-    [prefix_rows],
-    3,
-    filtered_live,
-    obligations=filtered_obligations,
-  )
-  assert_eq(local_managed_test_rows(filtered_ops), prefix_rows)
-  let publication = @execution.managed_obligations_identities(
-    filtered_obligations,
-  ).filter(requirement => {
-    requirement.domain == @execution.LogicalRelation &&
-    requirement.subject == @execution.NamedResult
-  })
-  assert_eq(publication.length(), 1)
-  match
-    @execution.managed_completed_identity_requirement_status(
-      filtered,
-      publication[0],
-    ) {
-    Some(@execution.EstablishedSourceRetained(contract, cid)) => {
-      assert_eq(contract, @execution.logical_relation_canonical_contract_cid())
-      assert_eq(
-        cid, "sha256:a2151218d0638a59beb6b366fa8f2d0803e643139fd8c19cae1f9c8d6044f78f",
-      )
-    }
-    _ => fail("fused Graph prefix lost the named Relation identity")
-  }
-  let first_live = Ref(true)
-  let (first_ops, first) = run_local_managed_test_task(
-    installed,
-    run,
-    4,
-    [filtered],
-    [prefix_rows],
-    4,
-    first_live,
-    obligations?=graph_publication_obligations(run, true),
-  )
-  let second_live = Ref(true)
-  let (second_ops, second) = run_local_managed_test_task(
-    installed,
-    run,
-    5,
-    [filtered],
-    [prefix_rows],
-    5,
-    second_live,
-    obligations?=graph_publication_obligations(run, true),
-  )
-  assert_eq(local_managed_test_rows(first_ops).length(), 1)
-  assert_eq(local_managed_test_rows(second_ops).length(), 1)
-  first_live.val = false
-  @strategy.close_captured_task_output(run, 4)
-  (first_ops.close)()
-  (first_ops.cleanup_refresh)() |> ignore
-  assert_false(@execution.managed_completed_output_available(first))
-  assert_true(@execution.managed_completed_output_available(second))
-  second_live.val = false
-  @strategy.close_captured_task_output(run, 5)
-  (second_ops.close)()
-  (second_ops.cleanup_refresh)() |> ignore
-  filtered_live.val = false
-  @strategy.close_captured_task_output(run, 3)
-  (filtered_ops.close)()
-  (filtered_ops.cleanup_refresh)() |> ignore
-  prefix_live.val = false
-  @strategy.close_captured_task_output(run, 2)
-  (prefix_ops.close)()
-  (prefix_ops.cleanup_refresh)() |> ignore
-  values_live.val = false
-  @strategy.close_captured_task_output(run, 1)
-  (values_ops.close)()
-  (values_ops.cleanup_refresh)() |> ignore
-  @strategy.stop_captured_dag(run)
-  @strategy.close_captured_task_output(run, 0)
-  @strategy.refresh_captured_retention(run)
-  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
-  assert_eq(usage.reserved_execution_bytes, 0L)
-  assert_eq(usage.reserved_retention_bytes, 0L)
-  assert_eq(usage.held_bytes, 0L)
-  @mock.close_mock_query_issuer(issuer)
+test "standard Host selects subgraph before Relation filter and two consumers" {
+  run_standard_host_mixed_graph_relation_path(variant="subgraph_filter")
 }
 
 ///|

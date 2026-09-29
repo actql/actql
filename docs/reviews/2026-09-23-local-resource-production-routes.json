@@ -10,13 +10,13 @@
         "suite": "moon:query_integration",
         "targets": ["js", "wasm", "native"],
         "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "fixture": "standard Host runs a fused Graph prefix before Relation filter and two consumers"
+        "fixture": "standard Host selects subgraph before Relation filter and two consumers"
       },
       "in_flight_cancel": {
         "suite": "node:duckdb_standard_host",
         "targets": ["node"],
         "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-        "fixture": "subgraph-fused-filter"
+        "fixture": "subgraph-fused-bridge"
       },
       "selected_in_flight_cancel": {
         "suite": "node:duckdb_standard_host",
@@ -7383,7 +7383,7 @@
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "subgraph-fused-filter"
+          "fixture": "subgraph-fused-bridge"
         }
       ],
       "path_assurance": {

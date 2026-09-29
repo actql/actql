@@ -2131,6 +2131,51 @@ async function exerciseStrategyGraph(
       {node_id: 2, component_id: 1, component_size: 2},
     ],
   }];
+  graphPublicationCases.push({
+    name: 'selected-subgraph-literal',
+    retainedOutput: true,
+    selectedStructural: true,
+    steps: [{
+      from: 'g', subgraph: {nodes: {ids: [1]}}, as: 'selected',
+    }, {
+      from: 'selected', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [{id: 1, node_name: 'first'}],
+  }, {
+    name: 'selected-subgraph-edge-predicate',
+    retainedOutput: true,
+    selectedStructural: true,
+    steps: [{
+      from: 'g',
+      subgraph: {nodes: {ids: [1, 2]}, edges: 'weight > 10'},
+      as: 'selected',
+    }, {
+      from: 'selected', edge_rows: true, as: 'out',
+    }],
+    fields: ['src', 'dst', 'weight'],
+    secondFields: ['weight', 'src'],
+    expected: [{src: 2, dst: 1, weight: 20}],
+  }, {
+    name: 'selected-subgraph-relation-selector',
+    retainedOutput: true,
+    selectedStructural: true,
+    selectorInput: true,
+    steps: [{
+      from: 'g',
+      subgraph: {nodes: {from: 'selected', id: 'id'}},
+      as: 'selected_graph',
+    }, {
+      from: 'selected_graph', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [
+      {id: 1, node_name: 'first'},
+      {id: 2, node_name: 'second'},
+    ],
+  });
   const structuralEdgeExpectations = [{
     source: 'graft',
     expected: [
@@ -2183,6 +2228,11 @@ async function exerciseStrategyGraph(
     if (publicationCase.rightRows) {
       graphStage.inputs.right_rows = {
         result: {stage: 'right_values', result: 'r'},
+      };
+    }
+    if (publicationCase.selectorInput) {
+      graphStage.inputs.selected = {
+        result: {stage: 'values', result: 'r'},
       };
     }
     if (publicationCase.concise === true) {
@@ -3029,6 +3079,287 @@ async function exerciseStrategyGraph(
     });
     await carrierVectorRetained.close();
   }
+  const rankingFields = ['q', 'id', 'score', 'rank'];
+  const rankingInputSchema = {
+    q: {type: 'number', nullable: false},
+    id: {type: 'number', nullable: false},
+    rank: {type: 'number', nullable: false},
+  };
+  const rankingPublicationProgram = {
+    version: 'actql/0.1',
+    id: 'p',
+    params: {minimum: {type: 'number', nullable: false}},
+    stages: [carrierVectorPublicationProgram.stages[0], ...[
+      ['left', [
+        {q: 1, id: 1, rank: 1},
+        {q: 1, id: 2, rank: 2},
+        {q: 2, id: 1, rank: 1},
+      ]],
+      ['right', [
+        {q: 1, id: 3, rank: 1},
+        {q: 1, id: 1, rank: 2},
+        {q: 2, id: 1, rank: 1},
+      ]],
+    ].map(([id, rows]) => ({
+      id,
+      inputs: {},
+      steps: [{values: {schema: rankingInputSchema, rows}, as: 'out'}],
+      results: {r: {from: 'out', fields: ['q', 'id', 'rank']}},
+    })), {
+      id: 'fusion',
+      inputs: {
+        left: {result: {stage: 'left', result: 'r'}},
+        right: {result: {stage: 'right', result: 'r'}},
+      },
+      steps: [{
+        from: 'left',
+        merge_rankings: {
+          with: ['right'], by: ['q'], candidate: 'id', rank: 'rank',
+          score_policy: {rrf: {
+            rank_constant: 1, weights: [1, 1], rank_window: 2,
+          }},
+          k: 2,
+        },
+        as: 'ranked',
+      }, {
+        from: 'ranked', filter: 'q = 1', as: 'out',
+      }],
+      results: {r: {from: 'out', fields: rankingFields}},
+    }, ...['a', 'b'].map(id => ({
+      id: `consumer_${id}`,
+      inputs: {x: {result: {stage: 'fusion', result: 'r'}}},
+      steps: [{select: rankingFields, as: 'out'}],
+      results: {r: {from: 'out', fields: rankingFields}},
+    }))],
+    results: {
+      published: {from: {stage: 'fusion', result: 'r'}},
+      consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
+      consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
+    },
+  };
+  const rankingPublicationFixture = fixture.strategyFixtureVecaCreate(
+    ...args, JSON.stringify(rankingPublicationProgram), orderedContract,
+  );
+  const rankingCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(rankingPublicationFixture),
+    suppliedLimits,
+  );
+  const rankingPublicationDirectory = await mkdtemp(join(
+    root, '_build/duckdb-fixtures/ranking-publication-entry-',
+  ));
+  const rankingRetained = await createCarrierRetainedStore('ranking-filter');
+  let rankingPublicationOwner;
+  let rankingPublicationStore;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      rankingPublicationFixture, rankingCapture.source()), true);
+    const setup = fixture.strategyFixtureVecaRetainedSubset(
+      rankingPublicationFixture,
+    );
+    const runtime = runtimeCore(hostRuntime);
+    const resultCount = runtime.resultInventory(setup).length;
+    assert.equal(resultCount, 3);
+    rankingPublicationStore = await openLocalPublicationStore({
+      directory: rankingPublicationDirectory,
+      storeAuthorityCid: hash('ranking-filter-publication-store'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    const plan = standardPublicationPlan(
+      runtime,
+      runtime.programDefinitionCid(setup),
+      resultCount,
+      'ranking-filter-publication-attempt',
+    );
+    rankingPublicationOwner = await runPublishedCapturedStrategy(
+      setup,
+      {store: rankingPublicationStore, plan},
+      {local: rankingRetained.configuration},
+      new AbortController().signal,
+    );
+    assert.equal(rankingPublicationOwner.status, 'published');
+    assert.equal(rankingPublicationOwner.publication.publication.state,
+      'succeeded');
+    assert(rankingRetained.leases.length > 0);
+    assert(rankingPublicationOwner.execution.completed.some(value =>
+      value.outputRepresentation === 'retained-file'));
+    const expectedRows = [
+      {id: 1, q: 1, rank: 1, score: 0.8333333333333333},
+      {id: 3, q: 1, rank: 2, score: 0.5},
+    ];
+    for (const occurrence of rankingPublicationOwner.execution
+      .publicationInventory.occurrences) {
+      const received = [];
+      await rankingPublicationStore.consumeCommittedResult({
+        namespaceId: plan.request.namespaceId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, occurrence.definitionContract.identity, () => true,
+      chunk => received.push(Buffer.from(chunk)));
+      assert.deepEqual(
+        JSON.parse(Buffer.concat(received).toString('utf8')),
+        expectedRows,
+      );
+    }
+  } finally {
+    if (rankingPublicationOwner !== undefined) {
+      await rankingPublicationOwner.close();
+      assert.equal(rankingPublicationOwner.cleanupPending(), false);
+      assert.equal(await rankingPublicationOwner.cleanup(), true);
+      assert.equal(rankingPublicationOwner.execution.usage().heldBytes, 0n);
+      assert.equal(rankingPublicationOwner.execution.usage()
+        .reservedExecutionBytes, 0n);
+    }
+    rankingCapture.close();
+    await rankingPublicationStore?.close();
+    await rm(rankingPublicationDirectory, {recursive: true, force: true});
+    await rankingRetained.close();
+  }
+  const nearestFields = ['query_id', 'candidate_id', 'score', 'rank'];
+  const nearestSchema = {
+    id: {type: 'number', nullable: false},
+    embedding: {type: 'vector', dimensions: 2, nullable: false},
+  };
+  const nearestPublicationProgram = {
+    version: 'actql/0.1',
+    id: 'p',
+    params: {minimum: {type: 'number', nullable: false}},
+    stages: [carrierVectorPublicationProgram.stages[0], ...[
+      ['candidates', [
+        {id: 2, embedding: [1, 0]},
+        {id: 1, embedding: [1, 0]},
+        {id: 3, embedding: [0, 1]},
+      ]],
+      ['queries', [
+        {id: 20, embedding: [1, 0]},
+        {id: 10, embedding: [0, 1]},
+      ]],
+    ].map(([id, rows]) => ({
+      id,
+      inputs: {},
+      steps: [{values: {schema: nearestSchema, rows}, as: 'out'}],
+      results: {r: {from: 'out', fields: ['id', 'embedding']}},
+    })), {
+      id: 'nearest',
+      // Authored Stage input order differs from the nearest operation ports.
+      inputs: {
+        queries: {result: {stage: 'queries', result: 'r'}},
+        candidates: {result: {stage: 'candidates', result: 'r'}},
+      },
+      steps: [{
+        from: 'candidates',
+        nearest: {
+          queries: 'queries',
+          candidate_id: 'id',
+          candidate_vector: 'embedding',
+          query_id: 'id',
+          query_vector: 'embedding',
+          metric: 'dot',
+          k: 2,
+        },
+        as: 'ranked',
+      }, {
+        from: 'ranked', filter: 'query_id = 20', as: 'out',
+      }],
+      results: {r: {from: 'out', fields: nearestFields}},
+    }, ...['a', 'b'].map(id => ({
+      id: `consumer_${id}`,
+      inputs: {x: {result: {stage: 'nearest', result: 'r'}}},
+      steps: [{select: nearestFields, as: 'out'}],
+      results: {r: {from: 'out', fields: nearestFields}},
+    }))],
+    results: {
+      published: {from: {stage: 'nearest', result: 'r'}},
+      consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
+      consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
+    },
+  };
+  const nearestPublicationFixture = fixture.strategyFixtureVecaCreate(
+    ...args, JSON.stringify(nearestPublicationProgram), orderedContract,
+  );
+  const nearestCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(nearestPublicationFixture),
+    suppliedLimits,
+  );
+  const nearestPublicationDirectory = await mkdtemp(join(
+    root, '_build/duckdb-fixtures/nearest-publication-entry-',
+  ));
+  const nearestRetained = await createCarrierRetainedStore('nearest-filter');
+  let nearestPublicationOwner;
+  let nearestPublicationStore;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      nearestPublicationFixture, nearestCapture.source()), true);
+    const setup = fixture.strategyFixtureVecaRetainedSubset(
+      nearestPublicationFixture,
+    );
+    const runtime = runtimeCore(hostRuntime);
+    const resultCount = runtime.resultInventory(setup).length;
+    assert.equal(resultCount, 3);
+    nearestPublicationStore = await openLocalPublicationStore({
+      directory: nearestPublicationDirectory,
+      storeAuthorityCid: hash('nearest-filter-publication-store'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    const plan = standardPublicationPlan(
+      runtime,
+      runtime.programDefinitionCid(setup),
+      resultCount,
+      'nearest-filter-publication-attempt',
+    );
+    nearestPublicationOwner = await runPublishedCapturedStrategy(
+      setup,
+      {store: nearestPublicationStore, plan},
+      {local: nearestRetained.configuration},
+      new AbortController().signal,
+    );
+    assert.equal(nearestPublicationOwner.status, 'published');
+    assert.equal(nearestPublicationOwner.publication.publication.state,
+      'succeeded');
+    assert(nearestRetained.leases.length > 0);
+    assert(nearestPublicationOwner.execution.completed.some(value =>
+      value.outputRepresentation === 'retained-file'));
+    const expectedRows = [
+      {candidate_id: 1, query_id: 20, rank: 1, score: 1},
+      {candidate_id: 2, query_id: 20, rank: 2, score: 1},
+    ];
+    for (const occurrence of nearestPublicationOwner.execution
+      .publicationInventory.occurrences) {
+      const received = [];
+      await nearestPublicationStore.consumeCommittedResult({
+        namespaceId: plan.request.namespaceId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, occurrence.definitionContract.identity, () => true,
+      chunk => received.push(Buffer.from(chunk)));
+      assert.deepEqual(
+        JSON.parse(Buffer.concat(received).toString('utf8')),
+        expectedRows,
+      );
+    }
+  } finally {
+    if (nearestPublicationOwner !== undefined) {
+      await nearestPublicationOwner.close();
+      assert.equal(nearestPublicationOwner.cleanupPending(), false);
+      assert.equal(await nearestPublicationOwner.cleanup(), true);
+      assert.equal(nearestPublicationOwner.execution.usage().heldBytes, 0n);
+      assert.equal(nearestPublicationOwner.execution.usage()
+        .reservedExecutionBytes, 0n);
+    }
+    nearestCapture.close();
+    await nearestPublicationStore?.close();
+    await rm(nearestPublicationDirectory, {recursive: true, force: true});
+    await nearestRetained.close();
+  }
   // A zero-input row source and its Carrier Bridge share an authored Stage.
   // The physical split must retain the Events/Vectors generation for a later
   // Bridge task, then publish and independently consume its Relation view.
@@ -3803,7 +4134,7 @@ async function exerciseStrategyGraph(
     }],
     fields: ['id', 'node_name'],
   }, {
-    name: 'subgraph-fused-filter',
+    name: 'subgraph-fused-bridge',
     rows: 40,
     advanceQuantum: 1,
     // The prefix must remain active after graph construction completes.
@@ -3817,9 +4148,7 @@ async function exerciseStrategyGraph(
       },
       as: 'selected',
     }, {
-      from: 'selected', node_rows: true, as: 'projected',
-    }, {
-      from: 'projected', filter: 'id > 0', as: 'out',
+      from: 'selected', node_rows: true, as: 'out',
     }],
     fields: ['id', 'node_name'],
   }, {

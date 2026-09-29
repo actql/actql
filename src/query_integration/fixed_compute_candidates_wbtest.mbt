@@ -1,4 +1,43 @@
 ///|
+test "selected fixed requests bind the checked operation input" {
+  let input = duckdb_captured_input(filter="id > 2")
+  let owner = @execution.producer_read_receiver(input)
+  let capacity : @connector.FixedComputeCapacity = {
+    contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+    max_rows: 100,
+    max_value_bytes: 10000,
+    common_fragment: None,
+  }
+  assert_true(
+    @connector.prepare_selected_fixed_compute_request(
+      owner,
+      0,
+      [input],
+      capacity,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @connector.prepare_selected_fixed_compute_request(
+      owner,
+      1,
+      [input],
+      capacity,
+    )
+    is Err(@connector.UnsupportedInputShape),
+  )
+  assert_true(
+    @connector.prepare_selected_fixed_compute_request(
+      owner,
+      0,
+      [input, input],
+      capacity,
+    )
+    is Err(@connector.UnsupportedInputShape),
+  )
+}
+
+///|
 test "registered fixed Compute candidates keep the same capture and Local execution budgets" {
   let registry = @connector.prepare_capability_registry(
     [
