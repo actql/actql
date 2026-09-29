@@ -133,3 +133,48 @@ test "resolved limits reject a same CID proof from another admission" {
     is Err(MissingCandidate(0, 0)),
   )
 }
+
+///|
+test "Program-only resolved limits retain exact proof without a Host claim" {
+  let (original, _, proof) = resolved_limit_fixture()
+  let subject = "components:checked-step:1:nodes"
+  let caps : @capacity_host_witness.ResolvedLimitLimits = {
+    max_work: 1000,
+    max_bytes: 20000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }
+  let extended = @capacity_host_witness.extend_program_resolved_limits(
+    original,
+    [{ subject, candidates: [proof], }],
+    @wire.EngineAtomic,
+    caps,
+  ).unwrap()
+  let sources = @capacity_host_witness.resolved_limit_sources(extended)
+  assert_true(@capacity_host_witness.same_source_origin(original, sources))
+  assert_eq(
+    @capacity_host_witness.source_count(sources),
+    @capacity_host_witness.source_count(original),
+  )
+  let limit = @capacity_host_witness.resolved_limit_at(extended, 0).unwrap()
+  assert_eq(@wire.limit_subject(limit), subject)
+  assert_eq(@derivation.minimum_candidate_count(@wire.limit_minimum(limit)), 1)
+  assert_true(
+    @capacity_host_witness.extend_program_resolved_limits(
+      original,
+      [{ subject, candidates: [], }],
+      @wire.EngineAtomic,
+      caps,
+    )
+    is Err(MissingCandidate(0, 0)),
+  )
+  assert_true(
+    @capacity_host_witness.extend_program_resolved_limits(
+      original,
+      [{ subject, candidates: [resolved_limit_program_proof()], }],
+      @wire.EngineAtomic,
+      caps,
+    )
+    is Err(MissingCandidate(0, 0)),
+  )
+}
