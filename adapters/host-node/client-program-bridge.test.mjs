@@ -6,6 +6,7 @@ import {createRequire} from 'node:module';
 import {join} from 'node:path';
 
 import test from 'node:test';
+import {inspect} from 'node:util';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
@@ -85,6 +86,77 @@ const hashWithoutSelf = (value, selfKey) => {
 };
 const evidenceCid =
   'sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904';
+
+test('public source preparation binds installed aliases before checking a Program', async () => {
+  const source = await readFile(new URL(
+    '../../src/query_integration/query_amount_catalog_wbtest.mbt', import.meta.url), 'utf8');
+  const match = source.slice(source.indexOf('fn query_amount_nullable_catalog'))
+    .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")/u);
+  assert.ok(match);
+  const body = JSON.parse(JSON.parse(match[1]));
+  const viewCid = 'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3';
+  const schemaCid = 'sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4';
+  const sourceRef = 'connector://crm/main/r#v';
+  const selector = {source_ref: sourceRef, source_contract_cid: viewCid,
+    source_view_contract_cid: viewCid, read_mode: 'snapshot'};
+  body.schema_snapshots = [{...selector, output_carrier: 'relation',
+    carrier_schema_contract_cid: schemaCid,
+    source_data_policy_cid: 'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf',
+    data_classification: 'unknown'}];
+  body.connector_capabilities = [{...selector, capability_contract_cids: [
+    'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8']}];
+  delete body.evidence_bundle_cid;
+  body.evidence_bundle_cid = machineCid(body);
+  const environment = moon.clientProgramCheckEnvironment(canonicalText(body),
+    body.evidence_bundle_cid, false, false, true, false, false, false, false);
+  assert.ok(environment);
+  assert.equal(moon.clientProgramCheckingEnvironmentCid(environment),
+    body.evidence_bundle_cid);
+  const alias = {name: 'records', sourceRef, sourceViewContractCid: viewCid,
+    schemaContractCid: schemaCid};
+  const publication = {environmentCid: body.evidence_bundle_cid, aliases: [alias]};
+  const prepare = (text, format = 'sql', published = publication,
+    declarations, parameters) => moon.clientProgramPrepareSourceWithParameters(
+    text, format, environment, JSON.stringify(published), declarations, parameters);
+  const valid = published => moon.clientProgramSourcePublicationValid(
+    environment, JSON.stringify(published));
+  assert.equal(valid(publication), true);
+  for (const text of ['SELECT id FROM records',
+    'SELECT id FROM records WHERE amount >= @minimum']) {
+    const outcome = prepare(text, 'sql', publication,
+      text.includes('@minimum') ? JSON.stringify({minimum: {type: 'number'}}) : undefined,
+      text.includes('@minimum') ? JSON.stringify({minimum: 20}) : undefined);
+    assert.ok(moon.clientProgramPreparationReady(outcome),
+      inspect(moon.clientProgramPreparationIssue(outcome), {depth: 8}));
+  }
+  const pipe = prepare('FROM records |> SELECT id', 'aql-text');
+  assert.ok(moon.clientProgramPreparationReady(pipe),
+    String(moon.clientProgramPreparationIssueCode(pipe)));
+  for (const changed of [
+    {...publication, environmentCid: cid('0')},
+    {...publication, aliases: [{...alias, sourceRef: 'connector://crm/main/other#v'}]},
+    {...publication, aliases: [{...alias, schemaContractCid: cid('0')}]},
+    {...publication, aliases: [{...alias, sourceViewContractCid: cid('0')}]},
+    {...publication, aliases: [alias, {...alias, name: 'RECORDS'}]},
+    {...publication, aliases: [{...alias, name: 'records..bad'}]},
+    {...publication, aliases: [{...alias, extra: 'not permitted'}]},
+  ]) {
+    assert.equal(valid(changed), false);
+    const outcome = prepare('SELECT id FROM records', 'sql', changed);
+    assert.equal(moon.clientProgramPreparationReady(outcome), undefined);
+    assert.equal(moon.clientProgramPreparationIssueCode(outcome), 'source_rejected');
+  }
+  for (const [text, format, code] of [
+    ['SELECT id FROM', 'sql', 'source_invalid_input'],
+    ['FROM records |> SELECT id', 'sql', 'source_invalid_input'],
+    ['SELECT id FROM absent', 'sql', 'source_rejected'],
+    ['SELECT absent FROM records', 'sql', 'source_rejected'],
+  ]) {
+    const outcome = prepare(text, format);
+    assert.equal(moon.clientProgramPreparationReady(outcome), undefined);
+    assert.equal(moon.clientProgramPreparationIssueCode(outcome), code);
+  }
+});
 const programCid =
   'sha256:f3514c8f22c6d72818a167ca3341b3c945397042351c51a5982d7abc881a298c';
 const parametersCid =
@@ -1022,8 +1094,24 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.ok(widePrepared);
   const wideResultPlan = checked(
     moon.clientProgramIssueResultPlan(widePrepared, 0));
-  assert.throws(() => checked(
-    moon.clientProgramIssueLocalValuesPlanGraph(widePrepared)),
+  const wideGraph = JSON.parse(moon.clientProgramLocalValuesPlanGraphWire(
+    checked(moon.clientProgramIssueLocalValuesPlanGraph(widePrepared))));
+  assert.equal(wideGraph.nodes.length, 2);
+  assert.deepEqual(wideGraph.nodes[1].pipeline, {
+    output: 'projected', sources: {input_0: {sort: 'relation'}},
+    steps: [{id: 'projected', in: ['input_0'], op: 'REL.select',
+      params: {columns: ['id']}}], version: 'aoa-pipeline/0.1',
+  });
+  assert.deepEqual(wideGraph.root_refs, [{name: 'answer',
+    ref: {node_id: 'result_0', port: 'projected'}, role: 'requested_result'}]);
+  assert.deepEqual(wideGraph.data_edges.map(({from, to}) => ({from, to})), [{
+    from: {node_id: 'values_0', port: 'values_0'},
+    to: {node_id: 'result_0', port: 'input_0'},
+  }]);
+  const alteredProjection = structuredClone(wideGraph);
+  alteredProjection.nodes[1].pipeline.steps[0].params.columns = ['hidden'];
+  assert.throws(() => checked(moon.clientProgramAdmitLocalValuesPlanGraph(
+    widePrepared, JSON.stringify(alteredProjection))),
   {code: 'MoonBitHostFailure'});
   assert.notEqual(moon.clientProgramResultPlanCid(wideResultPlan),
     moon.clientProgramResultPlanCid(resultPlan));

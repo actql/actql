@@ -49,7 +49,8 @@ function localPublicationPlan(options) {
 function buildLocalPublicationPlan({control, admission, runDefinition, invocation,
   observation, compiledPlanCid, programDefinitionCid, inputRelationCids,
   sourceEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
-  dataPolicyCid, createdAt, now, resultCount, retainUntil}) {
+  dataPolicyCid, createdAt, now, resultCount, retainUntil,
+  compiled, preparedProgram, effectCompilation, preparedEffect, moon}) {
   const at = Date.parse(now());
   const availableAt = retainUntil === undefined ? at + 60 * 60 * 1000
     : Math.max(at + 60 * 60 * 1000, Date.parse(retainUntil));
@@ -78,12 +79,20 @@ function buildLocalPublicationPlan({control, admission, runDefinition, invocatio
       annotations: []}), limits);
   const plan = Object.freeze({admission, runDefinition, invocation, observation,
     normalizationJournal, authoringContext,
-    results: Object.freeze(Array.from({length: resultCount}, () =>
-      Object.freeze({retention, evidenceContext: Object.freeze({
+    results: Object.freeze(Array.from({length: resultCount}, (_, index) => {
+      const transformation = effectCompilation !== undefined ? checked(
+        moon.clientProgramEffectCompilationResultTransformation(
+          effectCompilation, preparedEffect, index)) :
+        compiled === undefined ? undefined :
+          control.compiledRunResultTransformation(compiled, preparedProgram, index);
+      return Object.freeze({retention,
+        ...(transformation == null ? {} : {transformation}),
+        evidenceContext: Object.freeze({
         computationContractCid: compiledPlanCid,
         inputRelationCids, scopeCid: runDefinition.identity,
         effectiveDataPolicyCid: dataPolicyCid, authorityScopeCid,
-      })}))),
+      })});
+    })),
     receiptEvidence: Object.freeze({bindings: [], sourceEvidence,
       modelEvidence: [], barrierAttemptReceiptCids: []}),
     captureEvidence: Object.freeze({pendingSourceStateAdvances: [],
@@ -147,7 +156,8 @@ export function sourceFreeEffectPublicationPlan(options) {
     programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
     inputRelationCids: [], sourceEvidence: [], authorityScopeCid, namespaceId,
     storeAuthorityCid, dataPolicyCid, createdAt: run.created_at, now,
-    resultCount, retainUntil: run.valid_until});
+    resultCount, retainUntil: run.valid_until,
+    moon, effectCompilation: compilation, preparedEffect: prepared});
   return Object.freeze({...plan, invocationOwner: sourceFree._1,
     localEvidenceContext: Object.freeze({admission, runDefinition,
       runInvocation: invocation, observation})});
@@ -199,7 +209,8 @@ export function acquiredEffectPublicationPlan({acquired, captured,
       captured.identity)], sourceEvidence: [sourceEvidence],
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: source.sourceDataPolicyCid, createdAt: run.created_at,
-    now, resultCount, retainUntil: run.valid_until});
+    now, resultCount, retainUntil: run.valid_until,
+    moon, effectCompilation: compilation, preparedEffect: prepared});
   const acquiredEvidence = control.issueCheckedAcquiredEffectEvidence(
     prepared, captured.capture.source(), captured.identity,
     captured.requirement, captured.logicalInput, sourceEvidence,
@@ -253,7 +264,8 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
     inputRelationCids: [], sourceEvidence: [], authorityScopeCid,
     namespaceId, storeAuthorityCid, dataPolicyCid, createdAt,
-    now, resultCount: 1});
+    now, resultCount: moon.clientProgramResultCount(preparedProgram),
+    compiled, preparedProgram});
 }
 
 // Admit the complete checked task graph, including acquired sources, to the
@@ -297,7 +309,8 @@ export function sourceFreeTaskPlan(options) {
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
     inputRelationCids: [], sourceEvidence: [], authorityScopeCid, namespaceId,
     storeAuthorityCid, dataPolicyCid, createdAt: acquired.createdAt, now,
-    resultCount: moon.clientProgramResultCount(preparedProgram)});
+    resultCount: moon.clientProgramResultCount(preparedProgram),
+    compiled: acquired.compiled, preparedProgram});
 }
 
 // The connector/Acquisition owner supplies Source Evidence after completing
@@ -339,5 +352,6 @@ export function acquiredTaskPublicationPlan({moon, control, acquired,
       captured.identity)], sourceEvidence: [sourceEvidence],
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
-    now, resultCount: moon.clientProgramResultCount(preparedProgram)});
+    now, resultCount: moon.clientProgramResultCount(preparedProgram),
+    compiled: acquired.compiled, preparedProgram});
 }

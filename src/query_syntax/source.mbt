@@ -80,6 +80,18 @@ pub fn tokenize(
   limits : LexicalLimits,
   source_path? : String = "<query>",
 ) -> Result[Tokens, Diagnostic] {
+  scan_tokens(text, limits, source_path, false)
+}
+
+///|
+// Routing validates the source envelope but lets the selected parser own
+// its body grammar, including structural JSON string escapes.
+fn scan_tokens(
+  text : String,
+  limits : LexicalLimits,
+  source_path : String,
+  first_only : Bool,
+) -> Result[Tokens, Diagnostic] {
   let caps = [limits.max_tokens, limits.max_literal_bytes, limits.max_work]
   if limits.max_source_bytes < 0 || caps.any(n => n < 0 || n == 2147483647) {
     return Err({ issue: InvalidLimits, span: None, })
@@ -96,7 +108,7 @@ pub fn tokenize(
     while true {
       let t = scanner.next()
       tokens.push(t)
-      if t.value == End {
+      if first_only || t.value == End {
         break
       }
     }

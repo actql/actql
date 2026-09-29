@@ -93,7 +93,8 @@ function validateOptions(options) {
     fail('InvalidCompletedRunPublicationOptions');
   }
   for (const result of options.results) {
-    if (!exactKeys(result, ['retention', 'evidenceContext']) ||
+    if (!exactKeys(result, ['retention', 'evidenceContext',
+          ...(result?.transformation === undefined ? [] : ['transformation'])]) ||
         !contract(result.retention) || result.evidenceContext === null ||
         typeof result.evidenceContext !== 'object') {
       fail('InvalidCompletedRunPublicationOptions');
@@ -263,7 +264,8 @@ async function exportCompletedRunResultSet({
   for (let index = 0; index < results.length; index++) {
     signal?.throwIfAborted();
     const result = results[index];
-    if (!exactKeys(result, ['retention', 'evidenceContext']) ||
+    if (!exactKeys(result, ['retention', 'evidenceContext',
+          ...(result?.transformation === undefined ? [] : ['transformation'])]) ||
         !contract(result.retention) ||
         result.evidenceContext === null ||
         typeof result.evidenceContext !== 'object') {
@@ -273,6 +275,7 @@ async function exportCompletedRunResultSet({
       outputLimits, contractLimits, runDefinition, invocation,
       retention: result.retention,
       evidenceContext: result.evidenceContext,
+      transformation: result.transformation,
     }, signal);
     const expected = execution.publicationInventory.occurrences[index];
     if (stored?.occurrence?.name !== expected.name ||

@@ -12,6 +12,11 @@ import {clientHostOperations, clientHostRequestKeys,
   validRunRefShape, validRunStateShape,
   validSubmitPreparationErrorShape} from './client-host.generated.js';
 export {clientHostOperations} from './client-host.generated.js';
+// Legacy JSON/YAML spellings remain accepted by the transport Client. The
+// named spellings select the corresponding installed source frontend.
+export const clientSourceFormats = Object.freeze([
+  'json', 'yaml', 'aql-json', 'aql-yaml', 'aql-text', 'sql',
+]);
 const cid = /^sha256:[0-9a-f]{64}$/u;
 const exact = (value, keys) => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join('\0') ===
@@ -93,11 +98,18 @@ export function validClientBody(operation, body) {
   if (operation === 'connect') return true;
   if (operation === 'submit') {
     return boundedText(body.requestId) &&
-      (body.kind === 'aql' && exact(body.input, ['text', 'format']) &&
+      (body.kind === 'aql' &&
+        (exact(body.input, ['text', 'format']) ||
+          exact(body.input, ['text', 'format', 'parameterDeclarations'])) &&
         typeof body.input.text === 'string' &&
         body.input.text.length > 0 && body.input.text.length <= 65536 &&
         !body.input.text.includes('\u0000') &&
-        ['json', 'yaml'].includes(body.input.format) ||
+        clientSourceFormats.includes(body.input.format) &&
+        (body.input.parameterDeclarations === undefined ||
+          ['aql-text', 'sql'].includes(body.input.format) &&
+          body.input.parameterDeclarations !== null &&
+          typeof body.input.parameterDeclarations === 'object' &&
+          !Array.isArray(body.input.parameterDeclarations)) ||
         body.kind === 'program' && body.input !== null &&
         typeof body.input === 'object' && !Array.isArray(body.input));
   }

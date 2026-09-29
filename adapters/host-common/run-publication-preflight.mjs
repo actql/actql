@@ -51,7 +51,8 @@ function snapshotPlan(plan) {
     fail('InvalidRunPublicationPreflight');
   }
   const results = plan.results.map(result => {
-    if (!exactKeys(result, ['retention', 'evidenceContext']) ||
+    if (!exactKeys(result, ['retention', 'evidenceContext',
+          ...(result?.transformation === undefined ? [] : ['transformation'])]) ||
         !contract(result.retention) || result.evidenceContext === null ||
         typeof result.evidenceContext !== 'object' ||
         Array.isArray(result.evidenceContext)) {
@@ -59,6 +60,8 @@ function snapshotPlan(plan) {
     }
     return Object.freeze({
       retention: result.retention,
+      ...(result.transformation === undefined ? {} :
+        {transformation: result.transformation}),
       evidenceContext: Object.freeze({...result.evidenceContext}),
     });
   });

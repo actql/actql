@@ -53,6 +53,31 @@ pub fn client_effect_compilation_owner(
 }
 
 ///|
+/// Only the original checked Effect owner can obtain a compiled Result
+/// selection. The retained compiler view is not reconstructed or rechecked.
+pub fn client_effect_compilation_result_transformation(
+  value : ClientEffectCompilation,
+  owner : PreparedClientEffectComputation,
+  result : Int,
+) -> Result[ClientResultTransformation?, ClientEffectCompilationAdmissionIssue] {
+  if !physical_equal(value.owner, owner) ||
+    @strategy.graph_result_occurrence(value.compiled.owner.graph, result)
+    is None {
+    return Err(MismatchedCompilation)
+  }
+  for selection in value.compiled.plan.plan.transformations {
+    if client_result_transformation_matches(
+        selection,
+        value.compiled.owner,
+        result,
+      ) {
+      return Ok(Some(selection))
+    }
+  }
+  Ok(None)
+}
+
+///|
 /// Compile a Values Effect Unit or an acquired root feeding one Effect Unit.
 /// Existing task lowering owns the supported Relation operations. Command
 /// Effects and other multi-Unit plans are rejected explicitly.
@@ -184,6 +209,7 @@ pub fn issue_prepared_client_effect_compilation(
     issue_prepared_client_executable_plan_with_parts(
       value,
       task_graph.wire,
+      task_graph.transformations,
       material.wire,
       max_facts,
       max_witnesses,

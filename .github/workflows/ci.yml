@@ -11,6 +11,10 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      packed_query_evidence_probe:
+        description: Run only the intentionally failing evidence upload probes
+        type: boolean
+        default: false
       performance_matrix:
         description: Run the registered performance matrix at this revision
         type: boolean
@@ -24,17 +28,20 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.performance_matrix && 'performance' || 'normal' }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || 'normal' }}
   cancel-in-progress: ${{ !inputs.performance_matrix }}
 
 jobs:
+  packed-query-evidence-probe:
+    if: github.event_name == 'workflow_dispatch' && inputs.packed_query_evidence_probe
+    uses: ./.github/workflows/packed-query-evidence-probe.yml
   performance-matrix:
-    if: github.event_name == 'workflow_dispatch' && inputs.performance_matrix
+    if: github.event_name == 'workflow_dispatch' && inputs.performance_matrix && !inputs.packed_query_evidence_probe
     uses: ./.github/workflows/performance-matrix.yml
   # Quick checks that need no full test build: they report version, format,
   # interface and environment problems within minutes.
   lint:
-    if: ${{ !inputs.performance_matrix }}
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -58,7 +65,7 @@ jobs:
   # One runner per target: check, then test, each with --deny-warn, as
   # before. A target never shares a runner or _build with another.
   core:
-    if: ${{ !inputs.performance_matrix }}
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     name: core (${{ matrix.target }})
     strategy:
       fail-fast: false
@@ -82,7 +89,7 @@ jobs:
         run: moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
   # Host, authorization, Checkpoint and retained-state owners.
   host:
-    if: ${{ !inputs.performance_matrix }}
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -116,7 +123,7 @@ jobs:
         run: npm run check:local-node-assets
   # Public Client, packed distribution and the Salesforce Site.
   client:
-    if: ${{ !inputs.performance_matrix }}
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -132,6 +139,17 @@ jobs:
         run: npm run check:distribution-client
       - name: Test packed Embedded Local Checkpoint and Named Result
         run: npm run check:packed-embedded-checkpoint
+      - name: Test raw public SQL and Pipe through packed Local and HTTP
+        id: packed-query
+        run: |
+          node --test scripts/packed-query-evidence.test.mjs
+          node scripts/test-packed-public-query.mjs
+      - name: Retain packed public query evidence
+        if: always() && steps.packed-query.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-query.outputs.evidence-directory }}
+          name: packed-public-query-${{ github.sha }}
       - name: Test Salesforce Site Catalog and bounded query acquisition
         run: npm run check:salesforce-site
       - name: Count actual Effect Compute calls across recovery
@@ -148,7 +166,7 @@ jobs:
           done
   # Native storage, publication and control, and the Native retained path.
   native:
-    if: ${{ !inputs.performance_matrix }}
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -179,7 +197,7 @@ jobs:
   # dependency failed. The macOS job may be skipped only where it is not
   # scheduled (see its condition).
   check:
-    if: ${{ always() && !inputs.performance_matrix }}
+    if: ${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     needs: [lint, core, host, client, native, spec, native-macos,
       native-separated-network, workers, connector-addition, duckdb-node]
     runs-on: ubuntu-24.04
@@ -208,7 +226,7 @@ jobs:
   # Specifications, machine contracts, generated artifacts, boundaries and
   # documented examples.
   spec:
-    if: ${{ !inputs.performance_matrix }}
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -234,7 +252,7 @@ jobs:
   # main, and on demand.
   native-macos:
     if: >-
-      ${{ !inputs.performance_matrix && (
+      ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && (
         (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
         (github.event_name == 'pull_request' && github.base_ref == 'main') ||
         (github.event_name == 'workflow_dispatch' && inputs.native_macos)) }}
@@ -268,7 +286,7 @@ jobs:
           ACTQL_TEST_SCRATCH_ROOT="$RUNNER_TEMP/actql-native" \
             npm run check:native-http-client
   native-separated-network:
-    if: ${{ !inputs.performance_matrix }}
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -303,7 +321,7 @@ jobs:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/actql-native-network
         run: npm run check:native-separated-network
   workers:
-    if: ${{ !inputs.performance_matrix }}
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -336,7 +354,7 @@ jobs:
       - name: Build inspect and execute the Workers JS profile
         run: npm test --prefix adapters/workers
   connector-addition:
-    if: ${{ !inputs.performance_matrix }}
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -375,7 +393,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   duckdb-node:
-    if: ${{ !inputs.performance_matrix }}
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

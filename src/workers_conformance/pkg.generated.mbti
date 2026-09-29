@@ -19,6 +19,7 @@ import {
   "actql/actql/remote_site_protocol",
   "actql/actql/remote_transfer",
   "actql/actql/run_publication",
+  "actql/actql/run_publication_host",
 }
 
 // Values
@@ -258,6 +259,8 @@ pub fn async_strategy_host_managed_result_import_cancel(AsyncStrategyHostManaged
 
 pub fn async_strategy_host_managed_result_import_finish(AsyncStrategyHostManagedResultImport) -> AsyncStrategyHostOutputExport raise AsyncHostFailure
 
+pub fn async_strategy_host_managed_result_transformation_begin(AsyncStrategyHostManagedResultImport, @run_publication_host.ClientResultTransformation) -> AsyncStrategyHostResultTransformation raise AsyncHostFailure
+
 pub fn async_strategy_host_modules(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
 
 pub fn async_strategy_host_next(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_host.PreparedTaskDispatch? raise AsyncHostFailure
@@ -391,6 +394,14 @@ pub fn async_strategy_host_result_output_export_begin(@connectors_workers_async.
 pub fn async_strategy_host_result_output_export_begin_converted(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.CompletedOutput?) -> AsyncStrategyHostOutputExport raise AsyncHostFailure
 
 pub fn async_strategy_host_result_tasks(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
+
+pub fn async_strategy_host_result_transformation_advance(AsyncStrategyHostResultTransformation, Int) -> Bool raise AsyncHostFailure
+
+pub fn async_strategy_host_result_transformation_begin(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.CompletedOutput?, @run_publication_host.ClientResultTransformation) -> AsyncStrategyHostResultTransformation raise AsyncHostFailure
+
+pub fn async_strategy_host_result_transformation_cancel(AsyncStrategyHostResultTransformation) -> Unit
+
+pub fn async_strategy_host_result_transformation_finish(AsyncStrategyHostResultTransformation) -> AsyncStrategyHostOutputExport raise AsyncHostFailure
 
 pub fn async_strategy_host_run(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_strategy.CapturedDAG
 
@@ -1530,6 +1541,8 @@ pub fn strategy_host_managed_result_import_cancel(StrategyHostManagedResultImpor
 
 pub fn strategy_host_managed_result_import_finish(StrategyHostManagedResultImport) -> StrategyHostOutputExport raise NodeHostFailure
 
+pub fn strategy_host_managed_result_transformation_begin(StrategyHostManagedResultImport, @run_publication_host.ClientResultTransformation) -> StrategyHostResultTransformation raise NodeHostFailure
+
 pub fn strategy_host_modules(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
 
 pub fn strategy_host_next(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_host.PreparedTaskDispatch? raise NodeHostFailure
@@ -1663,6 +1676,14 @@ pub fn strategy_host_result_output_export_begin(@connectors_workers.ConfiguredCo
 pub fn strategy_host_result_output_export_begin_converted(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.CompletedOutput?) -> StrategyHostOutputExport raise NodeHostFailure
 
 pub fn strategy_host_result_tasks(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
+
+pub fn strategy_host_result_transformation_advance(StrategyHostResultTransformation, Int) -> Bool raise NodeHostFailure
+
+pub fn strategy_host_result_transformation_begin(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.CompletedOutput?, @run_publication_host.ClientResultTransformation) -> StrategyHostResultTransformation raise NodeHostFailure
+
+pub fn strategy_host_result_transformation_cancel(StrategyHostResultTransformation) -> Unit
+
+pub fn strategy_host_result_transformation_finish(StrategyHostResultTransformation) -> StrategyHostOutputExport raise NodeHostFailure
 
 pub fn strategy_host_run(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_strategy.CapturedDAG
 
@@ -2525,6 +2546,7 @@ pub(all) suberror AsyncHostFailure {
   Encoding(@encode_core.EncodeFailure)
   OutputExport(@execution_relation.CompletedExportIssue)
   PublicationEvidence(@run_publication.ResultEvidenceIssuanceIssue)
+  ResultTransformation(@run_publication_host.CapturedClientResultTransformationIssue)
   EffectIdentity(@effect_application.EffectIdentityIssue)
   EffectSetProgress(@effect_application.EffectSetProgressIssue)
   EffectFootprint(@effect_application.EffectFootprintIssue)
@@ -2550,6 +2572,7 @@ pub(all) suberror NodeHostFailure {
   Encoding(@encode_core.EncodeFailure)
   OutputExport(@execution_relation.CompletedExportIssue)
   PublicationEvidence(@run_publication.ResultEvidenceIssuanceIssue)
+  ResultTransformation(@run_publication_host.CapturedClientResultTransformationIssue)
   EffectIdentity(@effect_application.EffectIdentityIssue)
   EffectSetProgress(@effect_application.EffectSetProgressIssue)
   EffectFootprint(@effect_application.EffectFootprintIssue)
@@ -2578,11 +2601,15 @@ type AsyncStrategyHostManagedResultImport
 
 type AsyncStrategyHostOutputExport
 
+type AsyncStrategyHostResultTransformation
+
 type Scenario
 
 type StrategyHostManagedResultImport
 
 type StrategyHostOutputExport
+
+type StrategyHostResultTransformation
 
 // Type aliases
 

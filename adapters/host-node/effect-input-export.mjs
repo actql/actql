@@ -318,10 +318,39 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
         members[memberIndex] = Object.freeze({memberIndex, payload: entry.payload});
       }
     }
+    // Complete Manifests are needed while issuing consumer import evidence.
+    // Their complete payload sets are durable dependencies only when an
+    // actual import names that Manifest. In the final Unit, keep Effect
+    // roots, not unrelated public Results. MoonBit still admits the exact
+    // closure and rejects missing, foreign and unused bodies.
+    const importedManifests = new Set();
+    for (const entry of selected) {
+      for (const body of entry.payload.dependencyBodies) {
+        if (body.kind === 'result_import_observation') {
+          importedManifests.add(JSON.parse(body.wire).producer_local_manifest_cid);
+        }
+      }
+    }
+    const retained = [];
+    const temporary = [];
+    for (const entry of selected) {
+      const needed = entry.members.length > 0 ||
+        importedManifests.has(entry.payload.localManifest.identity);
+      (needed ? retained : temporary).push(entry);
+    }
+    if (temporary.length > 0) {
+      const released = new Error('TemporaryEffectManifestPayloadsReleased');
+      try {
+        await releasePreparedResults(temporary.map(entry => entry.payload),
+          released, control);
+      } catch (error) {
+        if (error !== released) throw error;
+      }
+    }
     const result = Object.freeze({
-      payloads: Object.freeze(selected.map(entry => entry.payload)),
+      payloads: Object.freeze(retained.map(entry => entry.payload)),
       members: Object.freeze(members),
-      dependencies: Object.freeze(selected.map(entry => Object.freeze({
+      dependencies: Object.freeze(retained.map(entry => Object.freeze({
         resultIndex: entry.resultIndex, unitIndex: entry.unitIndex,
         payload: entry.payload,
       }))),

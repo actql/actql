@@ -211,6 +211,80 @@ pub fn bind_broad_host_input(
 }
 
 ///|
+/// Keep the exact completed broad observation and its existing verified
+/// Source owner together. This does not re-execute the residual computation
+/// or establish authority from a caller-supplied observation CID.
+struct BroadHostSourceCapture {
+  run : BroadHostRun
+  observation : @duckdb_query.DuckDBBroadObservation
+  source : @query.CapturedInputSource
+}
+
+///|
+pub fn capture_broad_host_source(
+  run : BroadHostRun,
+  observation : @duckdb_query.DuckDBBroadObservation,
+) -> Result[BroadHostSourceCapture, @query.CapturedSourceIssue] {
+  if run.closed {
+    return Err(Unavailable)
+  }
+  @duckdb_query.broad_captured_source(run.issuer, run.attempt, observation).map(source => {
+      run,
+      observation,
+      source,
+    },
+  )
+}
+
+///|
+pub fn broad_host_source_capture_source(
+  capture : BroadHostSourceCapture,
+) -> Result[@query.CapturedInputSource, @query.CapturedSourceIssue] {
+  if capture.run.closed || !@query.captured_source_available(capture.source) {
+    return Err(Unavailable)
+  }
+  Ok(capture.source)
+}
+
+///|
+pub fn broad_host_source_capture_identity_matches(
+  capture : BroadHostSourceCapture,
+  identity : @query.CapturedSourceRelationIdentity,
+) -> Bool {
+  match broad_host_source_capture_source(capture) {
+    Ok(source) =>
+      @query.captured_source_relation_identity_matches_source(identity, source)
+    Err(_) => false
+  }
+}
+
+///|
+pub fn broad_host_source_capture_observation_cid(
+  capture : BroadHostSourceCapture,
+) -> String? {
+  match broad_host_source_capture_source(capture) {
+    Ok(_) =>
+      Some(@duckdb_query.duckdb_broad_observation_cid(capture.observation))
+    Err(_) => None
+  }
+}
+
+///|
+pub fn broad_host_source_capture_source_ref(
+  capture : BroadHostSourceCapture,
+) -> String? {
+  match broad_host_source_capture_source(capture) {
+    Ok(_) =>
+      Some(
+        @planning.query_requirement_source(
+          capture.run.configuration.requirement,
+        ).0,
+      )
+    Err(_) => None
+  }
+}
+
+///|
 pub fn abort_broad_host(run : BroadHostRun) -> Unit {
   @duckdb_query.abort_duckdb_broad_attempt(run.attempt)
 }

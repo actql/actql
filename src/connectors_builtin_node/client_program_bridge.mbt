@@ -58,6 +58,7 @@ pub(all) enum ClientProgramBridgeIssue {
   SuppliedSyntax(@source.ParseError)
   SuppliedAdmission(@decode.Issue)
   Preparation(@publication_host.ClientProgramPreparationIssue)
+  SourcePreparation(ClientSourcePreparationIssue)
 }
 
 ///|
@@ -126,6 +127,8 @@ pub fn client_program_preparation_issue_code(
       Some(
         match issue {
           InvalidFormat => "invalid_format"
+          SourcePreparation(issue) =>
+            client_source_preparation_issue_code(issue)
           SuppliedSyntax(error) =>
             match error.issue {
               @source.InputLimit | @source.NodeLimit | @source.DepthLimit =>
@@ -423,6 +426,21 @@ pub fn client_program_compiled_run_template(
   value : @publication_host.ClientCompiledRun,
 ) -> @publication.RunEvidenceValue {
   @publication_host.client_compiled_run_template(value)
+}
+
+///|
+#export_name("clientProgramCompiledRunResultTransformation")
+pub fn client_program_compiled_run_result_transformation(
+  value : @publication_host.ClientCompiledRun,
+  prepared : @publication_host.PreparedClientProgram,
+  result : Int,
+) -> Result[
+  @publication_host.ClientResultTransformation?,
+  @publication_host.ClientCompiledRunIssue,
+] {
+  @publication_host.client_compiled_run_result_transformation(
+    value, prepared, result,
+  )
 }
 
 ///|
@@ -1628,6 +1646,36 @@ pub fn client_program_prepare_duckdb_acquisition(
 }
 
 ///|
+#export_name("clientProgramPrepareDuckDBBroadAcquisition")
+pub fn client_program_prepare_duckdb_broad_acquisition(
+  requirement : @planning.QueryRequirement,
+  database_schema : String,
+  table : String,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  two_receipt_contract_body : String,
+) -> Result[
+  @duckdb_host.BroadHostConfiguration,
+  @client_local_host.ClientDuckDBAcquisitionIssue,
+] {
+  @client_local_host.prepare_client_duckdb_broad_acquisition(
+    requirement, database_schema, table, query_contract_body, evidence_contract_body,
+    two_receipt_contract_body,
+  )
+}
+
+///|
+#export_name("clientProgramDuckDBNativeCandidateUnavailable")
+pub fn client_program_duckdb_native_candidate_unavailable(
+  outcome : Result[
+    @duckdb_host.NativeHostConfiguration,
+    @client_local_host.ClientDuckDBAcquisitionIssue,
+  ],
+) -> Bool {
+  outcome is Err(@client_local_host.Candidate)
+}
+
+///|
 #export_name("clientProgramCapturedSourceMatches")
 pub fn client_program_captured_source_matches(
   prepared : @publication_host.PreparedClientProgram,
@@ -2371,6 +2419,7 @@ pub fn client_program_effect_preparation_issue_code(
           Input(SuppliedSyntax(_)) => "supplied_syntax"
           Input(SuppliedAdmission(_)) => "supplied_admission"
           Input(Preparation(_)) => "invalid_input_owner"
+          Input(SourcePreparation(_)) => "invalid_input_owner"
           Preparation(Syntax(_)) => "program_syntax"
           Preparation(Candidate(_)) => "effect_candidate_rejected"
           Preparation(Mapping(_)) => "effect_mapping_rejected"
@@ -5555,6 +5604,21 @@ pub fn client_program_effect_compilation_plan_wire(
 ) -> String {
   @publication_host.client_task_executable_plan_wire(
     @publication_host.client_effect_compilation_plan(value),
+  )
+}
+
+///|
+#export_name("clientProgramEffectCompilationResultTransformation")
+pub fn client_program_effect_compilation_result_transformation(
+  value : @publication_host.ClientEffectCompilation,
+  owner : @publication_host.PreparedClientEffectComputation,
+  result : Int,
+) -> Result[
+  @publication_host.ClientResultTransformation?,
+  @publication_host.ClientEffectCompilationAdmissionIssue,
+] {
+  @publication_host.client_effect_compilation_result_transformation(
+    value, owner, result,
   )
 }
 

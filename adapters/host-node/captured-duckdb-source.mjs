@@ -8,7 +8,8 @@ import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
 import {authorizeLocalDatabase} from
   '../connectors/duckdb/node/session.mjs';
-import {runNativeHostQuery, nativeSourceIdentityMatches, issueNativeSourceEvidence} from
+import {runNativeHostQuery, runBroadHostQuery,
+  nativeSourceIdentityMatches, issueNativeSourceEvidence} from
   '../connectors/duckdb/node/host.mjs';
 
 const contractRoot = new URL('../../spec/contracts/', import.meta.url);
@@ -73,8 +74,12 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
     moon.clientProgramPrepareDuckDBSourceEvidenceContext(requirement));
   const contracts = await Promise.all(contractFiles.map(name =>
     readFile(new URL(name, contractRoot), 'utf8')));
-  const acquisition = checked(moon.clientProgramPrepareDuckDBAcquisition(
-    requirement, schema, table, ...contracts));
+  const native = moon.clientProgramPrepareDuckDBAcquisition(
+    requirement, schema, table, ...contracts);
+  const broad = moon.clientProgramDuckDBNativeCandidateUnavailable(native);
+  const acquisition = checked(broad
+    ? moon.clientProgramPrepareDuckDBBroadAcquisition(
+      requirement, schema, table, ...contracts) : native);
   // The Host-resolved physical target is part of what an approval covers:
   // the same checked source read from another schema or table is another
   // read. Physical names are bound by their exact UTF-8 bytes (hex): the
@@ -91,7 +96,7 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
         schema: exact(schema), table: exact(table)})})});
   preparations.set(prepared, Object.freeze({moon, checkedOwner, effectful, registry,
     values, fragment, ordered, database, schema, table, sourceAccess,
-    requirement, evidenceContext, acquisition}));
+    requirement, evidenceContext, acquisition, broad}));
   return prepared;
 }
 
@@ -129,7 +134,8 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   const {requirement, evidenceContext, acquisition} = owner;
   let capture;
   try {
-    capture = await runNativeHostQuery(grant, acquisition, transportLimits,
+    const acquire = owner.broad ? runBroadHostQuery : runNativeHostQuery;
+    capture = await acquire(grant, acquisition, transportLimits,
       signal);
   } catch (cause) {
     throw acquisitionFailure(cause, cause instanceof

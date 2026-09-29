@@ -35,11 +35,21 @@ pub fn broad_host_document(@acquisition.DuckDBBroadObservation) -> String
 
 pub fn broad_host_finish(BroadNodeRun) -> Unit raise NodeHostFailure
 
+pub fn broad_host_issue_source_evidence(@host.BroadHostSourceCapture, @host.NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> String raise NodeHostFailure
+
 pub fn broad_host_metadata(BroadNodeRun, Int, String, String) -> Unit raise NodeHostFailure
 
 pub fn broad_host_open(@host.BroadHostConfiguration, String, (@acquisition.DuckDBBroadAttempt) -> Bool) -> BroadNodeRun raise NodeHostFailure
 
 pub fn broad_host_parameter(BroadNodeRun, Int) -> String raise NodeHostFailure
+
+pub fn broad_host_source_capture(BroadNodeRun, @acquisition.DuckDBBroadObservation) -> @host.BroadHostSourceCapture raise NodeHostFailure
+
+pub fn broad_host_source_capture_identity_matches(@host.BroadHostSourceCapture, @execution_query.CapturedSourceRelationIdentity) -> Bool
+
+pub fn broad_host_source_capture_source(@host.BroadHostSourceCapture) -> @execution_query.CapturedInputSource raise NodeHostFailure
+
+pub fn broad_host_source_capture_source_ref(@host.BroadHostSourceCapture) -> String?
 
 pub fn broad_host_sql(BroadNodeRun, Bool) -> String
 
