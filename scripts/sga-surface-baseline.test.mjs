@@ -150,6 +150,24 @@ test('quoted producer spelling is resolved only at reference positions', () => {
     [{from: 'g', graph_diff: {with: 'peer graph'}, as: 'changes'}]);
 });
 
+test('quoted DATA aliases reuse one logical Graph producer', () => {
+  const source = `AQL '0.1'; PROGRAM 'shared-graph' { STAGE s {
+    INPUT g = {"carrier":"graph"};
+    DATA \`peer graph\` = FROM g;
+    DATA same = FROM \`peer graph\` |>
+      graphs_equal(with: \`peer graph\`);
+    RESULT r = {"from":"same"};
+  } RESULT r = {"from":{"stage":"s","result":"r"}}; }`;
+  const expected = {
+    version: 'actql/0.1', id: 'shared-graph', stages: [{id: 's',
+      inputs: {g: {carrier: 'graph'}},
+      steps: [{from: 'g', graphs_equal: {with: 'g'}, as: 'same'}],
+      results: {r: {from: 'same'}}}],
+    results: {r: {from: {stage: 's', result: 'r'}}},
+  };
+  assert.deepEqual(JSON.parse(structuralToJson(source)), expected);
+});
+
 test('named Graph arguments reject duplicates and incomplete syntax', () => {
   for (const source of [
     'FROM g |> reach(start: "A", start: "B", direction: "out", max_depth: 2)',

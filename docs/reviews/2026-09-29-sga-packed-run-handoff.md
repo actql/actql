@@ -43,3 +43,16 @@ then read Named Results through packed Local and HTTP. Acceptance must compare
 independent schema, rows and declared order for representative Graph-to-Graph,
 Graph-to-Relation and Delta chains. The existing client request, cancellation,
 authorization and Result delivery semantics remain owned by the common Host.
+
+`scripts/accept-sga-public-source.mjs` is the pending packed acceptance
+application. Copy it and `spec/frontend/fixtures/sga-surface` into a clean
+packed installation, then run it with the installation directory, copied
+fixture directory, and `local` or `remote`. Remote mode requires
+`ACTQL_TEST_REMOTE_ENDPOINT` and `ACTQL_TEST_REMOTE_TOKEN` for a real HTTPS
+Host backed by the same packed packages. Local mode requires a fresh
+workspace-local `ACTQL_LOCAL_STATE_DIR`. It uses the same application body
+for both modes, submits named source, checks request lookup and attach,
+compares the independently authored rows and schema shape, and reads each
+Result to normal stream termination. The script is not a passing test or a
+claim of public source support until the Host connection and physical
+strategy selection are fixed and both modes complete.
