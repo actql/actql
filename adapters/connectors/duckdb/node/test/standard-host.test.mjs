@@ -2382,10 +2382,16 @@ async function exerciseStrategyGraph(
           runDefinitionCid: plan.runDefinition.identity,
         }, occurrence.definitionContract.identity, () => true,
         chunk => received.push(Buffer.from(chunk)));
-        assert.deepEqual(
-          JSON.parse(Buffer.concat(received).toString('utf8')),
-          expectedResults[occurrence.name],
-        );
+        const rows = JSON.parse(Buffer.concat(received).toString('utf8'));
+        const expectedRows = expectedResults[occurrence.name];
+        const unorderedEdgeProjection = publicationCase.step?.edge_rows ===
+          true || publicationCase.steps?.at(-1)?.edge_rows === true;
+        // edge_rows preserves values and multiplicity but does not prove order.
+        const compareRows = values => unorderedEdgeProjection
+          ? [...values].sort((left, right) =>
+            canonical(left).localeCompare(canonical(right)))
+          : values;
+        assert.deepEqual(compareRows(rows), compareRows(expectedRows));
       }
     } finally {
       if (sgaPublicationOwner !== undefined) {
