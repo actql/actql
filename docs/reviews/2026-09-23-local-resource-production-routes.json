@@ -6644,7 +6644,18 @@
         "path": "src/local_sga/components.mbt",
         "symbol": "start_components"
       },
+      "selected_entrypoint": {
+        "path": "src/local_sga/components.mbt",
+        "symbol": "start_components_view"
+      },
       "boundary_tests": [
+        {
+          "role": "components_selected_exact_one_short_and_cancel",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "selected Graph components view admits exact limits and stops in flight"
+        },
         {
           "role": "components_empty_exact_work_workspace_cancel_cleanup",
           "suite": "moon:query_integration",
@@ -6676,6 +6687,13 @@
       ],
       "environment_tests": [
         {
+          "role": "components_selected_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "components-retained-filter-in-flight"
+        },
+        {
           "role": "components_strong_host_in_flight_cancel",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
@@ -6689,6 +6707,12 @@
           "one_short_limit": "components_nonempty_exact_work_workspace",
           "in_flight_cancel": "components_strong_host_in_flight_cancel",
           "cleanup": "components_nonempty_work_ceiling_and_active_cancel"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "components_selected_exact_one_short_and_cancel",
+          "one_short_limit": "components_selected_exact_one_short_and_cancel",
+          "in_flight_cancel": "components_selected_host_in_flight_cancel",
+          "cleanup": "components_selected_exact_one_short_and_cancel"
         }
       },
       "resource_assurance": {
@@ -6700,6 +6724,16 @@
           "workspace": {
             "exact_limit": "components_nonempty_exact_work_workspace",
             "one_short_limit": "components_nonempty_exact_work_workspace"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "components_selected_exact_one_short_and_cancel",
+            "one_short_limit": "components_selected_exact_one_short_and_cancel"
+          },
+          "workspace": {
+            "exact_limit": "components_selected_exact_one_short_and_cancel",
+            "one_short_limit": "components_selected_exact_one_short_and_cancel"
           }
         }
       }
@@ -6783,7 +6817,18 @@
         "path": "src/local_sga/graph_bounds.mbt",
         "symbol": "start_graph_bounds"
       },
+      "selected_entrypoint": {
+        "path": "src/local_sga/graph_bounds.mbt",
+        "symbol": "start_graph_bounds_view"
+      },
       "boundary_tests": [
+        {
+          "role": "graph_bounds_selected_exact_one_short_and_cancel",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "selected Graph bounds view admits exact limits and stops in flight"
+        },
         {
           "role": "graph_bounds_output_exact_one_short",
           "suite": "moon:query_integration",
@@ -6822,6 +6867,13 @@
       ],
       "environment_tests": [
         {
+          "role": "graph_bounds_selected_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-bounds-filter-in-flight"
+        },
+        {
           "role": "graph_bounds_host_timer",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
@@ -6835,6 +6887,12 @@
           "one_short_limit": "graph_bounds_workspace_exact_one_short",
           "in_flight_cancel": "graph_bounds_host_timer",
           "cleanup": "graph_bounds_cancel_cleanup"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "graph_bounds_selected_exact_one_short_and_cancel",
+          "one_short_limit": "graph_bounds_selected_exact_one_short_and_cancel",
+          "in_flight_cancel": "graph_bounds_selected_host_in_flight_cancel",
+          "cleanup": "graph_bounds_selected_exact_one_short_and_cancel"
         }
       },
       "resource_assurance": {
@@ -6846,6 +6904,16 @@
           "workspace": {
             "exact_limit": "graph_bounds_work_exact_one_short",
             "one_short_limit": "graph_bounds_work_exact_one_short"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "graph_bounds_selected_exact_one_short_and_cancel",
+            "one_short_limit": "graph_bounds_selected_exact_one_short_and_cancel"
+          },
+          "workspace": {
+            "exact_limit": "graph_bounds_selected_exact_one_short_and_cancel",
+            "one_short_limit": "graph_bounds_selected_exact_one_short_and_cancel"
           }
         }
       }
@@ -6863,7 +6931,18 @@
         "path": "src/local_sga/graph_bounds.mbt",
         "symbol": "start_graph_degree"
       },
+      "selected_entrypoint": {
+        "path": "src/local_sga/graph_bounds.mbt",
+        "symbol": "start_graph_degree_view"
+      },
       "boundary_tests": [
+        {
+          "role": "degree_selected_exact_one_short_and_cancel",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "selected Graph degree view admits exact limits and stops in flight"
+        },
         {
           "role": "degree_workspace_exact_one_short",
           "suite": "moon:query_integration",
@@ -6902,6 +6981,13 @@
       ],
       "environment_tests": [
         {
+          "role": "degree_selected_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-degree-filter-in-flight"
+        },
+        {
           "role": "degree_host_timer",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
@@ -6915,6 +7001,12 @@
           "one_short_limit": "degree_workspace_exact_one_short",
           "in_flight_cancel": "degree_host_timer",
           "cleanup": "degree_cancel_cleanup"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "degree_selected_exact_one_short_and_cancel",
+          "one_short_limit": "degree_selected_exact_one_short_and_cancel",
+          "in_flight_cancel": "degree_selected_host_in_flight_cancel",
+          "cleanup": "degree_selected_exact_one_short_and_cancel"
         }
       },
       "resource_assurance": {
@@ -6926,6 +7018,16 @@
           "workspace": {
             "exact_limit": "degree_workspace_exact_one_short",
             "one_short_limit": "degree_workspace_exact_one_short"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "degree_selected_exact_one_short_and_cancel",
+            "one_short_limit": "degree_selected_exact_one_short_and_cancel"
+          },
+          "workspace": {
+            "exact_limit": "degree_selected_exact_one_short_and_cancel",
+            "one_short_limit": "degree_selected_exact_one_short_and_cancel"
           }
         }
       }
