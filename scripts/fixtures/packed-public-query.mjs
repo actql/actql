@@ -75,7 +75,7 @@ const observe = directory => () => {
   } finally { journal.close(); }
 };
 const sgaCases = ['normalize-rows', 'mean-graphs', 'traverse-paths',
-  'union-graphs'];
+  'union-graphs', 'graft-graphs'];
 const sgaFixtureDirectory = resolve('sga-fixtures');
 await mkdir(sgaFixtureDirectory);
 for (const name of sgaCases) {
