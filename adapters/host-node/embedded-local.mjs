@@ -21,6 +21,9 @@ import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {issueInstalledRunControlObservation,
+  issueInstalledUnpublishedRunState} from
+  '../host-common/run-state-observation.mjs';
 import {installedEffectIdentity, loadInstalledEffect,
   publishInstalledEffectProfile} from
   './installed-effect.mjs';
@@ -365,14 +368,17 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             !retained.preDispatchFailureConfirmed &&
             retained.physicalStartReserved !== false &&
             retained.observedTerminalOutcome === null && !liveExecution;
-          const wire = checked(
-            moon.clientProgramIssueControlledUnpublishedRunState(
-              runId, now(), retained.resultNames, retained.dispatchReserved,
+          state = issueInstalledUnpublishedRunState(moon, {
+            runId, observedAt: now(), resultNames: retained.resultNames,
+            dispatchReserved: retained.dispatchReserved,
+            preDispatchFailureConfirmed:
               retained.preDispatchFailureConfirmed,
-              retained.cancellationRequested &&
-                retained.physicalStartReserved === false,
-              retained.observedTerminalOutcome ?? 'none', executionUnknown));
-          state = JSON.parse(wire);
+            cancelledBeforeStart: retained.cancellationRequested &&
+              retained.physicalStartReserved === false,
+            observedTerminalOutcome:
+              retained.observedTerminalOutcome ?? 'none',
+            executionUnknown,
+          });
         }
       }
       const after = journal.lookupRunDefinition(ref, moon, control);
@@ -386,12 +392,14 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           retained.physicalStartReserved === true) {
         continue;
       }
-      const observation = moon.clientRunControlObservation(retained.revision,
-        retained.cancellationRequested,
-        retained.physicalStartReserved === false,
-        retained.preDispatchFailureConfirmed, retained.physicalCloseConfirmed);
-      if (observation === undefined) throw new Error('InvalidRunControl');
-      return {...state, control: JSON.parse(observation)};
+      const observation = issueInstalledRunControlObservation(moon, {
+        revision: retained.revision,
+        cancellationRequested: retained.cancellationRequested,
+        physicallyUnstarted: retained.physicalStartReserved === false,
+        preDispatchFailureConfirmed: retained.preDispatchFailureConfirmed,
+        physicalCloseConfirmed: retained.physicalCloseConfirmed,
+      });
+      return {...state, control: observation};
     }
     throw new Error('RunStateObservationUnstable');
   };
