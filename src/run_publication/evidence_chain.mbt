@@ -632,6 +632,11 @@ fn validate_computation_run_evidence_chain(
     ) {
     return Err(EvidenceEmbeddedIdentity("effect_context_cid"))
   }
+  if !captured_effect_context_dependencies_valid(
+      effect_context, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    return Err(EvidenceInventoryMismatch("effect_dependency_inventory"))
+  }
   match preview {
     None =>
       if !evidence_empty_object(@json.object_field(effect_context, "effects")) ||

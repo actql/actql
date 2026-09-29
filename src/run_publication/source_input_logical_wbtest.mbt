@@ -135,6 +135,64 @@ test "source observation binds the completed input and checked source" {
   let evidence = seal_run_evidence_value(
     "source_evidence", prefix, 8192, 256, 16,
   ).unwrap()
+  let saved_input = admit_source_effect_dependency_body(
+    "source_input_logical",
+    input.wire,
+    8192,
+    256,
+    16,
+  ).unwrap()
+  let saved_observation = admit_source_effect_dependency_body(
+    "source_evidence",
+    evidence.wire,
+    8192,
+    256,
+    16,
+  ).unwrap()
+  assert_eq(
+    saved_input.node.references.map(value => (value.kind, value.identity)),
+    [
+      ("relation_value", other),
+      ("relation_schema", other),
+      ("source_contract", source_cid),
+    ],
+  )
+  assert_eq(saved_observation.node.references[0].kind, "source_input_logical")
+  assert_eq(saved_observation.node.references[0].identity, input.identity)
+  assert_eq(
+    captured_effect_dependency_body_json(saved_observation),
+    evidence.wire,
+  )
+  assert_true(
+    admit_source_effect_dependency_body(
+      "source_input_logical",
+      evidence.wire,
+      8192,
+      256,
+      16,
+    )
+    is Err(InvalidBody),
+  )
+  assert_true(
+    admit_source_effect_dependency_body(
+      "source_evidence",
+      " " + evidence.wire,
+      8192,
+      256,
+      16,
+    )
+    is Err(InvalidBody),
+  )
+  assert_true(
+    admit_source_effect_dependency_body(
+      "source_evidence",
+      evidence.wire.replace(old="snapshot-1", new="snapshot-2"),
+      8192,
+      256,
+      16,
+    )
+    is Err(InvalidBody),
+  )
   assert_eq(
     admit_completed_source_observation_binding(
       evidence, input, source_ref, source_cid, scope, other, 8192, 256, 16,

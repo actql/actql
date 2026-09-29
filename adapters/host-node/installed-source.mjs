@@ -9,9 +9,10 @@
 //   the Host's pre-acquisition Checkpoint) and `sourceAccess` (the base
 //   access whose `authorization` a Checkpoint may wrap);
 // - `admitsSource(sourceRef)`: whether a checked source is this installation's;
-// - `prepare({preparedProgram, registry, values, fragment, ordered,
+// - `prepare({preparedProgram, preparedEffect, registry, values, fragment, ordered,
 //   sourceAccess})`: the checked source, read tuple and physical binding an
-//   approval covers, without provider I/O;
+//   approval covers, without provider I/O. Exactly one checked owner is given;
+//   an Effect owner must not be rechecked as an Effect-free Program;
 // - `open({... , sourceAccess, signal, preparedSource})`: the acquisition. It
 //   returns the captured source ({checkedSource, identity, logicalInput,
 //   setup, capture, issueSourceEvidence, close}), which the dispatch owner
@@ -87,12 +88,13 @@ function duckdbAdapter(profile, moon, {root, principalId}) {
     readAuthorization: profile.readAuthorization,
     sourceAccess: profile.sourceAccess,
     admitsSource: sourceRef => sourceRef === profile.sourceRef,
-    prepare: ({preparedProgram, registry, values, fragment, ordered,
+    prepare: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess}) => prepareCapturedDuckDBSource({...common,
-      preparedProgram, registry, values, fragment, ordered, sourceAccess}),
-    open: ({preparedProgram, registry, values, fragment, ordered,
+      preparedProgram, preparedEffect, registry, values, fragment, ordered,
+      sourceAccess}),
+    open: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, signal, preparedSource}) => openCapturedDuckDBSource({
-      ...common, preparedProgram, registry, values, fragment, ordered,
+      ...common, preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, transportLimits: profile.transportLimits, signal,
       preparedSource}),
     close: () => {},

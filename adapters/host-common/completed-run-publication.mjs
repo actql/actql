@@ -323,6 +323,55 @@ export async function storeCompletedRunResultSet(options) {
   }
 }
 
+// Adopt prepared upstream payloads into the existing completed Result owner.
+// This is process-local custody, not a durable capture or approval permit.
+// The Artifact's admitted export receipt supplies physical facts; caller
+// coordinates cannot relabel a foreign Run or a different exported payload.
+export function retainCompletedEffectDependencyPayloads({
+  execution, store, storedResults, control, runDefinition, dependencies,
+  dependencyInventoryWire,
+}) {
+  const owner = completedResultOwners.get(storedResults);
+  if (owner === undefined || owner.execution !== execution || owner.store !== store ||
+      owner.control !== control || owner.releaseComplete ||
+      owner.releaseFlight !== undefined || owner.cleanupFailure !== undefined ||
+      owner.captureHolding !== undefined ||
+      owner.effectDependencyPayloads !== undefined ||
+      !Array.isArray(dependencies) || dependencies.length > 4096 ||
+      typeof control?.localEffectResultPayloadBinding !== 'function') {
+    fail('InvalidCompletedEffectDependencyOwner');
+  }
+  const seen = new Set();
+  const adopted = dependencies.map(dependency => {
+    if (!exactKeys(dependency, ['artifact', 'physical', 'prepared']) ||
+        !exactKeys(dependency.physical, ['cid', 'bytes']) ||
+        typeof dependency.prepared?.release !== 'function' ||
+        typeof dependency.prepared?.status !== 'function' ||
+        dependency.prepared.status()?.pending !== true) {
+      fail('InvalidCompletedEffectDependencyPayload');
+    }
+    const binding = control.localEffectResultPayloadBinding(
+      dependency.artifact, runDefinition);
+    if (binding.physicalCid !== dependency.physical.cid ||
+        binding.byteCount !== dependency.physical.bytes ||
+        seen.has(binding.artifactCid)) {
+      fail('InvalidCompletedEffectDependencyBinding');
+    }
+    seen.add(binding.artifactCid);
+    return Object.freeze({artifact: dependency.artifact,
+      physical: Object.freeze({...dependency.physical}),
+      prepared: dependency.prepared, binding});
+  });
+  if (typeof dependencyInventoryWire !== 'string') {
+    fail('MissingCompletedEffectDependencyInventory');
+  }
+  // All validation precedes ownership transfer. Failure leaves every input
+  // with its caller; successful adoption uses the existing cleanup retry path.
+  owner.effectDependencyPayloads = Object.freeze(adopted);
+  owner.effectDependencyInventoryWire = dependencyInventoryWire;
+  return Object.freeze(adopted.map(value => value.binding));
+}
+
 // Release the unpublished physical payload owners. Schema semantic objects
 // have separate Store custody. Concurrent callers join one release flight;
 // failed physical cleanup retains its retry handle.
@@ -368,7 +417,8 @@ function releaseCompletedResultOwner(storedResults, control, retainCapture) {
     } else {
       const released = new Error('CompletedRunResultSetReleased');
       try {
-        await releasePreparedResults(storedResults.results, released, control);
+        await releasePreparedResults([...storedResults.results,
+          ...(owner.effectDependencyPayloads ?? [])], released, control);
       } catch (error) {
         if (error !== released) {
           if (error.cleanupPending === true) owner.cleanupFailure = error;
@@ -586,12 +636,22 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     modelEvidence: captureEvidence.modelEvidence,
     effectSources: ownedHoldings.map(value => value.source),
     localEffectSources: ownedHoldings.map(value => value.localEvidence),
+    dependencyInventoryWire: owner.effectDependencyInventoryWire,
   }, preview, plans, contractLimits);
+  const dependencyBindings = control.capturedEffectDependencyPayloadBindings(
+    capturedRun, (owner.effectDependencyPayloads ?? []).map(value => ({
+      artifact_cid: value.binding.artifactCid,
+      physical_cid: value.binding.physicalCid,
+      byte_count: value.binding.byteCount,
+    })));
   const captureHoldingCid = control.effectComputationCaptureHoldingCid(
     runDefinition, store.storeAuthorityCid,
   );
   const objects = new Map();
-  for (const result of storedResults.results) {
+  for (const result of [...storedResults.results,
+    ...(owner.effectDependencyPayloads ?? []).map(value => ({
+      physical: value.physical, physicalPrepared: value.prepared,
+    }))]) {
     const physical = result.physical;
     if (typeof physical?.cid !== 'string' ||
         !Number.isSafeInteger(physical.bytes) || physical.bytes < 0 ||
@@ -637,6 +697,7 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     manifest: manifest.wire,
     computation_receipt: receipt.wire,
     captured_run: capturedRun.wire,
+    effect_dependency_payloads: dependencyBindings,
     preview: previewBinding.wire,
     authoring_context: authoringContext.wire,
     effect_source_artifacts: ownedHoldings.map(value => Object.freeze({
@@ -734,6 +795,7 @@ export async function retireCompletedEffectfulCapture({store, control,
     'durable_bindings', 'result_schemas', 'manifest',
     'computation_receipt', 'captured_run', 'preview',
     'authoring_context', 'effect_source_artifacts', 'connector_recovery',
+    'effect_dependency_payloads',
   ]) || body.version !== 'actql-completed-effectful-capture/0.1' ||
       body.store_authority_cid !== store.storeAuthorityCid ||
       body.run_definition !== run.wire ||
@@ -805,6 +867,14 @@ export async function retireCompletedEffectfulCapture({store, control,
     }
     expectedObjects.set(binding.material_generation_cid,
       binding.byte_count);
+  }
+  for (const binding of control.capturedEffectDependencyPayloadBindings(
+    chain.capturedRun, body.effect_dependency_payloads)) {
+    const previous = expectedObjects.get(binding.physical_cid);
+    if (previous !== undefined && previous !== binding.byte_count) {
+      fail('InvalidCompletedEffectfulCaptureBinding');
+    }
+    expectedObjects.set(binding.physical_cid, binding.byte_count);
   }
   if (capture !== undefined &&
       (capture.namespace !== 'effect-capture' ||
@@ -891,6 +961,7 @@ export async function recoverCompletedEffectfulComputation(options) {
     'durable_bindings', 'result_schemas', 'manifest',
     'computation_receipt', 'captured_run', 'preview',
     'authoring_context', 'effect_source_artifacts', 'connector_recovery',
+    'effect_dependency_payloads',
   ]) || captured.version !== 'actql-completed-effectful-capture/0.1' ||
       captured.store_authority_cid !== store.storeAuthorityCid ||
       captured.run_definition !== admittedRun.wire ||
@@ -998,6 +1069,14 @@ export async function recoverCompletedEffectfulComputation(options) {
       fail('InvalidCompletedEffectfulCaptureBinding');
     }
     expected.set(body.material_generation_cid, body.byte_count);
+  }
+  for (const binding of control.capturedEffectDependencyPayloadBindings(
+    capturedRun, captured.effect_dependency_payloads)) {
+    const previous = expected.get(binding.physical_cid);
+    if (previous !== undefined && previous !== binding.byte_count) {
+      fail('InvalidCompletedEffectfulCaptureBinding');
+    }
+    expected.set(binding.physical_cid, binding.byte_count);
   }
   if (captureHolding?.namespace !== 'effect-capture' ||
       captureHolding.manifest_cid !== capturedRun.identity ||

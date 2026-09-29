@@ -1,11 +1,84 @@
 import {createHash} from 'node:crypto';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
-import {releasePreparedResults} from
+import {releasePreparedResults, retainCompletedEffectDependencyPayloads} from
   '../host-common/completed-run-publication.mjs';
 
 const preparedEffectSourceOwners = new WeakMap();
 const preparedEffectSourceSets = new WeakMap();
+const adoptedEffectSourceDependencies = new WeakSet();
+
+// Assemble existing owned Results, never caller-authored roots. Additional
+// acquisition/checked-environment bodies must close those exact references;
+// MoonBit rejects missing, foreign, conflicting or unused dependencies.
+export function preparePinnedEffectDependencyInventory({
+  sources, store, control, contractLimits, dependencies = [],
+}) {
+  const owner = preparedEffectSourceSets.get(sources);
+  if (owner?.store !== store || owner?.control !== control ||
+      !Array.isArray(sources?.dependencies) ||
+      !Array.isArray(dependencies) || dependencies.length > 4096) {
+    throw new TypeError('InvalidEffectDependencySetOwner');
+  }
+  const bodies = [];
+  const append = body => {
+    if (bodies.length >= 4096) throw new RangeError('EffectDependencyEntryLimit');
+    bodies.push(body);
+  };
+  // A Manifest is a dependency only when an actual consumer import names
+  // it. The final Effect source Artifact is itself a root, not an import
+  // of its own Manifest. MoonBit revalidates every observation/Manifest edge.
+  const importedManifests = new Set();
+  for (const {payload} of sources.dependencies) {
+    for (const body of payload.dependencyBodies) {
+      if (body.kind === 'result_import_observation') {
+        importedManifests.add(JSON.parse(body.wire).producer_local_manifest_cid);
+      }
+    }
+  }
+  for (const {payload} of sources.dependencies) {
+    for (const body of payload.dependencyBodies) append(body);
+    for (const [kind, wire] of [
+      ['result_artifact', payload.localResultArtifact.wire],
+      ['derivation_evidence', payload.localResultArtifact.derivationWire],
+      ['ordering_evidence', payload.localResultArtifact.orderingWire],
+      ['local_result_definition', payload.localResultDefinition.wire],
+      ['local_computation', payload.localInvocation.wire],
+    ]) append({kind, wire});
+    if (importedManifests.has(payload.localManifest.identity)) {
+      append({kind: 'local_manifest', wire: payload.localManifest.wire});
+    }
+  }
+  for (const body of dependencies) append(body);
+  return control.prepareLocalEffectDependencyInventory(
+    sources.members.map(({payload}) => payload.localResultArtifact),
+    bodies, contractLimits);
+}
+
+// Only this export set can transfer its payload owners. Public Result names
+// are not invented for upstream-only local Results. Durable capture is a
+// later obligation of the same completed owner.
+export function retainPinnedEffectDependencyPayloads({
+  sources, execution, store, storedResults, control, runDefinition,
+}) {
+  const owner = preparedEffectSourceSets.get(sources);
+  if (owner === undefined || owner.store !== store || owner.control !== control ||
+      !Array.isArray(sources.dependencies)) {
+    throw new TypeError('InvalidEffectDependencySetOwner');
+  }
+  const bindings = retainCompletedEffectDependencyPayloads({execution, store,
+    storedResults, control, runDefinition,
+    dependencyInventoryWire: preparePinnedEffectDependencyInventory({
+      sources, store, control, contractLimits: owner.contractLimits,
+    }),
+    dependencies: sources.dependencies.map(({payload}) => ({
+      artifact: payload.localResultArtifact,
+      physical: payload.physical, prepared: payload.prepared,
+    })),
+  });
+  adoptedEffectSourceDependencies.add(sources);
+  return bindings;
+}
 
 // Prepare every pinned member under one retention and source-binding policy.
 // MoonBit alone decides whether two members own the same live Result view.
@@ -29,6 +102,9 @@ export async function preparePinnedEffectSourceSet({
   const count = moon.clientProgramEffectInputCount(inputs);
   if (!Number.isSafeInteger(count) || count < 1 || count > maxMembers) {
     throw new RangeError('EffectSourceMemberLimit');
+  }
+  if (options.localEvidenceContext?.acquiredEvidence !== undefined) {
+    return prepareDependentEffectSourceSet(options, count, maxGroupingWork);
   }
   const groups = [];
   let remaining = maxGroupingWork;
@@ -87,11 +163,172 @@ export async function preparePinnedEffectSourceSet({
       finalized.get(value))), members: Object.freeze(members.map(member =>
       Object.freeze({...member, payload: finalized.get(member.payload)})))});
     preparedEffectSourceSets.set(result, Object.freeze({store: owned.store,
-      control: owned.control}));
+      control: owned.control, contractLimits: owned.contractLimits}));
     return result;
   } catch (error) {
     // This is the existing MoonBit-controlled publication cleanup path, not
     // a second Effect cleanup state machine. Pending owners escape on error.
+    await releasePreparedResults(payloads, error, control);
+    throw error;
+  }
+}
+
+// Produce complete required local Manifests in checked producer order. The
+// retained read owner, rather than these JS coordinates, proves every edge.
+// All prepared payloads stay under the existing publication cleanup owner.
+async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
+  const {moon, inputs, control, checkedOwner, signal, contractLimits} = options;
+  if (!Array.isArray(options.localEvidenceContext.retentionDependencies)) {
+    throw new TypeError('MissingEffectRetentionDependencyBodies');
+  }
+  const count = moon.clientProgramEffectLocalResultCount(inputs);
+  if (!Number.isSafeInteger(count) || count < 1 || count > 4096) {
+    throw new RangeError('EffectDependencyResultLimit');
+  }
+  let remaining = maxWork;
+  const spend = () => {
+    if (remaining === 0) throw new RangeError('EffectSourceGroupingLimit');
+    remaining--;
+  };
+  const units = new Map();
+  const selected = [];
+  const memberIndexes = new Set();
+  for (let resultIndex = 0; resultIndex < count; resultIndex++) {
+    signal?.throwIfAborted();
+    spend();
+    const result = moon.clientProgramEffectLocalResultAt(inputs, resultIndex);
+    if (result === undefined) throw new TypeError('UnavailableEffectDependency');
+    const unitIndex = moon.clientProgramEffectLocalResultStage(result);
+    if (!Number.isSafeInteger(unitIndex) || unitIndex < 0 ||
+        (selected.length > 0 && unitIndex < selected.at(-1).unitIndex)) {
+      throw new TypeError('InvalidEffectDependencyOrder');
+    }
+    const members = [];
+    for (let member = 0; member < memberCount; member++) {
+      spend();
+      if (!moon.clientProgramEffectLocalResultMatchesMember(
+        inputs, resultIndex, member)) continue;
+      if (memberIndexes.has(member)) {
+        throw new TypeError('DuplicateEffectDependencyMember');
+      }
+      memberIndexes.add(member);
+      members.push(member);
+    }
+    const entry = {result, resultIndex, unitIndex, members};
+    selected.push(entry);
+    if (!units.has(unitIndex)) units.set(unitIndex, []);
+    units.get(unitIndex).push(entry);
+  }
+  if (memberIndexes.size !== memberCount) {
+    throw new TypeError('IncompleteEffectDependencyMembers');
+  }
+  const owned = {...options,
+    contractLimits: Object.freeze({...contractLimits}),
+    localEvidenceContext: Object.freeze({...options.localEvidenceContext}),
+    proposalLimits: options.proposalLimits === undefined ? undefined :
+      Object.freeze({...options.proposalLimits}),
+  };
+  const payloads = [];
+  const manifests = new Map();
+  // Bound retained preimage text across the complete export set, not per
+  // Result. The final inventory admission also counts metadata and envelope.
+  const dependencyText = {remaining: 16 * 1024 * 1024};
+  let staticEntriesRemaining = 4096;
+  try {
+    for (const [unitIndex, entries] of units) {
+      signal?.throwIfAborted();
+      const staticBodies = Object.freeze(checked(
+        moon.clientProgramEffectLocalStaticBodies(checkedOwner, unitIndex,
+          staticEntriesRemaining,
+          Math.min(contractLimits.maxWireBytes, dependencyText.remaining),
+          contractLimits.maxNodes, contractLimits.maxDepth),
+      ).map(pair => {
+        staticEntriesRemaining--;
+        const wire = moon.clientProgramEffectLocalDependencyBodyJson(pair._1);
+        const bytes = Buffer.byteLength(wire, 'utf8');
+        if (bytes > dependencyText.remaining) {
+          throw new RangeError('EffectDependencyBodyByteLimit');
+        }
+        dependencyText.remaining -= bytes;
+        return Object.freeze({kind: pair._0,
+          cid: moon.clientProgramEffectLocalDependencyBodyCid(pair._1), wire});
+      }));
+      const imports = moon.clientProgramEffectResultImportCount(
+        checkedOwner, unitIndex);
+      if (!Number.isSafeInteger(imports) || imports < 0 || imports > remaining) {
+        throw new RangeError('EffectDependencyImportLimit');
+      }
+      let dependency;
+      if (unitIndex === 0 && imports === 0) {
+        dependency = owned.localEvidenceContext.acquiredEvidence;
+      } else {
+        const observations = [];
+        for (let index = 0; index < imports; index++) {
+          spend();
+          const captured = checked(moon.clientProgramEffectCaptureResultImport(
+            inputs, unitIndex, index, remaining));
+          let producer;
+          for (const entry of selected) {
+            if (entry.unitIndex >= unitIndex) break;
+            spend();
+            if (moon.clientProgramEffectResultImportMatches(
+              captured, inputs, unitIndex, entry.result)) {
+              producer = entry;
+              break;
+            }
+          }
+          if (producer?.payload === undefined) {
+            throw new TypeError('MissingEffectImportProducer');
+          }
+          observations.push(control.issueEffectResultImportObservation(
+            checkedOwner, inputs, captured, manifests.get(producer.unitIndex),
+            producer.payload.localResultArtifact, owned.contractLimits));
+        }
+        dependency = control.issueImportedEffectEvidence(checkedOwner,
+          inputs, unitIndex, observations, owned.contractLimits);
+      }
+      const unit = {invocation: dependency.invocation, artifacts: []};
+      const manifestSet = new Map([[unitIndex, unit]]);
+      for (const entry of entries) {
+        const proposes = owned.onProposalRow !== undefined &&
+          entry.members.length > 0;
+        entry.payload = await preparePinnedEffectSourcePayloadOwned({
+          ...owned, memberIndex: entry.members[0],
+          onProposalRow: proposes ? owned.onProposalRow : undefined,
+          ...(proposes ? {proposalMemberIndexes: entry.members} : {}),
+        }, manifestSet, {resultIndex: entry.resultIndex, dependency,
+          dependencyText, staticBodies});
+        payloads.push(entry.payload);
+      }
+      const manifest = control.issueLocalEffectResultManifest(checkedOwner,
+        unit.invocation, unit.artifacts, owned.contractLimits);
+      manifests.set(unitIndex, manifest);
+      for (const entry of entries) {
+        const previous = entry.payload;
+        entry.payload = Object.freeze({...previous, localManifest: manifest});
+        preparedEffectSourceOwners.set(entry.payload,
+          preparedEffectSourceOwners.get(previous));
+      }
+    }
+    signal?.throwIfAborted();
+    const members = new Array(memberCount);
+    for (const entry of selected) {
+      for (const memberIndex of entry.members) {
+        members[memberIndex] = Object.freeze({memberIndex, payload: entry.payload});
+      }
+    }
+    const result = Object.freeze({
+      payloads: Object.freeze(selected.map(entry => entry.payload)),
+      members: Object.freeze(members),
+      dependencies: Object.freeze(selected.map(entry => Object.freeze({
+        resultIndex: entry.resultIndex, unitIndex: entry.unitIndex,
+        payload: entry.payload,
+      }))),
+    });
+    preparedEffectSourceSets.set(result, Object.freeze({store: owned.store,
+      control: owned.control, contractLimits: owned.contractLimits}));
+    return result;
+  } catch (error) {
     await releasePreparedResults(payloads, error, control);
     throw error;
   }
@@ -103,10 +340,24 @@ export async function preparePinnedEffectSourceSet({
  * row admission, projection, ordering, and logical identity. This is not an
  * Effect Preview or a mutation permit. The caller retains the input pin.
  */
-export async function exportPinnedEffectInput({
+export async function exportPinnedEffectInput(options) {
+  return exportPinnedResult({...options, localResultIndex: undefined});
+}
+
+// Upstream dependency Results use the same bounded exporter and physical
+// import bridge. They are not fictitious Effect members or public Results.
+export async function exportPinnedEffectLocalResult({resultIndex, ...options}) {
+  if (!Number.isSafeInteger(resultIndex) || resultIndex < 0) {
+    throw new TypeError('InvalidEffectLocalResult');
+  }
+  return exportPinnedResult({...options, memberIndex: undefined,
+    localResultIndex: resultIndex});
+}
+
+async function exportPinnedResult({
   moon, execution, inputs, memberIndex, limits, onChunk,
   onReceipt, onCanonicalRow, canonicalRowLimits,
-  signal, advanceQuantum = 256,
+  signal, advanceQuantum = 256, localResultIndex,
 }) {
   if (typeof onChunk !== 'function' ||
       (onReceipt !== undefined && typeof onReceipt !== 'function') ||
@@ -126,25 +377,42 @@ export async function exportPinnedEffectInput({
       maxDepth: canonicalRowLimits.maxDepth,
       maxUtf16Units: canonicalRowLimits.maxUtf16Units});
   signal?.throwIfAborted();
-  const input = moon.clientProgramEffectInputAt(inputs, memberIndex);
+  const local = localResultIndex !== undefined;
+  const input = local
+    ? moon.clientProgramEffectLocalResultAt(inputs, localResultIndex)
+    : moon.clientProgramEffectInputAt(inputs, memberIndex);
   if (input === undefined) {
     throw new TypeError('MissingEffectInput');
   }
-  const task = moon.clientProgramEffectInputTask(input);
+  const task = local ? moon.clientProgramEffectLocalResultTask(input)
+    : moon.clientProgramEffectInputTask(input);
   const physical = execution.effectPhysicalSource(task);
-  if (physical === undefined) {
+  if (physical === undefined && !local) {
     throw new TypeError('MissingEffectPhysicalSource');
   }
-  const importing = checked(moon.clientProgramEffectManagedInputBegin(
-    input, physical.completed, physical.material, limits));
-  let preparation, stream, receipt;
+  let importing, preparation, stream, receipt, exportOwner;
   try {
-    preparation = await physical.withRows(
-      row => checked(moon.clientProgramEffectManagedInputAppend(
-        importing, row)),
-      signal,
-      () => checked(moon.clientProgramEffectManagedInputFinish(importing)),
-    );
+    if (physical === undefined) {
+      exportOwner = checked(moon.clientProgramEffectLocalResultExportStart(
+        inputs, localResultIndex, limits));
+      preparation = moon.clientProgramEffectLocalResultExportPreparation(
+        exportOwner);
+    } else {
+      importing = checked(local
+        ? moon.clientProgramEffectLocalManagedInputBegin(inputs,
+          localResultIndex, physical.completed, physical.material, limits)
+        : moon.clientProgramEffectManagedInputBegin(input,
+          physical.completed, physical.material, limits));
+      preparation = await physical.withRows(
+        row => checked(moon.clientProgramEffectManagedInputAppend(
+          importing, row)), signal,
+        () => checked(moon.clientProgramEffectManagedInputFinish(importing)),
+      );
+      if (local) {
+        exportOwner = checked(moon.clientProgramEffectLocalManagedExportOwner(
+          inputs, localResultIndex, importing));
+      }
+    }
     for (;;) {
       signal?.throwIfAborted();
       const progress = checked(moon.clientProgramEffectInputExportAdvance(
@@ -175,8 +443,13 @@ export async function exportPinnedEffectInput({
     const finished = checked(moon.clientProgramEffectInputExportFinish(stream));
     receipt = finished._0;
     await onChunk(finished._1);
+    if (local && moon.clientProgramEffectLocalResultExportMatchesReceipt(
+      inputs, exportOwner, receipt) !== true) {
+      throw new TypeError('ForeignEffectLocalResultReceipt');
+    }
     const artifact = onReceipt === undefined
-      ? undefined : await onReceipt(input, receipt, importing);
+      ? undefined : await onReceipt(input, receipt,
+        local ? exportOwner : importing);
     return Object.freeze({
       fields: moon.clientProgramEffectInputExportFields(receipt),
       logicalCid: moon.clientProgramEffectInputExportLogicalCid(receipt),
@@ -193,7 +466,9 @@ export async function exportPinnedEffectInput({
     } else if (preparation !== undefined) {
       moon.clientProgramEffectInputExportCancelPreparation(preparation);
     }
-    moon.clientProgramEffectManagedInputCancel(importing);
+    if (importing !== undefined) {
+      moon.clientProgramEffectManagedInputCancel(importing);
+    }
   }
 }
 
@@ -211,7 +486,7 @@ async function preparePinnedEffectSourcePayloadOwned({
   control, invocation, retention, sourceBindingCid, contractLimits, signal,
   localEvidenceContext,
   onProposalRow, proposalMemberIndexes, proposalLimits,
-}, manifestSet) {
+}, manifestSet, local) {
   if (typeof store?.createPreparedObjectWriter !== 'function' ||
       typeof store.storeAuthorityCid !== 'string' ||
       typeof moon?.clientProgramIssueCapturedEffectInputLocalResultDefinition !==
@@ -261,9 +536,16 @@ async function preparePinnedEffectSourcePayloadOwned({
     throw new TypeError('ForeignEffectProposalSource');
   }
   signal?.throwIfAborted();
-  const localDefinition = checked(
-    moon.clientProgramIssueCapturedEffectInputLocalResultDefinition(
+  const selectedResult = local === undefined ? undefined :
+    moon.clientProgramEffectLocalResultAt(inputs, local.resultIndex);
+  const localDefinition = checked(local === undefined
+    ? moon.clientProgramIssueCapturedEffectInputLocalResultDefinition(
       checkedOwner, inputs, memberIndex,
+      contractLimits.maxWireBytes, contractLimits.maxNodes,
+      contractLimits.maxDepth)
+    : moon.clientProgramIssueLocalEffectResultDefinition(checkedOwner,
+      moon.clientProgramEffectLocalResultStage(selectedResult),
+      moon.clientProgramEffectLocalResultName(selectedResult),
       contractLimits.maxWireBytes, contractLimits.maxNodes,
       contractLimits.maxDepth));
   const localResultDefinition = Object.freeze({
@@ -271,7 +553,9 @@ async function preparePinnedEffectSourcePayloadOwned({
       localDefinition),
     wire: moon.clientProgramLocalEffectResultDefinitionJson(localDefinition),
   });
-  const unitIndex = manifestSet === undefined ? undefined :
+  const unitIndex = local !== undefined
+    ? moon.clientProgramEffectLocalResultStage(selectedResult)
+    : manifestSet === undefined ? undefined :
     moon.clientProgramEffectInputStage(
       moon.clientProgramEffectInputAt(inputs, memberIndex));
   const localInvocationToken = manifestSet?.get(unitIndex)?.invocation ?? checked(
@@ -319,9 +603,21 @@ async function preparePinnedEffectSourcePayloadOwned({
   let localResultArtifact;
   let byteCount = 0;
   const digest = createHash('sha256');
+  const relationChunks = local === undefined ? undefined : [];
+  let schemaBody;
+  const retainText = text => {
+    const bytes = Buffer.byteLength(text, 'utf8');
+    if (bytes > local.dependencyText.remaining) {
+      throw new RangeError('EffectDependencyBodyByteLimit');
+    }
+    local.dependencyText.remaining -= bytes;
+    return text;
+  };
   try {
-    const summary = await exportPinnedEffectInput({
+    if (local !== undefined) retainText('{"sort":"relation","value":}');
+    const summary = await exportPinnedResult({
       moon, execution, inputs, memberIndex, limits, signal,
+      localResultIndex: local?.resultIndex,
       ...(onProposalRow === undefined ? {} : {
         canonicalRowLimits: {maxNodes: proposalBounds.maxNodes,
           maxDepth: proposalBounds.maxDepth,
@@ -341,10 +637,29 @@ async function preparePinnedEffectSourcePayloadOwned({
         },
       }),
       onReceipt: (input, receipt, importing) => {
-        localResultArtifact = control.issueSourceFreeLocalEffectResultArtifact(
+        if (local !== undefined) {
+          schemaBody = Object.freeze({kind: 'relation_schema',
+            cid: moon.clientProgramEffectInputExportSchemaCid(receipt),
+            wire: retainText(moon.clientProgramEffectInputExportSchemaWire(
+              receipt)),
+          });
+        }
+        localResultArtifact = local === undefined
+          ? control.issueSourceFreeLocalEffectResultArtifact(
           checkedOwner, inputs, memberIndex, importing, localDefinition,
           localInvocationToken, receipt, retention, localContext,
-          contractLimits);
+          contractLimits)
+          : control.issueDependentLocalEffectResultArtifact(checkedOwner,
+            inputs, importing, local.dependency, localDefinition, receipt,
+            retention, localContext, contractLimits);
+        if (local !== undefined) {
+          if (memberIndex === undefined) return undefined;
+          if (!moon.clientProgramEffectLocalResultMatchesMember(
+            inputs, local.resultIndex, memberIndex)) {
+            throw new TypeError('ForeignEffectMemberExport');
+          }
+          input = moon.clientProgramEffectInputAt(inputs, memberIndex);
+        }
         return control.issueEffectSourceArtifactFromExport(
           input, receipt, invocation, retention, sourceBindingCid,
           store.storeAuthorityCid, contractLimits);
@@ -356,6 +671,9 @@ async function preparePinnedEffectSourcePayloadOwned({
         const bytes = Buffer.byteLength(chunk, 'utf8');
         if (bytes > maxBytes - byteCount) {
           throw new RangeError('EffectSourceByteLimit');
+        }
+        if (relationChunks !== undefined) {
+          relationChunks.push(retainText(chunk));
         }
         await writer.append(chunk);
         digest.update(chunk, 'utf8');
@@ -381,6 +699,16 @@ async function preparePinnedEffectSourcePayloadOwned({
       localInvocation,
       localResultArtifact,
       localManifest,
+      ...(local === undefined ? {} : {dependencyBodies: Object.freeze([
+        ...local.dependency.bodies,
+        ...local.staticBodies,
+        ...localEvidenceContext.retentionDependencies,
+        ...localEvidenceContext.acquisitionDependencies,
+        ...localEvidenceContext.acquiredEvidence.catalogBodies,
+        schemaBody,
+        Object.freeze({kind: 'relation_value', cid: summary.logicalCid,
+          wire: '{"sort":"relation","value":' + relationChunks.join('') + '}'}),
+      ])}),
       physical: Object.freeze({cid: sealed.cid, bytes: sealed.bytes}),
       prepared: sealed.prepared,
     });
@@ -523,6 +851,13 @@ export function preparePinnedEffectSourceHoldings({
   }
   const commit = store.commitPhysicalHolding.bind(store);
   const share = store.sharePhysicalHolding.bind(store);
+  const memberPayloads = new Set(sources.members.map(member => member.payload));
+  if (sources.payloads.some(payload => !memberPayloads.has(payload)) &&
+      !adoptedEffectSourceDependencies.has(sources)) {
+    // This entry point commits member holdings only. It must not claim a
+    // durable capture while upstream payload custody is still merely prepared.
+    throw new TypeError('IncompleteEffectDependencyHoldings');
+  }
   const firstByPayload = new Map();
   const entries = sources.members.map(({memberIndex, payload}) => {
     const holding = admitPinnedEffectSourceHolding({payload, store, control,

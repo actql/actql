@@ -80,6 +80,8 @@ priv enum FieldRule {
   Ordering
   OrderingTerms
   WitnessList
+  ProvenanceList
+  ScopeSources
 }
 
 ///|
@@ -166,6 +168,34 @@ fn contract_spec(name : String) -> ContractSpec? {
         fields: [
           required("program_definition_cid", Cid),
           required("result_name", NonemptyText),
+        ],
+      })
+    "acquisition_scope" =>
+      Some({
+        name,
+        version: "actql-acquisition-scope/0.1",
+        identity: "self_cid",
+        fields: [required("sources", ScopeSources)],
+      })
+    "acquisition_relation" =>
+      Some({
+        name,
+        version: "actql-acquisition-relation/0.1",
+        identity: "self_cid",
+        fields: [
+          required("producer_contract_cid", Cid),
+          required("relation_schema_cid", Cid),
+          required("logical_value_cid", Cid),
+          required("ordering_evidence_cid", Cid),
+          required("actual_row_count", SafeCount),
+          required("observation_scope_cid", Cid),
+          required(
+            "actual_completeness",
+            Choice(["complete", "partial", "unknown"]),
+          ),
+          required("effective_data_policy_cid", Cid),
+          required("effective_retention_policy_cid", Cid),
+          required("provenance_evidence", ProvenanceList),
         ],
       })
     "derivation_evidence" =>
@@ -804,6 +834,8 @@ fn validate_rule(value : @json.CanonicalValue, rule : FieldRule) -> Bool {
     Ordering => validate_ordering(value)
     OrderingTerms => validate_order_terms(value)
     WitnessList => validate_witness_list(value)
+    ProvenanceList => validate_relation_provenance(value)
+    ScopeSources => validate_scope_sources(value)
   }
 }
 
@@ -1131,6 +1163,10 @@ pub fn admit_publication_contract(
     complete, max_wire_bytes, max_nodes, max_depth,
   ) catch {
     _ => return Err(Encoding)
+  }
+  if (name == "acquisition_relation" || name == "acquisition_scope") &&
+    wire != complete_wire {
+    return Err(InvalidWire)
   }
   Ok({ name, identity_field: spec.identity, identity, wire, value: complete, })
 }

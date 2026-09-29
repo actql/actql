@@ -16,12 +16,15 @@ pub(all) enum ClientEffectLocalResultArtifactIssue {
 /// current right to consume the captured Result remain separate obligations.
 struct ClientEffectLocalResultArtifact {
   inputs : @strategy.CapturedEffectInputs
-  member_index : Int
+  borrow : @strategy.CapturedAnyResultBorrow
   definition : ClientEffectLocalResultDefinition
   invocation : ClientEffectLocalInvocation
   evidence : @publication.ResultOrderingEvidence
   artifact : @publication.PublicationContract
   retention : @publication.PublicationContract
+  scope : @publication.PublicationContract?
+  physical_cid : String
+  physical_bytes : Int
 }
 
 ///|
@@ -59,6 +62,21 @@ pub fn issue_source_free_client_effect_local_result_artifact(
     return Err(MissingInput)
   }
   let unit = @strategy.captured_effect_input_stage(input)
+  // Matching an Invocation owner alone is not proof of an input-free Unit.
+  // Acquired/imported Units must include their actual Relation provenance.
+  let program = @checked.effect_program_static_checked_computation(
+    owner.candidate,
+  )
+  guard @checked.unit_pipeline(program, unit) is Some(pipeline) else {
+    return Err(ForeignInvocation)
+  }
+  if unit != 0 ||
+    !@pipeline.starts_with_values(pipeline) ||
+    @pipeline.input_count(pipeline) != 0 ||
+    @checked.unit_result_import_count(program, unit) != Some(0) ||
+    @checked.unit_import_cid_count(program, unit) != Some(0) {
+    return Err(ForeignInvocation)
+  }
   let result_name = @execution.managed_result_occurrence_name(
     @strategy.captured_effect_input_occurrence(input),
   )
@@ -102,6 +120,43 @@ pub fn issue_source_free_client_effect_local_result_artifact(
     ) {
     return Err(ForeignExport)
   }
+  build_client_effect_local_result_artifact(
+    inputs,
+    @strategy.captured_effect_input_borrow(input),
+    definition,
+    invocation,
+    receipt,
+    retention,
+    scope_cid,
+    effective_data_policy_cid,
+    authority_scope_cid,
+    [],
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn build_client_effect_local_result_artifact(
+  inputs : @strategy.CapturedEffectInputs,
+  borrow : @strategy.CapturedAnyResultBorrow,
+  definition : ClientEffectLocalResultDefinition,
+  invocation : ClientEffectLocalInvocation,
+  receipt : @execution.CompletedRelationExportReceipt,
+  retention : @publication.PublicationContract,
+  scope_cid : String,
+  effective_data_policy_cid : String,
+  authority_scope_cid : String,
+  input_relations : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  scope? : @publication.PublicationContract? = None,
+) -> Result[
+  ClientEffectLocalResultArtifact,
+  ClientEffectLocalResultArtifactIssue,
+] {
   let evidence = match
     @publication.issue_local_result_occurrence_evidence(
       definition.cid,
@@ -112,7 +167,7 @@ pub fn issue_source_free_client_effect_local_result_artifact(
         @execution.completed_relation_export_schema_identity(receipt),
       ),
       definition.unit_definition_cid,
-      [],
+      input_relations,
       scope_cid,
       effective_data_policy_cid,
       "actql-common-host",
@@ -138,15 +193,37 @@ pub fn issue_source_free_client_effect_local_result_artifact(
     Ok(value) => value
     Err(issue) => return Err(Artifact(issue))
   }
+  let (physical_cid, physical_bytes, _, _) = @execution.output_stream_identity(
+    @execution.completed_relation_export_content(receipt),
+  )
   Ok({
     inputs,
-    member_index,
+    borrow,
     definition,
     invocation,
     evidence,
     artifact,
     retention,
+    scope,
+    physical_cid,
+    physical_bytes,
   })
+}
+
+///|
+/// Physical custody facts from the exact export receipt admitted by issuance.
+/// They are not added to the semantic Artifact preimage. No rehash/reexport
+/// occurs, and a foreign Run cannot adopt the facts as its dependency payload.
+pub fn client_effect_local_result_payload_binding(
+  value : ClientEffectLocalResultArtifact,
+  run_definition : @publication.PublicationContract,
+) -> Result[(String, Int), ClientEffectLocalResultArtifactIssue] {
+  if @publication.publication_contract_name(run_definition) != "run_definition" ||
+    @strategy.captured_effect_inputs_run_definition_cid(value.inputs) !=
+    Some(@publication.publication_contract_identity(run_definition)) {
+    return Err(ForeignRun)
+  }
+  Ok((value.physical_cid, value.physical_bytes))
 }
 
 ///|
@@ -217,11 +294,7 @@ pub fn client_effect_local_source_matches(
   if !physical_equal(artifact.inputs, inputs) ||
     !owns_artifact ||
     !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) ||
-    !@strategy.captured_effect_inputs_share_view(
-      inputs,
-      artifact.member_index,
-      member_index,
-    ) ||
+    !client_effect_local_artifact_matches_member(artifact, inputs, member_index) ||
     !client_effect_local_manifest_matches(
       manifest,
       owner,
@@ -248,6 +321,22 @@ pub fn client_effect_local_source_matches(
     source,
     artifact.artifact,
     name,
+  )
+}
+
+///|
+fn client_effect_local_artifact_matches_member(
+  artifact : ClientEffectLocalResultArtifact,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+) -> Bool {
+  guard physical_equal(artifact.inputs, inputs) &&
+    @strategy.captured_effect_input_at(inputs, member_index) is Some(input) else {
+    return false
+  }
+  @strategy.captured_any_result_borrows_share_view(
+    artifact.borrow,
+    @strategy.captured_effect_input_borrow(input),
   )
 }
 

@@ -2,8 +2,100 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
+import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+import {acquisitionFailure} from '../host-common/acquisition-outcome.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
+
+for (const outcome of ['not_started', 'stopped', 'unknown']) {
+  test(`Effect acquisition ${outcome} failure observes outcome after cleanup`,
+    async () => {
+      const ref = {runDefinitionCid: cid('b')};
+      const observations = [];
+      let opens = 0;
+      let cleanups = 0;
+      let pending = true;
+      const primary = new Error('SourceReadUnavailable');
+      const recovery = {async close() {}, async cleanup() {
+        cleanups++;
+        if (cleanups === 1) return false;
+        pending = false;
+        return true;
+      }, cleanupPending: () => pending};
+      const site = createInstalledEffectSite({environmentWire: '{}',
+        prepareCaptured() { assert.fail('No Preview or Effect may begin'); },
+        prepareRecovered() { assert.fail('No automatic reexecution'); }});
+      const dispatch = installNodeClientDispatchOwner({});
+      await assert.rejects(dispatch.track(ref, {
+        observeStopped: value => observations.push(value),
+        run: context => site.execute({...context,
+          openComputation: ({retainComputationOwner}) =>
+            openAcquiredEffectComputation({acquired: {prepared: {}},
+              now: () => '2026-09-29T00:00:00.000Z',
+              retainComputationOwner,
+              sourceProfile: {prepare() { return {}; }, open() {
+                opens++;
+                throw acquisitionFailure(primary, outcome,
+                  outcome === 'unknown' ? recovery : undefined);
+              }}}),
+        }),
+      }), error => error.cause === primary);
+      assert.deepEqual(observations, outcome === 'unknown' ? [] : ['failed']);
+      if (outcome === 'unknown') assert.notEqual(dispatch.operation(ref), undefined);
+      await dispatch.drain();
+      assert.deepEqual(observations, ['failed']);
+      assert.equal(dispatch.operation(ref), undefined);
+      assert.equal(opens, 1);
+      assert.equal(cleanups, outcome === 'unknown' ? 2 : 0);
+    });
+}
+
+test('Effect opening transfers physical custody before it can fail',
+  async () => {
+    let retained;
+    let opens = 0;
+    let cleanups = 0;
+    let pending = true;
+    const physical = {async close() {}, async cleanup() {
+      cleanups++;
+      if (cleanups === 1) return false;
+      pending = false;
+      return true;
+    }, cleanupPending: () => pending};
+    const site = createInstalledEffectSite({environmentWire: '{}',
+      prepareCaptured() { assert.fail('No completed computation'); },
+      prepareRecovered() { assert.fail('No automatic recovery'); }});
+    await assert.rejects(site.execute({
+      retainExecution(value) { retained = value; },
+      async openComputation({retainComputationOwner}) {
+        opens++;
+        assert.equal(retained.cleanupPending(), true);
+        retainComputationOwner(physical);
+        throw new Error('SourceEvidenceUnavailable');
+      },
+    }), {message: 'SourceEvidenceUnavailable'});
+    await retained.close();
+    assert.equal(await retained.cleanup(), false);
+    assert.equal(retained.cleanupPending(), true);
+    assert.equal(await retained.cleanup(), true);
+    assert.equal(retained.cleanupPending(), false);
+    assert.equal(opens, 1);
+  });
+
+test('Effect opening without a physical owner cannot claim cleanup completed',
+  async () => {
+    let retained;
+    const site = createInstalledEffectSite({environmentWire: '{}',
+      prepareCaptured() { assert.fail('No completed computation'); },
+      prepareRecovered() { assert.fail('No automatic recovery'); }});
+    await assert.rejects(site.execute({
+      retainExecution(value) { retained = value; },
+      async openComputation() { throw new Error('UnobservedPhysicalStop'); },
+    }), {message: 'UnobservedPhysicalStop'});
+    await retained.close();
+    assert.equal(await retained.cleanup(), false);
+    assert.equal(retained.cleanupPending(), true);
+  });
 
 test('installed Effect retains Compute before provider capture can fail',
   async () => {
@@ -56,7 +148,8 @@ test('installed Effect custody retries provider cleanup without Compute',
     assert.equal(disposeCalls, 2);
   });
 
-test('installed Effect continuation rejects a foreign Preview before claim',
+for (const mismatch of ['Preview', 'Unit', 'missing Unit']) {
+test(`installed Effect continuation rejects ${mismatch} before claim`,
   async () => {
     const moon = {};
     const store = {};
@@ -83,9 +176,12 @@ test('installed Effect continuation rejects a foreign Preview before claim',
     await assert.rejects(site.resume({moon, store, control,
       retainExecution() {},
       ref: {runDefinitionCid: cid('b')},
-      view: {runId: 'run-a'},
+      view: {runId: 'run-a', subject: {kind: 'run_unit', unit_id: 'compute_a'}},
       continuation: {version: 'actql-installed-effect-continuation/0.1',
-        run_definition_cid: cid('b'), preview_cid: cid('c'),
+        ...(mismatch === 'missing Unit' ? {} : {
+          unit_id: mismatch === 'Unit' ? 'other' : 'compute_a'}),
+        run_definition_cid: cid('b'),
+        preview_cid: mismatch === 'Preview' ? cid('c') : cid('a'),
         provider: {provider: 'bound'}},
       recoverCapture: async () => recovered,
       checkpointJournal: {claimResume() { claims++; }},
@@ -93,6 +189,7 @@ test('installed Effect continuation rejects a foreign Preview before claim',
     assert.equal(prepared, 0);
     assert.equal(claims, 0);
   });
+}
 
 test('missing durable Effect capture never claims an approved resume',
   async () => {

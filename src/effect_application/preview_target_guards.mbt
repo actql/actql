@@ -16,6 +16,7 @@ pub(all) enum EffectPreviewTargetGuardIssue {
   MissingObservation(Int, Int)
   StalePreview(Int, Int)
   ForeignObservation
+  ForeignRecoveryEvidence
 } derive(Eq, Debug)
 
 ///|
@@ -27,6 +28,23 @@ pub(all) enum EffectPreviewTargetGuardIssue {
 pub fn check_effect_preview_target_guards(
   preview : @publication.EffectPreviewIdentity,
   observations : Array[EffectTargetVersionObservation],
+  max_rows : Int,
+  max_work : Int,
+) -> Result[Unit, EffectPreviewTargetGuardIssue] {
+  check_effect_preview_target_guards_selected(
+    preview,
+    observations,
+    None,
+    max_rows,
+    max_work,
+  )
+}
+
+///|
+fn check_effect_preview_target_guards_selected(
+  preview : @publication.EffectPreviewIdentity,
+  observations : Array[EffectTargetVersionObservation],
+  required_rows : Map[String, Bool]?,
   max_rows : Int,
   max_work : Int,
 ) -> Result[Unit, EffectPreviewTargetGuardIssue] {
@@ -50,7 +68,7 @@ pub fn check_effect_preview_target_guards(
     current[observed.row_preview_cid] = observed.version_cid
   }
   let mut total_rows = 0
-  let mut guarded_rows = 0
+  let mut known_observations = 0
   for member_index in 0..<@publication.effect_preview_member_count(preview) {
     let count = @publication.effect_preview_row_count(preview, member_index).unwrap()
     if count > max_rows - total_rows || count > remaining {
@@ -64,10 +82,15 @@ pub fn check_effect_preview_target_guards(
           preview, member_index, row_index,
         ) {
         Some(expected) => {
-          guarded_rows += 1
           let row = @publication.effect_preview_row_identity(
             preview, member_index, row_index,
           ).unwrap()
+          if current.contains(row) {
+            known_observations += 1
+          }
+          if required_rows is Some(required) && !required.contains(row) {
+            continue
+          }
           match current.get(row) {
             None => return Err(MissingObservation(member_index, row_index))
             Some(actual) =>
@@ -80,7 +103,7 @@ pub fn check_effect_preview_target_guards(
       }
     }
   }
-  if observations.length() != guarded_rows {
+  if observations.length() != known_observations {
     return Err(ForeignObservation)
   }
   Ok(())

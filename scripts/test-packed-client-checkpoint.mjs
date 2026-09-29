@@ -13,6 +13,7 @@ import {fileURLToPath} from 'node:url';
 import {canonicalText} from './check-canonical-json.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
+const recoveryOnly = process.argv.includes('--recovery-only');
 const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
 // The installed application must not resolve files from the source checkout.
@@ -594,191 +595,193 @@ async function assertRetired(name, state = 'retired') {
 
 // 1 and 9. allow runs with no Checkpoint and no Host policy call; deny and a
 // missing configuration make no protected call.
-await withHost('allow', {OUTCOME: 'allow', DECIDE: 'permit'}, started =>
-  client(started, 'allowed', ['allow-a']));
-assert.deepEqual(await counts('allow'), ran());
-for (const [outcome, code] of [['deny', 'ACTQL_E_ACCOUNT_DENIED'],
-  ['missing', 'ACTQL_E_ACCOUNT_CONFIG_INVALID']]) {
-  await withHost(outcome, {OUTCOME: outcome}, started =>
-    client(started, 'refused', [`${outcome}-a`], {CODE: code}));
-  assert.deepEqual(await counts(outcome), none, outcome);
-}
-
-// 2. delegate with an immediate Host permit or reject.
-await withHost('permit', {DECIDE: 'permit'}, started =>
-  client(started, 'allowed', ['permit-a']));
-assert.deepEqual(await counts('permit'), ran({decide: 1}));
-await withHost('reject', {DECIDE: 'reject'}, started =>
-  client(started, 'refused', ['reject-a'],
-    {CODE: 'ACTQL_E_DELEGATION_REJECTED'}));
-assert.deepEqual(await counts('reject'), {...none, decide: 1});
-
-// 3, 4, 6 and 7. Hold -> Host exits -> review, lost-reply answer and
-// contradiction from other processes on an answer-only Host -> a restarted
-// Host resumes by itself -> Named Result, with lookup/attach/wait only.
-await approvedAndStopped('held', 'held-a');
-assert.deepEqual(await counts('held'), none);
-await withHost('held', {}, started => client(started, 'finished',
-  ['held-a']));
-assert.deepEqual(await counts('held'), ran());
-await assertRetired('held');
-
-// 4. The Host crashes at each step of the resume; a restarted Host carries
-// the same request on by itself (no Client resubmission). Before the
-// physical start reservation it starts the Run once; after it, the start is
-// unknown and is never sent again.
-for (const [step, expectStatus, expected] of [
-  ['resume_claimed', 'succeeded', ran()],
-  ['definition_admitted', 'succeeded', ran()],
-  ['dispatch_reserved', 'succeeded', ran({dispatch_reserved: 2})],
-  ['hook', 'succeeded', ran({dispatch_reserved: 2, hook: 2})],
-  ['physical_start_reserved', 'needs_reconciliation', ran({computed: 0})],
-]) {
-  // A short lease: the crashed claimant's lease must lapse for the restart.
-  const name = `crash-${step}`;
-  await approvedAndStopped(name, name, {LEASE_MS: '2000'});
-  await crashed(name, {CRASH_AT: step, LEASE_MS: '2000'});
-  await withHost(name, {LEASE_MS: '2000'}, started => client(started,
-    'finished', [name], {EXPECT_STATUS: expectStatus}));
-  assert.deepEqual(await counts(name), expected,
-    `${step}: ${(await events(name)).join(',')}`);
-  await assertRetired(name, expectStatus === 'succeeded' ? 'retired'
-    : 'held');
-}
-
-// 5. A Run defined but not started when the Host stopped is authorized
-// again before its physical start: a configuration changed to deny, or an
-// approval that expired meanwhile, starts nothing; the Run fails before
-// dispatch.
-for (const [name, crashAt, restart, extra, step] of [
-  ['deny-defined', 'definition_admitted', {OUTCOME: 'deny'},
-    {LEASE_MS: '2000'}, 'finished'],
-  ['deny-reserved', 'hook', {OUTCOME: 'deny'}, {LEASE_MS: '2000'},
-    'finished'],
-  ['expired-defined', 'definition_admitted', {},
-    {TTL_MS: '90000', LEASE_MS: '2000'}, 'finished'],
-  // The owner submits the same request again after the restart: it is
-  // the existing Run, still started only under the resumed authorization.
-  ['expired-resubmit', 'definition_admitted', {},
-    {TTL_MS: '90000', LEASE_MS: '2000'}, 'resubmitted'],
-]) {
-  // Two Host starts, review and signing must fit before these expiry cases
-  // inject their pre-start crash. Expiry is then observed after the crash.
-  await approvedAndStopped(name, name, extra);
-  await crashed(name, {CRASH_AT: crashAt, ...extra});
-  // Past the Checkpoint's answer deadline, which bounds the approval.
-  if (extra.TTL_MS !== undefined) await untilPast(await expiresAt(name));
-  await withHost(name, {...restart, ...extra}, started => client(started,
-    step, [name], {EXPECT_STATUS: 'failed'}));
-  const counted = await counts(name);
-  assert.equal(counted.physical_start_reserved, 0, name);
-  assert.equal(counted.computed, 0, name);
-  await assertRetired(name);
-}
-
-// 8. A Run defined before a crash is cancelled through the public Client
-// on a restarted Host whose resume is stalled; that Host is killed. The
-// next Host settles the held request as cancelled by itself: no physical
-// start, and its evidence is released.
-{
-  const name = 'cancel-restart';
-  await approvedAndStopped(name, name, {LEASE_MS: '2000'});
-  // Keep the dead claimant fenced through startup. Otherwise a slow start
-  // can enter the long injected stall before the HTTP listener exists.
-  await crashed(name, {CRASH_AT: 'definition_admitted', LEASE_MS: '30000'});
-  const stalled = await startHost(name, {LEASE_MS: '2000',
-    STALL_AT: 'resume_claimed', STALL_MS: '600000'});
-  try {
-    const deadline = Date.now() + 40000;
-    for (;;) {
-      try { await readFile(join(root, name + '.stalled')); break; }
-      catch (error) { if (error.code !== 'ENOENT') throw error; }
-      assert(Date.now() < deadline, 'resume did not reach its injected stall');
-      await new Promise(resolve => setTimeout(resolve, 25));
-    }
-    client(stalled, 'cancelRun', [name]);
+if (!recoveryOnly) {
+  await withHost('allow', {OUTCOME: 'allow', DECIDE: 'permit'}, started =>
+    client(started, 'allowed', ['allow-a']));
+  assert.deepEqual(await counts('allow'), ran());
+  for (const [outcome, code] of [['deny', 'ACTQL_E_ACCOUNT_DENIED'],
+    ['missing', 'ACTQL_E_ACCOUNT_CONFIG_INVALID']]) {
+    await withHost(outcome, {OUTCOME: outcome}, started =>
+      client(started, 'refused', [`${outcome}-a`], {CODE: code}));
+    assert.deepEqual(await counts(outcome), none, outcome);
   }
-  finally { await stopHost(stalled, 'SIGKILL'); }
-  // The running Host settles once the killed claimant's lease lapses.
-  await withHost(name, {LEASE_MS: '2000'}, async started => {
-    client(started, 'finished', [name], {EXPECT_STATUS: 'cancelled'});
-    // The killed claimant held a 30-second lease. A fast restart can observe
-    // the cancelled Run before that lease permits its preparation to retire.
-    // Allow for a loaded runner to start and sweep after that lease expires.
-    await untilRetired(name, 90_000);
+
+  // 2. delegate with an immediate Host permit or reject.
+  await withHost('permit', {DECIDE: 'permit'}, started =>
+    client(started, 'allowed', ['permit-a']));
+  assert.deepEqual(await counts('permit'), ran({decide: 1}));
+  await withHost('reject', {DECIDE: 'reject'}, started =>
+    client(started, 'refused', ['reject-a'],
+      {CODE: 'ACTQL_E_DELEGATION_REJECTED'}));
+  assert.deepEqual(await counts('reject'), {...none, decide: 1});
+
+  // 3, 4, 6 and 7. Hold -> Host exits -> review, lost-reply answer and
+  // contradiction from other processes on an answer-only Host -> a restarted
+  // Host resumes by itself -> Named Result, with lookup/attach/wait only.
+  await approvedAndStopped('held', 'held-a');
+  assert.deepEqual(await counts('held'), none);
+  await withHost('held', {}, started => client(started, 'finished',
+    ['held-a']));
+  assert.deepEqual(await counts('held'), ran());
+  await assertRetired('held');
+
+  // 4. The Host crashes at each step of the resume; a restarted Host carries
+  // the same request on by itself (no Client resubmission). Before the
+  // physical start reservation it starts the Run once; after it, the start is
+  // unknown and is never sent again.
+  for (const [step, expectStatus, expected] of [
+    ['resume_claimed', 'succeeded', ran()],
+    ['definition_admitted', 'succeeded', ran()],
+    ['dispatch_reserved', 'succeeded', ran({dispatch_reserved: 2})],
+    ['hook', 'succeeded', ran({dispatch_reserved: 2, hook: 2})],
+    ['physical_start_reserved', 'needs_reconciliation', ran({computed: 0})],
+  ]) {
+    // A short lease: the crashed claimant's lease must lapse for the restart.
+    const name = `crash-${step}`;
+    await approvedAndStopped(name, name, {LEASE_MS: '2000'});
+    await crashed(name, {CRASH_AT: step, LEASE_MS: '2000'});
+    await withHost(name, {LEASE_MS: '2000'}, started => client(started,
+      'finished', [name], {EXPECT_STATUS: expectStatus}));
+    assert.deepEqual(await counts(name), expected,
+      `${step}: ${(await events(name)).join(',')}`);
+    await assertRetired(name, expectStatus === 'succeeded' ? 'retired'
+      : 'held');
+  }
+
+  // 5. A Run defined but not started when the Host stopped is authorized
+  // again before its physical start: a configuration changed to deny, or an
+  // approval that expired meanwhile, starts nothing; the Run fails before
+  // dispatch.
+  for (const [name, crashAt, restart, extra, step] of [
+    ['deny-defined', 'definition_admitted', {OUTCOME: 'deny'},
+      {LEASE_MS: '2000'}, 'finished'],
+    ['deny-reserved', 'hook', {OUTCOME: 'deny'}, {LEASE_MS: '2000'},
+      'finished'],
+    ['expired-defined', 'definition_admitted', {},
+      {TTL_MS: '90000', LEASE_MS: '2000'}, 'finished'],
+    // The owner submits the same request again after the restart: it is
+    // the existing Run, still started only under the resumed authorization.
+    ['expired-resubmit', 'definition_admitted', {},
+      {TTL_MS: '90000', LEASE_MS: '2000'}, 'resubmitted'],
+  ]) {
+    // Two Host starts, review and signing must fit before these expiry cases
+    // inject their pre-start crash. Expiry is then observed after the crash.
+    await approvedAndStopped(name, name, extra);
+    await crashed(name, {CRASH_AT: crashAt, ...extra});
+    // Past the Checkpoint's answer deadline, which bounds the approval.
+    if (extra.TTL_MS !== undefined) await untilPast(await expiresAt(name));
+    await withHost(name, {...restart, ...extra}, started => client(started,
+      step, [name], {EXPECT_STATUS: 'failed'}));
+    const counted = await counts(name);
+    assert.equal(counted.physical_start_reserved, 0, name);
+    assert.equal(counted.computed, 0, name);
+    await assertRetired(name);
+  }
+
+  // 8. A Run defined before a crash is cancelled through the public Client
+  // on a restarted Host whose resume is stalled; that Host is killed. The
+  // next Host settles the held request as cancelled by itself: no physical
+  // start, and its evidence is released.
+  {
+    const name = 'cancel-restart';
+    await approvedAndStopped(name, name, {LEASE_MS: '2000'});
+    // Keep the dead claimant fenced through startup. Otherwise a slow start
+    // can enter the long injected stall before the HTTP listener exists.
+    await crashed(name, {CRASH_AT: 'definition_admitted', LEASE_MS: '30000'});
+    const stalled = await startHost(name, {LEASE_MS: '2000',
+      STALL_AT: 'resume_claimed', STALL_MS: '600000'});
+    try {
+      const deadline = Date.now() + 40000;
+      for (;;) {
+        try { await readFile(join(root, name + '.stalled')); break; }
+        catch (error) { if (error.code !== 'ENOENT') throw error; }
+        assert(Date.now() < deadline, 'resume did not reach its injected stall');
+        await new Promise(resolve => setTimeout(resolve, 25));
+      }
+      client(stalled, 'cancelRun', [name]);
+    }
+    finally { await stopHost(stalled, 'SIGKILL'); }
+    // The running Host settles once the killed claimant's lease lapses.
+    await withHost(name, {LEASE_MS: '2000'}, async started => {
+      client(started, 'finished', [name], {EXPECT_STATUS: 'cancelled'});
+      // The killed claimant held a 30-second lease. A fast restart can observe
+      // the cancelled Run before that lease permits its preparation to retire.
+      // Allow for a loaded runner to start and sweep after that lease expires.
+      await untilRetired(name, 90_000);
+    });
+    const counted = await counts(name);
+    assert.equal(counted.physical_start_reserved, 0, name);
+    assert.equal(counted.computed, 0, name);
+  }
+
+  // D-next-2 (A3): a Program with real input is held before its source read,
+  // answered later from another process, and resumed by a restarted Host to
+  // Results computed from the real DuckDB table. The source is read once.
+  // The run itself is allowed, so the only hold is the source read.
+  const readOnly = {ACQUIRED: '1', OUTCOME: 'allow'};
+  const readHeld = ran({acquisition_started: 1, acquisition_completed: 1});
+  await approvedAndStopped('acq-held', 'acq-held', readOnly);
+  assert.deepEqual(await counts('acq-held'), none);
+  await withHost('acq-held', readOnly, started =>
+    client(started, 'finished', ['acq-held'], readOnly));
+  assert.deepEqual(await counts('acq-held'), readHeld);
+  await assertRetired('acq-held');
+
+  // A6: the Host crashes after the acquisition started. The restarted Host
+  // keeps the Run unknown and never reads the source again.
+  await approvedAndStopped('acq-crash', 'acq-crash', {...readOnly,
+    LEASE_MS: '2000'});
+  await crashed('acq-crash', {...readOnly, LEASE_MS: '2000',
+    CRASH_AT: 'acquisition_started'});
+  await withHost('acq-crash', {...readOnly, LEASE_MS: '2000'}, started =>
+    client(started, 'finished', ['acq-crash'], {...readOnly,
+      EXPECT_STATUS: 'needs_reconciliation'}));
+  assert.deepEqual(await counts('acq-crash'),
+    ran({acquisition_started: 1, computed: 0}));
+  await assertRetired('acq-crash', 'held');
+
+  // C1 with real input: the owner cancels a request held before its source
+  // read; nothing is read and its evidence is released.
+  await withHost('acq-cancel', readOnly, started => {
+    client(started, 'hold', ['acq-cancel'], readOnly);
+    client(started, 'review', ['acq-cancel'], readOnly);
+    client(started, 'cancelHeld', ['acq-cancel'], readOnly);
+    client(started, 'ended', ['acq-cancel'], {...readOnly,
+      END_REASON: 'cancelled'});
   });
-  const counted = await counts(name);
-  assert.equal(counted.physical_start_reserved, 0, name);
-  assert.equal(counted.computed, 0, name);
+  assert.deepEqual(await counts('acq-cancel'), none);
+  await assertRetired('acq-cancel');
+
+  // 8. The owner cancels a held request before any Run exists, from another
+  // process; the lost reply is resent and matched; a late answer does not
+  // resume it; nothing starts; its evidence is released.
+  await withHost('cancel-held', {}, started => {
+    client(started, 'hold', ['cancel-held']);
+    client(started, 'review', ['cancel-held']);
+    client(started, 'cancelHeld', ['cancel-held']);
+    client(started, 'ended', ['cancel-held'], {END_REASON: 'cancelled'});
+    client(started, 'lateApproval', ['cancel-held']);
+  });
+  assert.deepEqual(await counts('cancel-held'), none);
+  await assertRetired('cancel-held');
+
+  // 8. A request answered on an answer-only Host is cancelled there; the next
+  // Host start settles it by itself: no start, evidence released.
+  await withHost('cancel-resuming', {}, started =>
+    client(started, 'hold', ['cancel-resuming']));
+  // The answer and the cancellation reach the same answer-only Host, before
+  // any Host start could resume the request.
+  await withHost('cancel-resuming', {RESUME_AFTER_ANSWER: '0'}, started => {
+    client(started, 'review', ['cancel-resuming']);
+    client(started, 'approve', ['cancel-resuming']);
+    client(started, 'cancelResuming', ['cancel-resuming']);
+  });
+  await withHost('cancel-resuming', {}, async started => {
+    client(started, 'ended', ['cancel-resuming'], {END_REASON: 'cancelled'});
+    await untilRetired('cancel-resuming');
+  });
+  assert.deepEqual(await counts('cancel-resuming'), none);
 }
-
-// D-next-2 (A3): a Program with real input is held before its source read,
-// answered later from another process, and resumed by a restarted Host to
-// Results computed from the real DuckDB table. The source is read once.
-// The run itself is allowed, so the only hold is the source read.
-const readOnly = {ACQUIRED: '1', OUTCOME: 'allow'};
-const readHeld = ran({acquisition_started: 1, acquisition_completed: 1});
-await approvedAndStopped('acq-held', 'acq-held', readOnly);
-assert.deepEqual(await counts('acq-held'), none);
-await withHost('acq-held', readOnly, started =>
-  client(started, 'finished', ['acq-held'], readOnly));
-assert.deepEqual(await counts('acq-held'), readHeld);
-await assertRetired('acq-held');
-
-// A6: the Host crashes after the acquisition started. The restarted Host
-// keeps the Run unknown and never reads the source again.
-await approvedAndStopped('acq-crash', 'acq-crash', {...readOnly,
-  LEASE_MS: '2000'});
-await crashed('acq-crash', {...readOnly, LEASE_MS: '2000',
-  CRASH_AT: 'acquisition_started'});
-await withHost('acq-crash', {...readOnly, LEASE_MS: '2000'}, started =>
-  client(started, 'finished', ['acq-crash'], {...readOnly,
-    EXPECT_STATUS: 'needs_reconciliation'}));
-assert.deepEqual(await counts('acq-crash'),
-  ran({acquisition_started: 1, computed: 0}));
-await assertRetired('acq-crash', 'held');
-
-// C1 with real input: the owner cancels a request held before its source
-// read; nothing is read and its evidence is released.
-await withHost('acq-cancel', readOnly, started => {
-  client(started, 'hold', ['acq-cancel'], readOnly);
-  client(started, 'review', ['acq-cancel'], readOnly);
-  client(started, 'cancelHeld', ['acq-cancel'], readOnly);
-  client(started, 'ended', ['acq-cancel'], {...readOnly,
-    END_REASON: 'cancelled'});
-});
-assert.deepEqual(await counts('acq-cancel'), none);
-await assertRetired('acq-cancel');
-
-// 8. The owner cancels a held request before any Run exists, from another
-// process; the lost reply is resent and matched; a late answer does not
-// resume it; nothing starts; its evidence is released.
-await withHost('cancel-held', {}, started => {
-  client(started, 'hold', ['cancel-held']);
-  client(started, 'review', ['cancel-held']);
-  client(started, 'cancelHeld', ['cancel-held']);
-  client(started, 'ended', ['cancel-held'], {END_REASON: 'cancelled'});
-  client(started, 'lateApproval', ['cancel-held']);
-});
-assert.deepEqual(await counts('cancel-held'), none);
-await assertRetired('cancel-held');
-
-// 8. A request answered on an answer-only Host is cancelled there; the next
-// Host start settles it by itself: no start, evidence released.
-await withHost('cancel-resuming', {}, started =>
-  client(started, 'hold', ['cancel-resuming']));
-// The answer and the cancellation reach the same answer-only Host, before
-// any Host start could resume the request.
-await withHost('cancel-resuming', {RESUME_AFTER_ANSWER: '0'}, started => {
-  client(started, 'review', ['cancel-resuming']);
-  client(started, 'approve', ['cancel-resuming']);
-  client(started, 'cancelResuming', ['cancel-resuming']);
-});
-await withHost('cancel-resuming', {}, async started => {
-  client(started, 'ended', ['cancel-resuming'], {END_REASON: 'cancelled'});
-  await untilRetired('cancel-resuming');
-});
-assert.deepEqual(await counts('cancel-resuming'), none);
 
 // 6. The Run-side duty: a Host that stopped after computing but before
 // recording the end. A transient failure of its recovery is retried by the
@@ -796,7 +799,19 @@ for (const [name, fail, retried] of [
   const started = await startHost(name, {LEASE_MS: '1000',
     FAIL_AT: 'run_observed', ...fail});
   try {
-    await new Promise(resolve => setTimeout(resolve, 2500));
+    if (retried) {
+      // Observe the automatic recovery; do not resubmit, answer, restart or
+      // retry the work from this test. The lease timer is a minimum delay,
+      // not a promise that Store admission finishes within 2.5 seconds.
+      const deadline = Date.now() + 30000;
+      while ((await events(name)).filter(item =>
+        item === 'run_observed').length - observedBefore < 2 &&
+        Date.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, 25));
+      }
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 2500));
+    }
     const observed = (await events(name)).filter(item =>
       item === 'run_observed').length - observedBefore;
     assert.equal(observed, retried ? 2 : 1, name);
@@ -808,49 +823,52 @@ for (const [name, fail, retried] of [
 
 // 5. A claim whose lease lapses before the admission sends nothing; the
 // Host itself continues the durable intent under a later claim.
-await approvedAndStopped('lease', 'lease-a', {LEASE_MS: '1000'});
-await withHost('lease', {LEASE_MS: '1000', STALL_AT: 'resume_claimed',
-  STALL_MS: '1500'}, started => client(started, 'finished', ['lease-a']));
-assert.deepEqual(await counts('lease'), ran());
+if (!recoveryOnly) {
+  await approvedAndStopped('lease', 'lease-a', {LEASE_MS: '1000'});
+  await withHost('lease', {LEASE_MS: '1000', STALL_AT: 'resume_claimed',
+    STALL_MS: '1500'}, started => client(started, 'finished', ['lease-a']));
+  assert.deepEqual(await counts('lease'), ran());
 
-// 5. An approval whose own permission expired before the Host resumed
-// starts nothing; the request ends without a Run.
-await approvedAndStopped('expired', 'expired-a', {TTL_MS: '10000'});
-await untilPast(await expiresAt('expired-a'));
-await withHost('expired', {}, started => client(started, 'ended',
-  ['expired-a'], {END_REASON: 'failed'}));
-assert.deepEqual(await counts('expired'), none);
+  // 5. An approval whose own permission expired before the Host resumed
+  // starts nothing; the request ends without a Run.
+  await approvedAndStopped('expired', 'expired-a', {TTL_MS: '10000'});
+  await untilPast(await expiresAt('expired-a'));
+  await withHost('expired', {}, started => client(started, 'ended',
+    ['expired-a'], {END_REASON: 'failed'}));
+  assert.deepEqual(await counts('expired'), none);
 
-// 5. A configuration changed while waiting (to allow) does not resume the
-// held request: it ends without a Run and nothing is dispatched.
-await approvedAndStopped('changed', 'changed-a');
-await withHost('changed', {OUTCOME: 'allow'}, started =>
-  client(started, 'ended', ['changed-a'],
-    {END_REASON: 'revalidation_failed'}));
-assert.deepEqual(await counts('changed'), none);
+  // 5. A configuration changed while waiting (to allow) does not resume the
+  // held request: it ends without a Run and nothing is dispatched.
+  await approvedAndStopped('changed', 'changed-a');
+  await withHost('changed', {OUTCOME: 'allow'}, started =>
+    client(started, 'ended', ['changed-a'],
+      {END_REASON: 'revalidation_failed'}));
+  assert.deepEqual(await counts('changed'), none);
 
-// 5. A second Host on the same state is refused by the Store's single
-// owner before it can claim anything; the first resumes exactly once.
-await approvedAndStopped('race', 'race-a');
-const owning = await startHost('race', {});
-try {
-  await assert.rejects(startHost('race', {}), /PublicationStoreBusy/u);
-  client(owning, 'finished', ['race-a']);
-} finally { await stopHost(owning); }
-assert.deepEqual(await counts('race'), ran());
+  // 5. A second Host on the same state is refused by the Store's single
+  // owner before it can claim anything; the first resumes exactly once.
+  await approvedAndStopped('race', 'race-a');
+  const owning = await startHost('race', {});
+  try {
+    await assert.rejects(startHost('race', {}), /PublicationStoreBusy/u);
+    client(owning, 'finished', ['race-a']);
+  } finally { await stopHost(owning); }
+  assert.deepEqual(await counts('race'), ran());
 
-// 6. A batch with independent per-item results; rejection ends the request
-// without a Run, the approved one runs on the next Host start.
-await withHost('batch', {RESUME_AFTER_ANSWER: '0'}, started => {
-  client(started, 'hold', ['batch-a']);
-  client(started, 'hold', ['batch-b']);
-  client(started, 'review', ['batch-a']);
-  client(started, 'review', ['batch-b']);
-  client(started, 'batch', ['batch-a', 'batch-b']);
-  client(started, 'ended', ['batch-a'], {END_REASON: 'rejected'});
-  client(started, 'resumeWaiting', ['batch-b']);
-});
-await withHost('batch', {}, started =>
-  client(started, 'finished', ['batch-b']));
-assert.deepEqual(await counts('batch'), ran());
-console.log('packed client Checkpoint acceptance: ok');
+  // 6. A batch with independent per-item results; rejection ends the request
+  // without a Run, the approved one runs on the next Host start.
+  await withHost('batch', {RESUME_AFTER_ANSWER: '0'}, started => {
+    client(started, 'hold', ['batch-a']);
+    client(started, 'hold', ['batch-b']);
+    client(started, 'review', ['batch-a']);
+    client(started, 'review', ['batch-b']);
+    client(started, 'batch', ['batch-a', 'batch-b']);
+    client(started, 'ended', ['batch-a'], {END_REASON: 'rejected'});
+    client(started, 'resumeWaiting', ['batch-b']);
+  });
+  await withHost('batch', {}, started =>
+    client(started, 'finished', ['batch-b']));
+  assert.deepEqual(await counts('batch'), ran());
+}
+console.log(recoveryOnly ? 'packed client Checkpoint recovery: ok'
+  : 'packed client Checkpoint acceptance: ok');

@@ -56,6 +56,7 @@ fn emit_contract_set(
 fn emit_unit_preimage(
   value : UnitIdentityMaterial,
   writer : @encode.Writer,
+  self_cid? : String? = None,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
   @encode.key(writer, "import_interface_cids")
@@ -66,6 +67,10 @@ fn emit_unit_preimage(
   @encode.string_value(writer, value.local_body)
   @encode.key(writer, "local_contract_closure_cid")
   @encode.string_value(writer, value.contracts)
+  if self_cid is Some(cid) {
+    @encode.key(writer, "self_cid")
+    @encode.string_value(writer, cid)
+  }
   @encode.key(writer, "unit_namespace")
   emit_namespace(value.program_id, value.node_id, writer)
   @encode.key(writer, "used_parameter_declarations_cid")
@@ -84,6 +89,7 @@ fn emit_result_interface(
   result_name : String,
   type_cid : String,
   writer : @encode.Writer,
+  self_cid? : String? = None,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
   @encode.key(writer, "availability")
@@ -96,6 +102,10 @@ fn emit_result_interface(
   @encode.string_value(writer, result_name)
   @encode.key(writer, "producer_unit_definition_cid")
   @encode.string_value(writer, unit_cid)
+  if self_cid is Some(cid) {
+    @encode.key(writer, "self_cid")
+    @encode.string_value(writer, cid)
+  }
   @encode.key(writer, "value_contract_cid")
   @encode.string_value(writer, type_cid)
   @encode.key(writer, "version")
