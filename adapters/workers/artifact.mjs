@@ -81,6 +81,8 @@ export const conformanceModules = [
   'adapters/host-common/runtime-result.mjs',
   'adapters/host-common/result-output-limits.mjs',
   'adapters/workers/host.mjs',
+  'adapters/host-common/local-js-host.mjs',
+  'adapters/host-common/scoped-strategy.mjs',
   'adapters/workers/invocation.mjs',
   'adapters/workers/async-conformance.mjs',
   'adapters/workers/phase-audit.mjs',
@@ -114,5 +116,6 @@ export const hostModules = [
   'adapters/host-common/runtime-result.mjs',
   'adapters/host-common/result-output-limits.mjs',
   'adapters/workers/host.mjs',
-  'adapters/workers/invocation.mjs',
+  'adapters/host-common/local-js-host.mjs',
+  'adapters/host-common/scoped-strategy.mjs',
 ];
