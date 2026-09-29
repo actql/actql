@@ -3070,10 +3070,33 @@ async function exerciseStrategyGraph(
       {id: 1, embedding: [3, 4], score: 3},
       {id: 2, embedding: [0, 2], score: 0},
     ],
+  }, {
+    name: 'vectors-pool',
+    source: carrierVectorPublicationProgram,
+    create: program => fixture.strategyFixtureVecaCreate(
+      ...args, JSON.stringify(program), orderedContract),
+    configure: value => fixture.strategyFixtureVecaRetainedSubset(value),
+    transform: {
+      from: 'source',
+      pool_vectors: {by: ['group'], method: 'sum'},
+      as: 'pooled',
+    },
+    fields: ['group', 'embedding', 'member_count'],
+    secondFields: ['member_count', 'embedding', 'group'],
+    rows: [
+      {id: 1, group: 1, embedding: [3, 4]},
+      {id: 2, group: 1, embedding: [0, 2]},
+    ],
+    expectedRows: [
+      {group: 1, embedding: [3, 6], member_count: 2},
+    ],
   }]) {
     const directProgram = structuredClone(carrierCase.source);
     const rowStep = directProgram.stages[1].steps[0];
     rowStep.as = 'rows';
+    if (carrierCase.name === 'vectors-pool') {
+      rowStep.values.schema.group = {type: 'number', nullable: false};
+    }
     rowStep.values.rows = carrierCase.rows;
     const carrierStage = directProgram.stages[2];
     carrierStage.inputs = {};
@@ -4493,6 +4516,18 @@ async function exerciseStrategyGraph(
     rows: 40,
     advanceQuantum: 1,
     constructionProgress: 80,
+    fields: ['group', 'embedding', 'member_count'],
+  }, {
+    name: 'vector-pool-selected-filter',
+    family: 'veca',
+    operation: 'pool',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
     fields: ['group', 'embedding', 'member_count'],
   }, {
     name: 'vector-pool-relation',

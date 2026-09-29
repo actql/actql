@@ -1614,6 +1614,7 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   let pooled = variant == "pool" ||
     variant == "pool_normalize" ||
     variant == "pool_shared" ||
+    variant == "pool_filter" ||
     relation_pool
   let scored = variant == "score_shared" ||
     variant == "score_parameter" ||
@@ -1734,6 +1735,7 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     variant == "bridge_filter" ||
     variant == "normalize_filter" ||
     variant == "score_filter" ||
+    variant == "pool_filter" ||
     variant == "bridge_select" ||
     variant == "bridge_derive" ||
     variant == "bridge_take" {
@@ -1747,6 +1749,10 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
       "{\"from\":\"source\",\"score_vectors\":{" +
       "\"query\":[1,0],\"metric\":\"dot\"}," +
       "\"as\":\"scored\"},"
+    } else if variant == "pool_filter" {
+      "{\"from\":\"source\",\"pool_vectors\":{" +
+      "\"by\":[\"group\"],\"method\":\"sum\"}," +
+      "\"as\":\"pooled\"},"
     } else {
       ""
     }) +
@@ -1755,6 +1761,8 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
       "normalized"
     } else if variant == "score_filter" {
       "scored"
+    } else if variant == "pool_filter" {
+      "pooled"
     } else {
       "source"
     }) +
