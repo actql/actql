@@ -331,20 +331,8 @@ test('public HTTP Client resumes an installed Salesforce Effect after restart',
       [row.External_Key__c, row.Name]).sort(),
     [['key-1', 'record-1'], ['key-3', 'record-3']]);
     const mapping = published.mappings[0];
-    const unsupported = JSON.parse(program);
-    unsupported.id = 'unsupported-acquire-and-effect';
-    unsupported.stages[1].effects = {save: {update: {
-      target: 'connector://crm-main/Test_Record__c',
-      mapping: mapping.mappingRef, from: {result: 'r'},
-      id: 'External_Key__c', set: {Name: {field: 'Name'}},
-    }}};
-    const beforeUnsupported = setup.org.seen.length;
-    await assert.rejects(ownerClient.aql(JSON.stringify(unsupported), {
-      format: 'json', requestId: 'unsupported-acquire-and-effect'}),
-    {code: 'ClientProgramUnsupported'});
-    assert.deepEqual(await ownerClient.lookupRequest(
-      'unsupported-acquire-and-effect'), {kind: 'not_found'});
-    assert.equal(setup.org.seen.length, beforeUnsupported);
+    // A Program that acquires and runs an Effect is covered through this
+    // same coinstalled Host in read-compute-effect.acceptance.test.mjs.
     const effectDocument = effectProgram({save: {update: {
       target: `connector://crm-main/Test_Record__c`,
       mapping: mapping.mappingRef, from: {result: 'rows'}, id: 'id',

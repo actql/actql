@@ -86,8 +86,10 @@ test('the stateful org applies, loses and refuses writes as configured',
     assert.equal(org.seen.length, before + 5);
   });
 
-// Runs today, on the connected Values-origin path: the same damage helper
-// and the same expectation as the Read→Compute→Effect case below.
+// The same damage on the Values-origin path, whose only held body is the
+// Effect input. The Host must still start; only this Run is refused, before
+// any write, and nothing is re-read. (Today the Host refuses to start: the
+// common side's P2-1, which this test must not accept.)
 test('Values-origin: a missing or altered durable Effect input is refused before any write',
   async t => {
     for (const kind of ['missing', 'altered']) {
@@ -107,17 +109,9 @@ test('Values-origin: a missing or altered durable Effect input is refused before
       const second = await setup.openHost();
       await approveHeldSet(second, execution);
       await second.close();
-      await setup.damageCapture(kind);
-      // Observed today: the Host itself refuses to start over the damaged
-      // Store object, typed, before any provider request. (Whether one
-      // Run's damage should stop the whole Host is a question for the
-      // common side; this test fixes only what is refused and that nothing
-      // is sent or re-read.)
-      const failure = await setup.openHost().then(() => undefined,
-        error => error);
-      assert.equal(failure?.code, 'InstalledHostInitializationFailed', kind);
-      assert.equal(failure.primaryFailure?.code, kind === 'missing'
-        ? 'PublicationObjectMissing' : 'PublicationObjectCorrupt', kind);
+      await setup.damageHeld('effect-input', kind);
+      const {state} = await resumed(setup, execution);
+      assert.equal(state.status, 'failed', `${kind}: ${state.status}`);
       assert.equal(setup.writes().length, 0, kind);
       assert.equal(setup.queries(), 0, kind);
     }
@@ -243,7 +237,11 @@ test('a commit permission revoked after approval writes nothing',
       assert.equal(setup.writes().length, 0);
     }
     // (b) Same installation and configuration: the org no longer lets this
-    // user update Name. The pre-send recheck of the target field refuses.
+    // user update Name. The Site's current-use recheck refuses the resume
+    // before any write. Under the existing contract a provider observation
+    // failure before the checked preflight stays retryable, so the Run is
+    // not ended (it stays resuming); whether a definite loss of the field
+    // should end it is a question for the common side, not decided here.
     {
       const setup = await readComputeEffectInstallation(t);
       const first = await setup.openHost();
@@ -253,9 +251,16 @@ test('a commit permission revoked after approval writes nothing',
       await approveHeldSet(second, execution);
       await second.close();
       setup.org.setNameUpdateable(false);
-      const {state} = await resumed(setup, execution);
-      assert.equal(state.status, 'failed', JSON.stringify(state));
+      const queries = setup.queries();
+      const diagnostics = [];
+      const third = await setup.openHost({diagnostics});
+      const attached = await (await third.as('owner-token')).attach(
+        execution.ref);
+      await waitFor(() => diagnostics.some(item =>
+        item.name === 'effect_resume_failed'));
+      assert.notEqual((await attached.status()).status, 'succeeded');
       assert.equal(setup.writes().length, 0);
+      assert.equal(setup.queries(), queries);
     }
   });
 
@@ -411,40 +416,35 @@ test('a failure before the capture completes leaves no answerable Checkpoint',
     assert.equal(setup.writes().length, 0);
   });
 
-// The damaged object is the existing Effect input body: the one object the
-// Store's `effect-capture` holding names today. The upstream dependency
-// bodies the common side adds are a separate target; their case is added
-// once the inventory exists, choosing the object by its role, not by
-// position in a manifest.
-test('a missing or altered durable Effect input is refused before any write, never refilled',
+// Each durable role is damaged separately: the existing Effect input body,
+// and the upstream dependency body the acquired Program adds (its acquired
+// Stage Result). The Host must still start; only this Run is refused, before
+// any write, without re-reading the Source to refill it.
+test('a missing or altered durable Effect input or upstream dependency is refused before any write, never refilled',
   async t => {
-    for (const kind of ['missing', 'altered']) {
-      const setup = await readComputeEffectInstallation(t);
-      const first = await setup.openHost();
-      const execution = await heldForApproval(setup, first,
-        `rce-capture-${kind}`);
-      await first.close();
-      const second = await setup.openHost();
-      await approveHeldSet(second, execution);
-      await second.close();
-      // While stopped, one captured input or dependency body is damaged.
-      await setup.damageCapture(kind);
-      const queries = setup.queries();
-      // Refused before sending, typed: either the Run fails, or (as on the
-      // Values-origin path today) the Host refuses to start over the damaged
-      // object. The Source is not read again to refill it; nothing is
-      // written.
-      const outcome = await resumed(setup, execution).then(value =>
-        value.state.status, error => error.primaryFailure?.code ?? error.code);
-      assert.ok(['failed', 'PublicationObjectMissing',
-        'PublicationObjectCorrupt'].includes(outcome), `${kind}: ${outcome}`);
-      assert.equal(setup.queries(), queries, kind);
-      assert.equal(setup.writes().length, 0, kind);
-      assert.deepEqual(setup.org.records(), [
-        {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1'},
-        {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2'},
-        {Id: 'a00000000000003', Name: 'record-3', External_Key__c: 'key-3'},
-      ], kind);
+    for (const role of ['effect-input', 'upstream-dependency']) {
+      for (const kind of ['missing', 'altered']) {
+        const label = `${role} ${kind}`;
+        const setup = await readComputeEffectInstallation(t);
+        const first = await setup.openHost();
+        const execution = await heldForApproval(setup, first,
+          `rce-${role}-${kind}`);
+        await first.close();
+        const second = await setup.openHost();
+        await approveHeldSet(second, execution);
+        await second.close();
+        await setup.damageHeld(role, kind);
+        const queries = setup.queries();
+        const {state} = await resumed(setup, execution);
+        assert.equal(state.status, 'failed', `${label}: ${state.status}`);
+        assert.equal(setup.queries(), queries, label);
+        assert.equal(setup.writes().length, 0, label);
+        assert.deepEqual(setup.org.records(), [
+          {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1'},
+          {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2'},
+          {Id: 'a00000000000003', Name: 'record-3', External_Key__c: 'key-3'},
+        ], label);
+      }
     }
   });
 

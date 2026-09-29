@@ -300,11 +300,15 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
 
   const count = predicate => org.seen.filter(predicate).length;
   const prefix = '/services/data/v62.0/';
-  // The Store objects that the durable Effect capture holds (the captured
-  // input and its dependency bodies), found through the Store's own
-  // physical holding manifests, never by guessing file names.
-  const captureObjects = async () => {
-    const found = [];
+  // The durable objects of a held Effect, by role, from the Store's own
+  // physical holding manifests (never by guessing file names or taking a
+  // manifest's first entry):
+  // - 'effect-input': the Effect input body, named by an `effect-source`
+  //   holding;
+  // - 'upstream-dependency': a body only the `effect-capture` holding names,
+  //   such as an acquired Program's upstream Stage Result.
+  const heldObjects = async () => {
+    const holdings = [];
     const walk = async directory => {
       for (const entry of await readdir(directory, {withFileTypes: true})) {
         const path = join(directory, entry.name);
@@ -312,26 +316,30 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
         else if (entry.name.endsWith('.json') &&
             directory.includes('physical-holdings')) {
           const holding = JSON.parse(await readFile(path, 'utf8'));
-          if (holding.namespace !== 'effect-capture') continue;
           const store = directory.slice(0,
             directory.indexOf('physical-holdings'));
-          for (const object of holding.objects) {
-            found.push(join(store, 'objects', object.cid.slice(7)));
-          }
+          holdings.push({namespace: holding.namespace,
+            objects: holding.objects.map(object =>
+              join(store, 'objects', object.cid.slice(7)))});
         }
       }
     };
     await walk(hostRoot);
-    return found;
+    const named = namespace => new Set(holdings.filter(holding =>
+      holding.namespace === namespace).flatMap(holding => holding.objects));
+    const input = named('effect-source');
+    return {
+      'effect-input': [...input],
+      'upstream-dependency': [...named('effect-capture')].filter(path =>
+        !input.has(path)),
+    };
   };
-  // Remove or alter the durable Effect input body while the Host is
-  // stopped. Today the `effect-capture` holding names exactly that one
-  // object; anything else means the inventory changed and the target must
-  // be chosen by role instead.
-  const damageCapture = async kind => {
-    const objects = await captureObjects();
-    assert.equal(objects.length, 1,
-      'expected exactly the Effect input body in the capture holding');
+  // Remove or alter exactly one durable object of `role` while the Host is
+  // stopped. Exactly one object per role is expected here; anything else
+  // means the inventory changed and the test must choose again.
+  const damageHeld = async (role, kind) => {
+    const objects = (await heldObjects())[role];
+    assert.equal(objects?.length, 1, `expected one ${role} object`);
     const [path] = objects;
     if (kind === 'missing') {
       await unlink(path);
@@ -342,7 +350,7 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
     }
   };
   return {org, root, mappingRef, openHost, writeEffectProfile, embedded,
-    captureObjects, damageCapture,
+    heldObjects, damageHeld,
     program: options => readComputeEffectProgram(mappingRef, options),
     // Source acquisitions (queries), target check reads, and writes are
     // counted apart.
