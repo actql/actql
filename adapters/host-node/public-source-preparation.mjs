@@ -12,7 +12,7 @@ const exact = (value, keys) => value !== null &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
 
 function checkedPublication(moon, environment, publication) {
-  const environmentCid = moon.clientProgramCheckEnvironmentCid(environment);
+  const environmentCid = moon.clientProgramCheckingEnvironmentCid(environment);
   if (!cidPattern.test(environmentCid)) {
     throw new TypeError('InvalidPublicSourceEnvironment');
   }
@@ -40,7 +40,7 @@ function checkedPublication(moon, environment, publication) {
 export function installNodePublicSourcePreparation({moon, environment,
   publication}) {
   if (moon === null || typeof moon !== 'object' ||
-      typeof moon.clientProgramCheckEnvironmentCid !== 'function' ||
+      typeof moon.clientProgramCheckingEnvironmentCid !== 'function' ||
       environment === undefined) {
     throw new TypeError('InvalidPublicSourcePreparationInstallation');
   }

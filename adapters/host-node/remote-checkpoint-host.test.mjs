@@ -99,6 +99,43 @@ async function installedReadFixture(directory, outcome = 'allow') {
   }));
   return profilePath;
 }
+
+test('public HTTP source text uses the installed alias and existing Run owner', async t => {
+  const directory = await mkdtemp(join(scratch, 'source-text-'));
+  const profilePath = await installedReadFixture(directory);
+  const profile = JSON.parse(await readFile(profilePath, 'utf8'));
+  const environment = JSON.parse(profile.checkEnvironmentWire);
+  const view = environment.source_views[0];
+  profile.queryAliases = [{name: 'records', sourceRef: profile.sourceRef,
+    sourceViewContractCid: view.contract_cid,
+    schemaContractCid: view.output.schema.cid}];
+  await writeFile(profilePath, JSON.stringify(profile));
+  const host = await remoteHost(t, undefined,
+    {directory, sourceProfilePath: profilePath}).catch(error => {
+      t.diagnostic(String(error.cause?.stack ?? error));
+      throw error;
+    });
+  t.after(async () => { await host.close(); await rm(directory, {recursive: true, force: true}); });
+  const client = await host.as('owner-token');
+  t.after(() => client.close());
+  for (const [index, text] of ['SELECT id FROM', 'SELECT id FROM absent',
+    'SELECT id FROM records WHERE id = @undeclared'].entries()) {
+    const requestId = `source-invalid-${index}`;
+    await assert.rejects(client.aql(text, {format: 'sql', requestId}), error =>
+      ['ClientProgramInvalidInput', 'ClientProgramRejected'].includes(error.code));
+    assert.deepEqual(await client.lookupRequest(requestId), {kind: 'not_found'});
+  }
+  assert.equal(host.dispatches(), 0);
+  const execution = await client.aql('SELECT id FROM records WHERE amount >= 20',
+    {format: 'sql', requestId: 'source-sql'}).catch(error => {
+      t.diagnostic(String(error.cause?.stack ?? error));
+      throw error;
+    });
+  assert.equal((await execution.wait()).status, 'succeeded');
+  const rows = await execution.result('answer').all();
+  assert.deepEqual(rows.sort((a, b) => a.id - b.id),
+    [{id: 2}, {id: 3}, {id: 3}]);
+});
 async function effectFixture({twoMembers = false} = {}) {
   const environment = JSON.parse(await readFile(join(repository,
     'packages/sdk/fixtures/values.environment.json'), 'utf8'));

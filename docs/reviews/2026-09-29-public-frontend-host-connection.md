@@ -7,6 +7,37 @@ It does not include the Host owner's uncommitted capture or Checkpoint work.
 
 ## One preparation operation
 
+The C integration adds `clientProgramCheckingEnvironmentCid(environment)`
+for the admitted Check Environment owner. The existing
+`clientProgramCheckEnvironmentCid(prepared)` accepts a prepared Program,
+not an environment; its signature and callers remain unchanged. The Node
+source preparation adapter uses the new accessor. This is an owner-type
+correction, not a CID or wire change.
+
+C's initial call-site regression covers SQL filter/select through the
+installed HTTP Host to the existing Named Result publisher. It also checks
+that malformed source, an unknown alias and an undeclared parameter have no
+accepted Run. This is not the full B acceptance application: ordered Result
+Plan/publication connection and packed Local/HTTP/CLI acceptance remain open.
+The initial plain-select probe reached DuckDB candidate preparation and was
+refused there, before Run admission; that provider shape is not silently
+rerouted to a different realization. Its current generic failure projection
+also remains a limitation, not a passing public refusal case.
+
+B's registry fixture/CID correction is pending separately. Continue with
+`d4b566a272e8aa0127f33cbddeb03079a01ba41b`, then validate the integrated
+correction SHA without weakening independent fixture expectations.
+
+Local connection evidence (C working tree, before the connection commit):
+
+- Focused source/alias/HTTP preparation cases: 9/9.
+- Full `public-source-preparation`, `embedded-installation`,
+  `remote-checkpoint-host` and `connector-node-bundles` Node tests: 69/69.
+- Runtime packages rebuilt; `moon info --target js,wasm,native`,
+  `moon fmt --check` and `git diff --check` completed.
+- Full Client/Host jobs, packed B acceptance and final-SHA Linux CI have
+  not run for this connection change.
+
 The Host installs an immutable alias publication together with its admitted
 Check Environment. The publication is a bounded list of
 `{name, sourceRef, sourceViewContractCid, schemaContractCid}` and the exact

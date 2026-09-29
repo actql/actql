@@ -14,7 +14,7 @@ function installation() {
   const calls = [];
   const prepared = {};
   const moon = {
-    clientProgramCheckEnvironmentCid: value => value.generation,
+    clientProgramCheckingEnvironmentCid: value => value.generation,
     clientProgramPrepareSourceWithParameters: (...args) => {
       calls.push({kind: 'source', args});
       return {prepared};

@@ -19,6 +19,7 @@ import {retireCompletedEffectfulCapture} from
   '../host-common/completed-run-publication.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
+import {sourceAliasPublication} from './source-alias-publication.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {installedEffectIdentity, loadInstalledEffect,
   publishInstalledEffectProfile} from
@@ -194,6 +195,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   }
   let environment;
   let evidenceCid;
+  let sourcePublication;
   try {
     evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
     const numericProfile = JSON.parse(await readFile(join(packageRoot,
@@ -203,6 +205,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     environment = moon.clientProgramCheckEnvironmentWithNumericProfile(
       environmentWire, evidenceCid, false, false, true, true, false, false,
       false, numericProfileCid);
+    if (environment !== undefined) {
+      sourcePublication = sourceAliasPublication(moon, environment,
+        sourceProfile?.queryAliases ?? []);
+    }
   } catch (cause) {
     throw await retainInstalledHostInitializationFailure(cause,
       {sourceProfile, installedEffect});
@@ -310,7 +316,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       actual === principalId && ref.namespaceId === namespaceId &&
       ref.authorityScopeCid === authorityScopeCid});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
-    environment, allowEffects: effectInstallation !== undefined});
+    environment, sourcePublication,
+    allowEffects: effectInstallation !== undefined});
     checkpoints = await installRemoteCheckpoints({root, namespaceId,
       authorityScopeCid, ownerPrincipal: principalId,
       siteKey: authorization?.siteKey ?? 'actql-remote-host',

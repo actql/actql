@@ -30,6 +30,7 @@ import {
   "actql/actql/remote_transfer",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
+  "actql/actql/source_frontend",
   "actql/actql/source_value",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_results",
@@ -138,6 +139,8 @@ pub fn client_program_check_recovered_effect_apply_semantics(@run_publication.Ef
 pub fn client_program_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Bool
 
 pub fn client_program_check_source_free_local_effect_preview_identities(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[@run_publication_host.ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, @run_publication_host.ClientEffectLocalIdentityIssue]
+
+pub fn client_program_checking_environment_cid(@program_check.CheckEnvironment) -> String
 
 pub fn client_program_close_effect_source_port(@physical_strategy.CapturedEffectInputs, Int) -> Bool
 
@@ -569,6 +572,8 @@ pub fn client_program_prepare_query_acquisition(@run_publication_host.PreparedCl
 
 pub fn client_program_prepare_salesforce_acquisition(@client_salesforce_host.ClientSalesforceDeclaration, @query_planning.QueryRequirement, @catalog.CatalogObservation, String, String, Int) -> Result[@client_salesforce_host.ClientSalesforceAcquisition, @client_salesforce_host.ClientSalesforceIssue]
 
+pub fn client_program_prepare_source_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?) -> ClientProgramBridgeOutcome
+
 pub fn client_program_publication_bytes_binding_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationBindingIssue]
 
 pub fn client_program_publication_bytes_limit_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationLimitIssue]
@@ -686,6 +691,8 @@ pub fn client_program_semantics_cid(@run_publication_host.PreparedClientProgram)
 pub fn client_program_semantics_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
 pub fn client_program_source_free_input_intent_cid() -> String
+
+pub fn client_program_source_publication_valid(@program_check.CheckEnvironment, String) -> Bool
 
 pub fn client_program_stage_semantics_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
@@ -2169,6 +2176,7 @@ pub(all) enum ClientProgramBridgeIssue {
   SuppliedSyntax(@source_value.ParseError)
   SuppliedAdmission(@decode_core.Issue)
   Preparation(@run_publication_host.ClientProgramPreparationIssue)
+  SourcePreparation(ClientSourcePreparationIssue)
 }
 
 pub(all) enum ClientProgramBridgeOutcome {
@@ -2199,6 +2207,15 @@ pub(all) enum ClientProgramValuesCompilationBridgeIssue {
 pub(all) enum ClientProgramValuesPlanBridgeIssue {
   Manifests(@run_publication_host.ClientCompilationManifestIssue)
   Plan(@run_publication_host.ClientValuesExecutablePlanIssue)
+}
+
+pub(all) enum ClientSourcePreparationIssue {
+  Publication
+  Limit
+  UnsupportedCarrier
+  Declarations
+  Alias(@source_frontend.AliasIssue)
+  Frontend(@source_frontend.Issue)
 }
 
 type StrategyHostManagedResultImport

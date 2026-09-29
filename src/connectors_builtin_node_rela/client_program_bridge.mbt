@@ -64,6 +64,7 @@ pub(all) enum ClientProgramBridgeIssue {
   SuppliedSyntax(@source.ParseError)
   SuppliedAdmission(@decode.Issue)
   Preparation(@publication_host.ClientProgramPreparationIssue)
+  SourcePreparation(ClientSourcePreparationIssue)
 }
 
 ///|
@@ -132,6 +133,8 @@ pub fn client_program_preparation_issue_code(
       Some(
         match issue {
           InvalidFormat => "invalid_format"
+          SourcePreparation(issue) =>
+            client_source_preparation_issue_code(issue)
           SuppliedSyntax(error) =>
             match error.issue {
               @source.InputLimit | @source.NodeLimit | @source.DepthLimit =>
@@ -2362,6 +2365,7 @@ pub fn client_program_effect_preparation_issue_code(
           Input(SuppliedSyntax(_)) => "supplied_syntax"
           Input(SuppliedAdmission(_)) => "supplied_admission"
           Input(Preparation(_)) => "invalid_input_owner"
+          Input(SourcePreparation(_)) => "invalid_input_owner"
           Preparation(Syntax(_)) => "program_syntax"
           Preparation(Candidate(_)) => "effect_candidate_rejected"
           Preparation(Mapping(_)) => "effect_mapping_rejected"
