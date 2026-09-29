@@ -15,9 +15,12 @@ import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
 import { exerciseManagedExample } from './managed-example.mjs';
 import { exerciseNativeFilePlan } from './native-file-plan.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
-import {runCapturedInternalStrategy,
+import {createNodeHostEntry,
+  runCapturedInternalStrategy,
   runCapturedStrategy,
   runPublishedCapturedStrategy} from '../../../../host-node/entry.mjs';
+import {installStrategyContributions} from
+  '../../../../connectors-builtin/strategy.generated.mjs';
 import {runInstalledStrategy} from '../../../../host-common/strategy.mjs';
 import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
 import {duckdbStrategyContribution} from '../strategy-bundle.mjs';
@@ -3372,14 +3375,24 @@ async function exerciseStrategyGraph(
         {candidate_id: 1, query_id: 20, rank: 1, score: 1},
         {candidate_id: 2, query_id: 20, rank: 2, score: 1},
       ];
-      for (const occurrence of nearestPublicationOwner.execution
-        .publicationInventory.occurrences) {
+      const publicationKey = {
+        namespaceId: plan.request.namespaceId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      };
+      const committedIndex = await nearestPublicationStore
+        .lookupCommittedIndex(publicationKey, () => true);
+      const committedManifest = JSON.parse((await nearestPublicationStore
+        .readPublicationContract(committedIndex.result_manifest_cid,
+          'result_manifest')).wire);
+      assert.deepEqual(Object.keys(committedManifest.results).sort(),
+        ['consumed_a', 'consumed_b', 'published']);
+      for (const resultName of ['published', 'consumed_a', 'consumed_b']) {
+        const resultDefinitionCid = committedManifest.results[resultName]
+          .result_definition_cid;
         const received = [];
-        await nearestPublicationStore.consumeCommittedResult({
-          namespaceId: plan.request.namespaceId,
-          authorityScopeCid: plan.request.authorityScopeCid,
-          runDefinitionCid: plan.runDefinition.identity,
-        }, occurrence.definitionContract.identity, () => true,
+        await nearestPublicationStore.consumeCommittedResult(
+          publicationKey, resultDefinitionCid, () => true,
         chunk => received.push(Buffer.from(chunk)));
         assert.deepEqual(
           JSON.parse(Buffer.concat(received).toString('utf8')),
@@ -3422,7 +3435,27 @@ async function exerciseStrategyGraph(
   const nearestFailureRetained = await createCarrierRetainedStore(
     'nearest-carrier-failure', {failCleanupLease: 1},
   );
+  let computeEntrances = 0;
+  const countedHost = createNodeHostEntry(() => hostRuntime,
+    async (...installationArgs) => {
+      const contributions = await installStrategyContributions(
+        ...installationArgs);
+      return contributions.map(contribution => ({
+        ...contribution,
+        run(...args) {
+          computeEntrances++;
+          return contribution.run(...args);
+        },
+        ...(typeof contribution.runPrepared === 'function' ? {
+          runPrepared(...args) {
+            computeEntrances++;
+            return contribution.runPrepared(...args);
+          },
+        } : {}),
+      }));
+    });
   let nearestFailureExecution, nearestFailurePublicationStore;
+  let computeEntrancesAtFailure;
   try {
     assert.equal(fixture.strategyFixtureOpen(
       nearestFailureFixture, nearestFailureCapture.source()), true);
@@ -3445,7 +3478,7 @@ async function exerciseStrategyGraph(
       runtime.resultInventory(setup).length,
       'nearest-carrier-failure-attempt',
     );
-    await assert.rejects(runPublishedCapturedStrategy(
+    await assert.rejects(countedHost.runPublishedCapturedStrategy(
       setup,
       {store: nearestFailurePublicationStore, plan},
       {local: nearestFailureRetained.configuration},
@@ -3454,6 +3487,8 @@ async function exerciseStrategyGraph(
       nearestFailureExecution = error.execution;
       return error.code === 'CapturedRunPublicationFailed';
     });
+    assert(computeEntrances > 0);
+    computeEntrancesAtFailure = computeEntrances;
     assert.equal(nearestFailureExecution.status, 'host-tasks-failed');
     assert(nearestFailureRetained.leases.length > 0);
     assert(nearestFailureExecution.completed.some(value =>
@@ -3473,10 +3508,12 @@ async function exerciseStrategyGraph(
     if (nearestFailureExecution !== undefined) {
       await assert.rejects(async () => nearestFailureExecution.close(),
         /InjectedCarrierRetainedCleanupPending/);
+      assert.equal(computeEntrances, computeEntrancesAtFailure);
       assert.equal(nearestFailureExecution.cleanupPending(), true);
       assert.equal(nearestFailureRetained.cleanupFailures(), 1);
       nearestFailureRetained.permitCleanup();
       assert.equal(await nearestFailureExecution.cleanup(), true);
+      assert.equal(computeEntrances, computeEntrancesAtFailure);
       assert.equal(nearestFailureExecution.cleanupPending(), false);
       assert.equal(nearestFailureExecution.usage().heldBytes, 0n);
       assert.equal(nearestFailureExecution.usage().reservedExecutionBytes, 0n);
