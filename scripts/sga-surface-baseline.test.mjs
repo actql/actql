@@ -40,6 +40,13 @@ test('mean_graphs retains explicit sample order and repeated producers', () => {
     JSON.parse(expected));
 });
 
+test('graphs_equal reuses one Graph producer without adding a sort', () => {
+  const expected = fixture('graphs-equal.expected-program.json');
+  assert.equal(jsonAdmissionDiagnostic(expected), '');
+  assert.deepEqual(JSON.parse(structuralToJson(
+    fixture('graphs-equal.named.aql'))), JSON.parse(expected));
+});
+
 const envelope = body => `AQL '0.1'; PROGRAM 'roles' { STAGE s {
   INPUT g = {"carrier":"graph"}; INPUT target = {"carrier":"graph"};
   DATA output = ${body}; RESULT r = {"from":"output"};

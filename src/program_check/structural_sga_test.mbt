@@ -178,3 +178,43 @@ test "named mean_graphs retains repeated checked Graph inputs" {
   )
   assert_eq(unit_count(checked), 1)
 }
+
+///|
+test "named graphs_equal can reuse the checked Graph producer" {
+  let (_, _, environment, _, base) = public_input_fixture(
+    generated=true,
+    graph_policy=true,
+  )
+  let limits = {
+    ..base,
+    compilation: {
+      ..base.compilation,
+      structure: { ..base.compilation.structure, steps: 12, },
+    },
+  }
+  let source = named_sga_text(true)
+    .replace(
+      old="DATA reached = FROM g |> reach(start: \"A\", direction: \"out\", max_depth: 2);",
+      new="DATA comparison = FROM g |> graphs_equal(with: g);",
+    )
+    .replace(
+      old="DATA neighborhood = FROM g |> subgraph(nodes: {from: reached, id: \"node_id\"});",
+      new="",
+    )
+    .replace(
+      old="DATA rows = FROM neighborhood |> node_rows();",
+      new="DATA rows = FROM comparison |> OP select [\"equal\"];",
+    )
+    .replace(old="[\"id\"]", new="[\"equal\"]")
+  let parsed = @aql.parse(source, structural_limits(limits)).unwrap()
+  let checked = public_checked(
+    check_parsed_with_evidence(
+      @aql.program(parsed),
+      environment,
+      None,
+      [],
+      limits,
+    ),
+  )
+  assert_eq(unit_count(checked), 1)
+}

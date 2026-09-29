@@ -22,6 +22,8 @@ producer distinct; its expected final Graph has one added node and edge.
 `mean-graphs.named.aql` repeats the first Graph in an explicit three-sample
 list. With equal weights and half-support thresholds, A and B and their edge
 remain while C and its edge do not.
+`graphs-equal.named.aql` compares a Graph producer with itself. Its separate
+Program and Result fixtures expect one `equal: true` row and no implicit sort.
 These expectations have not yet been checked against runtime output from the
 named source. Separate small source cases have passed the common checker for
 reach/subgraph, diff/apply and mean. The exact fixtures here still need

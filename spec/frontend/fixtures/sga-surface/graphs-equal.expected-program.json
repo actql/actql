@@ -1,0 +1,14 @@
+{
+  "version": "actql/0.1", "id": "sga.graphs_equal",
+  "stages": [{
+    "id": "main", "inputs": {},
+    "steps": [
+      {"values": {"schema": {"id": {"type": "string", "nullable": false}}, "rows": [{"id": "A"}, {"id": "B"}]}, "as": "nodes"},
+      {"values": {"schema": {"src": {"type": "string", "nullable": false}, "dst": {"type": "string", "nullable": false}}, "rows": [{"src": "A", "dst": "B"}]}, "as": "edges"},
+      {"graph": {"nodes": {"from": "nodes", "id": "id", "fields": []}, "edges": {"from": "edges", "source": "src", "target": "dst", "fields": []}}, "as": "g"},
+      {"from": "g", "graphs_equal": {"with": "g"}, "as": "comparison"}
+    ],
+    "results": {"answer": {"from": "comparison", "fields": ["equal"]}}
+  }],
+  "results": {"answer": {"from": {"stage": "main", "result": "answer"}}}
+}
