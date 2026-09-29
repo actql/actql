@@ -3413,13 +3413,17 @@ test(`two-member captured Effect Run ${
         let completedResume;
         const previewCid = control.effectComputationPreviewSemanticCid(
           exactPreview);
-        const response = await installed.resume({moon, control, store,
+        const unitId = moon.clientProgramEffectCompilationUnitId(
+          effectCompilation);
+        const resumeFacts = {moon, control, store,
           ref: {runDefinitionCid: runDefinition.identity},
-          view: {runId: control.runDefinitionRunId(runDefinition)},
+          view: {runId: control.runDefinitionRunId(runDefinition),
+            subject: {kind: 'run_unit', unit_id: unitId}},
           retained: {runDefinition, resultNames: ['answer']},
           continuation: {version:
             'actql-installed-effect-continuation/0.1',
             run_definition_cid: runDefinition.identity,
+            unit_id: unitId,
             preview_cid: previewCid, provider: {}},
           recoverCapture: async () => recovered,
           retainExecution() {},
@@ -3439,7 +3443,16 @@ test(`two-member captured Effect Run ${
           observeRun: async () => ({version: 'actql-run-state/0.1',
             run_id: control.runDefinitionRunId(runDefinition),
             status: 'succeeded', control: {revision: 1}}),
-        });
+        };
+        for (const invalidUnit of [undefined, `${unitId}-foreign`]) {
+          await assert.rejects(installed.resume({...resumeFacts,
+            continuation: {...resumeFacts.continuation,
+              unit_id: invalidUnit}}),
+          {code: 'InstalledEffectContinuationMismatch'});
+        }
+        assert.equal(claims, 0);
+        assert.deepEqual(dispatched, []);
+        const response = await installed.resume(resumeFacts);
         assert.equal(claims, 1);
         assert.equal(response.status, 'published');
         assert.equal(response.result.progress.dispatched, 4);
@@ -4191,6 +4204,7 @@ test(`two-member captured Effect Run ${
       published = true;
     } catch (error) {
       testFailure = error;
+      t.diagnostic(`Effect execution failed before its HTTP reply: ${error?.code ?? error?.message}`);
       throw error;
     } finally {
       ledger?.close();

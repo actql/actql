@@ -229,3 +229,25 @@ Source/Compute probes pass again for success, unknown, cancel, reject,
 missing input and corrupt input (one initial call, zero restart calls).
 These are local implementation results. Final Host/Client/Workers/lint/spec
 jobs, pushed-SHA CI and the acquired Embedded/packed acceptance remain open.
+
+## Client gate and recovered-factory diagnosis
+
+At `181add3f5a28b4bca113507f9e0641180d4f62e1`, the Client gate passed
+263 Node tests, packed Node/browser smoke, packed HTTP Checkpoint acceptance,
+native Client mTLS, and packed Embedded Checkpoint acceptance. The Salesforce
+job failed (268/270); the subsequent Compute/crash steps did not execute.
+One failure is the recovered-factory fixture; the other still needs diagnosis.
+
+The recovered-factory failure was reproduced before changing its inputs.
+The actual execution callback rejected with
+`InstalledEffectContinuationMismatch`: the fixture omitted both the saved
+Unit ID and the Checkpoint's run-unit subject. Its HTTP submit handler had
+already accepted the Run and was awaiting `start`, so the SDK correctly
+reported `SubmissionUnknown`. This was not an HTTP acknowledgement loss.
+
+The fixture now uses the official compilation owner's Unit ID in both
+bindings. Missing and foreign Unit IDs must still reject before any resume
+claim or dispatch; valid recovery must publish all four rows. The focused
+test passes with these assertions. No production refusal was relaxed.
+This diagnosis is separate from capture cleanup and the three pending
+Run-outcome classification corrections requested after D's re-verification.
