@@ -235,7 +235,7 @@ pub fn completed_output_matches_operation_inputs(
     return false
   }
   for index, input in inputs {
-    if !producer_read_matches_operation_input(input, owner, step, index) ||
+    if !producer_read_binding_matches_operation_input(input, owner, step, index) ||
       !physical_equal(completion.input_bindings[index], input.bound.identity) {
       return false
     }
