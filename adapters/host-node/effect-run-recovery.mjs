@@ -1,6 +1,11 @@
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {recoverCompletedEffectfulComputation} from
   '../host-common/completed-run-publication.mjs';
+import {PublicationStoreError} from '../store-local/publication-store.mjs';
+
+const captureRefusals = new WeakSet();
+export const isEffectCaptureRecoveryRefusal = error =>
+  error !== null && typeof error === 'object' && captureRefusals.has(error);
 
 const cid = value => typeof value === 'string' &&
   /^sha256:[0-9a-f]{64}$/.test(value);
@@ -58,10 +63,21 @@ export async function recoverAdmittedEffectRun({
       moon.clientRequestCallerId(requestIdentity) !== ownedKey.requestId) {
     fail('EffectRecoveryRequestMismatch');
   }
-  const computation = await recoverCompletedEffectfulComputation({
-    store, control, runDefinition: retained.runDefinition,
-    contractLimits: limits,
-  });
+  let computation;
+  try {
+    computation = await recoverCompletedEffectfulComputation({
+      store, control, runDefinition: retained.runDefinition,
+      contractLimits: limits,
+    });
+  } catch (error) {
+    // Only a Store's confirmed missing/corrupt object, after exact request
+    // and evidence-read admission, is a definitive custody refusal. EIO,
+    // timeouts and caller-created code strings carry no such conclusion.
+    if (error instanceof PublicationStoreError &&
+        ['PublicationObjectMissing', 'PublicationObjectCorrupt']
+          .includes(error.code)) captureRefusals.add(error);
+    throw error;
+  }
   return Object.freeze({requestIdentity,
     requestScope: moon.clientRequestLogicalScope(requestIdentity),
     runDefinition: retained.runDefinition, computation});

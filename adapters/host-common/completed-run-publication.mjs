@@ -765,7 +765,8 @@ export async function retireCompletedEffectfulCapture({store, control,
   runDefinition, contractLimits}) {
   if (!contract(runDefinition) ||
       typeof store?.storeAuthorityCid !== 'string' ||
-      !['inspectPhysicalHolding', 'readPrivateEvidence',
+      !['inspectPhysicalHolding', 'inspectPhysicalHoldingForRetirement',
+        'readPrivateEvidence',
         'retirePhysicalHolding'].every(name =>
         typeof store?.[name] === 'function')) {
     fail('InvalidCompletedEffectfulRetirement');
@@ -850,14 +851,14 @@ export async function retireCompletedEffectfulCapture({store, control,
   // Validate every remaining record before starting deletion. Missing
   // records are allowed only as progress from an earlier retirement pass.
   for (const [index, holdingCid] of sourceCids.entries()) {
-    const holding = await store.inspectPhysicalHolding(holdingCid);
+    const holding = await store.inspectPhysicalHoldingForRetirement(holdingCid);
     if (holding !== undefined &&
         (holding.namespace !== 'effect-source' ||
          holding.manifest_cid !== sources[index].artifact.identity)) {
       fail('InvalidCompletedEffectfulCaptureSource');
     }
   }
-  const capture = await store.inspectPhysicalHolding(captureCid);
+  const capture = await store.inspectPhysicalHoldingForRetirement(captureCid);
   const expectedObjects = new Map();
   if (!Array.isArray(body.durable_bindings)) {
     fail('InvalidCompletedEffectfulCaptureRecord');

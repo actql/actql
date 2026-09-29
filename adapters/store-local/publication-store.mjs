@@ -4232,6 +4232,16 @@ export async function openLocalPublicationStore(
     return record;
   };
 
+  // Retirement validates ownership metadata, not payload usability. A
+  // missing or corrupt payload must remain unreadable but may still be
+  // retired by its exact owner. This is never a consumption/admission proof.
+  const inspectPhysicalHoldingForRetirement = async holdingCid => {
+    active();
+    cidHex(holdingCid);
+    return await readPhysicalHolding(holdingCid) ??
+      await readPhysicalHoldingDeletion(holdingCid);
+  };
+
   const consumePhysicalHolding = async (
     holdingCid,
     objectIndex,
@@ -5242,6 +5252,7 @@ export async function openLocalPublicationStore(
     commitPhysicalHolding,
     sharePhysicalHolding,
     inspectPhysicalHolding,
+    inspectPhysicalHoldingForRetirement,
     consumePhysicalHolding,
     retirePhysicalHolding,
     retainEffectCaptureCustody,
