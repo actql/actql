@@ -164,6 +164,13 @@ requires lawful evidence for the nullable `rel` field. These failures are not
 successful Result evidence. The diagnostic response for some pre-Run failures
 was conservatively surfaced as `SubmissionUnknown`; that public error
 classification also needs review before these forms are declared supported.
-The packed test driver still retains its installation on success; the Host
-owner has a separate cleanup and failure-log fix to apply before this is a
-routine acceptance gate.
+After the Host owner added evidence-preserving cleanup, the same packed
+Local/HTTP acceptance passed again at
+`2cf73e88c602166fd29f1ada05322db16021b496` with the same five tarball
+digests listed above. Its `summary.json` recorded all eight child commands as
+successful and `artifactsRemoved: true`; stdout/stderr logs and digests were
+retained while the temporary installation, npm cache, tarballs and Host Store
+were removed. The evidence-helper tests separately passed for success,
+nonzero exit, timeout and explicit artifact retention. This cleanup applies
+to the passing `normalize-rows` acceptance, not to the earlier diagnostic
+Store needed for unresolved SGA cases.
