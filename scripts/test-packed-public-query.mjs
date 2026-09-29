@@ -8,6 +8,7 @@ import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const scratch = join(repository, '..', '.codex-scratch');
+const probeSga = process.argv.includes('--probe-sga');
 const revision = spawnSync('git', ['rev-parse', 'HEAD'], {cwd: repository,
   encoding: 'utf8'});
 if (revision.status !== 0) throw new Error('PackedQueryRevisionUnavailable');
@@ -60,4 +61,41 @@ for (const name of ['MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
 }
 const output = run(process.execPath, ['acceptance.mjs'], root, runtimeEnvironment);
 console.log(output.trimEnd());
+run('moon', ['build', '--target', 'native', '--release',
+  'src/cmd/native_client'], repository, environment);
+const nativeClient = join(repository, '_build/native/release/build/cmd',
+  'native_client/native_client.exe');
+const nativeOutput = run(process.execPath,
+  [join(repository, 'scripts/test-native-sga-public-source.mjs'),
+    root, nativeClient, directory], root, runtimeEnvironment);
+console.log(nativeOutput.trimEnd());
+if (probeSga) {
+  const cases = ['graphs-equal', 'degree-rows', 'graph-bounds', 'components',
+    'reach-subgraph', 'diff-apply', 'mean-graphs'];
+  const results = [];
+  for (const name of cases) {
+    for (const suffix of ['named.aql', 'expected-results.json']) {
+      const file = `${name}.${suffix}`;
+      await writeFile(join(root, 'sga-fixtures', file),
+        await readFile(join(repository,
+          'spec/frontend/fixtures/sga-surface', file)));
+    }
+    try {
+      run(process.execPath, ['accept-sga-public-source.mjs', root,
+        join(root, 'sga-fixtures'), 'local', name], root,
+      {...runtimeEnvironment,
+        ACTQL_LOCAL_STATE_DIR: join(root, 'sga-probe-state'),
+        ACTQL_TEST_LOCAL_SOURCE_PROFILE: join(root, 'source-profile.json')});
+      results.push({name, status: 'passed'});
+    } catch (error) {
+      if (error.code !== 'PackedQueryCommandFailed') throw error;
+      results.push({name, status: 'failed', command: error.outcome?.id});
+    }
+  }
+  await writeFile(join(directory, 'sga-probe-results.json'),
+    JSON.stringify({revision: revision.stdout.trim(), results}, null, 2) + '\n');
+  if (results.some(result => result.status === 'failed')) {
+    throw new Error('PackedSgaProbeIncomplete');
+  }
+}
 });

@@ -9,6 +9,7 @@ import {pathToFileURL} from 'node:url';
 
 const installation = process.argv[2];
 const executable = process.argv[3];
+const evidenceDirectory = process.argv[4] ?? installation;
 if (!installation || !executable) {
   throw new Error('Usage: node test-native-sga-public-source.mjs ' +
     '<packed-installation> <native-client-executable>');
@@ -68,7 +69,7 @@ try {
   assert.deepEqual(rows, [{id: 'A'}, {id: 'B'}]);
   console.log('native SGA source and Named Result passed');
 } finally {
-  await writeFile(join(installation, 'native-sga.log'),
+  await writeFile(join(evidenceDirectory, 'native-sga.log'),
     JSON.stringify({binaryCid, log}, null, 2));
   server.closeAllConnections();
   await new Promise(resolve => server.close(resolve));
