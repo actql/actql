@@ -110,16 +110,24 @@ test "graph projection keys retain role aliases and exact graph admission origin
       assert_true(
         @evidence.key_field_at(retained, 2).unwrap().contract.unwrap().nullable,
       )
-      // The nullable label cannot silently become a non-null ordering key.
-      assert_true(
-        @evidence.select_key(
-          source,
-          @pipeline_typing.candidate_keys(p, Step(1)).unwrap(),
-          CanonicalOrder,
-          { max_work: 100, max_name_bytes: 100, },
-        ).unwrap().key
-        is None,
-      )
+      // The admitted Graph edge identity includes its explicit null label.
+      // Canonical ordering retains the nullable contract rather than
+      // converting it to an ordinary non-null Relation key.
+      let selected = @evidence.select_key(
+        source,
+        @pipeline_typing.candidate_keys(p, Step(1)).unwrap(),
+        CanonicalOrder,
+        { max_work: 100, max_name_bytes: 100, },
+      ).unwrap().key.unwrap()
+      assert_eq(@evidence.key_origin(selected), GraphProjectionResult)
+      let mut nullable_label = false
+      for i in 0..<@evidence.key_field_count(selected) {
+        let field = @evidence.key_field_at(selected, i).unwrap()
+        if field.name == Unqualified("label") {
+          nullable_label = field.contract.unwrap().nullable
+        }
+      }
+      assert_true(nullable_label)
     }
     let used = @pipeline_typing.usage(p)
     let cap = {

@@ -9576,7 +9576,13 @@ fn graph_relation_publication_cid(variant : String) -> String {
   if variant == "graph_diff_changes" {
     "sha256:de8347c32fb9edf7f0bddd3ab5bcd9b986ba90aeff296e55f02e52f067067ef9"
   } else if variant == "concise_projection" {
-    "sha256:4dc1796ed34dc82b34758a1fca828ec1a34ef068e231fd5637d51841529bdb97"
+    // Canonical completion selects the admitted edge identity in field-name
+    // order: dst precedes src. The declared Result contains only dst, id,
+    // src, and weight, with the dst=1 row before the dst=2 row.
+    // Independent CID preimage: {"sort":"relation","value":[
+    // {"dst":1,"id":2,"src":2,"weight":20},
+    // {"dst":2,"id":1,"src":1,"weight":10}]}.
+    "sha256:1ea8f658a8b10b25d7771a8d605d9d2a3134405b2ddd9ed2397190ca2879d968"
   } else if variant == "subtract_exact" {
     "sha256:61658ff21fd18cc3b110c965c92422c813ef6e76d1aef0415841101c72e8f576"
   } else if variant == "subtract" {
