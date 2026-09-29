@@ -20,6 +20,7 @@
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 
 extern char **environ;
@@ -219,4 +220,39 @@ moonbit_bytes_t actql_executor_slot_current_executable(void) {
   moonbit_bytes_t bytes = moonbit_make_bytes_raw((int32_t)length);
   if (length > 0) memcpy(bytes, output, length);
   return bytes;
+}
+
+// Process control for a resident Site parent: a termination request is only
+// recorded here; the resident loop decides what to stop.
+static volatile sig_atomic_t actql_executor_slot_terminate_flag = 0;
+
+static void actql_executor_slot_on_terminate(int signal_number) {
+  (void)signal_number;
+  actql_executor_slot_terminate_flag = 1;
+}
+
+int32_t actql_executor_slot_install_termination(void) {
+  struct sigaction action;
+  memset(&action, 0, sizeof(action));
+  action.sa_handler = actql_executor_slot_on_terminate;
+  sigemptyset(&action.sa_mask);
+  if (sigaction(SIGTERM, &action, NULL) != 0) return -1;
+  if (sigaction(SIGINT, &action, NULL) != 0) return -1;
+  return 0;
+}
+
+int32_t actql_executor_slot_termination_requested(void) {
+  return actql_executor_slot_terminate_flag ? 1 : 0;
+}
+
+void actql_executor_slot_sleep_ms(int32_t milliseconds) {
+  if (milliseconds <= 0) return;
+  struct timespec remaining = {
+    .tv_sec = milliseconds / 1000,
+    .tv_nsec = (long)(milliseconds % 1000) * 1000000L,
+  };
+  // A termination request interrupts the wait.
+  while (nanosleep(&remaining, &remaining) != 0 && errno == EINTR &&
+         !actql_executor_slot_terminate_flag) {
+  }
 }

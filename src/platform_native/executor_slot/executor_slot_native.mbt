@@ -227,3 +227,30 @@ pub fn native_current_executable() -> Result[String, NativeExecutorSlotIssue] {
     Ok(path)
   }
 }
+
+///|
+extern "C" fn install_termination_ffi() -> Int = "actql_executor_slot_install_termination"
+
+///|
+extern "C" fn termination_requested_ffi() -> Int = "actql_executor_slot_termination_requested"
+
+///|
+extern "C" fn sleep_ms_ffi(milliseconds : Int) = "actql_executor_slot_sleep_ms"
+
+///|
+/// Record SIGTERM and SIGINT instead of exiting at once, so a resident loop
+/// can stop taking work while its running work finishes or is settled.
+pub fn install_native_termination_request() -> Bool {
+  install_termination_ffi() == 0
+}
+
+///|
+pub fn native_termination_requested() -> Bool {
+  termination_requested_ffi() != 0
+}
+
+///|
+/// Wait, returning early when termination is requested.
+pub fn native_wait_milliseconds(milliseconds : Int) -> Unit {
+  sleep_ms_ffi(milliseconds)
+}
