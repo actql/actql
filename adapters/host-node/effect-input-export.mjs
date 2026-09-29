@@ -163,7 +163,8 @@ export async function preparePinnedEffectSourceSet({
       finalized.get(value))), members: Object.freeze(members.map(member =>
       Object.freeze({...member, payload: finalized.get(member.payload)})))});
     preparedEffectSourceSets.set(result, Object.freeze({store: owned.store,
-      control: owned.control, contractLimits: owned.contractLimits}));
+      control: owned.control, contractLimits: owned.contractLimits,
+      runDefinition: Object.freeze({...owned.localEvidenceContext.runDefinition})}));
     return result;
   } catch (error) {
     // This is the existing MoonBit-controlled publication cleanup path, not
@@ -326,7 +327,8 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
       }))),
     });
     preparedEffectSourceSets.set(result, Object.freeze({store: owned.store,
-      control: owned.control, contractLimits: owned.contractLimits}));
+      control: owned.control, contractLimits: owned.contractLimits,
+      runDefinition: Object.freeze({...owned.localEvidenceContext.runDefinition})}));
     return result;
   } catch (error) {
     await releasePreparedResults(payloads, error, control);
@@ -879,6 +881,8 @@ export function preparePinnedEffectSourceHoldings({
     commit() {
       if (flight !== undefined) return flight;
       flight = (async () => {
+        await store.retainEffectCaptureCustody(owner.runDefinition,
+          holdings.map(holding => holding.record));
         for (const {holding, payload, first} of entries) {
           if (first === undefined) {
             await commit(holding.record, [payload.prepared]);

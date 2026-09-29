@@ -1115,10 +1115,47 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     effectRetirementFlights.set(key, flight);
     return flight;
   };
+  const retireIncompleteEffects = async () => {
+    const failures = [];
+    let after = '';
+    for (;;) {
+      const page = await store.listEffectCaptureCustodies({after, limit: 100});
+      for (const run of page) {
+        const ref = Object.freeze({namespaceId, authorityScopeCid,
+          runDefinitionCid: run.identity});
+        try {
+          // Cleanup discovery is not a new start claim. A live invocation
+          // still owns its preparation; only absent local owners are eligible.
+          if (dispatchOwner.operation(ref) !== undefined ||
+              effectResumeFlights.has(run.identity)) continue;
+          const retained = journal.lookupRunDefinition(ref, moon, control);
+          if (retained === undefined) continue; // Another authority scope.
+          if (retained.runDefinition.wire !== run.wire) {
+            throw new Error('EffectCaptureCustodyRunMismatch');
+          }
+          const runId = control.runDefinitionRunId(run);
+          // A complete record or Checkpoint belongs to normal reconciliation,
+          // even if no completion acknowledgement reached the original caller.
+          if (checkpoints.journal.inspect(`${runId}-effect-commit`) !== undefined ||
+              await store.inspectPhysicalHolding(
+                control.effectComputationRecordHoldingCid(run,
+                  store.storeAuthorityCid)) !== undefined) continue;
+          await retireEffectCapture(ref);
+        } catch (error) { failures.push(error); }
+      }
+      if (page.length < 100) break;
+      after = page.at(-1).identity;
+    }
+    if (failures.length > 0) {
+      throw new AggregateError(failures, 'EffectCaptureCleanupPending');
+    }
+  };
   const retireTerminalEffects = async () => {
     if (effectRun === undefined || checkpoints === undefined) return;
     let after = '';
     const failures = [];
+    try { await retireIncompleteEffects(); }
+    catch (error) { failures.push(error); }
     for (;;) {
       const page = checkpoints.journal.listRunCheckpoints({after, limit: 100});
       for (const view of page) {
@@ -1140,6 +1177,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const sweepEffectRuns = async () => {
     if (effectRun === undefined || checkpoints === undefined) return false;
     let busy = false;
+    try { await retireIncompleteEffects(); }
+    catch (error) {
+      busy = true;
+      diagnostic('effect_capture_retirement_failed', {
+        code: error?.code ?? error?.message});
+    }
     let after = '';
     for (;;) {
       const page = checkpoints.journal.listRunCheckpoints({after, limit: 100});
