@@ -6,13 +6,72 @@ of the same records, waits for approval across Host restarts, writes, and
 publishes its Named Result, through the public Client.
 
 The common path that runs an Effect from an acquisition belongs to the common
-Host, Checkpoint and public entries. It is not on main yet. This unit
-prepares the Salesforce side and its acceptance, and verifies that path once
-it lands. It does not copy or reimplement common code.
+Host, Checkpoint and public entries (`feat/source-effect-run`). This PR takes
+its fixed SHAs with normal merges. The Salesforce side does not copy or
+reimplement common code.
 
-## Status
+## Current status
 
-**Connected to the common path at `7d266e73b`** (`feat/source-effect-run`,
+Tested source SHA: `4e4e29da0`. It merges the common fixed `c58699ce9`. CI on
+this SHA, PR run 36572192554, passed every job.
+
+| Check | Result at `4e4e29da0` |
+|---|---|
+| `read-compute-effect.acceptance.test.mjs` (Remote HTTP and Embedded) | 17/17 |
+| `adapters/connectors/salesforce/test/*.test.mjs` | 227/227 |
+| Packed tarballs (`npm run check:local-node-assets`) | Pass, "packed public Client Read→Compute→Effect" included |
+| Actual Compute calls: `run-computation-probe.mjs` and `test-acquired-effect-computation-probe.mjs` | Pass; initial 1, recovery 0 |
+| Crash stop-points: `test-effect-capture-host-crash.mjs` ×6, `test-effect-capture-crash.mjs` ×3 | Pass |
+| Real org, 2026-09-29 (see "Real org") | Success path and the target-change refusal observed |
+
+**What each kind of evidence proves.**
+- **Request counts (mock only):** exact send counts come from the mock org's
+  request log and counters: no write before approval, exactly one write per
+  row, none after a restart, none on a refused request.
+- **The real-org run** shows only statuses and values:
+  - after its restarts the Run stays `succeeded`, with the expected Result
+    and org values;
+  - after the target changed, the second Run is `failed` and the outside
+    change is kept.
+
+  It did not count write attempts. Its second request proposed the same
+  names as the first, so a same-value resend would not show in the readback.
+  Its refusal was checked only as `failed`, not by cause.
+
+  The private live script now counts attempts at the transport in every
+  step, gives the second request its own suffix, and fails on a cleanup it
+  cannot confirm. Its checks are tested locally. A rerun needs a new budget
+  approval.
+
+**Earlier items and their resolution:**
+
+| Item (first seen) | Resolved at | Regression test |
+|---|---|---|
+| Restart after a partial apply refused the unsent rows (`StalePreview(0, 0)`) | common partial-recovery correction (`docs/reviews/2026-09-29-partial-effect-recovery.md`), in `7d266e73b` | `installed-salesforce-effect.test.mjs` "a restart after a partial apply sends only the unsent rows" and three related cases |
+| Recomputation not observable from the public path | `37e4ff5cf` (common Compute probe preload), used from `9dff94330` | `run-computation-probe.mjs` (5 cases), `test-acquired-effect-computation-probe.mjs` |
+| One damaged Effect input stopped the whole Host (P2-1) | `508d035e5` (Store startup), then `4449cbc1f` (the refused Run ends) | acceptance "Values-origin: a missing or altered durable Effect input…" and "…Effect input or upstream dependency…" |
+| A capture stopped partway could not be recovered or cleaned up (P2-2) | `8434854f2`, `d49d77952`, `181add3f5` | `test-effect-capture-host-crash.mjs`, `test-effect-capture-crash.mjs` |
+| Recovered-factory case failed with `SubmissionUnknown` | `0e1942e54` | `effect-run.integration.test.mjs` "two-member … (simulated-installed-recovered-factory)" |
+| A definite loss of the written field left the Run `resuming` | `05ab50108` | acceptance "a commit permission revoked after approval writes nothing" (b); "a temporary Catalog outage does not become a definitive commit refusal" |
+| A refusal while preparing the Preview was left as execution unknown | `c58699ce9` | `standard-host.integration.test.mjs` (the formerly refused input ends `failed`); acceptance "a checked Preview preparation refusal fails without a commit Checkpoint" |
+
+**Still open:**
+- **The typed cause of a target-change refusal is not observable.** The
+  public Run status has no `terminal_error` for it, and no diagnostic names
+  it. The acceptance tests identify the refusal by its request pattern (the
+  target check reads happened, and no write), not by a typed cause. This is
+  a request to the common side.
+- **Real-org send counts** are not yet proven by the instrumented script;
+  that needs a rerun under a new budget approval.
+
+## Historical results (at the time of each SHA)
+
+The sections below record results as they were at the SHA named. They are
+kept as evidence; the current state is above.
+
+### At `7d266e73b` (first connection)
+
+**At that time: connected to the common path at `7d266e73b`** (`feat/source-effect-run`,
 taken with a normal merge). That SHA is a development dependency. It is not
 the final durable-recovery and cleanup SHA: the common side still owns two
 P2s from its review.
@@ -59,7 +118,7 @@ P2s from its review.
 
   It counts the actual shared Compute entry, not notifications.
 
-### Re-verification at the common SHA `d49d77952` (merged as `ffa4bfb70`)
+### At `d49d77952` (merged as `ffa4bfb70`)
 
 These results are recorded apart from the earlier `7d266e73b` results.
 
@@ -113,9 +172,10 @@ Expected values are written by hand in `read-compute-effect.fixture.mjs`:
 
 ## Findings for the Salesforce side
 
-- **Effect factory input.**
+- **Effect factory input.** (Before the connection; at `7d266e73b` the
+  common Host opens the acquired computation for this call.)
   - The factory takes its rows only from `facts.openComputation()`, which the
-    Host wires today to the source-free computation
+    Host then wired to the source-free computation
     (`installed-effect-site.mjs:208`, `embedded-local.mjs:634-642`).
   - The factory stays as it is: it should consume what `openComputation()`
     returns for an acquisition-based Run.
@@ -150,7 +210,7 @@ inventory") matches these conditions:
   refilled;
 - cleanup owners and unknown-write evidence are kept.
 
-**Open request to the common side: an observable for recomputation.** Source
+**Historical (resolved; see Current status): an observable for recomputation.** Source
 re-acquisition is counted through Source queries. A recomputation from the
 retained input, however, produces the same output and no provider request.
 D cannot see it from the public path, so D asks for a Host diagnostic (for
@@ -159,14 +219,14 @@ notifications can be dropped, zero notifications is not proof of zero
 recomputations; the observable must be one whose absence is meaningful (for
 example a durable per-Run computation count).
 
-**A damaged Effect input stops the whole Host.** This is the common side's
+**Historical (resolved; see Current status): a damaged Effect input stopped the whole Host.** This was the common side's
 P2-1. A missing or altered Effect input or dependency body makes the Host
 refuse to start (`InstalledHostInitializationFailed`), rather than failing
 only that Run. Nothing is sent. D's damage tests require the Host to start
 and only the damaged Run to be refused.
 
-**Finding for the common side: an existing recovered-factory case fails at
-`7d266e73b`.** In `effect-run.integration.test.mjs`, "two-member captured
+**Historical (resolved; see Current status): an existing recovered-factory
+case failed at `7d266e73b`.** In `effect-run.integration.test.mjs`, "two-member captured
 Effect Run publishes after all rows settle (simulated-installed-recovered-factory)"
 fails with `SubmissionUnknown`. It fails the same way:
 - on a clean build of `7d266e73b` alone;
@@ -175,7 +235,8 @@ fails with `SubmissionUnknown`. It fails the same way:
 So it is not a Salesforce-side change. The other eight variants of that
 case pass.
 
-**Open question for the common side: a definite loss of a written field.**
+**Historical (resolved; see Current status): a definite loss of a written
+field.**
 When the org reports the target field is no longer updateable (same
 installation and configuration), the Salesforce recheck refuses the resume
 before the checked preflight. The common owner treats that as a retryable
@@ -206,10 +267,13 @@ was this run's own row the filter drops.
 | Submit: acquire, filter, derive, Preview | Held for approval (`waiting_checkpoint`) |
 | Readback before approval | All three rows unchanged |
 | Restart, approve; restart, resume | `succeeded`; Named Result exactly the two derived names |
-| Restart again | `succeeded`, nothing more sent |
+| Restart again | Still `succeeded`, with the same Result (write attempts were not counted) |
 | Readback | The two targets renamed to the derived value; the filtered-out row unchanged |
-| Second request held, then one target changed outside ActQL after its Preview; approve, resume | `failed` before any write; readback shows only the outside change |
+| Second request held, then one target changed outside ActQL after its Preview; approve, resume | `failed`; readback shows only the outside change. The request proposed the same names as the first, and its cause was not checked (see Current status). |
 | Cleanup | The three rows deleted by Id; count 0 |
+
+This run used the script before instrumentation. Exact send counts for these
+cases are mock evidence (see Current status).
 
 API use: 30 calls by the org's daily counter (before and after). The
 internal ledger counted 51 against its budget, since it counts Host steps by
