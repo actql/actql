@@ -46,6 +46,11 @@ ordered `with` list, then declares separate node and edge Results. The second
 Graph shares B with the first, adds C and B-to-C, and the expected union keeps
 exactly A, B, C and both distinct directed edges. Both Results declare their
 order; the DATA binding itself adds no Result or sort.
+`graft-graphs.named.aql` uses the same distinct A-to-B and B-to-C edge
+identities with add-only graft semantics. B has the same complete payload in
+both inputs, so the independent expected Graph contains A, B, C and both
+edges. Its explicit node and edge Results test the Graph output without
+creating an implicit Result or ordering boundary.
 `degree-rows.named.aql` computes out-degree from a Graph with two edges from A.
 The authored sort fixes A, B, C order; the independent Result fixture expects
 degrees 2, 0, 0 and keeps the `node`/`degree` schema from the existing contract.
@@ -54,10 +59,9 @@ the node-count violation before A's degree violation; the second is empty at
 inclusive limits. The independently authored expectations include a nullable
 `node_id` for whole-graph violations. Neither DATA expression adds a sort or
 Result order declaration.
-The normalize-rows, mean-graphs and traverse-paths expectations passed packed
-Local and HTTP execution from named source. Union-graphs passed packed Local;
-HTTP is verified separately when the standard packed job runs with this
-fixture.
+The normalize-rows, mean-graphs, traverse-paths and union-graphs expectations
+passed packed Local and HTTP execution from named source. Graft-graphs is a
+diagnostic probe until the same product path accepts its Named Results.
 The remaining named fixtures still need independent runtime acceptance.
 Common preparation admits reach/subgraph, diff/apply and components, but
 degree-rows and components currently end before publication and graph-bounds

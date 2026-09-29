@@ -72,7 +72,7 @@ const nativeOutput = run(process.execPath,
 console.log(nativeOutput.trimEnd());
 if (probeSga) {
   const cases = ['graphs-equal', 'degree-rows', 'graph-bounds', 'components',
-    'reach-subgraph', 'diff-apply'];
+    'reach-subgraph', 'diff-apply', 'graft-graphs'];
   const results = [];
   for (const name of cases) {
     for (const suffix of ['named.aql', 'expected-results.json']) {

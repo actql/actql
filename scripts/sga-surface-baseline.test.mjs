@@ -110,6 +110,13 @@ test('structural Graph union preserves both producers and Results', () => {
     fixture('union-graphs.named.aql'))), JSON.parse(expected));
 });
 
+test('Graph graft retains the second producer and both Results', () => {
+  const expected = fixture('graft-graphs.expected-program.json');
+  assert.equal(jsonAdmissionDiagnostic(expected), '');
+  assert.deepEqual(JSON.parse(structuralToJson(
+    fixture('graft-graphs.named.aql'))), JSON.parse(expected));
+});
+
 const envelope = body => `AQL '0.1'; PROGRAM 'roles' { STAGE s {
   INPUT g = {"carrier":"graph"}; INPUT target = {"carrier":"graph"};
   DATA output = ${body}; RESULT r = {"from":"output"};
