@@ -4,8 +4,54 @@ import {createInstalledEffectSite} from './installed-effect-site.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
 import {acquisitionFailure} from '../host-common/acquisition-outcome.mjs';
+import {checkedEffectPreparation as checked} from
+  '../host-common/effect-preparation-result.mjs';
+import {checked as checkedRuntime} from '../host-common/runtime-result.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
+
+for (const kind of ['checked', 'unclassified-checked', 'transport', 'lookalike']) {
+  test(`Preview preparation ${kind} keeps its outcome and cleanup distinct`,
+    async () => {
+      const ref = {runDefinitionCid: cid('b')};
+      const observations = [];
+      let computes = 0;
+      let cleanups = 0;
+      let pending = true;
+      let failure;
+      const execution = {async close() {}, async cleanup() {
+        if (++cleanups === 1) return false;
+        pending = false;
+        return true;
+      }, cleanupPending: () => pending};
+      const site = createInstalledEffectSite({environmentWire: '{}',
+        prepareCaptured() {
+          try {
+            if (kind === 'checked') checked({$tag: 0, _0: 'InvalidTarget'});
+            if (kind === 'unclassified-checked') {
+              checkedRuntime({$tag: 0, _0: 'IncompleteObservation'});
+            }
+            throw Object.assign(new Error('ObservationUnavailable'), {
+              code: kind === 'lookalike' ? 'MoonBitHostFailure' : 'EIO'});
+          } catch (error) { failure = error; throw error; }
+        },
+        prepareRecovered() { assert.fail('No automatic recovery'); }});
+      const dispatch = installNodeClientDispatchOwner({});
+      await assert.rejects(dispatch.track(ref, {
+        observeStopped: value => observations.push(value),
+        run: context => site.execute({...context,
+          openComputation() { computes++; return {execution, checkedHost: {}}; },
+        }),
+      }), error => error === failure);
+      assert.deepEqual(observations, []);
+      assert.notEqual(dispatch.operation(ref), undefined);
+      await dispatch.drain();
+      assert.deepEqual(observations, [kind === 'checked' ? 'failed' : null]);
+      assert.equal(dispatch.operation(ref), undefined);
+      assert.equal(computes, 1);
+      assert.equal(cleanups, 2);
+    });
+}
 
 for (const outcome of ['not_started', 'stopped', 'unknown']) {
   test(`Effect acquisition ${outcome} failure observes outcome after cleanup`,

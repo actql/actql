@@ -19,7 +19,8 @@ const log = join(root, 'calls.log');
 await writeFile(log, '');
 const boundary = process.argv[2] ?? 'effect-capture';
 assert.ok(['before-effect-source', 'effect-source',
-  'before-effect-capture', 'effect-capture', 'before-publication-private'].includes(boundary));
+  'before-effect-capture', 'effect-capture', 'before-publication-private',
+  'publication-private'].includes(boundary));
 const environment = {...process.env,
   ACTQL_TEST_HOST_CRASH_ROOT: hostRoot, ACTQL_TEST_HOST_CRASH_KEYS: keyPath,
   ACTQL_TEST_EFFECT_ENTRY: new URL('../adapters/host-node/entry.mjs', import.meta.url).href,

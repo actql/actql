@@ -155,6 +155,28 @@ test('Read→Compute→Effect previews, waits across a restart, writes once and 
     assert.equal(setup.queries(), queries);
   });
 
+test('a checked Preview preparation refusal fails without a commit Checkpoint',
+  async t => {
+    const setup = await readComputeEffectInstallation(t, {org: {
+      onQuery: () => setup.org.setNameUpdateable(false)}});
+    const first = await setup.openHost();
+    const client = await first.as('owner-token');
+    const execution = await client.aql(setup.program(), {
+      format: 'json', requestId: 'rce-preview-refused'});
+    await waitFor(async () => (await execution.status()).status === 'failed');
+    assert.equal(setup.queries(), 1);
+    assert.equal(setup.writes().length, 0);
+    assert.deepEqual((await (await first.as('reviewer-token'))
+      .checkpoints()).items, []);
+    await first.close();
+    const second = await setup.openHost();
+    const attached = await (await second.as('owner-token')).attach(execution.ref);
+    assert.equal((await attached.status()).status, 'failed');
+    assert.equal(setup.queries(), 1);
+    assert.equal(setup.writes().length, 0);
+    await second.close();
+  });
+
 test('a target changed after acquisition but before the Preview is previewed as it now is',
   async t => {
     // The change happens as soon as the source query is answered, before
@@ -238,10 +260,8 @@ test('a commit permission revoked after approval writes nothing',
     }
     // (b) Same installation and configuration: the org no longer lets this
     // user update Name. The Site's current-use recheck refuses the resume
-    // before any write. Under the existing contract a provider observation
-    // failure before the checked preflight stays retryable, so the Run is
-    // not ended (it stays resuming); whether a definite loss of the field
-    // should end it is a question for the common side, not decided here.
+    // before any write. This is a checked refusal of the current Catalog,
+    // not a transient failure to observe it: the common owner ends the Run.
     {
       const setup = await readComputeEffectInstallation(t);
       const first = await setup.openHost();
@@ -256,12 +276,40 @@ test('a commit permission revoked after approval writes nothing',
       const third = await setup.openHost({diagnostics});
       const attached = await (await third.as('owner-token')).attach(
         execution.ref);
-      await waitFor(() => diagnostics.some(item =>
-        item.name === 'effect_resume_failed'));
-      assert.notEqual((await attached.status()).status, 'succeeded');
+      await waitFor(async () => (await attached.status()).status === 'failed');
       assert.equal(setup.writes().length, 0);
       assert.equal(setup.queries(), queries);
     }
+  });
+
+test('a temporary Catalog outage does not become a definitive commit refusal',
+  async t => {
+    const setup = await readComputeEffectInstallation(t);
+    const first = await setup.openHost();
+    const execution = await heldForApproval(setup, first, 'rce-catalog-outage');
+    await first.close();
+    const second = await setup.openHost();
+    await approveHeldSet(second, execution);
+    await second.close();
+    const queries = setup.queries();
+    setup.org.setDescribeStatus(503);
+    const diagnostics = [];
+    const third = await setup.openHost({diagnostics});
+    await waitFor(() => diagnostics.some(item =>
+      item.name === 'effect_resume_failed'));
+    const attached = await (await third.as('owner-token')).attach(execution.ref);
+    assert.equal((await attached.status()).status, 'resuming');
+    assert.equal(setup.writes().length, 0);
+    assert.equal(setup.queries(), queries);
+    await third.close();
+    setup.org.setDescribeStatus(200);
+    // The existing resume claim remains leased. Restart does not bypass
+    // that lease or turn observation failure into a terminal refusal.
+    const fourth = await setup.openHost();
+    const restored = await (await fourth.as('owner-token')).attach(execution.ref);
+    assert.equal((await restored.status()).status, 'resuming');
+    assert.equal(setup.writes().length, 0);
+    assert.equal(setup.queries(), queries);
   });
 
 test('a reply lost after the org applied the write is unknown and never resent',
@@ -286,6 +334,18 @@ test('a reply lost after the org applied the write is unknown and never resent',
     const again = await (await fourth.as('owner-token')).attach(execution.ref);
     assert.equal((await again.status()).status, 'needs_reconciliation');
     assert.equal(setup.writes().length, 2);
+    await fourth.close();
+    const retainedObjects = await setup.heldObjects();
+    const queries = setup.queries();
+    await setup.damageHeld('upstream-dependency', 'altered');
+    const fifth = await setup.openHost();
+    const uncertain = await (await fifth.as('owner-token')).attach(execution.ref);
+    assert.equal((await uncertain.status()).status, 'needs_reconciliation');
+    assert.equal(setup.writes().length, 2);
+    assert.equal(setup.queries(), queries);
+    await fifth.close();
+    assert.deepEqual(await setup.heldObjects(), retainedObjects,
+      'corruption must not retire the holdings of an unknown write');
   });
 
 // Serial rows over four records, three of them targets, in Id order: the

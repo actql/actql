@@ -1426,13 +1426,18 @@ test(`a ${damage} acquired input rejects only its Run after Host restart`,
     const error = await recoveryFailure;
     assert.equal(error.code, damage === 'missing'
       ? 'PublicationObjectMissing' : 'PublicationObjectCorrupt');
+    const damagedRun = await (await resumed.as('owner-token')).attach(damaged.ref);
+    await waitFor(async () => (await damagedRun.status()).status === 'failed');
     assert.equal(captures, 1);
     assert.equal(recoveries, 0, 'reject damaged custody before provider recovery');
     assert.deepEqual(sends, []);
     assert.deepEqual(await attached.result('answer').all(), expectedRows);
     await resumed.close();
-    assert.ok((await readdir(holdingPath)).length > 0,
-      'unavailable input must not erase its recovery responsibility');
+    const remaining = await Promise.all((await readdir(holdingPath))
+      .map(async name => JSON.parse(await readFile(join(holdingPath, name)))));
+    assert.equal(remaining.some(holding =>
+      ['effect-source', 'effect-capture'].includes(holding.namespace)), false,
+    'the failed unsent capture is retired without consuming damaged bytes');
   });
 }
 

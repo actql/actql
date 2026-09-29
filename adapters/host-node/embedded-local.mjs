@@ -1134,12 +1134,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             throw new Error('EffectCaptureCustodyRunMismatch');
           }
           const runId = control.runDefinitionRunId(run);
-          // A complete record or Checkpoint belongs to normal reconciliation,
-          // even if no completion acknowledgement reached the original caller.
-          if (checkpoints.journal.inspect(`${runId}-effect-commit`) !== undefined ||
-              await store.inspectPhysicalHolding(
-                control.effectComputationRecordHoldingCid(run,
-                  store.storeAuthorityCid)) !== undefined) continue;
+          // Durable custody still exists only before transfer to a Checkpoint
+          // or physical dispatch. A complete private record is not sufficient
+          // to establish that transfer. The original unknown Run stays intact.
+          if (checkpoints.journal.inspect(`${runId}-effect-commit`) !== undefined) continue;
           await retireEffectCapture(ref);
         } catch (error) { failures.push(error); }
       }

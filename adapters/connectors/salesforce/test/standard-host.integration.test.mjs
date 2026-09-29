@@ -337,8 +337,8 @@ test('public HTTP Client resumes an installed Salesforce Effect after restart',
     // refused before any write, because it selects records by
     // `External_Key__c` values, which are not record Ids. The same shape with
     // a valid Id selector is read-compute-effect.acceptance.test.mjs's
-    // success test. (Its end state after that pre-send refusal is a question
-    // for the common side; only admission and "nothing written" are fixed.)
+    // success test. A definitive invalid selector before any Effect dispatch
+    // must fail the Run, not leave it as execution unknown.
     const formerlyRefused = JSON.parse(program);
     formerlyRefused.id = 'unsupported-acquire-and-effect';
     formerlyRefused.stages[1].effects = {save: {update: {
@@ -353,7 +353,7 @@ test('public HTTP Client resumes an installed Salesforce Effect after restart',
       'unsupported-acquire-and-effect')).kind, 'found');
     await waitFor(() => diagnostics.some(item =>
       item.name === 'effect_start_failed'));
-    assert.notEqual((await admitted.status()).status, 'succeeded');
+    assert.equal((await admitted.status()).status, 'failed');
     assert.equal(setup.queries().length, queriesBefore + 1);
     assert.equal(setup.org.seen.filter(item => item.method === 'PATCH')
       .length, 0);

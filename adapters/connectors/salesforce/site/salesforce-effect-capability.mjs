@@ -1,4 +1,6 @@
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {checkedSalesforceCatalogPreparation} from
+  './salesforce-effect-preparation-result.mjs';
 import {ownInvocationAuthorization} from
   '../../../host-common/owned-invocation-context.mjs';
 import {matchesSalesforceCredentialOrg} from
@@ -96,8 +98,8 @@ export function issueSalesforceEffectCapability({moon, requests,
   owner.evidence = checked(moon.salesforcePrepareWriteCapability(
     requests[0], runtimeBundleCid, collection, maxBytes));
   checkRequests(owner, requests, runtimeBundleCid);
-  checked(moon.salesforceRecheckWriteCapability(owner.evidence,
-    currentObservation));
+  checkedSalesforceCatalogPreparation(moon.salesforceRecheckWriteCapability(
+    owner.evidence, currentObservation), moon, currentObservation);
   const result = Object.freeze({
     identity: moon.salesforceWriteCapabilityIdentity(owner.evidence),
     wire: moon.salesforceWriteCapabilityBody(owner.evidence),
@@ -113,8 +115,8 @@ export function inspectSalesforceEffectCapability(capability, requests,
   const runtimeBundleCid = currentGrant(owner);
   checkRequests(owner, requests, runtimeBundleCid);
   if (currentObservation !== undefined) {
-    checked(owner.moon.salesforceRecheckWriteCapability(owner.evidence,
-      currentObservation));
+    checkedSalesforceCatalogPreparation(owner.moon.salesforceRecheckWriteCapability(
+      owner.evidence, currentObservation), owner.moon, currentObservation);
   }
   const route = owner.moon.salesforceWriteCapabilityRoute(owner.evidence);
   if (collection !== undefined && collection !== (route === 1)) fail();

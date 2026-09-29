@@ -13,6 +13,8 @@ import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {isEffectApplyPreflightRejection} from './effect-run-apply.mjs';
+import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
+import {isEffectCaptureRecoveryRefusal} from './effect-run-recovery.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -114,7 +116,7 @@ function noEffectRowWasSent(options) {
 function terminalPreSendRefusal(error, options) {
   return error instanceof ExecutionAuthorizationError &&
       error.authorization?.action === 'deny' ||
-    isEffectApplyPreflightRejection(error) &&
+    (isEffectApplyPreflightRejection(error) || isEffectPreparationRefusal(error)) &&
       noEffectRowWasSent(options);
 }
 
@@ -251,8 +253,22 @@ export function createInstalledEffectSite({environmentWire,
         facts = Object.freeze({...facts,
           publicationPlan: opened.publicationPlan});
       }
-      const stage = await prepareCaptured(Object.freeze({...facts,
-        execution, checkedHost}));
+      let stage;
+      try {
+        stage = await prepareCaptured(Object.freeze({...facts,
+          execution, checkedHost}));
+      } catch (error) {
+        // Preparation has no Effect dispatch permit. A checked refusal is
+        // definitive here, but observation/transport failures are not. The
+        // dispatch owner still waits for physical stop and cleanup before
+        // recording the outcome; this does not release that responsibility.
+        if (isEffectPreparationRefusal(error) ||
+            error instanceof ExecutionAuthorizationError &&
+              error.authorization?.action === 'deny') {
+          facts.observePreEffectFailure?.();
+        }
+        throw error;
+      }
       custody.attach(stage);
       ownedStage(stage, 'InvalidInstalledEffectCapture');
       if (stage.publication.execution !== execution ||
@@ -321,7 +337,15 @@ export function createInstalledEffectSite({environmentWire,
       // claim has not begun a new physical continuation and may be retried.
       const custody = cleanupCustody(undefined);
       facts.retainExecution(custody);
-      const recovered = await facts.recoverCapture({signal});
+      let recovered;
+      try { recovered = await facts.recoverCapture({signal}); }
+      catch (error) {
+        if (isEffectCaptureRecoveryRefusal(error)) {
+          checkpointJournal.refuseUnsentEffectResume(view.checkpointCid,
+            ref.runDefinitionCid);
+        }
+        throw error;
+      }
       let releaseMode = 'retain';
       custody.requireRelease(() => releaseMode === 'retire'
         ? releaseCompletedRunPreparedPayloads(
@@ -346,9 +370,21 @@ export function createInstalledEffectSite({environmentWire,
         return Object.freeze({status: 'failed'});
       }
       if (claimed.action !== 'claimed') return claimed;
-      const stage = await prepareRecovered(Object.freeze({...facts,
-        recovered,
-        retainRecoveryOwner: owner => custody.attachPhysical(owner)}));
+      let stage;
+      try {
+        stage = await prepareRecovered(Object.freeze({...facts,
+          recovered,
+          retainRecoveryOwner: owner => custody.attachPhysical(owner)}));
+      } catch (error) {
+        if (isEffectPreparationRefusal(error) ||
+            error instanceof ExecutionAuthorizationError &&
+              error.authorization?.action === 'deny') {
+          const refused = checkpointJournal.refuseUnsentEffectResume(
+            view.checkpointCid, ref.runDefinitionCid);
+          if (refused.outcome === 'failed') releaseMode = 'retire';
+        }
+        throw error;
+      }
       if (stage?.cleanupOwner !== undefined) {
         custody.attachPhysical(stage.cleanupOwner);
       }

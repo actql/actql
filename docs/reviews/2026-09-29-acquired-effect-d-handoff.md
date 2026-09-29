@@ -126,7 +126,9 @@ Effect Compute entry, forwarding to the original implementations. All six
 scenarios (success, unknown, cancel, reject, missing, corrupt) passed with
 one initial Source/Compute call each and zero restart calls. This is not
 best-effort telemetry and introduces no public instrumentation API.
-The unfinished capture crash-window P2 remains unresolved.
+At the initial handoff, the unfinished capture crash-window P2 remained
+unresolved. Subsequent implementation and evidence are recorded below;
+neither P2 has final pushed-SHA CI acceptance yet.
 
 ## P2-2 process-stop reproduction
 
@@ -203,9 +205,127 @@ reopen retains the same request. These cases are now connected to Client CI;
 local acquired/unknown/cancel/reject/corruption HTTP regressions passed 10/10.
 No Linux result is claimed yet.
 
-Still open: the completed-private-record to published-Checkpoint handoff
-window must be checked separately. A completed capture is deliberately not
-deleted merely because its Checkpoint is absent: immediate-allow execution
-can also lack a Checkpoint, including uncertain sends. Do not broaden this
-sweep to delete completed evidence without establishing the durable ownership
-handoff and the existing no-resend guarantees.
+## Completed-record ownership handoff correction
+
+The completed private record no longer removes the cleanup inventory by
+itself. The standard completion owner transfers custody immediately before
+physical dispatch, after apply establishes current admission and durable row
+intents. Its wrapper snapshots the publication and dispatch references before
+awaiting authorization, and checks cancellation after the custody sync.
+This transfer confers no authorization and changes no Ledger outcome.
+
+Waiting Checkpoints keep the inventory: their existing durable record
+protects it from pre-Checkpoint retirement. Resume transfers custody before
+dispatch; cancellation/rejection retires it with the exact completed capture.
+Normal explicit owner release also discharges the inventory, including a
+capture released before a Checkpoint was created. Thus missing Checkpoint
+alone still does not authorize deleting execution-owned or uncertain evidence.
+
+The actual public-Host stop immediately after the private capture commit now
+passes as the sixth save boundary: the original Run remains unknown, cleanup
+finishes, and restart does not reacquire, recompute or write. The three-file
+bridge/installed-Effect/Store regression passes 103/103. The six actual
+Source/Compute probes pass again for success, unknown, cancel, reject,
+missing input and corrupt input (one initial call, zero restart calls).
+These are local implementation results. Final Host/Client/Workers/lint/spec
+jobs, pushed-SHA CI and the acquired Embedded/packed acceptance remain open.
+
+## Client gate and recovered-factory diagnosis
+
+At `181add3f5a28b4bca113507f9e0641180d4f62e1`, the Client gate passed
+263 Node tests, packed Node/browser smoke, packed HTTP Checkpoint acceptance,
+native Client mTLS, and packed Embedded Checkpoint acceptance. The Salesforce
+job failed (268/270); the subsequent Compute/crash steps did not execute.
+One failure is the recovered-factory fixture; the other still needs diagnosis.
+
+The recovered-factory failure was reproduced before changing its inputs.
+The actual execution callback rejected with
+`InstalledEffectContinuationMismatch`: the fixture omitted both the saved
+Unit ID and the Checkpoint's run-unit subject. Its HTTP submit handler had
+already accepted the Run and was awaiting `start`, so the SDK correctly
+reported `SubmissionUnknown`. This was not an HTTP acknowledgement loss.
+
+The fixture now uses the official compilation owner's Unit ID in both
+bindings. Missing and foreign Unit IDs must still reject before any resume
+claim or dispatch; valid recovery must publish all four rows. The focused
+test passes with these assertions. No production refusal was relaxed.
+This diagnosis is separate from capture cleanup and the three pending
+Run-outcome classification corrections requested after D's re-verification.
+
+## Recovery refusal and Run outcome integration
+
+The D integration and verification series through `7a47410b0` is merged.
+The following corrections connect preparation failures to the existing Run
+and cleanup owners, without treating every exception as a failed Run:
+
+- Confirmed missing/corrupt Store objects are classified only after exact
+  request and evidence-read admission. An atomic Checkpoint transaction
+  checks the exact Run and absence of protected dispatch before failing an
+  unsent continuation and fencing its older resume claim. Prior dispatch
+  admission prevents this transition; existing unknown evidence is retained.
+- The adapter marks a semantic Catalog refusal only when the exact opaque
+  observation actually describes its selected Resources. A completed sync
+  containing an unavailable Resource is not a definitive write refusal.
+  Transport errors, unclassified checked errors and lookalike error codes do
+  not acquire that classification. Current authorization remains separate.
+- A definite pre-Effect preparation refusal records failure only through
+  the original dispatch owner, which still checks physical stop and retains
+  incomplete cleanup. The marker itself conveys no execution permission.
+- Exact holding ownership can be inspected for retirement without consuming
+  corrupt payloads. Recovery and consumption still verify payload bytes;
+  cleanup can remove unusable inputs without disabling unrelated Runs.
+
+The four-file targeted run passed 133/133 tests: the installed Effect owner,
+Checkpoint journal, Publication Store and D's Read/Compute/Effect acceptance.
+It includes missing/corrupt inputs, current write permission loss, Preview
+refusal, corruption after an unknown write, and actual HTTPS Catalog 503.
+The 503 case preserves `resuming` and zero writes across immediate restart:
+the existing resume lease is not bypassed. This is not evidence of immediate
+post-outage completion or a new retry policy.
+
+The six real-entry computation probes also passed: success, unknown,
+cancel, reject, missing input and corrupt input each executed Source and
+Compute once initially and zero times on recovery. The two damaged-input
+probes additionally check healthy Run availability and failed-capture
+retirement through the common reference Site, independently of Salesforce.
+
+The successful acceptance paths use simulated Salesforce and real Host,
+SQLite, Store and HTTP/Embedded boundaries, not a real org. Final integrated
+CI, the remaining Client gate failure diagnosis, and B's Frontend/Result
+call-site connection remain outstanding. B's registry fixture corrections
+will be merged when its fixed SHA is supplied; its contract is unchanged.
+
+## Updated executable handoff
+
+At `05ab501088eaf259c2a8c24d1d79e220b4a9199d`,
+`npm run check:salesforce-site` passed 287/287, including the recovered
+factory and D's acquired Effect acceptance. The six public Host process-death
+boundaries also passed (before/after Source, capture and private record
+commit), with zero recovery Source/Compute calls and completed retirement.
+This supersedes the earlier gate failure as current executable evidence,
+without claiming the missing historical failure log has been reconstructed.
+
+One additional D regression still asserted only "not succeeded" for an
+invalid record-ID selector. Requiring `failed` reproduced
+`needs_reconciliation` before the fix. The adapter now marks the pure request
+construction refusal after Catalog/body preparation as definitive. The whole
+standard Host integration file then passed 21/21, including the strengthened
+assertion and zero writes. No observation or dispatch error was reclassified.
+
+D can continue from this series without waiting for B. Build runtime packages
+with the pinned toolchain, then run:
+
+```sh
+npm run build:runtime-packages -- local-node run-host-core
+npm run check:salesforce-site
+node scripts/test-acquired-effect-computation-probe.mjs
+for boundary in before-effect-source effect-source before-effect-capture effect-capture before-publication-private publication-private; do
+  node scripts/test-effect-capture-host-crash.mjs "$boundary"
+done
+```
+
+The read/compute/Effect path and refusal/retirement fixes are connected.
+Frontend raw-source preparation and Result transformation call sites are not
+yet connected. Full final-HEAD Host/Client jobs, packed distribution acceptance
+and Linux CI are still required before merge approval. No real-org operation
+was performed by C.

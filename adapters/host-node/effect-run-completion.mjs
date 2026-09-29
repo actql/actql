@@ -2,7 +2,7 @@ import {applyCapturedEffectSet, applyRecoveredEffectSet} from
   './effect-run-apply.mjs';
 import {issueAuthorizedEffectSetReceipt} from
   './effect-response-recovery.mjs';
-import {publishCompletedEffectfulRun} from
+import {publishCompletedEffectfulRun, transferCompletedEffectfulCaptureCustody} from
   '../host-common/completed-run-publication.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 
@@ -70,10 +70,34 @@ async function issueAndPublish({apply, receipt, publication, signal},
 }
 
 async function complete(options, recovered) {
+  // Own the invocation wrapper before the first await; opaque checked owners
+  // keep their references, while the caller cannot replace the custody target
+  // or dispatch binder during current-use authorization.
+  options = Object.freeze({...options,
+    apply: Object.freeze({...options?.apply}),
+    receipt: Object.freeze({...options?.receipt}),
+    publication: Object.freeze({...options?.publication})});
   validateCompletion(options, recovered);
+  // Current admission and durable row intents are established by apply before
+  // this wrapper is entered. Transfer cleanup custody before any provider can
+  // send, and never interpret a missing reply as permission to reclaim it.
+  let transferred = false;
+  const wrap = dispatch => typeof dispatch !== 'function' ? dispatch : async row => {
+    if (!transferred) {
+      await transferCompletedEffectfulCaptureCustody(options.publication);
+      transferred = true;
+    }
+    options.signal?.throwIfAborted();
+    return dispatch(row);
+  };
+  const original = options.apply;
+  const apply = {...original, ...(original.bindDispatch === undefined
+    ? {dispatchRow: wrap(original.dispatchRow)}
+    : {bindDispatch: facts => wrap(original.bindDispatch(facts))}),
+    signal: options.signal};
   const progress = recovered
-    ? await applyRecoveredEffectSet({...options.apply, signal: options.signal})
-    : await applyCapturedEffectSet({...options.apply, signal: options.signal});
+    ? await applyRecoveredEffectSet(apply)
+    : await applyCapturedEffectSet(apply);
   return issueAndPublish(options, progress);
 }
 

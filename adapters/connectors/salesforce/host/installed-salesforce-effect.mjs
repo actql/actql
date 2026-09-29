@@ -15,6 +15,10 @@ import {createHash} from 'node:crypto';
 import {mkdir} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {checkedEffectPreparation} from
+  '../../../host-common/effect-preparation-result.mjs';
+import {checkedSalesforceCatalogPreparation} from
+  '../site/salesforce-effect-preparation-result.mjs';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {issueCompletedEffectfulComputationEvidence,
@@ -354,14 +358,15 @@ const memberDispatch = (runInvocationCid, member) => cid({
 function projection(salesforceMoon, observation, member) {
   const binding = JSON.parse(
     salesforceMoon.salesforceCatalogObservationJson(observation)).binding;
-  return checked(salesforceMoon.salesforcePrepareWriteProjection(
+  return checkedSalesforceCatalogPreparation(salesforceMoon.salesforcePrepareWriteProjection(
     observation, binding.namespace_id, binding.principal, binding.environment,
     binding.connection_revision, binding.org_id, binding.site_key,
     binding.site_generation, binding.connector_registration,
     binding.connector_revision, binding.resource_origin,
     binding.run_invocation_cid, binding.dispatch_request_cid,
     binding.sync_occurrence, member.resource, projectionCodes[member.kind],
-    member.key, [...member.fields], member.fields.length));
+    member.key, [...member.fields], member.fields.length),
+  salesforceMoon, observation);
 }
 
 function mappingPolicy(member) {
@@ -686,7 +691,9 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
             JSON.parse(proposal.changesWire).value)),
           limits.body.maxBytes, limits.body.maxNodes, limits.body.maxDepth),
         project);
-        return checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
+        // Pure request validation after the exact Catalog projection and
+        // body are prepared: no target or write I/O has started for this row.
+        return checkedEffectPreparation(salesforceMoon.salesforcePrepareSingleWriteRequest(
           body, site.apiVersion, requestCodes[member.kind],
           member.kind === 'create' ? '' : JSON.parse(proposal.selectorWire),
           0, limits.request.maxPathBytes, limits.request.maxTargetBytes,
