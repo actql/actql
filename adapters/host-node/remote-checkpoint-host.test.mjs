@@ -5,7 +5,7 @@
 // scripts/test-packed-client-checkpoint.mjs.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {createHash, generateKeyPairSync, sign} from 'node:crypto';
+import {createHash, createPrivateKey, createPublicKey, generateKeyPairSync, sign} from 'node:crypto';
 import {chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
   'node:fs/promises';
 import {createServer} from 'node:https';
@@ -24,7 +24,8 @@ import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {localContractLimits, localOutputLimits} from './local-values-plan.mjs';
 import {exportPinnedEffectInput, preparePinnedEffectSourceHoldings,
-  preparePinnedEffectSourceSet} from './effect-input-export.mjs';
+  preparePinnedEffectSourceSet, retainPinnedEffectDependencyPayloads}
+  from './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -34,6 +35,7 @@ import {issueCompletedEffectfulComputationEvidence,
 import {withFixtureConnector} from
   '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson} from './local-account-config.mjs';
+import {exercisePublicQueryInput} from '../../scripts/fixtures/public-query-input.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const scratch = join(repository, '_build', 'remote-checkpoint-host');
@@ -53,7 +55,7 @@ const document = await readFile(join(repository,
   'packages/sdk/fixtures/values.json'), 'utf8');
 const readDocument = await readFile(join(repository,
   'adapters/connectors/duckdb/node/examples/program.json'), 'utf8');
-const {DuckDBInstance} = createRequire(join(repository,
+const {DuckDBInstance, DuckDBPreparedStatement} = createRequire(join(repository,
   'adapters/connectors/duckdb/node/package.json'))('@duckdb/node-api');
 const contentCid = value => `sha256:${createHash('sha256')
   .update(canonicalJson(value)).digest('hex')}`;
@@ -79,6 +81,12 @@ async function installedReadFixture(directory, outcome = 'allow') {
   const base = JSON.parse(await readFile(join(repository,
     'spec/local-check-environment.json'), 'utf8'));
   environment.host_policy_profile = base.host_policy_profile;
+  // This installed adapter supports the bounded broad-receipt realization
+  // as well as native two-receipt acquisition. Do not infer that capability
+  // from a native-only saved declaration.
+  environment.connector_capabilities[0].capability_contract_cids.push(
+    'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89');
+  environment.connector_capabilities[0].capability_contract_cids.sort();
   environment.evidence_bundle_cid = withoutCid(environment,
     'evidence_bundle_cid');
   const profilePath = join(directory, 'source-profile.json');
@@ -98,6 +106,44 @@ async function installedReadFixture(directory, outcome = 'allow') {
   }));
   return profilePath;
 }
+
+test('public HTTP source text uses the installed alias and existing Run owner', async t => {
+  const directory = await mkdtemp(join(scratch, 'source-text-'));
+  const profilePath = await installedReadFixture(directory);
+  const profile = JSON.parse(await readFile(profilePath, 'utf8'));
+  const environment = JSON.parse(profile.checkEnvironmentWire);
+  const view = environment.source_views[0];
+  profile.queryAliases = [{name: 'records', sourceRef: profile.sourceRef,
+    sourceViewContractCid: view.contract_cid,
+    schemaContractCid: view.output.schema.cid}];
+  await writeFile(profilePath, JSON.stringify(profile));
+  const host = await remoteHost(t, undefined,
+    {directory, sourceProfilePath: profilePath}).catch(error => {
+      t.diagnostic(String(error.cause?.stack ?? error));
+      throw error;
+    });
+  t.after(async () => { await host.close(); await rm(directory, {recursive: true, force: true}); });
+  // Count actual native query execution, not a best-effort diagnostic or
+  // dispatch reservation. This also catches any extra DuckDB computation.
+  let sourceIo = 0;
+  const stream = DuckDBPreparedStatement.prototype.stream;
+  t.mock.method(DuckDBPreparedStatement.prototype, 'stream', function(...args) {
+    sourceIo++;
+    return Reflect.apply(stream, this, args);
+  });
+  const journal = new DatabaseSync(join(directory, 'state', 'requests',
+    'client-requests.sqlite3'), {readOnly: true});
+  try {
+    const observe = () => ({sourceIo, acceptedRuns:
+      journal.prepare('SELECT COUNT(*) AS count FROM client_requests').get().count});
+    await exercisePublicQueryInput(connect, host.options('owner-token'),
+      {requestPrefix: 'source', observe});
+    assert.equal(observe().acceptedRuns, 5);
+    assert.ok(sourceIo >= 5, 'successful queries must exercise the I/O probe');
+  } finally {
+    journal.close();
+  }
+});
 async function effectFixture({twoMembers = false} = {}) {
   const environment = JSON.parse(await readFile(join(repository,
     'packages/sdk/fixtures/values.environment.json'), 'utf8'));
@@ -307,7 +353,7 @@ function referenceLedger(directory, moon, requestIdentity) {
 }
 
 async function prepareReferenceCapture(facts, {directory, mappingCids,
-  sends, loseReply, failRow}) {
+  sends, loseReply, failRow, maxInputPins = 2}) {
   const {moon, control, store, execution, publicationPlan: plan,
     prepared, checkedHost, identity} = facts;
   const storedResults = await storeCompletedRunResultSet({execution,
@@ -315,11 +361,11 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
     invocation: plan.invocation, results: plan.results,
     outputLimits: plan.outputLimits,
     contractLimits: plan.contractLimits});
-  const inputs = checked(moon.clientProgramPinEffectSources(checkedHost, 2));
+  const inputs = checked(moon.clientProgramPinEffectSources(checkedHost, maxInputPins));
   const sourceSet = await preparePinnedEffectSourceSet({moon,
     checkedOwner: prepared, execution, inputs,
     maxMembers: mappingCids.length,
-    maxGroupingWork: 4,
+    maxGroupingWork: 100,
     limits: moon.clientProgramEffectInputExportLimits(
       ...sourceExportLimits(localOutputLimits)),
     store, maxBytes: localOutputLimits.maxWireBytes, control,
@@ -327,17 +373,28 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
     sourceBindingCid: referenceCid('source-binding'),
     contractLimits: localContractLimits,
     localEvidenceContext: plan.localEvidenceContext});
+  if (maxInputPins === 3) {
+    // The separate ordered public Result is not an Effect dependency.
+    assert.equal(sourceSet.dependencies.length, 2);
+    assert.equal(sourceSet.payloads.length, 2);
+  }
   const requestScope = moon.clientProgramEffectRequestScope(prepared,
     identity);
+  if (sourceSet.dependencies !== undefined) {
+    retainPinnedEffectDependencyPayloads({sources: sourceSet, execution,
+      store, storedResults, control, runDefinition: plan.runDefinition});
+  }
   const authored = referencePreview(facts,
-    sourceSet.payloads[0].summary.artifact.identity, mappingCids,
+    sourceSet.members[0].payload.summary.artifact.identity, mappingCids,
     requestScope);
   const preview = control.admitEffectComputationPreview(authored.wire,
     plan.runDefinition, plan.authoringContext, plan.contractLimits);
   const holdings = await preparePinnedEffectSourceHoldings({sources:
     sourceSet, store, control, preview, invocation: plan.invocation}).commit();
   const previewInputs = checked(moon.clientProgramBindEffectPreviewInputs(
-    checkedHost, inputs, plan.invocationOwner, 0, authored.wire,
+    checkedHost, inputs, plan.invocationOwner,
+    moon.clientProgramEffectInputStage(
+      moon.clientProgramEffectInputAt(inputs, 0)), authored.wire,
     authored.authoringCid,
     moon.clientProgramEffectPreviewInputLimits(
       20000, 1000, 20, 1000, 100, 20000, 1000, 20,
@@ -458,8 +515,15 @@ function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
     dispose: () => ledger.close()};
 }
 const owner = userInfo().username;
-const reviewerKeys = generateKeyPairSync('ed25519');
-const hostKeys = generateKeyPairSync('ed25519');
+const crashFixtureKeys = process.env.ACTQL_TEST_HOST_CRASH_KEYS === undefined
+  ? undefined : JSON.parse(await readFile(process.env.ACTQL_TEST_HOST_CRASH_KEYS, 'utf8'));
+const fixtureKeyPair = name => {
+  if (crashFixtureKeys === undefined) return generateKeyPairSync('ed25519');
+  const privateKey = createPrivateKey(crashFixtureKeys[name]);
+  return {privateKey, publicKey: createPublicKey(privateKey)};
+};
+const reviewerKeys = fixtureKeyPair('reviewer');
+const hostKeys = fixtureKeyPair('host');
 const pem = key => key.export({type: key.type === 'private' ? 'pkcs8'
   : 'spki', format: 'pem'});
 
@@ -531,9 +595,10 @@ async function remoteHost(t, authorization, {directory,
     }
   });
   const endpoint = `https://127.0.0.1:${server.address().port}/`;
-  const as = token => connect({mode: 'remote', endpoint, token,
+  const options = token => ({mode: 'remote', endpoint, token,
     durability: 'durable'});
-  return {as, dispatches: () => dispatches, close};
+  const as = token => connect(options(token));
+  return {as, options, dispatches: () => dispatches, close};
 }
 
 const reviewers = [{keyId: 'reviewer-key', reviewerId: 'reviewer',
@@ -1102,6 +1167,343 @@ test('installed Effect allow publishes without a commit Checkpoint',
     assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
     await restarted.close();
   });
+
+for (const readDecision of ['deny', 'delegate']) {
+  test(`acquired Effect read ${readDecision} ends without Preview or write`,
+    async t => {
+      const directory = await mkdtemp(join(scratch, 'acquired-effect-refusal-'));
+      t.after(() => rm(directory, {recursive: true, force: true}));
+      const sourceProfilePath = await installedReadFixture(directory,
+        readDecision);
+      const fixture = await effectFixture();
+      const program = JSON.parse(readDocument);
+      delete program.params;
+      program.stages = program.stages.slice(0, 2);
+      program.stages[0].steps[0].filter = 'id > 1';
+      program.stages[1].effects = JSON.parse(fixture.document).stages[0].effects;
+      program.stages[1].effects.save.update.from.result = 'r';
+      program.results = {answer: {from: {stage: 'compute_a', result: 'r'}}};
+      let providerPreparations = 0;
+      const effectInstallation = createInstalledEffectSite({
+        environmentWire: fixture.environmentWire,
+        prepareCaptured() {
+          providerPreparations++;
+          assert.fail('Read refusal must precede Effect preparation');
+        },
+        prepareRecovered() { assert.fail('No resumable captured Effect'); },
+      });
+      const diagnostics = [];
+      const configuration = JSON.parse(effectCommitConfiguration());
+      configuration.entries[1].connection = {all: true};
+      configuration.entries[1].resource = {all: true};
+      const authorization = () => protectedHost(undefined, {
+        accountConfiguration: canonicalJson(configuration),
+        observe: (name, detail) => diagnostics.push({name, detail}),
+      });
+      const options = {directory, sourceProfilePath, effectInstallation};
+      const first = await remoteHost(t, authorization(), options);
+      const client = await first.as('owner-token');
+      const submitted = await client.aql(canonicalJson(program), {
+        format: 'json', requestId: `acquired-effect-${readDecision}`});
+      await waitFor(async () => (await submitted.status()).status === 'failed');
+      assert.equal(providerPreparations, 0);
+      assert.deepEqual((await (await first.as('reviewer-token'))
+        .checkpoints()).items, []);
+      assert.ok(diagnostics.some(({name, detail}) =>
+        name === 'effect_start_failed' && detail.code ===
+          (readDecision === 'deny' ? 'ExecutionAuthorizationDenied'
+            : 'ExecutionAuthorizationDeferralUnsupported')),
+      JSON.stringify(diagnostics));
+      await first.close();
+      const restarted = await remoteHost(t, authorization(), options);
+      const retained = await (await restarted.as('owner-token'))
+        .attach(submitted.ref);
+      assert.equal((await retained.status()).status, 'failed');
+      assert.equal(providerPreparations, 0);
+      await restarted.close();
+    });
+}
+
+for (const outcome of ['success', 'ordered', 'unknown', 'cancel', 'reject']) {
+const lostReply = outcome === 'unknown';
+test(outcome === 'cancel' || outcome === 'reject'
+  ? `acquired Effect ${outcome} retires upstream payloads after restart`
+  : lostReply ? 'acquired Effect preserves unknown across Host restart'
+    : outcome === 'ordered' ? 'acquired Effect publishes a transformed Result after restart'
+    : 'acquired Effect waits durably and resumes through the public Host',
+  async t => {
+    const crashRecovery = process.env.ACTQL_TEST_HOST_CRASH_PHASE === 'recover';
+    const directory = process.env.ACTQL_TEST_HOST_CRASH_ROOT ??
+      await mkdtemp(join(scratch, 'acquired-effect-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const sourceProfilePath = crashRecovery ? join(directory, 'source-profile.json')
+      : await installedReadFixture(directory);
+    const fixture = await effectFixture({twoMembers: true});
+    const program = JSON.parse(readDocument);
+    delete program.params;
+    program.stages = program.stages.slice(0, 2);
+    program.stages[0].steps[0].filter = 'id > 0';
+    program.stages[1].steps[0].filter = 'id < 3';
+    program.stages[1].results = {rows: {from: 'out', fields: ['id']}};
+    program.stages[1].effects = JSON.parse(fixture.document).stages[0].effects;
+    program.results = {answer: {from: {stage: 'compute_a', result: 'rows'}}};
+    if (outcome === 'ordered') {
+      program.stages[1].results.ordered = {
+        from: 'out', fields: ['id'], order_by: [{id: 'desc'}],
+      };
+      program.results.answer.from.result = 'ordered';
+    }
+    const expectedRows = outcome === 'ordered'
+      ? [{id: 2}, {id: 1}] : [{id: 1}, {id: 2}];
+    const sends = [];
+    const diagnostics = [];
+    let captures = 0;
+    let recoveries = 0;
+    const hooks = {directory, mappingCids: fixture.mappingCids, sends,
+      // This case retains the acquired Result and two local Results. Keep
+      // the common owner limit explicit rather than bypassing admission.
+      maxInputPins: outcome === 'ordered' ? 3 : 2,
+      // The final response is lost after three durable successes. This is
+      // interrupted-Host recovery, not an adapter's handled row-failure case.
+      loseReply: (member, row) => lostReply && member === 1 && row === 1};
+    const installed = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 24),
+      async prepareCaptured(facts) {
+        captures++;
+        try { return await prepareReferenceCapture(facts, hooks); }
+        catch (error) {
+          diagnostics.push({name: 'capture_failure', stack: error.stack,
+            cause: error.cause});
+          throw error;
+        }
+      },
+      prepareRecovered(facts) {
+        recoveries++;
+        return prepareReferenceRecovery(facts, hooks);
+      },
+    });
+    const checkedUnitFacts = facts => ({...facts,
+      effectAuthorization(options) {
+        assert.equal(options.unitId, 'compute_a');
+        return facts.effectAuthorization(options);
+      }});
+    const effectInstallation = {...installed,
+      execute: facts => installed.execute(checkedUnitFacts(facts)),
+      resume: facts => installed.resume(checkedUnitFacts(facts))};
+    const options = {directory, sourceProfilePath, effectInstallation};
+    const account = () => {
+      const configuration = JSON.parse(effectCommitConfiguration());
+      configuration.entries[1].connection = {all: true};
+      configuration.entries[1].resource = {all: true};
+      return protectedHost(undefined, {
+        accountConfiguration: canonicalJson(configuration),
+        observe: (name, detail) => diagnostics.push({name, detail}),
+      });
+    };
+    const first = await remoteHost(t, account(), options);
+    if (crashRecovery) {
+      const client = await first.as('owner-token');
+      const found = await client.lookupRequest('acquired-effect');
+      assert.equal(found.kind, 'found');
+      const execution = await client.attach(found.ref);
+      const state = await execution.status();
+      assert.equal(state.status, 'needs_reconciliation');
+      assert.deepEqual(state.next_action,
+        {kind: 'reconcile_run', reason: 'execution_unknown'});
+      assert.deepEqual((await (await first.as('reviewer-token')).checkpoints()).items, []);
+      const publication = join(directory, 'state', 'publication');
+      await waitFor(async () => (await readdir(join(publication,
+        'effect-capture-custody'))).length === 0);
+      assert.deepEqual(await readdir(join(publication, 'physical-holdings')), []);
+      assert.deepEqual(await readdir(join(publication, 'objects')), []);
+      const duplicate = await client.aql(canonicalJson(program),
+        {format: 'json', requestId: 'acquired-effect'});
+      assert.deepEqual(duplicate.ref, found.ref);
+      assert.equal((await duplicate.status()).status, 'needs_reconciliation');
+      assert.equal(captures, 0);
+      assert.equal(recoveries, 0);
+      assert.deepEqual(sends, []);
+      await first.close();
+      const reopened = await remoteHost(t, account(), options);
+      const repeated = await reopened.as('owner-token');
+      assert.equal((await repeated.lookupRequest('acquired-effect')).kind, 'found');
+      assert.equal((await (await repeated.attach(found.ref)).status()).status,
+        'needs_reconciliation');
+      await reopened.close();
+      return;
+    }
+    const execution = await (await first.as('owner-token')).aql(
+      canonicalJson(program), {format: 'json', requestId: 'acquired-effect'});
+    await waitFor(async () => (await execution.status()).status ===
+      'waiting_checkpoint').catch(async error => {
+      error.message = JSON.stringify({state: await execution.status(), diagnostics});
+      throw error;
+    });
+    assert.equal(captures, 1);
+    assert.deepEqual(sends, []);
+    const [checkpoint] = (await (await first.as('reviewer-token'))
+      .checkpoints()).items;
+    await first.close();
+    const resumed = await remoteHost(t, account(), options);
+    const reviewer = await resumed.as('reviewer-token');
+    const [pending] = (await reviewer.checkpoints()).items;
+    assert.equal(pending.checkpointCid, checkpoint.checkpointCid);
+    if (outcome === 'cancel' || outcome === 'reject') {
+      const attached = await (await resumed.as('owner-token')).attach(execution.ref);
+      const publication = join(directory, 'state', 'publication');
+      assert.ok((await readdir(join(publication, 'physical-holdings'))).length > 0);
+      if (outcome === 'cancel') await attached.cancel();
+      else await reviewer.resolveCheckpoints([{checkpoint: pending,
+        decision: 'rejected'}], {signer: {...signer,
+        authorityScopeCid: execution.ref.authorityScopeCid}});
+      // Existing waiting-exit semantics: rejecting a never-dispatched
+      // continuation cancels it; it is not an attempted Effect failure.
+      const terminal = 'cancelled';
+      await waitFor(async () => (await attached.status()).status === terminal);
+      await resumed.close();
+      const finalHost = await remoteHost(t, account(), options);
+      const finalExecution = await (await finalHost.as('owner-token'))
+        .attach(execution.ref);
+      assert.equal((await finalExecution.status()).status, terminal);
+      await finalHost.close();
+      assert.deepEqual(await readdir(join(publication, 'physical-holdings')), []);
+      assert.deepEqual(await readdir(join(publication, 'objects')), []);
+      assert.equal(captures, 1);
+      assert.equal(recoveries, 0);
+      assert.deepEqual(sends, []);
+      return;
+    }
+    await reviewer.resolveCheckpoints([{checkpoint: pending,
+      decision: 'approved'}], {signer: {...signer,
+      authorityScopeCid: execution.ref.authorityScopeCid}});
+    const attached = await (await resumed.as('owner-token')).attach(execution.ref);
+    const expectedStatus = lostReply ? 'needs_reconciliation' : 'succeeded';
+    await waitFor(async () => (await attached.status()).status ===
+      expectedStatus).catch(async error => {
+      error.message = JSON.stringify({state: await attached.status(), diagnostics});
+      throw error;
+    });
+    assert.equal(captures, 1);
+    assert.equal(recoveries, 1);
+    assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
+    if (!lostReply) {
+      assert.deepEqual(await attached.result('answer').all(), expectedRows);
+    } else {
+      assert.equal((await attached.status()).result_available, false);
+    }
+    await resumed.close();
+    const finalHost = await remoteHost(t, account(), options);
+    const finalExecution = await (await finalHost.as('owner-token'))
+      .attach(execution.ref);
+    assert.equal((await finalExecution.status()).status, expectedStatus);
+    if (!lostReply) {
+      assert.deepEqual(await finalExecution.result('answer').all(),
+        expectedRows);
+    } else {
+      assert.equal((await finalExecution.status()).result_available, false);
+    }
+    assert.equal(captures, 1);
+    assert.equal(recoveries, 1);
+    assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
+    await finalHost.close();
+  });
+}
+
+for (const damage of ['missing', 'corrupt']) {
+test(`a ${damage} acquired input rejects only its Run after Host restart`,
+  async t => {
+    const directory = await mkdtemp(join(scratch, 'damaged-acquired-effect-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const sourceProfilePath = await installedReadFixture(directory);
+    const fixture = await effectFixture({twoMembers: true});
+    const program = JSON.parse(readDocument);
+    delete program.params;
+    program.stages = program.stages.slice(0, 2);
+    program.stages[0].steps[0].filter = 'id > 0';
+    program.stages[1].steps[0].filter = 'id < 3';
+    program.stages[1].results = {rows: {from: 'out', fields: ['id']}};
+    program.stages[1].effects = JSON.parse(fixture.document).stages[0].effects;
+    program.results = {answer: {from: {stage: 'compute_a', result: 'rows'}}};
+    const sends = [];
+    let captures = 0;
+    let recoveries = 0;
+    let reportRecoveryFailure;
+    const recoveryFailure = new Promise(resolve => { reportRecoveryFailure = resolve; });
+    const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const installed = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 24),
+      prepareCaptured(facts) {
+        captures++;
+        return prepareReferenceCapture(facts, hooks);
+      },
+      prepareRecovered(facts) {
+        recoveries++;
+        return prepareReferenceRecovery(facts, hooks);
+      },
+    });
+    const effectInstallation = {...installed, async resume(facts) {
+      try { return await installed.resume(facts); }
+      catch (error) { reportRecoveryFailure(error); throw error; }
+    }};
+    const options = {directory, sourceProfilePath, effectInstallation};
+    const account = () => {
+      const configuration = JSON.parse(effectCommitConfiguration());
+      configuration.entries[1].connection = {all: true};
+      configuration.entries[1].resource = {all: true};
+      return protectedHost(undefined, {accountConfiguration: canonicalJson(configuration)});
+    };
+    const first = await remoteHost(t, account(), options);
+    const client = await first.as('owner-token');
+    const healthy = await client.aql(document, {format: 'json', requestId: 'healthy'});
+    assert.equal((await healthy.wait()).status, 'succeeded');
+    const expectedRows = await healthy.result('answer').all();
+    const damaged = await client.aql(canonicalJson(program),
+      {format: 'json', requestId: 'damaged'});
+    await waitFor(async () => (await damaged.status()).status === 'waiting_checkpoint');
+    await first.close();
+    const publication = join(directory, 'state', 'publication');
+    const holdingPath = join(publication, 'physical-holdings');
+    const holdings = await Promise.all((await readdir(holdingPath))
+      .map(async name => JSON.parse(await readFile(join(holdingPath, name)))));
+    const memberObjects = new Set(holdings.filter(x => x.namespace === 'effect-source')
+      .flatMap(x => x.objects.map(object => object.cid)));
+    const upstream = holdings.find(x => x.namespace === 'effect-capture')
+      .objects.find(object => !memberObjects.has(object.cid));
+    assert.ok(upstream, 'damage an upstream-only dependency, not the member output');
+    const objectPath = join(publication, 'objects', upstream.cid.slice(7));
+    if (damage === 'missing') await rm(objectPath);
+    else {
+      const bytes = await readFile(objectPath);
+      bytes[0] ^= 1;
+      await writeFile(objectPath, bytes);
+    }
+    const resumed = await remoteHost(t, account(), options);
+    const attached = await (await resumed.as('owner-token')).attach(healthy.ref);
+    assert.equal((await attached.status()).status, 'succeeded');
+    assert.deepEqual(await attached.result('answer').all(), expectedRows);
+    const reviewer = await resumed.as('reviewer-token');
+    const [checkpoint] = (await reviewer.checkpoints()).items;
+    await reviewer.resolveCheckpoints([{checkpoint, decision: 'approved'}],
+      {signer: {...signer, authorityScopeCid: damaged.ref.authorityScopeCid}});
+    const error = await recoveryFailure;
+    assert.equal(error.code, damage === 'missing'
+      ? 'PublicationObjectMissing' : 'PublicationObjectCorrupt');
+    const damagedRun = await (await resumed.as('owner-token')).attach(damaged.ref);
+    await waitFor(async () => (await damagedRun.status()).status === 'failed');
+    assert.equal(captures, 1);
+    assert.equal(recoveries, 0, 'reject damaged custody before provider recovery');
+    assert.deepEqual(sends, []);
+    assert.deepEqual(await attached.result('answer').all(), expectedRows);
+    await resumed.close();
+    const remaining = await Promise.all((await readdir(holdingPath))
+      .map(async name => JSON.parse(await readFile(join(holdingPath, name)))));
+    assert.equal(remaining.some(holding =>
+      ['effect-source', 'effect-capture'].includes(holding.namespace)), false,
+    'the failed unsent capture is retired without consuming damaged bytes');
+  });
+}
 
 test('one installed Host reads and applies independent Effects', async t => {
   const directory = await mkdtemp(join(scratch, 'source-effect-'));
@@ -2292,13 +2694,15 @@ test('a held request resubmit is matched to its intent, whatever the evidence',
 async function cancelledBeforeStart(t, stallAt) {
   const directory = await mkdtemp(join(scratch, 'cancel-'));
   const steps = [];
+  const failures = [];
   let stall = true;
   let released;
   const stalled = new Promise(resolve => { released = resolve; });
   const host = await remoteHost(t, protectedHost('delegate', {
     leaseMs: 1000,
-    async faultInjection(name) {
+    async faultInjection(name, detail) {
       steps.push(name);
+      if (name.endsWith('_failed')) failures.push({name, detail});
       if (name === stallAt && stall) {
         stall = false;
         await stalled;
@@ -2323,14 +2727,19 @@ async function cancelledBeforeStart(t, stallAt) {
   });
   assert.equal(state.status, 'cancelled');
   // Claims stop: nothing is retried after the request settled.
+  let lastPreparation;
   await waitFor(async () => {
     const database = new DatabaseSync(join(directory, 'state',
       'checkpoints', 'journal', 'checkpoint-journal.sqlite3'),
     {readOnly: true});
     try {
-      return database.prepare('SELECT status FROM preparations').get()
-        .status === 'ended';
+      lastPreparation = {...database.prepare(
+        'SELECT status, end_reason FROM preparations').get()};
+      return lastPreparation.status === 'ended';
     } finally { database.close(); }
+  }).catch(cause => {
+    throw new Error(`Cancelled preparation did not settle: ${JSON.stringify({
+      preparation: lastPreparation, steps, failures})}`, {cause});
   });
   const claims = steps.filter(name => name === 'resume_claimed').length;
   await new Promise(resolve => setTimeout(resolve, 2500));

@@ -24,6 +24,8 @@ pub struct ClientValuesExecutablePlan {
   cid : String
   fact_manifest_wire : String
   fact_manifest_cid : String
+  transformations : Array[ClientResultTransformation]
+  graph_logical_cid : String?
 }
 
 ///|
@@ -149,6 +151,7 @@ pub fn issue_prepared_client_values_executable_plan(
   issue_prepared_client_executable_plan_with_parts(
     value,
     graph.wire,
+    graph.transformations,
     material.wire,
     max_facts,
     max_witnesses,
@@ -196,6 +199,7 @@ pub fn issue_prepared_client_task_executable_plan(
   issue_prepared_client_executable_plan_with_parts(
     value,
     graph.wire,
+    graph.transformations,
     material.wire,
     max_facts,
     max_witnesses,
@@ -209,6 +213,7 @@ pub fn issue_prepared_client_task_executable_plan(
 fn issue_prepared_client_executable_plan_with_parts(
   value : PreparedClientProgram,
   graph_wire : String,
+  transformations : Array[ClientResultTransformation],
   material_wire : String,
   max_facts : Int,
   max_witnesses : Int,
@@ -334,6 +339,16 @@ fn issue_prepared_client_executable_plan_with_parts(
       cid,
       fact_manifest_wire: manifest.wire,
       fact_manifest_cid: manifest.cid,
+      transformations: transformations.copy(),
+      graph_logical_cid: if transformations.is_empty() {
+        None
+      } else {
+        Some(
+          @canonical.cid_value(
+            graph_value, max_wire_bytes, max_nodes, max_depth,
+          ),
+        )
+      },
     })
   } catch {
     _ => Err(Encoding)

@@ -38,6 +38,16 @@ pub fn broad_host_metadata(BroadHostRun, Int, Array[(String, @adapter.PhysicalTy
 
 pub fn broad_host_scan(BroadHostRun) -> @adapter.BroadScan
 
+pub fn broad_host_source_capture_identity_matches(BroadHostSourceCapture, @execution_query.CapturedSourceRelationIdentity) -> Bool
+
+pub fn broad_host_source_capture_observation_cid(BroadHostSourceCapture) -> String?
+
+pub fn broad_host_source_capture_source(BroadHostSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
+
+pub fn broad_host_source_capture_source_ref(BroadHostSourceCapture) -> String?
+
+pub fn capture_broad_host_source(BroadHostRun, @acquisition.DuckDBBroadObservation) -> Result[BroadHostSourceCapture, @execution_query.CapturedSourceIssue]
+
 pub fn capture_native_host_source(NativeHostRun, @acquisition.DuckDBNativeObservation, Bool, Int, @execution_relation.ValueLimits, Int, Int) -> Result[NativeHostSourceCapture, @execution_query.CapturedSourceIssue]
 
 pub fn close_broad_host(BroadHostRun) -> Unit
@@ -64,6 +74,8 @@ pub fn finish_broad_host_receipt(BroadHostRun) -> Result[Unit, BroadHostIssue]
 
 pub fn finish_native_host_receipt(NativeHostRun) -> Result[Unit, NativeHostIssue]
 
+pub fn issue_broad_host_source_evidence(BroadHostSourceCapture, NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, NativeSourceEvidenceIssue]
+
 pub fn issue_native_host_source_evidence(NativeHostSourceCapture, NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, NativeSourceEvidenceIssue]
 
 pub fn native_host_attempt(NativeHostRun) -> @acquisition.DuckDBNativeAttempt
@@ -85,6 +97,8 @@ pub fn native_host_source_capture_source(NativeHostSourceCapture) -> Result[@exe
 pub fn native_host_source_capture_source_ref(NativeHostSourceCapture) -> String?
 
 pub fn prepare_native_source_evidence_context(@query_planning.QueryRequirement) -> Result[NativeSourceEvidenceContext, NativeSourceEvidenceIssue]
+
+pub fn source_evidence_context_supports(NativeSourceEvidenceContext, String) -> Bool
 
 pub fn start_configured_broad_host(BroadHostConfiguration, String, (@acquisition.DuckDBBroadAttempt) -> Bool) -> Result[BroadHostRun, BroadHostIssue]
 
@@ -114,6 +128,8 @@ pub(all) struct BroadHostLimits {
 }
 
 type BroadHostRun
+
+type BroadHostSourceCapture
 
 pub struct NativeCapacity {
   retained_bytes : Int64

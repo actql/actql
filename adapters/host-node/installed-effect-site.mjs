@@ -13,6 +13,8 @@ import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {isEffectApplyPreflightRejection} from './effect-run-apply.mjs';
+import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
+import {isEffectCaptureRecoveryRefusal} from './effect-run-recovery.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -30,12 +32,26 @@ function ownedStage(stage, code) {
   return stage;
 }
 
+function effectUnitId(facts) {
+  const unit = facts.compilation === undefined
+    ? facts.continuation?.unit_id
+    : facts.moon.clientProgramEffectCompilationUnitId(facts.compilation);
+  if (typeof unit !== 'string' || !unit ||
+      facts.compilation === undefined &&
+        (facts.view?.subject?.kind !== 'run_unit' ||
+          facts.view.subject.unit_id !== unit)) {
+    fail('InstalledEffectContinuationMismatch');
+  }
+  return unit;
+}
+
 function continuation(facts, stage) {
   let provider;
   try { provider = JSON.parse(stage.continuationWire); }
   catch { fail('InvalidInstalledEffectContinuation'); }
   return canonicalJson({version: 'actql-installed-effect-continuation/0.1',
     run_definition_cid: facts.ref.runDefinitionCid,
+    unit_id: effectUnitId(facts),
     preview_cid: facts.control.effectComputationPreviewSemanticCid(
       stage.preview),
     provider});
@@ -49,6 +65,7 @@ function checkContinuation(facts, stage) {
 }
 
 function checkContinuationBinding(facts, recovered) {
+  effectUnitId(facts);
   const saved = facts.continuation;
   if (saved?.version !== 'actql-installed-effect-continuation/0.1' ||
       saved.run_definition_cid !== facts.ref.runDefinitionCid ||
@@ -70,7 +87,7 @@ function authorization(facts, stage, beforeDefer) {
     runId: facts.control.runDefinitionRunId(facts.retained?.runDefinition ??
       facts.runDefinition),
     runDefinitionCid: facts.ref.runDefinitionCid,
-    unitId: 'values',
+    unitId: effectUnitId(facts),
     declaredResults,
     reviewWire: facts.control.effectComputationPreviewWire(stage.preview),
     continuationWire: continuation(facts, stage),
@@ -99,7 +116,7 @@ function noEffectRowWasSent(options) {
 function terminalPreSendRefusal(error, options) {
   return error instanceof ExecutionAuthorizationError &&
       error.authorization?.action === 'deny' ||
-    isEffectApplyPreflightRejection(error) &&
+    (isEffectApplyPreflightRejection(error) || isEffectPreparationRefusal(error)) &&
       noEffectRowWasSent(options);
 }
 
@@ -114,7 +131,7 @@ function finishStatus(result) {
     ? 'failed_effect_set' : result.status, result});
 }
 
-function cleanupCustody(physical) {
+function cleanupCustody(physical, requirePhysical = false) {
   let stage;
   let disposed = false;
   let release;
@@ -141,6 +158,9 @@ function cleanupCustody(physical) {
     },
     async close() { await physical?.close(); },
     async cleanup() {
+      // Opening may have begun physical work before returning an owner.
+      // Missing custody is not evidence that the operation stopped.
+      if (requirePhysical && physical === undefined) return false;
       const cleaned = await physical?.cleanup() ?? true;
       if (cleaned === false || physical?.cleanupPending() === true) {
         return false;
@@ -156,7 +176,8 @@ function cleanupCustody(physical) {
       return true;
     },
     cleanupPending() {
-      return physical?.cleanupPending() === true ||
+      return requirePhysical && physical === undefined ||
+        physical?.cleanupPending() === true ||
         release !== undefined && !released ||
         !disposed && stage?.dispose !== undefined;
     },
@@ -204,18 +225,50 @@ export function createInstalledEffectSite({environmentWire,
       if (typeof facts.openComputation !== 'function') {
         fail('InvalidInstalledEffectComputationPort');
       }
+      const custody = cleanupCustody(undefined, true);
+      retainExecution(custody);
       facts.beginPhysicalWork?.();
-      const opened = await facts.openComputation();
+      let opened;
+      try {
+        opened = await facts.openComputation(Object.freeze({
+          retainComputationOwner: owner => custody.attachPhysical(owner),
+        }));
+      } catch (failure) {
+        // No Effect provider callback has run. The same failure remains the
+        // primary cause; the dispatch owner publishes this terminal outcome
+        // only after the physical owner confirms stop and cleanup.
+        facts.observePreEffectFailure?.();
+        throw failure;
+      }
       const {execution, checkedHost} = opened ?? {};
       if (execution === undefined || checkedHost === undefined) {
         fail('InvalidInstalledEffectComputationPort');
       }
       // A failed Preview or Store operation still belongs to the dispatch
       // cleanup owner. Retain before any provider callback can fail.
-      const custody = cleanupCustody(execution);
-      retainExecution(custody);
-      const stage = await prepareCaptured(Object.freeze({...facts,
-        execution, checkedHost}));
+      custody.attachPhysical(opened.cleanupOwner ?? execution);
+      // Acquired Runs can issue their Observation Set only after acquisition.
+      // The installed Host supplies this plan from the same checked owner.
+      if (opened.publicationPlan !== undefined) {
+        facts = Object.freeze({...facts,
+          publicationPlan: opened.publicationPlan});
+      }
+      let stage;
+      try {
+        stage = await prepareCaptured(Object.freeze({...facts,
+          execution, checkedHost}));
+      } catch (error) {
+        // Preparation has no Effect dispatch permit. A checked refusal is
+        // definitive here, but observation/transport failures are not. The
+        // dispatch owner still waits for physical stop and cleanup before
+        // recording the outcome; this does not release that responsibility.
+        if (isEffectPreparationRefusal(error) ||
+            error instanceof ExecutionAuthorizationError &&
+              error.authorization?.action === 'deny') {
+          facts.observePreEffectFailure?.();
+        }
+        throw error;
+      }
       custody.attach(stage);
       ownedStage(stage, 'InvalidInstalledEffectCapture');
       if (stage.publication.execution !== execution ||
@@ -284,7 +337,15 @@ export function createInstalledEffectSite({environmentWire,
       // claim has not begun a new physical continuation and may be retried.
       const custody = cleanupCustody(undefined);
       facts.retainExecution(custody);
-      const recovered = await facts.recoverCapture({signal});
+      let recovered;
+      try { recovered = await facts.recoverCapture({signal}); }
+      catch (error) {
+        if (isEffectCaptureRecoveryRefusal(error)) {
+          checkpointJournal.refuseUnsentEffectResume(view.checkpointCid,
+            ref.runDefinitionCid);
+        }
+        throw error;
+      }
       let releaseMode = 'retain';
       custody.requireRelease(() => releaseMode === 'retire'
         ? releaseCompletedRunPreparedPayloads(
@@ -309,9 +370,21 @@ export function createInstalledEffectSite({environmentWire,
         return Object.freeze({status: 'failed'});
       }
       if (claimed.action !== 'claimed') return claimed;
-      const stage = await prepareRecovered(Object.freeze({...facts,
-        recovered,
-        retainRecoveryOwner: owner => custody.attachPhysical(owner)}));
+      let stage;
+      try {
+        stage = await prepareRecovered(Object.freeze({...facts,
+          recovered,
+          retainRecoveryOwner: owner => custody.attachPhysical(owner)}));
+      } catch (error) {
+        if (isEffectPreparationRefusal(error) ||
+            error instanceof ExecutionAuthorizationError &&
+              error.authorization?.action === 'deny') {
+          const refused = checkpointJournal.refuseUnsentEffectResume(
+            view.checkpointCid, ref.runDefinitionCid);
+          if (refused.outcome === 'failed') releaseMode = 'retire';
+        }
+        throw error;
+      }
       if (stage?.cleanupOwner !== undefined) {
         custody.attachPhysical(stage.cleanupOwner);
       }

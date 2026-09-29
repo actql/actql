@@ -45,6 +45,8 @@ function effectApplicationControl(moon) {
     setFrontier: (...args) => checked(moon.strategyEffectSetFrontier(...args)),
     setFrontierFromLedger: (...args) => checked(
       moon.strategyEffectSetFrontierFromLedger(...args)),
+    recoveredTargetGuards: (...args) => checked(
+      moon.clientProgramRecoverEffectTargetGuards(...args)),
     setFrontierOutcome: moon.strategyEffectSetFrontierOutcome,
     setFrontierReadyCount: moon.strategyEffectSetFrontierReadyCount,
     setFrontierReadyMember: moon.strategyEffectSetFrontierReadyMember,
@@ -1679,6 +1681,27 @@ function publicationControl(moon) {
   const localEffectArtifactTokens = new WeakMap();
   const localEffectIdentityTokens = new WeakMap();
   const localEffectManifestTokens = new WeakMap();
+  const localEffectDependencyTokens = new WeakMap();
+  const localEffectImportTokens = new WeakMap();
+  const inspectLocalEffectArtifact = issued => {
+    const value = Object.freeze({
+      identity: moon.clientProgramLocalEffectResultArtifactCid(issued),
+      wire: moon.clientProgramLocalEffectResultArtifactJson(issued),
+      derivationWire: moon.clientProgramLocalEffectResultDerivationJson(issued),
+      orderingWire: moon.clientProgramLocalEffectResultOrderingJson(issued),
+    });
+    localEffectArtifactTokens.set(value, issued);
+    return value;
+  };
+  const localEffectContext = context => {
+    if (context === null || typeof context !== 'object' ||
+        !['admission', 'runDefinition', 'runInvocation', 'observation']
+          .every(key => context[key] !== undefined)) {
+      throw new TypeError('Invalid local Effect Result context');
+    }
+    return [admissionToken(context.admission), token(context.runDefinition),
+      token(context.runInvocation), evidenceToken(context.observation)];
+  };
   const sourceAdvanceTokens = new WeakMap();
   const computationPreviewTokens = new WeakMap();
   const computationPreviewWires = new WeakMap();
@@ -1891,6 +1914,15 @@ function publicationControl(moon) {
         throw new TypeError('Foreign Client compiled Run');
       }
     },
+    compiledRunResultTransformation(compiled, checkedProgram, result) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || !Number.isSafeInteger(result) || result < 0) {
+        throw new TypeError('Foreign Client compiled Result');
+      }
+      return compiledRunResult(
+        moon.clientProgramCompiledRunResultTransformation(
+          value, checkedProgram, result), 'RunHostResultSelectionRejected');
+    },
     defineCheckedClientCompiledRun(compiled, {namespaceId, runId,
       createdAt, validUntil, retainedDefinitionWire}) {
       const value = compiledRunTokens.get(compiled);
@@ -1931,7 +1963,7 @@ function publicationControl(moon) {
       source === undefined ? 'RunHostInvocationRejected'
         : 'RunHostTaskInvocationRejected');
       return Object.freeze({observation: inspectEvidence(issued._0),
-        invocation: inspect(issued._1)});
+        invocation: inspect(issued._1), owner: issued._1});
     },
     checkClientRunDefinitionBinding(checkedProgram, admission, definition) {
       if (typeof moon.clientProgramCheckRunBinding !== 'function' ||
@@ -1957,6 +1989,119 @@ function publicationControl(moon) {
         throw new TypeError('Publication evidence differs from checked Effect');
       }
       return inspectAdmission(admission);
+    },
+    issueCheckedClientEffectCapturedInvocation(checkedEffect, compilation,
+      admission, definition, capturedSource, source, limits) {
+      issuanceLimits(limits, 'Client Effect Invocation');
+      const issued = checked(moon.clientProgramIssueEffectCapturedInvocation(
+        checkedEffect, compilation, admissionToken(admission), definition,
+        capturedSource, source.sourceEvidenceWire, source.inputLogicalWire,
+        source.sourceRef, source.sourceContractCid,
+        source.authorityScopeCid, source.dataPolicyCid,
+        source.captureStartedAt, source.captureCompletedAt,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return Object.freeze({observation: inspectEvidence(issued._0),
+        invocation: inspect(issued._1), owner: issued._1});
+    },
+    issueCheckedAcquiredLocalEffectInvocation(checkedEffect, capturedSource,
+      identity, requirement, input, observation, authorityScopeCid,
+      dataPolicyCid, limits) {
+      issuanceLimits(limits, 'Acquired local Effect Invocation');
+      return checked(moon.clientProgramIssueAcquiredLocalEffectInvocation(
+        checkedEffect, capturedSource, identity, requirement, input,
+        evidenceToken(observation), authorityScopeCid, dataPolicyCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
+    issueCheckedAcquiredEffectEvidence(checkedEffect, capturedSource,
+      identity, requirement, input, observation, authorityScopeCid,
+      dataPolicyCid, retention, limits) {
+      issuanceLimits(limits, 'Acquired Effect evidence');
+      const issued = checked(moon.clientProgramIssueAcquiredEffectEvidence(
+        checkedEffect, capturedSource, identity, requirement, input,
+        evidenceToken(observation), authorityScopeCid, dataPolicyCid,
+        token(retention), limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth));
+      const value = Object.freeze({
+        invocation: moon.clientProgramAcquiredEffectInvocation(issued),
+        bodies: Object.freeze([
+          ...moon.clientProgramAcquiredEffectDependencyBodies(issued)
+            .map(pair => Object.freeze({kind: pair._0, wire: pair._1,
+              ...(pair._0 === 'request_values' ? {
+                cid: moon.clientProgramAcquiredEffectRequestCid(issued),
+              } : {})})),
+          Object.freeze({kind: 'result_retention_policy',
+            wire: inspect(token(retention)).wire}),
+        ]),
+        catalogBodies: Object.freeze(checked(
+          moon.clientProgramAcquiredEffectCatalogBodies(issued,
+            limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
+          .map(body => Object.freeze({kind: body._0, cid: body._1,
+            wire: body._2}))),
+      });
+      localEffectDependencyTokens.set(value, {kind: 'acquired', issued});
+      return value;
+    },
+    issueEffectResultImportObservation(owner, inputs, captured, manifest,
+      artifact, limits) {
+      issuanceLimits(limits, 'Effect Result import observation');
+      const ownedManifest = localEffectManifestTokens.get(manifest);
+      const ownedArtifact = localEffectArtifactTokens.get(artifact);
+      if (ownedManifest === undefined || ownedArtifact === undefined) {
+        throw new TypeError('Foreign Effect Result import evidence');
+      }
+      const issued = checked(moon.clientProgramIssueEffectResultImportObservation(
+        owner, inputs, captured, ownedManifest, ownedArtifact,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      const value = Object.freeze({
+        wire: moon.clientProgramEffectResultImportObservationJson(issued),
+      });
+      localEffectImportTokens.set(value, issued);
+      return value;
+    },
+    issueImportedEffectEvidence(owner, inputs, unit, observations, limits) {
+      issuanceLimits(limits, 'Imported Effect evidence');
+      if (!Array.isArray(observations)) {
+        throw new TypeError('Invalid Effect Result import observations');
+      }
+      const owned = observations.map(value => {
+        const issued = localEffectImportTokens.get(value);
+        if (issued === undefined) {
+          throw new TypeError('Foreign Effect Result import observation');
+        }
+        return issued;
+      });
+      const issued = checked(moon.clientProgramIssueImportedEffectEvidence(
+        owner, inputs, unit, owned, limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth));
+      const value = Object.freeze({
+        invocation: moon.clientProgramImportedEffectInvocation(issued),
+        bodies: Object.freeze([
+          ...observations.map(value => Object.freeze({
+            kind: 'result_import_observation', wire: value.wire})),
+          ...moon.clientProgramImportedEffectRelationBodies(issued).map(wire =>
+            Object.freeze({kind: 'acquisition_relation', wire})),
+        ]),
+      });
+      localEffectDependencyTokens.set(value, {kind: 'imported', issued});
+      return value;
+    },
+    issueDependentLocalEffectResultArtifact(owner, inputs, exported,
+      dependency, definition, receipt, retention, context, limits) {
+      issuanceLimits(limits, 'Dependent local Effect Result Artifact');
+      const owned = localEffectDependencyTokens.get(dependency);
+      if (owned === undefined) {
+        throw new TypeError('Foreign local Effect dependency evidence');
+      }
+      const exactContext = localEffectContext(context);
+      const result = owned.kind === 'acquired'
+        ? moon.clientProgramIssueAcquiredEffectLocalResultArtifact(
+          owner, inputs, exported, owned.issued, definition, receipt,
+          ...exactContext, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
+        : moon.clientProgramIssueImportedEffectLocalResultArtifact(
+          owner, inputs, exported, owned.issued, definition, receipt,
+          token(retention), ...exactContext,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth);
+      return inspectLocalEffectArtifact(checked(result));
     },
     bindCheckedClientEffectRun(checkedEffect, admission, runDefinition) {
       if (typeof moon.clientProgramBindEffectRun !== 'function') {
@@ -2082,15 +2227,7 @@ function publicationControl(moon) {
           token(context.runDefinition), token(context.runInvocation),
           evidenceToken(context.observation),
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-      const value = Object.freeze({
-        identity: moon.clientProgramLocalEffectResultArtifactCid(issued),
-        wire: moon.clientProgramLocalEffectResultArtifactJson(issued),
-        derivationWire:
-          moon.clientProgramLocalEffectResultDerivationJson(issued),
-        orderingWire: moon.clientProgramLocalEffectResultOrderingJson(issued),
-      });
-      localEffectArtifactTokens.set(value, issued);
-      return value;
+      return inspectLocalEffectArtifact(issued);
     },
     issueLocalEffectResultManifest(owner, invocation, artifacts, limits) {
       issuanceLimits(limits, 'local Effect Result Manifest');
@@ -2349,6 +2486,49 @@ function publicationControl(moon) {
         sources.map(value => token(value.artifact)),
       );
     },
+    localEffectResultPayloadBinding(artifact, runDefinition) {
+      const owned = localEffectArtifactTokens.get(artifact);
+      if (owned === undefined) {
+        throw new TypeError('Foreign local Effect Result artifact');
+      }
+      const binding = checked(moon.clientProgramLocalEffectResultPayloadBinding(
+        owned, token(runDefinition)));
+      return Object.freeze({artifactCid: artifact.identity,
+        physicalCid: binding._0, byteCount: binding._1});
+    },
+    // Physical custody metadata from the authenticated private capture, not
+    // semantic identity or permission. Callers first validate the Captured
+    // Run chain. Issuance obtains these bindings from exact export receipts.
+    capturedEffectDependencyPayloadBindings(capturedRun, bindings) {
+      const captured = inspect(token(capturedRun));
+      const inventory = JSON.parse(captured.wire).effect_context
+        ?.effect_dependency_inventory;
+      if (captured.name !== 'captured_run' || !Array.isArray(inventory) ||
+          !Array.isArray(bindings) || bindings.length > 4096) {
+        throw new TypeError('InvalidEffectDependencyPayloadBindings');
+      }
+      const required = new Set(inventory.filter(entry =>
+        entry.kind === 'result_artifact').map(entry => entry.cid));
+      const seen = new Set();
+      const owned = bindings.map(binding => {
+        if (binding === null || typeof binding !== 'object' ||
+            Object.keys(binding).sort().join(',') !==
+              'artifact_cid,byte_count,physical_cid' ||
+            !required.has(binding.artifact_cid) ||
+            seen.has(binding.artifact_cid) ||
+            typeof binding.physical_cid !== 'string' ||
+            !/^sha256:[0-9a-f]{64}$/u.test(binding.physical_cid) ||
+            !Number.isSafeInteger(binding.byte_count) || binding.byte_count < 0) {
+          throw new TypeError('InvalidEffectDependencyPayloadBindings');
+        }
+        seen.add(binding.artifact_cid);
+        return Object.freeze({...binding});
+      });
+      if (seen.size !== required.size) {
+        throw new TypeError('IncompleteEffectDependencyPayloadBindings');
+      }
+      return Object.freeze(owned);
+    },
     issueEffectfulCapturedRun(chain, evidence, preview, plans, limits) {
       issuanceLimits(limits, 'Effectful Captured Run');
       if (chain === null || typeof chain !== 'object' ||
@@ -2360,6 +2540,8 @@ function publicationControl(moon) {
           !Array.isArray(evidence.localEffectSources) ||
           !Array.isArray(evidence.pendingSourceStateAdvances) ||
           !Array.isArray(evidence.modelEvidence) ||
+          (evidence.dependencyInventoryWire !== undefined &&
+            typeof evidence.dependencyInventoryWire !== 'string') ||
           !Array.isArray(plans) ||
           plans.some(value => !value || typeof value.name !== 'string' ||
             typeof value.wire !== 'string')) {
@@ -2381,7 +2563,55 @@ function publicationControl(moon) {
         evidence.modelEvidence.map(evidenceToken), ownedPreview,
         plans.map(value => value.name), plans.map(value => value.wire),
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+        evidence.dependencyInventoryWire,
       )));
+    },
+    prepareLocalEffectDependencyInventory(artifacts, bodies, limits) {
+      issuanceLimits(limits, 'Effect dependency inventory');
+      if (!Array.isArray(artifacts) || artifacts.length > 4096 ||
+          !Array.isArray(bodies) || bodies.length > 4096) {
+        throw new TypeError('Invalid Effect dependency inventory');
+      }
+      const roots = new Map();
+      for (const artifact of artifacts) {
+        const owned = localEffectArtifactTokens.get(artifact);
+        if (owned === undefined) {
+          throw new TypeError('Foreign Effect dependency root');
+        }
+        roots.set(artifact.identity, owned);
+      }
+      let remaining = Math.min(limits.maxWireBytes, 16 * 1024 * 1024);
+      const entries = new Map();
+      const encoder = new TextEncoder();
+      for (const body of bodies) {
+        const {kind, wire, cid} = body ?? {};
+        if (typeof kind !== 'string' || typeof wire !== 'string' ||
+            (cid !== undefined && typeof cid !== 'string')) {
+          throw new TypeError('Invalid Effect dependency body');
+        }
+        // Check the aggregate input before parsing or retaining another
+        // admitted body. Encoding/envelope limits are checked again by MoonBit.
+        if (wire.length > remaining) {
+          throw new RangeError('EffectDependencyBodyByteLimit');
+        }
+        const bytes = encoder.encode(wire).byteLength;
+        if (bytes > remaining) {
+          throw new RangeError('EffectDependencyBodyByteLimit');
+        }
+        remaining -= bytes;
+        const admitted = checked(moon.clientProgramAdmitEffectDependencyBody(
+          kind, cid, wire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+        const identity = moon.clientProgramEffectDependencyBodyCid(admitted);
+        const key = `${kind}\0${identity}`;
+        const previous = entries.get(key);
+        if (previous !== undefined && previous.wire !== wire) {
+          throw new TypeError('Conflicting Effect dependency body');
+        }
+        if (previous === undefined) entries.set(key, {wire, admitted});
+      }
+      return checked(moon.clientProgramIssueEffectDependencyInventory(
+        [...entries.values()].map(value => value.admitted), [...roots.values()],
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
     issueEffectfulFinalRunReceipt(chain, preview, receipts, limits) {
       issuanceLimits(limits, 'final Effectful Run Receipt');
@@ -3220,6 +3450,24 @@ function publicationControl(moon) {
 }
 
 function outputExportControl(moon, publications) {
+  async function finishTransformation(preparation, signal) {
+    let finished = false;
+    try {
+      while (true) {
+        signal?.throwIfAborted();
+        if (checked(moon.strategyHostResultTransformationAdvance(
+          preparation, 256))) break;
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      signal?.throwIfAborted();
+      const exported = checked(
+        moon.strategyHostResultTransformationFinish(preparation));
+      finished = true;
+      return exported;
+    } finally {
+      if (!finished) moon.strategyHostResultTransformationCancel(preparation);
+    }
+  }
   const evidenceFields = [
     'computationContractCid',
     'inputRelationCids',
@@ -3271,16 +3519,18 @@ function outputExportControl(moon, publications) {
         limits.maxBatchBytes,
       ));
     },
-    beginResult(host, result, limits, convertedOutput) {
+    beginResult(host, result, limits, convertedOutput, selection, signal) {
       if (!Number.isSafeInteger(result) || result < 0 ||
           !validResultOutputLimits(limits)) {
         throw new TypeError('Invalid Result output export request');
       }
+      signal?.throwIfAborted();
       const converted = convertedOutput != null;
-      const begin = converted
+      const transforming = selection !== undefined;
+      const begin = transforming ? moon.strategyHostResultTransformationBegin : converted
         ? moon.strategyHostResultOutputExportBeginConverted
         : moon.strategyHostResultOutputExportBegin;
-      return checked(begin(
+      const value = checked(begin(
         host,
         result,
         limits.maxResultFields,
@@ -3305,8 +3555,10 @@ function outputExportControl(moon, publications) {
         limits.maxSchemaNodes,
         limits.maxSchemaDepth,
         limits.maxBatchBytes,
-        ...(converted ? [convertedOutput] : []),
+        ...(transforming ? [convertedOutput, selection] :
+          converted ? [convertedOutput] : []),
       ));
+      return transforming ? finishTransformation(value, signal) : value;
     },
     beginManagedResultImport(host, result, output, material, limits) {
       if (!Number.isSafeInteger(result) || result < 0 || output == null ||
@@ -3358,6 +3610,12 @@ function outputExportControl(moon, publications) {
     finishManagedResultImport: value => checked(
       moon.strategyHostManagedResultImportFinish(value),
     ),
+    async transformManagedResultImport(value, selection, signal) {
+      signal?.throwIfAborted();
+      const preparation = checked(
+        moon.strategyHostManagedResultTransformationBegin(value, selection));
+      return finishTransformation(preparation, signal);
+    },
     cancelManagedResultImport: moon.strategyHostManagedResultImportCancel,
     next: value => checked(moon.strategyHostOutputExportNext(value)),
     finish: value => checked(moon.strategyHostOutputExportFinish(value)),

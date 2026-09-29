@@ -3913,6 +3913,48 @@
         "self_cid"
       ],
       "additionalProperties": false
+    },
+    "result_import_observation": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-result-import-observation/0.1"
+        },
+        "consumer_unit_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "import_interface_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "producer_local_manifest_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "consumer_unit_definition_cid",
+        "input_name",
+        "import_interface_cid",
+        "producer_local_manifest_cid",
+        "result_artifact_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
     }
   },
   "reference_roles": {
@@ -4009,6 +4051,12 @@
     "result_import_interface": {
       "producer_unit_definition_cid": "local_dependencies",
       "value_contract_cid": "external:value-contract"
+    },
+    "result_import_observation": {
+      "consumer_unit_definition_cid": "local_dependencies",
+      "import_interface_cid": "result_import_interface",
+      "producer_local_manifest_cid": "local_manifest",
+      "result_artifact_cid": "local_result_artifact"
     }
   },
   "reference_graph": [
@@ -4419,6 +4467,30 @@
       "slot": "value_contract_cid",
       "target": "external:value-contract",
       "role": "semantic"
+    },
+    {
+      "source": "result_import_observation",
+      "slot": "consumer_unit_definition_cid",
+      "target": "local_dependencies",
+      "role": "semantic"
+    },
+    {
+      "source": "result_import_observation",
+      "slot": "import_interface_cid",
+      "target": "result_import_interface",
+      "role": "semantic"
+    },
+    {
+      "source": "result_import_observation",
+      "slot": "producer_local_manifest_cid",
+      "target": "local_manifest",
+      "role": "semantic"
+    },
+    {
+      "source": "result_import_observation",
+      "slot": "result_artifact_cid",
+      "target": "local_result_artifact",
+      "role": "semantic"
     }
   ],
   "laws": {
@@ -4508,6 +4580,7 @@
     "stamp_capability": "sha256:53a6aa36eb0bfd9fa6df153fff563893435d56a7d5aad7d7adbd7cf8a90dbd03",
     "risk_facts": "sha256:df89b3058a2410355a01ecf90cf90756424fc3d7028f64ee825a60cf966961ec",
     "result_import_interface": "sha256:81898e3b8eb76b16e59e0de4b38ed5d948e7752ae127b45ae432f39e0afd2431",
-    "local_result_definition": "sha256:a4e97bbb8865697510ec0d0eff6664081da9cc5b7c1546c2af107b8d743392f4"
+    "local_result_definition": "sha256:a4e97bbb8865697510ec0d0eff6664081da9cc5b7c1546c2af107b8d743392f4",
+    "result_import_observation": "sha256:3a622a55cb9af3939de08583caf298abd7d66b357bcde4a060140e39cccdde8d"
   }
 }

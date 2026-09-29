@@ -107,8 +107,24 @@ export async function openSalesforceEffectSiteFixture(t, {
   // field error.
   rejectWrites = [],
   // Exact replies by 1-based record write sequence: {status, body} with a
-  // JSON body (or `raw` text), sent instead of the org's answer.
+  // JSON body (or `raw` text), sent instead of the org's answer. With
+  // `statefulRecords`, `applied: true` applies the write before the reply.
   writeReplies = {},
+  // A stateful org: the stored records (`storedRecords`, or the three
+  // defaults) are the org's records. A query and a target read answer their
+  // current values, a target read of a missing record is 404, and an
+  // applied write changes them. Rejected writes change nothing.
+  statefulRecords = false,
+  // With `statefulRecords`: 1-based single-record write sequences whose
+  // update is applied and whose reply is then lost.
+  loseReplyAfterApply = [],
+  // With `statefulRecords`: per-row Collections outcomes, in request order,
+  // each {apply, result}. `apply` says whether the org saved the row;
+  // `result` is that row's reply entry, or undefined to leave it out of the
+  // reply. The saved rows stay saved whatever the reply says.
+  collectionOutcomes,
+  // Called after each query reply is sent, with the org's records.
+  onQuery,
 }) {
   const writable = ['Test_Record__c', ...extraWritable];
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
@@ -131,6 +147,9 @@ export async function openSalesforceEffectSiteFixture(t, {
     readFile(join(root, 'resource.key')),
   ]);
   const seen = [];
+  const orgRecords = () => state === undefined ? undefined
+    : [...state.values()].map(record => ({...record}))
+      .sort((a, b) => a.Id < b.Id ? -1 : 1);
   let optionalText = initialOptionalText;
   let loseReply = loseWriteReplyOnce;
   let rateLimitReply = rateLimitWriteOnce;
@@ -138,6 +157,18 @@ export async function openSalesforceEffectSiteFixture(t, {
   // Target names of single objects, over the org-wide name.
   const observedNames = new Map();
   let nameUpdateable = true;
+  let describeStatus = 200;
+  // The stateful org's records by Id.
+  const defaultRecords = () => storedOrder.map(index => ({
+    Id: `a0000000000000${index}`,
+    Name: `record-${index}`, External_Key__c: `key-${index}`,
+    ...(temporalFields ? temporalValues[index] : {}),
+    ...(numberFields ? numberValues[index] : {})}));
+  const state = statefulRecords ? new Map((storedRecords ?? defaultRecords())
+    .map(record => [record.Id, {...record}])) : undefined;
+  const singleWriteSequence = () => seen.filter(item =>
+    item.method === 'POST' || (item.method === 'PATCH' && item.path !==
+      '/services/data/v62.0/composite/sobjects')).length;
   let nameCreateable = true;
   const server = createServer({cert, key}, (request, response) => {
     const observed = {method: request.method, path: request.url,
@@ -167,7 +198,10 @@ export async function openSalesforceEffectSiteFixture(t, {
         response.end('[{"errorCode":"MALFORMED_QUERY"}]');
         return;
       }
-      const stored = storedRecords ?? (match[2] === undefined ? storedOrder
+      const stored = state !== undefined ? (match[2] === undefined
+        ? [...state.values()]
+        : [...state.values()].sort((a, b) => a.Id < b.Id ? -1 : 1))
+        : storedRecords ?? (match[2] === undefined ? storedOrder
         : [...storedOrder].sort()).map(index => ({
         Id: `a0000000000000${index}`,
         Name: `record-${index}`, External_Key__c: `key-${index}`,
@@ -179,7 +213,7 @@ export async function openSalesforceEffectSiteFixture(t, {
           ...match[1].split(',').map(name => [name, record[name] ?? null])]));
       response.writeHead(200, {'content-type': 'application/json'});
       response.end(replyJson({totalSize: records.length, done: true,
-        records}));
+        records}), () => onQuery?.(orgRecords()));
       return;
     }
     if (request.method === 'GET' && request.url ===
@@ -204,6 +238,11 @@ export async function openSalesforceEffectSiteFixture(t, {
     const described = writable.find(name => request.method === 'GET' &&
       request.url === `${prefix}sobjects/${name}/describe`);
     if (described !== undefined) {
+      if (describeStatus !== 200) {
+        response.writeHead(describeStatus, {'content-type': 'application/json'});
+        response.end(JSON.stringify([{errorCode: 'SERVER_UNAVAILABLE'}]));
+        return;
+      }
       response.writeHead(200, {'content-type': 'application/json'});
       response.end(JSON.stringify({name: described, queryable: true,
         createable: true, updateable: true, fields: [
@@ -237,12 +276,15 @@ export async function openSalesforceEffectSiteFixture(t, {
     }
     const record = writable.find(name => request.url?.startsWith(
       `${prefix}sobjects/${name}/`));
+    // The write this request makes, applied to the stateful org.
+    let apply = () => {};
     const rejected = () => {
       const sequence = seen.filter(item => item.method === 'POST' ||
         (item.method === 'PATCH' && item.path !==
           `${prefix}composite/sobjects`)).length;
       const reply = writeReplies[sequence];
       if (reply !== undefined) {
+        if (reply.applied === true) apply();
         response.writeHead(reply.status, {'content-type': 'application/json'});
         response.end(reply.raw ?? JSON.stringify(reply.body));
         return true;
@@ -256,6 +298,18 @@ export async function openSalesforceEffectSiteFixture(t, {
     if (request.method === 'GET' && record !== undefined) {
       const target = decodeURIComponent(request.url.slice(
         `${prefix}sobjects/${record}/`.length).split('/').at(-1));
+      if (state !== undefined && record === 'Test_Record__c') {
+        const current = state.get(target);
+        if (current === undefined) {
+          response.writeHead(404, {'content-type': 'application/json'});
+          response.end(JSON.stringify([{message: 'Not found',
+            errorCode: 'NOT_FOUND'}]));
+          return;
+        }
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end(replyJson(current));
+        return;
+      }
       response.writeHead(200, {'content-type': 'application/json'});
       response.end(replyJson({Id: target,
         Name: observedNames.get(record) ?? observedName,
@@ -303,6 +357,20 @@ export async function openSalesforceEffectSiteFixture(t, {
       request.on('end', () => {
         observed.body = Buffer.concat(chunks).toString('utf8');
         assert.deepEqual(Object.keys(JSON.parse(observed.body)), patchFields);
+        const target = decodeURIComponent(request.url.split('/').at(-1));
+        if (state !== undefined && record === 'Test_Record__c') {
+          apply = () => {
+            const current = state.get(target);
+            if (current !== undefined) {
+              Object.assign(current, JSON.parse(observed.body));
+            }
+          };
+          if (loseReplyAfterApply.includes(singleWriteSequence())) {
+            apply();
+            request.socket.destroy();
+            return;
+          }
+        }
         if (loseReply) {
           loseReply = false;
           request.socket.destroy();
@@ -318,6 +386,7 @@ export async function openSalesforceEffectSiteFixture(t, {
           return;
         }
         if (rejected()) return;
+        apply();
         if (writeOperation === 'upsert') {
           const sequence = seen.filter(item => item.method === 'PATCH').length;
           response.writeHead(200, {'content-type': 'application/json'});
@@ -337,6 +406,19 @@ export async function openSalesforceEffectSiteFixture(t, {
         observed.body = Buffer.concat(chunks).toString('utf8');
         const batch = JSON.parse(observed.body);
         assert.equal(batch.allOrNone, false);
+        if (state !== undefined && collectionOutcomes !== undefined) {
+          assert.equal(batch.records.length, collectionOutcomes.length);
+          const results = [];
+          for (const [index, row] of batch.records.entries()) {
+            const outcome = collectionOutcomes[index];
+            const {attributes: _type, Id: id, ...fields} = row;
+            if (outcome.apply) Object.assign(state.get(id), fields);
+            if (outcome.result !== undefined) results.push(outcome.result);
+          }
+          response.writeHead(200, {'content-type': 'application/json'});
+          response.end(JSON.stringify(results));
+          return;
+        }
         assert.equal(batch.records.length, 2);
         response.writeHead(200, {'content-type': 'application/json'});
         response.end(JSON.stringify(batch.records.map((_, index) =>
@@ -460,8 +542,14 @@ export async function openSalesforceEffectSiteFixture(t, {
       else observedNames.set(resource, name);
     },
     setNameUpdateable(value) { nameUpdateable = value; },
+    setDescribeStatus(value) { describeStatus = value; },
     setNameCreateable(value) { nameCreateable = value; },
-    setOptionalText(value) { optionalText = value; }};
+    setOptionalText(value) { optionalText = value; },
+    // The stateful org's current records, and a change to one of them made
+    // outside ActQL.
+    records: () => orgRecords(),
+    setRecord(id, fields) { Object.assign(state.get(id), fields); },
+    deleteRecord(id) { state.delete(id); }};
 }
 
 // The real SQLite credential journal whose close fails the first `failures`

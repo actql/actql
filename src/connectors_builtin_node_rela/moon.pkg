@@ -46,4 +46,8 @@ import {
   "actql/actql/connectors/salesforce/host" @salesforce_host,
   "actql/actql/client_salesforce_host",
   "actql/actql/stage_results" @effect_results,
+  "actql/actql/source_frontend",
+  "actql/actql/query_program",
+  "actql/actql/query_syntax",
+  "actql/actql/parameter_binding",
 }

@@ -68,11 +68,7 @@ pub fn issue_source_free_client_effect_local_identity(
 ) -> Result[ClientEffectLocalIdentity, ClientEffectLocalIdentityIssue] {
   if !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) ||
     !physical_equal(artifact.inputs, inputs) ||
-    !@strategy.captured_effect_inputs_share_view(
-      inputs,
-      artifact.member_index,
-      member_index,
-    ) {
+    !client_effect_local_artifact_matches_member(artifact, inputs, member_index) {
     return Err(ForeignInput)
   }
   guard @strategy.captured_effect_input_at(inputs, member_index) is Some(input) else {

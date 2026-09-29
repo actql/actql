@@ -41,6 +41,12 @@ test('generator retains supported literal and property-name constraints', () => 
   }
 });
 
+test('generator preserves operation-specific array ceilings', () => {
+  assert.doesNotThrow(() => emitSchema({
+    type: 'array', items: {}, maxItems: 4096,
+  }));
+});
+
 test('generator keeps object-scoped Effect branch constraints', () => {
   assert.doesNotThrow(() => emitSchema({
     type: 'object',

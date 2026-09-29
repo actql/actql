@@ -8,7 +8,8 @@ import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
 import {authorizeLocalDatabase} from
   '../connectors/duckdb/node/session.mjs';
-import {runNativeHostQuery, nativeSourceIdentityMatches, issueNativeSourceEvidence} from
+import {runNativeHostQuery, runBroadHostQuery,
+  nativeSourceIdentityMatches, issueNativeSourceEvidence} from
   '../connectors/duckdb/node/host.mjs';
 
 const contractRoot = new URL('../../spec/contracts/', import.meta.url);
@@ -23,21 +24,31 @@ const preparations = new WeakMap();
 // open the database or infer authority from the source CID. The returned
 // handle can only be consumed with the same checked Program and Host profile.
 export async function prepareCapturedDuckDBSource({moon, preparedProgram,
+  preparedEffect,
   registry, values, fragment, ordered, database, schema, table,
   sourceAccess}) {
   if (typeof database !== 'string' || typeof schema !== 'string' ||
       typeof table !== 'string' || typeof registry !== 'string' ||
       typeof values !== 'string' || typeof fragment !== 'string' ||
-      typeof ordered !== 'string') {
+      typeof ordered !== 'string' ||
+      (preparedProgram === undefined) ===
+        (preparedEffect === undefined)) {
     throw new TypeError('InvalidInstalledSourceConfiguration');
   }
+  const effectful = preparedEffect !== undefined;
+  const checkedOwner = preparedEffect ?? preparedProgram;
   // This installed profile has one captured source at the first task. The
   // owner rejects a different checked source rather than using file settings
   // as a substitute for the Program's source declaration.
-  checked(moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0));
+  checked(effectful
+    ? moon.clientProgramEffectPrepareQueryAcquisition(checkedOwner, 0, 0)
+    : moon.clientProgramPrepareQueryAcquisition(checkedOwner, 0, 0));
   const requirement = checked(
-    moon.clientProgramPrepareLocalQueryRequirement(preparedProgram, 0, 0,
-      registry, values, fragment, ordered));
+    effectful
+      ? moon.clientProgramEffectPrepareLocalQueryRequirement(checkedOwner,
+        0, 0, registry, values, fragment, ordered)
+      : moon.clientProgramPrepareLocalQueryRequirement(checkedOwner,
+        0, 0, registry, values, fragment, ordered));
   const sourceFacts = checked(
     moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
   if (!Array.isArray(sourceFacts) || sourceFacts.length !== 6 ||
@@ -63,8 +74,12 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
     moon.clientProgramPrepareDuckDBSourceEvidenceContext(requirement));
   const contracts = await Promise.all(contractFiles.map(name =>
     readFile(new URL(name, contractRoot), 'utf8')));
-  const acquisition = checked(moon.clientProgramPrepareDuckDBAcquisition(
-    requirement, schema, table, ...contracts));
+  const native = moon.clientProgramPrepareDuckDBAcquisition(
+    requirement, schema, table, ...contracts);
+  const broad = moon.clientProgramDuckDBNativeCandidateUnavailable(native);
+  const acquisition = checked(broad
+    ? moon.clientProgramPrepareDuckDBBroadAcquisition(
+      requirement, schema, table, ...contracts) : native);
   // The Host-resolved physical target is part of what an approval covers:
   // the same checked source read from another schema or table is another
   // read. Physical names are bound by their exact UTF-8 bytes (hex): the
@@ -79,9 +94,9 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
       'actql-installed-duckdb-target/0.1', database, schema, table,
       utf8_hex: Object.freeze({database: exact(database),
         schema: exact(schema), table: exact(table)})})});
-  preparations.set(prepared, Object.freeze({moon, preparedProgram, registry,
+  preparations.set(prepared, Object.freeze({moon, checkedOwner, effectful, registry,
     values, fragment, ordered, database, schema, table, sourceAccess,
-    requirement, evidenceContext, acquisition}));
+    requirement, evidenceContext, acquisition, broad}));
   return prepared;
 }
 
@@ -90,6 +105,7 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
 // after the capture opened closes it, so it has stopped. Any other native
 // read failure keeps its end unknown.
 export async function openCapturedDuckDBSource({moon, preparedProgram,
+  preparedEffect,
   registry, values, fragment, ordered, database, schema, table,
   sourceAccess, transportLimits, signal, preparedSource}) {
   let owner;
@@ -97,11 +113,13 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   let grant;
   try {
     prepared = preparedSource ?? await prepareCapturedDuckDBSource({moon,
-      preparedProgram, registry, values, fragment, ordered, database, schema,
-      table, sourceAccess});
+      preparedProgram, preparedEffect, registry, values, fragment, ordered,
+      database, schema, table, sourceAccess});
     owner = preparations.get(prepared);
+    const effectful = preparedEffect !== undefined;
     if (owner === undefined || owner.moon !== moon ||
-        owner.preparedProgram !== preparedProgram ||
+        owner.checkedOwner !== (preparedEffect ?? preparedProgram) ||
+        owner.effectful !== effectful ||
         owner.registry !== registry || owner.values !== values ||
         owner.fragment !== fragment || owner.ordered !== ordered ||
         owner.database !== database || owner.schema !== schema ||
@@ -116,7 +134,8 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   const {requirement, evidenceContext, acquisition} = owner;
   let capture;
   try {
-    capture = await runNativeHostQuery(grant, acquisition, transportLimits,
+    const acquire = owner.broad ? runBroadHostQuery : runNativeHostQuery;
+    capture = await acquire(grant, acquisition, transportLimits,
       signal);
   } catch (cause) {
     throw acquisitionFailure(cause, cause instanceof
@@ -124,22 +143,35 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   }
   try {
     const capturedSource = capture.source();
-    if (moon.clientProgramCapturedSourceMatches(preparedProgram,
-      capturedSource) !== true) {
+    if ((owner.effectful
+      ? moon.clientProgramEffectCapturedSourceMatches(owner.checkedOwner,
+        capturedSource)
+      : moon.clientProgramCapturedSourceMatches(owner.checkedOwner,
+        capturedSource)) !== true) {
       throw new Error('InstalledSourceProgramMismatch');
     }
-    const identity = checked(moon.clientProgramIdentifyCapturedSourceRelation(
-      capturedSource));
+    const identity = checked(owner.effectful
+      ? moon.clientProgramIdentifyCapturedEffectSourceRelation(capturedSource)
+      : moon.clientProgramIdentifyCapturedSourceRelation(capturedSource));
     if (!nativeSourceIdentityMatches(capture, identity)) {
       throw new Error('InstalledSourceObservationMismatch');
     }
-    const logicalInput = checked(moon.clientProgramIssueCapturedSourceLogical(
-      preparedProgram, capturedSource, identity, requirement));
-    const setup = moon.clientProgramOpenCapturedLocalHost(preparedProgram,
-      capturedSource, registry, values, 1n, 0n, 0n, 0n,
-      fragment, ordered);
-    if (setup === undefined) throw new Error('InstalledSourceHostUnavailable');
-    return Object.freeze({capture, identity, logicalInput, checkedSource, setup,
+    const logicalInput = checked(owner.effectful
+      ? moon.clientProgramEffectIssueCapturedSourceLogical(owner.checkedOwner,
+        capturedSource, identity, requirement)
+      : moon.clientProgramIssueCapturedSourceLogical(owner.checkedOwner,
+        capturedSource, identity, requirement));
+    // An Effect Run is opened only after durable Run admission. Acquisition
+    // cannot mint that owner or begin its computation as a read-only Run.
+    const setup = owner.effectful ? undefined :
+      moon.clientProgramOpenCapturedLocalHost(owner.checkedOwner,
+        capturedSource, registry, values, 1n, 0n, 0n, 0n,
+        fragment, ordered);
+    if (!owner.effectful && setup === undefined) {
+      throw new Error('InstalledSourceHostUnavailable');
+    }
+    return Object.freeze({capture, identity, logicalInput, requirement,
+      checkedSource, setup,
       issueSourceEvidence: options => issueNativeSourceEvidence(capture,
         {...options, context: evidenceContext, identity, logicalInput}),
       close: () => capture.close()});

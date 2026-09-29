@@ -31,9 +31,15 @@ pub(all) enum PublicationOutputExportIssue {
 /// Opaque state for one bounded export. Environment adapters may persist the
 /// emitted chunks, but all value interpretation and evidence issuance stays
 /// in this portable owner.
+enum PublicationResultRetention {
+  Cells(@strategy.CapturedResultBorrow)
+  Any(@strategy.CapturedAnyResultBorrow)
+}
+
+///|
 struct PublicationOutputExport {
   stream : @execution.CompletedOutputExport
-  mut retained : @strategy.CapturedResultBorrow?
+  mut retained : PublicationResultRetention?
   replay_values : @execution.ValueLimits
   replay_wire : @execution.RowWireLimits
   max_batch_bytes : Int
@@ -180,7 +186,7 @@ pub fn prepare_captured_result_publication_export(
       limits,
     ) {
     Ok(output_export) => {
-      output_export.retained = Some(borrow)
+      output_export.retained = Some(Cells(borrow))
       Ok(output_export)
     }
     Err(issue) => {
@@ -585,7 +591,12 @@ pub fn PublicationOutputExport::cancel(self : PublicationOutputExport) -> Unit {
     None => @execution.cancel_completed_output_export(self.stream)
   }
   if self.retained is Some(borrow) {
-    @strategy.release_captured_result_borrow(borrow) |> ignore
+    match borrow {
+      Cells(borrow) =>
+        @strategy.release_captured_result_borrow(borrow) |> ignore
+      Any(borrow) =>
+        @strategy.release_captured_any_result_borrow(borrow) |> ignore
+    }
     self.retained = None
   }
 }

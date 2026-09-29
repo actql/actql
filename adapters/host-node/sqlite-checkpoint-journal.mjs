@@ -916,6 +916,42 @@ export function openSqliteCheckpointJournal(root, {
       });
     },
 
+    // A definitive preparation refusal may end only an exact Effect
+    // continuation that has never entered protected dispatch. The check and
+    // fencing transition share the admission transaction; an older claimant
+    // cannot send after this outcome. Admitted work remains untouched.
+    refuseUnsentEffectResume(reference, runDefinitionCid) {
+      alive();
+      const at = iso(now());
+      return transaction.run(() => {
+        const checkpoint = rowFor(reference);
+        if (checkpoint === undefined) fail('CheckpointNotFound');
+        const artifact = JSON.parse(checkpoint.checkpoint_wire);
+        if (artifact.run_definition_cid !== runDefinitionCid ||
+            artifact.kind !== 'effect_set' || checkpoint.run_id === null) {
+          fail('CheckpointRunMismatch');
+        }
+        const intent = statements.intentByCheckpoint.get(
+          checkpoint.checkpoint_cid);
+        const run = statements.run.get(checkpoint.run_id);
+        if (checkpoint.closure !== 'resolved' || intent === undefined ||
+            run?.status !== 'resuming' || intent.state === 'completed') {
+          return Object.freeze({outcome: 'not_resuming'});
+        }
+        if (statements.startedAdmission.get(intent.intent_id) !== undefined) {
+          return Object.freeze({outcome: 'admitted'});
+        }
+        transitionAllowed('resuming', 'failed');
+        changed(statements.completeIntent.run(Number(intent.generation) + 1,
+          'preparation-refusal', 'failed', at, intent.intent_id,
+          intent.generation), 'ResumeClaimStale');
+        changed(statements.moveRun.run('failed', at, '', '', run.run_id,
+          run.version, 'resuming'), 'RunStateConflict');
+        fault('refuseUnsentEffectResume');
+        return Object.freeze({outcome: 'failed', runId: run.run_id});
+      });
+    },
+
     // Durable request cancellation of one prepare attempt, committed before
     // it is acknowledged. A waiting preparation is ended as cancelled with
     // its Checkpoint closed (a later answer is then `cancelled`). A resuming

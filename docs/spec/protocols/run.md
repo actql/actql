@@ -525,6 +525,44 @@ The independent fixed preimages and digests are in
 remain owned and preserved pending an explicit migration decision outside
 controlled development fixtures. A version correction is not a migration.
 
+<a id="captured-effect-dependencies"></a>
+
+## Captured Effect dependency inventory
+
+<!-- requirement-block: captured-effect-dependencies.explicit-inventory -->
+The Captured Run Effect context MUST include `effect_dependency_inventory`,
+including an explicit empty array when no runtime upstream dependencies are
+required. Each closed entry contains `kind`, `cid`, and the canonical `body`.
+Entries are ordered by CID then kind in UTF-16 order; duplicate kind/CID pairs
+are invalid. Equal bytes under different declared roles are not interchangeable.
+
+<!-- requirement-block: captured-effect-dependencies.closed-bodies captured-effect-dependencies.import-correspondence -->
+The checked local Effect inputs select roots. Typed body references determine
+the required transitive closure of acquired inputs and preceding local Results.
+Readers MUST reject missing, altered, unused, cyclic or wrong-kind dependencies.
+They MUST verify Result import position/interface, producer local Manifest,
+exact Result Artifact and consumer local Invocation correspondence. Correct
+individual hashes alone do not establish that correspondence or current Run
+and namespace authority. A Run-wide CID is not added to local semantic preimages.
+
+The closure is bounded by 4,096 entries, 16 MiB of canonical envelope and
+evidence bytes, 65,536 references and 64 dependency edges in a path. Existing
+stricter admission limits still apply. Relation payloads remain subject to
+their existing Store capacity and schema checks and are held by existing owners.
+An entry's CID does not replace a recoverable body or retained payload.
+
+<!-- requirement-block: captured-effect-dependencies.durable-before-wait captured-effect-dependencies.no-repair -->
+Required bodies, payloads, holdings and the Preview/capture correspondence MUST
+be durable before resumable commit approval wait is exposed. Recovery MUST NOT
+repair missing evidence by reacquisition or recomputation. Current mutation
+authorization and target checks remain separate from the saved observations.
+Cleanup failures and unknown writes retain their existing recovery owners.
+
+This required field changes Effect context and Captured Run CIDs, and therefore
+their downstream references. This is a coordinated incompatible 0.1 correction:
+readers reject missing or mixed shapes without modifying historical records or
+inferring permission to resend. No old-format supplementation is defined.
+
 <a id="machine-contracts"></a>
 
 ## Machine contracts
@@ -576,7 +614,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:c8304cef7cad5b5e0a8afd8a3f1a4e5b346147218bd2a46ac7994baeaa21a625
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:e61cdac45a5af98ca5362ee945511d705c373613cd4e9dc42009e036eb9fcb84
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_account_config sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:ac57820dd589db489f000eb80ff95ec9c9a95fec5b233add853293ed9c1dbc53
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:7b3d173c3a078431c99352e3bac4e5a2341ea2217c1995ab8c97dd9c56027ac1
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_evidence sha256:9aca3664e28a690ef22c34a577e2089631b01a45a3b80df92ebae276db47b596
 ```
 

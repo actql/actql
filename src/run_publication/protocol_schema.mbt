@@ -9,7 +9,7 @@ priv enum ProtocolSchemaRule {
   StringRule(String?, Array[String], Int, Int)
   NumberRule
   IntegerRule(Int64?, Int64?)
-  ArrayRule(Int, Int, Bool)
+  ArrayRule(Int, Int, Bool, Int)
   ObjectRule(Array[(String, Int)], Array[String], Int, Int, String?, Int)
   OneOfRule(Array[Int])
   AnyOfRule(Array[Int])
@@ -69,8 +69,9 @@ fn protocol_array_rule(
   items : Int,
   min_items : Int,
   unique : Bool,
+  max_items : Int,
 ) -> ProtocolSchemaRule {
-  ArrayRule(items, min_items, unique)
+  ArrayRule(items, min_items, unique, max_items)
 }
 
 ///|
@@ -253,11 +254,12 @@ fn validate_protocol_node(
           }
         _ => false
       }
-    ArrayRule(items, min_items, unique) =>
+    ArrayRule(items, min_items, unique, max_items) =>
       match value {
         @json.Array(frozen) => {
           let values = @json.array_values(frozen)
           if values.length() < min_items ||
+            (max_items >= 0 && values.length() > max_items) ||
             (unique && !protocol_unique_array(values, budget)) {
             return false
           }

@@ -13,11 +13,13 @@ import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
+import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
 import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
 import {retireCompletedEffectfulCapture} from
   '../host-common/completed-run-publication.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
+import {sourceAliasPublication} from './source-alias-publication.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {installedEffectIdentity, loadInstalledEffect,
   publishInstalledEffectProfile} from
@@ -49,7 +51,8 @@ import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeTaskPlan,
-  sourceFreeEffectPublicationPlan, acquiredTaskRunAdmission} from
+  sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
+  acquiredTaskRunAdmission} from
   './local-values-plan.mjs';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
@@ -192,6 +195,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   }
   let environment;
   let evidenceCid;
+  let sourcePublication;
   try {
     evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
     const numericProfile = JSON.parse(await readFile(join(packageRoot,
@@ -201,6 +205,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     environment = moon.clientProgramCheckEnvironmentWithNumericProfile(
       environmentWire, evidenceCid, false, false, true, true, false, false,
       false, numericProfileCid);
+    if (environment !== undefined) {
+      sourcePublication = sourceAliasPublication(moon, environment,
+        sourceProfile?.queryAliases ?? []);
+    }
   } catch (cause) {
     throw await retainInstalledHostInitializationFailure(cause,
       {sourceProfile, installedEffect});
@@ -308,7 +316,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       actual === principalId && ref.namespaceId === namespaceId &&
       ref.authorityScopeCid === authorityScopeCid});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
-    environment, allowEffects: effectInstallation !== undefined});
+    environment, sourcePublication,
+    allowEffects: effectInstallation !== undefined});
     checkpoints = await installRemoteCheckpoints({root, namespaceId,
       authorityScopeCid, ownerPrincipal: principalId,
       siteKey: authorization?.siteKey ?? 'actql-remote-host',
@@ -483,6 +492,26 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const requestOf = ({preparedProgram, requestId}) => {
     prepareSubmit.assertOwned(preparedProgram);
     if (prepareSubmit.kindOf(preparedProgram) === 'effectful') {
+      const acquired = moon.clientProgramEffectPrepareQueryAcquisition(
+        preparedProgram, 0, 0)?.$tag === 1;
+      if (acquired) {
+        if (sourceProfile === undefined) {
+          throw new Error('ClientProgramNeedsInputs');
+        }
+        let requirement;
+        try {
+          requirement = checked(
+            moon.clientProgramEffectPrepareLocalQueryRequirement(
+              preparedProgram, 0, 0, registry, values, fragment, ordered));
+        } catch (cause) {
+          throw Object.assign(new Error('ClientProgramUnsupported', {cause}),
+            {code: 'ClientProgramUnsupported'});
+        }
+        if (!sourceProfile.admitsSource(
+          moon.clientProgramQueryRequirementSourceRef(requirement))) {
+          throw new Error('InstalledSourceProgramMismatch');
+        }
+      }
       const requested = moon.clientProgramEffectRequestIdentity(
         preparedProgram, authorityScopeCid, requestId,
         moon.clientProgramSourceFreeInputIntentCid());
@@ -500,7 +529,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         }
         resultNames.push(name);
       }
-      return {requested, resultNames, acquired: false, effectful: true};
+      return {requested, resultNames, acquired, effectful: true};
     }
     const acquisition = moon.clientProgramPrepareQueryAcquisition(
       preparedProgram, 0, 0);
@@ -619,19 +648,36 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       },
       authorizeRunStart: ({principalId: actual, connection, ref}) =>
         hostConnection({principalId: actual, connection, ref}),
-      prepareExecution: ({prepared, compilation, allowed, definition}) =>
-        sourceFreeEffectPublicationPlan({moon, control, prepared,
+      prepareExecution: ({prepared, compilation, allowed, definition}) => {
+        const options = {moon, control, prepared,
           compilation, allowed, definition, authorityScopeCid, namespaceId,
-          storeAuthorityCid, now}),
+          storeAuthorityCid, now};
+        return moon.clientProgramEffectPrepareQueryAcquisition(prepared,
+          0, 0)?.$tag === 1
+          ? acquiredEffectPublicationAdmission(options)
+          : sourceFreeEffectPublicationPlan(options);
+      },
       execute: facts => dispatchOwner.track(facts.ref, {
-        run: ({signal, retainExecution, beginPhysicalWork}) =>
+        run: ({signal, retainExecution, beginPhysicalWork,
+          observePreEffectFailure}) =>
           effectInstallation.execute(
           Object.freeze({...facts, signal, retainExecution,
-            beginPhysicalWork, moon, control,
+            beginPhysicalWork, observePreEffectFailure, moon, control,
             publicationPlan: facts.preparedExecution,
             store, storeAuthorityCid, authorityScopeCid,
             observeRun: ({ref}) => observeRun({ref, principalId}),
-            openComputation: () => {
+            openComputation: ({retainComputationOwner} = {}) => {
+              if (moon.clientProgramEffectPrepareQueryAcquisition(
+                facts.prepared, 0, 0)?.$tag === 1) {
+                // Read admission is the installed source's immediate gate.
+                // Do not borrow an Effect commit permit or create a read
+                // Checkpoint that this Effect profile cannot resume.
+                return openAcquiredEffectComputation({moon,
+                  owner: facts.owner, acquired: facts.preparedExecution,
+                  sourceProfile, registry, values, fragment, ordered,
+                  sourceAccess: sourceProfile.sourceAccess, signal, now,
+                  retainComputationOwner});
+              }
               const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
                 facts.owner, registry, values, 1n, 0n, 0n, 0n);
               if (setup === undefined) {
@@ -1076,10 +1122,45 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     effectRetirementFlights.set(key, flight);
     return flight;
   };
+  const retireIncompleteEffects = async () => {
+    const failures = [];
+    let after = '';
+    for (;;) {
+      const page = await store.listEffectCaptureCustodies({after, limit: 100});
+      for (const run of page) {
+        const ref = Object.freeze({namespaceId, authorityScopeCid,
+          runDefinitionCid: run.identity});
+        try {
+          // Cleanup discovery is not a new start claim. A live invocation
+          // still owns its preparation; only absent local owners are eligible.
+          if (dispatchOwner.operation(ref) !== undefined ||
+              effectResumeFlights.has(run.identity)) continue;
+          const retained = journal.lookupRunDefinition(ref, moon, control);
+          if (retained === undefined) continue; // Another authority scope.
+          if (retained.runDefinition.wire !== run.wire) {
+            throw new Error('EffectCaptureCustodyRunMismatch');
+          }
+          const runId = control.runDefinitionRunId(run);
+          // Durable custody still exists only before transfer to a Checkpoint
+          // or physical dispatch. A complete private record is not sufficient
+          // to establish that transfer. The original unknown Run stays intact.
+          if (checkpoints.journal.inspect(`${runId}-effect-commit`) !== undefined) continue;
+          await retireEffectCapture(ref);
+        } catch (error) { failures.push(error); }
+      }
+      if (page.length < 100) break;
+      after = page.at(-1).identity;
+    }
+    if (failures.length > 0) {
+      throw new AggregateError(failures, 'EffectCaptureCleanupPending');
+    }
+  };
   const retireTerminalEffects = async () => {
     if (effectRun === undefined || checkpoints === undefined) return;
     let after = '';
     const failures = [];
+    try { await retireIncompleteEffects(); }
+    catch (error) { failures.push(error); }
     for (;;) {
       const page = checkpoints.journal.listRunCheckpoints({after, limit: 100});
       for (const view of page) {
@@ -1101,6 +1182,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const sweepEffectRuns = async () => {
     if (effectRun === undefined || checkpoints === undefined) return false;
     let busy = false;
+    try { await retireIncompleteEffects(); }
+    catch (error) {
+      busy = true;
+      diagnostic('effect_capture_retirement_failed', {
+        code: error?.code ?? error?.message});
+    }
     let after = '';
     for (;;) {
       const page = checkpoints.journal.listRunCheckpoints({after, limit: 100});

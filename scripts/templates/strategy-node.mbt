@@ -7,6 +7,7 @@ pub(all) suberror NodeHostFailure {
   Encoding(@encode.EncodeFailure)
   OutputExport(@execution.CompletedExportIssue)
   PublicationEvidence(@publication.ResultEvidenceIssuanceIssue)
+  ResultTransformation(@publication_host.CapturedClientResultTransformationIssue)
   EffectIdentity(@effect.EffectIdentityIssue)
   EffectSetProgress(@effect.EffectSetProgressIssue)
   EffectFootprint(@effect.EffectFootprintIssue)
@@ -37,6 +38,9 @@ struct StrategyHostOutputExport {
 /// Re-admission state for a retained managed Relation result. The environment
 /// may stream only the exact material bound to this completion.
 struct StrategyHostManagedResultImport {
+  run : @strategy.CapturedDAG
+  result : Int
+  output : @execution.ManagedCompletedOutput[Int]
   bridge : @execution.ManagedPublicationBridge[Int]
   occurrence : @execution.ManagedResultOccurrence
   definition : @publication.PublicationContract
@@ -62,7 +66,11 @@ fn[T] strategy_publication_output_result(
 pub fn strategy_host_next(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
 ) -> @host_driver.PreparedTaskDispatch? raise NodeHostFailure {
-  match @host_driver.prepare_next_compute_task(@builtin.configured_host_runtime(host), ()) {
+  match
+    @host_driver.prepare_next_compute_task(
+      @builtin.configured_host_runtime(host),
+      (),
+    ) {
     Ok(value) => value
     Err(issue) => raise Dispatch(issue)
   }
@@ -194,7 +202,8 @@ pub fn strategy_host_select_managed_registration(
     @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
     task,
     registration,
-  ) is Ok(_)
+  )
+  is Ok(_)
 }
 
 ///|
@@ -245,7 +254,9 @@ pub fn strategy_host_managed_input_matches_material(
 pub fn strategy_host_modules(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
 ) -> Array[String] {
-  @builtin.configured_compute_module_keys(@builtin.configured_host_modules(host))
+  @builtin.configured_compute_module_keys(
+    @builtin.configured_host_modules(host),
+  )
 }
 
 ///|
@@ -260,12 +271,11 @@ pub fn strategy_host_task_capacity(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   task : Int,
 ) -> Array[Int64] raise NodeHostFailure {
-  guard
-    @strategy.strategy_task_envelope(
+  guard @strategy.strategy_task_envelope(
       @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
       task,
-    ) is Some(capacity)
-  else {
+    )
+    is Some(capacity) else {
     raise InvalidCommand
   }
   [capacity.retained_bytes, capacity.execution_bytes]
@@ -279,15 +289,16 @@ pub fn strategy_host_registration(
   Some(@host_driver.prepared_task_registration(task))
 }
 
-
-
 ///|
 #export_name("strategyHostTaskCompleted")
 pub fn strategy_host_task_completed(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   task : Int,
 ) -> Bool {
-  @strategy.captured_task_completed(@host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)), task)
+  @strategy.captured_task_completed(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+    task,
+  )
 }
 
 ///|
@@ -309,7 +320,10 @@ pub fn strategy_host_run(
 pub fn strategy_host_resource_binding(
   task : @host_driver.PreparedTaskDispatch,
 ) -> @connector.ResourceBinding? {
-  @strategy.strategy_resident_profile(@host_driver.prepared_task_revision(task), @host_driver.prepared_task_index(task)).map(@strategy.resident_profile_resource_binding)
+  @strategy.strategy_resident_profile(
+    @host_driver.prepared_task_revision(task),
+    @host_driver.prepared_task_index(task),
+  ).map(@strategy.resident_profile_resource_binding)
 }
 
 ///|
@@ -318,7 +332,11 @@ pub fn strategy_host_resident_inputs(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   task : Int,
 ) -> Array[Array[Int64]] raise NodeHostFailure {
-  guard @host_driver.compute_host_resident_inputs(@builtin.configured_host_runtime(host), task) is Some(inputs) else {
+  guard @host_driver.compute_host_resident_inputs(
+      @builtin.configured_host_runtime(host),
+      task,
+    )
+    is Some(inputs) else {
     raise InvalidCommand
   }
   inputs.map(input => {
@@ -327,13 +345,15 @@ pub fn strategy_host_resident_inputs(
   })
 }
 
-
-
 ///|
 #export_name("strategyHostCount")
-pub fn strategy_host_count(host : @builtin.ConfiguredComputeHost[@strategy.RunIssue]) -> Int {
+pub fn strategy_host_count(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Int {
   @strategy.graph_task_count(
-    @strategy.captured_dag_graph(@host_driver.dispatch_driver_run(@builtin.configured_host_driver(host))),
+    @strategy.captured_dag_graph(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+    ),
   )
 }
 
@@ -369,9 +389,9 @@ pub fn strategy_host_result_names(
   let graph = @strategy.captured_dag_graph(
     @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
   )
-  Array::makei(@strategy.graph_result_count(graph), index =>
+  Array::makei(@strategy.graph_result_count(graph), index => {
     @strategy.graph_result_name(graph, index).unwrap()
-  )
+  })
 }
 
 ///|
@@ -382,9 +402,9 @@ pub fn strategy_host_result_tasks(
   let graph = @strategy.captured_dag_graph(
     @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
   )
-  Array::makei(@strategy.graph_result_count(graph), index =>
+  Array::makei(@strategy.graph_result_count(graph), index => {
     @strategy.graph_result_task(graph, index).unwrap()
-  )
+  })
 }
 
 ///|
@@ -435,7 +455,9 @@ pub fn strategy_host_publication_inventory(
   }
   match
     @publication.prepare_checked_publication_inventory(
-      @strategy.graph_program_definition_cid(graph), names, tasks,
+      @strategy.graph_program_definition_cid(graph),
+      names,
+      tasks,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -522,11 +544,7 @@ pub fn strategy_publication_seal(
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.seal_publication_contract(
-      name,
-      body_wire,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      name, body_wire, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -544,11 +562,7 @@ pub fn strategy_publication_admit(
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.admit_publication_contract(
-      name,
-      complete_wire,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      name, complete_wire, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -665,15 +679,8 @@ pub fn strategy_issue_run_definition(
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.issue_run_definition(
-      admission,
-      scope_id,
-      run_id,
-      input_artifact_set_cid,
-      created_at,
-      valid_until,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      admission, scope_id, run_id, input_artifact_set_cid, created_at, valid_until,
+      max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -702,22 +709,9 @@ pub fn strategy_issue_effect_free_run_receipt(
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.issue_effect_free_run_receipt(
-      admission,
-      run_definition,
-      invocation,
-      observation,
-      definitions,
-      artifacts,
-      manifest,
-      normalization_journal,
-      binding_names,
-      binding_digests,
-      source_evidence,
-      model_evidence,
-      barrier_attempt_receipt_cids,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      admission, run_definition, invocation, observation, definitions, artifacts,
+      manifest, normalization_journal, binding_names, binding_digests, source_evidence,
+      model_evidence, barrier_attempt_receipt_cids, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -737,13 +731,7 @@ pub fn strategy_admit_captured_result_snapshot(
 ) -> @publication.CapturedResultSnapshot raise NodeHostFailure {
   match
     @publication.admit_captured_result_snapshot(
-      definition,
-      artifact,
-      rows_wire,
-      fields,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      definition, artifact, rows_wire, fields, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -759,9 +747,10 @@ pub fn strategy_admit_captured_effect_source_artifact(
   artifact : @publication.PublicationContract,
   store_authority_cid : String,
 ) -> @publication.CapturedEffectSourceArtifact raise NodeHostFailure {
-  match @publication.admit_captured_effect_source_artifact(
-    preview, member_index, invocation, artifact, store_authority_cid,
-  ) {
+  match
+    @publication.admit_captured_effect_source_artifact(
+      preview, member_index, invocation, artifact, store_authority_cid,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -792,10 +781,11 @@ pub fn strategy_admit_captured_local_effect_source(
   max_nodes : Int,
   max_depth : Int,
 ) -> @publication.CapturedLocalEffectSourceEvidence raise NodeHostFailure {
-  match @publication.admit_captured_local_effect_source(
-    source, definition_wire, invocation_wire, manifest_wire, artifact,
-    derivation, ordering, retention, max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @publication.admit_captured_local_effect_source(
+      source, definition_wire, invocation_wire, manifest_wire, artifact, derivation,
+      ordering, retention, max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -828,11 +818,7 @@ pub fn strategy_admit_pending_source_state_advance(
 ) -> @publication.PendingSourceStateAdvance raise NodeHostFailure {
   match
     @publication.admit_pending_source_state_advance(
-      complete_wire,
-      observation,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      complete_wire, observation, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -858,19 +844,8 @@ pub fn strategy_issue_effect_free_captured_run(
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.issue_effect_free_captured_run(
-      run_definition,
-      invocation,
-      definitions,
-      artifacts,
-      manifest,
-      receipt,
-      snapshots,
-      advances,
-      authoring,
-      models,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      run_definition, invocation, definitions, artifacts, manifest, receipt, snapshots,
+      advances, authoring, models, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -887,10 +862,11 @@ pub fn strategy_admit_effect_computation_preview(
   max_nodes : Int,
   max_depth : Int,
 ) -> @publication.EffectPreviewIdentity raise NodeHostFailure {
-  match @publication.admit_effect_preview_identity(
-    preview_wire, run_identity_cid, authoring_context_cid,
-    max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @publication.admit_effect_preview_identity(
+      preview_wire, run_identity_cid, authoring_context_cid, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -917,6 +893,7 @@ pub fn strategy_issue_effectful_captured_run(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  dependency_wire : String?,
 ) -> @publication.PublicationContract raise NodeHostFailure {
   if plan_names.length() != plan_wires.length() {
     raise InvalidCommand
@@ -925,11 +902,38 @@ pub fn strategy_issue_effectful_captured_run(
   for index in 0..<plan_names.length() {
     plans.push((plan_names[index], plan_wires[index]))
   }
-  match @publication.issue_effectful_captured_run(
-    run_definition, invocation, definitions, artifacts, manifest, receipt,
-    snapshots, sources, local_sources, advances, authoring, models, preview, plans,
-    max_wire_bytes, max_nodes, max_depth,
-  ) {
+  let dependency_inventory = match dependency_wire {
+    None => None
+    Some(wire) =>
+      match
+        @publication.admit_captured_effect_source_dependencies(
+          local_sources, wire, max_wire_bytes, max_nodes, max_depth,
+        ) {
+        Ok(value) => Some(value)
+        Err(_) => raise InvalidCommand
+      }
+  }
+  match
+    @publication.issue_effectful_captured_run(
+      run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      manifest,
+      receipt,
+      snapshots,
+      sources,
+      local_sources,
+      advances,
+      authoring,
+      models,
+      preview,
+      plans,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      dependency_inventory~,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -955,21 +959,31 @@ pub fn strategy_issue_effectful_final_run_receipt(
   max_nodes : Int,
   max_depth : Int,
 ) -> @publication.PublicationContract raise NodeHostFailure {
-  let final_receipt = match @publication.issue_effectful_final_run_receipt(
-    run_definition, computation_receipt, captured_run, preview,
-    set_receipt_wire, member_receipt_wires,
-    max_wire_bytes, max_nodes, max_depth,
-  ) {
+  let final_receipt = match
+    @publication.issue_effectful_final_run_receipt(
+      run_definition, computation_receipt, captured_run, preview, set_receipt_wire,
+      member_receipt_wires, max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
-  match @publication.admit_effectful_final_run_evidence_chain(
-    run_definition, invocation, definitions, artifacts, manifest,
-    computation_receipt, captured_run, preview,
-    set_receipt_wire, member_receipt_wires,
-    @publication.publication_contract_json(final_receipt),
-    max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @publication.admit_effectful_final_run_evidence_chain(
+      run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      manifest,
+      computation_receipt,
+      captured_run,
+      preview,
+      set_receipt_wire,
+      member_receipt_wires,
+      @publication.publication_contract_json(final_receipt),
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
     Ok(_) => final_receipt
     Err(_) => raise InvalidCommand
   }
@@ -987,16 +1001,18 @@ pub fn strategy_issue_effect_set_apply_receipt_from_members(
 ) -> @publication.PublicationContract raise NodeHostFailure {
   let members : Array[@publication.PublicationContract] = []
   for wire in member_receipt_wires {
-    match @publication.admit_publication_contract(
-      "effect_apply_receipt", wire, max_wire_bytes, max_nodes, max_depth,
-    ) {
+    match
+      @publication.admit_publication_contract(
+        "effect_apply_receipt", wire, max_wire_bytes, max_nodes, max_depth,
+      ) {
       Ok(value) => members.push(value)
       Err(_) => raise InvalidCommand
     }
   }
-  match @publication.issue_effect_set_apply_receipt_from_members(
-    preview, members, replayed, max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @publication.issue_effect_set_apply_receipt_from_members(
+      preview, members, replayed, max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -1012,9 +1028,10 @@ pub fn strategy_effect_set_receipt_run_disposition(
   max_nodes : Int,
   max_depth : Int,
 ) -> Int raise NodeHostFailure {
-  match @publication.effect_set_receipt_run_disposition(
-    preview, set_wire, member_wires, max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @publication.effect_set_receipt_run_disposition(
+      preview, set_wire, member_wires, max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -1083,10 +1100,9 @@ pub fn strategy_publication_record_transition(
   uncommitted_confirmed : Bool,
 ) -> Bool {
   @publication.validate_publication_record_transition(
-    previous,
-    next,
-    uncommitted_confirmed,
-  ) is Ok(_)
+    previous, next, uncommitted_confirmed,
+  )
+  is Ok(_)
 }
 
 ///|
@@ -1106,9 +1122,7 @@ pub fn strategy_publication_attempt_action(
 ) -> Int {
   @publication.publication_attempt_runtime_action_code(
     @publication.prepare_publication_attempt_step(
-      record,
-      active_checked,
-      index_issued,
+      record, active_checked, index_issued,
     ),
   )
 }
@@ -1126,13 +1140,8 @@ pub fn strategy_publication_setup_action(
 ) -> Int {
   @publication.publication_setup_action_code(
     @publication.prepare_publication_setup_step(
-      existing_checked,
-      existing_found,
-      existing_evidence_validated,
-      existing_finalized,
-      initial_active_checked,
-      contracts_persisted,
-      attempt_created,
+      existing_checked, existing_found, existing_evidence_validated, existing_finalized,
+      initial_active_checked, contracts_persisted, attempt_created,
     ),
   )
 }
@@ -1177,10 +1186,7 @@ pub fn strategy_publication_commit_failure_action(
 ) -> Int {
   @publication.publication_commit_failure_action_code(
     @publication.prepare_publication_commit_failure_step(
-      reconciliation_attempted,
-      reconciliation_failed,
-      committed_found,
-      unknown_append_attempted,
+      reconciliation_attempted, reconciliation_failed, committed_found, unknown_append_attempted,
     ),
   )
 }
@@ -1195,10 +1201,7 @@ pub fn strategy_publication_unknown_retry_action(
 ) -> Int {
   @publication.publication_unknown_retry_action_code(
     @publication.prepare_publication_unknown_retry_step(
-      reconciliation_resolved,
-      upstream_pending,
-      upstream_retry_available,
-      upstream_retry_attempted,
+      reconciliation_resolved, upstream_pending, upstream_retry_available, upstream_retry_attempted,
     ),
   )
 }
@@ -1215,8 +1218,7 @@ pub fn strategy_existing_delivery_attempt_action(
 
 ///|
 #export_name("strategyBeginResultAccessProgress")
-pub fn strategy_begin_result_access_progress(
-) -> @publication.ResultAccessProgress {
+pub fn strategy_begin_result_access_progress() -> @publication.ResultAccessProgress {
   @publication.begin_result_access_progress()
 }
 
@@ -1234,10 +1236,8 @@ pub fn strategy_record_result_access_request_authorization(
   progress : @publication.ResultAccessProgress,
   authorized : Bool,
 ) -> Bool {
-  @publication.record_result_access_request_authorization(
-    progress,
-    authorized,
-  ) is Ok(_)
+  @publication.record_result_access_request_authorization(progress, authorized)
+  is Ok(_)
 }
 
 ///|
@@ -1255,10 +1255,8 @@ pub fn strategy_record_result_access_initial_availability(
   progress : @publication.ResultAccessProgress,
   available : Bool,
 ) -> Bool {
-  @publication.record_result_access_initial_availability(
-    progress,
-    available,
-  ) is Ok(_)
+  @publication.record_result_access_initial_availability(progress, available)
+  is Ok(_)
 }
 
 ///|
@@ -1296,10 +1294,7 @@ pub fn strategy_delivery_record_retry_action(
   record_count : Int,
 ) -> Int {
   @publication.delivery_record_retry_action_code(
-    @publication.prepare_delivery_record_retry_step(
-      next_record,
-      record_count,
-    ),
+    @publication.prepare_delivery_record_retry_step(next_record, record_count),
   )
 }
 
@@ -1314,11 +1309,7 @@ pub fn strategy_publication_prepared_release_action(
 ) -> Int {
   @publication.publication_prepared_release_action_code(
     @publication.prepare_publication_prepared_release_step(
-      current_index,
-      owner_count,
-      status_checked,
-      pending,
-      release_attempted,
+      current_index, owner_count, status_checked, pending, release_attempted,
     ),
   )
 }
@@ -1335,12 +1326,7 @@ pub fn strategy_publication_cleanup_owner_action(
 ) -> Int {
   @publication.publication_cleanup_owner_action_code(
     @publication.prepare_publication_cleanup_owner_step(
-      current_index,
-      owner_count,
-      status_checked,
-      pending,
-      retry_available,
-      retry_attempted,
+      current_index, owner_count, status_checked, pending, retry_available, retry_attempted,
     ),
   )
 }
@@ -1359,14 +1345,8 @@ pub fn strategy_durable_payload_failure_action(
 ) -> Int {
   @publication.durable_payload_failure_action_code(
     @publication.prepare_durable_payload_failure_step(
-      writer_exists,
-      writer_sealed,
-      writer_cancel_attempted,
-      prepared_pending,
-      prepared_release_attempted,
-      export_exists,
-      export_released,
-      export_cancel_attempted,
+      writer_exists, writer_sealed, writer_cancel_attempted, prepared_pending, prepared_release_attempted,
+      export_exists, export_released, export_cancel_attempted,
     ),
   )
 }
@@ -1384,15 +1364,10 @@ pub fn strategy_run_publication_chain_valid(
   max_depth : Int,
 ) -> Bool {
   @publication.validate_run_publication_chain(
-    run_definition,
-    invocation,
-    definitions,
-    artifacts,
-    manifest,
-    max_wire_bytes,
-    max_nodes,
-    max_depth,
-  ) is Ok(_)
+    run_definition, invocation, definitions, artifacts, manifest, max_wire_bytes,
+    max_nodes, max_depth,
+  )
+  is Ok(_)
 }
 
 ///|
@@ -1410,12 +1385,7 @@ pub fn strategy_issue_result_manifest(
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.issue_result_manifest(
-      run_definition,
-      invocation,
-      definitions,
-      artifacts,
-      max_wire_bytes,
-      max_nodes,
+      run_definition, invocation, definitions, artifacts, max_wire_bytes, max_nodes,
       max_depth,
     ) {
     Ok(value) => value
@@ -1446,23 +1416,9 @@ pub fn strategy_issue_durable_result_binding(
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.issue_durable_result_binding(
-      run_definition,
-      definition,
-      invocation,
-      artifact,
-      ordering,
-      retention,
-      codec_contract_cid,
-      result_fields,
-      result_schema_wire,
-      material_generation_cid,
-      store_authority_cid,
-      row_count,
-      byte_count,
-      physical_sha256,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      run_definition, definition, invocation, artifact, ordering, retention, codec_contract_cid,
+      result_fields, result_schema_wire, material_generation_cid, store_authority_cid,
+      row_count, byte_count, physical_sha256, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -1485,16 +1441,8 @@ pub fn strategy_issue_publication_request(
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.issue_publication_request(
-      run_definition,
-      definitions,
-      namespace_id,
-      authority_scope_cid,
-      publication_policy_cid,
-      publication_target_cid,
-      requested_at,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      run_definition, definitions, namespace_id, authority_scope_cid, publication_policy_cid,
+      publication_target_cid, requested_at, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -1516,15 +1464,8 @@ pub fn strategy_issue_publication_attempt(
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.issue_publication_attempt(
-      request,
-      run_definition,
-      attempt_id,
-      fence_cid,
-      external_idempotency_key,
-      started_at,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      request, run_definition, attempt_id, fence_cid, external_idempotency_key, started_at,
+      max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -1549,19 +1490,9 @@ pub fn strategy_publication_preflight_valid(
   program_definition_cid : String,
 ) -> Bool {
   @publication.publication_preflight_valid(
-    admission,
-    run_definition,
-    invocation,
-    definitions,
-    retentions,
-    computation_contract_cids,
-    input_relation_cids,
-    scope_cids,
-    effective_data_policy_cids,
-    authority_scope_cids,
-    request,
-    attempt,
-    program_definition_cid,
+    admission, run_definition, invocation, definitions, retentions, computation_contract_cids,
+    input_relation_cids, scope_cids, effective_data_policy_cids, authority_scope_cids,
+    request, attempt, program_definition_cid,
   )
 }
 
@@ -1583,18 +1514,8 @@ pub fn strategy_issue_public_index_entry(
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.issue_public_index_entry(
-      run_definition,
-      invocation,
-      manifest,
-      receipt,
-      captured_run,
-      durable_bindings,
-      request,
-      attempt,
-      committed_at,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      run_definition, invocation, manifest, receipt, captured_run, durable_bindings,
+      request, attempt, committed_at, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -1627,17 +1548,8 @@ pub fn strategy_issue_publication_record(
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.issue_publication_record(
-      attempt,
-      previous,
-      state,
-      observed_at,
-      public_index_entry,
-      failure_cid,
-      cleanup_owner_cids,
-      uncommitted_confirmed,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      attempt, previous, state, observed_at, public_index_entry, failure_cid, cleanup_owner_cids,
+      uncommitted_confirmed, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -1659,17 +1571,10 @@ pub fn strategy_effect_free_run_evidence_chain_valid(
   max_depth : Int,
 ) -> Bool {
   @publication.validate_effect_free_run_evidence_chain(
-    run_definition,
-    invocation,
-    definitions,
-    artifacts,
-    manifest,
-    receipt,
-    captured_run,
-    max_wire_bytes,
-    max_nodes,
-    max_depth,
-  ) is Ok(_)
+    run_definition, invocation, definitions, artifacts, manifest, receipt, captured_run,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+  is Ok(_)
 }
 
 ///|
@@ -1688,18 +1593,10 @@ pub fn strategy_effectful_computation_evidence_chain_valid(
   max_depth : Int,
 ) -> Bool {
   @publication.validate_effectful_computation_evidence_chain(
-    run_definition,
-    invocation,
-    definitions,
-    artifacts,
-    manifest,
-    computation_receipt,
-    captured_run,
-    preview,
-    max_wire_bytes,
-    max_nodes,
-    max_depth,
-  ) is Ok(_)
+    run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
+    captured_run, preview, max_wire_bytes, max_nodes, max_depth,
+  )
+  is Ok(_)
 }
 
 ///|
@@ -1736,24 +1633,11 @@ pub fn strategy_effect_free_publication_commit_valid(
   max_depth : Int,
 ) -> Bool {
   @publication.validate_effect_free_publication_commit_with_result_evidence(
-    run_definition,
-    invocation,
-    definitions,
-    artifacts,
-    derivations,
-    orderings,
-    retentions,
-    durable_bindings,
-    manifest,
-    receipt,
-    captured_run,
-    request,
-    attempt,
-    index_entry,
-    max_wire_bytes,
-    max_nodes,
-    max_depth,
-  ) is Ok(_)
+    run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
+    durable_bindings, manifest, receipt, captured_run, request, attempt, index_entry,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+  is Ok(_)
 }
 
 ///|
@@ -1784,12 +1668,12 @@ pub fn strategy_effectful_publication_commit_valid(
   max_depth : Int,
 ) -> Bool {
   @publication.validate_effectful_publication_commit_with_result_evidence(
-    run_definition, invocation, definitions, artifacts, derivations,
-    orderings, retentions, durable_bindings, manifest, computation_receipt,
-    captured_run, preview, set_receipt_wire, member_receipt_wires,
-    final_receipt_wire, request, attempt, index_entry, max_wire_bytes,
+    run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
+    durable_bindings, manifest, computation_receipt, captured_run, preview, set_receipt_wire,
+    member_receipt_wires, final_receipt_wire, request, attempt, index_entry, max_wire_bytes,
     max_nodes, max_depth,
-  ) is Ok(_)
+  )
+  is Ok(_)
 }
 
 ///|
@@ -2014,12 +1898,7 @@ pub fn strategy_issue_result_retention_extension(
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.issue_result_retention_extension(
-      base,
-      available_until,
-      admitted_at,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      base, available_until, admitted_at, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -2096,16 +1975,8 @@ pub fn strategy_issue_succeeded_run_state(
 ) -> String raise NodeHostFailure {
   match
     @publication.issue_succeeded_run_state_wire(
-      run_id,
-      updated_at,
-      declared_results,
-      names,
-      states,
-      reasons,
-      observed_at,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      run_id, updated_at, declared_results, names, states, reasons, observed_at,
+      max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -2304,8 +2175,12 @@ pub fn strategy_cancel_durable_result_row_frames(
 
 ///|
 #export_name("strategyHostFinished")
-pub fn strategy_host_finished(host : @builtin.ConfiguredComputeHost[@strategy.RunIssue]) -> Bool {
-  let run = @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host))
+pub fn strategy_host_finished(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Bool {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(host),
+  )
   for task in 1..<strategy_host_count(host) {
     if !@strategy.captured_task_completed(run, task) {
       return false
@@ -2346,14 +2221,20 @@ pub fn strategy_host_cover_activation(
 
 ///|
 #export_name("strategyHostStop")
-pub fn strategy_host_stop(host : @builtin.ConfiguredComputeHost[@strategy.RunIssue]) -> Unit {
+pub fn strategy_host_stop(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Unit {
   @host_driver.stop_dispatch_driver(@builtin.configured_host_driver(host))
 }
 
 ///|
 #export_name("strategyHostCloseOutputs")
-pub fn strategy_host_close_outputs(host : @builtin.ConfiguredComputeHost[@strategy.RunIssue]) -> Unit {
-  let run = @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host))
+pub fn strategy_host_close_outputs(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Unit {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(host),
+  )
   for task = strategy_host_count(host) - 1; task > 0; task = task - 1 {
     @strategy.close_captured_task_output(run, task)
   }
@@ -2365,7 +2246,9 @@ pub fn strategy_host_output(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   task : Int,
 ) -> @execution.CompletedOutput? {
-  let run = @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host))
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(host),
+  )
   @strategy.captured_task_target(run, task).bind(target => {
     @strategy.captured_task_output(run, task, target)
   })
@@ -2399,43 +2282,40 @@ pub fn strategy_host_output_export_begin(
 ) -> StrategyHostOutputExport raise NodeHostFailure {
   {
     core: strategy_publication_output_result(
-      @publication_host.prepare_publication_output_export(
-        output,
-        {
-          max_result_fields: 0,
-          max_result_mapping_work: 0,
-          max_result_order_work: 0,
-          max_result_workspace_entries: 0,
-          max_rows,
-          values: {
-            max_nodes: max_value_nodes,
-            max_text_bytes: max_value_text_bytes,
-            max_depth: max_value_depth,
-            max_work: max_value_work,
-          },
-          payload_wire: {
-            max_columns,
-            max_order_work,
-            max_bytes: max_wire_bytes,
-            max_nodes: max_wire_nodes,
-            max_depth: max_wire_depth,
-          },
-          logical_wire: {
-            max_columns,
-            max_order_work,
-            max_bytes: max_logical_wire_bytes,
-            max_nodes: max_logical_wire_nodes,
-            max_depth: max_logical_wire_depth,
-          },
-          schema: {
-            max_fields: max_schema_fields,
-            max_bytes: max_schema_bytes,
-            max_nodes: max_schema_nodes,
-            max_depth: max_schema_depth,
-          },
-          max_batch_bytes,
+      @publication_host.prepare_publication_output_export(output, {
+        max_result_fields: 0,
+        max_result_mapping_work: 0,
+        max_result_order_work: 0,
+        max_result_workspace_entries: 0,
+        max_rows,
+        values: {
+          max_nodes: max_value_nodes,
+          max_text_bytes: max_value_text_bytes,
+          max_depth: max_value_depth,
+          max_work: max_value_work,
         },
-      ),
+        payload_wire: {
+          max_columns,
+          max_order_work,
+          max_bytes: max_wire_bytes,
+          max_nodes: max_wire_nodes,
+          max_depth: max_wire_depth,
+        },
+        logical_wire: {
+          max_columns,
+          max_order_work,
+          max_bytes: max_logical_wire_bytes,
+          max_nodes: max_logical_wire_nodes,
+          max_depth: max_logical_wire_depth,
+        },
+        schema: {
+          max_fields: max_schema_fields,
+          max_bytes: max_schema_bytes,
+          max_nodes: max_schema_nodes,
+          max_depth: max_schema_depth,
+        },
+        max_batch_bytes,
+      }),
     ),
     managed_import: None,
   }
@@ -2620,14 +2500,13 @@ pub fn strategy_host_managed_result_import_begin(
     @strategy.graph_result_occurrence(graph, result) is Some(occurrence) &&
     @strategy.graph_result_name(graph, result) is Some(result_name) &&
     @strategy.captured_task_target(run, task) is Some(target) &&
-    @strategy.captured_managed_task_output_matches(
-      run, task, target, output,
-    ) else {
+    @strategy.captured_managed_task_output_matches(run, task, target, output) else {
     raise InvalidCommand
   }
   let definition = match
     @publication.prepare_result_definition(
-      @strategy.graph_program_definition_cid(graph), result_name,
+      @strategy.graph_program_definition_cid(graph),
+      result_name,
     ) {
     Ok(value) => @publication.result_definition_contract(value)
     Err(_) => raise InvalidCommand
@@ -2640,12 +2519,7 @@ pub fn strategy_host_managed_result_import_begin(
   }
   let bridge = match
     @execution.prepare_managed_publication_bridge(
-      output,
-      material,
-      max_rows,
-      values,
-      max_result_workspace_entries,
-      max_schema_bytes,
+      output, material, max_rows, values, max_result_workspace_entries, max_schema_bytes,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -2654,6 +2528,9 @@ pub fn strategy_host_managed_result_import_begin(
     bridge,
     occurrence,
     definition,
+    run,
+    result,
+    output,
     limits: {
       max_result_fields,
       max_result_mapping_work,
@@ -2701,11 +2578,12 @@ pub fn strategy_host_managed_result_import_append(
     raise InvalidCommand
   }
   match
-    @execution.append_managed_publication_bridge_wire(
-      value.bridge,
-      row,
-      { max_bytes, max_nodes, max_depth, max_text_bytes, },
-    ) {
+    @execution.append_managed_publication_bridge_wire(value.bridge, row, {
+      max_bytes,
+      max_nodes,
+      max_depth,
+      max_text_bytes,
+    }) {
     Ok(_) => ()
     Err(_) => raise InvalidCommand
   }
@@ -2720,19 +2598,169 @@ pub fn strategy_host_managed_result_import_finish(
     raise InvalidCommand
   }
   value.open = false
-  let output = match @execution.finish_managed_publication_bridge(value.bridge) {
+  let output = match
+    @execution.finish_managed_publication_bridge(value.bridge) {
     Ok(output) => output
     Err(_) => raise InvalidCommand
   }
   match
     @publication_host.prepare_result_publication_export(
-      output, value.occurrence, value.definition, value.limits,
+      output,
+      value.occurrence,
+      value.definition,
+      value.limits,
     ) {
     Ok(core) => { core, managed_import: Some(value.bridge), }
     Err(issue) => {
       @execution.close_managed_publication_bridge(value.bridge)
       strategy_publication_output_result(Err(issue))
     }
+  }
+}
+
+///|
+struct StrategyHostResultTransformation {
+  core : @publication_host.CapturedClientResultTransformation
+  bridge : @execution.ManagedPublicationBridge[Int]?
+  mut open : Bool
+}
+
+///|
+#export_name("strategyHostResultTransformationBegin")
+pub fn strategy_host_result_transformation_begin(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  result : Int,
+  max_result_fields : Int,
+  max_result_mapping_work : Int,
+  max_result_order_work : Int,
+  max_result_workspace_entries : Int,
+  max_rows : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_value_depth : Int,
+  max_value_work : Int,
+  max_wire_bytes : Int,
+  max_wire_nodes : Int,
+  max_wire_depth : Int,
+  max_columns : Int,
+  max_order_work : Int,
+  max_logical_wire_bytes : Int,
+  max_logical_wire_nodes : Int,
+  max_logical_wire_depth : Int,
+  max_schema_fields : Int,
+  max_schema_bytes : Int,
+  max_schema_nodes : Int,
+  max_schema_depth : Int,
+  max_batch_bytes : Int,
+  converted_output : @execution.CompletedOutput?,
+  selection : @publication_host.ClientResultTransformation,
+) -> StrategyHostResultTransformation raise NodeHostFailure {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(host),
+  )
+  let limits : @publication_host.PublicationOutputExportLimits = {
+    max_result_fields,
+    max_result_mapping_work,
+    max_result_order_work,
+    max_result_workspace_entries,
+    max_rows,
+    values: {
+      max_nodes: max_value_nodes,
+      max_text_bytes: max_value_text_bytes,
+      max_depth: max_value_depth,
+      max_work: max_value_work,
+    },
+    payload_wire: {
+      max_columns,
+      max_order_work,
+      max_bytes: max_wire_bytes,
+      max_nodes: max_wire_nodes,
+      max_depth: max_wire_depth,
+    },
+    logical_wire: {
+      max_columns,
+      max_order_work,
+      max_bytes: max_logical_wire_bytes,
+      max_nodes: max_logical_wire_nodes,
+      max_depth: max_logical_wire_depth,
+    },
+    schema: {
+      max_fields: max_schema_fields,
+      max_bytes: max_schema_bytes,
+      max_nodes: max_schema_nodes,
+      max_depth: max_schema_depth,
+    },
+    max_batch_bytes,
+  }
+  match @publication_host.start_captured_client_result_transformation(
+    selection, run, result, limits, converted_output?,
+  ) {
+    Ok(core) => { core, bridge: None, open: true, }
+    Err(issue) => raise ResultTransformation(issue)
+  }
+}
+
+///|
+#export_name("strategyHostManagedResultTransformationBegin")
+pub fn strategy_host_managed_result_transformation_begin(
+  value : StrategyHostManagedResultImport,
+  selection : @publication_host.ClientResultTransformation,
+) -> StrategyHostResultTransformation raise NodeHostFailure {
+  if !value.open { raise InvalidCommand }
+  let output = match @execution.finish_managed_publication_bridge(value.bridge) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+  let core = match @publication_host.start_captured_managed_result_transformation(
+    selection, value.run, value.result, value.output, value.bridge, output,
+    value.limits,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise ResultTransformation(issue)
+  }
+  value.open = false
+  { core, bridge: Some(value.bridge), open: true, }
+}
+
+///|
+#export_name("strategyHostResultTransformationAdvance")
+pub fn strategy_host_result_transformation_advance(
+  value : StrategyHostResultTransformation,
+  quantum : Int,
+) -> Bool raise NodeHostFailure {
+  if !value.open { raise InvalidCommand }
+  match value.core.advance(quantum) {
+    Ok((done, _)) => done
+    Err(issue) => raise ResultTransformation(issue)
+  }
+}
+
+///|
+#export_name("strategyHostResultTransformationFinish")
+pub fn strategy_host_result_transformation_finish(
+  value : StrategyHostResultTransformation,
+) -> StrategyHostOutputExport raise NodeHostFailure {
+  if !value.open { raise InvalidCommand }
+  match value.core.finish() {
+    Ok(core) => {
+      value.open = false
+      { core, managed_import: value.bridge, }
+    }
+    Err(issue) => raise ResultTransformation(issue)
+  }
+}
+
+///|
+#export_name("strategyHostResultTransformationCancel")
+pub fn strategy_host_result_transformation_cancel(
+  value : StrategyHostResultTransformation,
+) -> Unit {
+  if value.open {
+    value.core.cancel()
+    if value.bridge is Some(bridge) {
+      @execution.close_managed_publication_bridge(bridge)
+    }
+    value.open = false
   }
 }
 
@@ -2857,14 +2885,8 @@ pub fn strategy_host_output_export_issue_result_evidence(
 ) -> Unit raise NodeHostFailure {
   strategy_publication_output_result(
     value.core.issue_result_evidence(
-      computation_contract_cid,
-      input_relation_cids,
-      scope_cid,
-      effective_data_policy_cid,
-      authority_scope_cid,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      computation_contract_cid, input_relation_cids, scope_cid, effective_data_policy_cid,
+      authority_scope_cid, max_wire_bytes, max_nodes, max_depth,
     ),
   )
 }
@@ -2965,7 +2987,11 @@ pub fn strategy_host_explain(
   max_bytes : Int,
   max_nodes : Int,
 ) -> String raise NodeHostFailure {
-  let excluded = match @host_driver.compute_host_exclusions(@builtin.configured_host_runtime(host), max_nodes) {
+  let excluded = match
+    @host_driver.compute_host_exclusions(
+      @builtin.configured_host_runtime(host),
+      max_nodes,
+    ) {
     Ok(value) => value
     Err(issue) => raise Diagnostics(issue)
   }
@@ -2983,9 +3009,13 @@ pub fn strategy_host_explain(
 
 ///|
 #export_name("strategyHostUsage")
-pub fn strategy_host_usage(host : @builtin.ConfiguredComputeHost[@strategy.RunIssue]) -> Array[Int64] {
+pub fn strategy_host_usage(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[Int64] {
   let usage = @resources.ledger_usage(
-    @strategy.captured_dag_ledger(@host_driver.dispatch_driver_run(@builtin.configured_host_driver(host))),
+    @strategy.captured_dag_ledger(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+    ),
   )
   [
     usage.planning_work.to_int64(),
@@ -3122,11 +3152,7 @@ pub fn strategy_host_transfer_receipt_matches(
   retained_bytes : Int64,
 ) -> Bool {
   @strategy.captured_managed_transfer_receipt_matches(
-    receipt,
-    transfer,
-    source_task,
-    transferred_bytes,
-    retained_bytes,
+    receipt, transfer, source_task, transferred_bytes, retained_bytes,
   )
 }
 
@@ -3247,8 +3273,7 @@ pub fn strategy_host_record_transfer_site_holding_release(
 pub fn strategy_host_transfer_commit_action(
   progress : @strategy.ManagedTransferProgress,
 ) -> Int raise NodeHostFailure {
-  match
-    @strategy.prepare_managed_transfer_commit_step(progress) {
+  match @strategy.prepare_managed_transfer_commit_step(progress) {
     Ok(value) => @strategy.managed_transfer_runtime_action_code(value)
     Err(issue) => raise Execution(issue)
   }
@@ -3259,8 +3284,7 @@ pub fn strategy_host_transfer_commit_action(
 pub fn strategy_host_transfer_cleanup_action(
   progress : @strategy.ManagedTransferProgress,
 ) -> Int raise NodeHostFailure {
-  match
-    @strategy.prepare_managed_transfer_cleanup_step(progress) {
+  match @strategy.prepare_managed_transfer_cleanup_step(progress) {
     Ok(value) => @strategy.managed_transfer_runtime_action_code(value)
     Err(issue) => raise Execution(issue)
   }
@@ -3274,9 +3298,7 @@ pub fn strategy_host_begin_managed_failure_progress(
   cleanup_refreshed : Bool,
 ) -> @strategy.ManagedFailureProgress {
   @strategy.begin_managed_failure_progress(
-    additional_closed,
-    execution_settled,
-    cleanup_refreshed,
+    additional_closed, execution_settled, cleanup_refreshed,
   )
 }
 
@@ -3343,8 +3365,9 @@ pub fn strategy_host_managed_failure_action(
 pub fn strategy_host_transfer_receipt(
   receipt : @strategy.ManagedTransferReceipt,
 ) -> Array[Int64] {
-  let (transferred, retained) =
-    @strategy.captured_managed_transfer_receipt_bytes(receipt)
+  let (transferred, retained) = @strategy.captured_managed_transfer_receipt_bytes(
+    receipt,
+  )
   [
     @strategy.captured_managed_transfer_receipt_source(receipt).to_int64(),
     @strategy.captured_managed_transfer_receipt_attempt(receipt).to_int64(),
@@ -3370,13 +3393,8 @@ pub fn strategy_site_create(
   max_execution_bytes : Int64,
 ) -> @site.ExecutionSite? {
   @site.create_site(
-    key,
-    generation,
-    runtime_revision,
-    max_concurrent_operations,
-    max_concurrent_transfers,
-    max_retained_bytes,
-    max_execution_bytes,
+    key, generation, runtime_revision, max_concurrent_operations, max_concurrent_transfers,
+    max_retained_bytes, max_execution_bytes,
   )
 }
 
@@ -3454,10 +3472,7 @@ pub fn strategy_site_start_transfer(
   execution_bytes : Int64,
 ) -> @site.SiteTransfer? {
   @site.start_site_transfer(
-    source,
-    destination,
-    retained_bytes,
-    execution_bytes,
+    source, destination, retained_bytes, execution_bytes,
   )
 }
 
@@ -3567,19 +3582,9 @@ pub fn strategy_site_plan_candidate(
 ) -> (Int, Int64) {
   @site.site_candidate_plan_projection(
     @site.plan_site_candidate(
-      duration_milliseconds,
-      startup_milliseconds,
-      capacity_supported,
-      accepts_site_transfer,
-      transfer_provider_available,
-      transfer_milliseconds,
-      transfer_required,
-      shared_transfer,
-      source_revoked,
-      estimate_available,
-      transfer_bytes,
-      retained_bytes,
-      execution_bytes,
+      duration_milliseconds, startup_milliseconds, capacity_supported, accepts_site_transfer,
+      transfer_provider_available, transfer_milliseconds, transfer_required, shared_transfer,
+      source_revoked, estimate_available, transfer_bytes, retained_bytes, execution_bytes,
     ),
   )
 }
@@ -3592,8 +3597,7 @@ pub fn strategy_site_managed_candidate_fallback(
 ) -> Int {
   @site.managed_candidate_fallback_projection(
     @site.classify_managed_candidate_fallback(
-      retained_input_count,
-      exclusion_codes,
+      retained_input_count, exclusion_codes,
     ),
   )
 }
@@ -3604,10 +3608,7 @@ pub fn strategy_site_begin_failed_operation_progress(
   cleanup_required : Bool,
   already_settled : Bool,
 ) -> @site.FailedSiteOperationProgress {
-  @site.begin_failed_site_operation_progress(
-    cleanup_required,
-    already_settled,
-  )
+  @site.begin_failed_site_operation_progress(cleanup_required, already_settled)
 }
 
 ///|
@@ -3638,8 +3639,7 @@ pub fn strategy_site_failed_operation_action(
 
 ///|
 #export_name("strategySiteBeginRetainedCloseProgress")
-pub fn strategy_site_begin_retained_close_progress(
-) -> @site.RetainedSiteCloseProgress {
+pub fn strategy_site_begin_retained_close_progress() -> @site.RetainedSiteCloseProgress {
   @site.begin_retained_site_close_progress()
 }
 
@@ -3752,11 +3752,7 @@ pub fn strategy_host_cleanup_action(
 ) -> Int {
   @strategy.host_cleanup_runtime_action_code(
     @strategy.prepare_host_cleanup_progress_step(
-      progress,
-      closes_pending,
-      known_cleanup_pending,
-      unconfirmed_ownership,
-      cleanup_failed,
+      progress, closes_pending, known_cleanup_pending, unconfirmed_ownership, cleanup_failed,
     ),
   )
 }
@@ -3769,9 +3765,7 @@ pub fn strategy_host_cleanup_pending(
   unconfirmed_ownership : Bool,
 ) -> Bool {
   @strategy.host_cleanup_pending(
-    closes_pending,
-    known_cleanup_pending,
-    unconfirmed_ownership,
+    closes_pending, known_cleanup_pending, unconfirmed_ownership,
   )
 }
 
@@ -3793,8 +3787,7 @@ pub fn strategy_host_begin_task_success_progress(
   managed_binding_claimed : Bool,
 ) -> @strategy.HostTaskSuccessProgress {
   @strategy.begin_host_task_success_progress(
-    connector_owned_output,
-    managed_binding_claimed,
+    connector_owned_output, managed_binding_claimed,
   )
 }
 
@@ -3879,24 +3872,13 @@ pub fn strategy_remote_dispatch_prepare(
   evidence_issuer_capability_cid : String,
   grant_cid : String,
 ) -> @remote.DispatchRequest raise NodeHostFailure {
-  match @remote.prepare_dispatch_request(
-    coordinator_authority,
-    run_definition_cid,
-    task_key,
-    task_attempt,
-    dispatch_id,
-    site_key,
-    site_generation,
-    runtime_bundle_cid,
-    connector_registration,
-    connector_revision,
-    strategy_revision,
-    input_binding_cid,
-    obligations_cid,
-    budget_cid,
-    evidence_issuer_capability_cid,
-    grant_cid,
-  ) {
+  match
+    @remote.prepare_dispatch_request(
+      coordinator_authority, run_definition_cid, task_key, task_attempt, dispatch_id,
+      site_key, site_generation, runtime_bundle_cid, connector_registration, connector_revision,
+      strategy_revision, input_binding_cid, obligations_cid, budget_cid, evidence_issuer_capability_cid,
+      grant_cid,
+    ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
@@ -3923,25 +3905,13 @@ pub fn strategy_remote_dispatch_admit(
   evidence_issuer_capability_cid : String,
   grant_cid : String,
 ) -> @remote.DispatchRequest raise NodeHostFailure {
-  match @remote.admit_dispatch_request(
-    coordinator_authority,
-    run_definition_cid,
-    task_key,
-    task_attempt,
-    dispatch_id,
-    claimed_request_cid,
-    site_key,
-    site_generation,
-    runtime_bundle_cid,
-    connector_registration,
-    connector_revision,
-    strategy_revision,
-    input_binding_cid,
-    obligations_cid,
-    budget_cid,
-    evidence_issuer_capability_cid,
-    grant_cid,
-  ) {
+  match
+    @remote.admit_dispatch_request(
+      coordinator_authority, run_definition_cid, task_key, task_attempt, dispatch_id,
+      claimed_request_cid, site_key, site_generation, runtime_bundle_cid, connector_registration,
+      connector_revision, strategy_revision, input_binding_cid, obligations_cid,
+      budget_cid, evidence_issuer_capability_cid, grant_cid,
+    ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
@@ -3961,7 +3931,8 @@ pub fn strategy_remote_budget_prepare(
   retained_bytes : Int64,
   execution_bytes : Int64,
 ) -> @remote.RemoteDispatchBudget raise NodeHostFailure {
-  match @remote.prepare_remote_dispatch_budget(retained_bytes, execution_bytes) {
+  match
+    @remote.prepare_remote_dispatch_budget(retained_bytes, execution_bytes) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
@@ -3976,9 +3947,7 @@ pub fn strategy_remote_budget_admit(
 ) -> @remote.RemoteDispatchBudget raise NodeHostFailure {
   match
     @remote.admit_remote_dispatch_budget(
-      retained_bytes,
-      execution_bytes,
-      claimed_budget_cid,
+      retained_bytes, execution_bytes, claimed_budget_cid,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
@@ -4085,26 +4054,23 @@ pub fn strategy_remote_output_intent_prepare(
     _ => raise InvalidCommand
   }
   match
-    @remote.prepare_remote_output_intent(
-      request,
-      {
-        store_authority_cid,
-        publication_attempt_cid,
-        result_definition_cid,
-        ordering_evidence_cid,
-        coordinator_authority,
-        transfer_attempt,
-        transfer_route: route,
-        destination_site_key,
-        destination_site_generation,
-        transfer_max_bytes,
-        transfer_expires_unix_ms,
-        source_grant_cid,
-        destination_grant_cid,
-        route_capability_cid,
-        transfer_origin,
-      },
-    ) {
+    @remote.prepare_remote_output_intent(request, {
+      store_authority_cid,
+      publication_attempt_cid,
+      result_definition_cid,
+      ordering_evidence_cid,
+      coordinator_authority,
+      transfer_attempt,
+      transfer_route: route,
+      destination_site_key,
+      destination_site_generation,
+      transfer_max_bytes,
+      transfer_expires_unix_ms,
+      source_grant_cid,
+      destination_grant_cid,
+      route_capability_cid,
+      transfer_origin,
+    }) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
@@ -4134,16 +4100,9 @@ pub fn strategy_remote_publication_payload_prepare(
 ) -> @payload.PublicationPayloadRequest raise NodeHostFailure {
   match
     @payload.prepare_publication_payload_request(
-      store_authority_cid,
-      publication_attempt_cid,
-      material_generation_cid,
-      result_definition_cid,
-      logical_relation_cid,
-      result_schema_cid,
-      ordering_evidence_cid,
-      durable_codec_cid,
-      max_bytes,
-      row_count,
+      store_authority_cid, publication_attempt_cid, material_generation_cid, result_definition_cid,
+      logical_relation_cid, result_schema_cid, ordering_evidence_cid, durable_codec_cid,
+      max_bytes, row_count,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -4208,12 +4167,7 @@ pub fn strategy_remote_output_plan_admit(
 ) -> @remote.RemoteOutputPlan raise NodeHostFailure {
   match
     @remote.admit_remote_output_plan_json(
-      body,
-      output,
-      subject,
-      max_chunks,
-      max_manifest_bytes,
-      max_referenced_bytes,
+      body, output, subject, max_chunks, max_manifest_bytes, max_referenced_bytes,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
@@ -4471,12 +4425,8 @@ pub fn strategy_remote_dispatch_status_json(
   subject : @remote.RemoteManagedOutputSubject?,
   measurement : @remote.RemoteManagedOutputMeasurement?,
 ) -> String raise NodeHostFailure {
-  match @remote.remote_dispatch_status_json(
-    record,
-    evidence,
-    subject,
-    measurement,
-  ) {
+  match
+    @remote.remote_dispatch_status_json(record, evidence, subject, measurement) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
@@ -4690,16 +4640,8 @@ pub fn strategy_remote_coordinator_prepare_observation(
   admitted_measurement : @remote.RemoteManagedOutputMeasurement?,
 ) -> @remote.CoordinatorDispatchTransition raise NodeHostFailure {
   let result = @remote.prepare_coordinator_observation(
-    record,
-    site_revision,
-    execution,
-    evidence,
-    cleanup,
-    material_available,
-    quarantined_capacity,
-    admitted_evidence,
-    admitted_subject,
-    admitted_measurement,
+    record, site_revision, execution, evidence, cleanup, material_available, quarantined_capacity,
+    admitted_evidence, admitted_subject, admitted_measurement,
   )
   match result {
     Ok(value) => value
@@ -4777,16 +4719,8 @@ pub fn strategy_remote_coordinator_prepare_managed_output_observation(
   admitted_measurement : @remote.RemoteManagedOutputMeasurement,
 ) -> @remote.CoordinatorDispatchTransition raise NodeHostFailure {
   let result = @remote.prepare_coordinator_managed_output_observation(
-    record,
-    site_revision,
-    execution,
-    evidence,
-    cleanup,
-    material_available,
-    quarantined_capacity,
-    admitted_evidence,
-    admitted_subject,
-    admitted_measurement,
+    record, site_revision, execution, evidence, cleanup, material_available, quarantined_capacity,
+    admitted_evidence, admitted_subject, admitted_measurement,
   )
   match result {
     Ok(value) => value
@@ -4855,18 +4789,8 @@ pub fn strategy_remote_coordinator_record_restore(
   measurement_cid : String,
 ) -> Unit raise NodeHostFailure {
   let result = @remote.restore_coordinator_dispatch_record(
-    record,
-    revision,
-    progress,
-    site_revision,
-    execution,
-    evidence,
-    cleanup,
-    material_available,
-    quarantined_capacity,
-    evidence_cid,
-    subject_cid,
-    measurement_cid,
+    record, revision, progress, site_revision, execution, evidence, cleanup, material_available,
+    quarantined_capacity, evidence_cid, subject_cid, measurement_cid,
   )
   match result {
     Ok(_) => ()
@@ -5125,8 +5049,7 @@ pub fn strategy_remote_prepare_managed_provisioning(
   capability : @remote.RemoteExecutionCapability,
   issuer : @remote.RemoteEvidenceIssuer,
 ) -> @remote.DispatchTransition raise NodeHostFailure {
-  match
-    @remote.prepare_begin_managed_provisioning(record, capability, issuer) {
+  match @remote.prepare_begin_managed_provisioning(record, capability, issuer) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
@@ -5207,9 +5130,7 @@ pub fn strategy_remote_prepare_retained(
 ) -> @remote.DispatchTransition raise NodeHostFailure {
   match
     @remote.prepare_retain_remote_output(
-      record,
-      material_generation,
-      holding_evidence_cid,
+      record, material_generation, holding_evidence_cid,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
@@ -5229,13 +5150,8 @@ pub fn strategy_remote_register_evidence_issuer(
 ) -> @remote.RemoteEvidenceIssuer raise NodeHostFailure {
   match
     @remote.register_remote_evidence_issuer(
-      site,
-      runtime_bundle_cid,
-      connector_registration,
-      connector_revision,
-      strategy_revision,
-      evidence_kind,
-      issuer_capability_cid,
+      site, runtime_bundle_cid, connector_registration, connector_revision, strategy_revision,
+      evidence_kind, issuer_capability_cid,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
@@ -5254,11 +5170,7 @@ pub fn strategy_remote_register_execution_capability(
 ) -> @remote.RemoteExecutionCapability raise NodeHostFailure {
   match
     @remote.register_remote_execution_capability(
-      site,
-      runtime_bundle_cid,
-      connector_registration,
-      connector_revision,
-      strategy_revision,
+      site, runtime_bundle_cid, connector_registration, connector_revision, strategy_revision,
       operation_capability_cid,
     ) {
     Ok(value) => value
@@ -5283,9 +5195,7 @@ pub fn strategy_remote_issue_execution_evidence(
 ) -> @remote.RemoteExecutionEvidence raise NodeHostFailure {
   match
     @remote.issue_remote_execution_evidence(
-      issuer,
-      record,
-      evidence_subject_cid,
+      issuer, record, evidence_subject_cid,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
@@ -5301,9 +5211,7 @@ pub fn strategy_remote_output_holding_evidence_identity(
 ) -> String raise NodeHostFailure {
   match
     @remote.remote_output_holding_evidence_cid(
-      request,
-      material_generation,
-      retained_bytes,
+      request, material_generation, retained_bytes,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
@@ -5327,17 +5235,9 @@ pub fn strategy_remote_managed_output_subject_prepare(
 ) -> @remote.RemoteManagedOutputSubject raise NodeHostFailure {
   match
     @remote.prepare_remote_managed_output_subject(
-      dispatch_request_cid,
-      material_generation,
-      holding_evidence_cid,
-      managed_profile_cid,
-      result_schema_cid,
-      logical_view_cid,
-      representation_codec_cid,
-      physical_manifest_cid,
-      measurement_evidence_cid,
-      row_count,
-      retained_bytes,
+      dispatch_request_cid, material_generation, holding_evidence_cid, managed_profile_cid,
+      result_schema_cid, logical_view_cid, representation_codec_cid, physical_manifest_cid,
+      measurement_evidence_cid, row_count, retained_bytes,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
@@ -5368,18 +5268,9 @@ pub fn strategy_remote_managed_output_subject_admit(
 ) -> @remote.RemoteManagedOutputSubject raise NodeHostFailure {
   match
     @remote.admit_remote_managed_output_subject(
-      dispatch_request_cid,
-      material_generation,
-      holding_evidence_cid,
-      managed_profile_cid,
-      result_schema_cid,
-      logical_view_cid,
-      representation_codec_cid,
-      physical_manifest_cid,
-      measurement_evidence_cid,
-      row_count,
-      retained_bytes,
-      claimed_subject_cid,
+      dispatch_request_cid, material_generation, holding_evidence_cid, managed_profile_cid,
+      result_schema_cid, logical_view_cid, representation_codec_cid, physical_manifest_cid,
+      measurement_evidence_cid, row_count, retained_bytes, claimed_subject_cid,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
@@ -5445,16 +5336,8 @@ pub fn strategy_remote_managed_output_measurement_prepare(
 ) -> @remote.RemoteManagedOutputMeasurement raise NodeHostFailure {
   match
     @remote.prepare_remote_managed_output_measurement(
-      row_count,
-      admission_nodes,
-      admission_text_bytes,
-      admission_work,
-      column_rows,
-      column_bytes,
-      column_nodes,
-      column_max_value_bytes,
-      column_null_rows,
-      column_admitted_depths,
+      row_count, admission_nodes, admission_text_bytes, admission_work, column_rows,
+      column_bytes, column_nodes, column_max_value_bytes, column_null_rows, column_admitted_depths,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
@@ -5478,16 +5361,8 @@ pub fn strategy_remote_managed_output_measurement_admit(
 ) -> @remote.RemoteManagedOutputMeasurement raise NodeHostFailure {
   match
     @remote.admit_remote_managed_output_measurement(
-      row_count,
-      admission_nodes,
-      admission_text_bytes,
-      admission_work,
-      column_rows,
-      column_bytes,
-      column_nodes,
-      column_max_value_bytes,
-      column_null_rows,
-      column_admitted_depths,
+      row_count, admission_nodes, admission_text_bytes, admission_work, column_rows,
+      column_bytes, column_nodes, column_max_value_bytes, column_null_rows, column_admitted_depths,
       claimed_measurement_cid,
     ) {
     Ok(value) => value
@@ -5544,8 +5419,7 @@ pub fn strategy_remote_managed_output_subject_matches_measurement(
   measurement : @remote.RemoteManagedOutputMeasurement,
 ) -> Bool {
   @remote.remote_managed_output_subject_matches_measurement(
-    subject,
-    measurement,
+    subject, measurement,
   )
 }
 
@@ -5570,9 +5444,7 @@ pub fn strategy_remote_managed_output_subject_matches_evidence(
   request : @remote.DispatchRequest,
 ) -> Bool {
   @remote.remote_managed_output_subject_matches_evidence(
-    subject,
-    evidence,
-    request,
+    subject, evidence, request,
   )
 }
 
@@ -5604,19 +5476,9 @@ pub fn strategy_remote_execution_evidence_admit(
 ) -> @remote.RemoteExecutionEvidence raise NodeHostFailure {
   match
     @remote.admit_remote_execution_evidence(
-      connector_registration,
-      connector_revision,
-      dispatch_request_cid,
-      evidence_kind,
-      evidence_subject_cid,
-      holding_evidence_cid,
-      issuer_capability_cid,
-      material_generation,
-      obligations_cid,
-      runtime_bundle_cid,
-      site_generation,
-      site_key,
-      strategy_revision,
+      connector_registration, connector_revision, dispatch_request_cid, evidence_kind,
+      evidence_subject_cid, holding_evidence_cid, issuer_capability_cid, material_generation,
+      obligations_cid, runtime_bundle_cid, site_generation, site_key, strategy_revision,
       claimed_evidence_cid,
     ) {
     Ok(value) => value
@@ -5888,14 +5750,8 @@ pub fn strategy_remote_runtime_admission(
 ) -> Int {
   @remote.remote_runtime_admission_code(
     @remote.classify_remote_runtime_admission(
-      runtime_closed,
-      record_matches,
-      registration_available,
-      budget_available,
-      active_dispatch,
-      site_available,
-      capacity_supported,
-      record_startable,
+      runtime_closed, record_matches, registration_available, budget_available, active_dispatch,
+      site_available, capacity_supported, record_startable,
     ),
   )
 }
@@ -5908,11 +5764,7 @@ pub fn strategy_remote_runtime_failure_plan(
   stop_confirmed : Bool,
 ) -> @remote.RemoteRuntimeStep raise NodeHostFailure {
   match
-    @remote.prepare_remote_runtime_failure(
-      record,
-      cancelled,
-      stop_confirmed,
-    ) {
+    @remote.prepare_remote_runtime_failure(record, cancelled, stop_confirmed) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
@@ -5940,10 +5792,7 @@ pub fn strategy_remote_runtime_cleanup_plan(
 ) -> @remote.RemoteRuntimeStep raise NodeHostFailure {
   match
     @remote.prepare_remote_runtime_cleanup(
-      record,
-      cancelled,
-      stop_confirmed,
-      resources_reclaimed,
+      record, cancelled, stop_confirmed, resources_reclaimed,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
@@ -6167,9 +6016,7 @@ pub fn strategy_remote_record_status(
 
 ///|
 #export_name("strategyRemoteRecordRevision")
-pub fn strategy_remote_record_revision(
-  record : @remote.DispatchRecord,
-) -> Int {
+pub fn strategy_remote_record_revision(record : @remote.DispatchRecord) -> Int {
   @remote.dispatch_record_revision(record)
 }
 
@@ -6189,16 +6036,8 @@ pub fn strategy_remote_record_restore(
 ) -> Unit raise NodeHostFailure {
   match
     @remote.restore_dispatch_record(
-      record,
-      revision,
-      execution,
-      evidence,
-      cleanup,
-      material_available,
-      quarantined_capacity,
-      material_generation,
-      holding_evidence_cid,
-      execution_evidence_cid,
+      record, revision, execution, evidence, cleanup, material_available, quarantined_capacity,
+      material_generation, holding_evidence_cid, execution_evidence_cid,
     ) {
     Ok(_) => ()
     Err(issue) => raise RemoteDispatch(issue)
@@ -6239,21 +6078,9 @@ pub fn strategy_remote_credential_grant_prepare(
 ) -> @credential.RemoteCredentialGrant raise NodeHostFailure {
   match
     @credential.prepare_grant(
-      issuer_authority,
-      principal,
-      namespace_id,
-      environment,
-      site_key,
-      site_generation,
-      runtime_bundle_cid,
-      connector_registration,
-      connector_revision,
-      resource_origin,
-      operation,
-      run_invocation_cid,
-      task_attempt,
-      dispatch_request_cid,
-      expires_unix_ms,
+      issuer_authority, principal, namespace_id, environment, site_key, site_generation,
+      runtime_bundle_cid, connector_registration, connector_revision, resource_origin,
+      operation, run_invocation_cid, task_attempt, dispatch_request_cid, expires_unix_ms,
       max_uses,
     ) {
     Ok(value) => value
@@ -6383,23 +6210,9 @@ pub fn strategy_remote_credential_use_prepare(
 ) -> @credential.RemoteCredentialUse raise NodeHostFailure {
   match
     @credential.prepare_credential_use(
-      grant,
-      use_id,
-      trusted_now_ms,
-      used_count,
-      revoked,
-      principal,
-      namespace_id,
-      environment,
-      site_key,
-      site_generation,
-      runtime_bundle_cid,
-      connector_registration,
-      connector_revision,
-      resource_origin,
-      operation,
-      run_invocation_cid,
-      task_attempt,
+      grant, use_id, trusted_now_ms, used_count, revoked, principal, namespace_id,
+      environment, site_key, site_generation, runtime_bundle_cid, connector_registration,
+      connector_revision, resource_origin, operation, run_invocation_cid, task_attempt,
       dispatch_request_cid,
     ) {
     Ok(value) => value
@@ -6448,22 +6261,9 @@ pub fn strategy_remote_credential_use_authorize(
 ) -> Unit raise NodeHostFailure {
   match
     @credential.authorize_credential_use(
-      credential_use,
-      trusted_now_ms,
-      revoked,
-      principal,
-      namespace_id,
-      environment,
-      site_key,
-      site_generation,
-      runtime_bundle_cid,
-      connector_registration,
-      connector_revision,
-      resource_origin,
-      operation,
-      run_invocation_cid,
-      task_attempt,
-      dispatch_request_cid,
+      credential_use, trusted_now_ms, revoked, principal, namespace_id, environment,
+      site_key, site_generation, runtime_bundle_cid, connector_registration, connector_revision,
+      resource_origin, operation, run_invocation_cid, task_attempt, dispatch_request_cid,
     ) {
     Ok(_) => ()
     Err(issue) => raise RemoteCredential(issue)
@@ -6493,15 +6293,8 @@ pub fn strategy_remote_bundle_manifest_prepare(
 ) -> @bundle.RemoteBundleManifest raise NodeHostFailure {
   match
     @bundle.prepare_bundle_manifest(
-      issuer_authority,
-      bundle_name,
-      revision,
-      target_triple,
-      component_cid,
-      component_bytes,
-      connector_registration,
-      connector_revision,
-      strategy_revision,
+      issuer_authority, bundle_name, revision, target_triple, component_cid, component_bytes,
+      connector_registration, connector_revision, strategy_revision,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
@@ -6530,10 +6323,11 @@ pub fn strategy_remote_bundle_manifest_prepare_components(
   connector_revision : String,
   strategy_revision : String,
 ) -> @bundle.RemoteBundleManifest raise NodeHostFailure {
-  match @bundle.prepare_bundle_manifest_components(
-    issuer_authority, bundle_name, revision, target_triple, components,
-    connector_registration, connector_revision, strategy_revision,
-  ) {
+  match
+    @bundle.prepare_bundle_manifest_components(
+      issuer_authority, bundle_name, revision, target_triple, components, connector_registration,
+      connector_revision, strategy_revision,
+    ) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }
@@ -6597,8 +6391,7 @@ pub fn strategy_remote_bundle_manifest_admit_json(
   body : String,
   claimed_runtime_bundle_cid : String,
 ) -> @bundle.RemoteBundleManifest raise NodeHostFailure {
-  match
-    @bundle.admit_bundle_manifest_json(body, claimed_runtime_bundle_cid) {
+  match @bundle.admit_bundle_manifest_json(body, claimed_runtime_bundle_cid) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }
@@ -6647,11 +6440,7 @@ pub fn strategy_remote_bundle_signature_envelope_admit(
 ) -> @bundle.RemoteBundleSignatureEnvelope raise NodeHostFailure {
   match
     @bundle.admit_bundle_signature_envelope(
-      version,
-      key_id,
-      runtime_bundle_cid,
-      body,
-      signature,
+      version, key_id, runtime_bundle_cid, body, signature,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
@@ -6779,11 +6568,8 @@ pub fn strategy_remote_active_bundle_retain_prepare(
   record : @bundle.RemoteBundleRecord,
   max_owners : Int,
 ) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
-  match @bundle.prepare_active_bundle_retain(
-    active_bundle_cid,
-    record,
-    max_owners,
-  ) {
+  match
+    @bundle.prepare_active_bundle_retain(active_bundle_cid, record, max_owners) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }
@@ -6893,16 +6679,8 @@ pub fn physical_manifest_admit(
 ) -> Array[String] {
   match
     @manifest.admit(
-      version,
-      schema_contract_cid,
-      view_contract_cid,
-      codec_contract_cid,
-      row_count,
-      chunk_cids,
-      chunk_byte_lengths,
-      chunk_row_counts,
-      max_chunks,
-      max_manifest_bytes,
+      version, schema_contract_cid, view_contract_cid, codec_contract_cid, row_count,
+      chunk_cids, chunk_byte_lengths, chunk_row_counts, max_chunks, max_manifest_bytes,
       max_referenced_bytes,
     ) {
     Ok(value) => ["ok", ..@manifest.projection(value)]
@@ -6921,7 +6699,8 @@ pub fn physical_representation_contracts(
   storage_order : Array[Int],
   max_contract_bytes : Int,
 ) -> Array[String] {
-  match @manifest.admit_contracts(fields_frame, storage_order, max_contract_bytes) {
+  match
+    @manifest.admit_contracts(fields_frame, storage_order, max_contract_bytes) {
     Ok(value) => ["ok", ..@manifest.contract_projection(value)]
     Err(InvalidManifest) => ["error", "invalid"]
     Err(ManifestLimit) => ["error", "limit"]
@@ -6968,16 +6747,8 @@ pub fn strategy_remote_transfer_prepare(
   }
   let physical = match
     @manifest.admit(
-      manifest_version,
-      schema_contract_cid,
-      view_contract_cid,
-      codec_contract_cid,
-      row_count,
-      chunk_cids,
-      chunk_byte_lengths,
-      chunk_row_counts,
-      max_chunks,
-      max_manifest_bytes,
+      manifest_version, schema_contract_cid, view_contract_cid, codec_contract_cid,
+      row_count, chunk_cids, chunk_byte_lengths, chunk_row_counts, max_chunks, max_manifest_bytes,
       max_referenced_bytes,
     ) {
     Ok(value) => value
@@ -6985,19 +6756,9 @@ pub fn strategy_remote_transfer_prepare(
   }
   match
     @transfer.prepare_request(
-      coordinator_authority,
-      transfer_attempt_id,
-      selected_route,
-      source_site,
-      source_site_generation,
-      destination_site,
-      destination_site_generation,
-      source_material_generation,
-      physical,
-      capacity_bytes,
-      expires_at_ms,
-      source_grant_cid,
-      destination_grant_cid,
+      coordinator_authority, transfer_attempt_id, selected_route, source_site, source_site_generation,
+      destination_site, destination_site_generation, source_material_generation,
+      physical, capacity_bytes, expires_at_ms, source_grant_cid, destination_grant_cid,
       route_capability_cid,
     ) {
     Ok(value) => value
@@ -7048,13 +6809,8 @@ pub fn strategy_remote_transfer_admit_json(
 ) -> @transfer.RemoteTransferRequest raise NodeHostFailure {
   match
     @transfer.admit_request_json(
-      body,
-      manifest_body,
-      claimed_request_cid,
-      claimed_manifest_cid,
-      max_chunks,
-      max_manifest_bytes,
-      max_referenced_bytes,
+      body, manifest_body, claimed_request_cid, claimed_manifest_cid, max_chunks,
+      max_manifest_bytes, max_referenced_bytes,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteTransfer(issue)
@@ -7084,11 +6840,7 @@ pub fn strategy_remote_transfer_admission_envelope_admit_json(
 ) -> @transfer.RemoteTransferRequest raise NodeHostFailure {
   match
     @transfer.admit_transfer_admission_envelope_json(
-      body,
-      claimed_request_cid,
-      claimed_manifest_cid,
-      max_chunks,
-      max_manifest_bytes,
+      body, claimed_request_cid, claimed_manifest_cid, max_chunks, max_manifest_bytes,
       max_referenced_bytes,
     ) {
     Ok(value) => value
@@ -7243,9 +6995,7 @@ pub fn strategy_remote_transfer_store_use_cancellation_reply_json(
   use_id : String,
 ) -> String raise NodeHostFailure {
   match
-    @transfer.remote_transfer_store_use_cancellation_reply_json(
-      request, use_id,
-    ) {
+    @transfer.remote_transfer_store_use_cancellation_reply_json(request, use_id) {
     Ok(value) => value
     Err(issue) => raise RemoteTransfer(issue)
   }
@@ -7283,8 +7033,7 @@ pub fn strategy_remote_transfer_destination_receipt_prepare(
 ) -> @transfer.RemoteTransferDestinationReceipt raise NodeHostFailure {
   match
     @transfer.prepare_destination_receipt(
-      request,
-      destination_material_generation,
+      request, destination_material_generation,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteTransfer(issue)
@@ -7318,11 +7067,7 @@ pub fn strategy_remote_transfer_destination_receipt_admit_json(
   claimed_receipt_cid : String,
 ) -> @transfer.RemoteTransferDestinationReceipt raise NodeHostFailure {
   match
-    @transfer.admit_destination_receipt_json(
-      body,
-      request,
-      claimed_receipt_cid,
-    ) {
+    @transfer.admit_destination_receipt_json(body, request, claimed_receipt_cid) {
     Ok(value) => value
     Err(issue) => raise RemoteTransfer(issue)
   }
@@ -7392,9 +7137,7 @@ pub fn strategy_remote_transfer_store_use_progress_prepare(
 ) -> @transfer.RemoteTransferStoreUseTransition raise NodeHostFailure {
   match
     @transfer.prepare_store_use_progress(
-      record,
-      confirmed_chunks,
-      confirmed_bytes,
+      record, confirmed_chunks, confirmed_bytes,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteTransfer(issue)
@@ -7497,13 +7240,7 @@ pub fn strategy_remote_transfer_store_use_record_restore(
 ) -> @transfer.RemoteTransferStoreUseRecord raise NodeHostFailure {
   match
     @transfer.restore_store_use_record(
-      store_use,
-      revision,
-      state,
-      cleanup,
-      confirmed_chunks,
-      confirmed_bytes,
-      reader_stopped,
+      store_use, revision, state, cleanup, confirmed_chunks, confirmed_bytes, reader_stopped,
       destination_receipt_cid,
     ) {
     Ok(value) => value
@@ -7588,9 +7325,7 @@ pub fn strategy_remote_transfer_source_settled_prepare(
 ) -> @transfer.RemoteTransferTransition raise NodeHostFailure {
   match
     @transfer.prepare_source_settled(
-      record,
-      integrity_verified,
-      store_object_sealed,
+      record, integrity_verified, store_object_sealed,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteTransfer(issue)
@@ -7642,10 +7377,7 @@ pub fn strategy_remote_transfer_cleanup_prepare(
 ) -> @transfer.RemoteTransferTransition raise NodeHostFailure {
   match
     @transfer.prepare_cleanup(
-      record,
-      source_access_stopped,
-      destination_temporary_reclaimed,
-      object_use_released,
+      record, source_access_stopped, destination_temporary_reclaimed, object_use_released,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteTransfer(issue)
@@ -7767,9 +7499,10 @@ pub fn strategy_effect_logical_request_scope(
   caller_request_id : String,
   max_caller_bytes : Int,
 ) -> @effect.LogicalRequestScope raise NodeHostFailure {
-  match @effect.prepare_logical_request_scope(
-    authority_scope_cid, caller_request_id, max_caller_bytes,
-  ) {
+  match
+    @effect.prepare_logical_request_scope(
+      authority_scope_cid, caller_request_id, max_caller_bytes,
+    ) {
     Ok(value) => value
     Err(issue) => raise EffectIdentity(issue)
   }
@@ -7793,10 +7526,11 @@ pub fn strategy_effect_dispatch_key(
   max_key_nodes : Int,
   max_key_depth : Int,
 ) -> @effect.EffectDispatchKey raise NodeHostFailure {
-  match @effect.prepare_effect_dispatch_key(
-    scope, effect_preview_cid, row_or_item_key_wire,
-    max_key_bytes, max_key_nodes, max_key_depth,
-  ) {
+  match
+    @effect.prepare_effect_dispatch_key(
+      scope, effect_preview_cid, row_or_item_key_wire, max_key_bytes, max_key_nodes,
+      max_key_depth,
+    ) {
     Ok(value) => value
     Err(issue) => raise EffectIdentity(issue)
   }
@@ -7804,7 +7538,9 @@ pub fn strategy_effect_dispatch_key(
 
 ///|
 #export_name("strategyEffectDispatchKeyCid")
-pub fn strategy_effect_dispatch_key_cid(key : @effect.EffectDispatchKey) -> String {
+pub fn strategy_effect_dispatch_key_cid(
+  key : @effect.EffectDispatchKey,
+) -> String {
   @effect.effect_dispatch_key_cid(key)
 }
 
@@ -7822,10 +7558,11 @@ pub fn strategy_effect_recovered_preview_keys(
   max_key_nodes : Int,
   max_key_depth : Int,
 ) -> Array[Array[@effect.EffectDispatchKey]] raise NodeHostFailure {
-  match @effect.recover_effect_preview_apply_keys(
-    preview, scope, max_members, max_rows, max_work, max_key_bytes,
-    max_key_nodes, max_key_depth,
-  ) {
+  match
+    @effect.recover_effect_preview_apply_keys(
+      preview, scope, max_members, max_rows, max_work, max_key_bytes, max_key_nodes,
+      max_key_depth,
+    ) {
     Ok(value) => value
     Err(issue) => raise EffectPreviewRecoveryKeys(issue)
   }
@@ -7857,10 +7594,11 @@ pub fn strategy_effect_logical_item_locator(
   max_item_nodes : Int,
   max_item_depth : Int,
 ) -> @effect.LogicalItemLocator raise NodeHostFailure {
-  match @effect.prepare_logical_item_locator(
-    scope, program_id, node_id, effect_id, item_correlation_wire,
-    max_name_bytes, max_item_bytes, max_item_nodes, max_item_depth,
-  ) {
+  match
+    @effect.prepare_logical_item_locator(
+      scope, program_id, node_id, effect_id, item_correlation_wire, max_name_bytes,
+      max_item_bytes, max_item_nodes, max_item_depth,
+    ) {
     Ok(value) => value
     Err(issue) => raise EffectIdentity(issue)
   }
@@ -7883,10 +7621,10 @@ pub fn strategy_effect_apply_key(
   effect_member_preview_cid : String,
   max_effect_bytes : Int,
 ) -> @effect.EffectApplyKey raise NodeHostFailure {
-  match @effect.prepare_effect_apply_key(
-    scope, effect_preview_cid, effect_id, effect_member_preview_cid,
-    max_effect_bytes,
-  ) {
+  match
+    @effect.prepare_effect_apply_key(
+      scope, effect_preview_cid, effect_id, effect_member_preview_cid, max_effect_bytes,
+    ) {
     Ok(value) => value
     Err(issue) => raise EffectIdentity(issue)
   }
@@ -7913,10 +7651,9 @@ pub fn strategy_effect_row_recovery_action(
   active_owner : Bool,
 ) -> Int {
   @effect.effect_row_recovery_action_from_store(
-    expected_locator, intent_fingerprint_cid, expected_key,
-    canonical_request_cid, stored_locator_cid, stored_fingerprint_cid,
-    stored_key_cid,
-    stored_request_cid, stored_state, active_owner,
+    expected_locator, intent_fingerprint_cid, expected_key, canonical_request_cid,
+    stored_locator_cid, stored_fingerprint_cid, stored_key_cid, stored_request_cid,
+    stored_state, active_owner,
   )
 }
 
@@ -7931,8 +7668,8 @@ pub fn strategy_effect_row_recovery_action_from_entry(
   active_owner : Bool,
 ) -> Int {
   @effect.effect_row_recovery_action_from_entry(
-    expected_locator, intent_fingerprint_cid, expected_key,
-    canonical_request_cid, stored, active_owner,
+    expected_locator, intent_fingerprint_cid, expected_key, canonical_request_cid,
+    stored, active_owner,
   )
 }
 
@@ -7946,9 +7683,10 @@ pub fn strategy_effect_set_frontier(
   max_rows : Int,
   max_work : Int,
 ) -> @effect.EffectSetFrontier raise NodeHostFailure {
-  match @effect.effect_set_frontier_from_codes(
-    effect_ids, policies, row_states, max_members, max_rows, max_work,
-  ) {
+  match
+    @effect.effect_set_frontier_from_codes(
+      effect_ids, policies, row_states, max_members, max_rows, max_work,
+    ) {
     Ok(value) => value
     Err(issue) => raise EffectSetProgress(issue)
   }
@@ -7968,10 +7706,11 @@ pub fn strategy_effect_set_frontier_from_ledger(
   max_rows : Int,
   max_work : Int,
 ) -> @effect.EffectSetFrontier raise NodeHostFailure {
-  match @effect.effect_set_frontier_from_preview_ledger_entries(
-    preview, scopes, locators, keys, expected_bases, heads, active_owners,
-    max_members, max_rows, max_work,
-  ) {
+  match
+    @effect.effect_set_frontier_from_preview_ledger_entries(
+      preview, scopes, locators, keys, expected_bases, heads, active_owners, max_members,
+      max_rows, max_work,
+    ) {
     Ok(value) => value
     Err(issue) => raise EffectSetProgress(issue)
   }
@@ -7991,10 +7730,11 @@ pub fn strategy_effect_set_footprint_conflicts_check(
   max_targets : Int,
   max_work : Int,
 ) -> Bool raise NodeHostFailure {
-  match @effect.check_effect_set_footprint_conflicts_from_codes(
-    effect_ids, kinds, namespaces, boundary_cids, scheme_cids,
-    resource_kinds, target_cids, max_members, max_targets, max_work,
-  ) {
+  match
+    @effect.check_effect_set_footprint_conflicts_from_codes(
+      effect_ids, kinds, namespaces, boundary_cids, scheme_cids, resource_kinds,
+      target_cids, max_members, max_targets, max_work,
+    ) {
     Ok(_) => true
     Err(issue) => raise EffectFootprint(issue)
   }
@@ -8014,12 +7754,11 @@ pub fn strategy_effect_preview_footprint_conflicts_check(
   max_targets : Int,
   max_work : Int,
 ) -> Bool raise NodeHostFailure {
-  match @effect.check_effect_preview_footprint_conflicts(
-    preview_wire, declared_effect_ids, declared_failure_policies,
-    declared_effect_identity_cids,
-    max_wire_bytes, max_nodes, max_depth,
-    max_members, max_targets, max_work,
-  ) {
+  match
+    @effect.check_effect_preview_footprint_conflicts(
+      preview_wire, declared_effect_ids, declared_failure_policies, declared_effect_identity_cids,
+      max_wire_bytes, max_nodes, max_depth, max_members, max_targets, max_work,
+    ) {
     Ok(_) => true
     Err(issue) => raise EffectPreviewFootprint(issue)
   }
@@ -8033,9 +7772,10 @@ pub fn strategy_effect_preview_identities(
   max_nodes : Int,
   max_depth : Int,
 ) -> Array[String] raise NodeHostFailure {
-  match @publication.derive_effect_preview_identities(
-    preview_wire, max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @publication.derive_effect_preview_identities(
+      preview_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok((preview_cid, member_cids)) => {
       let identities = [preview_cid]
       for cid in member_cids {
@@ -8055,9 +7795,10 @@ pub fn strategy_effect_preview_row_identities(
   max_nodes : Int,
   max_depth : Int,
 ) -> Array[Array[String]] raise NodeHostFailure {
-  match @publication.derive_effect_preview_row_identities(
-    preview_wire, max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @publication.derive_effect_preview_row_identities(
+      preview_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(rows) => rows
     Err(issue) => raise EffectPreviewIdentity(@effect.Preview(issue))
   }
@@ -8075,10 +7816,11 @@ pub fn strategy_effect_preview_apply_identity_admit(
   max_nodes : Int,
   max_depth : Int,
 ) -> String raise NodeHostFailure {
-  match @effect.admit_effect_preview_apply_identity(
-    preview_wire, expected_run_identity_cid, expected_authoring_context_cid,
-    scope, expected_keys, max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @effect.admit_effect_preview_apply_identity(
+      preview_wire, expected_run_identity_cid, expected_authoring_context_cid, scope,
+      expected_keys, max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(identity) => @publication.effect_preview_semantic_identity(identity)
     Err(issue) => raise EffectPreviewIdentity(issue)
   }
@@ -8090,7 +7832,10 @@ pub fn strategy_effect_preview_private_holding_cid(
   preview : @publication.EffectPreviewIdentity,
   store_authority_cid : String,
 ) -> String raise NodeHostFailure {
-  match @publication.effect_preview_private_holding_cid(preview, store_authority_cid) {
+  match
+    @publication.effect_preview_private_holding_cid(
+      preview, store_authority_cid,
+    ) {
     Some(cid) => cid
     None => raise InvalidCommand
   }
@@ -8102,9 +7847,10 @@ pub fn strategy_effect_computation_capture_holding_cid(
   run_definition : @publication.PublicationContract,
   store_authority_cid : String,
 ) -> String raise NodeHostFailure {
-  match @publication.effect_computation_capture_holding_cid(
-    run_definition, store_authority_cid,
-  ) {
+  match
+    @publication.effect_computation_capture_holding_cid(
+      run_definition, store_authority_cid,
+    ) {
     Some(cid) => cid
     None => raise InvalidCommand
   }
@@ -8116,9 +7862,10 @@ pub fn strategy_effect_computation_record_holding_cid(
   run_definition : @publication.PublicationContract,
   store_authority_cid : String,
 ) -> String raise NodeHostFailure {
-  match @publication.effect_computation_record_holding_cid(
-    run_definition, store_authority_cid,
-  ) {
+  match
+    @publication.effect_computation_record_holding_cid(
+      run_definition, store_authority_cid,
+    ) {
     Some(cid) => cid
     None => raise InvalidCommand
   }
@@ -8144,10 +7891,11 @@ pub fn strategy_effect_preview_apply_identity(
   max_nodes : Int,
   max_depth : Int,
 ) -> @publication.EffectPreviewIdentity raise NodeHostFailure {
-  match @effect.admit_effect_preview_apply_identity(
-    preview_wire, expected_run_identity_cid, expected_authoring_context_cid,
-    scope, expected_keys, max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @effect.admit_effect_preview_apply_identity(
+      preview_wire, expected_run_identity_cid, expected_authoring_context_cid, scope,
+      expected_keys, max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(identity) => identity
     Err(issue) => raise EffectPreviewIdentity(issue)
   }
@@ -8176,9 +7924,10 @@ pub fn strategy_effect_preview_target_guards_check(
       version_cid: version_cids[index],
     })
   }
-  match @effect.check_effect_preview_target_guards(
-    preview, observations, max_rows, max_work,
-  ) {
+  match
+    @effect.check_effect_preview_target_guards(
+      preview, observations, max_rows, max_work,
+    ) {
     Ok(_) => true
     Err(issue) => raise EffectPreviewTargetGuard(issue)
   }
@@ -8198,10 +7947,11 @@ pub fn strategy_effect_collection_batch_admit(
   max_rows : Int,
   max_work : Int,
 ) -> Bool raise NodeHostFailure {
-  match @effect.admit_effect_collection_batch(
-    preview, member_index, first_row, effect_kind, scope, row_cids, locators, keys,
-    max_rows, max_work,
-  ) {
+  match
+    @effect.admit_effect_collection_batch(
+      preview, member_index, first_row, effect_kind, scope, row_cids, locators, keys,
+      max_rows, max_work,
+    ) {
     Ok(_) => true
     Err(issue) => raise EffectCollectionBatch(issue)
   }
@@ -8219,9 +7969,10 @@ pub fn strategy_effect_member_row_admit(
   locator : @effect.LogicalItemLocator,
   key : @effect.EffectDispatchKey,
 ) -> Bool raise NodeHostFailure {
-  match @effect.admit_effect_single_row(
-    preview, member_index, row_index, effect_kind, scope, row_cid, locator, key,
-  ) {
+  match
+    @effect.admit_effect_single_row(
+      preview, member_index, row_index, effect_kind, scope, row_cid, locator, key,
+    ) {
     Ok(_) => true
     Err(issue) => raise EffectCollectionBatch(issue)
   }
@@ -8260,9 +8011,10 @@ pub fn strategy_effect_recovery_bindings(
   max_rows : Int,
   max_work : Int,
 ) -> Array[Array[@effect.EffectRecoveryBinding]] raise NodeHostFailure {
-  match @effect.prepare_effect_recovery_bindings(
-    preview, scope, program_id, node_id, max_rows, max_work,
-  ) {
+  match
+    @effect.prepare_effect_recovery_bindings(
+      preview, scope, program_id, node_id, max_rows, max_work,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -8283,9 +8035,7 @@ pub fn strategy_effect_recover_claims_from_heads(
   heads : Array[Array[@effect.EffectLedgerEntry?]],
   max_rows : Int,
 ) -> Array[Array[@effect.EffectRecoveredClaim]] raise NodeHostFailure {
-  match @effect.recover_effect_claims_from_heads(
-    bindings, heads, max_rows,
-  ) {
+  match @effect.recover_effect_claims_from_heads(bindings, heads, max_rows) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -8355,11 +8105,12 @@ pub fn strategy_issue_effect_row_outcome_receipt(
   max_nodes : Int,
   max_depth : Int,
 ) -> @publication.PublicationContract raise NodeHostFailure {
-  match @publication.issue_effect_row_outcome_receipt(
-    preview, member_index, row_index, dispatch_entry_cid, credential_use_cid,
-    response_bytes, http_status_code, outcome_wire, max_response_bytes,
-    max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @publication.issue_effect_row_outcome_receipt(
+      preview, member_index, row_index, dispatch_entry_cid, credential_use_cid, response_bytes,
+      http_status_code, outcome_wire, max_response_bytes, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -8374,10 +8125,11 @@ pub fn strategy_admit_effect_saved_response_evidence(
   http_status_code : Int,
   max_response_bytes : Int,
 ) -> @publication.EffectSavedResponseEvidence raise NodeHostFailure {
-  match @publication.admit_effect_saved_response_evidence(
-    dispatch_entry_cids, credential_use_cid, response_bytes,
-    http_status_code, max_response_bytes,
-  ) {
+  match
+    @publication.admit_effect_saved_response_evidence(
+      dispatch_entry_cids, credential_use_cid, response_bytes, http_status_code,
+      max_response_bytes,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -8396,10 +8148,11 @@ pub fn strategy_issue_effect_row_outcome_receipt_from_response(
   max_nodes : Int,
   max_depth : Int,
 ) -> @publication.PublicationContract raise NodeHostFailure {
-  match @publication.issue_effect_row_outcome_receipt_from_response(
-    preview, member_index, row_index, dispatch_entry_cid, response,
-    outcome_wire, max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @publication.issue_effect_row_outcome_receipt_from_response(
+      preview, member_index, row_index, dispatch_entry_cid, response, outcome_wire,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -8421,11 +8174,12 @@ pub fn strategy_admit_effect_row_outcome_receipt(
   max_nodes : Int,
   max_depth : Int,
 ) -> @publication.PublicationContract raise NodeHostFailure {
-  match @publication.admit_effect_row_outcome_receipt(
-    preview, member_index, row_index, dispatch_entry_cid, credential_use_cid,
-    response_bytes, http_status_code, receipt_wire, max_response_bytes,
-    max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @publication.admit_effect_row_outcome_receipt(
+      preview, member_index, row_index, dispatch_entry_cid, credential_use_cid, response_bytes,
+      http_status_code, receipt_wire, max_response_bytes, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -8444,10 +8198,11 @@ pub fn strategy_admit_effect_row_outcome_receipt_from_response(
   max_nodes : Int,
   max_depth : Int,
 ) -> @publication.PublicationContract raise NodeHostFailure {
-  match @publication.admit_effect_row_outcome_receipt_from_response(
-    preview, member_index, row_index, dispatch_entry_cid, response,
-    receipt_wire, max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @publication.admit_effect_row_outcome_receipt_from_response(
+      preview, member_index, row_index, dispatch_entry_cid, response, receipt_wire,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -8483,12 +8238,12 @@ pub fn strategy_issue_effect_row_receipt_terminal_entry(
   max_nodes : Int,
   max_depth : Int,
 ) -> @effect.EffectLedgerEntry raise NodeHostFailure {
-  match @effect.issue_effect_row_receipt_terminal_entry(
-    preview, member_index, row_index, scope, locator, key,
-    canonical_request_cid, current, history, dispatch_entry_cid, credential_use_cid,
-    response_bytes, http_status_code, receipt_wire, max_response_bytes,
-    max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @effect.issue_effect_row_receipt_terminal_entry(
+      preview, member_index, row_index, scope, locator, key, canonical_request_cid,
+      current, history, dispatch_entry_cid, credential_use_cid, response_bytes, http_status_code,
+      receipt_wire, max_response_bytes, max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -8513,11 +8268,12 @@ pub fn strategy_issue_effect_row_receipt_terminal_entry_from_response(
   max_nodes : Int,
   max_depth : Int,
 ) -> @effect.EffectLedgerEntry raise NodeHostFailure {
-  match @effect.issue_effect_row_receipt_terminal_entry_from_response(
-    preview, member_index, row_index, scope, locator, key,
-    canonical_request_cid, current, history, dispatch_entry_cid,
-    response, receipt_wire, max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @effect.issue_effect_row_receipt_terminal_entry_from_response(
+      preview, member_index, row_index, scope, locator, key, canonical_request_cid,
+      current, history, dispatch_entry_cid, response, receipt_wire, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -8546,20 +8302,21 @@ pub fn strategy_check_effect_member_receipt_row_partition_evidence(
     match wire {
       None => terminal_receipts.push(None)
       Some(value) =>
-        match @publication.admit_publication_contract(
-          "effect_row_outcome_receipt", value, max_wire_bytes, max_nodes,
-          max_depth,
-        ) {
+        match
+          @publication.admit_publication_contract(
+            "effect_row_outcome_receipt", value, max_wire_bytes, max_nodes, max_depth,
+          ) {
           Ok(receipt) => terminal_receipts.push(Some(receipt))
           Err(_) => raise InvalidCommand
         }
     }
   }
-  match @effect.check_effect_member_receipt_row_partition_evidence(
-    preview, member_index, scopes, locators, keys, bases, heads,
-    active_owners, terminal_receipts,
-    member_receipt_wire, max_rows, max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @effect.check_effect_member_receipt_row_partition_evidence(
+      preview, member_index, scopes, locators, keys, bases, heads, active_owners,
+      terminal_receipts, member_receipt_wire, max_rows, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
     Ok(_) => true
     Err(_) => raise InvalidCommand
   }
@@ -8586,20 +8343,21 @@ pub fn strategy_issue_effect_member_receipt_from_row_partition(
   for wire in terminal_receipt_wires {
     match wire {
       None => terminal_receipts.push(None)
-      Some(value) => match @publication.admit_publication_contract(
-        "effect_row_outcome_receipt", value, max_wire_bytes, max_nodes,
-        max_depth,
-      ) {
-        Ok(receipt) => terminal_receipts.push(Some(receipt))
-        Err(_) => raise InvalidCommand
-      }
+      Some(value) =>
+        match
+          @publication.admit_publication_contract(
+            "effect_row_outcome_receipt", value, max_wire_bytes, max_nodes, max_depth,
+          ) {
+          Ok(receipt) => terminal_receipts.push(Some(receipt))
+          Err(_) => raise InvalidCommand
+        }
     }
   }
-  match @effect.issue_effect_member_receipt_from_row_partition(
-    preview, member_index, scopes, locators, keys, bases, heads,
-    active_owners, terminal_receipts, max_rows, max_wire_bytes,
-    max_nodes, max_depth,
-  ) {
+  match
+    @effect.issue_effect_member_receipt_from_row_partition(
+      preview, member_index, scopes, locators, keys, bases, heads, active_owners,
+      terminal_receipts, max_rows, max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -8647,9 +8405,10 @@ pub fn strategy_effect_admit_ledger_entry(
   max_nodes : Int,
   max_depth : Int,
 ) -> @effect.EffectLedgerEntry raise NodeHostFailure {
-  match @effect.admit_effect_ledger_entry(
-    wire, max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @effect.admit_effect_ledger_entry(
+      wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(entry) => entry
     Err(issue) => raise EffectLedger(issue)
   }
@@ -8742,11 +8501,12 @@ pub fn strategy_effect_ledger_basis(
   reservation_evidence_cid : String,
   retention_contract_cid : String,
 ) -> @effect.EffectLedgerBasis raise NodeHostFailure {
-  match @effect.prepare_effect_ledger_basis(
-    scope, locator, key, unit_definition_cid, original_membership_cid,
-    intent_fingerprint_cid, canonical_request_cid, recovery_contract_cid,
-    capability, reservation_evidence_cid, retention_contract_cid,
-  ) {
+  match
+    @effect.prepare_effect_ledger_basis(
+      scope, locator, key, unit_definition_cid, original_membership_cid, intent_fingerprint_cid,
+      canonical_request_cid, recovery_contract_cid, capability, reservation_evidence_cid,
+      retention_contract_cid,
+    ) {
     Ok(value) => value
     Err(issue) => raise EffectLedger(issue)
   }
@@ -8760,9 +8520,10 @@ pub fn strategy_effect_issue_prepared_ledger_entry(
   max_nodes : Int,
   max_depth : Int,
 ) -> @effect.EffectLedgerEntry raise NodeHostFailure {
-  match @effect.issue_prepared_effect_ledger_entry(
-    basis, max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @effect.issue_prepared_effect_ledger_entry(
+      basis, max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(issue) => raise EffectLedger(issue)
   }
@@ -8783,15 +8544,17 @@ pub fn strategy_effect_issue_next_ledger_entry(
   } else {
     Some(outcome_receipt_cid)
   }
-  match @effect.issue_next_effect_ledger_entry(
-    prior, next_state, outcome, max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @effect.issue_next_effect_ledger_entry(
+      prior, next_state, outcome, max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(issue) => raise EffectLedger(issue)
   }
 }
 
 // NATIVE_REMOTE_STANDARD_BEGIN
+
 ///|
 /// Register one direct-input verifier without selecting a Node execution
 /// implementation. All input semantics and limits are fixed by MoonBit.

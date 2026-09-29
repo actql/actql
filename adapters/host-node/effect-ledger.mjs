@@ -255,7 +255,8 @@ export function openEffectLedger({
     // immutable basis and decides the common Effect frontier.
     // The caller must obtain the admitted Preview and claims from the checked
     // Program; this is progress, never send admission.
-    frontierFromDurableHeads(admittedPreview, members, maxWork) {
+    frontierFromDurableHeads(admittedPreview, members, maxWork,
+      recoverTargetGuards = false) {
       if (!admittedPreview || !Array.isArray(members) || members.length === 0 ||
           members.length > 1000 || !Number.isSafeInteger(maxWork) ||
           maxWork < 1 || maxWork > 100_000_000) {
@@ -328,9 +329,17 @@ export function openEffectLedger({
             activePhysicalFlights.has(flightKey(head)));
         }
       }
-      return control.setFrontierFromLedger(
+      const admit = recoverTargetGuards ? control.recoveredTargetGuards
+        : control.setFrontierFromLedger;
+      return admit(
         admittedPreview, scopes, locators, keys, bases, heads, activeOwners,
         members.length, totalRows, maxWork);
+    },
+    // Derive an opaque selection from the same authenticated durable heads.
+    // Neither a caller-supplied mask nor absence of a head waives a guard.
+    recoveredTargetGuards(admittedPreview, members, maxWork) {
+      return ledger.frontierFromDurableHeads(
+        admittedPreview, members, maxWork, true);
     },
     // The standard Client Host supplies the same captured Preview owner that
     // retained the Result inputs. Historical progress survives pin release;

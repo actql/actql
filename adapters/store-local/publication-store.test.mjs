@@ -2934,6 +2934,45 @@ function physicalHolding(holdingCid, manifestCid, objects,
   });
 }
 
+for (const damage of ['missing', 'corrupt']) {
+test(`one ${damage} Effect payload does not disable unrelated holdings`,
+  async t => {
+    const setup = await fixture(t);
+    const holdings = [];
+    for (const value of ['healthy input', 'damaged input']) {
+      const payload = await preparePhysical(setup.store, value);
+      const holding = physicalHolding(digest(`holding ${value}`),
+        digest(`artifact ${value}`),
+        [{cid: payload.cid, byte_count: payload.bytes}], 'effect-source');
+      await setup.store.commitPhysicalHolding(holding, [payload.prepared]);
+      holdings.push(holding);
+    }
+    await setup.store.close();
+    const damagedPath = join(setup.directory, 'objects',
+      holdings[1].objects[0].cid.slice('sha256:'.length));
+    if (damage === 'missing') await unlink(damagedPath);
+    else await writeFile(damagedPath, 'Damaged input');
+    const reopened = await openLocalPublicationStore(setup.configuration,
+      contractControl);
+    t.after(() => reopened.close());
+    const chunks = [];
+    await reopened.consumePhysicalHolding(holdings[0].holding_cid, 0,
+      chunk => chunks.push(Buffer.from(chunk)));
+    assert.equal(Buffer.concat(chunks).toString(), 'healthy input');
+    const expected = damage === 'missing'
+      ? 'PublicationObjectMissing' : 'PublicationObjectCorrupt';
+    await assert.rejects(reopened.inspectPhysicalHolding(
+      holdings[1].holding_cid), code(expected));
+    await assert.rejects(reopened.consumePhysicalHolding(
+      holdings[1].holding_cid, 0, () => assert.fail('corrupt bytes exposed')),
+    code(expected));
+    // Unavailable input is not a reason to discard its recovery evidence.
+    assert.deepEqual(JSON.parse(await readFile(join(setup.directory,
+      'physical-holdings', `${holdings[1].holding_cid.slice(7)}.json`))),
+    holdings[1]);
+  });
+}
+
 test('Effect source and other physical holdings release independently',
   async t => {
     const setup = await fixture(t);

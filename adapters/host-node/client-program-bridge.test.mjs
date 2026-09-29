@@ -1,14 +1,17 @@
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import assert from 'node:assert/strict';import {createHash, generateKeyPairSync, sign, verify} from 'node:crypto';
-import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, open, readFile, rm} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {createRequire} from 'node:module';
 import {join} from 'node:path';
 
 import test from 'node:test';
+import {inspect} from 'node:util';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {composeInstalledCheckEnvironment} from
+  './installed-check-environment.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
@@ -30,7 +33,10 @@ import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {connect as connectClient} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
-import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan} from './local-values-plan.mjs';
+import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan,
+  acquiredEffectPublicationAdmission, acquiredEffectPublicationPlan} from
+  './local-values-plan.mjs';
+import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
   './captured-duckdb-source.mjs';
@@ -45,12 +51,18 @@ import {applyCapturedEffectSet, applyRecoveredEffectSet} from './effect-run-appl
 import {loadCheckpointRuntime, openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
 import {issueAuthorizedEffectSetReceipt} from './effect-response-recovery.mjs';
 import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
+  exportPinnedEffectLocalResult,
   preparePinnedEffectSourcePayload, preparePinnedEffectSourceSet,
-  preparePinnedEffectSourceHoldings} from
+  preparePinnedEffectSourceHoldings, retainPinnedEffectDependencyPayloads,
+  preparePinnedEffectDependencyInventory} from
   './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {canonicalJson} from '../host-common/publication-contract-control.fixture.mjs';
 import {issueCompletedEffectfulComputationEvidence, prepareCompletedEffectfulPublication, publishCompletedEffectfulRun, recoverCompletedEffectfulComputation, releaseCompletedRunPreparedPayloads, storeCompletedRunResultSet} from '../host-common/completed-run-publication.mjs';
+import {retainCompletedEffectDependencyPayloads} from
+  '../host-common/completed-run-publication.mjs';
+import {suspendCompletedEffectfulComputation, retireCompletedEffectfulCapture} from
+  '../host-common/completed-run-publication.mjs';
 
 import {nativeSourceIdentityMatches, runNativeHostQuery, issueNativeSourceEvidence} from
   '../connectors/duckdb/node/host.mjs';
@@ -74,6 +86,77 @@ const hashWithoutSelf = (value, selfKey) => {
 };
 const evidenceCid =
   'sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904';
+
+test('public source preparation binds installed aliases before checking a Program', async () => {
+  const source = await readFile(new URL(
+    '../../src/query_integration/query_amount_catalog_wbtest.mbt', import.meta.url), 'utf8');
+  const match = source.slice(source.indexOf('fn query_amount_nullable_catalog'))
+    .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")/u);
+  assert.ok(match);
+  const body = JSON.parse(JSON.parse(match[1]));
+  const viewCid = 'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3';
+  const schemaCid = 'sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4';
+  const sourceRef = 'connector://crm/main/r#v';
+  const selector = {source_ref: sourceRef, source_contract_cid: viewCid,
+    source_view_contract_cid: viewCid, read_mode: 'snapshot'};
+  body.schema_snapshots = [{...selector, output_carrier: 'relation',
+    carrier_schema_contract_cid: schemaCid,
+    source_data_policy_cid: 'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf',
+    data_classification: 'unknown'}];
+  body.connector_capabilities = [{...selector, capability_contract_cids: [
+    'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8']}];
+  delete body.evidence_bundle_cid;
+  body.evidence_bundle_cid = machineCid(body);
+  const environment = moon.clientProgramCheckEnvironment(canonicalText(body),
+    body.evidence_bundle_cid, false, false, true, false, false, false, false);
+  assert.ok(environment);
+  assert.equal(moon.clientProgramCheckingEnvironmentCid(environment),
+    body.evidence_bundle_cid);
+  const alias = {name: 'records', sourceRef, sourceViewContractCid: viewCid,
+    schemaContractCid: schemaCid};
+  const publication = {environmentCid: body.evidence_bundle_cid, aliases: [alias]};
+  const prepare = (text, format = 'sql', published = publication,
+    declarations, parameters) => moon.clientProgramPrepareSourceWithParameters(
+    text, format, environment, JSON.stringify(published), declarations, parameters);
+  const valid = published => moon.clientProgramSourcePublicationValid(
+    environment, JSON.stringify(published));
+  assert.equal(valid(publication), true);
+  for (const text of ['SELECT id FROM records',
+    'SELECT id FROM records WHERE amount >= @minimum']) {
+    const outcome = prepare(text, 'sql', publication,
+      text.includes('@minimum') ? JSON.stringify({minimum: {type: 'number'}}) : undefined,
+      text.includes('@minimum') ? JSON.stringify({minimum: 20}) : undefined);
+    assert.ok(moon.clientProgramPreparationReady(outcome),
+      inspect(moon.clientProgramPreparationIssue(outcome), {depth: 8}));
+  }
+  const pipe = prepare('FROM records |> SELECT id', 'aql-text');
+  assert.ok(moon.clientProgramPreparationReady(pipe),
+    String(moon.clientProgramPreparationIssueCode(pipe)));
+  for (const changed of [
+    {...publication, environmentCid: cid('0')},
+    {...publication, aliases: [{...alias, sourceRef: 'connector://crm/main/other#v'}]},
+    {...publication, aliases: [{...alias, schemaContractCid: cid('0')}]},
+    {...publication, aliases: [{...alias, sourceViewContractCid: cid('0')}]},
+    {...publication, aliases: [alias, {...alias, name: 'RECORDS'}]},
+    {...publication, aliases: [{...alias, name: 'records..bad'}]},
+    {...publication, aliases: [{...alias, extra: 'not permitted'}]},
+  ]) {
+    assert.equal(valid(changed), false);
+    const outcome = prepare('SELECT id FROM records', 'sql', changed);
+    assert.equal(moon.clientProgramPreparationReady(outcome), undefined);
+    assert.equal(moon.clientProgramPreparationIssueCode(outcome), 'source_rejected');
+  }
+  for (const [text, format, code] of [
+    ['SELECT id FROM', 'sql', 'source_invalid_input'],
+    ['FROM records |> SELECT id', 'sql', 'source_invalid_input'],
+    ['SELECT id FROM absent', 'sql', 'source_rejected'],
+    ['SELECT absent FROM records', 'sql', 'source_rejected'],
+  ]) {
+    const outcome = prepare(text, format);
+    assert.equal(moon.clientProgramPreparationReady(outcome), undefined);
+    assert.equal(moon.clientProgramPreparationIssueCode(outcome), code);
+  }
+});
 const programCid =
   'sha256:f3514c8f22c6d72818a167ca3341b3c945397042351c51a5982d7abc881a298c';
 const parametersCid =
@@ -261,6 +344,9 @@ test('checked acquired source and downstream task emit their input ports',
         assert.equal(moon.clientProgramCapturedSourceMatches(prepared,
           opened.capture.source()), true);
         const observed = opened.identity;
+        assert.equal(moon.clientProgramCapturedSourceDependencyBodies(
+          observed, capturedSource), undefined,
+        'ordinary read identity does not retain Effect recovery bodies');
         assert.equal(nativeSourceIdentityMatches(opened.capture, observed), true);
         assert.equal(nativeSourceIdentityMatches({...opened.capture}, observed),
           false);
@@ -283,6 +369,14 @@ test('checked acquired source and downstream task emit their input ports',
           assert.equal(nativeSourceIdentityMatches(opened.capture, otherIdentity),
             false);
           assert.equal(nativeSourceIdentityMatches(other, observed), false);
+          const retainedIdentity = checked(
+            moon.clientProgramIdentifyCapturedEffectSourceRelation(
+              other.source()));
+          assert.equal(moon.clientProgramCapturedSourceDependencyBodies(
+            retainedIdentity, capturedSource), undefined,
+          'equal content from a foreign capture is not the retained owner');
+          assert.equal(typeof moon.clientProgramCapturedSourceDependencyBodies(
+            retainedIdentity, other.source())._0, 'string');
           const context = checked(
             moon.clientProgramPrepareDuckDBSourceEvidenceContext(requirement));
           const logicalInput = checked(moon.clientProgramIssueCapturedSourceLogical(
@@ -1003,8 +1097,24 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.ok(widePrepared);
   const wideResultPlan = checked(
     moon.clientProgramIssueResultPlan(widePrepared, 0));
-  assert.throws(() => checked(
-    moon.clientProgramIssueLocalValuesPlanGraph(widePrepared)),
+  const wideGraph = JSON.parse(moon.clientProgramLocalValuesPlanGraphWire(
+    checked(moon.clientProgramIssueLocalValuesPlanGraph(widePrepared))));
+  assert.equal(wideGraph.nodes.length, 2);
+  assert.deepEqual(wideGraph.nodes[1].pipeline, {
+    output: 'projected', sources: {input_0: {sort: 'relation'}},
+    steps: [{id: 'projected', in: ['input_0'], op: 'REL.select',
+      params: {columns: ['id']}}], version: 'aoa-pipeline/0.1',
+  });
+  assert.deepEqual(wideGraph.root_refs, [{name: 'answer',
+    ref: {node_id: 'result_0', port: 'projected'}, role: 'requested_result'}]);
+  assert.deepEqual(wideGraph.data_edges.map(({from, to}) => ({from, to})), [{
+    from: {node_id: 'values_0', port: 'values_0'},
+    to: {node_id: 'result_0', port: 'input_0'},
+  }]);
+  const alteredProjection = structuredClone(wideGraph);
+  alteredProjection.nodes[1].pipeline.steps[0].params.columns = ['hidden'];
+  assert.throws(() => checked(moon.clientProgramAdmitLocalValuesPlanGraph(
+    widePrepared, JSON.stringify(alteredProjection))),
   {code: 'MoonBitHostFailure'});
   assert.notEqual(moon.clientProgramResultPlanCid(wideResultPlan),
     moon.clientProgramResultPlanCid(resultPlan));
@@ -2257,8 +2367,845 @@ async function effectFixture({splitSource = false,
     }
   }
   return {document: JSON.stringify(document), environment,
+    environmentWire: canonicalJson(environmentDocument),
     mappingCid: mapping.mapping_contract_cid};
 }
+
+test('one acquired Effect Program captures and computes from its owner',
+  async t => {
+    const effect = await effectFixture({writeKind: 'update'});
+    const baseWire = await readFile(new URL(
+      '../../spec/local-check-environment.json', import.meta.url), 'utf8');
+    const source = JSON.parse(await readFile(new URL(
+      './fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
+    source.host_policy_profile = JSON.parse(baseWire).host_policy_profile;
+    source.evidence_bundle_cid = canonicalHashWithoutSelf(source,
+      'evidence_bundle_cid');
+    assert.ok(moon.clientProgramCheckEnvironment(canonicalJson(source),
+      source.evidence_bundle_cid, false, false, true, false, false,
+      false, false), 'source environment');
+    const effectWire = effect.environmentWire;
+    assert.ok(moon.clientProgramCheckEnvironment(effectWire,
+      JSON.parse(effectWire).evidence_bundle_cid, false, false, true,
+      false, false, false, false), 'Effect environment');
+    const wire = composeInstalledCheckEnvironment(moon,
+      canonicalJson(JSON.parse(baseWire)),
+      canonicalJson(source), effectWire);
+    const environment = moon.clientProgramCheckEnvironment(wire,
+      JSON.parse(wire).evidence_bundle_cid,
+      false, false, true, false, false, false, false);
+    assert.ok(environment);
+    const document = JSON.parse(await readFile(new URL(
+      '../connectors/duckdb/node/examples/program.json', import.meta.url),
+    'utf8'));
+    delete document.params;
+    document.stages = document.stages.slice(0, 2);
+    document.stages[0].steps[0].filter = 'id > 1';
+    document.stages[1].effects = JSON.parse(effect.document).stages[0].effects;
+    document.stages[1].effects.save.update.from.result = 'r';
+    document.results = {answer: {from: {stage: 'compute_a', result: 'r'}}};
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      canonicalJson(document), 'json', environment, undefined, []);
+    const prepared = moon.clientProgramEffectPreparationReady(outcome);
+    assert.ok(prepared,
+      moon.clientProgramEffectPreparationIssueCode(outcome));
+    checked(moon.clientProgramEffectPrepareQueryAcquisition(prepared, 0, 0));
+    const compileOutcome = moon.clientProgramCompileLocalEffects(prepared);
+    assert.equal(moon.clientProgramEffectCompilationIssueCode(compileOutcome),
+      undefined);
+    const compiled = checked(compileOutcome);
+    assert.deepEqual(moon.clientProgramEffectCompilationResultNames(compiled),
+      ['answer']);
+    const [registry, contracts] = await Promise.all([
+      readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
+        import.meta.url), 'utf8'),
+      readFile(new URL('../../spec/contracts/actql-aoa.json',
+        import.meta.url), 'utf8'),
+    ]);
+    const aoa = JSON.parse(contracts).execution_contracts;
+    const values = JSON.stringify(aoa['REL.values']);
+    const fragment = JSON.stringify(aoa['ACTQL.expression_fragment/0.1']);
+    const ordered = JSON.stringify(aoa['REL.derive.ordered']);
+    await mkdir(scratch, {recursive: true});
+    const directory = await mkdtemp(join(scratch.pathname,
+      'acquired-effect-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const databasePath = join(directory, 'records.duckdb');
+    const database = await DuckDBInstance.create(databasePath);
+    const connection = await database.connect();
+    try {
+      await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+      await connection.run('INSERT INTO records VALUES (1,10),(2,20),(3,30)');
+    } finally {
+      connection.closeSync();
+      database.closeSync();
+    }
+    const sourceOptions = {moon, preparedEffect: prepared, registry,
+      values, fragment, ordered, database: databasePath,
+      schema: 'main', table: 'records', sourceAccess: {
+        ...fixtureSourceAccess, sourceRef: 'connector://crm/main/r#v',
+      }, transportLimits: {maxRows: 100, maxCells: 1000,
+        maxTransportBytes: 100000, maxSqlBytes: 10000,
+        maxParameters: 10, maxColumns: 10,
+        memoryBytes: 128 * 1024 * 1024, threads: 1}};
+    const preparedSource = await prepareCapturedDuckDBSource(sourceOptions);
+    const opened = await openCapturedDuckDBSource({...sourceOptions,
+      preparedSource});
+    try {
+      assert.equal(opened.setup, undefined);
+      assert.equal(moon.clientProgramEffectCapturedSourceMatches(prepared,
+        opened.capture.source()), true);
+      const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
+        compiled, cid('a'), cid('b'), '2099-01-01T00:00:00.000Z'));
+      const definition = checked(moon.clientProgramIssueEffectRunDefinition(
+        allowed, 'namespace-a', 'acquired-effect-run',
+        '2026-09-29T00:00:00.000Z', '2099-01-01T00:00:00.000Z'));
+      const bound = checked(moon.clientProgramBindCompiledEffectRun(
+        prepared, allowed, definition));
+      const template = checked(moon.strategyRunEvidenceAdmit(
+        'bound_invocation_template',
+        moon.clientProgramEffectCompilationTemplateWire(compiled),
+        1000000, 100000, 64));
+      const preparedEvidence = checked(moon.strategyRunEvidenceAdmit(
+        'prepared_invocation', moon.strategyRunEvidenceJson(
+          moon.clientProgramAllowedEffectRunPrepared(allowed)),
+        1000000, 100000, 64));
+      const authorization = checked(moon.strategyRunEvidenceAdmit(
+        'run_authorization', moon.strategyRunEvidenceJson(
+          moon.clientProgramAllowedEffectRunAuthorization(allowed)),
+        1000000, 100000, 64));
+      const compiledPlan = checked(moon.strategyPublicationAdmit(
+        'compiled_plan',
+        moon.clientProgramEffectCompilationCompiledPlanWire(compiled),
+        1000000, 100000, 64));
+      const admission = moon.clientProgramAdmitEffectPublication(prepared,
+        template, preparedEvidence, authorization, compiledPlan);
+      assert.ok(admission);
+      const sourceEvidenceWire = await opened.issueSourceEvidence({
+        authorityScopeCid: cid('a'),
+        effectiveDataPolicyCid:
+          opened.checkedSource.sourceDataPolicyCid});
+      const sourceRequirement = checked(
+        moon.clientProgramEffectPrepareLocalQueryRequirement(prepared,
+          0, 0, registry, values, fragment, ordered));
+      const sourceObservation = checked(moon.strategyRunEvidenceAdmit(
+        'source_evidence', sourceEvidenceWire, 1000000, 100000, 64));
+      const capturedSourceHandle = opened.capture.source();
+      const localInvocation = (owner = prepared, input = opened.logicalInput,
+        observation = sourceObservation) => checked(
+        moon.clientProgramIssueAcquiredLocalEffectInvocation(owner,
+          capturedSourceHandle, opened.identity, sourceRequirement,
+          input, observation, cid('a'),
+          opened.checkedSource.sourceDataPolicyCid, 1000000, 100000, 64));
+      const local = localInvocation();
+      const sourceRetention = checked(moon.strategyPublicationSeal(
+        'result_retention_policy', JSON.stringify({
+          version: 'actql-result-retention-policy/0.1',
+          retention_contract_cid: cid('e'),
+          effective_data_policy_cid: opened.checkedSource.sourceDataPolicyCid,
+          available_until: '2026-09-29T01:00:00.000Z',
+          delete_by: '2026-09-29T02:00:00.000Z',
+          extension_ceiling_at: '2026-09-29T03:00:00.000Z',
+          metadata_retention_policy_cid: cid('f'),
+          metadata_delete_by: '2026-09-29T04:00:00.000Z',
+          clock_contract_cid: cid('0'),
+        }), 1000000, 100000, 64));
+      const acquiredEvidence = checked(
+        moon.clientProgramIssueAcquiredEffectEvidence(prepared,
+          capturedSourceHandle, opened.identity, sourceRequirement,
+          opened.logicalInput, sourceObservation, cid('a'),
+          opened.checkedSource.sourceDataPolicyCid, sourceRetention,
+          1000000, 100000, 64));
+      const sourceBodies = new Map(
+        moon.clientProgramAcquiredEffectDependencyBodies(acquiredEvidence)
+          .map(pair => [pair._0, JSON.parse(pair._1)]));
+      assert.equal(sourceBodies.size, 6);
+      assert.equal(sourceBodies.get('acquisition_relation').actual_row_count, 2);
+      assert.equal(sourceBodies.get('acquisition_relation').logical_value_cid,
+        JSON.parse(moon.strategyRunEvidenceJson(opened.logicalInput))
+          .logical_relation_cid);
+      assert.equal(sourceBodies.get('acquisition_scope').sources[0]
+        .source_contract_cid, opened.checkedSource.sourceContractCid);
+      const localBody = JSON.parse(moon.clientProgramLocalEffectInvocationJson(
+        local));
+      // Durable dependency bodies come from this same checked owner, not a
+      // second compiler or a caller-authored CID inventory.
+      const definitions = [];
+      for (const unit of [0, 1]) {
+        for (const kind of ['local_dependencies', 'local_body',
+          'parameter_declarations', 'used_values', 'local_contracts',
+          'schema_evidence', 'capability_evidence',
+          'source_view_contract', 'catalog_contract',
+          ...(unit === 1 ? ['result_import_interface',
+            'result_import_type'] : [])]) {
+          const body = checked(moon.clientProgramEffectLocalDependencyBody(
+            prepared, unit, kind, 0, 1000000, 100000, 64));
+          const wire = moon.clientProgramEffectLocalDependencyBodyJson(body);
+          const value = JSON.parse(wire);
+          assert.equal(wire, canonicalJson(value));
+          assert.equal(checked(moon.clientProgramAdmitEffectLocalDependencyBody(
+            prepared, unit, kind, 0, body, wire)), body);
+          assert.throws(() => checked(
+            moon.clientProgramAdmitEffectLocalDependencyBody(
+              prepared, unit, kind, 0, body, wire + ' ')));
+          assert.throws(() => checked(
+            moon.clientProgramAdmitEffectLocalDependencyBody(
+              prepared, 1 - unit, kind, 0, body, wire)));
+          assert.equal(moon.clientProgramEffectLocalDependencyBodyCid(body),
+            canonicalHashWithoutSelf(value, kind === 'source_view_contract'
+              ? 'contract_cid' : kind === 'catalog_contract' ? 'cid' : 'self_cid'));
+          if (kind === 'schema_evidence' || kind === 'capability_evidence') {
+            assert.equal(moon.clientProgramEffectLocalDependencyBodyCid(body),
+              JSON.parse(sourceEvidenceWire)[`${kind}_cid`]);
+          }
+          if (kind === 'source_view_contract') {
+            assert.equal(value.contract_cid,
+              JSON.parse(sourceEvidenceWire).source_view_contract_cid);
+          }
+          if (kind === 'local_dependencies') definitions[unit] = value;
+          if (kind === 'result_import_interface') {
+            assert.equal(value.producer_unit_definition_cid,
+              definitions[0].self_cid);
+          }
+        }
+      }
+      assert.throws(() => checked(moon.clientProgramEffectLocalDependencyBody(
+        prepared, 1, 'unknown', 0, 1000000, 100000, 64)));
+      assert.throws(() => checked(moon.clientProgramEffectLocalDependencyBody(
+        prepared, 1, 'local_dependencies', 1, 1000000, 100000, 64)));
+      assert.deepEqual(localBody.observation_cids,
+        [JSON.parse(sourceEvidenceWire).source_evidence_cid]);
+      assert.equal(moon.clientProgramLocalEffectInvocationCid(local),
+        canonicalHashWithoutSelf(localBody, 'self_cid'));
+      const foreignPrepared = moon.clientProgramEffectPreparationReady(
+        moon.clientProgramPrepareEffectComputationWithParameters(
+          canonicalJson(document), 'json', environment, undefined, []));
+      assert.ok(foreignPrepared);
+      assert.throws(() => localInvocation(foreignPrepared));
+      const alteredInput = JSON.parse(moon.strategyRunEvidenceJson(
+        opened.logicalInput));
+      alteredInput.logical_relation_cid = cid('e');
+      alteredInput.input_logical_cid = canonicalHashWithoutSelf(alteredInput,
+        'input_logical_cid');
+      const admittedAlteredInput = checked(moon.strategyRunEvidenceAdmit(
+        'source_input_logical', canonicalJson(alteredInput),
+        1000000, 100000, 64));
+      assert.throws(() => localInvocation(prepared, admittedAlteredInput));
+      const alteredObservation = JSON.parse(sourceEvidenceWire);
+      alteredObservation.authority_scope_cid = cid('e');
+      alteredObservation.source_evidence_cid = canonicalHashWithoutSelf(
+        alteredObservation, 'source_evidence_cid');
+      const admittedAlteredObservation = checked(moon.strategyRunEvidenceAdmit(
+        'source_evidence', canonicalJson(alteredObservation),
+        1000000, 100000, 64));
+      assert.throws(() => localInvocation(prepared, opened.logicalInput,
+        admittedAlteredObservation));
+      const invoked = checked(moon.clientProgramIssueEffectCapturedInvocation(
+        prepared, compiled, admission, definition, opened.capture.source(),
+        sourceEvidenceWire,
+        moon.strategyRunEvidenceJson(opened.logicalInput),
+        opened.checkedSource.sourceRef,
+        opened.checkedSource.sourceContractCid, cid('a'),
+        opened.checkedSource.sourceDataPolicyCid,
+        '2026-09-29T00:00:00.000Z', '2026-09-29T00:00:01.000Z',
+        1000000, 100000, 64));
+      assert.deepEqual(JSON.parse(moon.strategyRunEvidenceJson(
+        invoked._0)).source_evidence_cids,
+      [JSON.parse(sourceEvidenceWire).source_evidence_cid]);
+      const publication = acquiredEffectPublicationPlan({
+        acquired: acquiredEffectPublicationAdmission({moon,
+          control: runtimeCore(moon).publicationControl, prepared,
+          compilation: compiled, allowed, definition,
+          authorityScopeCid: cid('a'), namespaceId: 'namespace-a',
+          storeAuthorityCid: cid('7'),
+          now: () => '2026-09-29T00:00:02.000Z'}),
+        captured: opened, sourceEvidenceWire,
+        captureStartedAt: '2026-09-29T00:00:00.000Z',
+        captureCompletedAt: '2026-09-29T00:00:01.000Z'});
+      assert.equal(publication.invocation.identity,
+        moon.strategyPublicationContractIdentity(invoked._1));
+      assert.equal(publication.receiptEvidence.sourceEvidence.length, 1);
+      const inputDependencies = publication.localEvidenceContext
+        .acquisitionDependencies;
+      assert.deepEqual(inputDependencies.map(body => body.kind),
+        ['relation_value', 'relation_schema']);
+      assert.deepEqual(JSON.parse(inputDependencies[0].wire),
+        {sort: 'relation', value: [{id: 2}, {id: 3}]});
+      for (const body of inputDependencies) {
+        assert.equal(body.cid, canonicalHashWithoutSelf(
+          JSON.parse(body.wire), 'unused'));
+      }
+      assert.equal(moon.clientProgramLocalEffectInvocationCid(
+        publication.localEvidenceContext.sourceLocalInvocation),
+      moon.clientProgramLocalEffectInvocationCid(local));
+      const foreignSourceEvidence = JSON.parse(sourceEvidenceWire);
+      foreignSourceEvidence.source_contract_cid = cid('f');
+      foreignSourceEvidence.source_evidence_cid =
+        canonicalHashWithoutSelf(foreignSourceEvidence,
+          'source_evidence_cid');
+      assert.throws(() => acquiredEffectPublicationPlan({
+        acquired: acquiredEffectPublicationAdmission({moon,
+          control: runtimeCore(moon).publicationControl, prepared,
+          compilation: compiled, allowed, definition,
+          authorityScopeCid: cid('a'), namespaceId: 'namespace-a',
+          storeAuthorityCid: cid('7'),
+          now: () => '2026-09-29T00:00:02.000Z'}),
+        captured: opened,
+        sourceEvidenceWire: canonicalJson(foreignSourceEvidence),
+        captureStartedAt: '2026-09-29T00:00:00.000Z',
+        captureCompletedAt: '2026-09-29T00:00:01.000Z'}));
+      let retained;
+      const instants = ['2026-09-29T00:00:00.000Z',
+        '2026-09-29T00:00:01.000Z'];
+      const computed = await openAcquiredEffectComputation({moon,
+        owner: bound, acquired: acquiredEffectPublicationAdmission({moon,
+          control: runtimeCore(moon).publicationControl, prepared,
+          compilation: compiled, allowed, definition,
+          authorityScopeCid: cid('a'), namespaceId: 'namespace-a',
+          storeAuthorityCid: cid('7'),
+          now: () => '2026-09-29T00:00:02.000Z'}),
+        sourceProfile: {
+          prepare(options) {
+            assert.equal(options.preparedEffect, prepared);
+            return preparedSource;
+          },
+          open() { return opened; },
+        }, registry, values, fragment, ordered,
+        sourceAccess: sourceOptions.sourceAccess,
+        now: () => instants.shift(),
+        retainComputationOwner(value) { retained = value; }});
+      const {execution, checkedHost: host} = computed;
+      assert.equal(computed.cleanupOwner, retained);
+      assert.equal(computed.publicationPlan.invocation.identity,
+        publication.invocation.identity);
+      try {
+        assert.equal(execution.status, 'host-tasks-completed');
+        assert.equal(moon.clientProgramLocalEffectSourceCount(host), 1);
+        assert.deepEqual(execution.completed.map(value => value.task), [1]);
+        assert.deepEqual(execution.completed.map(value => value.outputRows),
+          [1]);
+        // Effect input custody also pins the complete upstream local Result
+        // inventory from the checked graph, not a caller dependency list.
+        assert.throws(() => checked(moon.clientProgramPinEffectSources(host,
+          1)), 'the upstream Result also consumes a bounded pin');
+        const pinResult = moon.clientProgramPinEffectSources(host, 2);
+        assert.equal(pinResult.$tag, 1,
+          pinResult.$tag === 0 ? `RunIssue ${pinResult._0.$tag}: ${JSON.stringify(pinResult._0)}` : undefined);
+        const pins = checked(pinResult);
+        let imported, rootResult;
+        try {
+          assert.equal(moon.clientProgramEffectLocalResultCount(pins), 2);
+          assert.deepEqual([0, 1].map(index => {
+            const result = moon.clientProgramEffectLocalResultAt(pins, index);
+            assert.ok(result);
+            return [moon.clientProgramEffectLocalResultStage(result),
+              moon.clientProgramEffectLocalResultName(result)];
+          }), [[0, 'r'], [1, 'r']]);
+          imported = checked(moon.clientProgramEffectCaptureResultImport(
+            pins, 1, 0, 100));
+          rootResult = moon.clientProgramEffectLocalResultAt(pins, 0);
+          assert.equal(moon.clientProgramEffectResultImportMatches(
+            imported, pins, 1, rootResult), true);
+          assert.equal(moon.clientProgramEffectResultImportMatches(
+            imported, pins, 0, rootResult), false, 'consumer position');
+          assert.equal(moon.clientProgramEffectResultImportMatches(
+            imported, pins, 1,
+            moon.clientProgramEffectLocalResultAt(pins, 1)), false,
+          'same schema does not replace the producer');
+          for (const [consumer, index, work] of [[0, 0, 100], [1, 1, 100],
+            [1, 0, 0]]) {
+            assert.throws(() => checked(moon.clientProgramEffectCaptureResultImport(
+              pins, consumer, index, work)), {code: 'MoonBitHostFailure'});
+          }
+          const secondPins = checked(moon.clientProgramPinEffectSources(host, 4));
+          try {
+            assert.equal(moon.clientProgramEffectResultImportMatches(
+              imported, secondPins, 1, rootResult), false,
+            'another inventory does not transfer read ownership');
+          } finally { moon.clientProgramReleaseEffectInputs(secondPins); }
+          const limits = moon.clientProgramEffectInputExportLimits(
+            ...effectInputExportArgs(outputLimits));
+          const rootChunks = [];
+          let rootExport, rootReceipt;
+          const exported = await exportPinnedEffectLocalResult({
+            moon, execution, inputs: pins, resultIndex: 0, limits,
+            onChunk: chunk => rootChunks.push(chunk),
+            async onReceipt(_result, receipt, exportedOwner) {
+              rootExport = exportedOwner;
+              rootReceipt = receipt;
+              assert.equal(moon.clientProgramEffectLocalResultExportMatchesReceipt(
+                pins, rootExport, rootReceipt), true);
+              const rootDefinition = checked(
+                moon.clientProgramIssueLocalEffectResultDefinition(
+                  prepared, 0, 'r', 1000000, 100000, 64));
+              const issueRoot = (exportOwner = rootExport,
+                exportReceipt = rootReceipt) => {
+                const result = moon.clientProgramIssueAcquiredEffectLocalResultArtifact(
+                  prepared, pins, exportOwner, acquiredEvidence,
+                  rootDefinition, exportReceipt, admission, definition,
+                  invoked._1, invoked._0, 1000000, 100000, 64);
+                assert.equal(result.$tag, 1,
+                  result.$tag === 0 ? `Artifact issue ${result._0.$tag}: ${JSON.stringify(result._0)}` : undefined);
+                return checked(result);
+              };
+              const rootArtifact = issueRoot();
+              const rootManifest = checked(
+                moon.clientProgramIssueLocalEffectResultManifest(prepared,
+                  moon.clientProgramAcquiredEffectInvocation(acquiredEvidence),
+                  [rootArtifact], 1000000, 100000, 64));
+              const importObservation = checked(
+                moon.clientProgramIssueEffectResultImportObservation(prepared,
+                  pins, imported, rootManifest, rootArtifact,
+                  1000000, 100000, 64));
+              const importBody = JSON.parse(
+                moon.clientProgramEffectResultImportObservationJson(
+                  importObservation));
+              assert.equal(importBody.producer_local_manifest_cid,
+                moon.clientProgramLocalEffectResultManifestCid(rootManifest));
+              assert.equal(importBody.result_artifact_cid,
+                moon.clientProgramLocalEffectResultArtifactCid(rootArtifact));
+              const consumerInvocation = checked(
+                moon.clientProgramIssueImportedLocalEffectInvocation(prepared,
+                  pins, 1, [importObservation], 1000000, 100000, 64));
+              assert.deepEqual(JSON.parse(
+                moon.clientProgramLocalEffectInvocationJson(consumerInvocation))
+                .observation_cids, [importBody.self_cid]);
+              assert.throws(() => checked(
+                moon.clientProgramIssueImportedLocalEffectInvocation(prepared,
+                  pins, 1, [], 1000000, 100000, 64)));
+              const importedEvidence = checked(
+                moon.clientProgramIssueImportedEffectEvidence(prepared,
+                  pins, 1, [importObservation], 1000000, 100000, 64));
+              assert.equal(moon.clientProgramLocalEffectInvocationCid(
+                moon.clientProgramImportedEffectInvocation(importedEvidence)),
+              moon.clientProgramLocalEffectInvocationCid(consumerInvocation));
+              const inputRelations = moon.clientProgramImportedEffectRelationBodies(
+                importedEvidence).map(text => JSON.parse(text));
+              assert.equal(inputRelations.length, 1);
+              assert.equal(inputRelations[0].actual_row_count, 2);
+              assert.deepEqual(inputRelations[0].provenance_evidence, [{
+                kind: 'derivation', cid: JSON.parse(
+                  moon.clientProgramLocalEffectResultDerivationJson(rootArtifact))
+                  .self_cid,
+              }]);
+              // Equal bytes from another export do not transfer ownership.
+              await exportPinnedEffectLocalResult({moon, execution,
+                inputs: pins, resultIndex: 0, limits, onChunk() {},
+                onReceipt(_other, otherReceipt, otherOwner) {
+                  assert.throws(() => issueRoot(rootExport, otherReceipt));
+                  assert.throws(() => issueRoot(otherOwner, rootReceipt));
+                  assert.equal(moon.clientProgramEffectLocalResultExportMatchesReceipt(
+                    pins, rootExport, otherReceipt), false);
+                  assert.equal(moon.clientProgramEffectLocalResultExportMatchesReceipt(
+                    pins, otherOwner, rootReceipt), false);
+                }});
+              const computedChunks = [];
+              const computedResult = await exportPinnedEffectLocalResult({
+                moon, execution, inputs: pins, resultIndex: 1, limits,
+                onChunk: chunk => computedChunks.push(chunk),
+                onReceipt(_other, otherReceipt, otherOwner) {
+                  assert.equal(moon.clientProgramEffectLocalResultExportMatchesReceipt(
+                    pins, otherOwner, otherReceipt), true);
+                  assert.equal(moon.clientProgramEffectLocalResultExportMatchesReceipt(
+                    pins, otherOwner, rootReceipt), false);
+                  const computedDefinition = checked(
+                    moon.clientProgramIssueLocalEffectResultDefinition(
+                      prepared, 1, 'r', 1000000, 100000, 64));
+                  const issueComputed = (resultDefinition = computedDefinition,
+                    exported = otherOwner, receipt = otherReceipt) => checked(
+                    moon.clientProgramIssueImportedEffectLocalResultArtifact(
+                      prepared, pins, exported, importedEvidence,
+                      resultDefinition, receipt, sourceRetention, admission,
+                      definition, invoked._1, invoked._0, 1000000, 100000, 64));
+                  const computedArtifact = issueComputed();
+                  assert.equal(JSON.parse(
+                    moon.clientProgramLocalEffectResultArtifactJson(computedArtifact))
+                    .actual_row_count, 1);
+                  assert.deepEqual(JSON.parse(
+                    moon.clientProgramLocalEffectResultDerivationJson(computedArtifact))
+                    .input_relation_cids, [inputRelations[0].self_cid]);
+                  checked(moon.clientProgramIssueLocalEffectResultManifest(
+                    prepared,
+                    moon.clientProgramImportedEffectInvocation(importedEvidence),
+                    [computedArtifact], 1000000, 100000, 64));
+                  assert.throws(() => issueComputed(rootDefinition));
+                  assert.throws(() => issueComputed(computedDefinition,
+                    rootExport, rootReceipt));
+                }});
+              assert.equal(computedResult.rowCount, 1);
+              assert.deepEqual(JSON.parse(computedChunks.join('')), [{id: 3}]);
+            }});
+          assert.equal(exported.rowCount, 2);
+          assert.deepEqual(JSON.parse(rootChunks.join('')), [{id: 2}, {id: 3}]);
+          assert.equal(moon.clientProgramEffectLocalResultExportMatchesReceipt(
+            pins, rootExport, rootReceipt), false, 'released receipt');
+          // Use the production Host publication/export boundary as well as
+          // the issuer probes above. Both upstream and consumed Results are
+          // retained by the same Store preparation owner after Compute ends.
+          await mkdir(scratch, {recursive: true});
+          const directory = await mkdtemp(join(scratch.pathname,
+            'acquired-dependencies-'));
+          t.after(() => rm(directory, {recursive: true, force: true}));
+          const control = runtimeCore(moon).publicationControl;
+          let failDependencySync = false;
+          const dependencySyncFailure = Object.assign(
+            new Error('DependencyPayloadDeletionSyncFailed'), {code: 'EIO'});
+          const storeConfiguration = {
+            directory, storeAuthorityCid: cid('7'),
+            capacityBytes: 4 * 1024 * 1024,
+            maxObjectBytes: outputLimits.maxWireBytes, maxObjects: 100,
+            maxContractNodes: 100000, maxContractDepth: 64,
+            privateEvidenceKey: Buffer.alloc(32, 4),
+          };
+          let store = await openLocalPublicationStore(storeConfiguration,
+            control, {async syncDirectory(path) {
+            if (failDependencySync && path === join(directory, 'objects')) {
+              failDependencySync = false;
+              throw dependencySyncFailure;
+            }
+            const handle = await open(path, 'r');
+            try { await handle.sync(); }
+            finally { await handle.close(); }
+          }});
+          const plan = computed.publicationPlan;
+          const options = {moon, checkedOwner: prepared, execution, inputs: pins,
+            maxMembers: 1, maxGroupingWork: 100, limits,
+            store, maxBytes: outputLimits.maxWireBytes, control,
+            invocation: plan.invocation, retention: plan.results[0].retention,
+            sourceBindingCid: cid('c'), contractLimits: plan.contractLimits,
+            localEvidenceContext: plan.localEvidenceContext};
+          let sources;
+          try {
+            sources = await preparePinnedEffectSourceSet(options);
+            assert.equal(sources.members.length, 1);
+            assert.deepEqual(sources.dependencies.map(entry =>
+              [entry.unitIndex, entry.payload.summary.rowCount]), [[0, 2], [1, 1]]);
+            const [producer, consumer] = sources.payloads;
+            assert.equal(control.prepareLocalEffectDependencyInventory([], [],
+              plan.contractLimits), '[]');
+            assert.throws(() => control.prepareLocalEffectDependencyInventory(
+              [{...consumer.localResultArtifact}], [], plan.contractLimits),
+            /Foreign Effect dependency root/);
+            const dependencyInventoryWire = preparePinnedEffectDependencyInventory({
+              sources, store, control, contractLimits: plan.contractLimits,
+            });
+            const dependencyInventory = JSON.parse(dependencyInventoryWire);
+            // Two checked Stages, one import, one acquisition and two local
+            // Results. Only the producer Manifest is an import dependency.
+            const entriesOf = kind => dependencyInventory.filter(entry =>
+              entry.kind === kind);
+            for (const kind of ['local_body', 'local_dependencies',
+              'local_result_definition', 'local_computation', 'result_artifact',
+              'derivation_evidence', 'acquisition_relation']) {
+              assert.equal(entriesOf(kind).length, 2, kind);
+            }
+            assert.deepEqual(entriesOf('local_manifest').map(entry => entry.cid),
+              [producer.localManifest.identity]);
+            assert.deepEqual(entriesOf('relation_value').map(entry => entry.cid)
+              .sort(), [
+              canonicalHashWithoutSelf({sort: 'relation',
+                value: [{id: 2}, {id: 3}]}, 'unused'),
+              canonicalHashWithoutSelf({sort: 'relation',
+                value: [{id: 3}]}, 'unused'),
+            ].sort());
+            assert.equal(entriesOf('result_import_observation').length, 1);
+            assert.equal(entriesOf('result_import_interface').length, 1);
+            for (const body of plan.localEvidenceContext.acquiredEvidence
+              .catalogBodies) {
+              assert.deepEqual(entriesOf(body.kind).find(entry =>
+                entry.cid === body.cid)?.body, JSON.parse(body.wire));
+            }
+            const reissue = entries => control.prepareLocalEffectDependencyInventory(
+              [consumer.localResultArtifact], entries.map(entry => ({
+                kind: entry.kind, cid: entry.cid,
+                wire: canonicalJson(entry.body),
+              })), plan.contractLimits);
+            assert.equal(reissue(dependencyInventory), dependencyInventoryWire);
+            for (const kind of ['source_evidence', 'schema_evidence',
+              'capability_evidence', 'source_contract', 'source_view_contract',
+              'data_policy', 'local_manifest', 'result_import_observation']) {
+              assert.throws(() => reissue(dependencyInventory.filter(entry =>
+                entry.kind !== kind)), {code: 'MoonBitHostFailure'},
+              `missing ${kind} is not repaired`);
+            }
+            const changedInput = structuredClone(dependencyInventory);
+            const inputBody = changedInput.find(entry =>
+              entry.kind === 'relation_value' && entry.body.value.length === 2);
+            inputBody.body.value[0].id = 99;
+            assert.throws(() => reissue(changedInput),
+              {code: 'MoonBitHostFailure'}, 'changed input bytes reject');
+            inputBody.cid = canonicalHashWithoutSelf(inputBody.body, 'unused');
+            assert.throws(() => reissue(changedInput),
+              {code: 'MoonBitHostFailure'},
+              'rehashing the same-typed replacement cannot change the input');
+            assert.throws(() => preparePinnedEffectDependencyInventory({
+              sources: {...sources}, store, control,
+              contractLimits: plan.contractLimits,
+            }), /InvalidEffectDependencySetOwner/);
+            for (const [payload, rows] of [[producer, [{id: 2}, {id: 3}]],
+              [consumer, [{id: 3}]]]) {
+              const logical = payload.dependencyBodies.find(body =>
+                body.kind === 'relation_value' &&
+                body.cid === payload.summary.logicalCid);
+              const schema = payload.dependencyBodies.find(body =>
+                body.kind === 'relation_schema');
+              assert.deepEqual(JSON.parse(logical.wire),
+                {sort: 'relation', value: rows});
+              assert.equal(logical.cid,
+                canonicalHashWithoutSelf({sort: 'relation', value: rows},
+                  'unused'));
+              assert.equal(logical.cid, payload.summary.logicalCid);
+              assert.notEqual(logical.cid, payload.physical.cid);
+              assert.equal(schema.cid, payload.summary.schemaCid);
+              assert.deepEqual(JSON.parse(schema.wire),
+                {id: {nullable: false, type: 'number'}});
+              const retentionBody = JSON.parse(plan.results[0].retention.wire);
+              for (const [kind, field, expectedCid] of [
+                ['retention_contract', 'retention_contract_cid',
+                  'sha256:a8fb82bdb39b1eb3e6871a55d63f3cb554dcc1953e06501bb686fd8ca8f9646a'],
+                ['metadata_retention_policy', 'metadata_retention_policy_cid',
+                  'sha256:dbf36e9f6f9b35881ac625290a1c93dbbe485ee8d954cdac3c55e345df4c3095'],
+                ['clock_contract', 'clock_contract_cid',
+                  'sha256:c2f7278baa9548283e904d1e8b9048efc0a206ecaca397527ec970776a2f2356'],
+              ]) {
+                const body = payload.dependencyBodies.find(value =>
+                  value.kind === kind);
+                assert.equal(body.cid, expectedCid);
+                assert.equal(body.cid, retentionBody[field]);
+                assert.equal(body.wire, canonicalJson(JSON.parse(body.wire)));
+              }
+            }
+            assert.equal(producer.summary.artifact, undefined,
+              'upstream Result is not a fictitious Effect member');
+            assert.equal(sources.members[0].payload, consumer);
+            assert.throws(() => preparePinnedEffectSourceHoldings({sources,
+              store, control, invocation: plan.invocation}),
+            /IncompleteEffectDependencyHoldings/,
+            'member-only holdings cannot expose a resumable dependency capture');
+            const observation = consumer.dependencyBodies.find(body =>
+              body.kind === 'result_import_observation');
+            assert.ok(observation);
+            const importBody = JSON.parse(observation.wire);
+            assert.equal(importBody.producer_local_manifest_cid,
+              producer.localManifest.identity);
+            assert.equal(importBody.result_artifact_cid,
+              producer.localResultArtifact.identity);
+            const staticRoles = ['local_dependencies', 'local_body',
+              'parameter_declarations', 'used_values', 'local_contracts',
+              'local_policy'];
+            for (const payload of [producer, consumer]) {
+              for (const role of staticRoles) {
+                assert.equal(payload.dependencyBodies.filter(body =>
+                  body.kind === role).length, 1, role);
+              }
+              const unit = payload.dependencyBodies.find(body =>
+                body.kind === 'local_dependencies');
+              assert.equal(unit.cid, JSON.parse(payload.localInvocation.wire)
+                .unit_definition_cid);
+            }
+            assert.deepEqual(producer.dependencyBodies.filter(body =>
+              body.kind === 'result_import_interface'), []);
+            const interfaces = consumer.dependencyBodies.filter(body =>
+              body.kind === 'result_import_interface');
+            assert.equal(interfaces.length, 1);
+            assert.equal(interfaces[0].cid, importBody.import_interface_cid);
+            assert.deepEqual(JSON.parse(consumer.localInvocation.wire)
+              .observation_cids, [importBody.self_cid]);
+            assert.equal(moon.clientProgramEffectLocalResultMatchesMember(
+              pins, 0, 0), false);
+            assert.equal(moon.clientProgramEffectLocalResultMatchesMember(
+              pins, 1, 0), true);
+            assert.throws(() => control.issueImportedEffectEvidence(
+              prepared, pins, 1, [{wire: observation.wire}],
+              plan.contractLimits), /Foreign Effect Result import observation/);
+            const retainedResults = await storeCompletedRunResultSet({
+              execution, store, control, runDefinition: plan.runDefinition,
+              invocation: plan.invocation, results: plan.results,
+              outputLimits, contractLimits: plan.contractLimits,
+            });
+            const adopt = sourceSet => retainPinnedEffectDependencyPayloads({
+              sources: sourceSet, execution, store, storedResults: retainedResults,
+              control, runDefinition: plan.runDefinition,
+            });
+            assert.throws(() => adopt({...sources}), /InvalidEffectDependencySetOwner/);
+            assert.throws(() => retainCompletedEffectDependencyPayloads({
+              execution, store, storedResults: retainedResults, control,
+              runDefinition: plan.runDefinition,
+              dependencies: [{artifact: producer.localResultArtifact,
+                physical: consumer.physical, prepared: producer.prepared}],
+            }), /InvalidCompletedEffectDependencyBinding/);
+            assert.throws(() => control.localEffectResultPayloadBinding(
+              {...producer.localResultArtifact}, plan.runDefinition),
+            /Foreign local Effect Result artifact/);
+            const foreignRun = JSON.parse(plan.runDefinition.wire);
+            delete foreignRun[plan.runDefinition.identityField];
+            foreignRun.run_id += '-foreign';
+            assert.throws(() => control.localEffectResultPayloadBinding(
+              producer.localResultArtifact, control.seal('run_definition',
+                JSON.stringify(foreignRun), plan.contractLimits)));
+            assert.deepEqual(adopt(sources), sources.payloads.map(payload => ({
+              artifactCid: payload.localResultArtifact.identity,
+              physicalCid: payload.physical.cid,
+              byteCount: payload.physical.bytes,
+            })));
+            assert.throws(() => adopt(sources), /InvalidCompletedEffectDependencyOwner/);
+            failDependencySync = true;
+            let dependencyCleanup;
+            await assert.rejects(releaseCompletedRunPreparedPayloads(
+              retainedResults, control), error => {
+              dependencyCleanup = error;
+              return error.cleanupPending === true &&
+                error.cleanupErrors.includes(dependencySyncFailure);
+            });
+            assert.equal(producer.prepared.status().pending, true,
+              'failed unlink durability keeps the upstream payload owner');
+            assert.equal((await dependencyCleanup.cleanupHandle.retry()).pending,
+              false);
+            await releaseCompletedRunPreparedPayloads(retainedResults, control);
+            for (const payload of sources.payloads) {
+              assert.equal(payload.prepared.status().pending, false,
+                'completed owner releases upstream and member payloads');
+            }
+            assert.equal(await releaseCompletedRunPreparedPayloads(
+              retainedResults, control), false);
+            sources = undefined;
+            // A later reservation failure must retain an earlier producer's
+            // failed deletion owner, not leak it or rerun Compute on retry.
+            const reserveFailure = new Error('ConsumerReservationFailed');
+            const releaseFailure = new Error('ProducerReleaseFailed');
+            let reservations = 0;
+            let failedRelease = false;
+            let producerPrepared;
+            const failingStore = Object.freeze({...store,
+              createPreparedObjectWriter(...args) {
+                if (++reservations === 2) throw reserveFailure;
+                const writer = store.createPreparedObjectWriter(...args);
+                return Object.freeze({...writer,
+                  async seal(...sealArgs) {
+                    const sealed = await writer.seal(...sealArgs);
+                    producerPrepared = sealed.prepared;
+                    return Object.freeze({...sealed,
+                      prepared: Object.freeze({...sealed.prepared,
+                        async release() {
+                          if (!failedRelease) {
+                            failedRelease = true;
+                            throw releaseFailure;
+                          }
+                          return sealed.prepared.release();
+                        },
+                      }),
+                    });
+                  },
+                });
+              },
+            });
+            let failure;
+            try {
+              await preparePinnedEffectSourceSet({...options, store: failingStore});
+            } catch (error) { failure = error; }
+            assert.ok(failure);
+            assert.equal(failure.cause, reserveFailure);
+            assert.equal(failure.cleanupPending, true);
+            assert.equal(producerPrepared.status().pending, true);
+            assert.equal((await failure.cleanupHandle.retry()).pending, false);
+            assert.equal(producerPrepared.status().pending, false);
+            assert.equal(reservations, 2,
+              'cleanup never prepares a new consumer or recomputes input');
+
+            // Re-export the same retained computation for durable custody;
+            // no Source query or Compute is executed by capture or recovery.
+            sources = await preparePinnedEffectSourceSet(options);
+            const durableResults = await storeCompletedRunResultSet({
+              execution, store, control, runDefinition: plan.runDefinition,
+              invocation: plan.invocation, results: plan.results,
+              outputLimits, contractLimits: plan.contractLimits,
+            });
+            retainPinnedEffectDependencyPayloads({sources, execution, store,
+              storedResults: durableResults, control,
+              runDefinition: plan.runDefinition});
+            const requestScope = runtimeCore(moon).effectApplicationControl
+              .logicalRequestScope(cid('e'), 'acquired-capture', 128);
+            const previewDocument = effectInputPreview(prepared,
+              [template, preparedEvidence, authorization, compiledPlan],
+              definition, invoked._1, effect.mappingCid,
+              sources.members[0].payload.summary.artifact.identity,
+              'update', [3], [3], ['save'], [cid('0')], requestScope,
+              {sourceResult: 'r'});
+            const authoring = control.admitRunEvidence('authoring_context',
+              canonicalJson(JSON.parse(previewDocument.wire).authoring_context),
+              plan.contractLimits);
+            const preview = control.admitEffectComputationPreview(
+              previewDocument.wire, plan.runDefinition, authoring,
+              plan.contractLimits);
+            const previewInputs = checked(moon.clientProgramBindEffectPreviewInputs(
+              host, pins, invoked._1, 1, previewDocument.wire,
+              previewDocument.authoringCid,
+              moon.clientProgramEffectPreviewInputLimits(
+                20000, 1000, 20, 1000, 100, 20000, 1000, 20,
+                1, 2, 100, 100)));
+            const planChunks = [];
+            await verifyPinnedEffectPlan({moon, execution, previewInputs,
+              previewIndex: 0, limits,
+              planLimits: {maxFields: 10, maxWork: 100, maxBytes: 20000,
+                maxNodes: 1000, maxDepth: 20, maxUtf16Units: 20000},
+              onChunk: chunk => { planChunks.push(chunk); }});
+            const holdings = preparePinnedEffectSourceHoldings({sources,
+              store, control, preview, invocation: plan.invocation});
+            await holdings.commit();
+            const computation = await issueCompletedEffectfulComputationEvidence({
+              execution, store, storedResults: durableResults, control,
+              admission: plan.localEvidenceContext.admission,
+              runDefinition: plan.runDefinition, invocation: plan.invocation,
+              observation: plan.localEvidenceContext.observation,
+              normalizationJournal: plan.normalizationJournal,
+              authoringContext: authoring, receiptEvidence: plan.receiptEvidence,
+              captureEvidence: plan.captureEvidence, preview,
+              plans: [{name: 'save', wire: planChunks.join('')}],
+              effectSourceHoldings: holdings.holdings, connectorRecovery: [],
+              contractLimits: plan.contractLimits,
+            });
+            const savedInventory = JSON.parse(computation.capturedRun.wire)
+              .effect_context.effect_dependency_inventory;
+            assert.deepEqual(savedInventory, dependencyInventory);
+            await suspendCompletedEffectfulComputation({execution, store,
+              storedResults: durableResults, control, computation, preview});
+            for (const payload of sources.payloads) {
+              assert.equal(payload.prepared.status().pending, false);
+            }
+            sources = undefined;
+            await store.close();
+            store = await openLocalPublicationStore(storeConfiguration, control);
+            const recovered = await recoverCompletedEffectfulComputation({
+              store, control, runDefinition: plan.runDefinition,
+              contractLimits: plan.contractLimits});
+            assert.equal(recovered.execution, null);
+            assert.equal(recovered.computation.capturedRun.wire,
+              computation.capturedRun.wire);
+            await releaseCompletedRunPreparedPayloads(recovered.storedResults,
+              control);
+            assert.equal(await retireCompletedEffectfulCapture({store, control,
+              runDefinition: plan.runDefinition,
+              contractLimits: plan.contractLimits}), false,
+            'completed cleanup already retired the exact saved capture');
+          } finally {
+            for (const payload of sources?.payloads ?? []) {
+              await payload.prepared.release();
+            }
+            await store.close();
+          }
+        } finally { moon.clientProgramReleaseEffectInputs(pins); }
+        assert.equal(moon.clientProgramEffectResultImportMatches(
+          imported, pins, 1, rootResult), false, 'released input owner');
+        assert.equal(moon.clientProgramEffectLocalResultCount(pins), 0);
+        assert.equal(moon.clientProgramEffectLocalResultAt(pins, 0), undefined);
+      } finally {
+        await retained.close();
+        assert.equal(await retained.cleanup(), true);
+        assert.equal(retained.cleanupPending(), false);
+      }
+      assert.throws(() => localInvocation(), 'released capture is rejected');
+    } finally { opened.close(); }
+  });
 
 function effectInputPreview(prepared, evidence, definition, invocation,
   mappingCid, artifactCid, writeKind = 'create',
@@ -2268,7 +3215,7 @@ function effectInputPreview(prepared, evidence, definition, invocation,
   scope, {target = 'connector://crm/account',
     mapping = 'mapping:crm.account.v1', resourceKind = 'Account',
     footprints, continueMembers = [], guardVersions,
-    templateOnly = false} = {}) {
+    templateOnly = false, sourceResult = 'rows'} = {}) {
   const definitionCid = moon.clientProgramEffectDefinitionCid(prepared);
   const authoring = {
     version: 'actql-authoring-context/0.1',
@@ -2293,7 +3240,7 @@ function effectInputPreview(prepared, evidence, definition, invocation,
       target, mapping,
       resolved_mapping_contract_cid: mappingCid,
       effect_identity_cid: cid(String(memberIndex + 1)),
-      source_result: 'rows',
+      source_result: sourceResult,
       result_artifact_cid: artifactCid, preview_strength: 'full_diff',
       source_binding_cid: cid('c'), capability_evidence_cid: cid('d'),
       authority_scope_cid: cid('e'),
@@ -4083,12 +5030,31 @@ test('owned update Plan matches approved rows and rejects altered intent',
         return checked(result);
       };
       assert.doesNotThrow(() => preflight());
+      const recoveryPreview = moon.clientProgramEffectPreviewLedgerIdentity(
+        previewInputs);
+      const recoveryRoot = join(directory, 'recovered-preflight-ledger');
+      await mkdir(recoveryRoot);
+      const recoveryLedger = openEffectLedger({moon, root: recoveryRoot,
+        authorityScopeCid: cid('e'), callerRequestId: 'two-effect-request',
+        maxEntryBytes: 4096});
+      let recoveryGuards;
+      try {
+        // Missing durable row heads cannot waive target validation. Build
+        // the proof from real prepared entries, without claiming or sending.
+        assert.throws(() => recoveryLedger.recoveredTargetGuards(
+          recoveryPreview, progressMembers, 64));
+        recoveryLedger.prepareSetIntents(recoveryPreview, progressMembers, 64);
+        recoveryGuards = recoveryLedger.recoveredTargetGuards(
+          recoveryPreview, progressMembers, 64);
+      } finally {
+        recoveryLedger.close();
+      }
       const recoveredPreflight = ({sources = [cid('c'), cid('c')],
         observedRows = guardRows,
         guardVersions = guardRows.map(() => cid('6')),
         keys = preview.keys} = {}) => checked(
         moon.clientProgramCheckRecoveredEffectApplySemantics(
-          moon.clientProgramEffectPreviewLedgerIdentity(previewInputs),
+          recoveryPreview, recoveryGuards,
           sources, [mappingCid, mappingCid], [cid('d'), cid('d')],
           [cid('e'), cid('e')], observedRows, guardVersions,
           selectedRoutes, risk ?? undefined, false,
@@ -4753,8 +5719,17 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
     assert.equal(execution.status, 'host-tasks-completed');
     assert.throws(() => checked(moon.clientProgramPinEffectSources(
       owned, 1)), {code: 'MoonBitHostFailure'});
-    const inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
+    const expectedInventory = splitSource
+      ? [[0, 'rows'], [1, 'rows'], [1, 'early']] : [[0, 'rows']];
+    const inputs = checked(moon.clientProgramPinEffectSources(
+      owned, Math.max(2, expectedInventory.length)));
     try {
+      assert.deepEqual(Array.from({length:
+        moon.clientProgramEffectLocalResultCount(inputs)}, (_, index) => {
+        const result = moon.clientProgramEffectLocalResultAt(inputs, index);
+        return [moon.clientProgramEffectLocalResultStage(result),
+          moon.clientProgramEffectLocalResultName(result)];
+      }), expectedInventory);
       assert.equal(moon.clientProgramEffectInputCount(inputs), 2);
       const first = moon.clientProgramEffectInputAt(inputs, 0);
       const second = moon.clientProgramEffectInputAt(inputs, 1);
@@ -4844,8 +5819,20 @@ test('Effect sources retain exact physical producers across split Stages',
       try {
         assert.equal(execution.status, 'host-tasks-completed',
           execution.failure?.stack);
-        const inputs = checked(moon.clientProgramPinEffectSources(owned, 1));
+        const expectedInventory = [[0, 'rows'], [1, 'rows'], [1, 'early'],
+          ...(splitEffectSource === 'consumer' ? [[2, 'rows']] : [])];
+        const pinned = moon.clientProgramPinEffectSources(
+          owned, expectedInventory.length);
+        assert.equal(pinned.$tag, 1,
+          `${splitEffectSource}: ${pinned._0?.constructor?.name}`);
+        const inputs = checked(pinned);
         try {
+          assert.deepEqual(Array.from({length:
+            moon.clientProgramEffectLocalResultCount(inputs)}, (_, index) => {
+            const result = moon.clientProgramEffectLocalResultAt(inputs, index);
+            return [moon.clientProgramEffectLocalResultStage(result),
+              moon.clientProgramEffectLocalResultName(result)];
+          }), expectedInventory);
           const input = moon.clientProgramEffectInputAt(inputs, 0);
           assert.ok(input);
           assert.equal(moon.clientProgramEffectInputTask(input), expectedTask);
@@ -4853,6 +5840,17 @@ test('Effect sources retain exact physical producers across split Stages',
           const chunks = [];
           const limits = moon.clientProgramEffectInputExportLimits(
             ...effectInputExportArgs(outputLimits));
+          for (let resultIndex = 0; resultIndex < expectedInventory.length;
+            resultIndex++) {
+            const dependencyChunks = [];
+            await exportPinnedEffectLocalResult({
+              moon, execution, inputs, resultIndex, limits,
+              onChunk: async chunk => dependencyChunks.push(chunk),
+            });
+            assert.deepEqual(JSON.parse(dependencyChunks.join('')),
+              [{id: 1}, {id: 2}],
+              `retained dependency ${expectedInventory[resultIndex]}`);
+          }
           const exported = await exportPinnedEffectInput({
             moon, execution, inputs, memberIndex: 0, limits,
             onChunk: async chunk => { chunks.push(chunk); },

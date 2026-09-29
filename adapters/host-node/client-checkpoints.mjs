@@ -676,8 +676,10 @@ export async function installRemoteCheckpoints({root, namespaceId,
     await step('resume_claimed', {prepareAttemptId,
       generation: claim.generation});
     const end = status => {
-      try { journal.completeResume(claim, {status}); }
-      catch (error) { if (error?.code !== 'ResumeClaimStale') throw error; }
+      // A stale fence did not settle the preparation. Let the owned drain
+      // retain retry responsibility and re-observe it under a fresh claim.
+      // In particular, a cancelled Run must not strand its held evidence.
+      journal.completeResume(claim, {status});
     };
     let continuation;
     let captured;

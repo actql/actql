@@ -9,9 +9,10 @@
 //   the Host's pre-acquisition Checkpoint) and `sourceAccess` (the base
 //   access whose `authorization` a Checkpoint may wrap);
 // - `admitsSource(sourceRef)`: whether a checked source is this installation's;
-// - `prepare({preparedProgram, registry, values, fragment, ordered,
+// - `prepare({preparedProgram, preparedEffect, registry, values, fragment, ordered,
 //   sourceAccess})`: the checked source, read tuple and physical binding an
-//   approval covers, without provider I/O;
+//   approval covers, without provider I/O. Exactly one checked owner is given;
+//   an Effect owner must not be rechecked as an Effect-free Program;
 // - `open({... , sourceAccess, signal, preparedSource})`: the acquisition. It
 //   returns the captured source ({checkedSource, identity, logicalInput,
 //   setup, capture, issueSourceEvidence, close}), which the dispatch owner
@@ -22,6 +23,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
@@ -47,11 +49,15 @@ export async function installedSourceIdentity(path) {
     return JSON.parse(bytes.toString('utf8'));
   };
   const profile = await read(path);
+  const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
+  // Omission and an explicitly empty alias publication have the same meaning.
+  if (queryAliases.length === 0) delete profile.queryAliases;
   const parts = [profile];
   if (profile?.version === INSTALLED_SALESFORCE_SOURCE_VERSION) {
     const {checkInstalledSalesforceSourceProfile} = await import(
       '../connectors/salesforce/host/installed-salesforce-source.mjs');
-    const checked = checkInstalledSalesforceSourceProfile(profile);
+    const checked = checkInstalledSalesforceSourceProfile(
+      providerProfile);
     parts.push(await read(checked.siteProfilePath),
       await read(checked.publicationPath));
     profile.accountConfigurationWire = JSON.parse(
@@ -87,12 +93,13 @@ function duckdbAdapter(profile, moon, {root, principalId}) {
     readAuthorization: profile.readAuthorization,
     sourceAccess: profile.sourceAccess,
     admitsSource: sourceRef => sourceRef === profile.sourceRef,
-    prepare: ({preparedProgram, registry, values, fragment, ordered,
+    prepare: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess}) => prepareCapturedDuckDBSource({...common,
-      preparedProgram, registry, values, fragment, ordered, sourceAccess}),
-    open: ({preparedProgram, registry, values, fragment, ordered,
+      preparedProgram, preparedEffect, registry, values, fragment, ordered,
+      sourceAccess}),
+    open: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, signal, preparedSource}) => openCapturedDuckDBSource({
-      ...common, preparedProgram, registry, values, fragment, ordered,
+      ...common, preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, transportLimits: profile.transportLimits, signal,
       preparedSource}),
     close: () => {},
@@ -120,7 +127,8 @@ export async function publishInstalledSourceProfile(path, {root, principalId,
   const {checkInstalledSalesforceSourceProfile,
     publishInstalledSalesforceSource} = await import(
     '../connectors/salesforce/host/installed-salesforce-source.mjs');
-  const checked = checkInstalledSalesforceSourceProfile(profile);
+  const checked = checkInstalledSalesforceSourceProfile(
+    splitSourceAliasProfile(profile).providerProfile);
   const salesforceMoon = await import(salesforceBundle.href);
   const runtimeBundleCid = `sha256:${createHash('sha256')
     .update(await readFile(runtimeUrl)).digest('hex')}`;
@@ -142,9 +150,11 @@ export async function loadInstalledSource(path, {root, principalId, moon,
     throw Object.assign(new TypeError('InvalidInstalledSourceProfile',
       {cause}), {code: 'InvalidInstalledSourceProfile'});
   }
+  const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
   if (profile?.version === INSTALLED_DUCKDB_SOURCE_VERSION) {
-    return duckdbAdapter(await installDuckDBSourceProfile(profile,
+    const adapter = duckdbAdapter(await installDuckDBSourceProfile(providerProfile,
       {root, principalId}), moon, {root, principalId});
+    return Object.freeze({...adapter, queryAliases});
   }
   if (profile?.version === INSTALLED_SALESFORCE_SOURCE_VERSION) {
     // The Salesforce adapter and its provider bundle are loaded only for a
@@ -152,14 +162,16 @@ export async function loadInstalledSource(path, {root, principalId, moon,
     const {checkInstalledSalesforceSourceProfile,
       loadInstalledSalesforceSource} = await import(
       '../connectors/salesforce/host/installed-salesforce-source.mjs');
-    const checked = checkInstalledSalesforceSourceProfile(profile);
+    const checked = checkInstalledSalesforceSourceProfile(providerProfile);
     const salesforceMoon = await import(salesforceBundle.href);
     // The Site binds its credential grants to the exact standard runtime
     // this Host executes.
     const runtimeBundleCid = `sha256:${createHash('sha256')
       .update(await readFile(runtimeUrl)).digest('hex')}`;
-    return loadInstalledSalesforceSource(checked, {root, principalId, moon,
-      salesforceMoon, baseEnvironmentWire, runtimeBundleCid, resolveSecret});
+    const adapter = await loadInstalledSalesforceSource(checked, {root,
+      principalId, moon, salesforceMoon, baseEnvironmentWire, runtimeBundleCid,
+      resolveSecret});
+    return Object.freeze({...adapter, queryAliases});
   }
   throw Object.assign(new TypeError('InvalidInstalledSourceProfile'),
     {code: 'InvalidInstalledSourceProfile'});

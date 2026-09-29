@@ -33,19 +33,20 @@ const configuration = read => canonicalJson({
   ],
 });
 
-async function fixture(t, {read = 'allow', effectRequiredClaims = []} = {}) {
+async function fixture(t, {read = 'allow', effectRequiredClaims = [],
+  accountConfiguration = configuration(read), leaseMs = 60_000} = {}) {
   const scratch = new URL('../../_build/client-effect-checkpoints/',
     import.meta.url);
   await mkdir(scratch, {recursive: true});
   const root = await mkdtemp(join(scratch.pathname, 'host-'));
   const opened = new Set();
-  const clock = Date.parse('2026-09-27T00:00:00.000Z');
+  let clock = Date.parse('2026-09-27T00:00:00.000Z');
   const open = async () => {
     const installed = await installRemoteCheckpoints({root, namespaceId: 'local',
       authorityScopeCid: cid('3'), ownerPrincipal: 'owner', siteKey: 'local',
       realizationKey: 'source-free-values', environmentCid: cid('4'),
       contractControl: runtimeCore(moon).publicationControl, now: () => clock,
-      authorization: {accountConfiguration: configuration(read),
+      authorization: {accountConfiguration, leaseMs,
         effectRequiredClaims, resumeAfterAnswer: false,
         reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
           principalId: 'reviewer', publicKey: pem(reviewer.publicKey)}],
@@ -62,8 +63,74 @@ async function fixture(t, {read = 'allow', effectRequiredClaims = []} = {}) {
     for (const installed of opened) await close(installed);
     await rm(root, {recursive: true, force: true});
   });
-  return {open, close, clock};
+  return {open, close, clock, advance(ms) { clock += ms; }};
 }
+
+test('a stale terminal preparation claim retains settlement responsibility',
+  async t => {
+    const {open, clock, advance} = await fixture(t, {leaseMs: 1000,
+      accountConfiguration: canonicalJson({
+        version: 'actql-execution-account-config/0.1', account_id: 'local',
+        entries: [{entry_id: 'accept', outcome: 'delegate',
+          principal: {all: true}, connection: {any_of: ['local']},
+          resource: {any_of: ['source-free-values']},
+          operation: {any_of: ['write']}, exclusions: []}],
+      })});
+    const installed = await open();
+    let inspections = 0;
+    let executions = 0;
+    let reobserved;
+    const nextObservation = new Promise(resolve => { reobserved = resolve; });
+    await installed.start({
+      async inspect() {
+        inspections++;
+        if (inspections === 1) advance(1001);
+        else reobserved();
+        return {state: 'cancelled', runId: 'cancelled-run'};
+      },
+      async resume() { executions++; throw new Error('MustNotExecute'); },
+      async abandon() { throw new Error('MustNotAbandon'); },
+    });
+    const accepted = await installed.acceptRun({
+      requested: {logicalRequestScopeCid: cid('5'),
+        intentFingerprintCid: cid('6')},
+      captured: {requestId: 'cancelled-request', kind: 'aql',
+        input: {format: 'json', text: '{}'}, parameters: {},
+        resultNames: ['answer'], principalId: 'owner'},
+    });
+    assert.equal(accepted.kind, 'held');
+    const summary = (await installed.listCheckpoints({
+      principalId: 'reviewer', after: '', limit: 10})).items[0];
+    const answer = await signedAnswer(summary, 'approved', {
+      keyId: 'reviewer-key', reviewerId: 'reviewer',
+      authorityScopeCid: cid('3'),
+      sign: bytes => sign(null, bytes, reviewer.privateKey),
+    }, new Date(clock).toISOString());
+    const resolved = await installed.resolve({principalId: 'reviewer',
+      items: [answer]});
+    assert.equal(resolved.results[0].status, 'committed');
+    await installed.sweep();
+    assert.equal(inspections, 1);
+    assert.equal(installed.journal.getPreparation(
+      summary.subject.prepareAttemptId).status, 'resuming');
+    // No explicit wake: the failed completion must retain its own retry.
+    // This deadline bounds the test; it is not a lease or a retry policy.
+    let timeout;
+    try {
+      await Promise.race([nextObservation, new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(
+          new Error('TerminalSettlementRetryMissing')), 5000);
+      })]);
+    } finally { clearTimeout(timeout); }
+    // Join the active owned sweep before checking durable completion.
+    await installed.sweep();
+    assert.equal(inspections, 2);
+    const ended = installed.journal.getPreparation(
+      summary.subject.prepareAttemptId);
+    assert.equal(ended.status, 'ended');
+    assert.equal(ended.endReason, 'cancelled');
+    assert.equal(executions, 0);
+  });
 
 const continuation = beforeDefer => ({runId: 'run-a',
   runDefinitionCid: cid('1'), unitId: 'unit-a', declaredResults: ['answer'],
