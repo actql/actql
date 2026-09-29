@@ -251,3 +251,46 @@ claim or dispatch; valid recovery must publish all four rows. The focused
 test passes with these assertions. No production refusal was relaxed.
 This diagnosis is separate from capture cleanup and the three pending
 Run-outcome classification corrections requested after D's re-verification.
+
+## Recovery refusal and Run outcome integration
+
+The D integration and verification series through `7a47410b0` is merged.
+The following corrections connect preparation failures to the existing Run
+and cleanup owners, without treating every exception as a failed Run:
+
+- Confirmed missing/corrupt Store objects are classified only after exact
+  request and evidence-read admission. An atomic Checkpoint transaction
+  checks the exact Run and absence of protected dispatch before failing an
+  unsent continuation and fencing its older resume claim. Prior dispatch
+  admission prevents this transition; existing unknown evidence is retained.
+- The adapter marks a semantic Catalog refusal only when the exact opaque
+  observation actually describes its selected Resources. A completed sync
+  containing an unavailable Resource is not a definitive write refusal.
+  Transport errors, unclassified checked errors and lookalike error codes do
+  not acquire that classification. Current authorization remains separate.
+- A definite pre-Effect preparation refusal records failure only through
+  the original dispatch owner, which still checks physical stop and retains
+  incomplete cleanup. The marker itself conveys no execution permission.
+- Exact holding ownership can be inspected for retirement without consuming
+  corrupt payloads. Recovery and consumption still verify payload bytes;
+  cleanup can remove unusable inputs without disabling unrelated Runs.
+
+The four-file targeted run passed 133/133 tests: the installed Effect owner,
+Checkpoint journal, Publication Store and D's Read/Compute/Effect acceptance.
+It includes missing/corrupt inputs, current write permission loss, Preview
+refusal, corruption after an unknown write, and actual HTTPS Catalog 503.
+The 503 case preserves `resuming` and zero writes across immediate restart:
+the existing resume lease is not bypassed. This is not evidence of immediate
+post-outage completion or a new retry policy.
+
+The six real-entry computation probes also passed: success, unknown,
+cancel, reject, missing input and corrupt input each executed Source and
+Compute once initially and zero times on recovery. The two damaged-input
+probes additionally check healthy Run availability and failed-capture
+retirement through the common reference Site, independently of Salesforce.
+
+The successful acceptance paths use simulated Salesforce and real Host,
+SQLite, Store and HTTP/Embedded boundaries, not a real org. Final integrated
+CI, the remaining Client gate failure diagnosis, and B's Frontend/Result
+call-site connection remain outstanding. B's registry fixture corrections
+will be merged when its fixed SHA is supplied; its contract is unchanged.

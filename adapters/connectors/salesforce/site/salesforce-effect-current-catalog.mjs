@@ -1,4 +1,5 @@
-import {checked} from '../../../host-common/runtime-result.mjs';
+import {checkedSalesforceCatalogPreparation} from
+  './salesforce-effect-preparation-result.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -35,12 +36,12 @@ export async function refreshSalesforceEffectWriteCatalogs({
     if (!catalog?.observation) fail('InvalidSalesforceEffectCatalogRefresh');
     for (const request of member.requests) {
       signal?.throwIfAborted();
-      checked(moon.salesforceRecheckSingleWriteRequest(
-        request, catalog.observation));
+      checkedSalesforceCatalogPreparation(moon.salesforceRecheckSingleWriteRequest(
+        request, catalog.observation), moon, catalog.observation);
     }
     if (member.collectionRequest !== undefined) {
-      checked(moon.salesforceRecheckCollectionWriteRequest(
-        member.collectionRequest, catalog.observation));
+      checkedSalesforceCatalogPreparation(moon.salesforceRecheckCollectionWriteRequest(
+        member.collectionRequest, catalog.observation), moon, catalog.observation);
     }
     observations.push(catalog.observation);
   }

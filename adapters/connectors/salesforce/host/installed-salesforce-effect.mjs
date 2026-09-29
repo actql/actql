@@ -15,6 +15,8 @@ import {createHash} from 'node:crypto';
 import {mkdir} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {checkedSalesforceCatalogPreparation} from
+  '../site/salesforce-effect-preparation-result.mjs';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {issueCompletedEffectfulComputationEvidence,
@@ -354,14 +356,15 @@ const memberDispatch = (runInvocationCid, member) => cid({
 function projection(salesforceMoon, observation, member) {
   const binding = JSON.parse(
     salesforceMoon.salesforceCatalogObservationJson(observation)).binding;
-  return checked(salesforceMoon.salesforcePrepareWriteProjection(
+  return checkedSalesforceCatalogPreparation(salesforceMoon.salesforcePrepareWriteProjection(
     observation, binding.namespace_id, binding.principal, binding.environment,
     binding.connection_revision, binding.org_id, binding.site_key,
     binding.site_generation, binding.connector_registration,
     binding.connector_revision, binding.resource_origin,
     binding.run_invocation_cid, binding.dispatch_request_cid,
     binding.sync_occurrence, member.resource, projectionCodes[member.kind],
-    member.key, [...member.fields], member.fields.length));
+    member.key, [...member.fields], member.fields.length),
+  salesforceMoon, observation);
 }
 
 function mappingPolicy(member) {
