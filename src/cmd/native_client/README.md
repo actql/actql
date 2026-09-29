@@ -18,9 +18,15 @@ Hybrid also requires a registered `cloudConnectionRef`; Cloud-owned Hybrid
 requires at least one selected Runner. The CLI
 negotiates that exact connection before each operation and rejects a Host
 profile with a different mode or owner, or a downgrade from requested durable
-to volatile. The `aql` command takes a JSON or YAML Program document and an
-explicit `--format`; `start` takes a JSON Program object. Both can take a
-`--parameters-file`. Both currently require a caller-saved `--request-id` so
+to volatile. The `aql` command takes an explicit `--format`: `json`, `yaml`,
+`aql-json`, `aql-yaml`, `aql-text`, or `sql`. It sends the bounded source to the
+Host without inferring its language from a filename. The installed Host must
+provide the selected frontend and admits the generated Program through the
+ordinary checker. Query-only source can take a JSON
+`--parameter-declarations-file` in the existing Program `params` shape; values
+remain separate in `--parameters-file`. JSON/YAML Program documents cannot
+take external declarations. `start` takes a JSON Program object. Both
+commands require a caller-saved `--request-id` so
 an ambiguous submission can be looked up or resent with the same intent.
 `lookup-request` only queries existing request history and rejects malformed
 Host replies instead of reporting them as successful lookups.
@@ -37,9 +43,9 @@ record and Host release receipt contracts, binds them to the requested
 attempt, Run and Result, and rejects missing or contradictory evidence. It
 does not request payload replay or hash payload bytes.
 
-This is a transport development artifact. The BASE Host has no generic
-Program submit or full active-Run state service, and the binary does not yet
-include embedded Local providers. The mTLS fixture in
+This is a transport development artifact. The binary does not include
+embedded Local providers. The mTLS fixture in
 `scripts/test-native-client.mjs` uses a mock Host, while the existing
 published-Result test exercises a real Node Host and MoonBit publication
-owner. Neither proves a native end-to-end Program Run.
+owner. The mock verifies request shape; it does not prove Host frontend
+admission or a native end-to-end Program Run.

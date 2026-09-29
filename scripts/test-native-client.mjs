@@ -93,6 +93,10 @@ await writeFile(join(root, 'connection-durable.json'),
 await writeFile(join(root, 'ref.json'), JSON.stringify(ref));
 await writeFile(join(root, 'token.txt'), 'scoped-token\n');
 await writeFile(join(root, 'parameters.json'), '{"minimum":1}');
+await writeFile(join(root, 'query.sql'),
+  'SELECT id FROM records WHERE id = @minimum');
+await writeFile(join(root, 'parameter-declarations.json'),
+  '{"minimum":{"type":"number"}}');
 await writeFile(join(root, 'program.json'), await readFile(new URL(
   '../packages/sdk/fixtures/values.json', import.meta.url)));
 
@@ -219,6 +223,27 @@ try {
   assert.deepEqual(sent.body.parameters, {minimum: 1});
   assert.deepEqual(JSON.parse(sent.body.input.text),
     JSON.parse(await readFile(join(root, 'program.json'), 'utf8')));
+  const query = await run('aql', '--program-file', 'query.sql',
+    '--parameter-declarations-file', 'parameter-declarations.json',
+    '--parameters-file', 'parameters.json', '--format', 'sql',
+    '--request-id', 'saved-query-id');
+  assert.equal(query.code, 0, query.stderr);
+  const querySubmit = requests.find(item => item.operation === 'submit' &&
+    item.body.requestId === 'saved-query-id');
+  assert.deepEqual(querySubmit.body.input, {
+    text: 'SELECT id FROM records WHERE id = @minimum', format: 'sql',
+    parameterDeclarations: {minimum: {type: 'number'}},
+  });
+  assert.deepEqual(querySubmit.body.parameters, {minimum: 1});
+  const beforeInvalid = requests.filter(item =>
+    item.operation === 'submit').length;
+  const invalid = await run('aql', '--program-file', 'program.json',
+    '--parameter-declarations-file', 'parameter-declarations.json',
+    '--format', 'json', '--request-id', 'invalid-query-id');
+  assert.notEqual(invalid.code, 0);
+  assert.match(invalid.stderr, /external declarations require/);
+  assert.equal(requests.filter(item =>
+    item.operation === 'submit').length, beforeInvalid);
   const status = await run('status', '--ref-file', 'ref.json');
   assert.equal(status.code, 0, status.stderr);
   assert.deepEqual(JSON.parse(status.stdout), {status: 'succeeded'});

@@ -389,26 +389,36 @@ fn request_body(
     "connect" => ()
     "aql" => {
       let format = required(child, "format")
-      if format != "json" && format != "yaml" {
-        stop("AQL document format must be json or yaml")
+      if format != "json" &&
+        format != "yaml" &&
+        format != "aql-json" &&
+        format != "aql-yaml" &&
+        format != "aql-text" &&
+        format != "sql" {
+        stop("unsupported AQL source format")
       }
       fields["requestId"] = Json::string(required(child, "request-id"))
       fields["kind"] = Json::string("aql")
-      fields["input"] = Json::object(
-        Map([
-          (
-            "text",
-            Json::string(
-              text_file(
-                root,
-                required(child, "program-file"),
-                maximum.to_int64(),
-              ),
-            ),
+      let source : Map[String, Json] = Map([
+        (
+          "text",
+          Json::string(
+            text_file(root, required(child, "program-file"), maximum.to_int64()),
           ),
-          ("format", Json::string(format)),
-        ]),
-      )
+        ),
+        ("format", Json::string(format)),
+      ])
+      if optional(child, "parameter-declarations-file") is Some(name) {
+        if format != "aql-text" && format != "sql" {
+          stop("external declarations require aql-text or sql")
+        }
+        let declarations = json_file(root, name, maximum.to_int64())
+        guard declarations is Object(_) else {
+          stop("parameter declarations must be a JSON object")
+        }
+        source["parameterDeclarations"] = declarations
+      }
+      fields["input"] = Json::object(source)
       fields["parameters"] = match optional(child, "parameters-file") {
         Some(name) => json_file(root, name, maximum.to_int64())
         None => Json::null()
@@ -493,6 +503,7 @@ fn command() -> @argparse.Command {
       @argparse.Command("aql", options=[
         @argparse.OptionArg("program-file", required=true),
         @argparse.OptionArg("parameters-file"),
+        @argparse.OptionArg("parameter-declarations-file"),
         @argparse.OptionArg("format", required=true),
         @argparse.OptionArg("request-id", required=true),
       ]),
