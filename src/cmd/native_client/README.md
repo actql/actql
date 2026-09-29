@@ -60,3 +60,55 @@ that workflow.
 Confirmed Host preparation rejections preserve the public input error code.
 An unrecognized or lost submit response remains `SubmissionUnknown` with the
 original request ID; it is not a claim that no Run was accepted.
+
+## Query source example
+
+This example requires a Host that publishes the `records` alias and supports
+query source input. Host routing acceptance is tracked separately from the
+native transport tests. Keep the following files in one protected directory:
+
+`connection.json`:
+
+```json
+{"mode":"remote","owner":"remote","consentRefs":[],"runners":[]}
+```
+
+```sql
+-- query.sql
+SELECT id FROM records WHERE amount >= @minimum ORDER BY id;
+```
+
+Use `{"minimum":{"type":"number"}}` in `declarations.json` and
+`{"minimum":20}` in `parameters.json`. The token file contains only the scoped
+bearer token; keep it and the client key readable only by their owner.
+
+```sh
+./actql-native-client \
+  --endpoint https://host.example/ \
+  --connection-root "$PWD" --connection-file connection.json \
+  --token-root "$PWD" --token-file token.txt \
+  --http-library /usr/lib/libcurl.4.dylib \
+  --ca ca.crt --cert client.crt --key client.key \
+  aql --program-file query.sql --format sql \
+  --parameter-declarations-file declarations.json \
+  --parameters-file parameters.json --request-id saved-query-001
+```
+
+The example library path is for macOS; select the installed libcurl library
+for the target platform. For Pipe, change the source and explicitly select
+`--format aql-text`. File extensions never select a parser. A successful Run
+admission prints an object containing `ref`; save that exact object member
+as the reference file for `wait`, `status`, and `read`. A held request has no
+`ref` and must not be converted into one.
+
+With the same connection flags, use `lookup-request --request-id
+saved-query-001` after an uncertain submit. This only observes the original
+request. Once there is a Run reference, `read --ref-file run-ref.json
+--result-name answer --attempt-id saved-read-001` reads that named Result.
+
+| Diagnostic | Meaning and next action |
+| --- | --- |
+| A registered `ClientProgram*` or `ClientParameters*` preparation error | Confirmed input rejection; correct the source or declarations/values. Parameter values are not interpolated into source. |
+| `SubmissionUnknown request-id=...` | Admission was not confirmed. Preserve the original request ID and intent and use lookup. Do not infer failure or automatically create another request. |
+| JSON with `kind: "held"` | No Run exists yet. Observe the request and use the existing Client Checkpoint workflow for answers. |
+| `IncompleteResultStream attempt-id=...` | The read did not reach its normal terminator. This does not cancel the Run or prove the Host sent nothing. |
