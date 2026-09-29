@@ -149,11 +149,14 @@ fn direct_structural_input_count(
   sequence : @execution.GeneratedSequence,
 ) -> Int? {
   let owner = @execution.generated_sequence_owner(sequence)
-  guard @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) else {
+  let step = @execution.completion_preparation_selected_step(
+    @execution.generated_completion_preparation(sequence),
+  ).unwrap_or(0)
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) else {
     return None
   }
   match
-    @lower.sequence_step(@execution.generated_prepared_sequence(sequence), 0) {
+    @lower.sequence_step(@execution.generated_prepared_sequence(sequence), step) {
     Some(@lower.GraphStructuralStep(_)) =>
       if @lower.operation(node) == "SGA.graft" ||
         @lower.operation(node) == "SGA.union_structural" ||
@@ -177,6 +180,7 @@ fn direct_structural_views(
   guard direct_structural_input_count(value.generated) is Some(count) else {
     return None
   }
+  let step = value.selected_step.unwrap_or(0)
   let views = []
   for edge in 0..<count {
     let mut matched = None
@@ -184,7 +188,7 @@ fn direct_structural_views(
       if @lifecycle.producer_read_reference_matches_operation_input(
           @lifecycle.producer_view_read_reference(view),
           @execution.generated_sequence_owner(value.generated),
-          0,
+          step,
           edge,
         ) {
         matched = Some(view)
@@ -213,6 +217,13 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       return false
     }
     return match operation {
+      @lower.GraphStructuralStep(_) =>
+        @lower.operation(node) == "SGA.graft" ||
+        @lower.operation(node) == "SGA.union_structural" ||
+        @lower.operation(node) == "SGA.diff_structural"
+      @lower.GraphUnionStep(_) =>
+        @lower.operation(node) == "SGA.union_structural"
+      @lower.GraphMeanStep(_) => @lower.operation(node) == "SGA.mean_structural"
       @lower.GraphConstructionStep(_) =>
         @lower.operation(node) == "BRIDGE.rows.to_graph"
       @lower.GraphBasicStep(basic) =>
@@ -661,7 +672,9 @@ fn advance_execution(
         let started = match
           @lower.sequence_step(value.sequence, value.kernel_step) {
           Some(@lower.GraphStructuralStep(_))
-          | Some(@lower.GraphUnionStep(_)) if value.kernel_step == 0 => {
+          | Some(@lower.GraphUnionStep(_)) if value.kernel_step ==
+            value.selected_step.unwrap_or(0) &&
+            direct_structural_input_count(value.generated) is Some(_) => {
             guard direct_structural_views(value) is Some(inputs) else {
               return fail_execution(value)
             }
@@ -679,7 +692,9 @@ fn advance_execution(
               Err(_) => return fail_execution(value)
             }
           }
-          Some(@lower.GraphMeanStep(_)) if value.kernel_step == 0 => {
+          Some(@lower.GraphMeanStep(_)) if value.kernel_step ==
+            value.selected_step.unwrap_or(0) &&
+            direct_structural_input_count(value.generated) is Some(_) => {
             guard direct_structural_views(value) is Some(inputs) &&
               mean_exact_bits(value.limits) is Some(exact_bits) else {
               return fail_execution(value)
@@ -1060,7 +1075,6 @@ fn advance_execution(
             Ok(material) => material
             Err(_) => return fail_execution(value)
           }
-          value.graph = Some(completed)
           value.pending_graph = None
           value.phase = Terminal
           value.terminal = true
@@ -1927,16 +1941,20 @@ pub fn provider(
           @lower.graph_traverse_emits_paths(traverse)
         _ => false
       }
+      let direct_structural_inputs = if selected_step is Some(_) {
+        direct_structural_input_count(sequence).unwrap_or(-1)
+      } else {
+        @lower.preparation_input_count(
+          @lower.bound_preparation(
+            @execution.generated_sequence_owner(sequence),
+          ),
+        )
+      }
       if (
           direct_structural &&
           (
             relations.length() != 0 ||
-            carriers.length() !=
-            @lower.preparation_input_count(
-              @lower.bound_preparation(
-                @execution.generated_sequence_owner(sequence),
-              ),
-            )
+            carriers.length() != direct_structural_inputs
           )
         ) ||
         (

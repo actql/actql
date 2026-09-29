@@ -63,6 +63,10 @@ pub fn node_accepts_managed_carrier_view(
   }
   match operation(node) {
     "SGA.normalize"
+    | "SGA.graft"
+    | "SGA.union_structural"
+    | "SGA.diff_structural"
+    | "SGA.mean_structural"
     | "TEA.watermark.label"
     | "TEA.dedupe"
     | "TEA.window.session_assign"
@@ -94,6 +98,7 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       @graph.traverse_emission(checked) == @graph.TraversedPaths &&
       node.input_targets.length() == 2
     BasicGraph(_) => operation(node) == "SGA.normalize"
+    StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
     VectorValue(_) =>
       operation(node) == "BRIDGE.rows.to_vectors" ||
       operation(node) == "VEC.normalize_l2" ||
@@ -200,6 +205,7 @@ pub fn node_prefers_fused_without_relation_consumer(
 ) -> Bool {
   match node.payload {
     BasicGraph(_) => operation(node) == "SGA.normalize"
+    StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
     EventValue(_) =>
       operation(node) == "TEA.watermark.label" ||
       operation(node) == "TEA.dedupe" ||

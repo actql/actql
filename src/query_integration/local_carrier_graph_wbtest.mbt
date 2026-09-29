@@ -8788,6 +8788,133 @@ test "registered Graph provider computes an exact weighted mean" {
 }
 
 ///|
+test "selected Graph union retains ordered input occurrences" {
+  let left_owner = carrier_graft_source_owner()
+  let right_owner = carrier_graft_source_owner()
+  let owner = carrier_union_owner(left_owner, right_owner)
+  let generated = task_test_generated(owner)
+  let left_material = @graphs.completed_material(
+    carrier_graft_graph(left_owner, 1.0, "left"),
+  ).unwrap()
+  let right_material = @graphs.completed_material(
+    carrier_graft_graph(right_owner, 2.0, "right"),
+  ).unwrap()
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  let union_sequence = @execution.select_generated_sequence_step(generated, 0).unwrap()
+  let union_inputs = [
+    @carrier_runtime.material_prepare_view(left_material, owner, 0, left_owner).unwrap(),
+    @carrier_runtime.material_prepare_view(
+      right_material, owner, 1, right_owner,
+    ).unwrap(),
+    @carrier_runtime.material_prepare_view(left_material, owner, 0, left_owner).unwrap(),
+    @carrier_runtime.material_prepare_view(
+      right_material, owner, 1, right_owner,
+    ).unwrap(),
+  ]
+  assert_true(
+    @local_connector.managed_provider_accepts(provider, union_sequence),
+  )
+  let union_execution = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    union_sequence,
+    union_inputs.map(@local_connector.managed_provider_carrier_input),
+    10,
+    1000,
+  ).unwrap()
+  let mut graph = None
+  while graph is None {
+    match
+      @local_connector.advance_managed_provider(union_execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.CarrierComplete(value, ..) => graph = Some(value)
+      @local_connector.Complete(_, ..) => fail("selected union returned rows")
+      @local_connector.Failed(_, ..) => fail("selected union failed")
+      @local_connector.Stopped(..) => fail("selected union stopped")
+    }
+  }
+  let graph = graph.unwrap()
+  assert_true(
+    @carrier_runtime.completion_reference_matches_port(
+      @carrier_runtime.material_reference(graph),
+      owner,
+      @pipeline.Step(0),
+    ),
+  )
+  let projection_view = @carrier_runtime.material_prepare_operation_view(
+    graph, owner, 1, 0, owner,
+  ).unwrap()
+  assert_true(
+    @local_connector.cleanup_managed_provider(union_execution).unwrap(),
+  )
+  assert_true(@carrier_runtime.material_available(graph))
+  let projection_sequence = @execution.select_generated_sequence_step(
+    generated, 1,
+  ).unwrap()
+  let projection = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    projection_sequence,
+    [@local_connector.managed_provider_carrier_input(projection_view)],
+    10,
+    1000,
+  ).unwrap()
+  let mut rows = None
+  while rows is None {
+    match @local_connector.advance_managed_provider(projection, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(value, ..) => rows = Some(value)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("projection returned Graph")
+      @local_connector.Failed(_, ..) => fail("selected projection failed")
+      @local_connector.Stopped(..) => fail("selected projection stopped")
+    }
+  }
+  let rows = rows.unwrap()
+  assert_eq(@execution.completed_row_count(rows), 2)
+  assert_true(@execution.completed_cell(rows, 0, 1) is Some(Text("left")))
+  assert_true(@execution.completed_cell(rows, 1, 1) is Some(Text("right")))
+  assert_true(@local_connector.cleanup_managed_provider(projection).unwrap())
+  let cancelled_inputs = [
+    @carrier_runtime.material_prepare_view(left_material, owner, 0, left_owner).unwrap(),
+    @carrier_runtime.material_prepare_view(
+      right_material, owner, 1, right_owner,
+    ).unwrap(),
+    @carrier_runtime.material_prepare_view(left_material, owner, 0, left_owner).unwrap(),
+    @carrier_runtime.material_prepare_view(
+      right_material, owner, 1, right_owner,
+    ).unwrap(),
+  ]
+  let cancelled = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    union_sequence,
+    cancelled_inputs.map(@local_connector.managed_provider_carrier_input),
+    10,
+    1000,
+  ).unwrap()
+  match @local_connector.advance_managed_provider(cancelled, 1).unwrap() {
+    @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+    _ => fail("selected union did not advance before cancellation")
+  }
+  assert_true(@local_connector.cancel_managed_provider(cancelled))
+  assert_true(
+    @local_connector.advance_managed_provider(cancelled, 1).unwrap()
+    is @local_connector.Stopped(..),
+  )
+  assert_true(@local_connector.cleanup_managed_provider(cancelled).unwrap())
+  assert_true(@carrier_runtime.material_available(graph))
+  assert_true(@carrier_runtime.reclaim_material(graph))
+  assert_true(@carrier_runtime.material_available(left_material))
+  assert_true(@carrier_runtime.material_available(right_material))
+}
+
+///|
 test "Graph union rejects conflicting repeated identities atomically" {
   let left_owner = carrier_graft_source_owner()
   let right_owner = carrier_graft_source_owner()

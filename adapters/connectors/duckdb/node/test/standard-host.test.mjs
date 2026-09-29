@@ -1842,6 +1842,8 @@ async function exerciseStrategyGraph(
     ],
   }, {
     name: 'graft',
+    retainedOutput: true,
+    selectedStructural: true,
     steps: [{
       graph: {
         nodes: {from: 'rows', id: 'id', fields: ['node_name']},
@@ -1863,6 +1865,8 @@ async function exerciseStrategyGraph(
     ],
   }, {
     name: 'union',
+    retainedOutput: true,
+    selectedStructural: true,
     steps: [{
       graph: {
         nodes: {from: 'rows', id: 'id', fields: ['node_name']},
@@ -1886,6 +1890,8 @@ async function exerciseStrategyGraph(
     ],
   }, {
     name: 'mean',
+    retainedOutput: true,
+    selectedStructural: true,
     steps: [{
       graph: {
         nodes: {from: 'rows', id: 'id', fields: ['node_name']},
@@ -1916,6 +1922,28 @@ async function exerciseStrategyGraph(
       {id: 1, node_name: 'first'},
       {id: 2, node_name: 'second'},
     ],
+  }, {
+    name: 'subtract',
+    retainedOutput: true,
+    selectedStructural: true,
+    steps: [{
+      graph: {
+        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g',
+      subtract_graphs: {with: 'right_graph'},
+      as: 'subtracted',
+    }, {
+      from: 'subtracted', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [],
   }, {
     name: 'graphs-equal',
     steps: [{
@@ -2077,6 +2105,12 @@ async function exerciseStrategyGraph(
       1,
       ...(publicationCase.steps ?? [publicationCase.step]),
     );
+    if (publicationCase.selectedStructural) {
+      graphProgram.stages[2].steps.at(-1).as = 'projected';
+      graphProgram.stages[2].steps.push({
+        from: 'projected', filter: 'true', as: 'out',
+      });
+    }
     graphProgram.stages[2].results.r.fields = publicationCase.fields;
     graphProgram.stages[3].steps[0].select = publicationCase.fields;
     graphProgram.stages[3].results.r.fields = publicationCase.fields;
