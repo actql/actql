@@ -255,8 +255,22 @@ test "two fixed producer ports share storage but not admission or measurement cr
     max_value_bytes=1,
     measurement,
   ).unwrap()
+  let selected = anchor_completed_output_operation_inputs(output, 0, inputs).unwrap()
+  assert_true(completed_output_matches_operation_inputs(selected, 0, inputs))
   live.val = false
   assert_true(completed_output_matches_inputs(output, inputs))
+  assert_true(completed_output_available(selected))
+  assert_false(producer_read_matches_operation_input(inputs[0], receiver, 0, 0))
+  assert_true(completed_output_matches_operation_inputs(selected, 0, inputs))
+  assert_false(
+    completed_output_matches_operation_inputs(selected, 0, [
+      other_read,
+      inputs[1],
+    ]),
+  )
+  assert_true(
+    anchor_completed_output_operation_inputs(output, 0, inputs) is None,
+  )
   assert_true(
     finish_fixed_producer_measurement(unfinished, received) is Err(ForeignInput),
   )

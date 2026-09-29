@@ -187,15 +187,15 @@ pub fn producer_read_has_cell_access(value : ProducerRead) -> Bool {
 }
 
 ///|
-/// Match an exact checked operation edge, including an internal Relation step.
-pub fn producer_read_matches_operation_input(
+/// Compare immutable receiving-port identity after completion. Admission of
+/// new work still requires producer_read_matches_operation_input below.
+fn producer_read_binding_matches_operation_input(
   value : ProducerRead,
   receiver : @lower.BoundPrepared,
   consumer_step : Int,
   edge_index : Int,
 ) -> Bool {
-  if !physical_equal(value.bound.receiver, receiver) ||
-    !producer_read_available(value) {
+  if !physical_equal(value.bound.receiver, receiver) {
     return false
   }
   let prepared = @lower.bound_preparation(receiver)
@@ -211,6 +211,21 @@ pub fn producer_read_matches_operation_input(
       value.bound.input_index == edge_index &&
       value.bound.output.target == target
   }
+}
+
+///|
+/// Match an exact checked operation edge, including an internal Relation step.
+/// A new use must also retain current producer availability.
+pub fn producer_read_matches_operation_input(
+  value : ProducerRead,
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  edge_index : Int,
+) -> Bool {
+  producer_read_available(value) &&
+  producer_read_binding_matches_operation_input(
+    value, receiver, consumer_step, edge_index,
+  )
 }
 
 ///|

@@ -140,7 +140,8 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "BRIDGE.rows.to_vectors" ||
         @lower.operation(node) == "VEC.normalize_l2" ||
         @lower.operation(node) == "VEC.score_sort" ||
-        @lower.operation(node) == "VEC.pool"
+        @lower.operation(node) == "VEC.pool" ||
+        @lower.operation(node) == "VEC.merge_rankings"
       @lower.CarrierProjectionStep(projection) =>
         @lower.operation(node) == "BRIDGE.vectors.to_rows" &&
         @lower.carrier_projection_operation(projection) ==
@@ -1067,7 +1068,8 @@ fn advance_execution(
           value.nearest_inputs[1] is Some(right) else {
           return fail_execution(value)
         }
-        let started_result = if value.fused_nearest {
+        let started_result = if value.fused_nearest ||
+          value.relation_inputs is Some(_) {
           match value.relation_inputs {
             Some(inputs) =>
               @veca.start_nearest_inputs_with_relations(
@@ -1167,7 +1169,7 @@ fn advance_execution(
             value.control,
             @execution.generated_completion_preparation(value.generated),
             value.sequence,
-            0,
+            value.row_step,
             inputs,
             value.max_rows,
             {
