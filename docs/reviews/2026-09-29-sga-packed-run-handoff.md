@@ -247,3 +247,48 @@ set. Do not infer safe resubmission from this diagnostic. The current probe
 covers Local only for these seven failures; their Remote success is untested.
 The passed `normalize-rows` case has no public schema type/nullability/column
 order observation, so publication-boundary tests retain that obligation.
+
+## Nullable edge identity and current packed probe
+
+At `9122707277fc2bb0ac2e61b75d51f73fe8ab31f1`, the existing Graph
+edge identity `(src, dst, rel)` admits an explicit null label for canonical
+ordering only when the key comes from an admitted `edge_rows` projection.
+General nullable Relation keys and scalar identity remain ineligible. The
+ordinary preparation test now passes for all eight authored SGA Programs;
+the focused relation-evidence tests pass 20/20 on JS, Wasm and native. This is
+checker evidence, not a claim that every Program executes.
+
+The same source was packed and installed outside the repository. Raw SQL/Pipe,
+`normalize_graph -> node_rows`, and native CLI Named Result acceptance passed.
+The optional seven-case Local probe passed `mean-graphs` and failed the other
+six; the driver exited nonzero as required. In particular, the nullable edge
+fix moved `mean-graphs` through Result publication without dropping its
+declared edge order. It did not change the other failures into success.
+
+| Fixture | Current observed boundary |
+| --- | --- |
+| `mean-graphs` | Packed Local Named Results and independently authored rows pass. HTTP for this case is untested. |
+| `graphs-equal`, `degree-rows`, `components` | Run accepted, then `ACTQL_E_UNPUBLISHED_RUN`. A direct captured-strategy probe identified `Dispatch(NoStrategy)` before Compute for these fused Graph tasks; no Compute completion is claimed. |
+| `reach-subgraph`, `diff-apply`, `graph-bounds` | Packed submit returns `SubmissionUnknown` with nested `RunHostCompilationRejected`. The direct common task compiler returns `ClientResultPlanPartsIssue::Root(RequiresResultTransformation)`; Result publication never begins. |
+
+The physical strategy currently leaves fused Values/Graph/SGA tasks without an
+installed strategy for `Components`, `Degree`, `GraphsEqual`, and `GraphBounds`.
+Splitting a task at the last Graph operation alone does not make the fused
+prefix executable; the bounded provider and task boundary need to agree.
+This remains an execution-owner interface question, not a reason to invent a
+Frontend executor or weaken the checked Result root. The separate Result-root
+failures need the checked producer task and Result occurrence to agree before
+the existing transformation is selected. The direct-root refusal must remain.
+
+The packed probe log and tarball digests are under
+`worktrees/.codex-scratch/public-query-evidence-1Eo3Mr`. Its generated
+installation and Store were removed after failure. An earlier attempt at the
+same source stopped before packing the Run Host because `moon` was absent from
+the process PATH; it is not counted as product validation. The packed tarball
+digests for the completed probe were `client-wire`
+`8e09005f4aac5063c1f6f8e4680dbb778a00e5c098126a85283e1f07685a76e5`,
+`sdk` `1e4e83612b9c965388795f066be8cf24b0358feb46bd2335c8d98c36e83ed515`,
+`run-host-core`
+`fec8e83f944e8720d7238d59e1077fafa6ae21397d92a138d027fd8c9d61b8d8`,
+`local-node` `cd2bc6a378e8a650d9b17fe3aa221bcf5ba1cbc4ec22a6a5a0c84bfa157e9ec1`,
+and `node` `c72364973dd1ed42faea32425632b314de037c9b92035c9f5ec35b875914f225`.
