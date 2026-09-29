@@ -222,6 +222,164 @@ fn pool_field(
 }
 
 ///|
+test "pool reads an exact retained Vectors view and preserves custody" {
+  let producer = pool_producer_owner()
+  let source = pool_source(producer, Ref(true))
+  let material = @records.completed_material(source).unwrap()
+  let owner = pool_owner(producer)
+  let view = @carrier_runtime.material_prepare_view(
+    material, owner, 0, producer,
+  ).unwrap()
+  let execution = start_pool_view(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    view,
+    limits(),
+    8192L,
+    fn() { true },
+  ).unwrap()
+  let output = finish_pool_execution(execution)
+  let storage = @records.completed_storage(output).unwrap()
+  assert_eq(@storage.record_count(storage), 2)
+  guard pool_field(storage, 0, "embedding").value is @value.Vector(components) else {
+    fail("pooled view output missing")
+  }
+  assert_eq(@value.element_at(components, 0), Some(4.0))
+  assert_eq(@value.element_at(components, 1), Some(6.0))
+  assert_true(@records.discard_completed(output))
+  assert_eq(cleanup_pool(execution), Ok(true))
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.reclaim_material(material))
+}
+
+///|
+test "pool view checks exact work and workspace before publication" {
+  let producer = pool_producer_owner()
+  let source = single_pool_source(producer)
+  let material = @records.completed_material(source).unwrap()
+  let owner = pool_owner(producer)
+  // One record uses 30 charged steps and 15 structural slots.
+  for
+    (work, workspace, accepted) in [
+      (30, 15, true),
+      (29, 15, false),
+      (30, 14, false),
+    ] {
+    let view = @carrier_runtime.material_prepare_view(
+      material, owner, 0, producer,
+    ).unwrap()
+    match
+      start_pool_view(
+        @bounded.control(),
+        sequence(owner),
+        0,
+        view,
+        limits(workspace~),
+        8192L,
+        fn() { true },
+        control_work_limit=Some(work),
+      ) {
+      Err(PoolWorkspaceLimit) => assert_eq(workspace, 14)
+      Err(_) => fail("pool view failed before its selected boundary")
+      Ok(execution) => {
+        let mut terminal = false
+        for _ in 0..<36 {
+          if !terminal {
+            match advance_pool(execution, 1).unwrap() {
+              PoolContinue(..) => ()
+              PoolComplete(output, ..) => {
+                assert_true(accepted)
+                assert_true(@records.discard_completed(output))
+                terminal = true
+              }
+              PoolFailed(PoolWorkLimit, ..) => {
+                assert_false(accepted)
+                terminal = true
+              }
+              _ => fail("pool view ended at an unrelated boundary")
+            }
+          }
+        }
+        assert_true(terminal)
+        assert_eq(cleanup_pool(execution), Ok(true))
+      }
+    }
+  }
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.reclaim_material(material))
+}
+
+///|
+test "pool view cancellation retains its producer" {
+  let producer = pool_producer_owner()
+  let source = pool_source(producer, Ref(true))
+  let material = @records.completed_material(source).unwrap()
+  let owner = pool_owner(producer)
+  let view = @carrier_runtime.material_prepare_view(
+    material, owner, 0, producer,
+  ).unwrap()
+  let control = @bounded.control()
+  let execution = start_pool_view(
+    control,
+    sequence(owner),
+    0,
+    view,
+    limits(),
+    8192L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_pool(execution, 1).unwrap() is PoolContinue(..))
+  assert_true(@bounded.request_cancel(control))
+  assert_true(advance_pool(execution, 1).unwrap() is PoolStopped(_))
+  assert_eq(cleanup_pool(execution), Ok(true))
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.reclaim_material(material))
+}
+
+///|
+test "pool view rejects a foreign input position" {
+  let first_owner = pool_producer_owner()
+  let second_owner = pool_producer_owner()
+  let first = pool_source(first_owner, Ref(true))
+  let second = pool_source(second_owner, Ref(true))
+  let owner = second_input_pool_owner(first_owner, second_owner)
+  let first_material = @records.completed_material(first).unwrap()
+  let second_material = @records.completed_material(second).unwrap()
+  let wrong = @carrier_runtime.material_prepare_view(
+    first_material, owner, 0, first_owner,
+  ).unwrap()
+  assert_true(
+    start_pool_view(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      wrong,
+      limits(),
+      8192L,
+      fn() { true },
+    )
+    is Err(InvalidPoolKernel),
+  )
+  let exact = @carrier_runtime.material_prepare_view(
+    second_material, owner, 1, second_owner,
+  ).unwrap()
+  let execution = start_pool_view(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    exact,
+    limits(),
+    8192L,
+    fn() { true },
+  ).unwrap()
+  assert_true(@records.discard_completed(finish_pool_execution(execution)))
+  assert_eq(cleanup_pool(execution), Ok(true))
+  assert_true(@carrier_runtime.reclaim_material(first_material))
+  assert_true(@carrier_runtime.reclaim_material(second_material))
+}
+
+///|
 test "pool enforces cumulative empty-input control work" {
   let producer = pool_producer_owner()
   let source = empty_pool_source(producer)

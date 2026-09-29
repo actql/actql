@@ -75,6 +75,7 @@ pub fn node_accepts_managed_carrier_view(
     | "TEA.sequence.match"
     | "VEC.normalize_l2"
     | "VEC.score_sort"
+    | "VEC.pool"
     | "BRIDGE.events.to_rows"
     | "BRIDGE.vectors.to_rows"
     | "BRIDGE.graph.to_node_rows"
@@ -103,6 +104,7 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       operation(node) == "BRIDGE.rows.to_vectors" ||
       operation(node) == "VEC.normalize_l2" ||
       operation(node) == "VEC.score_sort"
+    PoolValue(_) => operation(node) == "VEC.pool"
     EventValue(_) =>
       operation(node) == "BRIDGE.rows.to_events" ||
       operation(node) == "TEA.watermark.label" ||
