@@ -30,11 +30,19 @@ list. With equal weights and half-support thresholds, A and B and their edge
 remain while C and its edge do not.
 `graphs-equal.named.aql` compares a Graph producer with itself. Its separate
 Program and Result fixtures expect one `equal: true` row and no implicit sort.
+`normalize-rows.named.aql` normalizes a Graph, converts it to Relation rows,
+and explicitly sorts the rows before declaring an ordered Named Result. Its
+independently authored input lists B before A, while the expected Result is A,
+B. This checks that Graph composition does not silently add a physical boundary
+or make Result ordering implicit.
 These expectations have not yet been checked against runtime output from the
 named source. Separate small source cases have passed the common checker for
 reach/subgraph, diff/apply and mean. The exact fixtures here still need
 checker and execution acceptance; components needs its ordinary capacity
-evidence. Source authorization, packed public-input acceptance and independent
+evidence. The normalize-rows fixture passes Program admission and common
+preparation with the Local Check Environment, but its current task compilation
+requires the existing Result transformation to be connected by the Host.
+Source authorization, packed public-input acceptance and independent
 positive, rejection and boundary fixtures for other operations remain required.
 
 The zero-argument node_rows/edge_rows syntax emits boolean `true` in

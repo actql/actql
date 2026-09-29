@@ -75,6 +75,13 @@ test('graphs_equal reuses one Graph producer without adding a sort', () => {
     fixture('graphs-equal.named.aql'))), JSON.parse(expected));
 });
 
+test('normalized Graph rows retain the authored sort and Result order', () => {
+  const expected = fixture('normalize-rows.expected-program.json');
+  assert.equal(jsonAdmissionDiagnostic(expected), '');
+  assert.deepEqual(JSON.parse(structuralToJson(
+    fixture('normalize-rows.named.aql'))), JSON.parse(expected));
+});
+
 const envelope = body => `AQL '0.1'; PROGRAM 'roles' { STAGE s {
   INPUT g = {"carrier":"graph"}; INPUT target = {"carrier":"graph"};
   DATA output = ${body}; RESULT r = {"from":"output"};

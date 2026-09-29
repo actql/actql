@@ -26,7 +26,7 @@ if (mode === 'remote' && (!options.endpoint || !options.token)) {
 }
 
 const cases = ['components', 'reach-subgraph', 'diff-apply',
-  'mean-graphs', 'graphs-equal'];
+  'mean-graphs', 'graphs-equal', 'normalize-rows'];
 const readFixture = (name, suffix) => readFile(join(resolve(fixtureDirectory),
   `${name}.${suffix}`), 'utf8');
 
