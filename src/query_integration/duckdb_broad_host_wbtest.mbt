@@ -161,6 +161,29 @@ test "configured broad Host uses owned consumer binding with no acquisition data
   @acquisition_host.finish_broad_host_receipt(run).unwrap()
   f.transport.push(@acquisition_host.broad_host_attempt(run))
   let observation = @acquisition_host.complete_broad_host(run).unwrap()
+  let capture = @acquisition_host.capture_broad_host_source(run, observation).unwrap()
+  let source = @acquisition_host.broad_host_source_capture_source(capture).unwrap()
+  assert_true(@query.captured_source_available(source))
+  assert_eq(
+    @acquisition_host.broad_host_source_capture_observation_cid(capture),
+    Some(@duckdb_query.duckdb_broad_observation_cid(observation)),
+  )
+  assert_true(
+    physical_equal(
+      source,
+      @acquisition_host.broad_host_source_capture_source(capture).unwrap(),
+    ),
+  )
+  let foreign_run = @acquisition_host.start_configured_broad_host(
+    configuration,
+    "foreign-broad",
+    _ => true,
+  ).unwrap()
+  assert_true(
+    @acquisition_host.capture_broad_host_source(foreign_run, observation)
+    is Err(Unavailable),
+  )
+  @acquisition_host.close_broad_host(foreign_run)
   let owner = @query.query_sequence_owner(f.sequence)
   let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
   let bound = @acquisition_host.bind_broad_host_input(
@@ -183,6 +206,15 @@ test "configured broad Host uses owned consumer binding with no acquisition data
   )
   @acquisition_host.close_broad_host(run)
   @acquisition_host.close_broad_host(run)
+  assert_true(
+    @acquisition_host.broad_host_source_capture_source(capture)
+    is Err(Unavailable),
+  )
+  assert_false(@query.captured_source_available(source))
+  assert_eq(
+    @acquisition_host.broad_host_source_capture_observation_cid(capture),
+    None,
+  )
   assert_true(
     @acquisition_host.bind_broad_host_input(run, observation, receiver, 0)
     is Err(InvalidState),

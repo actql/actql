@@ -435,6 +435,21 @@ pub fn client_program_compiled_run_template(
 }
 
 ///|
+#export_name("clientProgramCompiledRunResultTransformation")
+pub fn client_program_compiled_run_result_transformation(
+  value : @publication_host.ClientCompiledRun,
+  prepared : @publication_host.PreparedClientProgram,
+  result : Int,
+) -> Result[
+  @publication_host.ClientResultTransformation?,
+  @publication_host.ClientCompiledRunIssue,
+] {
+  @publication_host.client_compiled_run_result_transformation(
+    value, prepared, result,
+  )
+}
+
+///|
 #export_name("clientProgramCompiledRunPlan")
 pub fn client_program_compiled_run_plan(
   value : @publication_host.ClientCompiledRun,
@@ -1634,6 +1649,36 @@ pub fn client_program_prepare_duckdb_acquisition(
     requirement, database_schema, table, query_contract_body, evidence_contract_body,
     two_receipt_contract_body,
   )
+}
+
+///|
+#export_name("clientProgramPrepareDuckDBBroadAcquisition")
+pub fn client_program_prepare_duckdb_broad_acquisition(
+  requirement : @planning.QueryRequirement,
+  database_schema : String,
+  table : String,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  two_receipt_contract_body : String,
+) -> Result[
+  @duckdb_host.BroadHostConfiguration,
+  @client_local_host.ClientDuckDBAcquisitionIssue,
+] {
+  @client_local_host.prepare_client_duckdb_broad_acquisition(
+    requirement, database_schema, table, query_contract_body, evidence_contract_body,
+    two_receipt_contract_body,
+  )
+}
+
+///|
+#export_name("clientProgramDuckDBNativeCandidateUnavailable")
+pub fn client_program_duckdb_native_candidate_unavailable(
+  outcome : Result[
+    @duckdb_host.NativeHostConfiguration,
+    @client_local_host.ClientDuckDBAcquisitionIssue,
+  ],
+) -> Bool {
+  outcome is Err(@client_local_host.Candidate)
 }
 
 ///|
@@ -5508,6 +5553,21 @@ pub fn client_program_effect_compilation_plan_wire(
 ) -> String {
   @publication_host.client_task_executable_plan_wire(
     @publication_host.client_effect_compilation_plan(value),
+  )
+}
+
+///|
+#export_name("clientProgramEffectCompilationResultTransformation")
+pub fn client_program_effect_compilation_result_transformation(
+  value : @publication_host.ClientEffectCompilation,
+  owner : @publication_host.PreparedClientEffectComputation,
+  result : Int,
+) -> Result[
+  @publication_host.ClientResultTransformation?,
+  @publication_host.ClientEffectCompilationAdmissionIssue,
+] {
+  @publication_host.client_effect_compilation_result_transformation(
+    value, owner, result,
   )
 }
 

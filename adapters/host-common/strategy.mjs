@@ -1065,9 +1065,10 @@ export async function runInstalledStrategy(
                 importing, row, limits,
               ),
               signal,
-              () => core.outputExportControl.finishManagedResultImport(
-                importing,
-              ),
+              () => publication.transformation === undefined
+                ? core.outputExportControl.finishManagedResultImport(importing)
+                : core.outputExportControl.transformManagedResultImport(
+                  importing, publication.transformation, signal),
             );
             finished = true;
             return exported;
@@ -1080,6 +1081,7 @@ export async function runInstalledStrategy(
       const beginResult = beginManagedResult ?? ((host, result, limits) =>
         core.outputExportControl.beginResult(
           host, result, limits, publicationOutputs.get(occurrence.task),
+          publication.transformation, signal,
         ));
       const stored = await storeCompletedResultPublicationPayload(
         store,

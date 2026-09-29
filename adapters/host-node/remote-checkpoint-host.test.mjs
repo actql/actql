@@ -35,6 +35,7 @@ import {issueCompletedEffectfulComputationEvidence,
 import {withFixtureConnector} from
   '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson} from './local-account-config.mjs';
+import {exercisePublicQueryInput} from '../../scripts/fixtures/public-query-input.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const scratch = join(repository, '_build', 'remote-checkpoint-host');
@@ -54,7 +55,7 @@ const document = await readFile(join(repository,
   'packages/sdk/fixtures/values.json'), 'utf8');
 const readDocument = await readFile(join(repository,
   'adapters/connectors/duckdb/node/examples/program.json'), 'utf8');
-const {DuckDBInstance} = createRequire(join(repository,
+const {DuckDBInstance, DuckDBPreparedStatement} = createRequire(join(repository,
   'adapters/connectors/duckdb/node/package.json'))('@duckdb/node-api');
 const contentCid = value => `sha256:${createHash('sha256')
   .update(canonicalJson(value)).digest('hex')}`;
@@ -80,6 +81,12 @@ async function installedReadFixture(directory, outcome = 'allow') {
   const base = JSON.parse(await readFile(join(repository,
     'spec/local-check-environment.json'), 'utf8'));
   environment.host_policy_profile = base.host_policy_profile;
+  // This installed adapter supports the bounded broad-receipt realization
+  // as well as native two-receipt acquisition. Do not infer that capability
+  // from a native-only saved declaration.
+  environment.connector_capabilities[0].capability_contract_cids.push(
+    'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89');
+  environment.connector_capabilities[0].capability_contract_cids.sort();
   environment.evidence_bundle_cid = withoutCid(environment,
     'evidence_bundle_cid');
   const profilePath = join(directory, 'source-profile.json');
@@ -116,25 +123,26 @@ test('public HTTP source text uses the installed alias and existing Run owner', 
       throw error;
     });
   t.after(async () => { await host.close(); await rm(directory, {recursive: true, force: true}); });
-  const client = await host.as('owner-token');
-  t.after(() => client.close());
-  for (const [index, text] of ['SELECT id FROM', 'SELECT id FROM absent',
-    'SELECT id FROM records WHERE id = @undeclared'].entries()) {
-    const requestId = `source-invalid-${index}`;
-    await assert.rejects(client.aql(text, {format: 'sql', requestId}), error =>
-      ['ClientProgramInvalidInput', 'ClientProgramRejected'].includes(error.code));
-    assert.deepEqual(await client.lookupRequest(requestId), {kind: 'not_found'});
+  // Count actual native query execution, not a best-effort diagnostic or
+  // dispatch reservation. This also catches any extra DuckDB computation.
+  let sourceIo = 0;
+  const stream = DuckDBPreparedStatement.prototype.stream;
+  t.mock.method(DuckDBPreparedStatement.prototype, 'stream', function(...args) {
+    sourceIo++;
+    return Reflect.apply(stream, this, args);
+  });
+  const journal = new DatabaseSync(join(directory, 'state', 'requests',
+    'client-requests.sqlite3'), {readOnly: true});
+  try {
+    const observe = () => ({sourceIo, acceptedRuns:
+      journal.prepare('SELECT COUNT(*) AS count FROM client_requests').get().count});
+    await exercisePublicQueryInput(connect, host.options('owner-token'),
+      {requestPrefix: 'source', observe});
+    assert.equal(observe().acceptedRuns, 5);
+    assert.ok(sourceIo >= 5, 'successful queries must exercise the I/O probe');
+  } finally {
+    journal.close();
   }
-  assert.equal(host.dispatches(), 0);
-  const execution = await client.aql('SELECT id FROM records WHERE amount >= 20',
-    {format: 'sql', requestId: 'source-sql'}).catch(error => {
-      t.diagnostic(String(error.cause?.stack ?? error));
-      throw error;
-    });
-  assert.equal((await execution.wait()).status, 'succeeded');
-  const rows = await execution.result('answer').all();
-  assert.deepEqual(rows.sort((a, b) => a.id - b.id),
-    [{id: 2}, {id: 3}, {id: 3}]);
 });
 async function effectFixture({twoMembers = false} = {}) {
   const environment = JSON.parse(await readFile(join(repository,
@@ -345,7 +353,7 @@ function referenceLedger(directory, moon, requestIdentity) {
 }
 
 async function prepareReferenceCapture(facts, {directory, mappingCids,
-  sends, loseReply, failRow}) {
+  sends, loseReply, failRow, maxInputPins = 2}) {
   const {moon, control, store, execution, publicationPlan: plan,
     prepared, checkedHost, identity} = facts;
   const storedResults = await storeCompletedRunResultSet({execution,
@@ -353,7 +361,7 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
     invocation: plan.invocation, results: plan.results,
     outputLimits: plan.outputLimits,
     contractLimits: plan.contractLimits});
-  const inputs = checked(moon.clientProgramPinEffectSources(checkedHost, 2));
+  const inputs = checked(moon.clientProgramPinEffectSources(checkedHost, maxInputPins));
   const sourceSet = await preparePinnedEffectSourceSet({moon,
     checkedOwner: prepared, execution, inputs,
     maxMembers: mappingCids.length,
@@ -365,6 +373,11 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
     sourceBindingCid: referenceCid('source-binding'),
     contractLimits: localContractLimits,
     localEvidenceContext: plan.localEvidenceContext});
+  if (maxInputPins === 3) {
+    // The separate ordered public Result is not an Effect dependency.
+    assert.equal(sourceSet.dependencies.length, 2);
+    assert.equal(sourceSet.payloads.length, 2);
+  }
   const requestScope = moon.clientProgramEffectRequestScope(prepared,
     identity);
   if (sourceSet.dependencies !== undefined) {
@@ -582,9 +595,10 @@ async function remoteHost(t, authorization, {directory,
     }
   });
   const endpoint = `https://127.0.0.1:${server.address().port}/`;
-  const as = token => connect({mode: 'remote', endpoint, token,
+  const options = token => ({mode: 'remote', endpoint, token,
     durability: 'durable'});
-  return {as, dispatches: () => dispatches, close};
+  const as = token => connect(options(token));
+  return {as, options, dispatches: () => dispatches, close};
 }
 
 const reviewers = [{keyId: 'reviewer-key', reviewerId: 'reviewer',
@@ -1210,11 +1224,12 @@ for (const readDecision of ['deny', 'delegate']) {
     });
 }
 
-for (const outcome of ['success', 'unknown', 'cancel', 'reject']) {
+for (const outcome of ['success', 'ordered', 'unknown', 'cancel', 'reject']) {
 const lostReply = outcome === 'unknown';
 test(outcome === 'cancel' || outcome === 'reject'
   ? `acquired Effect ${outcome} retires upstream payloads after restart`
   : lostReply ? 'acquired Effect preserves unknown across Host restart'
+    : outcome === 'ordered' ? 'acquired Effect publishes a transformed Result after restart'
     : 'acquired Effect waits durably and resumes through the public Host',
   async t => {
     const crashRecovery = process.env.ACTQL_TEST_HOST_CRASH_PHASE === 'recover';
@@ -1232,11 +1247,22 @@ test(outcome === 'cancel' || outcome === 'reject'
     program.stages[1].results = {rows: {from: 'out', fields: ['id']}};
     program.stages[1].effects = JSON.parse(fixture.document).stages[0].effects;
     program.results = {answer: {from: {stage: 'compute_a', result: 'rows'}}};
+    if (outcome === 'ordered') {
+      program.stages[1].results.ordered = {
+        from: 'out', fields: ['id'], order_by: [{id: 'desc'}],
+      };
+      program.results.answer.from.result = 'ordered';
+    }
+    const expectedRows = outcome === 'ordered'
+      ? [{id: 2}, {id: 1}] : [{id: 1}, {id: 2}];
     const sends = [];
     const diagnostics = [];
     let captures = 0;
     let recoveries = 0;
     const hooks = {directory, mappingCids: fixture.mappingCids, sends,
+      // This case retains the acquired Result and two local Results. Keep
+      // the common owner limit explicit rather than bypassing admission.
+      maxInputPins: outcome === 'ordered' ? 3 : 2,
       // The final response is lost after three durable successes. This is
       // interrupted-Host recovery, not an adapter's handled row-failure case.
       loseReply: (member, row) => lostReply && member === 1 && row === 1};
@@ -1247,7 +1273,8 @@ test(outcome === 'cancel' || outcome === 'reject'
         captures++;
         try { return await prepareReferenceCapture(facts, hooks); }
         catch (error) {
-          diagnostics.push({name: 'capture_failure', stack: error.stack});
+          diagnostics.push({name: 'capture_failure', stack: error.stack,
+            cause: error.cause});
           throw error;
         }
       },
@@ -1361,7 +1388,7 @@ test(outcome === 'cancel' || outcome === 'reject'
     assert.equal(recoveries, 1);
     assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
     if (!lostReply) {
-      assert.deepEqual(await attached.result('answer').all(), [{id: 1}, {id: 2}]);
+      assert.deepEqual(await attached.result('answer').all(), expectedRows);
     } else {
       assert.equal((await attached.status()).result_available, false);
     }
@@ -1372,7 +1399,7 @@ test(outcome === 'cancel' || outcome === 'reject'
     assert.equal((await finalExecution.status()).status, expectedStatus);
     if (!lostReply) {
       assert.deepEqual(await finalExecution.result('answer').all(),
-        [{id: 1}, {id: 2}]);
+        expectedRows);
     } else {
       assert.equal((await finalExecution.status()).result_available, false);
     }

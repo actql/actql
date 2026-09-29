@@ -269,6 +269,74 @@ test "checked Client Result transformation orders before identity and evidence" 
   assert_true(cancelled.cancel())
   assert_false(cancelled.cancel())
   assert_true(cancelled.advance(1) is Err(Output(Closed)))
+  // C's captured export boundary must retain a separate Result borrow while
+  // B's bounded transform is in flight. Equal content is not another owner.
+  assert_true(
+    @publication_host.start_captured_managed_result_transformation(
+      foreign, run, 0, completed, bridge, output, export_limits,
+    )
+    is Err(ForeignSelection),
+  )
+  assert_true(
+    @publication_host.start_captured_managed_result_transformation(
+      selected, run, 1, completed, bridge, output, export_limits,
+    )
+    is Err(ForeignSelection),
+  )
+  let unrelated_bridge = @execution.prepare_managed_publication_bridge(
+    completed,
+    (operations.material)().unwrap(),
+    100,
+    values,
+    100,
+    10000,
+  ).unwrap()
+  assert_true(
+    @publication_host.start_captured_managed_result_transformation(
+      selected, run, 0, completed, unrelated_bridge, output, export_limits,
+    )
+    is Err(ForeignSelection),
+  )
+  @execution.close_managed_publication_bridge(unrelated_bridge)
+  let released_result = @publication_host.start_captured_managed_result_transformation(
+    selected, run, 0, completed, bridge, output, export_limits,
+  )
+  let released = match released_result {
+    Ok(value) => value
+    Err(ForeignSelection) => abort("captured selection mismatch")
+    Err(Retain(NotReady)) => abort("capture retain not ready")
+    Err(Retain(ForeignCandidate)) => abort("capture retain foreign")
+    Err(Retain(_)) => abort("capture retain failed")
+    Err(Transform(_)) => abort("capture transform failed")
+    Err(InvalidState) => abort("capture invalid state")
+  }
+  released.cancel()
+  released.cancel()
+  assert_true(released.advance(1) is Err(InvalidState))
+  let held = @publication_host.start_captured_managed_result_transformation(
+    selected, run, 0, completed, bridge, output, export_limits,
+  ).unwrap()
+  assert_true(held.finish() is Err(Transform(Output(NotFinished))))
+  @strategy.close_captured_task_output(run, 0)
+  while true {
+    let (done, used) = held.advance(1).unwrap()
+    assert_true(used <= 1)
+    if done {
+      break
+    }
+  }
+  let exported = held.finish().unwrap()
+  // Responsibility moved to the export; cancelling preparation must not
+  // revoke it. Repeated finish cannot duplicate that responsibility.
+  held.cancel()
+  assert_true(held.finish() is Err(InvalidState))
+  let transformed = StringBuilder()
+  while exported.next().unwrap() is Some(chunk) {
+    transformed.write_string(chunk)
+  }
+  transformed.write_string(exported.finish().unwrap())
+  assert_eq(transformed.to_string(), "[{\"id\":1},{\"id\":2},{\"id\":3}]")
+  exported.cancel()
   @execution.close_managed_publication_bridge(bridge)
   @strategy.close_captured_task_output(run, 0)
   let usage = @resources.ledger_usage(ledger)

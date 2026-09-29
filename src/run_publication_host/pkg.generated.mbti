@@ -105,6 +105,8 @@ pub fn client_compiled_run_plan(ClientCompiledRun) -> @run_publication.Publicati
 
 pub fn client_compiled_run_prepared(ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
+pub fn client_compiled_run_result_transformation(ClientCompiledRun, PreparedClientProgram, Int) -> Result[ClientResultTransformation?, ClientCompiledRunIssue]
+
 pub fn client_compiled_run_template(ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
 pub fn client_direct_result_root_name(ClientDirectResultRoot) -> String
@@ -136,6 +138,8 @@ pub fn client_effect_compilation_owner(ClientEffectCompilation) -> PreparedClien
 pub fn client_effect_compilation_plan(ClientEffectCompilation) -> ClientTaskExecutablePlan
 
 pub fn client_effect_compilation_result_names(ClientEffectCompilation) -> Array[String]
+
+pub fn client_effect_compilation_result_transformation(ClientEffectCompilation, PreparedClientEffectComputation, Int) -> Result[ClientResultTransformation?, ClientEffectCompilationAdmissionIssue]
 
 pub fn client_effect_compilation_template(ClientEffectCompilation) -> @run_publication.RunEvidenceValue
 
@@ -543,11 +547,30 @@ pub fn prepared_client_uses_graph_carrier(PreparedClientProgram) -> Bool
 
 pub fn source_free_caller_input_intent_cid() -> String
 
+pub fn start_captured_client_result_transformation(ClientResultTransformation, @physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]
+
+pub fn[T] start_captured_managed_result_transformation(ClientResultTransformation, @physical_strategy.CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedOutput, PublicationOutputExportLimits, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]
+
 pub fn start_client_result_transformation(ClientResultTransformation, @execution_relation.CompletedOutput, PublicationOutputExportLimits) -> Result[ClientResultTransformationPreparation, ClientResultTransformationIssue]
 
 // Errors
 
 // Types and methods
+pub struct CapturedClientResultTransformation {
+  preparation : ClientResultTransformationPreparation
+  mut borrow : PublicationResultRetention?
+}
+pub fn CapturedClientResultTransformation::advance(Self, Int) -> Result[(Bool, Int), CapturedClientResultTransformationIssue]
+pub fn CapturedClientResultTransformation::cancel(Self) -> Unit
+pub fn CapturedClientResultTransformation::finish(Self) -> Result[PublicationOutputExport, CapturedClientResultTransformationIssue]
+
+pub(all) enum CapturedClientResultTransformationIssue {
+  ForeignSelection
+  InvalidState
+  Retain(@physical_strategy.RunIssue)
+  Transform(ClientResultTransformationIssue)
+}
+
 pub(all) enum ClientAcquisitionIssue {
   MissingStage
   MissingRequests
@@ -963,6 +986,12 @@ pub(all) enum ClientResultPlanIssue {
   Encoding
 }
 
+pub(all) enum ClientResultPlanPartsIssue {
+  Root(ClientDirectResultRootIssue)
+  Transformation(ClientResultTransformationIssue)
+  Encoding
+}
+
 pub struct ClientResultRowContractIdentity {
   unit_definition_cid : String
   result_name : String
@@ -1107,6 +1136,7 @@ pub(all) enum ClientTaskPipelineIssue {
 
 pub struct ClientTaskPlanGraph {
   wire : String
+  transformations : Array[ClientResultTransformation]
 }
 
 pub(all) enum ClientTaskPlanGraphAdmissionIssue {
@@ -1118,7 +1148,7 @@ pub(all) enum ClientTaskPlanGraphIssue {
   InvalidLimits
   UnsupportedGraph
   Fragment(ClientTaskFragmentIssue)
-  Root(ClientDirectResultRootIssue)
+  Root(ClientResultPlanPartsIssue)
   InvalidEdge
   ContractMismatch
   Encoding
@@ -1194,6 +1224,8 @@ pub struct ClientValuesExecutablePlan {
   cid : String
   fact_manifest_wire : String
   fact_manifest_cid : String
+  transformations : Array[ClientResultTransformation]
+  graph_logical_cid : String?
 }
 
 pub(all) enum ClientValuesExecutablePlanAdmissionIssue {
@@ -1249,6 +1281,7 @@ pub(all) enum ClientValuesPipelineIssue {
 
 pub struct ClientValuesPlanGraph {
   wire : String
+  transformations : Array[ClientResultTransformation]
 }
 
 pub(all) enum ClientValuesPlanGraphAdmissionIssue {
@@ -1260,7 +1293,7 @@ pub(all) enum ClientValuesPlanGraphIssue {
   InvalidLimits
   UnsupportedGraph
   Fragment(ClientValuesFragmentIssue)
-  Root(ClientDirectResultRootIssue)
+  Root(ClientResultPlanPartsIssue)
   Encoding
 }
 
@@ -1361,6 +1394,8 @@ type PublicationOutputReplay
 pub fn PublicationOutputReplay::cancel(Self) -> Unit
 pub fn PublicationOutputReplay::finish(Self) -> Result[String, PublicationOutputExportIssue]
 pub fn PublicationOutputReplay::next(Self) -> Result[String?, PublicationOutputExportIssue]
+
+type PublicationResultRetention
 
 // Type aliases
 

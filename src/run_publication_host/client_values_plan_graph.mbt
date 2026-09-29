@@ -3,6 +3,7 @@
 /// component, not an Executable Plan or admission decision.
 pub struct ClientValuesPlanGraph {
   wire : String
+  transformations : Array[ClientResultTransformation]
 }
 
 ///|
@@ -10,7 +11,7 @@ pub(all) enum ClientValuesPlanGraphIssue {
   InvalidLimits
   UnsupportedGraph
   Fragment(ClientValuesFragmentIssue)
-  Root(ClientDirectResultRootIssue)
+  Root(ClientResultPlanPartsIssue)
   Encoding
 }
 
@@ -27,8 +28,8 @@ pub fn client_values_plan_graph_wire(value : ClientValuesPlanGraph) -> String {
 
 ///|
 /// Close the fragment and every requested Result root over the same checked
-/// single-task Values graph. A projection/order requiring another task, an
-/// additional task, or a non-Values root cannot enter this graph component.
+/// single-task Values graph, with checked publication transformations when
+/// needed. These fragments are executed by the existing Result exporter.
 pub fn issue_prepared_client_values_plan_graph(
   value : PreparedClientProgram,
   sequence_limits : @lower.SequenceLimits,
@@ -62,27 +63,32 @@ pub fn issue_prepared_client_values_plan_graph(
     return Err(Encoding)
   }
   let roots : Array[@canonical.CanonicalValue] = []
+  let transformations : Array[ClientResultTransformation] = []
+  let nodes = [node]
+  let edges : Array[@canonical.CanonicalValue] = []
   for result in 0..<@strategy.graph_result_count(graph) {
-    let root = match
-      issue_prepared_client_direct_values_result_root(
-        value, result, sequence_limits, max_wire_bytes, max_nodes, max_depth,
-      ) {
-      Ok(root) => root
-      Err(issue) => return Err(Root(issue))
-    }
-    if root.node_id != fragment.node_id || root.port != fragment.node_id {
-      return Err(UnsupportedGraph)
-    }
-    guard parse_plan_identity_value(
-        root.wire,
+    let parts = match
+      issue_client_result_plan_parts(
+        value,
+        result,
+        fragment.node_id,
+        fragment.node_id,
+        fragment.output_contract_cid,
         max_wire_bytes,
         max_nodes,
         max_depth,
-      )
-      is Some(root_value) else {
-      return Err(Encoding)
+      ) {
+      Ok(parts) => parts
+      Err(issue) => return Err(Root(issue))
     }
-    roots.push(root_value)
+    if parts.transformation is Some((node, edge)) {
+      nodes.push(node)
+      edges.push(edge)
+    }
+    roots.push(parts.root)
+    if parts.selection is Some(selection) {
+      transformations.push(selection)
+    }
   }
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
@@ -91,10 +97,15 @@ pub fn issue_prepared_client_values_plan_graph(
     @encode.begin_object(writer)
     @encode.key(writer, "data_edges")
     @encode.begin_array(writer)
+    for edge in edges {
+      @canonical.emit_value(edge, writer)
+    }
     @encode.end_array(writer)
     @encode.key(writer, "nodes")
     @encode.begin_array(writer)
-    @canonical.emit_value(node, writer)
+    for node in nodes {
+      @canonical.emit_value(node, writer)
+    }
     @encode.end_array(writer)
     @encode.key(writer, "root_refs")
     @encode.begin_array(writer)
@@ -103,7 +114,7 @@ pub fn issue_prepared_client_values_plan_graph(
     }
     @encode.end_array(writer)
     @encode.end_object(writer)
-    Ok({ wire: @encode.finish(writer), })
+    Ok({ wire: @encode.finish(writer), transformations, })
   } catch {
     _ => Err(Encoding)
   }

@@ -96,6 +96,16 @@ pub fn prepare_native_source_evidence_context(
 }
 
 ///|
+pub fn source_evidence_context_supports(
+  context : NativeSourceEvidenceContext,
+  capability_contract_cid : String,
+) -> Bool {
+  @environment.connector_source_evidence_supports(context.members, [
+    capability_contract_cid,
+  ])
+}
+
+///|
 /// Trusted Connector issuance after current read authorization. Capture
 /// custody proves actual schema validation and two-receipt completion. No
 /// caller-provided completion, schema CID, capability CID or row hash is used.
@@ -114,10 +124,63 @@ pub fn issue_native_host_source_evidence(
   if !physical_equal(context.requirement, capture.run.requirement) {
     return Err(ObservationMismatch)
   }
+  issue_verified_host_source_evidence(
+    context,
+    identity,
+    logical_input,
+    authority_scope_cid,
+    effective_data_policy_cid,
+    observed_at,
+    capture.run.capability_contract_cid,
+    @duckdb_query.duckdb_native_observation_cid(capture.observation),
+  )
+}
+
+///|
+/// Broad completion already evaluated the checked residual query. Only its
+/// live, exact Source capture can supply the observation for this evidence.
+pub fn issue_broad_host_source_evidence(
+  capture : BroadHostSourceCapture,
+  context : NativeSourceEvidenceContext,
+  identity : @query.CapturedSourceRelationIdentity,
+  logical_input : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  effective_data_policy_cid : String,
+  observed_at : String,
+) -> Result[@publication.RunEvidenceValue, NativeSourceEvidenceIssue] {
+  if !broad_host_source_capture_identity_matches(capture, identity) ||
+    !physical_equal(context.requirement, capture.run.configuration.requirement) {
+    return Err(ObservationMismatch)
+  }
+  issue_verified_host_source_evidence(
+    context,
+    identity,
+    logical_input,
+    authority_scope_cid,
+    effective_data_policy_cid,
+    observed_at,
+    @planning.query_evidence_contract_identity(),
+    @duckdb_query.duckdb_broad_observation_cid(capture.observation),
+  )
+}
+
+///|
+/// Private encoding shared only after the physical capture owners above
+/// establish liveness and exact requirement/identity binding.
+fn issue_verified_host_source_evidence(
+  context : NativeSourceEvidenceContext,
+  identity : @query.CapturedSourceRelationIdentity,
+  logical_input : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  effective_data_policy_cid : String,
+  observed_at : String,
+  capability_contract_cid : String,
+  observation_cid : String,
+) -> Result[@publication.RunEvidenceValue, NativeSourceEvidenceIssue] {
   let members = context.members
   let facts = context.facts
   if !@environment.connector_source_evidence_supports(members, [
-      capture.run.capability_contract_cid,
+      capability_contract_cid,
     ]) {
     return Err(Member(@environment.CapabilityMismatch))
   }
@@ -164,10 +227,7 @@ pub fn issue_native_host_source_evidence(
         ("output_carrier", "relation"),
         ("read_mode", "snapshot"),
         ("observed_at", observed_at),
-        (
-          "snapshot_ref",
-          @duckdb_query.duckdb_native_observation_cid(capture.observation),
-        ),
+        ("snapshot_ref", observation_cid),
         ("completeness", "complete"),
         ("consistency_level", "snapshot"),
       ] {

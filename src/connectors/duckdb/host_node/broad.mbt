@@ -5,6 +5,69 @@ struct BroadNodeRun {
 }
 
 ///|
+#export_name("broadHostSourceCapture")
+pub fn broad_host_source_capture(
+  run : BroadNodeRun,
+  observation : @duckdb_query.DuckDBBroadObservation,
+) -> @acquisition_host.BroadHostSourceCapture raise NodeHostFailure {
+  match @acquisition_host.capture_broad_host_source(run.host, observation) {
+    Ok(value) => value
+    Err(issue) => raise CapturedSource(issue)
+  }
+}
+
+///|
+#export_name("broadHostSourceCaptureSource")
+pub fn broad_host_source_capture_source(
+  capture : @acquisition_host.BroadHostSourceCapture,
+) -> @query.CapturedInputSource raise NodeHostFailure {
+  match @acquisition_host.broad_host_source_capture_source(capture) {
+    Ok(value) => value
+    Err(issue) => raise CapturedSource(issue)
+  }
+}
+
+///|
+#export_name("broadHostSourceCaptureIdentityMatches")
+pub fn broad_host_source_capture_identity_matches(
+  capture : @acquisition_host.BroadHostSourceCapture,
+  identity : @query.CapturedSourceRelationIdentity,
+) -> Bool {
+  @acquisition_host.broad_host_source_capture_identity_matches(
+    capture, identity,
+  )
+}
+
+///|
+#export_name("broadHostSourceCaptureSourceRef")
+pub fn broad_host_source_capture_source_ref(
+  capture : @acquisition_host.BroadHostSourceCapture,
+) -> String? {
+  @acquisition_host.broad_host_source_capture_source_ref(capture)
+}
+
+///|
+#export_name("broadHostIssueSourceEvidence")
+pub fn broad_host_issue_source_evidence(
+  capture : @acquisition_host.BroadHostSourceCapture,
+  context : @acquisition_host.NativeSourceEvidenceContext,
+  identity : @query.CapturedSourceRelationIdentity,
+  logical_input : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  effective_data_policy_cid : String,
+  observed_at : String,
+) -> String raise NodeHostFailure {
+  match
+    @acquisition_host.issue_broad_host_source_evidence(
+      capture, context, identity, logical_input, authority_scope_cid, effective_data_policy_cid,
+      observed_at,
+    ) {
+    Ok(value) => @publication.run_evidence_value_json(value)
+    Err(issue) => raise SourceEvidence(issue)
+  }
+}
+
+///|
 #export_name("broadHostOpen")
 pub fn broad_host_open(
   setup : @acquisition_host.BroadHostConfiguration,

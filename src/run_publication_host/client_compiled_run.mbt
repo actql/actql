@@ -36,6 +36,30 @@ pub fn client_compiled_run_matches(
 }
 
 ///|
+/// Retrieve the exact checked selection retained by compilation. None means
+/// a direct Result, not permission to accept a foreign or missing occurrence.
+pub fn client_compiled_run_result_transformation(
+  value : ClientCompiledRun,
+  owner : PreparedClientProgram,
+  result : Int,
+) -> Result[ClientResultTransformation?, ClientCompiledRunIssue] {
+  if !client_compiled_run_matches(value, owner) ||
+    @strategy.graph_result_occurrence(owner.graph, result) is None {
+    return Err(ForeignOwner)
+  }
+  let selections = match value.compilation {
+    Values(compilation) => compilation.plan.transformations
+    Tasks(compilation) => compilation.plan.plan.transformations
+  }
+  for selection in selections {
+    if client_result_transformation_matches(selection, owner, result) {
+      return Ok(Some(selection))
+    }
+  }
+  Ok(None)
+}
+
+///|
 pub fn issue_client_values_compiled_run(
   owner : PreparedClientProgram,
   compilation : ClientValuesCompilation,

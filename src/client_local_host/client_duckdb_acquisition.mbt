@@ -12,14 +12,22 @@ pub(all) enum ClientDuckDBAcquisitionIssue {
 /// Bind one checked source requirement to the installed DuckDB realization.
 /// The trusted Host supplies the physical table and file grant separately;
 /// Program text cannot select a local file or replace evidence contracts.
-pub fn prepare_client_duckdb_acquisition(
+fn prepare_client_duckdb_acquisition_parts(
   requirement : @planning.QueryRequirement,
   database_schema : String,
   table : String,
   query_contract_body : String,
   evidence_contract_body : String,
   two_receipt_contract_body : String,
-) -> Result[@duckdb_host.NativeHostConfiguration, ClientDuckDBAcquisitionIssue] {
+) -> Result[
+  (
+    @planning.QueryEvidenceContracts,
+    @planning.QueryTwoReceiptContract,
+    @duckdb_query.DuckDBQueryPreparation,
+    @connector.CapabilityRegistry,
+  ),
+  ClientDuckDBAcquisitionIssue,
+] {
   if database_schema.is_empty() || table.is_empty() {
     return Err(InvalidSource)
   }
@@ -102,6 +110,26 @@ pub fn prepare_client_duckdb_acquisition(
     Ok(value) => value
     Err(_) => return Err(Registration)
   }
+  Ok((contracts, receipts, preparation, registry))
+}
+
+///|
+pub fn prepare_client_duckdb_acquisition(
+  requirement : @planning.QueryRequirement,
+  database_schema : String,
+  table : String,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  two_receipt_contract_body : String,
+) -> Result[@duckdb_host.NativeHostConfiguration, ClientDuckDBAcquisitionIssue] {
+  let (_, receipts, preparation, registry) = match
+    prepare_client_duckdb_acquisition_parts(
+      requirement, database_schema, table, query_contract_body, evidence_contract_body,
+      two_receipt_contract_body,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   guard @connector.capability_registration_at(registry, 0) is Some(registration) else {
     return Err(Registration)
   }
@@ -183,6 +211,130 @@ pub fn prepare_client_duckdb_acquisition(
         output_rows: 100,
         output_entries: 100,
         output_name_bytes: 10000,
+        transport: {
+          max_bytes: 100000,
+          max_nodes: 10000,
+          max_columns: 10,
+          max_rows: 100,
+          max_text_bytes: 100000,
+        },
+      },
+    ),
+  )
+}
+
+///|
+/// Prepare the existing bounded broad-receipt realization before any I/O.
+/// This is selection material, not an execution-time retry or read grant.
+pub fn prepare_client_duckdb_broad_acquisition(
+  requirement : @planning.QueryRequirement,
+  database_schema : String,
+  table : String,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  two_receipt_contract_body : String,
+) -> Result[@duckdb_host.BroadHostConfiguration, ClientDuckDBAcquisitionIssue] {
+  guard @duckdb_host.prepare_native_source_evidence_context(requirement)
+    is Ok(context) &&
+    @duckdb_host.source_evidence_context_supports(
+      context,
+      @planning.query_evidence_contract_identity(),
+    ) else {
+    return Err(InvalidContracts)
+  }
+  let (contracts, _, preparation, registry) = match
+    prepare_client_duckdb_acquisition_parts(
+      requirement, database_schema, table, query_contract_body, evidence_contract_body,
+      two_receipt_contract_body,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard @connector.capability_registration_at(registry, 0) is Some(registration) else {
+    return Err(Registration)
+  }
+  let candidate = match
+    @duckdb_query.duckdb_broad_candidate(
+      registration,
+      preparation,
+      [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(10L), }],
+      { transfer_bytes: None, retained_bytes: None, money_units: None, },
+      100,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Candidate)
+  }
+  guard @planning.choose_acquisition_candidate(
+      registry,
+      requirement,
+      [@planning.prepared_acquisition_candidate(candidate)],
+      None,
+      100,
+    )
+    is Ok(@planning.Proposed(choice)) else {
+    return Err(Selection)
+  }
+  let values : @execution.ValueLimits = {
+    max_nodes: 10000,
+    max_text_bytes: 100000,
+    max_depth: 100,
+    max_work: 1000000,
+  }
+  Ok(
+    @duckdb_host.configure_broad_host(
+      contracts,
+      requirement,
+      choice,
+      candidate,
+      {
+        physical: {
+          max_rows: 100,
+          max_cells: 1000,
+          max_nodes: 1000,
+          max_text_bytes: 10000,
+        },
+        metadata_work: 10000,
+        retention: values,
+        completion: {
+          execution: {
+            rows: {
+              max_rows: 100,
+              metadata_entries: 10000,
+              retained_entries: 10000,
+              operation_entries: 10000,
+              input_values: values,
+              output_values: values,
+            },
+            max_work: 1000000,
+            max_frames: 10000,
+          },
+          guards: {
+            max_work: 100000,
+            max_bytes: 100000,
+            max_nodes: 10000,
+            max_depth: 100,
+          },
+          retention: {
+            received_wire_bytes: 100000,
+            retained_wire_bytes: 100000,
+            measurement: {
+              max_columns: 10,
+              max_order_work: 10000,
+              max_bytes: 100000,
+              max_nodes: 10000,
+              max_depth: 100,
+            },
+          },
+          records: {
+            max_work: 1000000,
+            max_fields: 100,
+            max_parameters: 100,
+            max_bytes: 1000000,
+            max_nodes: 100000,
+            max_depth: 100,
+          },
+          capture: { max_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
+        },
         transport: {
           max_bytes: 100000,
           max_nodes: 10000,

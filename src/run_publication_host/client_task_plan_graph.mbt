@@ -3,6 +3,7 @@
 /// source inputs still require physical capture and admission before a Run.
 pub struct ClientTaskPlanGraph {
   wire : String
+  transformations : Array[ClientResultTransformation]
 }
 
 ///|
@@ -10,7 +11,7 @@ pub(all) enum ClientTaskPlanGraphIssue {
   InvalidLimits
   UnsupportedGraph
   Fragment(ClientTaskFragmentIssue)
-  Root(ClientDirectResultRootIssue)
+  Root(ClientResultPlanPartsIssue)
   InvalidEdge
   ContractMismatch
   Encoding
@@ -69,6 +70,7 @@ fn issue_client_task_plan_graph(
     return Err(UnsupportedGraph)
   }
   let fragments : Array[ClientTaskFragmentNode] = []
+  let transformations : Array[ClientResultTransformation] = []
   let nodes : Array[@canonical.CanonicalValue] = []
   for task in 0..<count {
     let fragment = match
@@ -91,24 +93,34 @@ fn issue_client_task_plan_graph(
     nodes.push(node)
   }
   let roots : Array[@canonical.CanonicalValue] = []
+  let result_edges : Array[@canonical.CanonicalValue] = []
   for result in 0..<@strategy.graph_result_count(graph) {
-    let root = match
-      issue_prepared_client_direct_task_result_root(
-        value, result, sequence_limits, max_wire_bytes, max_nodes, max_depth,
-      ) {
-      Ok(root) => root
-      Err(issue) => return Err(Root(issue))
+    guard @strategy.graph_result_task(graph, result) is Some(task) &&
+      fragments.get(task) is Some(fragment) else {
+      return Err(UnsupportedGraph)
     }
-    guard parse_plan_identity_value(
-        root.wire,
+    let parts = match
+      issue_client_result_plan_parts(
+        value,
+        result,
+        fragment.node_id,
+        fragment.output_port,
+        fragment.output_contract_cid,
         max_wire_bytes,
         max_nodes,
         max_depth,
-      )
-      is Some(root_value) else {
-      return Err(Encoding)
+      ) {
+      Ok(parts) => parts
+      Err(issue) => return Err(Root(issue))
     }
-    roots.push(root_value)
+    if parts.transformation is Some((node, edge)) {
+      nodes.push(node)
+      result_edges.push(edge)
+    }
+    roots.push(parts.root)
+    if parts.selection is Some(selection) {
+      transformations.push(selection)
+    }
   }
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
@@ -195,6 +207,9 @@ fn issue_client_task_plan_graph(
       @encode.end_object(writer)
       @encode.end_object(writer)
     }
+    for edge in result_edges {
+      @canonical.emit_value(edge, writer)
+    }
     @encode.end_array(writer)
     @encode.key(writer, "nodes")
     @encode.begin_array(writer)
@@ -227,7 +242,7 @@ fn issue_client_task_plan_graph(
     }
     @encode.end_array(writer)
     @encode.end_object(writer)
-    Ok({ wire: @encode.finish(writer), })
+    Ok({ wire: @encode.finish(writer), transformations, })
   } catch {
     _ => Err(Encoding)
   }

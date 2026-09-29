@@ -1094,8 +1094,24 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.ok(widePrepared);
   const wideResultPlan = checked(
     moon.clientProgramIssueResultPlan(widePrepared, 0));
-  assert.throws(() => checked(
-    moon.clientProgramIssueLocalValuesPlanGraph(widePrepared)),
+  const wideGraph = JSON.parse(moon.clientProgramLocalValuesPlanGraphWire(
+    checked(moon.clientProgramIssueLocalValuesPlanGraph(widePrepared))));
+  assert.equal(wideGraph.nodes.length, 2);
+  assert.deepEqual(wideGraph.nodes[1].pipeline, {
+    output: 'projected', sources: {input_0: {sort: 'relation'}},
+    steps: [{id: 'projected', in: ['input_0'], op: 'REL.select',
+      params: {columns: ['id']}}], version: 'aoa-pipeline/0.1',
+  });
+  assert.deepEqual(wideGraph.root_refs, [{name: 'answer',
+    ref: {node_id: 'result_0', port: 'projected'}, role: 'requested_result'}]);
+  assert.deepEqual(wideGraph.data_edges.map(({from, to}) => ({from, to})), [{
+    from: {node_id: 'values_0', port: 'values_0'},
+    to: {node_id: 'result_0', port: 'input_0'},
+  }]);
+  const alteredProjection = structuredClone(wideGraph);
+  alteredProjection.nodes[1].pipeline.steps[0].params.columns = ['hidden'];
+  assert.throws(() => checked(moon.clientProgramAdmitLocalValuesPlanGraph(
+    widePrepared, JSON.stringify(alteredProjection))),
   {code: 'MoonBitHostFailure'});
   assert.notEqual(moon.clientProgramResultPlanCid(wideResultPlan),
     moon.clientProgramResultPlanCid(resultPlan));
