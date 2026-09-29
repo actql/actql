@@ -165,3 +165,23 @@ and original Run state, must not authorize execution, and must not retire
 evidence needed for unknown writes. These three probes cover post-commit
 stops only; before-commit, shared-object, cleanup-failure and public Host
 recovery coverage still remain to be implemented with the correction.
+
+The first correction records bounded physical cleanup custody in the existing
+Store before member holdings commit and extends it before the capture holding
+commits. It binds the admitted Run Definition, Store authority and exact
+holding records. The private completed capture takes custody only after its
+record commits; this inventory is not execution or approval evidence.
+Retirement validates every surviving holding before deletion and keeps the
+inventory until all deletions finish. Limits are 4,096 holding records and
+the smaller of 16 MiB and the Store's object-byte limit per inventory.
+
+All three process-stop commands now pass locally, including an unrelated
+holding sharing the interrupted capture's payload and a real deletion
+directory-sync failure followed by cleanup retry. Incomplete captures remain
+unavailable for execution. This closes the explicit common retirement path,
+not the full P2 acceptance: Host discovery/retirement of pre-Checkpoint
+custody, registration failure boundaries and final regression gates still
+need connection and verification. Do not use this result as merge approval.
+The touched bridge, installed Effect and Publication Store test files passed
+103/103 after this correction. No new Core run was needed for these JavaScript
+custody changes; final Host/Client jobs and pushed-SHA CI are still pending.

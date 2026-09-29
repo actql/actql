@@ -723,6 +723,8 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
   // lost acknowledgement. Retry reconciles these exact records without export.
   owner.captureHolding = captureHolding;
   owner.effectSourceHoldingCids = Object.freeze([...sourceHoldingCids]);
+  await store.retainEffectCaptureCustody(runDefinition,
+    [...ownedHoldings.map(holding => holding.record), captureHolding]);
   for (const holding of ownedHoldings) {
     await commitHolding(holding.record, []);
   }
@@ -743,6 +745,10 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     fail('CompletedEffectfulCaptureConflict');
   }
   await owner.captureRecordOwner.commit();
+  // The durable private record now owns the complete recovery inventory.
+  // Do not expose a completed capture while cleanup custody transfer is
+  // unconfirmed. Unknown writes can only follow this completed boundary.
+  await store.forgetEffectCaptureCustody(runDefinition);
   const issued = Object.freeze({manifest, computationReceipt: receipt,
     capturedRun});
   completedEffectfulOwners.set(issued, Object.freeze({
@@ -773,6 +779,7 @@ export async function retireCompletedEffectfulCapture({store, control,
     store.storeAuthorityCid);
   const record = await store.inspectPhysicalHolding(recordCid);
   if (record === undefined) {
+    if (await store.retireEffectCaptureCustody(run)) return true;
     if (await store.inspectPhysicalHolding(captureCid) !== undefined) {
       fail('CompletedEffectfulCaptureRecordMissing');
     }
@@ -902,6 +909,7 @@ export async function retireCompletedEffectfulCapture({store, control,
       throw error;
     }
   }
+  await store.forgetEffectCaptureCustody(run);
   return true;
 }
 

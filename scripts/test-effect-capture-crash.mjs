@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdir, mkdtemp, readFile, readdir} from 'node:fs/promises';
+import {mkdir, mkdtemp, open, readFile, readdir} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 import {join} from 'node:path';
 import * as moon from '../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
@@ -30,11 +31,26 @@ const saved = JSON.parse(await readFile(savedPath, 'utf8'));
 saved.configuration.privateEvidenceKey = Buffer.from(
   saved.configuration.privateEvidenceKey.data);
 const control = runtimeCore(moon).publicationControl;
-const store = await openLocalPublicationStore(saved.configuration, control);
+let failObjectSync = false;
+const store = await openLocalPublicationStore(saved.configuration, control, {
+  async syncDirectory(path) {
+    if (failObjectSync && path === join(saved.configuration.directory, 'objects')) {
+      failObjectSync = false;
+      throw Object.assign(new Error('injected retirement directory sync'), {code: 'EIO'});
+    }
+    const directory = await open(path, 'r');
+    try { await directory.sync(); } finally { await directory.close(); }
+  },
+});
 const options = {store, control, runDefinition: saved.runDefinition,
   contractLimits: saved.contractLimits};
 const observed = {boundary};
 try {
+  const sharedCid = `sha256:${createHash('sha256').update('unrelated holding').digest('hex')}`;
+  // Another owner uses the same physical payload. Capture cleanup may not
+  // delete that allocation merely because its own inventory is incomplete.
+  const shared = {...saved.holding, holding_cid: sharedCid};
+  await store.sharePhysicalHolding(saved.holding.holding_cid, shared);
   try {
     const recovered = await recoverCompletedEffectfulComputation(options);
     observed.recovery = 'completed';
@@ -45,6 +61,15 @@ try {
   catch (error) { observed.recovery = error.code ?? error.message; }
   try { observed.retired = await retireCompletedEffectfulCapture(options); }
   catch (error) { observed.retirementError = error.code ?? error.message; }
+  assert.deepEqual(await store.inspectPhysicalHolding(sharedCid), shared,
+    'unrelated holding and shared payload must remain valid');
+  // The last owner exercises the real deletion retry, not a fake close.
+  failObjectSync = true;
+  const deletion = await store.retirePhysicalHolding(sharedCid);
+  assert.equal(deletion.cleanup.status().pending, true);
+  await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});
+  await deletion.cleanup.retry();
+  assert.equal(deletion.cleanup.status().pending, false);
   observed.holdings = (await readdir(join(saved.configuration.directory,
     'physical-holdings'))).length;
   observed.objects = (await readdir(join(saved.configuration.directory, 'objects'))).length;
@@ -57,4 +82,6 @@ try {
     'partial durable capture must retain recoverable cleanup responsibility');
   assert.equal(observed.holdings, 0, 'all unshared test holdings must retire');
   assert.equal(observed.objects, 0, 'all unshared test payloads must retire');
+  assert.equal(await store.readEffectCaptureCustody(saved.runDefinition), undefined,
+    'completed retirement must discharge its durable custody inventory');
 } finally { await store.close(); }
