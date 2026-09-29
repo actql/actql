@@ -1769,6 +1769,14 @@ async function exerciseStrategyGraph(
     }],
     results: {published: {from: {stage: 'graph', result: 'r'}}},
   };
+  const distinctRightRows = [
+    {id: 3, src: 3, dst: 4, node_name: 'third', weight: 30},
+    {id: 4, src: 4, dst: 3, node_name: 'fourth', weight: 40},
+  ];
+  const weightedRightRows = [
+    {id: 1, src: 1, dst: 2, node_name: 'first', weight: 40},
+    {id: 2, src: 2, dst: 1, node_name: 'second', weight: 50},
+  ];
   const graphPublicationCases = [{
     name: 'node-rows',
     step: {from: 'g', node_rows: true, as: 'out'},
@@ -1842,11 +1850,14 @@ async function exerciseStrategyGraph(
     ],
   }, {
     name: 'graft',
+    retainedOutput: true,
+    selectedStructural: true,
+    rightRows: distinctRightRows,
     steps: [{
       graph: {
-        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        nodes: {from: 'right_rows', id: 'id', fields: ['node_name']},
         edges: {
-          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+          from: 'right_rows', source: 'src', target: 'dst', fields: ['weight'],
         },
       },
       as: 'right_graph',
@@ -1860,14 +1871,19 @@ async function exerciseStrategyGraph(
     expected: [
       {id: 1, node_name: 'first'},
       {id: 2, node_name: 'second'},
+      {id: 3, node_name: 'third'},
+      {id: 4, node_name: 'fourth'},
     ],
   }, {
     name: 'union',
+    retainedOutput: true,
+    selectedStructural: true,
+    rightRows: distinctRightRows,
     steps: [{
       graph: {
-        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        nodes: {from: 'right_rows', id: 'id', fields: ['node_name']},
         edges: {
-          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+          from: 'right_rows', source: 'src', target: 'dst', fields: ['weight'],
         },
       },
       as: 'right_graph',
@@ -1883,14 +1899,19 @@ async function exerciseStrategyGraph(
     expected: [
       {id: 1, node_name: 'first'},
       {id: 2, node_name: 'second'},
+      {id: 3, node_name: 'third'},
+      {id: 4, node_name: 'fourth'},
     ],
   }, {
     name: 'mean',
+    retainedOutput: true,
+    selectedStructural: true,
+    rightRows: weightedRightRows,
     steps: [{
       graph: {
-        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        nodes: {from: 'right_rows', id: 'id', fields: ['node_name']},
         edges: {
-          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+          from: 'right_rows', source: 'src', target: 'dst', fields: ['weight'],
         },
       },
       as: 'right_graph',
@@ -1908,7 +1929,54 @@ async function exerciseStrategyGraph(
       },
       as: 'averaged',
     }, {
-      from: 'averaged', node_rows: true, as: 'out',
+      from: 'averaged', edge_rows: true, as: 'out',
+    }],
+    fields: ['src', 'dst', 'weight'],
+    secondFields: ['weight', 'src'],
+    expected: [
+      {src: 1, dst: 2, weight: 30},
+      {src: 2, dst: 1, weight: 40},
+    ],
+  }, {
+    name: 'subtract',
+    retainedOutput: true,
+    selectedStructural: true,
+    steps: [{
+      graph: {
+        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g',
+      subtract_graphs: {with: 'right_graph'},
+      as: 'subtracted',
+    }, {
+      from: 'subtracted', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [],
+  }, {
+    name: 'subtract-nonempty',
+    retainedOutput: true,
+    selectedStructural: true,
+    rightRows: distinctRightRows,
+    steps: [{
+      graph: {
+        nodes: {from: 'right_rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'right_rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g', subtract_graphs: {with: 'right_graph'},
+      as: 'subtracted',
+    }, {
+      from: 'subtracted', node_rows: true, as: 'out',
     }],
     fields: ['id', 'node_name'],
     secondFields: ['node_name'],
@@ -2063,27 +2131,87 @@ async function exerciseStrategyGraph(
       {node_id: 2, component_id: 1, component_size: 2},
     ],
   }];
+  const structuralEdgeExpectations = [{
+    source: 'graft',
+    expected: [
+      {src: 1, dst: 2, weight: 10},
+      {src: 2, dst: 1, weight: 20},
+      {src: 3, dst: 4, weight: 30},
+      {src: 4, dst: 3, weight: 40},
+    ],
+  }, {
+    source: 'union',
+    expected: [
+      {src: 1, dst: 2, weight: 10},
+      {src: 2, dst: 1, weight: 20},
+      {src: 3, dst: 4, weight: 30},
+      {src: 4, dst: 3, weight: 40},
+    ],
+  }, {
+    source: 'subtract-nonempty',
+    expected: [
+      {src: 1, dst: 2, weight: 10},
+      {src: 2, dst: 1, weight: 20},
+    ],
+  }];
+  for (const edgeCase of structuralEdgeExpectations) {
+    const publicationCase = structuredClone(graphPublicationCases.find(value =>
+      value.name === edgeCase.source));
+    publicationCase.name = `${edgeCase.source}-edges`;
+    delete publicationCase.steps.at(-1).node_rows;
+    publicationCase.steps.at(-1).edge_rows = true;
+    publicationCase.fields = ['src', 'dst', 'weight'];
+    publicationCase.secondFields = ['weight', 'src'];
+    publicationCase.expected = edgeCase.expected;
+    graphPublicationCases.push(publicationCase);
+  }
   for (const publicationCase of graphPublicationCases) {
     const graphProgram = structuredClone(graphProgramBase);
+    if (publicationCase.rightRows) {
+      const rightValues = structuredClone(graphProgram.stages[1]);
+      rightValues.id = 'right_values';
+      rightValues.steps[0].values.rows = publicationCase.rightRows;
+      graphProgram.stages.splice(2, 0, rightValues);
+      graphProgram.stages.pop();
+    }
+    const graphStage = graphProgram.stages.find(stage => stage.id === 'graph');
+    const consumerA = graphProgram.stages.find(stage =>
+      stage.id === 'consumer_a');
+    const consumerB = graphProgram.stages.find(stage =>
+      stage.id === 'consumer_b');
+    const tail = graphProgram.stages.find(stage => stage.id === 'tail');
+    if (publicationCase.rightRows) {
+      graphStage.inputs.right_rows = {
+        result: {stage: 'right_values', result: 'r'},
+      };
+    }
     if (publicationCase.concise === true) {
-      graphProgram.stages[2].steps[0] = {
+      graphStage.steps[0] = {
         from: 'rows',
         graph: {source: 'src', target: 'dst'},
         as: 'g',
       };
     }
-    graphProgram.stages[2].steps.splice(
+    graphStage.steps.splice(
       1,
       1,
       ...(publicationCase.steps ?? [publicationCase.step]),
     );
-    graphProgram.stages[2].results.r.fields = publicationCase.fields;
-    graphProgram.stages[3].steps[0].select = publicationCase.fields;
-    graphProgram.stages[3].results.r.fields = publicationCase.fields;
-    graphProgram.stages[4].steps[0].select = publicationCase.secondFields;
-    graphProgram.stages[4].results.r.fields = publicationCase.secondFields;
-    graphProgram.stages[5].steps[0].select = [publicationCase.fields[0]];
-    graphProgram.stages[5].results.r.fields = [publicationCase.fields[0]];
+    if (publicationCase.selectedStructural) {
+      graphStage.steps.at(-1).as = 'projected';
+      graphStage.steps.push({
+        from: 'projected', filter: 'true', as: 'out',
+      });
+    }
+    graphStage.results.r.fields = publicationCase.fields;
+    consumerA.steps[0].select = publicationCase.fields;
+    consumerA.results.r.fields = publicationCase.fields;
+    consumerB.steps[0].select = publicationCase.secondFields;
+    consumerB.results.r.fields = publicationCase.secondFields;
+    if (tail) {
+      tail.steps[0].select = [publicationCase.fields[0]];
+      tail.results.r.fields = [publicationCase.fields[0]];
+    }
     if (publicationCase.name === 'node-rows-filter-sort-take' ||
         publicationCase.retainedOutput) {
       graphProgram.results.consumed_a = {
@@ -2190,8 +2318,9 @@ async function exerciseStrategyGraph(
         ...(publicationCase.name === 'node-rows-filter-sort-take' ||
           publicationCase.retainedOutput ? {
           consumed_a: publicationCase.expected,
-          consumed_b: publicationCase.expected.map(
-            row => ({node_name: row.node_name})),
+          consumed_b: publicationCase.expected.map(row =>
+            Object.fromEntries(publicationCase.secondFields.map(field =>
+              [field, row[field]]))),
         } : {}),
       };
       for (const occurrence of
@@ -2236,18 +2365,41 @@ async function exerciseStrategyGraph(
       await sgaRetained?.close();
     }
   }
-  for (const failureCase of ['construction-capacity', 'consumer-filter']) {
+  for (const failureCase of [
+    'construction-capacity', 'consumer-filter', 'structural-filter',
+  ]) {
     const failureProgram = structuredClone(graphProgramBase);
-    failureProgram.stages[2].steps.splice(1, 1, {
-      from: 'g', node_rows: true, as: 'out',
-    });
+    failureProgram.stages[2].steps.splice(1, 1,
+      ...(failureCase === 'structural-filter' ? [{
+        graph: {
+          nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+          edges: {
+            from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+          },
+        },
+        as: 'right_graph',
+      }, {
+        from: 'g',
+        union_graphs: {with: ['right_graph', 'g', 'right_graph']},
+        as: 'united',
+      }, {
+        from: 'united', node_rows: true, as: 'projected',
+      }, {
+        from: 'projected', filter: 'true', as: 'out',
+      }] : [{from: 'g', node_rows: true, as: 'out'}]),
+    );
     failureProgram.results.consumed_a = {
       from: {stage: 'consumer_a', result: 'r'},
     };
-    failureProgram.results.consumed_b = {
-      from: {stage: 'consumer_b', result: 'r'},
-    };
-    if (failureCase === 'consumer-filter') {
+    if (failureCase === 'structural-filter') {
+      failureProgram.stages.pop();
+    } else {
+      failureProgram.results.consumed_b = {
+        from: {stage: 'consumer_b', result: 'r'},
+      };
+    }
+    if (failureCase === 'consumer-filter' ||
+        failureCase === 'structural-filter') {
       failureProgram.stages[3].steps = [{
         filter: '1 / (id - id) > 0', as: 'filtered',
       }, {
@@ -2303,7 +2455,7 @@ async function exerciseStrategyGraph(
         value.outputRepresentation === 'retained-file'));
       assert.equal(failureExecution.completed.some(value =>
         value.outputRepresentation === 'managed-local-carrier'),
-      failureCase === 'consumer-filter');
+      failureCase !== 'construction-capacity');
       assert.equal(failureExecution.failure?.code, 'MoonBitHostFailure');
       assert(failureExecution.failure.cause);
       assert.equal(failureCase === 'construction-capacity'
@@ -2311,7 +2463,9 @@ async function exerciseStrategyGraph(
           failureExecution.failure.cause)
         : fixture.strategyFixtureSgaConsumerFilterArithmetic(
           failureExecution.failure.cause), true,
-      `${failureCase}: preserve the selected typed failure`);
+      `${failureCase}: preserve the selected typed failure; ` +
+        JSON.stringify(failureExecution.failure.cause,
+          (_, value) => typeof value === 'bigint' ? value.toString() : value));
       await assert.rejects(failurePublicationStore.lookupCommittedIndex({
         namespaceId: plan.request.namespaceId,
         authorityScopeCid: plan.request.authorityScopeCid,
@@ -3945,6 +4099,33 @@ async function exerciseStrategyGraph(
     }],
     fields: ['id', 'node_name'],
   }, {
+    name: 'union-selected-retained',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    cancelTask: 4,
+    completedTasks: [1, 2, 3],
+    steps: [{
+      graph: {
+        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g',
+      union_graphs: {with: ['right_graph', 'g', 'right_graph']},
+      as: 'united',
+    }, {
+      from: 'united', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'mean',
     rows: 40,
     advanceQuantum: 1,
@@ -5430,6 +5611,13 @@ async function exerciseStrategyGraph(
         1,
         ...(cancellationCase.steps ?? [cancellationCase.step]),
       );
+      if (cancellationCase.selectedStructural) {
+        const graphStage = graphCancellationProgram.stages[graphStageIndex];
+        graphStage.steps.at(-1).as = 'projected';
+        graphStage.steps.push({
+          from: 'projected', filter: 'true', as: 'out',
+        });
+      }
     }
     const graphFields = cancellationCase.fields;
     if (graphFamily) {
@@ -5560,6 +5748,7 @@ async function exerciseStrategyGraph(
     let cancellationDeliveredAt;
     let stopObservedAt;
     let managedStarts = 0;
+    const managedTaskByStart = [];
     let fusedNearestBridgeRows = 0n;
     const completedRowsByStart = new Map();
     const boundedValuesInputs = cancellationCase.family === 'interval' ||
@@ -5612,6 +5801,7 @@ async function exerciseStrategyGraph(
           }
           return configuration => {
             const start = ++managedStarts;
+            managedTaskByStart[start] = target.strategyHostNextTask(setup);
             const started = target.strategyModule_local_ManagedStart(
               configuration,
             );
@@ -5743,6 +5933,13 @@ async function exerciseStrategyGraph(
         expectedManagedStarts,
         cancellationCase.name,
       );
+      if (cancellationCase.cancelTask !== undefined) {
+        assert.equal(
+          managedTaskByStart[cancellationCase.cancelOnManagedStart],
+          cancellationCase.cancelTask,
+          cancellationCase.name,
+        );
+      }
       if (cancellationCase.fusedNearest) {
         assert(fusedNearestBridgeRows >=
           BigInt(cancellationCase.rows + 1));
@@ -5818,6 +6015,17 @@ async function exerciseStrategyGraph(
         cancellationExecution.completed.map(value => value.task),
         cancellationCase.completedTasks ??
           (cancellationCase.family === 'time-series' ? [] : [1]),
+        `${cancellationCase.name}: ${JSON.stringify({
+          managedTaskByStart,
+          advanceObservations: advanceObservations.filter(value =>
+            value.start >= (cancellationCase.cancelOnManagedStart ?? 1)),
+          lifecycleObservations: lifecycleObservations.filter(value =>
+            value.start >= (cancellationCase.cancelOnManagedStart ?? 1)),
+          completed: cancellationExecution.completed.map(value => ({
+            task: value.task,
+            outputRepresentation: value.outputRepresentation,
+          })),
+        }, (_, value) => typeof value === 'bigint' ? value.toString() : value)}`,
       );
     } finally {
       cancellationCapture.close();

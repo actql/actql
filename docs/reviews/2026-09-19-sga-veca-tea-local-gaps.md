@@ -638,7 +638,7 @@ multi-step Relation tasks are rejected.
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |
 | Other Relation obligations outside the selected bounded binary chains | In progress | The exact bounded Relation children listed below discharge their checked obligations, including unpivot and unnest output envelopes and selected binary64 numeric observations. Other unlisted obligations remain closed to this retained lane. |
-| Mixed retained Store and Carrier paths | In progress | The typed managed route runs alongside row-file retention for Graph, Events, and Vectors. Direct inter-task Events/Vectors handoffs are covered for the minimal Bridge routes below, and selected Events watermark/dedupe/fixed window/sliding window/session and Vectors normalization are covered between construction and projection; other Carrier variants still need route-specific evidence. |
+| Mixed retained Store and Carrier paths | In progress | The typed managed route runs alongside row-file retention for Graph, Events, and Vectors. Direct inter-task Events/Vectors handoffs are covered for the minimal Bridge routes below. Selected Graph graft/union/subtraction/mean, Events watermark/dedupe/fixed window/sliding window/session, and Vectors normalization can run between construction and projection. Selected structural Graph cancellation through the Node Host and other Carrier variants still need route-specific evidence. |
 | Native Host in-flight cancellation | Separate completion unit | Do not count JS Host cancellation as native request delivery. |
 
 The above is local route evidence. A final verification SHA and Linux CI result
@@ -3966,3 +3966,26 @@ workspace, foreign binding, cancellation, and producer custody. The Node
 standard Host retains the filtered Relation in a real Store, reads its Named
 Result and two consumer results, and exercises in-flight cancellation. Other
 Carrier pool paths and mixed-path failure modes are not implied by this route.
+
+Selected Graph graft, finite-list union, structural subtraction, and mean now
+accept the checked Graph input views when a later Relation consumer requires a
+task split. The existing fused path remains selected when no such consumer
+exists. A selected structural completion transfers its Graph generation to the
+returned material; provider cleanup no longer discards that live output before
+the formal `node_rows` Bridge reads it. A portable selected union fixture
+checks all four authored input occurrences, repeated material positions,
+Bridge row order, producer cleanup, and cancellation after positive work on
+JS, Wasm, and native. The selected provider observes cancellation again before
+transferring a completed Graph from its pending handoff; cancellation at every
+yield returns Stopped and cleanup reclaims the untransferred output while the
+input Graphs remain available. The Node publication fixture exercises graft,
+union, mean, empty and nonempty subtraction followed by a same-Stage filter,
+real retained Store output, Named Result retrieval, and two independent
+consumers. Distinct right-side nodes and edges, asymmetric mean weights, and
+independent edge-row expectations distinguish incorrect operand binding and
+arithmetic. A selected structural task also receives a Host-delivered in-flight
+cancel, and a later consumer failure leaves the result unpublished and cleans
+up retained resources. The full Node standard-Host fixture passed after these
+changes; the portable Graph integration file passed 136/136 on each of JS,
+Wasm, and native. Same-SHA Linux CI remains unverified, and the covered routes
+do not imply every retained Graph route is complete.

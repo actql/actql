@@ -248,7 +248,14 @@ fn strategy_fixture_sga_subset_with_retention(
     100000L,
     fixture_max_capacity(task_sequences, execution),
   )
-  if !@local_connector.managed_provider_accepts(provider, task_sequences[1]) {
+  let mut graph_sequence_found = false
+  for sequence in task_sequences {
+    if @local_connector.managed_provider_accepts(provider, sequence) {
+      graph_sequence_found = true
+      break
+    }
+  }
+  if !graph_sequence_found {
     abort("SGA fixture provider rejected its graph sequence")
   }
   @connector_gate.configure_subset(
