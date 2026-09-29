@@ -31,11 +31,18 @@ before provider I/O; Salesforce behavior stays in its installation adapter.
   cleanup before Preview preparation and uses `suspendCompletedEffectfulComputation`
   before exposing a deferred commit. The Checkpoint owner holds the sealed
   Preview and continuation; the request journal holds the Run-start claim.
-- `adapters/host-node/embedded-local.mjs` currently routes Effect submissions
-  before acquired-read admission and opens a source-free Effect host. It must
-  connect read admission, acquired compilation, one physical capture, and the
-  existing Effect installation without provider-name branches. Its current
-  `unitId: 'values'` continuation coordinate must come from the checked Unit.
+- `adapters/host-node/embedded-local.mjs` now selects acquired Effect admission
+  from the same checked preparation. `acquired-effect-computation.mjs` retains
+  capture/Compute cleanup responsibility before opening the Source and binds
+  the completed observation to the admitted Run. Immediate read denial and
+  unsupported read deferral stop before Effect preparation. Success still needs
+  the upstream local Invocation/Artifact dependency chain and its durable
+  inventory; the continuation's `unitId: 'values'` coordinate must also come
+  from the checked Unit.
+
+The approved incompatible 0.1 dependency update is recorded in
+[Captured Effect dependency closure](2026-09-29-source-effect-dependency-contract.md).
+It must be connected before claiming the acquired approval/restart path works.
 
 ## Durable boundary and recovery
 
@@ -97,3 +104,26 @@ failures are a distinct Host integration acceptance, not a reason to expand
 the first Source-to-Effect Program profile. If B needs a Host ABI adjustment
 before merging, agree on that exact bridge signature and test rather than
 editing the same Host files in parallel.
+
+## Verification checkpoint before dependency inventory implementation
+
+At `b8e4d4e085a839b445477323bb2828aa7098a6c0`,
+`node scripts/local-checks.mjs run client` passed all 254 initial Node tests
+and the packed Node/browser Client smoke. The following packed Checkpoint
+test failed at `test-packed-client-checkpoint.mjs:802`: `recover-transient`
+observed one recovery callback, while the assertion after a fixed 2.5-second
+wait expected two. This is a failed gate, not evidence of complete Client
+acceptance. Later commands in the client job did not run.
+
+The retained event log contained the second automatic recovery observation
+after the failed assertion. `91636b5df` replaces the fixed wait with bounded
+observation of that event; it does not retry work or relax exact dispatch and
+Compute counts. `node scripts/test-packed-client-checkpoint.mjs --recovery-only`
+passed both transient and permanent recovery cases. This focused success does
+not replace the unfinished full Client job or Linux CI.
+
+The contract delta was shared with D in
+[PR #53](https://github.com/actql/actql/pull/53#issuecomment-5882725751).
+That handoff is not an executable acquired-Effect acceptance SHA. The new
+dependency graph checks cover bounds and topology locally; product issuance,
+durable storage and recovery admission still need to use them.
