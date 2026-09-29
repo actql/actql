@@ -50,8 +50,20 @@ To repeat with the pinned toolchain on PATH:
 node scripts/test-packed-public-query.mjs
 ```
 
-The printed external directory retains the installed packages, Host roots,
-fixture and acceptance log for diagnosis. CLI acceptance remains B's task;
+The printed external evidence directory retains the revision, tarball SHA-256
+digests and each command's stdout, stderr, exit status, signal and duration.
+These observations are saved before a nonzero exit or timeout is thrown.
+After evidence persistence, the run-owned `artifacts` subdirectory (including
+packages, npm cache and Host roots) is removed on success or failure. No sibling
+scratch directory is removed. Use `--keep-artifacts` explicitly to retain it
+for investigation. If evidence persistence fails, artifacts remain available.
+Failure injection verifies nonzero/timeout logs and failing process exits,
+successful cleanup, explicit retention and unrelated scratch preservation.
+
+Core JS (6,972/6,972), Core wasm (6,969/6,969) and lint passed locally on
+`0d4111d17c0705c29480b48628679b4e2bcb6c4d`; subsequent P3 changes are confined
+to this test driver, its evidence helper/tests and CI/documentation.
+CLI acceptance remains B's task;
 final integrated Host/Client/Core jobs and Linux CI remain open. There is no
 new pushed B handoff SHA yet.
 
