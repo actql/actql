@@ -2966,7 +2966,7 @@ The complete canonical vocabulary is:
 | SGA | [`traverse`](#traverse) | graph x optional selector relation -> relation |
 | SGA | [`shortest_path`](#shortest-path-and-components) | graph x up to two selector relations -> relation |
 | SGA | [`components`](#shortest-path-and-components) | graph -> relation |
-| SGA | [`reach`](#reach) | graph -> relation |
+| SGA | [`reach`](#reach) | graph x optional selector relation -> relation |
 | SGA | [`graph_bounds`](#structural-graphs) | graph -> relation |
 | SGA | [`degree`](#degree) | graph -> relation |
 | SGA | [`graph_diff`](#structural-graphs) | graph x graph -> relation |
