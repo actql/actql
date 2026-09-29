@@ -256,3 +256,44 @@ void actql_executor_slot_sleep_ms(int32_t milliseconds) {
          !actql_executor_slot_terminate_flag) {
   }
 }
+
+// Appends one line and syncs it before returning, for acceptance evidence
+// that must be durable before the next step. 0 on success, -1 otherwise.
+int32_t actql_executor_slot_append_line(
+  moonbit_bytes_t path,
+  int32_t path_length,
+  moonbit_bytes_t line,
+  int32_t line_length
+) {
+  char *text = actql_executor_slot_text(path, path_length);
+  if (text == NULL || line_length < 0) {
+    free(text);
+    return -1;
+  }
+  int descriptor = open(
+    text,
+    O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC | O_NOFOLLOW,
+    S_IRUSR | S_IWUSR
+  );
+  free(text);
+  if (descriptor < 0) return -1;
+  bool written = true;
+  int32_t offset = 0;
+  while (written && offset < line_length) {
+    ssize_t count = write(
+      descriptor,
+      line + offset,
+      (size_t)(line_length - offset)
+    );
+    if (count < 0) {
+      if (errno == EINTR) continue;
+      written = false;
+    } else {
+      offset += (int32_t)count;
+    }
+  }
+  if (written && write(descriptor, "\n", 1) != 1) written = false;
+  if (written && fsync(descriptor) != 0) written = false;
+  if (close(descriptor) != 0) written = false;
+  return written ? 0 : -1;
+}

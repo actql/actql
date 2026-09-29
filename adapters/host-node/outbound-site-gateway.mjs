@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import {createServer} from 'node:https';
 import {projectRemoteDispatchResponse} from './remote-site-client.mjs';
 
@@ -65,7 +66,8 @@ export async function startHttpsOutboundSiteGateway({
   key,
   cert,
   ca,
-  siteAuthorities,
+  siteAuthorities = new Map(),
+  bearerAuthorities = new Map(),
   control,
   maxRequestBytes = 65_536,
   maxPendingDispatches = 1024,
@@ -73,7 +75,9 @@ export async function startHttpsOutboundSiteGateway({
 } = {}) {
   if (!text(host) || !Number.isSafeInteger(port) || port < 0 ||
       key === undefined || cert === undefined || ca === undefined ||
-      !(siteAuthorities instanceof Map) || siteAuthorities.size === 0 ||
+      !(siteAuthorities instanceof Map) ||
+      !(bearerAuthorities instanceof Map) ||
+      siteAuthorities.size + bearerAuthorities.size === 0 ||
       control === null || typeof control !== 'object' ||
       typeof control.identity !== 'function' ||
       typeof control.journalKey !== 'function' ||
@@ -105,7 +109,20 @@ export async function startHttpsOutboundSiteGateway({
     bindings.set(key, binding);
     fingerprints.set(fingerprint, binding);
   }
+  // A Site may instead authenticate with a bearer credential; only the
+  // SHA-256 of each accepted credential is held here.
+  const bearers = new Map();
+  for (const [digest, raw] of bearerAuthorities) {
+    if (!/^[0-9a-f]{64}$/u.test(digest)) fail('InvalidOutboundSiteBinding');
+    const binding = checkedBinding(raw);
+    const key = bindingKey(binding.siteKey, binding.siteGeneration);
+    if (bindings.has(key)) fail('DuplicateOutboundSiteBinding');
+    bindings.set(key, binding);
+    bearers.set(digest, binding);
+  }
   const pending = new Map();
+  // Dispatch envelopes that also carry run materials, by dispatch identity.
+  const materialsEnvelopes = new Map();
   const pollWaiters = new Map();
   let sequence = 0;
   let admissionClosed = false;
@@ -225,7 +242,8 @@ export async function startHttpsOutboundSiteGateway({
             ? outputEnvelope
           : operation === 'plan'
             ? outputEnvelope
-          : control.pollJson(dispatch, inputBinding),
+          : materialsEnvelopes.get(identity) ??
+            control.pollJson(dispatch, inputBinding),
       sequence: sequence++,
       waiters: new Set(),
     };
@@ -289,13 +307,20 @@ export async function startHttpsOutboundSiteGateway({
     cert,
     ca,
     requestCert: true,
-    rejectUnauthorized: true,
+    rejectUnauthorized: bearers.size === 0,
     minVersion: 'TLSv1.3',
   }, async (request, response) => {
     try {
       const peer = request.socket.getPeerCertificate();
-      const binding = fingerprints.get(peer.fingerprint256);
-      if (!request.socket.authorized || binding === undefined) {
+      const authorization = request.headers.authorization;
+      const bearer = typeof authorization === 'string' &&
+        authorization.startsWith('Bearer ')
+        ? bearers.get(createHash('sha256')
+          .update(authorization.slice('Bearer '.length)).digest('hex'))
+        : undefined;
+      const binding = bearer ?? (request.socket.authorized
+        ? fingerprints.get(peer.fingerprint256) : undefined);
+      if (binding === undefined) {
         replyJson(response, 404, {error: 'not_found'});
         return;
       }
@@ -469,9 +494,20 @@ export async function startHttpsOutboundSiteGateway({
   return Object.freeze({
     origin: `https://${host}:${address.port}`,
     port: address.port,
-    dispatch({dispatch, inputBindingBody, signal} = {}) {
-      if (dispatch === undefined || typeof inputBindingBody !== 'string') {
+    dispatch({dispatch, inputBindingBody, dispatchEnvelope, signal} = {}) {
+      if (dispatch === undefined || typeof inputBindingBody !== 'string' ||
+          (dispatchEnvelope !== undefined &&
+          (typeof dispatchEnvelope !== 'string' ||
+          control.identity(control.pollDispatchRequest(
+            control.admitPollDispatch(dispatchEnvelope))) !==
+            control.identity(dispatch) ||
+          control.pollDispatchBindingBody(
+            control.admitPollDispatch(dispatchEnvelope)) !==
+            inputBindingBody))) {
         fail('InvalidOutboundDispatch');
+      }
+      if (dispatchEnvelope !== undefined) {
+        materialsEnvelopes.set(control.identity(dispatch), dispatchEnvelope);
       }
       return waitFor(dispatch, signal, 'dispatch', inputBindingBody);
     },

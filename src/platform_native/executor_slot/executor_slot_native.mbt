@@ -254,3 +254,29 @@ pub fn native_termination_requested() -> Bool {
 pub fn native_wait_milliseconds(milliseconds : Int) -> Unit {
   sleep_ms_ffi(milliseconds)
 }
+
+///|
+#borrow(path, line)
+extern "C" fn append_line_ffi(
+  path : Bytes,
+  path_length : Int,
+  line : Bytes,
+  line_length : Int,
+) -> Int = "actql_executor_slot_append_line"
+
+///|
+/// Append `line` and a newline to `path` and sync it before returning.
+pub fn native_append_evidence_line(path : String, line : String) -> Bool {
+  if !valid_path(path) || line.contains("\n") {
+    return false
+  }
+  let encoded_path = @utf8.encode(path)
+  let encoded_line = @utf8.encode(line)
+  append_line_ffi(
+    encoded_path,
+    encoded_path.length(),
+    encoded_line,
+    encoded_line.length(),
+  ) ==
+  0
+}

@@ -1,0 +1,950 @@
+// The outbound-only resident Site. `run` is the control process: it polls
+// the configured Cloud, admits and accepts dispatches, starts one executor
+// holder at a time through the Site executor slot, and reports observations.
+// `execute` is that holder: it runs exactly one accepted attempt. Every
+// decision is made by the common owners; this command only wires them.
+
+///|
+priv suberror CommandStop {
+  CommandStop(String)
+}
+
+///|
+fn[T] stop(message : String) -> T raise CommandStop {
+  raise CommandStop(message)
+}
+
+///|
+fn required(
+  matches : @argparse.Matches,
+  name : String,
+) -> String raise CommandStop {
+  match matches.values.get(name) {
+    Some([value]) if !value.is_empty() => value
+    _ => stop("missing or repeated option --" + name)
+  }
+}
+
+///|
+fn optional(matches : @argparse.Matches, name : String) -> String? {
+  match matches.values.get(name) {
+    Some([value]) if !value.is_empty() => Some(value)
+    _ => None
+  }
+}
+
+///|
+fn required_int(
+  matches : @argparse.Matches,
+  name : String,
+) -> Int raise CommandStop {
+  let parsed : Int = @string.from_str(required(matches, name)) catch {
+    _ => stop("invalid integer option --" + name)
+  }
+  parsed
+}
+
+///|
+fn required_int64(
+  matches : @argparse.Matches,
+  name : String,
+) -> Int64 raise CommandStop {
+  let parsed : Int64 = @string.from_str(required(matches, name)) catch {
+    _ => stop("invalid integer option --" + name)
+  }
+  parsed
+}
+
+///|
+fn load_text(
+  root : String,
+  name : String,
+  max_bytes : Int64,
+) -> String raise CommandStop {
+  match @bounded_files.read_bounded_text_file(root, name, max_bytes) {
+    Ok(value) => value
+    Err(_) => stop("failed to read " + name)
+  }
+}
+
+///|
+fn now_timestamp() -> String raise CommandStop {
+  match @resident.resident_utc_timestamp(@env.now().to_int64()) {
+    Some(value) => value
+    None => stop("Site clock is out of range")
+  }
+}
+
+///|
+/// One line of machine-readable progress on standard output.
+fn report(kind : String, fields : Array[(String, String)]) -> Unit {
+  let text = StringBuilder()
+  text.write_string("{\"kind\":\"" + kind + "\"")
+  for field in fields {
+    text.write_string(",\"" + field.0 + "\":\"" + field.1 + "\"")
+  }
+  text.write_string("}")
+  println(text.to_string())
+}
+
+///|
+fn refusal_code(refusal : @resident.ResidentDispatchRefusal) -> String {
+  match refusal {
+    ForeignCoordinator => "foreign-coordinator"
+    ForeignSite => "foreign-site"
+    StaleGeneration => "stale-generation"
+    ForeignRuntime => "foreign-runtime"
+    ForeignConnector => "foreign-connector"
+    ForeignGrant => "foreign-grant"
+    ForeignIssuer => "foreign-issuer"
+    UnsupportedBudget => "unsupported-budget"
+    MaterialsMissing => "materials-missing"
+    MaterialsRejected(_) => "materials-rejected"
+    NotCurrent => "not-current"
+    QueueFull => "queue-full"
+  }
+}
+
+///|
+fn client_code(issue : @client.NativeRemoteClientIssue) -> String {
+  match issue {
+    NotAuthorized => "not-authorized"
+    HttpStatus(401) | HttpStatus(403) => "authentication"
+    HttpStatus(status) => "http-" + status.to_string()
+    Http(@http.CredentialUnavailable) => "credential-unavailable"
+    Http(_) => "transport"
+    Protocol(_) => "protocol"
+    Journal(_) => "journal"
+    InvalidUtf8 => "invalid-utf8"
+    OutcomeUnknownPersistence(_, _) => "outcome-unknown"
+    Closed => "closed"
+    UnsupportedTarget => "unsupported-target"
+  }
+}
+
+///|
+fn host_code(issue : @resident_host.ResidentHostIssue) -> String {
+  match issue {
+    Journal(_) => "journal"
+    Client(client) => "client-" + client_code(client)
+    Protocol(_) => "protocol"
+    EnvelopeMissing => "envelope-missing"
+    Refused(refusal) => "refused-" + refusal_code(refusal)
+    Values(_) => "values"
+    Runtime(@runtime.StartClaimLost(_)) => "start-claim-lost"
+    Runtime(@runtime.StartCancelled) => "start-cancelled"
+    Runtime(@runtime.ExecutorEntryUnrecorded) => "executor-entry-unrecorded"
+    Runtime(_) => "runtime"
+  }
+}
+
+///|
+/// The Site environment both processes build the same way from the same
+/// options: runtime bundle Store, active runtime, Site and dispatch journal.
+priv struct SiteEnvironment {
+  bundles : @bundle.NativeRuntimeBundleStore
+  active_runtime : @bundle.NativeActiveRuntimeBinding
+  process_hold_id : String
+  site : @site.ExecutionSite
+  journal : @journal.Journal
+  runtime_bundle_cid : String
+}
+
+///|
+fn open_site_environment(
+  matches : @argparse.Matches,
+  process_hold_id : String,
+) -> SiteEnvironment raise CommandStop {
+  let max_file_bytes = required_int64(matches, "max-file-bytes")
+  let max_record_bytes = required_int64(matches, "max-record-bytes")
+  let max_bytes = required_int64(matches, "max-bytes")
+  let target = required(matches, "target-triple")
+  let component_cid = required(matches, "component-cid")
+  let loaded_component_cid = match
+    @process_image.current_executable_cid(max_bytes, 1048576) {
+    Ok(value) => value
+    Err(_) => stop("resident Site executable identity failed")
+  }
+  if loaded_component_cid != component_cid {
+    stop("resident Site executable identity mismatch")
+  }
+  let sqlite_library = match
+    @sqlite.load_library(required(matches, "sqlite-library")) {
+    Ok(value) => value
+    Err(_) => stop("SQLite library load failed")
+  }
+  let signature_library = match
+    @signature.load_library(required(matches, "crypto-library")) {
+    Ok(value) => value
+    Err(_) => stop("signature library load failed")
+  }
+  let public_key = load_text(
+    required(matches, "bundle-public-key-root"),
+    required(matches, "bundle-public-key-file"),
+    max_file_bytes,
+  )
+  let bundles = match
+    @bundle.open_runtime_bundle_store(
+      sqlite_library,
+      signature_library,
+      required(matches, "runtime-root"),
+      [
+        {
+          issuer_authority: required(matches, "bundle-issuer"),
+          key_id: required(matches, "bundle-key-id"),
+          public_key_pem: public_key,
+        },
+      ],
+      target,
+      max_bytes,
+      64,
+      1024,
+      max_record_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => stop("runtime bundle Store open failed")
+  }
+  let active = match bundles.active() {
+    Ok(Some(value)) => value
+    _ => {
+      ignore(bundles.close())
+      stop("active runtime bundle is missing")
+    }
+  }
+  let active_runtime = match
+    bundles.acquire_active_component(
+      loaded_component_cid, target, process_hold_id,
+    ) {
+    Ok(value) => value
+    Err(_) => {
+      ignore(bundles.close())
+      stop("active runtime component verification failed")
+    }
+  }
+  let site = match
+    @site.create_site(
+      required(matches, "site-key"),
+      required_int(matches, "site-generation"),
+      active.runtime_bundle_cid,
+      required_int(matches, "max-operations"),
+      required_int(matches, "max-transfers"),
+      max_bytes,
+      max_bytes,
+    ) {
+    Some(value) => value
+    None => {
+      ignore(bundles.release(process_hold_id))
+      ignore(bundles.close())
+      stop("invalid execution Site")
+    }
+  }
+  let control = match
+    @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1") {
+    Ok(value) => value
+    Err(_) => {
+      ignore(bundles.release(process_hold_id))
+      ignore(bundles.close())
+      stop("invalid dispatch journal binding")
+    }
+  }
+  let journal = match
+    @journal.open_journal(
+      sqlite_library,
+      required(matches, "journal"),
+      max_record_bytes,
+      control,
+    ) {
+    Ok(value) => value
+    Err(_) => {
+      ignore(bundles.release(process_hold_id))
+      ignore(bundles.close())
+      stop("dispatch journal open failed")
+    }
+  }
+  {
+    bundles,
+    active_runtime,
+    process_hold_id,
+    site,
+    journal,
+    runtime_bundle_cid: active.runtime_bundle_cid,
+  }
+}
+
+///|
+fn close_site_environment(environment : SiteEnvironment) -> Unit {
+  ignore(environment.journal.close())
+  ignore(environment.bundles.release(environment.process_hold_id))
+  ignore(environment.bundles.close())
+}
+
+///|
+fn run_admission(
+  matches : @argparse.Matches,
+) -> @resident_host.ResidentRunAdmission raise CommandStop {
+  let manifests = match
+    @host.admit_client_compilation_manifests(
+      @environment.compiler_grammar_manifest_wire(),
+      @environment.compiler_barrier_contract_manifest_wire(),
+      100000,
+      10000,
+      100,
+    ) {
+    Ok(value) => value
+    Err(_) => stop("compiler manifests admission failed")
+  }
+  {
+    // This implementation runs source-free Values Runs with the relation
+    // profile only.
+    expressions: { text_time: false, veca: false, },
+    operations: {
+      rela: true,
+      sga: false,
+      tea: false,
+      calendar: false,
+      text_rank: false,
+    },
+    manifests,
+    limits: {
+      preparation: @host.client_standard_program_preparation_limits(),
+      sequence: {
+        max_steps: 64,
+        max_rows: 10000,
+        max_cells: 100000,
+        max_bindings: 256,
+        max_name_bytes: 10000,
+        expressions: {
+          max_nodes: 10000,
+          max_work: 100000,
+          max_depth: 64,
+          max_literal_nodes: 10000,
+          max_literal_text_bytes: 100000,
+        },
+      },
+      max_sequence_steps: 64,
+      max_sequence_work: 1024,
+      max_evidence_bytes: 100000,
+      max_evidence_nodes: 10000,
+      max_evidence_depth: 100,
+    },
+  }
+}
+
+///|
+fn delegation(
+  matches : @argparse.Matches,
+  environment : SiteEnvironment,
+  budget : @remote.RemoteDispatchBudget,
+) -> @resident.ResidentSiteDelegation raise CommandStop {
+  let (connector_registration, connector_revision, strategy_revision) = @bundle.native_active_runtime_connector_scope(
+    environment.active_runtime,
+  )
+  {
+    coordinator_authority: required(matches, "coordinator-authority"),
+    site_key: required(matches, "site-key"),
+    runtime_bundle_cid: environment.runtime_bundle_cid,
+    connector_registration,
+    connector_revision,
+    strategy_revision,
+    grant_cid: required(matches, "operation-capability-cid"),
+    evidence_issuer_capability_cid: required(matches, "issuer-capability-cid"),
+    budget_cids: [@remote.remote_dispatch_budget_cid(budget)],
+  }
+}
+
+///|
+fn budget(
+  matches : @argparse.Matches,
+) -> @remote.RemoteDispatchBudget raise CommandStop {
+  match
+    @remote.prepare_remote_dispatch_budget(
+      required_int64(matches, "budget-retained-bytes"),
+      required_int64(matches, "budget-execution-bytes"),
+    ) {
+    Ok(value) => value
+    Err(_) => stop("invalid dispatch budget")
+  }
+}
+
+///|
+fn control_client(
+  matches : @argparse.Matches,
+) -> @http.Client raise CommandStop {
+  let library = match @http.load_library(required(matches, "http-library")) {
+    Ok(value) => value
+    Err(_) => stop("HTTP library load failed")
+  }
+  let authentication : @http.NativeHttpAuthentication = match
+    (
+      optional(matches, "control-cert"),
+      optional(matches, "control-key"),
+      optional(matches, "control-bearer-file"),
+    ) {
+    (Some(cert), Some(key), Some(bearer)) =>
+      MutualTlsAndBearer(cert, key, bearer)
+    (Some(cert), Some(key), None) => MutualTls(cert, key)
+    (None, None, Some(bearer)) => Bearer(bearer)
+    _ =>
+      stop(
+        "control authentication needs a bearer file or a certificate and key",
+      )
+  }
+  match
+    library.create_authenticated_client(
+      required(matches, "ca"),
+      authentication,
+      required_int64(matches, "max-response-bytes"),
+      required_int(matches, "connect-timeout-ms"),
+      required_int(matches, "total-timeout-ms"),
+    ) {
+    Ok(value) => value
+    Err(_) => stop("HTTP client creation failed")
+  }
+}
+
+///|
+/// The holder's arguments: this process's own options with `execute` in
+/// place of `run`, plus the attempt and the holder's claimant name.
+fn holder_arguments(
+  attempt : String,
+  claimant : String,
+) -> Array[String] raise CommandStop {
+  let own = @env.args()
+  let arguments : Array[String] = []
+  let mut replaced = false
+  for index, value in own {
+    if index == 0 {
+      continue
+    }
+    if !replaced && value == "run" {
+      arguments.push("execute")
+      replaced = true
+    } else {
+      arguments.push(value)
+    }
+  }
+  if !replaced {
+    stop("resident Site was not started with run")
+  }
+  arguments.push("--attempt")
+  arguments.push(attempt)
+  arguments.push("--claimant")
+  arguments.push(claimant)
+  arguments
+}
+
+///|
+priv struct RunningHolder {
+  child : @slot.NativeExecutorSlotChild
+  attempt : String
+  request : @remote.DispatchRequest
+}
+
+///|
+/// Report the holder's durable record to the Coordinator after it ended. A
+/// lost report is retried on the next pass; the journal keeps the record.
+fn settle_holder(
+  holder : RunningHolder,
+  environment : SiteEnvironment,
+  client : @http.Client,
+  observation_url : String,
+) -> Bool {
+  match
+    @client.acknowledge_status(
+      environment.journal,
+      client,
+      observation_url,
+      holder.request,
+    ) {
+    Ok(Some(record)) => {
+      report("holder-settled", [
+        ("attempt", holder.attempt),
+        ("request_cid", @remote.dispatch_request_identity(holder.request)),
+        ("revision", @remote.dispatch_record_revision(record).to_string()),
+      ])
+      true
+    }
+    Ok(None) => {
+      report("holder-settled", [("attempt", holder.attempt)])
+      true
+    }
+    Err(issue) => {
+      report("observation-pending", [
+        ("attempt", holder.attempt),
+        ("reason", client_code(issue)),
+      ])
+      false
+    }
+  }
+}
+
+///|
+fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
+  if !@slot.install_native_termination_request() {
+    stop("termination handling could not be installed")
+  }
+  let environment = open_site_environment(
+    matches,
+    "runtime-process:resident-control:" + required(matches, "site-key"),
+  )
+  let slot = match
+    @slot.open_native_executor_slot(required(matches, "executor-slot")) {
+    Ok(value) => value
+    Err(_) => {
+      close_site_environment(environment)
+      stop("executor slot open failed")
+    }
+  }
+  let client = control_client(matches)
+  let poll_url = required(matches, "poll-url")
+  let observation_url = required(matches, "observation-url")
+  let dispatch_budget = budget(matches)
+  let site_delegation = delegation(matches, environment, dispatch_budget)
+  let admission = run_admission(matches)
+  let generation = required_int(matches, "site-generation")
+  let queue = match
+    @resident.ResidentAcceptedQueue::new(
+      required_int(matches, "queue-capacity"),
+    ) {
+    Some(value) => value
+    None => stop("invalid accepted queue capacity")
+  }
+  let executable = match @slot.native_current_executable() {
+    Ok(value) => value
+    Err(_) => stop("resident Site executable path is unavailable")
+  }
+  let max_polls = required_int(matches, "max-polls")
+  let idle_wait_ms = required_int(matches, "idle-wait-ms")
+  let min_backoff_ms = required_int(matches, "min-backoff-ms")
+  let max_backoff_ms = required_int(matches, "max-backoff-ms")
+  let shutdown_wait_ms = required_int(matches, "shutdown-wait-ms")
+  let mut holder : RunningHolder? = None
+  let mut unsettled : RunningHolder? = None
+  let mut backoff_ms = 0
+  let mut polls = 0
+  let mut holders = 0
+  while !@slot.native_termination_requested() {
+    // A finished holder's durable record is reported before new work.
+    match holder {
+      Some(current) =>
+        match current.child.wait(false) {
+          Ok(Some(_)) => {
+            ignore(queue.remove(current.attempt))
+            holder = None
+            unsettled = Some(current)
+          }
+          Ok(None) => ()
+          Err(_) => ()
+        }
+      None => ()
+    }
+    match unsettled {
+      Some(current) =>
+        if settle_holder(current, environment, client, observation_url) {
+          unsettled = None
+        }
+      None => ()
+    }
+    // Start the oldest accepted attempt when the slot is free. The lock is
+    // taken here and passed to the holder without a gap.
+    if holder is None && unsettled is None {
+      match queue.next() {
+        Some(attempt) =>
+          match slot.try_acquire() {
+            Ok(true) => {
+              holders += 1
+              let claimant = "holder-" +
+                @env.now().to_string() +
+                "-" +
+                holders.to_string()
+              match
+                slot.spawn_holder(
+                  executable,
+                  holder_arguments(attempt, claimant),
+                ) {
+                Ok(child) => {
+                  let request = match
+                    environment.journal.dispatch_envelope(attempt) {
+                    Ok(Some(envelope)) =>
+                      match @remote.admit_remote_poll_dispatch_json(envelope) {
+                        Ok(dispatch) =>
+                          Some(@remote.remote_poll_dispatch_request(dispatch))
+                        Err(_) => None
+                      }
+                    _ => None
+                  }
+                  match request {
+                    Some(value) => {
+                      holder = Some({ child, attempt, request: value, })
+                      report("holder-started", [
+                        ("attempt", attempt),
+                        ("claimant", claimant),
+                      ])
+                    }
+                    None => {
+                      // The holder still runs and holds the slot; its record
+                      // is settled from the journal once the slot is free.
+                      ignore(child.wait(true))
+                      ignore(queue.remove(attempt))
+                      report("holder-envelope-missing", [("attempt", attempt)])
+                    }
+                  }
+                }
+                Err(_) => {
+                  ignore(slot.close())
+                  report("holder-spawn-failed", [("attempt", attempt)])
+                  stop("executor holder could not be started")
+                }
+              }
+            }
+            Ok(false) => report("slot-busy", [("attempt", attempt)])
+            Err(_) => stop("executor slot lock failed")
+          }
+        None => ()
+      }
+    }
+    if max_polls > 0 && polls >= max_polls {
+      if holder is None && unsettled is None {
+        break
+      }
+      @slot.native_wait_milliseconds(idle_wait_ms)
+      continue
+    }
+    polls += 1
+    let started = @env.now()
+    match @client.poll_operation(client, poll_url) {
+      Ok(None) => {
+        backoff_ms = 0
+        // A long poll that returned at once must not spin.
+        if @env.now() - started < idle_wait_ms.to_uint64() {
+          @slot.native_wait_milliseconds(idle_wait_ms)
+        }
+      }
+      Ok(Some(@remote.Dispatch(dispatch))) => {
+        backoff_ms = 0
+        match
+          @resident_host.accept_resident_dispatch(
+            environment.journal,
+            client,
+            observation_url,
+            site_delegation,
+            generation,
+            queue,
+            admission,
+            dispatch,
+            now_timestamp(),
+          ) {
+          Ok(Accepted(attempt, request)) =>
+            report("accepted", [
+              ("attempt", attempt),
+              ("request_cid", @remote.dispatch_request_identity(request)),
+            ])
+          Ok(Refused(refusal)) =>
+            report("refused", [("reason", refusal_code(refusal))])
+          Ok(AlreadyStarted(attempt)) =>
+            report("already-started", [("attempt", attempt)])
+          Err(issue) => report("accept-failed", [("reason", host_code(issue))])
+        }
+      }
+      Ok(Some(@remote.Query(request))) => {
+        backoff_ms = 0
+        match
+          @client.acknowledge_status(
+            environment.journal,
+            client,
+            observation_url,
+            request,
+          ) {
+          Ok(Some(record)) =>
+            report("query", [
+              ("request_cid", @remote.dispatch_request_identity(request)),
+              ("revision", @remote.dispatch_record_revision(record).to_string()),
+            ])
+          Ok(None) =>
+            report("not-seen", [
+              ("request_cid", @remote.dispatch_request_identity(request)),
+            ])
+          Err(issue) => report("query-failed", [("reason", client_code(issue))])
+        }
+      }
+      Ok(Some(@remote.Release(request))) => {
+        backoff_ms = 0
+        match
+          @client.acknowledge_status(
+            environment.journal,
+            client,
+            observation_url,
+            request,
+          ) {
+          Ok(_) =>
+            report("release-observed", [
+              ("request_cid", @remote.dispatch_request_identity(request)),
+            ])
+          Err(issue) =>
+            report("release-failed", [("reason", client_code(issue))])
+        }
+      }
+      Ok(Some(@remote.Plan(_))) | Ok(Some(@remote.Output(_))) => {
+        backoff_ms = 0
+        // Output handover between the holder and this process is not
+        // implemented yet; nothing is claimed or sent.
+        report("output-unavailable", [])
+      }
+      Err(issue) => {
+        // Transport and authentication failures back off; no attempt,
+        // record or pending observation is created or dropped for it.
+        backoff_ms = if backoff_ms == 0 {
+          min_backoff_ms
+        } else if backoff_ms * 2 > max_backoff_ms {
+          max_backoff_ms
+        } else {
+          backoff_ms * 2
+        }
+        report("poll-failed", [
+          ("reason", client_code(issue)),
+          ("backoff_ms", backoff_ms.to_string()),
+        ])
+        @slot.native_wait_milliseconds(backoff_ms)
+      }
+    }
+  }
+  // After a termination request no new work is taken. A running holder is
+  // given a bounded time to finish; after it, the durable journal keeps its
+  // record and nothing unconfirmed is settled here.
+  let mut waited = 0
+  while holder is Some(current) && waited < shutdown_wait_ms {
+    match current.child.wait(false) {
+      Ok(Some(_)) => {
+        ignore(settle_holder(current, environment, client, observation_url))
+        holder = None
+      }
+      _ => {
+        @slot.native_wait_milliseconds(50)
+        waited += 50
+      }
+    }
+  }
+  match unsettled {
+    Some(current) =>
+      ignore(settle_holder(current, environment, client, observation_url))
+    None => ()
+  }
+  if holder is Some(current) {
+    report("holder-still-running", [("attempt", current.attempt)])
+  }
+  ignore(client.close())
+  ignore(slot.close())
+  close_site_environment(environment)
+  report("stopped", [])
+}
+
+///|
+fn run_holder(
+  matches : @argparse.Matches,
+  holder : @argparse.Matches,
+) -> Unit raise CommandStop {
+  // A holder that cannot confirm it holds the named slot must not claim.
+  let slot = match
+    @slot.inherited_native_executor_slot(required(matches, "executor-slot")) {
+    Ok(value) => value
+    Err(_) => stop("executor slot is not held by this holder")
+  }
+  let claimant = required(holder, "claimant")
+  let environment = open_site_environment(
+    matches,
+    "runtime-process:resident-holder:" + claimant,
+  )
+  let max_file_bytes = required_int64(matches, "max-file-bytes")
+  let values_root = required(matches, "engine-root")
+  let registry_body = load_text(values_root, "registry.json", max_file_bytes)
+  let values_body = load_text(values_root, "values.json", max_file_bytes)
+  let output_bytes = required_int64(matches, "max-output-bytes")
+  let execution : @resident_host.ResidentExecution = {
+    site: environment.site,
+    active_runtime: environment.active_runtime,
+    operation_capability_cid: required(matches, "operation-capability-cid"),
+    issuer_capability_cid: required(matches, "issuer-capability-cid"),
+    bundles: environment.bundles,
+    budgets: [budget(matches)],
+    registry_body,
+    values_body,
+    fixed_ms: 1L,
+    per_row_ms: 0L,
+    per_wire_byte_ms: 0L,
+    per_pair_ms: 0L,
+    limits: {
+      finalization_quantum: 16,
+      max_finalization_rounds: 10000,
+      row_decode: {
+        max_bytes: 65536,
+        max_nodes: 4096,
+        max_depth: 32,
+        max_text_bytes: 65536,
+      },
+      bridge_max_entries: 1000,
+      bridge_max_name_bytes: 100000,
+      output: {
+        output_export: {
+          max_result_fields: 256,
+          max_result_mapping_work: 100000,
+          max_result_order_work: 100000,
+          max_result_workspace_entries: 100000,
+          max_rows: 100000,
+          values: {
+            max_nodes: 100000,
+            max_text_bytes: 1048576,
+            max_depth: 32,
+            max_work: 1000000,
+          },
+          payload_wire: {
+            max_columns: 256,
+            max_order_work: 100000,
+            max_bytes: output_bytes.to_int(),
+            max_nodes: 1000000,
+            max_depth: 32,
+          },
+          logical_wire: {
+            max_columns: 256,
+            max_order_work: 100000,
+            max_bytes: output_bytes.to_int(),
+            max_nodes: 1000000,
+            max_depth: 32,
+          },
+          schema: {
+            max_fields: 256,
+            max_bytes: 100000,
+            max_nodes: 100000,
+            max_depth: 32,
+          },
+          max_batch_bytes: 65536,
+        },
+        max_manifest_bytes: 65536,
+        max_retained_bytes: output_bytes,
+      },
+    },
+  }
+  let entry_log = optional(matches, "executor-entry-log")
+  let observer = match entry_log {
+    Some(path) =>
+      Some(fn(key : String) -> Bool {
+        @slot.native_append_evidence_line(path, claimant + " " + key)
+      })
+    None => None
+  }
+  let result = @resident_host.execute_resident_attempt(
+    environment.journal,
+    execution,
+    run_admission(matches),
+    required(holder, "attempt"),
+    claimant,
+    now_timestamp(),
+    observer,
+  )
+  let code = match result {
+    Ok((runtime, completion)) => {
+      report("executed", [
+        ("request_cid", completion.dispatch_request_cid),
+        ("revision", completion.revision.to_string()),
+      ])
+      // The output stays owned by this holder's runtime. Handing it to the
+      // control process is not implemented yet, so it is released here.
+      ignore(runtime.close())
+      0
+    }
+    Err(issue) => {
+      report("execute-failed", [("reason", host_code(issue))])
+      match issue {
+        Runtime(@runtime.StartClaimLost(_))
+        | Runtime(@runtime.StartCancelled) => 2
+        _ => 1
+      }
+    }
+  }
+  close_site_environment(environment)
+  ignore(slot.close())
+  if code != 0 {
+    stop("execute exited with " + code.to_string())
+  }
+}
+
+///|
+fn command() -> @argparse.Command {
+  let global = fn(name : String) { @argparse.OptionArg(name, global=true) }
+  let defaulted = fn(name : String, value : String) {
+    @argparse.OptionArg(name, default_values=[value], global=true)
+  }
+  @argparse.Command(
+    "actql-native-remote-resident-site",
+    about="Run an outbound-only resident ActQL Site",
+    version="0.1",
+    subcommand_required=true,
+    options=[
+      global("sqlite-library"),
+      global("crypto-library"),
+      global("http-library"),
+      global("journal"),
+      global("runtime-root"),
+      global("bundle-issuer"),
+      global("bundle-key-id"),
+      global("bundle-public-key-root"),
+      global("bundle-public-key-file"),
+      global("target-triple"),
+      global("component-cid"),
+      global("site-key"),
+      global("site-generation"),
+      global("executor-slot"),
+      global("ca"),
+      global("control-bearer-file"),
+      global("control-cert"),
+      global("control-key"),
+      global("poll-url"),
+      global("observation-url"),
+      global("coordinator-authority"),
+      global("operation-capability-cid"),
+      global("issuer-capability-cid"),
+      global("budget-retained-bytes"),
+      global("budget-execution-bytes"),
+      global("engine-root"),
+      global("executor-entry-log"),
+      defaulted("queue-capacity", "4"),
+      defaulted("max-operations", "4"),
+      defaulted("max-transfers", "4"),
+      defaulted("max-bytes", "268435456"),
+      defaulted("max-file-bytes", "1048576"),
+      defaulted("max-record-bytes", "1048576"),
+      defaulted("max-output-bytes", "1048576"),
+      defaulted("max-response-bytes", "1441792"),
+      defaulted("connect-timeout-ms", "2000"),
+      defaulted("total-timeout-ms", "30000"),
+      defaulted("max-polls", "0"),
+      defaulted("idle-wait-ms", "250"),
+      defaulted("min-backoff-ms", "250"),
+      defaulted("max-backoff-ms", "30000"),
+      defaulted("shutdown-wait-ms", "30000"),
+    ],
+    subcommands=[
+      @argparse.Command("run"),
+      @argparse.Command("execute", options=[
+        @argparse.OptionArg("attempt", required=true),
+        @argparse.OptionArg("claimant", required=true),
+      ]),
+    ],
+  )
+}
+
+///|
+fn run_command(matches : @argparse.Matches) -> Unit raise CommandStop {
+  match matches.subcommand {
+    Some(("run", _)) => run_control(matches)
+    Some(("execute", child)) => run_holder(matches, child)
+    _ => stop("missing operation")
+  }
+}
+
+///|
+fn main {
+  let matches = command().parse() catch { error => abort(error.to_string()) }
+  run_command(matches) catch {
+    CommandStop(issue) => abort("actql-native-remote-resident-site: " + issue)
+  }
+}

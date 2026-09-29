@@ -17,6 +17,7 @@ pub fn resident_utc_timestamp(Int64) -> String?
 
 // Types and methods
 type ResidentAcceptedQueue
+pub fn ResidentAcceptedQueue::contains(Self, String) -> Bool
 pub fn ResidentAcceptedQueue::length(Self) -> Int
 pub fn ResidentAcceptedQueue::new(Int) -> Self?
 pub fn ResidentAcceptedQueue::next(Self) -> String?

@@ -130,6 +130,14 @@ pub fn ResidentAcceptedQueue::reserve(
 }
 
 ///|
+pub fn ResidentAcceptedQueue::contains(
+  self : ResidentAcceptedQueue,
+  attempt_identity : String,
+) -> Bool {
+  self.waiting.contains(attempt_identity)
+}
+
+///|
 /// The oldest waiting attempt, which is the next to start.
 pub fn ResidentAcceptedQueue::next(self : ResidentAcceptedQueue) -> String? {
   self.waiting.get(0)

@@ -29,6 +29,9 @@ pub(all) enum ResidentAcceptance {
   Accepted(String, @remote.DispatchRequest)
   /// Refused before acceptance: nothing was written and nothing starts.
   Refused(@resident.ResidentDispatchRefusal)
+  /// An exact redelivery of an attempt that already left Accepted. Its
+  /// current durable record was reported; it is never queued again.
+  AlreadyStarted(String)
 }
 
 ///|
@@ -94,30 +97,42 @@ pub fn accept_resident_dispatch(
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
   }
+  // Only a reservation made by this call is undone on a later failure; an
+  // attempt already waiting keeps its place.
+  let reserved = !queue.contains(attempt)
   match queue.reserve(attempt) {
     Ok(_) => ()
     Err(refusal) => return Ok(Refused(refusal))
   }
+  let release = () => if reserved { ignore(queue.remove(attempt)) }
   let envelope = match
     @remote.remote_poll_dispatch_materials_json(request, binding, materials) {
     Ok(value) => value
     Err(issue) => {
-      ignore(queue.remove(attempt))
+      release()
       return Err(Protocol(issue))
     }
   }
   match journal.retain_dispatch_envelope(request, envelope) {
     Ok(_) => ()
     Err(issue) => {
-      ignore(queue.remove(attempt))
+      release()
       return Err(Journal(issue))
     }
   }
-  match journal.accept(request) {
-    Ok(_) => ()
+  let accepted = match journal.accept(request) {
+    Ok((_, record)) => record
     Err(issue) => {
-      ignore(queue.remove(attempt))
+      release()
       return Err(Journal(issue))
+    }
+  }
+  if !@remote.remote_runtime_record_startable(accepted) {
+    ignore(queue.remove(attempt))
+    return match
+      @client.acknowledge_status(journal, client, observation_url, request) {
+      Ok(_) => Ok(AlreadyStarted(attempt))
+      Err(issue) => Err(Client(issue))
     }
   }
   // The durable Accepted record stays when the acknowledgement is lost; an
@@ -128,11 +143,11 @@ pub fn accept_resident_dispatch(
       if @remote.dispatch_record_matches_request(record, request) {
         Ok(Accepted(attempt, request))
       } else {
-        ignore(queue.remove(attempt))
+        release()
         Err(Protocol(@remote.DispatchIdentityMismatch))
       }
     Err(issue) => {
-      ignore(queue.remove(attempt))
+      release()
       Err(Client(issue))
     }
   }

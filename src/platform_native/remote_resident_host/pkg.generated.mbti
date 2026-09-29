@@ -26,6 +26,7 @@ pub fn execute_resident_attempt(@remote_journal.Journal, ResidentExecution, Resi
 pub(all) enum ResidentAcceptance {
   Accepted(String, @remote_site_protocol.DispatchRequest)
   Refused(@remote_resident_site.ResidentDispatchRefusal)
+  AlreadyStarted(String)
 }
 
 pub(all) struct ResidentExecution {
