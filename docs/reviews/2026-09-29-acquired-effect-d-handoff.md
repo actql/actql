@@ -294,3 +294,38 @@ SQLite, Store and HTTP/Embedded boundaries, not a real org. Final integrated
 CI, the remaining Client gate failure diagnosis, and B's Frontend/Result
 call-site connection remain outstanding. B's registry fixture corrections
 will be merged when its fixed SHA is supplied; its contract is unchanged.
+
+## Updated executable handoff
+
+At `05ab501088eaf259c2a8c24d1d79e220b4a9199d`,
+`npm run check:salesforce-site` passed 287/287, including the recovered
+factory and D's acquired Effect acceptance. The six public Host process-death
+boundaries also passed (before/after Source, capture and private record
+commit), with zero recovery Source/Compute calls and completed retirement.
+This supersedes the earlier gate failure as current executable evidence,
+without claiming the missing historical failure log has been reconstructed.
+
+One additional D regression still asserted only "not succeeded" for an
+invalid record-ID selector. Requiring `failed` reproduced
+`needs_reconciliation` before the fix. The adapter now marks the pure request
+construction refusal after Catalog/body preparation as definitive. The whole
+standard Host integration file then passed 21/21, including the strengthened
+assertion and zero writes. No observation or dispatch error was reclassified.
+
+D can continue from this series without waiting for B. Build runtime packages
+with the pinned toolchain, then run:
+
+```sh
+npm run build:runtime-packages -- local-node run-host-core
+npm run check:salesforce-site
+node scripts/test-acquired-effect-computation-probe.mjs
+for boundary in before-effect-source effect-source before-effect-capture effect-capture before-publication-private publication-private; do
+  node scripts/test-effect-capture-host-crash.mjs "$boundary"
+done
+```
+
+The read/compute/Effect path and refusal/retirement fixes are connected.
+Frontend raw-source preparation and Result transformation call sites are not
+yet connected. Full final-HEAD Host/Client jobs, packed distribution acceptance
+and Linux CI are still required before merge approval. No real-org operation
+was performed by C.

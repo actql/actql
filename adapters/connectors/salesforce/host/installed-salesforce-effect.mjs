@@ -15,6 +15,8 @@ import {createHash} from 'node:crypto';
 import {mkdir} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {checkedEffectPreparation} from
+  '../../../host-common/effect-preparation-result.mjs';
 import {checkedSalesforceCatalogPreparation} from
   '../site/salesforce-effect-preparation-result.mjs';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
@@ -689,7 +691,9 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
             JSON.parse(proposal.changesWire).value)),
           limits.body.maxBytes, limits.body.maxNodes, limits.body.maxDepth),
         project);
-        return checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
+        // Pure request validation after the exact Catalog projection and
+        // body are prepared: no target or write I/O has started for this row.
+        return checkedEffectPreparation(salesforceMoon.salesforcePrepareSingleWriteRequest(
           body, site.apiVersion, requestCodes[member.kind],
           member.kind === 'create' ? '' : JSON.parse(proposal.selectorWire),
           0, limits.request.maxPathBytes, limits.request.maxTargetBytes,
