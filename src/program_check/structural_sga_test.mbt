@@ -98,3 +98,83 @@ test "named SGA rejects a Relation where its Graph input is required" {
     _ => fail("common checker must reject the wrong Graph input Carrier")
   }
 }
+
+///|
+test "named Graph diff and apply keep the checked Delta producer" {
+  let (_, _, environment, _, base) = public_input_fixture(
+    generated=true,
+    graph_policy=true,
+  )
+  let limits = {
+    ..base,
+    compilation: {
+      ..base.compilation,
+      structure: { ..base.compilation.structure, steps: 12, },
+    },
+  }
+  let source = named_sga_text(true)
+    .replace(
+      old="DATA reached = FROM g |> reach(start: \"A\", direction: \"out\", max_depth: 2);",
+      new="DATA target = FROM g |> normalize_graph();",
+    )
+    .replace(
+      old="DATA neighborhood = FROM g |> subgraph(nodes: {from: reached, id: \"node_id\"});",
+      new="DATA changes = FROM g |> graph_diff(with: target); DATA restored = FROM g |> apply_graph_delta(with: changes, field: \"delta\");",
+    )
+    .replace(
+      old="DATA rows = FROM neighborhood |> node_rows();",
+      new="DATA rows = FROM restored |> node_rows();",
+    )
+  assert_true(source.contains("apply_graph_delta"))
+  let parsed = @aql.parse(source, structural_limits(limits)).unwrap()
+  let checked = public_checked(
+    check_parsed_with_evidence(
+      @aql.program(parsed),
+      environment,
+      None,
+      [],
+      limits,
+    ),
+  )
+  assert_eq(unit_count(checked), 1)
+}
+
+///|
+test "named mean_graphs retains repeated checked Graph inputs" {
+  let (_, _, environment, _, base) = public_input_fixture(
+    generated=true,
+    graph_policy=true,
+  )
+  let limits = {
+    ..base,
+    compilation: {
+      ..base.compilation,
+      structure: { ..base.compilation.structure, steps: 12, },
+    },
+  }
+  let source = named_sga_text(true)
+    .replace(
+      old="DATA reached = FROM g |> reach(start: \"A\", direction: \"out\", max_depth: 2);",
+      new="DATA average = mean_graphs(with: [g, g, g], weights: [1, 1, 1], support: {nodes: 0.5, edges: 0.5}, properties: {nodes: {}, edges: {}});",
+    )
+    .replace(
+      old="DATA neighborhood = FROM g |> subgraph(nodes: {from: reached, id: \"node_id\"});",
+      new="",
+    )
+    .replace(
+      old="DATA rows = FROM neighborhood |> node_rows();",
+      new="DATA rows = FROM average |> node_rows();",
+    )
+  assert_true(source.contains("mean_graphs"))
+  let parsed = @aql.parse(source, structural_limits(limits)).unwrap()
+  let checked = public_checked(
+    check_parsed_with_evidence(
+      @aql.program(parsed),
+      environment,
+      None,
+      [],
+      limits,
+    ),
+  )
+  assert_eq(unit_count(checked), 1)
+}

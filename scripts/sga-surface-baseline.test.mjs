@@ -19,6 +19,27 @@ test('named Graph calls retain the independently authored Program', () => {
     fixture('reach-subgraph.named.aql'))), expected);
 });
 
+test('components call and Relation SELECT preserve the authored Result', () => {
+  const expected = fixture('components.expected-program.json');
+  assert.equal(jsonAdmissionDiagnostic(expected), '');
+  assert.deepEqual(JSON.parse(structuralToJson(fixture('components.named.aql'))),
+    JSON.parse(expected));
+});
+
+test('Graph diff and apply retain base and Delta producer references', () => {
+  const expected = fixture('diff-apply.expected-program.json');
+  assert.equal(jsonAdmissionDiagnostic(expected), '');
+  assert.deepEqual(JSON.parse(structuralToJson(fixture('diff-apply.named.aql'))),
+    JSON.parse(expected));
+});
+
+test('mean_graphs retains explicit sample order and repeated producers', () => {
+  const expected = fixture('mean-graphs.expected-program.json');
+  assert.equal(jsonAdmissionDiagnostic(expected), '');
+  assert.deepEqual(JSON.parse(structuralToJson(fixture('mean-graphs.named.aql'))),
+    JSON.parse(expected));
+});
+
 const envelope = body => `AQL '0.1'; PROGRAM 'roles' { STAGE s {
   INPUT g = {"carrier":"graph"}; INPUT target = {"carrier":"graph"};
   DATA output = ${body}; RESULT r = {"from":"output"};

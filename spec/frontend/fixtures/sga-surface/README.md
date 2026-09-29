@@ -14,10 +14,20 @@ including shared producer references. It is included by `aql-text.test.mjs`.
 `reach-subgraph.expected-results.json` records independent expected schema and
 rows from the normative reach and induced-subgraph laws: A is included at
 zero hops, B is reached, C is excluded, and precisely the A-to-B edge remains.
+`components.named.aql` adds Graph-to-Relation components and an explicit
+SELECT; its separate Program and Result fixtures require A and B in the
+component identified by A, while C is its own component.
+`diff-apply.named.aql` keeps the base Graph, target Graph and typed Delta
+producer distinct; its expected final Graph has one added node and edge.
+`mean-graphs.named.aql` repeats the first Graph in an explicit three-sample
+list. With equal weights and half-support thresholds, A and B and their edge
+remain while C and its edge do not.
 These expectations have not yet been checked against runtime output from the
-named source. Full checker, execution, source authorization/capacity and packed
-public-input acceptance remain required. Other operations still need their own
-independent positive, rejection and boundary fixtures.
+named source. Separate small source cases have passed the common checker for
+reach/subgraph, diff/apply and mean. The exact fixtures here still need
+checker and execution acceptance; components needs its ordinary capacity
+evidence. Source authorization, packed public-input acceptance and independent
+positive, rejection and boundary fixtures for other operations remain required.
 
 The zero-argument node_rows/edge_rows syntax emits boolean `true` in
 the existing Program. An empty object is not the registered operation body.

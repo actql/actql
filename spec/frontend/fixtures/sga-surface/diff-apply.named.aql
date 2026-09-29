@@ -1,0 +1,37 @@
+AQL '0.1';
+PROGRAM 'sga.diff_apply' {
+  STAGE main {
+    DATA base_nodes = OP values {
+      "schema": {"id": {"type": "string", "nullable": false}},
+      "rows": [{"id": "A"}, {"id": "B"}]
+    };
+    DATA base_edges = OP values {
+      "schema": {"src": {"type": "string", "nullable": false}, "dst": {"type": "string", "nullable": false}},
+      "rows": [{"src": "A", "dst": "B"}]
+    };
+    DATA target_nodes = OP values {
+      "schema": {"id": {"type": "string", "nullable": false}},
+      "rows": [{"id": "A"}, {"id": "B"}, {"id": "C"}]
+    };
+    DATA target_edges = OP values {
+      "schema": {"src": {"type": "string", "nullable": false}, "dst": {"type": "string", "nullable": false}},
+      "rows": [{"src": "A", "dst": "B"}, {"src": "B", "dst": "C"}]
+    };
+    DATA base = OP graph {
+      "nodes": {"from": "base_nodes", "id": "id", "fields": []},
+      "edges": {"from": "base_edges", "source": "src", "target": "dst", "fields": []}
+    };
+    DATA target = OP graph {
+      "nodes": {"from": "target_nodes", "id": "id", "fields": []},
+      "edges": {"from": "target_edges", "source": "src", "target": "dst", "fields": []}
+    };
+    DATA changes = FROM base |> graph_diff(with: target);
+    DATA restored = FROM base |> apply_graph_delta(with: changes, field: "delta");
+    DATA node_output = FROM restored |> node_rows();
+    DATA edge_output = FROM restored |> edge_rows();
+    RESULT nodes = {"from": "node_output", "fields": ["id"], "order_by": [{"id": "asc"}]};
+    RESULT edges = {"from": "edge_output", "fields": ["src", "dst", "rel"], "order_by": [{"src": "asc"}, {"dst": "asc"}, {"rel": "asc"}]};
+  }
+  RESULT nodes = {"from": {"stage": "main", "result": "nodes"}};
+  RESULT edges = {"from": {"stage": "main", "result": "edges"}};
+}
