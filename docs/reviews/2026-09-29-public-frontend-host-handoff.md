@@ -96,3 +96,27 @@ missing/wrong-typed value, or unsupported source form creates zero accepted
 Runs and performs zero provider I/O. Retry with the same request ID preserves
 the established intent and unknown-submission behavior. The tests must use
 the installed profile, not a test-only alias injection.
+
+
+## Shared acceptance application
+
+`scripts/fixtures/public-query-input.mjs` exports the independent source rows
+and `exercisePublicQueryInput(connect, options, {requestPrefix, observe})`.
+Copy it into the clean packed installation and pass the installed
+`@actql/node` connect function. Run it unchanged for Local and HTTP options.
+Provision its rows through the ordinary source profile and publish the
+explicit `records` alias; do not inject aliases into the Client or invoke a
+compiler fixture. `observe` returns cumulative `{acceptedRuns, sourceIo}`
+from the real test Host. It is test observation, not a product provider API.
+
+The application checks SQL/Pipe parity, named Result rows, NULL, nullable
+parameters, empty results, limits, attach, same-intent resend and changed
+values under the same request ID. Invalid syntax, undeclared/missing/wrong
+parameters, missing aliases and wrong language forms must produce typed
+rejections without increasing either counter. Source parameters are not
+included in diagnostics. These are pending acceptance cases, not executed
+Host evidence; C's public routing connection is required to run them.
+
+Generation changes, Graph source publication, approval, transport loss and
+cancellation still need their specific Host fixtures. This application does
+not claim to replace that full acceptance matrix.
