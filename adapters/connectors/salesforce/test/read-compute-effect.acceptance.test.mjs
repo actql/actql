@@ -10,6 +10,7 @@
 import assert from 'node:assert/strict';
 import {request as httpsRequest} from 'node:https';
 import test from 'node:test';
+import {effectProgram} from './installed-salesforce-effect.fixture.mjs';
 import {approveHeldSet, expectedBodies, expectedOrgAfterSuccess,
   expectedUpdates, fourRecords, hostAccountConfiguration,
   readComputeEffectInstallation, submitReadComputeEffect, waitFor} from
@@ -83,6 +84,43 @@ test('the stateful org applies, loses and refuses writes as configured',
     assert.equal((await orgRequest(org, 'GET', path('a00000000000004')))
       .status, 404);
     assert.equal(org.seen.length, before + 5);
+  });
+
+// Runs today, on the connected Values-origin path: the same damage helper
+// and the same expectation as the Read→Compute→Effect case below.
+test('Values-origin: a missing or altered durable Effect input is refused before any write',
+  async t => {
+    for (const kind of ['missing', 'altered']) {
+      const setup = await readComputeEffectInstallation(t);
+      const first = await setup.openHost();
+      const client = await first.as('owner-token');
+      const program = effectProgram({save: {update: {
+        target: 'connector://crm-main/Test_Record__c',
+        mapping: setup.mappingRef, from: {result: 'rows'}, id: 'id',
+        set: {Name: {field: 'id'}}}}},
+      [{id: 'a00000000000001'}, {id: 'a00000000000003'}]);
+      const execution = await client.aql(JSON.stringify(program), {
+        format: 'json', requestId: `values-input-${kind}`});
+      await waitFor(async () => (await execution.status()).status ===
+        'waiting_checkpoint');
+      await first.close();
+      const second = await setup.openHost();
+      await approveHeldSet(second, execution);
+      await second.close();
+      await setup.damageCapture(kind);
+      // Observed today: the Host itself refuses to start over the damaged
+      // Store object, typed, before any provider request. (Whether one
+      // Run's damage should stop the whole Host is a question for the
+      // common side; this test fixes only what is refused and that nothing
+      // is sent or re-read.)
+      const failure = await setup.openHost().then(() => undefined,
+        error => error);
+      assert.equal(failure?.code, 'InstalledHostInitializationFailed', kind);
+      assert.equal(failure.primaryFailure?.code, kind === 'missing'
+        ? 'PublicationObjectMissing' : 'PublicationObjectCorrupt', kind);
+      assert.equal(setup.writes().length, 0, kind);
+      assert.equal(setup.queries(), 0, kind);
+    }
   });
 
 test('Read→Compute→Effect previews, waits across a restart, writes once and publishes',
@@ -373,7 +411,12 @@ test('a failure before the capture completes leaves no answerable Checkpoint',
     assert.equal(setup.writes().length, 0);
   });
 
-test('a missing or altered durable capture is refused before any write, never refilled',
+// The damaged object is the existing Effect input body: the one object the
+// Store's `effect-capture` holding names today. The upstream dependency
+// bodies the common side adds are a separate target; their case is added
+// once the inventory exists, choosing the object by its role, not by
+// position in a manifest.
+test('a missing or altered durable Effect input is refused before any write, never refilled',
   async t => {
     for (const kind of ['missing', 'altered']) {
       const setup = await readComputeEffectInstallation(t);
@@ -387,10 +430,14 @@ test('a missing or altered durable capture is refused before any write, never re
       // While stopped, one captured input or dependency body is damaged.
       await setup.damageCapture(kind);
       const queries = setup.queries();
-      const {state} = await resumed(setup, execution);
-      // Refused before sending: the Source is not read again to refill it,
-      // and nothing is written.
-      assert.notEqual(state.status, 'succeeded', kind);
+      // Refused before sending, typed: either the Run fails, or (as on the
+      // Values-origin path today) the Host refuses to start over the damaged
+      // object. The Source is not read again to refill it; nothing is
+      // written.
+      const outcome = await resumed(setup, execution).then(value =>
+        value.state.status, error => error.primaryFailure?.code ?? error.code);
+      assert.ok(['failed', 'PublicationObjectMissing',
+        'PublicationObjectCorrupt'].includes(outcome), `${kind}: ${outcome}`);
       assert.equal(setup.queries(), queries, kind);
       assert.equal(setup.writes().length, 0, kind);
       assert.deepEqual(setup.org.records(), [

@@ -52,7 +52,8 @@ Expected values are written by hand in `read-compute-effect.fixture.mjs`:
 | Reply lost after the org applied the second write | Remote HTTP | That row stays unknown and is never resent. The Run is `needs_reconciliation`. The org shows both rows applied, and a restart sends nothing. |
 | Source read denied, or deferred (delegated), after publication | Remote HTTP | Refused before any provider request: no describe, query, target read or write, and no Checkpoint. Read deferral is not supported on this path. |
 | Failure before the capture completes (every source query answered 503) | Remote HTTP | The Run fails with no answerable Checkpoint and no write. A restart neither re-acquires nor writes. |
-| Durable capture missing or altered while stopped, after approval | Remote HTTP | Refused before any write; the Source is not queried again to refill it, and the org is unchanged. The damaged object is one the Store's own `effect-capture` holding manifest names. |
+| Durable Effect input body missing or altered while stopped, after approval | Remote HTTP | Refused before any write; the Source is not queried again to refill it, and the org is unchanged. The damaged object is the existing Effect input body: the single object the Store's `effect-capture` holding names today. The upstream dependency bodies the common side adds are a separate target, chosen by role once that inventory exists; this case does not prove their recovery checks. |
+| Values-origin: the same damage on the connected path (runs today) | Remote HTTP | Observed: the Host refuses to start (`InstalledHostInitializationFailed`, primary `PublicationObjectMissing` / `PublicationObjectCorrupt`), before any provider request; nothing is written. |
 | Halt: serial rows, the second of three rejected definitively | Remote HTTP | Applied, then failed, and the third never sent. The Run fails. Each row's outcome is kept, and a restart sends no row again. |
 | Continue: serial rows, the second of three rejected definitively | Remote HTTP | Applied, failed, then applied: each row sent once. The Run fails. Each row's outcome is kept, and a restart sends no row again. |
 
@@ -99,7 +100,16 @@ inventory") matches these conditions:
 re-acquisition is counted through Source queries. A recomputation from the
 retained input, however, produces the same output and no provider request.
 D cannot see it from the public path, so D asks for a Host diagnostic (for
-example through the existing `observe` hook) that a test can count.
+example through the existing `observe` hook) that a test can count. If such
+notifications can be dropped, zero notifications is not proof of zero
+recomputations; the observable must be one whose absence is meaningful (for
+example a durable per-Run computation count).
+
+**Finding for the common side: a damaged Effect input stops the whole Host.**
+On the Values-origin path today, a missing or altered Effect input body makes
+the Host refuse to start (`InstalledHostInitializationFailed`), rather than
+failing only that Run. Nothing is sent. Whether one Run's damage should block
+every Run of the Host is the common side's decision.
 
 - After a restart:
   - no Source re-acquisition or recomputation;

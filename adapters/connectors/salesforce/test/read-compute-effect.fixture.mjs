@@ -324,10 +324,15 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
     await walk(hostRoot);
     return found;
   };
-  // Remove or alter one durable capture object while the Host is stopped.
+  // Remove or alter the durable Effect input body while the Host is
+  // stopped. Today the `effect-capture` holding names exactly that one
+  // object; anything else means the inventory changed and the target must
+  // be chosen by role instead.
   const damageCapture = async kind => {
-    const [path] = await captureObjects();
-    assert.ok(path, 'no durable Effect capture object to damage');
+    const objects = await captureObjects();
+    assert.equal(objects.length, 1,
+      'expected exactly the Effect input body in the capture holding');
+    const [path] = objects;
     if (kind === 'missing') {
       await unlink(path);
     } else {
