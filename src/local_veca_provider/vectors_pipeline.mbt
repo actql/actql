@@ -55,6 +55,7 @@ priv struct Execution {
   mut projection_input : @records.ProducerRead?
   mut projection : @bridge.VectorsToRowsExecution?
   nearest_step : Int
+  fused_nearest : Bool
   mut nearest_bridge_step : Int
   mut nearest_bridge : @bridge.RowsToVectorsExecution?
   mut nearest_bridge_output : @records.Completed?
@@ -150,12 +151,16 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   }
   let count = @execution.generated_sequence_step_count(sequence)
   if count == 1 {
+    guard @execution.generated_sequence_step_index_at(sequence, 0)
+      is Some(first_step) else {
+      return false
+    }
     guard @lower.sequence_step(
         @execution.generated_prepared_sequence(sequence),
-        0,
+        first_step,
       )
       is Some(step) &&
-      @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) else {
+      @lower.node_at(@lower.bound_preparation(owner), first_step) is Some(node) else {
       return false
     }
     if step is @lower.RowStep(kernel) {
@@ -1014,9 +1019,17 @@ fn advance_execution(
         }
         for side in 0..<2 {
           if value.nearest_inputs[side] is None {
-            guard @lower.node_input_target(nearest_node, side)
-              is Some(@pipeline.Input(input_index)) &&
-              value.inputs.get(input_index) is Some(input) &&
+            let input_index = match
+              @lower.node_input_target(nearest_node, side) {
+              Some(@pipeline.Input(index)) => Some(index)
+              Some(@pipeline.Step(_)) if @execution.completion_preparation_selected_step(
+                  @execution.generated_completion_preparation(value.generated),
+                )
+                is Some(_) => Some(side)
+              _ => None
+            }
+            guard input_index is Some(index) &&
+              value.inputs.get(index) is Some(input) &&
               nearest_input(input) is Some(prepared_input) else {
               return fail_execution(value)
             }
@@ -1027,7 +1040,7 @@ fn advance_execution(
           value.nearest_inputs[1] is Some(right) else {
           return fail_execution(value)
         }
-        let started_result = if value.nearest_step > 0 {
+        let started_result = if value.fused_nearest {
           match value.relation_inputs {
             Some(inputs) =>
               @veca.start_nearest_inputs_with_relations(
@@ -1439,9 +1452,12 @@ pub fn provider(
         projection: None,
         nearest_step: if nearest_pipeline {
           count - 1
+        } else if direct_operation == Some("VEC.knn_join") {
+          first_step
         } else {
           0
         },
+        fused_nearest: nearest_pipeline,
         nearest_bridge_step: 0,
         nearest_bridge: None,
         nearest_bridge_output: None,

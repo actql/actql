@@ -3665,21 +3665,26 @@ delivered cancellation, and cleanup proof for that path. Composite keys,
 relation member identity encoding, and numeric reduction variants still need
 full route resource assurance.
 
-The nearest-neighbor route now records the fused
+The nearest-neighbor route records the fused
 `start_nearest_inputs_with_relations` production entrypoint separately from
-`start_nearest_inputs`. Existing standard Host fixtures cover mixed Vectors and
+`start_nearest_inputs`. Standard Host fixtures cover mixed Vectors and
 Relation inputs and inferred Relation roles. A direct Vectors-input fixture
 now counts 28/27 control-work units with quantum one, admits 23 structural
 workspace slots and rejects 22 before starting. It also verifies cancellation
 during incremental identity initialization and cleanup of the private output.
 The fused Relation-input path also admits 28/27 work and 23/22 workspace,
 reclaims its private output after kernel cancellation, and preserves both
-producer reads. The existing Node standard Host `vector-nearest` fixture
+producer reads. The Node standard Host `vector-nearest` fixture
 delivers a timer cancellation during Relation-input kernel work, confirms stop,
-and retries cleanup. Its production wrapper delegates to the same bounded
-kernel tested with an independent control-work ceiling. The Vectors-input path
-still lacks a delivered Host cancellation fixture, so the operation as a whole
-remains outside four-role and full resource assurance.
+and retries cleanup. The `vector-nearest-carrier-inputs` fixture splits two
+local Values producers and their typed Vectors Bridges into separate tasks,
+then delivers cancellation during the selected direct Carrier-input nearest
+task. It checks that four producers completed, the nearest task did not
+complete, stop was observed after delivery, and cleanup released reservations.
+The original fused Relation-input fixture remains selected for its established
+shape. These Host paths and the independent kernel ceilings establish the
+registered route boundaries; they do not certify every metric, identity width,
+or output-value combination.
 
 At `9c751e9c`, one pooled Vectors generation is shared with a real
 normalization consumer and the formal Relation Bridge on JS, Wasm, and native.
