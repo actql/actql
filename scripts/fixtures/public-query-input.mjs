@@ -8,7 +8,7 @@ export const sourceRows = [
   {id: 2, amount: 20}, {id: 3, amount: 30},
 ];
 const declarations = {minimum: {type: 'number'}};
-const successes = [
+export const querySuccesses = [
   {name: 'sql', format: 'sql',
     text: 'SELECT id FROM records WHERE amount >= @minimum ORDER BY id',
     parameterDeclarations: declarations, parameters: {minimum: 20},
@@ -27,13 +27,13 @@ const successes = [
   {name: 'empty', format: 'sql',
     text: 'SELECT id FROM records WHERE amount > 100 ORDER BY id', expected: []},
 ];
-const refusals = [
+export const queryRefusals = [
   {name: 'syntax', text: 'SELECT id FROM', format: 'sql'},
   {name: 'undeclared', text: 'SELECT id FROM records WHERE id = @p',
     format: 'sql'},
-  {name: 'missing-value', text: successes[0].text, format: 'sql',
+  {name: 'missing-value', text: querySuccesses[0].text, format: 'sql',
     parameterDeclarations: declarations},
-  {name: 'wrong-type', text: successes[0].text, format: 'sql',
+  {name: 'wrong-type', text: querySuccesses[0].text, format: 'sql',
     parameterDeclarations: declarations, parameters: {minimum: 'secret-value'}},
   {name: 'missing-alias', text: 'SELECT id FROM unregistered', format: 'sql'},
   {name: 'wrong-language', text: 'FROM records |> SELECT id', format: 'sql'},
@@ -58,7 +58,7 @@ export async function exercisePublicQueryInput(connect, options,
   };
   const client = await connect(options);
   try {
-    for (const {name, text, expected, ...input} of successes) {
+    for (const {name, text, expected, ...input} of querySuccesses) {
       const requestId = requestPrefix + '-' + name;
       const execution = await client.aql(text, {...input, requestId});
       const state = await execution.wait();
@@ -80,7 +80,7 @@ export async function exercisePublicQueryInput(connect, options,
         assert.equal((await execution.status()).status, 'succeeded');
       }
     }
-    for (const {name, text, ...input} of refusals) {
+    for (const {name, text, ...input} of queryRefusals) {
       const requestId = requestPrefix + '-reject-' + name;
       const before = await counters();
       await assert.rejects(client.aql(text, {...input, requestId}), error => {

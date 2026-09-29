@@ -54,3 +54,27 @@ uncertain acceptance, approval and cancellation. The supplied CLI example is
 for that connection and does not mark it implemented. CLI Checkpoint answer
 commands are not implemented; existing public Client operations remain the
 answer path.
+
+## Native public-Host acceptance application
+
+`scripts/fixtures/native-query-input.mjs` exports
+`exerciseNativeQueryInput({executable, root, commonArgs, requestPrefix, observe})`.
+Copy this module and `public-query-input.mjs` into the clean installation.
+`executable` is the absolute path of the installed native binary; `root` is
+the isolated connection/input directory. `commonArgs` contains the ordinary
+CLI endpoint, connection-root/file, token-root/file, libcurl and mTLS flags
+shown in the native Client README. Use `root` as the connection root.
+Provision the shared `sourceRows` under the real installed `records` alias.
+The observer returns cumulative real Host `{acceptedRuns, sourceIo}` counters.
+
+The application launches the actual binary with an empty PATH, writes source
+and parameter files separately, and compares Named Result JSONL with the same
+independent rows as the SDK application. It checks SQL, Pipe, nullable values,
+empty results, attach, repeated reads, same-intent resend and confirmed input
+refusals. Each process has a bounded timeout and captured-output limit.
+No compiler fixture, schema injection or mock provider is used by the app.
+
+Only module syntax was checked before the Host connection was available.
+Execution is pending. This does not cover Graph publication, approvals,
+connection loss or Run cancellation; those still require their real Host
+scenarios. The existing mTLS mock covers transport behavior separately.

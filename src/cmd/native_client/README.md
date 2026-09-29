@@ -45,10 +45,10 @@ does not request payload replay or hash payload bytes.
 
 This is a transport development artifact. The binary does not include
 embedded Local providers. The mTLS fixture in
-`scripts/test-native-client.mjs` uses a mock Host, while the existing
-published-Result test exercises a real Node Host and MoonBit publication
-owner. The mock verifies request shape; it does not prove Host frontend
-admission or a native end-to-end Program Run.
+`scripts/test-native-client.mjs` uses a mock Host. The mock verifies request
+shape and response handling; it does not prove Host frontend admission or a
+native end-to-end Program Run. The public-Host acceptance application in
+`scripts/fixtures/native-query-input.mjs` is pending that Host connection.
 
 A held submission prints the validated request control reply as JSON. It has
 no Run reference: `lookup-request --request-id <id>` observes the same request
