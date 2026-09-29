@@ -359,3 +359,35 @@ isolation with a fully selected GraphDiff/Select chain; it cannot substitute
 for the provider capabilities owned by A. The probe logs and tarball digests
 are in `worktrees/.codex-scratch/public-query-evidence-NWjb0m`; the generated
 installation and Store were removed. This is not a full SGA acceptance claim.
+
+## Additional packed Graph acceptance
+
+At `ce57ad870b8b636c14748b080bc49a2fb3505fe3`, the standard packed
+acceptance passed four independently authored SGA source cases through both
+Embedded Local and HTTPS Remote: `normalize-rows`, `mean-graphs`,
+`traverse-paths`, and `union-graphs`. Each used the public `aql-text` submit
+path and read its declared Named Result to normal termination. The
+`union-graphs` fixture constructs two different Graphs with a shared node,
+then checks the ordered node and edge Results against independently written
+expectations. `traverse-paths` checks the path node and edge identities. The
+same run passed the SQL/Pipe cases and Node-free native CLI Graph Result.
+The driver saved logs and digests, then removed its own installation and
+Store. Its evidence is under
+`worktrees/.codex-scratch/public-query-evidence-L2F84n`.
+
+| Packed artifact | SHA-256 |
+| --- | --- |
+| `client-wire` | `8e09005f4aac5063c1f6f8e4680dbb778a00e5c098126a85283e1f07685a76e5` |
+| `sdk` | `1e4e83612b9c965388795f066be8cf24b0358feb46bd2335c8d98c36e83ed515` |
+| `run-host-core` | `57a2e01e1aaf206af241ab38afcdbfcc34c50418c90ee929225e314b6e6b7a0e` |
+| `local-node` | `88ec0e4559ada881959681baa872f60c26d828a15b0608346ff7a5106c39a54e` |
+| `node` | `c72364973dd1ed42faea32425632b314de037c9b92035c9f5ec35b875914f225` |
+
+The optional packed Local probe at the preceding source
+`9965f0d625c0ecfc13ad95807122857050fdfb62` also passed `union-graphs`,
+but intentionally exited nonzero because the six cases in the provider
+handoff table still failed. The terminal Graph-to-Relation task segmentation
+in `229b00814f6500724ed8427ceb89bb0e4649d5ae` passed its focused
+checker/Plan test and physical-strategy tests on JS, Wasm, and native. It
+requires installed bounded candidates for every checked step, so the six
+remaining cases are not claimed as product acceptance.
