@@ -1152,6 +1152,7 @@ fn compile_graph_query(
       0,
       false,
       "aql_graph_result_0",
+      graph_bindings_only=!pattern.edges.is_empty(),
     )
     let result_alias = if steps.is_empty() {
       relation_alias
