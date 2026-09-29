@@ -56,6 +56,10 @@ export function pollDispatchMaterialsJson(request: DispatchRequest,
   inputBindingBody: string, maxBindingBytes: number,
   runMaterials: string): string;
 export function pollQueryJson(request: DispatchRequest): string;
+/** Release request for the exact retained dispatch output; never executes. */
+export function pollReleaseJson(request: DispatchRequest): string;
+/** Admits a Site's not-seen answer for exactly this request; throws otherwise. */
+export function admitPollNotSeen(body: string, request: DispatchRequest): true;
 export function prepareIntent(journal: Journal,
   request: DispatchRequest): IntentAdmission;
 export function intentIsNew(admission: IntentAdmission): boolean;

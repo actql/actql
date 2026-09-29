@@ -82,6 +82,7 @@ pub fn node_accepts_managed_carrier_view(
     | "BRIDGE.graph.to_edge_rows" => true
     "SGA.subgraph" => index == 0
     "SGA.traverse" => index == 0
+    "SGA.match_nodes" | "SGA.match_edges" => index == 0
     "VEC.knn_join" => true
     _ => false
   }
@@ -100,6 +101,9 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       operation(node) == "SGA.traverse" &&
       @graph.traverse_emission(checked) == @graph.TraversedPaths &&
       node.input_targets.length() == 2
+    GraphMatchRows(_) =>
+      operation(node) == "SGA.match_nodes" ||
+      operation(node) == "SGA.match_edges"
     BasicGraph(_) => operation(node) == "SGA.normalize"
     StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
     GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
@@ -220,6 +224,9 @@ pub fn node_prefers_fused_without_relation_consumer(
     BasicGraph(_) => operation(node) == "SGA.normalize"
     StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
     GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
+    GraphMatchRows(_) =>
+      operation(node) == "SGA.match_nodes" ||
+      operation(node) == "SGA.match_edges"
     EventValue(_) =>
       operation(node) == "TEA.watermark.label" ||
       operation(node) == "TEA.dedupe" ||

@@ -256,6 +256,12 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "SGA.traverse" &&
         @lower.graph_traverse_emits_paths(traverse) &&
         accepts_traverse(traverse)
+      @lower.GraphMatchStep(matched) =>
+        if @lower.graph_match_nodes(matched) {
+          @lower.operation(node) == "SGA.match_nodes"
+        } else {
+          @lower.operation(node) == "SGA.match_edges"
+        }
       _ => false
     }
   }
@@ -1233,16 +1239,36 @@ fn advance_execution(
               Err(_) => return fail_execution(value)
             }
           }
-          Some(@lower.GraphMatchStep(matched)) => {
-            guard input is Some(input) else { return fail_execution(value) }
+          Some(@lower.GraphMatchStep(matched)) =>
             if @lower.graph_match_nodes(matched) {
-              match
+              let started = if direct_view is Some(view) {
+                @sga.start_match_nodes_view(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  value.projection_step,
+                  view,
+                  value.max_rows,
+                  {
+                    max_nodes: value.limits.max_value_nodes,
+                    max_text_bytes: value.max_value_bytes,
+                    max_depth: value.limits.max_value_depth,
+                    max_work: value.limits.max_work,
+                  },
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
+                )
+              } else {
+                guard input is Some(read) else { return fail_execution(value) }
                 @sga.start_match_nodes(
                   value.control,
                   @execution.generated_completion_preparation(value.generated),
                   value.sequence,
                   value.projection_step,
-                  input,
+                  read,
                   value.max_rows,
                   {
                     max_nodes: value.limits.max_value_nodes,
@@ -1255,18 +1281,41 @@ fn advance_execution(
                   value.limits.max_value_bytes,
                   value.inputs,
                   control_work_limit=Some(value.limits.max_work),
-                ) {
+                )
+              }
+              match started {
                 Ok(execution) => MatchNodesExecution(execution)
                 Err(_) => return fail_execution(value)
               }
             } else {
-              match
+              let started = if direct_view is Some(view) {
+                @sga.start_match_edges_view(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  value.projection_step,
+                  view,
+                  value.max_rows,
+                  {
+                    max_nodes: value.limits.max_value_nodes,
+                    max_text_bytes: value.max_value_bytes,
+                    max_depth: value.limits.max_value_depth,
+                    max_work: value.limits.max_work,
+                  },
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
+                )
+              } else {
+                guard input is Some(read) else { return fail_execution(value) }
                 @sga.start_match_edges(
                   value.control,
                   @execution.generated_completion_preparation(value.generated),
                   value.sequence,
                   value.projection_step,
-                  input,
+                  read,
                   value.max_rows,
                   {
                     max_nodes: value.limits.max_value_nodes,
@@ -1279,12 +1328,13 @@ fn advance_execution(
                   value.limits.max_value_bytes,
                   value.inputs,
                   control_work_limit=Some(value.limits.max_work),
-                ) {
+                )
+              }
+              match started {
                 Ok(execution) => MatchEdgesExecution(execution)
                 Err(_) => return fail_execution(value)
               }
             }
-          }
           Some(@lower.GraphBasicStep(basic)) => {
             guard input is Some(input) else { return fail_execution(value) }
             if @lower.graph_basic_kind(basic) == @lower.BoundsBasic {
@@ -1989,6 +2039,14 @@ pub fn provider(
           @lower.graph_traverse_emits_paths(traverse)
         _ => false
       }
+      let direct_match = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphMatchStep(_)) => selected_step is Some(_)
+        _ => false
+      }
       let direct_structural_inputs = if selected_step is Some(_) {
         direct_structural_input_count(sequence).unwrap_or(-1)
       } else {
@@ -2023,6 +2081,7 @@ pub fn provider(
           )
         ) ||
         (direct_traverse && (relations.length() != 1 || carriers.length() != 1)) ||
+        (direct_match && (relations.length() != 0 || carriers.length() != 1)) ||
         (
           !direct_structural &&
           !direct_projection &&
@@ -2030,6 +2089,7 @@ pub fn provider(
           !direct_apply &&
           !direct_subgraph &&
           !direct_traverse &&
+          !direct_match &&
           carriers.length() != 0
         ) {
         return Err(@connector.Execution(@execution.InputSet))
@@ -2072,7 +2132,7 @@ pub fn provider(
           StartKernel
         } else if direct_normalize {
           StartKernel
-        } else if direct_projection || direct_traverse {
+        } else if direct_projection || direct_traverse || direct_match {
           StartProjection
         } else {
           StartConstruction

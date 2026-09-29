@@ -107,7 +107,17 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
 export async function openCapturedDuckDBSource({moon, preparedProgram,
   preparedEffect,
   registry, values, fragment, ordered, database, schema, table,
-  sourceAccess, transportLimits, signal, preparedSource}) {
+  sourceAccess, transportLimits, signal, preparedSource,
+  reportAcquisitionFailure}) {
+  if (reportAcquisitionFailure !== undefined &&
+      typeof reportAcquisitionFailure !== 'function') {
+    throw new TypeError('InvalidAcquisitionEndReceiver');
+  }
+  const failAcquisition = (cause, outcome) => {
+    const failure = acquisitionFailure(cause, outcome);
+    reportAcquisitionFailure?.(failure);
+    throw failure;
+  };
   let owner;
   let prepared;
   let grant;
@@ -128,7 +138,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
     }
     grant = await authorizeLocalDatabase(database, sourceAccess);
   } catch (cause) {
-    throw acquisitionFailure(cause, 'not_started');
+    failAcquisition(cause, 'not_started');
   }
   const {checkedSource} = prepared;
   const {requirement, evidenceContext, acquisition} = owner;
@@ -138,7 +148,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
     capture = await acquire(grant, acquisition, transportLimits,
       signal);
   } catch (cause) {
-    throw acquisitionFailure(cause, cause instanceof
+    failAcquisition(cause, cause instanceof
       ExecutionAuthorizationError ? 'not_started' : 'unknown');
   }
   try {
@@ -177,6 +187,6 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
       close: () => capture.close()});
   } catch (cause) {
     capture.close();
-    throw acquisitionFailure(cause, 'stopped');
+    failAcquisition(cause, 'stopped');
   }
 }

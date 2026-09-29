@@ -480,7 +480,7 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 68 |
 | Full route work/workspace assurance | 68 |
-| Path-scoped work/workspace assurance | 112 |
+| Path-scoped work/workspace assurance | 114 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -4004,6 +4004,21 @@ The focused portable subgraph tests passed on JS, Wasm, and native, and the
 full Node standard-Host test passed locally. Same-SHA Linux CI remains
 unverified; these cases do not establish every Graph selector variant or every
 mixed Carrier failure mode.
+
+Selected `SGA.match_nodes` and `SGA.match_edges` now read an exact managed
+Graph view through their existing bounded match kernels. The Node standard
+Host retains and publishes each match-then-filter Relation in a real Store,
+reads the producer and two consumer Named Results against independent ordered
+rows, and reclaims the inputs and outputs. The existing fused match path stays
+selected when no later Relation consumer requires a split. Portable matcher
+tests cover the same kernel logic on JS, Wasm, and native; the direct-view
+adapters add exact input binding and completion-input custody. Separate
+selected-view fixtures now exercise exact and one-short work/workspace limits,
+positive-progress cancellation, and cleanup for both match operations on JS,
+Wasm, and native. The standard Host delivers in-flight cancellation to each
+selected match task while the retained Graph remains owned, and the
+production-route inventory binds these checks to the selected entrypoints.
+This does not establish every mixed Carrier failure mode.
 
 The retained Relation path now also splits a checked finite-list
 `VEC.merge_rankings` occurrence from a later `filter` in the same Stage.

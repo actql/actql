@@ -115,6 +115,28 @@ pub fn coordinator_poll_query_json(
 }
 
 ///|
+/// The common release request for the exact retained dispatch output.
+#export_name("coordinatorPollReleaseJson")
+pub fn coordinator_poll_release_json(
+  request : @remote.DispatchRequest,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.remote_poll_release_json(request)
+}
+
+///|
+/// Admits a Site's not-seen answer for exactly this dispatch request.
+#export_name("coordinatorAdmitPollNotSeen")
+pub fn coordinator_admit_poll_not_seen(
+  body : String,
+  request : @remote.DispatchRequest,
+) -> Result[Bool, @remote.DispatchIssue] {
+  match @remote.admit_remote_poll_not_seen_json(body, request) {
+    Ok(_) => Ok(true)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
 #export_name("coordinatorPrepareIntent")
 pub fn coordinator_prepare_intent(
   journal : @remote.CoordinatorDispatchJournal,

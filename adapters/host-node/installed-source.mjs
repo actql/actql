@@ -98,10 +98,11 @@ function duckdbAdapter(profile, moon, {root, principalId}) {
       preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess}),
     open: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
-      sourceAccess, signal, preparedSource}) => openCapturedDuckDBSource({
+      sourceAccess, signal, preparedSource, reportAcquisitionFailure}) =>
+      openCapturedDuckDBSource({
       ...common, preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, transportLimits: profile.transportLimits, signal,
-      preparedSource}),
+      preparedSource, reportAcquisitionFailure}),
     close: () => {},
   });
 }

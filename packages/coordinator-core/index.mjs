@@ -36,6 +36,10 @@ export const pollDispatchMaterialsJson = (request, inputBindingBody,
     request, inputBindingBody, maxBindingBytes, runMaterials));
 export const pollQueryJson = request =>
   checked(owner.coordinatorPollQueryJson(request));
+export const pollReleaseJson = request =>
+  checked(owner.coordinatorPollReleaseJson(request));
+export const admitPollNotSeen = (body, request) =>
+  checked(owner.coordinatorAdmitPollNotSeen(body, request));
 export const prepareIntent = (journal, request) =>
   checked(owner.coordinatorPrepareIntent(journal, request));
 export const intentIsNew = owner.coordinatorIntentIsNew;

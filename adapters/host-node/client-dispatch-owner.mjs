@@ -4,7 +4,7 @@
 import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
 import {acquiredTaskPublicationPlan} from './local-values-plan.mjs';
-import {acquisitionOutcome} from '../host-common/acquisition-outcome.mjs';
+import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 
 export function installNodeClientDispatchOwner({moon, control, journal,
@@ -199,6 +199,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         const captureStartedAt = now();
         await step('acquisition_started', {ref: accepted.ref});
         entry.physicalWorkMayHaveStarted = true;
+        const acquisition = acquisitionEndHandoff();
         // The installed source's adapter owns the physical read; the
         // returned capture is this entry's to close. When it returns none,
         // only the adapter's confirmed end (not started, or stopped) is
@@ -208,9 +209,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           entry.sourceCapture = await sourceProfile.open({preparedProgram,
             registry, values, fragment, ordered, sourceAccess,
             signal: entry.abort.signal,
-            preparedSource: held.preparedSource});
+            preparedSource: held.preparedSource,
+            reportAcquisitionFailure: acquisition.retain});
         } catch (error) {
-          const ended = acquisitionOutcome(error);
+          const ended = acquisition.outcome(error);
           if (ended.outcome === 'not_started' ||
               ended.outcome === 'stopped') {
             entry.stopObservationPending = true;
