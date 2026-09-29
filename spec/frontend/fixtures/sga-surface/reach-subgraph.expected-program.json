@@ -1,0 +1,24 @@
+{
+  "version": "actql/0.1", "id": "sga.reach_subgraph",
+  "stages": [{
+    "id": "main", "inputs": {},
+    "steps": [
+      {"values": {"schema": {"id": {"type": "string", "nullable": false}}, "rows": [{"id": "A"}, {"id": "B"}, {"id": "C"}]}, "as": "nodes"},
+      {"values": {"schema": {"src": {"type": "string", "nullable": false}, "dst": {"type": "string", "nullable": false}, "rel": {"type": "string", "nullable": true}}, "rows": [{"src": "A", "dst": "B", "rel": null}]}, "as": "edges"},
+      {"graph": {"nodes": {"from": "nodes", "id": "id", "fields": []}, "edges": {"from": "edges", "source": "src", "target": "dst", "label": "rel", "fields": []}}, "as": "g"},
+      {"from": "g", "reach": {"start": "A", "direction": "out", "max_depth": 2}, "as": "reached"},
+      {"from": "g", "subgraph": {"nodes": {"from": "reached", "id": "node_id"}}, "as": "neighborhood"},
+      {"from": "neighborhood", "node_rows": true},
+      {"select": ["id"], "as": "rows"},
+      {"from": "neighborhood", "edge_rows": true, "as": "edge_output"}
+    ],
+    "results": {
+      "nodes": {"from": "rows", "fields": ["id"], "order_by": [{"id": "asc"}]},
+      "edges": {"from": "edge_output", "fields": ["src", "dst", "rel"], "order_by": [{"src": "asc"}, {"dst": "asc"}]}
+    }
+  }],
+  "results": {
+    "nodes": {"from": {"stage": "main", "result": "nodes"}},
+    "edges": {"from": {"stage": "main", "result": "edges"}}
+  }
+}

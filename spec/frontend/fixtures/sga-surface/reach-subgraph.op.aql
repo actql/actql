@@ -1,0 +1,29 @@
+AQL '0.1';
+PROGRAM 'sga.reach_subgraph' {
+  STAGE main {
+    DATA nodes = OP values {
+      "schema": {"id": {"type": "string", "nullable": false}},
+      "rows": [{"id": "A"}, {"id": "B"}, {"id": "C"}]
+    };
+    DATA edges = OP values {
+      "schema": {
+        "src": {"type": "string", "nullable": false},
+        "dst": {"type": "string", "nullable": false},
+        "rel": {"type": "string", "nullable": true}
+      },
+      "rows": [{"src": "A", "dst": "B", "rel": null}]
+    };
+    DATA g = OP graph {
+      "nodes": {"from": "nodes", "id": "id", "fields": []},
+      "edges": {"from": "edges", "source": "src", "target": "dst", "label": "rel", "fields": []}
+    };
+    DATA reached = FROM g |> OP reach {"start": "A", "direction": "out", "max_depth": 2};
+    DATA neighborhood = FROM g |> OP subgraph {"nodes": {"from": "reached", "id": "node_id"}};
+    DATA rows = FROM neighborhood |> OP node_rows true |> OP select ["id"];
+    DATA edge_output = FROM neighborhood |> OP edge_rows true;
+    RESULT nodes = {"from": "rows", "fields": ["id"], "order_by": [{"id": "asc"}]};
+    RESULT edges = {"from": "edge_output", "fields": ["src", "dst", "rel"], "order_by": [{"src": "asc"}, {"dst": "asc"}]};
+  }
+  RESULT nodes = {"from": {"stage": "main", "result": "nodes"}};
+  RESULT edges = {"from": {"stage": "main", "result": "edges"}};
+}
