@@ -7,6 +7,13 @@ priv struct PoolRecord {
 }
 
 ///|
+priv enum PoolSource {
+  Stored(@records.ProducerRead, @storage.Storage)
+  Viewed(@carrier_runtime.ProducerView)
+  Relation(@execution.ProducerRead)
+}
+
+///|
 priv enum PoolSortMode {
   IdentityOrder
   GroupOrder
@@ -43,9 +50,7 @@ priv enum PoolPhase {
 
 ///|
 priv struct PoolState {
-  input : @records.ProducerRead?
-  relation_input : @execution.ProducerRead?
-  source : @storage.Storage?
+  source : PoolSource
   vectors : @carrier.Vectors
   output_vectors : @carrier.Vectors
   prepared : @lower.PreparedVector
@@ -174,33 +179,37 @@ fn pool_workspace(
 
 ///|
 fn pool_input_available(state : PoolState) -> Bool {
-  match (state.input, state.relation_input) {
-    (Some(input), None) => @records.producer_read_available(input)
-    (None, Some(input)) => @execution.producer_read_available(input)
-    _ => false
+  match state.source {
+    Stored(input, _) => @records.producer_read_available(input)
+    Viewed(view) => @carrier_runtime.producer_view_record_count(view) is Some(_)
+    Relation(input) => @execution.producer_read_available(input)
   }
 }
 
 ///|
 fn pool_record_count(state : PoolState) -> Int? {
-  match (state.source, state.relation_input) {
-    (Some(source), None) => Some(@storage.record_count(source))
-    (None, Some(input)) => Some(@execution.producer_read_row_count(input))
-    _ => None
+  match state.source {
+    Stored(_, source) => Some(@storage.record_count(source))
+    Viewed(view) => @carrier_runtime.producer_view_record_count(view)
+    Relation(input) => Some(@execution.producer_read_row_count(input))
   }
 }
 
 ///|
 fn pool_record_field_count(state : PoolState, record : Int) -> Int? {
-  match (state.source, state.relation_input) {
-    (Some(source), None) => @storage.record_field_count(source, record)
-    (None, Some(input)) =>
+  match state.source {
+    Stored(_, source) => @storage.record_field_count(source, record)
+    Viewed(view) =>
+      match @carrier_runtime.producer_view_record_field_count(view, record) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+    Relation(input) =>
       if record >= 0 && record < @execution.producer_read_row_count(input) {
         Some(@schema.field_count(@execution.producer_read_schema(input)))
       } else {
         None
       }
-    _ => None
   }
 }
 
@@ -210,9 +219,14 @@ fn pool_record_field_at(
   record : Int,
   field : Int,
 ) -> (@schema.FieldName, @value.CheckedValue)? {
-  match (state.source, state.relation_input) {
-    (Some(source), None) => @storage.record_field_at(source, record, field)
-    (None, Some(input)) => {
+  match state.source {
+    Stored(_, source) => @storage.record_field_at(source, record, field)
+    Viewed(view) =>
+      match @carrier_runtime.producer_view_record_field(view, record, field) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+    Relation(input) => {
       guard @schema.field_at(@execution.producer_read_schema(input), field)
         is Some(expected) &&
         @execution.producer_read_checked_cell(
@@ -226,7 +240,6 @@ fn pool_record_field_at(
       }
       Some((expected.name, checked))
     }
-    _ => None
   }
 }
 
@@ -296,12 +309,13 @@ fn match_pool_identity(state : PoolState) -> Result[Unit, PoolIssue] {
   guard state.current_field is Some((name, checked)) else {
     return Err(InvalidPoolRecord(state.record))
   }
-  let expected = if state.relation_input is Some(_) {
-    @lower.vector_pool_identity_at(state.prepared, state.identity_probe)
-  } else {
-    @carrier.vector_identity_at(state.vectors, state.identity_probe).map(identity => {
-      @schema.reference_name(identity.name)
-    })
+  let expected = match state.source {
+    Relation(_) =>
+      @lower.vector_pool_identity_at(state.prepared, state.identity_probe)
+    _ =>
+      @carrier.vector_identity_at(state.vectors, state.identity_probe).map(identity => {
+        @schema.reference_name(identity.name)
+      })
   }
   guard expected is Some(expected) else {
     return Err(InvalidPoolRecord(state.record))
@@ -1088,11 +1102,12 @@ fn cleanup_pool_state(state : PoolState) -> Bool {
 }
 
 ///|
-fn start_pool_with_control_work_limit(
+fn start_pool_carrier_source(
   control : @bounded.Control,
   sequence : @lower.PreparedSequence,
   step : Int,
-  input : @records.ProducerRead,
+  source : PoolSource,
+  vectors : @carrier.Vectors,
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
@@ -1102,12 +1117,15 @@ fn start_pool_with_control_work_limit(
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.VectorStep(prepared)) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.operation(node) == "VEC.pool" &&
-    @records.producer_read_matches_operation_input(input, owner, step, 0) else {
+    @lower.operation(node) == "VEC.pool" else {
     return Err(InvalidPoolKernel)
   }
-  guard @records.producer_read_storage(input) is Some(source) &&
-    @storage.carrier(source) is @carrier.VectorValue(vectors) &&
+  let records = match source {
+    Stored(_, storage) => Some(@storage.record_count(storage))
+    Viewed(view) => @carrier_runtime.producer_view_record_count(view)
+    Relation(_) => None
+  }
+  guard records is Some(records) &&
     @lower.vector_output_carrier(prepared)
     is @carrier.VectorValue(output_vectors) &&
     @lower.vector_pool_group_count(prepared) is Some(group_count) &&
@@ -1130,11 +1148,7 @@ fn start_pool_with_control_work_limit(
     @carrier.lookup(output_rows, @schema.Unqualified("member_count"))
     is @carrier.Present({ contract: Some(member_count_contract), .. }) &&
     pool_workspace(
-      @storage.record_count(source),
-      dimensions,
-      group_count,
-      identity_count,
-      output_fields,
+      records, dimensions, group_count, identity_count, output_fields,
     )
     is Some(workspace) &&
     workspace <= limits.max_workspace_slots else {
@@ -1163,9 +1177,7 @@ fn start_pool_with_control_work_limit(
     Err(issue) => return Err(PoolOutput(issue))
   }
   let state : PoolState = {
-    input: Some(input),
-    relation_input: None,
-    source: Some(source),
+    source,
     vectors,
     output_vectors,
     prepared,
@@ -1234,6 +1246,78 @@ fn start_pool_with_control_work_limit(
     max_noninterruptible_value_nodes: limits.max_value_nodes,
     max_noninterruptible_value_bytes: limits.max_value_bytes,
   })
+}
+
+///|
+fn start_pool_with_control_work_limit(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @records.ProducerRead,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit : Int,
+) -> Result[PoolExecution, PoolIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @records.producer_read_matches_operation_input(input, owner, step, 0) else {
+    return Err(InvalidPoolKernel)
+  }
+  guard @records.producer_read_storage(input) is Some(storage) &&
+    @storage.carrier(storage) is @carrier.VectorValue(vectors) else {
+    return Err(PoolInputUnavailable)
+  }
+  start_pool_carrier_source(
+    control,
+    sequence,
+    step,
+    Stored(input, storage),
+    vectors,
+    limits,
+    storage_bytes,
+    available,
+    control_work_limit,
+  )
+}
+
+///|
+pub fn start_pool_view(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @carrier_runtime.ProducerView,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit? : Int? = None,
+) -> Result[PoolExecution, PoolIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.operation(node) == "VEC.pool" &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+    is Some(@carrier.VectorValue(vectors)) &&
+    @carrier_runtime.producer_view_kind(input) == @carrier.VectorsKind &&
+    @carrier_runtime.producer_read_reference_matches_operation_input(
+      @carrier_runtime.producer_view_read_reference(input),
+      owner,
+      step,
+      0,
+    ) &&
+    @carrier_runtime.producer_view_record_count(input) is Some(_) else {
+    return Err(InvalidPoolKernel)
+  }
+  start_pool_carrier_source(
+    control,
+    sequence,
+    step,
+    Viewed(input),
+    vectors,
+    limits,
+    storage_bytes,
+    available,
+    control_work_limit.unwrap_or(limits.max_work),
+  )
 }
 
 ///|
@@ -1364,9 +1448,7 @@ pub fn start_relation_pool(
     return Err(InvalidPoolKernel)
   }
   let state : PoolState = {
-    input: None,
-    relation_input: Some(input),
-    source: None,
+    source: Relation(input),
     vectors,
     output_vectors,
     prepared,
