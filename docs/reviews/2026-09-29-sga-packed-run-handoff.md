@@ -44,7 +44,10 @@ the authored sort and Result order require A then B. Task compilation stops at
 `ClientDirectResultRootIssue::RequiresResultTransformation`. This is the
 existing Result Plan connection owned by the Host integration; the Frontend
 does not remove the declared order or publish the untransformed output.
-`graphs-equal` passes ordinary preparation but the earlier packed probe failed
+The independently authored `degree-rows` fixture also passes preparation and
+stops at that same Result transformation boundary. Its out-degree expectations
+are derived from the two authored A-to-B and A-to-C edges, not from runtime
+output. `graphs-equal` passes ordinary preparation but the earlier packed probe failed
 at `Dispatch(NoStrategy)`. These are separate blockers. The other authored
 fixtures still require their exact checker and packed execution evidence;
 `components` additionally needs its existing capacity application, and the
@@ -74,7 +77,9 @@ fixture directory, and `local` or `remote`. Remote mode requires
 Host backed by the same packed packages. Local mode requires a fresh
 workspace-local `ACTQL_LOCAL_STATE_DIR`. It uses the same application body
 for both modes, submits named source, checks request lookup and attach,
-compares the independently authored rows and nonempty row shapes, and reads
+and accepts an optional final fixture name to isolate an operation during
+diagnosis without changing the public execution path. It compares the
+independently authored rows and nonempty row shapes, and reads
 each Result to normal stream termination. The public Result API does not expose
 the published schema, so this script does not verify schema types, nullability,
 or column order; empty Results have no row-shape evidence. Publication boundary

@@ -7,10 +7,11 @@ import {pathToFileURL} from 'node:url';
 
 // Copy this script and the authored fixtures into a clean packed installation.
 // Only the installed Client and Host handle source compilation and execution.
-const [installation, fixtureDirectory, mode] = process.argv.slice(2);
+const [installation, fixtureDirectory, mode, requestedCase] =
+  process.argv.slice(2);
 if (!installation || !fixtureDirectory || !['local', 'remote'].includes(mode)) {
   throw new Error('Usage: node accept-sga-public-source.mjs ' +
-    '<packed-installation> <fixture-directory> <local|remote>');
+    '<packed-installation> <fixture-directory> <local|remote> [case-name]');
 }
 if (mode === 'local' && !process.env.ACTQL_LOCAL_STATE_DIR) {
   throw new Error('Local acceptance requires ACTQL_LOCAL_STATE_DIR');
@@ -26,7 +27,10 @@ if (mode === 'remote' && (!options.endpoint || !options.token)) {
 }
 
 const cases = ['components', 'reach-subgraph', 'diff-apply',
-  'mean-graphs', 'graphs-equal', 'normalize-rows'];
+  'mean-graphs', 'graphs-equal', 'normalize-rows', 'degree-rows'];
+if (requestedCase && !cases.includes(requestedCase)) {
+  throw new Error(`Unknown SGA acceptance case: ${requestedCase}`);
+}
 const readFixture = (name, suffix) => readFile(join(resolve(fixtureDirectory),
   `${name}.${suffix}`), 'utf8');
 
@@ -50,7 +54,7 @@ function checkRowShapes(rows, expectedSchema) {
 const client = await connect(options);
 try {
   assert.equal(client.profile.mode, mode);
-  for (const name of cases) {
+  for (const name of requestedCase ? [requestedCase] : cases) {
     const source = await readFixture(name, 'named.aql');
     const expected = JSON.parse(await readFixture(name,
       'expected-results.json'));

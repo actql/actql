@@ -1,0 +1,13 @@
+{
+  "answer": {
+    "schema": {
+      "node": {"type": "string", "nullable": false},
+      "degree": {"type": "number", "nullable": false}
+    },
+    "rows": [
+      {"node": "A", "degree": 2},
+      {"node": "B", "degree": 0},
+      {"node": "C", "degree": 0}
+    ]
+  }
+}

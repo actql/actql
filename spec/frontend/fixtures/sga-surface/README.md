@@ -35,13 +35,17 @@ and explicitly sorts the rows before declaring an ordered Named Result. Its
 independently authored input lists B before A, while the expected Result is A,
 B. This checks that Graph composition does not silently add a physical boundary
 or make Result ordering implicit.
+`degree-rows.named.aql` computes out-degree from a Graph with two edges from A.
+The authored sort fixes A, B, C order; the independent Result fixture expects
+degrees 2, 0, 0 and keeps the `node`/`degree` schema from the existing contract.
 These expectations have not yet been checked against runtime output from the
 named source. Separate small source cases have passed the common checker for
 reach/subgraph, diff/apply and mean. The exact fixtures here still need
 checker and execution acceptance; components needs its ordinary capacity
-evidence. The normalize-rows fixture passes Program admission and common
-preparation with the Local Check Environment, but its current task compilation
-requires the existing Result transformation to be connected by the Host.
+evidence. The normalize-rows and degree-rows fixtures pass Program admission
+and common preparation with the Local Check Environment, but their current
+task compilation requires the existing Result transformation to be connected
+by the Host.
 Source authorization, packed public-input acceptance and independent
 positive, rejection and boundary fixtures for other operations remain required.
 
