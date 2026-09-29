@@ -4,6 +4,24 @@ pub(all) struct Input {
   name : String
   source : InputSource
   visible_fields : Array[String]
+  graph_bindings : Array[GraphBinding]
+}
+
+///|
+pub(all) struct GraphBinding {
+  variable : @query.NamePart
+  prefix : String
+  fields : Array[String]
+  kind : GraphBindingKind
+  hops : Int
+  label_field : String?
+}
+
+///|
+pub(all) enum GraphBindingKind {
+  Node
+  Edge
+  Path
 }
 
 ///|
@@ -22,6 +40,7 @@ pub(all) struct Context {
   captured_stage : String?
   parameter_declarations : @parameters.Declarations?
   inputs : Array[Input]
+  graph_inputs : Array[GraphInput]
 }
 
 ///|
@@ -51,6 +70,7 @@ pub(all) enum Issue {
   UnsupportedSet
   UnsupportedJoin
   UnsupportedCte
+  UnsupportedGraph
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   Admission(@program.SyntaxError)
@@ -365,11 +385,30 @@ fn resolve_column(
   if path.length() == 0 || path.length() > 2 {
     return None
   }
-  if path.length() == 2 {
-    let qualifier = match @query.relation_alias(query) {
-      Some(name) => name
-      None => @query.relation(query).last().unwrap()
+  if !input.graph_bindings.is_empty() {
+    let mut found : String? = None
+    for binding in input.graph_bindings {
+      if path.length() == 2 && !same_name(path[0], binding.variable) {
+        continue
+      }
+      for field in binding.fields {
+        if same_name(path.last().unwrap(), { value: field, quoted: false, }) {
+          let slot = binding.prefix + field
+          if fields.contains(slot) {
+            if found is Some(_) {
+              return None
+            }
+            found = Some(slot)
+          }
+        }
+      }
     }
+    if found is Some(_) || path.length() == 2 {
+      return found
+    }
+  }
+  if path.length() == 2 {
+    let qualifier = query_range_name(query)
     if !same_name(path[0], qualifier) {
       return None
     }
@@ -392,15 +431,34 @@ fn resolve_column(
 fn ambiguous_column(
   path : Array[@query.NamePart],
   query : @query.Query,
+  input : Input,
   fields : Array[String],
 ) -> Bool {
   if path.length() == 0 || path.length() > 2 {
     return false
   }
+  if !input.graph_bindings.is_empty() {
+    let mut count = 0
+    for binding in input.graph_bindings {
+      if path.length() == 2 && !same_name(path[0], binding.variable) {
+        continue
+      }
+      for field in binding.fields {
+        if same_name(path.last().unwrap(), { value: field, quoted: false, }) &&
+          fields.contains(binding.prefix + field) {
+          count += 1
+        }
+      }
+    }
+    if count > 1 {
+      return true
+    }
+    if path.length() == 2 {
+      return false
+    }
+  }
   if path.length() == 2 {
-    let qualifier = @query.relation_alias(query).unwrap_or(
-      @query.relation(query).last().unwrap(),
-    )
+    let qualifier = query_range_name(query)
     if !same_name(path[0], qualifier) {
       return false
     }
@@ -415,6 +473,23 @@ fn ambiguous_column(
     }
   }
   false
+}
+
+///|
+fn query_range_name(query : @query.Query) -> @query.NamePart {
+  match @query.graph_query(query) {
+    Some(graph) =>
+      match graph.pattern {
+        Some(pattern) if pattern.nodes.length() == 1 =>
+          match pattern.nodes[0].variable {
+            Some(variable) => return variable
+            None => ()
+          }
+        _ => ()
+      }
+    None => ()
+  }
+  @query.relation_alias(query).unwrap_or(@query.relation(query).last().unwrap())
 }
 
 ///|
@@ -516,7 +591,7 @@ fn output_name(
               match resolve_column(path, query, input, fields) {
                 Some(column) => column
                 None =>
-                  if ambiguous_column(path, query, fields) {
+                  if ambiguous_column(path, query, input, fields) {
                     raise Abort(AmbiguousColumn)
                   } else {
                     raise Abort(UnknownColumn)
@@ -538,19 +613,27 @@ fn append_expression(
   fields : Array[String],
   max_work : Int,
 ) -> @builder.Node raise Abort {
-  match
-    @expression.append(
+  let resolve = path => resolve_column(path, query, input, fields)
+  let lowered = if input.graph_bindings.is_empty() {
+    @expression.append(expression, resolve, construction.builder, max_work)
+  } else {
+    @expression.append_with_macros(
       expression,
-      path => resolve_column(path, query, input, fields),
+      resolve,
+      (path, argument) => {
+        graph_macro_value(path, argument, input.graph_bindings)
+      },
       construction.builder,
       max_work,
-    ) {
+    )
+  }
+  match lowered {
     Ok(node) => node
     Err(error) => {
       for index in 0..<@query.expression_node_count(expression) {
         if @query.expression_node(expression, index).unwrap().kind
           is Reference(path) &&
-          ambiguous_column(path, query, fields) {
+          ambiguous_column(path, query, input, fields) {
           raise Abort(AmbiguousColumn)
         }
       }
@@ -587,20 +670,30 @@ fn append_order_expression(
   selected : Array[(String, String)],
   max_work : Int,
 ) -> @builder.Node raise Abort {
-  match
-    @expression.append(
+  let resolve = path => {
+    order_expression_slot(path, query, input, fields, selected)
+  }
+  let lowered = if input.graph_bindings.is_empty() {
+    @expression.append(expression, resolve, construction.builder, max_work)
+  } else {
+    @expression.append_with_macros(
       expression,
-      path => order_expression_slot(path, query, input, fields, selected),
+      resolve,
+      (path, argument) => {
+        graph_macro_value(path, argument, input.graph_bindings)
+      },
       construction.builder,
       max_work,
-    ) {
+    )
+  }
+  match lowered {
     Ok(node) => node
     Err(error) => {
       for index in 0..<@query.expression_node_count(expression) {
         if @query.expression_node(expression, index).unwrap().kind
           is Reference(path) &&
           order_expression_slot(path, query, input, fields, selected) is None &&
-          ambiguous_column(path, query, fields) {
+          ambiguous_column(path, query, input, fields) {
           raise Abort(AmbiguousColumn)
         }
       }
@@ -1092,10 +1185,7 @@ fn compile_steps(
   let mut pending_bindings : Array[(String, String)] = []
   let mut selected_expressions : Array[(@query.Expression, String)] = []
   let mut pipe_visible = fields.map(field => (field, field))
-  let initial_range = match @query.relation_alias(query) {
-    Some(name) => name
-    None => @query.relation(query).last().unwrap()
-  }
+  let initial_range = query_range_name(query)
   let mut pipe_ranges = [(initial_range, pipe_visible.copy())]
   let mut pipe_changed = false
   let mut pipe_selected = false
@@ -2129,6 +2219,9 @@ pub fn compile(
   context : Context,
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
+  if @query.graph_query(query) is Some(_) {
+    return compile_graph_query(query, context, limits)
+  }
   if @query.cte_count(query) > 0 {
     return compile_cte_query(query, context, limits)
   }
@@ -2644,6 +2737,7 @@ fn compile_cte_stage(
         name: cte.name.value,
         source: StageResult(stage_name, "rows"),
         visible_fields: output,
+        graph_bindings: [],
       },
     )
   }
@@ -2733,6 +2827,7 @@ fn compile_cte_stage(
       name: cte.name.value,
       source: StageResult(stage_name, "rows"),
       visible_fields: body_output,
+      graph_bindings: [],
     },
   )
 }

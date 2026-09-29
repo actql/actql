@@ -7,6 +7,7 @@ pub struct ClientTaskFragmentNode {
   output_port : String
   logical_cid : String
   output_contract_cid : String
+  output_carrier : String
 }
 
 ///|
@@ -58,6 +59,45 @@ pub fn client_task_fragment_output_contract_cid(
 }
 
 ///|
+fn client_task_carrier_contract(
+  carrier : @carrier.Carrier,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> (String, String)? {
+  match @carrier.kind(carrier) {
+    RelationKind => {
+      guard @carrier.relation_rows(carrier) is Some(rows) &&
+        @carrier.complete_schema(rows) is Some(schema) &&
+        @schema.as_object(schema) is Some(row) else {
+        return None
+      }
+      let output_hash = @encode.hashing_writer(
+        max_wire_bytes, max_nodes, max_depth,
+      ) catch {
+        _ => return None
+      }
+      @contract.emit_checked(row, output_hash) catch {
+        _ => return None
+      }
+      let cid = @encode.finish_hash(output_hash) catch { _ => return None }
+      Some(("relation", "sha256:" + cid))
+    }
+    GraphKind =>
+      match
+        @graph_contract.admit(carrier, {
+          max_bytes: max_wire_bytes,
+          max_nodes,
+          max_depth,
+        }) {
+        Ok(contract) => Some(("graph", @graph_contract.cid(contract)))
+        Err(_) => None
+      }
+    _ => None
+  }
+}
+
+///|
 /// Seal the checked task pipeline and complete Relation port types together.
 /// Physical source capture, producer edges, Result roots, and resource facts
 /// are separate admission obligations before an Executable Plan is issued.
@@ -101,8 +141,7 @@ pub fn issue_prepared_client_task_fragment(
       @pipeline.step_count(checked),
     )
     is Some(last) &&
-    @lower.node_at(prepared, last) is Some(output) &&
-    @schema.as_object(@lower.node_output_schema(output)) is Some(row) else {
+    @lower.node_at(prepared, last) is Some(output) else {
     return Err(MissingOutput)
   }
   let output_port = @lower.node_id(output)
@@ -112,14 +151,16 @@ pub fn issue_prepared_client_task_fragment(
     actual_output == output_port else {
     return Err(Encoding)
   }
-  let output_hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(Encoding)
+  let (output_carrier, output_contract_cid) = match
+    client_task_carrier_contract(
+      @lower.node_output_carrier(output),
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Some(contract) => contract
+    None => return Err(UnrepresentableContract)
   }
-  @contract.emit_checked(row, output_hash) catch {
-    _ => return Err(UnrepresentableContract)
-  }
-  let output_contract_cid = "sha256:" +
-    (@encode.finish_hash(output_hash) catch { _ => return Err(Encoding) })
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
@@ -143,15 +184,14 @@ pub fn issue_prepared_client_task_fragment(
         @pipeline.input_at(checked, index)
       }
       guard input is Some((name, carrier)) &&
-        @carrier.relation_rows(carrier) is Some(rows) &&
-        @carrier.complete_schema(rows) is Some(schema) &&
-        @schema.as_object(schema) is Some(input_contract) else {
+        client_task_carrier_contract(
+          carrier, max_wire_bytes, max_nodes, max_depth,
+        )
+        is Some((_, input_contract_cid)) else {
         return Err(UnsupportedCarrier)
       }
-      let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth)
-      @contract.emit_checked(input_contract, hash)
       @encode.key(writer, name)
-      @encode.string_value(writer, "sha256:" + @encode.finish_hash(hash))
+      @encode.string_value(writer, input_contract_cid)
     }
     @encode.end_object(writer)
     @encode.key(writer, "kind")
@@ -174,6 +214,7 @@ pub fn issue_prepared_client_task_fragment(
       output_port,
       logical_cid,
       output_contract_cid,
+      output_carrier,
     })
   } catch {
     _ => Err(Encoding)

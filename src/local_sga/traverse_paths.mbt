@@ -53,8 +53,7 @@ priv enum TraversePathsPhase {
 
 ///|
 priv struct TraversePathsState {
-  input : @graph.ProducerRead
-  source : @storage.Storage
+  source : GraphReadSource
   graph : @carrier.Graph
   schema : @schema.Schema
   prepared : @lower.PreparedGraphTraverse
@@ -172,7 +171,7 @@ fn traverse_path_start_count(state : TraversePathsState) -> Int {
   match state.starts {
     LiteralPathStarts => @lower.graph_traverse_start_id_count(state.prepared)
     RelationPathStarts(input, _) => @execution.producer_read_row_count(input)
-    PredicatePathStarts(_) => @storage.node_count(state.source)
+    PredicatePathStarts(_) => graph_read_node_count(state.source).unwrap_or(-1)
   }
 }
 
@@ -217,13 +216,13 @@ fn traversal_path_slots(value : TraversalPath) -> Int? {
 
 ///|
 fn path_edge_identity_value(
-  source : @storage.Storage,
+  source : GraphReadSource,
   edge : Int,
 ) -> @value.Value? {
-  guard @storage.edge_endpoints(source, edge) is Some((from, to)) &&
-    @storage.node_identity(source, from) is Some(from_id) &&
-    @storage.node_identity(source, to) is Some(to_id) &&
-    @storage.edge_label(source, edge) is Some(label) &&
+  guard graph_read_edge_endpoints(source, edge) is Some((from, to)) &&
+    graph_read_node_identity(source, from) is Some(from_id) &&
+    graph_read_node_identity(source, to) is Some(to_id) &&
+    graph_read_edge_label(source, edge) is Some(label) &&
     @value.object_value([
       ("src", from_id.value),
       ("dst", to_id.value),
@@ -247,16 +246,18 @@ fn compare_traversal_edges(
   left : Int,
   right : Int,
 ) -> Result[Int, TraversePathsIssue] {
-  guard @storage.edge_endpoints(state.source, left)
+  guard graph_read_edge_endpoints(state.source, left)
     is Some((left_source, left_target)) &&
-    @storage.edge_endpoints(state.source, right)
+    graph_read_edge_endpoints(state.source, right)
     is Some((right_source, right_target)) &&
-    @storage.node_identity(state.source, left_source) is Some(left_source_id) &&
-    @storage.node_identity(state.source, right_source) is Some(right_source_id) &&
-    @storage.node_identity(state.source, left_target) is Some(left_target_id) &&
-    @storage.node_identity(state.source, right_target) is Some(right_target_id) &&
-    @storage.edge_label(state.source, left) is Some(left_label) &&
-    @storage.edge_label(state.source, right) is Some(right_label) else {
+    graph_read_node_identity(state.source, left_source) is Some(left_source_id) &&
+    graph_read_node_identity(state.source, right_source)
+    is Some(right_source_id) &&
+    graph_read_node_identity(state.source, left_target) is Some(left_target_id) &&
+    graph_read_node_identity(state.source, right_target)
+    is Some(right_target_id) &&
+    graph_read_edge_label(state.source, left) is Some(left_label) &&
+    graph_read_edge_label(state.source, right) is Some(right_label) else {
     return Err(TraversePathsInputUnavailable)
   }
   for
@@ -360,7 +361,7 @@ fn traversal_neighbor(
   occurrence : Int,
 ) -> (Int, Int)? {
   guard traverse_path_direction(state) is Some(direction) else { return None }
-  let edge_count = @storage.edge_count(state.source)
+  let edge_count = graph_read_edge_count(state.source).unwrap_or(-1)
   let edge = if occurrence < edge_count {
     occurrence
   } else {
@@ -368,7 +369,7 @@ fn traversal_neighbor(
   }
   guard edge >= 0 &&
     edge < edge_count &&
-    @storage.edge_endpoints(state.source, edge) is Some((from, to)) else {
+    graph_read_edge_endpoints(state.source, edge) is Some((from, to)) else {
     return None
   }
   let current = path.nodes[path.nodes.length() - 1]
@@ -436,7 +437,7 @@ fn traverse_path_edge_type_matches(
       index,
     )
     is Some(expected) &&
-    @storage.edge_label(state.source, edge)
+    graph_read_edge_label(state.source, edge)
     is Some(Some({ value: @value.Text(actual), .. })) else {
     return false
   }
@@ -506,7 +507,7 @@ fn traverse_path_value(
 ) -> @value.CheckedValue? {
   match field.name {
     @schema.Unqualified("start_id") =>
-      @storage.node_identity(state.source, path.nodes[0]).bind(identity => {
+      graph_read_node_identity(state.source, path.nodes[0]).bind(identity => {
         @value.recheck_runtime_value(
           identity.value,
           field.contract,
@@ -514,14 +515,16 @@ fn traverse_path_value(
         )
       })
     @schema.Unqualified("end_id") =>
-      @storage.node_identity(state.source, path.nodes[path.nodes.length() - 1]).bind(identity => {
-          @value.recheck_runtime_value(
-            identity.value,
-            field.contract,
-            state.value_limits,
-          )
-        },
-      )
+      graph_read_node_identity(
+        state.source,
+        path.nodes[path.nodes.length() - 1],
+      ).bind(identity => {
+        @value.recheck_runtime_value(
+          identity.value,
+          field.contract,
+          state.value_limits,
+        )
+      })
     @schema.Unqualified("hop_count") =>
       @value.checked_number_value(
         path.edges.length().to_double(),
@@ -540,16 +543,18 @@ fn traverse_node_value(
 ) -> @value.CheckedValue? {
   match field.name {
     @schema.Unqualified("start_id") =>
-      @storage.node_identity(state.source, state.start_nodes[state.start_scan]).bind(identity => {
-          @value.recheck_runtime_value(
-            identity.value,
-            field.contract,
-            state.value_limits,
-          )
-        },
-      )
+      graph_read_node_identity(
+        state.source,
+        state.start_nodes[state.start_scan],
+      ).bind(identity => {
+        @value.recheck_runtime_value(
+          identity.value,
+          field.contract,
+          state.value_limits,
+        )
+      })
     @schema.Unqualified("node_id") =>
-      @storage.node_identity(state.source, node).bind(identity => {
+      graph_read_node_identity(state.source, node).bind(identity => {
         @value.recheck_runtime_value(
           identity.value,
           field.contract,
@@ -577,7 +582,7 @@ fn traverse_paths_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@graph.producer_read_available(state.input) ||
+    if !graph_read_available(state.source) ||
       !traverse_path_starts_available(state) {
       return @bounded.Failed(TraversePathsInputUnavailable, progress, used)
     }
@@ -586,7 +591,8 @@ fn traverse_paths_step(
     }
     match state.phase {
       InitializeStartSelection =>
-        if state.start_selected.length() < @storage.node_count(state.source) {
+        if state.start_selected.length() <
+          graph_read_node_count(state.source).unwrap_or(-1) {
           state.start_selected.push(false)
           used += 1
         } else {
@@ -618,7 +624,7 @@ fn traverse_paths_step(
               used,
             )
           }
-          match @storage.node_index(state.source, identity) {
+          match graph_read_node_index(state.source, identity) {
             Err(_) =>
               return @bounded.Failed(
                 TraversePathsInputUnavailable,
@@ -635,12 +641,12 @@ fn traverse_paths_step(
           state.phase = CollectStarts
         }
       PrepareStartPredicate =>
-        if state.start_scan >= @storage.node_count(state.source) {
+        if state.start_scan >= graph_read_node_count(state.source).unwrap_or(-1) {
           state.start_scan = 0
           state.phase = CollectStarts
         } else if state.predicate_field < state.start_predicate_fields {
           used += 1
-          guard graph_node_predicate_binding(
+          guard graph_node_predicate_binding_read(
               state.graph,
               state.source,
               state.start_scan,
@@ -733,7 +739,9 @@ fn traverse_paths_step(
           state.start_scan += 1
         } else {
           state.start_selected = []
-          state.workspace_slots -= @storage.node_count(state.source)
+          state.workspace_slots -= graph_read_node_count(state.source).unwrap_or(
+            -1,
+          )
           state.sort_index = 1
           state.sort_cursor = 1
           state.phase = SortStarts
@@ -744,12 +752,12 @@ fn traverse_paths_step(
           state.phase = BeginStart
         } else if state.sort_cursor > 0 {
           used += 1
-          guard @storage.node_identity(
+          guard graph_read_node_identity(
               state.source,
               state.start_nodes[state.sort_cursor - 1],
             )
             is Some(left) &&
-            @storage.node_identity(
+            graph_read_node_identity(
               state.source,
               state.start_nodes[state.sort_cursor],
             )
@@ -786,7 +794,7 @@ fn traverse_paths_step(
         if state.start_scan >= state.start_nodes.length() {
           state.phase = Finish
         } else if state.emit_nodes {
-          let nodes = @storage.node_count(state.source)
+          let nodes = graph_read_node_count(state.source).unwrap_or(-1)
           if nodes > state.max_workspace_slots - state.workspace_slots {
             return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
           }
@@ -803,7 +811,8 @@ fn traverse_paths_step(
           state.phase = SeedStart
         }
       InitializeNodeDepths =>
-        if state.node_depths.length() < @storage.node_count(state.source) {
+        if state.node_depths.length() <
+          graph_read_node_count(state.source).unwrap_or(-1) {
           state.node_depths.push(-1)
           used += 1
         } else {
@@ -874,9 +883,9 @@ fn traverse_paths_step(
             return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
           }
           let occurrences = if direction == @graph_type.Both {
-            @storage.edge_count(state.source) * 2
+            graph_read_edge_count(state.source).unwrap_or(-1) * 2
           } else {
-            @storage.edge_count(state.source)
+            graph_read_edge_count(state.source).unwrap_or(-1)
           }
           if state.edge_occurrence >= occurrences {
             state.path_index += 1
@@ -937,7 +946,7 @@ fn traverse_paths_step(
       PrepareHopEdgePredicate =>
         if state.predicate_field < state.edge_predicate_fields {
           used += 1
-          guard graph_edge_predicate_binding(
+          guard graph_edge_predicate_binding_read(
               state.graph,
               state.source,
               state.candidate_edge,
@@ -1014,7 +1023,7 @@ fn traverse_paths_step(
           state.phase = AddPath
         } else if state.predicate_field < state.node_predicate_fields {
           used += 1
-          guard graph_node_predicate_binding(
+          guard graph_node_predicate_binding_read(
               state.graph,
               state.source,
               state.candidate_node,
@@ -1191,12 +1200,12 @@ fn traverse_paths_step(
         if state.compare_index < left.nodes.length() &&
           state.compare_index < right.nodes.length() {
           used += 1
-          guard @storage.node_identity(
+          guard graph_read_node_identity(
               state.source,
               left.nodes[state.compare_index],
             )
             is Some(left_id) &&
-            @storage.node_identity(
+            graph_read_node_identity(
               state.source,
               right.nodes[state.compare_index],
             )
@@ -1319,12 +1328,12 @@ fn traverse_paths_step(
           state.phase = SortNodeWrite
         } else {
           used += 1
-          guard @storage.node_identity(
+          guard graph_read_node_identity(
               state.source,
               state.node_order[state.node_sort_left],
             )
             is Some(left) &&
-            @storage.node_identity(
+            graph_read_node_identity(
               state.source,
               state.node_order[state.node_sort_right],
             )
@@ -1498,7 +1507,7 @@ fn traverse_paths_step(
           used += 1
           guard reserve_traverse_path_value_nodes(state, 1) &&
             state.value_items is Some(builder) &&
-            @storage.node_identity(state.source, path.nodes[state.value_item])
+            graph_read_node_identity(state.source, path.nodes[state.value_item])
             is Some(identity) &&
             @value.append_array_item(builder, identity.value) else {
             return @bounded.Failed(TraversePathsOutputLimit, progress, used)
@@ -1648,12 +1657,12 @@ fn traverse_paths_private_entries(state : TraversePathsState) -> Int {
 }
 
 ///|
-fn start_traverse_paths(
+fn start_traverse_paths_read(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
   sequence : @lower.PreparedSequence,
   step : Int,
-  input : @graph.ProducerRead,
+  source : GraphReadSource,
   max_rows : Int,
   limits : @execution.ValueLimits,
   max_workspace_slots : Int,
@@ -1685,9 +1694,22 @@ fn start_traverse_paths(
     maximum <= 2147483647L &&
     hop_count > 0 &&
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
-    @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
-    @graph.producer_read_storage(input) is Some(source) &&
-    (direction != @graph_type.Both || @storage.edge_count(source) <= 1073741823) &&
+    (match source {
+      Stored(read) =>
+        @graph.producer_read_matches_operation_input(read, owner, step, 0)
+      Viewed(view) =>
+        @lifecycle.producer_read_reference_matches_operation_input(
+          @lifecycle.producer_view_read_reference(view),
+          owner,
+          step,
+          0,
+        )
+    }) &&
+    graph_read_node_count(source) is Some(_) &&
+    (
+      direction != @graph_type.Both ||
+      graph_read_edge_count(source).unwrap_or(2147483647) <= 1073741823
+    ) &&
     max_rows >= 0 &&
     max_workspace_slots >= 0 else {
     return Err(InvalidTraversePathsKernel)
@@ -1697,7 +1719,10 @@ fn start_traverse_paths(
       return Err(InvalidTraversePathsKernel)
     }
   }
-  guard @storage.carrier(source) is @carrier.GraphValue(graph) else {
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+    is Some(@carrier.GraphValue(graph)) else {
     return Err(InvalidTraversePathsKernel)
   }
   let starts = match
@@ -1757,22 +1782,44 @@ fn start_traverse_paths(
   let live = Ref(true)
   let accepted = Ref(false)
   let value_item_attempts = Ref(0)
-  let port = match
-    @execution.prepare_trusted_output_port(
-      preparation,
-      @pipeline.Step(step),
-      max_entries,
-      max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs~,
-    ) {
+  let port_result = match source {
+    Stored(_) =>
+      @execution.prepare_trusted_output_port(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs~,
+      )
+    Viewed(view) => {
+      guard inputs.length() == 1 else {
+        @execution.cancel_admitted_output(output) |> ignore
+        return Err(InvalidTraversePathsKernel)
+      }
+      @execution.prepare_trusted_output_port_with_inputs(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs=[
+          @execution.trusted_output_carrier_input(
+            @lifecycle.producer_view_read_reference(view),
+          ),
+          @execution.trusted_output_relation_input(inputs[0]),
+        ],
+      )
+    }
+  }
+  let port = match port_result {
     Ok(value) => value
     Err(issue) => {
       @execution.cancel_admitted_output(output) |> ignore
       return Err(TraversePathsCompletion(issue))
     }
   }
-  let node_count = @storage.node_count(source)
+  let node_count = graph_read_node_count(source).unwrap_or(-1)
   let start_predicate_fields = match starts {
     PredicatePathStarts(_) => graph_node_predicate_binding_count(graph)
     _ => 0
@@ -1807,7 +1854,6 @@ fn start_traverse_paths(
     return Err(TraversePathsWorkspaceLimit)
   }
   let state : TraversePathsState = {
-    input,
     source,
     graph,
     schema: @lower.graph_traverse_output_schema(prepared),
@@ -1903,6 +1949,35 @@ fn start_traverse_paths(
     workspace_usage: fn() { (state.workspace_slots, state.workspace_peak) },
     value_item_attempts,
   })
+}
+
+///|
+fn start_traverse_paths(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @graph.ProducerRead,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+) -> Result[TraversePathsExecution, TraversePathsIssue] {
+  start_traverse_paths_read(
+    control,
+    preparation,
+    sequence,
+    step,
+    Stored(input),
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+  )
 }
 
 ///|

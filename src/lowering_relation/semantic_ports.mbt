@@ -69,6 +69,7 @@ pub fn node_accepts_managed_carrier_view(
     | "BRIDGE.vectors.to_rows"
     | "BRIDGE.graph.to_node_rows"
     | "BRIDGE.graph.to_edge_rows" => true
+    "SGA.traverse" => index == 0
     _ => false
   }
 }
@@ -82,6 +83,10 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     Values(_) | InnerJoin(_) | CrossJoinRows(_) | AppendRows(_) | SetRows(_) =>
       true
     GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
+    GraphTraverseRows(checked) =>
+      operation(node) == "SGA.traverse" &&
+      @graph.traverse_emission(checked) == @graph.TraversedPaths &&
+      node.input_targets.length() == 2
     BasicGraph(_) => operation(node) == "SGA.normalize"
     VectorValue(_) => operation(node) == "BRIDGE.rows.to_vectors"
     EventValue(_) =>
@@ -206,6 +211,8 @@ pub fn node_accepts_managed_relation_view(
 ) -> Bool {
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {
     return match node.payload {
+      GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
+      GraphTraverseRows(_) => index == 1 && operation(node) == "SGA.traverse"
       InnerJoin(_)
       | CrossJoinRows(_)
       | AppendRows(_)

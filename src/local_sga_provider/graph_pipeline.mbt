@@ -229,6 +229,10 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
           @lower.carrier_projection_operation(projection) ==
           @projection.EdgeRows
         )
+      @lower.GraphTraverseStep(traverse) =>
+        @lower.operation(node) == "SGA.traverse" &&
+        @lower.graph_traverse_emits_paths(traverse) &&
+        accepts_traverse(traverse)
       _ => false
     }
   }
@@ -374,7 +378,7 @@ fn provider_capacity(
   generation_count : Int,
   private_scratch_bytes : Int64,
 ) -> @execution.ExecutionCapacity? {
-  if storage_bytes < 0L || private_scratch_bytes < 0L || generation_count < 2 {
+  if storage_bytes < 0L || private_scratch_bytes < 0L || generation_count < 1 {
     return None
   }
   let count = generation_count.to_int64()
@@ -1344,8 +1348,27 @@ fn advance_execution(
             }
           }
           Some(@lower.GraphTraverseStep(_)) => {
-            guard input is Some(input) else { return fail_execution(value) }
-            match
+            let started = if direct_view is Some(view) {
+              @sga.start_traverse_view(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.projection_step,
+                view,
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                value.limits.max_value_bytes,
+                value.inputs,
+              )
+            } else {
+              guard input is Some(input) else { return fail_execution(value) }
               @sga.start_traverse(
                 value.control,
                 @execution.generated_completion_preparation(value.generated),
@@ -1363,7 +1386,9 @@ fn advance_execution(
                 value.limits.max_value_bytes,
                 value.limits.max_value_bytes,
                 value.inputs,
-              ) {
+              )
+            }
+            match started {
               Ok(execution) => TraverseExecution(execution)
               Err(_) => return fail_execution(value)
             }
@@ -1892,6 +1917,16 @@ pub fn provider(
           @lower.graph_relation_kind(relation) == @lower.ApplyGraphRelation
         _ => false
       }
+      let direct_traverse = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphTraverseStep(traverse)) =>
+          selected_step is Some(_) &&
+          @lower.graph_traverse_emits_paths(traverse)
+        _ => false
+      }
       if (
           direct_structural &&
           (
@@ -1913,11 +1948,13 @@ pub fn provider(
           (relations.length() != 0 || carriers.length() != 1)
         ) ||
         (direct_apply && (relations.length() != 1 || carriers.length() != 1)) ||
+        (direct_traverse && (relations.length() != 1 || carriers.length() != 1)) ||
         (
           !direct_structural &&
           !direct_projection &&
           !direct_normalize &&
           !direct_apply &&
+          !direct_traverse &&
           carriers.length() != 0
         ) {
         return Err(@connector.Execution(@execution.InputSet))
@@ -1958,7 +1995,7 @@ pub fn provider(
           StartKernel
         } else if direct_normalize {
           StartKernel
-        } else if direct_projection {
+        } else if direct_projection || direct_traverse {
           StartProjection
         } else {
           StartConstruction

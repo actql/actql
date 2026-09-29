@@ -219,6 +219,8 @@ pub fn start_subgraph(@bounded_execution.Control, @lowering_relation.PreparedSeq
 
 pub fn start_traverse(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[TraverseExecution, TraverseIssue]
 
+pub fn start_traverse_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[TraverseExecution, TraverseIssue]
+
 pub fn subgraph_cleanup_pending(SubgraphExecution) -> Bool
 
 pub fn subgraph_max_noninterruptible_value_nodes(SubgraphExecution) -> Int

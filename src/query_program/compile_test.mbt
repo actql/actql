@@ -39,6 +39,360 @@ fn syntax_limits() -> @query.QueryLimits {
 }
 
 ///|
+test "Graph query cannot borrow a Relation input" {
+  let query = @query.parse_query(
+    "FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(query, fixture_context(), construction_limits())
+    is Err(UnknownRelation),
+  )
+}
+
+///|
+test "node-only Graph pattern lowers to the admitted Program bridge" {
+  let nodes = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"id":{"type":"number","nullable":false},"entity_type":{"type":"string","nullable":true},"name":{"type":"string","nullable":false}},"rows":[{"id":1,"entity_type":"Account","name":"one"},{"id":2,"entity_type":null,"name":"two"}]},"as":"nodes"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let edges = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false},"rel":{"type":"string","nullable":true}},"rows":[]},"as":"edges"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let graph = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"graph":{"nodes":{"from":"nodes","id":"id","fields":["entity_type","name"]},"edges":{"from":"edges","source":"src","target":"dst","label":"rel","fields":[]}},"as":"g"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let query = @query.parse_query(
+    "FROM GRAPH g LABELS {\"node\":{\"field\":\"entity_type\"}} |> MATCH WALK (a:Account) |> SELECT a.name AS name",
+    syntax_limits(),
+  ).unwrap()
+  let base = fixture_context()
+  let context = {
+    ..base,
+    inputs: [],
+    graph_inputs: [
+      {
+        relation: [{ value: "g", quoted: false, }],
+        name: "g",
+        source: GeneratedGraph([nodes, edges, graph]),
+        node_fields: ["id", "entity_type", "name"],
+        edge_fields: ["src", "dst", "rel"],
+      },
+    ],
+  }
+  let program = compile(query, context, construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"node_rows\":true"))
+  assert_true(wire.contains("\"entity_type\""))
+  assert_true(wire.contains("\"Account\""))
+  assert_true(wire.contains("\"fields\":[\"name\"]"))
+  match
+    @check.check_parsed(
+      program,
+      graph_check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("generated Graph should have closed local inputs")
+    Rejected(diagnostic) =>
+      fail(
+        "Graph check: " +
+        @debug.to_string(
+          @check.diagnostic_location(diagnostic).map(
+            @check.diagnostic_location_path,
+          ),
+        ),
+      )
+  }
+}
+
+///|
+fn diamond_graph_context() -> Context {
+  let limits = construction_limits()
+  let bodies = [
+    (
+      #|{"values":{"schema":{"id":{"type":"number","nullable":false},"name":{"type":"string","nullable":false}},"rows":[{"id":1,"name":"A"},{"id":2,"name":"B"},{"id":3,"name":"C"},{"id":4,"name":"D"}]},"as":"nodes"}
+    ),
+    (
+      #|{"values":{"schema":{"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false},"rel":{"type":"string","nullable":true}},"rows":[{"src":1,"dst":2,"rel":null},{"src":1,"dst":3,"rel":null},{"src":2,"dst":4,"rel":null},{"src":3,"dst":4,"rel":null}]},"as":"edges"}
+    ),
+    (
+      #|{"graph":{"nodes":{"from":"nodes","id":"id","fields":["name"]},"edges":{"from":"edges","source":"src","target":"dst","label":"rel","fields":[]}},"as":"g"}
+    ),
+  ]
+  let steps : Array[@wire.Cursor] = []
+  for body in bodies {
+    steps.push(
+      @wire.admit(
+        @source.parse_json(body, limits.source.source).unwrap(),
+        limits.source.tree,
+      ).unwrap(),
+    )
+  }
+  let base = fixture_context()
+  {
+    ..base,
+    inputs: [],
+    graph_inputs: [
+      {
+        relation: [{ value: "g", quoted: false, }],
+        name: "g",
+        source: GeneratedGraph(steps),
+        node_fields: ["id", "name"],
+        edge_fields: ["src", "dst", "rel"],
+      },
+    ],
+  }
+}
+
+///|
+test "fixed Graph path retains each hop and endpoint binding" {
+  let query = @query.parse_query(
+    "FROM GRAPH g |> MATCH WALK (a)-[]->(b)-[]->(d) |> SELECT a.id AS start_id, d.id AS end_id",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, diamond_graph_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"node_rows\":true"))
+  assert_true(wire.contains("\"edge_rows\":true"))
+  assert_true(wire.contains("\"left\":\"aql_n0_id\""))
+  assert_true(wire.contains("\"left\":\"aql_n1_id\""))
+  assert_true(wire.contains("\"start_id\""))
+  assert_true(wire.contains("\"end_id\""))
+  match
+    @check.check_parsed(
+      program,
+      graph_check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("generated fixed Graph should be closed")
+    Rejected(diagnostic) =>
+      fail(
+        "Graph check: " +
+        @debug.to_string(
+          @check.diagnostic_location(diagnostic).map(
+            @check.diagnostic_location_path,
+          ),
+        ),
+      )
+  }
+}
+
+///|
+test "Graph path modes preserve distinct prefix eligibility" {
+  for
+    (mode, has_eligibility) in [
+      ("WALK", false),
+      ("TRAIL", true),
+      ("ACYCLIC", true),
+    ] {
+    let query = @query.parse_query(
+      "FROM GRAPH g |> MATCH " +
+      mode +
+      " (a)-[]->(b)-[]->(c) |> SELECT a.id AS start_id, c.id AS end_id",
+      syntax_limits(),
+    ).unwrap()
+    let program = compile(query, diamond_graph_context(), construction_limits()).unwrap()
+    let wire = semantic(program)
+    assert_eq(wire.contains("\"is_distinct_from\""), has_eligibility)
+    match
+      @check.check_parsed(
+        program,
+        graph_check_environment(),
+        None,
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      NeedsInputs(_) => fail("generated Graph should be closed")
+      Rejected(diagnostic) =>
+        fail(
+          "Graph check: " +
+          @debug.to_string(
+            @check.diagnostic_location(diagnostic).map(
+              @check.diagnostic_location_path,
+            ),
+          ),
+        )
+    }
+  }
+}
+
+///|
+test "Graph macros lower typed roles without publishing elements" {
+  let query = @query.parse_query(
+    "FROM GRAPH g |> MATCH p = WALK (a)-[e]->(b) |> " +
+    "SELECT NODE_ID(a) AS node_id, EDGE_SOURCE(e) AS source_id, " +
+    "EDGE_TARGET(e) AS target_id, EDGE_LABEL(e) AS edge_label, " +
+    "PATH_LENGTH(p) + 1 AS depth",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, diamond_graph_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"aql_query_expr_0\":{\"field\":\"aql_n0_id\"}"))
+  assert_true(wire.contains("\"aql_query_expr_1\":{\"field\":\"aql_e0_src\"}"))
+  assert_true(wire.contains("\"aql_query_expr_2\":{\"field\":\"aql_e0_dst\"}"))
+  assert_true(wire.contains("\"aql_query_expr_3\":{\"field\":\"aql_e0_rel\"}"))
+  assert_true(
+    wire.contains(
+      "\"aql_query_expr_4\":{\"add\":[{\"literal\":1},{\"literal\":1}]}",
+    ),
+  )
+  match
+    @check.check_parsed(
+      program,
+      graph_check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("Graph macro Program should be closed")
+    Rejected(_) => fail("Graph macro Program was rejected")
+  }
+}
+
+///|
+test "bounded ACYCLIC Graph path retains dynamic length and endpoints" {
+  let query = @query.parse_query(
+    "FROM GRAPH g |> MATCH p = ACYCLIC (a)-[:R]->{1,2}(b) |> " +
+    "SELECT a.id AS start_id, b.id AS end_id, PATH_LENGTH(p) AS depth",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, diamond_graph_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"traverse\""))
+  assert_true(wire.contains("\"emit\":\"paths\""))
+  assert_true(wire.contains("\"max_hops\":2"))
+  assert_true(wire.contains("\"aql_path_hop_count\""))
+  match
+    @check.check_parsed(
+      program,
+      graph_check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("bounded Graph Program should be closed")
+    Rejected(_) => fail("bounded Graph Program was rejected")
+  }
+}
+
+///|
+test "bounded ACYCLIC shares a repeated node binding and checks both ends" {
+  for bounds in ["{0,2}", "{1,2}"] {
+    let query = @query.parse_query(
+      "FROM GRAPH g |> MATCH p = ACYCLIC (a WHERE id <= 2)-[:R]->" +
+      bounds +
+      "(a WHERE id >= 2) |> SELECT a.id AS id, PATH_LENGTH(p) AS depth",
+      syntax_limits(),
+    ).unwrap()
+    let program = compile(query, diamond_graph_context(), construction_limits()).unwrap()
+    let wire = semantic(program)
+    assert_true(wire.contains("\"aql_graph_same_endpoint\""))
+    assert_true(wire.contains("\"aql_path_start_id\""))
+    assert_true(wire.contains("\"aql_path_end_id\""))
+    assert_true(wire.contains("\"is_distinct_from\""))
+    match
+      @check.check_parsed(
+        program,
+        graph_check_environment(),
+        None,
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      NeedsInputs(_) => fail("repeated Graph node should be closed")
+      Rejected(_) => fail("repeated Graph node Program was rejected")
+    }
+  }
+  let collision = @query.parse_query(
+    "FROM GRAPH g |> MATCH a = ACYCLIC (a)-[:R]->{0,2}(b) |> SELECT a.id",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(collision, diamond_graph_context(), construction_limits())
+    is Err(AmbiguousColumn),
+  )
+}
+
+///|
+test "Graph edge type requires the source's declared label role" {
+  let base = diamond_graph_context()
+  let input = base.graph_inputs[0]
+  let unlabeled = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"graph":{"nodes":{"from":"nodes","id":"id","fields":["name"]},"edges":{"from":"edges","source":"src","target":"dst","fields":[]}},"as":"g"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let source : GraphInputSource = match input.source {
+    GeneratedGraph(steps) => GeneratedGraph([steps[0], steps[1], unlabeled])
+    CapturedGraph(_) => abort("expected generated Graph")
+  }
+  let context = {
+    ..base,
+    graph_inputs: [{ ..input, source, edge_fields: ["src", "dst"], }],
+  }
+  let typed = @query.parse_query(
+    "FROM GRAPH g |> MATCH WALK (a)-[:R]->(b) |> SELECT a.id",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(typed, context, construction_limits()) is Err(UnsupportedGraph),
+  )
+  let untyped = @query.parse_query(
+    "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT a.id",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(untyped, context, construction_limits()).unwrap()
+  assert_false(semantic(program).contains("aql_e0_rel"))
+  match
+    @check.check_parsed(
+      program,
+      graph_check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("unlabeled Graph should have closed local inputs")
+    Rejected(_) => fail("unlabeled Graph pattern was rejected")
+  }
+}
+
+///|
+test "Graph pattern rejects a property absent from checked input" {
+  let query = @query.parse_query(
+    "FROM GRAPH g |> MATCH WALK (a {missing: 1}) |> SELECT a.id",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(query, diamond_graph_context(), construction_limits())
+    is Err(UnknownColumn),
+  )
+}
+
+///|
 fn fixture_context() -> Context {
   let declaration = @wire.admit(
     @source.parse_json(
@@ -62,8 +416,10 @@ fn fixture_context() -> Context {
         name: "orders",
         source: Captured(declaration),
         visible_fields: ["id", "customer_id", "status", "amount"],
+        graph_bindings: [],
       },
     ],
+    graph_inputs: [],
   }
 }
 
@@ -163,6 +519,25 @@ fn check_environment(numeric? : Bool = false) -> @check.CheckEnvironment {
       None
     },
   )
+}
+
+///|
+fn graph_check_environment() -> @check.CheckEnvironment {
+  let prefix = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],"
+  let suffix = "\"host_policy_profile\":{\"capacity\":{\"max_aggregate_array_items\":1000,\"max_analytic_frame_memberships\":1000,\"max_analytic_input_wire_bytes\":1000,\"max_analytic_output_wire_bytes\":1000,\"max_analytic_partition_wire_bytes\":1000,\"max_artifact_bytes\":1000,\"max_artifact_rows\":1000,\"max_effect_items\":1000,\"max_graph_construction_edges\":1000,\"max_graph_construction_input_rows\":1000,\"max_graph_construction_nodes\":1000,\"max_graph_input_edges\":1000,\"max_graph_input_nodes\":1000,\"max_graph_output_rows\":1000,\"max_graph_paths\":1000,\"max_infer_items\":1000,\"max_model_input_tokens_per_item\":1000,\"max_model_request_bytes_per_item\":1000,\"max_model_total_duration_ms\":1000,\"max_nested_value_bytes\":1000,\"max_nested_value_depth\":1000,\"max_relation_output_rows\":1000,\"max_temporal_matches_per_key\":1000,\"max_temporal_output_rows\":1000,\"version\":\"actql-capacity-host-policy/0.1\"}},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
+  let cid = "sha256:" + @sha.hex(@utf8.encode(prefix + suffix))
+  let wire = @environment.read(
+    @utf8.encode(prefix + "\"evidence_bundle_cid\":\"" + cid + "\"," + suffix),
+    cid,
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 100, max_members: 10, },
+  ).unwrap()
+  @check.checking_environment(wire, { text_time: false, veca: false, }, {
+    rela: true,
+    sga: true,
+    tea: false,
+    calendar: false,
+    text_rank: false,
+  })
 }
 
 ///|
@@ -570,8 +945,10 @@ fn pair_context() -> Context {
         name: "pair",
         source: GeneratedValues(step),
         visible_fields: ["x", "y"],
+        graph_bindings: [],
       },
     ],
+    graph_inputs: [],
   }
 }
 
@@ -738,14 +1115,17 @@ fn set_context() -> Context {
         name: "left_rows",
         source: GeneratedValues(left),
         visible_fields: ["a", "b"],
+        graph_bindings: [],
       },
       {
         relation: [{ value: "right_rows", quoted: false, }],
         name: "right_rows",
         source: GeneratedValues(right),
         visible_fields: ["c", "d"],
+        graph_bindings: [],
       },
     ],
+    graph_inputs: [],
   }
 }
 
@@ -2161,6 +2541,7 @@ test "quoted column and alias spelling does not change name matching" {
         name: "dual",
         source: GeneratedValues(step),
         visible_fields: fields,
+        graph_bindings: [],
       },
     ],
   }
@@ -2240,6 +2621,7 @@ test "ORDER BY expression resolves SELECT aliases before input columns" {
         name: "t",
         source: GeneratedValues(step),
         visible_fields: ["x", "y"],
+        graph_bindings: [],
       },
     ],
   }

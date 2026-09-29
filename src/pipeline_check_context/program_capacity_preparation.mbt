@@ -115,6 +115,21 @@ fn derive_program_capacity(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let derived = match
+    derive_traversal_limits(
+      prepared,
+      derived,
+      max_work - work - derived.work,
+      {
+        max_bytes: metadata.max_bytes - bytes - derived.bytes,
+        max_nodes: metadata.max_nodes - nodes - derived.nodes,
+        max_depth: metadata.max_depth,
+      },
+      selected_policy,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   Ok({
     inputs: { ..inputs, materials: derived.materials, },
     claims,

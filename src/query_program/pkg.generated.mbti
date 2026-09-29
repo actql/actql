@@ -24,6 +24,35 @@ pub(all) struct Context {
   captured_stage : String?
   parameter_declarations : @parameter_binding.Declarations?
   inputs : Array[Input]
+  graph_inputs : Array[GraphInput]
+}
+
+pub(all) struct GraphBinding {
+  variable : @query_syntax.NamePart
+  prefix : String
+  fields : Array[String]
+  kind : GraphBindingKind
+  hops : Int
+  label_field : String?
+}
+
+pub(all) enum GraphBindingKind {
+  Node
+  Edge
+  Path
+}
+
+pub(all) struct GraphInput {
+  relation : Array[@query_syntax.NamePart]
+  name : String
+  source : GraphInputSource
+  node_fields : Array[String]
+  edge_fields : Array[String]
+}
+
+pub(all) enum GraphInputSource {
+  CapturedGraph(@decode_core.Cursor)
+  GeneratedGraph(Array[@decode_core.Cursor])
 }
 
 pub(all) struct Input {
@@ -31,6 +60,7 @@ pub(all) struct Input {
   name : String
   source : InputSource
   visible_fields : Array[String]
+  graph_bindings : Array[GraphBinding]
 }
 
 pub(all) enum InputSource {
@@ -55,6 +85,7 @@ pub(all) enum Issue {
   UnsupportedSet
   UnsupportedJoin
   UnsupportedCte
+  UnsupportedGraph
   Construction(@program_source_builder.Issue)
   Expression(@query_expression.Diagnostic)
   Admission(@stage_syntax.SyntaxError)

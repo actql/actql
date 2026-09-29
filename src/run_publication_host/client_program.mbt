@@ -33,6 +33,28 @@ struct PreparedClientProgram {
 }
 
 ///|
+/// A checked Graph input needs the task compiler; the direct Values compiler
+/// only represents Relation inputs. This reads the admitted owner, not source
+/// text or a caller-supplied mode flag.
+pub fn prepared_client_uses_graph_carrier(
+  value : PreparedClientProgram,
+) -> Bool {
+  for task in 0..<@strategy.graph_task_count(value.graph) {
+    guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
+      continue
+    }
+    let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
+    for input in 0..<@pipeline.input_count(pipeline) {
+      if @pipeline.input_at(pipeline, input) is Some((_, carrier)) &&
+        @carrier.kind(carrier) == GraphKind {
+        return true
+      }
+    }
+  }
+  false
+}
+
+///|
 /// The same checked Stage lowering is used by Effect-free and Effectful
 /// computations. This does not admit an Effect or grant physical execution.
 pub(all) enum ClientStageOwnerIssue {
@@ -420,13 +442,15 @@ pub fn emit_prepared_client_task_pipeline(
       guard @pipeline.input_at(pipeline, index) is Some((name, carrier)) else {
         return Err(Encoding)
       }
-      if @carrier.relation_rows(carrier) is None {
-        return Err(UnsupportedCarrier)
+      let sort = match @carrier.kind(carrier) {
+        RelationKind => "relation"
+        GraphKind => "graph"
+        _ => return Err(UnsupportedCarrier)
       }
       @encode.key(writer, name)
       @encode.begin_object(writer)
       @encode.key(writer, "sort")
-      @encode.string_value(writer, "relation")
+      @encode.string_value(writer, sort)
       @encode.end_object(writer)
     }
     @encode.end_object(writer)
@@ -494,26 +518,34 @@ pub fn emit_prepared_client_task_pipeline(
       for input in 0..<@lower.node_input_count(node) {
         guard @lower.node_input_target(node, input) is Some(target) &&
           @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
-          is Some(carrier) &&
-          @carrier.relation_rows(carrier) is Some(_) else {
+          is Some(carrier) else {
           return Err(UnsupportedCarrier)
+        }
+        let sort = match @carrier.kind(carrier) {
+          RelationKind => "relation"
+          GraphKind => "graph"
+          _ => return Err(UnsupportedCarrier)
         }
         @encode.key(task_writer, "input_" + input.to_string())
         @encode.begin_object(task_writer)
         @encode.key(task_writer, "sort")
-        @encode.string_value(task_writer, "relation")
+        @encode.string_value(task_writer, sort)
         @encode.end_object(task_writer)
       }
     } else {
       for input in 0..<@pipeline.input_count(pipeline) {
-        guard @pipeline.input_at(pipeline, input) is Some((name, carrier)) &&
-          @carrier.relation_rows(carrier) is Some(_) else {
+        guard @pipeline.input_at(pipeline, input) is Some((name, carrier)) else {
           return Err(UnsupportedCarrier)
+        }
+        let sort = match @carrier.kind(carrier) {
+          RelationKind => "relation"
+          GraphKind => "graph"
+          _ => return Err(UnsupportedCarrier)
         }
         @encode.key(task_writer, name)
         @encode.begin_object(task_writer)
         @encode.key(task_writer, "sort")
-        @encode.string_value(task_writer, "relation")
+        @encode.string_value(task_writer, sort)
         @encode.end_object(task_writer)
       }
     }

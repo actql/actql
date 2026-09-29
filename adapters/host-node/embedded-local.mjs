@@ -46,7 +46,7 @@ import {installRunStateAuthority, installRunStateService,
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
-import {canonicalJson} from './local-account-config.mjs';
+import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeTaskPlan,
   sourceFreeEffectPublicationPlan, acquiredTaskRunAdmission} from
@@ -169,6 +169,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     environmentWire = composeInstalledCheckEnvironment(moon,
       baseEnvironmentWire, sourceProfile?.environmentWire,
       effectInstallation?.environmentWire);
+    const {evidence_bundle_cid: ignored, ...body} = JSON.parse(environmentWire);
+    void ignored;
+    body.host_policy_profile = {...body.host_policy_profile,
+      capacity: {...body.host_policy_profile.capacity,
+        max_graph_construction_edges: 1000,
+        max_graph_construction_input_rows: 1000,
+        max_graph_construction_nodes: 1000}};
+    environmentWire = canonicalJson({...body,
+      evidence_bundle_cid: contentCid(body)});
     verifyInstalledConnectorBindings(sourceProfile,
       installedEffect ?? effectInstallation);
   } catch (cause) {
@@ -190,7 +199,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const numericProfileCid = `sha256:${createHash('sha256')
       .update(canonicalJson(numericProfile)).digest('hex')}`;
     environment = moon.clientProgramCheckEnvironmentWithNumericProfile(
-      environmentWire, evidenceCid, false, false, true, false, false, false,
+      environmentWire, evidenceCid, false, false, true, true, false, false,
       false, numericProfileCid);
   } catch (cause) {
     throw await retainInstalledHostInitializationFailure(cause,
@@ -546,7 +555,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0)?.$tag ===
         1
       ? acquiredTaskRunAdmission(common)
-      : moon.clientProgramTaskCount(preparedProgram) > 1
+      : moon.clientProgramTaskCount(preparedProgram) > 1 ||
+          moon.clientProgramUsesGraphCarrier(preparedProgram)
         ? sourceFreeTaskPlan(common)
         : sourceFreeValuesPlan(common);
   };

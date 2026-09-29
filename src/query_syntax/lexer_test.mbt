@@ -54,6 +54,36 @@ test "query token stream is shared by SQL and Pipe without rewriting names" {
 }
 
 ///|
+test "graph delimiters use the bounded shared query token stream" {
+  assert_eq(values("MATCH ACYCLIC (a:Account)-[e:LINK]->(b){1,2}"), [
+    Word("MATCH"),
+    Word("ACYCLIC"),
+    Symbol(40),
+    Word("a"),
+    Symbol(58),
+    Word("Account"),
+    Symbol(41),
+    Symbol(45),
+    Symbol(91),
+    Word("e"),
+    Symbol(58),
+    Word("LINK"),
+    Symbol(93),
+    Symbol(45),
+    Operator(">"),
+    Symbol(40),
+    Word("b"),
+    Symbol(41),
+    Symbol(123),
+    Numeric("1"),
+    Symbol(44),
+    Numeric("2"),
+    Symbol(125),
+    End,
+  ])
+}
+
+///|
 test "query numbers keep exact spelling and unary signs are separate" {
   assert_eq(values("-9007199254740992 + 1e-4 / 1. + .5"), [
     Symbol(45),
@@ -96,10 +126,16 @@ test "query escapes and comments preserve decoded scalar values" {
     values("'a\\n\\r\\t\\\\\\\'\\u0062\\U0001F600' `a\\`b` /* /* */ -- end"),
     [Text("a\n\r\t\\'b😀"), QuotedName("a`b"), End],
   )
+  assert_eq(values("\"node\":\"entity_type\""), [
+    JsonText("node"),
+    Symbol(58),
+    JsonText("entity_type"),
+    End,
+  ])
   for
     text in [
       "'\\uD800'", "'\\U00110000'", "'\\x41'", "'raw\nline'", "``", "/* unfinished",
-      "\"x\"", "@", "$x", "!", "|", "é",
+      "@", "$x", "!", "|", "é",
     ] {
     assert_true(tokenize(text, limits()) is Err(_), msg=text)
   }

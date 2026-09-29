@@ -609,6 +609,8 @@ pub fn client_program_task_pipeline_wire(@run_publication_host.PreparedClientPro
 
 pub fn client_program_task_plan_graph_wire(@run_publication_host.ClientTaskPlanGraph) -> String
 
+pub fn client_program_uses_graph_carrier(@run_publication_host.PreparedClientProgram) -> Bool
+
 pub fn client_program_values_fragment_logical_cid(@run_publication_host.ClientValuesFragmentNode) -> String
 
 pub fn client_request_admit_record(String, String, String, String, String, String, String) -> @run_publication_host.ClientRequestIdentity?

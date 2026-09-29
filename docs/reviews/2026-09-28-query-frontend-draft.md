@@ -1,12 +1,10 @@
-# Query Frontend B2 draft scope
+# Query Frontend PR-3/PR-4 scope and remaining work
 
-This draft uses the bounded multi-task Host merged through PR #34. Its
-current integrated main base is
-`83274c3e2990d2926e8ebd44109d9470aa1df225`; PR #34's changes are
-absent from the current branch diff against main. The original PR-3/PR-4
-requirements remain in the Frontend work order. This draft records the
-implemented combinations; it does not claim completion of all PR-3/PR-4
-forms or GoogleSQL compatibility as a whole.
+PR #37 merged the agreed limited SQL/Pipe and analytic scope on top of the
+bounded multi-task Host from PR #34. That limited scope is complete; the
+original PR-3/PR-4 requirements remain open where listed below. Neither the
+merge nor successful CI establishes all PR-3/PR-4 forms or GoogleSQL
+compatibility as a whole.
 
 SQL and Pipe use the same bounded lexer, expression representation, query
 lowering, source builder, Program admission, checker, planner, and ordinary
@@ -23,6 +21,20 @@ Host. The packed test compiles SQL/Pipe into Program JSON before calling
 | CTE and sets | Nonrecursive used CTEs, two references to one producer, sequential/branched CTEs; UNION ALL/DISTINCT, INTERSECT/EXCEPT DISTINCT and exact BY NAME in supported two-operand forms; three-term UNION ALL | Unused CTE and broader set/subquery composition; a different captured source or filter per operand; Remote physical acquisition count is not established |
 | Pipe | SELECT/WHERE, simultaneous EXTEND/SET, DROP/RENAME/AS, supported AGGREGATE, ORDER/LIMIT, one JOIN shape and a parenthesized SQL right set operand | Other Pipe JOIN scope forms and collection aggregation after SET |
 | Analytic | Limited inline OVER ranking/navigation and framed COUNT/SUM/AVG; updated and previous Pipe alias snapshots | Remaining frame/signature/scope matrix |
+
+## Follow-up work from the original PR-3/PR-4 request
+
+| Remaining requirement | Follow-up task | Completion evidence needed |
+| --- | --- | --- |
+| General JOIN chains, post-projection Pipe JOIN, unkeyed FULL JOIN, and multiple independent acquisitions | Complete SQL/Pipe JOIN elaboration in a follow-up frontend PR | Independent expected Program and rows, source-use counts, Local/HTTP Named Results, and rejected unsupported combinations |
+| Nullable ordered ARRAY_AGG and the remaining collection/aggregate failure behavior | Complete aggregate lowering in a follow-up frontend PR | NULL and order fixtures with independent expected rows, typed rejection tests, and ordinary Host Results |
+| Wider set/subquery combinations, including distinct sources or filters per operand | Complete set and subquery composition in a follow-up frontend PR | Independent alignment and multiplicity fixtures, admission checks, and Local/HTTP Results |
+| Remaining analytic frame, signature, and scope combinations | Complete limited analytic conformance in a follow-up frontend PR | Frame/signature accept and reject fixtures, alias-scope checks, and ordinary Host Results |
+| Full scalar failure cases and the imported rejection/diagnostic matrix | Complete frontend diagnostic conformance in a follow-up frontend PR | Exact source spans and registered diagnostic codes for independent invalid inputs; no generic-error substitution |
+
+These are implementation and evidence tasks, not restrictions on the adopted
+language specification. Raw text routing through the standard Client remains
+the separate PR-7 delivery unit.
 
 The exact Program comparison uses
 `spec/frontend/fixtures/query-pair.expected-program.json`; expected rows
@@ -78,9 +90,9 @@ query packages and packed Local/HTTP smoke. After integrating main, the
 focused query packages and packed smoke were rerun; they are not substitutes
 for final affected gates and same-SHA Linux CI.
 
-Before Ready, close the missing high-risk rejection/diagnostic cases in the work order,
-verify the affected spec and three-target Core gates, and confirm the final
-packed artifact on the submitted SHA.
+The historical pre-Ready checklist called for the high-risk diagnostic matrix.
+PR #37 was merged with that matrix still pending; its merge must not mark that
+follow-up task complete.
 
 The r1 source specification, profile, and acceptance case SQL-20 explicitly
 reject `LIMIT 0` because the existing `take` contract requires a positive

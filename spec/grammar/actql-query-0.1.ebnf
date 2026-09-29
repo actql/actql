@@ -8,7 +8,26 @@ cte           = identifier, "AS", "(", select_core, ")" ;
 select_core   = "SELECT", [ "DISTINCT" ], select_list, "FROM", source,
                 { join }, [ where_clause ], [ group_clause ],
                 [ having_clause ] ;
-pipe_query    = "FROM", source, { "|>", pipe_item }, [ ";" ] ;
+pipe_query    = relation_pipe | graph_pipe ;
+relation_pipe = "FROM", source, { "|>", pipe_item }, [ ";" ] ;
+graph_pipe    = "FROM", "GRAPH", path, [ graph_labels ],
+                "|>", graph_match, { "|>", pipe_item }, [ ";" ] ;
+graph_labels  = "LABELS", "{", json_text, ":", "{",
+                json_text, ":", json_text, "}", "}" ;
+graph_match   = "MATCH", [ identifier, "=" ],
+                ( "WALK" | "TRAIL" | "ACYCLIC" ),
+                graph_node, { graph_edge, graph_node } ;
+graph_node    = "(", [ identifier ], [ ":", identifier ],
+                [ graph_constraint ], ")" ;
+graph_edge    = ( "-[", graph_filler, "]->"
+                | "<-[", graph_filler, "]-" ),
+                [ graph_quantifier ] ;
+graph_filler  = [ identifier ], [ ":", identifier ],
+                [ graph_constraint ] ;
+graph_constraint = "WHERE", expression
+                | "{", property_pair, { ",", property_pair }, "}" ;
+property_pair = identifier, ":", expression ;
+graph_quantifier = "{", integer, ",", integer, "}" ;
 source        = path, [ source_alias ]
               | "(", select_core, [ order_clause ], [ limit_clause ], ")",
                 source_alias ;
@@ -49,3 +68,4 @@ path          = identifier, { ".", identifier } ;
 expression    = ? closed query expression grammar in query-text.md ? ;
 identifier    = ? ASCII identifier or backtick-quoted identifier ? ;
 integer       = ? decimal integer within the adopted exact range ? ;
+json_text     = ? double-quoted JSON string reserved for LABELS ? ;
