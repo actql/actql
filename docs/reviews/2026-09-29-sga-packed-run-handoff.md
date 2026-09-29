@@ -72,6 +72,17 @@ that common builder with the checked producer and policy; the Frontend must
 not issue substitute claims or raise ceilings. The acceptance fixture then
 needs normal preparation, packed Result rows and a ceiling rejection.
 
+The edge-row order gap is independent of source spelling. The Graph
+projection key includes `(src, dst, rel)`, but `edge_rows` publishes nullable
+`rel`. `relation_evidence::select_key` currently excludes nullable fields for
+`CanonicalOrder`, so an explicit sort by the edge identity still reaches
+`UnresolvedOrder`. A diagnostic with a non-null input label and an authored
+sort failed at the same boundary because the bridge output remains nullable.
+The ordering owner needs a Graph-identity-specific proof or another lawful
+completion mechanism; making all nullable Relation keys eligible would change
+general key semantics. The Frontend must retain the authored edge order and
+must not replace it with an arbitrary representative or unsorted Result.
+
 `scripts/reproduce-sga-baseline.mjs <packed-installation> --graphs-equal`
 replays the exact authored Program and reports public status and terminal error
 code. It uses the installed package with a fresh `ACTQL_LOCAL_STATE_DIR` and
