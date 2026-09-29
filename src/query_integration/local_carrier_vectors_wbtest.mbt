@@ -93,6 +93,7 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   let pooled = variant == "pool" ||
     variant == "pool_normalize" ||
     variant == "pool_shared" ||
+    variant == "pool_filter" ||
     relation_pool
   let scored = variant == "score_shared" ||
     variant == "score_parameter" ||
@@ -213,6 +214,7 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     variant == "bridge_filter" ||
     variant == "normalize_filter" ||
     variant == "score_filter" ||
+    variant == "pool_filter" ||
     variant == "bridge_select" ||
     variant == "bridge_derive" ||
     variant == "bridge_take" {
@@ -226,6 +228,10 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
       "{\"from\":\"source\",\"score_vectors\":{" +
       "\"query\":[1,0],\"metric\":\"dot\"}," +
       "\"as\":\"scored\"},"
+    } else if variant == "pool_filter" {
+      "{\"from\":\"source\",\"pool_vectors\":{" +
+      "\"by\":[\"group\"],\"method\":\"sum\"}," +
+      "\"as\":\"pooled\"},"
     } else {
       ""
     }) +
@@ -234,6 +240,8 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
       "normalized"
     } else if variant == "score_filter" {
       "scored"
+    } else if variant == "pool_filter" {
+      "pooled"
     } else {
       "source"
     }) +
@@ -972,7 +980,9 @@ fn run_standard_host_mixed_vectors_relation_path(
       execution_bytes: 402653184L,
     }),
   )
-  let transformed = variant == "normalize_filter" || variant == "score_filter"
+  let transformed = variant == "normalize_filter" ||
+    variant == "score_filter" ||
+    variant == "pool_filter"
   let task_offset = if transformed { 1 } else { 0 }
   assert_eq(
     @strategy.graph_task_count(@strategy.captured_dag_graph(run)),
@@ -1118,6 +1128,10 @@ fn run_standard_host_mixed_vectors_relation_path(
       "{\"code\":\"😀\",\"embedding\":[3,4],\"group\":1,\"id\":1,\"score\":3}",
       "{\"code\":\"é\",\"embedding\":[0,5],\"group\":1,\"id\":2,\"score\":0}",
     ])
+  } else if variant == "pool_filter" {
+    assert_eq(projected_rows, [
+      "{\"embedding\":[3,9],\"group\":1,\"member_count\":2}",
+    ])
   }
   let filtered_live = Ref(true)
   let (filtered_ops, filtered) = run_local_managed_test_task(
@@ -1142,7 +1156,8 @@ fn run_standard_host_mixed_vectors_relation_path(
   } else {
     assert_eq(filtered_rows, projected_rows)
   }
-  assert_eq(filtered_rows.length(), 2)
+  let expected_count = if variant == "pool_filter" { 1 } else { 2 }
+  assert_eq(filtered_rows.length(), expected_count)
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
     installed,
@@ -1165,8 +1180,8 @@ fn run_standard_host_mixed_vectors_relation_path(
     second_live,
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
-  assert_eq(local_managed_test_rows(first_ops).length(), 2)
-  assert_eq(local_managed_test_rows(second_ops).length(), 2)
+  assert_eq(local_managed_test_rows(first_ops).length(), expected_count)
+  assert_eq(local_managed_test_rows(second_ops).length(), expected_count)
   first_live.val = false
   @strategy.close_captured_task_output(run, 5 + task_offset)
   (first_ops.close)()
@@ -1221,6 +1236,11 @@ test "standard Host retains normalized Vectors before Relation filtering" {
 ///|
 test "standard Host retains scored Vectors before Relation filtering" {
   run_standard_host_mixed_vectors_relation_path("score_filter")
+}
+
+///|
+test "standard Host retains pooled Vectors before Relation filtering" {
+  run_standard_host_mixed_vectors_relation_path("pool_filter")
 }
 
 ///|

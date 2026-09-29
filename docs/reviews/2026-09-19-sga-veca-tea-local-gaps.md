@@ -480,7 +480,7 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 68 |
 | Full route work/workspace assurance | 68 |
-| Path-scoped work/workspace assurance | 111 |
+| Path-scoped work/workspace assurance | 112 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -3953,5 +3953,16 @@ and a filter in the same authored Stage. Portable Host tests compare the
 ordered scored rows through two consumers on JS, Wasm, and native; direct view
 tests check exact/one-short work and workspace, foreign binding, cancellation,
 and producer custody. The Node standard Host retains and publishes the scored
-Relation with a real Store. This does not claim the remaining Vectors pool or
-other Carrier variants as retained inter-task paths.
+Relation with a real Store. That delivery unit did not include the Vectors
+pool or other Carrier variants as retained inter-task paths.
+
+The retained Vectors pool route now accepts an exact managed Vectors view at
+its checked input position and uses the existing bounded pool kernel. The
+selected pool task can feed the formal Vectors-to-Relation Bridge and filter
+within the same authored Stage. Portable standard-Host fixtures compare the
+pooled Relation and two downstream results with independent expected rows on
+JS, Wasm, and native. Direct view tests cover exact and one-short work and
+workspace, foreign binding, cancellation, and producer custody. The Node
+standard Host retains the filtered Relation in a real Store, reads its Named
+Result and two consumer results, and exercises in-flight cancellation. Other
+Carrier pool paths and mixed-path failure modes are not implied by this route.

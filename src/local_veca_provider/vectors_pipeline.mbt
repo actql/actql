@@ -35,6 +35,7 @@ priv struct Execution {
   carrier_input : @lifecycle.ProducerView?
   direct_normalize : Bool
   direct_score : Bool
+  direct_pool : Bool
   ranking_inputs : Array[@veca.RankingInput]?
   control : @bounded.Control
   limits : @storage.Limits
@@ -138,7 +139,8 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       @lower.VectorStep(_) =>
         @lower.operation(node) == "BRIDGE.rows.to_vectors" ||
         @lower.operation(node) == "VEC.normalize_l2" ||
-        @lower.operation(node) == "VEC.score_sort"
+        @lower.operation(node) == "VEC.score_sort" ||
+        @lower.operation(node) == "VEC.pool"
       @lower.CarrierProjectionStep(projection) =>
         @lower.operation(node) == "BRIDGE.vectors.to_rows" &&
         @lower.carrier_projection_operation(projection) ==
@@ -168,7 +170,9 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
     }
     guard step is @lower.VectorStep(_) else { return false }
     let operation = @lower.operation(node)
-    return operation == "VEC.merge_rankings" || operation == "VEC.knn_join"
+    return operation == "VEC.merge_rankings" ||
+      operation == "VEC.knn_join" ||
+      operation == "VEC.pool"
   }
   if count < 2 {
     return false
@@ -522,11 +526,13 @@ fn advance_execution(
       StartKernel => {
         if !value.direct_normalize &&
           !value.direct_score &&
+          !value.direct_pool &&
           value.transformed is None {
           return fail_execution(value)
         }
         if !value.direct_normalize &&
           !value.direct_score &&
+          !value.direct_pool &&
           value.kernel_step == value.projection_step - 1 {
           guard @lower.node_at(
               @lower.bound_preparation(
@@ -554,7 +560,9 @@ fn advance_execution(
             }
           }
         }
-        let input = if value.direct_normalize || value.direct_score {
+        let input = if value.direct_normalize ||
+          value.direct_score ||
+          value.direct_pool {
           None
         } else {
           guard value.transformed is Some(output) else {
@@ -637,17 +645,30 @@ fn advance_execution(
             Err(_) => return fail_execution(value)
           }
         } else if @lower.operation(node) == "VEC.pool" {
-          guard input is Some(input) else { return fail_execution(value) }
-          match
-            @veca.start_pool(
-              value.control,
-              value.sequence,
-              value.kernel_step,
-              input,
-              value.limits,
-              value.storage_bytes,
-              fn() { true },
-            ) {
+          let started = match (input, value.carrier_input) {
+            (Some(input), _) =>
+              @veca.start_pool(
+                value.control,
+                value.sequence,
+                value.kernel_step,
+                input,
+                value.limits,
+                value.storage_bytes,
+                fn() { true },
+              )
+            (None, Some(view)) if value.direct_pool =>
+              @veca.start_pool_view(
+                value.control,
+                value.sequence,
+                value.kernel_step,
+                view,
+                value.limits,
+                value.storage_bytes,
+                fn() { true },
+              )
+            _ => return fail_execution(value)
+          }
+          match started {
             Ok(execution) => Pool(execution)
             Err(_) => return fail_execution(value)
           }
@@ -712,7 +733,7 @@ fn advance_execution(
             guard output is Some(completed) else {
               return fail_execution(value)
             }
-            if value.direct_normalize || value.direct_score {
+            if value.direct_normalize || value.direct_score || value.direct_pool {
               guard delta(progress, value.stage_progress)
                 is Some(progress_delta) &&
                 delta(work, value.stage_work) is Some(work_delta) else {
@@ -1383,13 +1404,15 @@ pub fn provider(
       let direct_projection = direct_operation == Some("BRIDGE.vectors.to_rows")
       let direct_normalize = direct_operation == Some("VEC.normalize_l2")
       let direct_score = selected && direct_operation == Some("VEC.score_sort")
+      let direct_pool = selected && direct_operation == Some("VEC.pool")
       let carrier_input = match inputs {
         [@local.CarrierInput(view)] if direct_projection ||
           direct_normalize ||
-          direct_score => Some(view)
+          direct_score ||
+          direct_pool => Some(view)
         _ => None
       }
-      if (direct_projection || direct_normalize || direct_score) &&
+      if (direct_projection || direct_normalize || direct_score || direct_pool) &&
         carrier_input is None {
         return Err(@connector.Execution(@execution.InputSet))
       }
@@ -1402,6 +1425,7 @@ pub fn provider(
         !direct_projection &&
         !direct_normalize &&
         !direct_score &&
+        !direct_pool &&
         relations is None {
         return Err(@connector.Execution(@execution.InputSet))
       }
@@ -1413,6 +1437,7 @@ pub fn provider(
         carrier_input,
         direct_normalize,
         direct_score,
+        direct_pool,
         ranking_inputs: rankings,
         control: @bounded.control(),
         limits,
@@ -1428,7 +1453,7 @@ pub fn provider(
         relation_pool,
         phase: if direct_projection {
           StartProjection
-        } else if direct_normalize || direct_score {
+        } else if direct_normalize || direct_score || direct_pool {
           StartKernel
         } else if binding_rows {
           StartBindingRows
@@ -1444,7 +1469,7 @@ pub fn provider(
         rows: None,
         row_step: first_step,
         binding_execution: None,
-        kernel_step: if direct_normalize || direct_score {
+        kernel_step: if direct_normalize || direct_score || direct_pool {
           first_step
         } else if relation_pool {
           0
