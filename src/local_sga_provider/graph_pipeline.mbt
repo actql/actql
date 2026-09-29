@@ -225,6 +225,17 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       @lower.GraphUnionStep(_) =>
         @lower.operation(node) == "SGA.union_structural"
       @lower.GraphMeanStep(_) => @lower.operation(node) == "SGA.mean_structural"
+      @lower.GraphSubgraphStep(subgraph) =>
+        @lower.operation(node) == "SGA.subgraph" &&
+        (
+          @lower.graph_subgraph_literal_id_count(subgraph) is Some(_) ||
+          @lower.graph_subgraph_relation_selector_field(subgraph) is Some(_) ||
+          @lower.graph_subgraph_node_predicate(subgraph) is Some(_)
+        ) &&
+        (
+          @lower.graph_subgraph_literal_edge_predicate(subgraph) is Some(_) ||
+          @lower.graph_subgraph_edge_predicate(subgraph) is Some(_)
+        )
       @lower.GraphConstructionStep(_) =>
         @lower.operation(node) == "BRIDGE.rows.to_graph"
       @lower.GraphBasicStep(basic) =>
@@ -847,20 +858,32 @@ fn advance_execution(
             }
           }
           Some(@lower.GraphSubgraphStep(_)) => {
-            guard value.graph is Some(output) else {
-              return fail_execution(value)
-            }
-            let input = match
-              @graph.prepare_step_read(
-                @execution.generated_sequence_owner(value.generated),
+            let started = if value.selected_step is Some(_) &&
+              value.carrier_inputs.length() == 1 {
+              @sga.start_subgraph_view(
+                value.control,
+                value.sequence,
                 value.kernel_step,
-                0,
-                output,
-              ) {
-              Ok(read) => read
-              Err(_) => return fail_execution(value)
-            }
-            match
+                value.carrier_inputs[0],
+                input_at(value, value.kernel_step, 1),
+                value.limits,
+                value.storage_bytes,
+                fn() { true },
+              )
+            } else {
+              guard value.graph is Some(output) else {
+                return fail_execution(value)
+              }
+              let input = match
+                @graph.prepare_step_read(
+                  @execution.generated_sequence_owner(value.generated),
+                  value.kernel_step,
+                  0,
+                  output,
+                ) {
+                Ok(read) => read
+                Err(_) => return fail_execution(value)
+              }
               @sga.start_subgraph(
                 value.control,
                 value.sequence,
@@ -870,7 +893,9 @@ fn advance_execution(
                 value.limits,
                 value.storage_bytes,
                 fn() { true },
-              ) {
+              )
+            }
+            match started {
               Ok(execution) => Subgraph(execution)
               Err(_) => return fail_execution(value)
             }
@@ -1942,6 +1967,18 @@ pub fn provider(
           @lower.graph_relation_kind(relation) == @lower.ApplyGraphRelation
         _ => false
       }
+      let direct_subgraph_selector = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphSubgraphStep(subgraph)) if selected_step is Some(_) =>
+          Some(
+            @lower.graph_subgraph_relation_selector_field(subgraph) is Some(_),
+          )
+        _ => None
+      }
+      let direct_subgraph = direct_subgraph_selector is Some(_)
       let direct_traverse = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
@@ -1977,18 +2014,29 @@ pub fn provider(
           (relations.length() != 0 || carriers.length() != 1)
         ) ||
         (direct_apply && (relations.length() != 1 || carriers.length() != 1)) ||
+        (
+          direct_subgraph &&
+          (
+            relations.length() !=
+            (if direct_subgraph_selector == Some(true) { 1 } else { 0 }) ||
+            carriers.length() != 1
+          )
+        ) ||
         (direct_traverse && (relations.length() != 1 || carriers.length() != 1)) ||
         (
           !direct_structural &&
           !direct_projection &&
           !direct_normalize &&
           !direct_apply &&
+          !direct_subgraph &&
           !direct_traverse &&
           carriers.length() != 0
         ) {
         return Err(@connector.Execution(@execution.InputSet))
       }
-      let construction_steps = if direct_structural || direct_apply {
+      let construction_steps = if direct_structural ||
+        direct_apply ||
+        direct_subgraph {
         0
       } else {
         let mut count = 0
@@ -2020,7 +2068,7 @@ pub fn provider(
         ),
         construction_steps,
         kernel_step: selected_step.unwrap_or(construction_steps),
-        phase: if direct_structural || direct_apply {
+        phase: if direct_structural || direct_apply || direct_subgraph {
           StartKernel
         } else if direct_normalize {
           StartKernel

@@ -2131,6 +2131,51 @@ async function exerciseStrategyGraph(
       {node_id: 2, component_id: 1, component_size: 2},
     ],
   }];
+  graphPublicationCases.push({
+    name: 'selected-subgraph-literal',
+    retainedOutput: true,
+    selectedStructural: true,
+    steps: [{
+      from: 'g', subgraph: {nodes: {ids: [1]}}, as: 'selected',
+    }, {
+      from: 'selected', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [{id: 1, node_name: 'first'}],
+  }, {
+    name: 'selected-subgraph-edge-predicate',
+    retainedOutput: true,
+    selectedStructural: true,
+    steps: [{
+      from: 'g',
+      subgraph: {nodes: {ids: [1, 2]}, edges: 'weight > 10'},
+      as: 'selected',
+    }, {
+      from: 'selected', edge_rows: true, as: 'out',
+    }],
+    fields: ['src', 'dst', 'weight'],
+    secondFields: ['weight', 'src'],
+    expected: [{src: 2, dst: 1, weight: 20}],
+  }, {
+    name: 'selected-subgraph-relation-selector',
+    retainedOutput: true,
+    selectedStructural: true,
+    selectorInput: true,
+    steps: [{
+      from: 'g',
+      subgraph: {nodes: {from: 'selected', id: 'id'}},
+      as: 'selected_graph',
+    }, {
+      from: 'selected_graph', node_rows: true, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [
+      {id: 1, node_name: 'first'},
+      {id: 2, node_name: 'second'},
+    ],
+  });
   const structuralEdgeExpectations = [{
     source: 'graft',
     expected: [
@@ -2183,6 +2228,11 @@ async function exerciseStrategyGraph(
     if (publicationCase.rightRows) {
       graphStage.inputs.right_rows = {
         result: {stage: 'right_values', result: 'r'},
+      };
+    }
+    if (publicationCase.selectorInput) {
+      graphStage.inputs.selected = {
+        result: {stage: 'values', result: 'r'},
       };
     }
     if (publicationCase.concise === true) {
@@ -3803,7 +3853,7 @@ async function exerciseStrategyGraph(
     }],
     fields: ['id', 'node_name'],
   }, {
-    name: 'subgraph-fused-filter',
+    name: 'subgraph-fused-bridge',
     rows: 40,
     advanceQuantum: 1,
     // The prefix must remain active after graph construction completes.
@@ -3817,9 +3867,7 @@ async function exerciseStrategyGraph(
       },
       as: 'selected',
     }, {
-      from: 'selected', node_rows: true, as: 'projected',
-    }, {
-      from: 'projected', filter: 'id > 0', as: 'out',
+      from: 'selected', node_rows: true, as: 'out',
     }],
     fields: ['id', 'node_name'],
   }, {
