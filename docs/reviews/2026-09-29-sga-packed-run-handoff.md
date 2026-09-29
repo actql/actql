@@ -59,6 +59,19 @@ The Client job now includes `scripts/sga-surface-checker.test.mjs` at the
 common preparation boundary. It rejects a Relation chained into
 `normalize_graph` and an unbounded `graph_bounds` call before Run acceptance.
 
+For the Components fixture, the exact shared gap is in
+`pipeline_check_context::derive_program_capacity`: it derives Host-owned
+engine-atomic applications for Join and Traverse/Reach, but no corresponding
+Components consumer. `capacity_program_step::check_components_applications`
+therefore returns `MissingApplication` for the checked Components step. The
+existing contract requires two distinct applications:
+`actql.bound.components-input-nodes` in nodes from the retained Graph producer,
+and `actql.bound.components-nodes` in output rows under
+`max_graph_output_rows`. The Compute/capacity owner should supply them through
+that common builder with the checked producer and policy; the Frontend must
+not issue substitute claims or raise ceilings. The acceptance fixture then
+needs normal preparation, packed Result rows and a ceiling rejection.
+
 `scripts/reproduce-sga-baseline.mjs <packed-installation> --graphs-equal`
 replays the exact authored Program and reports public status and terminal error
 code. It uses the installed package with a fresh `ACTQL_LOCAL_STATE_DIR` and
