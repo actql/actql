@@ -13,6 +13,7 @@ import {
   "actql/actql/platform_native/remote_transfer_journal",
   "actql/actql/platform_native/remote_values_host",
   "actql/actql/platform_native/runtime_bundle",
+  "actql/actql/publication_payload",
   "actql/actql/remote_resident_site",
   "actql/actql/remote_site_protocol",
   "actql/actql/run_publication_host",
@@ -21,11 +22,13 @@ import {
 // Values
 pub fn accept_resident_dispatch(@remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, @remote_resident_site.ResidentAcceptedQueue, ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch, String) -> Result[ResidentAcceptance, ResidentHostIssue]
 
-pub fn deliver_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput, @publication_store.Store, @http_client.Client, @remote_transfer_journal.Journal, String, Int) -> Result[@remote_site_protocol.RemoteOutputResult, ResidentOutputIssue]
+pub fn deliver_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput, @publication_store.Store, @http_client.Client, @remote_transfer_journal.Journal, String, Int) -> Result[(@remote_site_protocol.RemoteOutputResult, @publication_payload.PublicationPayloadRequest), ResidentOutputIssue]
 
 pub fn execute_resident_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, String, String, String, ((String) -> Bool)?) -> Result[ResidentExecuted, ResidentHostIssue]
 
 pub fn plan_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput) -> Result[@remote_site_protocol.RemoteOutputPlan, ResidentOutputIssue]
+
+pub fn reclaim_resident_payload(@publication_store.Store, @publication_payload.PublicationPayloadRequest) -> Result[Bool, ResidentOutputIssue]
 
 // Errors
 

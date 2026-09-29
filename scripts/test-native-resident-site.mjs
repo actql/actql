@@ -516,6 +516,107 @@ try {
   right.child.kill('SIGTERM');
   await Promise.all([left.exited, right.exited]);
 
+  // 8. A released output also frees its payload in the Site's Store: runs
+  //    one after another never exhaust a Store sized for one payload.
+  const bounded = startSite(['--publication-capacity-bytes', '40']);
+  currentSite = bounded;
+  let expectedEntries = (await entries()).length;
+  for (let run = 0; run < 5; run += 1) {
+    const dispatch = dispatchFor(`resident-bounded-${run}`, 20 + run);
+    await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
+      dispatchEnvelope: materialsEnvelope(dispatch)}), `bounded ${run}`);
+    expectedEntries += 1;
+    await waitFor(async () => (await entries()).length === expectedEntries,
+      `bounded entry ${run}`);
+    const terminal = await within(gateway.query({dispatch}),
+      `bounded query ${run}`);
+    await deliverAndRelease(dispatch, terminal, `bounded-${run}`);
+    await waitFor(() => bounded.lines.filter(line =>
+      line.kind === 'holder-released').length === run + 1,
+    `bounded release ${run}`);
+  }
+  assert.ok(!bounded.lines.some(line => line.kind === 'output-failed'));
+  bounded.child.kill('SIGTERM');
+  await bounded.exited;
+
+  // 9. The control process fails to read an accepted request three times:
+  //    it keeps serving and starts the attempt once afterwards. Then the
+  //    payload cannot be reclaimed at release (the Store directory is read
+  //    only): the holder keeps the cleanup, retries, and finishes once the
+  //    directory is writable again, without executing again.
+  const retrying = startSite(['--control-envelope-read-failures', '3']);
+  currentSite = retrying;
+  const ninth = dispatchFor('resident-dispatch-9', 30);
+  await within(gateway.dispatch({dispatch: ninth, inputBindingBody: '{}',
+    dispatchEnvelope: materialsEnvelope(ninth)}), 'ninth dispatch');
+  expectedEntries += 1;
+  await waitFor(async () => (await entries()).length === expectedEntries,
+    'ninth entry');
+  assert.equal(retrying.lines.filter(line =>
+    line.kind === 'holder-request-unavailable').length, 3);
+  const ninthTerminal = await within(gateway.query({dispatch: ninth}),
+    'ninth query');
+  const publicationRoot = join(root, 'publication');
+  const ninthIntentTag = 'ninth';
+  const ninthRelease = (async () => {
+    const intent = siteControl.prepareOutputIntent(ninth, {
+      storeAuthorityCid: physicalCid('resident-publication-store'),
+      publicationAttemptCid: physicalCid(`resident-publication-${ninthIntentTag}`),
+      resultDefinitionCid,
+      orderingEvidenceCid: physicalCid('resident-ordering'),
+      coordinatorAuthority: 'cloud-coordinator',
+      transferAttemptId: `resident-transfer-${ninthIntentTag}`,
+      transferRoute: 'direct',
+      destinationSite: 'cloud-results',
+      destinationSiteGeneration: 1,
+      transferMaxBytes: 1048576n,
+      transferExpiresAtMilliseconds: 4102444800000n,
+      sourceGrantCid: physicalCid('resident-source-grant'),
+      destinationGrantCid: physicalCid('resident-destination-grant'),
+      routeCapabilityCid: physicalCid('resident-direct-route'),
+      transferOrigin: receiver.origin,
+    });
+    const planned = await within(gateway.plan({dispatch: ninth, intent,
+      subject: ninthTerminal.subject, maxChunks: 8, maxManifestBytes: 65536,
+      maxReferencedBytes: 1048576n}), 'ninth plan');
+    await within(gateway.output({dispatch: ninth, intent,
+      payloadRequest: planned.payloadRequest,
+      transferRequest: planned.transferRequest}), 'ninth output');
+    await chmod(publicationRoot, 0o500);
+    return within(gateway.release({dispatch: ninth}), 'ninth release', 120_000);
+  })();
+  await waitFor(() => retrying.lines.some(line =>
+    line.kind === 'cleanup-pending' && line.step === 'payload'),
+  'payload reclaim pending');
+  await chmod(publicationRoot, 0o700);
+  await ninthRelease;
+  await waitFor(() => retrying.lines.some(line =>
+    line.kind === 'holder-released' && line.payloads === '1'),
+  'payload reclaimed after retry');
+  assert.equal((await entries()).length, expectedEntries);
+  retrying.child.kill('SIGTERM');
+  await retrying.exited;
+
+  // 10. Releasing the output fails more than eight times: the holder keeps
+  //     its cleanup and ends only once the release is confirmed.
+  const stubborn = startSite(['--holder-release-failures', '9']);
+  currentSite = stubborn;
+  const tenth = dispatchFor('resident-dispatch-10', 31);
+  await within(gateway.dispatch({dispatch: tenth, inputBindingBody: '{}',
+    dispatchEnvelope: materialsEnvelope(tenth)}), 'tenth dispatch');
+  expectedEntries += 1;
+  await waitFor(async () => (await entries()).length === expectedEntries,
+    'tenth entry');
+  await within(gateway.query({dispatch: tenth}), 'tenth query');
+  await within(gateway.release({dispatch: tenth}), 'tenth release', 120_000);
+  await waitFor(() => stubborn.lines.some(line =>
+    line.kind === 'holder-released'), 'tenth released', 120_000);
+  assert.equal(stubborn.lines.filter(line => line.kind === 'cleanup-pending' &&
+    line.step === 'release').length, 9);
+  assert.equal((await entries()).length, expectedEntries);
+  stubborn.child.kill('SIGTERM');
+  await stubborn.exited;
+
   // Each entry names one holder claimant and one attempt key; no attempt
   // key appears twice.
   const keys = (await entries()).map(line => line.split(' ')[1]);

@@ -579,6 +579,38 @@ fn settle_holder(
 }
 
 ///|
+/// The exact dispatch request kept for an accepted attempt, read from a
+/// fresh journal view. `failures` is an acceptance test hook: while it is
+/// positive, one read is reported as failed.
+fn accepted_request(
+  environment : ControlEnvironment,
+  attempt : String,
+  failures : Array[Int],
+) -> @remote.DispatchRequest? {
+  if failures[0] > 0 {
+    failures[0] -= 1
+    return None
+  }
+  guard fresh_journal(environment) is Some(journal) else { return None }
+  let envelope = journal.dispatch_envelope(attempt)
+  ignore(journal.close())
+  match envelope {
+    Ok(Some(body)) =>
+      match @remote.admit_remote_poll_dispatch_json(body) {
+        Ok(dispatch) => {
+          let request = @remote.remote_poll_dispatch_request(dispatch)
+          match @remote.dispatch_request_attempt_identity(request) {
+            Ok(identity) if identity == attempt => Some(request)
+            _ => None
+          }
+        }
+        Err(_) => None
+      }
+    _ => None
+  }
+}
+
+///|
 fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   if !@slot.install_native_termination_request() {
     stop("termination handling could not be installed")
@@ -612,6 +644,9 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   let min_backoff_ms = required_int(matches, "min-backoff-ms")
   let max_backoff_ms = required_int(matches, "max-backoff-ms")
   let shutdown_wait_ms = required_int(matches, "shutdown-wait-ms")
+  let envelope_read_failures = [
+    required_int(matches, "control-envelope-read-failures"),
+  ]
   let mut holder : RunningHolder? = None
   // Holder records not yet reported. They are kept and retried, never
   // dropped, and do not hold back new work; a query answered from the
@@ -664,40 +699,32 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       }
       match queue.next() {
         Some(attempt) =>
-          match slot.try_acquire() {
-            Ok(true) => {
-              holders += 1
-              let claimant = "holder-" +
-                @env.now().to_string() +
-                "-" +
-                holders.to_string()
-              match
-                slot.spawn_holder_with_channel(
-                  executable,
-                  holder_arguments(attempt, claimant),
-                ) {
-                Ok((child, channel)) => {
-                  let request = match
-                    fresh_journal(environment).map(journal => {
-                      let envelope = journal.dispatch_envelope(attempt)
-                      ignore(journal.close())
-                      envelope
-                    }) {
-                    Some(Ok(Some(envelope))) =>
-                      match @remote.admit_remote_poll_dispatch_json(envelope) {
-                        Ok(dispatch) =>
-                          Some(@remote.remote_poll_dispatch_request(dispatch))
-                        Err(_) => None
-                      }
-                    _ => None
-                  }
-                  match request {
-                    Some(value) => {
+          // The exact request is read and checked before a holder starts, so
+          // nothing is left to fail between the spawn and its tracking.
+          match accepted_request(environment, attempt, envelope_read_failures) {
+            None => {
+              report("holder-request-unavailable", [("attempt", attempt)])
+              @slot.native_wait_milliseconds(min_backoff_ms)
+            }
+            Some(request) =>
+              match slot.try_acquire() {
+                Ok(true) => {
+                  holders += 1
+                  let claimant = "holder-" +
+                    @env.now().to_string() +
+                    "-" +
+                    holders.to_string()
+                  match
+                    slot.spawn_holder_with_channel(
+                      executable,
+                      holder_arguments(attempt, claimant),
+                    ) {
+                    Ok((child, channel)) => {
                       holder = Some({
                         child,
                         channel,
                         attempt,
-                        request: value,
+                        request,
                         next_report_ms: 0,
                       })
                       report("holder-started", [
@@ -705,26 +732,18 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                         ("claimant", claimant),
                       ])
                     }
-                    None => {
-                      // The holder still runs and holds the slot; its record
-                      // is settled from the journal once the slot is free.
-                      ignore(child.wait(true))
-                      ignore(queue.remove(attempt))
-                      report("holder-envelope-missing", [("attempt", attempt)])
+                    Err(_) => {
+                      // Nothing started; the slot is released and the
+                      // attempt stays queued for a later pass.
+                      ignore(slot.close())
+                      report("holder-spawn-failed", [("attempt", attempt)])
+                      @slot.native_wait_milliseconds(max_backoff_ms)
                     }
                   }
                 }
-                Err(_) => {
-                  // Nothing started; the slot is released and the attempt
-                  // stays queued for a later pass.
-                  ignore(slot.close())
-                  report("holder-spawn-failed", [("attempt", attempt)])
-                  @slot.native_wait_milliseconds(max_backoff_ms)
-                }
+                Ok(false) => report("slot-busy", [("attempt", attempt)])
+                Err(_) => stop("executor slot lock failed")
               }
-            }
-            Ok(false) => report("slot-busy", [("attempt", attempt)])
-            Err(_) => stop("executor slot lock failed")
           }
         None => ()
       }
@@ -740,7 +759,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     let started = @env.now()
     let operation = @client.poll_operation(client, poll_url)
     guard fresh_journal(environment) is Some(journal) else {
-      stop("dispatch journal open failed")
+      // Nothing is lost: the operation is served again on a later poll.
+      report("journal-unavailable", [])
+      @slot.native_wait_milliseconds(max_backoff_ms)
+      continue
     }
     match operation {
       Ok(None) => {
@@ -953,8 +975,11 @@ fn output_code(issue : @resident_host.ResidentOutputIssue) -> String {
 ///|
 /// After execution the holder keeps its output and serves the Coordinator's
 /// output operations, relayed by the control process over the holder's
-/// standard input, until the output is released or the control process is
-/// gone (then the output is released and becomes unavailable).
+/// standard input. When the output is released, or the control process is
+/// gone, the holder releases the output and reclaims every payload it kept
+/// in the Site's publication Store, retrying each step until it is
+/// confirmed. It never ends while it still owns a cleanup: until then it
+/// keeps the executor slot and the capacity counted.
 fn serve_holder_output(
   matches : @argparse.Matches,
   environment : SiteEnvironment,
@@ -974,7 +999,7 @@ fn serve_holder_output(
       environment.sqlite_library,
       required(matches, "publication-root"),
       required(matches, "publication-authority-cid"),
-      max_bytes,
+      required_int64(matches, "publication-capacity-bytes"),
       required_int(matches, "max-transfers").to_int64(),
       max_record_bytes,
     ) {
@@ -996,6 +1021,8 @@ fn serve_holder_output(
   let site_key = required(matches, "site-key")
   let site_generation = required_int(matches, "site-generation")
   let identity = @remote.dispatch_request_identity(request)
+  // Exact payloads this holder kept in the Store; it reclaims them.
+  let payloads : Array[@payload.PublicationPayloadRequest] = []
   let mut serving = true
   while serving {
     match @slot.native_read_holder_input(2097152) {
@@ -1006,21 +1033,6 @@ fn serve_holder_output(
       InputInvalid => report("holder-input-invalid", [])
       InputLine(line) =>
         if line == "release" {
-          let mut released = false
-          for _attempt in 0..<8 {
-            match runtime.release(request) {
-              Ok(true) => {
-                released = true
-                break
-              }
-              Ok(false) => @slot.native_wait_milliseconds(50)
-              Err(_) => @slot.native_wait_milliseconds(50)
-            }
-          }
-          report("holder-released", [
-            ("request_cid", identity),
-            ("confirmed", released.to_string()),
-          ])
           serving = false
         } else if line.has_prefix("plan ") {
           let envelope = line.unsafe_substring(start=5, end=line.length())
@@ -1070,7 +1082,18 @@ fn serve_holder_output(
                   destination_origin,
                   65536,
                 ) {
-                Ok(result) =>
+                Ok((result, payload)) => {
+                  let payload_identity = @payload.publication_payload_request_identity(
+                    payload,
+                  )
+                  if !payloads
+                    .iter()
+                    .any(kept => {
+                      @payload.publication_payload_request_identity(kept) ==
+                      payload_identity
+                    }) {
+                    payloads.push(payload)
+                  }
                   match
                     @client.acknowledge_output_result(
                       control, observation_url, result,
@@ -1082,6 +1105,7 @@ fn serve_holder_output(
                         ("reason", client_code(issue)),
                       ])
                   }
+                }
                 Err(issue) =>
                   report("output-failed", [("reason", output_code(issue))])
               }
@@ -1092,10 +1116,110 @@ fn serve_holder_output(
         }
     }
   }
+  settle_holder_cleanup(
+    runtime,
+    request,
+    store,
+    payloads,
+    required_int(matches, "holder-release-failures"),
+  )
   ignore(transfer_journal.close())
-  ignore(store.close())
   ignore(transfer.close())
   ignore(control.close())
+}
+
+///|
+/// Release the output and reclaim its payloads, retrying each step with a
+/// bounded backoff until it is confirmed. `injected_release_failures` is an
+/// acceptance test hook that fails that many release attempts first.
+fn settle_holder_cleanup(
+  runtime : @runtime.NativeRemoteRuntime,
+  request : @remote.DispatchRequest,
+  store : @publication_store.Store,
+  payloads : Array[@payload.PublicationPayloadRequest],
+  injected_release_failures : Int,
+) -> Unit {
+  let identity = @remote.dispatch_request_identity(request)
+  let mut wait_ms = 50
+  let next_wait = fn(current : Int) {
+    if current * 2 > 5000 {
+      5000
+    } else {
+      current * 2
+    }
+  }
+  let mut injected = injected_release_failures
+  let mut attempts = 0
+  while true {
+    attempts += 1
+    let released = if injected > 0 {
+      injected -= 1
+      false
+    } else {
+      match runtime.release(request) {
+        Ok(true) => true
+        _ => !runtime.retains_dispatch_resources()
+      }
+    }
+    if released {
+      break
+    }
+    report("cleanup-pending", [
+      ("step", "release"),
+      ("request_cid", identity),
+      ("attempt", attempts.to_string()),
+    ])
+    @slot.native_wait_milliseconds(wait_ms)
+    wait_ms = next_wait(wait_ms)
+  }
+  for payload in payloads {
+    wait_ms = 50
+    attempts = 0
+    while true {
+      attempts += 1
+      match @resident_host.reclaim_resident_payload(store, payload) {
+        Ok(true) => break
+        _ => {
+          report("cleanup-pending", [
+            ("step", "payload"),
+            ("request_cid", identity),
+            ("attempt", attempts.to_string()),
+          ])
+          @slot.native_wait_milliseconds(wait_ms)
+          wait_ms = next_wait(wait_ms)
+        }
+      }
+    }
+  }
+  wait_ms = 50
+  while true {
+    match runtime.close() {
+      Ok(_) => break
+      Err(_) => {
+        report("cleanup-pending", [
+          ("step", "runtime"),
+          ("request_cid", identity),
+        ])
+        @slot.native_wait_milliseconds(wait_ms)
+        wait_ms = next_wait(wait_ms)
+      }
+    }
+  }
+  wait_ms = 50
+  while true {
+    match store.close() {
+      Ok(_) => break
+      Err(_) => {
+        report("cleanup-pending", [("step", "store"), ("request_cid", identity)])
+        @slot.native_wait_milliseconds(wait_ms)
+        wait_ms = next_wait(wait_ms)
+      }
+    }
+  }
+  report("holder-released", [
+    ("request_cid", identity),
+    ("payloads", payloads.length().to_string()),
+  ])
 }
 
 ///|
@@ -1230,7 +1354,6 @@ fn run_holder(
       // The output stays owned by this holder's runtime until the
       // Coordinator releases it; the holder serves its output meanwhile.
       serve_holder_output(matches, environment, executed)
-      ignore(executed.runtime.close())
       0
     }
     Err(issue) => {
@@ -1315,6 +1438,10 @@ fn command() -> @argparse.Command {
       defaulted("max-backoff-ms", "30000"),
       defaulted("shutdown-wait-ms", "30000"),
       defaulted("holder-pause-ms", "0"),
+      // Acceptance test hooks only.
+      defaulted("holder-release-failures", "0"),
+      defaulted("control-envelope-read-failures", "0"),
+      defaulted("publication-capacity-bytes", "268435456"),
     ],
     subcommands=[
       @argparse.Command("run"),

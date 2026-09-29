@@ -141,7 +141,10 @@ pub fn deliver_resident_output(
   transfer_journal : @transfer_journal.Journal,
   destination_origin : String,
   max_chunk_bytes : Int,
-) -> Result[@remote.RemoteOutputResult, ResidentOutputIssue] {
+) -> Result[
+  (@remote.RemoteOutputResult, @payload.PublicationPayloadRequest),
+  ResidentOutputIssue,
+] {
   let (request, completion, _, plan) = match
     observed_output(
       executed, journal, coordinator_authority, site_key, site_generation, output,
@@ -189,10 +192,35 @@ pub fn deliver_resident_output(
     Ok(value) => value
     Err(issue) => return Err(OutputTransfer(issue))
   }
-  @remote.prepare_remote_output_result(
-    output,
-    plan.payload,
-    payload.physical_digest,
-    record,
-  ).map_err(issue => OutputProtocol(issue))
+  // The payload kept in the Site's Store is returned with the result: its
+  // owner must reclaim it when the output is released.
+  match
+    @remote.prepare_remote_output_result(
+      output,
+      plan.payload,
+      payload.physical_digest,
+      record,
+    ) {
+    Ok(result) => Ok((result, plan.payload))
+    Err(issue) => Err(OutputProtocol(issue))
+  }
+}
+
+///|
+/// Reclaim one payload this holder kept in the Site's publication Store for
+/// its output. A payload already reclaimed is done; a failure leaves the
+/// exact cleanup to be retried by the caller.
+pub fn reclaim_resident_payload(
+  store : @publication_store.Store,
+  request : @payload.PublicationPayloadRequest,
+) -> Result[Bool, ResidentOutputIssue] {
+  let owner = match store.acquire_payload_cleanup(request) {
+    Ok(value) => value
+    Err(@publication_store.Database(@sqlite.NotFound)) => return Ok(true)
+    Err(issue) => return Err(OutputPayloadStore(issue))
+  }
+  match owner.retry() {
+    Ok(_) => Ok(!owner.pending())
+    Err(issue) => Err(OutputPayloadStore(issue))
+  }
 }

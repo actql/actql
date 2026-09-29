@@ -16,4 +16,6 @@ import {
   "actql/actql/platform_native/remote_standard_host" @output,
   "actql/actql/platform_native/remote_transfer_journal" @transfer_journal,
   "actql/actql/remote_transfer" @transfer,
+  "actql/actql/publication_payload" @payload,
+  "actql/actql/platform_native/sqlite",
 }
