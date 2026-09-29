@@ -576,6 +576,18 @@ fn reach_step(
             Ok(value) => value
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
+          guard @value.recheck_runtime_value(
+              start.value,
+              @carrier.graph_identity(state.graph),
+              state.value_limits,
+            )
+            is Some(start) else {
+            return @bounded.Failed(
+              ReachKeyOrder(@value.InvalidKey),
+              progress,
+              used,
+            )
+          }
           match @storage.node_index(state.source, start) {
             Err(issue) =>
               return @bounded.Failed(ReachGraph(issue), progress, used)

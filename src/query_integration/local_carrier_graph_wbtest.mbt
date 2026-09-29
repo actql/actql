@@ -5915,6 +5915,7 @@ test "homogeneous traversal reads a Relation start selector" {
   let source = carrier_events_source_output(source_owner)
   let selector_owner = carrier_graph_selector_source_owner(
     "[{\"key\":2},{\"key\":1},{\"key\":2}]",
+    nullable=true,
   )
   let selector = carrier_events_source_output(selector_owner)
   let owner = carrier_graph_relation_traverse_owner(
@@ -6805,8 +6806,9 @@ test "node traversal cancellation reclaims the unpublished path state" {
 }
 
 ///|
-fn relation_traverse_paths_result(
+fn relation_traverse_result(
   rows : String,
+  emission : String,
   nullable? : Bool = false,
 ) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] raise {
   let source_owner = carrier_graph_components_source_owner()
@@ -6816,7 +6818,7 @@ fn relation_traverse_paths_result(
   let owner = carrier_graph_relation_traverse_owner(
     source_owner,
     selector_owner,
-    emission="paths",
+    emission~,
   )
   let sequence = prepared_sequence(owner)
   let source_read = @execution.prepare_producer_read(
@@ -6860,6 +6862,22 @@ fn relation_traverse_paths_result(
   assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
   assert_true(@graphs.discard_completed(graph))
   result
+}
+
+///|
+fn relation_traverse_paths_result(
+  rows : String,
+  nullable? : Bool = false,
+) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] raise {
+  relation_traverse_result(rows, "paths", nullable~)
+}
+
+///|
+fn relation_traverse_nodes_result(
+  rows : String,
+  nullable? : Bool = false,
+) -> Result[@execution.CompletedOutput, @local_sga.TraverseIssue] raise {
+  relation_traverse_result(rows, "nodes", nullable~)
 }
 
 ///|
@@ -7303,6 +7321,38 @@ test "path traversal revalidates nullable Relation start identities" {
   assert_eq(
     @execution.completed_row_count(
       relation_traverse_paths_result("[]", nullable=true).unwrap(),
+    ),
+    0,
+  )
+}
+
+///|
+test "node traversal revalidates nullable Relation start identities" {
+  let output = relation_traverse_nodes_result("[{\"key\":1}]", nullable=true).unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 10000, 1000, 20).unwrap(),
+    "{\"depth\":1,\"node_id\":2,\"start_id\":1}",
+  )
+  assert_eq(
+    @execution.completed_output_row_wire(output, 1, 10000, 1000, 20).unwrap(),
+    "{\"depth\":2,\"node_id\":3,\"start_id\":1}",
+  )
+  assert_true(
+    relation_traverse_nodes_result("[{\"key\":null}]", nullable=true)
+    is Err(
+      @local_sga.TraverseReachIssue(
+        @local_sga.ReachKeyOrder(@admitted.InvalidKey)
+      )
+    ),
+  )
+  assert_true(
+    relation_traverse_nodes_result("[{\"key\":999}]", nullable=true)
+    is Err(@local_sga.TraverseReachIssue(@local_sga.ReachStartMissing)),
+  )
+  assert_eq(
+    @execution.completed_row_count(
+      relation_traverse_nodes_result("[]", nullable=true).unwrap(),
     ),
     0,
   )
