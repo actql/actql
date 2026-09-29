@@ -51,6 +51,10 @@ export function admitDispatchJson(body: string,
 export function dispatchRoute(request: DispatchRequest): string[];
 export function pollDispatchJson(request: DispatchRequest,
   inputBindingBody: string, maxBindingBytes: number): string;
+/** Dispatch envelope that also carries typed run materials; grants nothing. */
+export function pollDispatchMaterialsJson(request: DispatchRequest,
+  inputBindingBody: string, maxBindingBytes: number,
+  runMaterials: string): string;
 export function pollQueryJson(request: DispatchRequest): string;
 export function prepareIntent(journal: Journal,
   request: DispatchRequest): IntentAdmission;

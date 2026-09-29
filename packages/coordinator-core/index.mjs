@@ -30,6 +30,10 @@ export const dispatchRoute = owner.coordinatorDispatchRoute;
 export const pollDispatchJson = (request, inputBindingBody,
   maxBindingBytes) => checked(owner.coordinatorPollDispatchJson(
     request, inputBindingBody, maxBindingBytes));
+export const pollDispatchMaterialsJson = (request, inputBindingBody,
+  maxBindingBytes, runMaterials) => checked(
+  owner.coordinatorPollDispatchMaterialsJson(
+    request, inputBindingBody, maxBindingBytes, runMaterials));
 export const pollQueryJson = request =>
   checked(owner.coordinatorPollQueryJson(request));
 export const prepareIntent = (journal, request) =>

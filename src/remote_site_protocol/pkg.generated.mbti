@@ -9,6 +9,8 @@ import {
 }
 
 // Values
+pub const REMOTE_RUN_MATERIALS_MAX_BYTES : Int = 262144
+
 pub fn admit_coordinator_output_plan(DurableCoordinatorDispatchRecord, String, String, String, Int, Int, Int64) -> Result[(RemotePollOutput, RemoteOutputPlan), DispatchIssue]
 
 pub fn admit_dispatch_request(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
@@ -437,7 +439,11 @@ pub fn remote_poll_dispatch_input_binding(RemotePollDispatch) -> RemoteInputBind
 
 pub fn remote_poll_dispatch_json(DispatchRequest, RemoteInputBinding) -> Result[String, DispatchIssue]
 
+pub fn remote_poll_dispatch_materials_json(DispatchRequest, RemoteInputBinding, String) -> Result[String, DispatchIssue]
+
 pub fn remote_poll_dispatch_request(RemotePollDispatch) -> DispatchRequest
+
+pub fn remote_poll_dispatch_run_materials(RemotePollDispatch) -> String?
 
 pub fn remote_poll_not_seen_json(DispatchRequest) -> Result[String, DispatchIssue]
 
