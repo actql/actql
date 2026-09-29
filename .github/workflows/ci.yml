@@ -136,6 +136,8 @@ jobs:
         run: npm run check:salesforce-site
       - name: Count actual Effect Compute calls across recovery
         run: node adapters/connectors/salesforce/test/run-computation-probe.mjs
+      - name: Count acquired Effect Compute calls across Host recovery
+        run: node scripts/test-acquired-effect-computation-probe.mjs
   # Native storage, publication and control, and the Native retained path.
   native:
     if: ${{ !inputs.performance_matrix }}
