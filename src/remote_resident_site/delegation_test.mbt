@@ -182,3 +182,21 @@ test "resident accepted queue is bounded and reserves an attempt once" {
   assert_true(queue.reserve("attempt-c") is Ok(_))
   assert_eq(queue.next(), Some("attempt-b"))
 }
+
+///|
+test "resident clock renders ISO 8601 UTC timestamps" {
+  assert_eq(
+    @remote_resident_site.resident_utc_timestamp(0L),
+    Some("1970-01-01T00:00:00.000Z"),
+  )
+  // 2026-09-30T00:00:00.000Z, independently: 20726 days after the epoch.
+  assert_eq(
+    @remote_resident_site.resident_utc_timestamp(20726L * 86400000L),
+    Some("2026-09-30T00:00:00.000Z"),
+  )
+  assert_eq(
+    @remote_resident_site.resident_utc_timestamp(951782400000L + 86399999L),
+    Some("2000-02-29T23:59:59.999Z"),
+  )
+  assert_eq(@remote_resident_site.resident_utc_timestamp(-1L), None)
+}

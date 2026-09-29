@@ -11,6 +11,8 @@ pub fn check_resident_dispatch_delegation(ResidentSiteDelegation, @remote_site_p
 
 pub fn check_resident_run_current(@run_publication_host.ClientValuesRunMaterials, String) -> Result[Unit, ResidentDispatchRefusal]
 
+pub fn resident_utc_timestamp(Int64) -> String?
+
 // Errors
 
 // Types and methods

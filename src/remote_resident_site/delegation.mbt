@@ -154,3 +154,60 @@ pub fn ResidentAcceptedQueue::remove(
 pub fn ResidentAcceptedQueue::length(self : ResidentAcceptedQueue) -> Int {
   self.waiting.length()
 }
+
+///|
+fn two_digits(value : Int) -> String {
+  if value < 10 {
+    "0" + value.to_string()
+  } else {
+    value.to_string()
+  }
+}
+
+///|
+/// The Site's own clock (milliseconds since the Unix epoch) as the ISO 8601
+/// UTC timestamp form used by Run lifetimes, for example
+/// `2026-09-30T00:00:00.000Z`. Returns None before 1970 or after 9999.
+pub fn resident_utc_timestamp(unix_milliseconds : Int64) -> String? {
+  if unix_milliseconds < 0L || unix_milliseconds >= 253402300800000L {
+    return None
+  }
+  let milliseconds = (unix_milliseconds % 1000L).to_int()
+  let seconds = unix_milliseconds / 1000L
+  let days = (seconds / 86400L).to_int()
+  let second_of_day = (seconds % 86400L).to_int()
+  // Civil date from days since 1970-01-01 (proleptic Gregorian).
+  let z = days + 719468
+  let era = z / 146097
+  let day_of_era = z - era * 146097
+  let year_of_era = (
+      day_of_era - day_of_era / 1460 + day_of_era / 36524 - day_of_era / 146096
+    ) /
+    365
+  let day_of_year = day_of_era -
+    (365 * year_of_era + year_of_era / 4 - year_of_era / 100)
+  let month_index = (5 * day_of_year + 2) / 153
+  let day = day_of_year - (153 * month_index + 2) / 5 + 1
+  let month = if month_index < 10 { month_index + 3 } else { month_index - 9 }
+  let year = year_of_era + era * 400 + (if month <= 2 { 1 } else { 0 })
+  let year_text = year.to_string()
+  let padded_year = "0".repeat(4 - year_text.length()) + year_text
+  let millisecond_text = milliseconds.to_string()
+  Some(
+    padded_year +
+    "-" +
+    two_digits(month) +
+    "-" +
+    two_digits(day) +
+    "T" +
+    two_digits(second_of_day / 3600) +
+    ":" +
+    two_digits(second_of_day % 3600 / 60) +
+    ":" +
+    two_digits(second_of_day % 60) +
+    "." +
+    "0".repeat(3 - millisecond_text.length()) +
+    millisecond_text +
+    "Z",
+  )
+}
