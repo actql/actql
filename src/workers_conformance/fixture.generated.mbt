@@ -1593,10 +1593,13 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   if variant == "ranking_max" ||
     variant == "ranking_weighted" ||
     variant == "ranking_rrf" ||
-    variant == "ranking_rrf_repeated" {
+    variant == "ranking_rrf_repeated" ||
+    variant == "ranking_rrf_filter" {
     return local_vector_ranking_program(variant)
   }
   if variant == "nearest" ||
+    variant == "nearest_filter" ||
+    variant == "nearest_filter_reversed" ||
     variant == "nearest_vectors" ||
     variant == "nearest_relation_vectors" ||
     variant == "nearest_vectors_relation" ||
@@ -3179,6 +3182,8 @@ fn local_vector_expression_program() -> String {
 /// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
 fn local_vector_nearest_program(variant : String) -> String {
   let inferred = variant == "nearest_inferred"
+  let filtered = variant == "nearest_filter" ||
+    variant == "nearest_filter_reversed"
   let candidate_vectors = variant == "nearest_vectors" ||
     variant == "nearest_vectors_relation"
   let query_vectors = variant == "nearest_vectors" ||
@@ -3223,6 +3228,14 @@ fn local_vector_nearest_program(variant : String) -> String {
     "candidates"
   }
   let query_input = if query_vectors { "query_vectors" } else { "queries" }
+  let nearest_result = if filtered { "filtered" } else { "out" }
+  let nearest_inputs = if variant == "nearest_filter_reversed" {
+    "\"queries\":{\"result\":{\"stage\":\"queries\",\"result\":\"r\"}}," +
+    "\"candidates\":{\"result\":{\"stage\":\"candidates\",\"result\":\"r\"}}"
+  } else {
+    "\"candidates\":{\"result\":{\"stage\":\"candidates\",\"result\":\"r\"}}," +
+    "\"queries\":{\"result\":{\"stage\":\"queries\",\"result\":\"r\"}}"
+  }
   let candidate_bridge = if candidate_vectors {
     "{\"from\":\"candidates\",\"to_vectors\":{" +
     "\"id\":\"id\",\"vector\":\"embedding\"}," +
@@ -3286,9 +3299,8 @@ fn local_vector_nearest_program(variant : String) -> String {
   source_result +
   "\",\"fields\":[\"id\"," +
   "\"embedding\"]}}},{\"id\":\"nearest\",\"inputs\":{" +
-  "\"candidates\":{\"result\":{\"stage\":\"candidates\"," +
-  "\"result\":\"r\"}},\"queries\":{\"result\":{\"stage\":\"queries\"," +
-  "\"result\":\"r\"}}},\"steps\":[" +
+  nearest_inputs +
+  "},\"steps\":[" +
   candidate_bridge +
   query_bridge +
   "{\"from\":\"" +
@@ -3303,7 +3315,15 @@ fn local_vector_nearest_program(variant : String) -> String {
   "\",\"k\":" +
   k +
   "}," +
-  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"as\":\"out\"}" +
+  (if filtered {
+    ", {\"from\":\"out\",\"filter\":\"query_id = 20\",\"as\":\"filtered\"}"
+  } else {
+    ""
+  }) +
+  "],\"results\":{\"r\":{\"from\":\"" +
+  nearest_result +
+  "\"," +
   "\"fields\":" +
   ranking_fields +
   "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
@@ -3325,7 +3345,9 @@ fn local_vector_nearest_program(variant : String) -> String {
 ///|
 /// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
 fn local_vector_ranking_program(variant : String) -> String {
-  let rrf = variant == "ranking_rrf" || variant == "ranking_rrf_repeated"
+  let rrf = variant == "ranking_rrf" ||
+    variant == "ranking_rrf_repeated" ||
+    variant == "ranking_rrf_filter"
   let repeated = variant == "ranking_rrf_repeated"
   let schema = if rrf {
     "{\"q\":{\"type\":\"number\",\"nullable\":false}," +
@@ -3405,8 +3427,15 @@ fn local_vector_ranking_program(variant : String) -> String {
   }) +
   ",\"by\":[\"q\"],\"candidate\":\"id\"," +
   options +
-  ",\"k\":2},\"as\":\"out\"}],\"results\":{\"r\":{" +
-  "\"from\":\"out\",\"fields\":" +
+  ",\"k\":2},\"as\":\"out\"}" +
+  (if variant == "ranking_rrf_filter" {
+    ",{\"from\":\"out\",\"filter\":\"q = 1\",\"as\":\"filtered\"}"
+  } else {
+    ""
+  }) +
+  "],\"results\":{\"r\":{\"from\":\"" +
+  (if variant == "ranking_rrf_filter" { "filtered" } else { "out" }) +
+  "\",\"fields\":" +
   fields +
   "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
   "\"stage\":\"fusion\",\"result\":\"r\"}}},\"steps\":[{" +
