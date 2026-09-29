@@ -8352,6 +8352,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_sequence_match_wbtest.mbt",
           "fixture": "bounded sequence admits exact and one-short workspace"
+        },
+        {
+          "role": "sequence_selected_events_filter_handoff",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "fixture": "standard Host matches retained Events before Relation filtering"
         }
       ],
       "environment_tests": [
@@ -8361,6 +8368,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "sequence"
+        },
+        {
+          "role": "sequence_retained_filter_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "events-sequence-filter"
         }
       ],
       "path_assurance": {

@@ -3920,3 +3920,16 @@ still selects the established file-producing path, since the managed provider
 currently returns an in-memory output. This closes the selected retained-input
 connection, not every providerless synchronous path or the strict
 operation-specific resource gate.
+
+The retained Events sequence matcher now also runs as a selected intermediate
+step before a Relation filter in the same authored Stage. The bounded matcher
+accepts the exact one-step generated selection without requiring that the
+selected step be the Stage terminal. The checked physical graph splits the
+Events construction, sequence match, and filter into exact tasks. Portable
+standard-Host fixtures verify both the terminal and filtered forms with two
+independent consumers and final ledger reclamation on JS, Wasm, and native.
+The Node standard Host retains the filtered Relation in a real Store, publishes
+and reads three Named Results against hand-written ordered rows, then reclaims
+the Store and Run. The existing sequence work/workspace and in-flight
+cancellation fixtures still cover the bounded kernel; this route does not
+claim every remaining Carrier variant or mixed-path failure mode.

@@ -1263,7 +1263,6 @@ fn start_bounded_sequence_match_input(
   let sequence = generated.sequence
   let owner = @lower.sequence_owner(sequence)
   guard step >= 0 &&
-    step == @lower.sequence_count(sequence) - 1 &&
     @lower.sequence_step(sequence, step)
     is Some(@lower.SequenceMatchStep(kernel)) &&
     bounded_sequence_input_row_count(input) is Some(count) else {

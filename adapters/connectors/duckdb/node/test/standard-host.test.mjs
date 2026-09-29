@@ -3035,6 +3035,136 @@ async function exerciseStrategyGraph(
       await directRetained.close();
     }
   }
+  // Sequence matching is a Relation-producing Events consumer. Its selected
+  // step must remain executable when an authored filter follows in the same
+  // Stage; both later consumers read the retained filtered generation.
+  const retainedSequenceCase = {name: 'events-sequence-filter'};
+  const retainedSequenceProgram = structuredClone(eventPublicationProgram);
+  retainedSequenceProgram.stages[2].id = 'matched';
+  retainedSequenceProgram.stages[3].inputs.x.result.stage = 'matched';
+  retainedSequenceProgram.stages[4].inputs.x.result.stage = 'matched';
+  retainedSequenceProgram.results.published.from.stage = 'matched';
+  // The capacity fixture proves 40 source rows; only the first pair lies
+  // within the authored interval, leaving a hand-written one-match oracle.
+  retainedSequenceProgram.stages[1].steps[0].values.rows.push(
+    ...Array.from({length: 38}, (_, index) => ({
+      event_id: index + 3,
+      occurred_at: 1000 + index * 100,
+      payload: `far-${index}`,
+    })),
+  );
+  retainedSequenceProgram.stages[2].steps = [{
+    from: 'rows', to_events: {id: 'event_id', time: 'occurred_at'},
+    as: 'source',
+  }, {
+    from: 'source',
+    sequence: {
+      by: [], id: 'event_id', time: 'occurred_at',
+      pattern: [
+        {as: 'start', where: {literal: true}},
+        {as: 'end', where: {literal: true}},
+      ],
+      within: 10, overlap: 'allow', contiguity: 'subsequence',
+    },
+    as: 'matched',
+  }, {from: 'matched', filter: 'true', as: 'out'}];
+  const sequenceFields = [
+    'match_start_ms', 'match_end_ms', 'start_id',
+    'start_time_ms', 'end_id', 'end_time_ms',
+  ];
+  retainedSequenceProgram.stages[2].results.r.fields = sequenceFields;
+  retainedSequenceProgram.stages[3].steps = [
+    {select: sequenceFields, as: 'out'},
+  ];
+  retainedSequenceProgram.stages[3].results.r.fields = sequenceFields;
+  retainedSequenceProgram.stages[4].steps = [
+    {select: ['end_id', 'start_id'], as: 'out'},
+  ];
+  retainedSequenceProgram.stages[4].results.r.fields = [
+    'end_id', 'start_id',
+  ];
+  const retainedSequenceFixture = fixture.strategyFixtureTeaSequenceCreate(
+    ...args, JSON.stringify(retainedSequenceProgram));
+  const retainedSequenceCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(retainedSequenceFixture),
+    suppliedLimits,
+  );
+  const retainedSequenceRetained = await createCarrierRetainedStore(
+    retainedSequenceCase.name);
+  const retainedSequenceDirectory = await mkdtemp(join(
+    root, '_build/duckdb-fixtures/events-sequence-filter-publication-'));
+  let retainedSequenceOwner;
+  let retainedSequenceStore;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      retainedSequenceFixture, retainedSequenceCapture.source()), true);
+    const setup = fixture.strategyFixtureTeaRetainedSubset(
+      retainedSequenceFixture);
+    const runtime = runtimeCore(hostRuntime);
+    const plan = standardPublicationPlan(
+      runtime,
+      runtime.programDefinitionCid(setup),
+      runtime.resultInventory(setup).length,
+      'events-sequence-filter-attempt',
+    );
+    retainedSequenceStore = await openLocalPublicationStore({
+      directory: retainedSequenceDirectory,
+      storeAuthorityCid: hash('events-sequence-filter-store'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    retainedSequenceOwner = await runPublishedCapturedStrategy(
+      setup,
+      {store: retainedSequenceStore, plan},
+      {local: retainedSequenceRetained.configuration},
+      new AbortController().signal,
+    );
+    assert.equal(retainedSequenceOwner.status, 'published');
+    assert.equal(retainedSequenceOwner.execution.status,
+      'host-tasks-completed');
+    assert.equal(retainedSequenceOwner.execution.completed.filter(value =>
+      value.outputRepresentation === 'managed-local-carrier').length, 1);
+    assert(retainedSequenceRetained.leases.length > 0);
+    const match = {
+      match_start_ms: 5, match_end_ms: 15,
+      start_id: 1, start_time_ms: 5, end_id: 2, end_time_ms: 15,
+    };
+    const expected = {
+      published: [match],
+      consumed_a: [match],
+      consumed_b: [{end_id: 2, start_id: 1}],
+    };
+    for (const occurrence of retainedSequenceOwner.execution
+      .publicationInventory.occurrences) {
+      const received = [];
+      await retainedSequenceStore.consumeCommittedResult({
+        tenantId: plan.request.tenantId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, occurrence.definitionContract.identity, () => true,
+      chunk => received.push(Buffer.from(chunk)));
+      assert.deepEqual(
+        JSON.parse(Buffer.concat(received).toString('utf8')),
+        expected[occurrence.name],
+      );
+    }
+  } finally {
+    if (retainedSequenceOwner !== undefined) {
+      await retainedSequenceOwner.close();
+      assert.equal(await retainedSequenceOwner.cleanup(), true);
+      assert.equal(retainedSequenceOwner.execution.usage().heldBytes, 0n);
+      assert.equal(retainedSequenceOwner.execution.usage()
+        .reservedExecutionBytes, 0n);
+    }
+    retainedSequenceCapture.close();
+    await retainedSequenceStore?.close();
+    await rm(retainedSequenceDirectory, {recursive: true, force: true});
+    await retainedSequenceRetained.close();
+  }
   const scoredVectorPublicationProgram = structuredClone(
     carrierVectorPublicationProgram,
   );

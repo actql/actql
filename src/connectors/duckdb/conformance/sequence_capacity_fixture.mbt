@@ -2,6 +2,7 @@
 fn sequence_fixture_capacity(
   environment : @environment.WireEnvironment,
   stage : String,
+  step? : Int = 0,
 ) -> @context.StageCapacityInput raise {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -40,7 +41,9 @@ fn sequence_fixture_capacity(
       host_text +
       "],\"effective_max\":" +
       effective.to_string() +
-      ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"sequence:checked-step:0:" +
+      ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"sequence:checked-step:" +
+      step.to_string() +
+      ":" +
       suffix +
       "\",\"unit\":\"" +
       unit +
@@ -63,7 +66,7 @@ fn sequence_fixture_capacity(
     "actql.bound.sequence-output",
     @wire.value(witnesses[1]),
     inputs=[output_host_cid],
-    step=0,
+    step~,
   )
   witnesses.push(@wire.program_proof_witness(input))
   witnesses.push(@wire.program_proof_witness(output))
@@ -89,7 +92,7 @@ fn sequence_fixture_capacity(
     sources,
     uses: [
       Sequence(
-        step=0,
+        step~,
         matches=@wire.mixed_limit_at(mixed, 0).unwrap(),
         output=@wire.mixed_limit_at(mixed, 1).unwrap(),
       ),
