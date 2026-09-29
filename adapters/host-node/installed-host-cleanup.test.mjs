@@ -14,6 +14,131 @@ import {createPublicationContractControlFixture} from
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
 
+// Fault the real request database, not the read-only format-inspection copy.
+// Keep the fault armed: cleanup must never retry schema or statement setup.
+function failRequestJournalInitialization(t, phase, closeFailures) {
+  const exec = DatabaseSync.prototype.exec;
+  const prepare = DatabaseSync.prototype.prepare;
+  const close = DatabaseSync.prototype.close;
+  const databases = new Set();
+  const primary = new Error(`RequestJournal${phase}Failure`);
+  const cleanup = new Error('RequestJournalInitializationCloseFailure');
+  const calls = {schema: 0, prepare: 0, close: 0};
+  DatabaseSync.prototype.exec = function(sql) {
+    const result = exec.call(this, sql);
+    if (sql.includes('CREATE TABLE IF NOT EXISTS client_requests')) {
+      databases.add(this);
+      calls.schema++;
+      if (phase === 'schema') throw primary;
+    }
+    return result;
+  };
+  DatabaseSync.prototype.prepare = function(sql) {
+    if (databases.has(this)) {
+      calls.prepare++;
+      if (phase === 'prepare') throw primary;
+    }
+    return prepare.call(this, sql);
+  };
+  DatabaseSync.prototype.close = function() {
+    if (databases.has(this) && ++calls.close <= closeFailures) throw cleanup;
+    return close.call(this);
+  };
+  const restore = () => {
+    DatabaseSync.prototype.exec = exec;
+    DatabaseSync.prototype.prepare = prepare;
+    DatabaseSync.prototype.close = close;
+  };
+  t.after(() => {
+    restore();
+    // Test failure must not leak a real SQLite connection either.
+    for (const database of databases) if (database.isOpen) close.call(database);
+  });
+  return {primary, cleanup, calls, restore,
+    assertClosed() {
+      assert.equal(databases.size, 1);
+      for (const database of databases) assert.equal(database.isOpen, false);
+    }};
+}
+
+for (const phase of ['schema', 'prepare']) {
+  for (const closeFailures of [0, 1]) {
+    test(`request journal ${phase} failure retains custody with ${
+      closeFailures} close failures`, async t => {
+      const root = fileURLToPath(new URL('../../_build/host-init/', import.meta.url));
+      await mkdir(root, {recursive: true});
+      const directory = await mkdtemp(join(root, 'request-init-'));
+      t.after(() => rm(directory, {recursive: true, force: true}));
+      // A valid root can be reopened after recovery; no format repair is used.
+      openClientRequestJournal(directory).close();
+      const fault = failRequestJournalInitialization(t, phase, closeFailures);
+      let failure;
+      assert.throws(() => openClientRequestJournal(directory), error => {
+        failure = error;
+        if (closeFailures === 0) assert.equal(error, fault.primary);
+        else {
+          assert.equal(error.code, 'SqliteJournalInitializationCleanupPending');
+          assert.equal(error.cause, fault.primary);
+          assert.equal(error.primaryFailure, fault.primary);
+          assert.equal(error.cleanupPending, true);
+          assert.equal(error.cleanupErrors[0].error, fault.cleanup);
+          assert.deepEqual(error.cleanupHandle.status().owners,
+            ['client-request-journal']);
+        }
+        return true;
+      });
+      assert.equal(fault.calls.close, 1);
+      if (closeFailures !== 0) {
+        assert.equal(failure.cleanupHandle.retry().pending, false);
+        assert.equal(failure.cleanupPending, false);
+        assert.deepEqual(failure.cleanupHandle.status().owners, []);
+        assert.equal(failure.cleanupHandle.retry().pending, false);
+      }
+      assert.deepEqual(fault.calls, {schema: 1,
+        prepare: phase === 'prepare' ? 1 : 0, close: closeFailures + 1});
+      fault.assertClosed();
+      fault.restore();
+      openClientRequestJournal(directory).close();
+    });
+  }
+
+  test(`installed Host recovers request journal ${phase} failure through its wrapper`,
+    async t => {
+      const {openInstalledRemoteHttpHost} = await import('./embedded-local.mjs');
+      const root = fileURLToPath(new URL('../../_build/host-init/', import.meta.url));
+      await mkdir(root, {recursive: true});
+      const directory = await mkdtemp(join(root, 'request-host-'));
+      t.after(() => rm(directory, {recursive: true, force: true}));
+      const options = {directory, authenticate: () => 'owner'};
+      const initial = await openInstalledRemoteHttpHost(options);
+      await initial.close();
+      // Both the constructor cleanup and the Host's initial drain fail.
+      const fault = failRequestJournalInitialization(t, phase, 2);
+      let failure;
+      await assert.rejects(openInstalledRemoteHttpHost(options), error => {
+        failure = error;
+        assert.equal(error.code, 'InstalledHostInitializationFailed');
+        assert.equal(error.primaryFailure, fault.primary);
+        assert.equal(error.cause.cause, fault.primary);
+        assert.equal(error.cleanupPending, true);
+        assert.ok(error.cleanupErrors.some(item => item.error === fault.cleanup));
+        assert.deepEqual(error.cleanupHandle.status().owners, ['initialization']);
+        return true;
+      });
+      assert.equal(fault.calls.close, 2);
+      assert.equal((await failure.cleanupHandle.retry()).pending, false);
+      assert.equal(failure.cleanupPending, false);
+      assert.deepEqual(failure.cleanupHandle.status().owners, []);
+      assert.equal((await failure.cleanupHandle.retry()).pending, false);
+      assert.deepEqual(fault.calls, {schema: 1,
+        prepare: phase === 'prepare' ? 1 : 0, close: 3});
+      fault.assertClosed();
+      fault.restore();
+      const reopened = await openInstalledRemoteHttpHost(options);
+      await reopened.close();
+    });
+}
+
 test('request journal fences admission but retries a failed physical close',
   async t => {
     const root = fileURLToPath(new URL('../../_build/host-init/', import.meta.url));
