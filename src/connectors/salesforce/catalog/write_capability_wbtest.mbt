@@ -197,3 +197,54 @@ test "capability content reuse does not waive exact execution binding" {
     is Err(ForeignRequest),
   )
 }
+
+///|
+test "capability fields and references are in UTF-16 code-unit order" {
+  // Names whose length-first order differs from code-unit order: `Zz` is
+  // shorter than `Account__c`, but `A` (0x41) precedes `Z` (0x5A).
+  let binding = observation_test_binding()
+  let description = @utf8.encode(
+    (
+      #|{"name":"ActQL_Test_Record__c","queryable":true,"createable":true,"updateable":true,"fields":[
+      #|{"name":"Zz","type":"string","nillable":true,"createable":true,"updateable":true},
+      #|{"name":"Account__c","type":"reference","referenceTo":["Contact","Account_Partner__c","Account"],"nillable":true,"createable":true,"updateable":true}]}
+    ),
+  )
+  let observation = write_test_observation_with(description, binding)
+  let plan = prepare_write_projection(
+    observation,
+    binding,
+    "ActQL_Test_Record__c",
+    WriteUpdateById,
+    ["Zz", "Account__c"],
+    2,
+  ).unwrap()
+  let body = prepare_write_body(
+    plan,
+    @utf8.encode("{\"Zz\":\"z\",\"Account__c\":\"001000000000009\"}"),
+    write_body_test_limits(),
+  ).unwrap()
+  let request = prepare_single_write_request(
+    body,
+    "v66.0",
+    RecordId("001000000000001"),
+    write_request_test_limits(),
+  ).unwrap()
+  let evidence = prepare_write_capability_evidence(
+    request,
+    "sha256:" + "f".repeat(64),
+    SerialRows,
+    8192,
+  ).unwrap()
+  let text = evidence.body
+  // Fixed expectation: fields `Account__c` then `Zz`; references `Account`,
+  // `Account_Partner__c`, `Contact`.
+  let account = text.find("\"name\":\"Account__c\"").unwrap()
+  let zz = text.find("\"name\":\"Zz\"").unwrap()
+  assert_true(account < zz)
+  assert_true(
+    text.contains(
+      "\"reference_to\":[\"Account\",\"Account_Partner__c\",\"Contact\"]",
+    ),
+  )
+}
