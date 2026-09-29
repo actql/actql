@@ -59,6 +59,25 @@ P2s from its review.
 
   It counts the actual shared Compute entry, not notifications.
 
+### Re-verification at the common SHA `d49d77952` (merged as `ffa4bfb70`)
+
+These results are recorded apart from the earlier `7d266e73b` results.
+
+| Check | Result at `d49d77952` |
+|---|---|
+| Acceptance file (Remote HTTP and Embedded) | 13/15. The same 13 pass, Embedded success and stale Preview included. |
+| Damage tests (expectations unchanged) | Still fail, at a later point. The P2-1 Host-level part is resolved on the Salesforce path: <ul><li>the Host now starts;</li><li>only the damaged Run is refused on resume, typed (`effect_resume_failed`: `PublicationObjectMissing` / `PublicationObjectCorrupt`);</li><li>0 writes, and no Source re-read.</li></ul> The Run does not end: it stays `resuming`, where the tests expect `failed`. |
+| Packed tarballs | Pass, "packed public Client Read→Compute→Effect" included. |
+| Compute call probe | 5/5: initial 1, recovery 0. |
+| Existing recovery integration (`effect-run.integration`, `installed-salesforce-effect`, `installed-salesforce-effect.host`) | 68/69. The failure is the recovered-factory case, `SubmissionUnknown`, as at `7d266e73b`. |
+
+Tracked separately:
+1. **A refused damaged Run is not ended.** It stays `resuming`; this is the remainder of P2-1.
+2. **Handoff of an interrupted partial capture (P2-2).** The common side is working on it.
+3. **A written field lost under the same configuration stays `resuming`.**
+4. **The recovered-factory case fails with `SubmissionUnknown`.**
+5. **A refusal while preparing the Preview is left as execution unknown.**
+
 ## The Program and independent expectations
 
 - **Acquire:** read `Test_Record__c` through the records view (scan, filter
