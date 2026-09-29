@@ -190,24 +190,38 @@ provider observation failure, so the Run stays `resuming` rather than ending.
 
 ## Real org
 
-Not run for this unit yet. It runs after the mock and packed checks, only
-within the recorded permission scope and budget.
-- Scope: the success path and one pre-send refusal (target changed after
-  Preview).
-- Fields: `Name` and `External_Key__c` of the dedicated object only.
-  - `Amount__c` is Number(16,2), which is not declared.
-- Records: only records created and recorded by the run, which then deletes
-  them.
+Run on 2026-09-29 on the approved Dev org. It went through Embedded Local,
+with each step in its own process so each step was a Host restart, at the
+Salesforce SHA `4e4e29da0` (common `c58699ce9`). The object and fields were
+the dedicated `ActQL_Test_Record__c`, `Name` and `External_Key__c` only; no
+schema or permission change.
 
-The estimate separates normal processing, verification reads, planned
-cleanup and emergency cleanup headroom. It is rechecked against the latest
-usage record and the org's API remaining just before the run.
+The run created three rows, each tagged with this run's key prefix and its Id
+recorded. The Program's filter selected only two of them by key; the third
+was this run's own row the filter drops.
+
+| Step | Result |
+|---|---|
+| Publish source and Effect | Published (one SourceView, one update Mapping) |
+| Submit: acquire, filter, derive, Preview | Held for approval (`waiting_checkpoint`) |
+| Readback before approval | All three rows unchanged |
+| Restart, approve; restart, resume | `succeeded`; Named Result exactly the two derived names |
+| Restart again | `succeeded`, nothing more sent |
+| Readback | The two targets renamed to the derived value; the filtered-out row unchanged |
+| Second request held, then one target changed outside ActQL after its Preview; approve, resume | `failed` before any write; readback shows only the outside change |
+| Cleanup | The three rows deleted by Id; count 0 |
+
+API use: 30 calls by the org's daily counter (before and after). The
+internal ledger counted 51 against its budget, since it counts Host steps by
+estimate.
 
 Mock only (not run on the real org):
 - unknown result after a lost reply;
 - partial success (halt and continue);
 - approval expiry;
-- revoked commit permission.
+- revoked commit permission;
+- damaged durable inputs;
+- a stop partway through saving.
 
 ## Tests
 
