@@ -218,7 +218,9 @@ fn same_path(
 }
 
 ///|
-fn same_relation_path(
+/// Installation aliases use the same relation spelling rule as query lookup.
+/// A quoted relation path remains exact; field and SELECT aliases differ.
+pub fn same_relation_path(
   left : Array[@query.NamePart],
   right : Array[@query.NamePart],
 ) -> Bool {

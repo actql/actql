@@ -176,6 +176,44 @@ pub fn query_source(query : Query) -> Tokens {
 }
 
 ///|
+/// Classify the first admitted token before choosing a query-only AQL form.
+/// A malformed query never falls back to a structural Program or YAML.
+pub fn starts_query(
+  text : String,
+  limits : LexicalLimits,
+  source_path? : String = "<query>",
+) -> Result[Bool, Diagnostic] {
+  match tokenize(text, limits, source_path~) {
+    Err(issue) => Err(issue)
+    Ok(tokens) => {
+      let first = token_at(tokens, 0).unwrap()
+      Ok(
+        keyword(first, "SELECT") ||
+        keyword(first, "WITH") ||
+        keyword(first, "FROM"),
+      )
+    }
+  }
+}
+
+///|
+/// SQL is selected explicitly. A Pipe source must retain the AQL-text
+/// spelling, even though both lower through the same query representation.
+pub fn starts_sql(
+  text : String,
+  limits : LexicalLimits,
+  source_path? : String = "<query>",
+) -> Result[Bool, Diagnostic] {
+  match tokenize(text, limits, source_path~) {
+    Err(issue) => Err(issue)
+    Ok(tokens) => {
+      let first = token_at(tokens, 0).unwrap()
+      Ok(keyword(first, "SELECT") || keyword(first, "WITH"))
+    }
+  }
+}
+
+///|
 pub fn query_document(query : Query) -> @origin.Document {
   query.source.document
 }

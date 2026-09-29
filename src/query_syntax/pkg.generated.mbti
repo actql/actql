@@ -58,6 +58,10 @@ pub fn set_part_at(Query, Int) -> SetPart?
 
 pub fn set_part_count(Query) -> Int
 
+pub fn starts_query(String, LexicalLimits, source_path? : String) -> Result[Bool, Diagnostic]
+
+pub fn starts_sql(String, LexicalLimits, source_path? : String) -> Result[Bool, Diagnostic]
+
 pub fn token_at(Tokens, Int) -> Token?
 
 pub fn token_count(Tokens) -> Int
