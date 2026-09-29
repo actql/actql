@@ -35,9 +35,10 @@ The following passed on the working correction after `9e44915cf`:
 Release runtimes were rebuilt before the provider tests. At
 `123878be834e1b792736dbe26eb8af5428d6e377`, the public MoonBit interface check
 passed and the complete core JS and Wasm jobs passed 6,936 and 6,933 tests.
-Native, full affected Host/Client jobs, and pushed-SHA CI are not established
-by those results. The acquired dependency inventory remains separate work in
-progress.
+At `37e4ff5cf5ae0297214f7905ee417ed499b07c0c`, the complete native core job
+also passed 6,995 tests (791.4 seconds for the test step). Full affected
+Host/Client jobs and pushed-SHA CI are not established by these results.
+The acquired dependency inventory remains separate work in progress.
 
 ## Actual Compute call probe
 
@@ -79,6 +80,19 @@ not established and is not identified with this partial-apply defect.
 Investigation must use that revision's packaged artifacts and inspect the
 post-claim transition and completion-wait condition. Increasing a delay alone
 does not establish a correction.
+
+The saved evidence is B's `_build/public-routing-client-gate.log` and
+`docs/reviews/2026-09-29-frontend-projection-review.md` in the Frontend worktree.
+The log records 243 Node tests and packed Node/browser success before the
+Checkpoint failure. Its Host output contains readiness, but no transition
+trace sufficient to identify the cause. At the failing revision, `finished()`
+already polls lookup and terminal status separately, each for up to 400
+iterations with a 25 ms delay; the crash case uses a 2-second claim lease.
+Neither these constants nor the observed `preparing` status prove a timing
+defect. Reproduction must preserve the failed revision in a separate worktree
+and distinguish lease recovery, Run admission, dispatch, and terminal
+observation. This is also distinct from the later transient-observation test
+correction in `91636b5df`.
 
 Frontend integration remains after the acquired-input and partial-apply work.
 Its fixed series is `ba34b719516f108f80e78cf7d5024f30c7a86c31`; merge the series
