@@ -5,7 +5,7 @@
 // scripts/test-packed-client-checkpoint.mjs.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {createHash, generateKeyPairSync, sign} from 'node:crypto';
+import {createHash, createPrivateKey, createPublicKey, generateKeyPairSync, sign} from 'node:crypto';
 import {chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
   'node:fs/promises';
 import {createServer} from 'node:https';
@@ -465,8 +465,15 @@ function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
     dispose: () => ledger.close()};
 }
 const owner = userInfo().username;
-const reviewerKeys = generateKeyPairSync('ed25519');
-const hostKeys = generateKeyPairSync('ed25519');
+const crashFixtureKeys = process.env.ACTQL_TEST_HOST_CRASH_KEYS === undefined
+  ? undefined : JSON.parse(await readFile(process.env.ACTQL_TEST_HOST_CRASH_KEYS, 'utf8'));
+const fixtureKeyPair = name => {
+  if (crashFixtureKeys === undefined) return generateKeyPairSync('ed25519');
+  const privateKey = createPrivateKey(crashFixtureKeys[name]);
+  return {privateKey, publicKey: createPublicKey(privateKey)};
+};
+const reviewerKeys = fixtureKeyPair('reviewer');
+const hostKeys = fixtureKeyPair('host');
 const pem = key => key.export({type: key.type === 'private' ? 'pkcs8'
   : 'spki', format: 'pem'});
 
@@ -1173,9 +1180,12 @@ test(outcome === 'cancel' || outcome === 'reject'
   : lostReply ? 'acquired Effect preserves unknown across Host restart'
     : 'acquired Effect waits durably and resumes through the public Host',
   async t => {
-    const directory = await mkdtemp(join(scratch, 'acquired-effect-'));
+    const crashRecovery = process.env.ACTQL_TEST_HOST_CRASH_PHASE === 'recover';
+    const directory = process.env.ACTQL_TEST_HOST_CRASH_ROOT ??
+      await mkdtemp(join(scratch, 'acquired-effect-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
-    const sourceProfilePath = await installedReadFixture(directory);
+    const sourceProfilePath = crashRecovery ? join(directory, 'source-profile.json')
+      : await installedReadFixture(directory);
     const fixture = await effectFixture({twoMembers: true});
     const program = JSON.parse(readDocument);
     delete program.params;
@@ -1228,6 +1238,37 @@ test(outcome === 'cancel' || outcome === 'reject'
       });
     };
     const first = await remoteHost(t, account(), options);
+    if (crashRecovery) {
+      const client = await first.as('owner-token');
+      const found = await client.lookupRequest('acquired-effect');
+      assert.equal(found.kind, 'found');
+      const execution = await client.attach(found.ref);
+      const state = await execution.status();
+      assert.equal(state.status, 'needs_reconciliation');
+      assert.deepEqual(state.next_action,
+        {kind: 'reconcile_run', reason: 'execution_unknown'});
+      assert.deepEqual((await (await first.as('reviewer-token')).checkpoints()).items, []);
+      const publication = join(directory, 'state', 'publication');
+      await waitFor(async () => (await readdir(join(publication,
+        'effect-capture-custody'))).length === 0);
+      assert.deepEqual(await readdir(join(publication, 'physical-holdings')), []);
+      assert.deepEqual(await readdir(join(publication, 'objects')), []);
+      const duplicate = await client.aql(canonicalJson(program),
+        {format: 'json', requestId: 'acquired-effect'});
+      assert.deepEqual(duplicate.ref, found.ref);
+      assert.equal((await duplicate.status()).status, 'needs_reconciliation');
+      assert.equal(captures, 0);
+      assert.equal(recoveries, 0);
+      assert.deepEqual(sends, []);
+      await first.close();
+      const reopened = await remoteHost(t, account(), options);
+      const repeated = await reopened.as('owner-token');
+      assert.equal((await repeated.lookupRequest('acquired-effect')).kind, 'found');
+      assert.equal((await (await repeated.attach(found.ref)).status()).status,
+        'needs_reconciliation');
+      await reopened.close();
+      return;
+    }
     const execution = await (await first.as('owner-token')).aql(
       canonicalJson(program), {format: 'json', requestId: 'acquired-effect'});
     await waitFor(async () => (await execution.status()).status ===

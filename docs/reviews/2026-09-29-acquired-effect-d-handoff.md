@@ -185,3 +185,27 @@ need connection and verification. Do not use this result as merge approval.
 The touched bridge, installed Effect and Publication Store test files passed
 103/103 after this correction. No new Core run was needed for these JavaScript
 custody changes; final Host/Client jobs and pushed-SHA CI are still pending.
+
+The public Host now discovers pre-Checkpoint custody through the same Store
+and checks the original request journal's exact Run and authority scope. Live
+dispatch owners, existing Checkpoints and completed private captures remain
+excluded from this incomplete-capture sweep. Failed deletion remains in the
+existing Store cleanup inventory and Host shutdown retries the same owner.
+It never marks the interrupted Run successful/failed or reserves another
+Compute start: the original request remains `needs_reconciliation` with
+`reconcile_run/execution_unknown` even after physical cleanup.
+
+`scripts/test-effect-capture-host-crash.mjs` drives actual HTTP processes and
+the reference adapter. Stops before/after the member holding, before/after
+the capture holding, and before the private record all recover physical
+custody with zero restart Source/Compute calls and zero writes. Another Host
+reopen retains the same request. These cases are now connected to Client CI;
+local acquired/unknown/cancel/reject/corruption HTTP regressions passed 10/10.
+No Linux result is claimed yet.
+
+Still open: the completed-private-record to published-Checkpoint handoff
+window must be checked separately. A completed capture is deliberately not
+deleted merely because its Checkpoint is absent: immediate-allow execution
+can also lack a Checkpoint, including uncertain sends. Do not broaden this
+sweep to delete completed evidence without establishing the durable ownership
+handoff and the existing no-resend guarantees.

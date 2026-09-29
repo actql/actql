@@ -4455,6 +4455,37 @@ export async function openLocalPublicationStore(
       await syncDirectory(captureCustodyDirectory);
     });
   };
+  const listEffectCaptureCustodies = async ({after = '', limit = 100} = {}) => {
+    active();
+    if (typeof after !== 'string' || after !== '' && !cidPattern.test(after) ||
+        !Number.isSafeInteger(limit) || limit < 1 || limit > 100) {
+      fail('InvalidEffectCaptureCustodyPage');
+    }
+    const names = await readdir(captureCustodyDirectory);
+    if (names.some(name => !/^[0-9a-f]{64}\.json$/u.test(name))) {
+      fail('InvalidEffectCaptureCustody');
+    }
+    const selected = names.sort().filter(name =>
+      `sha256:${name.slice(0, -5)}` > after).slice(0, limit);
+    const result = [];
+    for (const name of selected) {
+      let value;
+      try {
+        value = JSON.parse((await readBounded(resolve(captureCustodyDirectory,
+          name), Math.min(configuration.maxObjectBytes, 16 * 1024 * 1024)))
+          .toString('utf8'));
+      } catch (error) {
+        if (error?.code === 'ENOENT') continue;
+        fail('InvalidEffectCaptureCustody', error);
+      }
+      const run = admitContract('run_definition', value.run_definition);
+      if (`${cidHex(run.identity)}.json` !== name) {
+        fail('InvalidEffectCaptureCustody');
+      }
+      if (await readEffectCaptureCustody(run) !== undefined) result.push(run);
+    }
+    return Object.freeze(result);
+  };
   const forgetEffectCaptureCustody = async suppliedRun => {
     active();
     const run = captureCustodyRun(suppliedRun);
@@ -5215,6 +5246,7 @@ export async function openLocalPublicationStore(
     retirePhysicalHolding,
     retainEffectCaptureCustody,
     readEffectCaptureCustody,
+    listEffectCaptureCustodies,
     retireEffectCaptureCustody,
     forgetEffectCaptureCustody,
     recoverPhysicalHoldingDeletions,
