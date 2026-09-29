@@ -39,14 +39,19 @@ planner and packed execution evidence.
 `degree-rows.named.aql` computes out-degree from a Graph with two edges from A.
 The authored sort fixes A, B, C order; the independent Result fixture expects
 degrees 2, 0, 0 and keeps the `node`/`degree` schema from the existing contract.
+`graph-bounds.named.aql` declares two Results from one Graph. The first reports
+the node-count violation before A's degree violation; the second is empty at
+inclusive limits. The independently authored expectations include a nullable
+`node_id` for whole-graph violations. Neither DATA expression adds a sort or
+Result order declaration.
 These expectations have not yet been checked against runtime output from the
 named source. Separate small source cases have passed the common checker for
 reach/subgraph, diff/apply and mean. The exact fixtures here still need
 checker and execution acceptance; components needs its ordinary capacity
-evidence. The normalize-rows and degree-rows fixtures pass Program admission
-and common preparation with the Local Check Environment, but their current
-task compilation requires the existing Result transformation to be connected
-by the Host.
+evidence. The normalize-rows, degree-rows and graph-bounds fixtures pass
+Program admission and common preparation with the Local Check Environment,
+but their current task compilation requires the existing Result transformation
+to be connected by the Host.
 Source authorization, packed public-input acceptance and independent
 positive, rejection and boundary fixtures for other operations remain required.
 

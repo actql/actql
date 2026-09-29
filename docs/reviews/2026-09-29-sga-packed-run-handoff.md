@@ -44,10 +44,13 @@ the authored sort and Result order require A then B. Task compilation stops at
 `ClientDirectResultRootIssue::RequiresResultTransformation`. This is the
 existing Result Plan connection owned by the Host integration; the Frontend
 does not remove the declared order or publish the untransformed output.
-The independently authored `degree-rows` fixture also passes preparation and
-stops at that same Result transformation boundary. Its out-degree expectations
-are derived from the two authored A-to-B and A-to-C edges, not from runtime
-output. `graphs-equal` passes ordinary preparation but the earlier packed probe failed
+The independently authored `degree-rows` and `graph-bounds` fixtures also pass
+preparation and stop at that same Result transformation boundary. The former's
+out-degree expectations come from two authored A-to-B and A-to-C edges. The
+latter expects the node-count violation before A's degree violation, plus a
+separate empty Result at inclusive limits. Neither expectation comes from
+runtime output. `graphs-equal` passes ordinary preparation but the earlier
+packed probe failed
 at `Dispatch(NoStrategy)`. These are separate blockers. The other authored
 fixtures still require their exact checker and packed execution evidence;
 `components` additionally needs its existing capacity application, and the
