@@ -14,7 +14,7 @@ priv enum StructuralMode {
 ///|
 priv enum GraftSource {
   StorageSource(@graph.ProducerRead, @storage.Storage)
-  ViewSource(@lifecycle.ProducerView)
+  ViewSource(@lifecycle.ProducerView, @carrier.Graph)
 }
 
 ///|
@@ -263,7 +263,7 @@ fn graft_inputs_available(state : GraftState) -> Bool {
             _ => return false
           }
         }
-      ViewSource(source) =>
+      ViewSource(source, _) =>
         if @lifecycle.producer_view_node_count(source) is None {
           return false
         }
@@ -657,7 +657,7 @@ fn node_properties_at(
   for field in 0..<count {
     let value = match source {
       StorageSource(_, source) => @storage.node_property(source, index, field)
-      ViewSource(source) =>
+      ViewSource(source, _) =>
         match @lifecycle.producer_view_node_property(source, index, field) {
           Ok(value) => Some(value)
           Err(_) => None
@@ -679,7 +679,7 @@ fn edge_properties_at(
   for field in 0..<count {
     let value = match source {
       StorageSource(_, source) => @storage.edge_property(source, index, field)
-      ViewSource(source) =>
+      ViewSource(source, _) =>
         match @lifecycle.producer_view_edge_property(source, index, field) {
           Ok(value) => Some(value)
           Err(_) => None
@@ -698,7 +698,7 @@ fn source_node_identity(
 ) -> @value.CheckedValue? {
   match source {
     StorageSource(_, source) => @storage.node_identity(source, index)
-    ViewSource(source) =>
+    ViewSource(source, _) =>
       match @lifecycle.producer_view_node_identity(source, index) {
         Ok(value) => Some(value)
         Err(_) => None
@@ -710,12 +710,29 @@ fn source_node_identity(
 fn source_node_index(
   source : GraftSource,
   identity : @value.CheckedValue,
+  limits : @value.Limits,
 ) -> Result[Int?, GraftIssue] {
+  let graph = match source {
+    StorageSource(_, storage) =>
+      match @storage.carrier(storage) {
+        @carrier.GraphValue(graph) => graph
+        _ => return Err(GraftInputUnavailable)
+      }
+    ViewSource(_, graph) => graph
+  }
+  guard @value.recheck_runtime_value(
+      identity.value,
+      @carrier.graph_identity(graph),
+      limits,
+    )
+    is Some(lookup) else {
+    return Ok(None)
+  }
   match source {
     StorageSource(_, source) =>
-      @storage.node_index(source, identity).map_err(_ => GraftInputUnavailable)
-    ViewSource(source) =>
-      @lifecycle.producer_view_node_index(source, identity).map_err(_ => {
+      @storage.node_index(source, lookup).map_err(_ => GraftInputUnavailable)
+    ViewSource(source, _) =>
+      @lifecycle.producer_view_node_index(source, lookup).map_err(_ => {
         GraftInputUnavailable
       })
   }
@@ -728,7 +745,7 @@ fn source_edge_identity(
 ) -> (@value.CheckedValue, @value.CheckedValue, @value.CheckedValue?)? {
   let endpoints = match source {
     StorageSource(_, source) => @storage.edge_endpoints(source, index)
-    ViewSource(source) =>
+    ViewSource(source, _) =>
       match @lifecycle.producer_view_edge_endpoints(source, index) {
         Ok(value) => Some(value)
         Err(_) => None
@@ -741,7 +758,7 @@ fn source_edge_identity(
   }
   let label = match source {
     StorageSource(_, source) => @storage.edge_label(source, index)
-    ViewSource(source) =>
+    ViewSource(source, _) =>
       match @lifecycle.producer_view_edge_label(source, index) {
         Ok(value) => Some(value)
         Err(_) => None
@@ -757,17 +774,42 @@ fn source_edge_index(
   source_id : @value.CheckedValue,
   target_id : @value.CheckedValue,
   label : @value.CheckedValue?,
+  limits : @value.Limits,
 ) -> Result[Int?, GraftIssue] {
+  let graph = match source {
+    StorageSource(_, storage) =>
+      match @storage.carrier(storage) {
+        @carrier.GraphValue(graph) => graph
+        _ => return Err(GraftInputUnavailable)
+      }
+    ViewSource(_, graph) => graph
+  }
+  let identity_contract = @carrier.graph_identity(graph)
+  guard @value.recheck_runtime_value(source_id.value, identity_contract, limits)
+    is Some(lookup_source) &&
+    @value.recheck_runtime_value(target_id.value, identity_contract, limits)
+    is Some(lookup_target) else {
+    return Ok(None)
+  }
+  let lookup_label = match (@carrier.graph_label_contract(graph), label) {
+    (None, None) => Some(None)
+    (Some(contract), Some(value)) =>
+      @value.recheck_runtime_value(value.value, contract, limits).map(value => {
+        Some(value)
+      })
+    _ => None
+  }
+  guard lookup_label is Some(lookup_label) else { return Ok(None) }
   match source {
     StorageSource(_, source) =>
-      @storage.edge_index(source, source_id, target_id, label).map_err(_ => {
-        GraftInputUnavailable
-      })
-    ViewSource(source) =>
-      @lifecycle.producer_view_edge_index(source, source_id, target_id, label).map_err(_ => {
+      @storage.edge_index(source, lookup_source, lookup_target, lookup_label).map_err(_ => {
           GraftInputUnavailable
         },
       )
+    ViewSource(source, _) =>
+      @lifecycle.producer_view_edge_index(
+        source, lookup_source, lookup_target, lookup_label,
+      ).map_err(_ => GraftInputUnavailable)
   }
 }
 
@@ -781,7 +823,7 @@ fn prior_node_exists(
     guard state.sources.get(index) is Some(source) else {
       return Err(InvalidGraftKernel)
     }
-    match source_node_index(source, identity) {
+    match source_node_index(source, identity, state.value_limits) {
       Ok(Some(_)) => return Ok(true)
       Ok(None) => ()
       Err(issue) => return Err(issue)
@@ -802,7 +844,8 @@ fn prior_edge_exists(
     guard state.sources.get(index) is Some(source) else {
       return Err(InvalidGraftKernel)
     }
-    match source_edge_index(source, source_id, target_id, label) {
+    match
+      source_edge_index(source, source_id, target_id, label, state.value_limits) {
       Ok(Some(_)) => return Ok(true)
       Ok(None) => ()
       Err(issue) => return Err(issue)
@@ -878,7 +921,7 @@ fn union_node_step(
     }
     let plan = state.plans[input - 1]
     let fields = @carrier.graph_node_properties(plan.graph)
-    let matching = match source_node_index(next, identity) {
+    let matching = match source_node_index(next, identity, state.value_limits) {
       Ok(value) => value
       Err(issue) => return MergeFailed(issue)
     }
@@ -1017,7 +1060,8 @@ fn union_edge_step(
     }
     let plan = state.plans[input - 1]
     let fields = @carrier.graph_edge_properties(plan.graph)
-    let matching = match source_edge_index(next, source_id, target_id, label) {
+    let matching = match
+      source_edge_index(next, source_id, target_id, label, state.value_limits) {
       Ok(value) => value
       Err(issue) => return MergeFailed(issue)
     }
@@ -1105,7 +1149,7 @@ fn subtract_node_step(
     is Some(left_values) else {
     return MergeFailed(GraftInputUnavailable)
   }
-  let shared = match source_node_index(right, identity) {
+  let shared = match source_node_index(right, identity, state.value_limits) {
     Ok(value) => value
     Err(issue) => return MergeFailed(issue)
   }
@@ -1207,7 +1251,8 @@ fn subtract_edge_step(
     is Some(left_values) else {
     return MergeFailed(GraftInputUnavailable)
   }
-  let shared = match source_edge_index(right, source_id, target_id, label) {
+  let shared = match
+    source_edge_index(right, source_id, target_id, label, state.value_limits) {
     Ok(value) => value
     Err(issue) => return MergeFailed(issue)
   }
@@ -1326,6 +1371,96 @@ fn subtract_edge_step(
 }
 
 ///|
+fn copy_graft_node(
+  state : GraftState,
+  source : GraftSource,
+) -> Result[Unit, GraftIssue] {
+  guard state.output is Some(output) &&
+    source_node_identity(source, state.record_index) is Some(identity) &&
+    node_properties_at(source, state.record_index, state.node_fields)
+    is Some(actual) else {
+    return Err(GraftInputUnavailable)
+  }
+  let graph = state.plans[state.plans.length() - 1].graph
+  let checked_identity = match
+    checked_property_for_contract(
+      identity,
+      @carrier.graph_identity(graph),
+      state.value_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let properties = match
+    rebind_properties(
+      actual,
+      @carrier.graph_node_properties(graph),
+      state.value_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @graph.append_node(output, checked_identity, properties).map_err(issue => {
+    GraftOutput(issue)
+  })
+}
+
+///|
+fn copy_graft_edge(
+  state : GraftState,
+  source : GraftSource,
+) -> Result[Unit, GraftIssue] {
+  guard state.output is Some(output) &&
+    source_edge_identity(source, state.record_index)
+    is Some((source_id, target_id, label)) &&
+    edge_properties_at(source, state.record_index, state.edge_fields)
+    is Some(actual) else {
+    return Err(GraftInputUnavailable)
+  }
+  let graph = state.plans[state.plans.length() - 1].graph
+  let identity_contract = @carrier.graph_identity(graph)
+  let checked_source = match
+    checked_property_for_contract(
+      source_id,
+      identity_contract,
+      state.value_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let checked_target = match
+    checked_property_for_contract(
+      target_id,
+      identity_contract,
+      state.value_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let checked_label = match (label, @carrier.graph_label_contract(graph)) {
+    (None, None) => None
+    (Some(value), Some(contract)) =>
+      match checked_property_for_contract(value, contract, state.value_limits) {
+        Ok(checked) => Some(checked)
+        Err(issue) => return Err(issue)
+      }
+    _ => return Err(GraftPropertyValue)
+  }
+  let properties = match
+    rebind_properties(
+      actual,
+      @carrier.graph_edge_properties(graph),
+      state.value_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @graph.append_edge(
+    output, checked_source, checked_target, checked_label, properties,
+  ).map_err(issue => GraftOutput(issue))
+}
+
+///|
 fn graft_step(
   state : GraftState,
   quantum : Int,
@@ -1347,7 +1482,7 @@ fn graft_step(
         }
         let count = match source {
           StorageSource(_, value) => @storage.node_count(value)
-          ViewSource(value) =>
+          ViewSource(value, _) =>
             match @lifecycle.producer_view_node_count(value) {
               Some(count) => count
               None =>
@@ -1396,35 +1531,13 @@ fn graft_step(
                 return @bounded.Failed(issue, progress, used)
             }
           }
-          guard state.output is Some(output) else {
-            return @bounded.Failed(InvalidGraftKernel, progress, used)
-          }
-          let copied = match source {
-            StorageSource(_, source) =>
-              copy_graph_node(
-                source,
-                output,
-                state.node_fields,
-                state.record_index,
-              )
-            ViewSource(source) =>
-              copy_graph_view_node(
-                source,
-                output,
-                state.node_fields,
-                state.record_index,
-              )
-          }
-          match copied {
+          match copy_graft_node(state, source) {
             Ok(_) => {
               state.record_index += 1
               used += 1
               progress += 1
             }
-            Err(Unavailable) =>
-              return @bounded.Failed(GraftInputUnavailable, progress, used)
-            Err(GraphCopyIssue::Output(issue)) =>
-              return @bounded.Failed(GraftOutput(issue), progress, used)
+            Err(issue) => return @bounded.Failed(issue, progress, used)
           }
         } else {
           state.phase = CopyEdges
@@ -1437,7 +1550,7 @@ fn graft_step(
         }
         let count = match source {
           StorageSource(_, value) => @storage.edge_count(value)
-          ViewSource(value) =>
+          ViewSource(value, _) =>
             match @lifecycle.producer_view_edge_count(value) {
               Some(count) => count
               None =>
@@ -1486,35 +1599,13 @@ fn graft_step(
                 return @bounded.Failed(issue, progress, used)
             }
           }
-          guard state.output is Some(output) else {
-            return @bounded.Failed(InvalidGraftKernel, progress, used)
-          }
-          let copied = match source {
-            StorageSource(_, source) =>
-              copy_graph_edge(
-                source,
-                output,
-                state.edge_fields,
-                state.record_index,
-              )
-            ViewSource(source) =>
-              copy_graph_view_edge(
-                source,
-                output,
-                state.edge_fields,
-                state.record_index,
-              )
-          }
-          match copied {
+          match copy_graft_edge(state, source) {
             Ok(_) => {
               state.record_index += 1
               used += 1
               progress += 1
             }
-            Err(Unavailable) =>
-              return @bounded.Failed(GraftInputUnavailable, progress, used)
-            Err(GraphCopyIssue::Output(issue)) =>
-              return @bounded.Failed(GraftOutput(issue), progress, used)
+            Err(issue) => return @bounded.Failed(issue, progress, used)
           }
         } else if state.mode == Subtract {
           if state.input_index == 0 &&
@@ -1725,6 +1816,9 @@ pub fn start_graft_views(
     executable_merge_plans(plans) else {
     return Err(InvalidGraftKernel)
   }
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) else {
+    return Err(InvalidGraftKernel)
+  }
   let sources = []
   for index, input in inputs {
     let reference = @lifecycle.producer_view_read_reference(input)
@@ -1734,7 +1828,12 @@ pub fn start_graft_views(
       ) {
       return Err(GraftInputUnavailable)
     }
-    sources.push(ViewSource(input))
+    guard @lower.node_input_target(node, index) is Some(target) &&
+      @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+      is Some(@carrier.GraphValue(graph)) else {
+      return Err(InvalidGraftKernel)
+    }
+    sources.push(ViewSource(input, graph))
   }
   guard @lower.preparation_carrier_at(
       @lower.bound_preparation(owner),

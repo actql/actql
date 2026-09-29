@@ -592,6 +592,197 @@ fn empty_graph(
 }
 
 ///|
+fn compatible_text_graph_contract(
+  identity_width : Int64,
+  label_width : Int64,
+  nullable_label : Bool,
+) -> @carrier.Carrier {
+  let empty = @carrier.rows(
+    [],
+    field_set=@carrier.Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  @carrier.graph(
+    @contract.string_contract(
+      nullable=false,
+      max_codepoints=Some(identity_width),
+    ).unwrap(),
+    empty,
+    empty,
+    labels=None,
+    max_labels=0,
+    max_label_bytes=0,
+    label_contract=Some(
+      @contract.string_contract(
+        nullable=nullable_label,
+        max_codepoints=Some(label_width),
+      ).unwrap(),
+    ),
+  ).unwrap()
+}
+
+///|
+fn compatible_text_graph_owner(
+  identity_width : Int64,
+  label_width : Int64,
+  nullable_label : Bool,
+) -> @lower.BoundPrepared {
+  bind(
+    @pipeline.check_carriers(
+      cursor("[{\"from\":\"g\",\"normalize_graph\":true}]"),
+      [
+        (
+          "g",
+          compatible_text_graph_contract(
+            identity_width, label_width, nullable_label,
+          ),
+        ),
+      ],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn compatible_text_graph(
+  owner : @lower.BoundPrepared,
+  nodes : Array[String],
+  edges : Array[(String, String, String?)],
+) -> @graph.Completed {
+  let output = @graph.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    storage_limits(),
+    2048L,
+    fn() { true },
+  ).unwrap()
+  guard @lower.preparation_carrier_at(
+      @lower.bound_preparation(owner),
+      @pipeline.Step(0),
+    )
+    is Some(@carrier.GraphValue(graph)) else {
+    abort("expected text Graph")
+  }
+  let identity = @carrier.graph_identity(graph)
+  let label = @carrier.graph_label_contract(graph).unwrap()
+  for id in nodes {
+    let checked = @value.admit(identity, cursor("\"" + id + "\""), {
+      max_nodes: 1,
+      max_depth: 1,
+      max_text_bytes: 100,
+    }).unwrap()
+    @graph.append_node(output, checked, []).unwrap()
+  }
+  for (source, target, value) in edges {
+    let from = @value.admit(identity, cursor("\"" + source + "\""), {
+      max_nodes: 1,
+      max_depth: 1,
+      max_text_bytes: 100,
+    }).unwrap()
+    let to = @value.admit(identity, cursor("\"" + target + "\""), {
+      max_nodes: 1,
+      max_depth: 1,
+      max_text_bytes: 100,
+    }).unwrap()
+    let edge_label = @value.admit(
+      label,
+      cursor(
+        match value {
+          Some(text) => "\"" + text + "\""
+          None => "null"
+        },
+      ),
+      { max_nodes: 1, max_depth: 1, max_text_bytes: 100, },
+    ).unwrap()
+    @graph.append_edge(output, from, to, Some(edge_label), []).unwrap()
+  }
+  @graph.finish_output(output).unwrap()
+}
+
+///|
+test "graft resolves compatible identity and label contracts" {
+  let left_owner = compatible_text_graph_owner(2L, 1L, false)
+  let right_owner = compatible_text_graph_owner(8L, 8L, true)
+  let owner = graft_owner(left_owner, right_owner)
+  let left = compatible_text_graph(left_owner, ["aa", "bb"], [
+    ("aa", "bb", Some("x")),
+  ])
+  let right = compatible_text_graph(right_owner, ["aa", "bb", "long"], [
+    ("aa", "bb", Some("x")),
+    ("aa", "bb", Some("long")),
+    ("aa", "bb", None),
+  ])
+  let execution = start_graft(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    graft_inputs(owner, left_owner, right_owner, left, right),
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let result = @graph.completed_storage(finish_bounded_graft(execution)).unwrap()
+  assert_eq(@storage.node_count(result), 3)
+  assert_eq(@storage.edge_count(result), 3)
+  for index, expected in ["aa", "bb", "long"] {
+    assert_eq(
+      @value.canonical_scalar_text(
+        @storage.node_identity(result, index).unwrap(),
+        100,
+      ),
+      Some(expected),
+    )
+  }
+  assert_eq(@storage.edge_endpoints(result, 0), Some((0, 1)))
+  assert_eq(@storage.edge_endpoints(result, 1), Some((0, 1)))
+  assert_eq(@storage.edge_endpoints(result, 2), Some((0, 1)))
+  assert_eq(
+    @value.canonical_scalar_text(
+      @storage.edge_label(result, 0).unwrap().unwrap(),
+      100,
+    ),
+    Some("x"),
+  )
+  assert_eq(
+    @value.canonical_scalar_text(
+      @storage.edge_label(result, 1).unwrap().unwrap(),
+      100,
+    ),
+    Some("long"),
+  )
+  assert_true(
+    @storage.edge_label(result, 2).unwrap().unwrap().value is @value.Null,
+  )
+  assert_eq(cleanup_graft(execution), Ok(true))
+
+  let union = union_owner(left_owner, right_owner)
+  let folded = start_graft(
+    @bounded.control(),
+    sequence(union),
+    0,
+    union_inputs(union, left_owner, right_owner, left, right),
+    { ..storage_limits(), max_input_rows: 20, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let folded_result = @graph.completed_storage(finish_bounded_graft(folded)).unwrap()
+  assert_eq(@storage.node_count(folded_result), 3)
+  assert_eq(@storage.edge_count(folded_result), 3)
+  assert_eq(cleanup_graft(folded), Ok(true))
+}
+
+///|
 fn reordered_graft_owner(
   left : @lower.BoundPrepared,
   right : @lower.BoundPrepared,
@@ -648,6 +839,17 @@ fn finish_bounded_graft(execution : GraftExecution) -> @graph.Completed raise {
     match advance_graft(execution, 1).unwrap() {
       GraftContinue(work~, ..) => assert_true(work > 0L)
       GraftComplete(output, ..) => return output
+      GraftFailed(GraftInputUnavailable, ..) => fail("graft input unavailable")
+      GraftFailed(GraftPropertyValue, ..) => fail("graft property invalid")
+      GraftFailed(GraftOutput(@graph.Storage(@storage.InvalidIdentity)), ..) =>
+        fail("graft output identity mismatch")
+      GraftFailed(GraftOutput(@graph.Storage(@storage.InvalidLabel)), ..) =>
+        fail("graft output label mismatch")
+      GraftFailed(
+        GraftOutput(@graph.Storage(@storage.DuplicateEdgeConflict)),
+        ..
+      ) => fail("graft output duplicate edge conflict")
+      GraftFailed(GraftOutput(_), ..) => fail("graft output failed")
       GraftFailed(_, ..) => fail("bounded graft failed")
       GraftStopped(_, ..) => fail("bounded graft stopped")
     }
