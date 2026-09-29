@@ -286,6 +286,61 @@ test('continue: applied and failed rows are settled independently',
       record.Name.endsWith('-processed')).length, 2);
   });
 
+test('a denied or deferred source read is refused before any provider request',
+  async t => {
+    for (const sourceRead of ['deny', 'delegate']) {
+      const setup = await readComputeEffectInstallation(t, {sourceRead});
+      const host = await setup.openHost();
+      const client = await host.as('owner-token');
+      const before = setup.org.seen.length;
+      const refused = await submitReadComputeEffect(client, setup.program(),
+        `rce-read-${sourceRead}`).then(async execution => {
+        const state = await waitFor(async () => {
+          const current = await execution.status();
+          return ['failed', 'cancelled'].includes(current.status)
+            ? current : undefined;
+        });
+        return state.status;
+      }, error => {
+        if (error.code === 'ReadComputeEffectNotConnected') throw error;
+        return error.code;
+      });
+      assert.ok(refused, sourceRead);
+      // Nothing reached the org: no describe, query, target read or write.
+      assert.equal(setup.org.seen.length, before, sourceRead);
+      const reviewer = await host.as('reviewer-token');
+      assert.deepEqual((await reviewer.checkpoints()).items, [], sourceRead);
+    }
+  });
+
+test('a failure before the capture completes leaves no answerable Checkpoint',
+  async t => {
+    // Every source query is answered 503: the acquisition never completes.
+    const setup = await readComputeEffectInstallation(t, {
+      org: {queryFailureStatus: 503}});
+    const first = await setup.openHost();
+    const client = await first.as('owner-token');
+    const execution = await submitReadComputeEffect(client, setup.program(),
+      'rce-pre-capture');
+    const state = await waitFor(async () => {
+      const current = await execution.status();
+      return ['failed', 'cancelled', 'needs_reconciliation', 'waiting_checkpoint']
+        .includes(current.status) ? current : undefined;
+    });
+    assert.equal(state.status, 'failed', JSON.stringify(state));
+    const reviewer = await first.as('reviewer-token');
+    assert.deepEqual((await reviewer.checkpoints()).items, []);
+    assert.equal(setup.queries(), 1);
+    assert.equal(setup.writes().length, 0);
+    await first.close();
+    // A restart neither re-acquires nor writes.
+    const second = await setup.openHost();
+    const again = await (await second.as('owner-token')).attach(execution.ref);
+    assert.equal((await again.status()).status, 'failed');
+    assert.equal(setup.queries(), 1);
+    assert.equal(setup.writes().length, 0);
+  });
+
 // --- Embedded Local: each step is its own process, so each is a restart ----
 
 // Submit on Embedded; not being connected is reported as such.

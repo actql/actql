@@ -170,8 +170,10 @@ export const checkpointAuthorization = (accountConfiguration, extra) => ({
 
 // One Site with its source and Effect installed on one Host over the
 // stateful org. `org` options go to the shared org fixture.
+// `sourceRead` is the source profile's read decision: 'allow', 'deny', or
+// 'delegate' (a deferred read, which this path refuses).
 export async function readComputeEffectInstallation(t, {org: orgOptions = {},
-  records = storedRecords} = {}) {
+  records = storedRecords, sourceRead = 'allow'} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
     statefulRecords: true, storedRecords: records.map(record => ({...record})),
@@ -205,13 +207,24 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
     accountConfigurationWire: canonicalJson({
       version: 'actql-execution-account-config/0.1',
       account_id: 'salesforce-rce-source',
-      entries: [accountEntry('records-read', 'allow', org.orgId, 'read')]})};
+      entries: [accountEntry('records-read', 'allow', org.orgId,
+        'read')]})};
   const sourceProfilePath = join(root, 'source-profile.json');
   await writeFile(sourceProfilePath, JSON.stringify(sourceProfile));
   const hostRoot = join(root, 'state');
   await publishInstalledSalesforceSource(sourceProfile, {root: hostRoot,
     principalId: owner, moon: commonMoon, salesforceMoon, runtimeBundleCid,
     resolveSecret: secret});
+  // The read decision the Host then runs under; the publication itself
+  // described the Resource under an allowed read.
+  if (sourceRead !== 'allow') {
+    await writeFile(sourceProfilePath, JSON.stringify({...sourceProfile,
+      accountConfigurationWire: canonicalJson({
+        version: 'actql-execution-account-config/0.1',
+        account_id: 'salesforce-rce-source',
+        entries: [accountEntry('records-read', sourceRead, org.orgId,
+          'read')]})}));
+  }
   const effectProfilePath = join(root, 'effect-profile.json');
   const writeEffectProfile = accountConfigurationWire => writeFile(
     effectProfilePath, JSON.stringify({

@@ -50,6 +50,8 @@ Expected values are written by hand in `read-compute-effect.fixture.mjs`:
 | Commit permission revoked after approval (a): the account configuration now denies | Remote HTTP | No write. This checks refusal on a configuration change only. |
 | Commit permission revoked after approval (b): same installation and configuration, the org no longer lets the user update `Name` | Remote HTTP | No write; the pre-send recheck of the target field refuses. The Host-side lapse of a current decision is a question for the common side. |
 | Reply lost after the org applied the second write | Remote HTTP | That row stays unknown and is never resent. The Run is `needs_reconciliation`. The org shows both rows applied, and a restart sends nothing. |
+| Source read denied, or deferred (delegated), after publication | Remote HTTP | Refused before any provider request: no describe, query, target read or write, and no Checkpoint. Read deferral is not supported on this path. |
+| Failure before the capture completes (every source query answered 503) | Remote HTTP | The Run fails with no answerable Checkpoint and no write. A restart neither re-acquires nor writes. |
 | Halt: the second of three rows is rejected | Remote HTTP | First applied, second failed, third never sent. The Run fails. |
 | Continue: the second of three rows is rejected | Remote HTTP | Every row sent once; two applied, one failed; none resent. The Run fails. |
 
