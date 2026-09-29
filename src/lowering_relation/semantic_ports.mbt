@@ -63,8 +63,13 @@ pub fn node_accepts_managed_carrier_view(
   }
   match operation(node) {
     "SGA.normalize"
+    | "TEA.watermark.label"
+    | "TEA.dedupe"
     | "TEA.window.session_assign"
+    | "TEA.window.fixed_label"
+    | "TEA.window.sliding_assign"
     | "TEA.sequence.match"
+    | "VEC.normalize_l2"
     | "BRIDGE.events.to_rows"
     | "BRIDGE.vectors.to_rows"
     | "BRIDGE.graph.to_node_rows"
@@ -88,11 +93,16 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       @graph.traverse_emission(checked) == @graph.TraversedPaths &&
       node.input_targets.length() == 2
     BasicGraph(_) => operation(node) == "SGA.normalize"
-    VectorValue(_) => operation(node) == "BRIDGE.rows.to_vectors"
+    VectorValue(_) =>
+      operation(node) == "BRIDGE.rows.to_vectors" ||
+      operation(node) == "VEC.normalize_l2"
     EventValue(_) =>
       operation(node) == "BRIDGE.rows.to_events" ||
+      operation(node) == "TEA.watermark.label" ||
+      operation(node) == "TEA.dedupe" ||
       operation(node) == "TEA.window.session_assign"
     SequenceRows(_) => operation(node) == "TEA.sequence.match"
+    RowWindow(_) => true
     CarrierProjection(_) =>
       operation(node) == "BRIDGE.graph.to_node_rows" ||
       operation(node) == "BRIDGE.graph.to_edge_rows" ||
@@ -107,13 +117,8 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     | TopKBy(_)
     | Distinct(_)
     | Dedupe(_) => true
-    RowWindow(_)
-    | Watermark(_)
-    | Lag(_)
-    | Pivot(_)
-    | Unpivot(_)
-    | Unnest(_)
-    | JsonPick(_) => true
+    Watermark(_) | Lag(_) | Pivot(_) | Unpivot(_) | Unnest(_) | JsonPick(_) =>
+      true
     CountGroup(checked) => checked_bounded_count(checked)
     AssertRows(_) =>
       operation(node) == "REL.assert_all" ||
@@ -193,7 +198,14 @@ pub fn node_prefers_fused_without_relation_consumer(
 ) -> Bool {
   match node.payload {
     BasicGraph(_) => operation(node) == "SGA.normalize"
-    EventValue(_) => operation(node) == "TEA.window.session_assign"
+    EventValue(_) =>
+      operation(node) == "TEA.watermark.label" ||
+      operation(node) == "TEA.dedupe" ||
+      operation(node) == "TEA.window.session_assign"
+    RowWindow(_) =>
+      operation(node) == "TEA.window.fixed_label" ||
+      operation(node) == "TEA.window.sliding_assign"
+    VectorValue(_) => operation(node) == "VEC.normalize_l2"
     CarrierProjection(_) =>
       operation(node) == "BRIDGE.graph.to_edge_rows" ||
       operation(node) == "BRIDGE.vectors.to_rows"
@@ -225,6 +237,8 @@ pub fn node_accepts_managed_relation_view(
     return false
   }
   match node.payload {
+    EventValue(_) => operation(node) == "BRIDGE.rows.to_events"
+    VectorValue(_) => operation(node) == "BRIDGE.rows.to_vectors"
     Where(_)
     | Derive(_)
     | Select(_)

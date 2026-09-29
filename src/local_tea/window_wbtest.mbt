@@ -299,6 +299,124 @@ fn event_window_field(
 }
 
 ///|
+test "event window views retain exact boundaries and source custody" {
+  let producer = event_window_producer()
+  let source = event_window_source(producer, [9.0], Ref(true))
+  let material = @records.completed_material(source).unwrap()
+  for
+    (body, exact_work, exact_workspace, starts) in [
+      ("{\"kind\":\"fixed\",\"size\":10}", 9, 7, [0.0]),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 12, 14, [0.0, 5.0]),
+    ] {
+    let owner = event_window_owner(producer, body)
+    for
+      (work, workspace, accepted) in [
+        (exact_work, exact_workspace, true),
+        (exact_work - 1, exact_workspace, false),
+        (exact_work, exact_workspace - 1, false),
+      ] {
+      let view = @lifecycle.material_prepare_view(material, owner, 0, producer).unwrap()
+      let started = start_event_window_view(
+        @bounded.control(),
+        event_window_sequence(owner),
+        0,
+        view,
+        event_window_limits(max_records=starts.length(), workspace~),
+        4096L,
+        fn() { true },
+        control_work_limit=Some(work),
+      )
+      if workspace < exact_workspace {
+        assert_true(started is Err(InvalidEventWindowLimits))
+      } else {
+        let execution = started.unwrap()
+        let mut terminal = false
+        for _ in 0..<32 {
+          if !terminal {
+            match advance_event_window(execution, 1).unwrap() {
+              EventWindowContinue(..) => ()
+              EventWindowComplete(output, work=charged, ..) => {
+                assert_true(accepted)
+                assert_eq(charged, exact_work.to_int64())
+                let storage = @records.completed_storage(output).unwrap()
+                assert_eq(@storage.record_count(storage), starts.length())
+                for index, start in starts {
+                  assert_eq(
+                    event_window_field(storage, index, "window_start_ms"),
+                    start,
+                  )
+                  assert_eq(
+                    event_window_field(storage, index, "window_end_ms"),
+                    start + 10.0,
+                  )
+                }
+                assert_true(@records.discard_completed(output))
+                terminal = true
+              }
+              EventWindowFailed(EventWindowWorkLimit, work=charged, ..) => {
+                assert_false(accepted)
+                assert_eq(charged, work.to_int64())
+                terminal = true
+              }
+              _ => fail("unexpected event window view result")
+            }
+          }
+        }
+        assert_true(terminal)
+        assert_true(cleanup_event_window(execution).unwrap())
+      }
+      assert_true(@lifecycle.material_available(material))
+    }
+    let view = @lifecycle.material_prepare_view(material, owner, 0, producer).unwrap()
+    let control = @bounded.control()
+    let execution = start_event_window_view(
+      control,
+      event_window_sequence(owner),
+      0,
+      view,
+      event_window_limits(
+        max_records=starts.length(),
+        workspace=exact_workspace,
+      ),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    assert_true(
+      advance_event_window(execution, 1).unwrap() is EventWindowContinue(..),
+    )
+    assert_true(@bounded.request_cancel(control))
+    assert_true(
+      advance_event_window(execution, 1).unwrap() is EventWindowStopped(_, ..),
+    )
+    assert_true(cleanup_event_window(execution).unwrap())
+    assert_true(@lifecycle.material_available(material))
+  }
+  let fixed_owner = event_window_owner(
+    producer, "{\"kind\":\"fixed\",\"size\":10}",
+  )
+  let sliding_owner = event_window_owner(
+    producer, "{\"kind\":\"sliding\",\"size\":10,\"step\":5}",
+  )
+  let foreign_view = @lifecycle.material_prepare_view(
+    material, fixed_owner, 0, producer,
+  ).unwrap()
+  assert_true(
+    start_event_window_view(
+      @bounded.control(),
+      event_window_sequence(sliding_owner),
+      0,
+      foreign_view,
+      event_window_limits(),
+      4096L,
+      fn() { true },
+    )
+    is Err(InvalidEventWindowKernel),
+  )
+  assert_true(@lifecycle.material_available(material))
+  assert_true(@lifecycle.reclaim_material(material))
+}
+
+///|
 test "fixed and sliding event windows preserve order with bounded steps" {
   let producer = event_window_producer()
   let live = Ref(true)

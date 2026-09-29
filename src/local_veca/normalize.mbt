@@ -10,9 +10,14 @@ priv enum NormalizePhase {
 }
 
 ///|
+priv enum NormalizeSource {
+  Stored(@records.ProducerRead, @storage.Storage)
+  Viewed(@carrier_runtime.ProducerView)
+}
+
+///|
 priv struct NormalizeState {
-  input : @records.ProducerRead
-  source : @storage.Storage
+  source : NormalizeSource
   mut output : @records.OutputBuilder?
   limits : @storage.Limits
   component_name : String
@@ -28,6 +33,50 @@ priv struct NormalizeState {
   mut norm_squared : Double
   mut divisor : Double
   mut control_work_remaining : Int
+}
+
+///|
+fn normalize_source_available(source : NormalizeSource) -> Bool {
+  match source {
+    Stored(input, _) => @records.producer_read_available(input)
+    Viewed(view) => @carrier_runtime.producer_view_record_count(view) is Some(_)
+  }
+}
+
+///|
+fn normalize_source_record_count(source : NormalizeSource) -> Int? {
+  match source {
+    Stored(_, storage) => Some(@storage.record_count(storage))
+    Viewed(view) => @carrier_runtime.producer_view_record_count(view)
+  }
+}
+
+///|
+fn normalize_source_field_count(source : NormalizeSource, record : Int) -> Int? {
+  match source {
+    Stored(_, storage) => @storage.record_field_count(storage, record)
+    Viewed(view) =>
+      match @carrier_runtime.producer_view_record_field_count(view, record) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn normalize_source_field(
+  source : NormalizeSource,
+  record : Int,
+  field : Int,
+) -> (@schema.FieldName, @value.CheckedValue)? {
+  match source {
+    Stored(_, storage) => @storage.record_field_at(storage, record, field)
+    Viewed(view) =>
+      match @carrier_runtime.producer_view_record_field(view, record, field) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
 }
 
 ///|
@@ -61,7 +110,7 @@ pub(all) enum NormalizeIssue {
 
 ///|
 fn begin_record(state : NormalizeState) -> Result[Unit, NormalizeIssue] {
-  guard @storage.record_field_count(state.source, state.record)
+  guard normalize_source_field_count(state.source, state.record)
     is Some(field_count) else {
     return Err(InvalidRecord(state.record))
   }
@@ -95,7 +144,7 @@ fn begin_record(state : NormalizeState) -> Result[Unit, NormalizeIssue] {
 
 ///|
 fn read_field(state : NormalizeState) -> Result[Unit, NormalizeIssue] {
-  guard @storage.record_field_at(state.source, state.record, state.field)
+  guard normalize_source_field(state.source, state.record, state.field)
     is Some((name, checked)) else {
     return Err(InvalidRecord(state.record))
   }
@@ -222,7 +271,7 @@ fn normalize_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@records.producer_read_available(state.input) {
+    if !normalize_source_available(state.source) {
       return @bounded.Failed(InputUnavailable, progress, used)
     }
     if used >= state.control_work_remaining {
@@ -230,7 +279,8 @@ fn normalize_step(
     }
     match state.phase {
       BeginRecord =>
-        if state.record < @storage.record_count(state.source) {
+        if state.record <
+          normalize_source_record_count(state.source).unwrap_or(-1) {
           match begin_record(state) {
             Ok(_) => used += 1
             Err(issue) => return @bounded.Failed(issue, progress, used)
@@ -239,7 +289,7 @@ fn normalize_step(
           state.phase = Finish
         }
       ReadFields => {
-        let count = @storage.record_field_count(state.source, state.record).unwrap_or(
+        let count = normalize_source_field_count(state.source, state.record).unwrap_or(
           -1,
         )
         if state.field < count {
@@ -318,25 +368,19 @@ fn cleanup_state(state : NormalizeState) -> Bool {
 }
 
 ///|
-fn start_normalize_with_control_work_limit(
+fn start_normalize_source(
   control : @bounded.Control,
   sequence : @lower.PreparedSequence,
   step : Int,
-  input : @records.ProducerRead,
+  source : NormalizeSource,
+  input_carrier : @carrier.Carrier,
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
   control_work_limit : Int,
 ) -> Result[NormalizeExecution, NormalizeIssue] {
   let owner = @lower.sequence_owner(sequence)
-  guard @lower.sequence_step(sequence, step) is Some(@lower.VectorStep(_)) &&
-    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.operation(node) == "VEC.normalize_l2" &&
-    @records.producer_read_matches_operation_input(input, owner, step, 0) else {
-    return Err(InvalidKernel)
-  }
-  guard @records.producer_read_storage(input) is Some(source) &&
-    @storage.carrier(source) is @carrier.VectorValue(vectors) else {
+  guard input_carrier is @carrier.VectorValue(vectors) else {
     return Err(InputUnavailable)
   }
   let raw_dimensions = @carrier.vector_dimensions(vectors)
@@ -367,7 +411,6 @@ fn start_normalize_with_control_work_limit(
     Err(issue) => return Err(Output(issue))
   }
   let state : NormalizeState = {
-    input,
     source,
     output: Some(output),
     limits,
@@ -395,6 +438,81 @@ fn start_normalize_with_control_work_limit(
     token: Some(token),
     max_noninterruptible_value_nodes: limits.max_value_nodes,
   })
+}
+
+///|
+fn start_normalize_with_control_work_limit(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @records.ProducerRead,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit : Int,
+) -> Result[NormalizeExecution, NormalizeIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step) is Some(@lower.VectorStep(_)) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.operation(node) == "VEC.normalize_l2" &&
+    @records.producer_read_matches_operation_input(input, owner, step, 0) else {
+    return Err(InvalidKernel)
+  }
+  guard @records.producer_read_storage(input) is Some(storage) else {
+    return Err(InputUnavailable)
+  }
+  start_normalize_source(
+    control,
+    sequence,
+    step,
+    Stored(input, storage),
+    @storage.carrier(storage),
+    limits,
+    storage_bytes,
+    available,
+    control_work_limit,
+  )
+}
+
+///|
+pub fn start_normalize_view(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @carrier_runtime.ProducerView,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit? : Int? = None,
+) -> Result[NormalizeExecution, NormalizeIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step) is Some(@lower.VectorStep(_)) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.operation(node) == "VEC.normalize_l2" &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+    is Some(input_carrier) &&
+    @carrier_runtime.producer_view_kind(input) == @carrier.VectorsKind &&
+    @carrier_runtime.producer_read_reference_matches_operation_input(
+      @carrier_runtime.producer_view_read_reference(input),
+      owner,
+      step,
+      0,
+    ) &&
+    @carrier_runtime.producer_view_record_count(input) is Some(_) else {
+    return Err(InvalidKernel)
+  }
+  start_normalize_source(
+    control,
+    sequence,
+    step,
+    Viewed(input),
+    input_carrier,
+    limits,
+    storage_bytes,
+    available,
+    control_work_limit.unwrap_or(limits.max_work),
+  )
 }
 
 ///|

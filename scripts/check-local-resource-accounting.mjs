@@ -251,12 +251,12 @@ if (!Array.isArray(mixedPaths)) {
     }
     names.add(mixed.id);
     if (!['Graph', 'Events', 'Vectors'].includes(mixed.carrier) ||
-      mixed.standalone_prefix_provider !== false ||
+      typeof mixed.standalone_prefix_provider !== 'boolean' ||
       !Array.isArray(mixed.operations) || mixed.operations.length < 3 ||
       new Set(mixed.operations).size !== mixed.operations.length ||
       mixed.operations.some(operation =>
         actual.filter(entry => entry.operation === operation).length !== 1)) {
-      fail(`${label}: must bind an unselected typed Carrier prefix and Relation operation`);
+      fail(`${label}: must bind a typed Carrier prefix and Relation operation`);
     } else {
       const family = {Graph: 'SGA', Events: 'TEA', Vectors: 'VecA'}[
         mixed.carrier
@@ -307,9 +307,8 @@ if (!Array.isArray(mixedPaths)) {
   }
   if (requireBoundaryComplete) {
     for (const carrier of ['Graph', 'Events', 'Vectors']) {
-      if (!mixedPaths.some(path => path.carrier === carrier &&
-        path.standalone_prefix_provider === false)) {
-        fail(`${carrier}: unselected prefix mixed-stage assurance is missing`);
+      if (!mixedPaths.some(path => path.carrier === carrier)) {
+        fail(`${carrier}: typed prefix mixed-stage assurance is missing`);
       }
     }
   }

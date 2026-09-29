@@ -2875,6 +2875,424 @@ async function exerciseStrategyGraph(
     });
     await carrierVectorRetained.close();
   }
+  // A zero-input row source and its Carrier Bridge share an authored Stage.
+  // The physical split must retain the Events/Vectors generation for a later
+  // Bridge task, then publish and independently consume its Relation view.
+  for (const carrierCase of [{
+    name: 'events',
+    source: eventPublicationProgram,
+    create: program => fixture.strategyFixtureTeaCreate(
+      ...args, JSON.stringify(program)),
+    configure: value => fixture.strategyFixtureTeaRetainedSubset(value),
+    fields: ['event_id', 'occurred_at', 'payload'],
+    secondFields: ['payload', 'event_id'],
+    rows: [
+      {event_id: 1, occurred_at: 5, payload: 'first'},
+      {event_id: 2, occurred_at: 15, payload: 'second'},
+    ],
+  }, {
+    name: 'events-watermark',
+    source: eventPublicationProgram,
+    create: program => fixture.strategyFixtureTeaCreate(
+      ...args, JSON.stringify(program)),
+    configure: value => fixture.strategyFixtureTeaRetainedSubset(value),
+    transform: {
+      from: 'source',
+      watermark_events: {watermark_ms: 10, policy: 'mark'},
+      as: 'marked',
+    },
+    fields: [
+      'event_id', 'occurred_at', 'payload',
+      'watermark_ms', 'late', 'watermark_decision',
+    ],
+    secondFields: ['watermark_decision', 'late', 'event_id'],
+    rows: [
+      {event_id: 1, occurred_at: 5, payload: 'first'},
+      {event_id: 2, occurred_at: 15, payload: 'second'},
+    ],
+    expectedRows: [
+      {event_id: 1, occurred_at: 5, payload: 'first',
+        watermark_ms: 10, late: true, watermark_decision: 'mark'},
+      {event_id: 2, occurred_at: 15, payload: 'second',
+        watermark_ms: 10, late: false, watermark_decision: 'keep'},
+    ],
+  }, {
+    name: 'events-dedupe',
+    source: eventPublicationProgram,
+    create: program => fixture.strategyFixtureTeaCreate(
+      ...args, JSON.stringify(program)),
+    configure: value => fixture.strategyFixtureTeaRetainedSubset(value),
+    transform: {
+      from: 'source',
+      dedupe_events: {
+        by: ['payload'],
+        order_by: [{field: 'occurred_at', dir: 'asc', nulls: 'last'}],
+      },
+      as: 'deduped',
+    },
+    fields: ['event_id', 'occurred_at', 'payload'],
+    secondFields: ['payload', 'event_id'],
+    rows: [
+      {event_id: 1, occurred_at: 20, payload: 'a'},
+      {event_id: 2, occurred_at: 10, payload: 'a'},
+      {event_id: 3, occurred_at: 30, payload: 'b'},
+    ],
+    expectedRows: [
+      {event_id: 2, occurred_at: 10, payload: 'a'},
+      {event_id: 3, occurred_at: 30, payload: 'b'},
+    ],
+  }, {
+    name: 'events-session',
+    source: eventPublicationProgram,
+    create: program => fixture.strategyFixtureTeaCreate(
+      ...args, JSON.stringify(program)),
+    configure: value => fixture.strategyFixtureTeaRetainedSubset(value),
+    transform: {
+      from: 'source', session: {by: ['payload'], gap: 10}, as: 'sessioned',
+    },
+    fields: [
+      'event_id', 'occurred_at', 'payload',
+      'session_start_ms', 'session_end_ms',
+    ],
+    secondFields: ['payload', 'session_start_ms', 'event_id'],
+    rows: [
+      {event_id: 1, occurred_at: 5, payload: 'shared'},
+      {event_id: 2, occurred_at: 9, payload: 'shared'},
+    ],
+    expectedRows: [
+      {event_id: 1, occurred_at: 5, payload: 'shared',
+        session_start_ms: 5, session_end_ms: 19},
+      {event_id: 2, occurred_at: 9, payload: 'shared',
+        session_start_ms: 5, session_end_ms: 19},
+    ],
+  }, {
+    name: 'events-fixed-window',
+    source: eventPublicationProgram,
+    create: program => fixture.strategyFixtureTeaCreate(
+      ...args, JSON.stringify(program)),
+    configure: value => fixture.strategyFixtureTeaRetainedSubset(value),
+    transform: {
+      from: 'source', window_events: {kind: 'fixed', size: 10},
+      as: 'windowed',
+    },
+    fields: [
+      'event_id', 'occurred_at', 'payload',
+      'window_start_ms', 'window_end_ms',
+    ],
+    secondFields: ['payload', 'window_start_ms', 'event_id'],
+    rows: [
+      {event_id: 1, occurred_at: 9, payload: 'first'},
+      {event_id: 2, occurred_at: 10, payload: 'second'},
+    ],
+    expectedRows: [
+      {event_id: 1, occurred_at: 9, payload: 'first',
+        window_start_ms: 0, window_end_ms: 10},
+      {event_id: 2, occurred_at: 10, payload: 'second',
+        window_start_ms: 10, window_end_ms: 20},
+    ],
+  }, {
+    name: 'events-sliding-window',
+    source: eventPublicationProgram,
+    create: program => fixture.strategyFixtureTeaCreate(
+      ...args, JSON.stringify(program)),
+    configure: value => fixture.strategyFixtureTeaRetainedSubset(value),
+    transform: {
+      from: 'source', window_events: {kind: 'sliding', size: 10, step: 5},
+      as: 'windowed',
+    },
+    fields: [
+      'event_id', 'occurred_at', 'payload',
+      'window_start_ms', 'window_end_ms',
+    ],
+    secondFields: ['payload', 'window_start_ms', 'event_id'],
+    rows: [
+      {event_id: 1, occurred_at: 9, payload: 'first'},
+      {event_id: 2, occurred_at: 10, payload: 'second'},
+    ],
+    expectedRows: [
+      {event_id: 1, occurred_at: 9, payload: 'first',
+        window_start_ms: 0, window_end_ms: 10},
+      {event_id: 1, occurred_at: 9, payload: 'first',
+        window_start_ms: 5, window_end_ms: 15},
+      {event_id: 2, occurred_at: 10, payload: 'second',
+        window_start_ms: 5, window_end_ms: 15},
+      {event_id: 2, occurred_at: 10, payload: 'second',
+        window_start_ms: 10, window_end_ms: 20},
+    ],
+  }, {
+    name: 'vectors',
+    source: carrierVectorPublicationProgram,
+    create: program => fixture.strategyFixtureVecaCreate(
+      ...args, JSON.stringify(program), orderedContract),
+    configure: value => fixture.strategyFixtureVecaRetainedSubset(value),
+    fields: ['id', 'embedding'],
+    secondFields: ['embedding', 'id'],
+    rows: [
+      {id: 1, embedding: [3, 4]},
+      {id: 2, embedding: [0, 2]},
+    ],
+  }, {
+    name: 'vectors-normalize',
+    source: carrierVectorPublicationProgram,
+    create: program => fixture.strategyFixtureVecaCreate(
+      ...args, JSON.stringify(program), orderedContract),
+    configure: value => fixture.strategyFixtureVecaRetainedSubset(value),
+    transform: {
+      from: 'source', normalize_vectors: true, as: 'normalized',
+    },
+    fields: ['id', 'embedding'],
+    secondFields: ['embedding', 'id'],
+    rows: [
+      {id: 1, embedding: [3, 4]},
+      {id: 2, embedding: [0, 2]},
+    ],
+    expectedRows: [
+      {id: 1, embedding: [0.6000000238418579, 0.800000011920929]},
+      {id: 2, embedding: [0, 1]},
+    ],
+  }]) {
+    const directProgram = structuredClone(carrierCase.source);
+    const rowStep = directProgram.stages[1].steps[0];
+    rowStep.as = 'rows';
+    rowStep.values.rows = carrierCase.rows;
+    const carrierStage = directProgram.stages[2];
+    carrierStage.inputs = {};
+    carrierStage.steps = [
+      rowStep,
+      carrierStage.steps[0],
+      ...(carrierCase.transform ? [carrierCase.transform] : []),
+      carrierStage.steps.at(-1),
+    ];
+    carrierStage.steps.at(-1).from =
+      carrierCase.transform?.as ?? 'source';
+    carrierStage.results.r.fields = carrierCase.fields;
+    directProgram.stages.splice(1, 1);
+    for (const consumer of directProgram.stages.slice(2)) {
+      const fields = consumer.id === 'consumer_a'
+        ? carrierCase.fields : carrierCase.secondFields;
+      consumer.steps = [{select: fields, as: 'out'}];
+      consumer.results.r.fields = fields;
+    }
+    const directFixture = carrierCase.create(directProgram);
+    const directCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(directFixture),
+      suppliedLimits,
+    );
+    const directDirectory = await mkdtemp(join(
+      root,
+      `_build/duckdb-fixtures/${carrierCase.name}-handoff-entry-`,
+    ));
+    const directRetained = await createCarrierRetainedStore(
+      `${carrierCase.name}-handoff`,
+    );
+    let directOwner;
+    let directStore;
+    try {
+      assert.equal(
+        fixture.strategyFixtureOpen(directFixture, directCapture.source()),
+        true,
+      );
+      const setup = carrierCase.configure(directFixture);
+      const runtime = runtimeCore(hostRuntime);
+      const resultCount = runtime.resultInventory(setup).length;
+      assert.equal(resultCount, 3);
+      directStore = await openLocalPublicationStore({
+        directory: directDirectory,
+        storeAuthorityCid: hash(`${carrierCase.name}-handoff-store`),
+        capacityBytes: 4 * 1024 * 1024,
+        maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+        maxObjects: 100,
+        maxContractNodes: 10000,
+        maxContractDepth: 64,
+      }, runtime.publicationControl);
+      const plan = standardPublicationPlan(
+        runtime,
+        runtime.programDefinitionCid(setup),
+        resultCount,
+        `${carrierCase.name}-handoff-attempt`,
+      );
+      directOwner = await runPublishedCapturedStrategy(
+        setup,
+        {store: directStore, plan},
+        {local: directRetained.configuration},
+        new AbortController().signal,
+      );
+      assert.equal(directOwner.status, 'published');
+      assert.equal(directOwner.publication.publication.state, 'succeeded');
+      assert(directRetained.leases.length > 0);
+      assert(directOwner.execution.completed.some(value =>
+        value.outputRepresentation === 'retained-file'));
+      assert.equal(directOwner.execution.completed.filter(value =>
+        value.outputRepresentation === 'managed-local-carrier').length,
+      carrierCase.transform ? 2 : 1);
+      const rows = carrierCase.expectedRows ?? carrierCase.rows;
+      const expected = {
+        published: rows,
+        consumed_a: rows,
+        consumed_b: rows.map(row =>
+          Object.fromEntries(carrierCase.secondFields.map(
+            field => [field, row[field]]))),
+      };
+      for (const occurrence of directOwner.execution.publicationInventory
+        .occurrences) {
+        const received = [];
+        await directStore.consumeCommittedResult({
+          tenantId: plan.request.tenantId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, occurrence.definitionContract.identity, () => true,
+        chunk => received.push(Buffer.from(chunk)));
+        assert.deepEqual(
+          JSON.parse(Buffer.concat(received).toString('utf8')),
+          expected[occurrence.name],
+        );
+      }
+    } finally {
+      if (directOwner !== undefined) {
+        await directOwner.close();
+        assert.equal(directOwner.cleanupPending(), false);
+        assert.equal(await directOwner.cleanup(), true);
+        assert.equal(directOwner.execution.usage().heldBytes, 0n);
+        assert.equal(
+          directOwner.execution.usage().reservedExecutionBytes, 0n);
+      }
+      directCapture.close();
+      await directStore?.close();
+      await rm(directDirectory, {recursive: true, force: true});
+      await directRetained.close();
+    }
+  }
+  // Sequence matching is a Relation-producing Events consumer. Its selected
+  // step must remain executable when an authored filter follows in the same
+  // Stage; both later consumers read the retained filtered generation.
+  const retainedSequenceCase = {name: 'events-sequence-filter'};
+  const retainedSequenceProgram = structuredClone(eventPublicationProgram);
+  retainedSequenceProgram.stages[2].id = 'matched';
+  retainedSequenceProgram.stages[3].inputs.x.result.stage = 'matched';
+  retainedSequenceProgram.stages[4].inputs.x.result.stage = 'matched';
+  retainedSequenceProgram.results.published.from.stage = 'matched';
+  // The capacity fixture proves 40 source rows; only the first pair lies
+  // within the authored interval, leaving a hand-written one-match oracle.
+  retainedSequenceProgram.stages[1].steps[0].values.rows.push(
+    ...Array.from({length: 38}, (_, index) => ({
+      event_id: index + 3,
+      occurred_at: 1000 + index * 100,
+      payload: `far-${index}`,
+    })),
+  );
+  retainedSequenceProgram.stages[2].steps = [{
+    from: 'rows', to_events: {id: 'event_id', time: 'occurred_at'},
+    as: 'source',
+  }, {
+    from: 'source',
+    sequence: {
+      by: [], id: 'event_id', time: 'occurred_at',
+      pattern: [
+        {as: 'start', where: {literal: true}},
+        {as: 'end', where: {literal: true}},
+      ],
+      within: 10, overlap: 'allow', contiguity: 'subsequence',
+    },
+    as: 'matched',
+  }, {from: 'matched', filter: 'true', as: 'out'}];
+  const sequenceFields = [
+    'match_start_ms', 'match_end_ms', 'start_id',
+    'start_time_ms', 'end_id', 'end_time_ms',
+  ];
+  retainedSequenceProgram.stages[2].results.r.fields = sequenceFields;
+  retainedSequenceProgram.stages[3].steps = [
+    {select: sequenceFields, as: 'out'},
+  ];
+  retainedSequenceProgram.stages[3].results.r.fields = sequenceFields;
+  retainedSequenceProgram.stages[4].steps = [
+    {select: ['end_id', 'start_id'], as: 'out'},
+  ];
+  retainedSequenceProgram.stages[4].results.r.fields = [
+    'end_id', 'start_id',
+  ];
+  const retainedSequenceFixture = fixture.strategyFixtureTeaSequenceCreate(
+    ...args, JSON.stringify(retainedSequenceProgram));
+  const retainedSequenceCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(retainedSequenceFixture),
+    suppliedLimits,
+  );
+  const retainedSequenceRetained = await createCarrierRetainedStore(
+    retainedSequenceCase.name);
+  const retainedSequenceDirectory = await mkdtemp(join(
+    root, '_build/duckdb-fixtures/events-sequence-filter-publication-'));
+  let retainedSequenceOwner;
+  let retainedSequenceStore;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      retainedSequenceFixture, retainedSequenceCapture.source()), true);
+    const setup = fixture.strategyFixtureTeaRetainedSubset(
+      retainedSequenceFixture);
+    const runtime = runtimeCore(hostRuntime);
+    const plan = standardPublicationPlan(
+      runtime,
+      runtime.programDefinitionCid(setup),
+      runtime.resultInventory(setup).length,
+      'events-sequence-filter-attempt',
+    );
+    retainedSequenceStore = await openLocalPublicationStore({
+      directory: retainedSequenceDirectory,
+      storeAuthorityCid: hash('events-sequence-filter-store'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    retainedSequenceOwner = await runPublishedCapturedStrategy(
+      setup,
+      {store: retainedSequenceStore, plan},
+      {local: retainedSequenceRetained.configuration},
+      new AbortController().signal,
+    );
+    assert.equal(retainedSequenceOwner.status, 'published');
+    assert.equal(retainedSequenceOwner.execution.status,
+      'host-tasks-completed');
+    assert.equal(retainedSequenceOwner.execution.completed.filter(value =>
+      value.outputRepresentation === 'managed-local-carrier').length, 1);
+    assert(retainedSequenceRetained.leases.length > 0);
+    const match = {
+      match_start_ms: 5, match_end_ms: 15,
+      start_id: 1, start_time_ms: 5, end_id: 2, end_time_ms: 15,
+    };
+    const expected = {
+      published: [match],
+      consumed_a: [match],
+      consumed_b: [{end_id: 2, start_id: 1}],
+    };
+    for (const occurrence of retainedSequenceOwner.execution
+      .publicationInventory.occurrences) {
+      const received = [];
+      await retainedSequenceStore.consumeCommittedResult({
+        tenantId: plan.request.tenantId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, occurrence.definitionContract.identity, () => true,
+      chunk => received.push(Buffer.from(chunk)));
+      assert.deepEqual(
+        JSON.parse(Buffer.concat(received).toString('utf8')),
+        expected[occurrence.name],
+      );
+    }
+  } finally {
+    if (retainedSequenceOwner !== undefined) {
+      await retainedSequenceOwner.close();
+      assert.equal(await retainedSequenceOwner.cleanup(), true);
+      assert.equal(retainedSequenceOwner.execution.usage().heldBytes, 0n);
+      assert.equal(retainedSequenceOwner.execution.usage()
+        .reservedExecutionBytes, 0n);
+    }
+    retainedSequenceCapture.close();
+    await retainedSequenceStore?.close();
+    await rm(retainedSequenceDirectory, {recursive: true, force: true});
+    await retainedSequenceRetained.close();
+  }
   const scoredVectorPublicationProgram = structuredClone(
     carrierVectorPublicationProgram,
   );
@@ -3783,6 +4201,38 @@ async function exerciseStrategyGraph(
     ],
     secondFields: ['window_start_ms', 'event_id'],
   }, {
+    name: 'window-fixed-selected-filter',
+    family: 'tea',
+    operation: 'window-fixed',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    fields: [
+      'event_id', 'occurred_at', 'payload',
+      'window_start_ms', 'window_end_ms',
+    ],
+    secondFields: ['window_start_ms', 'event_id'],
+  }, {
+    name: 'window-sliding-later-filter',
+    family: 'tea',
+    operation: 'window-sliding',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    cancelOnManagedStart: 5,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
+    fields: [
+      'event_id', 'occurred_at', 'payload',
+      'window_start_ms', 'window_end_ms',
+    ],
+    secondFields: ['window_start_ms', 'event_id'],
+  }, {
     name: 'watermark',
     family: 'tea',
     operation: 'watermark',
@@ -3808,13 +4258,16 @@ async function exerciseStrategyGraph(
     fields: ['event_id', 'occurred_at', 'payload'],
     secondFields: ['payload', 'event_id'],
   }, {
-    name: 'dedupe-events-fused-filter',
+    name: 'dedupe-events-later-filter',
     family: 'tea',
     operation: 'dedupe',
     mixedRelationFilter: true,
     rows: 40,
     advanceQuantum: 1,
     constructionProgress: 40,
+    cancelOnManagedStart: 5,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
     fields: ['event_id', 'occurred_at', 'payload'],
     secondFields: ['payload', 'event_id'],
   }, {
@@ -3967,6 +4420,18 @@ async function exerciseStrategyGraph(
     cancelOnManagedStart: 3,
     managedStarts: 3,
     completedTasks: [1, 2],
+    fields: ['id', 'embedding'],
+  }, {
+    name: 'vector-normalize-later-filter',
+    family: 'veca',
+    operation: 'normalize',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    cancelOnManagedStart: 5,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
     fields: ['id', 'embedding'],
   }, {
     name: 'vector-expression',

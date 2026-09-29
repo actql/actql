@@ -50,6 +50,8 @@ fn carrier_events_source_owner() -> @lower.BoundPrepared {
 ///|
 fn carrier_events_relation_followup(variant : String) -> Bool {
   variant == "dedupe_filter" ||
+  variant == "window_fixed_filter" ||
+  variant == "window_sliding_filter" ||
   variant == "session_filter" ||
   variant == "session_select" ||
   variant == "session_derive" ||
@@ -60,9 +62,11 @@ fn carrier_events_relation_followup(variant : String) -> Bool {
 fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let dedupe = variant == "dedupe" || variant == "dedupe_filter"
   let window = variant == "window_fixed" ||
+    variant == "window_fixed_filter" ||
     variant == "window_sliding" ||
+    variant == "window_sliding_filter" ||
     variant == "window_parameter"
-  let sequence = variant == "sequence"
+  let sequence = variant == "sequence" || variant == "sequence_filter"
   let session = variant.has_prefix("session")
   let session_global = variant == "session_global"
   let session_parameter = variant == "session_parameter"
@@ -110,14 +114,18 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "\"where\":{\"literal\":true}},{\"as\":\"end\"," +
     "\"where\":{\"literal\":true}}],\"within\":10," +
     "\"overlap\":\"allow\",\"contiguity\":\"subsequence\"}," +
-    "\"as\":\"out\"}"
+    (if variant == "sequence_filter" {
+      "\"as\":\"matched\"}"
+    } else {
+      "\"as\":\"out\"}"
+    })
   } else if dedupe {
     "{\"dedupe_events\":{\"by\":[\"payload\"],\"order_by\":[{" +
     "\"field\":\"occurred_at\",\"dir\":\"asc\"," +
     "\"nulls\":\"last\"}]}}"
-  } else if variant == "window_fixed" {
+  } else if variant == "window_fixed" || variant == "window_fixed_filter" {
     "{\"window_events\":{\"kind\":\"fixed\",\"size\":10}}"
-  } else if variant == "window_sliding" {
+  } else if variant == "window_sliding" || variant == "window_sliding_filter" {
     "{\"window_events\":{\"kind\":\"sliding\",\"size\":10," + "\"step\":5}}"
   } else if variant == "window_parameter" {
     "{\"window_events\":{\"kind\":\"fixed\",\"size\":{" +
@@ -149,7 +157,12 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   } else if sequence {
     "{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
     "\"time\":\"occurred_at\"}}," +
-    transform
+    transform +
+    (if variant == "sequence_filter" {
+      ",{\"from\":\"matched\",\"filter\":\"true\",\"as\":\"out\"}"
+    } else {
+      ""
+    })
   } else {
     "{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
     "\"time\":\"occurred_at\"}}," +
@@ -2224,128 +2237,155 @@ test "registered Events provider shares Carrier with Bridge consumer" {
 }
 
 ///|
-test "selected Events steps retain original checked coordinates" {
-  let source_owner = carrier_events_source_owner()
-  let source = carrier_events_source_output(source_owner)
-  let owner = carrier_events_owner(source_owner, variant="session")
-  let generated = task_test_generated(owner)
-  let limits = carrier_events_storage_limits()
-  let capacity = @execution.generated_sequence_capacity(
-    generated,
-    dispatch_test_limits().local_execution,
-    dispatch_test_limits().guards,
-  ).unwrap()
-  let provider = @local_tea_provider.provider(limits, 4096L, capacity)
-  let rows = @execution.prepare_producer_read(
-    owner,
-    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
-    100,
-    1000,
-  ).unwrap()
-  let produce = @execution.select_generated_sequence_step(generated, 0).unwrap()
-  assert_true(@local_connector.managed_provider_accepts(provider, produce))
-  let producing = @local_connector.start_managed_provider(
-    provider,
-    produce,
-    [rows],
-    10,
-    1000,
-  ).unwrap()
-  let mut produced = None
-  while produced is None {
-    match @local_connector.advance_managed_provider(producing, 1).unwrap() {
-      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
-      @local_connector.CarrierComplete(value, ..) => produced = Some(value)
-      @local_connector.Complete(_, ..) => fail("producer returned rows")
-      @local_connector.Failed(_, ..) => fail("producer failed")
-      @local_connector.Stopped(..) => fail("producer stopped")
-    }
-  }
-  let produced = produced.unwrap()
-  assert_true(@carrier_runtime.material_available(produced))
-  assert_true(
-    @carrier_runtime.completion_reference_matches_port(
-      @carrier_runtime.material_reference(produced),
+test "selected Events transforms retain original checked coordinates" {
+  for variant in ["session", "watermark"] {
+    let source_owner = carrier_events_source_owner()
+    let source = carrier_events_source_output(source_owner)
+    let owner = carrier_events_owner(source_owner, variant~)
+    let generated = task_test_generated(owner)
+    let limits = carrier_events_storage_limits()
+    let capacity = @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap()
+    let provider = @local_tea_provider.provider(limits, 4096L, capacity)
+    let rows = @execution.prepare_producer_read(
       owner,
-      @pipeline.Step(0),
-    ),
-  )
-  assert_eq(
-    @lower.node_input_target(
-      @lower.node_at(@lower.bound_preparation(owner), 1).unwrap(),
-      0,
-    ),
-    Some(@pipeline.Step(0)),
-  )
-  let session_view = @carrier_runtime.material_prepare_operation_view(
-    produced, owner, 1, 0, owner,
-  ).unwrap()
-  assert_true(
-    @local_connector.cleanup_managed_provider(producing).unwrap_or(false),
-  )
-  let session_sequence = @execution.select_generated_sequence_step(generated, 1).unwrap()
-  assert_eq(
-    @execution.generated_sequence_step_index_at(session_sequence, 0),
-    Some(1),
-  )
-  assert_true(
-    @local_connector.managed_provider_accepts(provider, session_sequence),
-  )
-  let session = @local_connector.start_managed_provider_with_inputs(
-    provider,
-    session_sequence,
-    [@local_connector.managed_provider_carrier_input(session_view)],
-    10,
-    1000,
-  ).unwrap()
-  let mut session_output = None
-  while session_output is None {
-    match @local_connector.advance_managed_provider(session, 1).unwrap() {
-      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
-      @local_connector.CarrierComplete(value, ..) =>
-        session_output = Some(value)
-      @local_connector.Complete(_, ..) => fail("session returned rows")
-      @local_connector.Failed(_, ..) => fail("session failed")
-      @local_connector.Stopped(..) => fail("session stopped")
+      @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+      100,
+      1000,
+    ).unwrap()
+    let produce = @execution.select_generated_sequence_step(generated, 0).unwrap()
+    assert_true(@local_connector.managed_provider_accepts(provider, produce))
+    let producing = @local_connector.start_managed_provider(
+      provider,
+      produce,
+      [rows],
+      10,
+      1000,
+    ).unwrap()
+    let mut produced = None
+    while produced is None {
+      match @local_connector.advance_managed_provider(producing, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+        @local_connector.CarrierComplete(value, ..) => produced = Some(value)
+        @local_connector.Complete(_, ..) => fail("producer returned rows")
+        @local_connector.Failed(_, ..) => fail("producer failed")
+        @local_connector.Stopped(..) => fail("producer stopped")
+      }
     }
-  }
-  assert_true(
-    @local_connector.cleanup_managed_provider(session).unwrap_or(false),
-  )
-  assert_true(@carrier_runtime.reclaim_material(produced))
-  let session_output = session_output.unwrap()
-  let projection_view = @carrier_runtime.material_prepare_operation_view(
-    session_output, owner, 2, 0, owner,
-  ).unwrap()
-  let projection_sequence = @execution.select_generated_sequence_step(
-    generated, 2,
-  ).unwrap()
-  assert_true(
-    @local_connector.managed_provider_accepts(provider, projection_sequence),
-  )
-  let projection = @local_connector.start_managed_provider_with_inputs(
-    provider,
-    projection_sequence,
-    [@local_connector.managed_provider_carrier_input(projection_view)],
-    10,
-    1000,
-  ).unwrap()
-  let mut output = None
-  while output is None {
-    match @local_connector.advance_managed_provider(projection, 1).unwrap() {
-      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
-      @local_connector.Complete(value, ..) => output = Some(value)
-      @local_connector.CarrierComplete(_, ..) =>
-        fail("projection returned Carrier")
-      @local_connector.Failed(_, ..) => fail("projection failed")
-      @local_connector.Stopped(..) => fail("projection stopped")
+    let produced = produced.unwrap()
+    assert_true(@carrier_runtime.material_available(produced))
+    assert_true(
+      @carrier_runtime.completion_reference_matches_port(
+        @carrier_runtime.material_reference(produced),
+        owner,
+        @pipeline.Step(0),
+      ),
+    )
+    assert_eq(
+      @lower.node_input_target(
+        @lower.node_at(@lower.bound_preparation(owner), 1).unwrap(),
+        0,
+      ),
+      Some(@pipeline.Step(0)),
+    )
+    let session_view = @carrier_runtime.material_prepare_operation_view(
+      produced, owner, 1, 0, owner,
+    ).unwrap()
+    assert_true(
+      @local_connector.cleanup_managed_provider(producing).unwrap_or(false),
+    )
+    let session_sequence = @execution.select_generated_sequence_step(
+      generated, 1,
+    ).unwrap()
+    assert_eq(
+      @execution.generated_sequence_step_index_at(session_sequence, 0),
+      Some(1),
+    )
+    assert_true(
+      @local_connector.managed_provider_accepts(provider, session_sequence),
+    )
+    let session = @local_connector.start_managed_provider_with_inputs(
+      provider,
+      session_sequence,
+      [@local_connector.managed_provider_carrier_input(session_view)],
+      10,
+      1000,
+    ).unwrap()
+    let mut session_output = None
+    while session_output is None {
+      match @local_connector.advance_managed_provider(session, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+        @local_connector.CarrierComplete(value, ..) =>
+          session_output = Some(value)
+        @local_connector.Complete(_, ..) => fail("session returned rows")
+        @local_connector.Failed(_, ..) => fail("session failed")
+        @local_connector.Stopped(..) => fail("session stopped")
+      }
     }
+    assert_true(
+      @local_connector.cleanup_managed_provider(session).unwrap_or(false),
+    )
+    let cancel_view = @carrier_runtime.material_prepare_operation_view(
+      produced, owner, 1, 0, owner,
+    ).unwrap()
+    let cancelling = @local_connector.start_managed_provider_with_inputs(
+      provider,
+      session_sequence,
+      [@local_connector.managed_provider_carrier_input(cancel_view)],
+      10,
+      1000,
+    ).unwrap()
+    match @local_connector.advance_managed_provider(cancelling, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      _ => fail("selected transform did not advance")
+    }
+    assert_true(@local_connector.cancel_managed_provider(cancelling))
+    assert_true(
+      @local_connector.advance_managed_provider(cancelling, 1).unwrap()
+      is @local_connector.Stopped(..),
+    )
+    assert_true(
+      @local_connector.cleanup_managed_provider(cancelling).unwrap_or(false),
+    )
+    assert_true(@carrier_runtime.material_available(produced))
+    assert_true(@carrier_runtime.reclaim_material(produced))
+    let session_output = session_output.unwrap()
+    let projection_view = @carrier_runtime.material_prepare_operation_view(
+      session_output, owner, 2, 0, owner,
+    ).unwrap()
+    let projection_sequence = @execution.select_generated_sequence_step(
+      generated, 2,
+    ).unwrap()
+    assert_true(
+      @local_connector.managed_provider_accepts(provider, projection_sequence),
+    )
+    let projection = @local_connector.start_managed_provider_with_inputs(
+      provider,
+      projection_sequence,
+      [@local_connector.managed_provider_carrier_input(projection_view)],
+      10,
+      1000,
+    ).unwrap()
+    let mut output = None
+    while output is None {
+      match @local_connector.advance_managed_provider(projection, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+        @local_connector.Complete(value, ..) => output = Some(value)
+        @local_connector.CarrierComplete(_, ..) =>
+          fail("projection returned Carrier")
+        @local_connector.Failed(_, ..) => fail("projection failed")
+        @local_connector.Stopped(..) => fail("projection stopped")
+      }
+    }
+    assert_eq(@execution.completed_row_count(output.unwrap()), 2)
+    assert_true(
+      @local_connector.cleanup_managed_provider(projection).unwrap_or(false),
+    )
+    assert_true(@carrier_runtime.reclaim_material(session_output))
   }
-  assert_eq(@execution.completed_row_count(output.unwrap()), 2)
-  assert_true(
-    @local_connector.cleanup_managed_provider(projection).unwrap_or(false),
-  )
-  assert_true(@carrier_runtime.reclaim_material(session_output))
 }
 
 ///|
@@ -2903,174 +2943,220 @@ test "standard Host retains Events across physical task boundaries" {
 }
 
 ///|
-test "standard Host matches retained Events in a later physical task" {
-  let (run, issuer) = captured_graph_fixture(
-    local_carrier_events_chain=true,
-    local_carrier_events_variant="sequence",
-    managed_publication=true,
-    parameter_json="{\"minimum\":1}",
-  )
-  assert_true(
-    @strategy.configure_captured_managed_identity_policy(
-      run, true, false, false, false,
-    ),
-  )
-  let registry = search_registry()
-  let limits = dispatch_test_limits()
-  let sequences = dispatch_test_generated(run)
-  let event_provider = @local_tea_provider.provider(
-    carrier_events_storage_limits(),
-    4096L,
-    @execution.generated_sequence_capacity(
-      sequences[1],
-      limits.local_execution,
-      limits.guards,
-    ).unwrap(),
-  )
-  let sequence_provider = @local_tea_provider.sequence_match_provider(
-    carrier_events_storage_limits(),
-    @execution.generated_sequence_capacity(
-      sequences[2],
-      limits.local_execution,
-      limits.guards,
-    ).unwrap(),
-  )
-  let modules = @builtin.configure_compute_modules(
-    @host_driver.open_dispatch_driver(run),
-    registry,
-    1,
-    _ => @strategy.RunIssue::ForeignCandidate,
-    with_local=Some(
-      (
-        @connector.capability_registration_at(registry, 0).unwrap(),
-        {
-          sequences,
-          managed_providers: [event_provider, sequence_provider],
-          managed_capacity: limits.capacity,
-          execution: limits.local_execution,
-          measurement: limits.guards,
-          max_work: limits.candidate_work,
-        },
-        _ => @strategy.RunIssue::ForeignCandidate,
-        _ => @strategy.RunIssue::ForeignCandidate,
+test "standard Host matches retained Events before Relation filtering" {
+  for variant in ["sequence", "sequence_filter"] {
+    let (run, issuer) = captured_graph_fixture(
+      local_carrier_events_chain=true,
+      local_carrier_events_variant=variant,
+      managed_publication=true,
+      ledger_limits=if variant == "sequence_filter" {
+        Some({
+          planning_work: 30000,
+          attempts: 20,
+          holdings: 20,
+          transfer_bytes: 800000L,
+          retained_bytes: 96000000L,
+          execution_bytes: 402653184L,
+        })
+      } else {
+        None
+      },
+      parameter_json="{\"minimum\":1}",
+    )
+    assert_true(
+      @strategy.configure_captured_managed_identity_policy(
+        run, true, false, false, false,
       ),
-    ),
-  ).unwrap()
-  let installed = @builtin.configured_local_module(modules).unwrap()
-  @local_driver.configure_local_retained_inputs(
-    installed,
-    {
-      max_rows: 100,
-      values: limits.local_execution.rows.input_values,
-      wire: {
-        max_bytes: 3000,
-        max_nodes: 300,
-        max_depth: 10,
-        max_columns: 10,
-        max_order_work: 1000,
+    )
+    let registry = search_registry()
+    let limits = dispatch_test_limits()
+    let sequences = dispatch_test_generated(run)
+    let event_provider = @local_tea_provider.provider(
+      carrier_events_storage_limits(),
+      4096L,
+      @execution.generated_sequence_capacity(
+        sequences[1],
+        limits.local_execution,
+        limits.guards,
+      ).unwrap(),
+    )
+    let sequence_provider = @local_tea_provider.sequence_match_provider(
+      carrier_events_storage_limits(),
+      @execution.generated_sequence_capacity(
+        sequences[2],
+        limits.local_execution,
+        limits.guards,
+      ).unwrap(),
+    )
+    let modules = @builtin.configure_compute_modules(
+      @host_driver.open_dispatch_driver(run),
+      registry,
+      1,
+      _ => @strategy.RunIssue::ForeignCandidate,
+      with_local=Some(
+        (
+          @connector.capability_registration_at(registry, 0).unwrap(),
+          {
+            sequences,
+            managed_providers: [event_provider, sequence_provider],
+            managed_capacity: limits.capacity,
+            execution: limits.local_execution,
+            measurement: limits.guards,
+            max_work: limits.candidate_work,
+          },
+          _ => @strategy.RunIssue::ForeignCandidate,
+          _ => @strategy.RunIssue::ForeignCandidate,
+        ),
+      ),
+    ).unwrap()
+    let installed = @builtin.configured_local_module(modules).unwrap()
+    @local_driver.configure_local_retained_inputs(
+      installed,
+      {
+        max_rows: 100,
+        values: limits.local_execution.rows.input_values,
+        wire: {
+          max_bytes: 3000,
+          max_nodes: 300,
+          max_depth: 10,
+          max_columns: 10,
+          max_order_work: 1000,
+        },
+        row: {
+          max_bytes: 3000,
+          max_nodes: 300,
+          max_depth: 10,
+          max_text_bytes: 3000,
+        },
+        max_batch_bytes: 3000,
       },
-      row: {
-        max_bytes: 3000,
-        max_nodes: 300,
-        max_depth: 10,
-        max_text_bytes: 3000,
-      },
-      max_batch_bytes: 3000,
-    },
-    None,
-  ).unwrap()
+      None,
+    ).unwrap()
 
-  let values_live = Ref(true)
-  let (values_ops, values) = run_local_managed_test_task(
-    installed,
-    run,
-    1,
-    [],
-    [],
-    1,
-    values_live,
-    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
-  )
-  let values_rows = local_managed_test_rows(values_ops)
-  let (bridge_ops, bridge, bridge_material) = run_local_managed_carrier_test_task(
-    installed,
-    run,
-    2,
-    [@local_driver.local_managed_relation_output(values)],
-    [values_rows],
-    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
-  )
-  let matches_live = Ref(true)
-  let (matches_ops, matches) = run_local_managed_test_task(
-    installed,
-    run,
-    3,
-    [],
-    [],
-    3,
-    matches_live,
-    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
-    carrier_inputs=[(bridge, bridge_material)],
-  )
-  let rows = local_managed_test_rows(matches_ops)
-  assert_eq(rows.length(), 3)
-  assert_true(rows[0].contains("\"start_id\":2"))
-  assert_true(rows[0].contains("\"end_id\":3"))
+    let values_live = Ref(true)
+    let (values_ops, values) = run_local_managed_test_task(
+      installed,
+      run,
+      1,
+      [],
+      [],
+      1,
+      values_live,
+      obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+    )
+    let values_rows = local_managed_test_rows(values_ops)
+    let (bridge_ops, bridge, bridge_material) = run_local_managed_carrier_test_task(
+      installed,
+      run,
+      2,
+      [@local_driver.local_managed_relation_output(values)],
+      [values_rows],
+      obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+    )
+    let matches_live = Ref(true)
+    let (matches_ops, matches) = run_local_managed_test_task(
+      installed,
+      run,
+      3,
+      [],
+      [],
+      3,
+      matches_live,
+      obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+      carrier_inputs=[(bridge, bridge_material)],
+    )
+    let rows = local_managed_test_rows(matches_ops)
+    assert_eq(rows.length(), 3)
+    assert_true(rows[0].contains("\"start_id\":2"))
+    assert_true(rows[0].contains("\"end_id\":3"))
 
-  let first_live = Ref(true)
-  let (first_ops, first) = run_local_managed_test_task(
-    installed,
-    run,
-    4,
-    [matches],
-    [rows],
-    4,
-    first_live,
-    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
-  )
-  let second_live = Ref(true)
-  let (second_ops, second) = run_local_managed_test_task(
-    installed,
-    run,
-    5,
-    [matches],
-    [rows],
-    5,
-    second_live,
-    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
-  )
-  assert_eq(local_managed_test_rows(first_ops).length(), 3)
-  assert_eq(local_managed_test_rows(second_ops).length(), 3)
+    let mut consumer_source = matches
+    let mut consumer_rows = rows
+    let mut consumer_task = 3
+    let mut close_filter : (() -> Unit)? = None
+    if variant == "sequence_filter" {
+      let filter_live = Ref(true)
+      let (filter_ops, filtered) = run_local_managed_test_task(
+        installed,
+        run,
+        4,
+        [matches],
+        [rows],
+        4,
+        filter_live,
+        obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+      )
+      consumer_source = filtered
+      consumer_rows = local_managed_test_rows(filter_ops)
+      consumer_task = 4
+      assert_eq(consumer_rows, rows)
+      close_filter = Some(fn() {
+        filter_live.val = false
+        @strategy.close_captured_task_output(run, 4)
+        (filter_ops.close)()
+        (filter_ops.cleanup_refresh)() |> ignore
+      })
+    }
 
-  first_live.val = false
-  @strategy.close_captured_task_output(run, 4)
-  (first_ops.close)()
-  (first_ops.cleanup_refresh)() |> ignore
-  assert_false(@execution.managed_completed_output_available(first))
-  assert_true(@execution.managed_completed_output_available(second))
-  assert_true(@execution.managed_completed_output_available(matches))
+    let first_live = Ref(true)
+    let (first_ops, first) = run_local_managed_test_task(
+      installed,
+      run,
+      consumer_task + 1,
+      [consumer_source],
+      [consumer_rows],
+      consumer_task + 1,
+      first_live,
+      obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+    )
+    let second_live = Ref(true)
+    let (second_ops, second) = run_local_managed_test_task(
+      installed,
+      run,
+      consumer_task + 2,
+      [consumer_source],
+      [consumer_rows],
+      consumer_task + 2,
+      second_live,
+      obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+    )
+    assert_eq(local_managed_test_rows(first_ops).length(), 3)
+    assert_eq(local_managed_test_rows(second_ops).length(), 3)
 
-  second_live.val = false
-  @strategy.close_captured_task_output(run, 5)
-  (second_ops.close)()
-  (second_ops.cleanup_refresh)() |> ignore
-  matches_live.val = false
-  @strategy.close_captured_task_output(run, 3)
-  (matches_ops.close)()
-  (matches_ops.cleanup_refresh)() |> ignore
-  @strategy.close_captured_task_output(run, 2)
-  (bridge_ops.close)()
-  (bridge_ops.cleanup_refresh)() |> ignore
-  values_live.val = false
-  @strategy.close_captured_task_output(run, 1)
-  (values_ops.close)()
-  (values_ops.cleanup_refresh)() |> ignore
-  @strategy.stop_captured_dag(run)
-  @strategy.close_captured_task_output(run, 0)
-  @strategy.refresh_captured_retention(run)
-  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
-  assert_eq(usage.reserved_execution_bytes, 0L)
-  assert_eq(usage.reserved_retention_bytes, 0L)
-  assert_eq(usage.held_bytes, 0L)
-  @mock.close_mock_query_issuer(issuer)
+    first_live.val = false
+    @strategy.close_captured_task_output(run, consumer_task + 1)
+    (first_ops.close)()
+    (first_ops.cleanup_refresh)() |> ignore
+    assert_false(@execution.managed_completed_output_available(first))
+    assert_true(@execution.managed_completed_output_available(second))
+    assert_true(@execution.managed_completed_output_available(matches))
+
+    second_live.val = false
+    @strategy.close_captured_task_output(run, consumer_task + 2)
+    (second_ops.close)()
+    (second_ops.cleanup_refresh)() |> ignore
+    match close_filter {
+      Some(close) => close()
+      None => ()
+    }
+    matches_live.val = false
+    @strategy.close_captured_task_output(run, 3)
+    (matches_ops.close)()
+    (matches_ops.cleanup_refresh)() |> ignore
+    @strategy.close_captured_task_output(run, 2)
+    (bridge_ops.close)()
+    (bridge_ops.cleanup_refresh)() |> ignore
+    values_live.val = false
+    @strategy.close_captured_task_output(run, 1)
+    (values_ops.close)()
+    (values_ops.cleanup_refresh)() |> ignore
+    @strategy.stop_captured_dag(run)
+    @strategy.close_captured_task_output(run, 0)
+    @strategy.refresh_captured_retention(run)
+    let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+    assert_eq(usage.reserved_execution_bytes, 0L)
+    assert_eq(usage.reserved_retention_bytes, 0L)
+    assert_eq(usage.held_bytes, 0L)
+    @mock.close_mock_query_issuer(issuer)
+  }
 }

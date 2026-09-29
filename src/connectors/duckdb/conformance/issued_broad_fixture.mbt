@@ -60,7 +60,28 @@ fn issued_fixture_checked(
     },
   ).unwrap()
   let evidence = if sequence_match {
-    [sequence_fixture_capacity(environment, "matched")]
+    let mut sequence_step = -1
+    for stage in @syntax.stages(program) {
+      let body = @decode.open_object(@syntax.stage_body(stage)).unwrap()
+      if @decode.text(@decode.lookup(body, "id").unwrap()).unwrap() != "matched" {
+        continue
+      }
+      let steps = @decode.lookup(body, "steps").unwrap()
+      for index in 0..<@decode.array_length(steps).unwrap() {
+        let step = @decode.element_at(steps, index).unwrap()
+        if @decode.lookup(@decode.open_object(step).unwrap(), "sequence")
+          is Some(_) {
+          if sequence_step >= 0 {
+            fail("sequence fixture has multiple match steps")
+          }
+          sequence_step = index
+        }
+      }
+    }
+    if sequence_step < 0 {
+      fail("sequence fixture has no match step")
+    }
+    [sequence_fixture_capacity(environment, "matched", step=sequence_step)]
   } else if components {
     [components_fixture_capacity(environment, "graph", rows=components_rows)]
   } else if reach {

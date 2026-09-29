@@ -8,9 +8,14 @@ priv enum WatermarkPhase {
 }
 
 ///|
+priv enum WatermarkSource {
+  Stored(@records.ProducerRead, @storage.Storage)
+  Viewed(@lifecycle.ProducerView)
+}
+
+///|
 priv struct WatermarkState {
-  input : @records.ProducerRead
-  source : @storage.Storage
+  source : WatermarkSource
   mut output : @records.OutputBuilder?
   limits : @storage.Limits
   time_name : String
@@ -26,6 +31,50 @@ priv struct WatermarkState {
   mut fields : Array[(@schema.FieldName, @value.CheckedValue)]
   mut time : @value.CheckedValue?
   mut control_work_remaining : Int
+}
+
+///|
+fn watermark_source_available(source : WatermarkSource) -> Bool {
+  match source {
+    Stored(input, _) => @records.producer_read_available(input)
+    Viewed(view) => @lifecycle.producer_view_record_count(view) is Some(_)
+  }
+}
+
+///|
+fn watermark_source_record_count(source : WatermarkSource) -> Int? {
+  match source {
+    Stored(_, storage) => Some(@storage.record_count(storage))
+    Viewed(view) => @lifecycle.producer_view_record_count(view)
+  }
+}
+
+///|
+fn watermark_source_field_count(source : WatermarkSource, record : Int) -> Int? {
+  match source {
+    Stored(_, storage) => @storage.record_field_count(storage, record)
+    Viewed(view) =>
+      match @lifecycle.producer_view_record_field_count(view, record) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn watermark_source_field(
+  source : WatermarkSource,
+  record : Int,
+  field : Int,
+) -> (@schema.FieldName, @value.CheckedValue)? {
+  match source {
+    Stored(_, storage) => @storage.record_field_at(storage, record, field)
+    Viewed(view) =>
+      match @lifecycle.producer_view_record_field(view, record, field) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
 }
 
 ///|
@@ -71,7 +120,7 @@ fn output_contract(
 
 ///|
 fn begin_record(state : WatermarkState) -> Result[Unit, WatermarkIssue] {
-  guard @storage.record_field_count(state.source, state.record)
+  guard watermark_source_field_count(state.source, state.record)
     is Some(field_count) else {
     return Err(InvalidRecord(state.record))
   }
@@ -93,7 +142,7 @@ fn begin_record(state : WatermarkState) -> Result[Unit, WatermarkIssue] {
 
 ///|
 fn read_field(state : WatermarkState) -> Result[Unit, WatermarkIssue] {
-  guard @storage.record_field_at(state.source, state.record, state.field)
+  guard watermark_source_field(state.source, state.record, state.field)
     is Some((name, checked)) else {
     return Err(InvalidRecord(state.record))
   }
@@ -170,7 +219,7 @@ fn watermark_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@records.producer_read_available(state.input) {
+    if !watermark_source_available(state.source) {
       return @bounded.Failed(InputUnavailable, progress, used)
     }
     if used >= state.control_work_remaining {
@@ -178,7 +227,8 @@ fn watermark_step(
     }
     match state.phase {
       BeginRecord =>
-        if state.record < @storage.record_count(state.source) {
+        if state.record <
+          watermark_source_record_count(state.source).unwrap_or(-1) {
           match begin_record(state) {
             Ok(_) => used += 1
             Err(issue) => return @bounded.Failed(issue, progress, used)
@@ -187,7 +237,7 @@ fn watermark_step(
           state.phase = Finish
         }
       ReadFields => {
-        let count = @storage.record_field_count(state.source, state.record).unwrap_or(
+        let count = watermark_source_field_count(state.source, state.record).unwrap_or(
           -1,
         )
         if state.field < count {
@@ -242,40 +292,33 @@ fn cleanup_state(state : WatermarkState) -> Bool {
 }
 
 ///|
-pub fn start_watermark(
+fn start_watermark_source(
   control : @bounded.Control,
   sequence : @lower.PreparedSequence,
   step : Int,
-  input : @records.ProducerRead,
+  source : WatermarkSource,
+  input_carrier : @carrier.Carrier,
+  output_carrier : @carrier.Carrier,
+  watermark : Double,
+  drops_late : Bool,
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
-  control_work_limit? : Int? = None,
+  control_work_limit : Int,
 ) -> Result[WatermarkExecution, WatermarkIssue] {
   let owner = @lower.sequence_owner(sequence)
-  guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
-    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.operation(node) == "TEA.watermark.label" &&
-    @records.producer_read_matches_operation_input(input, owner, step, 0) &&
-    @lower.event_watermark(event) is Some(watermark) &&
-    @lower.event_watermark_drops_late(event) is Some(drops_late) else {
-    return Err(InvalidKernel)
-  }
-  guard @records.producer_read_storage(input) is Some(source) &&
-    @storage.carrier(source) is @carrier.EventValue(events) else {
+  guard input_carrier is @carrier.EventValue(events) else {
     return Err(InputUnavailable)
   }
   if limits.max_value_nodes < 1 || limits.max_workspace_slots < 3 {
     return Err(InvalidLimits)
   }
-  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
   if control_work_limit < 0 {
     return Err(InvalidLimits)
   }
   if control_work_limit == 0 {
     return Err(ControlWorkLimit)
   }
-  let output_carrier = @lower.event_output_carrier(event)
   guard output_contract(output_carrier, "watermark_ms")
     is Some(watermark_contract) &&
     output_contract(output_carrier, "late") is Some(late_contract) &&
@@ -295,7 +338,6 @@ pub fn start_watermark(
     Err(issue) => return Err(Output(issue))
   }
   let state : WatermarkState = {
-    input,
     source,
     output: Some(output),
     limits,
@@ -317,6 +359,91 @@ pub fn start_watermark(
     control, state, watermark_step, cleanup_state, @records.discard_completed,
   )
   Ok({ session, token: Some(token), max_noninterruptible_value_nodes: 3, })
+}
+
+///|
+pub fn start_watermark(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @records.ProducerRead,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit? : Int? = None,
+) -> Result[WatermarkExecution, WatermarkIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.operation(node) == "TEA.watermark.label" &&
+    @records.producer_read_matches_operation_input(input, owner, step, 0) &&
+    @lower.event_watermark(event) is Some(watermark) &&
+    @lower.event_watermark_drops_late(event) is Some(drops_late) else {
+    return Err(InvalidKernel)
+  }
+  guard @records.producer_read_storage(input) is Some(storage) else {
+    return Err(InputUnavailable)
+  }
+  start_watermark_source(
+    control,
+    sequence,
+    step,
+    Stored(input, storage),
+    @storage.carrier(storage),
+    @lower.event_output_carrier(event),
+    watermark,
+    drops_late,
+    limits,
+    storage_bytes,
+    available,
+    control_work_limit.unwrap_or(limits.max_work),
+  )
+}
+
+///|
+pub fn start_watermark_view(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit? : Int? = None,
+) -> Result[WatermarkExecution, WatermarkIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.operation(node) == "TEA.watermark.label" &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+    is Some(input_carrier) &&
+    @lifecycle.producer_view_kind(input) == @carrier.EventsKind &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(input),
+      owner,
+      step,
+      0,
+    ) &&
+    @lifecycle.producer_view_record_count(input) is Some(_) &&
+    @lower.event_watermark(event) is Some(watermark) &&
+    @lower.event_watermark_drops_late(event) is Some(drops_late) else {
+    return Err(InvalidKernel)
+  }
+  start_watermark_source(
+    control,
+    sequence,
+    step,
+    Viewed(input),
+    input_carrier,
+    @lower.event_output_carrier(event),
+    watermark,
+    drops_late,
+    limits,
+    storage_bytes,
+    available,
+    control_work_limit.unwrap_or(limits.max_work),
+  )
 }
 
 ///|

@@ -328,6 +328,92 @@ test "vector normalize admits only the exact external operation input" {
 }
 
 ///|
+test "vector normalize view stops without releasing its producer" {
+  let producer = producer_owner()
+  let source = source_vectors(producer, Ref(true), "[3,4]")
+  let material = @records.completed_material(source).unwrap()
+  let owner = consumer_owner(producer)
+  let view = @carrier_runtime.material_prepare_view(
+    material, owner, 0, producer,
+  ).unwrap()
+  let control = @bounded.control()
+  let execution = start_normalize_view(
+    control,
+    sequence(owner),
+    0,
+    view,
+    limits(),
+    2048L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(@bounded.request_cancel(control))
+  assert_true(advance_normalize(execution, 1).unwrap() is Stopped(_))
+  assert_eq(cleanup_normalize(execution), Ok(true))
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.reclaim_material(material))
+}
+
+///|
+test "vector normalize view enforces exact workspace and work" {
+  let producer = producer_owner()
+  let source = source_vectors(producer, Ref(true), "[3,4]")
+  let material = @records.completed_material(source).unwrap()
+  let owner = consumer_owner(producer)
+  // One begin, two field reads, two folds, divisor, two emissions, commit,
+  // and finish consume ten units. Two fields and two vector components need
+  // eight overlapping workspace slots.
+  for
+    (work, workspace, accepted) in [
+      (10, 8, true),
+      (9, 8, false),
+      (10, 7, false),
+    ] {
+    let view = @carrier_runtime.material_prepare_view(
+      material, owner, 0, producer,
+    ).unwrap()
+    let execution = start_normalize_view(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      view,
+      limits(workspace~),
+      2048L,
+      fn() { true },
+      control_work_limit=Some(work),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<16 {
+      if !terminal {
+        match advance_normalize(execution, 1).unwrap() {
+          Continue(..) => ()
+          Complete(output, ..) => {
+            assert_true(accepted)
+            assert_true(@records.discard_completed(output))
+            terminal = true
+          }
+          Failed(WorkLimit, ..) => {
+            assert_false(accepted)
+            assert_eq(work, 9)
+            terminal = true
+          }
+          Failed(WorkspaceLimit, ..) => {
+            assert_false(accepted)
+            assert_eq(workspace, 7)
+            terminal = true
+          }
+          _ => fail("unexpected normalize view result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(cleanup_normalize(execution), Ok(true))
+    assert_true(@carrier_runtime.material_available(material))
+  }
+  assert_true(@carrier_runtime.reclaim_material(material))
+}
+
+///|
 test "normalize rejects zero vectors without publishing partial output" {
   let producer = producer_owner()
   let source = source_vectors(producer, Ref(true), "[0,0]")

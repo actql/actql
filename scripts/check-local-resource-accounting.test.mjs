@@ -1862,13 +1862,13 @@ test('mixed-path gate preserves Carrier, Bridge, and Relation roles', () => {
   }), /mixed path graph_subgraph_node_rows_filter: Carrier, formal Bridge, and Relation roles differ/);
 });
 
-test('resource completion requires each unselected Carrier prefix', () => {
+test('resource completion requires each typed Carrier prefix', () => {
   for (const carrier of ['Graph', 'Events', 'Vectors']) {
     assert.match(run(undefined, value => {
       value.mixed_paths = value.mixed_paths.filter(path =>
         path.carrier !== carrier);
     }, ['--require-boundary-complete']),
-    new RegExp(`${carrier}: unselected prefix mixed-stage assurance is missing`));
+    new RegExp(`${carrier}: typed prefix mixed-stage assurance is missing`));
   }
 });
 

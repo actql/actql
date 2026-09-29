@@ -843,7 +843,10 @@ fn query_checked_program_fixture(
       ),
     ]
   } else if local_carrier_events_chain &&
-    local_carrier_events_variant == "sequence" {
+    (
+      local_carrier_events_variant == "sequence" ||
+      local_carrier_events_variant == "sequence_filter"
+    ) {
     let input = query_capacity_proof(
       "actql.bound.values",
       3L,

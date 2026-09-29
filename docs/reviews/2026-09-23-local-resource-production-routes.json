@@ -29,48 +29,72 @@
       "id": "events_dedupe_to_rows_filter",
       "carrier": "Events",
       "operations": ["dedupe_events", "events", "filter"],
-      "standalone_prefix_provider": false,
+      "standalone_prefix_provider": true,
       "standard_host": {
         "suite": "moon:query_integration",
         "targets": ["js", "wasm", "native"],
         "path": "src/query_integration/local_mixed_prefix_wbtest.mbt",
-        "fixture": "standard Host runs an unselected Events prefix into Relation consumers"
+        "fixture": "standard Host runs selected Events dedupe into Relation consumers"
       },
       "in_flight_cancel": {
         "suite": "node:duckdb_standard_host",
         "targets": ["node"],
         "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-        "fixture": "dedupe-events-fused-filter"
+        "fixture": "dedupe-events-selected-filter"
       },
       "selected_in_flight_cancel": {
         "suite": "node:duckdb_standard_host",
         "targets": ["node"],
         "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-        "fixture": "dedupe-events-selected-filter"
+        "fixture": "dedupe-events-later-filter"
+      }
+    },
+    {
+      "id": "events_window_to_rows_filter",
+      "carrier": "Events",
+      "operations": ["window_events", "events", "filter"],
+      "standalone_prefix_provider": true,
+      "standard_host": {
+        "suite": "moon:query_integration",
+        "targets": ["js", "wasm", "native"],
+        "path": "src/query_integration/local_mixed_prefix_wbtest.mbt",
+        "fixture": "standard Host runs selected Events windows into Relation consumers"
+      },
+      "in_flight_cancel": {
+        "suite": "node:duckdb_standard_host",
+        "targets": ["node"],
+        "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+        "fixture": "window-fixed-selected-filter"
+      },
+      "selected_in_flight_cancel": {
+        "suite": "node:duckdb_standard_host",
+        "targets": ["node"],
+        "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+        "fixture": "window-sliding-later-filter"
       }
     },
     {
       "id": "vectors_normalize_to_rows_filter",
       "carrier": "Vectors",
       "operations": ["normalize_vectors", "vectors", "filter"],
-      "standalone_prefix_provider": false,
+      "standalone_prefix_provider": true,
       "standard_host": {
         "suite": "moon:query_integration",
         "targets": ["js", "wasm", "native"],
         "path": "src/query_integration/local_mixed_prefix_wbtest.mbt",
-        "fixture": "standard Host runs an unselected Vectors prefix into Relation consumers"
+        "fixture": "standard Host runs selected Vectors normalization into Relation consumers"
       },
       "in_flight_cancel": {
         "suite": "node:duckdb_standard_host",
         "targets": ["node"],
         "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-        "fixture": "vector-normalize-fused-filter"
+        "fixture": "vector-normalize-selected-filter"
       },
       "selected_in_flight_cancel": {
         "suite": "node:duckdb_standard_host",
         "targets": ["node"],
         "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-        "fixture": "vector-normalize-selected-filter"
+        "fixture": "vector-normalize-later-filter"
       }
     }
   ],
@@ -8328,6 +8352,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_sequence_match_wbtest.mbt",
           "fixture": "bounded sequence admits exact and one-short workspace"
+        },
+        {
+          "role": "sequence_selected_events_filter_handoff",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "fixture": "standard Host matches retained Events before Relation filtering"
         }
       ],
       "environment_tests": [
@@ -8337,6 +8368,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "sequence"
+        },
+        {
+          "role": "sequence_retained_filter_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "events-sequence-filter"
         }
       ],
       "path_assurance": {

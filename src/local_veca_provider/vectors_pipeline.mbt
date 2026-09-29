@@ -33,6 +33,7 @@ priv struct Execution {
   inputs : Array[@local.ManagedProviderInput]
   relation_inputs : Array[@execution.ProducerRead]?
   carrier_input : @lifecycle.ProducerView?
+  direct_normalize : Bool
   ranking_inputs : Array[@veca.RankingInput]?
   control : @bounded.Control
   limits : @storage.Limits
@@ -45,6 +46,7 @@ priv struct Execution {
   mut phase : Phase
   mut binding_execution : @execution.BoundedBindingRowsExecution?
   mut rows : @bridge.RowsToVectorsExecution?
+  row_step : Int
   mut kernel_step : Int
   mut kernel : VectorExecution?
   mut transformed : @records.Completed?
@@ -131,7 +133,9 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       return false
     }
     let direct_bridge = match step {
-      @lower.VectorStep(_) => @lower.operation(node) == "BRIDGE.rows.to_vectors"
+      @lower.VectorStep(_) =>
+        @lower.operation(node) == "BRIDGE.rows.to_vectors" ||
+        @lower.operation(node) == "VEC.normalize_l2"
       @lower.CarrierProjectionStep(projection) =>
         @lower.operation(node) == "BRIDGE.vectors.to_rows" &&
         @lower.carrier_projection_operation(projection) ==
@@ -433,7 +437,7 @@ fn advance_execution(
           @bridge.start_rows_to_vectors(
             value.control,
             value.sequence,
-            0,
+            value.row_step,
             inputs[0],
             value.limits,
             value.storage_bytes,
@@ -509,10 +513,11 @@ fn advance_execution(
         }
       }
       StartKernel => {
-        guard value.transformed is Some(output) else {
+        if !value.direct_normalize && value.transformed is None {
           return fail_execution(value)
         }
-        if value.kernel_step == value.projection_step - 1 {
+        if !value.direct_normalize &&
+          value.kernel_step == value.projection_step - 1 {
           guard @lower.node_at(
               @lower.bound_preparation(
                 @execution.generated_sequence_owner(value.generated),
@@ -524,6 +529,9 @@ fn advance_execution(
           }
           if @lower.node_input_target(projection, 0) ==
             Some(@pipeline.Step(value.kernel_step - 1)) {
+            guard value.transformed is Some(output) else {
+              return fail_execution(value)
+            }
             value.projection_input = match
               @records.prepare_step_read(
                 @execution.generated_sequence_owner(value.generated),
@@ -536,15 +544,22 @@ fn advance_execution(
             }
           }
         }
-        let input = match
-          @records.prepare_step_read(
-            @execution.generated_sequence_owner(value.generated),
-            value.kernel_step,
-            0,
-            output,
-          ) {
-          Ok(read) => read
-          Err(_) => return fail_execution(value)
+        let input = if value.direct_normalize {
+          None
+        } else {
+          guard value.transformed is Some(output) else {
+            return fail_execution(value)
+          }
+          match
+            @records.prepare_step_read(
+              @execution.generated_sequence_owner(value.generated),
+              value.kernel_step,
+              0,
+              output,
+            ) {
+            Ok(read) => Some(read)
+            Err(_) => return fail_execution(value)
+          }
         }
         guard @lower.node_at(
             @lower.bound_preparation(
@@ -556,20 +571,35 @@ fn advance_execution(
           return fail_execution(value)
         }
         let started = if @lower.operation(node) == "VEC.normalize_l2" {
-          match
-            @veca.start_normalize(
-              value.control,
-              value.sequence,
-              value.kernel_step,
-              input,
-              value.limits,
-              value.storage_bytes,
-              fn() { true },
-            ) {
+          let started = match (input, value.carrier_input) {
+            (Some(input), _) =>
+              @veca.start_normalize(
+                value.control,
+                value.sequence,
+                value.kernel_step,
+                input,
+                value.limits,
+                value.storage_bytes,
+                fn() { true },
+              )
+            (None, Some(view)) if value.direct_normalize =>
+              @veca.start_normalize_view(
+                value.control,
+                value.sequence,
+                value.kernel_step,
+                view,
+                value.limits,
+                value.storage_bytes,
+                fn() { true },
+              )
+            _ => return fail_execution(value)
+          }
+          match started {
             Ok(execution) => Normalize(execution)
             Err(_) => return fail_execution(value)
           }
         } else if @lower.operation(node) == "VEC.score_sort" {
+          guard input is Some(input) else { return fail_execution(value) }
           match
             @veca.start_score(
               value.control,
@@ -584,6 +614,7 @@ fn advance_execution(
             Err(_) => return fail_execution(value)
           }
         } else if @lower.operation(node) == "VEC.pool" {
+          guard input is Some(input) else { return fail_execution(value) }
           match
             @veca.start_pool(
               value.control,
@@ -655,10 +686,33 @@ fn advance_execution(
             return Ok(poll)
           }
           1 => {
-            guard continue_poll(value, progress, work) is Some(poll) else {
+            guard output is Some(completed) else {
               return fail_execution(value)
             }
-            guard output is Some(completed) else {
+            if value.direct_normalize {
+              guard delta(progress, value.stage_progress)
+                is Some(progress_delta) &&
+                delta(work, value.stage_work) is Some(work_delta) else {
+                @records.discard_completed(completed) |> ignore
+                return fail_execution(value)
+              }
+              let material = match @records.completed_material(completed) {
+                Ok(material) => material
+                Err(_) => {
+                  @records.discard_completed(completed) |> ignore
+                  return fail_execution(value)
+                }
+              }
+              value.terminal = true
+              value.phase = Terminal
+              return Ok(
+                @local.managed_provider_carrier_complete(
+                  material, progress_delta, work_delta,
+                ),
+              )
+            }
+            guard continue_poll(value, progress, work) is Some(poll) else {
+              @records.discard_completed(completed) |> ignore
               return fail_execution(value)
             }
             value.pending_transformed = Some(completed)
@@ -1290,11 +1344,13 @@ pub fn provider(
       let relations = relation_inputs(inputs)
       let rankings = ranking_inputs(inputs)
       let direct_projection = direct_operation == Some("BRIDGE.vectors.to_rows")
+      let direct_normalize = direct_operation == Some("VEC.normalize_l2")
       let carrier_input = match inputs {
-        [@local.CarrierInput(view)] if direct_projection => Some(view)
+        [@local.CarrierInput(view)] if direct_projection || direct_normalize =>
+          Some(view)
         _ => None
       }
-      if direct_projection && carrier_input is None {
+      if (direct_projection || direct_normalize) && carrier_input is None {
         return Err(@connector.Execution(@execution.InputSet))
       }
       if direct_operation == Some("VEC.merge_rankings") && rankings is None {
@@ -1304,6 +1360,7 @@ pub fn provider(
         !nearest_pipeline &&
         direct_operation != Some("VEC.merge_rankings") &&
         !direct_projection &&
+        !direct_normalize &&
         relations is None {
         return Err(@connector.Execution(@execution.InputSet))
       }
@@ -1313,6 +1370,7 @@ pub fn provider(
         inputs: inputs.copy(),
         relation_inputs: relations,
         carrier_input,
+        direct_normalize,
         ranking_inputs: rankings,
         control: @bounded.control(),
         limits,
@@ -1328,6 +1386,8 @@ pub fn provider(
         relation_pool,
         phase: if direct_projection {
           StartProjection
+        } else if direct_normalize {
+          StartKernel
         } else if binding_rows {
           StartBindingRows
         } else if direct_operation == Some("VEC.knn_join") {
@@ -1340,8 +1400,11 @@ pub fn provider(
           StartRows
         },
         rows: None,
+        row_step: first_step,
         binding_execution: None,
-        kernel_step: if relation_pool {
+        kernel_step: if direct_normalize {
+          first_step
+        } else if relation_pool {
           0
         } else {
           1

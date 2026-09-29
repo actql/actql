@@ -959,7 +959,12 @@ fn run_standard_host_mixed_vectors_relation_path(
       execution_bytes: 402653184L,
     }),
   )
-  assert_eq(@strategy.graph_task_count(@strategy.captured_dag_graph(run)), 7)
+  let normalize = variant == "normalize_filter"
+  let task_offset = if normalize { 1 } else { 0 }
+  assert_eq(
+    @strategy.graph_task_count(@strategy.captured_dag_graph(run)),
+    7 + task_offset,
+  )
   assert_true(
     @strategy.configure_captured_managed_identity_policy(
       run, true, false, false, false,
@@ -1059,27 +1064,51 @@ fn run_standard_host_mixed_vectors_relation_path(
     [values_rows],
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
+  let normalized = if normalize {
+    Some(
+      run_local_managed_carrier_test_task(
+        installed,
+        run,
+        3,
+        [@local_driver.local_managed_carrier_output(bridge, bridge_material)],
+        [],
+        obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+      ),
+    )
+  } else {
+    None
+  }
+  let (projection_carrier, projection_material) = match normalized {
+    Some((_, completed, material)) => (completed, material)
+    None => (bridge, bridge_material)
+  }
   let projected_live = Ref(true)
   let (projected_ops, projected) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    3 + task_offset,
     [],
     [],
-    3,
+    3 + task_offset,
     projected_live,
-    carrier_inputs=[(bridge, bridge_material)],
+    carrier_inputs=[(projection_carrier, projection_material)],
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   let projected_rows = local_managed_test_rows(projected_ops)
+  if normalize {
+    assert_eq(projected_rows, [
+      "{\"code\":\"😀\",\"embedding\":[0.6000000238418579,0.800000011920929],\"group\":1,\"id\":1}",
+      "{\"code\":\"é\",\"embedding\":[0,1],\"group\":1,\"id\":2}",
+    ])
+  }
   let filtered_live = Ref(true)
   let (filtered_ops, filtered) = run_local_managed_test_task(
     installed,
     run,
-    4,
+    4 + task_offset,
     [projected],
     [projected_rows],
-    4,
+    4 + task_offset,
     filtered_live,
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
     execution_quantum~,
@@ -1100,10 +1129,10 @@ fn run_standard_host_mixed_vectors_relation_path(
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    5,
+    5 + task_offset,
     [filtered],
     [filtered_rows],
-    5,
+    5 + task_offset,
     first_live,
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
@@ -1111,34 +1140,39 @@ fn run_standard_host_mixed_vectors_relation_path(
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    6,
+    6 + task_offset,
     [filtered],
     [filtered_rows],
-    6,
+    6 + task_offset,
     second_live,
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   assert_eq(local_managed_test_rows(first_ops).length(), 2)
   assert_eq(local_managed_test_rows(second_ops).length(), 2)
   first_live.val = false
-  @strategy.close_captured_task_output(run, 5)
+  @strategy.close_captured_task_output(run, 5 + task_offset)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
   assert_true(@execution.managed_completed_output_available(second))
   assert_true(@execution.managed_completed_output_available(filtered))
   second_live.val = false
-  @strategy.close_captured_task_output(run, 6)
+  @strategy.close_captured_task_output(run, 6 + task_offset)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
   filtered_live.val = false
-  @strategy.close_captured_task_output(run, 4)
+  @strategy.close_captured_task_output(run, 4 + task_offset)
   (filtered_ops.close)()
   (filtered_ops.cleanup_refresh)() |> ignore
   projected_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, 3 + task_offset)
   (projected_ops.close)()
   (projected_ops.cleanup_refresh)() |> ignore
+  if normalized is Some((normalized_ops, _, _)) {
+    @strategy.close_captured_task_output(run, 3)
+    (normalized_ops.close)()
+    (normalized_ops.cleanup_refresh)() |> ignore
+  }
   @strategy.close_captured_task_output(run, 2)
   (bridge_ops.close)()
   (bridge_ops.cleanup_refresh)() |> ignore

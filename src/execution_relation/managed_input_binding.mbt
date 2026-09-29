@@ -26,7 +26,7 @@ pub fn ordinary_relation_input_binding(
   {
     identity: Ref(()),
     receiver: producer_read_receiver(value),
-    consumer_step: None,
+    consumer_step: value.bound.consumer_step,
     input_index: producer_read_input_index(value),
     kind: @carrier.RelationKind,
     profile_cid: managed_execution_profile_cid(

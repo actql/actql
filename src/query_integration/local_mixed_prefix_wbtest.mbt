@@ -1,11 +1,12 @@
 ///|
-fn run_standard_host_fused_carrier_prefix(events : Bool) -> Unit raise {
-  let variant = if events { "dedupe_filter" } else { "normalize_filter" }
+fn run_standard_host_selected_events_prefix(
+  variant : String,
+  expected_rows : Int,
+  expected_cid : String,
+) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
-    local_carrier_events_chain=events,
+    local_carrier_events_chain=true,
     local_carrier_events_variant=variant,
-    local_carrier_vectors_chain=!events,
-    local_carrier_vectors_variant=variant,
     managed_publication=true,
     ledger_limits=Some({
       planning_work: 30000,
@@ -17,8 +18,9 @@ fn run_standard_host_fused_carrier_prefix(events : Bool) -> Unit raise {
     }),
   )
   let graph = @strategy.captured_dag_graph(run)
-  assert_eq(@strategy.graph_task_count(graph), 6)
-  assert_eq(@strategy.graph_task_prefix_end(graph, 2), Some(2))
+  assert_eq(@strategy.graph_task_count(graph), 8)
+  assert_eq(@strategy.graph_task_prefix_end(graph, 2), None)
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(1))
   assert_true(@strategy.graph_ordered_inputs_complete(graph))
   assert_true(
     @strategy.configure_captured_managed_identity_policy(
@@ -33,19 +35,11 @@ fn run_standard_host_fused_carrier_prefix(events : Bool) -> Unit raise {
     limits.local_execution,
     limits.guards,
   ).unwrap()
-  let provider = if events {
-    @local_tea_provider.provider(
-      carrier_events_storage_limits(),
-      4096L,
-      capacity,
-    )
-  } else {
-    @local_veca_provider.provider(
-      carrier_vectors_storage_limits(),
-      4096L,
-      capacity,
-    )
-  }
+  let provider = @local_tea_provider.provider(
+    carrier_events_storage_limits(),
+    4096L,
+    capacity,
+  )
   let modules = @builtin.configure_compute_modules(
     @host_driver.open_dispatch_driver(run),
     registry,
@@ -102,27 +96,42 @@ fn run_standard_host_fused_carrier_prefix(events : Bool) -> Unit raise {
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   let values_rows = local_managed_test_rows(values_ops)
+  let (bridge_ops, bridge, bridge_material) = run_local_managed_carrier_test_task(
+    installed,
+    run,
+    2,
+    [@local_driver.local_managed_relation_output(values)],
+    [values_rows],
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
+  let (transform_ops, transform, transform_material) = run_local_managed_carrier_test_task(
+    installed,
+    run,
+    3,
+    [@local_driver.local_managed_carrier_output(bridge, bridge_material)],
+    [],
+    obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+  )
   let prefix_live = Ref(true)
   let (prefix_ops, prefix) = run_local_managed_test_task(
     installed,
     run,
-    2,
-    [values],
-    [values_rows],
-    2,
+    4,
+    [],
+    [],
+    4,
     prefix_live,
+    carrier_inputs=[(transform, transform_material)],
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   let prefix_rows = local_managed_test_rows(prefix_ops)
-  assert_eq(prefix_rows.length(), 2)
-  if events {
+  assert_eq(prefix_rows.length(), expected_rows)
+  if variant == "dedupe_filter" {
     assert_true(prefix_rows[0].contains("\"event_id\":2"))
     assert_true(prefix_rows[1].contains("\"event_id\":4"))
   } else {
-    assert_eq(prefix_rows, [
-      "{\"code\":\"😀\",\"embedding\":[0.6000000238418579,0.800000011920929],\"group\":1,\"id\":1}",
-      "{\"code\":\"é\",\"embedding\":[0,1],\"group\":1,\"id\":2}",
-    ])
+    assert_true(prefix_rows[0].contains("\"window_start_ms\""))
+    assert_true(prefix_rows[0].contains("\"window_end_ms\""))
   }
   let filtered_live = Ref(true)
   let filtered_obligations = @strategy.captured_next_managed_obligations(
@@ -131,10 +140,10 @@ fn run_standard_host_fused_carrier_prefix(events : Bool) -> Unit raise {
   let (filtered_ops, filtered) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    5,
     [prefix],
     [prefix_rows],
-    3,
+    5,
     filtered_live,
     obligations=filtered_obligations,
   )
@@ -154,11 +163,7 @@ fn run_standard_host_fused_carrier_prefix(events : Bool) -> Unit raise {
     Some(
       @execution.EstablishedSourceRetained(
         @execution.logical_relation_canonical_contract_cid(),
-        if events {
-          "sha256:058f941f294541f1b2c6a5ee64dc74b06f03433d3474a9bc0a23a4c8e5ccf00b"
-        } else {
-          "sha256:4dcae0e6f3da74f61a0e6c3177bae62ac85ed202e6af740c4f672ffc61c2623a"
-        },
+        expected_cid,
       ),
     ),
   )
@@ -166,10 +171,10 @@ fn run_standard_host_fused_carrier_prefix(events : Bool) -> Unit raise {
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    4,
+    6,
     [filtered],
     [prefix_rows],
-    4,
+    6,
     first_live,
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
@@ -177,33 +182,39 @@ fn run_standard_host_fused_carrier_prefix(events : Bool) -> Unit raise {
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    5,
+    7,
     [filtered],
     [prefix_rows],
-    5,
+    7,
     second_live,
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
-  assert_eq(local_managed_test_rows(first_ops).length(), 2)
-  assert_eq(local_managed_test_rows(second_ops).length(), 2)
+  assert_eq(local_managed_test_rows(first_ops).length(), expected_rows)
+  assert_eq(local_managed_test_rows(second_ops).length(), expected_rows)
   first_live.val = false
-  @strategy.close_captured_task_output(run, 4)
+  @strategy.close_captured_task_output(run, 6)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
   assert_true(@execution.managed_completed_output_available(second))
   second_live.val = false
-  @strategy.close_captured_task_output(run, 5)
+  @strategy.close_captured_task_output(run, 7)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
   filtered_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, 5)
   (filtered_ops.close)()
   (filtered_ops.cleanup_refresh)() |> ignore
   prefix_live.val = false
-  @strategy.close_captured_task_output(run, 2)
+  @strategy.close_captured_task_output(run, 4)
   (prefix_ops.close)()
   (prefix_ops.cleanup_refresh)() |> ignore
+  @strategy.close_captured_task_output(run, 3)
+  (transform_ops.close)()
+  (transform_ops.cleanup_refresh)() |> ignore
+  @strategy.close_captured_task_output(run, 2)
+  (bridge_ops.close)()
+  (bridge_ops.cleanup_refresh)() |> ignore
   values_live.val = false
   @strategy.close_captured_task_output(run, 1)
   (values_ops.close)()
@@ -219,11 +230,23 @@ fn run_standard_host_fused_carrier_prefix(events : Bool) -> Unit raise {
 }
 
 ///|
-test "standard Host runs an unselected Events prefix into Relation consumers" {
-  run_standard_host_fused_carrier_prefix(true)
+test "standard Host runs selected Events dedupe into Relation consumers" {
+  run_standard_host_selected_events_prefix(
+    "dedupe_filter", 2, "sha256:058f941f294541f1b2c6a5ee64dc74b06f03433d3474a9bc0a23a4c8e5ccf00b",
+  )
 }
 
 ///|
-test "standard Host runs an unselected Vectors prefix into Relation consumers" {
-  run_standard_host_fused_carrier_prefix(false)
+test "standard Host runs selected Events windows into Relation consumers" {
+  run_standard_host_selected_events_prefix(
+    "window_fixed_filter", 3, "sha256:5528c393bdc40f682c1c7271183d2c43814871a253da19ee7fa9891ee59a9007",
+  )
+  run_standard_host_selected_events_prefix(
+    "window_sliding_filter", 6, "sha256:c2ba9666c6a15ecbd0374413e5a94768d7dd66767bf17a710fbecd6a165a1cf8",
+  )
+}
+
+///|
+test "standard Host runs selected Vectors normalization into Relation consumers" {
+  run_standard_host_mixed_vectors_relation_path("normalize_filter")
 }

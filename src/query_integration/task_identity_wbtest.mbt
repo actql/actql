@@ -66,11 +66,11 @@ test "split Carrier task identities retain their authored unit and exact Step" {
     @program_check.unit_count(program) + 10,
     10000,
   ).unwrap()
-  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(3))
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(1))
   let reference = @strategy.prepare_checked_task_reference(graph, 3, 20, 1000).unwrap()
   let identity = @strategy.checked_task_identity(reference)
   assert_eq(identity.task, 3)
-  assert_eq(identity.output_step, 3)
+  assert_eq(identity.output_step, 1)
   assert_eq(
     identity.unit_definition_cid,
     @program_check.unit_definition_cid(program, 2).unwrap(),

@@ -638,7 +638,7 @@ multi-step Relation tasks are rejected.
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |
 | Other Relation obligations outside the selected bounded binary chains | In progress | The exact bounded Relation children listed below discharge their checked obligations, including unpivot and unnest output envelopes and selected binary64 numeric observations. Other unlisted obligations remain closed to this retained lane. |
-| Mixed retained Store and Carrier paths | In progress | The typed managed route now runs alongside row-file retention for the Graph, Events, and Vectors examples below. Other Carrier variants and direct inter-task Events/Vectors handoffs still need route-specific evidence. |
+| Mixed retained Store and Carrier paths | In progress | The typed managed route runs alongside row-file retention for Graph, Events, and Vectors. Direct inter-task Events/Vectors handoffs are covered for the minimal Bridge routes below, and selected Events watermark/dedupe/fixed window/sliding window/session and Vectors normalization are covered between construction and projection; other Carrier variants still need route-specific evidence. |
 | Native Host in-flight cancellation | Separate completion unit | Do not count JS Host cancellation as native request delivery. |
 
 The above is local route evidence. A final verification SHA and Linux CI result
@@ -748,8 +748,17 @@ files, a Graph generation and a Relation view. Events and Vectors Programs
 keep their typed generations inside the producer task, use their formal
 Carrier-to-Relation Bridge, and pass that Relation output to two consumers.
 Their three Named Results are likewise read against authored expectations.
-These cases prove mixed row-file/managed selection, not that Events or Vectors
-are physically retained as inter-task Carrier outputs.
+Separate cases place Values, Carrier construction, and the formal Relation
+projection in one authored Stage. The physical tasks retain the exact Events
+or Vectors generation between construction and projection; the real Store
+publishes the resulting Relation and two downstream consumers read
+independently checked Named Results. Events cases also run bounded watermark
+labeling, deduplication, fixed/sliding window assignment, or session assignment
+as another physical task between construction and projection and check the
+authored labels, survivors, window boundaries, or session boundaries. A Vectors
+case runs bounded normalization between construction and projection and checks
+the f32 components. These cases establish direct inter-task handoff for the
+Bridge-only routes and selected transforms, not for every Carrier variant.
 
 A separate Graph fixture delivers timer cancellation after positive work in
 the later Relation filter, then checks stop, nonpublication, no redispatch and
@@ -3917,3 +3926,16 @@ still selects the established file-producing path, since the managed provider
 currently returns an in-memory output. This closes the selected retained-input
 connection, not every providerless synchronous path or the strict
 operation-specific resource gate.
+
+The retained Events sequence matcher now also runs as a selected intermediate
+step before a Relation filter in the same authored Stage. The bounded matcher
+accepts the exact one-step generated selection without requiring that the
+selected step be the Stage terminal. The checked physical graph splits the
+Events construction, sequence match, and filter into exact tasks. Portable
+standard-Host fixtures verify both the terminal and filtered forms with two
+independent consumers and final ledger reclamation on JS, Wasm, and native.
+The Node standard Host retains the filtered Relation in a real Store, publishes
+and reads three Named Results against hand-written ordered rows, then reclaims
+the Store and Run. The existing sequence work/workspace and in-flight
+cancellation fixtures still cover the bounded kernel; this route does not
+claim every remaining Carrier variant or mixed-path failure mode.
