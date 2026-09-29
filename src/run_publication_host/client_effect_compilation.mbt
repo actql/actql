@@ -53,9 +53,9 @@ pub fn client_effect_compilation_owner(
 }
 
 ///|
-/// Compile one source-free checked Unit with result-correlated Effects and
-/// named Program Results. Existing task lowering owns the supported Relation
-/// operations. Command Effects and multi-Unit plans are rejected explicitly.
+/// Compile a Values Effect Unit or an acquired root feeding one Effect Unit.
+/// Existing task lowering owns the supported Relation operations. Command
+/// Effects and other multi-Unit plans are rejected explicitly.
 pub fn issue_prepared_client_effect_compilation(
   owner : PreparedClientEffectComputation,
   manifests : ClientCompilationManifests,
@@ -69,7 +69,8 @@ pub fn issue_prepared_client_effect_compilation(
   let graph = @strategy.checked_effect_computation_graph(owner.graph)
   let headers = @checked.effect_program_static_headers(owner.candidate)
   let count = @syntax.effect_header_count(headers)
-  if @checked.unit_count(@strategy.graph_program(graph)) != 1 ||
+  let units = @checked.unit_count(@strategy.graph_program(graph))
+  if (units != 1 && units != 2) ||
     count == 0 ||
     count > max_nodes ||
     @strategy.checked_effect_source_count(owner.graph) != count {
@@ -79,13 +80,32 @@ pub fn issue_prepared_client_effect_compilation(
     owner.candidate,
   )
   guard @strategy.graph_task_owner(graph, 0) is Some(first) &&
-    @pipeline.starts_with_values(
-      @lower.pipeline(@lower.bound_preparation(first)),
-    ) &&
     @checked.unit_pipeline(checked, 0) is Some(pipeline) &&
-    @pipeline.input_count(pipeline) == 0 &&
     @checked.unit_result_import_count(checked, 0) == Some(0) &&
     @checked.unit_import_cid_count(checked, 0) == Some(0) else {
+    return Err(UnsupportedProgram)
+  }
+  let source_free = units == 1 &&
+    @pipeline.input_count(pipeline) == 0 &&
+    @pipeline.starts_with_values(
+      @lower.pipeline(@lower.bound_preparation(first)),
+    )
+  let acquired = units == 2 &&
+    @pipeline.input_count(pipeline) == 1 &&
+    @checked.source_execution_count(checked) == 1 &&
+    @checked.unit_pipeline(checked, 1) is Some(effect_pipeline) &&
+    @pipeline.input_count(effect_pipeline) == 1 &&
+    @checked.unit_result_import_count(checked, 1) == Some(1) &&
+    prepare_client_query_acquisition(
+      {
+        graph,
+        source: owner.source,
+        check_environment_cid: owner.check_environment_cid,
+      },
+      0,
+      0,
+    ) is Ok(_)
+  if !source_free && !acquired {
     return Err(UnsupportedProgram)
   }
   // This private compiler view contains the same graph, source and Effects.
@@ -103,7 +123,7 @@ pub fn issue_prepared_client_effect_compilation(
   )
   for index in 0..<count {
     guard @syntax.effect_header_at(headers, index) is Some(header) &&
-      @syntax.effect_header_stage(header) == 0 &&
+      @syntax.effect_header_stage(header) == units - 1 &&
       @syntax.effect_header_source_result(header) is Some(_) else {
       return Err(UnsupportedProgram)
     }
@@ -119,7 +139,7 @@ pub fn issue_prepared_client_effect_compilation(
         return Err(UnsupportedProgram)
       }
       if @strategy.checked_effect_source_member(source) == index &&
-        @strategy.checked_effect_source_stage(source) == 0 {
+        @strategy.checked_effect_source_stage(source) == units - 1 {
         if source_task >= 0 {
           return Err(UnsupportedProgram)
         }

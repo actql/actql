@@ -9,6 +9,8 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {composeInstalledCheckEnvironment} from
+  './installed-check-environment.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
@@ -2254,8 +2256,55 @@ async function effectFixture({splitSource = false,
     }
   }
   return {document: JSON.stringify(document), environment,
+    environmentWire: canonicalJson(environmentDocument),
     mappingCid: mapping.mapping_contract_cid};
 }
+
+test('one acquired Effect Program compiles from its checked owner',
+  async () => {
+    const effect = await effectFixture({writeKind: 'update'});
+    const baseWire = await readFile(new URL(
+      '../../spec/local-check-environment.json', import.meta.url), 'utf8');
+    const source = JSON.parse(await readFile(new URL(
+      './fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
+    source.host_policy_profile = JSON.parse(baseWire).host_policy_profile;
+    source.evidence_bundle_cid = canonicalHashWithoutSelf(source,
+      'evidence_bundle_cid');
+    assert.ok(moon.clientProgramCheckEnvironment(canonicalJson(source),
+      source.evidence_bundle_cid, false, false, true, false, false,
+      false, false), 'source environment');
+    const effectWire = effect.environmentWire;
+    assert.ok(moon.clientProgramCheckEnvironment(effectWire,
+      JSON.parse(effectWire).evidence_bundle_cid, false, false, true,
+      false, false, false, false), 'Effect environment');
+    const wire = composeInstalledCheckEnvironment(moon,
+      canonicalJson(JSON.parse(baseWire)),
+      canonicalJson(source), effectWire);
+    const environment = moon.clientProgramCheckEnvironment(wire,
+      JSON.parse(wire).evidence_bundle_cid,
+      false, false, true, false, false, false, false);
+    assert.ok(environment);
+    const document = JSON.parse(await readFile(new URL(
+      '../connectors/duckdb/node/examples/program.json', import.meta.url),
+    'utf8'));
+    delete document.params;
+    document.stages = document.stages.slice(0, 2);
+    document.stages[0].steps[0].filter = 'id > 1';
+    document.stages[1].effects = JSON.parse(effect.document).stages[0].effects;
+    document.stages[1].effects.save.update.from.result = 'r';
+    document.results = {answer: {from: {stage: 'compute_a', result: 'r'}}};
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      canonicalJson(document), 'json', environment, undefined, []);
+    const prepared = moon.clientProgramEffectPreparationReady(outcome);
+    assert.ok(prepared,
+      moon.clientProgramEffectPreparationIssueCode(outcome));
+    const compileOutcome = moon.clientProgramCompileLocalEffects(prepared);
+    assert.equal(moon.clientProgramEffectCompilationIssueCode(compileOutcome),
+      undefined);
+    const compiled = checked(compileOutcome);
+    assert.deepEqual(moon.clientProgramEffectCompilationResultNames(compiled),
+      ['answer']);
+  });
 
 function effectInputPreview(prepared, evidence, definition, invocation,
   mappingCid, artifactCid, writeKind = 'create',
