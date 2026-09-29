@@ -480,7 +480,7 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 68 |
 | Full route work/workspace assurance | 68 |
-| Path-scoped work/workspace assurance | 114 |
+| Path-scoped work/workspace assurance | 117 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -4004,6 +4004,22 @@ The focused portable subgraph tests passed on JS, Wasm, and native, and the
 full Node standard-Host test passed locally. Same-SHA Linux CI remains
 unverified; these cases do not establish every Graph selector variant or every
 mixed Carrier failure mode.
+
+Selected Graph bounds, degree, and weak/strong components now accept an exact
+managed Graph view when a later Relation operation splits the authored Stage.
+Stored and viewed inputs use the same bounded diagnostic kernels, with the
+view's exact read reference bound into the trusted Relation output port.
+Portable selected-view fixtures check the three dispatch paths and their
+independent exact/one-short work and workspace limits, positive-work stop,
+cleanup, and continued availability of the input Graph. The Node standard Host
+retains each diagnostic Relation in the real Store, publishes its Named Result,
+and reads two independent consumer Results after a same-Stage filter. The
+multirow graph-bounds kernel order remains covered by its direct semantic
+fixture; the retained Host connection fixture uses a single reported bound so
+that it does not infer order from an unrelated publication representation.
+Selected Host-delivered cancellation cases are registered for all three
+diagnostics. Other retained Graph Relation-producing operations remain separate
+completion units; this change does not waive their route or resource proofs.
 
 Selected `SGA.match_nodes` and `SGA.match_edges` now read an exact managed
 Graph view through their existing bounded match kernels. The Node standard
