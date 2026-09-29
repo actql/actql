@@ -1068,7 +1068,8 @@ fn advance_execution(
           value.nearest_inputs[1] is Some(right) else {
           return fail_execution(value)
         }
-        let started_result = if value.fused_nearest {
+        let started_result = if value.fused_nearest ||
+          value.relation_inputs is Some(_) {
           match value.relation_inputs {
             Some(inputs) =>
               @veca.start_nearest_inputs_with_relations(

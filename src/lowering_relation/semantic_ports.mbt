@@ -198,6 +198,9 @@ pub fn node_supports_bounded_managed_prefix(
     | (RankingValue(_), Where(_))
     | (RankingValue(_), Derive(_))
     | (RankingValue(_), Select(_))
+    | (NearestValue(_), Where(_))
+    | (NearestValue(_), Derive(_))
+    | (NearestValue(_), Select(_))
     | (CrossJoinRows(_), _) => true
     (Values(_), AssertRows(_)) =>
       operation(consumer) == "REL.assert_all" ||
@@ -255,7 +258,8 @@ pub fn node_accepts_managed_relation_view(
       | CrossJoinRows(_)
       | AppendRows(_)
       | SetRows(_)
-      | NestRows(_) => true
+      | NestRows(_)
+      | NearestValue(_) => true
       _ => false
     }
   }

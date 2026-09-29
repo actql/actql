@@ -4015,3 +4015,16 @@ The Node standard Host retains and publishes the filtered Relation in a real
 Store, reads three Named Results against independent expected rows, and reclaims
 the Store and Run. This proves the RRF-to-filter delivery shape, not every
 ranking policy or every subsequent Relation operation in a retained Stage.
+
+The retained Relation path also splits a direct `VEC.knn_join` occurrence
+from a later `filter` in the same Stage. The nearest obligation is admitted
+only for the exact one-step sequence accepted by the registered bounded
+provider. When all operands are Relation views, the nearest kernel keeps
+operation-port binding for candidate and query evaluation while validating
+completion against the authored Stage input order. Portable Host fixtures
+exercise both matching and reversed Stage input declarations, the split
+physical graph, ordered results, two consumers, and reclamation. The Node
+standard Host uses the reversed declaration, retains the filtered result in
+a real Store, and compares three published Named Results with independent
+expected rows. This route does not claim all nearest input Carrier variants
+or later Relation operations beyond the checked filter shape.

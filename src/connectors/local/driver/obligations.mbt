@@ -125,6 +125,14 @@ pub fn local_dispatch_rejection(
             ) {
             return Some("unsupported_execution_obligation")
           }
+        NearestExecution(_) =>
+          if !@local.local_module_bounded_nearest_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
         AppendRows(_) =>
           if !@local.local_module_bounded_append_obligation(
               installed.implementation,

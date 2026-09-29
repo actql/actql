@@ -77,6 +77,8 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     return local_vector_ranking_program(variant)
   }
   if variant == "nearest" ||
+    variant == "nearest_filter" ||
+    variant == "nearest_filter_reversed" ||
     variant == "nearest_vectors" ||
     variant == "nearest_relation_vectors" ||
     variant == "nearest_vectors_relation" ||
@@ -428,6 +430,8 @@ fn local_vector_ranking_program(variant : String) -> String {
 ///|
 fn local_vector_nearest_program(variant : String) -> String {
   let inferred = variant == "nearest_inferred"
+  let filtered = variant == "nearest_filter" ||
+    variant == "nearest_filter_reversed"
   let candidate_vectors = variant == "nearest_vectors" ||
     variant == "nearest_vectors_relation"
   let query_vectors = variant == "nearest_vectors" ||
@@ -472,6 +476,14 @@ fn local_vector_nearest_program(variant : String) -> String {
     "candidates"
   }
   let query_input = if query_vectors { "query_vectors" } else { "queries" }
+  let nearest_result = if filtered { "filtered" } else { "out" }
+  let nearest_inputs = if variant == "nearest_filter_reversed" {
+    "\"queries\":{\"result\":{\"stage\":\"queries\",\"result\":\"r\"}}," +
+    "\"candidates\":{\"result\":{\"stage\":\"candidates\",\"result\":\"r\"}}"
+  } else {
+    "\"candidates\":{\"result\":{\"stage\":\"candidates\",\"result\":\"r\"}}," +
+    "\"queries\":{\"result\":{\"stage\":\"queries\",\"result\":\"r\"}}"
+  }
   let candidate_bridge = if candidate_vectors {
     "{\"from\":\"candidates\",\"to_vectors\":{" +
     "\"id\":\"id\",\"vector\":\"embedding\"}," +
@@ -535,9 +547,8 @@ fn local_vector_nearest_program(variant : String) -> String {
   source_result +
   "\",\"fields\":[\"id\"," +
   "\"embedding\"]}}},{\"id\":\"nearest\",\"inputs\":{" +
-  "\"candidates\":{\"result\":{\"stage\":\"candidates\"," +
-  "\"result\":\"r\"}},\"queries\":{\"result\":{\"stage\":\"queries\"," +
-  "\"result\":\"r\"}}},\"steps\":[" +
+  nearest_inputs +
+  "},\"steps\":[" +
   candidate_bridge +
   query_bridge +
   "{\"from\":\"" +
@@ -552,7 +563,15 @@ fn local_vector_nearest_program(variant : String) -> String {
   "\",\"k\":" +
   k +
   "}," +
-  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"as\":\"out\"}" +
+  (if filtered {
+    ", {\"from\":\"out\",\"filter\":\"query_id = 20\",\"as\":\"filtered\"}"
+  } else {
+    ""
+  }) +
+  "],\"results\":{\"r\":{\"from\":\"" +
+  nearest_result +
+  "\"," +
   "\"fields\":" +
   ranking_fields +
   "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
@@ -1276,6 +1295,8 @@ test "standard Host composes Vectors projection and Relation take" {
 ///|
 fn run_standard_nearest_provider(variant : String) -> Unit raise {
   let inferred = variant == "nearest_inferred"
+  let filtered_variant = variant == "nearest_filter" ||
+    variant == "nearest_filter_reversed"
   let query_values_task = if inferred { 3 } else { 2 }
   let nearest_task = if inferred { 5 } else { 3 }
   let (run, issuer) = captured_graph_fixture(
@@ -1451,12 +1472,22 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   }
   let nearest_live = Ref(true)
   let nearest_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
+  let nearest_outputs = if variant == "nearest_filter_reversed" {
+    [queries, candidates]
+  } else {
+    [candidates, queries]
+  }
+  let nearest_input_rows = if variant == "nearest_filter_reversed" {
+    [query_rows, candidate_rows]
+  } else {
+    [candidate_rows, query_rows]
+  }
   let (nearest_ops, nearest) = run_local_managed_test_task(
     installed,
     run,
     nearest_task,
-    [candidates, queries],
-    [candidate_rows, query_rows],
+    nearest_outputs,
+    nearest_input_rows,
     nearest_task,
     nearest_live,
     obligations=nearest_obligations,
@@ -1497,20 +1528,62 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
     ]
   }
   assert_eq(nearest_rows, expected)
-  let published = @execution.managed_obligations_identities(nearest_obligations).filter(requirement => {
-      requirement.domain == @execution.LogicalRelation &&
-      requirement.subject == @execution.NamedResult
-    },
-  )
+  let filtered = if filtered_variant {
+    let live = Ref(true)
+    let obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
+    let (operations, completed) = run_local_managed_test_task(
+      installed,
+      run,
+      nearest_task + 1,
+      [nearest],
+      [nearest_rows],
+      nearest_task + 1,
+      live,
+      obligations~,
+      execution_quantum=1,
+      require_provider=true,
+    )
+    let rows = local_managed_test_rows(operations)
+    assert_eq(rows, [
+      "{\"candidate_id\":1,\"query_id\":20,\"rank\":1,\"score\":1}", "{\"candidate_id\":2,\"query_id\":20,\"rank\":2,\"score\":1}",
+    ])
+    Some((operations, completed, rows, obligations, live))
+  } else {
+    None
+  }
+  let (
+    producer_ops,
+    producer,
+    producer_rows,
+    producer_obligations,
+    producer_live,
+  ) = match filtered {
+    Some(value) => value
+    None =>
+      (nearest_ops, nearest, nearest_rows, nearest_obligations, nearest_live)
+  }
+  let producer_task = if filtered is Some(_) {
+    nearest_task + 1
+  } else {
+    nearest_task
+  }
+  let published = @execution.managed_obligations_identities(
+    producer_obligations,
+  ).filter(requirement => {
+    requirement.domain == @execution.LogicalRelation &&
+    requirement.subject == @execution.NamedResult
+  })
   assert_eq(published.length(), 1)
   match
     @execution.managed_completed_identity_requirement_status(
-      nearest,
+      producer,
       published[0],
     ) {
     Some(@execution.EstablishedSourceRetained(contract, cid)) => {
       assert_eq(contract, @execution.logical_relation_canonical_contract_cid())
-      assert_eq(cid, nearest_publication_cid(variant))
+      if !filtered_variant {
+        assert_eq(cid, nearest_publication_cid(variant))
+      }
     }
     _ => fail("nearest output did not establish publication identity")
   }
@@ -1520,10 +1593,10 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    nearest_task + 1,
-    [nearest],
-    [nearest_rows],
-    nearest_task + 1,
+    producer_task + 1,
+    [producer],
+    [producer_rows],
+    producer_task + 1,
     first_live,
     obligations=first_obligations,
   )
@@ -1532,32 +1605,41 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    nearest_task + 2,
-    [nearest],
-    [nearest_rows],
-    nearest_task + 2,
+    producer_task + 2,
+    [producer],
+    [producer_rows],
+    producer_task + 2,
     second_live,
     obligations=second_obligations,
   )
-  assert_eq(local_managed_test_rows(first_ops).length(), expected.length())
-  assert_eq(local_managed_test_rows(second_ops).length(), expected.length())
+  assert_eq(local_managed_test_rows(first_ops).length(), producer_rows.length())
+  assert_eq(
+    local_managed_test_rows(second_ops).length(),
+    producer_rows.length(),
+  )
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, nearest_task + 1)
+  @strategy.close_captured_task_output(run, producer_task + 1)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
   assert_true(@execution.managed_completed_output_available(second))
-  assert_true(@execution.managed_completed_output_available(nearest))
+  assert_true(@execution.managed_completed_output_available(producer))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, nearest_task + 2)
+  @strategy.close_captured_task_output(run, producer_task + 2)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
-  nearest_live.val = false
-  @strategy.close_captured_task_output(run, nearest_task)
-  (nearest_ops.close)()
-  (nearest_ops.cleanup_refresh)() |> ignore
+  producer_live.val = false
+  @strategy.close_captured_task_output(run, producer_task)
+  (producer_ops.close)()
+  (producer_ops.cleanup_refresh)() |> ignore
+  if filtered is Some(_) {
+    nearest_live.val = false
+    @strategy.close_captured_task_output(run, nearest_task)
+    (nearest_ops.close)()
+    (nearest_ops.cleanup_refresh)() |> ignore
+  }
   if query_assert_ops is Some(ops) {
     query_assert_live.unwrap().val = false
     @strategy.close_captured_task_output(run, 4)
@@ -1934,6 +2016,16 @@ test "standard Host encodes composite Relation pool identity" {
 ///|
 test "standard Host runs exact nearest with two consumers" {
   run_standard_nearest_provider("nearest")
+}
+
+///|
+test "standard Host filters selected nearest in the same Stage" {
+  run_standard_nearest_provider("nearest_filter")
+}
+
+///|
+test "standard Host keeps reversed selected nearest input ports" {
+  run_standard_nearest_provider("nearest_filter_reversed")
 }
 
 ///|
