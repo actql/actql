@@ -50,11 +50,14 @@ out-degree expectations come from two authored A-to-B and A-to-C edges. The
 latter expects the node-count violation before A's degree violation, plus a
 separate empty Result at inclusive limits. Neither expectation comes from
 runtime output. `graphs-equal` passes ordinary preparation but the earlier
-packed probe failed
-at `Dispatch(NoStrategy)`. These are separate blockers. The other authored
-fixtures still require their exact checker and packed execution evidence;
+packed probe failed at `Dispatch(NoStrategy)`. These are separate blockers.
+The other authored fixtures still require their exact checker and packed
+execution evidence;
 `components` additionally needs its existing capacity application, and the
 edge-row fixtures need lawful order evidence for nullable edge identity.
+The Client job now includes `scripts/sga-surface-checker.test.mjs` at the
+common preparation boundary. It rejects a Relation chained into
+`normalize_graph` and an unbounded `graph_bounds` call before Run acceptance.
 
 `scripts/reproduce-sga-baseline.mjs <packed-installation> --graphs-equal`
 replays the exact authored Program and reports public status and terminal error

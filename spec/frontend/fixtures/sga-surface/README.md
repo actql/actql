@@ -52,6 +52,11 @@ evidence. The normalize-rows, degree-rows and graph-bounds fixtures pass
 Program admission and common preparation with the Local Check Environment,
 but their current task compilation requires the existing Result transformation
 to be connected by the Host.
+The distribution Client job runs `scripts/sga-surface-checker.test.mjs`
+against common preparation. It admits the four source-free Graph fixtures that
+currently prepare and rejects a Relation passed to a Graph-only operation and
+a bounds call without a threshold. This is checker evidence, not packed
+runtime or publication evidence.
 Source authorization, packed public-input acceptance and independent
 positive, rejection and boundary fixtures for other operations remain required.
 
