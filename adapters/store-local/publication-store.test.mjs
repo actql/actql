@@ -2898,6 +2898,32 @@ test('same intent is idempotent while conflicting commit is rejected',
     assert.equal(await conflict.prepared.release(), true);
   });
 
+test('concurrent public commits serialize one installation and one replay',
+  async t => {
+    const {store} = await fixture(t);
+    const invocationValue = invocation();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(
+      store, request, attempt, invocationValue,
+    );
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    const results = await Promise.all([
+      store.commitIndex(wire(entry), prepared.required, prepared.evidence),
+      store.commitIndex(wire(entry), prepared.required, prepared.evidence),
+    ]);
+    assert.deepEqual(results.map(result => [
+      result.committed, result.idempotent,
+    ]), [[true, false], [false, true]]);
+    assert.deepEqual(await store.confirmCommittedIndex(indexKeyFor(request)),
+      entry);
+    assert.equal(prepared.prepared.status().pending, false);
+  });
+
 test('lookup hides absence and verifies current authorization', async t => {
   const {store} = await fixture(t);
   await assert.rejects(store.lookupCommittedIndex(indexKey, () => false),
