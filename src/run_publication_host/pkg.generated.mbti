@@ -35,6 +35,8 @@ pub fn admit_client_effect_local_source_evidence(PreparedClientEffectComputation
 
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
+pub fn admit_client_values_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits) -> Result[ClientValuesRunMaterials, ClientValuesRunMaterialsIssue]
+
 pub fn admit_prepared_client_direct_values_result_root(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootAdmissionIssue]
 
 pub fn admit_prepared_client_effect_compilation(PreparedClientEffectComputation, String, String, String, String, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientEffectCompilation, ClientEffectCompilationAdmissionIssue]
@@ -1302,6 +1304,36 @@ type ClientValuesRunBinding
 pub(all) enum ClientValuesRunBindingIssue {
   ForeignRun
   UnsupportedProgram
+}
+
+pub(all) struct ClientValuesRunMaterials {
+  prepared : PreparedClientProgram
+  compilation : ClientValuesCompilation
+  admission : @run_publication.RunPublicationAdmission
+  run_definition : @run_publication.PublicationContract
+}
+
+pub(all) enum ClientValuesRunMaterialsIssue {
+  MaterialsMalformed
+  MaterialsEnvironment
+  MaterialsParameters
+  MaterialsProgram(ClientProgramPreparationIssue)
+  MaterialsCompilation(ClientValuesCompilationIssue)
+  MaterialsEvidence(String)
+  MaterialsAdmission(@run_publication.RunPublicationAdmissionIssue)
+  MaterialsDefinition(@run_publication.RunPublicationAdmissionIssue)
+  MaterialsRunMismatch
+  MaterialsBinding(ClientValuesRunBindingIssue)
+}
+
+pub(all) struct ClientValuesRunMaterialsLimits {
+  preparation : ClientProgramPreparationLimits
+  sequence : @lowering_relation.SequenceLimits
+  max_sequence_steps : Int
+  max_sequence_work : Int
+  max_evidence_bytes : Int
+  max_evidence_nodes : Int
+  max_evidence_depth : Int
 }
 
 pub(all) struct ClientValuesSiteSelection {
