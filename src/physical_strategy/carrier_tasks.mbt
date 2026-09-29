@@ -87,13 +87,19 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
         intermediate_result = true
       }
     }
+    let terminal_relation = match
+      @lower.preparation_carrier_at(prepared, @pipeline.Step(count - 1)) {
+      Some(carrier) => @carrier.kind(carrier) == @carrier.RelationKind
+      None => false
+    }
     // Only the closed Values-to-Graph frontend shape needs stage-zero
-    // segmentation. A Result from an intermediate checked Step also needs
-    // its own retained output, even without a Graph-to-Relation bridge.
-    // Effectful Values and other Graph operators retain their task layout.
+    // segmentation. A terminal Graph-to-Relation operation needs its own
+    // selected provider even without a bridge, and an intermediate Result
+    // needs a retained task output. Every Step must still pass the bounded
+    // selected-candidate checks below.
     if !values_source ||
       !graph_construction ||
-      (!graph_rows && !intermediate_result) {
+      (!graph_rows && !intermediate_result && !terminal_relation) {
       return None
     }
   }

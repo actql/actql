@@ -76,6 +76,34 @@ test('intermediate Graph delta Result retains its own task output', () => {
   assert.equal(plan.nodes[1].pipeline.steps.length, 1);
 });
 
+test('terminal Graph-to-Relation path selects bounded task providers', () => {
+  const program = fixture('normalize-rows');
+  program.id = 'sga.terminal_relation_tasks';
+  program.stages[0].steps = [
+    ...program.stages[0].steps.slice(0, 2),
+    {values: {schema: {id: {type: 'string', nullable: false}},
+      rows: [{id: 'A'}]}, as: 'seeds'},
+    program.stages[0].steps[2],
+    {from: 'g', traverse: {start: {from: 'seeds', id: 'id'},
+      direction: 'out', min_hops: 1, max_hops: 2,
+      max_output_rows: 4, emit: 'paths'}, as: 'paths'},
+  ];
+  program.stages[0].results = {answer: {from: 'paths',
+    fields: ['start_id', 'end_id', 'hop_count', 'node_ids', 'edge_ids']}};
+  const outcome = prepare(program);
+  const ready = moon.clientProgramPreparationReady(outcome);
+  assert.ok(ready, String(moon.clientProgramPreparationIssueCode(outcome)));
+  assert.equal(moon.clientProgramTaskCount(ready), 5);
+  const compiled = moon.clientProgramCompileLocalTasks(ready);
+  assert.equal(compiled.$tag, 1);
+  const plan = JSON.parse(moon.clientProgramTaskCompilationPlanWire(compiled._0));
+  assert.deepEqual(plan.nodes.map(node => node.pipeline.output),
+    ['values_0', 'values_1', 'values_2', 'graph_3', 'traverse_4']);
+  assert.deepEqual(plan.root_refs.map(root => [root.name, root.ref]), [
+    ['answer', {node_id: 'task_4', port: 'traverse_4'}],
+  ]);
+});
+
 test('a Relation cannot enter a Graph-only named operation', () => {
   const program = fixture('normalize-rows');
   program.stages[0].steps.splice(4, 2,
