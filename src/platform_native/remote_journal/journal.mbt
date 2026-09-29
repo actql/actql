@@ -10,6 +10,23 @@ pub(all) enum NativeRemoteJournalIssue {
 }
 
 ///|
+/// The outcome of an exclusive start claim for one dispatch attempt. Only
+/// `Won` and `AlreadyMine` let the claimant begin execution; any other side
+/// must not execute and reconciles the durable record instead.
+pub(all) enum NativeRemoteStartClaim {
+  /// This claimant just recorded the start.
+  Won
+  /// This claimant's start was already durable, for example after a lost
+  /// reply. The record may need to be read again.
+  AlreadyMine
+  /// Another claimant (or a start without a claim, as the empty name)
+  /// began this attempt.
+  LostTo(String)
+  /// Cancellation won the same Accepted state first.
+  Cancelled
+} derive(Eq, Debug)
+
+///|
 #warnings("-struct_never_constructed")
 struct RecoveredCoordinatorDispatch {
   key : String

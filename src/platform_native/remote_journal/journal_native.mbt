@@ -587,6 +587,163 @@ fn Journal::persist_transition(
 }
 
 ///|
+fn valid_start_claimant(claimant : String) -> Bool {
+  if claimant.is_empty() || claimant.length() > 128 {
+    return false
+  }
+  for character in claimant {
+    let code = character.to_int()
+    if !((code >= 48 && code <= 57) ||
+      (code >= 65 && code <= 90) ||
+      (code >= 97 && code <= 122) ||
+      code == 45 ||
+      code == 46 ||
+      code == 58 ||
+      code == 95) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn start_claim_body(claimant : String, request_identity : String) -> String {
+  "{\"claimant\":\"" +
+  claimant +
+  "\",\"dispatch_request_cid\":\"" +
+  request_identity +
+  "\",\"version\":\"actql-remote-start-claim/0.1\"}"
+}
+
+///|
+fn start_claimant_of(body : Bytes) -> String {
+  let text = @utf8.decode_lossy(body)
+  let prefix = "{\"claimant\":\""
+  guard text.has_prefix(prefix) else { return "" }
+  let rest = text.unsafe_substring(start=prefix.length(), end=text.length())
+  match rest.find("\"") {
+    Some(end) => rest.unsafe_substring(start=0, end~)
+    None => ""
+  }
+}
+
+///|
+/// Exclusively claim the start of one dispatch attempt. The Accepted to
+/// Provisioning transition and a start-claim record naming `claimant` are
+/// written in one transaction fenced by the current Site binding. This is
+/// distinct from `commit_transition`, whose idempotent retry of an identical
+/// body would let two executors both succeed. A retried claim by the same
+/// claimant after a lost reply is `AlreadyMine`; a claim by anyone else is
+/// `LostTo`; a cancellation that won the Accepted state first is `Cancelled`.
+pub fn Journal::claim_start(
+  self : Journal,
+  transition : @remote.DispatchTransition,
+  claimant : String,
+) -> Result[NativeRemoteStartClaim, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if !@remote.dispatch_transition_starts_execution(transition) ||
+    !valid_start_claimant(claimant) {
+    return Err(Protocol(@remote.InvalidTransition))
+  }
+  let key = match @remote.dispatch_transition_attempt_identity(transition) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let claim = @utf8.encode(
+    start_claim_body(
+      claimant,
+      @remote.dispatch_transition_request_identity(transition),
+    ),
+  )
+  let expected = @remote.dispatch_transition_expected_revision(transition)
+  let next = match @remote.dispatch_transition_durable_json(transition) {
+    Ok(value) => @utf8.encode(value)
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match self.begin_mutation(true) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match self.database.read("site_start_claim", key) {
+    Ok(value) => {
+      ignore(self.database.rollback())
+      if value.body == claim {
+        // The durable claim is ours; bring this process's view up to date
+        // when the reply of the earlier claim was lost.
+        ignore(@remote.commit_dispatch_transition(transition, true))
+        return Ok(AlreadyMine)
+      }
+      return Ok(LostTo(start_claimant_of(value.body)))
+    }
+    Err(@sqlite.NotFound) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match
+    self.database.compare_exchange(
+      "site_dispatch",
+      key,
+      expected.to_int64(),
+      next,
+    ) {
+    Ok(revision) if revision == expected.to_int64() + 1L => ()
+    Ok(_) => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+    Err(@sqlite.Collision) => {
+      let current = match self.database.read("site_dispatch", key) {
+        Ok(value) => value
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
+      }
+      ignore(self.database.rollback())
+      return match @remote.admit_durable_dispatch_record(current.body) {
+        Ok(record) =>
+          if @remote.durable_dispatch_record_execution_cancelled(record) {
+            Ok(Cancelled)
+          } else {
+            Ok(LostTo(""))
+          }
+        Err(issue) => Err(Protocol(issue))
+      }
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.insert("site_start_claim", key, claim) {
+    Ok(0L) => ()
+    Ok(_) | Err(@sqlite.Collision) => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.commit() {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match @remote.commit_dispatch_transition(transition, true) {
+    Ok(_) => Ok(Won)
+    Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
 pub fn Journal::commit_transition(
   self : Journal,
   transition : @remote.DispatchTransition,

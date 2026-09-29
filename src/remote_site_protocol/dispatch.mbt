@@ -293,6 +293,16 @@ pub fn remote_dispatch_attempt_key(request : DispatchRequest) -> String {
 }
 
 ///|
+/// True only for the transition that begins execution (Accepted to
+/// Provisioning). An exclusive start claim applies to this transition alone.
+pub fn dispatch_transition_starts_execution(
+  transition : DispatchTransition,
+) -> Bool {
+  transition.expected_execution == Accepted &&
+  transition.next_execution == Provisioning
+}
+
+///|
 fn valid_request_fields(request : DispatchRequest) -> Bool {
   nonempty(request.coordinator_authority) &&
   valid_cid(request.run_definition_cid) &&

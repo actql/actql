@@ -171,3 +171,12 @@ pub fn CoordinatorJournal::close(_self : CoordinatorJournal) -> Bool {
 fn retain_native_import() -> Unit {
   ignore(@utf8.decode_lossy(b""))
 }
+
+///|
+pub fn Journal::claim_start(
+  _self : Journal,
+  _transition : @remote.DispatchTransition,
+  _claimant : String,
+) -> Result[NativeRemoteStartClaim, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
