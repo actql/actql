@@ -71,6 +71,19 @@ test "explicit format aliases retain the structured route" {
 }
 
 ///|
+test "structural JSON escapes are admitted by the structural parser" {
+  let document =
+    #|AQL '0.1'; PROGRAM 'escaped' {
+    #| STAGE main {
+    #|  DATA source = OP values {"schema":{"id":{"type":"string","nullable":false}},"rows":[{"id":"\ud83d\ude00"}]};
+    #|  RESULT rows = {"from":"source"};
+    #| }
+    #| RESULT answer = {"from":{"stage":"main","result":"rows"}};
+    #|}
+  assert_true(lower(document, Text, None) is Ok(_))
+}
+
+///|
 test "structural AQL and query-only AQL use distinct parsers" {
   let structural =
     #|AQL '0.1'; PROGRAM 'frontend.route' {

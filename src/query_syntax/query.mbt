@@ -183,7 +183,7 @@ pub fn starts_query(
   limits : LexicalLimits,
   source_path? : String = "<query>",
 ) -> Result[Bool, Diagnostic] {
-  match tokenize(text, limits, source_path~) {
+  match scan_tokens(text, limits, source_path, true) {
     Err(issue) => Err(issue)
     Ok(tokens) => {
       let first = token_at(tokens, 0).unwrap()
@@ -204,7 +204,7 @@ pub fn starts_sql(
   limits : LexicalLimits,
   source_path? : String = "<query>",
 ) -> Result[Bool, Diagnostic] {
-  match tokenize(text, limits, source_path~) {
+  match scan_tokens(text, limits, source_path, true) {
     Err(issue) => Err(issue)
     Ok(tokens) => {
       let first = token_at(tokens, 0).unwrap()
