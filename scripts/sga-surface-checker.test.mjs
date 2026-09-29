@@ -43,6 +43,39 @@ test('named SGA Programs pass common preparation without a new checker', () => {
   }
 });
 
+test('intermediate Graph delta Result retains its own task output', () => {
+  const program = fixture('diff-apply');
+  program.stages[0].steps = program.stages[0].steps.slice(0, 7);
+  program.stages[0].steps.push(
+    {from: 'changes', select: ['delta'], as: 'delta_out'});
+  program.stages[0].results = {
+    changes: {from: 'changes', fields: ['delta']},
+    selected: {from: 'delta_out', fields: ['delta']},
+  };
+  program.results = {
+    changes: {from: {stage: 'main', result: 'changes'}},
+    selected: {from: {stage: 'main', result: 'selected'}},
+  };
+  const outcome = prepare(program);
+  const ready = moon.clientProgramPreparationReady(outcome);
+  assert.ok(ready, String(moon.clientProgramPreparationIssueCode(outcome)));
+  assert.equal(moon.clientProgramTaskCount(ready), 2);
+  const compiled = moon.clientProgramCompileLocalTasks(ready);
+  assert.equal(compiled.$tag, 1);
+  const plan = JSON.parse(moon.clientProgramTaskCompilationPlanWire(compiled._0));
+  assert.deepEqual(plan.nodes.map(node => node.pipeline.output),
+    ['graph_diff_6', 'select_7']);
+  assert.deepEqual(plan.data_edges.map(edge => [edge.from, edge.to]), [[
+    {node_id: 'task_0', port: 'graph_diff_6'},
+    {node_id: 'task_1', port: 'input_0'},
+  ]]);
+  assert.deepEqual(plan.root_refs.map(root => [root.name, root.ref]), [
+    ['changes', {node_id: 'task_0', port: 'graph_diff_6'}],
+    ['selected', {node_id: 'task_1', port: 'select_7'}],
+  ]);
+  assert.equal(plan.nodes[1].pipeline.steps.length, 1);
+});
+
 test('a Relation cannot enter a Graph-only named operation', () => {
   const program = fixture('normalize-rows');
   program.stages[0].steps.splice(4, 2,

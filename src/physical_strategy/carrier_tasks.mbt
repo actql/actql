@@ -76,10 +76,24 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
         _ => ()
       }
     }
+    let mut intermediate_result = false
+    for result in graph.results {
+      if result.task == stage &&
+        @ports.port_target(
+          @execution.managed_result_occurrence_port(result.occurrence),
+        )
+        is @pipeline.Step(step) &&
+        step < count - 1 {
+        intermediate_result = true
+      }
+    }
     // Only the closed Values-to-Graph frontend shape needs stage-zero
-    // segmentation. Effectful Values and existing Graph operators retain
-    // their checked task layout.
-    if !values_source || !graph_construction || !graph_rows {
+    // segmentation. A Result from an intermediate checked Step also needs
+    // its own retained output, even without a Graph-to-Relation bridge.
+    // Effectful Values and other Graph operators retain their task layout.
+    if !values_source ||
+      !graph_construction ||
+      (!graph_rows && !intermediate_result) {
       return None
     }
   }
