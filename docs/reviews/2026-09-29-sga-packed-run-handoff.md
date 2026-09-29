@@ -292,3 +292,52 @@ digests for the completed probe were `client-wire`
 `fec8e83f944e8720d7238d59e1077fafa6ae21397d92a138d027fd8c9d61b8d8`,
 `local-node` `cd2bc6a378e8a650d9b17fe3aa221bcf5ba1cbc4ec22a6a5a0c84bfa157e9ec1`,
 and `node` `c72364973dd1ed42faea32425632b314de037c9b92035c9f5ec35b875914f225`.
+
+## Intermediate Result tasks and the Graph provider handoff
+
+At `f44c96f2ffac8bb640502214c5a9fb5322feaf21`, Stage-zero
+Values-to-Graph segmentation also considers a Result bound to an intermediate
+checked Step. It still splits only if every selected Step has an installed
+bounded execution candidate and its input handoff is supported. A GraphDiff
+Program with an intermediate `changes` Result and a later `selected` Result
+now compiles into two tasks: `task_0.graph_diff_6` is the first Result and
+the sole input to `task_1.select_7`, which is the second Result. The source
+Graph construction occurs only in `task_0`. This does not turn an unsupported
+Graph operation into an executable candidate or remove Result-root checks.
+The focused checker/Plan test passed 4/4; physical-strategy tests passed
+24/24 on JS, Wasm and native.
+
+The committed packed installation at this SHA passed five SQL/Pipe cases,
+`normalize_graph -> node_rows`, and `mean_graphs -> node_rows/edge_rows`
+through both Embedded Local and HTTPS Remote, each with independently authored
+Named Result rows. The Node-free native CLI passed the existing Graph source
+case. The evidence is in
+`worktrees/.codex-scratch/public-query-evidence-tPfLjQ`; its generated
+installation and Store were removed. The package digests were `client-wire`
+`8e09005f4aac5063c1f6f8e4680dbb778a00e5c098126a85283e1f07685a76e5`,
+`sdk` `1e4e83612b9c965388795f066be8cf24b0358feb46bd2335c8d98c36e83ed515`,
+`run-host-core` `0df5cbfc86bf98c7755b0e794dbc5aae83329276e5cfe67bb0de2a04a2361d51`,
+`local-node` `dd9ab67a3694d6bd36256d4d628456ade3bb6bf39312376e1faa434e7d55b407`,
+and `node` `c72364973dd1ed42faea32425632b314de037c9b92035c9f5ec35b875914f225`.
+
+The Graph provider owner retains `src/local_sga_provider/graph_pipeline.mbt`
+and the matching capability declarations in
+`src/lowering_relation/semantic_ports.mbt`. The packed counterexamples for
+that owner are the six nonpassing fixtures under
+`spec/frontend/fixtures/sga-surface`:
+
+| Fixture | Required existing operation shape | Last verified failure |
+| --- | --- | --- |
+| `graphs-equal` | Two constructed Graph inputs to `SGA.equal`; one boolean Relation output | Fused source-free task: `Dispatch(NoStrategy)` before Compute. |
+| `degree-rows` | Constructed Graph to `SGA.degree_metrics`; Relation output | Fused source-free task: `Dispatch(NoStrategy)` before Compute. |
+| `components` | Constructed Graph to `SGA.components`; Relation output, with both checked capacity claims | Fused source-free task: `Dispatch(NoStrategy)` before Compute. |
+| `graph-bounds` | Constructed Graph to two checked `SGA.bounds_check` occurrences and two separate Results | One fused task cannot expose the first Result; task compiler rejects `RequiresResultTransformation`. The selected Graph-boundary capability still needs provider evidence. |
+| `reach-subgraph` | Graph to `SGA.reachable` Relation, then Graph `SGA.subgraph`, then separate node/edge projections | One fused task cannot expose both intermediate outputs; task compiler rejects `RequiresResultTransformation`. Exact Graph and Relation handoffs need installed candidates. |
+| `diff-apply` | Two Graphs to `SGA.diff`, followed by `SGA.apply_delta` and separate node/edge projections | Same Result-root rejection; Graph/Delta handoffs need installed candidates. |
+
+The final three fixtures above passed common preparation after the nullable
+edge identity fix, but that is not runtime success. The provider owner should
+use the exact checked operation inputs and bounded managed view, retain each
+output required by another task or Result, and avoid retrying a failed fused
+task as a second compute path. Frontend acceptance will merge a committed
+provider SHA and rerun the same packed Local/HTTP Named Result fixtures.
