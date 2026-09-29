@@ -391,3 +391,25 @@ in `229b00814f6500724ed8427ceb89bb0e4649d5ae` passed its focused
 checker/Plan test and physical-strategy tests on JS, Wasm, and native. It
 requires installed bounded candidates for every checked step, so the six
 remaining cases are not claimed as product acceptance.
+
+At `30768aabb7c734643d3176075ace6681d80a5bb0`, `graft-graphs`
+joined the standard packed acceptance after passing the optional Local probe
+at `f7062b0c475916076e2a44d7388eb61c9940daa9`. Its checked source
+uses add-only graft with an identity-equal shared B node, then reads ordered
+node and edge Results against independently authored values. The same packed
+Local and HTTPS Remote run passed the four earlier SGA cases, SQL/Pipe cases,
+and the Node-free native CLI Result. Its evidence is under
+`worktrees/.codex-scratch/public-query-evidence-LgGiKY`; generated artifacts
+were removed. The package digests match the preceding `ce57ad870` run.
+The optional probe still failed the six provider-handoff fixtures, so this
+does not establish complete SGA execution coverage.
+
+The earlier pushed `a58fdc5d4b9db30f1c3d5a15148d0b26e72d19ff`
+failed Linux `connector-addition` and `duckdb-node` in CI run
+`36600655406`. Both jobs reached the same standard Host test: it expected a
+fixed row order from an `edge_rows` projection without an authored order.
+The `62e4301e5` test correction compares the projected edge rows as a
+multiset, preserving their values and multiplicity; cases with an authored
+sort retain exact order comparison. The focused standard native/broad Host
+test passed 1/1 locally after this correction. This is not a successful CI
+result for the newer branch HEAD.
