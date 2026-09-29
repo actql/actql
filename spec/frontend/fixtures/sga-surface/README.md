@@ -54,9 +54,10 @@ the node-count violation before A's degree violation; the second is empty at
 inclusive limits. The independently authored expectations include a nullable
 `node_id` for whole-graph violations. Neither DATA expression adds a sort or
 Result order declaration.
-The normalize-rows and mean-graphs expectations passed packed Local and HTTP
-execution from named source. Traverse-paths passed packed Local; HTTP is
-verified separately when the standard packed job runs with this fixture.
+The normalize-rows, mean-graphs and traverse-paths expectations passed packed
+Local and HTTP execution from named source. Union-graphs passed packed Local;
+HTTP is verified separately when the standard packed job runs with this
+fixture.
 The remaining named fixtures still need independent runtime acceptance.
 Common preparation admits reach/subgraph, diff/apply and components, but
 degree-rows and components currently end before publication and graph-bounds

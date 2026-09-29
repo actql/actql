@@ -74,7 +74,8 @@ const observe = directory => () => {
       'SELECT COUNT(*) AS count FROM client_requests').get().count};
   } finally { journal.close(); }
 };
-const sgaCases = ['normalize-rows', 'mean-graphs', 'traverse-paths'];
+const sgaCases = ['normalize-rows', 'mean-graphs', 'traverse-paths',
+  'union-graphs'];
 const sgaFixtureDirectory = resolve('sga-fixtures');
 await mkdir(sgaFixtureDirectory);
 for (const name of sgaCases) {
