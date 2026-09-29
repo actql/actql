@@ -4032,5 +4032,8 @@ Host checks the two-Vectors task handoff and independent consumers; the Node
 standard Host runs all four Relation/Vectors input combinations through a
 real retained Store, then compares the producer and both consumer Named
 Results with fixed expected rows and checks final reclamation. These checks
-do not cover later Relation operations beyond the filter shape or every
-mixed-Carrier failure boundary.
+also force a later consumer's typed arithmetic failure after the two Vectors
+Bridges, reject publication, and retain cleanup responsibility through one
+injected cleanup failure before a successful retry. They do not cover later
+Relation operations beyond the filter shape or every mixed-Carrier failure
+boundary.

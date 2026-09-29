@@ -3401,6 +3401,91 @@ async function exerciseStrategyGraph(
       await nearestRetained.close();
     }
   }
+  const nearestFailureProgram = nearestWithVectors(true, true);
+  nearestFailureProgram.stages.find(stage =>
+    stage.id === 'consumer_a').steps = [{
+    filter: '1 / (candidate_id - candidate_id) > 0', as: 'filtered',
+  }, {
+    from: 'filtered', select: nearestFields, as: 'out',
+  }];
+  const nearestFailureFixture = fixture.strategyFixtureVecaCreate(
+    ...args, JSON.stringify(nearestFailureProgram), orderedContract,
+  );
+  const nearestFailureCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(nearestFailureFixture),
+    suppliedLimits,
+  );
+  const nearestFailureDirectory = await mkdtemp(join(
+    root, '_build/duckdb-fixtures/nearest-carrier-failure-entry-',
+  ));
+  const nearestFailureRetained = await createCarrierRetainedStore(
+    'nearest-carrier-failure', {failCleanupLease: 1},
+  );
+  let nearestFailureExecution, nearestFailurePublicationStore;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      nearestFailureFixture, nearestFailureCapture.source()), true);
+    const setup = fixture.strategyFixtureVecaRetainedSubset(
+      nearestFailureFixture,
+    );
+    const runtime = runtimeCore(hostRuntime);
+    nearestFailurePublicationStore = await openLocalPublicationStore({
+      directory: nearestFailureDirectory,
+      storeAuthorityCid: hash('nearest-carrier-failure-store'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    const plan = standardPublicationPlan(
+      runtime,
+      runtime.programDefinitionCid(setup),
+      runtime.resultInventory(setup).length,
+      'nearest-carrier-failure-attempt',
+    );
+    await assert.rejects(runPublishedCapturedStrategy(
+      setup,
+      {store: nearestFailurePublicationStore, plan},
+      {local: nearestFailureRetained.configuration},
+      new AbortController().signal,
+    ), error => {
+      nearestFailureExecution = error.execution;
+      return error.code === 'CapturedRunPublicationFailed';
+    });
+    assert.equal(nearestFailureExecution.status, 'host-tasks-failed');
+    assert(nearestFailureRetained.leases.length > 0);
+    assert(nearestFailureExecution.completed.some(value =>
+      value.outputRepresentation === 'managed-local-carrier'));
+    assert(nearestFailureExecution.completed.some(value =>
+      value.outputRepresentation === 'retained-file'));
+    assert.equal(nearestFailureExecution.failure?.code, 'MoonBitHostFailure');
+    assert.equal(fixture.strategyFixtureVecaConsumerFilterArithmetic(
+      nearestFailureExecution.failure.cause,
+    ), true);
+    await assert.rejects(nearestFailurePublicationStore.lookupCommittedIndex({
+      namespaceId: plan.request.namespaceId,
+      authorityScopeCid: plan.request.authorityScopeCid,
+      runDefinitionCid: plan.runDefinition.identity,
+    }, () => true), /PublicationLookupDenied/);
+  } finally {
+    if (nearestFailureExecution !== undefined) {
+      await assert.rejects(async () => nearestFailureExecution.close(),
+        /InjectedCarrierRetainedCleanupPending/);
+      assert.equal(nearestFailureExecution.cleanupPending(), true);
+      assert.equal(nearestFailureRetained.cleanupFailures(), 1);
+      nearestFailureRetained.permitCleanup();
+      assert.equal(await nearestFailureExecution.cleanup(), true);
+      assert.equal(nearestFailureExecution.cleanupPending(), false);
+      assert.equal(nearestFailureExecution.usage().heldBytes, 0n);
+      assert.equal(nearestFailureExecution.usage().reservedExecutionBytes, 0n);
+    }
+    nearestFailureCapture.close();
+    await nearestFailurePublicationStore?.close();
+    await rm(nearestFailureDirectory, {recursive: true, force: true});
+    await nearestFailureRetained.close();
+  }
   // A zero-input row source and its Carrier Bridge share an authored Stage.
   // The physical split must retain the Events/Vectors generation for a later
   // Bridge task, then publish and independently consume its Relation view.
