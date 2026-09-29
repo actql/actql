@@ -721,7 +721,7 @@ pub fn client_program_uses_graph_carrier(@run_publication_host.PreparedClientPro
 
 pub fn client_program_values_fragment_logical_cid(@run_publication_host.ClientValuesFragmentNode) -> String
 
-pub fn client_run_control_observation(Int, Bool, Bool, Bool, Bool) -> String?
+pub fn client_run_control_observation(Int, Bool, Bool, Bool, Bool) -> String raise ClientProgramRunStateIssue
 
 pub fn duckdb_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> @actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration raise NodeHostFailure
 

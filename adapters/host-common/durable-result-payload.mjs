@@ -84,20 +84,20 @@ function payloadFailure(reason, cleanupErrors, cleanupOwners, control) {
             retryAvailable,
             retryAttempted,
           );
-          if (action === 0) {
+          if (action === 'inspect') {
             pending = cleanupOwners[currentOwner].pending();
             retryAvailable = typeof cleanupOwners[currentOwner].retry ===
               'function';
             statusChecked = true;
             continue;
           }
-          if (action === 1) {
+          if (action === 'retry') {
             retryAttempted = true;
             try { await cleanupOwners[currentOwner].retry(); }
             catch (error) { cleanupErrors.push(error); }
             continue;
           }
-          if (action === 2) {
+          if (action === 'advance') {
             currentOwner++;
             statusChecked = false;
             pending = false;
@@ -105,7 +105,7 @@ function payloadFailure(reason, cleanupErrors, cleanupOwners, control) {
             retryAttempted = false;
             continue;
           }
-          if (action === 3) break;
+          if (action === 'finished') break;
           fail('InvalidDurableResultPayloadCleanupProgress');
         }
         return update();
@@ -366,7 +366,7 @@ async function storeCompletedPayload(
         exportReleased,
         exportCancelAttempted,
       );
-      if (action === 0) {
+      if (action === 'cancel_writer') {
         writerCancelAttempted = true;
         try { await writer.cancel(); }
         catch (error) {
@@ -379,7 +379,7 @@ async function storeCompletedPayload(
         }
         continue;
       }
-      if (action === 1) {
+      if (action === 'release_prepared') {
         preparedReleaseAttempted = true;
         try { await prepared.release(); }
         catch (error) {
@@ -391,7 +391,7 @@ async function storeCompletedPayload(
         }
         continue;
       }
-      if (action === 2) {
+      if (action === 'cancel_export') {
         exportCancelAttempted = true;
         try {
           control.cancel(exportHandle);
@@ -408,7 +408,7 @@ async function storeCompletedPayload(
         }
         continue;
       }
-      if (action === 3) break;
+      if (action === 'finished') break;
       fail('InvalidDurableResultPayloadFailureProgress');
     }
     throw payloadFailure(reason, cleanupErrors, cleanupOwners, control);

@@ -6112,11 +6112,26 @@
         "path": "src/local_sga_provider/graph_pipeline.mbt",
         "marker": "@sga.start_match_nodes("
       },
+      "additional_dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_match_nodes_view("
+      },
       "entrypoint": {
         "path": "src/local_sga/match_nodes.mbt",
         "symbol": "start_match_nodes"
       },
+      "selected_entrypoint": {
+        "path": "src/local_sga/match_nodes.mbt",
+        "symbol": "start_match_nodes_view"
+      },
       "boundary_tests": [
+        {
+          "role": "match_nodes_view_exact_one_short_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "selected node match view admits exact limits and cleans cancellation"
+        },
         {
           "role": "bounded_scratch_initialization_and_cancel_cleanup",
           "suite": "moon:query_integration",
@@ -6162,6 +6177,13 @@
       ],
       "environment_tests": [
         {
+          "role": "match_nodes_view_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-match-nodes-filter-in-flight"
+        },
+        {
           "role": "match_nodes_literal_host_two_consumers",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
@@ -6189,6 +6211,12 @@
           "one_short_limit": "match_nodes_control_work_exact_one_short",
           "in_flight_cancel": "match_nodes_predicate_host_in_flight_cancel",
           "cleanup": "bounded_scratch_initialization_and_cancel_cleanup"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "match_nodes_view_exact_one_short_cancel_cleanup",
+          "one_short_limit": "match_nodes_view_exact_one_short_cancel_cleanup",
+          "in_flight_cancel": "match_nodes_view_host_in_flight_cancel",
+          "cleanup": "match_nodes_view_exact_one_short_cancel_cleanup"
         }
       },
       "resource_assurance": {
@@ -6200,6 +6228,16 @@
           "workspace": {
             "exact_limit": "match_nodes_identity_workspace_exact_one_short",
             "one_short_limit": "match_nodes_identity_workspace_exact_one_short"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "match_nodes_view_exact_one_short_cancel_cleanup",
+            "one_short_limit": "match_nodes_view_exact_one_short_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "match_nodes_view_exact_one_short_cancel_cleanup",
+            "one_short_limit": "match_nodes_view_exact_one_short_cancel_cleanup"
           }
         }
       }
@@ -6213,11 +6251,26 @@
         "path": "src/local_sga_provider/graph_pipeline.mbt",
         "marker": "@sga.start_match_edges("
       },
+      "additional_dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_match_edges_view("
+      },
       "entrypoint": {
         "path": "src/local_sga/match_edges.mbt",
         "symbol": "start_match_edges"
       },
+      "selected_entrypoint": {
+        "path": "src/local_sga/match_edges.mbt",
+        "symbol": "start_match_edges_view"
+      },
       "boundary_tests": [
+        {
+          "role": "match_edges_view_exact_one_short_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "selected edge match view admits exact limits and cleans cancellation"
+        },
         {
           "role": "bounded_scratch_initialization_and_cancel_cleanup",
           "suite": "moon:query_integration",
@@ -6270,6 +6323,13 @@
       ],
       "environment_tests": [
         {
+          "role": "match_edges_view_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-match-edges-filter-in-flight"
+        },
+        {
           "role": "match_edges_literal_host_two_consumers",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
@@ -6304,6 +6364,12 @@
           "one_short_limit": "match_edges_control_work_exact_one_short",
           "in_flight_cancel": "match_edges_literal_host_in_flight_cancel",
           "cleanup": "bounded_scratch_initialization_and_cancel_cleanup"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "match_edges_view_exact_one_short_cancel_cleanup",
+          "one_short_limit": "match_edges_view_exact_one_short_cancel_cleanup",
+          "in_flight_cancel": "match_edges_view_host_in_flight_cancel",
+          "cleanup": "match_edges_view_exact_one_short_cancel_cleanup"
         }
       },
       "resource_assurance": {
@@ -6315,6 +6381,16 @@
           "workspace": {
             "exact_limit": "match_edges_identity_workspace_exact_one_short",
             "one_short_limit": "match_edges_identity_workspace_exact_one_short"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "match_edges_view_exact_one_short_cancel_cleanup",
+            "one_short_limit": "match_edges_view_exact_one_short_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "match_edges_view_exact_one_short_cancel_cleanup",
+            "one_short_limit": "match_edges_view_exact_one_short_cancel_cleanup"
           }
         }
       }

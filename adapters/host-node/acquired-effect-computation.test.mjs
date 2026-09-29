@@ -1,7 +1,23 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {acquisitionFailure} from '../host-common/acquisition-outcome.mjs';
+import {acquisitionEndHandoff, acquisitionFailure} from
+  '../host-common/acquisition-outcome.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+
+test('acquisition end handoff rejects an unissued or conflicting statement',
+  () => {
+    const handoff = acquisitionEndHandoff();
+    assert.throws(() => handoff.retain(new Error('Unissued')),
+      {message: 'InvalidAcquisitionEndHandoff'});
+    assert.equal(handoff.outcome(new Error('Wrapped')).outcome, 'unknown');
+    const first = acquisitionFailure(new Error('ReadLost'), 'stopped');
+    assert.equal(handoff.retain(first), first);
+    assert.equal(handoff.retain(first), first);
+    assert.throws(() => handoff.retain(acquisitionFailure(
+      new Error('OtherRead'), 'not_started')),
+    {message: 'InvalidAcquisitionEndHandoff'});
+    assert.equal(handoff.outcome(new Error('Wrapped')).outcome, 'stopped');
+  });
 
 for (const outcome of ['not_started', 'stopped', 'unknown']) {
   test(`acquired Effect opening keeps the adapter's ${outcome} observation`,
@@ -69,6 +85,37 @@ test('acquired Effect cleanup retries the recovery owner without another read',
     assert.equal(await retained.cleanup(), true);
     assert.equal(retained.cleanupPending(), false);
     assert.equal(reads, 1);
+  });
+
+test('acquired Effect retains a reported recovery owner across error wrapping',
+  async () => {
+    let retained;
+    let reads = 0;
+    let pending = true;
+    let closes = 0;
+    const recovery = {async close() { closes++; },
+      async cleanup() { return !pending; },
+      cleanupPending: () => pending};
+    await assert.rejects(openAcquiredEffectComputation({
+      acquired: {prepared: {}}, now: () => '2026-09-29T00:00:00.000Z',
+      retainComputationOwner(owner) { retained = owner; },
+      sourceProfile: {prepare() { return {}; },
+        open({reportAcquisitionFailure}) {
+          reads++;
+          const failure = acquisitionFailure(new Error('ReadLost'),
+            'unknown', recovery);
+          reportAcquisitionFailure(failure);
+          throw new Error('AdapterBoundaryFailed', {cause: failure});
+        }},
+    }), {message: 'AdapterBoundaryFailed'});
+    await retained.close();
+    assert.equal(await retained.cleanup(), false);
+    assert.equal(retained.cleanupPending(), true);
+    pending = false;
+    assert.equal(await retained.cleanup(), true);
+    assert.equal(retained.cleanupPending(), false);
+    assert.equal(reads, 1);
+    assert.equal(closes, 1);
   });
 
 test('acquired Effect preparation failure is not an unobserved acquisition',
