@@ -35,6 +35,10 @@ pub(all) enum DeclarationExclusionReason {
   UnconfirmedNullability
   /// No existing ActQL value contract carries this provider type exactly.
   UnsupportedType(String)
+  /// A Number (`double`) whose described precision and scale are missing,
+  /// invalid, or above precision 15, so its values are not all recovered
+  /// exactly from the reply.
+  UnsupportedPrecision(Int?, Int?)
   /// The Resource is not queryable; no SourceView is declared.
   NotQueryable
   /// A required create field cannot be written, or its requirement is
@@ -263,10 +267,12 @@ fn seal(
 /// if any. Salesforce `int` is a 32-bit integer and exact in binary64.
 /// `date` is `yyyy-MM-dd`, the ActQL date spelling. `datetime` is read in
 /// UTC as `...SSS+0000` and admitted as the same instant ending in `Z`.
-/// `double` describes decimal Number, Currency and Percent fields: binary64
-/// `number` does not carry their decimal values exactly, and no existing
-/// conversion admits them as `decimal`, so they are not declared. `time` is
-/// a time of day in the saving user's time zone: ActQL has no such type.
+/// A Number (`double`) is `decimal(P,S)` from its described precision and
+/// scale, up to precision 15 (`double_decimal`), converted from the reply's
+/// number text alone. `percent`, `currency` and `time` are not declared:
+/// the scale of a percent and the currency of an amount are not fixed by
+/// the value, and `time` is a time of day in the saving user's time zone,
+/// which ActQL has no type for.
 fn read_value_type(native_type : String) -> String? {
   match native_type {
     "id"
@@ -282,6 +288,7 @@ fn read_value_type(native_type : String) -> String? {
     "int" => Some("number")
     "date" => Some("date")
     "datetime" => Some("timestamp")
+    "double" => Some("decimal")
     _ => None
   }
 }
@@ -303,6 +310,17 @@ fn write_value_type(native_type : String) -> String? {
 ///|
 fn typed_contract(field : FieldMetadata, kind : String?) -> Json? {
   guard field.nullability_confirmed && kind is Some(kind) else { return None }
+  if kind == "decimal" {
+    guard double_decimal(field) is Some((precision, scale)) else { return None }
+    return Some(
+      object([
+        ("nullable", Json::boolean(field.nullable)),
+        ("precision", precision.to_json()),
+        ("scale", scale.to_json()),
+        ("type", kind.to_json()),
+      ]),
+    )
+  }
   Some(
     object([
       ("nullable", Json::boolean(field.nullable)),
@@ -325,6 +343,8 @@ fn write_field_contract_json(field : FieldMetadata) -> Json? {
 fn exclusion_reason(field : FieldMetadata) -> DeclarationExclusionReason {
   if read_value_type(field.native_type) is None {
     UnsupportedType(field.native_type)
+  } else if field.native_type == "double" && double_decimal(field) is None {
+    UnsupportedPrecision(field.precision, field.scale)
   } else {
     UnconfirmedNullability
   }
@@ -787,7 +807,9 @@ fn same_field_meaning(
   declared.external_id == current.external_id &&
   declared.unique == current.unique &&
   declared.case_sensitive == current.case_sensitive &&
-  declared.reference_to == current.reference_to
+  declared.reference_to == current.reference_to &&
+  declared.precision == current.precision &&
+  declared.scale == current.scale
 }
 
 ///|
@@ -880,6 +902,16 @@ fn exclusion_reason_json(reason : DeclarationExclusionReason) -> Json {
       object([
         ("kind", "unsupported_type".to_json()),
         ("native_type", native.to_json()),
+      ])
+    UnsupportedPrecision(precision, scale) =>
+      object([
+        ("kind", "unsupported_precision".to_json()),
+        ("native_type", "double".to_json()),
+        (
+          "precision",
+          precision.map(value => value.to_json()).unwrap_or(Json::null()),
+        ),
+        ("scale", scale.map(value => value.to_json()).unwrap_or(Json::null())),
       ])
     NotQueryable => object([("kind", "not_queryable".to_json())])
     CreateRequirementUnknown(field) =>

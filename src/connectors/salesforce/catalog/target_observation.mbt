@@ -114,8 +114,8 @@ pub fn prepare_observed_target_preview_row(
     target_row_identity_wire,
     target_guard_cid: observation.version_cid,
     before_value_wire: observation.before_value_wire,
-    after_value_wire: request.body,
-    intended_changes_wire: request.body,
+    after_value_wire: request.value,
+    intended_changes_wire: request.value,
   })
 }
 
@@ -223,7 +223,7 @@ pub fn prepare_target_observation(
     @encode.key(output, field.name) catch {
       _ => return Err(CapacityExceeded)
     }
-    match emit_write_cell(output, cursor, field, observed=true) {
+    match emit_write_cell(output, cursor, field, observed_source=Some(bytes)) {
       Ok(_) => ()
       Err(BudgetExceeded) => return Err(CapacityExceeded)
       Err(_) => return Err(InvalidRecord)

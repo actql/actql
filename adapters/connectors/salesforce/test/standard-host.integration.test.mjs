@@ -26,7 +26,7 @@ import {INSTALLED_SALESFORCE_SITE_VERSION} from
 import {INSTALLED_SALESFORCE_SOURCE_VERSION, loadInstalledSalesforceSource,
   publishInstalledSalesforceSource} from
   '../host/installed-salesforce-source.mjs';
-import {openSalesforceEffectSiteFixture} from
+import {numberText, openSalesforceEffectSiteFixture} from
   './salesforce-effect-site.fixture.mjs';
 import {effectProgram} from './installed-salesforce-effect.fixture.mjs';
 
@@ -100,10 +100,12 @@ const program = JSON.stringify({version: 'actql/0.1', id: 'salesforce-read',
 
 async function installation(t, {readable = ['Test_Record__c'],
   sourceResources = ['Test_Record__c'], extraObjects = [],
-  queryFailureStatus, storedRecords, temporalFields = false} = {}) {
+  queryFailureStatus, storedRecords, temporalFields = false,
+  numberFields = false} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
     queryFailureStatus, storedRecords, extraObjects, temporalFields,
+    numberFields,
     optionalText: storedRecords !== undefined});
   const root = await mkdtemp(join(scratch, 'host-'));
   // Hosts close before their directory is removed.
@@ -929,4 +931,77 @@ test('a runtime without the value violation entry is refused before provider I/O
         'spec/local-check-environment.json'), 'utf8')).trimEnd(),
       resolveSecret: secret}), {code: 'InvalidSalesforceSourceRuntime'});
     assert.equal(setup.org.seen.length, before);
+  });
+
+// A Program reading the declared Number(15,2) `Amount__c` through the scan,
+// filter and select acquisition chain.
+const numberProgram = JSON.stringify({version: 'actql/0.1',
+  id: 'salesforce-number', stages: [
+    {id: 'acquire',
+      inputs: {remote: {connector: 'crm-main', resource: 'Test_Record__c'}},
+      steps: [{filter: "Id <> 'none'", as: 'filtered'},
+        {select: ['Id', 'Amount__c'], as: 'captured'}],
+      results: {r: {from: 'captured', fields: ['Id', 'Amount__c']}}},
+    {id: 'compute',
+      inputs: {x: {result: {stage: 'acquire', result: 'r'}}},
+      steps: [{select: ['Id', 'Amount__c'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['Id', 'Amount__c']}}},
+  ],
+  results: {records: {from: {stage: 'compute', result: 'r'}}}});
+
+test('Salesforce Numbers reach the Named Result as their exact declared decimals',
+  async t => {
+    const setup = await installation(t, {numberFields: true});
+    await setup.publish();
+    const {client, close} = await setup.open();
+    // A Number above precision 15 is not declared, so a Program reading it
+    // fails Check before any provider I/O.
+    const before = setup.org.seen.length;
+    await assert.rejects(client.aql(numberProgram.replaceAll('Amount__c',
+      'Wide_Amount__c'), {format: 'json', requestId: 'wide-number'}));
+    assert.equal(setup.org.seen.length, before);
+    const execution = await client.aql(numberProgram, {format: 'json',
+      requestId: 'number-read'});
+    const state = await execution.wait();
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    const rows = await execution.result('records').all();
+    // Independently expected from the org's replies `1.2345678E7`, null and
+    // `-9999999999999.9`: the same values at scale 2, as decimal text.
+    assert.deepEqual(rows.map(row => [row.Id, row.Amount__c]).sort(), [
+      ['a00000000000001', '12345678.00'],
+      ['a00000000000002', null],
+      ['a00000000000003', '-9999999999999.90'],
+    ]);
+    await close();
+  });
+
+test('a Number beyond its declared scale fails the acquisition, typed',
+  async t => {
+    const stored = [
+      {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1',
+        Amount__c: numberText('12.34')},
+      {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2',
+        Amount__c: numberText('12.345')}];
+    const setup = await installation(t, {numberFields: true,
+      storedRecords: stored});
+    await setup.publish();
+    const {client, close} = await setup.open();
+    const execution = await client.aql(numberProgram, {format: 'json',
+      requestId: 'number-violation'});
+    assert.equal((await execution.wait()).status, 'failed');
+    await assert.rejects(execution.result('records').all());
+    await close();
+    const {adapter, common} = await installedAdapter(setup, numberProgram);
+    try {
+      const failure = await adapter.open(common).then(() => undefined,
+        error => error);
+      assert.equal(failure?.code, 'SalesforceValueViolation',
+        String(failure?.code));
+      assert.equal(failure.outcome, 'stopped');
+      // Never rounded to 12.35 or 12.34; the value is not reported.
+      assert.deepEqual(failure.cause.violation, {expected_type: 'decimal',
+        field: 'Amount__c', kind: 'scale', resource: 'Test_Record__c'});
+    } finally {
+      adapter.close();
+    }
   });

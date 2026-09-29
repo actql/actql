@@ -15,7 +15,8 @@ fn declared_record_describe(
     name_nillable.to_string() +
     ",\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true}",
     "{\"name\":\"External_Key__c\",\"type\":\"string\",\"nillable\":false,\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true,\"externalId\":true,\"unique\":true,\"caseSensitive\":true}",
-    "{\"name\":\"Amount__c\",\"type\":\"double\",\"nillable\":true,\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true}",
+    "{\"name\":\"Amount__c\",\"type\":\"double\",\"precision\":16,\"scale\":2,\"nillable\":true,\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true}",
+    "{\"name\":\"Unit_Price__c\",\"type\":\"double\",\"precision\":15,\"scale\":2,\"nillable\":true,\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true}",
     "{\"name\":\"Count__c\",\"type\":\"int\",\"nillable\":true,\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true,\"filterable\":true}",
     "{\"name\":\"Active__c\",\"type\":\"boolean\",\"nillable\":false,\"defaultedOnCreate\":true,\"createable\":true,\"updateable\":true}",
     "{\"name\":\"Observed_At__c\",\"type\":\"datetime\",\"nillable\":true,\"defaultedOnCreate\":false,\"createable\":true,\"updateable\":true}",
@@ -113,16 +114,16 @@ test "declaration types each field by an existing exact contract or excludes it"
   let view = declaration.views[0]
   assert_eq(view.source_ref, "connector://crm-main/Record__c#records")
   assert_eq(view.fields, [
-    "Id", "Name", "External_Key__c", "Count__c", "Active__c", "Observed_At__c", "Due_On__c",
-    "Read_Only__c",
+    "Id", "Name", "External_Key__c", "Unit_Price__c", "Count__c", "Active__c", "Observed_At__c",
+    "Due_On__c", "Read_Only__c",
   ])
-  // Decimal Number, Percent and Currency (`double`, `percent`, `currency`)
-  // and `time` have no exact existing contract.
+  // A Number above precision 15 is not recovered exactly from its reply;
+  // `percent`, `currency` and `time` have no exact existing contract.
   assert_eq(declaration.exclusions, [
     {
       resource: "Record__c",
       field: "Amount__c",
-      reason: UnsupportedType("double"),
+      reason: UnsupportedPrecision(Some(16), Some(2)),
     },
     {
       resource: "Record__c",
@@ -170,8 +171,20 @@ test "declaration types each field by an existing exact contract or excludes it"
   assert_true(
     catalog.contains("\"Due_On__c\":{\"nullable\":false,\"type\":\"date\"}"),
   )
+  // A Number up to precision 15 is its described decimal.
+  assert_true(
+    catalog.contains(
+      "\"Unit_Price__c\":{\"nullable\":true,\"precision\":15,\"scale\":2,\"type\":\"decimal\"}",
+    ),
+  )
+  let json = static_declaration_json(declaration, declaration_limits()).unwrap()
+  assert_true(
+    json.contains(
+      "{\"field\":\"Amount__c\",\"reason\":{\"kind\":\"unsupported_precision\",\"native_type\":\"double\",\"precision\":16,\"scale\":2},\"resource\":\"Record__c\"}",
+    ),
+  )
   for name in ["Amount__c", "Opens_At__c", "Rate__c", "Price__c"] {
-    assert_false(catalog.contains(name))
+    assert_false(catalog.contains("\"" + name + "\""))
   }
   assert_true(catalog.contains("\"commands\":[]"))
 }
@@ -184,6 +197,7 @@ test "declaration lists writable fields per operation, not a Mapping" {
   assert_eq(writable.target_ref, "connector://crm-main/Record__c")
   let fields = [
     "Active__c", "Count__c", "Due_On__c", "External_Key__c", "Name", "Observed_At__c",
+    "Unit_Price__c",
   ]
   assert_eq(writable.create_fields, Some(fields))
   assert_eq(writable.update_fields, Some(fields))

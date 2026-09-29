@@ -254,6 +254,15 @@ pub fn salesforce_single_write_request_body(
 }
 
 ///|
+/// The request's row as ActQL values: the Preview's value of this row.
+#export_name("salesforceSingleWriteRequestValue")
+pub fn salesforce_single_write_request_value(
+  request : @catalog.SingleWriteRequest,
+) -> String {
+  @catalog.single_write_request_value(request)
+}
+
+///|
 #export_name("salesforceSingleWriteRequestOrgId")
 pub fn salesforce_single_write_request_org_id(
   request : @catalog.SingleWriteRequest,
@@ -324,7 +333,7 @@ pub fn salesforce_single_write_request_matches_preview_footprint(
   if @publication.effect_preview_row_intended_value_wire(
       preview, member_index, row_index,
     ) !=
-    Some(@catalog.single_write_request_body(request)) {
+    Some(@catalog.single_write_request_value(request)) {
     return false
   }
   if @publication.effect_preview_footprint_provider_namespace(footprint) !=

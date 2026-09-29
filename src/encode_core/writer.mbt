@@ -404,6 +404,48 @@ pub fn number_value(w : Writer, value : Double) -> Unit raise EncodeFailure {
 }
 
 ///|
+/// Write exact decimal text as the JSON number with the same digits; the
+/// text is copied, not converted through binary64. The
+/// text is `-?(0|[1-9][0-9]*)(\.[0-9]+)?`: no exponent, no leading `+`, no
+/// redundant leading zero, and no negative zero.
+pub fn decimal_number_value(
+  w : Writer,
+  text : String,
+) -> Unit raise EncodeFailure {
+  active(w)
+  let size = text.length()
+  let start = if size > 0 && text[0] == '-' { 1 } else { 0 }
+  let mut index = start
+  let mut nonzero = false
+  while index < size && text[index] >= '0' && text[index] <= '9' {
+    nonzero = nonzero || text[index] != '0'
+    index += 1
+  }
+  let integer_digits = index - start
+  if integer_digits == 0 || (integer_digits > 1 && text[start] == '0') {
+    fail(w, InvalidNumber)
+  }
+  if index < size {
+    if text[index] != '.' || index + 1 == size {
+      fail(w, InvalidNumber)
+    }
+    index += 1
+    while index < size {
+      if text[index] < '0' || text[index] > '9' {
+        fail(w, InvalidNumber)
+      }
+      nonzero = nonzero || text[index] != '0'
+      index += 1
+    }
+  }
+  if start == 1 && !nonzero {
+    fail(w, InvalidNumber)
+  }
+  value_start(w)
+  ascii(w, text)
+}
+
+///|
 /// Escapes without normalization. Unpaired UTF-16 surrogates are rejected.
 pub fn string_value(w : Writer, value : String) -> Unit raise EncodeFailure {
   value_start(w)

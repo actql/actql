@@ -40,6 +40,27 @@ export function salesforceSiteAccountConfiguration(orgIds) {
   });
 }
 
+// A JSON number spelled exactly as `text` in a reply, never through a JS
+// number.
+const rawNumber = Symbol('rawNumber');
+export const numberText = text => Object.freeze({[rawNumber]: text});
+const replyJson = value => {
+  const texts = [];
+  const json = JSON.stringify(value, (_key, item) =>
+    item !== null && typeof item === 'object' && rawNumber in item
+      ? `\u0000${texts.push(item[rawNumber]) - 1}\u0000` : item);
+  return json.replace(/"\\u0000([0-9]+)\\u0000"/gu,
+    (_match, index) => texts[Number(index)]);
+};
+
+// The stored Number(15,2) `Amount__c` by record, in the provider's own
+// spellings (exponent form, trailing digits).
+export const numberValues = Object.freeze({
+  1: {Amount__c: numberText('1.2345678E7')},
+  2: {Amount__c: null},
+  3: {Amount__c: numberText('-9999999999999.9')},
+});
+
 // The stored `date` and `datetime` values by record, as Salesforce replies.
 export const temporalValues = Object.freeze({
   1: {Due_Date__c: '2024-05-22', Due_At__c: '2012-07-12T17:49:01.123+0000'},
@@ -70,6 +91,10 @@ export async function openSalesforceEffectSiteFixture(t, {
   temporalFields = false,
   // The body fields every single-record PATCH must carry exactly.
   patchFields = ['Name'],
+  // A nullable, writable Number(15,2) `Amount__c` on Test_Record__c, and a
+  // Number(16,2) `Wide_Amount__c` that is not declared. Stored records and
+  // target reads carry `numberValues`.
+  numberFields = false,
   // The Host's logical connection id the Site declares under.
   connectorId = 'crm-main',
   // An HTTP status every query request is answered with instead of rows.
@@ -146,13 +171,14 @@ export async function openSalesforceEffectSiteFixture(t, {
         : [...storedOrder].sort()).map(index => ({
         Id: `a0000000000000${index}`,
         Name: `record-${index}`, External_Key__c: `key-${index}`,
-        ...(temporalFields ? temporalValues[index] : {})}));
+        ...(temporalFields ? temporalValues[index] : {}),
+        ...(numberFields ? numberValues[index] : {})}));
       const records = stored.slice(0, match[3] === undefined
         ? stored.length : Number(match[3])).map(record =>
         Object.fromEntries([['attributes', {type: 'Test_Record__c'}],
           ...match[1].split(',').map(name => [name, record[name] ?? null])]));
       response.writeHead(200, {'content-type': 'application/json'});
-      response.end(JSON.stringify({totalSize: records.length, done: true,
+      response.end(replyJson({totalSize: records.length, done: true,
         records}));
       return;
     }
@@ -192,6 +218,14 @@ export async function openSalesforceEffectSiteFixture(t, {
           ...(optionalText ? [{name: 'Optional_Text__c', type: 'string',
             nillable: true, defaultedOnCreate: false, createable: true,
             updateable: true}] : []),
+          ...(numberFields ? [
+            {name: 'Amount__c', type: 'double', precision: 15, scale: 2,
+              nillable: true, defaultedOnCreate: false, createable: true,
+              updateable: true},
+            {name: 'Wide_Amount__c', type: 'double', precision: 16,
+              scale: 2, nillable: true, defaultedOnCreate: false,
+              createable: true, updateable: true},
+          ] : []),
           ...(temporalFields ? [
             {name: 'Due_Date__c', type: 'date', nillable: true,
               defaultedOnCreate: false, createable: true, updateable: true},
@@ -223,10 +257,11 @@ export async function openSalesforceEffectSiteFixture(t, {
       const target = decodeURIComponent(request.url.slice(
         `${prefix}sobjects/${record}/`.length).split('/').at(-1));
       response.writeHead(200, {'content-type': 'application/json'});
-      response.end(JSON.stringify({Id: target,
+      response.end(replyJson({Id: target,
         Name: observedNames.get(record) ?? observedName,
         External_Key__c: target,
-        ...(temporalFields ? temporalValues[1] : {})}));
+        ...(temporalFields ? temporalValues[1] : {}),
+        ...(numberFields ? numberValues[1] : {})}));
       return;
     }
     if (request.method === 'POST' && record !== undefined &&

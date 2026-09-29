@@ -93,6 +93,9 @@ const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
 const text = value => typeof value === 'string' && value.length > 0;
+const requiredEffectRuntime = Object.freeze([
+  'salesforcePrepareExecutionWriteBody', 'salesforceWriteValueRefusal',
+  'salesforceSingleWriteRequestValue']);
 // A row body, or its typed refusal when a written value is outside its
 // declared type: the Resource, field, type and kind, never the value. It is
 // refused before any provider I/O for the row, and nothing is rounded.
@@ -377,11 +380,11 @@ export async function loadInstalledSalesforceEffect(profile, {root,
       !isAbsolute(ledgerRoot)) {
     fail('InvalidInstalledEffectOptions');
   }
-  // The value refusal this Effect reports is part of its runtime; a runtime
-  // without it is refused before any provider I/O.
-  if (typeof salesforceMoon?.salesforceWriteValueRefusal !== 'function' ||
-      typeof salesforceMoon.salesforcePrepareExecutionWriteBody !==
-        'function') {
+  // The row body, its value refusal and the Preview's row value are part of
+  // this Effect's runtime; a runtime without any of them is refused before
+  // any provider I/O. The Preview never falls back to the provider body.
+  if (requiredEffectRuntime.some(name =>
+    typeof salesforceMoon?.[name] !== 'function')) {
     fail('InvalidSalesforceEffectRuntime');
   }
   await mkdir(ledgerRoot, {recursive: true, mode: 0o700});
