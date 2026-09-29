@@ -1,0 +1,51 @@
+AQL '0.1';
+PROGRAM 'sga.subtract_graphs' {
+  STAGE main {
+    DATA base_nodes = OP values {
+      "schema": {"id": {"type": "string", "nullable": false}},
+      "rows": [{"id": "A"}, {"id": "B"}, {"id": "C"}, {"id": "D"}]
+    };
+    DATA base_edges = OP values {
+      "schema": {
+        "src": {"type": "string", "nullable": false},
+        "dst": {"type": "string", "nullable": false}
+      },
+      "rows": [
+        {"src": "A", "dst": "B"},
+        {"src": "B", "dst": "C"},
+        {"src": "C", "dst": "D"}
+      ]
+    };
+    DATA removal_nodes = OP values {
+      "schema": {"id": {"type": "string", "nullable": false}},
+      "rows": [{"id": "C"}, {"id": "D"}]
+    };
+    DATA removal_edges = OP values {
+      "schema": {
+        "src": {"type": "string", "nullable": false},
+        "dst": {"type": "string", "nullable": false}
+      },
+      "rows": [{"src": "C", "dst": "D"}]
+    };
+    DATA base = OP graph {
+      "nodes": {"from": "base_nodes", "id": "id", "fields": []},
+      "edges": {"from": "base_edges", "source": "src", "target": "dst", "fields": []}
+    };
+    DATA removals = OP graph {
+      "nodes": {"from": "removal_nodes", "id": "id", "fields": []},
+      "edges": {"from": "removal_edges", "source": "src", "target": "dst", "fields": []}
+    };
+    DATA remaining = FROM base |> subtract_graphs(with: removals);
+    DATA node_output = FROM remaining |> node_rows();
+    DATA edge_output = FROM remaining |> edge_rows();
+    RESULT nodes = {
+      "from": "node_output", "fields": ["id"], "order_by": [{"id": "asc"}]
+    };
+    RESULT edges = {
+      "from": "edge_output", "fields": ["src", "dst", "rel"],
+      "order_by": [{"src": "asc"}, {"dst": "asc"}, {"rel": "asc"}]
+    };
+  }
+  RESULT nodes = {"from": {"stage": "main", "result": "nodes"}};
+  RESULT edges = {"from": {"stage": "main", "result": "edges"}};
+}

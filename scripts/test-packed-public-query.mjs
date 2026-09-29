@@ -41,7 +41,7 @@ for (const [source, destination] of [
 }
 await mkdir(join(root, 'sga-source-fixtures'));
 for (const name of ['normalize-rows', 'mean-graphs', 'traverse-paths',
-  'union-graphs', 'graft-graphs']) {
+  'union-graphs', 'graft-graphs', 'subtract-graphs']) {
   for (const suffix of ['named.aql', 'expected-results.json']) {
     const file = `${name}.${suffix}`;
     await writeFile(join(root, 'sga-source-fixtures', file),

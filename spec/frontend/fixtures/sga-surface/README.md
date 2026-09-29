@@ -51,6 +51,10 @@ identities with add-only graft semantics. B has the same complete payload in
 both inputs, so the independent expected Graph contains A, B, C and both
 edges. Its explicit node and edge Results test the Graph output without
 creating an implicit Result or ordering boundary.
+`subtract-graphs.named.aql` removes C and D from a four-node base Graph.
+The independent expectation retains A and B and the A-to-B edge; the
+B-to-C edge disappears by endpoint closure even though it is absent from the
+removal Graph. Both Results have authored order.
 `degree-rows.named.aql` computes out-degree from a Graph with two edges from A.
 The authored sort fixes A, B, C order; the independent Result fixture expects
 degrees 2, 0, 0 and keeps the `node`/`degree` schema from the existing contract.
@@ -59,8 +63,9 @@ the node-count violation before A's degree violation; the second is empty at
 inclusive limits. The independently authored expectations include a nullable
 `node_id` for whole-graph violations. Neither DATA expression adds a sort or
 Result order declaration.
-The normalize-rows, mean-graphs, traverse-paths, union-graphs and graft-graphs
-expectations passed packed Local and HTTP execution from named source.
+The normalize-rows, mean-graphs, traverse-paths, union-graphs, graft-graphs
+and subtract-graphs expectations passed packed Local and HTTP execution from
+named source.
 The remaining named fixtures still need independent runtime acceptance.
 Common preparation admits reach/subgraph, diff/apply and components, but
 degree-rows and components currently end before publication and graph-bounds

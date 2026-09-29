@@ -117,6 +117,13 @@ test('Graph graft retains the second producer and both Results', () => {
     fixture('graft-graphs.named.aql'))), JSON.parse(expected));
 });
 
+test('Graph subtraction retains operands and endpoint-closed Results', () => {
+  const expected = fixture('subtract-graphs.expected-program.json');
+  assert.equal(jsonAdmissionDiagnostic(expected), '');
+  assert.deepEqual(JSON.parse(structuralToJson(
+    fixture('subtract-graphs.named.aql'))), JSON.parse(expected));
+});
+
 const envelope = body => `AQL '0.1'; PROGRAM 'roles' { STAGE s {
   INPUT g = {"carrier":"graph"}; INPUT target = {"carrier":"graph"};
   DATA output = ${body}; RESULT r = {"from":"output"};
