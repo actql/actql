@@ -2684,3 +2684,76 @@ test "SQL GROUP BY and Pipe AGGREGATE use the same checked Program" {
     _ => fail("Pipe aggregate failed the ordinary checker")
   }
 }
+
+///|
+test "Pipe projection permits following operations after SET" {
+  for prefix in ["", "|> SET x = x "] {
+    for
+      suffix in [
+        "|> WHERE x > 0", "|> EXTEND x + 1 AS z |> SELECT z", "|> SET x = x + 1 |> SELECT x",
+        "|> SELECT *",
+      ] {
+      let query = @query.parse_query(
+        "FROM pair " + prefix + "|> SELECT x " + suffix,
+        syntax_limits(),
+      ).unwrap()
+      assert_true(
+        compile(query, pair_context(), construction_limits()) is Ok(_),
+      )
+    }
+  }
+}
+
+///|
+test "ORDER BY reuses one of several equal selected expressions" {
+  for
+    text in [
+      "SELECT x + 1 AS a, x + 1 AS b FROM pair ORDER BY x + 1", "SELECT DISTINCT x + 1 AS a, x + 1 AS b FROM pair ORDER BY x + 1",
+      "FROM pair |> SET x = x |> SELECT x + 1 AS a, x + 1 AS b |> ORDER BY a",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    assert_true(compile(query, pair_context(), construction_limits()) is Ok(_))
+  }
+}
+
+///|
+test "Graph star never publishes occurrence slots" {
+  for
+    pattern in [
+      "WALK (a)-[]->(b)", "WALK (`a`)-[]->(`b`)", "ACYCLIC (a)-[]->{0,2}(b)",
+    ] {
+    let query = @query.parse_query(
+      "FROM GRAPH g |> MATCH " + pattern + " |> SELECT *",
+      syntax_limits(),
+    ).unwrap()
+    assert_true(
+      compile(query, diamond_graph_context(), construction_limits())
+      is Err(UnsupportedProjection),
+    )
+  }
+  for pattern in ["(a)", "(`a`)"] {
+    let query = @query.parse_query(
+      "FROM GRAPH g |> MATCH WALK " + pattern + " |> SELECT *",
+      syntax_limits(),
+    ).unwrap()
+    let wire = semantic(
+      compile(query, diamond_graph_context(), construction_limits()).unwrap(),
+    )
+    assert_true(wire.contains("\"fields\":[\"id\",\"name\"]"))
+  }
+  for
+    projection in [
+      "a.id AS id, b.name AS name", "`a`.id AS id, `b`.name AS name",
+    ] {
+    let query = @query.parse_query(
+      "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT " +
+      projection +
+      " |> SELECT *",
+      syntax_limits(),
+    ).unwrap()
+    let wire = semantic(
+      compile(query, diamond_graph_context(), construction_limits()).unwrap(),
+    )
+    assert_true(wire.contains("\"fields\":[\"id\",\"name\"]"))
+  }
+}

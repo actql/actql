@@ -44,6 +44,8 @@ pub fn parse_expression(String, ExpressionLimits, source_path? : String) -> Resu
 
 pub fn parse_query(String, QueryLimits, source_path? : String) -> Result[Query, Diagnostic]
 
+pub fn parse_relation_path(String, LexicalLimits, source_path? : String) -> Result[Array[NamePart], Diagnostic]
+
 pub fn query_document(Query) -> @frontend_source_map.Document
 
 pub fn query_source(Query) -> Tokens
@@ -57,6 +59,10 @@ pub fn relation_alias(Query) -> NamePart?
 pub fn set_part_at(Query, Int) -> SetPart?
 
 pub fn set_part_count(Query) -> Int
+
+pub fn starts_query(String, LexicalLimits, source_path? : String) -> Result[Bool, Diagnostic]
+
+pub fn starts_sql(String, LexicalLimits, source_path? : String) -> Result[Bool, Diagnostic]
 
 pub fn token_at(Tokens, Int) -> Token?
 

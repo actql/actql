@@ -1,0 +1,70 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/source_frontend"
+
+import {
+  "actql/actql/aql_text",
+  "actql/actql/parameter_binding",
+  "actql/actql/query_program",
+  "actql/actql/query_syntax",
+  "actql/actql/stage_syntax",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn bind_query_context(Array[PublishedAlias], String, program_id? : String, parameter_declarations? : @parameter_binding.Declarations?) -> Result[@query_program.Context, AliasIssue]
+
+pub fn lower(String, Format, @query_program.Context?, source_path? : String) -> Result[Lowered, Issue]
+
+pub fn select_format(String) -> Result[Format, Issue]
+
+// Errors
+
+// Types and methods
+pub(all) enum AliasInput {
+  Relation(@query_program.Input)
+  Graph(@query_program.GraphInput)
+}
+
+pub(all) enum AliasIssue {
+  EmptyName
+  EmptySourceRef
+  EnvironmentMismatch
+  InputNameMismatch
+  ConflictingName
+  TooManyAliases
+  InvalidProgramId
+}
+
+pub(all) enum Format {
+  Json
+  Yaml
+  Text
+  Sql
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Issue {
+  InvalidFormat
+  MissingQueryContext
+  WrongQueryForm
+  ExternalDeclarationsOnProgram
+  SourceSyntax(@aql_text.Diagnostic)
+  QuerySyntax(@query_syntax.Diagnostic)
+  QueryLowering(@query_program.Issue)
+  Encoding
+}
+
+pub(all) struct Lowered {
+  document : String
+  format : @stage_syntax.Format
+}
+
+pub(all) struct PublishedAlias {
+  name : Array[@query_syntax.NamePart]
+  source_ref : String
+  environment_cid : String
+  input : AliasInput
+}
+
+// Type aliases
+
+// Traits
