@@ -124,6 +124,16 @@ pub fn captured_effect_inputs_run_definition_cid(CapturedEffectInputs) -> String
 
 pub fn captured_effect_inputs_share_view(CapturedEffectInputs, Int, Int) -> Bool
 
+pub fn captured_effect_local_result_at(CapturedEffectInputs, Int) -> CapturedEffectLocalResult?
+
+pub fn captured_effect_local_result_borrow(CapturedEffectLocalResult) -> CapturedAnyResultBorrow
+
+pub fn captured_effect_local_result_count(CapturedEffectInputs) -> Int
+
+pub fn captured_effect_local_result_stage(CapturedEffectLocalResult) -> Int
+
+pub fn captured_effect_local_result_task(CapturedEffectLocalResult) -> Int
+
 pub fn captured_effect_plan_proof_matches(CapturedEffectPlanProof, CapturedEffectPreviewInputs, Int) -> Bool
 
 pub fn captured_effect_preview_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectInput?
@@ -438,7 +448,7 @@ pub fn pin_captured_any_result_output_set(CapturedDAG, Array[(Int, @execution_re
 
 pub fn pin_captured_effect_source(CapturedEffectRunDAG, Int, Int) -> Result[CapturedEffectInput, RunIssue]
 
-pub fn pin_captured_effect_sources(CapturedEffectRunDAG, Int) -> Result[CapturedEffectInputs, RunIssue]
+pub fn pin_captured_effect_sources(CapturedEffectRunDAG, Int, max_dependency_work? : Int, max_dependency_depth? : Int) -> Result[CapturedEffectInputs, RunIssue]
 
 pub fn pin_captured_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedOutputPin, RunIssue]
 
@@ -624,6 +634,8 @@ pub fn settle_task_execution(CapturedDAG, TaskExecution, Bool) -> Result[Unit, @
 
 pub fn shared_work_duration(SharedWorkEstimate) -> @physical_cost.DurationEstimate
 
+pub fn start_captured_any_result_borrow_export(CapturedAnyResultBorrow, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
+
 pub fn start_captured_effect_input_export(CapturedEffectInput, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
 pub fn[I, T] start_captured_managed_execution(CapturedDAG, Int, @connector_sdk.PreparedManagedExecution[I, T, RunIssue]) -> Result[(T, TaskExecution), RunIssue]
@@ -759,6 +771,8 @@ pub(all) enum CapturedEffectGuardIssue {
 type CapturedEffectInput
 
 type CapturedEffectInputs
+
+type CapturedEffectLocalResult
 
 pub(all) enum CapturedEffectPlanInventoryIssue {
   InvalidLimits

@@ -51,6 +51,15 @@ struct CapturedResidentResultBorrow {
 priv enum CapturedAnyResultKind {
   Cells(CapturedResultBorrow)
   Resident(CapturedResidentResultBorrow)
+  Source(CapturedSourceResultBorrow)
+}
+
+///|
+priv struct CapturedSourceResultBorrow {
+  run : CapturedDAG
+  source : @query.CapturedInputSource
+  occurrence : @execution.ManagedResultOccurrence
+  mut live : Bool
 }
 
 ///|
@@ -364,6 +373,20 @@ pub fn borrow_captured_any_result_output(
   if task < 0 || task >= run.outputs.length() {
     return Err(ForeignCandidate)
   }
+  if task == 0 && !run.root_is_compute {
+    if max_pins <= 0 || !run.lifetimes[0].live {
+      return Err(NotReady)
+    }
+    guard run.source is Some(source) &&
+      @query.captured_source_matches_result(source, occurrence) else {
+      return Err(ForeignCandidate)
+    }
+    if run.lifetimes[0].pins >= max_pins {
+      return Err(Physical(@resources.HoldingLimit))
+    }
+    run.lifetimes[0].pins += 1
+    return Ok({ kind: Source({ run, source, occurrence, live: true, }), })
+  }
   match run.outputs[task] {
     Some(Materialized(_)) =>
       borrow_captured_result_output(run, task, occurrence, max_pins).map(borrow => {
@@ -385,6 +408,7 @@ pub fn captured_any_result_borrow_occurrence(
   match borrow.kind {
     Cells(value) => captured_result_borrow_occurrence(value)
     Resident(value) => captured_resident_result_borrow_occurrence(value)
+    Source(value) => value.occurrence
   }
 }
 
@@ -395,6 +419,9 @@ pub fn captured_any_result_borrow_available(
   match borrow.kind {
     Cells(value) => captured_result_borrow_available(value)
     Resident(value) => captured_resident_result_borrow_available(value)
+    Source(value) =>
+      value.live &&
+      @query.captured_source_matches_result(value.source, value.occurrence)
   }
 }
 
@@ -417,7 +444,7 @@ pub fn[T] captured_any_result_borrow_matches_managed(
   match borrow.kind {
     Resident(value) =>
       captured_resident_result_borrow_matches_managed(value, output)
-    Cells(_) => false
+    Cells(_) | Source(_) => false
   }
 }
 
@@ -429,7 +456,7 @@ pub fn captured_any_result_borrow_matches_carrier(
   match borrow.kind {
     Resident(value) =>
       captured_resident_result_borrow_matches_carrier(value, output)
-    Cells(_) => false
+    Cells(_) | Source(_) => false
   }
 }
 
@@ -440,6 +467,53 @@ pub fn release_captured_any_result_borrow(
   match borrow.kind {
     Cells(value) => release_captured_result_borrow(value)
     Resident(value) => release_captured_resident_result_borrow(value)
+    Source(value) => {
+      if !value.live {
+        return false
+      }
+      value.live = false
+      value.run.lifetimes[0].pins -= 1
+      collect_captured_retention(value.run)
+      true
+    }
+  }
+}
+
+///|
+/// One bounded Result export entry for cell and acquired representations.
+/// Resident providers still supply their exact physical bridge separately.
+pub fn start_captured_any_result_borrow_export(
+  value : CapturedAnyResultBorrow,
+  result_view : @execution.CompletedResultViewLimits,
+  max_rows : Int,
+  values : @execution.ValueLimits,
+  payload_wire : @execution.RowWireLimits,
+  logical_wire : @execution.RowWireLimits,
+  schema_limits : @execution.RelationSchemaIdentityLimits,
+  max_batch_bytes : Int,
+) -> Result[
+  @execution.CompletedResultRelationExportPreparation,
+  @execution.CompletedExportIssue,
+] {
+  match value.kind {
+    Cells(borrow) =>
+      start_captured_result_borrow_export(
+        borrow, result_view, max_rows, values, payload_wire, logical_wire, schema_limits,
+        max_batch_bytes,
+      )
+    Source(borrow) =>
+      @query.start_captured_source_result_export(
+        @query.restrict_captured_source(borrow.source, fn() { borrow.live }),
+        borrow.occurrence,
+        result_view,
+        max_rows,
+        values,
+        payload_wire,
+        logical_wire,
+        schema_limits,
+        max_batch_bytes,
+      )
+    Resident(_) => Err(NotCellRepresentation)
   }
 }
 

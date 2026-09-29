@@ -23,6 +23,8 @@ pub fn captured_source_available(CapturedInputSource) -> Bool
 
 pub fn captured_source_matches(CapturedInputSource, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.BoundPrepared) -> Bool
 
+pub fn captured_source_matches_result(CapturedInputSource, @execution_relation.ManagedResultOccurrence) -> Bool
+
 pub fn captured_source_relation_identity_matches_source(CapturedSourceRelationIdentity, CapturedInputSource) -> Bool
 
 pub fn captured_source_relation_logical_cid(CapturedSourceRelationIdentity) -> String
@@ -62,6 +64,8 @@ pub fn query_sequence_owner(QuerySequence) -> @lowering_relation.BoundPrepared
 pub fn query_sequence_requirement(QuerySequence) -> @sourceview_resolution.QueryAcquisition
 
 pub fn restrict_captured_source(CapturedInputSource, () -> Bool) -> CapturedInputSource
+
+pub fn start_captured_source_result_export(CapturedInputSource, @execution_relation.ManagedResultOccurrence, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
 // Errors
 

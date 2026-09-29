@@ -2493,6 +2493,25 @@ test('one acquired Effect Program captures and computes from its owner',
         assert.deepEqual(execution.completed.map(value => value.task), [1]);
         assert.deepEqual(execution.completed.map(value => value.outputRows),
           [1]);
+        // Effect input custody also pins the complete upstream local Result
+        // inventory from the checked graph, not a caller dependency list.
+        assert.throws(() => checked(moon.clientProgramPinEffectSources(host,
+          1)), 'the upstream Result also consumes a bounded pin');
+        const pinResult = moon.clientProgramPinEffectSources(host, 2);
+        assert.equal(pinResult.$tag, 1,
+          pinResult.$tag === 0 ? `RunIssue ${pinResult._0.$tag}: ${JSON.stringify(pinResult._0)}` : undefined);
+        const pins = checked(pinResult);
+        try {
+          assert.equal(moon.clientProgramEffectLocalResultCount(pins), 2);
+          assert.deepEqual([0, 1].map(index => {
+            const result = moon.clientProgramEffectLocalResultAt(pins, index);
+            assert.ok(result);
+            return [moon.clientProgramEffectLocalResultStage(result),
+              moon.clientProgramEffectLocalResultName(result)];
+          }), [[0, 'r'], [1, 'r']]);
+        } finally { moon.clientProgramReleaseEffectInputs(pins); }
+        assert.equal(moon.clientProgramEffectLocalResultCount(pins), 0);
+        assert.equal(moon.clientProgramEffectLocalResultAt(pins, 0), undefined);
       } finally {
         await retained.close();
         assert.equal(await retained.cleanup(), true);

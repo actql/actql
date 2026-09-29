@@ -3171,6 +3171,43 @@ pub fn client_program_effect_input_count(
 }
 
 ///|
+#export_name("clientProgramEffectLocalResultCount")
+pub fn client_program_effect_local_result_count(
+  value : @strategy.CapturedEffectInputs,
+) -> Int {
+  @strategy.captured_effect_local_result_count(value)
+}
+
+///|
+#export_name("clientProgramEffectLocalResultAt")
+pub fn client_program_effect_local_result_at(
+  value : @strategy.CapturedEffectInputs,
+  index : Int,
+) -> @strategy.CapturedEffectLocalResult? {
+  @strategy.captured_effect_local_result_at(value, index)
+}
+
+///|
+#export_name("clientProgramEffectLocalResultStage")
+pub fn client_program_effect_local_result_stage(
+  value : @strategy.CapturedEffectLocalResult,
+) -> Int {
+  @strategy.captured_effect_local_result_stage(value)
+}
+
+///|
+#export_name("clientProgramEffectLocalResultName")
+pub fn client_program_effect_local_result_name(
+  value : @strategy.CapturedEffectLocalResult,
+) -> String {
+  @execution.managed_result_occurrence_name(
+    @strategy.captured_any_result_borrow_occurrence(
+      @strategy.captured_effect_local_result_borrow(value),
+    ),
+  )
+}
+
+///|
 #export_name("clientProgramEffectInputAvailable")
 pub fn client_program_effect_input_available(
   value : @strategy.CapturedEffectInputs,

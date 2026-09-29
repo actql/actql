@@ -615,7 +615,9 @@ fn open_checked_dag(
     offer_owner: { graph, },
     root_is_compute,
     source: source.map(captured => {
-      @query.restrict_captured_source(captured, fn() { root_lifetime.live })
+      @query.restrict_captured_source(captured, fn() {
+        root_lifetime.live || root_lifetime.pins > 0
+      })
     }),
     ledger,
     outputs: Array::make(count, None),

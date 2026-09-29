@@ -235,6 +235,14 @@ pub fn client_program_effect_inputs_share_view(@physical_strategy.CapturedEffect
 
 pub fn client_program_effect_issue_captured_source_logical(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
 
+pub fn client_program_effect_local_result_at(@physical_strategy.CapturedEffectInputs, Int) -> @physical_strategy.CapturedEffectLocalResult?
+
+pub fn client_program_effect_local_result_count(@physical_strategy.CapturedEffectInputs) -> Int
+
+pub fn client_program_effect_local_result_name(@physical_strategy.CapturedEffectLocalResult) -> String
+
+pub fn client_program_effect_local_result_stage(@physical_strategy.CapturedEffectLocalResult) -> Int
+
 pub fn client_program_effect_managed_input_append(ClientEffectManagedInputImport, String) -> Result[Unit, ClientEffectManagedInputIssue]
 
 pub fn client_program_effect_managed_input_begin(@physical_strategy.CapturedEffectInput, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], @run_publication_host.PublicationOutputExportLimits) -> Result[ClientEffectManagedInputImport, ClientEffectManagedInputIssue]

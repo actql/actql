@@ -178,3 +178,30 @@ The full Client job and pushed-SHA CI remain unverified after this fix.
 This is not a diagnosis of B's separate `crash-resume_claimed` failure at
 `5ee0dec1747d6465e3829719a0adeca66caf427b`. That failure still requires its
 own fixed-SHA reproduction and state-transition evidence.
+
+## Checked dependency Result custody
+
+`pin_captured_effect_sources` now derives the required local Result inventory
+from the checked Effect source Units and their transitive Result imports. It
+retains all Results needed for those Units' complete local Manifests, not
+unrelated Units. Exact checked import owners select the ancestry. The pass is
+bounded by 65,536 work units, 64 import edges in a path, and at most 4,096 local
+Results (also limited by the caller's pin bound). It uses the existing atomic
+Result pin set and its rollback/release path, without another allocation ledger.
+
+The acquired root has no selected Compute target. Its Result borrow therefore
+checks the actual captured Source completion against the checked Result
+occurrence, retaining original capture liveness. The bounded Result exporter
+applies the view without exposing an unrestricted raw Source output. Closing
+an ordinary root port prevents new pins while existing pins retain custody.
+
+The real-DuckDB acquired Effect test verifies the independent expected
+inventory `[(0, "r"), (1, "r")]`, refusal under a one-Result bound, successful
+two-Result retention, and revocation after release. Ten selected MoonBit
+consumer/export tests pass, including the import-depth and work-bound checks.
+Three-target interface generation succeeds; full affected gates are pending.
+
+This is physical custody, not durable dependency admission. Artifact/Manifest
+issuance for these retained Results, complete typed dependency bodies, Store
+inventory persistence, and restart admission still need to be connected before
+an acquired Effect can publish a resumable approval wait.

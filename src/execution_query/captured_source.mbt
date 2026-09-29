@@ -31,6 +31,50 @@ pub fn captured_source_statistics(
 }
 
 ///|
+/// Check a Result occurrence without exposing the captured raw completion.
+pub fn captured_source_matches_result(
+  source : CapturedInputSource,
+  occurrence : @execution.ManagedResultOccurrence,
+) -> Bool {
+  (source.live)() &&
+  @execution.completed_output_matches_port(
+    source.output,
+    @execution.managed_result_occurrence_owner(occurrence),
+    @results.port_target(@execution.managed_result_occurrence_port(occurrence)),
+  )
+}
+
+///|
+/// Export an exact checked Result view of the retained acquisition. The
+/// original capture and consumer liveness remain active throughout export.
+pub fn start_captured_source_result_export(
+  source : CapturedInputSource,
+  occurrence : @execution.ManagedResultOccurrence,
+  result_view : @execution.CompletedResultViewLimits,
+  max_rows : Int,
+  values : @execution.ValueLimits,
+  payload_wire : @execution.RowWireLimits,
+  logical_wire : @execution.RowWireLimits,
+  schema_limits : @execution.RelationSchemaIdentityLimits,
+  max_batch_bytes : Int,
+) -> Result[
+  @execution.CompletedResultRelationExportPreparation,
+  @execution.CompletedExportIssue,
+] {
+  @execution.start_completed_result_relation_export(
+    @execution.restrict_completed_output(source.output, source.live),
+    occurrence,
+    result_view,
+    max_rows,
+    values,
+    payload_wire,
+    logical_wire,
+    schema_limits,
+    max_batch_bytes,
+  )
+}
+
+///|
 pub(all) enum CapturedSourceIssue {
   Unavailable
   Binding(@execution.ProducerBindingIssue)

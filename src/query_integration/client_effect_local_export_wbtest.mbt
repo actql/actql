@@ -320,7 +320,23 @@ test "shared local Artifact issuer rejects foreign Result export ownership" {
     1,
     available,
   )
-  let inputs = @strategy.pin_captured_effect_sources(effect_run, 2).unwrap()
+  assert_true(
+    @strategy.pin_captured_effect_sources(effect_run, 2, max_dependency_work=0)
+    is Err(@strategy.PreviewWorkLimit),
+  )
+  let inputs = @strategy.pin_captured_effect_sources(
+    effect_run,
+    2,
+    max_dependency_depth=0,
+  ).unwrap()
+  assert_eq(@strategy.captured_effect_local_result_count(inputs), 2)
+  let local_result = @strategy.captured_effect_local_result_at(inputs, 0).unwrap()
+  assert_eq(@strategy.captured_effect_local_result_stage(local_result), 0)
+  assert_true(
+    @strategy.captured_any_result_borrow_available(
+      @strategy.captured_effect_local_result_borrow(local_result),
+    ),
+  )
   let out = @strategy.captured_effect_input_at(inputs, 0).unwrap()
   let other = @strategy.captured_effect_input_at(inputs, 1).unwrap()
   assert_true(
@@ -492,6 +508,13 @@ test "shared local Artifact issuer rejects foreign Result export ownership" {
   @execution.cancel_completed_result_relation_export(second_preparation)
   |> ignore
   assert_true(@strategy.release_captured_effect_inputs(inputs))
+  assert_eq(@strategy.captured_effect_local_result_count(inputs), 0)
+  assert_true(@strategy.captured_effect_local_result_at(inputs, 0) is None)
+  assert_false(
+    @strategy.captured_any_result_borrow_available(
+      @strategy.captured_effect_local_result_borrow(local_result),
+    ),
+  )
   available.val = false
   (operations.close)()
   (operations.cleanup_refresh)() |> ignore
