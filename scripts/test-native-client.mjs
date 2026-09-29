@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {createServer} from 'node:https';
-import {mkdtemp, readFile, writeFile} from 'node:fs/promises';
+import {chmod, copyFile, mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
+import {validHeldRequest} from '../packages/client-wire/index.mjs';
 
 const root = await mkdtemp(join(tmpdir(), 'actql-native-client-'));
 const openssl = (...args) => execFileSync('openssl', args,
@@ -93,10 +94,38 @@ await writeFile(join(root, 'connection-durable.json'),
 await writeFile(join(root, 'ref.json'), JSON.stringify(ref));
 await writeFile(join(root, 'token.txt'), 'scoped-token\n');
 await writeFile(join(root, 'parameters.json'), '{"minimum":1}');
+await writeFile(join(root, 'query.sql'),
+  'SELECT id FROM records WHERE id = @minimum');
+await writeFile(join(root, 'parameter-declarations.json'),
+  '{"minimum":{"type":"number"}}');
 await writeFile(join(root, 'program.json'), await readFile(new URL(
   '../packages/sdk/fixtures/values.json', import.meta.url)));
 
 const requests = [];
+const preparationCodes = JSON.parse(await readFile(new URL(
+  '../spec/contracts/actql-client-host.json', import.meta.url), 'utf8'))
+  .schemas.submit_preparation_error.properties.code.enum;
+const heldBase = {kind: 'held', requestId: 'held-waiting',
+  prepareAttemptId: 'prepare-a', state: 'waiting_checkpoint',
+  durability: 'durable', lookupExpiresAt: '2026-10-01T00:00:00Z',
+  checkpoint: {checkpointId: 'checkpoint-a',
+    checkpointCid: `sha256:${'d'.repeat(64)}`, kind: 'run_scope',
+    expiresAt: '2026-10-01T00:00:00Z'}};
+const heldReplies = {
+  'held-waiting': heldBase,
+  'held-resuming': {...heldBase, requestId: 'held-resuming',
+    state: 'resuming', checkpoint: undefined},
+  'held-ended': {...heldBase, requestId: 'held-ended',
+    state: 'ended', endReason: 'cancelled'},
+  'held-foreign': heldBase,
+  'held-no-checkpoint': {...heldBase, requestId: 'held-no-checkpoint',
+    checkpoint: undefined},
+  'held-contradictory': {...heldBase, requestId: 'held-contradictory',
+    endReason: 'cancelled'},
+  'held-volatile': {...heldBase, requestId: 'held-volatile',
+    durability: 'volatile'},
+  'held-fabricated-run': {...heldBase, requestId: 'held-fabricated-run', ref},
+};
 let attachReplyRef = ref;
 const server = createServer({key: await readFile(join(root, 'server.key')),
   cert: await readFile(join(root, 'server.crt')),
@@ -111,8 +140,25 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
   assert.equal(request.method, 'POST');
   assert.deepEqual(body.connection, body.connection.durability === 'durable'
     ? {...connection, durability: 'durable'} : connection);
+  if ((operation === 'submit' || operation === 'lookup-request') &&
+      heldReplies[body.requestId]) {
+    response.writeHead(200, {'content-type': 'application/json'});
+    response.end(JSON.stringify(heldReplies[body.requestId]));
+    return;
+  }
+  if (operation === 'submit' && body.requestId.startsWith('input-refusal-')) {
+    const code = body.requestId.slice('input-refusal-'.length);
+    response.writeHead(400, {'content-type': 'application/json'});
+    response.end(JSON.stringify({code}));
+    return;
+  }
   if (operation === 'submit' && body.requestId === 'lost-ack') {
     response.destroy();
+    return;
+  }
+  if (operation === 'submit' && body.requestId === 'invalid-utf8-ack') {
+    response.writeHead(200, {'content-type': 'application/json'});
+    response.end(Buffer.from([0xff]));
     return;
   }
   if (operation === 'submit' && body.requestId === 'malformed-ack') {
@@ -161,10 +207,18 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
     response.end('{}');
   }
 });
+const builtExecutable = new URL(
+  '../_build/native/release/build/cmd/native_client/native_client.exe',
+  import.meta.url).pathname;
+const executable = join(root, 'actql-native-client');
+await copyFile(builtExecutable, executable);
+await chmod(executable, 0o755);
+const emptyPath = join(root, 'empty-path');
+await mkdir(emptyPath);
+const binaryDigest = createHash('sha256')
+  .update(await readFile(executable)).digest('hex');
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const endpoint = `https://127.0.0.1:${server.address().port}/`;
-const executable = new URL('../_build/native/release/build/cmd/native_client/' +
-  'native_client.exe', import.meta.url).pathname;
 const library = process.env.ACTQL_TEST_NATIVE_HTTP_LIBRARY ??
   (process.platform === 'darwin' ? '/usr/lib/libcurl.4.dylib' : 'libcurl.so.4');
 const common = ['--endpoint', endpoint,
@@ -175,7 +229,10 @@ const common = ['--endpoint', endpoint,
 
 function runProcess(command, commandArgs) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, commandArgs);
+    // The installed binary must not rely on a repository cwd or find Node,
+    // MoonBit, curl's CLI, or another build tool through PATH.
+    const child = spawn(command, commandArgs, {cwd: root,
+      env: {...process.env, PATH: emptyPath}});
     let stdout = '', stderr = '';
     child.stdout.setEncoding('utf8').on('data', data => { stdout += data; });
     child.stderr.setEncoding('utf8').on('data', data => { stderr += data; });
@@ -219,6 +276,65 @@ try {
   assert.deepEqual(sent.body.parameters, {minimum: 1});
   assert.deepEqual(JSON.parse(sent.body.input.text),
     JSON.parse(await readFile(join(root, 'program.json'), 'utf8')));
+  const query = await run('aql', '--program-file', 'query.sql',
+    '--parameter-declarations-file', 'parameter-declarations.json',
+    '--parameters-file', 'parameters.json', '--format', 'sql',
+    '--request-id', 'saved-query-id');
+  assert.equal(query.code, 0, query.stderr);
+  const querySubmit = requests.find(item => item.operation === 'submit' &&
+    item.body.requestId === 'saved-query-id');
+  assert.deepEqual(querySubmit.body.input, {
+    text: 'SELECT id FROM records WHERE id = @minimum', format: 'sql',
+    parameterDeclarations: {minimum: {type: 'number'}},
+  });
+  assert.deepEqual(querySubmit.body.parameters, {minimum: 1});
+  const beforeInvalid = requests.filter(item =>
+    item.operation === 'submit').length;
+  const invalid = await run('aql', '--program-file', 'program.json',
+    '--parameter-declarations-file', 'parameter-declarations.json',
+    '--format', 'json', '--request-id', 'invalid-query-id');
+  assert.notEqual(invalid.code, 0);
+  assert.match(invalid.stderr, /external declarations require/);
+  assert.equal(requests.filter(item =>
+    item.operation === 'submit').length, beforeInvalid);
+  for (const code of [...preparationCodes, 'UnregisteredInputFailure']) {
+    const requestId = 'input-refusal-' + code;
+    const rejected = await run('aql', '--program-file', 'query.sql',
+      '--format', 'sql', '--request-id', requestId);
+    assert.notEqual(rejected.code, 0);
+    if (preparationCodes.includes(code)) {
+      assert.ok(rejected.stderr.includes(code), rejected.stderr);
+      assert.doesNotMatch(rejected.stderr, /SubmissionUnknown/);
+    } else {
+      assert.ok(rejected.stderr.includes(
+        'SubmissionUnknown request-id=' + requestId), rejected.stderr);
+    }
+  }
+  for (const [requestId, reply] of Object.entries(heldReplies)) {
+    const accepted = ['held-waiting', 'held-resuming', 'held-ended']
+      .includes(requestId);
+    // Compare native transport validation with the shared wire contract.
+    assert.equal(validHeldRequest(JSON.parse(JSON.stringify(reply)),
+      requestId), accepted, requestId);
+    for (const operation of ['aql', 'lookup-request']) {
+      const result = await run(operation, '--request-id', requestId,
+        ...(operation === 'aql'
+          ? ['--program-file', 'query.sql', '--format', 'sql'] : []));
+      if (accepted) {
+        assert.equal(result.code, 0, result.stderr);
+        assert.deepEqual(JSON.parse(result.stdout),
+          JSON.parse(JSON.stringify(reply)));
+        assert.equal(JSON.parse(result.stdout).ref, undefined);
+      } else {
+        assert.notEqual(result.code, 0);
+        assert.ok(result.stderr.includes(operation === 'aql'
+          ? 'SubmissionUnknown request-id=' + requestId
+          : 'InvalidHostRequestLookup'), result.stderr);
+      }
+    }
+    assert.equal(requests.filter(item => item.operation === 'submit' &&
+      item.body.requestId === requestId).length, 1);
+  }
   const status = await run('status', '--ref-file', 'ref.json');
   assert.equal(status.code, 0, status.stderr);
   assert.deepEqual(JSON.parse(status.stdout), {status: 'succeeded'});
@@ -282,6 +398,13 @@ try {
   assert.notEqual(malformed.code, 0);
   assert.match(malformed.stderr,
     /SubmissionUnknown request-id=malformed-ack/);
+  const invalidUtf8 = await run('aql', '--program-file', 'query.sql',
+    '--format', 'sql', '--request-id', 'invalid-utf8-ack');
+  assert.notEqual(invalidUtf8.code, 0);
+  assert.match(invalidUtf8.stderr,
+    /SubmissionUnknown request-id=invalid-utf8-ack/);
+  assert.equal(requests.filter(item => item.operation === 'submit' &&
+    item.body.requestId === 'invalid-utf8-ack').length, 1);
   const uncertain = await run('aql', '--program-file', 'program.json',
     '--format', 'json', '--request-id', 'lost-ack');
   assert.notEqual(uncertain.code, 0);
@@ -318,7 +441,7 @@ try {
       assert.equal(requests[index - 1]?.operation, 'connect');
     }
   }
-  console.log('native Client mTLS tests passed');
+  console.log('native Client mTLS tests passed; binary sha256=' + binaryDigest);
 } finally {
   await new Promise(resolve => server.close(resolve));
 }

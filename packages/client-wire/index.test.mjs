@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {checkpointLimits, clientHostOperations, isClientSubmitRejection,
+import {checkpointLimits, clientHostOperations, clientSourceFormats, isClientSubmitRejection,
   validCheckpointPage,
   validCheckpointReview, validClientAdmission, validClientBody,
   validClientConnection, validClientProfile, validDeliveryAttemptLookup,
@@ -28,6 +28,40 @@ test('public wire accepts the exact connected request shapes', () => {
     parameters: null}), true);
   assert.equal(validClientBody('read', {connection, ref,
     resultName: 'answer', format: 'jsonl', attemptId: 'read-a'}), true);
+});
+
+test('source format selection is explicit and bounded', () => {
+  for (const format of clientSourceFormats) {
+    assert.equal(validClientBody('submit', {connection,
+      requestId: 'saved-format', kind: 'aql',
+      input: {text: 'SELECT id FROM records', format},
+      parameters: null}), true, format);
+  }
+  for (const format of ['auto', 'pipe', 'sql-v2', '']) {
+    assert.equal(validClientBody('submit', {connection,
+      requestId: 'saved-format', kind: 'aql',
+      input: {text: 'SELECT id FROM records', format},
+      parameters: null}), false, format);
+  }
+  const declared = {p: {type: 'number'}};
+  for (const format of ['aql-text', 'sql']) {
+    assert.equal(validClientBody('submit', {connection,
+      requestId: 'saved-declarations', kind: 'aql',
+      input: {text: 'SELECT @p FROM records', format,
+        parameterDeclarations: declared}, parameters: {p: 1}}), true);
+  }
+  for (const format of ['json', 'yaml', 'aql-json', 'aql-yaml']) {
+    assert.equal(validClientBody('submit', {connection,
+      requestId: 'saved-declarations', kind: 'aql',
+      input: {text: '{}', format, parameterDeclarations: declared},
+      parameters: null}), false);
+  }
+  for (const parameterDeclarations of [null, [], 'p']) {
+    assert.equal(validClientBody('submit', {connection,
+      requestId: 'saved-declarations', kind: 'aql',
+      input: {text: 'SELECT @p', format: 'sql', parameterDeclarations},
+      parameters: null}), false);
+  }
 });
 
 test('submit preparation errors follow the public Host contract', () => {

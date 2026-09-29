@@ -1,4 +1,4 @@
-import type {WireCancellation, WireCheckpointSummary, WireClientProfile,
+import type {ClientSourceFormat, WireCancellation, WireCheckpointSummary, WireClientProfile,
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
@@ -113,7 +113,9 @@ export interface Client {
   readonly profile: ConfirmedProfile;
   readonly requestedDurability: Durability | null;
   aql(text: string, options: {
-    format: 'json' | 'yaml';
+    format: ClientSourceFormat;
+    /** The existing Program params map, admitted by the Host checker. */
+    parameterDeclarations?: Record<string, unknown>;
     parameters?: unknown;
     requestId?: string;
     signal?: AbortSignal;

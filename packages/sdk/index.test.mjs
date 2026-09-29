@@ -185,6 +185,49 @@ test('document submit, attach and reads use one reference without replay', async
     parameters: null});
 });
 
+test('query declarations travel with source without entering the SDK',
+  async t => {
+    const requests = [];
+    mock.method(globalThis, 'fetch', async (url, init) => {
+      const operation = url.pathname.split('/').at(-1);
+      requests.push({operation, body: JSON.parse(init.body)});
+      return Response.json(operation === 'connect' ? profile : admission);
+    });
+    t.after(() => mock.restoreAll());
+    const client = await connect(options);
+    await client.aql('SELECT id FROM records WHERE id = @p', {
+      format: 'sql', parameterDeclarations: {p: {type: 'number'}},
+      parameters: {p: 1}, requestId: 'saved-query-id',
+    });
+    assert.deepEqual(requests[1].body, {
+      connection: {mode: 'remote', owner: 'remote', consentRefs: [],
+        runners: []}, requestId: 'saved-query-id', kind: 'aql',
+      input: {text: 'SELECT id FROM records WHERE id = @p', format: 'sql',
+        parameterDeclarations: {p: {type: 'number'}}},
+      parameters: {p: 1},
+    });
+    await assert.rejects(client.aql('{}', {format: 'json',
+      parameterDeclarations: {p: {type: 'number'}}}),
+    {code: 'InvalidAqlDocument'});
+    assert.equal(requests.length, 2);
+  });
+
+test('confirmed query input refusal stays typed after HTTP submit', async t => {
+  const operations = [];
+  mock.method(globalThis, 'fetch', async url => {
+    const operation = url.pathname.split('/').at(-1);
+    operations.push(operation);
+    return operation === 'connect' ? Response.json(profile) :
+      Response.json({code: 'ClientProgramInvalidInput'}, {status: 400});
+  });
+  t.after(() => mock.restoreAll());
+  const client = await connect(options);
+  await assert.rejects(client.aql('SELECT @missing FROM records', {
+    format: 'sql', requestId: 'saved-invalid-query',
+  }), {code: 'ClientProgramInvalidInput'});
+  assert.deepEqual(operations, ['connect', 'submit']);
+});
+
 test('status and wait reject malformed Host state replies', async t => {
   let reply = state;
   mock.method(globalThis, 'fetch', async url => {

@@ -29,6 +29,9 @@ export type WireConnection =
 export type WireRunRef = WireRunRefShape;
 export type WireRunState = WireRunStateShape;
 export type WireSubmitPreparationError = WireSubmitPreparationErrorShape;
+export type ClientSourceFormat = 'json' | 'yaml' | 'aql-json' |
+  'aql-yaml' | 'aql-text' | 'sql';
+export const clientSourceFormats: readonly ClientSourceFormat[];
 
 type WireBodyBase = Readonly<{connection: WireConnection}>;
 type WireRefBody = WireBodyBase & Readonly<{ref: WireRunRef}>;
@@ -40,7 +43,8 @@ export type WireClientBodyByOperation = Readonly<{
     parameters: unknown;
   }> & (Readonly<{kind: 'aql'; input: Readonly<{
     text: string;
-    format: 'json' | 'yaml';
+    format: ClientSourceFormat;
+    parameterDeclarations?: Record<string, unknown>;
   }>}> | Readonly<{kind: 'program'; input: object}>);
   attach: WireRefBody;
   'lookup-request': WireBodyBase & Readonly<{requestId: string}>;
