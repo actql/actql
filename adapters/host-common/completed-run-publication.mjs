@@ -308,6 +308,7 @@ export async function storeCompletedRunResultSet(options) {
     completedResultOwners.set(stored, {
       execution: options.execution, store: options.store,
       control: options.control,
+      runDefinition: Object.freeze({...options.runDefinition}),
       retentions: Object.freeze(options.results.map(value =>
         ownContract(options.control, value.retention,
           options.contractLimits))),
@@ -493,6 +494,7 @@ function releaseCompletedResultOwner(storedResults, control, retainCapture) {
           throw error;
         }
       }
+      await owner.store.retireEffectCaptureCustody(owner.runDefinition);
     }
     owner.releaseComplete = true;
     return true;
@@ -745,10 +747,6 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     fail('CompletedEffectfulCaptureConflict');
   }
   await owner.captureRecordOwner.commit();
-  // The durable private record now owns the complete recovery inventory.
-  // Do not expose a completed capture while cleanup custody transfer is
-  // unconfirmed. Unknown writes can only follow this completed boundary.
-  await store.forgetEffectCaptureCustody(runDefinition);
   const issued = Object.freeze({manifest, computationReceipt: receipt,
     capturedRun});
   completedEffectfulOwners.set(issued, Object.freeze({
@@ -1137,7 +1135,8 @@ export async function recoverCompletedEffectfulComputation(options) {
   const captureRecordOwner = preparePrivatePublicationHolding(store,
     recordBinding);
   completedResultOwners.set(storedResults, {
-    execution: null, store, control, retentions: Object.freeze(retentions),
+    execution: null, store, control, runDefinition: admittedRun,
+    retentions: Object.freeze(retentions),
     releaseComplete: false, releaseFlight: undefined,
     cleanupFailure: undefined, captureHolding, captureRecordOwner,
     captureRecordWire: recordBinding.wire, capturePublished: false,
@@ -1237,6 +1236,20 @@ export async function confirmCompletedEffectfulApplySources({
     await store.commitPhysicalHolding(holding, []);
   }
   return control.effectComputationPreviewLedgerIdentity(preview);
+}
+
+// The standard completion owner invokes this immediately before handing a
+// row to physical dispatch. Waiting Checkpoints protect their saved inventory
+// without removing it, until resume or terminal retirement takes custody.
+// Preparing a complete private record alone is not that custody transfer.
+// This removes cleanup eligibility; it grants no mutation authority.
+export async function transferCompletedEffectfulCaptureCustody({
+  store, control, computation, preview,
+}) {
+  const issued = completedEffectfulOwners.get(computation);
+  if (issued?.store !== store || issued.control !== control ||
+      issued.preview !== preview) fail('InvalidCompletedEffectfulApplyOwner');
+  await store.forgetEffectCaptureCustody(issued.runDefinition);
 }
 
 // Publish only from the retained completed owner and an issued physical

@@ -126,7 +126,9 @@ Effect Compute entry, forwarding to the original implementations. All six
 scenarios (success, unknown, cancel, reject, missing, corrupt) passed with
 one initial Source/Compute call each and zero restart calls. This is not
 best-effort telemetry and introduces no public instrumentation API.
-The unfinished capture crash-window P2 remains unresolved.
+At the initial handoff, the unfinished capture crash-window P2 remained
+unresolved. Subsequent implementation and evidence are recorded below;
+neither P2 has final pushed-SHA CI acceptance yet.
 
 ## P2-2 process-stop reproduction
 
@@ -203,9 +205,27 @@ reopen retains the same request. These cases are now connected to Client CI;
 local acquired/unknown/cancel/reject/corruption HTTP regressions passed 10/10.
 No Linux result is claimed yet.
 
-Still open: the completed-private-record to published-Checkpoint handoff
-window must be checked separately. A completed capture is deliberately not
-deleted merely because its Checkpoint is absent: immediate-allow execution
-can also lack a Checkpoint, including uncertain sends. Do not broaden this
-sweep to delete completed evidence without establishing the durable ownership
-handoff and the existing no-resend guarantees.
+## Completed-record ownership handoff correction
+
+The completed private record no longer removes the cleanup inventory by
+itself. The standard completion owner transfers custody immediately before
+physical dispatch, after apply establishes current admission and durable row
+intents. Its wrapper snapshots the publication and dispatch references before
+awaiting authorization, and checks cancellation after the custody sync.
+This transfer confers no authorization and changes no Ledger outcome.
+
+Waiting Checkpoints keep the inventory: their existing durable record
+protects it from pre-Checkpoint retirement. Resume transfers custody before
+dispatch; cancellation/rejection retires it with the exact completed capture.
+Normal explicit owner release also discharges the inventory, including a
+capture released before a Checkpoint was created. Thus missing Checkpoint
+alone still does not authorize deleting execution-owned or uncertain evidence.
+
+The actual public-Host stop immediately after the private capture commit now
+passes as the sixth save boundary: the original Run remains unknown, cleanup
+finishes, and restart does not reacquire, recompute or write. The three-file
+bridge/installed-Effect/Store regression passes 103/103. The six actual
+Source/Compute probes pass again for success, unknown, cancel, reject,
+missing input and corrupt input (one initial call, zero restart calls).
+These are local implementation results. Final Host/Client/Workers/lint/spec
+jobs, pushed-SHA CI and the acquired Embedded/packed acceptance remain open.
