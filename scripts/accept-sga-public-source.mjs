@@ -19,7 +19,9 @@ if (mode === 'local' && !process.env.ACTQL_LOCAL_STATE_DIR) {
 const requireInstalled = createRequire(join(resolve(installation), 'package.json'));
 const {connect} = await import(pathToFileURL(requireInstalled.resolve('@actql/node')));
 const options = mode === 'local'
-  ? {mode: 'local', owner: 'local', durability: 'durable'}
+  ? {mode: 'local', owner: 'local', durability: 'durable',
+    installation: {directory: resolve(process.env.ACTQL_LOCAL_STATE_DIR),
+      sourceProfilePath: process.env.ACTQL_TEST_LOCAL_SOURCE_PROFILE}}
   : {mode: 'remote', endpoint: process.env.ACTQL_TEST_REMOTE_ENDPOINT,
     token: process.env.ACTQL_TEST_REMOTE_TOKEN, durability: 'durable'};
 if (mode === 'remote' && (!options.endpoint || !options.token)) {

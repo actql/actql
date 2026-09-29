@@ -32,8 +32,18 @@ for (const [source, destination] of [
   ['scripts/fixtures/packed-public-query.mjs', 'acceptance.mjs'],
   ['adapters/host-node/fixtures/query-amount-environment.json', 'source-environment.json'],
   ['spec/local-check-environment.json', 'base-environment.json'],
+  ['scripts/accept-sga-public-source.mjs', 'accept-sga-public-source.mjs'],
 ]) {
   await writeFile(join(root, destination), await readFile(join(repository, source)));
+}
+await mkdir(join(root, 'sga-source-fixtures'));
+for (const name of ['normalize-rows']) {
+  for (const suffix of ['named.aql', 'expected-results.json']) {
+    const file = `${name}.${suffix}`;
+    await writeFile(join(root, 'sga-source-fixtures', file),
+      await readFile(join(repository,
+        'spec/frontend/fixtures/sga-surface', file)));
+  }
 }
 run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
