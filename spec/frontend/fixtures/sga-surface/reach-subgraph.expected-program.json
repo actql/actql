@@ -14,7 +14,7 @@
     ],
     "results": {
       "nodes": {"from": "rows", "fields": ["id"], "order_by": [{"id": "asc"}]},
-      "edges": {"from": "edge_output", "fields": ["src", "dst", "rel"], "order_by": [{"src": "asc"}, {"dst": "asc"}]}
+      "edges": {"from": "edge_output", "fields": ["src", "dst", "rel"], "order_by": [{"src": "asc"}, {"dst": "asc"}, {"rel": "asc"}]}
     }
   }],
   "results": {

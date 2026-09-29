@@ -22,7 +22,7 @@ PROGRAM 'sga.reach_subgraph' {
     DATA rows = FROM neighborhood |> OP node_rows true |> OP select ["id"];
     DATA edge_output = FROM neighborhood |> OP edge_rows true;
     RESULT nodes = {"from": "rows", "fields": ["id"], "order_by": [{"id": "asc"}]};
-    RESULT edges = {"from": "edge_output", "fields": ["src", "dst", "rel"], "order_by": [{"src": "asc"}, {"dst": "asc"}]};
+    RESULT edges = {"from": "edge_output", "fields": ["src", "dst", "rel"], "order_by": [{"src": "asc"}, {"dst": "asc"}, {"rel": "asc"}]};
   }
   RESULT nodes = {"from": {"stage": "main", "result": "nodes"}};
   RESULT edges = {"from": {"stage": "main", "result": "edges"}};
