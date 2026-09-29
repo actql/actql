@@ -3079,6 +3079,146 @@ async function exerciseStrategyGraph(
     });
     await carrierVectorRetained.close();
   }
+  const rankingFields = ['q', 'id', 'score', 'rank'];
+  const rankingInputSchema = {
+    q: {type: 'number', nullable: false},
+    id: {type: 'number', nullable: false},
+    rank: {type: 'number', nullable: false},
+  };
+  const rankingPublicationProgram = {
+    version: 'actql/0.1',
+    id: 'p',
+    params: {minimum: {type: 'number', nullable: false}},
+    stages: [carrierVectorPublicationProgram.stages[0], ...[
+      ['left', [
+        {q: 1, id: 1, rank: 1},
+        {q: 1, id: 2, rank: 2},
+        {q: 2, id: 1, rank: 1},
+      ]],
+      ['right', [
+        {q: 1, id: 3, rank: 1},
+        {q: 1, id: 1, rank: 2},
+        {q: 2, id: 1, rank: 1},
+      ]],
+    ].map(([id, rows]) => ({
+      id,
+      inputs: {},
+      steps: [{values: {schema: rankingInputSchema, rows}, as: 'out'}],
+      results: {r: {from: 'out', fields: ['q', 'id', 'rank']}},
+    })), {
+      id: 'fusion',
+      inputs: {
+        left: {result: {stage: 'left', result: 'r'}},
+        right: {result: {stage: 'right', result: 'r'}},
+      },
+      steps: [{
+        from: 'left',
+        merge_rankings: {
+          with: ['right'], by: ['q'], candidate: 'id', rank: 'rank',
+          score_policy: {rrf: {
+            rank_constant: 1, weights: [1, 1], rank_window: 2,
+          }},
+          k: 2,
+        },
+        as: 'ranked',
+      }, {
+        from: 'ranked', filter: 'q = 1', as: 'out',
+      }],
+      results: {r: {from: 'out', fields: rankingFields}},
+    }, ...['a', 'b'].map(id => ({
+      id: `consumer_${id}`,
+      inputs: {x: {result: {stage: 'fusion', result: 'r'}}},
+      steps: [{select: rankingFields, as: 'out'}],
+      results: {r: {from: 'out', fields: rankingFields}},
+    }))],
+    results: {
+      published: {from: {stage: 'fusion', result: 'r'}},
+      consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
+      consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
+    },
+  };
+  const rankingPublicationFixture = fixture.strategyFixtureVecaCreate(
+    ...args, JSON.stringify(rankingPublicationProgram), orderedContract,
+  );
+  const rankingCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(rankingPublicationFixture),
+    suppliedLimits,
+  );
+  const rankingPublicationDirectory = await mkdtemp(join(
+    root, '_build/duckdb-fixtures/ranking-publication-entry-',
+  ));
+  const rankingRetained = await createCarrierRetainedStore('ranking-filter');
+  let rankingPublicationOwner;
+  let rankingPublicationStore;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      rankingPublicationFixture, rankingCapture.source()), true);
+    const setup = fixture.strategyFixtureVecaRetainedSubset(
+      rankingPublicationFixture,
+    );
+    const runtime = runtimeCore(hostRuntime);
+    const resultCount = runtime.resultInventory(setup).length;
+    assert.equal(resultCount, 3);
+    rankingPublicationStore = await openLocalPublicationStore({
+      directory: rankingPublicationDirectory,
+      storeAuthorityCid: hash('ranking-filter-publication-store'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    const plan = standardPublicationPlan(
+      runtime,
+      runtime.programDefinitionCid(setup),
+      resultCount,
+      'ranking-filter-publication-attempt',
+    );
+    rankingPublicationOwner = await runPublishedCapturedStrategy(
+      setup,
+      {store: rankingPublicationStore, plan},
+      {local: rankingRetained.configuration},
+      new AbortController().signal,
+    );
+    assert.equal(rankingPublicationOwner.status, 'published');
+    assert.equal(rankingPublicationOwner.publication.publication.state,
+      'succeeded');
+    assert(rankingRetained.leases.length > 0);
+    assert(rankingPublicationOwner.execution.completed.some(value =>
+      value.outputRepresentation === 'retained-file'));
+    const expectedRows = [
+      {id: 1, q: 1, rank: 1, score: 0.8333333333333333},
+      {id: 3, q: 1, rank: 2, score: 0.5},
+    ];
+    for (const occurrence of rankingPublicationOwner.execution
+      .publicationInventory.occurrences) {
+      const received = [];
+      await rankingPublicationStore.consumeCommittedResult({
+        namespaceId: plan.request.namespaceId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, occurrence.definitionContract.identity, () => true,
+      chunk => received.push(Buffer.from(chunk)));
+      assert.deepEqual(
+        JSON.parse(Buffer.concat(received).toString('utf8')),
+        expectedRows,
+      );
+    }
+  } finally {
+    if (rankingPublicationOwner !== undefined) {
+      await rankingPublicationOwner.close();
+      assert.equal(rankingPublicationOwner.cleanupPending(), false);
+      assert.equal(await rankingPublicationOwner.cleanup(), true);
+      assert.equal(rankingPublicationOwner.execution.usage().heldBytes, 0n);
+      assert.equal(rankingPublicationOwner.execution.usage()
+        .reservedExecutionBytes, 0n);
+    }
+    rankingCapture.close();
+    await rankingPublicationStore?.close();
+    await rm(rankingPublicationDirectory, {recursive: true, force: true});
+    await rankingRetained.close();
+  }
   // A zero-input row source and its Carrier Bridge share an authored Stage.
   // The physical split must retain the Events/Vectors generation for a later
   // Bridge task, then publish and independently consume its Relation view.

@@ -140,7 +140,8 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "BRIDGE.rows.to_vectors" ||
         @lower.operation(node) == "VEC.normalize_l2" ||
         @lower.operation(node) == "VEC.score_sort" ||
-        @lower.operation(node) == "VEC.pool"
+        @lower.operation(node) == "VEC.pool" ||
+        @lower.operation(node) == "VEC.merge_rankings"
       @lower.CarrierProjectionStep(projection) =>
         @lower.operation(node) == "BRIDGE.vectors.to_rows" &&
         @lower.carrier_projection_operation(projection) ==
@@ -1167,7 +1168,7 @@ fn advance_execution(
             value.control,
             @execution.generated_completion_preparation(value.generated),
             value.sequence,
-            0,
+            value.row_step,
             inputs,
             value.max_rows,
             {

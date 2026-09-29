@@ -72,7 +72,8 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   if variant == "ranking_max" ||
     variant == "ranking_weighted" ||
     variant == "ranking_rrf" ||
-    variant == "ranking_rrf_repeated" {
+    variant == "ranking_rrf_repeated" ||
+    variant == "ranking_rrf_filter" {
     return local_vector_ranking_program(variant)
   }
   if variant == "nearest" ||
@@ -316,7 +317,9 @@ fn ranking_publication_cid(variant : String) -> String {
 
 ///|
 fn local_vector_ranking_program(variant : String) -> String {
-  let rrf = variant == "ranking_rrf" || variant == "ranking_rrf_repeated"
+  let rrf = variant == "ranking_rrf" ||
+    variant == "ranking_rrf_repeated" ||
+    variant == "ranking_rrf_filter"
   let repeated = variant == "ranking_rrf_repeated"
   let schema = if rrf {
     "{\"q\":{\"type\":\"number\",\"nullable\":false}," +
@@ -396,8 +399,15 @@ fn local_vector_ranking_program(variant : String) -> String {
   }) +
   ",\"by\":[\"q\"],\"candidate\":\"id\"," +
   options +
-  ",\"k\":2},\"as\":\"out\"}],\"results\":{\"r\":{" +
-  "\"from\":\"out\",\"fields\":" +
+  ",\"k\":2},\"as\":\"out\"}" +
+  (if variant == "ranking_rrf_filter" {
+    ",{\"from\":\"out\",\"filter\":\"q = 1\",\"as\":\"filtered\"}"
+  } else {
+    ""
+  }) +
+  "],\"results\":{\"r\":{\"from\":\"" +
+  (if variant == "ranking_rrf_filter" { "filtered" } else { "out" }) +
+  "\",\"fields\":" +
   fields +
   "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
   "\"stage\":\"fusion\",\"result\":\"r\"}}},\"steps\":[{" +
@@ -1655,6 +1665,10 @@ fn run_standard_ranking_provider(variant : String) -> Unit raise {
     None,
   ).unwrap()
 
+  if variant == "ranking_rrf_filter" {
+    assert_eq(@local_driver.local_dispatch_rejection(installed, 3), None)
+  }
+
   let left_live = Ref(true)
   let left_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (left_ops, left) = run_local_managed_test_task(
@@ -1706,20 +1720,57 @@ fn run_standard_ranking_provider(variant : String) -> Unit raise {
     ]
   }
   assert_eq(fused_rows, expected)
-  let published = @execution.managed_obligations_identities(fusion_obligations).filter(requirement => {
-      requirement.domain == @execution.LogicalRelation &&
-      requirement.subject == @execution.NamedResult
-    },
-  )
+  let filtered = if variant == "ranking_rrf_filter" {
+    let live = Ref(true)
+    let obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
+    let (operations, completed) = run_local_managed_test_task(
+      installed,
+      run,
+      4,
+      [fusion],
+      [fused_rows],
+      4,
+      live,
+      obligations~,
+      execution_quantum=1,
+      require_provider=true,
+    )
+    let rows = local_managed_test_rows(operations)
+    assert_eq(rows, [
+      "{\"id\":1,\"q\":1,\"rank\":1,\"score\":0.8333333333333333}", "{\"id\":3,\"q\":1,\"rank\":2,\"score\":0.5}",
+    ])
+    Some((operations, completed, rows, obligations, live))
+  } else {
+    None
+  }
+  let (
+    producer_ops,
+    producer,
+    producer_rows,
+    producer_obligations,
+    producer_live,
+  ) = match filtered {
+    Some(value) => value
+    None => (fusion_ops, fusion, fused_rows, fusion_obligations, fusion_live)
+  }
+  let producer_task = if filtered is Some(_) { 4 } else { 3 }
+  let published = @execution.managed_obligations_identities(
+    producer_obligations,
+  ).filter(requirement => {
+    requirement.domain == @execution.LogicalRelation &&
+    requirement.subject == @execution.NamedResult
+  })
   assert_eq(published.length(), 1)
   match
     @execution.managed_completed_identity_requirement_status(
-      fusion,
+      producer,
       published[0],
     ) {
     Some(@execution.EstablishedSourceRetained(contract, cid)) => {
       assert_eq(contract, @execution.logical_relation_canonical_contract_cid())
-      assert_eq(cid, ranking_publication_cid(variant))
+      if variant != "ranking_rrf_filter" {
+        assert_eq(cid, ranking_publication_cid(variant))
+      }
     }
     _ => fail("ranking output did not establish publication identity")
   }
@@ -1728,41 +1779,50 @@ fn run_standard_ranking_provider(variant : String) -> Unit raise {
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    4,
-    [fusion],
-    [fused_rows],
-    4,
+    producer_task + 1,
+    [producer],
+    [producer_rows],
+    producer_task + 1,
     first_live,
   )
   let second_live = Ref(true)
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    5,
-    [fusion],
-    [fused_rows],
-    5,
+    producer_task + 2,
+    [producer],
+    [producer_rows],
+    producer_task + 2,
     second_live,
   )
-  assert_eq(local_managed_test_rows(first_ops).length(), fused_rows.length())
-  assert_eq(local_managed_test_rows(second_ops).length(), 3)
+  assert_eq(local_managed_test_rows(first_ops).length(), producer_rows.length())
+  assert_eq(
+    local_managed_test_rows(second_ops).length(),
+    producer_rows.length(),
+  )
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, 4)
+  @strategy.close_captured_task_output(run, producer_task + 1)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
   assert_true(@execution.managed_completed_output_available(second))
-  assert_true(@execution.managed_completed_output_available(fusion))
+  assert_true(@execution.managed_completed_output_available(producer))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, 5)
+  @strategy.close_captured_task_output(run, producer_task + 2)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
-  fusion_live.val = false
-  @strategy.close_captured_task_output(run, 3)
-  (fusion_ops.close)()
-  (fusion_ops.cleanup_refresh)() |> ignore
+  producer_live.val = false
+  @strategy.close_captured_task_output(run, producer_task)
+  (producer_ops.close)()
+  (producer_ops.cleanup_refresh)() |> ignore
+  if filtered is Some(_) {
+    fusion_live.val = false
+    @strategy.close_captured_task_output(run, 3)
+    (fusion_ops.close)()
+    (fusion_ops.cleanup_refresh)() |> ignore
+  }
   right_live.val = false
   @strategy.close_captured_task_output(run, 2)
   (right_ops.close)()
@@ -1809,6 +1869,11 @@ test "standard Host resolves a parameterized vector score query" {
 ///|
 test "standard Host runs RRF ranking fusion with two consumers" {
   run_standard_ranking_provider("ranking_rrf")
+}
+
+///|
+test "standard Host filters bounded ranking in the same Stage" {
+  run_standard_ranking_provider("ranking_rrf_filter")
 }
 
 ///|

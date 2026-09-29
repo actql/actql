@@ -193,6 +193,32 @@ pub fn local_module_bounded_values_publication(
 }
 
 ///|
+/// Ranking checks belong to the exact finite-list occurrence owned by the
+/// registered bounded family provider, not a generic Relation fallback.
+pub fn local_module_bounded_ranking_obligation(
+  installed : LocalComputeModule,
+  slot : Int,
+  step : Int,
+) -> Bool {
+  guard installed.sequences.get(slot) is Some(sequence) &&
+    @execution.generated_sequence_step_index_at(sequence, 0) == Some(step) &&
+    @execution.generated_sequence_step_index_at(sequence, 1) is None &&
+    @execution.generated_sequence_step_at(sequence, 0)
+    is Some(@lower.VectorStep(_)) &&
+    @lower.node_at(
+      @lower.bound_preparation(@execution.generated_sequence_owner(sequence)),
+      step,
+    )
+    is Some(node) &&
+    @lower.operation(node) == "VEC.merge_rankings" else {
+    return false
+  }
+  installed.managed_providers.any(provider => {
+    managed_provider_accepts(provider, sequence)
+  })
+}
+
+///|
 /// An operation obligation is discharged only by the bounded provider for
 /// the exact source step, inside the provider selected for the whole task.
 priv enum LocalBinaryRelationOperation {

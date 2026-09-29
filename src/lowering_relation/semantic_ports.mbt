@@ -109,6 +109,7 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       operation(node) == "VEC.score_sort"
     NearestValue(_) => true
     PoolValue(_) => operation(node) == "VEC.pool"
+    RankingValue(_) => operation(node) == "VEC.merge_rankings"
     EventValue(_) =>
       operation(node) == "BRIDGE.rows.to_events" ||
       operation(node) == "TEA.watermark.label" ||
@@ -194,6 +195,9 @@ pub fn node_supports_bounded_managed_prefix(
     | (Values(_), Unnest(_))
     | (Values(_), JsonPick(_))
     | (Values(_), CountGroup(_))
+    | (RankingValue(_), Where(_))
+    | (RankingValue(_), Derive(_))
+    | (RankingValue(_), Select(_))
     | (CrossJoinRows(_), _) => true
     (Values(_), AssertRows(_)) =>
       operation(consumer) == "REL.assert_all" ||
@@ -237,6 +241,11 @@ pub fn node_accepts_managed_relation_view(
   node : PreparedNode,
   index : Int,
 ) -> Bool {
+  if node.payload is RankingValue(_) {
+    return operation(node) == "VEC.merge_rankings" &&
+      index >= 0 &&
+      index < node.input_targets.length()
+  }
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {
     return match node.payload {
       GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"

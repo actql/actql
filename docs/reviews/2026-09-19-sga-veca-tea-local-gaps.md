@@ -4004,3 +4004,14 @@ The focused portable subgraph tests passed on JS, Wasm, and native, and the
 full Node standard-Host test passed locally. Same-SHA Linux CI remains
 unverified; these cases do not establish every Graph selector variant or every
 mixed Carrier failure mode.
+
+The retained Relation path now also splits a checked finite-list
+`VEC.merge_rankings` occurrence from a later `filter` in the same Stage.
+The selected ranking task receives its own ordered operation ports rather than
+the enclosing Stage input declarations; the fixed Compute request and completed
+output verify those exact bindings. A portable RRF fixture checks the split
+physical graph, ordered rows, two downstream consumers, and final reclamation.
+The Node standard Host retains and publishes the filtered Relation in a real
+Store, reads three Named Results against independent expected rows, and reclaims
+the Store and Run. This proves the RRF-to-filter delivery shape, not every
+ranking policy or every subsequent Relation operation in a retained Stage.
