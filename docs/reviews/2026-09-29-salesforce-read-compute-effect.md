@@ -22,26 +22,25 @@ this SHA, PR run 36572192554, passed every job.
 | Packed tarballs (`npm run check:local-node-assets`) | Pass, "packed public Client Read→Compute→Effect" included |
 | Actual Compute calls: `run-computation-probe.mjs` and `test-acquired-effect-computation-probe.mjs` | Pass; initial 1, recovery 0 |
 | Crash stop-points: `test-effect-capture-host-crash.mjs` ×6, `test-effect-capture-crash.mjs` ×3 | Pass |
-| Real org, 2026-09-29 (see "Real org") | Success path and the target-change refusal observed |
+| Real org, 2026-09-29, instrumented rerun (see "Real org") | Pass: write attempts counted per step, values and cleanup checked |
 
 **What each kind of evidence proves.**
-- **Request counts (mock only):** exact send counts come from the mock org's
-  request log and counters: no write before approval, exactly one write per
-  row, none after a restart, none on a refused request.
-- **The real-org run** shows only statuses and values:
-  - after its restarts the Run stays `succeeded`, with the expected Result
-    and org values;
-  - after the target changed, the second Run is `failed` and the outside
-    change is kept.
+- **Mock request counters** cover every case, including those not run on
+  the real org: no write before approval, exactly one write per row, none
+  after a restart, none on a refused request.
+- **The instrumented real-org rerun** counts every Salesforce request
+  attempt at the Node transport, before it is sent, in each step's process:
+  - 0 writes before approval;
+  - exactly 2 writes on the approved resume;
+  - 0 requests on the later restart;
+  - 0 writes on the refused request, after its 2 target check reads.
 
-  It did not count write attempts. Its second request proposed the same
-  names as the first, so a same-value resend would not show in the readback.
-  Its refusal was checked only as `failed`, not by cause.
-
-  The private live script now counts attempts at the transport in every
-  step, gives the second request its own suffix, and fails on a cleanup it
-  cannot confirm. Its checks are tested locally. A rerun needs a new budget
-  approval.
+  Each request proposes its own name suffix, so a resend of the first
+  request's values would show in the readback. Cleanup must end with a
+  count of 0, or the run fails.
+- **The refusal cause itself is not observed**, on the real org or the mock:
+  the refused Run is identified by its request pattern and `failed`
+  status, not by a typed cause (see "Still open").
 
 **Earlier items and their resolution:**
 
@@ -61,8 +60,6 @@ this SHA, PR run 36572192554, passed every job.
   it. The acceptance tests identify the refusal by its request pattern (the
   target check reads happened, and no write), not by a typed cause. This is
   a request to the common side.
-- **Real-org send counts** are not yet proven by the instrumented script;
-  that needs a rerun under a new budget approval.
 
 ## Historical results (at the time of each SHA)
 
@@ -252,34 +249,66 @@ provider observation failure, so the Run stays `resuming` rather than ending.
 ## Real org
 
 Run on 2026-09-29 on the approved Dev org. It went through Embedded Local,
-with each step in its own process so each step was a Host restart, at the
-Salesforce SHA `4e4e29da0` (common `c58699ce9`). The object and fields were
-the dedicated `ActQL_Test_Record__c`, `Name` and `External_Key__c` only; no
-schema or permission change.
+with each step in its own process so each step was a Host restart. The
+object and fields were the dedicated `ActQL_Test_Record__c`, `Name` and
+`External_Key__c` only; no schema or permission change.
 
-The run created three rows, each tagged with this run's key prefix and its Id
-recorded. The Program's filter selected only two of them by key; the third
-was this run's own row the filter drops.
+Each run created three rows, each tagged with that run's key prefix and its
+Id recorded. The Program's filter selected only two of them by key; the
+third was the run's own row the filter drops.
 
-| Step | Result |
-|---|---|
-| Publish source and Effect | Published (one SourceView, one update Mapping) |
-| Submit: acquire, filter, derive, Preview | Held for approval (`waiting_checkpoint`) |
-| Readback before approval | All three rows unchanged |
-| Restart, approve; restart, resume | `succeeded`; Named Result exactly the two derived names |
-| Restart again | Still `succeeded`, with the same Result (write attempts were not counted) |
-| Readback | The two targets renamed to the derived value; the filtered-out row unchanged |
-| Second request held, then one target changed outside ActQL after its Preview; approve, resume | `failed`; readback shows only the outside change. The request proposed the same names as the first, and its cause was not checked (see Current status). |
-| Cleanup | The three rows deleted by Id; count 0 |
+### Instrumented rerun (current evidence)
 
-This run used the script before instrumentation. Exact send counts for these
-cases are mock evidence (see Current status).
+Salesforce SHA `00f1b48db`; its code is the same as `4e4e29da0` (common
+`c58699ce9`). A preload in every step's process counted each request
+attempt at the transport before sending. It recorded only the step, the
+method and a coarse category; no path, Id, body, header or token.
 
-API use: 30 calls by the org's daily counter (before and after). The
-internal ledger counted 51 against its budget, since it counts Host steps by
-estimate.
+| Step | Status or readback | Salesforce request attempts |
+|---|---|---|
+| Publish source; publish Effect | Published (one SourceView, one update Mapping) | 1 describe each; no write |
+| Submit request 1: acquire, filter, derive, Preview | Held for approval (`waiting_checkpoint`) | 4 describes, 1 query, 4 record reads; no write |
+| Readback before approval | All three rows unchanged | — |
+| Restart, approve | `committed` | none |
+| Restart, resume | `succeeded`; Named Result exactly the two `-processed-1` names | 1 describe, 2 record reads, **2 writes** |
+| Restart again | Still `succeeded` | **none** |
+| Readback | The two targets carry the `-processed-1` names; the filtered-out row unchanged | — |
+| Submit request 2 (suffix `-processed-2`) | Held for approval | 4 describes, 1 query, 4 record reads; no write |
+| One target changed outside ActQL; restart, approve | `committed` | none |
+| Restart, resume | `failed` | 1 describe, 2 record reads, **0 writes** |
+| Readback | Only the outside change; no `-processed-2` value anywhere | — |
+| Cleanup | The three rows deleted by Id; count 0 | — |
 
-Mock only (not run on the real org):
+The checks that decide the result (`liveProblems`) found no problem. The
+recorder itself is tested without org access. These cases must fail it:
+- a same-value write on the restart;
+- a failure before the target check reads;
+- a write on the refused request;
+- a write before approval, or a missing write.
+
+A delete failure, rows left, or a count that cannot be read makes the run
+exit non-zero, after the evidence is saved.
+
+The refusal cause is not observed: the second Run is `failed` after its
+target check reads, with no write. No public status or diagnostic names the
+target change as the cause.
+
+API use: 43 calls by the org's daily counter (before and after). The
+internal ledger counted 51 by estimate.
+
+### First run (at that time, `4e4e29da0`, not instrumented)
+
+It showed statuses and values only:
+- after restarts, `succeeded` with the expected Result and org values;
+- after the target changed, `failed`, with the outside change kept;
+- cleanup count 0.
+
+It did not count write attempts, and its second request proposed the same
+names as the first. API use: 30 calls by the org's counter.
+
+### Not run on the real org
+
+Mock only:
 - unknown result after a lost reply;
 - partial success (halt and continue);
 - approval expiry;
