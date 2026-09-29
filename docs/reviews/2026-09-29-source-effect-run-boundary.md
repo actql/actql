@@ -151,3 +151,30 @@ their complete local Manifest and typed upstream dependency inventory. Durable
 storage, restore admission, and approval-wait acceptance are not established by
 this test; the new root owner is retained in the publication context for that
 connection. No executable acquired-Effect handoff is claimed yet.
+
+## Terminal preparation settlement after an expired claim
+
+The Client job at `5fafae9584a319c92c94d9a15665547b6a1ed778` failed
+253/254 initial Node tests. The public HTTP cancellation-after-definition
+test left the preparation in `resuming` after the Run became `cancelled`.
+A focused run reproduced this; diagnostic steps showed claims stopping
+without a recorded completion failure. No later packed job ran.
+
+The preparation's `end()` swallowed `ResumeClaimStale` and returned as if
+settlement had completed. When the lease expired during observation, no
+retry responsibility remained in the sweep. The fix propagates that failure
+to the existing owned drain, which records it and schedules re-observation.
+The next claim observes the same terminal Run and completes the preparation;
+it does not execute the Run again or weaken the journal fence.
+
+A real Checkpoint journal/evidence test advances the injected clock during
+terminal observation. Without an explicit wake it requires the owned retry
+to complete cancellation, with zero execution calls. Restoring the old catch
+makes this test fail with `TerminalSettlementRetryMissing`. The corrected
+test and three existing service tests pass (4/4); selected public HTTP
+cancellation and unsupported-read cases together with these pass (10/10).
+The full Client job and pushed-SHA CI remain unverified after this fix.
+
+This is not a diagnosis of B's separate `crash-resume_claimed` failure at
+`5ee0dec1747d6465e3829719a0adeca66caf427b`. That failure still requires its
+own fixed-SHA reproduction and state-transition evidence.

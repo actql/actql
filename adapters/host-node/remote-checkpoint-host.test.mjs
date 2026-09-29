@@ -2348,13 +2348,15 @@ test('a held request resubmit is matched to its intent, whatever the evidence',
 async function cancelledBeforeStart(t, stallAt) {
   const directory = await mkdtemp(join(scratch, 'cancel-'));
   const steps = [];
+  const failures = [];
   let stall = true;
   let released;
   const stalled = new Promise(resolve => { released = resolve; });
   const host = await remoteHost(t, protectedHost('delegate', {
     leaseMs: 1000,
-    async faultInjection(name) {
+    async faultInjection(name, detail) {
       steps.push(name);
+      if (name.endsWith('_failed')) failures.push({name, detail});
       if (name === stallAt && stall) {
         stall = false;
         await stalled;
@@ -2379,14 +2381,19 @@ async function cancelledBeforeStart(t, stallAt) {
   });
   assert.equal(state.status, 'cancelled');
   // Claims stop: nothing is retried after the request settled.
+  let lastPreparation;
   await waitFor(async () => {
     const database = new DatabaseSync(join(directory, 'state',
       'checkpoints', 'journal', 'checkpoint-journal.sqlite3'),
     {readOnly: true});
     try {
-      return database.prepare('SELECT status FROM preparations').get()
-        .status === 'ended';
+      lastPreparation = {...database.prepare(
+        'SELECT status, end_reason FROM preparations').get()};
+      return lastPreparation.status === 'ended';
     } finally { database.close(); }
+  }).catch(cause => {
+    throw new Error(`Cancelled preparation did not settle: ${JSON.stringify({
+      preparation: lastPreparation, steps, failures})}`, {cause});
   });
   const claims = steps.filter(name => name === 'resume_claimed').length;
   await new Promise(resolve => setTimeout(resolve, 2500));
