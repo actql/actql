@@ -32,9 +32,42 @@ The following passed on the working correction after `9e44915cf`:
 - `physical_strategy` JavaScript tests: 24/24.
 - Node Effect Ledger, physical dispatch, and installed Effect Site tests: 46/46.
 
-Release runtimes were rebuilt before the provider tests. Cross-target tests,
-full affected CI jobs, and pushed-SHA CI are not established by these results.
-The acquired dependency inventory remains separate work in progress.
+Release runtimes were rebuilt before the provider tests. At
+`123878be834e1b792736dbe26eb8af5428d6e377`, the public MoonBit interface check
+passed and the complete core JS and Wasm jobs passed 6,936 and 6,933 tests.
+Native, full affected Host/Client jobs, and pushed-SHA CI are not established
+by those results. The acquired dependency inventory remains separate work in
+progress.
+
+## Actual Compute call probe
+
+Run, after building the release runtimes used by the provider suite:
+
+```sh
+node adapters/connectors/salesforce/test/run-computation-probe.mjs
+```
+
+This runs the unchanged partial-apply and unknown-recovery acceptance tests
+with a test-only Node module wrapper around the real shared
+`runCapturedEffectComputation` entry. Both cases passed with exactly one call:
+initial computation runs, and recovery makes zero additional calls. Provider
+dispatch assertions remain in the original tests. The Client CI job runs this
+probe after the provider suite. It requires the pinned Node's experimental
+module-mock flag in the child process; there is no new public SDK API or
+production metric.
+
+For an acquired-input or packed Host test, preload
+`scripts/fixtures/effect-computation-probe-preload.mjs` before importing the
+Host, using `--experimental-test-module-mocks --import <preload-file-url>`.
+Set `ACTQL_TEST_EFFECT_ENTRY` to the actual installed Host entry's file URL
+and `ACTQL_TEST_EFFECT_CALL_LOG` to a test-owned log path. The parent creates
+the empty log once, before the first Host start, and preserves it across
+restarts. Each process appends `probe`; every actual entry call appends
+`compute` synchronously. A logging failure fails the test rather than losing
+an observation. Do not use this preload for production. Assert initial Compute
+is positive and that the count does not increase during recovery; an entirely
+unused probe cannot prove zero recomputation. These Values-based probe results
+do not yet establish acquired-input recovery.
 
 ## Separate Frontend recovery report
 
