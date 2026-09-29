@@ -156,6 +156,11 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
     response.destroy();
     return;
   }
+  if (operation === 'submit' && body.requestId === 'invalid-utf8-ack') {
+    response.writeHead(200, {'content-type': 'application/json'});
+    response.end(Buffer.from([0xff]));
+    return;
+  }
   if (operation === 'submit' && body.requestId === 'malformed-ack') {
     response.writeHead(200, {'content-type': 'application/json'});
     response.end('{"bad":true}');
@@ -393,6 +398,13 @@ try {
   assert.notEqual(malformed.code, 0);
   assert.match(malformed.stderr,
     /SubmissionUnknown request-id=malformed-ack/);
+  const invalidUtf8 = await run('aql', '--program-file', 'query.sql',
+    '--format', 'sql', '--request-id', 'invalid-utf8-ack');
+  assert.notEqual(invalidUtf8.code, 0);
+  assert.match(invalidUtf8.stderr,
+    /SubmissionUnknown request-id=invalid-utf8-ack/);
+  assert.equal(requests.filter(item => item.operation === 'submit' &&
+    item.body.requestId === 'invalid-utf8-ack').length, 1);
   const uncertain = await run('aql', '--program-file', 'program.json',
     '--format', 'json', '--request-id', 'lost-ack');
   assert.notEqual(uncertain.code, 0);

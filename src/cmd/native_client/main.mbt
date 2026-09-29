@@ -772,7 +772,9 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   }
   let text = @utf8.decode(result.body) catch {
     _ =>
-      if route == "read" {
+      if route == "submit" {
+        stop("SubmissionUnknown request-id=" + required(child, "request-id"))
+      } else if route == "read" {
         stop("ResultReadUnknown attempt-id=" + required(child, "attempt-id"))
       } else {
         stop("invalid UTF-8 Host response")
