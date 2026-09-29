@@ -195,6 +195,11 @@ function fixtures() {
   for (const c of interfaces.cases) {
     result.push({id: 'Result import interface ' + c.id, value: {...interfaces.base, ...c.changes}, cid: c.expected_cid});
   }
+  const imports = read('portability/corpus/result-import-observation.json');
+  for (const c of imports.cases) {
+    result.push({id: 'Result import observation ' + c.id,
+      value: {...imports.base, ...c.changes}, cid: c.expected_cid});
+  }
   for (const owner of family.documents) {
     for (const ref of owner.machine_contracts ?? []) {
       result.push({

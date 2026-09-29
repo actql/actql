@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {schema,checkResultImportInterface} from './result-import-interface.mjs';
+import {schema, observationSchema, checkResultImportInterface} from './result-import-interface.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 import {verifyIdentity} from './check-canonical-json.mjs';
 const read=p=>JSON.parse(readFileSync(p,'utf8'));
@@ -44,4 +44,31 @@ test('fixed interface preimages distinguish aliases, namespaces, producer defini
     if(c.remove)delete v[c.remove];
     assert.equal(accepts(v),false,c.id);
   }
+});
+
+test('dynamic import observation binds input position and exact producer output', () => {
+  const vectors = read('portability/corpus/result-import-observation.json');
+  assert.equal(vectors.version, 'actql-result-import-observation-vectors/0.1');
+  const references = read('spec/spec-family.json').documents.flatMap(
+    document => document.machine_contracts ?? []);
+  assert.ok(references.some(reference =>
+    reference.path === 'spec/contracts/actql-stage-contracts.json' &&
+    reference.pointer === '/schemas/result_import_observation' &&
+    reference.cid === machineCid(observationSchema)));
+  const identities = new Set();
+  for (const vector of vectors.cases) {
+    const body = {...vectors.base, ...vector.changes};
+    assert.ok(keys({...body, self_cid: vector.expected_cid},
+      observationSchema.required));
+    verifyIdentity(body, vector.expected_cid);
+    verifyIdentity(Object.fromEntries(Object.entries(body).reverse()),
+      vector.expected_cid);
+    identities.add(vector.expected_cid);
+  }
+  assert.equal(identities.size, vectors.cases.length);
+  for (const field of ['run_definition_cid', 'consumer_invocation_cid',
+    'namespace_id', 'physical_artifact_cid']) {
+    assert.equal(observationSchema.properties[field], undefined);
+  }
+  assert.equal(observationSchema.additionalProperties, false);
 });

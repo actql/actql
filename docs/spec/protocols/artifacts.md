@@ -227,6 +227,28 @@ admission. Canonical relation-value CIDs terminate at validated typed values,
 not arbitrary purported artifacts. The entire bundle, not just root field names,
 is checked for locality and cycles.
 
+<!-- requirement-block: result-artifacts.result-import-observation-binding result-artifacts.result-import-observation-manifest result-artifacts.result-import-observation-recovery -->
+A Stage Result import contributes an
+`actql-result-import-observation/0.1` to the consumer's local Invocation
+`observation_cids`. Its closed body contains `version`,
+`consumer_unit_definition_cid`, `input_name`, `import_interface_cid`,
+`producer_local_manifest_cid`, `result_artifact_cid`, and `self_cid`.
+The semantic preimage is the complete canonical body except `self_cid`.
+The checked input name and import interface MUST select that producer Unit
+and Result; its complete local Manifest MUST name the exact Artifact.
+The actual read owner issues the observation from its retained input, not
+from caller-supplied identities. Equal types or values do not transfer owner.
+Every declared Result import has exactly one matching observation, including
+an import not subsequently used by a Compute step.
+
+Dependency direction is producer Artifact/Manifest to import observation to
+consumer Invocation. Consumer Invocation, consumer Manifest, Run identity,
+physical location and current permission are not observation members.
+Current Run/namespace membership and permission remain separate checks.
+The observation and its complete typed dependency bodies MUST be durable
+before exposing resumable approval wait. Restore rejects missing, mixed,
+foreign or mismatched dependencies without acquisition or Compute repair.
+
 Projection is deterministic over authenticated Captured Run/apply evidence.
 <!-- requirement-block: result-artifacts.product-76552b0b4805 -->
 `actql-semantic-projection-attestation/0.1` binds the local semantic CID, original
@@ -958,11 +980,12 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_manifest sha256:6cbac35670ed81677b720381efee43a8f1aeccff4fa331e0dde27e0f018d5098
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_computation sha256:22055f9d843378b5a5d98a9b882a69bcc4229a448f97e1022685613e4340cbd3
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_result_definition sha256:a4e97bbb8865697510ec0d0eff6664081da9cc5b7c1546c2af107b8d743392f4
+../../../spec/contracts/actql-stage-contracts.json#/schemas/result_import_observation sha256:3a622a55cb9af3939de08583caf298abd7d66b357bcde4a060140e39cccdde8d
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_effect_outcome sha256:8a56e3e7d5139fef571da480831e0df45c95beb96c228e737efdb12a1ef0b98d
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_result_artifact sha256:16f69bbc38782a3ea42fafcfbbd992f9d1356a68c70dd1182cb102e269db04f1
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/projection_attestation sha256:27c8c8a1215b705b6553f4db128f73c905b1c6a5f0c7d72c398e02541e7dc805
-../../../spec/contracts/actql-stage-contracts.json#/reference_roles sha256:e41dc737cbbdae6a41d7e7736964d66cfd7392d2435dec57c2561ac9880fd559
-../../../spec/contracts/actql-stage-contracts.json#/reference_graph sha256:f44b51b2a74b4234b43b6fa82823b6bd450b9f4163cff6b2cde6ec042eb5e490
+../../../spec/contracts/actql-stage-contracts.json#/reference_roles sha256:df7da88a5c55f8cce06b3b58b8d4f0e03fda97f070cf8ef7cb32c01c03ce9973
+../../../spec/contracts/actql-stage-contracts.json#/reference_graph sha256:7087a971d04d5e0501f5c943907073cd48ca09e4eb008cde74effc3ecf6d30fc
 ```
 <!-- stage-contract-pins:end -->
 

@@ -15,12 +15,17 @@ import {createHash} from 'node:crypto';
 import {mkdir} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {checkedEffectPreparation} from
+  '../../../host-common/effect-preparation-result.mjs';
+import {checkedSalesforceCatalogPreparation} from
+  '../site/salesforce-effect-preparation-result.mjs';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {issueCompletedEffectfulComputationEvidence,
   releaseCompletedRunPreparedPayloads, storeCompletedRunResultSet} from
   '../../../host-common/completed-run-publication.mjs';
-import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet} from
+import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet,
+  retainPinnedEffectDependencyPayloads} from
   '../../../host-node/effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from '../../../host-node/effect-plan-verify.mjs';
 import {openEffectLedger} from '../../../host-node/effect-ledger.mjs';
@@ -66,6 +71,10 @@ const grantOperations = Object.freeze({create: 'salesforce:record:create',
   update: 'salesforce:record:update', upsert: 'salesforce:record:upsert'});
 const limits = Object.freeze({
   maxMembers: 16, maxRows: 200, maxWork: 10_000, maxFrontierWork: 1000,
+  // Result outputs pinned for one Effect Unit: its members' sources plus
+  // the upstream Stage Results they import (an acquired Program computes
+  // in a Stage after its acquisition). A ceiling, not a reservation.
+  maxPinnedResults: 64,
   maxFields: 100,
   preview: Object.freeze({maxWireBytes: 1_000_000, maxNodes: 100_000,
     maxDepth: 64}),
@@ -349,14 +358,15 @@ const memberDispatch = (runInvocationCid, member) => cid({
 function projection(salesforceMoon, observation, member) {
   const binding = JSON.parse(
     salesforceMoon.salesforceCatalogObservationJson(observation)).binding;
-  return checked(salesforceMoon.salesforcePrepareWriteProjection(
+  return checkedSalesforceCatalogPreparation(salesforceMoon.salesforcePrepareWriteProjection(
     observation, binding.namespace_id, binding.principal, binding.environment,
     binding.connection_revision, binding.org_id, binding.site_key,
     binding.site_generation, binding.connector_registration,
     binding.connector_revision, binding.resource_origin,
     binding.run_invocation_cid, binding.dispatch_request_cid,
     binding.sync_occurrence, member.resource, projectionCodes[member.kind],
-    member.key, [...member.fields], member.fields.length));
+    member.key, [...member.fields], member.fields.length),
+  salesforceMoon, observation);
 }
 
 function mappingPolicy(member) {
@@ -623,11 +633,14 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
     runInvocationCid, dispatches, requestScope, storedResults,
     authorizeEvidenceRead, signal, own}) {
     const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
-      members.length));
+      limits.maxPinnedResults));
     const proposals = members.map(() => []);
     const sourceSet = await preparePinnedEffectSourceSet({moon,
       checkedOwner: prepared, execution, inputs,
-      maxMembers: members.length, maxGroupingWork: members.length * 2,
+      // Grouping visits each member and, for an acquired Program, each
+      // pinned upstream Result: bounded by the pin ceiling, not the members.
+      maxMembers: members.length,
+      maxGroupingWork: (members.length + limits.maxPinnedResults) * 2,
       limits: moon.clientProgramEffectInputExportLimits(
         ...exportLimits(plan.outputLimits)),
       store, maxBytes: plan.outputLimits.maxWireBytes, control,
@@ -678,7 +691,9 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
             JSON.parse(proposal.changesWire).value)),
           limits.body.maxBytes, limits.body.maxNodes, limits.body.maxDepth),
         project);
-        return checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
+        // Pure request validation after the exact Catalog projection and
+        // body are prepared: no target or write I/O has started for this row.
+        return checkedEffectPreparation(salesforceMoon.salesforcePrepareSingleWriteRequest(
           body, site.apiVersion, requestCodes[member.kind],
           member.kind === 'create' ? '' : JSON.parse(proposal.selectorWire),
           0, limits.request.maxPathBytes, limits.request.maxTargetBytes,
@@ -694,6 +709,13 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
           authorizationForRow: checkReads[index], credential: site.credential,
           limits: limits.target}], maxMembers: 1, maxRows: limits.maxRows,
         maxTotalResponseBytes: limits.maxTotalResponseBytes, signal}))[0]);
+    }
+    // An acquired Program's upstream Stage Results and captured input are
+    // dependencies of the Effect source: their payload owners move to the
+    // completed computation before the Preview, as the common owner does.
+    if (sourceSet.dependencies !== undefined) {
+      retainPinnedEffectDependencyPayloads({sources: sourceSet, execution,
+        store, storedResults, control, runDefinition: plan.runDefinition});
     }
     const payloads = sourceSet.members.map(member => member.payload);
     const preview = authorObservedSalesforceEffectPreview({moon,
@@ -731,8 +753,12 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
     const holdings = await preparePinnedEffectSourceHoldings({
       sources: sourceSet, store, control, preview: admittedPreview,
       invocation: plan.invocation}).commit();
+    // The Preview binds the Stage of the Effect Unit's inputs: the Values
+    // Stage (0) of a source-free Program, a later Stage for an acquired one.
     const previewInputs = checked(moon.clientProgramBindEffectPreviewInputs(
-      checkedHost, inputs, previewContext.runInvocation, 0, preview.wire,
+      checkedHost, inputs, previewContext.runInvocation,
+      moon.clientProgramEffectInputStage(
+        moon.clientProgramEffectInputAt(inputs, 0)), preview.wire,
       preview.authoringCid, moon.clientProgramEffectPreviewInputLimits(
         limits.preview.maxWireBytes, limits.preview.maxNodes,
         limits.preview.maxDepth, limits.maxWork, limits.maxFields,

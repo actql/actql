@@ -2,6 +2,7 @@
 package "actql/actql/capacity_policy"
 
 import {
+  "actql/actql/encode_core",
   "moonbitlang/core/debug",
 }
 
@@ -17,6 +18,8 @@ pub fn ceiling_policy(Ceiling) -> Policy
 pub fn ceiling_value(Ceiling) -> Int64
 
 pub fn cid(Policy) -> String
+
+pub fn emit(Policy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 // Errors
 

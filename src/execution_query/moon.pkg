@@ -3,6 +3,7 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/execution_relation" @execution,
+  "actql/actql/relation_results" @results,
   "actql/actql/sourceview_resolution" @acquisition,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/pipeline_typing" @pipeline,
@@ -10,4 +11,5 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/encode_core" @encode,
+  "moonbitlang/core/encoding/utf8",
 }

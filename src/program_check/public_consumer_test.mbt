@@ -1004,6 +1004,10 @@ fn public_effect_mapping_closure(
       checked_run, ledger,
     ).unwrap()
     assert_true(
+      @strategy.pin_captured_effect_sources(captured, 2, max_dependency_depth=0)
+      is Err(@strategy.PreviewWorkLimit),
+    )
+    assert_true(
       physical_equal(@strategy.captured_effect_run_owner(captured), run_owner),
     )
     assert_true(

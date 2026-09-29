@@ -331,20 +331,32 @@ test('public HTTP Client resumes an installed Salesforce Effect after restart',
       [row.External_Key__c, row.Name]).sort(),
     [['key-1', 'record-1'], ['key-3', 'record-3']]);
     const mapping = published.mappings[0];
-    const unsupported = JSON.parse(program);
-    unsupported.id = 'unsupported-acquire-and-effect';
-    unsupported.stages[1].effects = {save: {update: {
+    // The Program this test used to expect refused before any Run: the
+    // read Program with an Effect on its computed Result. It is now admitted
+    // on this coinstalled Host: it acquires once and computes, then is
+    // refused before any write, because it selects records by
+    // `External_Key__c` values, which are not record Ids. The same shape with
+    // a valid Id selector is read-compute-effect.acceptance.test.mjs's
+    // success test. A definitive invalid selector before any Effect dispatch
+    // must fail the Run, not leave it as execution unknown.
+    const formerlyRefused = JSON.parse(program);
+    formerlyRefused.id = 'unsupported-acquire-and-effect';
+    formerlyRefused.stages[1].effects = {save: {update: {
       target: 'connector://crm-main/Test_Record__c',
       mapping: mapping.mappingRef, from: {result: 'r'},
       id: 'External_Key__c', set: {Name: {field: 'Name'}},
     }}};
-    const beforeUnsupported = setup.org.seen.length;
-    await assert.rejects(ownerClient.aql(JSON.stringify(unsupported), {
-      format: 'json', requestId: 'unsupported-acquire-and-effect'}),
-    {code: 'ClientProgramUnsupported'});
-    assert.deepEqual(await ownerClient.lookupRequest(
-      'unsupported-acquire-and-effect'), {kind: 'not_found'});
-    assert.equal(setup.org.seen.length, beforeUnsupported);
+    const queriesBefore = setup.queries().length;
+    const admitted = await ownerClient.aql(JSON.stringify(formerlyRefused), {
+      format: 'json', requestId: 'unsupported-acquire-and-effect'});
+    assert.equal((await ownerClient.lookupRequest(
+      'unsupported-acquire-and-effect')).kind, 'found');
+    await waitFor(() => diagnostics.some(item =>
+      item.name === 'effect_start_failed'));
+    assert.equal((await admitted.status()).status, 'failed');
+    assert.equal(setup.queries().length, queriesBefore + 1);
+    assert.equal(setup.org.seen.filter(item => item.method === 'PATCH')
+      .length, 0);
     const effectDocument = effectProgram({save: {update: {
       target: `connector://crm-main/Test_Record__c`,
       mapping: mapping.mappingRef, from: {result: 'rows'}, id: 'id',

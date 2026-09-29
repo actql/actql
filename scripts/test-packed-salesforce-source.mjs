@@ -60,6 +60,9 @@ const server = await (async () => {
     '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
   {cwd: root, stdio: 'ignore'});
   const seen = [];
+  // The current Name every target read answers; a test changes it to make
+  // a Preview stale.
+  const target = {name: 'prior-name'};
   const prefix = '/services/data/v62.0/';
   const records = [1, 2, 3].map(index => ({Id: `a0000000000000${index}`,
     Name: `record-${index}`, External_Key__c: `key-${index}`}));
@@ -106,14 +109,16 @@ const server = await (async () => {
     if (request.method === 'GET' && record !== undefined) {
       const id = decodeURIComponent(request.url.slice(
         `${prefix}sobjects/${record}/`.length));
-      json({Id: id, Name: 'prior-name', External_Key__c: id});
+      json({Id: id, Name: target.name, External_Key__c: id});
       return;
     }
     if (request.method === 'PATCH' && record !== undefined) {
       const chunks = [];
       request.on('data', chunk => chunks.push(chunk));
       request.on('end', () => {
-        const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        const text = Buffer.concat(chunks).toString('utf8');
+        seen.at(-1).body = text;
+        const body = JSON.parse(text);
         assert.deepEqual(Object.keys(body), ['Name']);
         response.writeHead(204).end();
       });
@@ -122,7 +127,7 @@ const server = await (async () => {
     response.writeHead(404).end();
   });
   await new Promise(resolve => https.listen(0, '127.0.0.1', resolve));
-  return {seen, origin: `https://127.0.0.1:${https.address().port}`,
+  return {seen, target, origin: `https://127.0.0.1:${https.address().port}`,
     close: () => new Promise(resolve => https.close(resolve))};
 })();
 
@@ -418,6 +423,56 @@ try {
       {checkpoint, decision: 'approved'}], {signer});
     assert.deepEqual(answer.results.map(item => item.status), ['committed']);
     console.log('approved');
+  } else if (step === 'rce-submit') {
+    // Read→Compute→Effect: acquire Test_Record__c, keep every record but
+    // record-2, derive the new Name locally, and update the same records.
+    const generation = JSON.parse(readFileSync('effect-publication.json',
+      'utf8'));
+    const mapping = generation.mappings.find(entry =>
+      entry.write.resource === 'Test_Record__c');
+    const program = {version: 'actql/0.1', id: 'packed-rce', stages: [
+      {id: 'acquire',
+        inputs: {remote: {connector: 'crm-main', resource: 'Test_Record__c'}},
+        steps: [{filter: "Name <> 'record-2'", as: 'filtered'},
+          {select: ['Id', 'External_Key__c'], as: 'captured'}],
+        results: {r: {from: 'captured', fields: ['Id', 'External_Key__c']}}},
+      {id: 'compute',
+        inputs: {x: {result: {stage: 'acquire', result: 'r'}}},
+        steps: [
+          {derive: {next_name: "concat(External_Key__c, '-processed')"},
+            as: 'derived'},
+          {select: ['Id', 'next_name'], as: 'out'}],
+        results: {updates: {from: 'out', fields: ['Id', 'next_name']}},
+        effects: {save: {update: {target: 'connector://crm-main/Test_Record__c',
+          mapping: mapping.mapping_ref, from: {result: 'updates'}, id: 'Id',
+          set: {Name: {field: 'next_name'}}}}}},
+    ], results: {updates: {from: {stage: 'compute', result: 'updates'}}}};
+    let execution;
+    try {
+      execution = await client.aql(JSON.stringify(program), {format: 'json',
+        requestId: 'packed-rce-' + process.argv[3]});
+    } catch (error) {
+      if (error?.code === 'ClientProgramUnsupported') {
+        console.log('not-connected');
+        process.exit(0);
+      }
+      throw error;
+    }
+    await waitFor(async () => (await execution.status()).status ===
+      'waiting_checkpoint');
+    writeFileSync('effect-ref.json', JSON.stringify(execution.ref));
+    console.log('held');
+  } else if (step === 'rce-resume') {
+    const ref = JSON.parse(readFileSync('effect-ref.json', 'utf8'));
+    const execution = await client.attach(ref);
+    const state = await waitFor(async () => {
+      const current = await execution.status();
+      return ['succeeded', 'failed', 'needs_reconciliation', 'cancelled']
+        .includes(current.status) ? current : undefined;
+    });
+    console.log(JSON.stringify({status: state.status,
+      rows: state.status === 'succeeded'
+        ? await execution.result('updates').all() : undefined}));
   } else if (step === 'resume' || step === 'recheck') {
     const ref = JSON.parse(readFileSync('effect-ref.json', 'utf8'));
     const execution = await client.attach(ref);
@@ -458,6 +513,56 @@ try {
   assert.equal(server.seen.filter(item => item.method === 'PATCH').length, 4);
   console.log('packed public Client Effect approval, restart, write and ' +
     'Named Result passed');
+
+  // Read→Compute→Effect from the installed tarballs: acquire, compute and
+  // hold; approve; resume in a new process; write once; nothing more on a
+  // further restart. Then a target changed after the Preview writes nothing.
+  // Until the common Host runs an Effect from an acquisition, this ends as
+  // not connected, never as passed.
+  const rce = async (steps, id) => {
+    const held = (await runChild('effect-run.mjs', effectEnvironment,
+      ['rce-submit', id])).trim();
+    if (held === 'not-connected') {
+      throw Object.assign(new Error('ReadComputeEffectNotConnected: the ' +
+        'packed Host refuses the Program (ClientProgramUnsupported).'),
+      {code: 'ReadComputeEffectNotConnected'});
+    }
+    assert.equal(held, 'held');
+    return steps();
+  };
+  const writesBefore = server.seen.filter(item => item.method === 'PATCH')
+    .length;
+  const patches = () => server.seen.filter(item => item.method === 'PATCH')
+    .slice(writesBefore);
+  await rce(async () => {
+    assert.equal(patches().length, 0);
+    assert.equal((await runChild('effect-run.mjs', effectEnvironment,
+      ['answer'])).trim(), 'approved');
+    assert.equal(patches().length, 0);
+    const done = JSON.parse((await runChild('effect-run.mjs',
+      effectEnvironment, ['rce-resume'])).trim());
+    assert.equal(done.status, 'succeeded');
+    assert.deepEqual([...done.rows].sort((a, b) => a.Id < b.Id ? -1 : 1), [
+      {Id: 'a00000000000001', next_name: 'key-1-processed'},
+      {Id: 'a00000000000003', next_name: 'key-3-processed'}]);
+    assert.deepEqual(patches().map(item => [item.path.split('/').at(-1),
+      item.body]).sort(), [
+      ['a00000000000001', '{"Name":"key-1-processed"}'],
+      ['a00000000000003', '{"Name":"key-3-processed"}']]);
+    assert.equal(JSON.parse((await runChild('effect-run.mjs',
+      effectEnvironment, ['rce-resume'])).trim()).status, 'succeeded');
+    assert.equal(patches().length, 2);
+  }, 'success');
+  await rce(async () => {
+    server.target.name = 'changed-after-preview';
+    assert.equal((await runChild('effect-run.mjs', effectEnvironment,
+      ['answer'])).trim(), 'approved');
+    const done = JSON.parse((await runChild('effect-run.mjs',
+      effectEnvironment, ['rce-resume'])).trim());
+    assert.equal(done.status, 'failed');
+    assert.equal(patches().length, 2);
+  }, 'stale');
+  console.log('packed public Client Read→Compute→Effect passed');
 } finally {
   await server.close();
   await rm(root, {recursive: true, force: true});

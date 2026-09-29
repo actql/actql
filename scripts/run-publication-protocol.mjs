@@ -130,7 +130,7 @@ const supportedKeywords = new Set([
   'enum', 'oneOf', 'allOf', 'pattern', 'format', 'minLength', 'minimum',
   'anyOf', 'not', 'if', 'then', 'else',
   'maximum', 'properties', 'required', 'additionalProperties',
-  'minProperties', 'propertyNames', 'items', 'minItems', 'uniqueItems',
+  'minProperties', 'propertyNames', 'items', 'minItems', 'maxItems', 'uniqueItems',
 ]);
 const annotationKeywords = new Set([
   '$schema', '$id', 'title', 'description', '$comment', 'examples',
@@ -331,12 +331,12 @@ function emitSchema(schema, assumedType) {
   }
   if (schema.type === 'array') {
     requireKeywords(schema, 'array', [
-      'type', 'items', 'minItems', 'uniqueItems',
+      'type', 'items', 'minItems', 'maxItems', 'uniqueItems',
     ]);
     const items = emitSchema(schema.items ?? {});
     nodes.push(
       `protocol_array_rule(${items}, ${schema.minItems ?? 0}, ` +
-      `${String(schema.uniqueItems === true)})`,
+      `${String(schema.uniqueItems === true)}, ${schema.maxItems ?? -1})`,
     );
     return nodes.length - 1;
   }

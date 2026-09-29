@@ -158,6 +158,14 @@ fn canonical_hash(
     limits.max_nodes,
     limits.max_depth,
   )
+  emit(p, w)
+  @encode.finish_hash(w)
+}
+
+///|
+/// Serialize the exact admitted policy using the same preimage as admission.
+/// This does not choose a policy or confer authority to execute under it.
+pub fn emit(p : Policy, w : @encode.Writer) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(w)
   let mut optional = 0
   for name in fields {
@@ -184,7 +192,6 @@ fn canonical_hash(
   @encode.key(w, "version")
   @encode.string_value(w, "actql-capacity-host-policy/0.1")
   @encode.end_object(w)
-  @encode.finish_hash(w)
 }
 
 ///|

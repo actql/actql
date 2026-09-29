@@ -20,6 +20,15 @@ test('independent local Effect source inventory binds its Stage Result', () => {
   const context = registry.artifact_schemas.captured_run
     .properties.effect_context;
   assert.ok(context.required.includes('effect_source_local_inventory'));
+  assert.ok(context.required.includes('effect_dependency_inventory'));
+  const dependencies = context.properties.effect_dependency_inventory;
+  assert.equal(dependencies.type, 'array');
+  assert.equal(dependencies.maxItems, 4096);
+  assert.equal(dependencies.items.additionalProperties, false);
+  assert.deepEqual([...dependencies.items.required].sort(),
+    ['body', 'cid', 'kind']);
+  assert.ok(dependencies.items.properties.kind.enum.includes(
+    'result_import_observation'));
   const inventory = context.properties.effect_source_local_inventory;
   assert.equal(inventory.type, 'object');
   const entry = inventory.additionalProperties;
@@ -316,7 +325,7 @@ test('corrected schemas have independently fixed canonical identities', () => {
       run_state:
         'sha256:e61cdac45a5af98ca5362ee945511d705c373613cd4e9dc42009e036eb9fcb84',
       captured_run:
-        'sha256:ac57820dd589db489f000eb80ff95ec9c9a95fec5b233add853293ed9c1dbc53',
+        'sha256:7b3d173c3a078431c99352e3bac4e5a2341ea2217c1995ab8c97dd9c56027ac1',
     },
   );
 });

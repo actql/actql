@@ -68,6 +68,7 @@ import {
 
 import {
   "actql/actql/binding_declarations" @bindings,
+  "actql/actql/canonical_json" @json,
   "actql/actql/text_rank_profile" @lexical,
   "actql/actql/local_relation_snapshot" @snapshot,
   "actql/actql/source_request_slots" @slots,

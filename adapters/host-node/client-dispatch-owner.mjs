@@ -317,6 +317,13 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         entry.physicalStarted = true;
         entry.physicalWorkMayHaveStarted = true;
       },
+      observePreEffectFailure() {
+        // Only the installed opening boundary can assert this: acquisition
+        // or Compute failed before the Effect adapter was invoked. This is
+        // an outcome observation, not a physical stop or cleanup exemption.
+        entry.terminalOutcome = entry.abort.signal.aborted
+          ? 'cancelled' : 'failed';
+      },
       retainExecution(execution) {
         if (entry.cleanupOwner !== undefined &&
             entry.cleanupOwner !== execution) {

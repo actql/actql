@@ -7,11 +7,19 @@ import {
 }
 
 // Values
+pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
+
+pub fn admit_captured_effect_dependency_inventory(String, Array[CapturedEffectDependencyBody], CapturedEffectDependencyLimits, Int, Int) -> Result[CapturedEffectDependencyInventory, CapturedEffectDependencyIssue]
+
 pub fn admit_captured_effect_source_artifact(EffectPreviewIdentity, Int, PublicationContract, PublicationContract, String) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue]
+
+pub fn admit_captured_effect_source_dependencies(Array[CapturedLocalEffectSourceEvidence], String, Int, Int, Int) -> Result[CapturedEffectDependencyInventory, CapturedEffectDependencyIssue]
 
 pub fn admit_captured_local_effect_source(CapturedEffectSourceArtifact, String, String, String, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[CapturedLocalEffectSourceEvidence, CapturedLocalEffectSourceIssue]
 
 pub fn admit_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int) -> Result[CapturedResultSnapshot, CapturedRunIssuanceIssue]
+
+pub fn admit_catalog_effect_dependency_body(String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
 
 pub fn admit_checked_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract, String, String, String, String) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
 
@@ -37,9 +45,15 @@ pub fn admit_effectful_final_receipt_references(PublicationContract, Publication
 
 pub fn admit_effectful_final_run_evidence_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, Int, Int, Int) -> Result[PublicationContract, EffectfulFinalChainIssue]
 
+pub fn admit_hashed_effect_dependency_body(String, String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
+
+pub fn admit_local_effect_dependency_body(String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
+
 pub fn admit_pending_source_state_advance(String, RunEvidenceValue, Int, Int, Int) -> Result[PendingSourceStateAdvance, CapturedRunIssuanceIssue]
 
 pub fn admit_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
+
+pub fn admit_publication_effect_dependency_body(String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
 
 pub fn admit_result_definition(String, Int, Int, Int) -> Result[ResultDefinition, ResultDefinitionIssue]
 
@@ -48,6 +62,8 @@ pub fn admit_result_material_holds(String) -> Result[ResultMaterialHolds, Result
 pub fn admit_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn admit_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
+
+pub fn admit_source_effect_dependency_body(String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
 
 pub fn author_effect_preview_semantic_wire(String, String, String, Int, Int, Int) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue]
 
@@ -60,6 +76,16 @@ pub fn begin_result_material_holds(String, String) -> Result[ResultMaterialHolds
 pub fn cancel_durable_result_row_frames(DurableResultRowFrames) -> Unit
 
 pub fn canonical_effect_preview_draft_wire(String, Int, Int, Int) -> Result[String, PublicationContractIssue]
+
+pub fn captured_effect_dependency_body_cid(CapturedEffectDependencyBody) -> String
+
+pub fn captured_effect_dependency_body_json(CapturedEffectDependencyBody) -> String
+
+pub fn captured_effect_dependency_body_kind(CapturedEffectDependencyBody) -> String
+
+pub fn captured_effect_dependency_inventory_count(CapturedEffectDependencyInventory) -> Int
+
+pub fn captured_effect_dependency_inventory_json(CapturedEffectDependencyInventory) -> String
 
 pub fn captured_effect_source_artifact_cid(CapturedEffectSourceArtifact) -> String
 
@@ -229,6 +255,10 @@ pub fn finish_result_delivery(ResultDeliverySerializer) -> Result[String, Delive
 
 pub fn inspect_canonical_result_rows(String, Array[String], Int, Int, Int) -> Result[(String, Int), CapturedRunIssuanceIssue]
 
+pub fn issue_captured_effect_dependency_inventory(Array[CapturedEffectDependencyBody], Array[CapturedEffectDependencyBody], CapturedEffectDependencyLimits, Int, Int) -> Result[CapturedEffectDependencyInventory, CapturedEffectDependencyIssue]
+
+pub fn issue_captured_source_input_relation(RunEvidenceValue, RunEvidenceValue, String, Int, PublicationContract, Int, Int, Int) -> Result[(PublicationContract, PublicationContract, PublicationContract), AcquisitionRelationIssue]
+
 pub fn issue_complete_local_result_artifact(String, String, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
 
 pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
@@ -236,6 +266,8 @@ pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, 
 pub fn issue_delivery_attempt(PublicationContract, PublicationContract, PublicationContract, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
 pub fn issue_delivery_record(PublicationContract, PublicationContract?, String, Int, String, Int?, String?, PublicationContract?, String?, String, Array[String], Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
+
+pub fn issue_derived_input_relation(PublicationContract, ResultOrderingEvidence, PublicationContract, PublicationContract, Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
 
 pub fn issue_durable_result_binding(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, Array[String], String, String, String, Int, Int, String, Int, Int, Int) -> Result[PublicationContract, DurableResultBindingIssue]
 
@@ -255,7 +287,7 @@ pub fn issue_effect_set_apply_receipt_from_members(EffectPreviewIdentity, Array[
 
 pub fn issue_effect_source_artifact(PublicationContract, PublicationContract, String, String, String, String, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectSourceArtifactIssue]
 
-pub fn issue_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[CapturedLocalEffectSourceEvidence], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
+pub fn issue_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[CapturedLocalEffectSourceEvidence], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int, dependency_inventory? : CapturedEffectDependencyInventory?) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
 pub fn issue_effectful_final_run_receipt(PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[PublicationContract, EffectfulFinalReceiptIssuanceIssue]
 
@@ -286,6 +318,8 @@ pub fn issue_run_control_observation_wire(Int, Bool, Bool, Bool, Bool) -> Result
 pub fn issue_run_definition(RunPublicationAdmission, String, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, RunPublicationAdmissionIssue]
 
 pub fn issue_run_invocation(RunEvidenceValue, RunEvidenceValue, Int, Int, Int) -> Result[PublicationContract, RunEvidenceValueIssue]
+
+pub fn issue_single_source_acquisition_scope(String, String, Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
 
 pub fn issue_succeeded_run_state(String, String, Array[String], Array[ResultAvailability], Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
 
@@ -483,7 +517,11 @@ pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[Public
 
 pub fn seal_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
+pub fn source_effect_catalog_dependencies(RunEvidenceValue) -> Result[Array[(String, String)], CapturedEffectDependencyIssue]
+
 pub fn trusted_clock_not_before(String?, String) -> Bool
+
+pub fn validate_captured_effect_dependency_bodies(Array[CapturedEffectDependencyBody], Array[CapturedEffectDependencyBody], Int, CapturedEffectDependencyLimits) -> Result[Unit, CapturedEffectDependencyIssue]
 
 pub fn validate_delivery_payload_binding(PublicationContract, PublicationContract, PublicationContract, PublicationContract, DeliveryPayloadFacts, Int, Int, Int) -> Result[Unit, DeliveryIssuanceIssue]
 
@@ -526,6 +564,39 @@ pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailabil
 // Errors
 
 // Types and methods
+pub(all) enum AcquisitionRelationIssue {
+  WrongEvidence
+  WrongScope
+  WrongRetention
+  Encoding
+  Contract(PublicationContractIssue)
+} derive(Eq, @debug.Debug)
+
+type CapturedEffectDependencyBody
+
+type CapturedEffectDependencyInventory
+
+pub(all) enum CapturedEffectDependencyIssue {
+  InvalidLimits
+  EntryLimit
+  ByteLimit
+  ReferenceLimit
+  DepthLimit
+  DuplicateIdentity
+  MissingDependency
+  WrongDependencyKind
+  DependencyCycle
+  UnusedDependency
+  InvalidBody
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CapturedEffectDependencyLimits {
+  max_entries : Int
+  max_total_bytes : Int
+  max_depth : Int
+  max_references : Int
+} derive(Eq, @debug.Debug)
+
 type CapturedEffectSourceArtifact
 
 type CapturedLocalEffectSourceEvidence

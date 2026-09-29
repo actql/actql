@@ -201,6 +201,39 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.artifacts/result-artifacts.result-import-observation-binding",
+      "statement_sha256": "09af021b978f3c2139f14c67c18f40a9a594eb82add2df3ff76470f82f4cc5aa",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-artifacts.result-import-observation-manifest",
+      "statement_sha256": "2c88dca5138fdc8de99231284a26b04e4e55efe873fcbb18d10a4cb42a02ea2a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-artifacts.result-import-observation-recovery",
+      "statement_sha256": "1c2bab5e31ba7a5ae928a0d47a5ad97d88e3911ecbfa8bfcc308064c3b9810b2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.artifacts/result-artifacts.product-76552b0b4805",
       "statement_sha256": "76552b0b4805ba5bc82d850c493458b0bcf8072030b4226130b40e0a08fb31bd",
       "status": "pending",
