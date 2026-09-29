@@ -94,7 +94,9 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     variant == "pool_normalize" ||
     variant == "pool_shared" ||
     relation_pool
-  let scored = variant == "score_shared" || variant == "score_parameter"
+  let scored = variant == "score_shared" ||
+    variant == "score_parameter" ||
+    variant == "score_filter"
   let source_fields = "[\"id\",\"code\",\"group\",\"embedding\"]"
   let result_fields = if pooled {
     "[\"group\",\"embedding\",\"member_count\"]"
@@ -210,6 +212,7 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   } else if variant == "bridge_only" ||
     variant == "bridge_filter" ||
     variant == "normalize_filter" ||
+    variant == "score_filter" ||
     variant == "bridge_select" ||
     variant == "bridge_derive" ||
     variant == "bridge_take" {
@@ -219,11 +222,21 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     (if variant == "normalize_filter" {
       "{\"from\":\"source\",\"normalize_vectors\":true," +
       "\"as\":\"normalized\"},"
+    } else if variant == "score_filter" {
+      "{\"from\":\"source\",\"score_vectors\":{" +
+      "\"query\":[1,0],\"metric\":\"dot\"}," +
+      "\"as\":\"scored\"},"
     } else {
       ""
     }) +
     "{\"from\":\"" +
-    (if variant == "normalize_filter" { "normalized" } else { "source" }) +
+    (if variant == "normalize_filter" {
+      "normalized"
+    } else if variant == "score_filter" {
+      "scored"
+    } else {
+      "source"
+    }) +
     "\"," +
     "\"vectors\":true,\"as\":" +
     (if variant != "bridge_only" { "\"projected\"}" } else { "\"out\"}" }) +
@@ -959,8 +972,8 @@ fn run_standard_host_mixed_vectors_relation_path(
       execution_bytes: 402653184L,
     }),
   )
-  let normalize = variant == "normalize_filter"
-  let task_offset = if normalize { 1 } else { 0 }
+  let transformed = variant == "normalize_filter" || variant == "score_filter"
+  let task_offset = if transformed { 1 } else { 0 }
   assert_eq(
     @strategy.graph_task_count(@strategy.captured_dag_graph(run)),
     7 + task_offset,
@@ -1064,7 +1077,7 @@ fn run_standard_host_mixed_vectors_relation_path(
     [values_rows],
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
-  let normalized = if normalize {
+  let transformed_output = if transformed {
     Some(
       run_local_managed_carrier_test_task(
         installed,
@@ -1078,7 +1091,7 @@ fn run_standard_host_mixed_vectors_relation_path(
   } else {
     None
   }
-  let (projection_carrier, projection_material) = match normalized {
+  let (projection_carrier, projection_material) = match transformed_output {
     Some((_, completed, material)) => (completed, material)
     None => (bridge, bridge_material)
   }
@@ -1095,10 +1108,15 @@ fn run_standard_host_mixed_vectors_relation_path(
     obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
   )
   let projected_rows = local_managed_test_rows(projected_ops)
-  if normalize {
+  if variant == "normalize_filter" {
     assert_eq(projected_rows, [
       "{\"code\":\"😀\",\"embedding\":[0.6000000238418579,0.800000011920929],\"group\":1,\"id\":1}",
       "{\"code\":\"é\",\"embedding\":[0,1],\"group\":1,\"id\":2}",
+    ])
+  } else if variant == "score_filter" {
+    assert_eq(projected_rows, [
+      "{\"code\":\"😀\",\"embedding\":[3,4],\"group\":1,\"id\":1,\"score\":3}",
+      "{\"code\":\"é\",\"embedding\":[0,5],\"group\":1,\"id\":2,\"score\":0}",
     ])
   }
   let filtered_live = Ref(true)
@@ -1168,10 +1186,10 @@ fn run_standard_host_mixed_vectors_relation_path(
   @strategy.close_captured_task_output(run, 3 + task_offset)
   (projected_ops.close)()
   (projected_ops.cleanup_refresh)() |> ignore
-  if normalized is Some((normalized_ops, _, _)) {
+  if transformed_output is Some((transformed_ops, _, _)) {
     @strategy.close_captured_task_output(run, 3)
-    (normalized_ops.close)()
-    (normalized_ops.cleanup_refresh)() |> ignore
+    (transformed_ops.close)()
+    (transformed_ops.cleanup_refresh)() |> ignore
   }
   @strategy.close_captured_task_output(run, 2)
   (bridge_ops.close)()
@@ -1193,6 +1211,16 @@ fn run_standard_host_mixed_vectors_relation_path(
 ///|
 test "standard Host composes Vectors projection and Relation filter" {
   run_standard_host_mixed_vectors_relation_path("bridge_filter")
+}
+
+///|
+test "standard Host retains normalized Vectors before Relation filtering" {
+  run_standard_host_mixed_vectors_relation_path("normalize_filter")
+}
+
+///|
+test "standard Host retains scored Vectors before Relation filtering" {
+  run_standard_host_mixed_vectors_relation_path("score_filter")
 }
 
 ///|

@@ -3050,6 +3050,26 @@ async function exerciseStrategyGraph(
       {id: 1, embedding: [0.6000000238418579, 0.800000011920929]},
       {id: 2, embedding: [0, 1]},
     ],
+  }, {
+    name: 'vectors-score',
+    source: carrierVectorPublicationProgram,
+    create: program => fixture.strategyFixtureVecaCreate(
+      ...args, JSON.stringify(program), orderedContract),
+    configure: value => fixture.strategyFixtureVecaRetainedSubset(value),
+    transform: {
+      from: 'source', score_vectors: {query: [1, 0], metric: 'dot'},
+      as: 'scored',
+    },
+    fields: ['id', 'embedding', 'score'],
+    secondFields: ['score', 'embedding', 'id'],
+    rows: [
+      {id: 1, embedding: [3, 4]},
+      {id: 2, embedding: [0, 2]},
+    ],
+    expectedRows: [
+      {id: 1, embedding: [3, 4], score: 3},
+      {id: 2, embedding: [0, 2], score: 0},
+    ],
   }]) {
     const directProgram = structuredClone(carrierCase.source);
     const rowStep = directProgram.stages[1].steps[0];
@@ -4401,13 +4421,16 @@ async function exerciseStrategyGraph(
     constructionProgress: 80,
     fields: ['id', 'embedding'],
   }, {
-    name: 'vector-normalize-fused-filter',
+    name: 'vector-normalize-score-selected-filter',
     family: 'veca',
     operation: 'normalize',
     mixedRelationFilter: true,
     rows: 40,
     advanceQuantum: 1,
-    constructionProgress: 80,
+    constructionProgress: 40,
+    cancelOnManagedStart: 4,
+    managedStarts: 4,
+    completedTasks: [1, 2, 3],
     fields: ['id', 'embedding'],
   }, {
     name: 'vector-normalize-selected-filter',
@@ -4416,7 +4439,7 @@ async function exerciseStrategyGraph(
     mixedRelationFilter: true,
     rows: 40,
     advanceQuantum: 1,
-    constructionProgress: 80,
+    constructionProgress: 40,
     cancelOnManagedStart: 3,
     managedStarts: 3,
     completedTasks: [1, 2],
@@ -4428,7 +4451,7 @@ async function exerciseStrategyGraph(
     mixedRelationFilter: true,
     rows: 40,
     advanceQuantum: 1,
-    constructionProgress: 80,
+    constructionProgress: 40,
     cancelOnManagedStart: 5,
     managedStarts: 5,
     completedTasks: [1, 2, 3, 4],
@@ -4450,6 +4473,18 @@ async function exerciseStrategyGraph(
     rows: 40,
     advanceQuantum: 1,
     constructionProgress: 80,
+    fields: ['id', 'embedding', 'score'],
+  }, {
+    name: 'vector-score-selected-filter',
+    family: 'veca',
+    operation: 'score',
+    mixedRelationFilter: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
     fields: ['id', 'embedding', 'score'],
   }, {
     name: 'vector-pool',
@@ -5646,8 +5681,9 @@ async function exerciseStrategyGraph(
           ? 0
           : cancellationCase.constructionProgress ??
             cancellationCase.rows * 2),
-        JSON.stringify(advanceObservations, (_, value) =>
-          typeof value === 'bigint' ? value.toString() : value),
+        `${cancellationCase.name}: construction progress ` +
+          `${constructionProgress}, starts ${constructionStarts.join(',')}, ` +
+          `managed starts ${managedStarts}`,
       );
       assert.equal(
         sawOperationWork,

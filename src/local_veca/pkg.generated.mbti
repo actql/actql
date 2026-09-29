@@ -110,6 +110,8 @@ pub fn start_relation_pool(@bounded_execution.Control, @lowering_relation.Prepar
 
 pub fn start_score(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[ScoreExecution, ScoreIssue]
 
+pub fn start_score_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[ScoreExecution, ScoreIssue]
+
 // Errors
 
 // Types and methods

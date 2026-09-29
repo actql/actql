@@ -96,6 +96,30 @@
         "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
         "fixture": "vector-normalize-later-filter"
       }
+    },
+    {
+      "id": "vectors_score_to_rows_filter",
+      "carrier": "Vectors",
+      "operations": ["score_vectors", "vectors", "filter"],
+      "standalone_prefix_provider": true,
+      "standard_host": {
+        "suite": "moon:query_integration",
+        "targets": ["js", "wasm", "native"],
+        "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+        "fixture": "standard Host retains scored Vectors before Relation filtering"
+      },
+      "in_flight_cancel": {
+        "suite": "node:duckdb_standard_host",
+        "targets": ["node"],
+        "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+        "fixture": "vector-score-selected-filter"
+      },
+      "selected_in_flight_cancel": {
+        "suite": "node:duckdb_standard_host",
+        "targets": ["node"],
+        "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+        "fixture": "vector-score-selected-filter"
+      }
     }
   ],
   "routes": [

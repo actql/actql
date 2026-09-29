@@ -159,6 +159,178 @@ fn scored_field(
 }
 
 ///|
+test "score reads an exact retained Vectors view and preserves custody" {
+  let producer = producer_owner()
+  let source = scored_source(producer, Ref(true))
+  let material = @records.completed_material(source).unwrap()
+  let owner = score_owner(producer)
+  let view = @carrier_runtime.material_prepare_view(
+    material, owner, 0, producer,
+  ).unwrap()
+  let execution = start_score_view(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    view,
+    limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let output = finish_score_execution(execution)
+  let storage = @records.completed_storage(output).unwrap()
+  assert_eq(@storage.record_count(storage), 3)
+  for (index, expected) in [(0, 1.0), (1, 2.0), (2, 3.0)] {
+    guard scored_field(storage, index, "id").value is @value.Number(id) else {
+      fail("score view identity missing")
+    }
+    assert_eq(id, expected)
+  }
+  assert_true(@records.discard_completed(output))
+  assert_eq(cleanup_score(execution), Ok(true))
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.reclaim_material(material))
+}
+
+///|
+test "score view cancellation retains its producer" {
+  let producer = producer_owner()
+  let source = scored_source(producer, Ref(true))
+  let material = @records.completed_material(source).unwrap()
+  let owner = score_owner(producer)
+  let view = @carrier_runtime.material_prepare_view(
+    material, owner, 0, producer,
+  ).unwrap()
+  let control = @bounded.control()
+  let execution = start_score_view(
+    control,
+    sequence(owner),
+    0,
+    view,
+    limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_score(execution, 1).unwrap() is ScoreContinue(..))
+  assert_true(@bounded.request_cancel(control))
+  assert_true(advance_score(execution, 1).unwrap() is ScoreStopped(_))
+  assert_eq(cleanup_score(execution), Ok(true))
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.reclaim_material(material))
+}
+
+///|
+test "score view checks exact work and workspace before publication" {
+  let producer = producer_owner()
+  let source = single_scored_source(producer)
+  let material = @records.completed_material(source).unwrap()
+  let owner = score_owner(producer)
+  // The one-record score requires 19 work units. Its one ordered record,
+  // query, output fields, and identity require 14 workspace slots.
+  for
+    (work, workspace, accepted) in [
+      (19, 14, true),
+      (18, 14, false),
+      (19, 13, false),
+    ] {
+    let view = @carrier_runtime.material_prepare_view(
+      material, owner, 0, producer,
+    ).unwrap()
+    match
+      start_score_view(
+        @bounded.control(),
+        sequence(owner),
+        0,
+        view,
+        limits(workspace~),
+        4096L,
+        fn() { true },
+        control_work_limit=Some(work),
+      ) {
+      Err(ScoreWorkspaceLimit) => assert_eq(workspace, 13)
+      Err(_) => fail("score view failed before its selected boundary")
+      Ok(execution) => {
+        let mut terminal = false
+        for _ in 0..<24 {
+          if !terminal {
+            match advance_score(execution, 1).unwrap() {
+              ScoreContinue(..) => ()
+              ScoreComplete(output, ..) => {
+                assert_true(accepted)
+                assert_true(@records.discard_completed(output))
+                terminal = true
+              }
+              ScoreFailed(ScoreWorkLimit, ..) => {
+                assert_false(accepted)
+                terminal = true
+              }
+              _ => fail("score view ended at an unrelated boundary")
+            }
+          }
+        }
+        assert_true(terminal)
+        assert_eq(cleanup_score(execution), Ok(true))
+      }
+    }
+  }
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.reclaim_material(material))
+}
+
+///|
+test "score view rejects a foreign input position" {
+  let first_owner = producer_owner()
+  let second_owner = producer_owner()
+  let first = scored_source(first_owner, Ref(true))
+  let second = scored_source(second_owner, Ref(true))
+  let owner = second_input_score_owner(first_owner, second_owner)
+  let wrong = @carrier_runtime.material_prepare_view(
+    @records.completed_material(first).unwrap(),
+    owner,
+    0,
+    first_owner,
+  ).unwrap()
+  assert_true(
+    start_score_view(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      wrong,
+      limits(),
+      4096L,
+      fn() { true },
+    )
+    is Err(InvalidScoreKernel),
+  )
+  let exact = @carrier_runtime.material_prepare_view(
+    @records.completed_material(second).unwrap(),
+    owner,
+    1,
+    second_owner,
+  ).unwrap()
+  let execution = start_score_view(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    exact,
+    limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(@records.discard_completed(finish_score_execution(execution)))
+  assert_eq(cleanup_score(execution), Ok(true))
+  assert_true(
+    @carrier_runtime.reclaim_material(
+      @records.completed_material(first).unwrap(),
+    ),
+  )
+  assert_true(
+    @carrier_runtime.reclaim_material(
+      @records.completed_material(second).unwrap(),
+    ),
+  )
+}
+
+///|
 test "score enforces cumulative empty-input control work" {
   let producer = producer_owner()
   let source = empty_scored_source(producer)
