@@ -92,6 +92,40 @@ pub fn anchor_completed_output_inputs(
 }
 
 ///|
+/// Anchor the exact ordered inputs of a selected operation. A physical task
+/// may have fewer receiving ports than its enclosing authored Stage.
+pub fn anchor_completed_output_operation_inputs(
+  output : CompletedOutput,
+  step : Int,
+  inputs : Array[ProducerRead],
+) -> CompletedOutput? {
+  let original = output.completion
+  let owner = @lower.sequence_owner(original.sequence)
+  guard !original.readmitted &&
+    completed_output_available(output) &&
+    output.target == @pipeline.Step(step) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.node_input_count(node) == inputs.length() else {
+    return None
+  }
+  for index, input in inputs {
+    if !producer_read_matches_operation_input(input, owner, step, index) {
+      return None
+    }
+  }
+  let anchors = original._producer_inputs.copy()
+  for input in inputs {
+    anchors.push(input.bound)
+  }
+  let completion = {
+    ..original,
+    _producer_inputs: anchors,
+    input_bindings: inputs.map(input => input.bound.identity),
+  }
+  Some({ ..output, completion, })
+}
+
+///|
 pub fn completed_output(
   completion : CompletedSequence,
   target : @pipeline.Target,
@@ -177,6 +211,32 @@ pub fn completed_output_matches_inputs(
       identity.supplied is None &&
       inputs.get(identity.input_index) is Some(input) &&
       physical_equal(input.bound.identity, identity) else {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// Verify the receiving-port proof of one selected checked operation.
+pub fn completed_output_matches_operation_inputs(
+  output : CompletedOutput,
+  step : Int,
+  inputs : Array[ProducerRead],
+) -> Bool {
+  let completion = output.completion
+  let owner = @lower.sequence_owner(completion.sequence)
+  guard !completion.readmitted &&
+    completed_output_available(output) &&
+    output.target == @pipeline.Step(step) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.node_input_count(node) == inputs.length() &&
+    completion.input_bindings.length() == inputs.length() else {
+    return false
+  }
+  for index, input in inputs {
+    if !producer_read_matches_operation_input(input, owner, step, index) ||
+      !physical_equal(completion.input_bindings[index], input.bound.identity) {
       return false
     }
   }

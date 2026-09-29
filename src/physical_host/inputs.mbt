@@ -27,9 +27,12 @@ pub fn prepare_dispatch_inputs(
     @strategy.captured_dag_graph(run),
     task,
   ).unwrap()
-  let count = @pipeline.input_count(
-    @lower.pipeline(@lower.bound_preparation(owner)),
-  )
+  // A selected task receives its checked operation ports, which can differ
+  // from the enclosing Stage's authored input count.
+  let count = @strategy.graph_task_input_count(
+    @strategy.captured_dag_graph(run),
+    task,
+  ).unwrap()
   let inputs = []
   for port in 0..<count {
     match
@@ -44,10 +47,18 @@ pub fn prepare_dispatch_inputs(
       Err(issue) => return Err(Run(issue))
     }
   }
-  let prepared = if count == 0 {
-    @connector.prepare_source_free_fixed_compute_request(owner, capacity)
-  } else {
-    @connector.prepare_fixed_compute_request(inputs, capacity)
+  let prepared = match
+    @strategy.graph_task_selected_step(@strategy.captured_dag_graph(run), task) {
+    Some(step) =>
+      @connector.prepare_selected_fixed_compute_request(
+        owner, step, inputs, capacity,
+      )
+    None =>
+      if count == 0 {
+        @connector.prepare_source_free_fixed_compute_request(owner, capacity)
+      } else {
+        @connector.prepare_fixed_compute_request(inputs, capacity)
+      }
   }
   prepared.map_err(issue => Candidate(issue))
 }
