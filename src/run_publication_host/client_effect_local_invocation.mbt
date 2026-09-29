@@ -5,6 +5,8 @@ pub(all) enum ClientEffectLocalInvocationIssue {
   ForeignCapturedInput
   MissingCapturedInput
   ForeignSourceObservation
+  IncompleteResultImports
+  ForeignResultImport
   Encoding
 } derive(Eq, Debug)
 

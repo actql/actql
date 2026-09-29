@@ -426,6 +426,43 @@ pub fn captured_any_result_borrow_available(
 }
 
 ///|
+/// Equal rows or semantic identities do not transfer custody. Compare the
+/// live Run, producer task and checked Result port without reading payloads.
+pub fn captured_any_result_borrows_share_view(
+  first : CapturedAnyResultBorrow,
+  second : CapturedAnyResultBorrow,
+) -> Bool {
+  if !captured_any_result_borrow_available(first) ||
+    !captured_any_result_borrow_available(second) {
+    return false
+  }
+  let same_producer = match (first.kind, second.kind) {
+    (Cells(a), Cells(b)) =>
+      physical_equal(a.pin.run, b.pin.run) &&
+      a.pin.task == b.pin.task &&
+      physical_equal(a.pin.output, b.pin.output)
+    (Resident(a), Resident(b)) =>
+      physical_equal(a.run, b.run) && a.task == b.task
+    (Source(a), Source(b)) =>
+      physical_equal(a.run, b.run) && physical_equal(a.source, b.source)
+    _ => false
+  }
+  let a = captured_any_result_borrow_occurrence(first)
+  let b = captured_any_result_borrow_occurrence(second)
+  same_producer &&
+  @execution.managed_result_occurrence_name(a) ==
+  @execution.managed_result_occurrence_name(b) &&
+  physical_equal(
+    @execution.managed_result_occurrence_owner(a),
+    @execution.managed_result_occurrence_owner(b),
+  ) &&
+  physical_equal(
+    @execution.managed_result_occurrence_port(a),
+    @execution.managed_result_occurrence_port(b),
+  )
+}
+
+///|
 pub fn captured_any_result_borrow_cell_output(
   borrow : CapturedAnyResultBorrow,
 ) -> @execution.CompletedOutput? {

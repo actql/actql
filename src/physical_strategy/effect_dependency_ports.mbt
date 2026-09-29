@@ -8,6 +8,32 @@ struct CapturedEffectLocalResult {
 }
 
 ///|
+/// Root dependency evidence must refer to the exact still-retained capture,
+/// not another source with equal logical rows or the same checked Program.
+pub fn captured_effect_local_result_matches_source(
+  inputs : CapturedEffectInputs,
+  result : CapturedEffectLocalResult,
+  identity : @query.CapturedSourceRelationIdentity,
+) -> Bool {
+  if !inputs.live ||
+    inputs.run.captured.stopped ||
+    result.stage != 0 ||
+    !inputs.local_results.any(value => physical_equal(value, result)) ||
+    !captured_any_result_borrow_available(result.borrow) {
+    return false
+  }
+  match result.borrow.kind {
+    Source(value) =>
+      @query.captured_source_relation_identity_matches_source(
+        identity,
+        value.source,
+      ) &&
+      physical_equal(value.run, inputs.run.captured)
+    _ => false
+  }
+}
+
+///|
 priv struct EffectDependencyPort {
   stage : Int
   task : Int
@@ -164,6 +190,31 @@ pub fn captured_effect_local_result_task(
   value : CapturedEffectLocalResult,
 ) -> Int {
   value.task
+}
+
+///|
+/// Resolve a member to its exact checked local Result occurrence, not just
+/// another Result with the same shape or bytes.
+pub fn captured_effect_local_result_matches_member(
+  inputs : CapturedEffectInputs,
+  local_index : Int,
+  member_index : Int,
+) -> Bool {
+  guard captured_effect_local_result_at(inputs, local_index) is Some(result) &&
+    captured_effect_input_at(inputs, member_index) is Some(input) else {
+    return false
+  }
+  result.stage == captured_effect_input_stage(input) &&
+  @execution.managed_result_occurrence_name(
+    captured_any_result_borrow_occurrence(result.borrow),
+  ) ==
+  @execution.managed_result_occurrence_name(
+    captured_effect_input_occurrence(input),
+  ) &&
+  captured_any_result_borrows_share_view(
+    result.borrow,
+    captured_effect_input_borrow(input),
+  )
 }
 
 ///|

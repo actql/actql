@@ -31,6 +31,8 @@ import {
 }
 
 // Values
+pub fn admit_checked_local_dependency_body(CheckedProgram, Int, LocalDependencyBodyKind, CheckedLocalDependencyBody, String) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue]
+
 pub fn analytic_aggregate_subject(AnalyticAggregateSource, Int) -> String raise UnitBuildFailure
 
 pub fn analytic_input_proof_claim(AnalyticInputProof) -> @capacity_witness.ProgramProofClaim
@@ -98,6 +100,18 @@ pub fn check_parsed_with_evidence(@stage_syntax.Program, CheckEnvironment, @deco
 pub fn checked_catalog_references(CheckedProgram) -> @check_environment.CatalogReferences
 
 pub fn checked_environment(CheckedProgram) -> @check_environment.WireEnvironment
+
+pub fn checked_local_catalog_dependency_body(CheckedProgram, Int, String, String, Int, Int, Int) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue]
+
+pub fn checked_local_dependency_bodies(CheckedProgram, Int, Int, Int, Int, Int) -> Result[Array[(String, CheckedLocalDependencyBody)], LocalDependencyBodyIssue]
+
+pub fn checked_local_dependency_body(CheckedProgram, Int, LocalDependencyBodyKind, Int, Int, Int) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue]
+
+pub fn checked_local_dependency_body_cid(CheckedLocalDependencyBody) -> String
+
+pub fn checked_local_dependency_body_json(CheckedLocalDependencyBody) -> String
+
+pub fn checked_local_dependency_body_matches(CheckedLocalDependencyBody, CheckedProgram, Int, LocalDependencyBodyKind) -> Bool
 
 pub fn checked_local_policy_cid(CheckedProgram) -> String
 
@@ -753,6 +767,8 @@ pub enum CheckOutcome {
   Rejected(CheckDiagnostic)
 }
 
+type CheckedLocalDependencyBody
+
 type CheckedProgram
 
 pub(all) struct CompileArtifactLimits {
@@ -941,6 +957,30 @@ pub struct KeyedExecution {
 }
 
 type KeyedInputProof
+
+pub(all) enum LocalDependencyBodyIssue {
+  MissingUnit
+  MissingDependency
+  Encoding
+  ForeignBody
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) enum LocalDependencyBodyKind {
+  UnitDefinition
+  LocalBody
+  ParameterDeclarations
+  UsedValues
+  LocalContracts
+  LocalPolicy
+  ResultInterface(Int)
+  ResultType(Int)
+  IncomingGate(Int)
+  SourceSchema(Int)
+  SourceCapability(Int)
+  SourceViewContract(Int)
+  RegistryContract(Int)
+} derive(Eq, @debug.Debug)
 
 pub struct NestInputProof {
   membership : @capacity_graph_preflight.TargetMembership

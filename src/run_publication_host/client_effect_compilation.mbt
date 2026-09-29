@@ -407,3 +407,13 @@ pub fn client_effect_compilation_result_names(
 ) -> Array[String] {
   client_task_compilation_result_names(value.compiled)
 }
+
+///|
+/// Compilation admits one Effect-bearing Unit (possibly after acquisition).
+/// Return its authored coordinate from the same checked owner, not a Host label.
+pub fn client_effect_compilation_unit_id(
+  value : ClientEffectCompilation,
+) -> String {
+  let stages = @syntax.stages(value.owner.source)
+  stages[stages.length() - 1].id
+}

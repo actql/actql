@@ -1675,6 +1675,31 @@ fn captured_source_matches_graph(
 pub fn client_program_identify_captured_source_relation(
   source : @query.CapturedInputSource,
 ) -> Result[@query.CapturedSourceRelationIdentity, @query.CapturedSourceIssue] {
+  identify_installed_captured_source(source, 0)
+}
+
+///|
+#export_name("clientProgramIdentifyCapturedEffectSourceRelation")
+pub fn client_program_identify_captured_effect_source_relation(
+  source : @query.CapturedInputSource,
+) -> Result[@query.CapturedSourceRelationIdentity, @query.CapturedSourceIssue] {
+  identify_installed_captured_source(source, 16777216)
+}
+
+///|
+#export_name("clientProgramCapturedSourceDependencyBodies")
+pub fn client_program_captured_source_dependency_bodies(
+  identity : @query.CapturedSourceRelationIdentity,
+  source : @query.CapturedInputSource,
+) -> (String, String)? {
+  @query.captured_source_relation_dependency_bodies(identity, source)
+}
+
+///|
+fn identify_installed_captured_source(
+  source : @query.CapturedInputSource,
+  retain_body_bytes : Int,
+) -> Result[@query.CapturedSourceRelationIdentity, @query.CapturedSourceIssue] {
   @query.identify_captured_source_relation(
     source,
     10000,
@@ -1700,6 +1725,7 @@ pub fn client_program_identify_captured_source_relation(
     },
     { max_fields: 100, max_bytes: 100000, max_nodes: 10000, max_depth: 64, },
     65536,
+    retain_body_bytes~,
   )
 }
 
@@ -2544,6 +2570,97 @@ pub fn client_program_issue_captured_effect_input_local_invocation(
 }
 
 ///|
+#export_name("clientProgramIssueAcquiredEffectEvidence")
+pub fn client_program_issue_acquired_effect_evidence(
+  owner : @publication_host.PreparedClientEffectComputation,
+  captured : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  requirement : @planning.QueryRequirement,
+  input : @publication.RunEvidenceValue,
+  observation : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectAcquiredEvidence,
+  @publication_host.ClientEffectAcquiredEvidenceIssue,
+] {
+  @publication_host.issue_client_effect_acquired_evidence(
+    owner, captured, identity, requirement, input, observation, authority_scope_cid,
+    data_policy_cid, retention, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramAcquiredEffectDependencyBodies")
+pub fn client_program_acquired_effect_dependency_bodies(
+  value : @publication_host.ClientEffectAcquiredEvidence,
+) -> Array[(String, String)] {
+  @publication_host.client_effect_acquired_dependency_bodies(value)
+}
+
+///|
+#export_name("clientProgramAcquiredEffectInvocation")
+pub fn client_program_acquired_effect_invocation(
+  value : @publication_host.ClientEffectAcquiredEvidence,
+) -> @publication_host.ClientEffectLocalInvocation {
+  @publication_host.client_effect_acquired_invocation(value)
+}
+
+///|
+#export_name("clientProgramAcquiredEffectCatalogBodies")
+pub fn client_program_acquired_effect_catalog_bodies(
+  value : @publication_host.ClientEffectAcquiredEvidence,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, String, String)],
+  @publication_host.ClientEffectAcquiredEvidenceIssue,
+] {
+  @publication_host.client_effect_acquired_catalog_bodies(
+    value, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramAcquiredEffectRequestCid")
+pub fn client_program_acquired_effect_request_cid(
+  value : @publication_host.ClientEffectAcquiredEvidence,
+) -> String {
+  @publication_host.client_effect_acquired_request_cid(value)
+}
+
+///|
+#export_name("clientProgramIssueAcquiredEffectLocalResultArtifact")
+pub fn client_program_issue_acquired_effect_local_result_artifact(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  source : @publication_host.ClientEffectAcquiredEvidence,
+  definition : @publication_host.ClientEffectLocalResultDefinition,
+  receipt : @execution.CompletedRelationExportReceipt,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  run_invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultArtifact,
+  @publication_host.ClientEffectLocalResultArtifactIssue,
+] {
+  @publication_host.issue_acquired_client_effect_local_result_artifact(
+    owner, inputs, exported, source, definition, receipt, admission, run_definition,
+    run_invocation, observation, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramLocalEffectInvocationCid")
 pub fn client_program_local_effect_invocation_cid(
   value : @publication_host.ClientEffectLocalInvocation,
@@ -2680,6 +2797,236 @@ pub fn client_program_local_effect_result_artifact_cid(
 }
 
 ///|
+#export_name("clientProgramIssueEffectResultImportObservation")
+pub fn client_program_issue_effect_result_import_observation(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  captured : @strategy.CapturedEffectResultImport,
+  manifest : @publication_host.ClientEffectLocalManifest,
+  artifact : @publication_host.ClientEffectLocalResultArtifact,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectResultImportObservation,
+  @publication_host.ClientEffectResultImportIssue,
+] {
+  @publication_host.issue_client_effect_result_import_observation(
+    owner, inputs, captured, manifest, artifact, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramEffectResultImportObservationJson")
+pub fn client_program_effect_result_import_observation_json(
+  value : @publication_host.ClientEffectResultImportObservation,
+) -> String {
+  @publication_host.client_effect_result_import_observation_json(value)
+}
+
+///|
+/// Inventory serialization reuses the original checked computation. The
+/// returned body is not an execution permit or an independently checked Run.
+#export_name("clientProgramEffectLocalDependencyBody")
+pub fn client_program_effect_local_dependency_body(
+  owner : @publication_host.PreparedClientEffectComputation,
+  unit : Int,
+  kind : String,
+  index : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @program_check.CheckedLocalDependencyBody,
+  @program_check.LocalDependencyBodyIssue,
+] {
+  guard client_effect_dependency_kind(kind, index) is Some(selected) else {
+    return Err(@program_check.MissingDependency)
+  }
+  let program = @program_check.effect_program_static_checked_computation(
+    @publication_host.prepared_client_effect_computation_candidate(owner),
+  )
+  @program_check.checked_local_dependency_body(
+    program, unit, selected, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn client_effect_dependency_kind(
+  kind : String,
+  index : Int,
+) -> @program_check.LocalDependencyBodyKind? {
+  match kind {
+    "local_dependencies" if index == 0 => Some(UnitDefinition)
+    "local_body" if index == 0 => Some(LocalBody)
+    "parameter_declarations" if index == 0 => Some(ParameterDeclarations)
+    "used_values" if index == 0 => Some(UsedValues)
+    "local_contracts" if index == 0 => Some(LocalContracts)
+    "local_policy" if index == 0 => Some(LocalPolicy)
+    "result_import_interface" if index >= 0 => Some(ResultInterface(index))
+    "result_import_type" if index >= 0 => Some(ResultType(index))
+    "gate_requirement" if index >= 0 => Some(IncomingGate(index))
+    "schema_evidence" if index >= 0 => Some(SourceSchema(index))
+    "capability_evidence" if index >= 0 => Some(SourceCapability(index))
+    "source_view_contract" if index >= 0 => Some(SourceViewContract(index))
+    "catalog_contract" if index >= 0 => Some(RegistryContract(index))
+    _ => None
+  }
+}
+
+///|
+#export_name("clientProgramEffectLocalStaticBodies")
+pub fn client_program_effect_local_static_bodies(
+  owner : @publication_host.PreparedClientEffectComputation,
+  unit : Int,
+  max_entries : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, @program_check.CheckedLocalDependencyBody)],
+  @program_check.LocalDependencyBodyIssue,
+] {
+  let program = @program_check.effect_program_static_checked_computation(
+    @publication_host.prepared_client_effect_computation_candidate(owner),
+  )
+  @program_check.checked_local_dependency_bodies(
+    program, unit, max_entries, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramAdmitEffectDependencyBody")
+pub fn client_program_admit_effect_dependency_body(
+  kind : String,
+  cid : String?,
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.CapturedEffectDependencyBody,
+  @publication.CapturedEffectDependencyIssue,
+] {
+  @publication.admit_captured_effect_dependency_body(
+    kind, cid, wire, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramEffectDependencyBodyCid")
+pub fn client_program_effect_dependency_body_cid(
+  body : @publication.CapturedEffectDependencyBody,
+) -> String {
+  @publication.captured_effect_dependency_body_cid(body)
+}
+
+///|
+#export_name("clientProgramIssueEffectDependencyInventory")
+pub fn client_program_issue_effect_dependency_inventory(
+  bodies : Array[@publication.CapturedEffectDependencyBody],
+  artifacts : Array[@publication_host.ClientEffectLocalResultArtifact],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication.CapturedEffectDependencyIssue] {
+  if bodies.length() > 4096 || artifacts.length() > 4096 {
+    return Err(@publication.EntryLimit)
+  }
+  let roots : Array[@publication.CapturedEffectDependencyBody] = []
+  for artifact in artifacts {
+    let root = match
+      @publication.admit_publication_effect_dependency_body(
+        "result_artifact",
+        @publication_host.client_effect_local_result_artifact_json(artifact),
+        max_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    roots.push(root)
+  }
+  match
+    @publication.issue_captured_effect_dependency_inventory(
+      bodies,
+      roots,
+      {
+        max_entries: 4096,
+        max_total_bytes: Int::min(max_bytes, 16777216),
+        max_depth: 64,
+        max_references: 65536,
+      },
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) =>
+      Ok(@publication.captured_effect_dependency_inventory_json(value))
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+#export_name("clientProgramAdmitEffectLocalDependencyBody")
+pub fn client_program_admit_effect_local_dependency_body(
+  owner : @publication_host.PreparedClientEffectComputation,
+  unit : Int,
+  kind : String,
+  index : Int,
+  expected : @program_check.CheckedLocalDependencyBody,
+  saved_wire : String,
+) -> Result[
+  @program_check.CheckedLocalDependencyBody,
+  @program_check.LocalDependencyBodyIssue,
+] {
+  guard client_effect_dependency_kind(kind, index) is Some(selected) else {
+    return Err(@program_check.MissingDependency)
+  }
+  let program = @program_check.effect_program_static_checked_computation(
+    @publication_host.prepared_client_effect_computation_candidate(owner),
+  )
+  @program_check.admit_checked_local_dependency_body(
+    program, unit, selected, expected, saved_wire,
+  )
+}
+
+///|
+#export_name("clientProgramEffectLocalDependencyBodyCid")
+pub fn client_program_effect_local_dependency_body_cid(
+  value : @program_check.CheckedLocalDependencyBody,
+) -> String {
+  @program_check.checked_local_dependency_body_cid(value)
+}
+
+///|
+#export_name("clientProgramEffectLocalDependencyBodyJson")
+pub fn client_program_effect_local_dependency_body_json(
+  value : @program_check.CheckedLocalDependencyBody,
+) -> String {
+  @program_check.checked_local_dependency_body_json(value)
+}
+
+///|
+#export_name("clientProgramIssueImportedLocalEffectInvocation")
+pub fn client_program_issue_imported_local_effect_invocation(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  unit : Int,
+  observations : Array[@publication_host.ClientEffectResultImportObservation],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalInvocation,
+  @publication_host.ClientEffectLocalInvocationIssue,
+] {
+  @publication_host.issue_imported_client_effect_local_invocation(
+    owner, inputs, unit, observations, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramLocalEffectResultArtifactJson")
 pub fn client_program_local_effect_result_artifact_json(
   value : @publication_host.ClientEffectLocalResultArtifact,
@@ -2688,11 +3035,87 @@ pub fn client_program_local_effect_result_artifact_json(
 }
 
 ///|
+#export_name("clientProgramIssueImportedEffectEvidence")
+pub fn client_program_issue_imported_effect_evidence(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  unit : Int,
+  observations : Array[@publication_host.ClientEffectResultImportObservation],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectImportedEvidence,
+  @publication_host.ClientEffectImportedEvidenceIssue,
+] {
+  @publication_host.issue_client_effect_imported_evidence(
+    owner, inputs, unit, observations, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramImportedEffectInvocation")
+pub fn client_program_imported_effect_invocation(
+  value : @publication_host.ClientEffectImportedEvidence,
+) -> @publication_host.ClientEffectLocalInvocation {
+  @publication_host.client_effect_imported_invocation(value)
+}
+
+///|
+#export_name("clientProgramImportedEffectRelationBodies")
+pub fn client_program_imported_effect_relation_bodies(
+  value : @publication_host.ClientEffectImportedEvidence,
+) -> Array[String] {
+  @publication_host.client_effect_imported_relation_bodies(value)
+}
+
+///|
+#export_name("clientProgramIssueImportedEffectLocalResultArtifact")
+pub fn client_program_issue_imported_effect_local_result_artifact(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  imported : @publication_host.ClientEffectImportedEvidence,
+  definition : @publication_host.ClientEffectLocalResultDefinition,
+  receipt : @execution.CompletedRelationExportReceipt,
+  retention : @publication.PublicationContract,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  run_invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultArtifact,
+  @publication_host.ClientEffectLocalResultArtifactIssue,
+] {
+  @publication_host.issue_imported_client_effect_local_result_artifact(
+    owner, inputs, exported, imported, definition, receipt, retention, admission,
+    run_definition, run_invocation, observation, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramLocalEffectResultDerivationJson")
 pub fn client_program_local_effect_result_derivation_json(
   value : @publication_host.ClientEffectLocalResultArtifact,
 ) -> String {
   @publication_host.client_effect_local_result_derivation_json(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectResultPayloadBinding")
+pub fn client_program_local_effect_result_payload_binding(
+  value : @publication_host.ClientEffectLocalResultArtifact,
+  run_definition : @publication.PublicationContract,
+) -> Result[
+  (String, Int),
+  @publication_host.ClientEffectLocalResultArtifactIssue,
+] {
+  @publication_host.client_effect_local_result_payload_binding(
+    value, run_definition,
+  )
 }
 
 ///|
@@ -3177,6 +3600,56 @@ pub fn client_program_effect_local_result_count(
   value : @strategy.CapturedEffectInputs,
 ) -> Int {
   @strategy.captured_effect_local_result_count(value)
+}
+
+///|
+#export_name("clientProgramEffectLocalResultMatchesMember")
+pub fn client_program_effect_local_result_matches_member(
+  inputs : @strategy.CapturedEffectInputs,
+  local_index : Int,
+  member_index : Int,
+) -> Bool {
+  @strategy.captured_effect_local_result_matches_member(
+    inputs, local_index, member_index,
+  )
+}
+
+///|
+#export_name("clientProgramEffectResultImportCount")
+pub fn client_program_effect_result_import_count(
+  owner : @publication_host.PreparedClientEffectComputation,
+  unit : Int,
+) -> Int? {
+  @program_check.unit_result_import_count(
+    @program_check.effect_program_static_checked_computation(
+      @publication_host.prepared_client_effect_computation_candidate(owner),
+    ),
+    unit,
+  )
+}
+
+///|
+#export_name("clientProgramEffectCaptureResultImport")
+pub fn client_program_effect_capture_result_import(
+  inputs : @strategy.CapturedEffectInputs,
+  consumer : Int,
+  index : Int,
+  max_work : Int,
+) -> Result[@strategy.CapturedEffectResultImport, @strategy.RunIssue] {
+  @strategy.capture_effect_result_import(inputs, consumer, index, max_work)
+}
+
+///|
+#export_name("clientProgramEffectResultImportMatches")
+pub fn client_program_effect_result_import_matches(
+  value : @strategy.CapturedEffectResultImport,
+  inputs : @strategy.CapturedEffectInputs,
+  consumer : Int,
+  producer : @strategy.CapturedEffectLocalResult,
+) -> Bool {
+  @strategy.captured_effect_result_import_matches(
+    value, inputs, consumer, producer,
+  )
 }
 
 ///|
@@ -4484,6 +4957,16 @@ pub fn client_program_effect_input_export_row_count(
 }
 
 ///|
+#export_name("clientProgramEffectInputExportSchemaWire")
+pub fn client_program_effect_input_export_schema_wire(
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> String {
+  @execution.relation_schema_wire(
+    @execution.completed_relation_export_schema_identity(receipt),
+  )
+}
+
+///|
 /// Issue source evidence from the pinned checked occurrence and the completed
 /// export receipt. Store custody is still a separate adapter obligation.
 #export_name("clientProgramIssueEffectSourceArtifact")
@@ -5234,6 +5717,14 @@ pub fn client_program_effect_compilation_result_names(
   value : @publication_host.ClientEffectCompilation,
 ) -> Array[String] {
   @publication_host.client_effect_compilation_result_names(value)
+}
+
+///|
+#export_name("clientProgramEffectCompilationUnitId")
+pub fn client_program_effect_compilation_unit_id(
+  value : @publication_host.ClientEffectCompilation,
+) -> String {
+  @publication_host.client_effect_compilation_unit_id(value)
 }
 
 ///|

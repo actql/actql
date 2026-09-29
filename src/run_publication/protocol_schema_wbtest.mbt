@@ -48,6 +48,21 @@ fn protocol_test_accepts(
 }
 
 ///|
+test "protocol array ceilings apply before traversing items" {
+  let nodes = [protocol_any_rule(), protocol_array_rule(0, 0, false, 2)]
+  assert_true(protocol_test_accepts(nodes, 1, "[]"))
+  assert_true(protocol_test_accepts(nodes, 1, "[{},{}]"))
+  assert_false(protocol_test_accepts(nodes, 1, "[{},{},{}]"))
+  let (generated, index) = protocol_test_property_node("captured_run", [
+    "effect_context", "effect_dependency_inventory",
+  ])
+  guard generated[index] is ArrayRule(_, _, _, maximum) else {
+    fail("Expected bounded dependency inventory")
+  }
+  assert_eq(maximum, 4096)
+}
+
+///|
 test "all generated Run evidence versions are exact" {
   let cases = [
     ("result_plan", "actql-result-plan/0.1"),
@@ -208,7 +223,7 @@ test "Effect Preview member schema keeps Command and Mapping branches distinct" 
     "effects",
   ])
   let member_index = match nodes[effects_index] {
-    ArrayRule(items, _, _) => items
+    ArrayRule(items, _, _, _) => items
     _ => abort("Expected Effect member array")
   }
   let cid = "sha256:" + "a".repeat(64)

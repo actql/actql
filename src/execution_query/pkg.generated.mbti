@@ -25,6 +25,8 @@ pub fn captured_source_matches(CapturedInputSource, @pipeline_check_context.Prog
 
 pub fn captured_source_matches_result(CapturedInputSource, @execution_relation.ManagedResultOccurrence) -> Bool
 
+pub fn captured_source_relation_dependency_bodies(CapturedSourceRelationIdentity, CapturedInputSource) -> (String, String)?
+
 pub fn captured_source_relation_identity_matches_source(CapturedSourceRelationIdentity, CapturedInputSource) -> Bool
 
 pub fn captured_source_relation_logical_cid(CapturedSourceRelationIdentity) -> String
@@ -45,7 +47,7 @@ pub fn execute_query_receipt(QuerySequence, QueryReceipt, @execution_relation.Se
 
 pub fn execute_query_receipt_guarded(QuerySequence, QueryReceipt, @execution_relation.SequenceExecutionLimits, max_output_rows~ : Int, max_value_bytes~ : Int, QueryGuardMeasureLimits) -> Result[(@execution_relation.CompletedSequence, (Int, Int, Int)), QueryGuardIssue]
 
-pub fn identify_captured_source_relation(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[CapturedSourceRelationIdentity, CapturedSourceIssue]
+pub fn identify_captured_source_relation(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, retain_body_bytes? : Int) -> Result[CapturedSourceRelationIdentity, CapturedSourceIssue]
 
 pub fn prepare_captured_source_relation_export(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedOutputExport, CapturedSourceIssue]
 
@@ -78,6 +80,7 @@ pub(all) enum CapturedSourceIssue {
   Completion(@execution_relation.TrustedOutputIssue)
   Storage(@execution_relation.ProducerReadIssue)
   Export(@execution_relation.CompletedExportIssue)
+  DependencyBodyLimit
 }
 
 pub struct CapturedSourceRelationIdentity {
@@ -85,6 +88,7 @@ pub struct CapturedSourceRelationIdentity {
   logical_relation_cid : String
   schema_cid : String
   row_count : Int
+  dependency_bodies : (String, String)?
 }
 
 pub struct CapturedSourceStatistics {

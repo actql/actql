@@ -74,6 +74,8 @@ pub fn cancel_resident_inputs(ResidentInputs) -> Result[Unit, @physical_resource
 
 pub fn cancel_resident_table_preparation(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
+pub fn capture_effect_result_import(CapturedEffectInputs, Int, Int, Int) -> Result[CapturedEffectResultImport, RunIssue]
+
 pub fn captured_any_result_borrow_available(CapturedAnyResultBorrow) -> Bool
 
 pub fn captured_any_result_borrow_cell_output(CapturedAnyResultBorrow) -> @execution_relation.CompletedOutput?
@@ -83,6 +85,8 @@ pub fn captured_any_result_borrow_matches_carrier(CapturedAnyResultBorrow, @exec
 pub fn[T] captured_any_result_borrow_matches_managed(CapturedAnyResultBorrow, @execution_relation.ManagedCompletedOutput[T]) -> Bool
 
 pub fn captured_any_result_borrow_occurrence(CapturedAnyResultBorrow) -> @execution_relation.ManagedResultOccurrence
+
+pub fn captured_any_result_borrows_share_view(CapturedAnyResultBorrow, CapturedAnyResultBorrow) -> Bool
 
 pub fn captured_any_result_output_set_borrow_at(CapturedAnyResultOutputSet, Int) -> CapturedAnyResultBorrow?
 
@@ -140,6 +144,10 @@ pub fn captured_effect_local_result_export_preparation(CapturedEffectLocalResult
 
 pub fn captured_effect_local_result_export_result(CapturedEffectLocalResultExport) -> CapturedEffectLocalResult
 
+pub fn captured_effect_local_result_matches_member(CapturedEffectInputs, Int, Int) -> Bool
+
+pub fn captured_effect_local_result_matches_source(CapturedEffectInputs, CapturedEffectLocalResult, @execution_query.CapturedSourceRelationIdentity) -> Bool
+
 pub fn captured_effect_local_result_stage(CapturedEffectLocalResult) -> Int
 
 pub fn captured_effect_local_result_task(CapturedEffectLocalResult) -> Int
@@ -159,6 +167,14 @@ pub fn captured_effect_preview_owner(CapturedEffectPreviewInputs) -> @program_ch
 pub fn captured_effect_preview_plan_terminal(CapturedEffectPreviewInputs, Int, Int, Int) -> Result[@stage_results.EffectPlanTerminal?, CapturedEffectPlanIssue]
 
 pub fn captured_effect_preview_subject_cid(CapturedEffectPreviewInputs) -> String?
+
+pub fn captured_effect_result_import_consumer(CapturedEffectResultImport) -> Int
+
+pub fn captured_effect_result_import_interface(CapturedEffectResultImport) -> @program_check.BuiltResultInterface
+
+pub fn captured_effect_result_import_matches(CapturedEffectResultImport, CapturedEffectInputs, Int, CapturedEffectLocalResult) -> Bool
+
+pub fn captured_effect_result_import_producer(CapturedEffectResultImport) -> CapturedEffectLocalResult
 
 pub fn captured_effect_run_dag(CapturedEffectRunDAG) -> CapturedDAG
 
@@ -841,6 +857,8 @@ pub(all) enum CapturedEffectProposalIssue {
 } derive(@debug.Debug)
 
 type CapturedEffectProposalPlan
+
+type CapturedEffectResultImport
 
 pub(all) enum CapturedEffectRiskIssue {
   NotReady
