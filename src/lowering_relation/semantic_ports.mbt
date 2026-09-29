@@ -63,6 +63,9 @@ pub fn node_accepts_managed_carrier_view(
   }
   match operation(node) {
     "SGA.normalize"
+    | "SGA.bounds_check"
+    | "SGA.degree_metrics"
+    | "SGA.components"
     | "SGA.graft"
     | "SGA.union_structural"
     | "SGA.diff_structural"
@@ -104,7 +107,11 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     GraphMatchRows(_) =>
       operation(node) == "SGA.match_nodes" ||
       operation(node) == "SGA.match_edges"
-    BasicGraph(_) => operation(node) == "SGA.normalize"
+    BasicGraph(_) =>
+      operation(node) == "SGA.normalize" ||
+      operation(node) == "SGA.bounds_check" ||
+      operation(node) == "SGA.degree_metrics" ||
+      operation(node) == "SGA.components"
     StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
     GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     VectorValue(_) =>
@@ -221,7 +228,11 @@ pub fn node_prefers_fused_without_relation_consumer(
   node : PreparedNode,
 ) -> Bool {
   match node.payload {
-    BasicGraph(_) => operation(node) == "SGA.normalize"
+    BasicGraph(_) =>
+      operation(node) == "SGA.normalize" ||
+      operation(node) == "SGA.bounds_check" ||
+      operation(node) == "SGA.degree_metrics" ||
+      operation(node) == "SGA.components"
     StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
     GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     GraphMatchRows(_) =>

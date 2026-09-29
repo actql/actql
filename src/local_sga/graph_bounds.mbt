@@ -15,8 +15,9 @@ priv enum GraphBoundsPhase {
 
 ///|
 priv struct GraphBoundsState {
-  input : @graph.ProducerRead
-  source : @storage.Storage
+  source : GraphReadSource
+  node_count : Int
+  edge_count : Int
   schema : @schema.Schema
   value_limits : @value.Limits
   operation : @lower.GraphBasicKind
@@ -151,8 +152,8 @@ fn compare_bound_nodes_step(
   let active = match state.key_comparison {
     Some(value) => value
     None => {
-      guard @storage.node_identity(state.source, left) is Some(left_value) &&
-        @storage.node_identity(state.source, right) is Some(right_value) else {
+      guard graph_read_node_identity(state.source, left) is Some(left_value) &&
+        graph_read_node_identity(state.source, right) is Some(right_value) else {
         return Err(GraphBoundsInputUnavailable)
       }
       let value = match
@@ -244,7 +245,7 @@ fn checked_graph_bounds_value(
     @schema.Unqualified("node_id") =>
       match state.node {
         Some(node) =>
-          @storage.node_identity(state.source, node).bind(value => {
+          graph_read_node_identity(state.source, node).bind(value => {
             @value.recheck_runtime_value(
               value.value,
               field.contract,
@@ -256,7 +257,7 @@ fn checked_graph_bounds_value(
     @schema.Unqualified("node") =>
       match state.node {
         Some(node) =>
-          @storage.node_identity(state.source, node).bind(value => {
+          graph_read_node_identity(state.source, node).bind(value => {
             @value.recheck_runtime_value(
               value.value,
               field.contract,
@@ -280,18 +281,18 @@ fn select_graph_bounds_row(state : GraphBoundsState) -> Bool {
     return true
   } else if candidate == 0 {
     if state.node_limit is Some(maximum) &&
-      @storage.node_count(state.source).to_int64() > maximum {
+      state.node_count.to_int64() > maximum {
       state.kind = "nodes"
-      state.actual = @storage.node_count(state.source).to_int64()
+      state.actual = state.node_count.to_int64()
       state.maximum = maximum
       state.node = None
       return true
     }
   } else if candidate == 1 {
     if state.edge_limit is Some(maximum) &&
-      @storage.edge_count(state.source).to_int64() > maximum {
+      state.edge_count.to_int64() > maximum {
       state.kind = "edges"
-      state.actual = @storage.edge_count(state.source).to_int64()
+      state.actual = state.edge_count.to_int64()
       state.maximum = maximum
       state.node = None
       return true
@@ -331,7 +332,7 @@ fn graph_bounds_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@graph.producer_read_available(state.input) {
+    if !graph_read_available(state.source) {
       return @bounded.Failed(GraphBoundsInputUnavailable, progress, used)
     }
     if used >= state.control_work_remaining {
@@ -339,7 +340,7 @@ fn graph_bounds_step(
     }
     match state.phase {
       InitializeNodes =>
-        if state.source_index < @storage.node_count(state.source) {
+        if state.source_index < state.node_count {
           state.degrees.push(0L)
           state.selected.push(state.source_index)
           state.scratch.push(None)
@@ -350,8 +351,8 @@ fn graph_bounds_step(
           state.phase = ScanEdges
         }
       ScanEdges =>
-        if state.source_index < @storage.edge_count(state.source) {
-          guard @storage.edge_endpoints(state.source, state.source_index)
+        if state.source_index < state.edge_count {
+          guard graph_read_edge_endpoints(state.source, state.source_index)
             is Some((source, target)) &&
             state.degrees.get(source) is Some(source_degree) &&
             state.degrees.get(target) is Some(target_degree) else {
@@ -545,7 +546,63 @@ pub fn start_graph_bounds(
     node_limit,
     edge_limit,
     degree_limit,
-    input,
+    Stored(input),
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    control_work_limit.unwrap_or(limits.max_work),
+  )
+}
+
+///|
+/// Run the same bounded diagnostic over an exact managed Graph generation.
+pub fn start_graph_bounds_view(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
+) -> Result[GraphBoundsExecution, GraphBoundsIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard physical_equal(
+      @execution.completion_preparation_owner(preparation),
+      owner,
+    ) &&
+    @lower.sequence_step(sequence, step)
+    is Some(@lower.GraphBasicStep(prepared)) &&
+    @lower.graph_basic_kind(prepared) == @lower.BoundsBasic &&
+    @lower.graph_basic_bounds(prepared)
+    is Some((node_limit, edge_limit, degree_limit)) &&
+    @lifecycle.producer_view_kind(input) == @carrier.GraphKind &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(input),
+      owner,
+      step,
+      0,
+    ) else {
+    return Err(InvalidGraphBoundsKernel)
+  }
+  start_graph_diagnostic(
+    control,
+    preparation,
+    owner,
+    step,
+    @lower.BoundsBasic,
+    @lower.graph_basic_output_schema(prepared),
+    node_limit,
+    edge_limit,
+    degree_limit,
+    Viewed(input),
     max_rows,
     limits,
     max_workspace_slots,
@@ -600,7 +657,66 @@ pub fn start_graph_degree(
     None,
     None,
     None,
-    input,
+    Stored(input),
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    control_work_limit.unwrap_or(limits.max_work),
+  ).map(inner => { inner, })
+}
+
+///|
+/// Run the same bounded degree kernel over an exact managed Graph generation.
+pub fn start_graph_degree_view(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
+) -> Result[GraphDegreeExecution, GraphBoundsIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard physical_equal(
+      @execution.completion_preparation_owner(preparation),
+      owner,
+    ) &&
+    @lower.sequence_step(sequence, step)
+    is Some(@lower.GraphBasicStep(prepared)) &&
+    @lifecycle.producer_view_kind(input) == @carrier.GraphKind &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(input),
+      owner,
+      step,
+      0,
+    ) else {
+    return Err(InvalidGraphBoundsKernel)
+  }
+  let kind = @lower.graph_basic_kind(prepared)
+  guard kind == @lower.DegreeIncomingBasic ||
+    kind == @lower.DegreeOutgoingBasic ||
+    kind == @lower.DegreeBothBasic else {
+    return Err(InvalidGraphBoundsKernel)
+  }
+  start_graph_diagnostic(
+    control,
+    preparation,
+    owner,
+    step,
+    kind,
+    @lower.graph_basic_output_schema(prepared),
+    None,
+    None,
+    None,
+    Viewed(input),
     max_rows,
     limits,
     max_workspace_slots,
@@ -622,7 +738,7 @@ fn start_graph_diagnostic(
   node_limit : Int64?,
   edge_limit : Int64?,
   degree_limit : Int64?,
-  input : @graph.ProducerRead,
+  source : GraphReadSource,
   max_rows : Int,
   limits : @execution.ValueLimits,
   max_workspace_slots : Int,
@@ -631,10 +747,10 @@ fn start_graph_diagnostic(
   inputs : Array[@execution.ProducerRead],
   control_work_limit : Int,
 ) -> Result[GraphBoundsExecution, GraphBoundsIssue] {
-  guard @graph.producer_read_storage(input) is Some(source) else {
+  guard graph_read_node_count(source) is Some(nodes) &&
+    graph_read_edge_count(source) is Some(edges) else {
     return Err(GraphBoundsInputUnavailable)
   }
-  let nodes = @storage.node_count(source)
   let width = @schema.field_count(schema)
   guard graph_bounds_workspace(nodes, width) is Some(workspace) else {
     return Err(GraphBoundsWorkspaceLimit)
@@ -658,15 +774,36 @@ fn start_graph_diagnostic(
   let rows : Ref[@execution.AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    @execution.prepare_trusted_output_port(
-      preparation,
-      @pipeline.Step(step),
-      max_entries,
-      max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs~,
-    ) {
+  let port_result = match source {
+    Stored(_) =>
+      @execution.prepare_trusted_output_port(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs~,
+      )
+    Viewed(view) => {
+      guard inputs.is_empty() else {
+        @execution.cancel_admitted_output(output) |> ignore
+        return Err(InvalidGraphBoundsKernel)
+      }
+      @execution.prepare_trusted_output_port_with_inputs(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs=[
+          @execution.trusted_output_carrier_input(
+            @lifecycle.producer_view_read_reference(view),
+          ),
+        ],
+      )
+    }
+  }
+  let port = match port_result {
     Ok(value) => value
     Err(issue) => {
       @execution.cancel_admitted_output(output) |> ignore
@@ -674,8 +811,9 @@ fn start_graph_diagnostic(
     }
   }
   let state : GraphBoundsState = {
-    input,
     source,
+    node_count: nodes,
+    edge_count: edges,
     schema,
     value_limits: {
       max_nodes: limits.max_nodes,

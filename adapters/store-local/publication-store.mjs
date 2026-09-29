@@ -27,6 +27,7 @@ import {
 import {resolve} from 'node:path';
 import {createObjectWriterOwner} from './object-writer-owner.mjs';
 import {createResultDeletionOwner} from './result-deletion-owner.mjs';
+import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
 // Physical holdings: Transfer material, Effect source/capture custody,
@@ -1323,21 +1324,6 @@ export async function openLocalPublicationStore(
         }
       },
     });
-  };
-
-  const commitCustodyFailure = (primary, custody, reconciliation) => {
-    if (custody.status().pending !== true) return primary;
-    const code = typeof primary?.code === 'string'
-      ? primary.code : 'PublicationCommitUnknown';
-    const failure = new PublicationStoreError(code, primary);
-    failure.primaryFailure = primary;
-    failure.reconciliationFailure = reconciliation;
-    failure.cleanupPending = true;
-    failure.cleanupErrors = Object.freeze(
-      reconciliation === undefined ? [] : [reconciliation],
-    );
-    failure.cleanupHandle = custody;
-    return failure;
   };
 
   const putBytesInternal = async (value, expectedCid, trackCustody) => {
@@ -3020,121 +3006,87 @@ export async function openLocalPublicationStore(
         contractControl.recordAllowsCommit(previous) !== true) {
       fail('PublicationAttemptNotCommitting');
     }
-    const existingCommit = await confirmCommittedIndex(key);
-    if (existingCommit !== undefined) {
-      if (contractControl.publicIndexSameCommittedContent(
-        (await readContract(existingCommit.public_index_entry_cid,
-          'public_index_entry')).contract, admitted,
-      ) !== true) {
-        fail('PublicationCommitConflict');
-      }
-      const inventory = await readMetadataInventory(
-        existingCommit.public_index_entry_cid,
-      );
-      const directlyRequired = [
-        existingCommit.public_index_entry_cid,
-        existingCommit.invocation_cid,
-        existingCommit.result_manifest_cid,
-        existingCommit.run_receipt_cid,
-        existingCommit.captured_run_cid,
-        ...existingCommit.durable_result_binding_cids,
-        existingCommit.publication_request_cid,
-        existingCommit.publication_attempt_cid,
-      ];
-      for (const bindingCid of
-        existingCommit.durable_result_binding_cids) {
-        const binding = (await readContract(
-          bindingCid, 'durable_result_binding',
-        )).value;
-        directlyRequired.push(binding.result_schema_cid);
-      }
-      if (inventory === undefined ||
-          inventory.public_index_entry_cid !==
-            existingCommit.public_index_entry_cid ||
-          inventory.physical_holding_cids.join('\0') !==
-            physicalHoldingCids.join('\0') ||
-          directlyRequired.some(cid =>
-            !inventory.contract_objects.some(object =>
-              object.semantic_cid === cid))) {
-        fail('InvalidPublicationMetadataInventoryStore');
-      }
-      await adoptPreparedObjects(boundPhysicalCids);
-      await adoptPreparedSchemas(
-        inventorySemanticCids, entry.run_definition_cid,
-      );
-      return Object.freeze({
-        entry: existingCommit,
-        committed: false,
-        idempotent: true,
-      });
-    }
-    await putPublicationContract('public_index_entry', admitted.wire);
-    const inventoryContractObjects = await bindMetadataContractObjects(
-      inventorySemanticCids,
+    const adoptObjects = () => adoptPreparedObjects(boundPhysicalCids);
+    const adoptSchemas = () => adoptPreparedSchemas(
+      inventorySemanticCids, entry.run_definition_cid,
     );
-    await ensureMetadataInventory(Object.freeze({
-      version: 'actql-local-publication-metadata-inventory/0.1',
-      namespace_id: entry.namespace_id,
-      authority_scope_cid: entry.authority_scope_cid,
-      run_definition_cid: entry.run_definition_cid,
-      public_index_entry_cid: admitted.identity,
-      publication_attempt_cid: entry.publication_attempt_cid,
-      contract_objects: inventoryContractObjects,
-      physical_holding_cids: physicalHoldingCids,
-    }));
-    const target = resolve(indexesDirectory, `${keyHash}.json`);
-    const custody = beginPreparedCommit(
-      boundPhysicalCids, key, entry.public_index_entry_cid,
-    );
-    let installed = false;
-    try {
-      await link(contractPath(entry.public_index_entry_cid), target);
-      installed = true;
-      await syncDirectory(indexesDirectory);
-      durablyConfirmedIndexes.set(
-        keyHash, entry.public_index_entry_cid,
-      );
-      await adoptPreparedObjects(boundPhysicalCids);
-      await adoptPreparedSchemas(
-        inventorySemanticCids, entry.run_definition_cid,
-      );
-      return Object.freeze({entry, committed: true, idempotent: false});
-    } catch (error) {
-      let existing;
-      try { existing = await confirmCommittedIndex(key); }
-      catch (reconciliation) {
-        throw commitCustodyFailure(error, custody, reconciliation);
-      }
-      if (existing === undefined) {
-        await custody.resolveConfirmed(undefined);
-        throw error;
-      }
-      let sameContent;
-      try {
-        sameContent = contractControl.publicIndexSameCommittedContent(
+    return createPublicationCommitOwner({entry, admitted, key}, {
+      confirm: confirmCommittedIndex,
+      async sameContent(existing, candidate) {
+        return contractControl.publicIndexSameCommittedContent(
           (await readContract(existing.public_index_entry_cid,
-            'public_index_entry')).contract, admitted,
+            'public_index_entry')).contract, candidate,
         );
-      } catch (reconciliation) {
-        throw commitCustodyFailure(error, custody, reconciliation);
-      }
-      if (sameContent !== true) {
-        await custody.resolveConfirmed(existing);
-        fail('PublicationCommitConflict');
-      }
-      try { await adoptPreparedObjects(boundPhysicalCids); }
-      catch (reconciliation) {
-        throw commitCustodyFailure(error, custody, reconciliation);
-      }
-      await adoptPreparedSchemas(
-        inventorySemanticCids, entry.run_definition_cid,
-      );
-      return Object.freeze({
-        entry: existing,
-        committed: installed,
-        idempotent: !installed,
-      });
-    }
+      },
+      conflict() { fail('PublicationCommitConflict'); },
+      async verifyExistingInventory(existingCommit) {
+        const inventory = await readMetadataInventory(
+          existingCommit.public_index_entry_cid,
+        );
+        const directlyRequired = [
+          existingCommit.public_index_entry_cid,
+          existingCommit.invocation_cid,
+          existingCommit.result_manifest_cid,
+          existingCommit.run_receipt_cid,
+          existingCommit.captured_run_cid,
+          ...existingCommit.durable_result_binding_cids,
+          existingCommit.publication_request_cid,
+          existingCommit.publication_attempt_cid,
+        ];
+        for (const bindingCid of
+          existingCommit.durable_result_binding_cids) {
+          const binding = (await readContract(
+            bindingCid, 'durable_result_binding',
+          )).value;
+          directlyRequired.push(binding.result_schema_cid);
+        }
+        if (inventory === undefined ||
+            inventory.public_index_entry_cid !==
+              existingCommit.public_index_entry_cid ||
+            inventory.physical_holding_cids.join('\0') !==
+              physicalHoldingCids.join('\0') ||
+            directlyRequired.some(cid =>
+              !inventory.contract_objects.some(object =>
+                object.semantic_cid === cid))) {
+          fail('InvalidPublicationMetadataInventoryStore');
+        }
+      },
+      async stage() {
+        await putPublicationContract('public_index_entry', admitted.wire);
+        const inventoryContractObjects = await bindMetadataContractObjects(
+          inventorySemanticCids,
+        );
+        await ensureMetadataInventory(Object.freeze({
+          version: 'actql-local-publication-metadata-inventory/0.1',
+          namespace_id: entry.namespace_id,
+          authority_scope_cid: entry.authority_scope_cid,
+          run_definition_cid: entry.run_definition_cid,
+          public_index_entry_cid: admitted.identity,
+          publication_attempt_cid: entry.publication_attempt_cid,
+          contract_objects: inventoryContractObjects,
+          physical_holding_cids: physicalHoldingCids,
+        }));
+      },
+      beginCustody() {
+        return beginPreparedCommit(
+          boundPhysicalCids, key, entry.public_index_entry_cid,
+        );
+      },
+      async install(markInstalled) {
+        const target = resolve(indexesDirectory, `${keyHash}.json`);
+        await link(contractPath(entry.public_index_entry_cid), target);
+        markInstalled();
+        await syncDirectory(indexesDirectory);
+        durablyConfirmedIndexes.set(keyHash, entry.public_index_entry_cid);
+      },
+      adoptObjects,
+      adoptSchemas,
+      async adopt() {
+        await adoptObjects();
+        await adoptSchemas();
+      },
+      makeFailure: (code, cause) => new PublicationStoreError(code, cause),
+    }).commit();
   };
 
   // A prepared schema cannot be retired between commit evidence validation
