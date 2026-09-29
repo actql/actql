@@ -6,6 +6,56 @@ priv struct ScoredRecord {
 }
 
 ///|
+priv enum ScoreSource {
+  Stored(@records.ProducerRead, @storage.Storage)
+  Viewed(@carrier_runtime.ProducerView)
+}
+
+///|
+fn score_source_available(source : ScoreSource) -> Bool {
+  match source {
+    Stored(input, _) => @records.producer_read_available(input)
+    Viewed(view) => @carrier_runtime.producer_view_record_count(view) is Some(_)
+  }
+}
+
+///|
+fn score_source_record_count(source : ScoreSource) -> Int? {
+  match source {
+    Stored(_, storage) => Some(@storage.record_count(storage))
+    Viewed(view) => @carrier_runtime.producer_view_record_count(view)
+  }
+}
+
+///|
+fn score_source_field_count(source : ScoreSource, record : Int) -> Int? {
+  match source {
+    Stored(_, storage) => @storage.record_field_count(storage, record)
+    Viewed(view) =>
+      match @carrier_runtime.producer_view_record_field_count(view, record) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
+fn score_source_field(
+  source : ScoreSource,
+  record : Int,
+  field : Int,
+) -> (@schema.FieldName, @value.CheckedValue)? {
+  match source {
+    Stored(_, storage) => @storage.record_field_at(storage, record, field)
+    Viewed(view) =>
+      match @carrier_runtime.producer_view_record_field(view, record, field) {
+        Ok(value) => Some(value)
+        Err(_) => None
+      }
+  }
+}
+
+///|
 priv enum ScorePhase {
   ScoreValidateQuery
   ScoreInitializeScratch
@@ -30,8 +80,7 @@ priv enum ScorePhase {
 
 ///|
 priv struct ScoreState {
-  input : @records.ProducerRead
-  source : @storage.Storage
+  source : ScoreSource
   vectors : @carrier.Vectors
   prepared : @lower.PreparedVector
   mut output : @records.OutputBuilder?
@@ -161,7 +210,7 @@ fn validate_query_component(state : ScoreState) -> Result[Unit, ScoreIssue] {
 
 ///|
 fn begin_score_record(state : ScoreState) -> Result[Unit, ScoreIssue] {
-  guard @storage.record_field_count(state.source, state.record) is Some(_) else {
+  guard score_source_field_count(state.source, state.record) is Some(_) else {
     return Err(InvalidScoreRecord(state.record))
   }
   state.field = 0
@@ -179,7 +228,7 @@ fn begin_score_record(state : ScoreState) -> Result[Unit, ScoreIssue] {
 
 ///|
 fn load_score_field(state : ScoreState) -> Result[Unit, ScoreIssue] {
-  guard @storage.record_field_at(state.source, state.record, state.field)
+  guard score_source_field(state.source, state.record, state.field)
     is Some((name, checked)) else {
     return Err(InvalidScoreRecord(state.record))
   }
@@ -393,7 +442,7 @@ fn begin_emit_record(state : ScoreState) -> Unit {
 ///|
 fn read_emit_field(state : ScoreState) -> Result[Unit, ScoreIssue] {
   let source_index = state.order[state.emit_index].source_index
-  guard @storage.record_field_at(state.source, source_index, state.emit_field)
+  guard score_source_field(state.source, source_index, state.emit_field)
     is Some(field) else {
     return Err(InvalidScoreRecord(source_index))
   }
@@ -442,7 +491,7 @@ fn score_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@records.producer_read_available(state.input) {
+    if !score_source_available(state.source) {
       return @bounded.Failed(ScoreInputUnavailable, progress, used)
     }
     if used >= state.control_work_remaining {
@@ -460,14 +509,15 @@ fn score_step(
           state.phase = ScoreInitializeScratch
         }
       ScoreInitializeScratch =>
-        if state.scratch.length() < @storage.record_count(state.source) {
+        if state.scratch.length() <
+          score_source_record_count(state.source).unwrap_or(0) {
           state.scratch.push(None)
           used += 1
         } else {
           state.phase = ScoreBeginRecord
         }
       ScoreBeginRecord =>
-        if state.record < @storage.record_count(state.source) {
+        if state.record < score_source_record_count(state.source).unwrap_or(0) {
           used += 1
           match begin_score_record(state) {
             Ok(_) => ()
@@ -484,7 +534,7 @@ fn score_step(
           state.phase = ScoreReadField
         }
       ScoreReadField => {
-        let count = @storage.record_field_count(state.source, state.record).unwrap_or(
+        let count = score_source_field_count(state.source, state.record).unwrap_or(
           -1,
         )
         if state.field < count {
@@ -584,7 +634,7 @@ fn score_step(
         }
       ScoreReadEmitFields => {
         let source_index = state.order[state.emit_index].source_index
-        let count = @storage.record_field_count(state.source, source_index).unwrap_or(
+        let count = score_source_field_count(state.source, source_index).unwrap_or(
           -1,
         )
         if state.emit_field < count {
@@ -646,11 +696,12 @@ fn cleanup_score_state(state : ScoreState) -> Bool {
 }
 
 ///|
-fn start_score_with_control_work_limit(
+fn start_score_source(
   control : @bounded.Control,
   sequence : @lower.PreparedSequence,
   step : Int,
-  input : @records.ProducerRead,
+  source : ScoreSource,
+  vectors : @carrier.Vectors,
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
@@ -660,12 +711,10 @@ fn start_score_with_control_work_limit(
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.VectorStep(prepared)) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.operation(node) == "VEC.score_sort" &&
-    @records.producer_read_matches_operation_input(input, owner, step, 0) else {
+    @lower.operation(node) == "VEC.score_sort" else {
     return Err(InvalidScoreKernel)
   }
-  guard @records.producer_read_storage(input) is Some(source) &&
-    @storage.carrier(source) is @carrier.VectorValue(vectors) &&
+  guard score_source_record_count(source) is Some(records) &&
     @lower.vector_output_carrier(prepared)
     is @carrier.VectorValue(output_vectors) &&
     @carrier.lookup(
@@ -692,12 +741,7 @@ fn start_score_with_control_work_limit(
     @carrier.vector_records(output_vectors),
   )
   guard identity_count > 0 &&
-    score_workspace(
-      @storage.record_count(source),
-      dimensions,
-      identity_count,
-      output_fields,
-    )
+    score_workspace(records, dimensions, identity_count, output_fields)
     is Some(workspace) &&
     workspace <= limits.max_workspace_slots else {
     return Err(ScoreWorkspaceLimit)
@@ -725,7 +769,6 @@ fn start_score_with_control_work_limit(
     Err(issue) => return Err(ScoreOutput(issue))
   }
   let state : ScoreState = {
-    input,
     source,
     vectors,
     prepared,
@@ -774,6 +817,78 @@ fn start_score_with_control_work_limit(
     max_noninterruptible_value_nodes: limits.max_value_nodes,
     max_noninterruptible_value_bytes: limits.max_value_bytes,
   })
+}
+
+///|
+fn start_score_with_control_work_limit(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @records.ProducerRead,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit : Int,
+) -> Result[ScoreExecution, ScoreIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @records.producer_read_matches_operation_input(input, owner, step, 0) else {
+    return Err(InvalidScoreKernel)
+  }
+  guard @records.producer_read_storage(input) is Some(storage) &&
+    @storage.carrier(storage) is @carrier.VectorValue(vectors) else {
+    return Err(ScoreInputUnavailable)
+  }
+  start_score_source(
+    control,
+    sequence,
+    step,
+    Stored(input, storage),
+    vectors,
+    limits,
+    storage_bytes,
+    available,
+    control_work_limit,
+  )
+}
+
+///|
+pub fn start_score_view(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @carrier_runtime.ProducerView,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit? : Int? = None,
+) -> Result[ScoreExecution, ScoreIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.operation(node) == "VEC.score_sort" &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+    is Some(@carrier.VectorValue(vectors)) &&
+    @carrier_runtime.producer_view_kind(input) == @carrier.VectorsKind &&
+    @carrier_runtime.producer_read_reference_matches_operation_input(
+      @carrier_runtime.producer_view_read_reference(input),
+      owner,
+      step,
+      0,
+    ) &&
+    @carrier_runtime.producer_view_record_count(input) is Some(_) else {
+    return Err(InvalidScoreKernel)
+  }
+  start_score_source(
+    control,
+    sequence,
+    step,
+    Viewed(input),
+    vectors,
+    limits,
+    storage_bytes,
+    available,
+    control_work_limit.unwrap_or(limits.max_work),
+  )
 }
 
 ///|

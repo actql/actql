@@ -3933,3 +3933,14 @@ and reads three Named Results against hand-written ordered rows, then reclaims
 the Store and Run. The existing sequence work/workspace and in-flight
 cancellation fixtures still cover the bounded kernel; this route does not
 claim every remaining Carrier variant or mixed-path failure mode.
+
+The retained Vectors score route now accepts an exact managed Vectors view at
+its checked input position. The score kernel reuses its bounded fold, ordering,
+workspace admission, and output owner for both stored and viewed input. A
+selected score task can therefore feed the formal Vectors-to-Relation Bridge
+and a filter in the same authored Stage. Portable Host tests compare the
+ordered scored rows through two consumers on JS, Wasm, and native; direct view
+tests check exact/one-short work and workspace, foreign binding, cancellation,
+and producer custody. The Node standard Host retains and publishes the scored
+Relation with a real Store. This does not claim the remaining Vectors pool or
+other Carrier variants as retained inter-task paths.

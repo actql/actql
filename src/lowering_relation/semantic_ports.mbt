@@ -70,6 +70,7 @@ pub fn node_accepts_managed_carrier_view(
     | "TEA.window.sliding_assign"
     | "TEA.sequence.match"
     | "VEC.normalize_l2"
+    | "VEC.score_sort"
     | "BRIDGE.events.to_rows"
     | "BRIDGE.vectors.to_rows"
     | "BRIDGE.graph.to_node_rows"
@@ -90,7 +91,8 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     BasicGraph(_) => operation(node) == "SGA.normalize"
     VectorValue(_) =>
       operation(node) == "BRIDGE.rows.to_vectors" ||
-      operation(node) == "VEC.normalize_l2"
+      operation(node) == "VEC.normalize_l2" ||
+      operation(node) == "VEC.score_sort"
     EventValue(_) =>
       operation(node) == "BRIDGE.rows.to_events" ||
       operation(node) == "TEA.watermark.label" ||
