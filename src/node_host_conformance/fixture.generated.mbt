@@ -1615,7 +1615,9 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     variant == "pool_normalize" ||
     variant == "pool_shared" ||
     relation_pool
-  let scored = variant == "score_shared" || variant == "score_parameter"
+  let scored = variant == "score_shared" ||
+    variant == "score_parameter" ||
+    variant == "score_filter"
   let source_fields = "[\"id\",\"code\",\"group\",\"embedding\"]"
   let result_fields = if pooled {
     "[\"group\",\"embedding\",\"member_count\"]"
@@ -1731,6 +1733,7 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   } else if variant == "bridge_only" ||
     variant == "bridge_filter" ||
     variant == "normalize_filter" ||
+    variant == "score_filter" ||
     variant == "bridge_select" ||
     variant == "bridge_derive" ||
     variant == "bridge_take" {
@@ -1740,11 +1743,21 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     (if variant == "normalize_filter" {
       "{\"from\":\"source\",\"normalize_vectors\":true," +
       "\"as\":\"normalized\"},"
+    } else if variant == "score_filter" {
+      "{\"from\":\"source\",\"score_vectors\":{" +
+      "\"query\":[1,0],\"metric\":\"dot\"}," +
+      "\"as\":\"scored\"},"
     } else {
       ""
     }) +
     "{\"from\":\"" +
-    (if variant == "normalize_filter" { "normalized" } else { "source" }) +
+    (if variant == "normalize_filter" {
+      "normalized"
+    } else if variant == "score_filter" {
+      "scored"
+    } else {
+      "source"
+    }) +
     "\"," +
     "\"vectors\":true,\"as\":" +
     (if variant != "bridge_only" { "\"projected\"}" } else { "\"out\"}" }) +
