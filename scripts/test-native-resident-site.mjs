@@ -39,12 +39,17 @@ const cryptoLibrary = process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
   (process.platform === 'darwin'
     ? ['/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib',
       '/usr/local/opt/openssl@3/lib/libcrypto.3.dylib']
-      .find(path => existsSync(path))
+      .find(path => existsSync(path)) ?? 'libcrypto.3.dylib'
     : 'libcrypto.so.3');
-const targetTriple = process.platform === 'darwin'
-  ? (process.arch === 'arm64' ? 'aarch64-apple-darwin' : 'x86_64-apple-darwin')
-  : (process.arch === 'arm64' ? 'aarch64-unknown-linux-gnu'
-    : 'x86_64-unknown-linux-gnu');
+const targetTriple = process.platform === 'darwin' && process.arch === 'arm64'
+  ? 'aarch64-apple-darwin'
+  : process.platform === 'linux' && process.arch === 'x64'
+    ? 'x86_64-unknown-linux-gnu'
+    : undefined;
+if (targetTriple === undefined) {
+  throw new Error(
+    `unsupported native resident Site test target ${process.platform}/${process.arch}`);
+}
 const physicalCid = value =>
   `sha256:${createHash('sha256').update(value).digest('hex')}`;
 const openssl = (...args) =>
