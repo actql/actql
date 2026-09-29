@@ -96,10 +96,10 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
     registration,
     managedSelectionKey: moon.strategyHostRegistrationSelectionKey(registration),
     async prepareNext(outputs) {
-      // This managed path returns an in-memory representation. A configured
-      // retained Store publishes through the retained-output driver in run(),
-      // whose computation is the same bounded provider advanced in quanta.
-      if (createLease) return undefined;
+      // Row-only output uses the configured Store. A typed Carrier path keeps
+      // its exact managed generations, including formal Relation views.
+      const carrierPath = createLease != null &&
+        moon.strategyModule_local_NextCarrierPath?.(setup) === true;
       const task = moon.strategyHostNextTask(setup);
       const producers = moon.strategyHostManagedProducers(setup);
       if (task < 0 || !Array.isArray(producers)) return undefined;
@@ -115,15 +115,21 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         });
         const managed = outputs.get(producer);
         if (managed != null) return managed;
-        // Producer zero is the checked Acquisition boundary. Other ordinary
-        // task outputs remain on the legacy dispatcher until a common Host
-        // contract admits their mixed lifecycle explicitly.
-        return producer === 0 ? Object.freeze({
+        // Common captured_task_input checks the exact completed predecessor,
+        // operation binding, and live retained representation. It also covers
+        // a preceding row-file task without inventing a managed output.
+        return (createLease == null ? producer === 0 :
+          producer >= 0 &&
+          moon.strategyModule_local_PredecessorIsCarrier?.(setup, producer) ===
+            false) ? Object.freeze({
           task: producer,
           capturedRelation: true,
         }) : undefined;
       });
       if (inputs.some(input => input == null)) return undefined;
+      if (createLease && !carrierPath) {
+        return undefined;
+      }
       const relationInputs = inputs.filter(input =>
         input.carrierMaterial == null &&
         input.capturedRelation !== true &&

@@ -190,9 +190,9 @@ pub fn strategy_fixture_task_step_count(
 ///|
 /// Explicit SGA-enabled conformance artifact. The ordinary module subset does
 /// not import or install this family provider.
-#export_name("strategyFixtureSgaSubset")
-pub fn strategy_fixture_sga_subset(
+fn strategy_fixture_sga_subset_with_retention(
   f : StrategyFixture,
+  retained_output : Bool,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   let generated = Array::makei(@strategy.graph_task_count(f.graph) - 1, i => {
     fixture_generated_with_ordered(
@@ -250,17 +250,38 @@ pub fn strategy_fixture_sga_subset(
   if !@local_connector.managed_provider_accepts(provider, task_sequences[1]) {
     abort("SGA fixture provider rejected its graph sequence")
   }
-  @connector_gate.configure_subset(f.run.unwrap(), generated, 0, managed_providers=[
-    provider,
-  ])
+  @connector_gate.configure_subset(
+    f.run.unwrap(),
+    generated,
+    0,
+    managed_providers=[provider],
+    retained_output~,
+  )
+}
+
+///|
+#export_name("strategyFixtureSgaSubset")
+pub fn strategy_fixture_sga_subset(
+  f : StrategyFixture,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  strategy_fixture_sga_subset_with_retention(f, false)
+}
+
+///|
+/// Retained row output is configured without changing the SGA provider set.
+#export_name("strategyFixtureSgaRetainedSubset")
+pub fn strategy_fixture_sga_retained_subset(
+  f : StrategyFixture,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  strategy_fixture_sga_subset_with_retention(f, true)
 }
 
 ///|
 /// Explicit TEA-enabled conformance artifact. The ordinary module subset does
 /// not import or install this family provider.
-#export_name("strategyFixtureTeaSubset")
-pub fn strategy_fixture_tea_subset(
+fn strategy_fixture_tea_subset_with_retention(
   f : StrategyFixture,
+  retained_output : Bool,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   let generated = Array::makei(@strategy.graph_task_count(f.graph) - 1, i => {
     fixture_generated(
@@ -344,15 +365,32 @@ pub fn strategy_fixture_tea_subset(
     generated,
     0,
     managed_providers=providers,
+    retained_output~,
   )
+}
+
+///|
+#export_name("strategyFixtureTeaSubset")
+pub fn strategy_fixture_tea_subset(
+  f : StrategyFixture,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  strategy_fixture_tea_subset_with_retention(f, false)
+}
+
+///|
+#export_name("strategyFixtureTeaRetainedSubset")
+pub fn strategy_fixture_tea_retained_subset(
+  f : StrategyFixture,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  strategy_fixture_tea_subset_with_retention(f, true)
 }
 
 ///|
 /// Explicit VecA-enabled conformance artifact. The ordinary module subset does
 /// not import or install this family provider.
-#export_name("strategyFixtureVecaSubset")
-pub fn strategy_fixture_veca_subset(
+fn strategy_fixture_veca_subset_with_retention(
   f : StrategyFixture,
+  retained_output : Bool,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   let generated = Array::makei(@strategy.graph_task_count(f.graph) - 1, i => {
     fixture_generated_with_ordered(
@@ -417,5 +455,22 @@ pub fn strategy_fixture_veca_subset(
     generated,
     0,
     managed_providers=providers,
+    retained_output~,
   )
+}
+
+///|
+#export_name("strategyFixtureVecaSubset")
+pub fn strategy_fixture_veca_subset(
+  f : StrategyFixture,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  strategy_fixture_veca_subset_with_retention(f, false)
+}
+
+///|
+#export_name("strategyFixtureVecaRetainedSubset")
+pub fn strategy_fixture_veca_retained_subset(
+  f : StrategyFixture,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  strategy_fixture_veca_subset_with_retention(f, true)
 }

@@ -30,6 +30,10 @@ pub fn install_local_dispatch_estimates(LocalDispatchModule, LocalEstimateModule
 
 pub fn[E] local_compute_contribution(LocalDispatchModule, (LocalDispatchIssue) -> E, (LocalEstimateIssue) -> E) -> @physical_host.ComputeContribution[Unit, E]
 
+pub fn local_dispatch_next_carrier_path(LocalDispatchModule) -> Bool
+
+pub fn local_dispatch_predecessor_is_carrier(LocalDispatchModule, Int) -> Bool
+
 pub fn local_dispatch_registration(LocalDispatchModule) -> @connector_sdk.CapabilityRegistration
 
 pub fn local_dispatch_rejection(LocalDispatchModule, Int) -> String?

@@ -638,7 +638,7 @@ multi-step Relation tasks are rejected.
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |
 | Other Relation obligations outside the selected bounded binary chains | In progress | The exact bounded Relation children listed below discharge their checked obligations, including unpivot and unnest output envelopes and selected binary64 numeric observations. Other unlisted obligations remain closed to this retained lane. |
-| SGA, TEA, and VecA retained outputs | Open | Connect their exact Carrier completion and retention obligations without widening the Relation-only allowance. |
+| Mixed retained Store and Carrier paths | In progress | The typed managed route now runs alongside row-file retention for the Graph, Events, and Vectors examples below. Other Carrier variants and direct inter-task Events/Vectors handoffs still need route-specific evidence. |
 | Native Host in-flight cancellation | Separate completion unit | Do not count JS Host cancellation as native request delivery. |
 
 The above is local route evidence. A final verification SHA and Linux CI result
@@ -724,9 +724,40 @@ same-SHA CI evidence is still required for this branch.
 
 This does not enable nonlinear tasks or arbitrary Carrier-family output. The
 existing selected Relation provider refuses a nonlinear sequence during planning.
-The remaining Relation work is to cover checked forms outside the table. SGA,
-TEA and VecA retained
-outputs remain a separate Carrier completion unit.
+The remaining Relation work is to cover checked forms outside the table.
+
+#### Mixed retained Store and typed Carrier paths
+
+A configured row Store remains the representation for row-only physical tasks.
+It does not turn Graph, Events, or Vectors generations into row files. A task
+that produces or consumes a typed Carrier, or has an internal Carrier step,
+uses the existing bounded managed provider. Its downstream tasks stay on that
+managed path while they need the exact generation or a formal Relation Bridge
+view. A row-file predecessor is bound through the captured task input; a
+Carrier predecessor supplies its checked managed material and operation port.
+Policy-ineligible tasks remain excluded. The provider decision is made before
+execution; it does not retry a failed materializing attempt through a managed
+kernel.
+
+The standard Node Host fixture configures a real retained Store and tests
+three representative Programs. Graph creation and normalization produce a
+managed Graph task output, followed by `node_rows`, filter, sort and take. The
+producer and two downstream Named Results are read and compared with
+independent ordered expectations; the completed task inventory contains row
+files, a Graph generation and a Relation view. Events and Vectors Programs
+keep their typed generations inside the producer task, use their formal
+Carrier-to-Relation Bridge, and pass that Relation output to two consumers.
+Their three Named Results are likewise read against authored expectations.
+These cases prove mixed row-file/managed selection, not that Events or Vectors
+are physically retained as inter-task Carrier outputs.
+
+A separate Graph fixture delivers timer cancellation after positive work in
+the later Relation filter, then checks stop, nonpublication, no redispatch and
+zero held/reserved bytes after cleanup. Existing row-only retained Store tests
+remain the shared writer, finalize-failure and cleanup controls. Direct
+Carrier completion, capacity and failure proofs for other selected variants
+still need to be bound to their exact production routes. Native Host
+in-flight cancellation remains the separate unit below.
 
 Native Host in-flight cancellation is outside this unit's acceptance
 boundary, which requires standard Host cancellation and JS, Wasm and native

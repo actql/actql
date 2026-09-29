@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {localStrategyContribution} from './strategy-bundle.mjs';
+import {installLocalRetainedStore} from './retained-store.mjs';
 import {registerRetainedInput} from '../store-local/representations.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
@@ -881,6 +882,56 @@ test('standard Local dispatches a Carrier input to a Carrier output',
     assert.equal(settled, true);
     result.close();
     assert.equal(closed, true);
+  });
+
+test('configured row Store selects typed Carrier paths',
+  async () => {
+    const setup = {};
+    const configuration = {};
+    const carrierMaterial = {};
+    const completed = {};
+    let storeCalls = 0;
+    const store = installLocalRetainedStore(() => {
+      storeCalls++;
+      assert.fail('a Carrier generation is not a retained row file');
+    });
+    let carrierPath = true;
+    const local = localStrategyContribution({
+      ...portableRuntime,
+      strategyModule_local_Registration: () => ({}),
+      strategyHostRegistrationSelectionKey: () => 'local-carrier',
+      strategyHostNextTask: () => 1,
+      strategyModule_local_NextCarrierPath: () => carrierPath,
+      strategyHostManagedProducers: () => [],
+      strategyHostManagedInputCount: () => 0,
+      strategyHostReleasableManagedProducers: () => [],
+      strategyModule_local_ManagedCarrierDispatch: () => ok(configuration),
+      strategyModule_local_ManagedDuration: () => 0n,
+      strategyModule_local_ManagedCapacity: () => [32n, 16n],
+      strategyModule_local_ManagedStart: () => ok({
+        inputs: [],
+        advance: () => ok({complete: true, progress: 1n, work: 1n}),
+        request_cancel: () => false,
+        execution_stopped: () => true,
+        settle: () => ok(),
+        complete_carrier: () => ok(completed),
+        carrier_material: () => carrierMaterial,
+        material: () => undefined,
+        storage_bytes: 32n,
+        close() {},
+      }),
+    }, setup, checked, store);
+    const prepared = await local.prepareNext(new Map());
+    assert.equal(prepared.task, 1);
+    const result = await local.runPrepared(prepared);
+    assert.equal(result.completed, completed);
+    assert.equal(result.carrierMaterial, carrierMaterial);
+    assert.equal(result.diagnostic.outputRepresentation,
+      'managed-local-carrier');
+    assert.equal(storeCalls, 0);
+    result.close();
+    carrierPath = false;
+    assert.equal(await local.prepareNext(new Map()), undefined);
   });
 
 test('standard Host retains an exact Carrier across task dispatch', async () => {

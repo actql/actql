@@ -68,6 +68,10 @@ function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1} = 
   const moon = {...portableRuntime,
     strategyModule_local_Registration: () => ({}),
     strategyHostRegistrationSelectionKey: () => 'local-test',
+    strategyModule_local_NextCarrierPath: () => false,
+    strategyHostNextTask: () => 2,
+    strategyHostManagedProducers: () => [],
+    strategyHostManagedInputCount: () => 0,
     strategyModule_local_Dispatch: () => {events.push('reserved'); return ok(operations);}};
   const entry = localStrategyContribution(moon, {}, checked, configuration);
   return {entry, events, configuration, allocated: () => allocated, released: () => releaseCheck?.()};

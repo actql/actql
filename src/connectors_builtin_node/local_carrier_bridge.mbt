@@ -68,3 +68,32 @@ pub fn local_managed_uses_provider(
 ) -> Bool {
   @local_driver.local_managed_dispatch_uses_provider(setup)
 }
+
+///|
+#export_name("strategyModule_local_NextCarrierPath")
+pub fn local_next_carrier_path(
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Bool {
+  guard @builtin.configured_local_module(
+      @builtin.configured_host_modules(setup),
+    )
+    is Some(installed) else {
+    return false
+  }
+  @local_driver.local_dispatch_next_carrier_path(installed)
+}
+
+///|
+#export_name("strategyModule_local_PredecessorIsCarrier")
+pub fn local_predecessor_is_carrier(
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  producer : Int,
+) -> Bool {
+  guard @builtin.configured_local_module(
+      @builtin.configured_host_modules(setup),
+    )
+    is Some(installed) else {
+    return false
+  }
+  @local_driver.local_dispatch_predecessor_is_carrier(installed, producer)
+}
