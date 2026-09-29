@@ -116,3 +116,54 @@ or column order; empty Results have no row-shape evidence. Publication boundary
 tests must verify those schema properties separately. The script is not a passing test or a
 claim of public source support until the Host connection and physical
 strategy selection are fixed and both modes complete.
+
+## Public Host connection evidence
+
+The integrated test source at `b388bbce3aa3ca5289d9fc7d42ce387c4ff330b0`
+combines the Frontend branch `f91d7f50d71e8b0c9ff6473d0ca33dfaef10523d`
+with the committed Host source connection `0d4111d17c0705c29480b48628679b4e2bcb6c4d`.
+This is a development integration branch, not a release or merge decision.
+The tracked `scripts/test-packed-public-query.mjs` created an external clean
+installation and ran the same authored `normalize-rows.named.aql` through
+packed Embedded Local and HTTPS Host. Both modes returned the independently
+expected `[{"id":"A"},{"id":"B"}]` Named Result after the input nodes were
+authored in B, A order. Lookup, attach, same-request resubmission, a second
+delivery attempt and normal reader termination passed. The same packed Host
+accepted the five existing SQL/Pipe cases in each mode. The successful
+`normalize_graph` case proves one SGA public path, not every named operation.
+
+The Node-free native CLI was built from this integrated source and used the
+same packed HTTPS Host. The tracked
+`scripts/test-native-sga-public-source.mjs` submitted the same AQL text with
+`--format aql-text`, waited for the Run and read the independently expected
+Named Result. Its binary SHA-256 was
+`b735ac546176230bfa8d5daffa9e358fb51da64ad2664d0ab7117dcc1e1588e8`.
+The CLI test runs outside the package installation and does not put a parser
+or Local kernel into the CLI.
+
+The packed tarball SHA-256 digests for that run were:
+
+| Package | SHA-256 |
+| --- | --- |
+| `client-wire` | `8e09005f4aac5063c1f6f8e4680dbb778a00e5c098126a85283e1f07685a76e5` |
+| `sdk` | `1e4e83612b9c965388795f066be8cf24b0358feb46bd2335c8d98c36e83ed515` |
+| `run-host-core` | `f6baa1caabb8c0655d62769157bb39274d9981c85f9940539061d82e67ea7a6a` |
+| `local-node` | `04ab32d6bf4dee666a26f8107a933bd622813bde71d79b66456b891097b3a2d0` |
+| `node` | `c72364973dd1ed42faea32425632b314de037c9b92035c9f5ec35b875914f225` |
+
+The remaining authored SGA cases were also submitted to the same packed
+Local installation for diagnosis. `graphs-equal` and `degree-rows` accepted a
+Run but ended failed before publication (`ACTQL_E_UNPUBLISHED_RUN`). For
+`graphs-equal`, the earlier isolated probe identified a missing selected
+strategy revision; the `degree-rows` failure still needs the same diagnosis.
+`graph-bounds` reached Run compilation and was rejected there.
+`components` failed common Program preparation at the separately recorded
+capacity application gap. `reach-subgraph`, `diff-apply` and `mean-graphs`
+were refused during preparation; their explicit edge-row ordering still
+requires lawful evidence for the nullable `rel` field. These failures are not
+successful Result evidence. The diagnostic response for some pre-Run failures
+was conservatively surfaced as `SubmissionUnknown`; that public error
+classification also needs review before these forms are declared supported.
+The packed test driver still retains its installation on success; the Host
+owner has a separate cleanup and failure-log fix to apply before this is a
+routine acceptance gate.
