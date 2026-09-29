@@ -243,6 +243,10 @@ pub fn client_result_row_contract_unit_cid(ClientResultRowContractIdentity) -> S
 
 pub fn client_result_row_contract_wire(ClientResultRowContractIdentity) -> String
 
+pub fn client_result_transformation_matches(ClientResultTransformation, PreparedClientProgram, Int) -> Bool
+
+pub fn client_result_transformation_plan(ClientResultTransformation) -> ClientResultPlanIdentity
+
 pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationLimits
 
 pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
@@ -477,6 +481,8 @@ pub fn prepare_client_query_requirement(PreparedClientProgram, @execution_relati
 
 pub fn prepare_client_request_identity(PreparedClientProgram, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
+pub fn prepare_client_result_transformation(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientResultTransformation, ClientResultTransformationIssue]
+
 pub fn prepare_client_run_cancellation(@run_publication.PublicationContract, String, Bool, Bool, Bool) -> Result[ClientRunCancellationAction, ClientRunStartIssue]
 
 pub fn prepare_client_run_physical_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, cancellation_requested? : Bool, pre_start_failure_confirmed? : Bool) -> Result[Bool, ClientRunStartIssue]
@@ -536,6 +542,8 @@ pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
 pub fn prepared_client_uses_graph_carrier(PreparedClientProgram) -> Bool
 
 pub fn source_free_caller_input_intent_cid() -> String
+
+pub fn start_client_result_transformation(ClientResultTransformation, @execution_relation.CompletedOutput, PublicationOutputExportLimits) -> Result[ClientResultTransformationPreparation, ClientResultTransformationIssue]
 
 // Errors
 
@@ -969,6 +977,30 @@ pub(all) enum ClientResultRowContractIssue {
   UnrepresentableRowContract
   Encoding(@encode_core.EncodeFailure)
 }
+
+pub struct ClientResultTransformation {
+  owner : PreparedClientProgram
+  result : Int
+  occurrence : @execution_relation.ManagedResultOccurrence
+  plan : ClientResultPlanIdentity
+  definition : @run_publication.PublicationContract
+}
+
+pub(all) enum ClientResultTransformationIssue {
+  MissingResult
+  Plan(ClientResultPlanIssue)
+  Definition(@run_publication.ResultDefinitionIssue)
+  Output(@execution_relation.CompletedExportIssue)
+}
+
+pub struct ClientResultTransformationPreparation {
+  selection : ClientResultTransformation
+  preparation : @execution_relation.CompletedResultRelationExportPreparation
+  limits : PublicationOutputExportLimits
+}
+pub fn ClientResultTransformationPreparation::advance(Self, Int) -> Result[(Bool, Int), ClientResultTransformationIssue]
+pub fn ClientResultTransformationPreparation::cancel(Self) -> Bool
+pub fn ClientResultTransformationPreparation::finish(Self) -> Result[PublicationOutputExport, ClientResultTransformationIssue]
 
 pub(all) enum ClientRunCancellationAction {
   AcceptCancellation
