@@ -52,6 +52,16 @@ fn test_declarations() -> @parameters.Declarations {
 }
 
 ///|
+fn alias_limits() -> @syntax.LexicalLimits {
+  {
+    max_source_bytes: 256,
+    max_tokens: 32,
+    max_literal_bytes: 256,
+    max_work: 512,
+  }
+}
+
+///|
 test "explicit format aliases retain the structured route" {
   assert_true(select_format("json") is Ok(Json))
   assert_true(select_format("aql-json") is Ok(Json))
@@ -108,13 +118,24 @@ test "structural AQL and query-only AQL use distinct parsers" {
     Some(declared),
   ).unwrap()
   assert_true(
-    declared_program.document.contains("\"params\":{\"p\":{\"type\":\"number\"}}"),
+    declared_program.document.contains(
+      "\"params\":{\"p\":{\"type\":\"number\"}}",
+    ),
   )
 }
 
 ///|
 test "published query names bind one environment generation" {
   let input = test_context().inputs[0]
+  let parsed = @syntax.parse_relation_path("crm.`Records`", alias_limits()).unwrap()
+  assert_eq(parsed.length(), 2)
+  assert_eq(parsed[0].value, "crm")
+  assert_eq(parsed[1].value, "Records")
+  assert_true(parsed[1].quoted)
+  assert_true(
+    @syntax.parse_relation_path("records.extra more", alias_limits()) is Err(_),
+  )
+  assert_true(@syntax.parse_relation_path("records.", alias_limits()) is Err(_))
   let entry : PublishedAlias = {
     name: input.relation,
     source_ref: "connector://crm/main/records#snapshot",

@@ -38,6 +38,9 @@ snapshot; a generation change requires a new published snapshot. Missing or
 ambiguous names are rejected without another Resource fallback. The alias
 selects a source; read authorization still runs on the ordinary acquisition
 path immediately before protected I/O.
+The Host parses each installed `name` through
+`query_syntax.parse_relation_path` before calling
+`source_frontend.bind_query_context`; it must not split quoted names itself.
 
 The smallest profile extension proposed for C's publication code is:
 

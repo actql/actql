@@ -214,6 +214,61 @@ pub fn starts_sql(
 }
 
 ///|
+/// Parse a published relation alias with the same quoted-name lexer as a
+/// query. Installation must still bind the result to one Source View and
+/// reject collisions before making the snapshot visible.
+pub fn parse_relation_path(
+  text : String,
+  limits : LexicalLimits,
+  source_path? : String = "<alias>",
+) -> Result[Array[NamePart], Diagnostic] {
+  let tokens = match tokenize(text, limits, source_path~) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let parts : Array[NamePart] = []
+  let mut expect_name = true
+  for index in 0..<token_count(tokens) {
+    let token = token_at(tokens, index).unwrap()
+    if token.value == End {
+      if !expect_name && !parts.is_empty() {
+        return Ok(parts)
+      }
+      return Err({
+        issue: Syntax("Expected relation name"),
+        span: token_origin(tokens, index).map(@origin.span),
+      })
+    }
+    if expect_name {
+      if parts.length() >= 16 {
+        return Err({
+          issue: Syntax("Relation path limit"),
+          span: token_origin(tokens, index).map(@origin.span),
+        })
+      }
+      match token.value {
+        Word(value) => parts.push({ value, quoted: false, })
+        QuotedName(value) => parts.push({ value, quoted: true, })
+        _ =>
+          return Err({
+            issue: Syntax("Expected relation name"),
+            span: token_origin(tokens, index).map(@origin.span),
+          })
+      }
+      expect_name = false
+    } else if token.value == Symbol(46) {
+      expect_name = true
+    } else {
+      return Err({
+        issue: Syntax("Expected relation separator"),
+        span: token_origin(tokens, index).map(@origin.span),
+      })
+    }
+  }
+  Err({ issue: Syntax("Expected relation name"), span: None, })
+}
+
+///|
 pub fn query_document(query : Query) -> @origin.Document {
   query.source.document
 }
