@@ -376,6 +376,48 @@ test "shared local Artifact issuer rejects foreign Result export ownership" {
     output,
     @strategy.captured_effect_input_occurrence(out),
   )
+  let mut out_index = -1
+  for index in 0..<@strategy.captured_effect_local_result_count(inputs) {
+    let result = @strategy.captured_effect_local_result_at(inputs, index).unwrap()
+    let occurrence = @strategy.captured_any_result_borrow_occurrence(
+      @strategy.captured_effect_local_result_borrow(result),
+    )
+    if @execution.managed_result_occurrence_name(occurrence) == "out" {
+      out_index = index
+    }
+  }
+  assert_true(out_index >= 0)
+  let dependency_export = @strategy.bind_captured_effect_local_result_managed_export(
+    inputs, out_index, completed, bridge, out_preparation,
+  ).unwrap()
+  assert_true(
+    @strategy.captured_effect_local_result_export_matches_receipt(
+      inputs, dependency_export, out_receipt,
+    ),
+  )
+  assert_false(
+    @strategy.captured_effect_local_result_export_matches_receipt(
+      inputs, dependency_export, other_receipt,
+    ),
+  )
+  assert_false(
+    @strategy.captured_effect_local_result_export_matches_receipt(
+      inputs, dependency_export, second_receipt,
+    ),
+  )
+  assert_true(
+    @strategy.bind_captured_effect_local_result_managed_export(
+      inputs, out_index, completed, bridge, other_preparation,
+    )
+    is Err(@strategy.ForeignOutput),
+  )
+  let separate_pins = @strategy.pin_captured_effect_sources(effect_run, 4).unwrap()
+  assert_false(
+    @strategy.captured_effect_local_result_export_matches_receipt(
+      separate_pins, dependency_export, out_receipt,
+    ),
+  )
+  assert_true(@strategy.release_captured_effect_inputs(separate_pins))
   assert_eq(
     @execution.logical_relation_cid(
       @execution.completed_relation_export_identity(out_receipt),
@@ -491,6 +533,11 @@ test "shared local Artifact issuer rejects foreign Result export ownership" {
     is Err(@publication_host.ForeignOwner),
   )
   @execution.cancel_completed_relation_export_receipt(out_receipt) |> ignore
+  assert_false(
+    @strategy.captured_effect_local_result_export_matches_receipt(
+      inputs, dependency_export, out_receipt,
+    ),
+  )
   assert_true(
     issue(prepared, out_preparation, out_receipt)
     is Err(@publication_host.ForeignExport),

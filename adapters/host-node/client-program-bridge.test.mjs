@@ -50,6 +50,7 @@ import {applyCapturedEffectSet, applyRecoveredEffectSet} from './effect-run-appl
 import {loadCheckpointRuntime, openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
 import {issueAuthorizedEffectSetReceipt} from './effect-response-recovery.mjs';
 import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
+  exportPinnedEffectLocalResult,
   preparePinnedEffectSourcePayload, preparePinnedEffectSourceSet,
   preparePinnedEffectSourceHoldings} from
   './effect-input-export.mjs';
@@ -2509,6 +2510,44 @@ test('one acquired Effect Program captures and computes from its owner',
             return [moon.clientProgramEffectLocalResultStage(result),
               moon.clientProgramEffectLocalResultName(result)];
           }), [[0, 'r'], [1, 'r']]);
+          const limits = moon.clientProgramEffectInputExportLimits(
+            ...effectInputExportArgs(outputLimits));
+          const rootChunks = [];
+          let rootExport, rootReceipt;
+          const exported = await exportPinnedEffectLocalResult({
+            moon, execution, inputs: pins, resultIndex: 0, limits,
+            onChunk: chunk => rootChunks.push(chunk),
+            async onReceipt(_result, receipt, exportedOwner) {
+              rootExport = exportedOwner;
+              rootReceipt = receipt;
+              assert.equal(moon.clientProgramEffectLocalResultExportMatchesReceipt(
+                pins, rootExport, rootReceipt), true);
+              // Equal bytes from another export do not transfer ownership.
+              await exportPinnedEffectLocalResult({moon, execution,
+                inputs: pins, resultIndex: 0, limits, onChunk() {},
+                onReceipt(_other, otherReceipt, otherOwner) {
+                  assert.equal(moon.clientProgramEffectLocalResultExportMatchesReceipt(
+                    pins, rootExport, otherReceipt), false);
+                  assert.equal(moon.clientProgramEffectLocalResultExportMatchesReceipt(
+                    pins, otherOwner, rootReceipt), false);
+                }});
+              const computedChunks = [];
+              const computedResult = await exportPinnedEffectLocalResult({
+                moon, execution, inputs: pins, resultIndex: 1, limits,
+                onChunk: chunk => computedChunks.push(chunk),
+                onReceipt(_other, otherReceipt, otherOwner) {
+                  assert.equal(moon.clientProgramEffectLocalResultExportMatchesReceipt(
+                    pins, otherOwner, otherReceipt), true);
+                  assert.equal(moon.clientProgramEffectLocalResultExportMatchesReceipt(
+                    pins, otherOwner, rootReceipt), false);
+                }});
+              assert.equal(computedResult.rowCount, 1);
+              assert.deepEqual(JSON.parse(computedChunks.join('')), [{id: 3}]);
+            }});
+          assert.equal(exported.rowCount, 2);
+          assert.deepEqual(JSON.parse(rootChunks.join('')), [{id: 2}, {id: 3}]);
+          assert.equal(moon.clientProgramEffectLocalResultExportMatchesReceipt(
+            pins, rootExport, rootReceipt), false, 'released receipt');
         } finally { moon.clientProgramReleaseEffectInputs(pins); }
         assert.equal(moon.clientProgramEffectLocalResultCount(pins), 0);
         assert.equal(moon.clientProgramEffectLocalResultAt(pins, 0), undefined);
@@ -5033,8 +5072,17 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
     assert.equal(execution.status, 'host-tasks-completed');
     assert.throws(() => checked(moon.clientProgramPinEffectSources(
       owned, 1)), {code: 'MoonBitHostFailure'});
-    const inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
+    const expectedInventory = splitSource
+      ? [[0, 'rows'], [1, 'rows'], [1, 'early']] : [[0, 'rows']];
+    const inputs = checked(moon.clientProgramPinEffectSources(
+      owned, Math.max(2, expectedInventory.length)));
     try {
+      assert.deepEqual(Array.from({length:
+        moon.clientProgramEffectLocalResultCount(inputs)}, (_, index) => {
+        const result = moon.clientProgramEffectLocalResultAt(inputs, index);
+        return [moon.clientProgramEffectLocalResultStage(result),
+          moon.clientProgramEffectLocalResultName(result)];
+      }), expectedInventory);
       assert.equal(moon.clientProgramEffectInputCount(inputs), 2);
       const first = moon.clientProgramEffectInputAt(inputs, 0);
       const second = moon.clientProgramEffectInputAt(inputs, 1);
@@ -5124,8 +5172,20 @@ test('Effect sources retain exact physical producers across split Stages',
       try {
         assert.equal(execution.status, 'host-tasks-completed',
           execution.failure?.stack);
-        const inputs = checked(moon.clientProgramPinEffectSources(owned, 1));
+        const expectedInventory = [[0, 'rows'], [1, 'rows'], [1, 'early'],
+          ...(splitEffectSource === 'consumer' ? [[2, 'rows']] : [])];
+        const pinned = moon.clientProgramPinEffectSources(
+          owned, expectedInventory.length);
+        assert.equal(pinned.$tag, 1,
+          `${splitEffectSource}: ${pinned._0?.constructor?.name}`);
+        const inputs = checked(pinned);
         try {
+          assert.deepEqual(Array.from({length:
+            moon.clientProgramEffectLocalResultCount(inputs)}, (_, index) => {
+            const result = moon.clientProgramEffectLocalResultAt(inputs, index);
+            return [moon.clientProgramEffectLocalResultStage(result),
+              moon.clientProgramEffectLocalResultName(result)];
+          }), expectedInventory);
           const input = moon.clientProgramEffectInputAt(inputs, 0);
           assert.ok(input);
           assert.equal(moon.clientProgramEffectInputTask(input), expectedTask);
@@ -5133,6 +5193,17 @@ test('Effect sources retain exact physical producers across split Stages',
           const chunks = [];
           const limits = moon.clientProgramEffectInputExportLimits(
             ...effectInputExportArgs(outputLimits));
+          for (let resultIndex = 0; resultIndex < expectedInventory.length;
+            resultIndex++) {
+            const dependencyChunks = [];
+            await exportPinnedEffectLocalResult({
+              moon, execution, inputs, resultIndex, limits,
+              onChunk: async chunk => dependencyChunks.push(chunk),
+            });
+            assert.deepEqual(JSON.parse(dependencyChunks.join('')),
+              [{id: 1}, {id: 2}],
+              `retained dependency ${expectedInventory[resultIndex]}`);
+          }
           const exported = await exportPinnedEffectInput({
             moon, execution, inputs, memberIndex: 0, limits,
             onChunk: async chunk => { chunks.push(chunk); },

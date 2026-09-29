@@ -103,10 +103,24 @@ export async function preparePinnedEffectSourceSet({
  * row admission, projection, ordering, and logical identity. This is not an
  * Effect Preview or a mutation permit. The caller retains the input pin.
  */
-export async function exportPinnedEffectInput({
+export async function exportPinnedEffectInput(options) {
+  return exportPinnedResult({...options, localResultIndex: undefined});
+}
+
+// Upstream dependency Results use the same bounded exporter and physical
+// import bridge. They are not fictitious Effect members or public Results.
+export async function exportPinnedEffectLocalResult({resultIndex, ...options}) {
+  if (!Number.isSafeInteger(resultIndex) || resultIndex < 0) {
+    throw new TypeError('InvalidEffectLocalResult');
+  }
+  return exportPinnedResult({...options, memberIndex: undefined,
+    localResultIndex: resultIndex});
+}
+
+async function exportPinnedResult({
   moon, execution, inputs, memberIndex, limits, onChunk,
   onReceipt, onCanonicalRow, canonicalRowLimits,
-  signal, advanceQuantum = 256,
+  signal, advanceQuantum = 256, localResultIndex,
 }) {
   if (typeof onChunk !== 'function' ||
       (onReceipt !== undefined && typeof onReceipt !== 'function') ||
@@ -126,25 +140,42 @@ export async function exportPinnedEffectInput({
       maxDepth: canonicalRowLimits.maxDepth,
       maxUtf16Units: canonicalRowLimits.maxUtf16Units});
   signal?.throwIfAborted();
-  const input = moon.clientProgramEffectInputAt(inputs, memberIndex);
+  const local = localResultIndex !== undefined;
+  const input = local
+    ? moon.clientProgramEffectLocalResultAt(inputs, localResultIndex)
+    : moon.clientProgramEffectInputAt(inputs, memberIndex);
   if (input === undefined) {
     throw new TypeError('MissingEffectInput');
   }
-  const task = moon.clientProgramEffectInputTask(input);
+  const task = local ? moon.clientProgramEffectLocalResultTask(input)
+    : moon.clientProgramEffectInputTask(input);
   const physical = execution.effectPhysicalSource(task);
-  if (physical === undefined) {
+  if (physical === undefined && !local) {
     throw new TypeError('MissingEffectPhysicalSource');
   }
-  const importing = checked(moon.clientProgramEffectManagedInputBegin(
-    input, physical.completed, physical.material, limits));
-  let preparation, stream, receipt;
+  let importing, preparation, stream, receipt, exportOwner;
   try {
-    preparation = await physical.withRows(
-      row => checked(moon.clientProgramEffectManagedInputAppend(
-        importing, row)),
-      signal,
-      () => checked(moon.clientProgramEffectManagedInputFinish(importing)),
-    );
+    if (physical === undefined) {
+      exportOwner = checked(moon.clientProgramEffectLocalResultExportStart(
+        inputs, localResultIndex, limits));
+      preparation = moon.clientProgramEffectLocalResultExportPreparation(
+        exportOwner);
+    } else {
+      importing = checked(local
+        ? moon.clientProgramEffectLocalManagedInputBegin(inputs,
+          localResultIndex, physical.completed, physical.material, limits)
+        : moon.clientProgramEffectManagedInputBegin(input,
+          physical.completed, physical.material, limits));
+      preparation = await physical.withRows(
+        row => checked(moon.clientProgramEffectManagedInputAppend(
+          importing, row)), signal,
+        () => checked(moon.clientProgramEffectManagedInputFinish(importing)),
+      );
+      if (local) {
+        exportOwner = checked(moon.clientProgramEffectLocalManagedExportOwner(
+          inputs, localResultIndex, importing));
+      }
+    }
     for (;;) {
       signal?.throwIfAborted();
       const progress = checked(moon.clientProgramEffectInputExportAdvance(
@@ -175,8 +206,13 @@ export async function exportPinnedEffectInput({
     const finished = checked(moon.clientProgramEffectInputExportFinish(stream));
     receipt = finished._0;
     await onChunk(finished._1);
+    if (local && moon.clientProgramEffectLocalResultExportMatchesReceipt(
+      inputs, exportOwner, receipt) !== true) {
+      throw new TypeError('ForeignEffectLocalResultReceipt');
+    }
     const artifact = onReceipt === undefined
-      ? undefined : await onReceipt(input, receipt, importing);
+      ? undefined : await onReceipt(input, receipt,
+        local ? exportOwner : importing);
     return Object.freeze({
       fields: moon.clientProgramEffectInputExportFields(receipt),
       logicalCid: moon.clientProgramEffectInputExportLogicalCid(receipt),
@@ -193,7 +229,9 @@ export async function exportPinnedEffectInput({
     } else if (preparation !== undefined) {
       moon.clientProgramEffectInputExportCancelPreparation(preparation);
     }
-    moon.clientProgramEffectManagedInputCancel(importing);
+    if (importing !== undefined) {
+      moon.clientProgramEffectManagedInputCancel(importing);
+    }
   }
 }
 

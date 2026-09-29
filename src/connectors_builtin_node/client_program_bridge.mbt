@@ -2645,14 +2645,15 @@ pub fn client_program_issue_source_free_local_effect_result_artifact(
   @publication_host.ClientEffectLocalResultArtifact,
   ClientEffectLocalArtifactBridgeIssue,
 ] {
-  guard importing.preparation is Some(preparation) else {
+  guard importing.preparation is Some(preparation) &&
+    importing.input is Some(input) else {
     return Err(ForeignExport)
   }
   @publication_host.issue_source_free_client_effect_local_result_artifact(
     owner,
     inputs,
     member_index,
-    importing.input,
+    input,
     importing.output,
     importing.bridge,
     preparation,
@@ -3193,6 +3194,14 @@ pub fn client_program_effect_local_result_stage(
   value : @strategy.CapturedEffectLocalResult,
 ) -> Int {
   @strategy.captured_effect_local_result_stage(value)
+}
+
+///|
+#export_name("clientProgramEffectLocalResultTask")
+pub fn client_program_effect_local_result_task(
+  value : @strategy.CapturedEffectLocalResult,
+) -> Int {
+  @strategy.captured_effect_local_result_task(value)
 }
 
 ///|
@@ -4045,10 +4054,60 @@ pub fn client_program_effect_input_export_start(
 }
 
 ///|
+#export_name("clientProgramEffectLocalResultExportStart")
+pub fn client_program_effect_local_result_export_start(
+  inputs : @strategy.CapturedEffectInputs,
+  index : Int,
+  limits : @publication_host.PublicationOutputExportLimits,
+) -> Result[
+  @strategy.CapturedEffectLocalResultExport,
+  @strategy.CapturedEffectLocalResultExportIssue,
+] {
+  let limits = client_program_own_effect_export_limits(limits)
+  @strategy.start_captured_effect_local_result_export(
+    inputs,
+    index,
+    {
+      max_fields: limits.max_result_fields,
+      max_mapping_work: limits.max_result_mapping_work,
+      max_order_work: limits.max_result_order_work,
+      max_workspace_entries: limits.max_result_workspace_entries,
+    },
+    limits.max_rows,
+    limits.values,
+    limits.payload_wire,
+    limits.logical_wire,
+    limits.schema,
+    limits.max_batch_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramEffectLocalResultExportPreparation")
+pub fn client_program_effect_local_result_export_preparation(
+  value : @strategy.CapturedEffectLocalResultExport,
+) -> @execution.CompletedResultRelationExportPreparation {
+  @strategy.captured_effect_local_result_export_preparation(value)
+}
+
+///|
+#export_name("clientProgramEffectLocalResultExportMatchesReceipt")
+pub fn client_program_effect_local_result_export_matches_receipt(
+  inputs : @strategy.CapturedEffectInputs,
+  value : @strategy.CapturedEffectLocalResultExport,
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Bool {
+  @strategy.captured_effect_local_result_export_matches_receipt(
+    inputs, value, receipt,
+  )
+}
+
+///|
 /// The installed Site supplies the exact resident generation and bounded row
 /// stream. This owner keeps its checked Effect pin and managed import paired.
 struct ClientEffectManagedInputImport {
-  input : @strategy.CapturedEffectInput
+  input : @strategy.CapturedEffectInput?
+  borrow : @strategy.CapturedAnyResultBorrow
   output : @execution.ManagedCompletedOutput[Int]
   bridge : @execution.ManagedPublicationBridge[Int]
   limits : @publication_host.PublicationOutputExportLimits
@@ -4113,7 +4172,45 @@ pub fn client_program_effect_managed_input_begin(
   material : @execution.ManagedRetainedOutput[Int],
   limits : @publication_host.PublicationOutputExportLimits,
 ) -> Result[ClientEffectManagedInputImport, ClientEffectManagedInputIssue] {
-  if !@strategy.captured_effect_input_matches_managed(input, output) {
+  begin_client_effect_result_import(
+    Some(input),
+    @strategy.captured_effect_input_borrow(input),
+    output,
+    material,
+    limits,
+  )
+}
+
+///|
+#export_name("clientProgramEffectLocalManagedInputBegin")
+pub fn client_program_effect_local_managed_input_begin(
+  inputs : @strategy.CapturedEffectInputs,
+  index : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  limits : @publication_host.PublicationOutputExportLimits,
+) -> Result[ClientEffectManagedInputImport, ClientEffectManagedInputIssue] {
+  guard @strategy.captured_effect_local_result_at(inputs, index) is Some(result) else {
+    return Err(ForeignOutput)
+  }
+  begin_client_effect_result_import(
+    None,
+    @strategy.captured_effect_local_result_borrow(result),
+    output,
+    material,
+    limits,
+  )
+}
+
+///|
+fn begin_client_effect_result_import(
+  input : @strategy.CapturedEffectInput?,
+  borrow : @strategy.CapturedAnyResultBorrow,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  limits : @publication_host.PublicationOutputExportLimits,
+) -> Result[ClientEffectManagedInputImport, ClientEffectManagedInputIssue] {
+  if !@strategy.captured_any_result_borrow_matches_managed(borrow, output) {
     return Err(ForeignOutput)
   }
   let limits = client_program_own_effect_export_limits(limits)
@@ -4129,7 +4226,29 @@ pub fn client_program_effect_managed_input_begin(
     Ok(value) => value
     Err(issue) => return Err(Bridge(issue))
   }
-  Ok({ input, output, bridge, limits, preparation: None, open: true, })
+  Ok({ input, borrow, output, bridge, limits, preparation: None, open: true, })
+}
+
+///|
+#export_name("clientProgramEffectLocalManagedExportOwner")
+pub fn client_program_effect_local_managed_export_owner(
+  inputs : @strategy.CapturedEffectInputs,
+  index : Int,
+  value : ClientEffectManagedInputImport,
+) -> Result[
+  @strategy.CapturedEffectLocalResultExport,
+  @strategy.CapturedEffectLocalResultExportIssue,
+] {
+  guard value.preparation is Some(preparation) else {
+    return Err(ForeignOutput)
+  }
+  @strategy.bind_captured_effect_local_result_managed_export(
+    inputs,
+    index,
+    value.output,
+    value.bridge,
+    preparation,
+  )
 }
 
 ///|
@@ -4141,7 +4260,10 @@ pub fn client_program_effect_managed_input_append(
   if !value.open {
     return Err(Closed)
   }
-  if !@strategy.captured_effect_input_matches_managed(value.input, value.output) {
+  if !@strategy.captured_any_result_borrow_matches_managed(
+      value.borrow,
+      value.output,
+    ) {
     return Err(ForeignOutput)
   }
   @execution.append_managed_publication_bridge_wire(value.bridge, row, {
@@ -4164,7 +4286,10 @@ pub fn client_program_effect_managed_input_finish(
     return Err(Closed)
   }
   value.open = false
-  if !@strategy.captured_effect_input_matches_managed(value.input, value.output) {
+  if !@strategy.captured_any_result_borrow_matches_managed(
+      value.borrow,
+      value.output,
+    ) {
     @execution.close_managed_publication_bridge(value.bridge)
     return Err(ForeignOutput)
   }
@@ -4179,7 +4304,7 @@ pub fn client_program_effect_managed_input_finish(
   match
     @execution.start_completed_result_relation_export(
       output,
-      @strategy.captured_effect_input_occurrence(value.input),
+      @strategy.captured_any_result_borrow_occurrence(value.borrow),
       {
         max_fields: value.limits.max_result_fields,
         max_mapping_work: value.limits.max_result_mapping_work,

@@ -10,6 +10,7 @@ struct CapturedDAG {
   outputs : Array[CommittedTaskOutput?]
   done : Array[Bool]
   lifetimes : Array[TaskLifetime]
+  effect_dependency_outputs : Array[Bool]
   resources : Array[TaskRetention?]
   join_limits : Array[Array[(Int, Int64)]]
   interval_search_limits : Array[Array[(Int, Int64)]]
@@ -272,9 +273,17 @@ pub fn open_source_free_effect_run_dag(
   if !valid_source_free_root(graph) || !graph_program_has_effects(graph) {
     return Err(UnsupportedGraph)
   }
+  let dependencies = match
+    effect_dependency_ports(checked.computation, 4096, 65536, 64) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let captured = match open_checked_dag(graph, None, ledger, []) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  for dependency in dependencies {
+    captured.effect_dependency_outputs[dependency.task] = true
   }
   Ok({ checked, captured, })
 }
@@ -291,10 +300,18 @@ pub fn open_captured_effect_run_dag(
   if checked.computation.graph.source_free_root {
     return Err(UnsupportedGraph)
   }
+  let dependencies = match
+    effect_dependency_ports(checked.computation, 4096, 65536, 64) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let captured = match
     open_checked_dag(checked.computation.graph, Some(source), ledger, supplied) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  for dependency in dependencies {
+    captured.effect_dependency_outputs[dependency.task] = true
   }
   Ok({ checked, captured, })
 }
@@ -623,6 +640,7 @@ fn open_checked_dag(
     outputs: Array::make(count, None),
     done: Array::make(count, false),
     lifetimes,
+    effect_dependency_outputs: Array::make(count, false),
     resources,
     join_limits,
     interval_search_limits,
@@ -1281,13 +1299,16 @@ pub fn captured_next_managed_producer(run : CapturedDAG) -> Int? {
 ///|
 /// Completed internal producers whose last checked consumer has finished.
 /// Sink results remain live for the caller. A Stage publication is the checked
-/// port used by graph edges, not a separate external-retention obligation.
+/// port used by graph edges, not normally an external-retention obligation.
+/// Checked Effect dependency Results remain owned until explicit release or
+/// Run cleanup; finishing a Compute consumer does not finish that obligation.
 /// This is exact graph liveness, not GC or permission to discard a sink.
 pub fn captured_releasable_managed_producers(run : CapturedDAG) -> Array[Int] {
   let released = []
   for producer in 1..<run.done.length() {
     if !run.done[producer] ||
       !run.lifetimes[producer].live ||
+      run.effect_dependency_outputs[producer] ||
       run.graph.results.any(result => result.task == producer) ||
       (
         managed_task_output_reference(run, producer) is None &&

@@ -48,6 +48,8 @@ pub fn begin_resident_environment(CapturedDAG, Int, Int64) -> Result[ResidentEnv
 
 pub fn begin_resident_transfer(CapturedDAG, ResidentTable, Int64, Int64) -> Result[ResidentTransfer, RunIssue]
 
+pub fn[T] bind_captured_effect_local_result_managed_export(CapturedEffectInputs, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedResultRelationExportPreparation) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
+
 pub fn bind_captured_effect_preview_inputs(CapturedEffectRunDAG, CapturedEffectInputs, @program_check.EffectProgramRunPreview, Int) -> Result[CapturedEffectPreviewInputs, RunIssue]
 
 pub fn bind_checked_effect_run_dag(CheckedEffectComputationDAG, @program_check.EffectProgramRunCandidate) -> Result[CheckedEffectRunDAG, RunIssue]
@@ -102,6 +104,8 @@ pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
 pub fn captured_effect_input_at(CapturedEffectInputs, Int) -> CapturedEffectInput?
 
+pub fn captured_effect_input_borrow(CapturedEffectInput) -> CapturedAnyResultBorrow
+
 pub fn captured_effect_input_matches_carrier(CapturedEffectInput, @execution_relation.CarrierManagedCompletedOutput) -> Bool
 
 pub fn[T] captured_effect_input_matches_managed(CapturedEffectInput, @execution_relation.ManagedCompletedOutput[T]) -> Bool
@@ -129,6 +133,12 @@ pub fn captured_effect_local_result_at(CapturedEffectInputs, Int) -> CapturedEff
 pub fn captured_effect_local_result_borrow(CapturedEffectLocalResult) -> CapturedAnyResultBorrow
 
 pub fn captured_effect_local_result_count(CapturedEffectInputs) -> Int
+
+pub fn captured_effect_local_result_export_matches_receipt(CapturedEffectInputs, CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt) -> Bool
+
+pub fn captured_effect_local_result_export_preparation(CapturedEffectLocalResultExport) -> @execution_relation.CompletedResultRelationExportPreparation
+
+pub fn captured_effect_local_result_export_result(CapturedEffectLocalResultExport) -> CapturedEffectLocalResult
 
 pub fn captured_effect_local_result_stage(CapturedEffectLocalResult) -> Int
 
@@ -638,6 +648,8 @@ pub fn start_captured_any_result_borrow_export(CapturedAnyResultBorrow, @executi
 
 pub fn start_captured_effect_input_export(CapturedEffectInput, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
+pub fn start_captured_effect_local_result_export(CapturedEffectInputs, Int, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
+
 pub fn[I, T] start_captured_managed_execution(CapturedDAG, Int, @connector_sdk.PreparedManagedExecution[I, T, RunIssue]) -> Result[(T, TaskExecution), RunIssue]
 
 pub fn[T] start_captured_materializing_execution(CapturedDAG, Int, @connector_sdk.PreparedExecution[T, RunIssue], resident? : ResidentExecution) -> Result[(T, TaskExecution), RunIssue]
@@ -773,6 +785,14 @@ type CapturedEffectInput
 type CapturedEffectInputs
 
 type CapturedEffectLocalResult
+
+type CapturedEffectLocalResultExport
+
+pub(all) enum CapturedEffectLocalResultExportIssue {
+  MissingResult
+  ForeignOutput
+  Export(@execution_relation.CompletedExportIssue)
+}
 
 pub(all) enum CapturedEffectPlanInventoryIssue {
   InvalidLimits

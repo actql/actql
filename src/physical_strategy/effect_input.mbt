@@ -772,6 +772,13 @@ pub fn captured_effect_input_stage(value : CapturedEffectInput) -> Int {
 }
 
 ///|
+pub fn captured_effect_input_borrow(
+  value : CapturedEffectInput,
+) -> CapturedAnyResultBorrow {
+  value.borrow
+}
+
+///|
 /// The checked occurrence retains its authored Result projection and order.
 pub fn captured_effect_input_occurrence(
   value : CapturedEffectInput,

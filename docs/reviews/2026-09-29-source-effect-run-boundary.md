@@ -205,3 +205,38 @@ This is physical custody, not durable dependency admission. Artifact/Manifest
 issuance for these retained Results, complete typed dependency bodies, Store
 inventory persistence, and restart admission still need to be connected before
 an acquired Effect can publish a resumable approval wait.
+
+## Dependency export custody and last-consumer retention
+
+The common captured Effect owner now establishes the checked dependency-output
+obligations before Compute starts. Automatic last-consumer release excludes
+only these outputs; ordinary Effect-free release is unchanged. Explicit Run
+cleanup still closes them. This prevents a completed intermediate Result from
+disappearing before dependency export, without retaining unrelated Units.
+
+`CapturedEffectLocalResultExport` binds the exact pinned inventory, Result
+occurrence, preparation and live receipt. The existing bounded exporter and
+managed import bridge serve both Effect members and dependency Results. A
+dependency is not presented as a fictitious Effect member. Common-package
+tests reject another Result, an equal-valued separate export, another pin set
+and a released receipt. No CID string can replace this owner proof.
+
+The complete Node bridge file passes 27/27. It includes real DuckDB acquisition,
+independent expected rows for root and computed Results, and three-Stage
+dependency exports after all Compute consumers finish. Explicit inventory
+expectations include every required local Manifest Result. The old split-Stage
+tests needed their pin budgets to include these added dependency holdings;
+the independent member-release and exact producer assertions remain intact.
+The physical strategy package and direct export-owner test pass 25/25 on JS.
+
+This is not yet a durable dependency closure. Temporary-output release after
+successful inventory/body persistence, persistence-failure cleanup, imported
+Invocation/Artifact issuance, and restart without acquisition or Compute must
+still be connected and tested before the executable D handoff. Approval wait
+must remain behind that complete persistence boundary.
+
+B's subsequent Result transformation input is
+`1677d15d4c904517f2d590c0b6591dda2b4b44e7` on
+`feat/frontend-sga-operators`. It is not integrated here. Frontend and Result
+transformation integration follow the acquired-Effect and D recovery handoff;
+B's component checks are not evidence of connected packed Local/HTTP success.
