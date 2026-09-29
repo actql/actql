@@ -27,7 +27,26 @@ const policyCid = name => cid({version: 'actql-installed-local-policy/0.1',
   name});
 const instant = value => new Date(value).toISOString();
 
-function localPublicationPlan({control, admission, runDefinition, invocation,
+// These retained contract bodies use canonical key order. Previously only
+// opaque profile IDs were emitted; durable dependency recovery needs the
+// exact canonical body as well. This is a coordinated 0.1 identity change,
+// not a decoder for the former noncanonical profile hash.
+const retentionDependencies = Object.freeze([
+  ['retention_contract', 'local-result-retention'],
+  ['metadata_retention_policy', 'local-result-metadata'],
+  ['clock_contract', 'local-clock'],
+].map(([kind, name]) => {
+  const body = {name, version: 'actql-installed-local-policy/0.1'};
+  return Object.freeze({kind, cid: cid(body), wire: JSON.stringify(body)});
+}));
+
+function localPublicationPlan(options) {
+  return buildLocalPublicationPlan(options).plan;
+}
+
+// Keep the retained input policy available to Effect evidence issuance
+// without extending the closed publication-plan ABI used by ordinary Runs.
+function buildLocalPublicationPlan({control, admission, runDefinition, invocation,
   observation, compiledPlanCid, programDefinitionCid, inputRelationCids,
   sourceEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
   dataPolicyCid, createdAt, now, resultCount, retainUntil}) {
@@ -40,13 +59,13 @@ function localPublicationPlan({control, admission, runDefinition, invocation,
     availableAt + 2 * 60 * 60 * 1000));
   const retention = control.seal('result_retention_policy', JSON.stringify({
     version: 'actql-result-retention-policy/0.1',
-    retention_contract_cid: policyCid('local-result-retention'),
+    retention_contract_cid: retentionDependencies[0].cid,
     effective_data_policy_cid: dataPolicyCid,
     available_until: availableUntil, delete_by: deleteBy,
     extension_ceiling_at: metadataDeleteBy,
-    metadata_retention_policy_cid: policyCid('local-result-metadata'),
+    metadata_retention_policy_cid: retentionDependencies[1].cid,
     metadata_delete_by: metadataDeleteBy,
-    clock_contract_cid: policyCid('local-clock'),
+    clock_contract_cid: retentionDependencies[2].cid,
   }), limits);
   const normalizationJournal = control.sealRunEvidence(
     'normalization_journal', JSON.stringify({
@@ -57,7 +76,7 @@ function localPublicationPlan({control, admission, runDefinition, invocation,
     JSON.stringify({version: 'actql-authoring-context/0.1',
       program_definition_cid: programDefinitionCid,
       annotations: []}), limits);
-  return Object.freeze({admission, runDefinition, invocation, observation,
+  const plan = Object.freeze({admission, runDefinition, invocation, observation,
     normalizationJournal, authoringContext,
     results: Object.freeze(Array.from({length: resultCount}, () =>
       Object.freeze({retention, evidenceContext: Object.freeze({
@@ -78,6 +97,7 @@ function localPublicationPlan({control, admission, runDefinition, invocation,
       externalIdempotencyKey: undefined, startedAt: createdAt}),
     outputLimits: localOutputLimits, contractLimits: limits, now,
   });
+  return {plan, retention, retentionDependencies};
 }
 
 // The Effect Run acceptance owner already compiled and admitted this Run.
@@ -168,24 +188,40 @@ export function acquiredEffectPublicationPlan({acquired, captured,
         captureStartedAt, captureCompletedAt}, limits);
   const sourceEvidence = control.admitRunEvidence('source_evidence',
     sourceEvidenceWire, limits);
-  const sourceLocalInvocation = control.issueCheckedAcquiredLocalEffectInvocation(
-    prepared, captured.capture.source(), captured.identity,
-    captured.requirement, captured.logicalInput, sourceEvidence,
-    authorityScopeCid, source.sourceDataPolicyCid, limits);
   const run = JSON.parse(runDefinition.wire);
   const resultCount = moon.clientProgramEffectCompilationResultNames(
     compilation).length;
-  const plan = localPublicationPlan({control, admission, runDefinition,
-    invocation, observation, compiledPlanCid: compiledPlan.identity,
+  const {plan, retention, retentionDependencies} = buildLocalPublicationPlan({
+    control, admission,
+    runDefinition, invocation, observation, compiledPlanCid: compiledPlan.identity,
     programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
     inputRelationCids: [moon.clientProgramCapturedSourceLogicalCid(
       captured.identity)], sourceEvidence: [sourceEvidence],
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: source.sourceDataPolicyCid, createdAt: run.created_at,
     now, resultCount, retainUntil: run.valid_until});
+  const acquiredEvidence = control.issueCheckedAcquiredEffectEvidence(
+    prepared, captured.capture.source(), captured.identity,
+    captured.requirement, captured.logicalInput, sourceEvidence,
+    authorityScopeCid, source.sourceDataPolicyCid, retention, limits);
+  const inputBodies = moon.clientProgramCapturedSourceDependencyBodies(
+    captured.identity, captured.capture.source());
+  if (typeof inputBodies?._0 !== 'string' ||
+      typeof inputBodies?._1 !== 'string') {
+    throw new Error('MissingCapturedEffectSourceBodies');
+  }
+  const acquisitionDependencies = Object.freeze([
+    Object.freeze({kind: 'relation_value',
+      cid: moon.clientProgramCapturedSourceLogicalCid(captured.identity),
+      wire: inputBodies._0}),
+    Object.freeze({kind: 'relation_schema',
+      cid: moon.clientProgramCapturedSourceSchemaCid(captured.identity),
+      wire: inputBodies._1}),
+  ]);
   return Object.freeze({...plan, invocationOwner,
     localEvidenceContext: Object.freeze({admission, runDefinition,
-      sourceLocalInvocation,
+      acquiredEvidence, retentionDependencies, acquisitionDependencies,
+      sourceLocalInvocation: acquiredEvidence.invocation,
       runInvocation: invocation, observation})});
 }
 

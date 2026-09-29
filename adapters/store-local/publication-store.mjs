@@ -3005,6 +3005,7 @@ export async function openLocalPublicationStore(
     }
     let captureHoldingCid;
     let captureRecordHoldingCid;
+    let captureRecord;
     if (typeof contractControl.effectComputationCaptureHoldingCid ===
         'function') {
       const candidate = contractControl.effectComputationCaptureHoldingCid(
@@ -3012,6 +3013,20 @@ export async function openLocalPublicationStore(
       );
       const holding = await inspectPhysicalHolding(candidate);
       if (holding !== undefined) {
+        const recordCid = contractControl.effectComputationRecordHoldingCid(
+          chain.runDefinition, configuration.storeAuthorityCid);
+        try {
+          captureRecord = JSON.parse((await readPrivateEvidence(
+            'effect_capture', chain.capturedRun.identity, recordCid,
+          )).toString('utf8'));
+        } catch (error) {
+          fail('InvalidEffectfulCaptureRecord', error);
+        }
+        if (captureRecord?.captured_run !== chain.capturedRun.wire ||
+            captureRecord?.run_definition !== chain.runDefinition.wire ||
+            captureRecord?.store_authority_cid !== configuration.storeAuthorityCid) {
+          fail('InvalidEffectfulCaptureRecord');
+        }
         const expected = new Map();
         for (const binding of chain.durableBindings) {
           const body = parseContract(binding);
@@ -3020,6 +3035,14 @@ export async function openLocalPublicationStore(
             fail('InvalidEffectfulCaptureHolding');
           }
           expected.set(body.material_generation_cid, body.byte_count);
+        }
+        for (const binding of contractControl.capturedEffectDependencyPayloadBindings(
+          chain.capturedRun, captureRecord.effect_dependency_payloads)) {
+          const previous = expected.get(binding.physical_cid);
+          if (previous !== undefined && previous !== binding.byte_count) {
+            fail('InvalidEffectfulCaptureHolding');
+          }
+          expected.set(binding.physical_cid, binding.byte_count);
         }
         if (holding.namespace !== 'effect-capture' ||
             holding.manifest_cid !== chain.capturedRun.identity ||
@@ -3046,7 +3069,7 @@ export async function openLocalPublicationStore(
         }
         let record;
         try {
-          record = JSON.parse((await readPrivateEvidence(
+          record = captureRecord ?? JSON.parse((await readPrivateEvidence(
             'effect_capture', chain.capturedRun.identity, candidate,
           )).toString('utf8'));
         } catch (error) {

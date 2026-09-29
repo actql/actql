@@ -30,12 +30,26 @@ function ownedStage(stage, code) {
   return stage;
 }
 
+function effectUnitId(facts) {
+  const unit = facts.compilation === undefined
+    ? facts.continuation?.unit_id
+    : facts.moon.clientProgramEffectCompilationUnitId(facts.compilation);
+  if (typeof unit !== 'string' || !unit ||
+      facts.compilation === undefined &&
+        (facts.view?.subject?.kind !== 'run_unit' ||
+          facts.view.subject.unit_id !== unit)) {
+    fail('InstalledEffectContinuationMismatch');
+  }
+  return unit;
+}
+
 function continuation(facts, stage) {
   let provider;
   try { provider = JSON.parse(stage.continuationWire); }
   catch { fail('InvalidInstalledEffectContinuation'); }
   return canonicalJson({version: 'actql-installed-effect-continuation/0.1',
     run_definition_cid: facts.ref.runDefinitionCid,
+    unit_id: effectUnitId(facts),
     preview_cid: facts.control.effectComputationPreviewSemanticCid(
       stage.preview),
     provider});
@@ -49,6 +63,7 @@ function checkContinuation(facts, stage) {
 }
 
 function checkContinuationBinding(facts, recovered) {
+  effectUnitId(facts);
   const saved = facts.continuation;
   if (saved?.version !== 'actql-installed-effect-continuation/0.1' ||
       saved.run_definition_cid !== facts.ref.runDefinitionCid ||
@@ -70,7 +85,7 @@ function authorization(facts, stage, beforeDefer) {
     runId: facts.control.runDefinitionRunId(facts.retained?.runDefinition ??
       facts.runDefinition),
     runDefinitionCid: facts.ref.runDefinitionCid,
-    unitId: 'values',
+    unitId: effectUnitId(facts),
     declaredResults,
     reviewWire: facts.control.effectComputationPreviewWire(stage.preview),
     continuationWire: continuation(facts, stage),

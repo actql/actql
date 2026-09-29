@@ -144,8 +144,9 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
         capturedSource)) !== true) {
       throw new Error('InstalledSourceProgramMismatch');
     }
-    const identity = checked(moon.clientProgramIdentifyCapturedSourceRelation(
-      capturedSource));
+    const identity = checked(owner.effectful
+      ? moon.clientProgramIdentifyCapturedEffectSourceRelation(capturedSource)
+      : moon.clientProgramIdentifyCapturedSourceRelation(capturedSource));
     if (!nativeSourceIdentityMatches(capture, identity)) {
       throw new Error('InstalledSourceObservationMismatch');
     }

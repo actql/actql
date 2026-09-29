@@ -148,7 +148,8 @@ test('installed Effect custody retries provider cleanup without Compute',
     assert.equal(disposeCalls, 2);
   });
 
-test('installed Effect continuation rejects a foreign Preview before claim',
+for (const mismatch of ['Preview', 'Unit', 'missing Unit']) {
+test(`installed Effect continuation rejects ${mismatch} before claim`,
   async () => {
     const moon = {};
     const store = {};
@@ -175,9 +176,12 @@ test('installed Effect continuation rejects a foreign Preview before claim',
     await assert.rejects(site.resume({moon, store, control,
       retainExecution() {},
       ref: {runDefinitionCid: cid('b')},
-      view: {runId: 'run-a'},
+      view: {runId: 'run-a', subject: {kind: 'run_unit', unit_id: 'compute_a'}},
       continuation: {version: 'actql-installed-effect-continuation/0.1',
-        run_definition_cid: cid('b'), preview_cid: cid('c'),
+        ...(mismatch === 'missing Unit' ? {} : {
+          unit_id: mismatch === 'Unit' ? 'other' : 'compute_a'}),
+        run_definition_cid: cid('b'),
+        preview_cid: mismatch === 'Preview' ? cid('c') : cid('a'),
         provider: {provider: 'bound'}},
       recoverCapture: async () => recovered,
       checkpointJournal: {claimResume() { claims++; }},
@@ -185,6 +189,7 @@ test('installed Effect continuation rejects a foreign Preview before claim',
     assert.equal(prepared, 0);
     assert.equal(claims, 0);
   });
+}
 
 test('missing durable Effect capture never claims an approved resume',
   async () => {
