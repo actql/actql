@@ -4411,11 +4411,10 @@ export async function openLocalPublicationStore(
         if (`${cidHex(record.holding_cid)}.json` !== name) {
           fail('InvalidPublicationPhysicalHoldingStore');
         }
-        if (directory === physicalHoldingsDirectory &&
-            await readPhysicalHoldingDeletion(record.holding_cid) ===
-              undefined) {
-          await verifyPhysicalHoldingObjects(record);
-        }
+        // Startup validates ownership records, not every Run's payload.
+        // inspect/consume/commit still verify bytes before using a holding.
+        // A missing or damaged object must not disable unrelated Runs, nor
+        // turn its retained recovery responsibility into absent evidence.
       }
     }
   };
@@ -5056,7 +5055,10 @@ export async function openLocalPublicationStore(
       }
       if (await readMetadataDeletion(keyHash) === undefined) {
         for (const holdingCid of inventory.physical_holding_cids) {
-          if (await inspectPhysicalHolding(holdingCid) === undefined) {
+          // Validate the index-to-owner link without opening its payloads.
+          // Payload availability is checked by the actual Result consumer.
+          if (await readPhysicalHoldingDeletion(holdingCid) !== undefined ||
+              await readPhysicalHolding(holdingCid) === undefined) {
             fail('InvalidPublicationMetadataInventoryStore');
           }
         }

@@ -5,6 +5,14 @@ Implementation checkpoint: `7d266e73bcb6a58c7c545db448afedba9a7d6faf` on
 been pushed or that Linux CI has passed; delivery records must name the
 actual pushed HEAD separately.
 
+The implementation checkpoint above is now pushed to
+`origin/feat/source-effect-run` for D's connection work, not merge approval.
+Independent review reproduced two remaining P2 issues: per-payload damage
+prevented the entire Store from opening, and a crash after capture holding
+commit but before the private record stranded cleanup responsibility. C
+owns both fixes; D must not weaken rejection tests or implement workarounds
+inside Salesforce. Final acceptance must use C's subsequent correction SHA.
+
 ## Working route and responsibility
 
 The reference Site test uses public HTTP, real DuckDB acquisition, two
@@ -94,3 +102,19 @@ Still pending: final Client/Host/Workers/lint gates, pushed-SHA Linux CI,
 Salesforce adapter acceptance, acquired-path Embedded/outside-repository
 tarball acceptance, and additional acquired dependency cleanup/expiry fault
 coverage. D's real-org evidence remains separate and is not claimed here.
+
+## Post-handoff verification and P2-1
+
+The Client gate's Node suite passed 261/261. Its packed smoke was deliberately
+terminated to prioritize the reproduced P2 fixes; the Client job is not
+green. This interruption is not a demonstrated product failure, and the
+successful Core targets need not be repeated for a Store-only correction.
+
+Store startup now validates the holding records and index ownership links
+without scanning every payload. Access, commit and consumption still verify
+payload integrity; metadata-format and authority failures remain distinct.
+New real-Store tests first reproduced missing/corrupt input preventing open,
+then passed with healthy input readable and damaged input rejected without
+discarding its holding. The entire Store test file passed 64/64.
+Two-Run public Host acceptance remains to be added before closing P2-1.
+The unfinished capture crash-window P2 remains unresolved.
