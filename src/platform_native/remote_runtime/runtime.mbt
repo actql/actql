@@ -161,6 +161,7 @@ struct NativeRemoteRuntime {
   owners : Map[String, NativeRemoteRuntimeOwner]
   pending_cleanup : Map[String, NativeRemoteRuntimeOwner]
   mut executor_entry : ((String) -> Bool)?
+  mut start_claimant : String?
   mut closed : Bool
 }
 
@@ -198,6 +199,10 @@ pub(all) enum NativeRemoteRuntimeIssue {
   Physical(String)
   /// The acceptance evidence hook could not record the executor entry.
   ExecutorEntryUnrecorded
+  /// Another claimant began this attempt; this runtime did not execute.
+  StartClaimLost(String)
+  /// Cancellation won the Accepted state; this runtime did not execute.
+  StartCancelled
   CleanupPending(String)
   Protocol(@remote.DispatchIssue)
   Journal(@journal.NativeRemoteJournalIssue)
@@ -522,8 +527,31 @@ pub fn open_native_remote_runtime(
     owners: Map([]),
     pending_cleanup: Map([]),
     executor_entry: None,
+    start_claimant: None,
     closed: false,
   })
+}
+
+///|
+/// Make every start of this runtime an exclusive journal claim by
+/// `claimant` (see `Journal::claim_start`). A runtime that does not win the
+/// claim writes nothing and does not execute. It can be set once, before any
+/// dispatch starts.
+pub fn NativeRemoteRuntime::claim_starts_as(
+  self : NativeRemoteRuntime,
+  claimant : String,
+) -> Result[Unit, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.start_claimant is Some(_) ||
+    !self.admitting.is_empty() ||
+    !self.owners.is_empty() ||
+    !self.pending_cleanup.is_empty() {
+    return Err(InvalidConfiguration)
+  }
+  self.start_claimant = Some(claimant)
+  Ok(())
 }
 
 ///|
@@ -885,6 +913,27 @@ fn NativeRemoteRuntime::run_success(
                 true,
               ),
             )
+        }
+        match self.start_claimant {
+          Some(claimant) =>
+            match self.journal.claim_start(transition, claimant) {
+              Ok(@journal.Won) | Ok(@journal.AlreadyMine) => continue
+              Ok(@journal.LostTo(other)) => {
+                ignore(self.bundles.release(owner.bundle_hold_id))
+                return Err(StartClaimLost(other))
+              }
+              Ok(@journal.Cancelled) => {
+                ignore(self.bundles.release(owner.bundle_hold_id))
+                return Err(StartCancelled)
+              }
+              // Whether the claim became durable is unknown; nothing more is
+              // written here and a retry by the same claimant reconciles it.
+              Err(issue) => {
+                ignore(self.bundles.release(owner.bundle_hold_id))
+                return Err(Journal(issue))
+              }
+            }
+          None => ()
         }
         match self.journal.commit_transition(transition) {
           Ok(_) => continue

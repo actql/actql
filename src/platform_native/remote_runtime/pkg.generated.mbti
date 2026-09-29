@@ -77,6 +77,7 @@ type NativeRemotePhysicalManifestReader
 type NativeRemotePhysicalReader
 
 type NativeRemoteRuntime
+pub fn NativeRemoteRuntime::claim_starts_as(Self, String) -> Result[Unit, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::cleanup(Self, @remote_site_protocol.DispatchRequest) -> Result[Bool, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::cleanup_pending(Self) -> Bool
 pub fn NativeRemoteRuntime::close(Self) -> Result[Bool, NativeRemoteRuntimeIssue]
@@ -121,6 +122,8 @@ pub(all) enum NativeRemoteRuntimeIssue {
   OutputReaderPhysical(String)
   Physical(String)
   ExecutorEntryUnrecorded
+  StartClaimLost(String)
+  StartCancelled
   CleanupPending(String)
   Protocol(@remote_site_protocol.DispatchIssue)
   Journal(@remote_journal.NativeRemoteJournalIssue)
