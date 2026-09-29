@@ -9,7 +9,7 @@ The independent shared commits, in adoption order, are:
 
 1. `1a3282093494e02ad1dfa98cb6c0417d511a1098`: derive Reach capacity
    applications from existing Host ceilings. No kernel or ceiling change.
-2. `09ca9a1bc`: checked Result transformation selection and bounded export.
+2. `2eda3030b4f67e5c2a348fbf32b8325a56975ce6`: checked Result transformation selection and bounded export.
    It can also be adopted without the Reach change for Relation-only Programs.
 
 B owns `client_result_transformation.mbt` and the separate regression files.
@@ -62,7 +62,9 @@ admitted Run/computation/policy bindings; the module does not invent them.
 
 ## Connection changes for C
 
-- In `client_values_plan_graph.mbt` / `client_task_plan_graph.mbt`, preserve
+- In `issue_prepared_client_values_plan_graph` and
+  `issue_prepared_client_task_plan_graph` (their respective `*_plan_graph.mbt`
+  files), preserve
   the existing direct-root fast path. A Result requiring transformation needs
   its checked transformation and output contract represented before accepting
   the Executable Plan. Do not change the direct root to describe raw output as
@@ -127,3 +129,22 @@ releases or proof that Result publication is connected.
 | @actql/sdk | `e07a6bdfb41c38b3613911180aaaf155f1334300a81ae0e4b830962aace95f58` |
 | @actql/local-node | `de421bbc43b3f3a64c471f02cb400bbed2fb4ecd6ccad193c4c241a3f31e8b87` |
 | @actql/node | `c72364973dd1ed42faea32425632b314de037c9b92035c9f5ec35b875914f225` |
+
+## Fixed-source Core verification
+
+The validated source tree is `79a719ce4ce1499f2c1bf406d7761990739ab6a6`,
+retained at `83db9f1d4`. JS and Wasm were run before an unpublished commit
+message was wrapped to 72 columns; the tree before and after that metadata-only
+change is exactly identical. Native ran after the message correction. This
+record subsequently changes documentation only.
+
+| Local Core job | Result |
+| --- | --- |
+| `node scripts/local-checks.mjs run core --target js` | Total tests: 6938, passed: 6938, failed: 0. |
+| `node scripts/local-checks.mjs run core --target wasm` | Total tests: 6935, passed: 6935, failed: 0. |
+| `node scripts/local-checks.mjs run core --target native` | Total tests: 6997, passed: 6997, failed: 0. |
+
+The new Result module test uses test authority CIDs when exercising the
+existing evidence encoder/validator. It does not claim a formally connected
+Executable Plan, a durable Run admission, or a Store publication. Those remain
+C's connection and packed acceptance obligations above.
