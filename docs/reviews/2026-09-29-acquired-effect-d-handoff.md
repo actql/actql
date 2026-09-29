@@ -1,0 +1,96 @@
+# Acquired Effect common Host integration checkpoint
+
+Implementation checkpoint: `7d266e73bcb6a58c7c545db448afedba9a7d6faf` on
+`feat/source-effect-run`. This document does not assert that the branch has
+been pushed or that Linux CI has passed; delivery records must name the
+actual pushed HEAD separately.
+
+## Working route and responsibility
+
+The reference Site test uses public HTTP, real DuckDB acquisition, two
+Stages, two Effect members and four writes. It reaches durable approval,
+Host restart, approval, execution and Named Result. Response loss preserves
+unknown without resend. Cancellation and rejection after restart reclaim
+upstream-only payloads. This is not real Salesforce acceptance.
+
+C owns compiler, common Host, Checkpoint and the APIs below. D connects the
+Salesforce adapters to these existing owners, without copying their logic.
+Do not wait for B's Frontend integration.
+
+## Adapter connection points
+
+1. For an Effect acquisition, use
+   `clientProgramIdentifyCapturedEffectSourceRelation`, not the ordinary
+   non-retaining Source identity entry. Retrieve canonical Relation/schema
+   bodies with `clientProgramCapturedSourceDependencyBodies` on that same
+   live owner. See `captured-duckdb-source.mjs` for the common call sequence.
+2. Pass the supplied publication Plan's `localEvidenceContext` into
+   `preparePinnedEffectSourceSet`. Its dependency work is bounded: allow
+   enough `maxGroupingWork` for checked local Results and member matching,
+   not only the former Values member grouping. Do not remove the limit.
+3. If `sourceSet.dependencies` exists, call
+   `retainPinnedEffectDependencyPayloads({sources: sourceSet, execution,
+   store, storedResults, control, runDefinition: plan.runDefinition})`
+   before committing member holdings. This transfers prepared dependency
+   payload custody to the existing completed Result owner. Validation
+   failure leaves custody with the caller; successful adoption uses that
+   owner's release/retry path.
+4. Select Effect payloads through `sourceSet.members[index].payload`.
+   `sourceSet.payloads` also includes upstream-only Results. Bind Preview
+   inputs to the checked member's actual Stage/Unit, not literal index zero.
+   The acquired Plan carries its original `invocationOwner`; do not issue a
+   substitute Invocation. The common installed continuation now records and
+   verifies the exact `unit_id` before claiming resume.
+5. Continue using `issueCompletedEffectfulComputationEvidence` and the
+   existing recovery/publication owners. They persist and verify dependency
+   inventory, bodies and physical bindings. No provider-specific inventory
+   issuer, fallback fetch or recomputation is needed.
+
+The executable reference is `prepareReferenceCapture` in
+`adapters/host-node/remote-checkpoint-host.test.mjs`.
+
+## Durability, failure and compatibility
+
+Before capture completion, acquisition/Compute are preparation, not a
+recoverable approved input. Required upstream Results are retained before
+their final Compute consumer releases them. After exact member/capture
+holdings and the private capture record commit, the common owner can
+publish approval waiting and relinquish temporary custody. A failed commit
+does not establish a resumable approval.
+
+Recovery uses saved input/Preview. Current commit permission, installation,
+Mapping and target checks remain separate from Source reacquisition.
+Missing or foreign dependencies reject without repair. Unknown writes keep
+their Ledger and capture evidence; successful rows are not resent.
+Cleanup failures retain existing owners rather than starting Compute again.
+
+This is the approved incompatible coordinated 0.1 change. The semantic
+dependency contracts, pins and independent vectors changed together. The
+private capture additionally requires `effect_dependency_payloads`; the
+private continuation requires `unit_id`. Old missing fields are not filled
+in, and saved data is not rewritten.
+
+## Reproduction and evidence
+
+Use pinned Node/MoonBit and installed repository dependencies. Generate
+ignored runtime payloads from this source; do not copy another branch's
+bundle.
+
+```sh
+npm run build:runtime-packages -- local-node
+node --test --test-name-pattern='acquired Effect' adapters/host-node/remote-checkpoint-host.test.mjs
+node scripts/test-acquired-effect-computation-probe.mjs
+node --test adapters/host-node/client-program-bridge.test.mjs adapters/store-local/publication-store.test.mjs adapters/host-node/installed-effect-site.test.mjs
+```
+
+Local evidence: the three-file suite passed 101/101. All four Compute probe
+scenarios passed with one initial actual Compute call and zero restart
+calls. Core JS passed 6,962; Wasm passed 6,959; native passed 7,021. Native
+test execution took 764.4 seconds; its check step passed separately.
+Specification validation and generation correction are recorded in
+`2026-09-29-source-effect-dependency-contract.md`.
+
+Still pending: final Client/Host/Workers/lint gates, pushed-SHA Linux CI,
+Salesforce adapter acceptance, acquired-path Embedded/outside-repository
+tarball acceptance, and additional acquired dependency cleanup/expiry fault
+coverage. D's real-org evidence remains separate and is not claimed here.
