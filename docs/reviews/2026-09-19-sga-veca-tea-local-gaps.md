@@ -3977,8 +3977,9 @@ checks all four authored input occurrences, repeated material positions,
 Bridge row order, producer cleanup, and cancellation after positive work on
 JS, Wasm, and native. The Node publication fixture exercises graft, union,
 mean, and empty subtraction followed by a same-Stage filter, real retained
-Store output, Named Result retrieval, and two independent consumers. Its
-publication portion passed locally; the full Host fixture and same-SHA CI
-remain unverified. In-flight Node Host cancellation of the selected structural
-task and mixed-path failure/cleanup evidence remain open, so this is not a
-complete claim for every retained Graph route.
+Store output, Named Result retrieval, and two independent consumers. The full
+Node standard-Host fixture passed after the Graph change, and the portable
+Graph integration file passed on JS, Wasm, and native after merging current
+main. Same-SHA CI remains unverified. In-flight Node Host cancellation of the
+selected structural task and mixed-path failure/cleanup evidence remain open,
+so this is not a complete claim for every retained Graph route.
