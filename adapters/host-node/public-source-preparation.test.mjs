@@ -78,8 +78,11 @@ test('mismatched or malformed alias publication cannot be installed', () => {
     {...publication, aliases: [{...publication.aliases[0],
       extra: true}]},
   ]) {
-    assert.throws(() => installNodeClientProgramPreparation({moon,
-      environment, sourcePublication}), TypeError);
+    const prepare = installNodeClientProgramPreparation({moon,
+      environment, sourcePublication});
+    assert.throws(() => prepare({kind: 'aql', input: {
+      text: 'SELECT id FROM records', format: 'sql',
+    }, parameters: null}), TypeError);
   }
 });
 

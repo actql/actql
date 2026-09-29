@@ -99,15 +99,20 @@ export function installNodeClientProgramPreparation({moon, environment,
   const prepareEffect = !allowEffects ? undefined :
     installNodeClientEffectProgramPreparation({moon,
       environment, evidence: effectEvidence});
-  const sourcePreparation = installNodePublicSourcePreparation({moon,
-    environment, publication: sourcePublication});
+  let sourcePreparation;
   const prepare = request => {
     const {document, format, supplied, declarations} =
       serializeProgram(request);
-    const outcome = ['aql-text', 'sql'].includes(format) ?
-      sourcePreparation.prepare({document, format, declarations, supplied}) :
-      moon.clientProgramPrepareEffectFreeWithParameters(
+    let outcome;
+    if (['aql-text', 'sql'].includes(format)) {
+      sourcePreparation ??= installNodePublicSourcePreparation({moon,
+        environment, publication: sourcePublication});
+      outcome = sourcePreparation.prepare({document, format, declarations,
+        supplied});
+    } else {
+      outcome = moon.clientProgramPrepareEffectFreeWithParameters(
         document, format, environment, supplied);
+    }
     const prepared = moon.clientProgramPreparationReady(outcome);
     if (prepared !== undefined) {
       owned.add(prepared);
