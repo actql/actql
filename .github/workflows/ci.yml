@@ -132,6 +132,8 @@ jobs:
         run: npm run check:distribution-client
       - name: Test packed Embedded Local Checkpoint and Named Result
         run: npm run check:packed-embedded-checkpoint
+      - name: Test raw public SQL and Pipe through packed Local and HTTP
+        run: node scripts/test-packed-public-query.mjs
       - name: Test Salesforce Site Catalog and bounded query acquisition
         run: npm run check:salesforce-site
       - name: Count actual Effect Compute calls across recovery

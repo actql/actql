@@ -29,8 +29,31 @@ partial results:
 - Focused MoonBit tests pass 21/21; public-interface consistency checks pass
   for JS, wasm and native. This is not the complete three-target Core suite.
 
-Packed Embedded/HTTP/CLI acceptance, outside-repository installation and
-final integrated Linux CI remain open. There is no new B handoff SHA yet.
+The Result/acquisition connection is committed as
+`c80eb9c220c0106b003b4fd54b9dad8fd6b09d2b`. On that product code, the DuckDB
+CI job passed: 187 transport/ownership tests, one paired-provenance test and
+the three Host entry builds. Its transport suite took 464.6 seconds locally.
+
+The new `node scripts/test-packed-public-query.mjs` driver packs and installs
+the public packages outside the repository, copies B's unchanged acceptance
+application, and runs it with `@actql/node.connect()` in Embedded Local and
+HTTP modes. Both passed. The child verifies that `moon` is unavailable; the
+driver's pack step uses the pinned build toolchain. The fixture publishes its
+alias and both acquisition capabilities explicitly. Real SQLite admission
+counts and native DuckDB statement calls cover refusal and replay assertions.
+This test is connected to the Client CI job, without changing B's expected
+rows or refusal cases. It does not test a real Cloud service or Salesforce org.
+
+To repeat with the pinned toolchain on PATH:
+
+```sh
+node scripts/test-packed-public-query.mjs
+```
+
+The printed external directory retains the installed packages, Host roots,
+fixture and acceptance log for diagnosis. CLI acceptance remains B's task;
+final integrated Host/Client/Core jobs and Linux CI remain open. There is no
+new pushed B handoff SHA yet.
 
 This integration branch merges the committed Host base
 `d49d77952a8f6256157da235001a47e113912594` with the public SDK and
