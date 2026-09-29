@@ -32,6 +32,20 @@ struct PreparedClientEffectComputation {
 }
 
 ///|
+/// Private checked graph view for existing query acquisition and Local task
+/// preparation. It never escapes as an Effect-free public preparation or
+/// rechecks the Program under another owner.
+fn client_effect_program_view(
+  value : PreparedClientEffectComputation,
+) -> PreparedClientProgram {
+  {
+    graph: @strategy.checked_effect_computation_graph(value.graph),
+    source: value.source,
+    check_environment_cid: value.check_environment_cid,
+  }
+}
+
+///|
 pub fn prepare_client_effect_computation(
   document : String,
   format : @syntax.Format,
@@ -276,6 +290,25 @@ pub fn open_prepared_source_free_client_effect_run(
 }
 
 ///|
+/// Open the same checked Effect Run over one Host-retained acquisition. The
+/// source owner must remain live until its computed consumers and Effect input
+/// holdings are independently retained or released.
+pub fn open_prepared_captured_client_effect_run(
+  value : PreparedClientEffectRun,
+  source : @query.CapturedInputSource,
+  limits : @resources.LedgerLimits,
+) -> Result[@strategy.CapturedEffectRunDAG, ClientRunOpenIssue] {
+  let ledger = match @resources.create_ledger(limits) {
+    Ok(value) => value
+    Err(issue) => return Err(Ledger(issue))
+  }
+  @strategy.open_captured_effect_run_dag(value.checked, source, ledger).map_err(issue => {
+      Run(issue)
+    },
+  )
+}
+
+///|
 /// Compile an Effectful task through the same checked Local lowering as an
 /// Effect-free task, without discarding its static Effect owner.
 pub fn prepare_client_effect_task_sequence(
@@ -286,6 +319,7 @@ pub fn prepare_client_effect_task_sequence(
   limits : @lower.SequenceLimits,
   max_work : Int,
   max_entries : Int,
+  prepared_sequence? : @lower.PreparedSequence? = None,
 ) -> Result[@execution.GeneratedSequence, ClientTaskSequenceIssue] {
   prepare_client_task_sequence_graph(
     @strategy.checked_effect_computation_graph(value.graph),
@@ -295,5 +329,6 @@ pub fn prepare_client_effect_task_sequence(
     limits,
     max_work,
     max_entries,
+    prepared_sequence~,
   )
 }

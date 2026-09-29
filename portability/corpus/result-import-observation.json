@@ -1,0 +1,19 @@
+{
+  "version": "actql-result-import-observation-vectors/0.1",
+  "base": {
+    "version": "actql-result-import-observation/0.1",
+    "consumer_unit_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "input_name": "rows",
+    "import_interface_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "producer_local_manifest_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "result_artifact_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "cases": [
+    {"id": "base", "changes": {}, "expected_cid": "sha256:81e86ff46a75d01544f1a6bba0ec84731355fe7a0f777ddf6fd90ba110650fba"},
+    {"id": "input-position", "changes": {"input_name": "other"}, "expected_cid": "sha256:af427ef4243040832005f937b649334cda3247f5ec779983dc65bed1905c224a"},
+    {"id": "consumer", "changes": {"consumer_unit_definition_cid": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}, "expected_cid": "sha256:93ce21b8e83d5ffd662d25036769875a27f4570852f7a0aef2b9e52eb7db129e"},
+    {"id": "interface", "changes": {"import_interface_cid": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}, "expected_cid": "sha256:2b0ab336dffc32daa305b80681050e3b269ae9915da6e2eee1da10c9153ee267"},
+    {"id": "manifest", "changes": {"producer_local_manifest_cid": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}, "expected_cid": "sha256:56d25e97737b02092ca69a73f7703a365e3da421dfc1f50352c6bbcd899830d9"},
+    {"id": "artifact", "changes": {"result_artifact_cid": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}, "expected_cid": "sha256:b30d493147c995e0f2785514fb09857819ee3ca0e87a870d9cc01e6d378e699f"}
+  ]
+}

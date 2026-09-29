@@ -31,12 +31,57 @@ pub fn captured_source_statistics(
 }
 
 ///|
+/// Check a Result occurrence without exposing the captured raw completion.
+pub fn captured_source_matches_result(
+  source : CapturedInputSource,
+  occurrence : @execution.ManagedResultOccurrence,
+) -> Bool {
+  (source.live)() &&
+  @execution.completed_output_matches_port(
+    source.output,
+    @execution.managed_result_occurrence_owner(occurrence),
+    @results.port_target(@execution.managed_result_occurrence_port(occurrence)),
+  )
+}
+
+///|
+/// Export an exact checked Result view of the retained acquisition. The
+/// original capture and consumer liveness remain active throughout export.
+pub fn start_captured_source_result_export(
+  source : CapturedInputSource,
+  occurrence : @execution.ManagedResultOccurrence,
+  result_view : @execution.CompletedResultViewLimits,
+  max_rows : Int,
+  values : @execution.ValueLimits,
+  payload_wire : @execution.RowWireLimits,
+  logical_wire : @execution.RowWireLimits,
+  schema_limits : @execution.RelationSchemaIdentityLimits,
+  max_batch_bytes : Int,
+) -> Result[
+  @execution.CompletedResultRelationExportPreparation,
+  @execution.CompletedExportIssue,
+] {
+  @execution.start_completed_result_relation_export(
+    @execution.restrict_completed_output(source.output, source.live),
+    occurrence,
+    result_view,
+    max_rows,
+    values,
+    payload_wire,
+    logical_wire,
+    schema_limits,
+    max_batch_bytes,
+  )
+}
+
+///|
 pub(all) enum CapturedSourceIssue {
   Unavailable
   Binding(@execution.ProducerBindingIssue)
   Completion(@execution.TrustedOutputIssue)
   Storage(@execution.ProducerReadIssue)
   Export(@execution.CompletedExportIssue)
+  DependencyBodyLimit
 }
 
 ///|
@@ -93,6 +138,7 @@ pub struct CapturedSourceRelationIdentity {
   logical_relation_cid : String
   schema_cid : String
   row_count : Int
+  dependency_bodies : (String, String)?
 }
 
 ///|
@@ -129,8 +175,22 @@ pub fn captured_source_relation_row_count(
 }
 
 ///|
-/// Complete the same bounded export used for Result identity without
-/// retaining its physical row frames in the environment adapter.
+/// Read immutable preimages retained by this exact capture's identity pass.
+/// No second export or provider read is performed and liveness still applies.
+pub fn captured_source_relation_dependency_bodies(
+  identity : CapturedSourceRelationIdentity,
+  source : CapturedInputSource,
+) -> (String, String)? {
+  if !captured_source_relation_identity_matches_source(identity, source) {
+    return None
+  }
+  identity.dependency_bodies
+}
+
+///|
+/// Complete the bounded Result identity export. Effect callers can explicitly
+/// retain canonical dependency bodies during that same traversal; ordinary
+/// callers retain no row frames. The byte limit covers both retained bodies.
 pub fn identify_captured_source_relation(
   source : CapturedInputSource,
   max_rows : Int,
@@ -139,7 +199,11 @@ pub fn identify_captured_source_relation(
   logical_wire : @execution.RowWireLimits,
   schema_limits : @execution.RelationSchemaIdentityLimits,
   max_batch_bytes : Int,
+  retain_body_bytes? : Int = 0,
 ) -> Result[CapturedSourceRelationIdentity, CapturedSourceIssue] {
+  if retain_body_bytes < 0 || retain_body_bytes > 16777216 {
+    return Err(DependencyBodyLimit)
+  }
   let stream = match
     prepare_captured_source_relation_export(
       source, max_rows, values, payload_wire, logical_wire, schema_limits, max_batch_bytes,
@@ -148,9 +212,23 @@ pub fn identify_captured_source_relation(
     Err(issue) => return Err(issue)
   }
   let mut more = true
+  let chunks : Array[String] = []
+  let mut remaining = retain_body_bytes
+  if retain_body_bytes > 0 {
+    remaining -= @utf8.encode("{\"sort\":\"relation\",\"value\":}").length()
+  }
   while more {
     match @execution.next_completed_output_export(stream) {
-      Ok(Some(_)) => ()
+      Ok(Some(chunk)) =>
+        if retain_body_bytes > 0 {
+          let size = @utf8.encode(chunk).length()
+          if size > remaining {
+            @execution.cancel_completed_output_export(stream)
+            return Err(DependencyBodyLimit)
+          }
+          remaining -= size
+          chunks.push(chunk)
+        }
       Ok(None) => more = false
       Err(issue) => {
         @execution.cancel_completed_output_export(stream)
@@ -158,12 +236,28 @@ pub fn identify_captured_source_relation(
       }
     }
   }
-  let receipt = match @execution.finish_completed_relation_export(stream) {
-    Ok((value, _)) => value
+  let (receipt, tail) = match
+    @execution.finish_completed_relation_export(stream) {
+    Ok(value) => value
     Err(issue) => {
       @execution.cancel_completed_output_export(stream)
       return Err(Export(issue))
     }
+  }
+  let dependency_bodies = if retain_body_bytes > 0 {
+    let schema = @execution.relation_schema_wire(
+      @execution.completed_relation_export_schema_identity(receipt),
+    )
+    let tail_bytes = @utf8.encode(tail).length()
+    if tail_bytes > remaining ||
+      @utf8.encode(schema).length() > remaining - tail_bytes {
+      @execution.cancel_completed_relation_export_receipt(receipt)
+      return Err(DependencyBodyLimit)
+    }
+    chunks.push(tail)
+    Some(("{\"sort\":\"relation\",\"value\":" + chunks.join("") + "}", schema))
+  } else {
+    None
   }
   let identity = {
     origin: source,
@@ -176,6 +270,7 @@ pub fn identify_captured_source_relation(
     row_count: @execution.output_stream_identity(
       @execution.completed_relation_export_content(receipt),
     ).3,
+    dependency_bodies,
   }
   @execution.cancel_completed_relation_export_receipt(receipt)
   Ok(identity)

@@ -440,7 +440,8 @@ export function correctedContracts(registry, cli) {
   const effectContext = next.artifact_schemas.captured_run
     .properties.effect_context;
   for (const field of ['effect_source_artifacts',
-    'effect_source_holding_cids', 'effect_source_local_inventory']) {
+    'effect_source_holding_cids', 'effect_source_local_inventory',
+    'effect_dependency_inventory']) {
     if (!effectContext.required.includes(field)) effectContext.required.push(field);
   }
   effectContext.properties.effect_source_artifacts = {
@@ -448,6 +449,24 @@ export function correctedContracts(registry, cli) {
   };
   effectContext.properties.effect_source_holding_cids = {
     type: 'object', additionalProperties: clone(cid),
+  };
+  effectContext.properties.effect_dependency_inventory = {
+    type: 'array', maxItems: 4096,
+    items: {type: 'object', additionalProperties: false,
+      required: ['kind', 'cid', 'body'],
+      properties: {kind: {type: 'string', enum: [
+        'result_artifact', 'derivation_evidence', 'ordering_evidence',
+        'acquisition_relation', 'acquisition_scope', 'result_retention_policy',
+        'local_result_definition', 'local_computation', 'local_manifest',
+        'result_import_observation', 'local_dependencies',
+        'result_import_interface', 'gate_requirement', 'source_input_logical',
+        'source_evidence', 'local_body', 'parameter_declarations',
+        'used_values', 'local_contracts', 'local_policy', 'result_import_type',
+        'request_values', 'schema_evidence', 'capability_evidence',
+        'relation_schema', 'relation_value',
+        'source_contract', 'source_view_contract', 'data_policy',
+        'retention_contract', 'metadata_retention_policy', 'clock_contract',
+      ]}, cid: clone(cid), body: {type: 'object'}}},
   };
   for (const [name, schema] of Object.entries(next.artifact_schemas)) {
     next.artifact_schemas[name] = replaceNested(schema, replacements);

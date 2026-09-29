@@ -28,6 +28,109 @@ pub fn issue_client_task_invocation(
       ),
     )
   }
+  issue_client_captured_invocation_from_template(
+    client_task_compilation_template(compilation),
+    source_evidence_wire,
+    input_logical_wire,
+    source_ref,
+    source_contract_cid,
+    authority_scope_cid,
+    data_policy_cid,
+    capture_started_at,
+    capture_completed_at,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// The checked Effect compilation and captured root must belong to the
+/// admitted Run. Source Evidence is admitted against that exact source before
+/// it becomes an Observation Set; an equal CID is not an owner substitute.
+pub fn issue_client_effect_captured_invocation(
+  prepared : PreparedClientEffectComputation,
+  compilation : ClientEffectCompilation,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  captured_source : @query.CapturedInputSource,
+  source_evidence_wire : String,
+  input_logical_wire : String,
+  source_ref : String,
+  source_contract_cid : String,
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  let graph = @strategy.checked_effect_computation_graph(prepared.graph)
+  guard @strategy.graph_task_owner(graph, 0) is Some(first) else {
+    return Err(
+      @publication.RunEvidenceValueIssue::RunEvidenceReferenceMismatch(
+        "source_task",
+      ),
+    )
+  }
+  if !physical_equal(compilation.owner, prepared) ||
+    !@query.captured_source_matches(
+      captured_source,
+      @checked.source_identity(@strategy.graph_program(graph)),
+      first,
+    ) ||
+    @publication.check_run_publication_program_binding(
+      admission,
+      run_definition,
+      prepared_client_effect_computation_definition_cid(prepared),
+      prepared_client_effect_computation_semantics_cid(prepared),
+      prepared_client_effect_computation_environment_cid(prepared),
+    )
+    is Err(_) {
+    return Err(
+      @publication.RunEvidenceValueIssue::RunEvidenceReferenceMismatch(
+        "effect_run",
+      ),
+    )
+  }
+  issue_client_captured_invocation_from_template(
+    client_effect_compilation_template(compilation),
+    source_evidence_wire,
+    input_logical_wire,
+    source_ref,
+    source_contract_cid,
+    authority_scope_cid,
+    data_policy_cid,
+    capture_started_at,
+    capture_completed_at,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn issue_client_captured_invocation_from_template(
+  template : @publication.RunEvidenceValue,
+  source_evidence_wire : String,
+  input_logical_wire : String,
+  source_ref : String,
+  source_contract_cid : String,
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
   let source = match
     @publication.admit_run_evidence_value(
       "source_evidence", source_evidence_wire, max_wire_bytes, max_nodes, max_depth,
@@ -53,7 +156,6 @@ pub fn issue_client_task_invocation(
       ),
     )
   }
-  let template = client_task_compilation_template(compilation)
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(@publication.RunEvidenceValueIssue::RunEvidenceEncoding)
   }

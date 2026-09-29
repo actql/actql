@@ -134,6 +134,18 @@ jobs:
         run: npm run check:packed-embedded-checkpoint
       - name: Test Salesforce Site Catalog and bounded query acquisition
         run: npm run check:salesforce-site
+      - name: Count actual Effect Compute calls across recovery
+        run: node adapters/connectors/salesforce/test/run-computation-probe.mjs
+      - name: Count acquired Effect Compute calls across Host recovery
+        run: node scripts/test-acquired-effect-computation-probe.mjs
+      - name: Recover incomplete Effect capture custody after process death
+        run: |
+          for boundary in before-effect-source effect-source before-effect-capture effect-capture before-publication-private publication-private; do
+            node scripts/test-effect-capture-host-crash.mjs "$boundary"
+          done
+          for boundary in effect-source effect-capture publication-private; do
+            node scripts/test-effect-capture-crash.mjs "$boundary"
+          done
   # Native storage, publication and control, and the Native retained path.
   native:
     if: ${{ !inputs.performance_matrix }}

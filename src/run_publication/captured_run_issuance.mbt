@@ -452,6 +452,7 @@ fn seal_effect_context(
   snapshots : Array[CapturedResultSnapshot],
   sources : Array[CapturedEffectSourceArtifact],
   local_sources : Array[CapturedLocalEffectSourceEvidence],
+  dependencies : CapturedEffectDependencyInventory,
   advances : Array[PendingSourceStateAdvance],
   authoring : RunEvidenceValue,
   models : Array[RunEvidenceValue],
@@ -473,6 +474,14 @@ fn seal_effect_context(
     @encode.begin_object(writer)
     @encode.key(writer, "authoring_context")
     @json.emit_value(authoring.value, writer)
+    @encode.key(writer, "effect_dependency_inventory")
+    let inventory = parse_contract_wire(
+      dependencies.wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ).unwrap()
+    @json.emit_value(inventory, writer)
     @encode.key(writer, "effect_plan_logical_cids")
     @encode.begin_object(writer)
     if preview is Some(identity) {
@@ -660,6 +669,7 @@ pub fn issue_effectful_captured_run(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  dependency_inventory? : CapturedEffectDependencyInventory? = None,
 ) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
   issue_captured_computation_run(
     run_definition,
@@ -679,6 +689,7 @@ pub fn issue_effectful_captured_run(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    dependency_inventory~,
   )
 }
 
@@ -701,6 +712,7 @@ fn issue_captured_computation_run(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  dependency_inventory? : CapturedEffectDependencyInventory? = None,
 ) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
   if authoring.name != "authoring_context" {
     return Err(CaptureIssuanceWrongContract("authoring_context"))
@@ -835,10 +847,27 @@ fn issue_captured_computation_run(
     }
   }
   plans.sort_by(fn(left, right) { @canonical.compare_utf16(left.0, right.0) })
+  let dependencies = match
+    admit_effect_context_dependencies(
+      ordered_local_sources.map(source => source.value),
+      match dependency_inventory {
+        Some(value) => value.wire
+        None => "[]"
+      },
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) =>
+      return Err(
+        CaptureIssuanceInventoryMismatch("effect_dependency_inventory"),
+      )
+  }
   let effect_context = match
     seal_effect_context(
-      ordered_snapshots, ordered_sources, ordered_local_sources, advances, authoring,
-      ordered_models, preview, plans, max_wire_bytes, max_nodes, max_depth,
+      ordered_snapshots, ordered_sources, ordered_local_sources, dependencies, advances,
+      authoring, ordered_models, preview, plans, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

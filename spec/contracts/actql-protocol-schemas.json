@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:23e773e0b28cd948498b2faebf7b3a12fa71f108a78bf0d64eb3e9a5dd108e4f",
+  "artifact_registry_cid": "sha256:33a60df8a493384ebbaf3f446516e292578dcd66a51658877fe43cfa58b79400",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10695,7 +10695,7 @@
     "plan_document": "sha256:6d77f736215cbf1379db11e4d793e66e19715bb28b8a6e737fae3bdd62590bbc",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:e61cdac45a5af98ca5362ee945511d705c373613cd4e9dc42009e036eb9fcb84",
-    "captured_run": "sha256:ac57820dd589db489f000eb80ff95ec9c9a95fec5b233add853293ed9c1dbc53",
+    "captured_run": "sha256:7b3d173c3a078431c99352e3bac4e5a2341ea2217c1995ab8c97dd9c56027ac1",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
     "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
@@ -72263,7 +72263,8 @@
             "effect_context_cid",
             "effect_source_artifacts",
             "effect_source_holding_cids",
-            "effect_source_local_inventory"
+            "effect_source_local_inventory",
+            "effect_dependency_inventory"
           ],
           "properties": {
             "version": {
@@ -72858,6 +72859,65 @@
                         "pattern": "^sha256:[0-9a-f]{64}$"
                       }
                     }
+                  }
+                }
+              }
+            },
+            "effect_dependency_inventory": {
+              "type": "array",
+              "maxItems": 4096,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "cid",
+                  "body"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "result_artifact",
+                      "derivation_evidence",
+                      "ordering_evidence",
+                      "acquisition_relation",
+                      "acquisition_scope",
+                      "result_retention_policy",
+                      "local_result_definition",
+                      "local_computation",
+                      "local_manifest",
+                      "result_import_observation",
+                      "local_dependencies",
+                      "result_import_interface",
+                      "gate_requirement",
+                      "source_input_logical",
+                      "source_evidence",
+                      "local_body",
+                      "parameter_declarations",
+                      "used_values",
+                      "local_contracts",
+                      "local_policy",
+                      "result_import_type",
+                      "request_values",
+                      "schema_evidence",
+                      "capability_evidence",
+                      "relation_schema",
+                      "relation_value",
+                      "source_contract",
+                      "source_view_contract",
+                      "data_policy",
+                      "retention_contract",
+                      "metadata_retention_policy",
+                      "clock_contract"
+                    ]
+                  },
+                  "cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "body": {
+                    "type": "object"
                   }
                 }
               }

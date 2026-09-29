@@ -891,6 +891,7 @@ pub fn strategy_issue_effectful_captured_run(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  dependency_wire : String?,
 ) -> @publication.PublicationContract raise NodeHostFailure {
   if plan_names.length() != plan_wires.length() {
     raise InvalidCommand
@@ -899,11 +900,37 @@ pub fn strategy_issue_effectful_captured_run(
   for index in 0..<plan_names.length() {
     plans.push((plan_names[index], plan_wires[index]))
   }
+  let dependency_inventory = match dependency_wire {
+    None => None
+    Some(wire) =>
+      match
+        @publication.admit_captured_effect_source_dependencies(
+          local_sources, wire, max_wire_bytes, max_nodes, max_depth,
+        ) {
+        Ok(value) => Some(value)
+        Err(_) => raise InvalidCommand
+      }
+  }
   match
     @publication.issue_effectful_captured_run(
-      run_definition, invocation, definitions, artifacts, manifest, receipt, snapshots,
-      sources, local_sources, advances, authoring, models, preview, plans, max_wire_bytes,
-      max_nodes, max_depth,
+      run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      manifest,
+      receipt,
+      snapshots,
+      sources,
+      local_sources,
+      advances,
+      authoring,
+      models,
+      preview,
+      plans,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      dependency_inventory~,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand

@@ -14,6 +14,7 @@ struct CapturedEffectInput {
 struct CapturedEffectInputs {
   run : CapturedEffectRunDAG
   entries : Array[CapturedEffectInput?]
+  local_results : Array[CapturedEffectLocalResult]
   pins : CapturedAnyResultOutputSet
   mut live : Bool
 }
@@ -34,18 +35,49 @@ struct CapturedEffectPreviewInputs {
 pub fn pin_captured_effect_sources(
   run : CapturedEffectRunDAG,
   max_pins : Int,
+  max_dependency_work? : Int = 65536,
+  max_dependency_depth? : Int = 64,
 ) -> Result[CapturedEffectInputs, RunIssue] {
+  let local_ports = match
+    effect_dependency_ports(
+      run.checked.computation,
+      Int::min(max_pins, 4096),
+      max_dependency_work,
+      max_dependency_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let requests : Array[(Int, @execution.ManagedResultOccurrence)] = []
   let sources : Array[CheckedEffectSourcePort?] = []
+  let indexes : Map[String, Int] = Map([])
   for index in 0..<captured_effect_run_source_count(run) {
     let source = captured_effect_run_source_at(run, index)
     if source is Some(source) {
       if source.member_index != index {
         return Err(ForeignCandidate)
       }
+      indexes[source.stage.to_string() +
+      "/" +
+      @execution.managed_result_occurrence_name(source.occurrence)] = requests.length()
       requests.push((source.task, source.occurrence))
     }
     sources.push(source)
+  }
+  let local_indexes : Array[Int] = []
+  for port in local_ports {
+    let key = port.stage.to_string() +
+      "/" +
+      @execution.managed_result_occurrence_name(port.occurrence)
+    match indexes.get(key) {
+      Some(index) => local_indexes.push(index)
+      None => {
+        let index = requests.length()
+        indexes[key] = index
+        local_indexes.push(index)
+        requests.push((port.task, port.occurrence))
+      }
+    }
   }
   let pins = match
     pin_captured_any_result_output_set(run.captured, requests, max_pins) {
@@ -64,7 +96,19 @@ pub fn pin_captured_effect_sources(
       None => entries.push(None)
     }
   }
-  Ok({ run, entries, pins, live: true, })
+  let local_results : Array[CapturedEffectLocalResult] = []
+  for index in 0..<local_ports.length() {
+    let port = local_ports[index]
+    local_results.push({
+      stage: port.stage,
+      task: port.task,
+      borrow: captured_any_result_output_set_borrow_at(
+        pins,
+        local_indexes[index],
+      ).unwrap(),
+    })
+  }
+  Ok({ run, entries, local_results, pins, live: true, })
 }
 
 ///|
@@ -728,6 +772,13 @@ pub fn captured_effect_input_stage(value : CapturedEffectInput) -> Int {
 }
 
 ///|
+pub fn captured_effect_input_borrow(
+  value : CapturedEffectInput,
+) -> CapturedAnyResultBorrow {
+  value.borrow
+}
+
+///|
 /// The checked occurrence retains its authored Result projection and order.
 pub fn captured_effect_input_occurrence(
   value : CapturedEffectInput,
@@ -783,14 +834,16 @@ pub fn start_captured_effect_input_export(
   @execution.CompletedResultRelationExportPreparation,
   @execution.CompletedExportIssue,
 ] {
-  match value.borrow.kind {
-    Cells(borrow) =>
-      start_captured_result_borrow_export(
-        borrow, result_view, max_rows, values, payload_wire, logical_wire, schema_limits,
-        max_batch_bytes,
-      )
-    Resident(_) => Err(NotCellRepresentation)
-  }
+  start_captured_any_result_borrow_export(
+    value.borrow,
+    result_view,
+    max_rows,
+    values,
+    payload_wire,
+    logical_wire,
+    schema_limits,
+    max_batch_bytes,
+  )
 }
 
 ///|

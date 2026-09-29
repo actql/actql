@@ -392,6 +392,7 @@ export async function applyRecoveredEffectSet({
   if (!moon || !store || !publicationControl || !computation || !preview ||
       typeof ledger?.recoverClaimFacts !== 'function' ||
       typeof ledger?.frontierFromDurableHeads !== 'function' ||
+      typeof ledger?.recoveredTargetGuards !== 'function' ||
       !requestScope || typeof programId !== 'string' ||
       typeof nodeId !== 'string' ||
       !Number.isSafeInteger(maxRows) || maxRows < 1 ||
@@ -460,7 +461,10 @@ export async function applyRecoveredEffectSet({
   }
   signal?.throwIfAborted();
   checkedPreflight(moon.clientProgramCheckRecoveredEffectApplySemantics(
-    admittedPreview, preflight.sources, preflight.contracts,
+    admittedPreview,
+    ledger.recoveredTargetGuards(admittedPreview, recovered.members,
+      maxRecoveryWork),
+    preflight.sources, preflight.contracts,
     preflight.capabilities, preflight.authorities,
     preflight.observedRows, preflight.guardVersions, preflight.routes,
     preflight.risk ?? undefined,

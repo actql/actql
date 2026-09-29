@@ -260,6 +260,7 @@ export async function openLocalPublicationStore(
   const contractsDirectory = resolve(root, 'contracts');
   const stagingDirectory = resolve(root, 'staging');
   const custodyDirectory = resolve(root, 'prepared-custody');
+  const captureCustodyDirectory = resolve(root, 'effect-capture-custody');
   const preparedSchemasDirectory = resolve(root, 'prepared-schemas');
   const attemptsDirectory = resolve(root, 'attempts');
   const deliveriesDirectory = resolve(root, 'deliveries');
@@ -328,7 +329,7 @@ export async function openLocalPublicationStore(
     }
   }
   for (const directory of [root, objectsDirectory, contractsDirectory,
-    stagingDirectory, custodyDirectory, preparedSchemasDirectory,
+    stagingDirectory, custodyDirectory, captureCustodyDirectory, preparedSchemasDirectory,
     attemptsDirectory, deliveriesDirectory,
     manifestReadsDirectory, indexesDirectory, retentionExtensionsDirectory,
     metadataInventoriesDirectory, metadataDeletionsDirectory,
@@ -3005,6 +3006,7 @@ export async function openLocalPublicationStore(
     }
     let captureHoldingCid;
     let captureRecordHoldingCid;
+    let captureRecord;
     if (typeof contractControl.effectComputationCaptureHoldingCid ===
         'function') {
       const candidate = contractControl.effectComputationCaptureHoldingCid(
@@ -3012,6 +3014,20 @@ export async function openLocalPublicationStore(
       );
       const holding = await inspectPhysicalHolding(candidate);
       if (holding !== undefined) {
+        const recordCid = contractControl.effectComputationRecordHoldingCid(
+          chain.runDefinition, configuration.storeAuthorityCid);
+        try {
+          captureRecord = JSON.parse((await readPrivateEvidence(
+            'effect_capture', chain.capturedRun.identity, recordCid,
+          )).toString('utf8'));
+        } catch (error) {
+          fail('InvalidEffectfulCaptureRecord', error);
+        }
+        if (captureRecord?.captured_run !== chain.capturedRun.wire ||
+            captureRecord?.run_definition !== chain.runDefinition.wire ||
+            captureRecord?.store_authority_cid !== configuration.storeAuthorityCid) {
+          fail('InvalidEffectfulCaptureRecord');
+        }
         const expected = new Map();
         for (const binding of chain.durableBindings) {
           const body = parseContract(binding);
@@ -3020,6 +3036,14 @@ export async function openLocalPublicationStore(
             fail('InvalidEffectfulCaptureHolding');
           }
           expected.set(body.material_generation_cid, body.byte_count);
+        }
+        for (const binding of contractControl.capturedEffectDependencyPayloadBindings(
+          chain.capturedRun, captureRecord.effect_dependency_payloads)) {
+          const previous = expected.get(binding.physical_cid);
+          if (previous !== undefined && previous !== binding.byte_count) {
+            fail('InvalidEffectfulCaptureHolding');
+          }
+          expected.set(binding.physical_cid, binding.byte_count);
         }
         if (holding.namespace !== 'effect-capture' ||
             holding.manifest_cid !== chain.capturedRun.identity ||
@@ -3046,7 +3070,7 @@ export async function openLocalPublicationStore(
         }
         let record;
         try {
-          record = JSON.parse((await readPrivateEvidence(
+          record = captureRecord ?? JSON.parse((await readPrivateEvidence(
             'effect_capture', chain.capturedRun.identity, candidate,
           )).toString('utf8'));
         } catch (error) {
@@ -4208,6 +4232,16 @@ export async function openLocalPublicationStore(
     return record;
   };
 
+  // Retirement validates ownership metadata, not payload usability. A
+  // missing or corrupt payload must remain unreadable but may still be
+  // retired by its exact owner. This is never a consumption/admission proof.
+  const inspectPhysicalHoldingForRetirement = async holdingCid => {
+    active();
+    cidHex(holdingCid);
+    return await readPhysicalHolding(holdingCid) ??
+      await readPhysicalHoldingDeletion(holdingCid);
+  };
+
   const consumePhysicalHolding = async (
     holdingCid,
     objectIndex,
@@ -4360,6 +4394,141 @@ export async function openLocalPublicationStore(
     });
   };
 
+  // This is physical cleanup custody, not a completed capture or permission
+  // to execute. Persist before transferring any prepared object to a holding.
+  // Completion transfers responsibility to the admitted private capture.
+  const captureCustodyRun = run => {
+    const admitted = admitContract('run_definition', run?.wire);
+    if (admitted.identity !== run?.identity) {
+      fail('InvalidEffectCaptureCustody');
+    }
+    return admitted;
+  };
+  const captureCustodyPath = run => resolve(captureCustodyDirectory,
+    `${cidHex(run.identity)}.json`);
+  const readEffectCaptureCustody = async suppliedRun => {
+    active();
+    const run = captureCustodyRun(suppliedRun);
+    let bytes;
+    try { bytes = await readBounded(captureCustodyPath(run),
+      Math.min(configuration.maxObjectBytes, 16 * 1024 * 1024)); }
+    catch (error) { if (error?.code === 'ENOENT') return undefined; throw error; }
+    let value;
+    try { value = JSON.parse(bytes.toString('utf8')); }
+    catch (error) { fail('InvalidEffectCaptureCustody', error); }
+    if (!exactKeys(value, ['version', 'store_authority_cid',
+      'run_definition', 'holdings']) ||
+        value.version !== 'actql-effect-capture-custody/0.1' ||
+        value.store_authority_cid !== configuration.storeAuthorityCid ||
+        value.run_definition !== run.wire || !Array.isArray(value.holdings) ||
+        value.holdings.length > 4096) fail('InvalidEffectCaptureCustody');
+    const holdings = value.holdings.map(value =>
+      parsePhysicalHolding(Buffer.from(JSON.stringify(value))));
+    if (new Set(holdings.map(value => value.holding_cid)).size !==
+        holdings.length || holdings.some(value =>
+        !['effect-source', 'effect-capture'].includes(value.namespace))) {
+      fail('InvalidEffectCaptureCustody');
+    }
+    return Object.freeze({...value, holdings: Object.freeze(holdings)});
+  };
+  const retainEffectCaptureCustody = (suppliedRun, suppliedHoldings) => {
+    active();
+    const run = captureCustodyRun(suppliedRun);
+    const holdings = suppliedHoldings.map(value =>
+      parsePhysicalHolding(Buffer.from(JSON.stringify(value))));
+    return withSemanticCommit(async () => {
+      const previous = await readEffectCaptureCustody(run);
+      const records = new Map((previous?.holdings ?? []).map(value =>
+        [value.holding_cid, value]));
+      for (const holding of holdings) {
+        if (!['effect-source', 'effect-capture'].includes(holding.namespace)) {
+          fail('InvalidEffectCaptureCustody');
+        }
+        const old = records.get(holding.holding_cid);
+        if (old !== undefined && JSON.stringify(old) !== JSON.stringify(holding)) {
+          fail('EffectCaptureCustodyConflict');
+        }
+        records.set(holding.holding_cid, holding);
+      }
+      const bytes = Buffer.from(JSON.stringify({
+        version: 'actql-effect-capture-custody/0.1',
+        store_authority_cid: configuration.storeAuthorityCid,
+        run_definition: run.wire, holdings: [...records.values()],
+      }));
+      if (records.size > 4096 || bytes.length >
+          Math.min(configuration.maxObjectBytes, 16 * 1024 * 1024)) {
+        fail('EffectCaptureCustodyLimitExceeded');
+      }
+      const staging = resolve(stagingDirectory, `object-${randomUUID()}`);
+      await writeExclusive(staging, bytes);
+      await rename(staging, captureCustodyPath(run));
+      await syncDirectory(captureCustodyDirectory);
+    });
+  };
+  const listEffectCaptureCustodies = async ({after = '', limit = 100} = {}) => {
+    active();
+    if (typeof after !== 'string' || after !== '' && !cidPattern.test(after) ||
+        !Number.isSafeInteger(limit) || limit < 1 || limit > 100) {
+      fail('InvalidEffectCaptureCustodyPage');
+    }
+    const names = await readdir(captureCustodyDirectory);
+    if (names.some(name => !/^[0-9a-f]{64}\.json$/u.test(name))) {
+      fail('InvalidEffectCaptureCustody');
+    }
+    const selected = names.sort().filter(name =>
+      `sha256:${name.slice(0, -5)}` > after).slice(0, limit);
+    const result = [];
+    for (const name of selected) {
+      let value;
+      try {
+        value = JSON.parse((await readBounded(resolve(captureCustodyDirectory,
+          name), Math.min(configuration.maxObjectBytes, 16 * 1024 * 1024)))
+          .toString('utf8'));
+      } catch (error) {
+        if (error?.code === 'ENOENT') continue;
+        fail('InvalidEffectCaptureCustody', error);
+      }
+      const run = admitContract('run_definition', value.run_definition);
+      if (`${cidHex(run.identity)}.json` !== name) {
+        fail('InvalidEffectCaptureCustody');
+      }
+      if (await readEffectCaptureCustody(run) !== undefined) result.push(run);
+    }
+    return Object.freeze(result);
+  };
+  const forgetEffectCaptureCustody = async suppliedRun => {
+    active();
+    const run = captureCustodyRun(suppliedRun);
+    await readEffectCaptureCustody(run);
+    try { await unlink(captureCustodyPath(run)); }
+    catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    await syncDirectory(captureCustodyDirectory);
+  };
+  const retireEffectCaptureCustody = async suppliedRun => {
+    const record = await readEffectCaptureCustody(suppliedRun);
+    if (record === undefined) return false;
+    // Validate the entire exact inventory before deleting any holding. A
+    // missing record can be progress from an interrupted retirement pass.
+    for (const expected of record.holdings) {
+      const actual = await readPhysicalHolding(expected.holding_cid) ??
+        await readPhysicalHoldingDeletion(expected.holding_cid);
+      if (actual !== undefined && JSON.stringify(actual) !== JSON.stringify(expected)) {
+        fail('EffectCaptureCustodyConflict');
+      }
+    }
+    for (const holding of record.holdings) {
+      const retired = await retirePhysicalHolding(holding.holding_cid);
+      if (retired.cleanup.status().pending) {
+        const error = new PublicationStoreError('EffectCaptureCustodyCleanupPending');
+        error.cleanupPending = true;
+        error.cleanupHandle = retired.cleanup;
+        throw error;
+      }
+    }
+    await forgetEffectCaptureCustody(suppliedRun);
+    return true;
+  };
+
   const recoverPhysicalHoldingDeletions = async () => {
     active();
     const recovered = [];
@@ -4388,11 +4557,10 @@ export async function openLocalPublicationStore(
         if (`${cidHex(record.holding_cid)}.json` !== name) {
           fail('InvalidPublicationPhysicalHoldingStore');
         }
-        if (directory === physicalHoldingsDirectory &&
-            await readPhysicalHoldingDeletion(record.holding_cid) ===
-              undefined) {
-          await verifyPhysicalHoldingObjects(record);
-        }
+        // Startup validates ownership records, not every Run's payload.
+        // inspect/consume/commit still verify bytes before using a holding.
+        // A missing or damaged object must not disable unrelated Runs, nor
+        // turn its retained recovery responsibility into absent evidence.
       }
     }
   };
@@ -5033,7 +5201,10 @@ export async function openLocalPublicationStore(
       }
       if (await readMetadataDeletion(keyHash) === undefined) {
         for (const holdingCid of inventory.physical_holding_cids) {
-          if (await inspectPhysicalHolding(holdingCid) === undefined) {
+          // Validate the index-to-owner link without opening its payloads.
+          // Payload availability is checked by the actual Result consumer.
+          if (await readPhysicalHoldingDeletion(holdingCid) !== undefined ||
+              await readPhysicalHolding(holdingCid) === undefined) {
             fail('InvalidPublicationMetadataInventoryStore');
           }
         }
@@ -5081,8 +5252,14 @@ export async function openLocalPublicationStore(
     commitPhysicalHolding,
     sharePhysicalHolding,
     inspectPhysicalHolding,
+    inspectPhysicalHoldingForRetirement,
     consumePhysicalHolding,
     retirePhysicalHolding,
+    retainEffectCaptureCustody,
+    readEffectCaptureCustody,
+    listEffectCaptureCustodies,
+    retireEffectCaptureCustody,
+    forgetEffectCaptureCustody,
     recoverPhysicalHoldingDeletions,
     putBytes,
     putSemantic,
