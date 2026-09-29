@@ -39,10 +39,18 @@ pub struct SingleWriteRequest {
   verb : String
   path : String
   body : String
+  // The same row as ActQL values: what the Preview states and approves.
+  value : String
   kind : WriteSingleKind
   projection : WriteProjection
   target : WriteTargetValue
   max_target_bytes : Int
+}
+
+///|
+/// The request's row as ActQL values, the Preview's value of this row.
+pub fn single_write_request_value(value : SingleWriteRequest) -> String {
+  value.value
 }
 
 ///|
@@ -162,7 +170,7 @@ pub fn recheck_single_write_request(
 /// must be a valid exact CID and is separately checked by credential use.
 pub fn single_write_request_matches_site_scope(
   value : SingleWriteRequest,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   site_key : String,
@@ -175,7 +183,7 @@ pub fn single_write_request_matches_site_scope(
 ) -> Bool {
   write_binding_matches_site_scope(
     value.projection.binding,
-    tenant,
+    namespace_id,
     principal,
     environment,
     site_key,
@@ -191,7 +199,7 @@ pub fn single_write_request_matches_site_scope(
 ///|
 fn write_binding_matches_site_scope(
   binding : CatalogObservationBinding,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   site_key : String,
@@ -202,7 +210,7 @@ fn write_binding_matches_site_scope(
   run_invocation_cid : String,
   dispatch_request_cid : String,
 ) -> Bool {
-  binding.tenant == tenant &&
+  binding.namespace_id == namespace_id &&
   binding.principal == principal &&
   binding.environment == environment &&
   binding.site_key == site_key &&
@@ -425,6 +433,7 @@ pub fn prepare_single_write_request(
     verb,
     path: prefix + suffix,
     body: text,
+    value: body.value_json,
     kind,
     api_version,
     projection,

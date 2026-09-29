@@ -9,6 +9,7 @@ import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
 import test, {after} from 'node:test';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath} from 'node:url';
@@ -22,10 +23,10 @@ import {openInstalledRemoteHttpHost, publishInstalledEffect} from
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {INSTALLED_SALESFORCE_SITE_VERSION} from
   '../host/installed-salesforce-site.mjs';
-import {INSTALLED_SALESFORCE_SOURCE_VERSION,
+import {INSTALLED_SALESFORCE_SOURCE_VERSION, loadInstalledSalesforceSource,
   publishInstalledSalesforceSource} from
   '../host/installed-salesforce-source.mjs';
-import {openSalesforceEffectSiteFixture} from
+import {numberText, openSalesforceEffectSiteFixture} from
   './salesforce-effect-site.fixture.mjs';
 import {effectProgram} from './installed-salesforce-effect.fixture.mjs';
 
@@ -99,10 +100,12 @@ const program = JSON.stringify({version: 'actql/0.1', id: 'salesforce-read',
 
 async function installation(t, {readable = ['Test_Record__c'],
   sourceResources = ['Test_Record__c'], extraObjects = [],
-  queryFailureStatus, storedRecords} = {}) {
+  queryFailureStatus, storedRecords, temporalFields = false,
+  numberFields = false} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
-    queryFailureStatus, storedRecords, extraObjects,
+    queryFailureStatus, storedRecords, extraObjects, temporalFields,
+    numberFields,
     optionalText: storedRecords !== undefined});
   const root = await mkdtemp(join(scratch, 'host-'));
   // Hosts close before their directory is removed.
@@ -124,7 +127,7 @@ async function installation(t, {readable = ['Test_Record__c'],
     credentialPrivateKeyPath: join(root, 'credential.key'),
     environment: 'test', instanceOrigin: org.origin,
     journalRoot: join(root, 'credential-journal'), orgId: org.orgId,
-    siteGeneration: 1, siteKey: 'salesforce-site', tenant: 'tenant-a',
+    siteGeneration: 1, siteKey: 'salesforce-site', namespaceId: 'namespace-a',
     caPath: join(root, 'org-ca.crt')};
   const sitePath = join(root, 'salesforce-site.json');
   await writeFile(sitePath, JSON.stringify(siteDocument));
@@ -209,6 +212,43 @@ test('public Client reads a published Salesforce source to a Named Result',
       '/services/data/v62.0/query',
     ]);
     assert.equal(paths.includes('/services/data/v62.0/sobjects/'), false);
+  });
+
+test('invalid diagnostics retain an acquired source and its failed cleanup',
+  async t => {
+    const setup = await installation(t);
+    await setup.publish();
+    const seen = setup.org.seen.length;
+    const close = DatabaseSync.prototype.close;
+    const cleanup = new Error('SourceJournalCloseFailure');
+    let closes = 0;
+    DatabaseSync.prototype.close = function() {
+      if (++closes === 1) throw cleanup;
+      return close.call(this);
+    };
+    let failure;
+    try {
+      await assert.rejects(setup.open({authorization:
+        checkpointAuthorization({observe: 'invalid'})}), error => {
+        failure = error;
+        assert.equal(error.code, 'InstalledHostInitializationFailed');
+        assert.equal(error.primaryFailure.message,
+          'InvalidDiagnosticObserver');
+        assert.equal(error.cleanupPending, true);
+        assert.equal(error.cleanupErrors[0].error, cleanup);
+        assert.ok(error.cleanupHandle.status().owners.includes(
+          'source-profile'));
+        return true;
+      });
+      assert.equal(setup.org.seen.length, seen);
+      assert.equal((await failure.cleanupHandle.retry()).pending, false);
+      assert.equal(closes, 2);
+    } finally {
+      DatabaseSync.prototype.close = close;
+    }
+    const reopened = await setup.open({authorization:
+      checkpointAuthorization()});
+    await reopened.close();
   });
 
 test('public HTTP Client resumes an installed Salesforce Effect after restart',
@@ -516,6 +556,36 @@ test('a publication of another connection or Site generation is refused',
 
 // A Run whose acquisition ended without a capture: the Run fails, nothing is
 // retried, and the Host still closes (its dispatch owner holds nothing).
+// The installed source adapter the standard Host loads, and the prepared
+// `source` Program's acquisition inputs, for asserting how an acquisition
+// ended.
+async function installedAdapter(setup, source) {
+  const {loadInstalledSource} = await import(
+    '../../../host-node/installed-source.mjs');
+  const spec = name => readFile(join(repository, name), 'utf8');
+  const base = (await spec('spec/local-check-environment.json')).trimEnd();
+  const adapter = await loadInstalledSource(setup.profilePath, {
+    root: join(setup.root, 'adapter-state'), principalId: owner,
+    moon: commonMoon, runtimeUrl: new URL(
+      '../../../../_build/js/release/build/connectors_builtin_node/' +
+      'connectors_builtin_node.js', import.meta.url),
+    baseEnvironmentWire: base, resolveSecret: secret});
+  const environment = commonMoon.clientProgramCheckEnvironment(
+    adapter.environmentWire, JSON.parse(adapter.environmentWire)
+      .evidence_bundle_cid, false, false, true, false, false, false, false);
+  const preparedProgram = commonMoon.clientProgramPreparationReady(
+    commonMoon.clientProgramPrepareEffectFreeWithParameters(source, 'json',
+      environment, undefined));
+  const aoa = JSON.parse(await spec('spec/contracts/actql-aoa.json'));
+  const common = {preparedProgram,
+    registry: await spec('spec/dependencies/aoa-pipeline-registry.json'),
+    values: JSON.stringify(aoa.execution_contracts['REL.values']),
+    fragment: JSON.stringify(
+      aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+    ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
+  return {adapter, common};
+}
+
 async function assertEndedRun(setup, client, requestId) {
   const execution = await client.aql(program, {format: 'json', requestId});
   assert.equal((await execution.wait()).status, 'failed');
@@ -547,30 +617,8 @@ test('a read denied when the acquisition opens is stated as not started',
   async t => {
     const setup = await installation(t);
     await setup.publish();
-    const {loadInstalledSource} = await import(
-      '../../../host-node/installed-source.mjs');
-    const spec = name => readFile(join(repository, name), 'utf8');
-    const base = (await spec('spec/local-check-environment.json')).trimEnd();
-    const adapter = await loadInstalledSource(setup.profilePath, {
-      root: join(setup.root, 'adapter-state'), principalId: owner,
-      moon: commonMoon, runtimeUrl: new URL(
-        '../../../../_build/js/release/build/connectors_builtin_node/' +
-        'connectors_builtin_node.js', import.meta.url),
-      baseEnvironmentWire: base, resolveSecret: secret});
+    const {adapter, common} = await installedAdapter(setup, program);
     try {
-      const environment = commonMoon.clientProgramCheckEnvironment(
-        adapter.environmentWire, JSON.parse(adapter.environmentWire)
-          .evidence_bundle_cid, false, false, true, false, false, false, false);
-      const preparedProgram = commonMoon.clientProgramPreparationReady(
-        commonMoon.clientProgramPrepareEffectFreeWithParameters(program, 'json',
-          environment, undefined));
-      const aoa = JSON.parse(await spec('spec/contracts/actql-aoa.json'));
-      const common = {preparedProgram,
-        registry: await spec('spec/dependencies/aoa-pipeline-registry.json'),
-        values: JSON.stringify(aoa.execution_contracts['REL.values']),
-        fragment: JSON.stringify(
-          aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-        ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
       // The read is allowed when prepared and revoked before the dispatch.
       let decisions = 0;
       const access = {...adapter.sourceAccess, authorization: {
@@ -772,4 +820,188 @@ test('an expired, cancelled or retargeted approval reads nothing',
     await waitFor(async () => (await r2.client.lookupRequest(
       'retargeted-read')).state === 'ended');
     assert.equal(retargeted.queries().length, rBefore);
+  });
+
+// A Program reading the declared `date` and `datetime` fields through the
+// same scan, filter and select acquisition chain; the filter keeps every
+// stored record.
+const temporalProgram = JSON.stringify({version: 'actql/0.1',
+  id: 'salesforce-temporal', stages: [
+    {id: 'acquire',
+      inputs: {remote: {connector: 'crm-main', resource: 'Test_Record__c'}},
+      steps: [{filter: "Id <> 'none'", as: 'filtered'},
+        {select: ['Id', 'Due_Date__c', 'Due_At__c'], as: 'captured'}],
+      results: {r: {from: 'captured',
+        fields: ['Id', 'Due_Date__c', 'Due_At__c']}}},
+    {id: 'compute',
+      inputs: {x: {result: {stage: 'acquire', result: 'r'}}},
+      steps: [{select: ['Id', 'Due_Date__c', 'Due_At__c'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['Id', 'Due_Date__c', 'Due_At__c']}}},
+  ],
+  results: {records: {from: {stage: 'compute', result: 'r'}}}});
+
+test('Salesforce dates and UTC datetimes reach the Named Result as the same values',
+  async t => {
+    const setup = await installation(t, {temporalFields: true});
+    await setup.publish();
+    const {client, close} = await setup.open();
+    const execution = await client.aql(temporalProgram, {format: 'json',
+      requestId: 'temporal-read'});
+    const state = await execution.wait();
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    const rows = await execution.result('records').all();
+    // Independently expected from the org's stored replies: the date as it
+    // is, the `+0000` datetime as the same UTC instant ending in Z, and
+    // nulls kept.
+    assert.deepEqual(rows.map(row => [row.Id, row.Due_Date__c, row.Due_At__c])
+      .sort(), [
+      ['a00000000000001', '2024-05-22', '2012-07-12T17:49:01.123Z'],
+      ['a00000000000002', null, null],
+      ['a00000000000003', '1700-01-01', '4000-12-31T00:00:00.000Z'],
+    ]);
+    await close();
+  });
+
+test('a datetime outside its declared type fails the acquisition, typed',
+  async t => {
+    // A reply in another offset is not converted to UTC: the whole
+    // acquisition fails and nothing is published.
+    const stored = [
+      {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1',
+        Due_Date__c: '2024-05-22', Due_At__c: '2012-07-12T17:49:01.123+0000'},
+      {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2',
+        Due_Date__c: '2024-05-23', Due_At__c: '2012-07-13T02:49:01.123+0900'}];
+    const setup = await installation(t, {temporalFields: true,
+      storedRecords: stored});
+    await setup.publish();
+    const {client, close} = await setup.open();
+    const execution = await client.aql(temporalProgram, {format: 'json',
+      requestId: 'temporal-violation'});
+    assert.equal((await execution.wait()).status, 'failed');
+    await assert.rejects(execution.result('records').all());
+    assert.equal(setup.queries().length, 1);
+    await close();
+    // The adapter states the failure: a typed value violation naming the
+    // Resource, field, declared type and kind, never the value, after the
+    // read stopped.
+    const {adapter, common} = await installedAdapter(setup, temporalProgram);
+    try {
+      const before = setup.queries().length;
+      const failure = await adapter.open(common).then(() => undefined,
+        error => error);
+      assert.equal(failure?.code, 'SalesforceValueViolation',
+        String(failure?.code));
+      assert.equal(failure.outcome, 'stopped');
+      assert.deepEqual(failure.cause.violation, {expected_type: 'timestamp',
+        field: 'Due_At__c', kind: 'format', resource: 'Test_Record__c'});
+      assert.equal(JSON.stringify(failure.cause.violation).includes('2012'),
+        false);
+      assert.equal(setup.queries().length, before + 1);
+    } finally {
+      adapter.close();
+    }
+  });
+
+test('a capture budget overrun is not a value violation', async t => {
+  const setup = await installation(t, {storedRecords: records(100, 10000)});
+  await setup.publish();
+  const {adapter, common} = await installedAdapter(setup, program);
+  try {
+    const failure = await adapter.open(common).then(() => undefined,
+      error => error);
+    assert.ok(failure);
+    assert.notEqual(failure.code, 'SalesforceValueViolation');
+    assert.equal(failure.cause?.violation, undefined);
+  } finally {
+    adapter.close();
+  }
+});
+
+test('a runtime without the value violation entry is refused before provider I/O',
+  async t => {
+    const setup = await installation(t);
+    await setup.publish();
+    const before = setup.org.seen.length;
+    const {clientProgramSalesforceBroadValueViolation: _omitted, ...moon} =
+      commonMoon;
+    await assert.rejects(loadInstalledSalesforceSource(setup.profile, {
+      root: join(setup.root, 'runtime-check'), principalId: owner, moon,
+      salesforceMoon, runtimeBundleCid,
+      baseEnvironmentWire: (await readFile(join(repository,
+        'spec/local-check-environment.json'), 'utf8')).trimEnd(),
+      resolveSecret: secret}), {code: 'InvalidSalesforceSourceRuntime'});
+    assert.equal(setup.org.seen.length, before);
+  });
+
+// A Program reading the declared Number(15,2) `Amount__c` through the scan,
+// filter and select acquisition chain.
+const numberProgram = JSON.stringify({version: 'actql/0.1',
+  id: 'salesforce-number', stages: [
+    {id: 'acquire',
+      inputs: {remote: {connector: 'crm-main', resource: 'Test_Record__c'}},
+      steps: [{filter: "Id <> 'none'", as: 'filtered'},
+        {select: ['Id', 'Amount__c'], as: 'captured'}],
+      results: {r: {from: 'captured', fields: ['Id', 'Amount__c']}}},
+    {id: 'compute',
+      inputs: {x: {result: {stage: 'acquire', result: 'r'}}},
+      steps: [{select: ['Id', 'Amount__c'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['Id', 'Amount__c']}}},
+  ],
+  results: {records: {from: {stage: 'compute', result: 'r'}}}});
+
+test('Salesforce Numbers reach the Named Result as their exact declared decimals',
+  async t => {
+    const setup = await installation(t, {numberFields: true});
+    await setup.publish();
+    const {client, close} = await setup.open();
+    // A Number above precision 15 is not declared, so a Program reading it
+    // fails Check before any provider I/O.
+    const before = setup.org.seen.length;
+    await assert.rejects(client.aql(numberProgram.replaceAll('Amount__c',
+      'Wide_Amount__c'), {format: 'json', requestId: 'wide-number'}));
+    assert.equal(setup.org.seen.length, before);
+    const execution = await client.aql(numberProgram, {format: 'json',
+      requestId: 'number-read'});
+    const state = await execution.wait();
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    const rows = await execution.result('records').all();
+    // Independently expected from the org's replies `1.2345678E7`, null and
+    // `-9999999999999.9`: the same values at scale 2, as decimal text.
+    assert.deepEqual(rows.map(row => [row.Id, row.Amount__c]).sort(), [
+      ['a00000000000001', '12345678.00'],
+      ['a00000000000002', null],
+      ['a00000000000003', '-9999999999999.90'],
+    ]);
+    await close();
+  });
+
+test('a Number beyond its declared scale fails the acquisition, typed',
+  async t => {
+    const stored = [
+      {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1',
+        Amount__c: numberText('12.34')},
+      {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2',
+        Amount__c: numberText('12.345')}];
+    const setup = await installation(t, {numberFields: true,
+      storedRecords: stored});
+    await setup.publish();
+    const {client, close} = await setup.open();
+    const execution = await client.aql(numberProgram, {format: 'json',
+      requestId: 'number-violation'});
+    assert.equal((await execution.wait()).status, 'failed');
+    await assert.rejects(execution.result('records').all());
+    await close();
+    const {adapter, common} = await installedAdapter(setup, numberProgram);
+    try {
+      const failure = await adapter.open(common).then(() => undefined,
+        error => error);
+      assert.equal(failure?.code, 'SalesforceValueViolation',
+        String(failure?.code));
+      assert.equal(failure.outcome, 'stopped');
+      // Never rounded to 12.35 or 12.34; the value is not reported.
+      assert.deepEqual(failure.cause.violation, {expected_type: 'decimal',
+        field: 'Amount__c', kind: 'scale', resource: 'Test_Record__c'});
+    } finally {
+      adapter.close();
+    }
   });

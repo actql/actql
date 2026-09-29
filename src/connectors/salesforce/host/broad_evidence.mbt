@@ -257,6 +257,22 @@ pub fn accept_issued_salesforce_broad_page(
 }
 
 ///|
+/// The value violation that failed this attempt's page, as canonical JSON:
+/// a provider value that is not a value of its declared ActQL type. Any
+/// other failure, a budget overrun included, is not one.
+pub fn salesforce_broad_attempt_value_violation(
+  attempt : SalesforceBroadAttempt,
+  issue : SalesforceBroadAttemptIssue,
+) -> String? {
+  guard issue is Read(Query(Page(page))) &&
+    @catalog.query_page_value_violation(page, attempt.preparation.plan)
+    is Some(violation) else {
+    return None
+  }
+  Some(@catalog.query_value_violation_json(violation))
+}
+
+///|
 pub fn finish_issued_salesforce_broad_read(
   attempt : SalesforceBroadAttempt,
 ) -> Result[Unit, SalesforceBroadAttemptIssue] {

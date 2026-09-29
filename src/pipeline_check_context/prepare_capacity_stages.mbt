@@ -23,6 +23,8 @@ pub enum CapacityStageIssue {
   RowCapacity(RowCapacityIssue)
   ResolvedJoinLimits(Int, @host.ResolvedLimitIssue)
   MissingJoinCeiling(Int)
+  ResolvedTraversalLimits(Int, Int, @host.ResolvedLimitIssue)
+  MissingTraversalCeiling(Int, String)
   StageCount
   VisitCount(Int)
   BudgetExceeded

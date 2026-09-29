@@ -336,7 +336,7 @@ function standardPublicationPlan(
       modelEvidence: Object.freeze([]),
     }),
     request: Object.freeze({
-      tenantId: 'tenant-a',
+      namespaceId: 'namespace-a',
       authorityScopeCid: hash('authority-scope'),
       publicationPolicyCid: hash('publication-policy'),
       publicationTargetCid: hash('publication-target'),
@@ -1261,7 +1261,7 @@ async function exerciseStrategyGraph(
                   modelEvidence: [],
                 },
                 request: {
-                  tenantId: 'tenant-a',
+                  namespaceId: 'namespace-a',
                   authorityScopeCid: hash('authority-scope'),
                   publicationPolicyCid: hash('publication-policy'),
                   publicationTargetCid: hash('publication-target'),
@@ -1377,7 +1377,7 @@ async function exerciseStrategyGraph(
                 execution.publicationInventory.occurrences) {
                 const received = [];
                 await publicationStore.consumeCommittedResult({
-                  tenantId: 'tenant-a',
+                  namespaceId: 'namespace-a',
                   authorityScopeCid: hash('authority-scope'),
                   runDefinitionCid: publishedRun.identity,
                 }, occurrence.definitionContract.identity,
@@ -1428,7 +1428,7 @@ async function exerciseStrategyGraph(
                     accessService,
                     {
                       indexKey: {
-                        tenantId: 'tenant-a',
+                        namespaceId: 'namespace-a',
                         authorityScopeCid: hash('authority-scope'),
                         runDefinitionCid: publishedRun.identity,
                       },
@@ -1501,7 +1501,7 @@ async function exerciseStrategyGraph(
                 restartedAccess,
                 {
                   indexKey: {
-                    tenantId: 'tenant-a',
+                    namespaceId: 'namespace-a',
                     authorityScopeCid: hash('authority-scope'),
                     runDefinitionCid: publishedRun.identity,
                   },
@@ -1632,7 +1632,7 @@ async function exerciseStrategyGraph(
       );
       assert.deepEqual(
         await publicationStore.inspectCommittedIndex({
-          tenantId: plan.request.tenantId,
+          namespaceId: plan.request.namespaceId,
           authorityScopeCid: plan.request.authorityScopeCid,
           runDefinitionCid: plan.runDefinition.identity,
         }),
@@ -2176,7 +2176,7 @@ async function exerciseStrategyGraph(
         sgaPublicationOwner.execution.publicationInventory.occurrences) {
         const received = [];
         await sgaPublicationStore.consumeCommittedResult({
-          tenantId: plan.request.tenantId,
+          namespaceId: plan.request.namespaceId,
           authorityScopeCid: plan.request.authorityScopeCid,
           runDefinitionCid: plan.runDefinition.identity,
         }, occurrence.definitionContract.identity, () => true,
@@ -2341,7 +2341,7 @@ async function exerciseStrategyGraph(
       vectorPublicationOwner.execution.publicationInventory.occurrences[0];
     const received = [];
     await vectorPublicationStore.consumeCommittedResult({
-      tenantId: plan.request.tenantId,
+      namespaceId: plan.request.namespaceId,
       authorityScopeCid: plan.request.authorityScopeCid,
       runDefinitionCid: plan.runDefinition.identity,
     }, occurrence.definitionContract.identity, () => true,
@@ -2540,7 +2540,7 @@ async function exerciseStrategyGraph(
       .publicationInventory.occurrences) {
       const received = [];
       await eventPublicationStore.consumeCommittedResult({
-        tenantId: plan.request.tenantId,
+        namespaceId: plan.request.namespaceId,
         authorityScopeCid: plan.request.authorityScopeCid,
         runDefinitionCid: plan.runDefinition.identity,
       }, occurrence.definitionContract.identity, () => true,
@@ -2714,7 +2714,7 @@ async function exerciseStrategyGraph(
       .publicationInventory.occurrences) {
       const received = [];
       await carrierVectorPublicationStore.consumeCommittedResult({
-        tenantId: plan.request.tenantId,
+        namespaceId: plan.request.namespaceId,
         authorityScopeCid: plan.request.authorityScopeCid,
         runDefinitionCid: plan.runDefinition.identity,
       }, occurrence.definitionContract.identity, () => true,
@@ -2846,7 +2846,7 @@ async function exerciseStrategyGraph(
       .publicationInventory.occurrences[0];
     const received = [];
     await scoredVectorPublicationStore.consumeCommittedResult({
-      tenantId: plan.request.tenantId,
+      namespaceId: plan.request.namespaceId,
       authorityScopeCid: plan.request.authorityScopeCid,
       runDefinitionCid: plan.runDefinition.identity,
     }, occurrence.definitionContract.identity, () => true,
@@ -2981,7 +2981,7 @@ async function exerciseStrategyGraph(
       .publicationInventory.occurrences[0];
     const received = [];
     await pooledVectorPublicationStore.consumeCommittedResult({
-      tenantId: plan.request.tenantId,
+      namespaceId: plan.request.namespaceId,
       authorityScopeCid: plan.request.authorityScopeCid,
       runDefinitionCid: plan.runDefinition.identity,
     }, occurrence.definitionContract.identity, () => true,
@@ -7016,7 +7016,7 @@ async function exerciseStrategyGraph(
         equalityPublicationOwner.execution.publicationInventory.occurrences[0];
       const received = [];
       await equalityPublicationStore.consumeCommittedResult({
-        tenantId: plan.request.tenantId,
+        namespaceId: plan.request.namespaceId,
         authorityScopeCid: plan.request.authorityScopeCid,
         runDefinitionCid: plan.runDefinition.identity,
       }, occurrence.definitionContract.identity, () => true,
@@ -7505,7 +7505,7 @@ async function exerciseStrategyGraph(
       const delivered = [];
       await deliverAuthorizedResult(accessService, {
         indexKey: {
-          tenantId: plan.request.tenantId,
+          namespaceId: plan.request.namespaceId,
           authorityScopeCid: plan.request.authorityScopeCid,
           runDefinitionCid: plan.runDefinition.identity,
         },
@@ -8056,7 +8056,7 @@ async function exerciseStrategyGraph(
         const delivered = [];
         await deliverAuthorizedResult(accessService, {
           indexKey: {
-            tenantId: plan.request.tenantId,
+            namespaceId: plan.request.namespaceId,
             authorityScopeCid: plan.request.authorityScopeCid,
             runDefinitionCid: plan.runDefinition.identity,
           },
@@ -8282,7 +8282,7 @@ async function exerciseStrategyGraph(
           return error.code === 'CapturedRunPublicationFailed';
         });
         await assert.rejects(failurePublicationStore.lookupCommittedIndex({
-          tenantId: plan.request.tenantId,
+          namespaceId: plan.request.namespaceId,
           authorityScopeCid: plan.request.authorityScopeCid,
           runDefinitionCid: plan.runDefinition.identity,
         }, () => true), /PublicationLookupDenied/);
@@ -8546,7 +8546,7 @@ async function exerciseStrategyGraph(
     assert.equal(fixture.strategyFixtureRetainedRowLimit(
       expansionFailure.failure.cause), true);
     await assert.rejects(expansionPublicationStore.lookupCommittedIndex({
-      tenantId: plan.request.tenantId,
+      namespaceId: plan.request.namespaceId,
       authorityScopeCid: plan.request.authorityScopeCid,
       runDefinitionCid: plan.runDefinition.identity,
     }, () => true), /PublicationLookupDenied/);

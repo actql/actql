@@ -60,7 +60,7 @@ async function installed(t, {entries, profile = {}, secret,
     credentialPrivateKeyPath: join(root, 'credential.key'),
     environment: 'test', instanceOrigin: org.origin,
     journalRoot: join(root, 'credential-journal'), orgId: org.orgId,
-    siteGeneration: 1, siteKey: 'salesforce-site', tenant: 'tenant-a',
+    siteGeneration: 1, siteKey: 'salesforce-site', namespaceId: 'namespace-a',
     caPath: join(root, 'org-ca.crt'), ...profile,
   };
   const path = join(root, 'salesforce-site.json');
@@ -108,8 +108,8 @@ test('installed Salesforce Site syncs its Catalog under Host-issued grants',
     assert.equal(binding.site_key, 'salesforce-site');
     // The secret source sees only the installed scope.
     assert.deepEqual([...new Set(setup.scopes.map(scope => [scope.principal,
-      scope.tenant, scope.environment, scope.siteKey, scope.resourceOrigin]
-      .join(' ')))], [`principal-a tenant-a test salesforce-site ${
+      scope.namespaceId, scope.environment, scope.siteKey, scope.resourceOrigin]
+      .join(' ')))], [`principal-a namespace-a test salesforce-site ${
       setup.org.origin}`]);
   });
 
@@ -790,6 +790,37 @@ test('a closing Site refuses new operations until its journal is released',
     // A released Site does not close its journal again.
     site.close();
     assert.equal(journal.calls.close, 2);
+  });
+
+test('a real credential journal close retry releases the closing Site',
+  async t => {
+    const setup = await installed(t, {entries: [
+      accountEntry('records-write', 'allow', {
+        connection: 'salesforce:00D000000000001EAA',
+        resource: 'Test_Record__c', operation: 'effect'})]});
+    const site = await setup.load();
+    const close = DatabaseSync.prototype.close;
+    const failure = new Error('InjectedSqliteCloseFailure');
+    let attempts = 0;
+    DatabaseSync.prototype.close = function() {
+      if (++attempts === 1) throw failure;
+      return close.call(this);
+    };
+    try {
+      assert.throws(() => site.close(), error => error === failure);
+      assert.equal(site.cleanupPending(), true);
+      assert.throws(() => site.attestEffectCapability({
+        operation: 'salesforce:record:update', runInvocationCid: cid('3'),
+        dispatchRequestCid: cid('4')}), {code: 'SalesforceSiteClosed'});
+      site.close();
+      assert.equal(site.cleanupPending(), false);
+      site.close();
+      assert.equal(attempts, 2);
+    } finally {
+      DatabaseSync.prototype.close = close;
+    }
+    const reopened = await setup.load();
+    reopened.close();
   });
 
 test('a failed Site owner keeps its primary failure and hands over the release',

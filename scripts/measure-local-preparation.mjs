@@ -45,7 +45,7 @@ for (const kind of ['values', 'tasks']) {
     return (acquired ? acquiredTaskRunAdmission : sourceFreeValuesPlan)({
       moon, control, preparedProgram, document, format: 'json', parameters,
       environmentWire, environmentCid, authorityScopeCid: cid('a'),
-      tenantId: 'local', requestId: 'preparation-probe',
+      namespaceId: 'local', requestId: 'preparation-probe',
       storeAuthorityCid: cid('c'), now: () => '2026-09-27T00:00:00.000Z',
     });
   };

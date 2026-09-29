@@ -25,7 +25,11 @@ foreign acceptance does not become a known Run.
 The Client serializes the submitted Program and parameters before awaiting an
 asynchronous credential callback, so later mutation of caller objects cannot
 change that transmission. An application that may need to resend must retain
-its own original input and explicit request ID.
+its own original input and explicit request ID. After an unknown response,
+retain the original connection selection as well: `lookupContext` identifies
+the endpoint and Host-reported scope for investigation, but does not grant
+access or authorize looking up the request through a different Workspace or
+embedded Host root. Reconnect never submits automatically.
 
 Connected Local uses a Local Host endpoint. Cloud-owned Hybrid selects at
 least one registered Runner; local-owned Hybrid names its already registered

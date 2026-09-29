@@ -24,6 +24,14 @@ pub(all) struct Diagnostic {
 }
 
 ///|
+/// Closed semantic roles supplied by a checked frontend scope. A macro cannot
+/// turn a Graph element into an untyped runtime value.
+pub(all) enum MacroValue {
+  Field(String)
+  Integer(Int)
+}
+
+///|
 struct Lowered {
   source : @builder.Source
   expression : @expression.Expression
@@ -186,8 +194,42 @@ pub fn append(
   builder : @builder.Builder,
   max_work : Int,
 ) -> Result[@builder.Node, Diagnostic] {
+  append_with_macros(ast, resolve, (_, _) => None, builder, max_work)
+}
+
+///|
+/// Resolve a closed frontend macro before its element reference is lowered.
+/// Other callers retain the ordinary scalar-function vocabulary above.
+pub fn append_with_macros(
+  ast : @query.Expression,
+  resolve : (Array[@query.NamePart]) -> String?,
+  resolve_macro : (Array[@query.NamePart], Array[@query.NamePart]) -> MacroValue?,
+  builder : @builder.Builder,
+  max_work : Int,
+) -> Result[@builder.Node, Diagnostic] {
   if max_work < 0 {
     return Err({ issue: InvalidLimits, origin: None, })
+  }
+  let count = @query.expression_node_count(ast)
+  if count > max_work {
+    return Err({ issue: WorkLimit, origin: None, })
+  }
+  let macro_children : Array[MacroValue?] = Array::make(count, None)
+  let macro_calls : Array[Int?] = Array::make(count, None)
+  for i in 0..<count {
+    guard @query.expression_node(ast, i) is Some({ kind: Call(path, args), .. }) &&
+      args.length() == 1 &&
+      @query.expression_node(ast, args[0])
+      is Some({ kind: Reference(argument), .. }) else {
+      continue
+    }
+    match resolve_macro(path, argument) {
+      Some(value) => {
+        macro_children[args[0]] = Some(value)
+        macro_calls[i] = Some(args[0])
+      }
+      None => ()
+    }
   }
   let nodes : Array[@builder.Node] = []
   let literals : Array[@builder.Node?] = []
@@ -218,13 +260,23 @@ pub fn append(
           literal = Some(raw)
           lowering.form("literal", raw)
         }
-        Reference(parts) => {
-          let name = match resolve(parts) {
-            Some(name) => name
-            None => raise Abort(UnknownReference)
+        Reference(parts) =>
+          match macro_children[i] {
+            Some(Field(name)) =>
+              lowering.form("field", lowering.add(String(name)))
+            Some(Integer(value)) => {
+              let raw = lowering.add(Number(value.to_double()))
+              literal = Some(raw)
+              lowering.form("literal", raw)
+            }
+            None => {
+              let name = match resolve(parts) {
+                Some(name) => name
+                None => raise Abort(UnknownReference)
+              }
+              lowering.form("field", lowering.add(String(name)))
+            }
           }
-          lowering.form("field", lowering.add(String(name)))
-        }
         ParameterReference(name) =>
           lowering.form("$param", lowering.add(String(name)))
         Parenthesized(child) => {
@@ -278,17 +330,21 @@ pub fn append(
             value
           }
         }
-        Call(path, args) => {
-          let (name, minimum, maximum) = scalar_call(path)
-          if args.length() < minimum || args.length() > maximum {
-            raise Abort(InvalidArguments)
+        Call(path, args) =>
+          match macro_calls[i] {
+            Some(child) => nodes[child]
+            None => {
+              let (name, minimum, maximum) = scalar_call(path)
+              if args.length() < minimum || args.length() > maximum {
+                raise Abort(InvalidArguments)
+              }
+              if maximum == 1 {
+                lowering.form(name, nodes[args[0]])
+              } else {
+                lowering.arguments(name, args.map(i => nodes[i]))
+              }
+            }
           }
-          if maximum == 1 {
-            lowering.form(name, nodes[args[0]])
-          } else {
-            lowering.arguments(name, args.map(i => nodes[i]))
-          }
-        }
         Predicate(op, args) =>
           if op == "IN" || op == "NOT IN" {
             let items : Array[@builder.Node] = []

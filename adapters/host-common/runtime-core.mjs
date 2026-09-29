@@ -1440,7 +1440,7 @@ function remoteCredentialControl(moon) {
     return [
       grant.issuerAuthority,
       grant.principal,
-      grant.tenant,
+      grant.namespaceId,
       grant.environment,
       grant.siteKey,
       grant.siteGeneration,
@@ -1891,7 +1891,7 @@ function publicationControl(moon) {
         throw new TypeError('Foreign Client compiled Run');
       }
     },
-    defineCheckedClientCompiledRun(compiled, {tenantId, runId,
+    defineCheckedClientCompiledRun(compiled, {namespaceId, runId,
       createdAt, validUntil, retainedDefinitionWire}) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined) {
@@ -1899,7 +1899,7 @@ function publicationControl(moon) {
       }
       return inspect(compiledRunResult(retainedDefinitionWire === undefined
         ? moon.clientProgramIssueCompiledRunDefinition(value,
-          tenantId, runId, createdAt, validUntil)
+          namespaceId, runId, createdAt, validUntil)
         : moon.clientProgramAdmitCompiledRunDefinition(value,
           retainedDefinitionWire), compiled.kind === 'tasks'
         ? 'RunHostTaskDefinitionRejected'
@@ -2675,7 +2675,7 @@ function publicationControl(moon) {
       return inspect(checked(moon.strategyIssuePublicationRequest(
         token(runDefinition),
         definitions.map(token),
-        intent.tenantId,
+        intent.namespaceId,
         intent.authorityScopeCid,
         intent.publicationPolicyCid,
         intent.publicationTargetCid,

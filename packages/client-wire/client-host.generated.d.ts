@@ -1,7 +1,7 @@
 // Generated from the registered Client–Host machine contract.
 export type ClientHostOperation = "connect" | "submit" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "reconcile" | "read" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek";
 export type WireRunRefShape = Readonly<{
-  tenantId: string;
+  namespaceId: string;
   authorityScopeCid: string;
   runDefinitionCid: string;
 }>;
@@ -36,7 +36,7 @@ export type WireProfileShape = Readonly<{
 
 export type WireAdmissionShape = Readonly<{
   ref: Readonly<{
-  tenantId: string;
+  namespaceId: string;
   authorityScopeCid: string;
   runDefinitionCid: string;
 }>;
@@ -48,7 +48,7 @@ export type WireLookupFoundShape = Readonly<{
   kind: "found";
   requestId: string;
   ref: Readonly<{
-  tenantId: string;
+  namespaceId: string;
   authorityScopeCid: string;
   runDefinitionCid: string;
 }>;
@@ -135,7 +135,7 @@ export type WireSubmitPreparationErrorShape = Readonly<{
 
 export type WireCancellationShape = Readonly<{
   ref: Readonly<{
-  tenantId: string;
+  namespaceId: string;
   authorityScopeCid: string;
   runDefinitionCid: string;
 }>;
@@ -147,7 +147,7 @@ export type WireRequestCancellationShape = Readonly<{
   requestId: string;
   kind: "accepted" | "already_requested" | "already_terminal";
   ref?: Readonly<{
-  tenantId: string;
+  namespaceId: string;
   authorityScopeCid: string;
   runDefinitionCid: string;
 }>;

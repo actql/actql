@@ -8,7 +8,7 @@ import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createDiagnosticObserver, diagnosticObserver} from
   '../host-common/diagnostic-observer.mjs';
 
-const ref = {tenantId: 'tenant-a',
+const ref = {namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
 const state = {version: 'actql-run-state/0.1', run_id: 'run-a',

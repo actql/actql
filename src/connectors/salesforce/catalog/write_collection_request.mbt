@@ -162,7 +162,7 @@ pub fn recheck_write_collection_request(
 ///|
 pub fn write_collection_request_matches_site_scope(
   value : WriteCollectionRequest,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   site_key : String,
@@ -175,7 +175,7 @@ pub fn write_collection_request_matches_site_scope(
 ) -> Bool {
   write_binding_matches_site_scope(
     value.projection.binding,
-    tenant,
+    namespace_id,
     principal,
     environment,
     site_key,
@@ -342,8 +342,9 @@ fn emit_collection_record(
   target_key : String?,
   limits : WriteCollectionRequestLimits,
 ) -> Result[Unit, WriteCollectionRequestIssue] {
+  // Each row is rebuilt from its ActQL values, as its single body was.
   let parsed = match
-    @source.parse_json(item.body.json, {
+    @source.parse_json(item.body.value_json, {
       max_input_bytes: limits.max_body_bytes,
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,

@@ -4,7 +4,7 @@ import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
-const ref = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+const ref = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
   runDefinitionCid: cid('b')};
 const profile = {version: 'actql-client-host/0.1', mode: 'local',
   owner: 'local', durability: 'volatile', scopeRef: 'local-principal',
@@ -19,7 +19,7 @@ test('in-process Host checks current scope and exact attach reference',
     const host = createNodeInProcessClientHost({
       authenticate: () => 'local-principal',
       authorizeConnection: ({ref: requested}) =>
-        requested === undefined || requested.tenantId === 'tenant-a',
+        requested === undefined || requested.namespaceId === 'namespace-a',
       negotiate: () => profile,
       attach: () => {
         attached++;
@@ -30,7 +30,7 @@ test('in-process Host checks current scope and exact attach reference',
     });
     const client = await connectInProcess({mode: 'local', owner: 'local'},
       host);
-    await assert.rejects(client.attach({...ref, tenantId: 'tenant-b'}),
+    await assert.rejects(client.attach({...ref, namespaceId: 'namespace-b'}),
       {code: 'ClientConnectionDenied'});
     assert.equal(attached, 0);
     await assert.rejects(client.attach(ref),

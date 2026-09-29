@@ -10,7 +10,7 @@ export interface ResultAccessService {
 }
 
 export interface ResultAccessKey {
-  readonly tenantId: string;
+  readonly namespaceId: string;
   readonly authorityScopeCid: string;
   readonly runDefinitionCid: string;
 }

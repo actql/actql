@@ -1,7 +1,7 @@
 ///|
 fn observation_test_binding() -> CatalogObservationBinding {
   {
-    tenant: "tenant-a",
+    namespace_id: "namespace-a",
     principal: "principal-a",
     environment: "test",
     connection_revision: "connection-revision-a",

@@ -51,6 +51,38 @@ pub suberror QueryBridgeRejected {
 }
 
 ///|
+fn graph_bridge_array(
+  text : String,
+) -> Array[@wire.Cursor] raise QueryBridgeRejected {
+  let source = match @source.parse_json(text, limits().source.source) {
+    Ok(value) => value
+    Err(_) => raise QueryBridgeRejected
+  }
+  let cursor = match @wire.admit(source, limits().source.tree) {
+    Ok(value) => value
+    Err(_) => raise QueryBridgeRejected
+  }
+  match @wire.elements(cursor) {
+    Ok(value) => value
+    Err(_) => raise QueryBridgeRejected
+  }
+}
+
+///|
+fn graph_bridge_fields(
+  text : String,
+) -> Array[String] raise QueryBridgeRejected {
+  let fields : Array[String] = []
+  for field in graph_bridge_array(text) {
+    match @wire.text(field) {
+      Ok(name) => fields.push(name)
+      Err(_) => raise QueryBridgeRejected
+    }
+  }
+  fields
+}
+
+///|
 #export_name("compileQueryJson")
 pub fn compile_query_json(
   text : String,
@@ -182,8 +214,10 @@ fn compile_query_json_checked(
           @query.Captured(declaration)
         },
         visible_fields,
+        graph_bindings: [],
       },
     ],
+    graph_inputs: [],
   }
   let program = match @query.compile(parsed, context, limits()) {
     Ok(program) => program
@@ -192,6 +226,54 @@ fn compile_query_json_checked(
   let writer = @encode.writer(100000, 10000, 100)
   @program.emit_metadata_stripped_program(program, writer)
   @encode.finish(writer)
+}
+
+///|
+#export_name("compileGeneratedGraphQueryJson")
+pub fn compile_generated_graph_query_json(
+  text : String,
+  relation : String,
+  steps_json : String,
+  node_fields_json : String,
+  edge_fields_json : String,
+  program_id : String,
+) -> String {
+  try {
+    let parsed = match @syntax.parse_query(text, syntax_limits()) {
+      Ok(value) => value
+      Err(_) => raise QueryBridgeRejected
+    }
+    let steps = graph_bridge_array(steps_json)
+    let nodes = graph_bridge_fields(node_fields_json)
+    let edges = graph_bridge_fields(edge_fields_json)
+    let context : @query.Context = {
+      program_id,
+      stage_id: "main",
+      stage_result: "rows",
+      result_name: "answer",
+      captured_stage: None,
+      parameter_declarations: None,
+      inputs: [],
+      graph_inputs: [
+        {
+          relation: [{ value: relation, quoted: false, }],
+          name: relation,
+          source: @query.GeneratedGraph(steps),
+          node_fields: nodes,
+          edge_fields: edges,
+        },
+      ],
+    }
+    let program = match @query.compile(parsed, context, limits()) {
+      Ok(value) => value
+      Err(_) => raise QueryBridgeRejected
+    }
+    let writer = @encode.writer(100000, 10000, 100)
+    @program.emit_metadata_stripped_program(program, writer)
+    @encode.finish(writer)
+  } catch {
+    _ => ""
+  }
 }
 
 ///|
@@ -234,6 +316,7 @@ fn values_input(
     name,
     source: @query.GeneratedValues(declaration),
     visible_fields,
+    graph_bindings: [],
   }
 }
 
@@ -265,6 +348,7 @@ pub fn compile_two_values_set_query_json(
         values_input(left_name, left_json, left_fields_json),
         values_input(right_name, right_json, right_fields_json),
       ],
+      graph_inputs: [],
     }
     let program = match @query.compile(parsed, context, limits()) {
       Ok(program) => program

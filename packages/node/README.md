@@ -13,3 +13,10 @@ does not install an external source. Embedded Local-owned Hybrid remains
 unavailable. See the [current implementation status](../../docs/reviews/current-product-status.md).
 An explicit Local endpoint can use the connected Host path. The Remote SDK
 does not depend on the Local package or DuckDB.
+
+Embedded Local and Remote HTTP expose the same public submit, lookup, Run
+status, Checkpoint, Named Result and cancellation operations. Transport does
+not make a held or unknown request safe to resubmit under another connection.
+The [packed acceptance record](../../docs/reviews/2026-09-29-local-remote-client-parity.md)
+uses one Values document in both modes and distinguishes these local Host
+tests from live Cloud verification.

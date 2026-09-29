@@ -120,7 +120,7 @@ export async function describeSalesforceResources({
     bodies.push(null);
   }
   const observation = checked(moon.salesforcePrepareCatalogObservation(
-    sync, scope.tenant, scope.principal, scope.environment,
+    sync, scope.namespaceId, scope.principal, scope.environment,
     connectionRevision, orgId, scope.siteKey, scope.siteGeneration,
     scope.connectorRegistration, scope.connectorRevision,
     scope.resourceOrigin, scope.runInvocationCid, scope.dispatchRequestCid,
@@ -173,7 +173,7 @@ export function recoverNamedSalesforceObservation({moon, evidence,
     evidence.describeBodyBase64.map(value => value === null ? undefined
       : Buffer.from(value, 'base64')),
     [...evidence.outcomes],
-    binding.tenant, binding.principal, binding.environment,
+    binding.namespace_id, binding.principal, binding.environment,
     binding.connection_revision, binding.org_id, binding.site_key,
     binding.site_generation, binding.connector_registration,
     binding.connector_revision, binding.resource_origin,

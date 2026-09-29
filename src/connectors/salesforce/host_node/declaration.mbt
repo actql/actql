@@ -25,7 +25,7 @@ pub fn salesforce_implementation(
 #export_name("salesforceGenerateStaticDeclaration")
 pub fn salesforce_generate_static_declaration(
   observation : @catalog.CatalogObservation,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   connection_revision : String,
@@ -46,7 +46,7 @@ pub fn salesforce_generate_static_declaration(
   max_depth : Int,
 ) -> @catalog.StaticDeclaration raise SalesforceDeclarationBridgeIssue {
   let current : @catalog.CatalogObservationBinding = {
-    tenant,
+    namespace_id,
     principal,
     environment,
     connection_revision,
@@ -224,6 +224,19 @@ pub fn salesforce_prepare_execution_write_body(
     Ok(value) => value
     Err(issue) => raise WriteBody(issue)
   }
+}
+
+///|
+/// The written value a failed row body refused, as canonical JSON, or none
+/// for any other failure. `issue` is the failure of
+/// `salesforcePrepareExecutionWriteBody` for `projection`.
+#export_name("salesforceWriteValueRefusal")
+pub fn salesforce_write_value_refusal(
+  projection : @catalog.WriteProjection,
+  issue : SalesforceCatalogBridgeIssue,
+) -> String? {
+  guard issue is WriteBody(body) else { return None }
+  @catalog.write_body_value_refusal_json(body, projection)
 }
 
 ///|

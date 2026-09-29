@@ -17,6 +17,10 @@ pub(all) enum QueryPageIssue {
   NullRequiredField(String)
   UnexpectedField(String)
   ValueAdmission(String, @admitted.Issue)
+  /// A decimal reply with more integer digits than its declared type.
+  ValueOutOfRange(String)
+  /// A decimal reply with a nonzero digit beyond its declared scale.
+  ValueBeyondScale(String)
 } derive(Eq, Debug)
 
 ///|
@@ -59,6 +63,95 @@ fn admit_query_cell(
   budget.nodes -= nodes
   budget.text_bytes -= text
   Ok(checked)
+}
+
+///|
+/// A Salesforce `datetime` cell: its documented UTC spelling
+/// `yyyy-MM-ddTHH:mm:ss.SSS+0000` is admitted as the ActQL timestamp of the
+/// same instant, ending in `Z`. Any other spelling, offset or precision is an
+/// invalid timestamp; nothing is rounded or read in a local time zone.
+fn admit_datetime_cell(
+  cursor : @decode.Cursor,
+  contract : @contract.Contract,
+  field_name : String,
+  budget : QueryValueBudget,
+) -> Result[@admitted.CheckedValue, QueryPageIssue] {
+  // A value that is not text is refused by the common admission itself.
+  guard @decode.text(cursor) is Ok(text) else {
+    return admit_query_cell(cursor, contract, field_name, budget)
+  }
+  let span = @decode.cursor_span(cursor)
+  guard salesforce_datetime_utc(text) is Some(utc) else {
+    return Err(
+      ValueAdmission(
+        field_name,
+        @admitted.ValueIssue(@admitted.InvalidTimestamp, path=[], span~),
+      ),
+    )
+  }
+  let converted = match
+    @decode.admit({ value: String(utc), span, }, {
+      max_nodes: budget.nodes,
+      max_depth: budget.max_depth,
+      max_string_bytes: budget.text_bytes,
+      max_total_string_bytes: budget.text_bytes,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(BudgetExceeded)
+  }
+  admit_query_cell(converted, contract, field_name, budget)
+}
+
+///|
+/// A Salesforce Number (`double`) cell: the value the reply's JSON number
+/// text denotes is admitted as the declared `decimal(P,S)`, computed from
+/// the text's digits, not through binary64. `finite_number` only checks that
+/// the cell is a JSON number; its binary64 result is not used. Text that is
+/// not a JSON number is the wrong type; a value with too many integer digits
+/// or a nonzero digit beyond the scale is refused, never rounded.
+fn admit_decimal_cell(
+  cursor : @decode.Cursor,
+  source : Bytes,
+  field : FieldMetadata,
+  contract : @contract.Contract,
+  budget : QueryValueBudget,
+) -> Result[@admitted.CheckedValue, QueryPageIssue] {
+  let span = @decode.cursor_span(cursor)
+  guard @decode.finite_number(cursor) is Ok(_) else {
+    return Err(
+      ValueAdmission(
+        field.name,
+        @admitted.ValueIssue(@admitted.WrongType, path=[], span~),
+      ),
+    )
+  }
+  guard double_decimal(field) is Some((precision, scale)) &&
+    source_lexeme(source, cursor) is Some(lexeme) else {
+    return Err(InvalidResponse)
+  }
+  let text = match json_number_decimal(lexeme, precision, scale) {
+    Ok(value) => value
+    Err(DecimalRange) => return Err(ValueOutOfRange(field.name))
+    Err(DecimalScale) => return Err(ValueBeyondScale(field.name))
+    Err(DecimalFormat) =>
+      return Err(
+        ValueAdmission(
+          field.name,
+          @admitted.ValueIssue(@admitted.InvalidDecimal, path=[], span~),
+        ),
+      )
+  }
+  let converted = match
+    @decode.admit({ value: String(text), span, }, {
+      max_nodes: budget.nodes,
+      max_depth: budget.max_depth,
+      max_string_bytes: budget.text_bytes,
+      max_total_string_bytes: budget.text_bytes,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(BudgetExceeded)
+  }
+  admit_query_cell(converted, contract, field.name, budget)
 }
 
 ///|
@@ -219,7 +312,15 @@ pub fn project_query_page(
           if @decode.is_null(value) && !field.nullable {
             return Err(NullRequiredField(field.name))
           }
-          match admit_query_cell(value, contract, field.name, budget) {
+          let admitted = if field.native_type == "datetime" &&
+            !@decode.is_null(value) {
+            admit_datetime_cell(value, contract, field.name, budget)
+          } else if field.native_type == "double" && !@decode.is_null(value) {
+            admit_decimal_cell(value, bytes, field, contract, budget)
+          } else {
+            admit_query_cell(value, contract, field.name, budget)
+          }
+          match admitted {
             Ok(checked) => cells.push(checked)
             Err(issue) => return Err(issue)
           }
@@ -287,4 +388,71 @@ pub fn query_page_response_sha256(page : QueryPage) -> String {
 ///|
 pub fn query_page_total_size(page : QueryPage) -> Int64 {
   page.total_size
+}
+
+///|
+/// A provider value that is not a value of its declared ActQL type. It names
+/// the Resource, the field, the declared type and the kind of violation;
+/// the value itself is never part of it.
+pub(all) struct QueryValueViolation {
+  resource : String
+  field : String
+  expected_type : String
+  kind : String
+} derive(Eq, Debug)
+
+///|
+/// The value violation behind a page failure, if the failure is one: the
+/// wrong type (`type`), a null or missing required value (`null`,
+/// `missing`), a value that is not a valid spelling of its type (`format`),
+/// or a decimal with too many integer digits (`range`) or a nonzero digit
+/// beyond its scale (`scale`). Budget and response failures are not value
+/// violations.
+pub fn query_page_value_violation(
+  issue : QueryPageIssue,
+  plan : ReadProjection,
+) -> QueryValueViolation? {
+  let (field, kind) = match issue {
+    ValueOutOfRange(field) => (field, "range")
+    ValueBeyondScale(field) => (field, "scale")
+    MissingRequiredField(field) => (field, "missing")
+    NullRequiredField(field) => (field, "null")
+    ValueAdmission(field, @admitted.ValueIssue(kind, ..)) =>
+      match kind {
+        WrongType => (field, "type")
+        UnexpectedNull => (field, "null")
+        InvalidNumber
+        | InvalidUnicode
+        | NonCanonicalText
+        | InvalidDecimal
+        | InvalidDate
+        | InvalidTimestamp
+        | StringConstraint => (field, "format")
+        _ => return None
+      }
+    ValueAdmission(field, @admitted.Decode(decoded)) =>
+      match decoded.kind {
+        WrongType => (field, "type")
+        UnexpectedNull => (field, "null")
+        OutOfRange | InvalidDecimal | InvalidUnicode => (field, "format")
+        _ => return None
+      }
+    _ => return None
+  }
+  guard plan.fields.search_by(value => value.name == field) is Some(index) &&
+    read_value_type(plan.fields[index].native_type) is Some(expected_type) else {
+    return None
+  }
+  Some({ resource: plan.resource, field, expected_type, kind, })
+}
+
+///|
+/// A violation as canonical JSON.
+pub fn query_value_violation_json(value : QueryValueViolation) -> String {
+  object([
+    ("expected_type", value.expected_type.to_json()),
+    ("field", value.field.to_json()),
+    ("kind", value.kind.to_json()),
+    ("resource", value.resource.to_json()),
+  ]).stringify()
 }

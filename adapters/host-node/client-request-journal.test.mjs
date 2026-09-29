@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {mkdir, mkdtemp, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, readdir, rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
 import {DatabaseSync} from 'node:sqlite';
@@ -35,7 +36,7 @@ const contractLimits = Object.freeze({
 function runDefinition(runId = 'saved-run') {
   return publicationControl.seal('run_definition', JSON.stringify({
     version: 'actql-run-definition/0.1',
-    scope_id: 'tenant-a-scope',
+    scope_id: 'namespace-a-scope',
     run_id: runId,
     compiled_plan_cid: cid('1'),
     invocation_template_cid: cid('2'),
@@ -57,7 +58,7 @@ function identity(fields = fixture) {
 
 function claimPhysicalStart(journal, ref, requested = identity(),
   currentAuthorization = true) {
-  return journal.reservePhysicalStart(requested, {tenantId: 'tenant-a',
+  return journal.reservePhysicalStart(requested, {namespaceId: 'namespace-a',
     ref, currentAuthorization}, moon, publicationControl);
 }
 
@@ -84,7 +85,7 @@ test('rollback failure retains the primary acceptance error', async t => {
     END`);
   database.close();
   assert.throws(() => journal.accept(identity(), {
-    tenantId: 'tenant-a', runDefinitionCid: cid('d'),
+    namespaceId: 'namespace-a', runDefinitionCid: cid('d'),
     lookupExpiresAt: expires,
   }, moon), error => {
     assert.equal(error.code, 'ClientRequestAcceptanceUnknown');
@@ -94,7 +95,7 @@ test('rollback failure retains the primary acceptance error', async t => {
     assert.match(error.rollbackCause.message, /rollback/u);
     return true;
   });
-  assert.equal(journal.lookup({tenantId: 'tenant-a',
+  assert.equal(journal.lookup({namespaceId: 'namespace-a',
     authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon),
   undefined);
 });
@@ -105,7 +106,7 @@ test('rollback failure retains the primary Run-start error', async t => {
   t.after(() => journal.close());
   const requested = identity();
   const accepted = journal.acceptDefinition(requested, {
-    tenantId: 'tenant-a', runDefinition: runDefinition(),
+    namespaceId: 'namespace-a', runDefinition: runDefinition(),
     lookupExpiresAt: expires, resultNames: ['answer'],
   }, moon, publicationControl);
   const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
@@ -115,7 +116,7 @@ test('rollback failure retains the primary Run-start error', async t => {
     END`);
   database.close();
   assert.throws(() => journal.reserveDispatch(requested, {
-    tenantId: 'tenant-a', currentAuthorization: true,
+    namespaceId: 'namespace-a', currentAuthorization: true,
   }, moon, publicationControl), error => {
     assert.equal(error.code, 'ClientRunStartUnknown');
     assert.equal(error.operation, 'start');
@@ -135,19 +136,19 @@ test('durable Client request survives ACK loss and restart without a new Run',
     const requested = identity();
     assert.ok(requested);
     const accepted = first.accept(requested, {
-      tenantId: 'tenant-a', runDefinitionCid: cid('d'),
+      namespaceId: 'namespace-a', runDefinitionCid: cid('d'),
       lookupExpiresAt: expires,
     }, moon);
     assert.equal(accepted.inserted, true);
     assert.deepEqual(accepted.ref, {
-      tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+      namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
       runDefinitionCid: cid('d'),
     });
     first.close(); // The acceptance reply is deliberately not used.
 
     const reopened = openClientRequestJournal(path);
     t.after(() => reopened.close());
-    const found = reopened.lookup({tenantId: 'tenant-a',
+    const found = reopened.lookup({namespaceId: 'namespace-a',
       authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon);
     assert.deepEqual(found, {
       requestId: fixture.requestId,
@@ -156,15 +157,15 @@ test('durable Client request survives ACK loss and restart without a new Run',
       lookupExpiresAt: expires,
     });
     const repeated = reopened.accept(identity(), {
-      tenantId: 'tenant-a', runDefinitionCid: cid('e'),
+      namespaceId: 'namespace-a', runDefinitionCid: cid('e'),
       lookupExpiresAt: expires,
     }, moon);
     assert.equal(repeated.inserted, false);
     assert.deepEqual(repeated.ref, accepted.ref);
-    assert.equal(reopened.lookup({tenantId: 'tenant-a',
+    assert.equal(reopened.lookup({namespaceId: 'namespace-a',
       authorityScopeCid: cid('c'), requestId: fixture.requestId}, moon),
     undefined);
-    assert.equal(reopened.lookup({tenantId: 'tenant-b',
+    assert.equal(reopened.lookup({namespaceId: 'namespace-b',
       authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon),
     undefined);
   });
@@ -174,10 +175,10 @@ test('Run Definition and request acceptance survive one atomic restart',
     const path = await directory(t);
     const first = openClientRequestJournal(path);
     const definition = runDefinition();
-    assert.equal(first.resolveDefinition(identity(), {tenantId: 'tenant-a'},
+    assert.equal(first.resolveDefinition(identity(), {namespaceId: 'namespace-a'},
       moon, publicationControl), undefined);
     const accepted = first.acceptDefinition(identity(), {
-      tenantId: 'tenant-a', runDefinition: definition,
+      namespaceId: 'namespace-a', runDefinition: definition,
       lookupExpiresAt: expires,
     }, moon, publicationControl);
     assert.equal(accepted.inserted, true);
@@ -186,7 +187,7 @@ test('Run Definition and request acceptance survive one atomic restart',
 
     const restarted = openClientRequestJournal(path);
     t.after(() => restarted.close());
-    const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+    const key = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
       requestId: fixture.requestId};
     const retained = restarted.lookupDefinition(key, moon,
       publicationControl);
@@ -199,7 +200,7 @@ test('Run Definition and request acceptance survive one atomic restart',
     assert.equal(attached.requestId, fixture.requestId);
     assert.equal(attached.runDefinition.wire, definition.wire);
     for (const foreign of [
-      {...accepted.ref, tenantId: 'tenant-b'},
+      {...accepted.ref, namespaceId: 'namespace-b'},
       {...accepted.ref, authorityScopeCid: cid('c')},
       {...accepted.ref, runDefinitionCid: cid('d')},
     ]) {
@@ -207,11 +208,11 @@ test('Run Definition and request acceptance survive one atomic restart',
         publicationControl), undefined);
     }
     const resolved = restarted.resolveDefinition(identity(),
-      {tenantId: 'tenant-a'}, moon, publicationControl);
+      {namespaceId: 'namespace-a'}, moon, publicationControl);
     assert.equal(resolved.ref.runDefinitionCid, definition.identity);
     assert.equal(resolved.runDefinition.wire, definition.wire);
     assert.equal(restarted.resolveDefinition(identity(),
-      {tenantId: 'tenant-b'}, moon, publicationControl), undefined);
+      {namespaceId: 'namespace-b'}, moon, publicationControl), undefined);
     const changed = {...fixture, parameterValuesCid: cid('c')};
     changed.intentFingerprintCid = hashCanonical({
       caller_input_intent_cid: changed.callerInputIntentCid,
@@ -220,15 +221,15 @@ test('Run Definition and request acceptance survive one atomic restart',
       version: 'actql-logical-request-intent/0.1',
     });
     assert.throws(() => restarted.resolveDefinition(identity(changed),
-      {tenantId: 'tenant-a'}, moon, publicationControl),
+      {namespaceId: 'namespace-a'}, moon, publicationControl),
     {code: 'ClientRequestIntentConflict'});
     const repeated = restarted.acceptDefinition(identity(), {
-      tenantId: 'tenant-a', runDefinition: runDefinition('new-run'),
+      namespaceId: 'namespace-a', runDefinition: runDefinition('new-run'),
       lookupExpiresAt: expires,
     }, moon, publicationControl);
     assert.equal(repeated.inserted, false);
     assert.equal(repeated.runDefinition.wire, definition.wire);
-    assert.equal(restarted.lookupDefinition({...key, tenantId: 'tenant-b'},
+    assert.equal(restarted.lookupDefinition({...key, namespaceId: 'namespace-b'},
       moon, publicationControl), undefined);
   });
 
@@ -237,7 +238,7 @@ test('one durable Run dispatch reservation survives an unknown start',
     const path = await directory(t);
     const first = openClientRequestJournal(path);
     const definition = runDefinition('reserved-run');
-    first.acceptDefinition(identity(), {tenantId: 'tenant-a',
+    first.acceptDefinition(identity(), {namespaceId: 'namespace-a',
       runDefinition: definition, lookupExpiresAt: expires},
     moon, publicationControl);
     first.close(); // The Run is accepted, but no dispatch was reserved.
@@ -247,29 +248,29 @@ test('one durable Run dispatch reservation survives an unknown start',
       requestControl: moon, publicationControl,
       authorizeRunStart: () => false});
     await assert.rejects(deniedStart({identity: identity(),
-      tenantId: 'tenant-a', principalId: 'principal-a', connection: {}}),
+      namespaceId: 'namespace-a', principalId: 'principal-a', connection: {}}),
     {code: 'ClientRunStartDenied'});
     assert.throws(() => restarted.reserveDispatch(identity(), {
-      tenantId: 'tenant-b', currentAuthorization: true,
+      namespaceId: 'namespace-b', currentAuthorization: true,
     }, moon, publicationControl), {code: 'ClientRunStartDenied'});
     const start = installNodeClientRunStart({journal: restarted,
       requestControl: moon, publicationControl,
       authorizeRunStart: ({ref}) => ref.runDefinitionCid ===
         definition.identity});
     const reserved = await start({identity: identity(),
-      tenantId: 'tenant-a', principalId: 'principal-a', connection: {}});
+      namespaceId: 'namespace-a', principalId: 'principal-a', connection: {}});
     assert.equal(reserved.kind, 'reserved');
     assert.equal(reserved.revision, 1);
     assert.equal(reserved.ref.runDefinitionCid, definition.identity);
     assert.equal(restarted.reserveDispatch(identity(), {
-      tenantId: 'tenant-a', currentAuthorization: true,
+      namespaceId: 'namespace-a', currentAuthorization: true,
     }, moon, publicationControl).kind, 'reconcile');
     restarted.close(); // Physical work may or may not have started.
 
     const recovered = openClientRequestJournal(path);
     t.after(() => recovered.close());
     const repeated = recovered.reserveDispatch(identity(), {
-      tenantId: 'tenant-a', currentAuthorization: true,
+      namespaceId: 'namespace-a', currentAuthorization: true,
     }, moon, publicationControl);
     assert.equal(repeated.kind, 'reconcile');
     assert.equal(repeated.revision, 1);
@@ -289,15 +290,15 @@ test('one durable Run dispatch reservation survives an unknown start',
       requestControl: moon, publicationControl,
       authorizeRunStart: () => true});
     await assert.rejects(recoveredDeniedStart({identity: identity(changed),
-      tenantId: 'tenant-a', principalId: 'principal-a', connection: {}}),
+      namespaceId: 'namespace-a', principalId: 'principal-a', connection: {}}),
     {code: 'ClientRunStartDenied'});
     await assert.rejects(recoveredStart({identity: identity(changed),
-      tenantId: 'tenant-a', principalId: 'principal-a', connection: {}}),
+      namespaceId: 'namespace-a', principalId: 'principal-a', connection: {}}),
     {code: 'ClientRequestIntentConflict'});
     assert.throws(() => recovered.reserveDispatch(identity(changed), {
-      tenantId: 'tenant-a', currentAuthorization: true,
+      namespaceId: 'namespace-a', currentAuthorization: true,
     }, moon, publicationControl), {code: 'ClientRequestIntentConflict'});
-    assert.equal(recovered.lookup({tenantId: 'tenant-a',
+    assert.equal(recovered.lookup({namespaceId: 'namespace-a',
       authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon)
       .revision, 1);
   });
@@ -308,15 +309,15 @@ test('only an exact reserved Run retains a confirmed pre-dispatch failure',
     const first = openClientRequestJournal(path);
     const definition = runDefinition('failed-before-site');
     const accepted = first.acceptDefinition(identity(), {
-      tenantId: 'tenant-a', runDefinition: definition,
+      namespaceId: 'namespace-a', runDefinition: definition,
       lookupExpiresAt: expires,
     }, moon, publicationControl);
     assert.throws(() => first.markPreDispatchFailure(accepted.ref),
       {code: 'ClientRunFailureObservationDenied'});
-    first.reserveDispatch(identity(), {tenantId: 'tenant-a',
+    first.reserveDispatch(identity(), {namespaceId: 'namespace-a',
       currentAuthorization: true}, moon, publicationControl);
     for (const ref of [
-      {...accepted.ref, tenantId: 'other-tenant'},
+      {...accepted.ref, namespaceId: 'other-namespace'},
       {...accepted.ref, authorityScopeCid: cid('c')},
       {...accepted.ref, runDefinitionCid: cid('d')},
     ]) {
@@ -335,7 +336,7 @@ test('only an exact reserved Run retains a confirmed pre-dispatch failure',
     assert.equal(retained.revision, 2);
     assert.equal(claimPhysicalStart(reopened, accepted.ref), false);
     assert.equal(reopened.reserveDispatch(identity(), {
-      tenantId: 'tenant-a', currentAuthorization: true,
+      namespaceId: 'namespace-a', currentAuthorization: true,
     }, moon, publicationControl).kind, 'reconcile');
   });
 
@@ -344,10 +345,10 @@ test('a restarted Run can claim physical start once after a safe reservation',
     const path = await directory(t);
     const first = openClientRequestJournal(path);
     const accepted = first.acceptDefinition(identity(), {
-      tenantId: 'tenant-a', runDefinition: runDefinition('restart-before-site'),
+      namespaceId: 'namespace-a', runDefinition: runDefinition('restart-before-site'),
       lookupExpiresAt: expires,
     }, moon, publicationControl);
-    first.reserveDispatch(identity(), {tenantId: 'tenant-a',
+    first.reserveDispatch(identity(), {namespaceId: 'namespace-a',
       currentAuthorization: true}, moon, publicationControl);
     first.close();
     const reopened = openClientRequestJournal(path);
@@ -355,7 +356,7 @@ test('a restarted Run can claim physical start once after a safe reservation',
     assert.equal(reopened.lookupRunDefinition(accepted.ref, moon,
       publicationControl).physicalStartReserved, false);
     assert.throws(() => claimPhysicalStart(reopened, {
-      ...accepted.ref, tenantId: 'other-tenant',
+      ...accepted.ref, namespaceId: 'other-namespace',
     }), {code: 'ClientRunPhysicalStartDenied'});
     assert.throws(() => claimPhysicalStart(reopened, accepted.ref,
       identity(), false), {code: 'ClientRunPhysicalStartDenied'});
@@ -374,12 +375,12 @@ test('checked Result inventory stays with the durable Run', async t => {
   const journal = openClientRequestJournal(path);
   const definition = runDefinition('inventory-run');
   const first = journal.acceptDefinition(identity(), {
-    tenantId: 'tenant-a', runDefinition: definition,
+    namespaceId: 'namespace-a', runDefinition: definition,
     resultNames: ['answer'], lookupExpiresAt: expires,
   }, moon, publicationControl);
   assert.deepEqual(first.resultNames, ['answer']);
   assert.throws(() => journal.acceptDefinition(identity(), {
-    tenantId: 'tenant-a', runDefinition: definition,
+    namespaceId: 'namespace-a', runDefinition: definition,
     resultNames: ['different'], lookupExpiresAt: expires,
   }, moon, publicationControl), {code: 'ClientRequestResultInventoryMismatch'});
   journal.close();
@@ -398,7 +399,7 @@ test('admit-or-lookup skips issuance after ACK loss and rejects changed intent',
     t.after(() => first.close());
     let issued = 0;
     const accepted = await first.admitOrLookupDefinition(identity(), {
-      tenantId: 'tenant-a', lookupExpiresAt: expires,
+      namespaceId: 'namespace-a', lookupExpiresAt: expires,
       issueDefinition: () => { issued++; return runDefinition(); },
     }, moon, publicationControl);
     assert.equal(accepted.inserted, true);
@@ -408,7 +409,7 @@ test('admit-or-lookup skips issuance after ACK loss and rejects changed intent',
     const restarted = openClientRequestJournal(path);
     t.after(() => restarted.close());
     const repeated = await restarted.admitOrLookupDefinition(identity(), {
-      tenantId: 'tenant-a', lookupExpiresAt: expires,
+      namespaceId: 'namespace-a', lookupExpiresAt: expires,
       issueDefinition: () => { issued++; return runDefinition('foreign'); },
     }, moon, publicationControl);
     assert.equal(repeated.inserted, false);
@@ -426,7 +427,7 @@ test('admit-or-lookup skips issuance after ACK loss and rejects changed intent',
     });
     await assert.rejects(restarted.admitOrLookupDefinition(
       identity(changed), {
-        tenantId: 'tenant-a', lookupExpiresAt: expires,
+        namespaceId: 'namespace-a', lookupExpiresAt: expires,
         issueDefinition: () => { issued++; return runDefinition('changed'); },
       }, moon, publicationControl), {code: 'ClientRequestIntentConflict'});
     assert.equal(issued, 1);
@@ -441,7 +442,7 @@ test('racing issuers return one atomic Run acceptance', async t => {
   const gate = Promise.withResolvers();
   let issuers = 0;
   const submit = (journal, runId) => journal.admitOrLookupDefinition(
-    identity(), {tenantId: 'tenant-a', lookupExpiresAt: expires,
+    identity(), {namespaceId: 'namespace-a', lookupExpiresAt: expires,
       issueDefinition: async () => {
         issuers++;
         await gate.promise;
@@ -463,15 +464,15 @@ test('Run Definition re-admission rejects corruption and incomplete records',
     const journal = openClientRequestJournal(path);
     const definition = runDefinition();
     assert.throws(() => journal.acceptDefinition(identity(), {
-      tenantId: 'tenant-a',
+      namespaceId: 'namespace-a',
       runDefinition: {...definition, identity: cid('f')},
       lookupExpiresAt: expires,
     }, moon, publicationControl), {code: 'InvalidClientRunDefinition'});
-    assert.equal(journal.lookup({tenantId: 'tenant-a',
+    assert.equal(journal.lookup({namespaceId: 'namespace-a',
       authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon),
     undefined);
     journal.acceptDefinition(identity(), {
-      tenantId: 'tenant-a', runDefinition: definition,
+      namespaceId: 'namespace-a', runDefinition: definition,
       lookupExpiresAt: expires,
     }, moon, publicationControl);
     journal.close();
@@ -481,21 +482,21 @@ test('Run Definition re-admission rejects corruption and incomplete records',
     database.close();
     const reopened = openClientRequestJournal(path);
     t.after(() => reopened.close());
-    const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+    const key = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
       requestId: fixture.requestId};
     assert.equal(reopened.lookup(key, moon).ref.runDefinitionCid,
       definition.identity);
     assert.throws(() => reopened.lookupDefinition(key, moon,
       publicationControl), {code: 'ClientRequestJournalCorrupt'});
     assert.throws(() => reopened.lookupRunDefinition({
-      tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+      namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
       runDefinitionCid: definition.identity,
     }, moon, publicationControl), {code: 'ClientRequestJournalCorrupt'});
     assert.throws(() => reopened.resolveDefinition(identity(),
-      {tenantId: 'tenant-a'}, moon, publicationControl),
+      {namespaceId: 'namespace-a'}, moon, publicationControl),
     {code: 'ClientRequestJournalCorrupt'});
     assert.throws(() => reopened.acceptDefinition(identity(), {
-      tenantId: 'tenant-a', runDefinition: definition,
+      namespaceId: 'namespace-a', runDefinition: definition,
       lookupExpiresAt: expires,
     }, moon, publicationControl), {code: 'ClientRequestJournalCorrupt'});
   });
@@ -504,22 +505,22 @@ test('legacy request rows are not invented as complete Run Definitions',
   async t => {
     const path = await directory(t);
     const journal = openClientRequestJournal(path);
-    journal.accept(identity(), {tenantId: 'tenant-a',
+    journal.accept(identity(), {namespaceId: 'namespace-a',
       runDefinitionCid: cid('d'), lookupExpiresAt: expires}, moon);
     journal.close();
     const reopened = openClientRequestJournal(path);
     t.after(() => reopened.close());
-    const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+    const key = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
       requestId: fixture.requestId};
     assert.throws(() => reopened.lookupDefinition(key, moon,
       publicationControl), {code: 'ClientRequestDefinitionMissing'});
     assert.throws(() => reopened.acceptDefinition(identity(), {
-      tenantId: 'tenant-a', runDefinition: runDefinition(),
+      namespaceId: 'namespace-a', runDefinition: runDefinition(),
       lookupExpiresAt: expires,
     }, moon, publicationControl), {code: 'ClientRequestDefinitionMissing'});
   });
 
-test('existing journal schema migrates without inventing Run authority',
+test('an unmarked prior journal is rejected without changing its bytes',
   async t => {
     const path = await directory(t);
     const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
@@ -542,33 +543,18 @@ test('existing journal schema migrates without inventing Run authority',
       fixture.authorityScopeCid, fixture.requestId,
       fixture.logicalRequestScopeCid, fixture.intentFingerprintCid,
       fixture.programDefinitionCid, fixture.parameterValuesCid,
-      fixture.callerInputIntentCid, 'tenant-a', cid('d'), 0, expires);
+      fixture.callerInputIntentCid, 'namespace-a', cid('d'), 0, expires);
     database.close();
-    const migrated = openClientRequestJournal(path);
-    t.after(() => migrated.close());
-    const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
-      requestId: fixture.requestId};
-    assert.equal(migrated.lookup(key, moon).ref.runDefinitionCid, cid('d'));
-    assert.throws(() => migrated.lookupDefinition(key, moon,
-      publicationControl), {code: 'ClientRequestDefinitionMissing'});
-    const next = {...fixture, requestId: 'after-migration'};
-    next.logicalRequestScopeCid = hashCanonical({
-      authority_scope_cid: next.authorityScopeCid,
-      caller_request_id: next.requestId,
-      version: 'actql-logical-request/0.1',
-    });
-    assert.ok(identity(next));
-    const nextDefinition = runDefinition('new-run');
-    assert.equal(migrated.acceptDefinition(identity(next), {
-      tenantId: 'tenant-a', runDefinition: nextDefinition,
-      lookupExpiresAt: expires,
-    }, moon, publicationControl).inserted, true);
-    assert.equal(migrated.reserveDispatch(identity(next), {
-      tenantId: 'tenant-a', currentAuthorization: true,
-    }, moon, publicationControl).kind, 'reserved');
+    const databasePath = join(path, 'client-requests.sqlite3');
+    const original = await readFile(databasePath);
+    const names = await readdir(path);
+    assert.throws(() => openClientRequestJournal(path),
+      {code: 'LegacyClientRequestJournalFormat'});
+    assert.deepEqual(await readFile(databasePath), original);
+    assert.deepEqual(await readdir(path), names);
   });
 
-test('legacy accepted Runs migrate as dispatch-uncertain, not unstarted',
+test('an unmarked accepted Run is never opened for physical restart',
   async t => {
     const path = await directory(t);
     const definition = runDefinition('legacy-run');
@@ -581,7 +567,7 @@ test('legacy accepted Runs migrate as dispatch-uncertain, not unstarted',
       program_definition_cid TEXT NOT NULL,
       parameter_values_cid TEXT NOT NULL,
       caller_input_intent_cid TEXT NOT NULL,
-      tenant_id TEXT NOT NULL,
+      namespace_id TEXT NOT NULL,
       run_definition_cid TEXT NOT NULL UNIQUE,
       run_definition_wire TEXT,
       revision INTEGER NOT NULL CHECK (revision >= 0),
@@ -593,47 +579,92 @@ test('legacy accepted Runs migrate as dispatch-uncertain, not unstarted',
       fixture.authorityScopeCid, fixture.requestId,
       fixture.logicalRequestScopeCid, fixture.intentFingerprintCid,
       fixture.programDefinitionCid, fixture.parameterValuesCid,
-      fixture.callerInputIntentCid, 'tenant-a', definition.identity,
+      fixture.callerInputIntentCid, 'namespace-a', definition.identity,
       definition.wire, 0, expires);
     database.close();
-    const migrated = openClientRequestJournal(path);
-    t.after(() => migrated.close());
-    const start = migrated.reserveDispatch(identity(), {
-      tenantId: 'tenant-a', currentAuthorization: true,
-    }, moon, publicationControl);
-    assert.equal(start.kind, 'reconcile');
-    assert.equal(start.revision, 0);
-    assert.equal(start.ref.runDefinitionCid, definition.identity);
-    assert.equal(migrated.lookupRunDefinition(start.ref, moon,
-      publicationControl).physicalStartReserved, undefined);
-    assert.equal(claimPhysicalStart(migrated, start.ref), false);
+    const databasePath = join(path, 'client-requests.sqlite3');
+    const original = await readFile(databasePath);
+    assert.throws(() => openClientRequestJournal(path),
+      {code: 'LegacyClientRequestJournalFormat'});
+    assert.deepEqual(await readFile(databasePath), original);
   });
 
-test('prior reserved Runs never migrate into a safe physical restart',
+test('a changed schema under the current marker is rejected before use',
   async t => {
     const path = await directory(t);
     const first = openClientRequestJournal(path);
-    const accepted = first.acceptDefinition(identity(), {
-      tenantId: 'tenant-a', runDefinition: runDefinition('prior-reserved'),
+    first.acceptDefinition(identity(), {
+      namespaceId: 'namespace-a', runDefinition: runDefinition('prior-reserved'),
       lookupExpiresAt: expires,
     }, moon, publicationControl);
-    first.reserveDispatch(identity(), {tenantId: 'tenant-a',
+    first.reserveDispatch(identity(), {namespaceId: 'namespace-a',
       currentAuthorization: true}, moon, publicationControl);
     first.close();
     const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
     database.exec('ALTER TABLE client_requests DROP COLUMN '
       + 'physical_start_reserved');
     database.close();
-    const migrated = openClientRequestJournal(path);
-    t.after(() => migrated.close());
-    const retained = migrated.lookupRunDefinition(accepted.ref, moon,
-      publicationControl);
-    assert.equal(retained.dispatchReserved, true);
-    assert.equal(retained.physicalStartReserved, undefined);
-    assert.equal(claimPhysicalStart(migrated, accepted.ref), false);
-    assert.throws(() => migrated.markPreDispatchFailure(accepted.ref),
-      {code: 'ClientRunFailureObservationDenied'});
+    const databasePath = join(path, 'client-requests.sqlite3');
+    const original = await readFile(databasePath);
+    assert.throws(() => openClientRequestJournal(path),
+      {code: 'UnknownClientRequestJournalFormat'});
+    assert.deepEqual(await readFile(databasePath), original);
   });
+
+test('a mismatched WAL journal is refused without creating shared memory',
+  async t => {
+    const path = await directory(t);
+    openClientRequestJournal(path).close();
+    const databasePath = join(path, 'client-requests.sqlite3');
+    const writer = new DatabaseSync(databasePath);
+    t.after(() => writer.close());
+    writer.exec('PRAGMA wal_autocheckpoint = 0');
+    writer.exec('ALTER TABLE client_requests RENAME COLUMN namespace_id '
+      + 'TO tenant_id');
+    await rm(`${databasePath}-shm`, {force: true});
+    const snapshot = async () => new Map(await Promise.all(
+      (await readdir(path)).sort().map(async name =>
+        [name, await readFile(join(path, name))])));
+    const before = await snapshot();
+    assert.ok(before.has('client-requests.sqlite3-wal'));
+    assert.ok(!before.has('client-requests.sqlite3-shm'));
+    const journalUrl = new URL('./client-request-journal.mjs', import.meta.url);
+    const probe = spawnSync(process.execPath, ['--input-type=module', '-e',
+      `import {openClientRequestJournal} from ${JSON.stringify(journalUrl.href)};
+       try { openClientRequestJournal(process.argv[1]); process.exit(2); }
+       catch (error) {
+         if (error.code !== 'UnknownClientRequestJournalFormat') throw error;
+       }`, path], {encoding: 'utf8'});
+    assert.equal(probe.status, 0, probe.stderr);
+    const after = await snapshot();
+    assert.deepEqual([...after.keys()], [...before.keys()]);
+    for (const [name, bytes] of before) {
+      assert.deepEqual(after.get(name), bytes, name);
+    }
+  });
+
+test('a current journal remains readable with uncheckpointed WAL', async t => {
+  const path = await directory(t);
+  openClientRequestJournal(path).close();
+  const databasePath = join(path, 'client-requests.sqlite3');
+  const writer = new DatabaseSync(databasePath);
+  t.after(() => writer.close());
+  writer.exec('PRAGMA wal_autocheckpoint = 0');
+  // The main database is stale; only the uncheckpointed WAL has the
+  // current schema. Ignoring WAL must not make this valid root fail.
+  writer.exec('ALTER TABLE client_requests RENAME COLUMN namespace_id '
+    + 'TO tenant_id');
+  writer.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+  writer.exec('ALTER TABLE client_requests RENAME COLUMN tenant_id '
+    + 'TO namespace_id');
+  await rm(`${databasePath}-shm`, {force: true});
+  assert.ok((await readdir(path)).includes('client-requests.sqlite3-wal'));
+  const reopened = openClientRequestJournal(path);
+  t.after(() => reopened.close());
+  assert.equal(reopened.lookup({namespaceId: 'namespace-a',
+    authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon),
+  undefined);
+});
 
 test('the atomic key rejects changed intent and keeps the original Run',
   async t => {
@@ -643,7 +674,7 @@ test('the atomic key rejects changed intent and keeps the original Run',
     t.after(() => left.close());
     t.after(() => right.close());
     left.accept(identity(), {
-      tenantId: 'tenant-a', runDefinitionCid: cid('d'),
+      namespaceId: 'namespace-a', runDefinitionCid: cid('d'),
       lookupExpiresAt: expires,
     }, moon);
     const changed = {...fixture, parameterValuesCid: cid('c')};
@@ -655,27 +686,54 @@ test('the atomic key rejects changed intent and keeps the original Run',
     });
     assert.ok(identity(changed));
     assert.throws(() => right.accept(identity(changed), {
-      tenantId: 'tenant-a', runDefinitionCid: cid('e'),
+      namespaceId: 'namespace-a', runDefinitionCid: cid('e'),
       lookupExpiresAt: expires,
     }, moon), {code: 'ClientRequestIntentConflict'});
-    assert.equal(right.lookup({tenantId: 'tenant-a',
+    assert.equal(right.lookup({namespaceId: 'namespace-a',
       authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon)
       .ref.runDefinitionCid, cid('d'));
     assert.equal(right.accept(identity(), {
-      tenantId: 'tenant-a', runDefinitionCid: cid('f'),
+      namespaceId: 'namespace-a', runDefinitionCid: cid('f'),
       lookupExpiresAt: expires,
     }, moon).inserted, false);
     assert.throws(() => right.accept(identity(), {
-      tenantId: 'tenant-b', runDefinitionCid: cid('e'),
+      namespaceId: 'namespace-b', runDefinitionCid: cid('e'),
       lookupExpiresAt: expires,
     }, moon), {code: 'ClientRequestOwnerMismatch'});
+  });
+
+test('equal caller IDs in separate authority scopes remain independent',
+  async t => {
+    const path = await directory(t);
+    const journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const other = {...fixture, authorityScopeCid: cid('e')};
+    other.logicalRequestScopeCid = hashCanonical({
+      authority_scope_cid: other.authorityScopeCid,
+      caller_request_id: other.requestId,
+      version: 'actql-logical-request/0.1',
+    });
+    assert.ok(identity(other));
+    journal.accept(identity(), {namespaceId: 'namespace-a',
+      runDefinitionCid: cid('d'), lookupExpiresAt: expires}, moon);
+    journal.accept(identity(other), {namespaceId: 'namespace-b',
+      runDefinitionCid: cid('e'), lookupExpiresAt: expires}, moon);
+    assert.equal(journal.lookup({namespaceId: 'namespace-a',
+      authorityScopeCid: fixture.authorityScopeCid,
+      requestId: fixture.requestId}, moon).ref.runDefinitionCid, cid('d'));
+    assert.equal(journal.lookup({namespaceId: 'namespace-b',
+      authorityScopeCid: other.authorityScopeCid,
+      requestId: other.requestId}, moon).ref.runDefinitionCid, cid('e'));
+    assert.equal(journal.lookup({namespaceId: 'namespace-b',
+      authorityScopeCid: fixture.authorityScopeCid,
+      requestId: fixture.requestId}, moon), undefined);
   });
 
 test('retained identity corruption is not reported as absence', async t => {
   const path = await directory(t);
   const store = openClientRequestJournal(path);
   store.accept(identity(), {
-    tenantId: 'tenant-a', runDefinitionCid: cid('d'),
+    namespaceId: 'namespace-a', runDefinitionCid: cid('d'),
     lookupExpiresAt: expires,
   }, moon);
   store.close();
@@ -685,7 +743,7 @@ test('retained identity corruption is not reported as absence', async t => {
   database.close();
   const reopened = openClientRequestJournal(path);
   t.after(() => reopened.close());
-  assert.throws(() => reopened.lookup({tenantId: 'tenant-a',
+  assert.throws(() => reopened.lookup({namespaceId: 'namespace-a',
     authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon),
     {code: 'ClientRequestJournalCorrupt'});
 });
@@ -696,7 +754,7 @@ test('different requests cannot alias one Run and capacity rejects before commit
     const first = openClientRequestJournal(path, {maxRecords: 2});
     t.after(() => first.close());
     first.accept(identity(), {
-      tenantId: 'tenant-a', runDefinitionCid: cid('d'),
+      namespaceId: 'namespace-a', runDefinitionCid: cid('d'),
       lookupExpiresAt: expires,
     }, moon);
     const next = {...fixture, requestId: 'another-request'};
@@ -707,14 +765,14 @@ test('different requests cannot alias one Run and capacity rejects before commit
     });
     assert.ok(identity(next));
     assert.throws(() => first.accept(identity(next), {
-      tenantId: 'tenant-a', runDefinitionCid: cid('d'),
+      namespaceId: 'namespace-a', runDefinitionCid: cid('d'),
       lookupExpiresAt: expires,
     }, moon), {code: 'ClientRequestRunAlreadyAssigned'});
-    assert.equal(first.lookup({tenantId: 'tenant-a',
+    assert.equal(first.lookup({namespaceId: 'namespace-a',
       authorityScopeCid: cid('a'), requestId: next.requestId}, moon),
     undefined);
     first.accept(identity(next), {
-      tenantId: 'tenant-a', runDefinitionCid: cid('e'),
+      namespaceId: 'namespace-a', runDefinitionCid: cid('e'),
       lookupExpiresAt: expires,
     }, moon);
     const third = {...fixture, requestId: 'third-request'};
@@ -724,7 +782,7 @@ test('different requests cannot alias one Run and capacity rejects before commit
       version: 'actql-logical-request/0.1',
     });
     assert.throws(() => first.accept(identity(third), {
-      tenantId: 'tenant-a', runDefinitionCid: cid('f'),
+      namespaceId: 'namespace-a', runDefinitionCid: cid('f'),
       lookupExpiresAt: expires,
     }, moon), {code: 'ClientRequestJournalCapacity'});
   });
@@ -734,10 +792,10 @@ test('durable cancellation excludes physical start after restart', async t => {
   const path = await directory(t);
   let journal = openClientRequestJournal(path);
   const requested = identity();
-  const accepted = journal.acceptDefinition(requested, {tenantId: 'tenant-a',
+  const accepted = journal.acceptDefinition(requested, {namespaceId: 'namespace-a',
     runDefinition: runDefinition(), lookupExpiresAt: expires,
     resultNames: ['answer']}, moon, publicationControl);
-  journal.reserveDispatch(requested, {tenantId: 'tenant-a',
+  journal.reserveDispatch(requested, {namespaceId: 'namespace-a',
     currentAuthorization: true}, moon, publicationControl);
   assert.throws(() => journal.requestCancellation(accepted.ref, {
     currentAuthorization: false, publicationCommitted: false,
@@ -765,7 +823,7 @@ test('durable cancellation excludes physical start after restart', async t => {
     revision: cancelled.revision,
   });
   assert.throws(() => journal.requestCancellation({...accepted.ref,
-    tenantId: 'other'}, {currentAuthorization: true,
+    namespaceId: 'other'}, {currentAuthorization: true,
     publicationCommitted: false}, moon, publicationControl),
   /ClientRunCancellationDenied/);
 });
@@ -775,10 +833,10 @@ test('started cancellation never invents stop and terminal completion wins',
     const journal = openClientRequestJournal(await directory(t));
     t.after(() => journal.close());
     const requested = identity();
-    const accepted = journal.acceptDefinition(requested, {tenantId: 'tenant-a',
+    const accepted = journal.acceptDefinition(requested, {namespaceId: 'namespace-a',
       runDefinition: runDefinition(), lookupExpiresAt: expires,
       resultNames: ['answer']}, moon, publicationControl);
-    journal.reserveDispatch(requested, {tenantId: 'tenant-a',
+    journal.reserveDispatch(requested, {namespaceId: 'namespace-a',
       currentAuthorization: true}, moon, publicationControl);
     assert.equal(claimPhysicalStart(journal, accepted.ref), true);
     const cancelled = journal.requestCancellation(accepted.ref, {
@@ -804,10 +862,10 @@ test(`started Run retains confirmed ${outcome} across restart and cancellation`,
     t.after(() => journal.close());
     const requested = identity();
     const accepted = journal.acceptDefinition(requested, {
-      tenantId: 'tenant-a', runDefinition: runDefinition(),
+      namespaceId: 'namespace-a', runDefinition: runDefinition(),
       lookupExpiresAt: expires, resultNames: ['answer'],
     }, moon, publicationControl);
-    journal.reserveDispatch(requested, {tenantId: 'tenant-a',
+    journal.reserveDispatch(requested, {namespaceId: 'namespace-a',
       currentAuthorization: true}, moon, publicationControl);
     assert.equal(claimPhysicalStart(journal, accepted.ref), true);
     journal.close();
@@ -863,21 +921,21 @@ test('every definition lookup rejects a corrupt retained Result inventory',
     t.after(() => journal.close());
     const requested = identity();
     const accepted = journal.acceptDefinition(requested, {
-      tenantId: 'tenant-a', runDefinition: runDefinition(),
+      namespaceId: 'namespace-a', runDefinition: runDefinition(),
       lookupExpiresAt: expires, resultNames: ['answer'],
     }, moon, publicationControl);
     const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
     database.prepare('UPDATE client_requests SET result_names_json = ?')
       .run('["answer","answer"]');
     database.close();
-    const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+    const key = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
       requestId: fixture.requestId};
     assert.throws(() => journal.lookupDefinition(key, moon,
       publicationControl), {code: 'ClientRequestJournalCorrupt'});
     assert.throws(() => journal.lookupRunDefinition(accepted.ref, moon,
       publicationControl), {code: 'ClientRequestJournalCorrupt'});
     assert.throws(() => journal.resolveDefinition(requested,
-      {tenantId: 'tenant-a'}, moon, publicationControl),
+      {namespaceId: 'namespace-a'}, moon, publicationControl),
     {code: 'ClientRequestJournalCorrupt'});
   });
 
@@ -887,7 +945,7 @@ test('a started Run keeps one reconciliation state across a restart',
     let journal = openClientRequestJournal(path);
     t.after(() => journal.close());
     const requested = identity();
-    const accepted = journal.acceptDefinition(requested, {tenantId: 'tenant-a',
+    const accepted = journal.acceptDefinition(requested, {namespaceId: 'namespace-a',
       runDefinition: runDefinition(), lookupExpiresAt: expires,
       resultNames: ['answer']}, moon, publicationControl);
     const state = effects => JSON.stringify({version: 'actql-run-state/0.1',
@@ -900,7 +958,7 @@ test('a started Run keeps one reconciliation state across a restart',
     // Nothing is recorded for a Run that never claimed its physical start.
     assert.throws(() => journal.recordReconciliationState(accepted.ref,
       state(['save'])), {code: 'ClientRunReconciliationDenied'});
-    journal.reserveDispatch(requested, {tenantId: 'tenant-a',
+    journal.reserveDispatch(requested, {namespaceId: 'namespace-a',
       currentAuthorization: true}, moon, publicationControl);
     assert.equal(claimPhysicalStart(journal, accepted.ref), true);
     assert.equal(journal.lookupReconciliationState(accepted.ref), undefined);

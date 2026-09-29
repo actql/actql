@@ -10,7 +10,7 @@ const receipt = JSON.parse(readFileSync(new URL(
   import.meta.url), 'utf8'));
 const cid = char => `sha256:${char.repeat(64)}`;
 const request = () => ({
-  indexKey: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+  indexKey: {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
     runDefinitionCid: receipt.attempt.run_definition_cid},
   principalId: 'principal-a', purpose: 'download', resultName: 'answer',
   attemptId: 'read-a',
@@ -72,7 +72,7 @@ test('attempt lookup keeps the authorized scalar and nested Run snapshot',
     await authorized;
     submitted.resultName = 'foreign';
     submitted.attemptId = 'other';
-    submitted.indexKey.tenantId = 'tenant-b';
+    submitted.indexKey.namespaceId = 'namespace-b';
     submitted.indexKey.runDefinitionCid = cid('9');
     release();
     assert.deepEqual(await pending, receipt);

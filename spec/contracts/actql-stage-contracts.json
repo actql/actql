@@ -3395,7 +3395,7 @@
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
         },
-        "tenant_scope_cid": {
+        "namespace_scope_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
         },
@@ -3523,7 +3523,7 @@
         "claim",
         "issuer_evidence_cid",
         "operator_authority_cid",
-        "tenant_scope_cid",
+        "namespace_scope_cid",
         "policy_revision_cid",
         "validity_evidence_cid",
         "nonce",
@@ -4502,7 +4502,7 @@
     "local_contracts": "sha256:a1dcd5bf20a7d6dceedd4a298b684f439101d391063ae13bb61359bd10d30621",
     "local_dependencies": "sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8",
     "recovery_link": "sha256:76a96bfbd35b3614ea8ae4cea96ec13953d164c8a8a36868d791d2fae41f7d85",
-    "source_advance_claim": "sha256:cbd592cd24ee74462fadf765ccf7354ba1dc64c376c476720a82508f6d01df51",
+    "source_advance_claim": "sha256:14ad763d0e911fadda97695d4ba50726ef9196a5ba41a6d3367295aaccd48c76",
     "commit_eligibility": "sha256:9d90efc4c81d15691e3c26d4a10a7252ff04c781a88afc387a69cdd22869d967",
     "classification_derivation": "sha256:6820601d432bcc0fb61250cd021e140446ea33e9b4a1b4c0c90c839ae0a687a6",
     "stamp_capability": "sha256:53a6aa36eb0bfd9fa6df153fff563893435d56a7d5aad7d7adbd7cf8a90dbd03",

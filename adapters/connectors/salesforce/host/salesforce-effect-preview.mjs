@@ -258,7 +258,10 @@ export function authorObservedSalesforceEffectPreview({
             'create') {
           fail('ForeignSalesforceEffectPreviewObservation');
         }
-        const bodyWire = salesforceMoon.salesforceSingleWriteRequestBody(request);
+        // The Preview states the row as ActQL values; the provider body
+        // spells a decimal as a JSON number instead.
+        const bodyWire =
+          salesforceMoon.salesforceSingleWriteRequestValue(request);
         const bodyBytes = typeof bodyWire === 'string' ?
           Buffer.byteLength(bodyWire, 'utf8') : maxWireBytes;
         if (typeof bodyWire !== 'string' ||

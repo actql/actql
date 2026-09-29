@@ -1401,7 +1401,7 @@ pub fn strategy_issue_durable_result_binding(
 pub fn strategy_issue_publication_request(
   run_definition : @publication.PublicationContract,
   definitions : Array[@publication.PublicationContract],
-  tenant_id : String,
+  namespace_id : String,
   authority_scope_cid : String,
   publication_policy_cid : String,
   publication_target_cid : String,
@@ -1412,7 +1412,7 @@ pub fn strategy_issue_publication_request(
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.issue_publication_request(
-      run_definition, definitions, tenant_id, authority_scope_cid, publication_policy_cid,
+      run_definition, definitions, namespace_id, authority_scope_cid, publication_policy_cid,
       publication_target_cid, requested_at, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
@@ -5883,7 +5883,7 @@ pub fn strategy_remote_historical_restore(
 pub fn strategy_remote_credential_grant_prepare(
   issuer_authority : String,
   principal : String,
-  tenant : String,
+  namespace_id : String,
   environment : String,
   site_key : String,
   site_generation : Int,
@@ -5900,7 +5900,7 @@ pub fn strategy_remote_credential_grant_prepare(
 ) -> @credential.RemoteCredentialGrant raise NodeHostFailure {
   match
     @credential.prepare_grant(
-      issuer_authority, principal, tenant, environment, site_key, site_generation,
+      issuer_authority, principal, namespace_id, environment, site_key, site_generation,
       runtime_bundle_cid, connector_registration, connector_revision, resource_origin,
       operation, run_invocation_cid, task_attempt, dispatch_request_cid, expires_unix_ms,
       max_uses,
@@ -6017,7 +6017,7 @@ pub fn strategy_remote_credential_use_prepare(
   used_count : Int,
   revoked : Bool,
   principal : String,
-  tenant : String,
+  namespace_id : String,
   environment : String,
   site_key : String,
   site_generation : Int,
@@ -6032,9 +6032,10 @@ pub fn strategy_remote_credential_use_prepare(
 ) -> @credential.RemoteCredentialUse raise NodeHostFailure {
   match
     @credential.prepare_credential_use(
-      grant, use_id, trusted_now_ms, used_count, revoked, principal, tenant, environment,
-      site_key, site_generation, runtime_bundle_cid, connector_registration, connector_revision,
-      resource_origin, operation, run_invocation_cid, task_attempt, dispatch_request_cid,
+      grant, use_id, trusted_now_ms, used_count, revoked, principal, namespace_id,
+      environment, site_key, site_generation, runtime_bundle_cid, connector_registration,
+      connector_revision, resource_origin, operation, run_invocation_cid, task_attempt,
+      dispatch_request_cid,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteCredential(issue)
@@ -6067,7 +6068,7 @@ pub fn strategy_remote_credential_use_authorize(
   trusted_now_ms : Int64,
   revoked : Bool,
   principal : String,
-  tenant : String,
+  namespace_id : String,
   environment : String,
   site_key : String,
   site_generation : Int,
@@ -6082,8 +6083,8 @@ pub fn strategy_remote_credential_use_authorize(
 ) -> Unit raise NodeHostFailure {
   match
     @credential.authorize_credential_use(
-      credential_use, trusted_now_ms, revoked, principal, tenant, environment, site_key,
-      site_generation, runtime_bundle_cid, connector_registration, connector_revision,
+      credential_use, trusted_now_ms, revoked, principal, namespace_id, environment,
+      site_key, site_generation, runtime_bundle_cid, connector_registration, connector_revision,
       resource_origin, operation, run_invocation_cid, task_attempt, dispatch_request_cid,
     ) {
     Ok(_) => ()

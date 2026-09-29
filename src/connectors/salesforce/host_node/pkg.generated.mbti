@@ -263,6 +263,8 @@ pub fn salesforce_single_write_request_scope_matches(@catalog.SingleWriteRequest
 
 pub fn salesforce_single_write_request_target_identity(@catalog.SingleWriteRequest, Int) -> @catalog.WriteTargetIdentity? raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_single_write_request_value(@catalog.SingleWriteRequest) -> String
+
 pub fn salesforce_single_write_success_projection(@catalog.WriteSingleResponse) -> Array[String] raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_source_evidence_members(@catalog.StaticDeclaration) -> Array[Array[String]] raise SalesforceDeclarationBridgeIssue
@@ -292,6 +294,8 @@ pub fn salesforce_write_target_boundary_cid(@catalog.WriteTargetIdentity) -> Str
 pub fn salesforce_write_target_object_cid(@catalog.WriteTargetIdentity) -> String
 
 pub fn salesforce_write_target_scheme_cid(@catalog.WriteTargetIdentity) -> String
+
+pub fn salesforce_write_value_refusal(@catalog.WriteProjection, SalesforceCatalogBridgeIssue) -> String?
 
 // Errors
 pub(all) suberror SalesforceCatalogBridgeIssue {

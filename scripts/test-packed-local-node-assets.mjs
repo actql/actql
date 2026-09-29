@@ -206,7 +206,7 @@ const openEffect = journal => effectHost.installNodeClientEffectRun({
 });
 const effectRequest = requestId => ({prepared: effectPrepared,
   authorityScopeCid: fixtureCid('a'), requestId,
-  tenantId: 'packed-local', principalId: 'packed-user',
+  namespaceId: 'packed-local', principalId: 'packed-user',
   connection: {owner: 'local'},
   lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
 let effectJournal = effectHost.openClientRequestJournal('./effect-journal');

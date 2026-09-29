@@ -24,6 +24,7 @@ fn binary_name(op : BinaryOperator) -> String {
     Modulo => "modulo"
     Equal => "eq"
     NotEqual => "neq"
+    IsDistinctFrom => "is_distinct_from"
     Less => "lt"
     LessEqual => "lte"
     Greater => "gt"

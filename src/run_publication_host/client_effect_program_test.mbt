@@ -655,7 +655,7 @@ test "Effectful compiler issues owner-bound Plan and Template" {
     "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "2099-01-01T00:00:00.000Z",
   ).unwrap()
   let definition = issue_client_effect_run_definition(
-    allowed, "tenant-a", "effect-run", "2026-09-26T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
+    allowed, "namespace-a", "effect-run", "2026-09-26T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
   ).unwrap()
   let bound = bind_client_effect_compiled_run(owner, allowed, definition).unwrap()
   assert_true(

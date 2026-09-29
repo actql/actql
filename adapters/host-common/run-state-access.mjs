@@ -79,9 +79,9 @@ export function installRunStateService(configuration) {
 function validateRequest(request) {
   if (!exactKeys(request, ['indexKey', 'principalId', 'purpose']) ||
       !exactKeys(request.indexKey, [
-        'tenantId', 'authorityScopeCid', 'runDefinitionCid',
-      ]) || typeof request.indexKey.tenantId !== 'string' ||
-      request.indexKey.tenantId.length === 0 ||
+        'namespaceId', 'authorityScopeCid', 'runDefinitionCid',
+      ]) || typeof request.indexKey.namespaceId !== 'string' ||
+      request.indexKey.namespaceId.length === 0 ||
       !cidPattern.test(request.indexKey.authorityScopeCid) ||
       !cidPattern.test(request.indexKey.runDefinitionCid) ||
       typeof request.principalId !== 'string' ||

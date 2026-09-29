@@ -13,7 +13,7 @@ const exactKeys = (value, keys) => value !== null &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const indexKeyFields = [
-  'tenantId', 'authorityScopeCid', 'runDefinitionCid',
+  'namespaceId', 'authorityScopeCid', 'runDefinitionCid',
 ];
 
 // Copy only the typed request fields before any authorization or Store await.
@@ -29,7 +29,7 @@ function ownedResultRequest(input, delivery) {
   }
   const sourceKey = input.indexKey;
   const indexKey = Object.freeze({
-    tenantId: sourceKey.tenantId,
+    namespaceId: sourceKey.namespaceId,
     authorityScopeCid: sourceKey.authorityScopeCid,
     runDefinitionCid: sourceKey.runDefinitionCid,
   });
@@ -147,8 +147,8 @@ export function installResultAccessService(configuration) {
 export async function inspectAuthorizedDeliveryAttempt(service, input) {
   const installed = services.get(service) ?? fail('ForeignResultAccessService');
   const request = ownedResultRequest(input, false);
-  if (typeof request.indexKey.tenantId !== 'string' ||
-      !request.indexKey.tenantId ||
+  if (typeof request.indexKey.namespaceId !== 'string' ||
+      !request.indexKey.namespaceId ||
       !cidPattern.test(request.indexKey.authorityScopeCid) ||
       !cidPattern.test(request.indexKey.runDefinitionCid) ||
       typeof request.principalId !== 'string' || !request.principalId ||
@@ -187,9 +187,9 @@ function validateRequest(request) {
     'indexKey', 'principalId', 'purpose', 'resultName', 'format',
     'attemptId',
   ]) || !exactKeys(request.indexKey, [
-    'tenantId', 'authorityScopeCid', 'runDefinitionCid',
-  ]) || typeof request.indexKey.tenantId !== 'string' ||
-      request.indexKey.tenantId.length === 0 ||
+    'namespaceId', 'authorityScopeCid', 'runDefinitionCid',
+  ]) || typeof request.indexKey.namespaceId !== 'string' ||
+      request.indexKey.namespaceId.length === 0 ||
       !cidPattern.test(request.indexKey.authorityScopeCid) ||
       !cidPattern.test(request.indexKey.runDefinitionCid) ||
       typeof request.principalId !== 'string' ||

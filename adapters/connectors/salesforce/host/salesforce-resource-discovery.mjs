@@ -5,7 +5,7 @@ import {catalogRequiredReason, resolveSalesforceResource} from
   './salesforce-resource-resolver.mjs';
 
 const bindingFields = Object.freeze([
-  'tenant', 'principal', 'environment', 'connection_revision', 'org_id',
+  'namespace_id', 'principal', 'environment', 'connection_revision', 'org_id',
   'site_key', 'site_generation', 'connector_registration',
   'connector_revision', 'resource_origin', 'run_invocation_cid',
   'dispatch_request_cid', 'sync_occurrence',

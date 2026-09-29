@@ -42,7 +42,12 @@ fn supported_binary_comparison(
   match left.shape {
     ResourceRef(..) | ArtifactRef(..) =>
       supported_comparison(left, right) &&
-      (operation is Equal || operation is NotEqual || operation is NullIf)
+      (
+        operation is Equal ||
+        operation is NotEqual ||
+        operation is IsDistinctFrom ||
+        operation is NullIf
+      )
     _ => supported_comparison(left, right)
   }
 }
@@ -96,6 +101,7 @@ fn check_backend_capabilities(
           match op {
             Equal
             | NotEqual
+            | IsDistinctFrom
             | Less
             | LessEqual
             | Greater

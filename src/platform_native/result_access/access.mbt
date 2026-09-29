@@ -10,7 +10,7 @@ pub(all) enum NativeResultAccessIssue {
 
 ///|
 pub(all) struct NativeResultAccessRequest {
-  tenant_id : String
+  namespace_id : String
   authority_scope_cid : String
   run_definition_cid : String
   principal_id : String
@@ -97,7 +97,7 @@ fn valid_cid(value : String) -> Bool {
 
 ///|
 fn valid_request(request : NativeResultAccessRequest) -> Bool {
-  !request.tenant_id.is_empty() &&
+  !request.namespace_id.is_empty() &&
   valid_cid(request.authority_scope_cid) &&
   valid_cid(request.run_definition_cid) &&
   !request.principal_id.is_empty() &&
@@ -225,7 +225,7 @@ pub fn open_native_result_access(
   let resolved = match
     store_result(
       service.store.resolve_committed_result(
-        request.tenant_id,
+        request.namespace_id,
         request.authority_scope_cid,
         request.run_definition_cid,
         request.result_name,

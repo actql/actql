@@ -1,8 +1,10 @@
 // Physical durable storage for an owner-issued Client request and Run ref.
 // MoonBit supplies and re-admits the identity and decides intent conflicts.
 import {DatabaseSync} from 'node:sqlite';
-import {closeSync, existsSync, fsyncSync, mkdirSync, openSync,
-  realpathSync} from 'node:fs';
+import {closeSync, constants, existsSync, fstatSync, fsyncSync, lstatSync,
+  mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, readSync,
+  realpathSync, rmSync, writeFileSync, writeSync} from 'node:fs';
+import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
 const cid = value => typeof value === 'string' &&
@@ -66,7 +68,7 @@ function retainedIdentity(row, control) {
 }
 
 function admission(row) {
-  if (!text(row.tenant_id) || !cid(row.authority_scope_cid) ||
+  if (!text(row.namespace_id) || !cid(row.authority_scope_cid) ||
       !cid(row.run_definition_cid) ||
       !Number.isSafeInteger(row.revision) || row.revision < 0 ||
       !instant(row.lookup_expires_at)) {
@@ -74,7 +76,7 @@ function admission(row) {
   }
   return Object.freeze({
     ref: Object.freeze({
-      tenantId: row.tenant_id,
+      namespaceId: row.namespace_id,
       authorityScopeCid: row.authority_scope_cid,
       runDefinitionCid: row.run_definition_cid,
     }),
@@ -195,12 +197,126 @@ function retainedRunFacts(row, publicationControl, maxWireBytes) {
 const columns = `authority_scope_cid, caller_request_id,
   logical_request_scope_cid, intent_fingerprint_cid,
   program_definition_cid, parameter_values_cid, caller_input_intent_cid,
-  tenant_id, run_definition_cid, run_definition_wire, revision,
+  namespace_id, run_definition_cid, run_definition_wire, revision,
   lookup_expires_at, result_names_json, run_admission_evidence_json`;
 const selectColumns = `${columns}, dispatch_reserved,
   pre_dispatch_failure_confirmed, physical_start_reserved,
   cancellation_requested, physical_close_confirmed,
   observed_terminal_outcome`;
+const journalMarker = Buffer.from(JSON.stringify({
+  version: 'actql-client-request-journal/0.1',
+  isolation: 'execution-namespace',
+}), 'utf8');
+const journalColumns = [...columns.split(',').map(name => name.trim()),
+  'dispatch_reserved', 'pre_dispatch_failure_confirmed',
+  'physical_start_reserved', 'cancellation_requested',
+  'physical_close_confirmed', 'observed_terminal_outcome',
+  'reconciliation_state_wire'].sort();
+
+const sameFile = (left, right) => ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
+  .every(key => left[key] === right[key]);
+
+// A read-only SQLite connection can still create -shm beside a WAL database.
+// Inspect a private copy and refuse a source that changes during inspection.
+function inspectJournalSnapshot(directory, databasePath, markerPath) {
+  const entries = readdirSync(directory).sort();
+  const paths = [databasePath];
+  const walPath = `${databasePath}-wal`;
+  if (entries.includes('client-requests.sqlite3-wal')) paths.push(walPath);
+  // An uncommitted rollback journal cannot establish a usable snapshot.
+  if (entries.includes('client-requests.sqlite3-journal')) {
+    fail('UnknownClientRequestJournalFormat');
+  }
+  const sources = [];
+  let isolated;
+  let database;
+  try {
+    for (const path of paths) {
+      const fd = openSync(path, constants.O_RDONLY |
+        (constants.O_NOFOLLOW ?? 0));
+      const identity = fstatSync(fd, {bigint: true});
+      sources.push({path, fd, identity});
+      if (!identity.isFile() ||
+          identity.size > BigInt(Number.MAX_SAFE_INTEGER)) {
+        fail('UnknownClientRequestJournalFormat');
+      }
+    }
+    isolated = mkdtempSync(join(tmpdir(), 'actql-client-journal-check-'));
+    for (const source of sources) {
+      const target = join(isolated, source.path === walPath
+        ? 'client-requests.sqlite3-wal' : 'client-requests.sqlite3');
+      const output = openSync(target, 'wx', 0o600);
+      try {
+        const chunk = Buffer.allocUnsafe(64 * 1024);
+        let offset = 0;
+        while (offset < Number(source.identity.size)) {
+          const count = readSync(source.fd, chunk, 0,
+            Math.min(chunk.length, Number(source.identity.size) - offset),
+            offset);
+          if (count === 0) fail('UnknownClientRequestJournalFormat');
+          let written = 0;
+          while (written < count) {
+            written += writeSync(output, chunk, written, count - written);
+          }
+          offset += count;
+        }
+      } finally { closeSync(output); }
+    }
+    database = new DatabaseSync(join(isolated, 'client-requests.sqlite3'),
+      {open: true, readOnly: true});
+    const fields = database.prepare('PRAGMA table_info(client_requests)')
+      .all().map(field => field.name).sort();
+    if (JSON.stringify(fields) !== JSON.stringify(journalColumns) ||
+        !readFileSync(markerPath).equals(journalMarker) ||
+        JSON.stringify(readdirSync(directory).sort()) !==
+          JSON.stringify(entries) ||
+        sources.some(source => !sameFile(source.identity,
+          fstatSync(source.fd, {bigint: true})) ||
+          !sameFile(source.identity,
+            lstatSync(source.path, {bigint: true})))) {
+      fail('UnknownClientRequestJournalFormat');
+    }
+  } finally {
+    try { database?.close(); }
+    finally {
+      for (const source of sources) closeSync(source.fd);
+      if (isolated !== undefined) rmSync(isolated,
+        {recursive: true, force: true});
+    }
+  }
+}
+
+function admitJournalDirectory(directory) {
+  if (!existsSync(directory)) return false;
+  const state = lstatSync(directory);
+  if (!state.isDirectory() || state.isSymbolicLink()) {
+    fail('UnknownClientRequestJournalFormat');
+  }
+  const entries = readdirSync(directory);
+  if (entries.length === 0) return false;
+  const markerPath = join(directory, 'journal-format.json');
+  if (!entries.includes('journal-format.json')) {
+    fail(entries.includes('client-requests.sqlite3') ?
+      'LegacyClientRequestJournalFormat' :
+      'UnknownClientRequestJournalFormat');
+  }
+  if (!entries.includes('client-requests.sqlite3') ||
+      !lstatSync(markerPath).isFile() ||
+      !readFileSync(markerPath).equals(journalMarker)) {
+    fail('UnknownClientRequestJournalFormat');
+  }
+  const databasePath = join(directory, 'client-requests.sqlite3');
+  if (!lstatSync(databasePath).isFile()) {
+    fail('UnknownClientRequestJournalFormat');
+  }
+  try {
+    inspectJournalSnapshot(directory, databasePath, markerPath);
+  } catch (cause) {
+    if (cause?.code === 'UnknownClientRequestJournalFormat') throw cause;
+    fail('UnknownClientRequestJournalFormat', cause);
+  }
+  return true;
+}
 
 export function openClientRequestJournal(directory, {
   maxRecords = 100_000,
@@ -211,10 +327,12 @@ export function openClientRequestJournal(directory, {
       maxRunDefinitionWireBytes < 1024) {
     fail('InvalidClientRequestJournalConfiguration');
   }
+  const current = admitJournalDirectory(directory);
   mkdirSync(directory, {recursive: true, mode: 0o700});
   const root = realpathSync(directory);
   const path = join(root, 'client-requests.sqlite3');
   const existed = existsSync(path);
+  if (current !== existed) fail('UnknownClientRequestJournalFormat');
   const database = new DatabaseSync(path, {
     open: true,
     readOnly: false,
@@ -234,9 +352,10 @@ export function openClientRequestJournal(directory, {
         program_definition_cid TEXT NOT NULL,
         parameter_values_cid TEXT NOT NULL,
         caller_input_intent_cid TEXT NOT NULL,
-        tenant_id TEXT NOT NULL,
+        namespace_id TEXT NOT NULL,
         run_definition_cid TEXT NOT NULL UNIQUE,
         run_definition_wire TEXT,
+        run_admission_evidence_json TEXT,
         revision INTEGER NOT NULL CHECK (revision >= 0),
         lookup_expires_at TEXT NOT NULL,
         result_names_json TEXT,
@@ -246,76 +365,27 @@ export function openClientRequestJournal(directory, {
           CHECK (pre_dispatch_failure_confirmed IN (0, 1)),
         physical_start_reserved INTEGER NOT NULL DEFAULT 0
           CHECK (physical_start_reserved IN (0, 1)),
+        cancellation_requested INTEGER NOT NULL DEFAULT 0
+          CHECK (cancellation_requested IN (0, 1)),
+        physical_close_confirmed INTEGER NOT NULL DEFAULT 0
+          CHECK (physical_close_confirmed IN (0, 1)),
+        observed_terminal_outcome TEXT
+          CHECK (observed_terminal_outcome IN ('failed', 'cancelled')),
+        reconciliation_state_wire TEXT,
         PRIMARY KEY (authority_scope_cid, caller_request_id)
       ) STRICT;
     `);
-    const fields = database.prepare('PRAGMA table_info(client_requests)')
-      .all();
-    if (!fields.some(field => field.name === 'run_admission_evidence_json')) {
-      database.exec('ALTER TABLE client_requests ADD COLUMN '
-        + 'run_admission_evidence_json TEXT');
-    }
-    if (!fields.some(field => field.name === 'run_definition_wire')) {
-      database.exec('ALTER TABLE client_requests ADD COLUMN '
-        + 'run_definition_wire TEXT');
-    }
-    if (!fields.some(field => field.name === 'result_names_json')) {
-      database.exec('ALTER TABLE client_requests ADD COLUMN '
-        + 'result_names_json TEXT');
-    }
-    if (!fields.some(field => field.name === 'dispatch_reserved')) {
-      // An older journal may already have dispatched its accepted Runs.
-      // Migration must never reinterpret them as safe to start again.
-      database.exec('BEGIN IMMEDIATE');
+    if (!existed) {
+      syncDirectory(root);
+      const marker = openSync(join(root, 'journal-format.json'), 'wx', 0o600);
       try {
-        database.exec('ALTER TABLE client_requests ADD COLUMN '
-          + 'dispatch_reserved INTEGER NOT NULL DEFAULT 0 '
-          + 'CHECK (dispatch_reserved IN (0, 1))');
-        database.exec('UPDATE client_requests SET dispatch_reserved = 1');
-        database.exec('COMMIT');
-      } catch (error) {
-        database.exec('ROLLBACK');
-        throw error;
+        writeFileSync(marker, journalMarker);
+        fsyncSync(marker);
+      } finally {
+        closeSync(marker);
       }
+      syncDirectory(root);
     }
-    if (!fields.some(field => field.name ===
-        'pre_dispatch_failure_confirmed')) {
-      database.exec('ALTER TABLE client_requests ADD COLUMN '
-        + 'pre_dispatch_failure_confirmed INTEGER NOT NULL DEFAULT 0 '
-        + 'CHECK (pre_dispatch_failure_confirmed IN (0, 1))');
-    }
-    if (!fields.some(field => field.name === 'physical_start_reserved')) {
-      // Existing reserved Runs may have started physical work. Keep their
-      // observation unknown, while new rows default to confirmed unstarted.
-      database.exec('BEGIN IMMEDIATE');
-      try {
-        database.exec('ALTER TABLE client_requests ADD COLUMN '
-          + 'physical_start_reserved INTEGER DEFAULT 0 '
-          + 'CHECK (physical_start_reserved IN (0, 1))');
-        database.exec('UPDATE client_requests SET physical_start_reserved = '
-          + 'NULL WHERE dispatch_reserved = 1');
-        database.exec('COMMIT');
-      } catch (error) {
-        database.exec('ROLLBACK');
-        throw error;
-      }
-    }
-    for (const field of ['cancellation_requested', 'physical_close_confirmed']) {
-      if (!fields.some(item => item.name === field)) {
-        database.exec(`ALTER TABLE client_requests ADD COLUMN ${field} ` +
-          `INTEGER NOT NULL DEFAULT 0 CHECK (${field} IN (0, 1))`);
-      }
-    }
-    if (!fields.some(field => field.name === 'observed_terminal_outcome')) {
-      database.exec('ALTER TABLE client_requests ADD COLUMN '
-        + 'observed_terminal_outcome TEXT '
-        + "CHECK (observed_terminal_outcome IN ('failed', 'cancelled'))");
-    }
-    if (!fields.some(field => field.name === 'reconciliation_state_wire')) {
-      database.exec('ALTER TABLE client_requests ADD COLUMN '
-        + 'reconciliation_state_wire TEXT');
-    }
-    if (!existed) syncDirectory(root);
   } catch (error) {
     database.close();
     throw error;
@@ -326,7 +396,7 @@ export function openClientRequestJournal(directory, {
   const select = database.prepare(`SELECT ${selectColumns} FROM client_requests
     WHERE authority_scope_cid = ? AND caller_request_id = ?`);
   const selectRef = database.prepare(`SELECT ${selectColumns} FROM client_requests
-    WHERE tenant_id = ? AND authority_scope_cid = ? AND
+    WHERE namespace_id = ? AND authority_scope_cid = ? AND
       run_definition_cid = ?`);
   const selectRun = database.prepare(`SELECT run_definition_cid
     FROM client_requests WHERE run_definition_cid = ?`);
@@ -339,18 +409,18 @@ export function openClientRequestJournal(directory, {
       dispatch_reserved = 0`);
   const confirmPreDispatchFailure = database.prepare(`UPDATE client_requests
     SET pre_dispatch_failure_confirmed = 1, revision = revision + 1
-    WHERE tenant_id = ? AND authority_scope_cid = ? AND
+    WHERE namespace_id = ? AND authority_scope_cid = ? AND
       run_definition_cid = ? AND dispatch_reserved = 1 AND
       pre_dispatch_failure_confirmed = 0 AND physical_start_reserved = 0 AND
       cancellation_requested = 0`);
   const reservePhysicalStart = database.prepare(`UPDATE client_requests
     SET physical_start_reserved = 1, revision = revision + 1
-    WHERE tenant_id = ? AND authority_scope_cid = ? AND
+    WHERE namespace_id = ? AND authority_scope_cid = ? AND
       run_definition_cid = ? AND dispatch_reserved = 1 AND
       pre_dispatch_failure_confirmed = 0 AND physical_start_reserved = 0 AND
       cancellation_requested = 0`);
 
-  const acceptRecord = (identity, {tenantId, runDefinitionCid,
+  const acceptRecord = (identity, {namespaceId, runDefinitionCid,
     runDefinitionWire, resultNames, runAdmissionEvidence, revision = 0, lookupExpiresAt}, control) => {
     ensureOpen();
     if (!control || typeof control.clientRequestAdmitRecord !== 'function' ||
@@ -358,7 +428,7 @@ export function openClientRequestJournal(directory, {
       fail('InvalidClientRequestJournalControl');
     }
     const fields = checkedIdentity(identity, control);
-    if (!text(tenantId) || !cid(runDefinitionCid) ||
+    if (!text(namespaceId) || !cid(runDefinitionCid) ||
         runDefinitionWire !== undefined &&
           (typeof runDefinitionWire !== 'string' ||
             Buffer.byteLength(runDefinitionWire, 'utf8') >
@@ -380,7 +450,7 @@ export function openClientRequestJournal(directory, {
       const existing = select.get(fields.authorityScopeCid,
         fields.requestId);
       if (existing !== undefined) {
-        if (existing.tenant_id !== tenantId) {
+        if (existing.namespace_id !== namespaceId) {
           fail('ClientRequestOwnerMismatch');
         }
         const relation = control.clientRequestRelation(identity,
@@ -414,13 +484,13 @@ export function openClientRequestJournal(directory, {
       insert.run(fields.authorityScopeCid, fields.requestId,
         fields.logicalRequestScopeCid, fields.intentFingerprintCid,
         fields.programDefinitionCid, fields.parameterValuesCid,
-        fields.callerInputIntentCid, tenantId, runDefinitionCid,
+        fields.callerInputIntentCid, namespaceId, runDefinitionCid,
         runDefinitionWire ?? null, revision, lookupExpiresAt,
         resultNames === undefined ? null : JSON.stringify(resultNames),
         admissionEvidence);
       database.exec('COMMIT');
       return Object.freeze({inserted: true, ref: Object.freeze({
-        tenantId, authorityScopeCid: fields.authorityScopeCid,
+        namespaceId, authorityScopeCid: fields.authorityScopeCid,
         runDefinitionCid,
       }), durability: 'durable', revision, lookupExpiresAt,
       ...(runDefinitionWire === undefined ? {} : {runDefinitionWire}),
@@ -438,16 +508,16 @@ export function openClientRequestJournal(directory, {
     }
   };
 
-  const lookupRecord = ({tenantId, authorityScopeCid, requestId}, control) => {
+  const lookupRecord = ({namespaceId, authorityScopeCid, requestId}, control) => {
     ensureOpen();
-    if (!text(tenantId) || !cid(authorityScopeCid) || !text(requestId) ||
+    if (!text(namespaceId) || !cid(authorityScopeCid) || !text(requestId) ||
         !control || typeof control.clientRequestAdmitRecord !== 'function') {
       fail('InvalidClientRequestLookup');
     }
     let row;
     try { row = select.get(authorityScopeCid, requestId); }
     catch (error) { fail('ClientRequestLookupUnknown', error); }
-    if (row === undefined || row.tenant_id !== tenantId) return undefined;
+    if (row === undefined || row.namespace_id !== namespaceId) return undefined;
     const identity = retainedIdentity(row, control);
     if (control.clientRequestScopeCid(identity) !==
         row.logical_request_scope_cid) {
@@ -463,20 +533,20 @@ export function openClientRequestJournal(directory, {
     // The transaction owns uniqueness and durable acceptance; no task is
     // started here. A duplicate is interpreted only by the common MoonBit
     // relation, never by comparing transport JSON or a local retry counter.
-    accept(identity, {tenantId, runDefinitionCid, revision = 0,
+    accept(identity, {namespaceId, runDefinitionCid, revision = 0,
       lookupExpiresAt}, control) {
-      return acceptRecord(identity, {tenantId, runDefinitionCid,
+      return acceptRecord(identity, {namespaceId, runDefinitionCid,
         revision, lookupExpiresAt}, control);
     },
     // The complete canonical Run Definition is retained in the same
     // transaction as the request. The caller must have obtained it from the
     // shared Run issuer; re-admission here checks identity, not authority.
     // Reattachment never reissues this identity.
-    acceptDefinition(identity, {tenantId, runDefinition, resultNames, runAdmissionEvidence,
+    acceptDefinition(identity, {namespaceId, runDefinition, resultNames, runAdmissionEvidence,
       revision = 0, lookupExpiresAt}, requestControl, publicationControl) {
       const definition = checkedRunDefinition(runDefinition,
         publicationControl, maxRunDefinitionWireBytes);
-      const accepted = acceptRecord(identity, {tenantId,
+      const accepted = acceptRecord(identity, {namespaceId,
         runDefinitionCid: definition.identity,
         runDefinitionWire: definition.wire,
         resultNames, runAdmissionEvidence, revision, lookupExpiresAt}, requestControl);
@@ -516,14 +586,14 @@ export function openClientRequestJournal(directory, {
     // It does not infer authority from a CID alone or create another Run.
     lookupRunDefinition(ref, requestControl, publicationControl) {
       ensureOpen();
-      if (!text(ref?.tenantId) || !cid(ref?.authorityScopeCid) ||
+      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
           !cid(ref?.runDefinitionCid) ||
           typeof requestControl?.clientRequestAdmitRecord !== 'function') {
         fail('InvalidClientRunLookup');
       }
       let row;
       try {
-        row = selectRef.get(ref.tenantId, ref.authorityScopeCid,
+        row = selectRef.get(ref.namespaceId, ref.authorityScopeCid,
           ref.runDefinitionCid);
       } catch (error) { fail('ClientRequestLookupUnknown', error); }
       if (row === undefined) return undefined;
@@ -554,15 +624,15 @@ export function openClientRequestJournal(directory, {
     // A resend can resolve an already accepted request before issuing a new
     // plan or Run Definition. The shared owner compares the checked intent;
     // absence does not prove that a concurrent submission cannot still land.
-    resolveDefinition(identity, {tenantId}, requestControl,
+    resolveDefinition(identity, {namespaceId}, requestControl,
       publicationControl) {
       ensureOpen();
-      if (!text(tenantId) || !requestControl ||
+      if (!text(namespaceId) || !requestControl ||
           typeof requestControl.clientRequestRelation !== 'function') {
         fail('InvalidClientRequestLookup');
       }
       const fields = checkedIdentity(identity, requestControl);
-      const retained = lookupRecord({tenantId,
+      const retained = lookupRecord({namespaceId,
         authorityScopeCid: fields.authorityScopeCid,
         requestId: fields.requestId}, requestControl);
       if (retained === undefined) return undefined;
@@ -581,31 +651,31 @@ export function openClientRequestJournal(directory, {
     // MoonBit relation decides whether a retained intent is the same request;
     // the callback may issue authority but must not start Compute. A racing
     // issuer is discarded when the atomic insert finds an existing Run.
-    async admitOrLookupDefinition(identity, {tenantId, lookupExpiresAt,
+    async admitOrLookupDefinition(identity, {namespaceId, lookupExpiresAt,
       issueDefinition, resultNames}, requestControl, publicationControl) {
-      if (!text(tenantId) || !instant(lookupExpiresAt) ||
+      if (!text(namespaceId) || !instant(lookupExpiresAt) ||
           Date.parse(lookupExpiresAt) <= Date.now() ||
           typeof issueDefinition !== 'function') {
         fail('InvalidClientRequestAdmission');
       }
-      const retained = journal.resolveDefinition(identity, {tenantId},
+      const retained = journal.resolveDefinition(identity, {namespaceId},
         requestControl, publicationControl);
       if (retained !== undefined) {
         return Object.freeze({inserted: false, ...retained});
       }
       const issued = await issueDefinition();
       const runDefinition = issued.runDefinition ?? issued;
-      return journal.acceptDefinition(identity, {tenantId, runDefinition,
+      return journal.acceptDefinition(identity, {namespaceId, runDefinition,
         runAdmissionEvidence: issued.runAdmissionEvidence,
         lookupExpiresAt, resultNames: issued.resultNames ?? resultNames}, requestControl, publicationControl);
     },
     // One physical transaction applies the common MoonBit start decision.
     // A committed reservation records possible dispatch before any work. A
     // later caller must reconcile that Run rather than run Compute again.
-    reserveDispatch(identity, {tenantId, currentAuthorization},
+    reserveDispatch(identity, {namespaceId, currentAuthorization},
       requestControl, publicationControl) {
       ensureOpen();
-      if (!text(tenantId) || typeof currentAuthorization !== 'boolean' ||
+      if (!text(namespaceId) || typeof currentAuthorization !== 'boolean' ||
           typeof requestControl?.clientRunStartAction !== 'function') {
         fail('InvalidClientRunStart');
       }
@@ -613,7 +683,7 @@ export function openClientRequestJournal(directory, {
       database.exec('BEGIN IMMEDIATE');
       try {
         const row = select.get(fields.authorityScopeCid, fields.requestId);
-        if (row === undefined || row.tenant_id !== tenantId) {
+        if (row === undefined || row.namespace_id !== namespaceId) {
           fail('ClientRunStartDenied');
         }
         const retained = retainedIdentity(row, requestControl);
@@ -652,10 +722,10 @@ export function openClientRequestJournal(directory, {
     // The exact durable claim precedes the call that can start physical
     // Compute. A missing claim is safe to resume; a claim or legacy unknown
     // is never evidence that Compute did not run.
-    reservePhysicalStart(identity, {tenantId, ref, currentAuthorization},
+    reservePhysicalStart(identity, {namespaceId, ref, currentAuthorization},
       requestControl, publicationControl) {
       ensureOpen();
-      if (!text(tenantId) || !text(ref?.tenantId) ||
+      if (!text(namespaceId) || !text(ref?.namespaceId) ||
           !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid) ||
           typeof currentAuthorization !== 'boolean' ||
           typeof requestControl?.clientRunPhysicalStartWithCancellationAction !==
@@ -666,8 +736,8 @@ export function openClientRequestJournal(directory, {
       database.exec('BEGIN IMMEDIATE');
       try {
         const row = select.get(fields.authorityScopeCid, fields.requestId);
-        if (row === undefined || row.tenant_id !== tenantId ||
-            ref.tenantId !== tenantId ||
+        if (row === undefined || row.namespace_id !== namespaceId ||
+            ref.namespaceId !== namespaceId ||
             ref.authorityScopeCid !== fields.authorityScopeCid ||
             ref.runDefinitionCid !== row.run_definition_cid) {
           fail('ClientRunPhysicalStartDenied');
@@ -690,7 +760,7 @@ export function openClientRequestJournal(directory, {
             action === 5 ? 'ClientRunPhysicalStartDenied' :
             'ClientRequestJournalCorrupt');
         }
-        if (reservePhysicalStart.run(ref.tenantId,
+        if (reservePhysicalStart.run(ref.namespaceId,
           ref.authorityScopeCid, ref.runDefinitionCid).changes !== 1) {
           fail('ClientRequestJournalCorrupt');
         }
@@ -713,7 +783,7 @@ export function openClientRequestJournal(directory, {
     requestCancellation(ref, {currentAuthorization, publicationCommitted},
       requestControl, publicationControl) {
       ensureOpen();
-      if (!text(ref?.tenantId) || !cid(ref?.authorityScopeCid) ||
+      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
           !cid(ref?.runDefinitionCid) ||
           typeof currentAuthorization !== 'boolean' ||
           typeof publicationCommitted !== 'boolean') {
@@ -721,7 +791,7 @@ export function openClientRequestJournal(directory, {
       }
       database.exec('BEGIN IMMEDIATE');
       try {
-        const row = selectRef.get(ref.tenantId, ref.authorityScopeCid,
+        const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid,
           ref.runDefinitionCid);
         if (row === undefined) fail('ClientRunCancellationDenied');
         retainedIdentity(row, requestControl);
@@ -737,8 +807,8 @@ export function openClientRequestJournal(directory, {
         if (action === 0) {
           database.prepare(`UPDATE client_requests SET
             cancellation_requested = 1, revision = revision + 1
-            WHERE tenant_id = ? AND authority_scope_cid = ? AND
-              run_definition_cid = ?`).run(ref.tenantId,
+            WHERE namespace_id = ? AND authority_scope_cid = ? AND
+              run_definition_cid = ?`).run(ref.namespaceId,
             ref.authorityScopeCid, ref.runDefinitionCid);
         }
         database.exec('COMMIT');
@@ -759,7 +829,7 @@ export function openClientRequestJournal(directory, {
     // A restarted process cannot infer this from its empty worker map.
     markPhysicalClose(ref, terminalOutcome = null) {
       ensureOpen();
-      if (!text(ref?.tenantId) || !cid(ref?.authorityScopeCid) ||
+      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
           !cid(ref?.runDefinitionCid) ||
           terminalOutcome !== null &&
             !['failed', 'cancelled'].includes(terminalOutcome)) {
@@ -767,7 +837,7 @@ export function openClientRequestJournal(directory, {
       }
       database.exec('BEGIN IMMEDIATE');
       try {
-        const row = selectRef.get(ref.tenantId, ref.authorityScopeCid,
+        const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid,
           ref.runDefinitionCid);
         if (row === undefined || row.physical_start_reserved !== 1 ||
             row.physical_close_confirmed === 1 &&
@@ -778,10 +848,10 @@ export function openClientRequestJournal(directory, {
           database.prepare(`UPDATE client_requests SET
             physical_close_confirmed = 1, observed_terminal_outcome = ?,
             revision = revision + 1
-            WHERE tenant_id = ? AND authority_scope_cid = ? AND
+            WHERE namespace_id = ? AND authority_scope_cid = ? AND
               run_definition_cid = ? AND physical_start_reserved = 1 AND
               physical_close_confirmed = 0`).run(terminalOutcome,
-            ref.tenantId, ref.authorityScopeCid, ref.runDefinitionCid);
+            ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
         }
         database.exec('COMMIT');
       } catch (error) {
@@ -798,13 +868,13 @@ export function openClientRequestJournal(directory, {
     // is confirmed. A lost reply or absent worker cannot call this method.
     markPreDispatchFailure(ref) {
       ensureOpen();
-      if (!text(ref?.tenantId) || !cid(ref?.authorityScopeCid) ||
+      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
           !cid(ref?.runDefinitionCid)) {
         fail('InvalidClientRunFailureObservation');
       }
       database.exec('BEGIN IMMEDIATE');
       try {
-        const row = selectRef.get(ref.tenantId, ref.authorityScopeCid,
+        const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid,
           ref.runDefinitionCid);
         if (row === undefined || row.dispatch_reserved !== 1 ||
             row.pre_dispatch_failure_confirmed === 0 &&
@@ -812,7 +882,7 @@ export function openClientRequestJournal(directory, {
           fail('ClientRunFailureObservationDenied');
         }
         if (row.pre_dispatch_failure_confirmed === 0 &&
-            confirmPreDispatchFailure.run(ref.tenantId,
+            confirmPreDispatchFailure.run(ref.namespaceId,
               ref.authorityScopeCid, ref.runDefinitionCid).changes !== 1) {
           fail('ClientRequestJournalCorrupt');
         }
@@ -834,7 +904,7 @@ export function openClientRequestJournal(directory, {
     // replaced: a different state for the same Run is a conflict.
     recordReconciliationState(ref, wire) {
       ensureOpen();
-      if (!text(ref?.tenantId) || !cid(ref?.authorityScopeCid) ||
+      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
           !cid(ref?.runDefinitionCid) || typeof wire !== 'string' ||
           Buffer.byteLength(wire, 'utf8') > maxRunDefinitionWireBytes) {
         fail('InvalidClientRunReconciliation');
@@ -850,8 +920,8 @@ export function openClientRequestJournal(directory, {
       try {
         const row = database.prepare(`SELECT physical_start_reserved,
           reconciliation_state_wire FROM client_requests
-          WHERE tenant_id = ? AND authority_scope_cid = ? AND
-            run_definition_cid = ?`).get(ref.tenantId, ref.authorityScopeCid,
+          WHERE namespace_id = ? AND authority_scope_cid = ? AND
+            run_definition_cid = ?`).get(ref.namespaceId, ref.authorityScopeCid,
           ref.runDefinitionCid);
         if (row === undefined || row.physical_start_reserved !== 1) {
           fail('ClientRunReconciliationDenied');
@@ -863,8 +933,8 @@ export function openClientRequestJournal(directory, {
         if (row.reconciliation_state_wire === null) {
           database.prepare(`UPDATE client_requests SET
             reconciliation_state_wire = ?, revision = revision + 1
-            WHERE tenant_id = ? AND authority_scope_cid = ? AND
-              run_definition_cid = ?`).run(wire, ref.tenantId,
+            WHERE namespace_id = ? AND authority_scope_cid = ? AND
+              run_definition_cid = ?`).run(wire, ref.namespaceId,
             ref.authorityScopeCid, ref.runDefinitionCid);
         }
         database.exec('COMMIT');
@@ -881,14 +951,14 @@ export function openClientRequestJournal(directory, {
     },
     lookupReconciliationState(ref) {
       ensureOpen();
-      if (!text(ref?.tenantId) || !cid(ref?.authorityScopeCid) ||
+      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
           !cid(ref?.runDefinitionCid)) {
         fail('InvalidClientRunLookup');
       }
       const row = database.prepare(`SELECT reconciliation_state_wire
-        FROM client_requests WHERE tenant_id = ? AND
+        FROM client_requests WHERE namespace_id = ? AND
           authority_scope_cid = ? AND run_definition_cid = ?`).get(
-        ref.tenantId, ref.authorityScopeCid, ref.runDefinitionCid);
+        ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
       return row?.reconciliation_state_wire ?? undefined;
     },
     close() {

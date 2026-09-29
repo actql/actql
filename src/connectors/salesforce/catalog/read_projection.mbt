@@ -38,7 +38,9 @@ pub(all) enum ExactIntComparison {
 
 ///|
 /// Only wire forms that have an exact, lossless ActQL scalar admission are
-/// enabled. Decimal and temporal types need explicit provider conversion.
+/// enabled. A `datetime` is admitted after its one documented UTC spelling
+/// (`+0000`) is written with `Z`, and a Number (`double`) as `decimal(P,S)`
+/// from its reply's number text; `percent`, `currency` and `time` are not.
 fn read_field_contract(field : FieldMetadata) -> @contract.Contract? {
   let kind = match field.native_type {
     "id"
@@ -51,7 +53,15 @@ fn read_field_contract(field : FieldMetadata) -> @contract.Contract? {
     | "picklist"
     | "combobox" => @contract.StringType
     "boolean" => @contract.BooleanType
-    "int" | "double" => @contract.NumberType
+    "int" => @contract.NumberType
+    "double" =>
+      return match double_decimal(field) {
+        Some((precision, scale)) =>
+          @contract.decimal_contract(precision, scale, nullable=field.nullable)
+        None => None
+      }
+    "date" => @contract.DateType
+    "datetime" => @contract.TimestampType
     _ => return None
   }
   Some(@contract.primitive(kind, nullable=field.nullable))
@@ -277,6 +287,8 @@ pub fn recheck_read_projection(
       before.nullable != after.nullable ||
       before.filterable != after.filterable ||
       before.sortable != after.sortable ||
+      before.precision != after.precision ||
+      before.scale != after.scale ||
       before.reference_to.length() != after.reference_to.length() {
       return Err(SchemaChanged(before.name))
     }
@@ -296,7 +308,7 @@ pub fn recheck_read_projection(
 /// signed query grant and its current use conditions.
 pub fn read_projection_matches_site_scope(
   plan : ReadProjection,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   site_key : String,
@@ -308,7 +320,7 @@ pub fn read_projection_matches_site_scope(
   dispatch_request_cid : String,
 ) -> Bool {
   let binding = plan.binding
-  binding.tenant == tenant &&
+  binding.namespace_id == namespace_id &&
   binding.principal == principal &&
   binding.environment == environment &&
   binding.site_key == site_key &&

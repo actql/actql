@@ -25,8 +25,8 @@ const hash = body => `sha256:${createHash('sha256')
 // These supplement,
 // not replace, the independent logical-plan vectors in run-host-core tests.
 const planCids = {
-  values: 'sha256:16d92f47437565639b7a637041a3615fe731c04d9e37e6cb453ff1713ffc2837',
-  tasks: 'sha256:4b9f5119277ee2c99fd670bc511066df9aee69cb762b5122f60b0055cc59ce34',
+  values: 'sha256:ed2bbd5b72820bade7130894feb86ef217df80ea8e8177f62c89e37e85947d11',
+  tasks: 'sha256:08951f2446dc13e0a5be863b44a93a44857fa6877075b6d42b1147d11ff05c92',
 };
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 const policy = Object.freeze({executionContextCid: cid('a'),
@@ -48,7 +48,7 @@ test('source-free task profile issues through the compiled Run owner',
       text: document, format: 'json'}, parameters: null});
     const control = runtimeCore(runtime).publicationControl;
     const plan = sourceFreeTaskPlan({moon: runtime, control,
-      preparedProgram, authorityScopeCid: cid('a'), tenantId: 'local',
+      preparedProgram, authorityScopeCid: cid('a'), namespaceId: 'local',
       storeAuthorityCid: cid('c'),
       now: () => '2026-09-27T00:00:00.000Z'});
     assert.match(plan.runDefinition.identity, /^sha256:[0-9a-f]{64}$/u);
@@ -61,7 +61,7 @@ test('source-free task profile issues through the compiled Run owner',
     const otherCompiled = control.prepareCheckedClientCompiledRun(
       preparedProgram, 'values', policy);
     const otherDefinition = control.defineCheckedClientCompiledRun(otherCompiled,
-      {tenantId: 'local', runId: 'other-run',
+      {namespaceId: 'local', runId: 'other-run',
         createdAt: '2026-09-27T00:00:00.000Z',
         validUntil: policy.expiresAt});
     assert.throws(() => control.issueCheckedClientCompiledInvocation(
@@ -110,7 +110,7 @@ for (const kind of ['values', 'tasks']) {
       const control = runtimeCore(moon).publicationControl;
       const plan = (acquired ? acquiredTaskRunAdmission : sourceFreeValuesPlan)({
         moon, control, preparedProgram, authorityScopeCid: cid('a'),
-        tenantId: 'local', storeAuthorityCid: cid('c'),
+        namespaceId: 'local', storeAuthorityCid: cid('c'),
         now: () => '2026-09-27T00:00:00.000Z',
       });
       assert.match(plan.runDefinition.identity, /^sha256:[0-9a-f]{64}$/u);
@@ -177,7 +177,7 @@ for (const kind of ['values', 'tasks']) {
         valid_until: policy.expiresAt,
       };
       const definition = control.defineCheckedClientCompiledRun(compiled, {
-        tenantId: definitionBody.scope_id, runId: definitionBody.run_id,
+        namespaceId: definitionBody.scope_id, runId: definitionBody.run_id,
         createdAt: definitionBody.created_at,
         validUntil: definitionBody.valid_until,
       });

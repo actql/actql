@@ -14,6 +14,28 @@ struct Store {
 }
 
 ///|
+#borrow(path)
+extern "C" fn store_format_ffi(
+  path : Bytes,
+  length : Int,
+  establish : Int,
+) -> Int = "actql_native_publication_store_format"
+
+///|
+fn admit_store_format(
+  root_path : String,
+  establish : Bool,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  let path = @utf8.encode(root_path)
+  match store_format_ffi(path, path.length(), if establish { 1 } else { 0 }) {
+    0 => Ok(())
+    1 => Err(LegacyStoreFormat(root_path))
+    2 => Err(UnknownStoreFormat(root_path))
+    _ => Err(StoreFormatIo(root_path))
+  }
+}
+
+///|
 priv struct PendingPayloadCleanup {
   physical : @filesystem.Writer
   mut stopped : Bool
@@ -152,9 +174,20 @@ pub fn open_store(
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
+  match admit_store_format(root_path, false) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let lock = match root.acquire_lock(".actql-publication.lock") {
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
+  }
+  match admit_store_format(root_path, true) {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(lock.close())
+      return Err(issue)
+    }
   }
   let journal_path = root_path + "/.actql-publication.sqlite3"
   let database = match library.open_database(journal_path, max_record_bytes) {
@@ -1432,7 +1465,7 @@ pub fn Store::commit_publication(
 /// the confirmed commit boundary rather than a process-local observation.
 pub fn Store::inspect_committed_publication(
   self : Store,
-  tenant_id : String,
+  namespace_id : String,
   authority_scope_cid : String,
   run_definition_cid : String,
   max_wire_bytes : Int,
@@ -1445,7 +1478,7 @@ pub fn Store::inspect_committed_publication(
   let key = match
     publication_commit_key(
       @publication.publication_index_scope_storage_key(
-        tenant_id, authority_scope_cid, run_definition_cid, max_wire_bytes, max_nodes,
+        namespace_id, authority_scope_cid, run_definition_cid, max_wire_bytes, max_nodes,
         max_depth,
       ),
     ) {
@@ -1486,7 +1519,7 @@ pub fn Store::inspect_committed_publication(
 /// adapter only retrieves the indexed bodies.
 pub fn Store::resolve_committed_result(
   self : Store,
-  tenant_id : String,
+  namespace_id : String,
   authority_scope_cid : String,
   run_definition_cid : String,
   result_name : String,
@@ -1496,7 +1529,7 @@ pub fn Store::resolve_committed_result(
 ) -> Result[NativeCommittedResult?, NativePublicationStoreIssue] {
   let index = match
     self.inspect_committed_publication(
-      tenant_id, authority_scope_cid, run_definition_cid, max_wire_bytes, max_nodes,
+      namespace_id, authority_scope_cid, run_definition_cid, max_wire_bytes, max_nodes,
       max_depth,
     ) {
     Ok(Some(value)) => value

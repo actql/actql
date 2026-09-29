@@ -277,7 +277,7 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
   });
   const scope = operation => Object.freeze({
     issuerAuthority: 'credential-authority-a',
-    principal: 'principal-a', tenant: 'tenant-a',
+    principal: 'principal-a', namespaceId: 'namespace-a',
     environment: 'test', siteKey: 'site-a', siteGeneration: 4,
     runtimeBundleCid: cid('a'), connectorRegistration: 'salesforce',
     connectorRevision: 'salesforce/0.1', resourceOrigin: origin,
@@ -350,7 +350,7 @@ test('Catalog owns the original binding across the HTTPS response',
       callResource: async call => {
         const response = await callHttpsCredentialResource(call);
         if (call.scope.operation === 'salesforce:catalog:list') {
-          mutableScope.tenant = 'tenant-b';
+          mutableScope.namespaceId = 'namespace-b';
           mutableScope.principal = 'principal-b';
           mutableScope.siteGeneration = 5;
           mutableScope.resourceOrigin = 'https://foreign.example.invalid';
@@ -363,7 +363,7 @@ test('Catalog owns the original binding across the HTTPS response',
     assert.equal(setup.seen.length, 3);
     assert.equal(setup.journal.recover().length, 3);
     assert.equal(checked(salesforceMoon.salesforceCatalogObservedResourceState(
-      result.observation, original.tenant, original.principal,
+      result.observation, original.namespaceId, original.principal,
       original.environment, 'connection-revision-a', setup.orgId,
       original.siteKey, original.siteGeneration,
       original.connectorRegistration, original.connectorRevision,
@@ -392,7 +392,7 @@ test('Site HTTPS catalog sync completes with scoped credential uses',
     const scope = setup.list.scope;
     const observedState = (name, generation = scope.siteGeneration) =>
       checked(salesforceMoon.salesforceCatalogObservedResourceState(
-        result.observation, scope.tenant, scope.principal, scope.environment,
+        result.observation, scope.namespaceId, scope.principal, scope.environment,
         'connection-revision-a', setup.orgId, scope.siteKey, generation,
         scope.connectorRegistration, scope.connectorRevision,
         scope.resourceOrigin, scope.runInvocationCid,
@@ -413,7 +413,7 @@ test('Site HTTPS catalog sync completes with scoped credential uses',
     const binding = setup.list.scope;
     const projection = checked(salesforceMoon.salesforcePrepareReadProjection(
       result.observation,
-      binding.tenant, binding.principal, binding.environment,
+      binding.namespaceId, binding.principal, binding.environment,
       'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
       binding.connectorRegistration, binding.connectorRevision,
       binding.resourceOrigin, binding.runInvocationCid,
@@ -425,7 +425,7 @@ test('Site HTTPS catalog sync completes with scoped credential uses',
       projection), result.observationCid);
     assert.throws(() => checked(salesforceMoon.salesforcePrepareReadProjection(
       result.observation,
-      binding.tenant, binding.principal, binding.environment,
+      binding.namespace_id, binding.principal, binding.environment,
       'connection-revision-b', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
       binding.connectorRegistration, binding.connectorRevision,
       binding.resourceOrigin, binding.runInvocationCid,
@@ -461,7 +461,7 @@ test('Resource resolution uses only the supplied authorized Catalog snapshot',
       principal: authorization.principal,
       async authorize(...args) {
         const decision = await authorization.authorize(...args);
-        mutableBinding.tenant = 'foreign-tenant';
+        mutableBinding.namespace_id = 'foreign-namespace';
         mutableBinding.site_generation++;
         return decision;
       },
@@ -694,7 +694,7 @@ test('Salesforce write bridge binds a checked Catalog to one REST request',
     const binding = setup.list.scope;
     const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
       result.observation,
-      binding.tenant, binding.principal, binding.environment,
+      binding.namespaceId, binding.principal, binding.environment,
       'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
       binding.connectorRegistration, binding.connectorRevision,
       binding.resourceOrigin, binding.runInvocationCid,
@@ -709,13 +709,13 @@ test('Salesforce write bridge binds a checked Catalog to one REST request',
       salesforceMoon.salesforceRecheckSingleWriteRequest(
         outbound, result.observation)), true);
     assert.equal(salesforceMoon.salesforceSingleWriteRequestScopeMatches(
-      outbound, binding.tenant, binding.principal, binding.environment,
+      outbound, binding.namespaceId, binding.principal, binding.environment,
       binding.siteKey, binding.siteGeneration,
       binding.connectorRegistration, binding.connectorRevision,
       binding.resourceOrigin, binding.runInvocationCid,
       binding.dispatchRequestCid), true);
     assert.equal(salesforceMoon.salesforceSingleWriteRequestScopeMatches(
-      outbound, binding.tenant, binding.principal, binding.environment,
+      outbound, binding.namespaceId, binding.principal, binding.environment,
       binding.siteKey, binding.siteGeneration + 1,
       binding.connectorRegistration, binding.connectorRevision,
       binding.resourceOrigin, binding.runInvocationCid,
@@ -748,7 +748,7 @@ test('Salesforce write bridge binds a checked Catalog to one REST request',
         })), 1024, 32, 5)), {code: 'MoonBitHostFailure'});
     assert.throws(() => checked(salesforceMoon.salesforcePrepareWriteProjection(
       result.observation,
-      binding.tenant, binding.principal, binding.environment,
+      binding.namespaceId, binding.principal, binding.environment,
       'foreign-connection', binding.siteKey, binding.siteGeneration,
       binding.connectorRegistration, binding.connectorRevision,
       binding.resourceOrigin, binding.runInvocationCid,
@@ -763,7 +763,7 @@ test('Site sends one scoped Salesforce write and keeps response as observation',
     const binding = setup.list.scope;
     const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
       catalog.observation,
-      binding.tenant, binding.principal, binding.environment,
+      binding.namespaceId, binding.principal, binding.environment,
       'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
       binding.connectorRegistration, binding.connectorRevision,
       binding.resourceOrigin, binding.runInvocationCid,
@@ -812,7 +812,7 @@ test('Site reads the exact prospective target with separate read authority',
     const binding = setup.list.scope;
     const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
       catalog.observation,
-      binding.tenant, binding.principal, binding.environment,
+      binding.namespaceId, binding.principal, binding.environment,
       'connection-revision-a', setup.orgId, binding.siteKey,
       binding.siteGeneration, binding.connectorRegistration,
       binding.connectorRevision, binding.resourceOrigin,
@@ -929,7 +929,7 @@ test('target read cannot turn absence or a foreign record into a guard',
         const binding = setup.list.scope;
         const projection = checked(
           salesforceMoon.salesforcePrepareWriteProjection(
-            catalog.observation, binding.tenant, binding.principal,
+            catalog.observation, binding.namespaceId, binding.principal,
             binding.environment, 'connection-revision-a', setup.orgId,
             binding.siteKey, binding.siteGeneration,
             binding.connectorRegistration, binding.connectorRevision,
@@ -1008,7 +1008,7 @@ test('Salesforce request CID binds the exact HTTPS upsert request-target',
         const projection = checked(
           salesforceMoon.salesforcePrepareWriteProjection(
             catalog.observation,
-            binding.tenant, binding.principal, binding.environment,
+            binding.namespaceId, binding.principal, binding.environment,
             'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
             binding.connectorRegistration, binding.connectorRevision,
             binding.resourceOrigin, binding.runInvocationCid,
@@ -1086,7 +1086,7 @@ test('Host claim owns one local HTTPS write', async t => {
   const binding = setup.list.scope;
   const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
     catalog.observation,
-    binding.tenant, binding.principal, binding.environment,
+    binding.namespaceId, binding.principal, binding.environment,
     'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
     binding.connectorRegistration, binding.connectorRevision,
     binding.resourceOrigin, binding.runInvocationCid,
@@ -1361,7 +1361,7 @@ test('retained Catalog responses restore only the exact typed observation',
     }), {code: 'MoonBitHostFailure'});
     const wrongBinding = structuredClone(retained);
     wrongBinding.observationJson = wrongBinding.observationJson.replace(
-      '"tenant":"tenant-a"', '"tenant":"tenant-b"');
+      '"namespace_id":"namespace-a"', '"namespace_id":"namespace-b"');
     assert.throws(() => recoverRetainedSalesforceCatalog({
       moon: salesforceMoon, retained: wrongBinding,
       expectedObservationCid: live.observationCid,
@@ -1382,7 +1382,7 @@ test('lost HTTPS reply remains uncertain across Effect ledger restart',
     const binding = setup.list.scope;
     const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
       catalog.observation,
-      binding.tenant, binding.principal, binding.environment,
+      binding.namespaceId, binding.principal, binding.environment,
       'connection-revision-a', '00D000000000001EAA', binding.siteKey,
       binding.siteGeneration, binding.connectorRegistration,
       binding.connectorRevision, binding.resourceOrigin,
@@ -1474,7 +1474,7 @@ test('Site does not promote rejected or malformed writes to Effect success',
         const projection = checked(
           salesforceMoon.salesforcePrepareWriteProjection(
             catalog.observation,
-            binding.tenant, binding.principal, binding.environment,
+            binding.namespaceId, binding.principal, binding.environment,
             'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
             binding.connectorRegistration, binding.connectorRevision,
             binding.resourceOrigin, binding.runInvocationCid,
@@ -1511,7 +1511,7 @@ test('Site Collections preserve exact row order and partial outcomes',
     const projection = checked(
       salesforceMoon.salesforcePrepareWriteProjection(
         catalog.observation,
-        binding.tenant, binding.principal, binding.environment,
+        binding.namespaceId, binding.principal, binding.environment,
         'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
         binding.connectorRegistration, binding.connectorRevision,
         binding.resourceOrigin, binding.runInvocationCid,
@@ -1605,7 +1605,7 @@ test('Host custody binds one HTTPS Collections response to every row',
     const projection = checked(
       salesforceMoon.salesforcePrepareWriteProjection(
         catalog.observation,
-        binding.tenant, binding.principal, binding.environment,
+        binding.namespaceId, binding.principal, binding.environment,
         'connection-revision-a', '00D000000000001EAA',
         binding.siteKey, binding.siteGeneration,
         binding.connectorRegistration, binding.connectorRevision,
@@ -2072,7 +2072,7 @@ test('Collections cannot swap two Preview targets before the send claim',
     const binding = setup.list.scope;
     const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
       catalog.observation,
-      binding.tenant, binding.principal, binding.environment,
+      binding.namespaceId, binding.principal, binding.environment,
       'connection-revision-a', setup.orgId,
       binding.siteKey, binding.siteGeneration,
       binding.connectorRegistration, binding.connectorRevision,
@@ -2256,7 +2256,7 @@ test('Site Collections do not turn malformed or rejected HTTP into success',
         const projection = checked(
           salesforceMoon.salesforcePrepareWriteProjection(
             catalog.observation,
-            binding.tenant, binding.principal, binding.environment,
+            binding.namespaceId, binding.principal, binding.environment,
             'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
             binding.connectorRegistration, binding.connectorRevision,
             binding.resourceOrigin, binding.runInvocationCid,
@@ -2323,7 +2323,7 @@ test('Site Collections use exact update and external-ID upsert authority',
         const projection = checked(
           salesforceMoon.salesforcePrepareWriteProjection(
             catalog.observation,
-            binding.tenant, binding.principal, binding.environment,
+            binding.namespaceId, binding.principal, binding.environment,
             'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
             binding.connectorRegistration, binding.connectorRevision,
             binding.resourceOrigin, binding.runInvocationCid,
@@ -2382,7 +2382,7 @@ test('Salesforce target aliases fail before a collection claim or HTTP write',
     const projection = checked(
       salesforceMoon.salesforcePrepareWriteProjection(
         catalog.observation,
-        binding.tenant, binding.principal, binding.environment,
+        binding.namespaceId, binding.principal, binding.environment,
         'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
         binding.connectorRegistration, binding.connectorRevision,
         binding.resourceOrigin, binding.runInvocationCid,
@@ -2417,7 +2417,7 @@ test('Salesforce target identities feed the common Effect Set preflight',
       const projection = checked(
         salesforceMoon.salesforcePrepareWriteProjection(
           catalog.observation,
-          binding.tenant, binding.principal, binding.environment,
+          binding.namespaceId, binding.principal, binding.environment,
           'connection-revision-a', connection.orgId,
           binding.siteKey, binding.siteGeneration,
           binding.connectorRegistration, binding.connectorRevision,
@@ -2481,7 +2481,7 @@ test('Effect Set preflight uses observed external-ID matching rules',
       const projection = checked(
         salesforceMoon.salesforcePrepareWriteProjection(
           catalog.observation,
-          binding.tenant, binding.principal, binding.environment,
+          binding.namespaceId, binding.principal, binding.environment,
           'connection-revision-a', setup.orgId,
           binding.siteKey, binding.siteGeneration,
           binding.connectorRegistration, binding.connectorRevision,
@@ -2533,7 +2533,7 @@ test('CLI alias supplies only Site secret for the authorized HTTPS path',
     const resolveSecret = createSalesforceCliSecretResolver({
       connection: {alias: 'actql-test', orgId: '00D000000000001EAA',
         username: 'test@example.invalid', instanceOrigin: origin},
-      principal: 'principal-a', tenant: 'tenant-a', environment: 'test',
+      principal: 'principal-a', namespaceId: 'namespace-a', environment: 'test',
       siteKey: 'site-a', siteGeneration: 4,
       invoke: async (_executable, args) => {
         if (args[1] === 'auth') {
@@ -2574,7 +2574,7 @@ test('retargeted CLI alias cannot send an authorized catalog request',
       connection: {alias: 'actql-test', orgId: '00D000000000001EAA',
         username: 'test@example.invalid',
         instanceOrigin: setup.list.scope.resourceOrigin},
-      principal: 'principal-a', tenant: 'tenant-a', environment: 'test',
+      principal: 'principal-a', namespaceId: 'namespace-a', environment: 'test',
       siteKey: 'site-a', siteGeneration: 4,
       invoke: async () => ({stdout: JSON.stringify({status: 0, result: {
         alias: 'actql-test', id: '00D000000000002EAA',
@@ -2609,7 +2609,7 @@ test('rate-limited describe remains partial with its physical use failed',
       result.sync, 'Test_Record__c'), 3);
     const scope = setup.list.scope;
     assert.equal(checked(salesforceMoon.salesforceCatalogObservedResourceState(
-      result.observation, scope.tenant, scope.principal, scope.environment,
+      result.observation, scope.namespaceId, scope.principal, scope.environment,
       'connection-revision-a', setup.orgId, scope.siteKey,
       scope.siteGeneration, scope.connectorRegistration,
       scope.connectorRevision, scope.resourceOrigin, scope.runInvocationCid,
@@ -2682,7 +2682,7 @@ test('truncated discovery never requests or implies an unseen describe',
       result.sync, 'Test_Record__c'), -1);
     const scope = setup.list.scope;
     assert.equal(checked(salesforceMoon.salesforceCatalogObservedResourceState(
-      result.observation, scope.tenant, scope.principal, scope.environment,
+      result.observation, scope.namespaceId, scope.principal, scope.environment,
       'connection-revision-a', setup.orgId, scope.siteKey,
       scope.siteGeneration, scope.connectorRegistration,
       scope.connectorRevision, scope.resourceOrigin, scope.runInvocationCid,
@@ -2705,7 +2705,7 @@ async function queryProjection(setup) {
   const binding = setup.list.scope;
   return checked(salesforceMoon.salesforcePrepareReadProjection(
     catalog.observation,
-    binding.tenant, binding.principal, binding.environment,
+    binding.namespaceId, binding.principal, binding.environment,
     'connection-revision-a', '00D000000000001EAA', binding.siteKey, binding.siteGeneration,
     binding.connectorRegistration, binding.connectorRevision,
     binding.resourceOrigin, binding.runInvocationCid,
@@ -2751,7 +2751,7 @@ test('Query continuation compares against its owned initial binding',
         const response = await callHttpsCredentialResource(call);
         if (call.scope.operation === 'salesforce:query:read' &&
             call.useId === 'mutable-query-initial') {
-          mutableScope.tenant = 'tenant-b';
+          mutableScope.namespaceId = 'namespace-b';
           mutableScope.siteGeneration = 5;
           mutableScope.runInvocationCid = cid('9');
         }
@@ -3144,6 +3144,8 @@ test('issued broad Site driver leaves completion to the Host verifier',
         checked(salesforceMoon.salesforceQueryReadAcknowledgePage(read, page));
         return {$tag: 1, _0: page};
       },
+      // This driver reads admitted pages only; no page fails here.
+      salesforceIssuedBroadValueViolation: () => undefined,
       salesforceIssuedBroadComplete: () =>
         salesforceMoon.salesforceQueryReadComplete(read),
       salesforceIssuedBroadRowCount: () =>
@@ -3202,4 +3204,20 @@ test('invalid physical caller is rejected before a query owner or HTTP use',
     })), {code: 'InvalidSalesforceQueryRead'});
     assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
       .length, 0);
+  });
+
+test('an issued broad read without the value violation entry is refused before I/O',
+  async t => {
+    const setup = await fixture(t);
+    const plan = await queryProjection(setup);
+    const before = setup.seen.length;
+    const moon = {...salesforceMoon,
+      salesforceBroadHostAttempt: () => Object.freeze({selected: true}),
+      salesforceIssuedBroadPlan: () => plan};
+    delete moon.salesforceIssuedBroadValueViolation;
+    await assert.rejects(readSalesforceIssuedBroad(queryRequest(setup, plan, {
+      moon, hostRun: Object.freeze({owned: true}), maxCaptureRows: 3,
+      captureLimits: {maxNodes: 100, maxTextBytes: 1000, maxDepth: 10,
+        maxWork: 1000}})), {code: 'InvalidSalesforceIssuedBroadRead'});
+    assert.equal(setup.seen.length, before);
   });

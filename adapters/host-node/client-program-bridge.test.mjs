@@ -359,7 +359,7 @@ test('checked acquired source and downstream task emit their input ports',
           parameters: JSON.parse(parameters),
           environmentWire: canonicalText(environmentBody),
           environmentCid: environmentBody.evidence_bundle_cid, authorityScopeCid,
-          tenantId: 'local', now: () => '2026-09-26T00:00:02.000Z'});
+          namespaceId: 'local', now: () => '2026-09-26T00:00:02.000Z'});
         const storeAuthorityCid = cid('7');
         const plan = acquiredTaskPublicationPlan({moon, control,
           acquired: admitted, preparedProgram: prepared, captured: opened,
@@ -367,7 +367,7 @@ test('checked acquired source and downstream task emit their input ports',
           effectiveDataPolicyCid: dataPolicyCid,
           captureStartedAt: '2026-09-26T00:00:00.000Z',
           captureCompletedAt: '2026-09-26T00:00:01.000Z',
-          tenantId: 'local', requestId: 'acquired-result-request',
+          namespaceId: 'local', requestId: 'acquired-result-request',
           storeAuthorityCid, now: () => '2026-09-26T00:00:02.000Z'});
         assert.equal(plan.results.length, 2);
         for (const changed of [
@@ -382,7 +382,7 @@ test('checked acquired source and downstream task emit their input ports',
             authorityScopeCid, effectiveDataPolicyCid: dataPolicyCid,
             captureStartedAt: '2026-09-26T00:00:00.000Z',
             captureCompletedAt: '2026-09-26T00:00:01.000Z',
-            tenantId: 'local', requestId: 'acquired-result-request',
+            namespaceId: 'local', requestId: 'acquired-result-request',
             storeAuthorityCid,
             now: () => '2026-09-26T00:00:02.000Z'}));
         }
@@ -509,7 +509,7 @@ test('checked acquired source and downstream task emit their input ports',
       preparedProgram: prepared, document, format: 'json',
       parameters: JSON.parse(parameters), environmentWire: canonicalText(environmentBody),
       environmentCid: environmentBody.evidence_bundle_cid, authorityScopeCid: cid('a'),
-      tenantId: 'local', now: () => '2026-09-26T00:00:00.000Z'};
+      namespaceId: 'local', now: () => '2026-09-26T00:00:00.000Z'};
     const admitted = acquiredTaskRunAdmission(admissionOptions);
     const restored = acquiredTaskRunAdmission({...admissionOptions,
       retainedDefinitionWire: admitted.runDefinition.wire});
@@ -751,7 +751,7 @@ function checkedValuesPublicationPlan(prepared, control,
   const admission = control.admitCheckedClientRunPublication(
     prepared, template, preparedEvidence, authorization, compiledPlan);
   const runDefinition = control.issueRunDefinition(admission, {
-    scopeId: 'tenant-a-scope', runId: 'checked-values-published',
+    scopeId: 'namespace-a-scope', runId: 'checked-values-published',
     inputArtifactSetCid: cid('c'),
     createdAt: '2026-09-24T00:00:00.000Z',
     validUntil: '2027-01-01T00:00:00.000Z',
@@ -809,7 +809,7 @@ function checkedValuesPublicationPlan(prepared, control,
     captureEvidence: Object.freeze({pendingSourceStateAdvances: [],
       modelEvidence: []}),
     request: Object.freeze({
-      tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+      namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
       publicationPolicyCid: cid('4'), publicationTargetCid: cid('5'),
       requestedAt: '2026-09-24T00:00:00.000Z',
     }),
@@ -1352,7 +1352,7 @@ test('Node ABI binds separately supplied Parameters through the shared checker',
     t.after(() => rm(path, {recursive: true, force: true}));
     const journal = openClientRequestJournal(path);
     t.after(() => journal.close());
-    const admission = {tenantId: 'tenant-a', runDefinitionCid: cid('c'),
+    const admission = {namespaceId: 'namespace-a', runDefinitionCid: cid('c'),
       lookupExpiresAt: '2099-01-01T00:00:00.000Z'};
     assert.equal(journal.accept(first, admission, moon).inserted, true);
     assert.equal(journal.accept(same, admission, moon).inserted, false);
@@ -1390,7 +1390,7 @@ test('public submit rejects checker failures before Run admission', async () => 
       admissions++;
       admittedIdentity = moon.clientProgramRequestIdentity(preparedProgram,
         cid('a'), requestId, cid('b'));
-      return {ref: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+      return {ref: {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
         runDefinitionCid: cid('c')}, durability: 'volatile', revision: 0};
     },
   }));
@@ -1475,7 +1475,7 @@ test('Node publication admission rejects evidence from another checked Program',
       prepared, ...bound, plan);
     assert.equal(admitted.kind, 'run-publication-admission');
     const definition = control.issueRunDefinition(admitted, {
-      scopeId: 'tenant-a-scope',
+      scopeId: 'namespace-a-scope',
       runId: 'checked-values-run',
       inputArtifactSetCid: cid('c'),
       createdAt: '2026-09-24T00:00:00.000Z',
@@ -1486,7 +1486,7 @@ test('Node publication admission rejects evidence from another checked Program',
     t.after(() => rm(path, {recursive: true, force: true}));
     const journal = openClientRequestJournal(path);
     const accepted = journal.acceptDefinition(identity, {
-      tenantId: 'tenant-a', runDefinition: definition,
+      namespaceId: 'namespace-a', runDefinition: definition,
       lookupExpiresAt: '2099-01-01T00:00:00.000Z',
     }, moon, control);
     assert.equal(accepted.inserted, true);
@@ -1495,7 +1495,7 @@ test('Node publication admission rejects evidence from another checked Program',
     const restarted = openClientRequestJournal(path);
     t.after(() => restarted.close());
     const retained = restarted.resolveDefinition(identity,
-      {tenantId: 'tenant-a'}, moon, control);
+      {namespaceId: 'namespace-a'}, moon, control);
     assert.equal(retained.runDefinition.wire, definition.wire);
     const changed = moon.clientProgramPrepareEffectFree(
       document.replace('"id": 2', '"id": 3'), 'json', environment);
@@ -1508,10 +1508,10 @@ test('Node publication admission rejects evidence from another checked Program',
     const changedRequest = moon.clientProgramRequestIdentity(
       changed, cid('a'), 'saved-request', cid('b'));
     assert.throws(() => restarted.resolveDefinition(changedRequest,
-      {tenantId: 'tenant-a'}, moon, control),
+      {namespaceId: 'namespace-a'}, moon, control),
     {code: 'ClientRequestIntentConflict'});
     assert.throws(() => restarted.acceptDefinition(changedRequest, {
-      tenantId: 'tenant-a', runDefinition: definition,
+      namespaceId: 'namespace-a', runDefinition: definition,
       lookupExpiresAt: '2099-01-01T00:00:00.000Z',
     }, moon, control), {code: 'ClientRequestIntentConflict'});
     const foreignSemantics = publicationEvidence(
@@ -1563,7 +1563,7 @@ test('Node Run Definition binding rejects changed supplied Parameters',
       const admission = control.admitCheckedClientRunPublication(
         prepared, ...bound, plan);
       const definition = control.issueRunDefinition(admission, {
-        scopeId: 'tenant-a-scope', runId: 'parameter-run',
+        scopeId: 'namespace-a-scope', runId: 'parameter-run',
         inputArtifactSetCid: cid('c'),
         createdAt: '2026-09-24T00:00:00.000Z',
         validUntil: '2027-01-01T00:00:00.000Z',
@@ -1585,7 +1585,7 @@ test('Node Run Definition binding rejects changed supplied Parameters',
     const journal = openClientRequestJournal(path);
     t.after(() => journal.close());
     await assert.rejects(journal.admitOrLookupDefinition(first.request, {
-      tenantId: 'tenant-a',
+      namespaceId: 'namespace-a',
       lookupExpiresAt: '2099-01-01T00:00:00.000Z',
       issueDefinition: () => {
         control.checkClientRunDefinitionBinding(preparedA,
@@ -1593,7 +1593,7 @@ test('Node Run Definition binding rejects changed supplied Parameters',
         return second.definition;
       },
     }, moon, control), /Run Definition differs from checked Program/u);
-    assert.equal(journal.lookup({tenantId: 'tenant-a',
+    assert.equal(journal.lookup({namespaceId: 'namespace-a',
       authorityScopeCid: cid('a'),
       requestId: 'parameter-definition-request'}, moon), undefined);
   });
@@ -1610,7 +1610,7 @@ test('durable request deduplication uses checked Program identity', async t => {
   const journal = openClientRequestJournal(path);
   t.after(() => journal.close());
   const admission = {
-    tenantId: 'tenant-a',
+    namespaceId: 'namespace-a',
     runDefinitionCid: cid('d'),
     lookupExpiresAt: '2099-01-01T00:00:00.000Z',
   };
@@ -1626,7 +1626,7 @@ test('durable request deduplication uses checked Program identity', async t => {
   assert.throws(() => journal.accept(changedRequest, {...admission,
     runDefinitionCid: cid('e')}, moon),
   {code: 'ClientRequestIntentConflict'});
-  assert.equal(journal.lookup({tenantId: 'tenant-a',
+  assert.equal(journal.lookup({namespaceId: 'namespace-a',
     authorityScopeCid: cid('a'), requestId: 'saved-request'}, moon)
     .ref.runDefinitionCid, cid('d'));
 });
@@ -1698,7 +1698,7 @@ test('normal Node Run issuance rejects a valid foreign Definition before journal
     const request = moon.clientProgramRequestIdentity(preparedA,
       cid('a'), 'foreign-definition-request', cid('b'));
     await assert.rejects(journal.admitOrLookupDefinition(request, {
-      tenantId: 'tenant-a',
+      namespaceId: 'namespace-a',
       lookupExpiresAt: '2099-01-01T00:00:00.000Z',
       issueDefinition: () => {
         control.checkClientRunDefinitionBinding(preparedA,
@@ -1706,7 +1706,7 @@ test('normal Node Run issuance rejects a valid foreign Definition before journal
         return planB.runDefinition;
       },
     }, moon, control), /Run Definition differs from checked Program/u);
-    assert.equal(journal.lookup({tenantId: 'tenant-a',
+    assert.equal(journal.lookup({namespaceId: 'namespace-a',
       authorityScopeCid: cid('a'), requestId: 'foreign-definition-request'},
     moon), undefined);
   });
@@ -1733,7 +1733,7 @@ test('public Values submit computes and reads its real Local Result',
     const directory = await mkdtemp(join(scratch.pathname, 'result-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
     const configuration = {
-      directory, storeAuthorityCid: cid('7'),
+      directory: join(directory, 'publication'), storeAuthorityCid: cid('7'),
       capacityBytes: 4 * 1024 * 1024,
       maxObjectBytes: outputLimits.maxWireBytes,
       maxObjects: 100, maxContractNodes: 10000,
@@ -1750,13 +1750,13 @@ test('public Values submit computes and reads its real Local Result',
       const lookupRequest = installNodeClientRequestLookup({
         journal, control: moon,
         authorizedScope: ({principalId}) => principalId ===
-          'principal-before-restart' ? {tenantId: 'tenant-a',
+          'principal-before-restart' ? {namespaceId: 'namespace-a',
             authorityScopeCid: cid('a')} : undefined,
       });
       const startRun = installNodeClientRunStart({
         journal, requestControl: moon, publicationControl: control,
-        authorizeRunStart: ({tenantId, principalId, connection, ref}) =>
-          tenantId === 'tenant-a' &&
+        authorizeRunStart: ({namespaceId, principalId, connection, ref}) =>
+          namespaceId === 'namespace-a' &&
           principalId === 'principal-before-restart' &&
           connection.mode === 'local' && connection.owner === 'local' &&
           ref.authorityScopeCid === cid('a'),
@@ -1779,7 +1779,7 @@ test('public Values submit computes and reads its real Local Result',
         const requested = moon.clientProgramRequestIdentity(
           preparedProgram, cid('a'), requestId, cid('b'));
         const accepted = await journal.admitOrLookupDefinition(requested, {
-          tenantId: 'tenant-a',
+          namespaceId: 'namespace-a',
           lookupExpiresAt: '2099-01-01T00:00:00.000Z',
           issueDefinition: () => {
             issues++;
@@ -1788,7 +1788,7 @@ test('public Values submit computes and reads its real Local Result',
           },
         }, moon, control);
         const start = await startRun({identity: requested,
-          tenantId: 'tenant-a', principalId, connection});
+          namespaceId: 'namespace-a', principalId, connection});
         assert.deepEqual(start.ref, accepted.ref);
         if (start.kind === 'reserved') {
           const setup = moon.clientProgramOpenSourceFreeLocalHost(
@@ -1906,7 +1906,7 @@ test('public Values submit computes and reads its real Local Result',
       let ref;
       try {
         const retained = await reopened.admitOrLookupDefinition(identity, {
-          tenantId: 'tenant-a',
+          namespaceId: 'namespace-a',
           lookupExpiresAt: '2099-01-01T00:00:00.000Z',
           issueDefinition: () => {
             throw new Error('Duplicate request reissued Run authority');
@@ -1953,7 +1953,7 @@ test('public Values submit computes and reads its real Local Result',
           ? 'principal-after-restart' : undefined,
         authorizeConnection: facts => facts.connection.mode === 'local' &&
           facts.connection.owner === 'local' &&
-          (facts.ref === undefined || facts.ref.tenantId === 'tenant-a'),
+          (facts.ref === undefined || facts.ref.namespaceId === 'namespace-a'),
         negotiate: () => ({
           version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
           durability: 'durable', scopeRef: 'principal-after-restart',
@@ -1967,7 +1967,7 @@ test('public Values submit computes and reads its real Local Result',
           journal: lookupJournal, requestControl: moon,
           publicationControl: control,
           authorizedScope: ({principalId}) => principalId ===
-            'principal-after-restart' ? {tenantId: 'tenant-a',
+            'principal-after-restart' ? {namespaceId: 'namespace-a',
               authorityScopeCid: cid('a')} : undefined,
           authorizeRun: async ({principalId, ref: requested}) => {
             await inspectAuthorizedRunState(stateService, {
@@ -1979,7 +1979,7 @@ test('public Values submit computes and reads its real Local Result',
         lookupRequest: installNodeClientRequestLookup({
           journal: lookupJournal, control: moon,
           authorizedScope: ({principalId}) => principalId ===
-            'principal-after-restart' ? {tenantId: 'tenant-a',
+            'principal-after-restart' ? {namespaceId: 'namespace-a',
               authorityScopeCid: cid('a')} : undefined,
         }),
         stateService, resultService: service,
@@ -2017,7 +2017,7 @@ test('public Values submit computes and reads its real Local Result',
         const localAttach = installNodeClientRunAttach({
           journal: lookupJournal, requestControl: moon,
           publicationControl: control,
-          authorizedScope: () => ({tenantId: 'tenant-a',
+          authorizedScope: () => ({namespaceId: 'namespace-a',
             authorityScopeCid: cid('a')}),
           authorizeRun: async ({ref: requested}) => {
             await inspectAuthorizedRunState(stateService, {
@@ -2032,7 +2032,7 @@ test('public Values submit computes and reads its real Local Result',
           authenticate: () => 'principal-after-restart',
           authorizeConnection: ({connection, ref: requested}) =>
             connection.mode === 'local' && connection.owner === 'local' &&
-            (requested === undefined || requested.tenantId === 'tenant-a'),
+            (requested === undefined || requested.namespaceId === 'namespace-a'),
           negotiate: () => ({
             version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
             durability: 'durable', scopeRef: 'principal-after-restart',
@@ -2567,7 +2567,7 @@ test('Effectful Client request identity binds checked intent before Run',
     await mkdir(scratch, {recursive: true});
     const path = await mkdtemp(join(scratch.pathname, 'effect-request-'));
     t.after(() => rm(path, {recursive: true, force: true}));
-    const admission = {tenantId: 'tenant-a', runDefinitionCid: cid('d'),
+    const admission = {namespaceId: 'namespace-a', runDefinitionCid: cid('d'),
       lookupExpiresAt: '2099-01-01T00:00:00.000Z'};
     const journal = openClientRequestJournal(path);
     assert.equal(journal.accept(request, admission, moon).inserted, true);
@@ -2578,16 +2578,16 @@ test('Effectful Client request identity binds checked intent before Run',
       runDefinitionCid: cid('e')}, moon).inserted, false);
     assert.throws(() => reopened.accept(conflict, admission, moon),
       {code: 'ClientRequestIntentConflict'});
-    assert.equal(reopened.lookup({tenantId: 'tenant-a',
+    assert.equal(reopened.lookup({namespaceId: 'namespace-a',
       authorityScopeCid: cid('a'), requestId: 'write-request'}, moon)
       .ref.runDefinitionCid, cid('d'));
-    const retained = reopened.lookupIdentity({tenantId: 'tenant-a',
+    const retained = reopened.lookupIdentity({namespaceId: 'namespace-a',
       authorityScopeCid: cid('a'), requestId: 'write-request'}, moon);
     assert.equal(moon.clientRequestRelation(request, retained), 1);
     assert.equal(effect.logicalRequestScopeCid(
       moon.clientProgramEffectRequestScope(original, retained)),
     effect.logicalRequestScopeCid(scope));
-    assert.equal(reopened.lookupIdentity({tenantId: 'foreign',
+    assert.equal(reopened.lookupIdentity({namespaceId: 'foreign',
       authorityScopeCid: cid('a'), requestId: 'write-request'}, moon), undefined);
   });
 
@@ -2629,7 +2629,7 @@ test('Host admits and retains the exact checked Effect Run Definition',
       changed, ...bound, plan),
     /Publication evidence differs from checked Effect/u);
     const definition = control.issueRunDefinition(admission, {
-      scopeId: 'tenant-a-scope', runId: 'checked-effect-run',
+      scopeId: 'namespace-a-scope', runId: 'checked-effect-run',
       inputArtifactSetCid: cid('c'),
       createdAt: '2026-09-24T00:00:00.000Z',
       validUntil: '2027-01-01T00:00:00.000Z',
@@ -2665,19 +2665,19 @@ test('Host admits and retains the exact checked Effect Run Definition',
     t.after(() => rm(path, {recursive: true, force: true}));
     const journal = openClientRequestJournal(path);
     assert.equal(journal.acceptDefinition(request, {
-      tenantId: 'tenant-a', runDefinition: definition,
+      namespaceId: 'namespace-a', runDefinition: definition,
       lookupExpiresAt: '2099-01-01T00:00:00.000Z',
     }, moon, control).inserted, true);
     journal.close();
     const reopened = openClientRequestJournal(path);
     t.after(() => reopened.close());
     assert.equal(reopened.resolveDefinition(request,
-      {tenantId: 'tenant-a'}, moon, control).runDefinition.wire,
+      {namespaceId: 'namespace-a'}, moon, control).runDefinition.wire,
     definition.wire);
     assert.throws(() => reopened.resolveDefinition(changedRequest,
-      {tenantId: 'tenant-a'}, moon, control),
+      {namespaceId: 'namespace-a'}, moon, control),
     {code: 'ClientRequestIntentConflict'});
-    const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+    const key = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
       requestId: moon.clientRequestCallerId(request),
       runDefinitionCid: definition.identity};
     const retained = reopened.lookupOwnedDefinition(key, moon, control);
@@ -2699,9 +2699,9 @@ test('Host admits and retains the exact checked Effect Run Definition',
       authorizeEvidenceRead: async binding => {
         assert.equal(binding.runDefinitionCid, cid('f'));
         foreignKey.runDefinitionCid = definition.identity;
-        foreignKey.tenantId = 'foreign-tenant';
+        foreignKey.namespaceId = 'foreign-namespace';
         await Promise.resolve();
-        assert.equal(binding.tenantId, 'tenant-a');
+        assert.equal(binding.namespaceId, 'namespace-a');
         return true;
       }}), {code: 'EffectRecoveryRequestMismatch'});
     const abort = new AbortController();
@@ -2754,7 +2754,7 @@ test('admitted source-free Effect Run computes through the installed Host',
         prepared, ...changed), undefined);
     }
     const definition = checked(moon.strategyIssueRunDefinition(
-      admission, 'tenant-a-scope', 'effect-compute', cid('c'),
+      admission, 'namespace-a-scope', 'effect-compute', cid('c'),
       '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
       100000, 10000, 64));
     const observation = checked(moon.strategyRunEvidenceSeal(
@@ -3524,7 +3524,7 @@ test('admitted source-free Effect Run computes through the installed Host',
           execution, store, storedResults, control, computation,
           preview: admittedPreview, ledger: effectLedger, issuedSet,
           request: {
-            tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+            namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
             publicationPolicyCid: cid('e'),
             publicationTargetCid: cid('f'),
             requestedAt: '2026-09-24T00:00:01.000Z',
@@ -3545,7 +3545,7 @@ test('admitted source-free Effect Run computes through the installed Host',
         assert.equal(JSON.parse(finalReceipt.wire)
           .effect_set_apply_receipt_cid, issuedSet.set.identity);
         committedPublicationKey = {
-          tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+          namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
           runDefinitionCid: runDefinitionContract.identity,
         };
         assert.notEqual(await store.inspectCommittedIndex(
@@ -3618,7 +3618,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
       prepared, ...evidence);
     assert.ok(admission);
     const definition = checked(moon.strategyIssueRunDefinition(
-      admission, 'tenant-a-scope', 'update-effect-compute', cid('c'),
+      admission, 'namespace-a-scope', 'update-effect-compute', cid('c'),
       '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
       100000, 10000, 64));
     const observation = checked(moon.strategyRunEvidenceSeal(
@@ -4443,7 +4443,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
           execution, store, storedResults, control, computation,
           preview: admittedPreview, ledger: resumedProgress,
           issuedSet: issued,
-          request: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+          request: {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
             publicationPolicyCid: cid('e'),
             publicationTargetCid: cid('f'),
             requestedAt: '2026-09-24T00:00:01.000Z'},
@@ -4453,7 +4453,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
           contractLimits: publicationLimits,
           now: () => '2026-09-24T00:00:03.000Z', signal: undefined,
         }), {code: 'EffectfulRunNeedsReconciliation'});
-        assert.equal(await store.inspectCommittedIndex({tenantId: 'tenant-a',
+        assert.equal(await store.inspectCommittedIndex({namespaceId: 'namespace-a',
           authorityScopeCid: cid('a'),
           runDefinitionCid: runDefinitionContract.identity}), undefined);
         assert.ok(await store.inspectPhysicalHolding(privateHoldingCid));
@@ -4552,7 +4552,7 @@ test('Effect source set shares exact owners and retains failed cleanup',
         const admission = moon.clientProgramAdmitEffectPublication(
           prepared, ...evidence);
         const definition = checked(moon.strategyIssueRunDefinition(
-          admission, 'tenant-a-scope', 'source-set-run', cid('c'),
+          admission, 'namespace-a-scope', 'source-set-run', cid('c'),
           '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
           100000, 10000, 64));
         const observation = checked(moon.strategyRunEvidenceSeal(
@@ -4724,7 +4724,7 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
     prepared, ...evidence);
   assert.ok(admission);
   const definition = checked(moon.strategyIssueRunDefinition(
-    admission, 'tenant-a-scope', 'two-effect-compute', cid('c'),
+    admission, 'namespace-a-scope', 'two-effect-compute', cid('c'),
     '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
     100000, 10000, 64));
   const bound = moon.clientProgramBindEffectRun(
@@ -4817,7 +4817,7 @@ test('Effect sources retain exact physical producers across split Stages',
         prepared, ...evidence);
       assert.ok(admission);
       const definition = checked(moon.strategyIssueRunDefinition(
-        admission, 'tenant-a-scope', 'split-effect-compute', cid('c'),
+        admission, 'namespace-a-scope', 'split-effect-compute', cid('c'),
         '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
         100000, 10000, 64));
       const bound = moon.clientProgramBindEffectRun(

@@ -51,6 +51,7 @@ pub(all) enum BinaryOperator {
   Modulo
   Equal
   NotEqual
+  IsDistinctFrom
   Less
   LessEqual
   Greater
@@ -179,6 +180,7 @@ fn expression_tag(
     | "modulo"
     | "eq"
     | "neq"
+    | "is_distinct_from"
     | "lt"
     | "lte"
     | "gt"
@@ -699,6 +701,7 @@ fn lower_expression_measured(
         "modulo" => Binary(Modulo, args[0], args[1])
         "eq" => Binary(Equal, args[0], args[1])
         "neq" => Binary(NotEqual, args[0], args[1])
+        "is_distinct_from" => Binary(IsDistinctFrom, args[0], args[1])
         "lt" => Binary(Less, args[0], args[1])
         "lte" => Binary(LessEqual, args[0], args[1])
         "gt" => Binary(Greater, args[0], args[1])

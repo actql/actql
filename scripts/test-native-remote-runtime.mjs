@@ -205,7 +205,7 @@ async function testValuesHttps(tls, environment, transferControl) {
         const accepted = JSON.parse(await readFile(acceptedPath, 'utf8'));
         const required = ['RUN_ID', 'CREATED_AT', 'VALID_UNTIL',
           'RUN_DEFINITION_CID', 'DISPATCH_ID', 'DISPATCH_CID'];
-        // A tenant-scoped driver also names its scope and coordinator
+        // A namespace-scoped driver also names its scope and coordinator
         // authority; both or neither.
         const names = accepted !== null && typeof accepted === 'object' &&
           'SCOPE_ID' in accepted ?

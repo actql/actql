@@ -147,7 +147,7 @@ function scope(origin, operation = 'records:read') {
   return Object.freeze({
     issuerAuthority: 'credential-authority-a',
     principal: 'principal-a',
-    tenant: 'tenant-a',
+    namespaceId: 'namespace-a',
     environment: 'production',
     siteKey: 'site-a',
     siteGeneration: 4,

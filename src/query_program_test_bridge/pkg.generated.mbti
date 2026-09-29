@@ -4,6 +4,8 @@ package "actql/actql/query_program_test_bridge"
 // Values
 pub fn compile_captured_query_json(String, String, String, String, String, String) -> String
 
+pub fn compile_generated_graph_query_json(String, String, String, String, String, String) -> String
+
 pub fn compile_query_json(String, String, String, String, String, String) -> String
 
 pub fn compile_two_values_set_query_json(String, String, String, String, String, String, String, String) -> String

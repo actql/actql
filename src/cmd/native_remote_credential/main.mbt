@@ -75,7 +75,7 @@ fn command() -> @argparse.Command {
       @argparse.OptionArg("resource-path", required=true, global=true),
       @argparse.OptionArg("operation", required=true, global=true),
       @argparse.OptionArg("principal", required=true, global=true),
-      @argparse.OptionArg("tenant", required=true, global=true),
+      @argparse.OptionArg("namespace", required=true, global=true),
       @argparse.OptionArg("environment", required=true, global=true),
       @argparse.OptionArg("site-key", required=true, global=true),
       @argparse.OptionArg("site-generation", required=true, global=true),
@@ -241,7 +241,7 @@ fn execute_checked(matches : @argparse.Matches) -> String raise CommandStop {
   }
   let scope : @resource.NativeCredentialScope = {
     principal: checked(option(matches, "principal")),
-    tenant: checked(option(matches, "tenant")),
+    namespace_id: checked(option(matches, "namespace")),
     environment: checked(option(matches, "environment")),
     site_key: checked(option(matches, "site-key")),
     site_generation: checked(

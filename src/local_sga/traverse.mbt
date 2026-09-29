@@ -160,6 +160,53 @@ pub fn start_traverse(
 }
 
 ///|
+/// Run path emission from an exact retained Graph handoff. This is the same
+/// bounded path kernel as the in-task Graph read; the handoff is validated
+/// against the selected operation before any rows are observed.
+pub fn start_traverse_view(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  view : @lifecycle.ProducerView,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+) -> Result[TraverseExecution, TraverseIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step)
+    is Some(@lower.GraphTraverseStep(prepared)) &&
+    @lower.graph_traverse_emits_paths(prepared) &&
+    @lifecycle.producer_view_kind(view) == @carrier.GraphKind &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(view),
+      owner,
+      step,
+      0,
+    ) else {
+    return Err(UnsupportedTraverseKernel)
+  }
+  start_traverse_paths_read(
+    control,
+    preparation,
+    sequence,
+    step,
+    Viewed(view),
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+  )
+  .map(paths => ({ kernel: TraversePaths(paths), } : TraverseExecution))
+  .map_err(issue => TraversePathIssue(issue))
+}
+
+///|
 pub fn advance_traverse(
   value : TraverseExecution,
   quantum : Int,

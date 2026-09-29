@@ -32,8 +32,9 @@ pub struct WriteProjection {
 }
 
 ///|
-/// This is the scalar subset with an exact JSON representation. Salesforce
-/// can still reject a value under constraints not proved by this projection.
+/// This is the scalar subset with an exact JSON representation; a Number
+/// (`double`) only up to precision 15. Salesforce can still reject a value
+/// under constraints not proved by this projection.
 fn write_field_type_supported(native_type : String) -> Bool {
   match native_type {
     "id"
@@ -47,7 +48,9 @@ fn write_field_type_supported(native_type : String) -> Bool {
     | "combobox"
     | "boolean"
     | "int"
-    | "double" => true
+    | "double"
+    | "date"
+    | "datetime" => true
     _ => false
   }
 }
@@ -103,7 +106,9 @@ pub fn prepare_write_projection(
     if !field.nullability_confirmed {
       return Err(UnconfirmedNullability(field.name))
     }
-    if !write_field_type_supported(field.native_type) {
+    // A Number is written only as its declared decimal (`double_decimal`).
+    if !write_field_type_supported(field.native_type) ||
+      (field.native_type == "double" && double_decimal(field) is None) {
       return Err(UnsupportedWriteType(field.name))
     }
   }
@@ -146,6 +151,8 @@ fn same_write_field(before : FieldMetadata, after : FieldMetadata) -> Bool {
     before.external_id != after.external_id ||
     before.unique != after.unique ||
     before.case_sensitive != after.case_sensitive ||
+    before.precision != after.precision ||
+    before.scale != after.scale ||
     before.reference_to.length() != after.reference_to.length() {
     return false
   }

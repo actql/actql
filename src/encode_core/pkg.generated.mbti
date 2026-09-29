@@ -14,6 +14,8 @@ pub fn bool_value(Writer, Bool) -> Unit raise EncodeFailure
 
 pub fn buffered_hashing_writer(Int, Int, Int, Int) -> Writer raise EncodeFailure
 
+pub fn decimal_number_value(Writer, String) -> Unit raise EncodeFailure
+
 pub fn document_bytes(EncodedDocument) -> Int
 
 pub fn document_text(EncodedDocument) -> String

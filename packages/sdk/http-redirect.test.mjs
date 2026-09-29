@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {connect} from './index.mjs';
 
-const ref = {tenantId: 'tenant-a',
+const ref = {namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
 const profile = {version: 'actql-client-host/0.1', mode: 'local',

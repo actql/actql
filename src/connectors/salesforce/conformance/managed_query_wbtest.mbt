@@ -50,7 +50,7 @@ fn plan(
   }).unwrap()
   @catalog.finish_catalog_sync(sync).unwrap()
   let binding : @catalog.CatalogObservationBinding = {
-    tenant: "tenant-a",
+    namespace_id: "namespace-a",
     principal: "principal-a",
     environment: "test",
     connection_revision: "connection-a",

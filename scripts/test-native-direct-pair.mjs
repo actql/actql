@@ -36,7 +36,11 @@ try {
     assert.equal(pair.nativeObligationAdmission?.accepted, true);
     assert.equal(pair.selectionProfile.admitted, true);
   }
-  assert.deepEqual(pair.native.selected, ['local', 'local', 'local']);
+  // A calibrated profile may select a different admitted physical plan.
+  // runNativeDirectPair already verifies its exact ordinary selection.
+  if (!nativeEstimateProfile) {
+    assert.deepEqual(pair.native.selected, ['local', 'local', 'local']);
+  }
   console.log('Direct Native product and independent assembly agree');
 } finally {
   await rm(directory, {recursive: true, force: true});

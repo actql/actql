@@ -28,7 +28,7 @@ let connector_revision = "salesforce/0.1"
 /// and declaration it accepts must carry exactly this binding (apart from the
 /// dispatch that observed it).
 pub struct ClientSalesforceSite {
-  tenant : String
+  namespace_id : String
   principal : String
   environment : String
   connection_revision : String
@@ -40,7 +40,7 @@ pub struct ClientSalesforceSite {
 
 ///|
 pub fn client_salesforce_site(
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   connection_revision : String,
@@ -50,13 +50,14 @@ pub fn client_salesforce_site(
   resource_origin : String,
 ) -> Result[ClientSalesforceSite, ClientSalesforceIssue] {
   if [
-      tenant, principal, environment, connection_revision, org_id, site_key, resource_origin,
+      namespace_id, principal, environment, connection_revision, org_id, site_key,
+      resource_origin,
     ].any(value => value.is_empty()) ||
     site_generation < 0 {
     return Err(InvalidInput)
   }
   Ok({
-    tenant,
+    namespace_id,
     principal,
     environment,
     connection_revision,
@@ -72,7 +73,7 @@ fn site_binding_matches(
   site : ClientSalesforceSite,
   binding : @catalog.CatalogObservationBinding,
 ) -> Bool {
-  binding.tenant == site.tenant &&
+  binding.namespace_id == site.namespace_id &&
   binding.principal == site.principal &&
   binding.environment == site.environment &&
   binding.connection_revision == site.connection_revision &&
@@ -115,7 +116,7 @@ pub fn recover_client_salesforce_observation(
     _ => ()
   }
   let binding : @catalog.CatalogObservationBinding = {
-    tenant: site.tenant,
+    namespace_id: site.namespace_id,
     principal: site.principal,
     environment: site.environment,
     connection_revision: site.connection_revision,

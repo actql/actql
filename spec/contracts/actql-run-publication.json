@@ -281,7 +281,7 @@
       "additionalProperties": false,
       "required": [
         "version",
-        "tenant_id",
+        "namespace_id",
         "authority_scope_cid",
         "run_definition_cid",
         "inventory",
@@ -294,7 +294,7 @@
         "version": {
           "const": "actql-publication-request/0.1"
         },
-        "tenant_id": {
+        "namespace_id": {
           "type": "string",
           "minLength": 1
         },
@@ -507,7 +507,7 @@
       "additionalProperties": false,
       "required": [
         "version",
-        "tenant_id",
+        "namespace_id",
         "authority_scope_cid",
         "principal_id",
         "run_definition_cid",
@@ -524,7 +524,7 @@
         "version": {
           "const": "actql-manifest-read-grant/0.1"
         },
-        "tenant_id": {
+        "namespace_id": {
           "type": "string",
           "minLength": 1
         },
@@ -584,7 +584,7 @@
       "additionalProperties": false,
       "required": [
         "version",
-        "tenant_id",
+        "namespace_id",
         "authority_scope_cid",
         "principal_id",
         "run_definition_cid",
@@ -604,7 +604,7 @@
         "version": {
           "const": "actql-result-read-grant/0.1"
         },
-        "tenant_id": {
+        "namespace_id": {
           "type": "string",
           "minLength": 1
         },
@@ -893,7 +893,7 @@
       "additionalProperties": false,
       "required": [
         "version",
-        "tenant_id",
+        "namespace_id",
         "authority_scope_cid",
         "run_definition_cid",
         "invocation_cid",
@@ -910,7 +910,7 @@
         "version": {
           "const": "actql-public-index-entry/0.1"
         },
-        "tenant_id": {
+        "namespace_id": {
           "type": "string",
           "minLength": 1
         },
@@ -972,14 +972,14 @@
     "run_invocation": "sha256:6295e0fe2d2b066f39c3d5ecd7c16125018aa2d46d0cfa3537c213d109b96c81",
     "result_retention_policy": "sha256:61bc287aae5c6b626bf7bea99ff8d40dd932e4fdf00495cedc3868f633f831c4",
     "durable_result_binding": "sha256:f775ad3a57f76aa6fd0272d498e7c9045644874288f796b1d5daae3cbc15fed4",
-    "publication_request": "sha256:ad979661e8eacccf11714411861325038f11192f6531dcc8093c480a359e9c82",
+    "publication_request": "sha256:7ecef118bdaec77a2366ff874abb5fe4401a82f6fb7d9d7a63753d20518a9c7c",
     "publication_attempt": "sha256:bd7b6a8ebf31e1c61c952fe2a5a5cf29813676f19777940fd771b573b86000a5",
     "publication_record": "sha256:ebc1b92730a37fb67b3fed5b70ffca9e5a8b64aefcafc546cdc875dc7b5caa4d",
-    "manifest_read_grant": "sha256:2aeaa77acc11099eb0192defd561691a3bd90bbf70d5ed111ffdfbb71ae90e78",
-    "result_read_grant": "sha256:288322154204b30c3715cf6b8da76ea0ac564a2e2064ad2558531904509d2215",
+    "manifest_read_grant": "sha256:2988afee66209d63cd12d9174c1adea619231e49fca1e8dc7876b6655a6f7fd5",
+    "result_read_grant": "sha256:e154fb5adec4d242933cf93989188fb5bab5486ebb6999ae123fafa6b064488a",
     "delivery_attempt": "sha256:f26252778de76cc45e95559a1b9d95055d1f650af6d89ca1262592dcffba48cf",
     "delivery_record": "sha256:d4018bec28a046f7faf02d4f3d3eb06a7f9ce19f84f5dfa41ceb5155bd0a78a4",
-    "public_index_entry": "sha256:2e809c8c0fd41f544551bfa7053014b884167a8b51b843969e78206c2e7e5202"
+    "public_index_entry": "sha256:75a65222ae68271932a4605eee7f366e0cd4d4a3d8ad8d2c8b230498b1080c5f"
   },
   "reference_roles": {
     "compiled_plan": {
@@ -1477,7 +1477,7 @@
     "self_identity": "each_self_cid_hashes_the_complete_closed_body_without_only_its_self_member",
     "result_definition": "program_definition_and_result_name_resolve_one_exact_checked_result_occurrence",
     "run_invocation": "template_matches_observation_set_and_all_required_observations_are_admitted",
-    "publication_commit": "one_tenant_authority_run_definition_has_one_atomic_durable_public_index_entry",
+    "publication_commit": "one_namespace_authority_run_definition_has_one_atomic_durable_public_index_entry",
     "publication_retry": "unknown_reconciles_under_fencing_before_retry_and_durable_commit_wins_cancel_race",
     "availability": "run_outcome_is_immutable_and_current_per_result_availability_is_separate_from_authority",
     "delivery": "attempt_identity_precedes_append_only_progress_and_retry_starts_at_byte_zero",

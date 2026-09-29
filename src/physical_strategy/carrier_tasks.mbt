@@ -49,7 +49,7 @@ fn segmentable_relation_source(graph : CheckedDAG, start : Int) -> Bool {
 /// later row operations use their own selected tasks.
 /// -1 means that every step can be selected independently.
 fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
-  if stage <= 0 || stage >= graph.owners.length() {
+  if stage < 0 || stage >= graph.owners.length() {
     return None
   }
   if graph.selected_steps[stage] is Some(_) ||
@@ -59,6 +59,30 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   let prepared = @lower.bound_preparation(graph.owners[stage])
   let pipeline = @lower.pipeline(prepared)
   let count = @pipeline.step_count(pipeline)
+  if stage == 0 {
+    if !graph.source_free_root {
+      return None
+    }
+    let mut values_source = false
+    let mut graph_construction = false
+    let mut graph_rows = false
+    for step in 0..<count {
+      guard @lower.node_at(prepared, step) is Some(node) else { return None }
+      match @lower.operation(node) {
+        "REL.values" => values_source = true
+        "BRIDGE.rows.to_graph" => graph_construction = true
+        "BRIDGE.graph.to_node_rows" | "BRIDGE.graph.to_edge_rows" =>
+          graph_rows = true
+        _ => ()
+      }
+    }
+    // Only the closed Values-to-Graph frontend shape needs stage-zero
+    // segmentation. Effectful Values and existing Graph operators retain
+    // their checked task layout.
+    if !values_source || !graph_construction || !graph_rows {
+      return None
+    }
+  }
   if count < 2 {
     return None
   }
@@ -82,7 +106,8 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     } else if @lower.node_input_count(node) == 2 {
       found_binary = true
     }
-    if @lower.operation(node) == "BRIDGE.rows.to_graph" &&
+    if stage != 0 &&
+      @lower.operation(node) == "BRIDGE.rows.to_graph" &&
       @lower.node_input_count(node) > 1 {
       guard @lower.node_input_target(node, 0) is Some(first) else {
         return None
@@ -92,6 +117,15 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
           return None
         }
       }
+    }
+    // A graph constructed in this Stage and a separately supplied start
+    // Relation still belong to the fused traversal task. Splitting here
+    // would request a Graph output that the existing task never retained.
+    if @lower.operation(node) == "SGA.traverse" &&
+      @lower.node_input_count(node) == 2 &&
+      @lower.node_input_target(node, 0) is Some(@pipeline.Step(_)) &&
+      @lower.node_input_target(node, 1) is Some(@pipeline.Input(_)) {
+      return None
     }
     for input in 0..<@lower.node_input_count(node) {
       match @lower.node_input_target(node, input) {

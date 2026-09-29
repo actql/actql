@@ -309,7 +309,7 @@ fn native_access_fixture(
   let request = @publication.issue_publication_request(
     run_definition,
     [definition],
-    "tenant",
+    "namespace_id",
     authority_scope_cid,
     native_access_cid(token + "-publication-policy"),
     native_access_cid(token + "-publication-target"),
@@ -467,7 +467,7 @@ test "standard native access delivers and reauthorizes after restart" {
     3,
   ).unwrap()
   let base_request : NativeResultAccessRequest = {
-    tenant_id: "tenant",
+    namespace_id: "namespace_id",
     authority_scope_cid: fixture.authority_scope_cid,
     run_definition_cid: @publication.publication_contract_identity(
       fixture.run_definition,

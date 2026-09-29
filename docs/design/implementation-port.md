@@ -57,7 +57,7 @@ the durability required by a selected recovery profile.
 Shared semantics and execution rules remain in the MoonBit core. OSS Local Host
 and Cloud Host obey the same authorization, idempotency, failure and recovery
 contracts. Their storage, credential handling and scheduling adapters differ;
-Cloud additionally supplies tenant isolation and shared-resource controls.
+Cloud additionally supplies namespace isolation and shared-resource controls.
 The shared Host interfaces and Local Host belong in OSS; Cloud-specific service
 integration belongs outside the portable core. These interfaces do not prescribe
 a service's deployment topology, storage product or implementation language.

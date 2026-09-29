@@ -33,12 +33,12 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "tenantId",
+            "namespaceId",
             "authorityScopeCid",
             "runDefinitionCid"
           ],
           "properties": {
-            "tenantId": {
+            "namespaceId": {
               "type": "string",
               "minLength": 1,
               "maxLength": 256,
@@ -71,9 +71,9 @@
     "run_ref": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["tenantId", "authorityScopeCid", "runDefinitionCid"],
+      "required": ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
       "properties": {
-        "tenantId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "namespaceId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
         "authorityScopeCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "runDefinitionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
       }
@@ -124,7 +124,7 @@
       "additionalProperties": false,
       "required": ["ref", "durability", "revision"],
       "properties": {
-        "ref": {"type": "object", "additionalProperties": false, "required": ["tenantId", "authorityScopeCid", "runDefinitionCid"], "properties": {"tenantId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}, "authorityScopeCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "runDefinitionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}},
+        "ref": {"type": "object", "additionalProperties": false, "required": ["namespaceId", "authorityScopeCid", "runDefinitionCid"], "properties": {"namespaceId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}, "authorityScopeCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "runDefinitionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}},
         "durability": {"enum": ["volatile", "durable"]},
         "revision": {"type": "integer", "minimum": 0}
       }
@@ -136,7 +136,7 @@
       "properties": {
         "kind": {"const": "found"},
         "requestId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
-        "ref": {"type": "object", "additionalProperties": false, "required": ["tenantId", "authorityScopeCid", "runDefinitionCid"], "properties": {"tenantId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}, "authorityScopeCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "runDefinitionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}},
+        "ref": {"type": "object", "additionalProperties": false, "required": ["namespaceId", "authorityScopeCid", "runDefinitionCid"], "properties": {"namespaceId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}, "authorityScopeCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "runDefinitionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}},
         "durability": {"enum": ["volatile", "durable"]},
         "lookupExpiresAt": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}
       }
@@ -221,7 +221,7 @@
       "properties": {
         "requestId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
         "kind": {"enum": ["accepted", "already_requested", "already_terminal"]},
-        "ref": {"type": "object", "additionalProperties": false, "required": ["tenantId", "authorityScopeCid", "runDefinitionCid"], "properties": {"tenantId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}, "authorityScopeCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "runDefinitionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}},
+        "ref": {"type": "object", "additionalProperties": false, "required": ["namespaceId", "authorityScopeCid", "runDefinitionCid"], "properties": {"namespaceId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}, "authorityScopeCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "runDefinitionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}},
         "revision": {"type": "integer", "minimum": 0, "maximum": 2147483647}
       }
     },

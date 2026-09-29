@@ -200,6 +200,14 @@ pub fn client_program_task_count(
 }
 
 ///|
+#export_name("clientProgramUsesGraphCarrier")
+pub fn client_program_uses_graph_carrier(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Bool {
+  @publication_host.prepared_client_uses_graph_carrier(prepared)
+}
+
+///|
 #export_name("clientProgramSemanticsCid")
 pub fn client_program_semantics_cid(
   prepared : @publication_host.PreparedClientProgram,
@@ -2022,6 +2030,29 @@ pub fn client_program_admit_local_values_aoa_identity(
 
 ///|
 /// Open the portable installed Local Host from this JS ABI.
+// SELECTED_CLIENT_GRAPH_PROVIDER_BEGIN
+fn installed_client_graph_providers(
+  capacity : @execution.ExecutionCapacity,
+) -> Array[@local.ManagedProvider] {
+  let graph_limits : @graph_storage.Limits = {
+    max_input_rows: 100,
+    max_nodes: 100,
+    max_edges: 100,
+    max_value_bytes: 10000,
+    max_total_value_bytes: 10000,
+    max_retained_value_bytes: 10000,
+    max_value_nodes: 10000,
+    max_value_depth: 100,
+    max_contract_work: 10000,
+    max_work: 100000,
+    max_workspace_slots: 10000,
+  }
+  [@local_sga_provider.provider(graph_limits, 10000L, capacity)]
+}
+// SELECTED_CLIENT_GRAPH_PROVIDER_END
+
+///|
+/// Open the portable installed Local Host from this JS ABI.
 #export_name("clientProgramOpenSourceFreeLocalHost")
 pub fn client_program_open_source_free_local_host(
   prepared : @publication_host.PreparedClientProgram,
@@ -2044,6 +2075,7 @@ pub fn client_program_open_source_free_local_host(
     per_pair_ms,
     fragment_body~,
     ordered_body~,
+    provider_factory=installed_client_graph_providers,
   )
 }
 
@@ -2074,6 +2106,7 @@ pub fn client_program_open_captured_local_host(
     per_pair_ms,
     fragment_body~,
     ordered_body~,
+    provider_factory=installed_client_graph_providers,
   )
 }
 
@@ -4810,7 +4843,7 @@ pub fn client_program_prepare_duckdb_source_evidence_context(
 ///|
 #export_name("clientProgramSalesforceSite")
 pub fn client_program_salesforce_site(
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   connection_revision : String,
@@ -4823,8 +4856,8 @@ pub fn client_program_salesforce_site(
   @client_salesforce_host.ClientSalesforceIssue,
 ] {
   @client_salesforce_host.client_salesforce_site(
-    tenant, principal, environment, connection_revision, org_id, site_key, site_generation,
-    resource_origin,
+    namespace_id, principal, environment, connection_revision, org_id, site_key,
+    site_generation, resource_origin,
   )
 }
 
@@ -5027,6 +5060,17 @@ pub fn client_program_salesforce_broad_accept_page(
 }
 
 ///|
+/// The value violation behind a failed page of this attempt, as canonical
+/// JSON, or none for any other failure.
+#export_name("clientProgramSalesforceBroadValueViolation")
+pub fn client_program_salesforce_broad_value_violation(
+  attempt : @salesforce_host.SalesforceBroadAttempt,
+  issue : @salesforce_host.SalesforceBroadAttemptIssue,
+) -> String? {
+  @salesforce_host.salesforce_broad_attempt_value_violation(attempt, issue)
+}
+
+///|
 #export_name("clientProgramSalesforceBroadComplete")
 pub fn client_program_salesforce_broad_complete(
   attempt : @salesforce_host.SalesforceBroadAttempt,
@@ -5131,7 +5175,7 @@ pub fn client_program_salesforce_issue_source_evidence(
 #export_name("clientProgramSalesforceReadProjectionScopeMatches")
 pub fn client_program_salesforce_read_projection_scope_matches(
   plan : @salesforce_catalog.ReadProjection,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   site_key : String,
@@ -5143,7 +5187,7 @@ pub fn client_program_salesforce_read_projection_scope_matches(
   dispatch_request_cid : String,
 ) -> Bool {
   @salesforce_catalog.read_projection_matches_site_scope(
-    plan, tenant, principal, environment, site_key, site_generation, connector_registration,
+    plan, namespace_id, principal, environment, site_key, site_generation, connector_registration,
     connector_revision, resource_origin, run_invocation_cid, dispatch_request_cid,
   )
 }

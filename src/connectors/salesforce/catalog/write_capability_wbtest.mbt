@@ -21,7 +21,7 @@ test "write capability has an independent profile identity" {
   // Independent Node SHA-256 over the documented canonical field inventory.
   assert_eq(
     write_capability_identity(evidence),
-    "sha256:5c00304ac26a9638a6ce6d5272c2f222870ccf1fc06f0c9bdbce3fef40420fc6",
+    "sha256:3845b8b110f5abab0f7dddb2529fdbf10b53032ec3c89f95148d67107855df21",
   )
   assert_eq(write_capability_route(evidence), SerialRows)
   let other_row = {

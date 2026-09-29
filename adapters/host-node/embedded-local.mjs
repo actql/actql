@@ -7,6 +7,7 @@ import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {admitHostRootFormat} from './host-root-format.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
@@ -45,7 +46,7 @@ import {installRunStateAuthority, installRunStateService,
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
-import {canonicalJson} from './local-account-config.mjs';
+import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeTaskPlan,
   sourceFreeEffectPublicationPlan, acquiredTaskRunAdmission} from
@@ -132,7 +133,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   if (effectInstallation !== undefined && selectedEffectPath !== undefined) {
     throw new TypeError('InvalidInstalledEffectSite');
   }
-  await mkdir(root, {recursive: true, mode: 0o700});
+  await admitHostRootFormat(root);
   const moon = await import(runtimeUrl.href);
   const control = runtimeCore(moon).publicationControl;
   const principalId = userInfo().username;
@@ -168,6 +169,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     environmentWire = composeInstalledCheckEnvironment(moon,
       baseEnvironmentWire, sourceProfile?.environmentWire,
       effectInstallation?.environmentWire);
+    const {evidence_bundle_cid: ignored, ...body} = JSON.parse(environmentWire);
+    void ignored;
+    body.host_policy_profile = {...body.host_policy_profile,
+      capacity: {...body.host_policy_profile.capacity,
+        max_graph_construction_edges: 1000,
+        max_graph_construction_input_rows: 1000,
+        max_graph_construction_nodes: 1000}};
+    environmentWire = canonicalJson({...body,
+      evidence_bundle_cid: contentCid(body)});
     verifyInstalledConnectorBindings(sourceProfile,
       installedEffect ?? effectInstallation);
   } catch (cause) {
@@ -189,7 +199,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const numericProfileCid = `sha256:${createHash('sha256')
       .update(canonicalJson(numericProfile)).digest('hex')}`;
     environment = moon.clientProgramCheckEnvironmentWithNumericProfile(
-      environmentWire, evidenceCid, false, false, true, false, false, false,
+      environmentWire, evidenceCid, false, false, true, true, false, false,
       false, numericProfileCid);
   } catch (cause) {
     throw await retainInstalledHostInitializationFailure(cause,
@@ -204,7 +214,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   let values;
   let fragment;
   let ordered;
-  const tenantId = 'local';
+  const namespaceId = 'local';
   const authorityScopeCid = cid({version: 'actql-local-owner-scope/0.1',
     root, principalId});
   const storeAuthorityCid = cid({version: 'actql-local-store-owner/0.1',
@@ -215,8 +225,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   let store;
   let checkpoints;
   let dispatchOwner;
-  const diagnostic = createDiagnosticObserver(authorization?.observe);
+  let diagnostic;
   try {
+    diagnostic = createDiagnosticObserver(authorization?.observe);
     registry = await readFile(join(packageRoot,
       'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
     const aoa = JSON.parse(await readFile(join(packageRoot,
@@ -256,10 +267,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const hostConnection = ({principalId: actual, connection, ref}) =>
     actual === principalId &&
     connection.mode === mode && connection.owner === mode &&
-    (ref === undefined || ref.tenantId === tenantId &&
+    (ref === undefined || ref.namespaceId === namespaceId &&
       ref.authorityScopeCid === authorityScopeCid);
   const authorizedScope = ({principalId: actual}) =>
-    actual === principalId ? {tenantId, authorityScopeCid} : undefined;
+    actual === principalId ? {namespaceId, authorityScopeCid} : undefined;
   const lookupRequest = installNodeClientRequestLookup({journal,
     control: moon, authorizedScope});
   const startRun = installNodeClientRunStart({journal,
@@ -294,11 +305,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const attach = installNodeClientRunAttach({journal,
     requestControl: moon, publicationControl: control, authorizedScope,
     authorizeRun: ({ref, principalId: actual}) =>
-      actual === principalId && ref.tenantId === tenantId &&
+      actual === principalId && ref.namespaceId === namespaceId &&
       ref.authorityScopeCid === authorityScopeCid});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment, allowEffects: effectInstallation !== undefined});
-    checkpoints = await installRemoteCheckpoints({root, tenantId,
+    checkpoints = await installRemoteCheckpoints({root, namespaceId,
       authorityScopeCid, ownerPrincipal: principalId,
       siteKey: authorization?.siteKey ?? 'actql-remote-host',
       realizationKey: sourceProfile?.realizationKey ?? REALIZATION_KEY,
@@ -308,7 +319,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         {...authorization, observe: diagnostic},
       source: sourceProfile?.readAuthorization});
   const observeRun = async ({ref, principalId: actual}) => {
-    if (actual !== principalId || ref.tenantId !== tenantId ||
+    if (actual !== principalId || ref.namespaceId !== namespaceId ||
         ref.authorityScopeCid !== authorityScopeCid) {
       throw new Error('RunStateAccessDenied');
     }
@@ -429,7 +440,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     const held = checkpoints?.heldOrigin(requestId)
       ? checkpoints.cancelHeld(requestId) : undefined;
-    const existing = journal.lookupDefinition({tenantId, authorityScopeCid,
+    const existing = journal.lookupDefinition({namespaceId, authorityScopeCid,
       requestId}, moon, control);
     if (existing !== undefined) {
       const run = await cancel({ref: existing.ref, principalId: actual,
@@ -537,14 +548,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     retainedDefinitionWire) => {
     prepareSubmit.assertOwned(preparedProgram);
     const common = {moon, control, preparedProgram,
-      authorityScopeCid, tenantId, requestId, storeAuthorityCid, now,
+      authorityScopeCid, namespaceId, requestId, storeAuthorityCid, now,
       ...(retainedDefinitionWire === undefined ? {} :
         {retainedDefinitionWire})};
     return sourceProfile !== undefined &&
       moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0)?.$tag ===
         1
       ? acquiredTaskRunAdmission(common)
-      : moon.clientProgramTaskCount(preparedProgram) > 1
+      : moon.clientProgramTaskCount(preparedProgram) > 1 ||
+          moon.clientProgramUsesGraphCarrier(preparedProgram)
         ? sourceFreeTaskPlan(common)
         : sourceFreeValuesPlan(common);
   };
@@ -552,7 +564,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const admitDefinition = async (submission, requested, resultNames,
     held) => {
     const accepted = await journal.admitOrLookupDefinition(requested, {
-      tenantId, lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
+      namespaceId, lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
       resultNames,
       issueDefinition: () => {
         held.plan = planFor(submission);
@@ -568,7 +580,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     journal, store, checkpoints, startRun, hostConnection, beforeDispatch,
     observed, prepareAcquisition, planFor, sourceProfile, registry, values,
     faultInjection: authorization?.faultInjection,
-    fragment, ordered, tenantId, authorityScopeCid, storeAuthorityCid, now});
+    fragment, ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now});
   const startDispatch = dispatchOwner.start;
   const recoverEffectCapture = (ref, signal) => {
     const retained = journal.lookupRunDefinition(ref, moon, control);
@@ -577,12 +589,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     const requestId = retained.requestId;
     return recoverAdmittedEffectRun({requests: journal, store,
-      key: {tenantId, authorityScopeCid, requestId,
+      key: {namespaceId, authorityScopeCid, requestId,
         runDefinitionCid: ref.runDefinitionCid}, principalId,
       contractLimits: localContractLimits, signal,
       authorizeEvidenceRead: binding => hostConnection({principalId,
         connection: {mode, owner: mode}, ref}) &&
-        binding.tenantId === tenantId &&
+        binding.namespaceId === namespaceId &&
         binding.authorityScopeCid === authorityScopeCid &&
         binding.requestId === requestId &&
         binding.runDefinitionCid === ref.runDefinitionCid &&
@@ -609,7 +621,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         hostConnection({principalId: actual, connection, ref}),
       prepareExecution: ({prepared, compilation, allowed, definition}) =>
         sourceFreeEffectPublicationPlan({moon, control, prepared,
-          compilation, allowed, definition, authorityScopeCid, tenantId,
+          compilation, allowed, definition, authorityScopeCid, namespaceId,
           storeAuthorityCid, now}),
       execute: facts => dispatchOwner.track(facts.ref, {
         run: ({signal, retainExecution, beginPhysicalWork}) =>
@@ -644,7 +656,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       : accepted.runDefinition);
   const admitEffectDefinition = submission => effectRun.accept({
     prepared: submission.preparedProgram, authorityScopeCid,
-    requestId: submission.requestId, tenantId,
+    requestId: submission.requestId, namespaceId,
     principalId: submission.principalId, connection: submission.connection,
     lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
   });
@@ -655,7 +667,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     // Reject unsupported checked shapes before retaining a Checkpoint.
     effectRun.checkSupported(preparedProgram);
     if (checkpoints?.heldOrigin(requestId)) {
-      const existing = journal.resolveDefinition(requested, {tenantId}, moon,
+      const existing = journal.resolveDefinition(requested, {namespaceId}, moon,
         control);
       if (existing !== undefined) {
         void checkpoints.sweep();
@@ -665,7 +677,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     if (checkpoints !== undefined &&
         (checkpoints.heldOrigin(requestId) ||
-         journal.lookup({tenantId, authorityScopeCid, requestId}, moon) ===
+         journal.lookup({namespaceId, authorityScopeCid, requestId}, moon) ===
            undefined)) {
       const requestedFacts = {
         logicalRequestScopeCid: moon.clientRequestScopeCid(requested),
@@ -677,7 +689,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       const decided = await checkpoints.acceptRun({requested: requestedFacts,
         captured});
       if (decided.kind !== 'dispatch') {
-        const existing = journal.lookupDefinition({tenantId,
+        const existing = journal.lookupDefinition({namespaceId,
           authorityScopeCid, requestId}, moon, control);
         void checkpoints.sweep();
         if (existing !== undefined) {
@@ -725,7 +737,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     // journal's own identity (no side effect): another intent conflicts,
     // whatever the state of the held evidence.
     if (checkpoints?.heldOrigin(requestId)) {
-      const existing = journal.resolveDefinition(requested, {tenantId}, moon,
+      const existing = journal.resolveDefinition(requested, {namespaceId}, moon,
         control);
       if (existing !== undefined) {
         void checkpoints.sweep();
@@ -735,7 +747,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     if (checkpoints !== undefined &&
         (checkpoints.heldOrigin(requestId) ||
-         journal.lookup({tenantId, authorityScopeCid, requestId}, moon) ===
+         journal.lookup({namespaceId, authorityScopeCid, requestId}, moon) ===
            undefined)) {
       const requestedFacts = {
         logicalRequestScopeCid: moon.clientRequestScopeCid(requested),
@@ -757,7 +769,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           requested: requestedFacts, captured});
       }
       if (decided.kind !== 'dispatch') {
-        const existing = journal.lookupDefinition({tenantId,
+        const existing = journal.lookupDefinition({namespaceId,
           authorityScopeCid, requestId}, moon, control);
         void checkpoints.sweep();
         if (existing === undefined) {
@@ -811,7 +823,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     return {submission, requested, resultNames, preparedSource, effectful};
   };
-  const definitionOf = captured => journal.lookupDefinition({tenantId,
+  const definitionOf = captured => journal.lookupDefinition({namespaceId,
     authorityScopeCid, requestId: captured.requestId}, moon, control);
   const terminal = status => ['succeeded', 'failed', 'cancelled']
     .includes(status);
@@ -824,7 +836,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         !hostConnection({principalId: actual, connection})) {
       throw new Error('AcquisitionInspectionDenied');
     }
-    const accepted = journal.lookupDefinition({tenantId,
+    const accepted = journal.lookupDefinition({namespaceId,
       authorityScopeCid, requestId}, moon, control);
     if (accepted === undefined || accepted.physicalStartReserved !== true) {
       return {state: 'not_started'};
@@ -983,7 +995,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         accepted.preDispatchFailureConfirmed) return;
     if (accepted.dispatchReserved !== true) {
       const start = await startRun({identity: (await heldSubmission(
-        captured)).requested, tenantId, principalId: captured.principalId,
+        captured)).requested, namespaceId, principalId: captured.principalId,
       connection: captured.connection});
       if (start.kind !== 'reserved' && start.kind !== 'reconcile') return;
     }
@@ -1074,7 +1086,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         if (view.kind !== 'effect_set' || view.prepareAttemptId !== null ||
             !['failed', 'cancelled'].includes(
               checkpoints.journal.getRunState(view.runId)?.status)) continue;
-        const ref = Object.freeze({tenantId, authorityScopeCid,
+        const ref = Object.freeze({namespaceId, authorityScopeCid,
           runDefinitionCid: view.runDefinitionCid});
         try { await retireEffectCapture(ref); }
         catch (error) { failures.push(error); }
@@ -1097,7 +1109,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           continue;
         }
         const key = view.runDefinitionCid;
-        const ref = Object.freeze({tenantId, authorityScopeCid,
+        const ref = Object.freeze({namespaceId, authorityScopeCid,
           runDefinitionCid: key});
         if (cancelEffectContinuation(ref)) {
           busy = true;
@@ -1193,7 +1205,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     dispatchOwner, inspectAcquisition, sourceProfile, installedEffect,
     retireTerminalEffects};
   } catch (cause) {
-    diagnostic.close();
+    diagnostic?.close();
     effectEvidenceKey?.key.fill(0);
     throw await retainInstalledHostInitializationFailure(cause,
       {journal, store, checkpoints, dispatchOwner,
@@ -1285,7 +1297,7 @@ export async function openInstalledRemoteHttpHost({directory,
 export async function publishInstalledSource({sourceProfilePath, directory,
   resolveSourceSecret, signal} = {}) {
   const root = directory === undefined ? localStateRoot() : resolve(directory);
-  await mkdir(root, {recursive: true, mode: 0o700});
+  await admitHostRootFormat(root);
   const moon = await import(runtimeUrl.href);
   return publishInstalledSourceProfile(
     sourceProfilePath ?? process.env.ACTQL_LOCAL_SOURCE_PROFILE, {root,
@@ -1301,7 +1313,7 @@ export async function publishInstalledSource({sourceProfilePath, directory,
 export async function publishInstalledEffect({effectProfilePath, directory,
   resolveEffectSecret, signal} = {}) {
   const root = directory === undefined ? localStateRoot() : resolve(directory);
-  await mkdir(root, {recursive: true, mode: 0o700});
+  await admitHostRootFormat(root);
   const moon = await import(runtimeUrl.href);
   const baseEnvironmentWire = (await readFile(join(packageRoot,
     'spec/local-check-environment.json'), 'utf8')).trimEnd();

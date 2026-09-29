@@ -136,7 +136,7 @@
     },
     {
       "requirement_id": "actql.protocol.artifacts/result-artifacts.a-committed-run-must-have-one-public-index-entry-for-its-authority-scoped-run-definition",
-      "statement_sha256": "e819becbe7a25919561fdd3d0f70a0720fd1a52862636da0563bf2e3fbcaa598",
+      "statement_sha256": "2bea5dc2e7f0c5af22ed4f2a4eacba20b057b773287e095a02c5ddbb140b950a",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -147,7 +147,7 @@
     },
     {
       "requirement_id": "actql.protocol.artifacts/result-artifacts.manifest-and-result-read-grants-must-be-separate-and-bind-an-exact-committed-manifest",
-      "statement_sha256": "9590d01ba1967b53acea72786b520f20c4bccb92a1112c1f525d8d39e2a44a5c",
+      "statement_sha256": "070b9495335ae199d2ab407178c3ca996aa75b6c15d270fdce16e1879d55b27f",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

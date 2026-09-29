@@ -13,7 +13,7 @@ import {checkpointLimits, clientHostOperations, isClientSubmitRejection,
 
 const connection = Object.freeze({mode: 'remote', owner: 'remote',
   consentRefs: [], runners: []});
-const ref = Object.freeze({tenantId: 'tenant-a',
+const ref = Object.freeze({namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});
 
@@ -66,7 +66,11 @@ test('public wire rejects extra fields and unscoped or implicit movement', () =>
   for (const operation of ['constructor', 'toString', '__proto__']) {
     assert.equal(validClientBody(operation, {connection}), false);
   }
-  assert.equal(validRunRef({...ref, tenantId: '😀'.repeat(130)}), false);
+  assert.equal(validRunRef({...ref, namespaceId: '😀'.repeat(130)}), false);
+  assert.equal(validRunRef({tenantId: ref.namespaceId,
+    authorityScopeCid: ref.authorityScopeCid,
+    runDefinitionCid: ref.runDefinitionCid}), false);
+  assert.equal(validRunRef({...ref, tenantId: ref.namespaceId}), false);
   assert.equal(validClientConnection({...connection, consentRefs: ['grant-a',
     'grant-a']}), false);
   assert.equal(validClientConnection({...connection, durability: undefined}),
@@ -116,7 +120,7 @@ test('Host profile and admission replies bind the selected connection', () => {
   assert.equal(validClientProfile({...profile,
     limits: {...profile.limits, maxRows: 1.5}}, selected), false);
   assert.equal(validClientAdmission({...admission,
-    ref: {...ref, tenantId: ''}}, selected), false);
+    ref: {...ref, namespaceId: ''}}, selected), false);
   assert.equal(validClientAdmission({...admission, revision: -1},
     selected), false);
 });

@@ -54,9 +54,9 @@ function validateRequest(options) {
     'attemptId', 'limits', 'frameLimits', 'now', 'sink', 'createDigest',
     'authorize', 'signal',
   ]) || !exactKeys(options.indexKey, [
-    'tenantId', 'authorityScopeCid', 'runDefinitionCid',
-  ]) || typeof options.indexKey.tenantId !== 'string' ||
-      options.indexKey.tenantId.length === 0 ||
+    'namespaceId', 'authorityScopeCid', 'runDefinitionCid',
+  ]) || typeof options.indexKey.namespaceId !== 'string' ||
+      options.indexKey.namespaceId.length === 0 ||
       !cidPattern.test(options.indexKey.authorityScopeCid) ||
       !cidPattern.test(options.indexKey.runDefinitionCid) ||
       !contractShape(options.grant) ||

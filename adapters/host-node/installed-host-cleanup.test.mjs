@@ -62,7 +62,7 @@ test('Checkpoint installation retains its journal before returning an owner',
     const cid = `sha256:${'a'.repeat(64)}`;
     let failure;
     await assert.rejects(installRemoteCheckpoints({root: directory,
-      tenantId: 'tenant', authorityScopeCid: cid, ownerPrincipal: 'owner',
+      namespaceId: 'namespace', authorityScopeCid: cid, ownerPrincipal: 'owner',
       siteKey: 'site', realizationKey: 'values', environmentCid: cid,
       contractControl: runtimeCore(moon).publicationControl,
       authorization: {

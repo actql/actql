@@ -87,9 +87,9 @@ function validateEvidence(evidence) {
 }
 
 function validateRequest(request) {
-  if (!exactKeys(request, ['tenantId', 'authorityScopeCid',
+  if (!exactKeys(request, ['namespaceId', 'authorityScopeCid',
     'publicationPolicyCid', 'publicationTargetCid', 'requestedAt']) ||
-      typeof request.tenantId !== 'string' || request.tenantId.length === 0 ||
+      typeof request.namespaceId !== 'string' || request.namespaceId.length === 0 ||
       !['authorityScopeCid', 'publicationPolicyCid', 'publicationTargetCid']
         .every(name => cidPattern.test(request[name])) ||
       typeof request.requestedAt !== 'string' ||
@@ -157,7 +157,7 @@ function requiredInventory(contracts, request, attempt) {
 
 function indexKey(request, evidence) {
   return Object.freeze({
-    tenantId: request.tenantId,
+    namespaceId: request.namespaceId,
     authorityScopeCid: request.authorityScopeCid,
     runDefinitionCid: evidence.runDefinition.identity,
   });
