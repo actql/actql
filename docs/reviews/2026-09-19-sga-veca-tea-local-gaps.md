@@ -3975,11 +3975,17 @@ returned material; provider cleanup no longer discards that live output before
 the formal `node_rows` Bridge reads it. A portable selected union fixture
 checks all four authored input occurrences, repeated material positions,
 Bridge row order, producer cleanup, and cancellation after positive work on
-JS, Wasm, and native. The Node publication fixture exercises graft, union,
-mean, and empty subtraction followed by a same-Stage filter, real retained
-Store output, Named Result retrieval, and two independent consumers. The full
-Node standard-Host fixture passed after the Graph change, and the portable
-Graph integration file passed on JS, Wasm, and native after merging current
-main. Same-SHA CI remains unverified. In-flight Node Host cancellation of the
-selected structural task and mixed-path failure/cleanup evidence remain open,
-so this is not a complete claim for every retained Graph route.
+JS, Wasm, and native. The selected provider observes cancellation again before
+transferring a completed Graph from its pending handoff; cancellation at every
+yield returns Stopped and cleanup reclaims the untransferred output while the
+input Graphs remain available. The Node publication fixture exercises graft,
+union, mean, empty and nonempty subtraction followed by a same-Stage filter,
+real retained Store output, Named Result retrieval, and two independent
+consumers. Distinct right-side nodes and edges, asymmetric mean weights, and
+independent edge-row expectations distinguish incorrect operand binding and
+arithmetic. A selected structural task also receives a Host-delivered in-flight
+cancel, and a later consumer failure leaves the result unpublished and cleans
+up retained resources. The full Node standard-Host fixture passed after these
+changes; the portable Graph integration file passed 136/136 on each of JS,
+Wasm, and native. Same-SHA Linux CI remains unverified, and the covered routes
+do not imply every retained Graph route is complete.
