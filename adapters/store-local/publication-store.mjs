@@ -25,6 +25,7 @@ import {
   randomUUID,
 } from 'node:crypto';
 import {resolve} from 'node:path';
+import {createObjectWriterOwner} from './object-writer-owner.mjs';
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
 // Physical holdings: Transfer material, Effect source/capture custody,
@@ -1061,7 +1062,7 @@ export async function openLocalPublicationStore(
     return operation;
   };
 
-  const createObjectWriter = (maxBytes, trackCustody = false) => {
+  const reserveObjectCapacity = maxBytes => {
     active();
     if (!quantity(maxBytes) || maxBytes > configuration.maxObjectBytes) {
       fail('PublicationObjectLimit');
@@ -1075,203 +1076,44 @@ export async function openLocalPublicationStore(
     }
     reservedBytes += maxBytes;
     reservedObjects++;
-    const temporary = resolve(stagingDirectory, `object-${randomUUID()}`);
-    const hash = createHash('sha256');
-    let bytes = 0;
-    let acceptedBytes = 0;
-    let handle;
-    let finished = false;
-    let cleanupPending = false;
-    let reservationHeld = true;
-    let custody;
-    let busy = Promise.resolve();
-    const releaseReservation = () => {
-      if (!reservationHeld) return;
-      reservedBytes -= maxBytes;
-      reservedObjects--;
-      reservationHeld = false;
-    };
-    const start = async () => {
-      try {
-        handle = await open(
-          temporary,
-          constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY,
-          0o600,
-        );
-      } catch (error) {
-        finished = true;
-        releaseReservation();
-        throw error;
-      }
-    };
-    const ready = start();
-    const queue = operation => {
-      const result = busy.then(operation);
-      busy = result.catch(() => {});
-      return result;
-    };
-    const cleanupTemporary = async () => {
-      if (handle) {
-        await handle.close();
-        handle = undefined;
-      }
-      try { await unlink(temporary); }
-      catch (error) { if (error?.code !== 'ENOENT') throw error; }
-      await syncDirectory(stagingDirectory);
-    };
-    const cleanupAndRelease = async () => {
-      try {
-        await cleanupTemporary();
-        cleanupPending = false;
-        releaseReservation();
-      } catch (error) {
-        cleanupPending = true;
-        throw error;
-      }
-    };
+    let held = true;
     return Object.freeze({
-      append(frame) {
-        let length;
-        if (Buffer.isBuffer(frame) || frame instanceof Uint8Array) {
-          length = frame.byteLength;
-        } else if (typeof frame === 'string') {
-          length = Buffer.byteLength(frame, 'utf8');
-        } else {
-          return queue(async () => fail('PublicationObjectLimit'));
-        }
-        if (finished || length > maxBytes - acceptedBytes) {
-          return queue(async () => {
-            if (finished) fail('PublicationObjectWriterClosed');
-            fail('PublicationObjectLimit');
-          });
-        }
-        // Snapshot caller-owned mutable input only after its exact size is
-        // known to fit. No rejected frame can force an unbounded copy.
-        const buffer = Buffer.isBuffer(frame) ? Buffer.from(frame) :
-          frame instanceof Uint8Array ? Buffer.from(frame) :
-            Buffer.from(frame, 'utf8');
-        acceptedBytes += length;
-        return queue(async () => {
-          await ready;
-          if (finished) fail('PublicationObjectWriterClosed');
-          try {
-            let offset = 0;
-            while (offset < buffer.byteLength) {
-              const result = await handle.write(
-                buffer, offset, buffer.byteLength - offset, bytes + offset,
-              );
-              if (result.bytesWritten === 0) {
-                fail('IncompletePublicationWrite');
-              }
-              offset += result.bytesWritten;
-            }
-            hash.update(buffer);
-            bytes += buffer.byteLength;
-          } catch (error) {
-            finished = true;
-            throw error;
-          }
-        });
+      get held() { return held; },
+      release() {
+        if (!held) return false;
+        reservedBytes -= maxBytes;
+        reservedObjects--;
+        held = false;
+        return true;
       },
-      seal(expectedCid) {
-        return queue(async () => {
-          await ready;
-          if (finished) fail('PublicationObjectWriterClosed');
-          finished = true;
-          let installed = false;
-          let result;
-          let failed = false;
-          let primaryFailure;
-          try {
-            await handle.sync();
-            const state = await handle.stat();
-            if (!state.isFile() || state.size !== bytes) {
-              fail('IncompletePublicationWrite');
-            }
-            await handle.close();
-            handle = undefined;
-            const cid = `sha256:${hash.digest('hex')}`;
-            if (expectedCid !== undefined && expectedCid !== cid) {
-              fail('PublicationObjectIdentityMismatch');
-            }
-            if (reclaimingMaterialCids.has(cid)) {
-              fail('PublicationObjectReclamationPending');
-            }
-            if (trackCustody) {
-              custody = await registerCustody(cid, bytes, state);
-            }
-            const finalPath = objectPath(cid);
-            try {
-              await link(temporary, finalPath);
-              installed = true;
-              storedBytes += bytes;
-              objectCount++;
-              if (custody !== undefined) custody.accounted = true;
-              await syncDirectory(objectsDirectory);
-            } catch (error) {
-              if (error?.code !== 'EEXIST') throw error;
-              const existing = await verifyObject(cid);
-              if (existing.bytes !== bytes) {
-                fail('PublicationObjectIdentityMismatch');
-              }
-            }
-            result = custody === undefined
-              ? Object.freeze({cid, bytes, created: installed})
-              : Object.freeze({cid, bytes, created: installed, custody});
-          } catch (error) {
-            failed = true;
-            primaryFailure = error;
-          }
-          if (failed) {
-            try { await cleanupAndRelease(); }
-            catch { cleanupPending = true; }
-            if (!reservationHeld && custody !== undefined) {
-              try {
-                if (await reclaimCustody(custody)) custody = undefined;
-                else cleanupPending = true;
-              } catch { cleanupPending = true; }
-            }
-            throw primaryFailure;
-          }
-          await cleanupAndRelease();
-          custody = undefined;
-          return result;
-        });
-      },
-      cancel() {
-        return queue(async () => {
-          try { await ready; }
-          catch (error) {
-            if (!reservationHeld) return false;
-            throw error;
-          }
-          if (finished && !reservationHeld && custody === undefined) {
-            return false;
-          }
-          finished = true;
-          if (reservationHeld) await cleanupAndRelease();
-          if (custody !== undefined) {
-            if (await reclaimCustody(custody)) {
-              custody = undefined;
-              cleanupPending = false;
-            } else {
-              cleanupPending = true;
-              fail('PublicationPreparedCustodyPending');
-            }
-          }
-          return true;
-        });
-      },
-      status: () => Object.freeze({
-        maxBytes,
-        bytes,
-        finished,
-        cleanupPending,
-        reservationHeld,
-        custodyPending: custody !== undefined,
-      }),
     });
   };
+
+  const createObjectWriter = (maxBytes, trackCustody = false) =>
+    createObjectWriterOwner(
+      maxBytes,
+      trackCustody,
+      reserveObjectCapacity(maxBytes),
+      {
+        stagingDirectory,
+        objectsDirectory,
+        open,
+        link,
+        unlink,
+        syncDirectory,
+        fail,
+        objectPath,
+        isReclaiming: cid => reclaimingMaterialCids.has(cid),
+        registerCustody,
+        reclaimCustody,
+        verifyObject,
+        accountInstalled(bytes, custody) {
+          storedBytes += bytes;
+          objectCount++;
+          if (custody !== undefined) custody.accounted = true;
+        },
+      },
+    );
 
   const createPreparedObjectWriter = maxBytes => {
     const writer = createObjectWriter(maxBytes, true);
