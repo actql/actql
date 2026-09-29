@@ -53,24 +53,41 @@ runtime output. `graphs-equal` passes ordinary preparation but the earlier
 packed probe failed at `Dispatch(NoStrategy)`. These are separate blockers.
 The other authored fixtures still require their exact checker and packed
 execution evidence;
-`components` additionally needs its existing capacity application, and the
+`components` also needed its existing capacity application, and the
 edge-row fixtures need lawful order evidence for nullable edge identity.
 The Client job now includes `scripts/sga-surface-checker.test.mjs` at the
 common preparation boundary. It rejects a Relation chained into
 `normalize_graph` and an unbounded `graph_bounds` call before Run acceptance.
 
-For the Components fixture, the exact shared gap is in
-`pipeline_check_context::derive_program_capacity`: it derives Host-owned
+For the earlier Components fixture probe, the exact shared gap was in
+`pipeline_check_context::derive_program_capacity`: it derived Host-owned
 engine-atomic applications for Join and Traverse/Reach, but no corresponding
 Components consumer. `capacity_program_step::check_components_applications`
-therefore returns `MissingApplication` for the checked Components step. The
+therefore returned `MissingApplication` for the checked Components step. The
 existing contract requires two distinct applications:
 `actql.bound.components-input-nodes` in nodes from the retained Graph producer,
 and `actql.bound.components-nodes` in output rows under
-`max_graph_output_rows`. The Compute/capacity owner should supply them through
-that common builder with the checked producer and policy; the Frontend must
-not issue substitute claims or raise ceilings. The acceptance fixture then
-needs normal preparation, packed Result rows and a ceiling rejection.
+`max_graph_output_rows`. The shared builder must supply them with the checked
+producer and policy; the Frontend must not issue substitute claims or raise
+ceilings. The acceptance fixture still needs packed Result rows and a ceiling
+rejection.
+
+At `64b84e3bc71db28ada3720d3e9f418783a0e3d6f`, the common capacity
+builder now derives the Components node proof from the checked Graph producer
+and separately resolves the row claim under `max_graph_output_rows`. The new
+Program-only limit helper retains exact owned proof handles and rejects empty
+or foreign candidates. The focused Host-witness tests passed 31/31 and
+pipeline-context tests passed 281/281, including Components preparation and
+claim/subject checks. The packed Local probe then accepted the Components Run,
+where the previous probe failed during common preparation. That Run still
+ended before Result publication with `ACTQL_E_UNPUBLISHED_RUN`; its precise
+dispatch or publication cause is not established by the public status. No
+Components Result acceptance is claimed. The same packed probe passed raw
+SQL/Pipe on Local/HTTP, the named `normalize_graph -> node_rows` Result on
+Local/HTTP, and the native CLI Result. All seven other SGA probes remained
+unsuccessful. The probe evidence and package digests are in the workspace's
+`worktrees/.codex-scratch/public-query-evidence-0xPLsd`; the generated
+installation and Store were removed after the run.
 
 The edge-row order gap is independent of source spelling. The Graph
 projection key includes `(src, dst, rel)`, but `edge_rows` publishes nullable
@@ -158,7 +175,8 @@ Run but ended failed before publication (`ACTQL_E_UNPUBLISHED_RUN`). For
 strategy revision; the `degree-rows` failure still needs the same diagnosis.
 `graph-bounds` reached Run compilation and was rejected there.
 `components` failed common Program preparation at the separately recorded
-capacity application gap. `reach-subgraph`, `diff-apply` and `mean-graphs`
+capacity application gap in that earlier probe; the newer fixed-SHA result is
+recorded above. `reach-subgraph`, `diff-apply` and `mean-graphs`
 were refused during preparation; their explicit edge-row ordering still
 requires lawful evidence for the nullable `rel` field. These failures are not
 successful Result evidence. The diagnostic response for some pre-Run failures
@@ -218,7 +236,7 @@ own installation. The failures are not silently excluded from SGA coverage:
 | --- | --- | --- |
 | `graphs-equal`, `degree-rows` | Run accepted, then failed before publication with `ACTQL_E_UNPUBLISHED_RUN` | Physical strategy / Host dispatch: `src/physical_strategy/captured_dag.mbt` and `adapters/host-node/client-dispatch-owner.mjs`; confirm the precise dispatch cause for each. |
 | `graph-bounds` | Run compilation rejected before acceptance | Host compilation/profile: `adapters/host-node/local-values-plan.mjs` and `src/run_publication_host/client_values_compilation.mbt`. |
-| `components` | Common preparation failed before acceptance | Compute capacity: `src/pipeline_check_context/program_capacity_preparation.mbt` must supply the existing two Components application claims. |
+| `components` | Common capacity preparation now passes; packed Run is accepted but ends before publication | Inspect the exact physical dispatch and publication cause; the public `ACTQL_E_UNPUBLISHED_RUN` status alone is insufficient. The Components Result and ceiling rejection remain unverified. |
 | `reach-subgraph`, `diff-apply`, `mean-graphs` | Checked preparation rejected before acceptance | The prior source-level trace reached `UnresolvedOrder` for nullable `rel`; order-evidence owner should inspect `src/relation_evidence/sets.mbt` and the Result transformation boundary. The packed error does not itself expose that inner reason. |
 
 For the preparation/compilation failures, the installed Local facade returned
