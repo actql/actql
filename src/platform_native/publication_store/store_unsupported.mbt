@@ -253,7 +253,7 @@ pub fn Store::commit_publication(
 ///|
 pub fn Store::inspect_committed_publication(
   _self : Store,
-  _tenant_id : String,
+  _namespace_id : String,
   _authority_scope_cid : String,
   _run_definition_cid : String,
   _max_wire_bytes : Int,
@@ -292,7 +292,7 @@ pub fn Store::observe_trusted_clock(
 ///|
 pub fn Store::resolve_committed_result(
   _self : Store,
-  _tenant_id : String,
+  _namespace_id : String,
   _authority_scope_cid : String,
   _run_definition_cid : String,
   _result_name : String,

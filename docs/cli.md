@@ -35,7 +35,7 @@ Delivery follows successful Run completion. Requested deliveries use a private d
 
 For Runs with destination requests, `--json` returns the closed `actql-cli-run-response/0.1` envelope: `run` is the portable Run state, and `delivery_status` plus `deliveries` describe independent attempts. Delivery failure exits nonzero but still returns this JSON and the successful Run ID. Runs without destination requests retain the portable Run-state response. The local response schema is generated at `spec/contracts/actql-cli-run-response.schema.json` in the package root.
 
-Result delivery checks retained material integrity and current local owner/read/egress policy, not old inputs or Effect policy. `result_policy: {decision: deny}` in Host config denies Result access; its default is allow for the same local owner. This is a local filesystem policy, not cloud multi-tenant authorization. All write endpoints are checked against read dependencies, each other, and private Run state, including existing path aliases.
+Result delivery checks retained material integrity and current local owner/read/egress policy, not old inputs or Effect policy. `result_policy: {decision: deny}` in Host config denies Result access; its default is allow for the same local owner. This is a local filesystem policy, not cloud multi-namespace authorization. All write endpoints are checked against read dependencies, each other, and private Run state, including existing path aliases.
 
 ## Checkpoints
 
@@ -135,7 +135,7 @@ The CLI searches from the current directory upward for `actql.config.json`. Path
   "account_config": "./actql.accounts.json",
   "run_policy": {
     "principal": "agent:customer-sync",
-    "tenant": "acme",
+    "namespace": "acme",
     "policy_contract_cid": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "decision": "review",
     "expires_at": "2099-01-01T00:00:00.000Z"

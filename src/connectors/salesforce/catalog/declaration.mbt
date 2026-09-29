@@ -775,7 +775,7 @@ pub fn generate_static_declaration(
 
 ///|
 pub(all) enum DeclarationUseIssue {
-  /// The declaration was generated for another tenant, principal,
+  /// The declaration was generated for another namespace_id, principal,
   /// environment, org, connection, Site, generation, origin or revision.
   ForeignDeclaration
   /// No declared SourceView or Mapping rule covers this Resource and use.
@@ -842,7 +842,7 @@ fn declaration_site_matches(
   declared : CatalogObservationBinding,
   current : CatalogObservationBinding,
 ) -> Bool {
-  declared.tenant == current.tenant &&
+  declared.namespace_id == current.namespace_id &&
   declared.principal == current.principal &&
   declared.environment == current.environment &&
   declared.connection_revision == current.connection_revision &&

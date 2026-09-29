@@ -206,7 +206,7 @@ function deliveryRoot(control) {
   }), limits);
   const index = control.seal('public_index_entry', JSON.stringify({
     version: 'actql-public-index-entry/0.1',
-    tenant_id: 'tenant',
+    namespace_id: 'namespace',
     authority_scope_cid: cid('a'),
     run_definition_cid: cid('9'),
     invocation_cid: cid('2'),
@@ -572,7 +572,7 @@ test('publication preflight rejects immutable or physical incompatibility',
         modelEvidence: Object.freeze([]),
       }),
       request: Object.freeze({
-        tenantId: 'tenant-a',
+        namespaceId: 'namespace-a',
         authorityScopeCid: cid('7'),
         publicationPolicyCid: cid('8'),
         publicationTargetCid: cid('9'),
@@ -1196,7 +1196,7 @@ test('portable control validates Receipt and Captured Run references',
     physicalSha256: physicalCid.slice(7),
   }, limits);
   const request = control.issuePublicationRequest(run, [definition], {
-    tenantId: 'tenant-a',
+    namespaceId: 'namespace-a',
     authorityScopeCid: cid('d'),
     publicationPolicyCid: cid('e'),
     publicationTargetCid: cid('f'),
@@ -1536,7 +1536,7 @@ test('portable control validates Receipt and Captured Run references',
     effectfulRequired.filter(cid => cid !== sourceArtifact.identity),
   ), {code: 'IncompletePublicationCommitInventory'});
   assert.equal(await effectfulStore.inspectCommittedIndex({
-    tenantId: 'tenant-a',
+    namespaceId: 'namespace-a',
     authorityScopeCid: cid('d'),
     runDefinitionCid: run.identity,
   }), undefined);
@@ -1554,7 +1554,7 @@ test('portable control validates Receipt and Captured Run references',
     effectSources: [source],
     sourceArtifacts: [sourceArtifact],
     request: {
-      tenantId: 'tenant-a',
+      namespaceId: 'namespace-a',
       authorityScopeCid: cid('d'),
       publicationPolicyCid: cid('e'),
       publicationTargetCid: cid('f'),
@@ -1581,7 +1581,7 @@ test('portable control validates Receipt and Captured Run references',
     ...effectfulPublication, ledger: Object.freeze({}),
   }), {code: 'EffectSetReceiptEvidenceNotOwned'});
   assert.equal(await effectfulStore.inspectCommittedIndex({
-    tenantId: 'tenant-a',
+    namespaceId: 'namespace-a',
     authorityScopeCid: cid('d'),
     runDefinitionCid: run.identity,
   }), undefined);
@@ -1607,7 +1607,7 @@ test('portable control validates Receipt and Captured Run references',
   const effectfulReplay = await publishEffectfulRun(effectfulPublication);
   assert.equal(effectfulReplay.idempotent, true);
   const effectfulKey = {
-    tenantId: 'tenant-a',
+    namespaceId: 'namespace-a',
     authorityScopeCid: cid('d'),
     runDefinitionCid: run.identity,
   };
@@ -1699,7 +1699,7 @@ test('portable control validates Receipt and Captured Run references',
     control,
     evidence,
     request: {
-      tenantId: 'tenant-a',
+      namespaceId: 'namespace-a',
       authorityScopeCid: cid('d'),
       publicationPolicyCid: cid('e'),
       publicationTargetCid: cid('f'),
@@ -1794,7 +1794,7 @@ test('portable control validates Receipt and Captured Run references',
   assert.equal(committed.committed, true);
   assert.equal(committed.idempotent, false);
   assert.deepEqual(await store.inspectCommittedIndex({
-    tenantId: 'tenant-a',
+    namespaceId: 'namespace-a',
     authorityScopeCid: cid('d'),
     runDefinitionCid: run.identity,
   }), JSON.parse(committed.index.wire));
@@ -1908,7 +1908,7 @@ test('portable control validates Receipt and Captured Run references',
   }, control);
   t.after(async () => { await deliveryStore.close(); });
   const deliveryIndexValue = await deliveryStore.confirmCommittedIndex({
-    tenantId: 'tenant-a',
+    namespaceId: 'namespace-a',
     authorityScopeCid: cid('d'),
     runDefinitionCid: run.identity,
   });
@@ -2030,7 +2030,7 @@ test('portable control validates Receipt and Captured Run references',
   });
   const stateRequest = {
     indexKey: {
-      tenantId: 'tenant-a',
+      namespaceId: 'namespace-a',
       authorityScopeCid: cid('d'),
       runDefinitionCid: run.identity,
     },
@@ -2070,7 +2070,7 @@ test('portable control validates Receipt and Captured Run references',
       ? 'principal-a' : undefined,
     authorizeConnection: facts => facts.connection.mode === 'local' &&
       facts.connection.owner === 'local' &&
-      (facts.ref === undefined || facts.ref.tenantId === 'tenant-a'),
+      (facts.ref === undefined || facts.ref.namespaceId === 'namespace-a'),
     negotiate: () => ({
       version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
       durability: 'durable', scopeRef: 'principal-a',
@@ -2272,7 +2272,7 @@ test('portable control validates Receipt and Captured Run references',
     accessService,
     {
       indexKey: {
-        tenantId: 'tenant-a',
+        namespaceId: 'namespace-a',
         authorityScopeCid: cid('d'),
         runDefinitionCid: run.identity,
       },
@@ -2305,7 +2305,7 @@ test('portable control validates Receipt and Captured Run references',
   const readWait = new Promise(resolve => { releaseReadRequest = resolve; });
   readRequestGate = {started: readAuthorizationStarted, wait: readWait};
   const changedReadRequest = {
-    indexKey: {tenantId: 'tenant-a', authorityScopeCid: cid('d'),
+    indexKey: {namespaceId: 'namespace-a', authorityScopeCid: cid('d'),
       runDefinitionCid: run.identity},
     principalId: 'principal-a', purpose: 'download', resultName: 'answer',
     format: 'json', attemptId: 'snapshot-json',
@@ -2324,7 +2324,7 @@ test('portable control validates Receipt and Captured Run references',
   changedReadRequest.resultName = 'missing-result';
   changedReadRequest.format = 'csv';
   changedReadRequest.attemptId = 'foreign-attempt';
-  changedReadRequest.indexKey.tenantId = 'tenant-b';
+  changedReadRequest.indexKey.namespaceId = 'namespace-b';
   changedReadRequest.indexKey.runDefinitionCid = cid('0');
   releaseReadRequest();
   readRequestGate = undefined;
@@ -2337,7 +2337,7 @@ test('portable control validates Receipt and Captured Run references',
     accessService,
     {
       indexKey: {
-        tenantId: 'tenant-a',
+        namespaceId: 'namespace-a',
         authorityScopeCid: cid('d'),
         runDefinitionCid: run.identity,
       },
@@ -2375,7 +2375,7 @@ test('portable control validates Receipt and Captured Run references',
     accessService,
     {
       indexKey: {
-        tenantId: 'tenant-a',
+        namespaceId: 'namespace-a',
         authorityScopeCid: cid('d'),
         runDefinitionCid: run.identity,
       },
@@ -2404,7 +2404,7 @@ test('portable control validates Receipt and Captured Run references',
     store: deliveryStore,
     control,
     indexKey: {
-      tenantId: 'tenant-a',
+      namespaceId: 'namespace-a',
       authorityScopeCid: cid('d'),
       runDefinitionCid: run.identity,
     },

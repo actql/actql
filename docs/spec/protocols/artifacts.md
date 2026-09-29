@@ -168,7 +168,7 @@ fencing. An unknown commit outcome is reconciled before another attempt; a
 durable commit wins a concurrent cancellation request.
 
 <!-- requirement-block: result-artifacts.a-committed-run-must-have-one-public-index-entry-for-its-authority-scoped-run-definition -->
-A committed Run MUST have one public-index entry for its tenant and authority
+A committed Run MUST have one public-index entry for its namespace and authority
 scoped exact Run Definition. The first atomic durable commit fixes its
 Invocation, Manifest, and the durable binding for every declared Result. The
 same publication intent returns that commit; conflicting Invocation, Manifest,
@@ -177,7 +177,7 @@ through ordinary Result lookup before this commit.
 
 <!-- requirement-block: result-artifacts.manifest-and-result-read-grants-must-be-separate-and-bind-an-exact-committed-manifest -->
 Manifest and Result read grants MUST be separate and bind an exact committed
-Manifest, principal, tenant, authority scope, purpose, data ceiling, byte and
+Manifest, principal, namespace, authority scope, purpose, data ceiling, byte and
 use limits, and expiry. Result grants also bind exact Result Artifacts, allowed
 formats, and egress admission. A pre-commit publication permission is not a
 read grant, and an unknown Manifest CID or unrestricted wildcard is invalid.

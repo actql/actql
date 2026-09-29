@@ -16,12 +16,12 @@ export function installNodeClientRunStart({journal, requestControl,
       typeof authorizeRunStart !== 'function') {
     throw new TypeError('InvalidClientRunStartInstallation');
   }
-  return async ({identity, tenantId, principalId, connection}) => {
-    if (!text(tenantId) || !text(principalId) ||
+  return async ({identity, namespaceId, principalId, connection}) => {
+    if (!text(namespaceId) || !text(principalId) ||
         connection === null || typeof connection !== 'object') {
       throw new TypeError('InvalidClientRunStart');
     }
-    const retained = journal.lookupDefinition({tenantId,
+    const retained = journal.lookupDefinition({namespaceId,
       authorityScopeCid: requestControl.clientRequestAuthorityScopeCid(identity),
       requestId: requestControl.clientRequestCallerId(identity)},
     requestControl, publicationControl);
@@ -29,11 +29,11 @@ export function installNodeClientRunStart({journal, requestControl,
     let authorized;
     try {
       authorized = await authorizeRunStart(Object.freeze({
-        tenantId, principalId, connection,
+        namespaceId, principalId, connection,
         ref: retained.ref, runDefinition: retained.runDefinition,
       }));
     } catch { authorized = false; }
-    return journal.reserveDispatch(identity, {tenantId,
+    return journal.reserveDispatch(identity, {namespaceId,
       currentAuthorization: authorized === true}, requestControl,
     publicationControl);
   };

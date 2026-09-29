@@ -1225,7 +1225,7 @@ test "captured Values output supports shared Effect and publication borrows" {
 }
 
 ///|
-/// An external acceptance driver may bind the fixture to its own tenant
+/// An external acceptance driver may bind the fixture to its own namespace_id
 /// scope; without it the standalone fixture keeps its fixed scope.
 fn native_values_scope_id() -> String {
   @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_SCOPE_ID").unwrap_or(

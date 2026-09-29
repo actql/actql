@@ -49,7 +49,7 @@ pub(all) struct DurableResultBindingRead {
 /// projection lets Store adapters retrieve bodies without interpreting the
 /// index contract themselves.
 pub(all) struct PublicIndexRead {
-  tenant_id : String
+  namespace_id : String
   authority_scope_cid : String
   run_definition_cid : String
   invocation_cid : String
@@ -548,6 +548,11 @@ fn emit_common_grant_fields(
   @encode.number_value(writer, max_bytes.to_double())
   @encode.key(writer, "max_uses")
   @encode.number_value(writer, max_uses.to_double())
+  @encode.key(writer, "namespace_id")
+  @encode.string_value(
+    writer,
+    contract_string(index, "namespace_id").unwrap_or(""),
+  )
   @encode.key(writer, "principal_id")
   @encode.string_value(writer, principal_id)
   @encode.key(writer, "purpose")
@@ -561,11 +566,6 @@ fn emit_common_grant_fields(
   @encode.string_value(
     writer,
     contract_string(index, "run_definition_cid").unwrap_or(""),
-  )
-  @encode.key(writer, "tenant_id")
-  @encode.string_value(
-    writer,
-    contract_string(index, "tenant_id").unwrap_or(""),
   )
 }
 
@@ -768,9 +768,9 @@ pub fn issue_delivery_attempt(
         "grant.result_manifest_cid",
       ),
       (
-        contract_string(grant, "tenant_id"),
-        contract_string(index, "tenant_id").unwrap_or(""),
-        "grant.tenant_id",
+        contract_string(grant, "namespace_id"),
+        contract_string(index, "namespace_id").unwrap_or(""),
+        "grant.namespace_id",
       ),
       (
         contract_string(grant, "authority_scope_cid"),
@@ -900,7 +900,7 @@ pub fn project_public_index_read(
   if index.name != "public_index_entry" {
     return Err(DeliveryIssuanceWrongContract("public_index_entry"))
   }
-  guard contract_string(index, "tenant_id") is Some(tenant_id) &&
+  guard contract_string(index, "namespace_id") is Some(namespace_id) &&
     contract_string(index, "authority_scope_cid") is Some(authority_scope_cid) &&
     contract_string(index, "run_definition_cid") is Some(run_definition_cid) &&
     contract_string(index, "invocation_cid") is Some(invocation_cid) &&
@@ -915,7 +915,7 @@ pub fn project_public_index_read(
     return Err(DeliveryIssuanceReferenceMismatch("public_index.references"))
   }
   Ok({
-    tenant_id,
+    namespace_id,
     authority_scope_cid,
     run_definition_cid,
     invocation_cid,

@@ -202,8 +202,8 @@ fn admitted_run(wire : String, requested_durable : Bool) -> Bool {
   let value = @json.parse(wire) catch { _ => return false }
   guard value is Object(fields) else { return false }
   guard fields.get("ref") is Some(Object(reference)) else { return false }
-  guard json_text(reference, "tenantId") is Some(tenant) &&
-    !tenant.is_empty() &&
+  guard json_text(reference, "namespaceId") is Some(namespace_id) &&
+    !namespace_id.is_empty() &&
     json_text(reference, "authorityScopeCid") is Some(scope) &&
     valid_cid(scope) &&
     json_text(reference, "runDefinitionCid") is Some(definition) &&
@@ -224,8 +224,8 @@ fn admitted_run(wire : String, requested_durable : Bool) -> Bool {
 ///|
 fn valid_reference(value : Json) -> Bool {
   guard value is Object(fields) && fields.length() == 3 else { return false }
-  guard json_text(fields, "tenantId") is Some(tenant) &&
-    !tenant.is_empty() &&
+  guard json_text(fields, "namespaceId") is Some(namespace_id) &&
+    !namespace_id.is_empty() &&
     json_text(fields, "authorityScopeCid") is Some(scope) &&
     valid_cid(scope) &&
     json_text(fields, "runDefinitionCid") is Some(definition) &&
@@ -254,7 +254,7 @@ fn attached_reference_matches(
   guard requested_ref is Object(requested) && returned_ref is Object(returned) else {
     return false
   }
-  json_text(requested, "tenantId") == json_text(returned, "tenantId") &&
+  json_text(requested, "namespaceId") == json_text(returned, "namespaceId") &&
   json_text(requested, "authorityScopeCid") ==
   json_text(returned, "authorityScopeCid") &&
   json_text(requested, "runDefinitionCid") ==

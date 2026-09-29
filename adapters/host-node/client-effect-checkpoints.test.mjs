@@ -41,7 +41,7 @@ async function fixture(t, {read = 'allow', effectRequiredClaims = []} = {}) {
   const opened = new Set();
   const clock = Date.parse('2026-09-27T00:00:00.000Z');
   const open = async () => {
-    const installed = await installRemoteCheckpoints({root, tenantId: 'local',
+    const installed = await installRemoteCheckpoints({root, namespaceId: 'local',
       authorityScopeCid: cid('3'), ownerPrincipal: 'owner', siteKey: 'local',
       realizationKey: 'source-free-values', environmentCid: cid('4'),
       contractControl: runtimeCore(moon).publicationControl, now: () => clock,

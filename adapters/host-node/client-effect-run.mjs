@@ -83,25 +83,25 @@ export function installNodeClientEffectRun({moon,
       const wire = journal.lookupReconciliationState(ref);
       return wire === undefined ? undefined : Object.freeze(JSON.parse(wire));
     },
-    async accept({prepared, authorityScopeCid, requestId, tenantId,
+    async accept({prepared, authorityScopeCid, requestId, namespaceId,
       principalId, connection, lookupExpiresAt}) {
       // Authentication/current acceptance authority precedes even lookup, so
       // a caller cannot infer the presence of another caller's request.
       const policy = await authorizeRequest(Object.freeze({prepared,
-        authorityScopeCid, requestId, tenantId, principalId, connection}));
+        authorityScopeCid, requestId, namespaceId, principalId, connection}));
       if (policy === null || typeof policy !== 'object') throw denied();
       const identity = moon.clientProgramEffectRequestIdentity(prepared,
         authorityScopeCid, requestId, moon.clientProgramSourceFreeInputIntentCid());
       if (identity === undefined) throw denied();
       const compiled = () => compile(prepared);
       const accepted = await journal.admitOrLookupDefinition(identity, {
-        tenantId, lookupExpiresAt,
+        namespaceId, lookupExpiresAt,
         issueDefinition() {
           const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
             compiled(), policy.executionContextCid, policy.hostPolicyCid,
             policy.expiresAt));
           const definition = checked(moon.clientProgramIssueEffectRunDefinition(
-            allowed, tenantId, randomUUID(), policy.createdAt, policy.expiresAt));
+            allowed, namespaceId, randomUUID(), policy.createdAt, policy.expiresAt));
           if (!moon.clientProgramEffectRunStartCurrent(allowed,
             definition, now())) throw expired();
           return {
@@ -121,7 +121,7 @@ export function installNodeClientEffectRun({moon,
       const handle = Object.freeze({ref: accepted.ref,
         durability: accepted.durability, revision: accepted.revision,
         lookupExpiresAt: accepted.lookupExpiresAt});
-      handles.set(handle, {prepared, identity, tenantId, principalId,
+      handles.set(handle, {prepared, identity, namespaceId, principalId,
         connection, compile: compiled});
       return handle;
     },
@@ -133,9 +133,9 @@ export function installNodeClientEffectRun({moon,
           started !== undefined && typeof started !== 'function') {
         throw denied();
       }
-      const {prepared, identity, tenantId, principalId, connection, compile} = owned;
-      const start = await startRun({identity, tenantId, principalId, connection});
-      const retained = journal.resolveDefinition(identity, {tenantId}, moon, control);
+      const {prepared, identity, namespaceId, principalId, connection, compile} = owned;
+      const start = await startRun({identity, namespaceId, principalId, connection});
+      const retained = journal.resolveDefinition(identity, {namespaceId}, moon, control);
       if (retained.physicalStartReserved !== false ||
           retained.preDispatchFailureConfirmed) {
         return Object.freeze({kind: 'reconcile', ref: start.ref});
@@ -156,7 +156,7 @@ export function installNodeClientEffectRun({moon,
       // claim. The original authorization remains bound to the saved Run.
       let authorized = false;
       try {
-        authorized = await authorizeRunStart(Object.freeze({tenantId,
+        authorized = await authorizeRunStart(Object.freeze({namespaceId,
           principalId, connection, ref: retained.ref,
           runDefinition: retained.runDefinition}));
       } catch { /* A failed current authority observation fails closed. */ }
@@ -167,7 +167,7 @@ export function installNodeClientEffectRun({moon,
         // may have claimed it, in which case its unknown outcome is retained.
         try { journal.markPreDispatchFailure(start.ref); }
         catch (cause) {
-          const latest = journal.resolveDefinition(identity, {tenantId},
+          const latest = journal.resolveDefinition(identity, {namespaceId},
             moon, control);
           if (latest?.physicalStartReserved !== false) {
             return Object.freeze({kind: 'reconcile', ref: start.ref});
@@ -193,7 +193,7 @@ export function installNodeClientEffectRun({moon,
         } catch (error) {
           try { journal.markPreDispatchFailure(start.ref); }
           catch (observationFailure) {
-            const latest = journal.resolveDefinition(identity, {tenantId},
+            const latest = journal.resolveDefinition(identity, {namespaceId},
               moon, control);
             if (latest?.physicalStartReserved !== false) {
               return Object.freeze({kind: 'reconcile', ref: start.ref});
@@ -209,7 +209,7 @@ export function installNodeClientEffectRun({moon,
       // durable physical-start reservation. The answer alone is not a send
       // permit; no asynchronous work separates these two admissions.
       beforePhysicalStart?.();
-      if (!journal.reservePhysicalStart(identity, {tenantId, ref: start.ref,
+      if (!journal.reservePhysicalStart(identity, {namespaceId, ref: start.ref,
         currentAuthorization: authorized === true}, moon, control)) {
         return Object.freeze({kind: 'reconcile', ref: start.ref});
       }

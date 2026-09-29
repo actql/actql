@@ -303,7 +303,7 @@ must not remove the other. Shared bytes are charged once; independent copies
 are separate allocations.
 
 Credentials are resolved at the Site behind a scoped operation surface. A
-grant binds principal, tenant, environment, Site generation, Connector and
+grant binds principal, namespace, environment, Site generation, Connector and
 runtime revisions, resource origin, operation, Run, attempt, dispatch, expiry,
 revocation, and use ceiling. Raw secrets are not placed in the wire journal or
 a generic environment map. Redirects are reauthorized and do not receive a

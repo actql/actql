@@ -17,6 +17,7 @@ import {
 } for "wbtest"
 
 options(
+  "native-stub": [ "store_format_stub.c" ],
   targets: {
     "store_native.mbt": [ "native" ],
     "store_native_wbtest.mbt": [ "native" ],

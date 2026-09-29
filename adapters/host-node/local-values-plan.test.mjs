@@ -48,7 +48,7 @@ test('source-free task profile issues through the compiled Run owner',
       text: document, format: 'json'}, parameters: null});
     const control = runtimeCore(runtime).publicationControl;
     const plan = sourceFreeTaskPlan({moon: runtime, control,
-      preparedProgram, authorityScopeCid: cid('a'), tenantId: 'local',
+      preparedProgram, authorityScopeCid: cid('a'), namespaceId: 'local',
       storeAuthorityCid: cid('c'),
       now: () => '2026-09-27T00:00:00.000Z'});
     assert.match(plan.runDefinition.identity, /^sha256:[0-9a-f]{64}$/u);
@@ -61,7 +61,7 @@ test('source-free task profile issues through the compiled Run owner',
     const otherCompiled = control.prepareCheckedClientCompiledRun(
       preparedProgram, 'values', policy);
     const otherDefinition = control.defineCheckedClientCompiledRun(otherCompiled,
-      {tenantId: 'local', runId: 'other-run',
+      {namespaceId: 'local', runId: 'other-run',
         createdAt: '2026-09-27T00:00:00.000Z',
         validUntil: policy.expiresAt});
     assert.throws(() => control.issueCheckedClientCompiledInvocation(
@@ -110,7 +110,7 @@ for (const kind of ['values', 'tasks']) {
       const control = runtimeCore(moon).publicationControl;
       const plan = (acquired ? acquiredTaskRunAdmission : sourceFreeValuesPlan)({
         moon, control, preparedProgram, authorityScopeCid: cid('a'),
-        tenantId: 'local', storeAuthorityCid: cid('c'),
+        namespaceId: 'local', storeAuthorityCid: cid('c'),
         now: () => '2026-09-27T00:00:00.000Z',
       });
       assert.match(plan.runDefinition.identity, /^sha256:[0-9a-f]{64}$/u);
@@ -177,7 +177,7 @@ for (const kind of ['values', 'tasks']) {
         valid_until: policy.expiresAt,
       };
       const definition = control.defineCheckedClientCompiledRun(compiled, {
-        tenantId: definitionBody.scope_id, runId: definitionBody.run_id,
+        namespaceId: definitionBody.scope_id, runId: definitionBody.run_id,
         createdAt: definitionBody.created_at,
         validUntil: definitionBody.valid_until,
       });

@@ -459,7 +459,7 @@ function capabilityRequest(site, observation = site.catalog.observation) {
   const binding = JSON.parse(
     salesforceMoon.salesforceCatalogObservationJson(observation)).binding;
   const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
-    observation, binding.tenant, binding.principal, binding.environment,
+    observation, binding.namespace_id, binding.principal, binding.environment,
     binding.connection_revision, binding.org_id, binding.site_key,
     binding.site_generation, binding.connector_registration,
     binding.connector_revision, binding.resource_origin,
@@ -542,7 +542,7 @@ test('Salesforce capability requires current signed authority without a use',
       [request], {collection: true}), {code: 'InvalidSalesforceEffectCapability'});
     assert.throws(() => issueSalesforceEffectCapability({...options,
       credential: {...site.credential, now: () => 2_000_000_000_000}}));
-    for (const changed of [{tenant: 'foreign'}, {siteGeneration: 5},
+    for (const changed of [{namespaceId: 'foreign'}, {siteGeneration: 5},
       {runtimeBundleCid: cid('f')}]) {
       assert.throws(() => issueSalesforceEffectCapability({...options,
         authorization: {...site.write, scope: {...site.write.scope, ...changed}}}));
@@ -1590,7 +1590,7 @@ test(`two-member captured Effect Run ${
       const installedPlan = sourceFreeEffectPublicationPlan({
         moon: noRecompile, control, prepared,
         compilation: effectCompilation, allowed, definition,
-        authorityScopeCid: cid('a'), tenantId: 'tenant-a',
+        authorityScopeCid: cid('a'), namespaceId: 'namespace-a',
         storeAuthorityCid: cid('7'),
         now: () => '2026-09-24T00:00:00.000Z',
       });
@@ -1644,7 +1644,7 @@ test(`two-member captured Effect Run ${
     assert.ok(owned);
     const execution = await runCapturedEffectComputation(owned);
     const configuration = {
-      directory, storeAuthorityCid: cid('7'),
+      directory: join(directory, 'publication'), storeAuthorityCid: cid('7'),
       capacityBytes: 4 * 1024 * 1024,
       maxObjectBytes: outputLimits.maxWireBytes,
       maxObjects: 100, maxContractNodes: 10000,
@@ -1802,7 +1802,7 @@ test(`two-member captured Effect Run ${
         const binding = site.write.scope;
         return checked(salesforceMoon.salesforcePrepareWriteProjection(
           observationValue,
-          binding.tenant, binding.principal, binding.environment,
+          binding.namespaceId, binding.principal, binding.environment,
           'connection-revision-a', site.orgId,
           binding.siteKey, binding.siteGeneration,
           binding.connectorRegistration, binding.connectorRevision,
@@ -2381,7 +2381,8 @@ test(`two-member captured Effect Run ${
           '../../../host-node/fixtures/recover-effect-capture.mjs', import.meta.url,
         ))], {
           input: JSON.stringify({
-            directory, storeAuthorityCid: configuration.storeAuthorityCid,
+            directory: configuration.directory,
+            storeAuthorityCid: configuration.storeAuthorityCid,
             capacityBytes: configuration.capacityBytes,
             maxObjectBytes: configuration.maxObjectBytes,
             maxObjects: configuration.maxObjects,
@@ -2695,7 +2696,8 @@ test(`two-member captured Effect Run ${
         }
         await store.close();
         const childInput = {
-            directory, storeAuthorityCid: configuration.storeAuthorityCid,
+            directory: configuration.directory,
+            storeAuthorityCid: configuration.storeAuthorityCid,
             capacityBytes: configuration.capacityBytes,
             maxObjectBytes: configuration.maxObjectBytes,
             maxObjects: configuration.maxObjects,
@@ -3296,7 +3298,7 @@ test(`two-member captured Effect Run ${
                 limits: publicationLimits},
               publication: {execution, store, storedResults, control,
                 computation, preview: admittedPreview, ledger,
-                request: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+                request: {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
                   publicationPolicyCid: cid('e'),
                   publicationTargetCid: cid('f'),
                   requestedAt: '2026-09-24T00:00:01.000Z'},
@@ -3392,7 +3394,7 @@ test(`two-member captured Effect Run ${
               publication: {execution: null, store,
                 storedResults: durable.storedResults, control,
                 computation: durable.computation, preview: exactPreview,
-                ledger, request: {tenantId: 'tenant-a',
+                ledger, request: {namespaceId: 'namespace-a',
                   authorityScopeCid: cid('a'),
                   publicationPolicyCid: cid('e'),
                   publicationTargetCid: cid('f'),
@@ -3515,13 +3517,13 @@ test(`two-member captured Effect Run ${
       }
       const rejectPublicationAndRetire = async (issuedSet, code,
         attemptId) => {
-        const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+        const key = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
           runDefinitionCid: runDefinition.identity};
         await assert.rejects(publishCompletedEffectfulRun({
           execution: restartPreparedIntent ? null : execution,
           store, storedResults, control, computation,
           preview: admittedPreview, ledger, issuedSet,
-          request: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+          request: {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
             publicationPolicyCid: cid('e'),
             publicationTargetCid: cid('f'),
             requestedAt: '2026-09-24T00:00:01.000Z'},
@@ -3717,7 +3719,7 @@ test(`two-member captured Effect Run ${
             receipt: receiptOptions,
             publication: {execution, store, storedResults, control,
               computation, preview: admittedPreview, ledger,
-              request: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+              request: {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
                 publicationPolicyCid: cid('e'),
                 publicationTargetCid: cid('f'),
                 requestedAt: '2026-09-24T00:00:01.000Z'},
@@ -3875,7 +3877,7 @@ test(`two-member captured Effect Run ${
       });
       assert.equal(replay.dispatched, 0);
       const publicationRequest = {
-        tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+        namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
         publicationPolicyCid: cid('e'),
         publicationTargetCid: cid('f'),
         requestedAt: '2026-09-24T00:00:01.000Z',
@@ -3901,7 +3903,8 @@ test(`two-member captured Effect Run ${
           './fixtures/recover-effect-outcomes.mjs', import.meta.url,
         ))], {
           input: JSON.stringify({
-            directory, storeAuthorityCid: configuration.storeAuthorityCid,
+            directory: configuration.directory,
+            storeAuthorityCid: configuration.storeAuthorityCid,
             capacityBytes: configuration.capacityBytes,
             maxObjectBytes: configuration.maxObjectBytes,
             maxObjects: configuration.maxObjects,
@@ -3973,7 +3976,7 @@ test(`two-member captured Effect Run ${
         })),
         limits: publicationLimits,
       };
-      const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+      const key = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
         runDefinitionCid: runDefinition.identity};
       const publicationOptions = {
         execution: restartBeforeApply || restartPreparedIntent ||
@@ -4111,7 +4114,7 @@ test(`two-member captured Effect Run ${
           ? 'principal-after-restart' : undefined,
         authorizeConnection: facts => facts.connection.mode === 'local' &&
           facts.connection.owner === 'local' &&
-          (facts.ref === undefined || facts.ref.tenantId === 'tenant-a'),
+          (facts.ref === undefined || facts.ref.namespaceId === 'namespace-a'),
         negotiate: () => ({
           version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
           durability: 'durable', scopeRef: 'principal-after-restart',
@@ -4253,7 +4256,7 @@ test(`two-member captured Effect Run ${
           connection}) => {
           const accepted = await installed.accept({
             prepared: preparedProgram, authorityScopeCid: cid('e'),
-            requestId, tenantId: 'tenant-a', principalId, connection,
+            requestId, namespaceId: 'namespace-a', principalId, connection,
             lookupExpiresAt: '2027-01-01T00:00:00.000Z',
           });
           const started = await installed.start(accepted);
@@ -4289,7 +4292,7 @@ test(`two-member captured Effect Run ${
         }
         run ??= await client.aql(document, {format: 'json',
           requestId: 'complete-two-effects-request'});
-        assert.equal(run.ref.tenantId, 'tenant-a');
+        assert.equal(run.ref.namespaceId, 'namespace-a');
         if (publishedRunDefinitionCid !== undefined) {
           assert.equal(run.ref.runDefinitionCid, publishedRunDefinitionCid);
         }
@@ -4392,7 +4395,7 @@ test('public Effect submit rejects an unsupported checked Program before accepta
       submit: async ({preparedProgram, requestId, principalId,
         connection}) => {
         const accepted = await runs.accept({prepared: preparedProgram,
-          authorityScopeCid: cid('e'), requestId, tenantId: 'tenant-a',
+          authorityScopeCid: cid('e'), requestId, namespaceId: 'namespace-a',
           principalId, connection,
           lookupExpiresAt: '2027-01-01T00:00:00.000Z'});
         await runs.start(accepted);
@@ -4446,7 +4449,7 @@ test('Effect publication preparation failure reserves no physical start',
     });
     const accepted = await runs.accept({prepared,
       authorityScopeCid: cid('e'), requestId: 'effect-plan-failure',
-      tenantId: 'tenant-a', principalId: 'principal-a',
+      namespaceId: 'namespace-a', principalId: 'principal-a',
       connection: {mode: 'local', owner: 'local'},
       lookupExpiresAt: '2027-01-01T00:00:00.000Z'});
     await assert.rejects(runs.start(accepted), /PlanIssuanceFailed/);
@@ -4467,7 +4470,7 @@ test('Effect publication preparation failure reserves no physical start',
     });
     const asynchronous = await asyncRuns.accept({prepared,
       authorityScopeCid: cid('e'), requestId: 'effect-async-plan-failure',
-      tenantId: 'tenant-a', principalId: 'principal-a',
+      namespaceId: 'namespace-a', principalId: 'principal-a',
       connection: {mode: 'local', owner: 'local'},
       lookupExpiresAt: '2027-01-01T00:00:00.000Z'});
     await assert.rejects(asyncRuns.start(asynchronous),
@@ -4567,7 +4570,7 @@ function checkedValuesPublicationPlan(prepared, control) {
   const admission = control.admitCheckedClientRunPublication(
     prepared, template, preparedEvidence, authorization, compiledPlan);
   const runDefinition = control.issueRunDefinition(admission, {
-    scopeId: 'tenant-a-scope', runId: 'checked-values-published',
+    scopeId: 'namespace-a-scope', runId: 'checked-values-published',
     inputArtifactSetCid: cid('c'),
     createdAt: '2026-09-24T00:00:00.000Z',
     validUntil: '2027-01-01T00:00:00.000Z',
@@ -4623,7 +4626,7 @@ function checkedValuesPublicationPlan(prepared, control) {
     captureEvidence: Object.freeze({pendingSourceStateAdvances: [],
       modelEvidence: []}),
     request: Object.freeze({
-      tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+      namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
       publicationPolicyCid: cid('4'), publicationTargetCid: cid('5'),
       requestedAt: '2026-09-24T00:00:00.000Z',
     }),
@@ -4690,7 +4693,7 @@ test('shared Effect Client admission and physical claim survive races and restar
     },
   });
   const request = id => ({prepared, authorityScopeCid: cid('a'), requestId: id,
-    tenantId: 'tenant-a', principalId: 'caller', connection: {owner: 'local'},
+    namespaceId: 'namespace-a', principalId: 'caller', connection: {owner: 'local'},
     lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
   let journal = openClientRequestJournal(directory);
   let other = openClientRequestJournal(directory);
@@ -4717,7 +4720,7 @@ test('shared Effect Client admission and physical claim survive races and restar
   // Reserve dispatch, crash before the separate physical-start claim.
   const identity = moon.clientProgramEffectRequestIdentity(prepared, cid('a'),
     'unstarted', moon.clientProgramSourceFreeInputIntentCid());
-  journal.reserveDispatch(identity, {tenantId: 'tenant-a', currentAuthorization: true}, moon, control);
+  journal.reserveDispatch(identity, {namespaceId: 'namespace-a', currentAuthorization: true}, moon, control);
   other.close(); journal.close();
   journal = openClientRequestJournal(directory);
   host = install(journal);
@@ -4738,7 +4741,7 @@ test('shared Effect Client admission and physical claim survive races and restar
   assert.equal(starts, 2);
   const gatedIdentity = moon.clientProgramEffectRequestIdentity(prepared,
     cid('a'), 'gated-start', moon.clientProgramSourceFreeInputIntentCid());
-  assert.equal(journal.resolveDefinition(gatedIdentity, {tenantId: 'tenant-a'},
+  assert.equal(journal.resolveDefinition(gatedIdentity, {namespaceId: 'namespace-a'},
     moon, control).physicalStartReserved, false);
   assert.equal((await host.start(gated, {
     beforePhysicalStart() { gateCalls.push('before'); },
@@ -4821,7 +4824,7 @@ test('shared Effect start rejects expired saved admission before capture',
       execute: async () => { physicalStarts++; return 'captured'; },
     });
     const request = requestId => ({prepared, authorityScopeCid: cid('a'),
-      requestId, tenantId: 'tenant-a', principalId: 'caller',
+      requestId, namespaceId: 'namespace-a', principalId: 'caller',
       connection: {owner: 'local'},
       lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
     let journal = openClientRequestJournal(directory);
@@ -4839,7 +4842,7 @@ test('shared Effect start rejects expired saved admission before capture',
     assert.equal(journal.resolveDefinition(
       moon.clientProgramEffectRequestIdentity(prepared, cid('a'),
         'expired-before-start', moon.clientProgramSourceFreeInputIntentCid()),
-      {tenantId: 'tenant-a'}, moon, control).physicalStartReserved, false);
+      {namespaceId: 'namespace-a'}, moon, control).physicalStartReserved, false);
     clock = '2026-09-26T00:00:01.000Z';
     authorizationCalls = 0;
     expireDuringAuthorization = true;

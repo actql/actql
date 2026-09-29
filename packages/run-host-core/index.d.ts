@@ -206,7 +206,7 @@ export function projectPublicationSnapshot(
 
 /** Shared Store key; the key alone grants no read or publication access. */
 export function publicationIndexScopeKey(ref: Readonly<{
-  tenantId: string;
+  namespaceId: string;
   authorityScopeCid: string;
   runDefinitionCid: string;
 }>, limits: PublicationLimits): string;
@@ -550,7 +550,7 @@ export function validatePublicationRecordTransition(
 /** Immutable request for the full checked Named Result inventory. */
 export function issuePublicationRequest(runDefinition: PublicationContract,
   definitions: readonly PublicationContract[], facts: Readonly<{
-    tenantId: string;
+    namespaceId: string;
     authorityScopeCid: string;
     publicationPolicyCid: string;
     publicationTargetCid: string;

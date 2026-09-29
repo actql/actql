@@ -283,7 +283,7 @@ export function createPublicationContractControlFixture() {
       const left = token(committed);
       const right = token(candidate);
       return [
-        'tenant_id', 'authority_scope_cid', 'run_definition_cid',
+        'namespace_id', 'authority_scope_cid', 'run_definition_cid',
         'invocation_cid', 'result_manifest_cid', 'run_receipt_cid',
         'captured_run_cid', 'publication_request_cid',
       ].every(field => left[field] === right[field]) &&

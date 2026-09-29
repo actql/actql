@@ -4774,7 +4774,7 @@ pub fn client_program_prepare_duckdb_source_evidence_context(
 ///|
 #export_name("clientProgramSalesforceSite")
 pub fn client_program_salesforce_site(
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   connection_revision : String,
@@ -4787,8 +4787,8 @@ pub fn client_program_salesforce_site(
   @client_salesforce_host.ClientSalesforceIssue,
 ] {
   @client_salesforce_host.client_salesforce_site(
-    tenant, principal, environment, connection_revision, org_id, site_key, site_generation,
-    resource_origin,
+    namespace_id, principal, environment, connection_revision, org_id, site_key,
+    site_generation, resource_origin,
   )
 }
 
@@ -5106,7 +5106,7 @@ pub fn client_program_salesforce_issue_source_evidence(
 #export_name("clientProgramSalesforceReadProjectionScopeMatches")
 pub fn client_program_salesforce_read_projection_scope_matches(
   plan : @salesforce_catalog.ReadProjection,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   site_key : String,
@@ -5118,7 +5118,7 @@ pub fn client_program_salesforce_read_projection_scope_matches(
   dispatch_request_cid : String,
 ) -> Bool {
   @salesforce_catalog.read_projection_matches_site_scope(
-    plan, tenant, principal, environment, site_key, site_generation, connector_registration,
+    plan, namespace_id, principal, environment, site_key, site_generation, connector_registration,
     connector_revision, resource_origin, run_invocation_cid, dispatch_request_cid,
   )
 }

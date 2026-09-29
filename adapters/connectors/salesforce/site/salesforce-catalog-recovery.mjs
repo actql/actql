@@ -68,7 +68,7 @@ export function recoverRetainedSalesforceCatalog({moon, retained,
   const describe = retained.describeLimits;
   const observation = checked(moon.salesforceRecoverCatalogObservation(
     retained.observationJson, listing, describes, outcomes,
-    binding.tenant, binding.principal, binding.environment,
+    binding.namespace_id, binding.principal, binding.environment,
     binding.connection_revision, binding.org_id, binding.site_key,
     binding.site_generation, binding.connector_registration,
     binding.connector_revision, binding.resource_origin,

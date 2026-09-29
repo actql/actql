@@ -161,7 +161,7 @@ export function recoverCapturedSalesforceSingleRequests({
       fail('ForeignSalesforceCapturedRequestRecovery');
     }
     const projection = checked(moon.salesforcePrepareWriteProjection(
-      catalog.observation, binding.tenant, binding.principal,
+      catalog.observation, binding.namespace_id, binding.principal,
       binding.environment, binding.connection_revision, binding.org_id,
       binding.site_key, binding.site_generation,
       binding.connector_registration, binding.connector_revision,
@@ -294,7 +294,7 @@ export async function captureClaimedSalesforceSingleResponse({
       scope.operation !==
         moon.salesforceSingleWriteRequestGrantOperation(request) ||
       !moon.salesforceSingleWriteRequestScopeMatches(
-        request, scope.tenant, scope.principal, scope.environment,
+        request, scope.namespaceId, scope.principal, scope.environment,
         scope.siteKey, scope.siteGeneration, scope.connectorRegistration,
         scope.connectorRevision, scope.resourceOrigin,
         scope.runInvocationCid, scope.dispatchRequestCid)) {
@@ -512,7 +512,7 @@ export async function captureSalesforceCollectionEffectWrite({
       scope.operation !==
         moon.salesforceCollectionWriteRequestGrantOperation(request) ||
       !moon.salesforceCollectionWriteRequestScopeMatches(
-        request, scope.tenant, scope.principal, scope.environment,
+        request, scope.namespaceId, scope.principal, scope.environment,
         scope.siteKey, scope.siteGeneration, scope.connectorRegistration,
         scope.connectorRevision, scope.resourceOrigin,
         scope.runInvocationCid, scope.dispatchRequestCid)) {

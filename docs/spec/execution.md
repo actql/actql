@@ -1785,8 +1785,10 @@ An authorized recovery link explicitly binds old/new graph, retained successes,
 reusable observations/Previews and changed work. New requests intentionally do
 not inherit earlier success; D6 is not cross-request event deduplication.
 
-The authenticated tenant/workspace plus caller request ID identifies one logical
-request. A CLI without a caller ID creates, persists and returns one; a new
+The authenticated authority scope plus caller request ID identifies one logical
+request. The execution namespace remains a separate isolation binding: a
+pending or unknown request cannot be redirected to another namespace. A CLI
+without a caller ID creates, persists and returns one; a new
 business request gets a new ID, while resume/recovery carries the original.
 The 0.1 caller ID is nonempty, NFC/LF-canonical, contains no C0/C1 control or
 DEL character, and is at most 256 UTF-8 bytes. A caller may impose a tighter
@@ -2149,7 +2151,7 @@ execution. Import and migration command syntax is outside this specification.
 The claim `source_state_advance_authorized` requires independent operator
 authority; source read, Effect allow and partial_application_accepted do not
 grant it. It is not Program syntax, metadata or a hidden force flag. Execution
-MUST verify the common eligibility contract, authenticated issuer/tenant/scope,
+MUST verify the common eligibility contract, authenticated issuer/namespace/scope,
 policy revision, expiry/nonce, exact graph run and fenced state revision, captured
 batch, pending checkpoint list, partitions and prior generations, and the exact
 unmet obligations and outcome evidence.

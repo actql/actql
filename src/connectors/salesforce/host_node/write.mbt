@@ -2,7 +2,7 @@
 #export_name("salesforcePrepareWriteProjection")
 pub fn salesforce_prepare_write_projection(
   observation : @catalog.CatalogObservation,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   connection_revision : String,
@@ -22,7 +22,7 @@ pub fn salesforce_prepare_write_projection(
   max_fields : Int,
 ) -> @catalog.WriteProjection raise SalesforceCatalogBridgeIssue {
   let binding : @catalog.CatalogObservationBinding = {
-    tenant,
+    namespace_id,
     principal,
     environment,
     connection_revision,
@@ -519,7 +519,7 @@ pub fn salesforce_target_observation_response_sha256(
 #export_name("salesforceSingleWriteRequestScopeMatches")
 pub fn salesforce_single_write_request_scope_matches(
   request : @catalog.SingleWriteRequest,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   site_key : String,
@@ -531,7 +531,7 @@ pub fn salesforce_single_write_request_scope_matches(
   dispatch_request_cid : String,
 ) -> Bool {
   @catalog.single_write_request_matches_site_scope(
-    request, tenant, principal, environment, site_key, site_generation, connector_registration,
+    request, namespace_id, principal, environment, site_key, site_generation, connector_registration,
     connector_revision, resource_origin, run_invocation_cid, dispatch_request_cid,
   )
 }
@@ -973,7 +973,7 @@ pub fn salesforce_collection_write_request_cid(
 #export_name("salesforceCollectionWriteRequestScopeMatches")
 pub fn salesforce_collection_write_request_scope_matches(
   request : @catalog.WriteCollectionRequest,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   site_key : String,
@@ -985,7 +985,7 @@ pub fn salesforce_collection_write_request_scope_matches(
   dispatch_request_cid : String,
 ) -> Bool {
   @catalog.write_collection_request_matches_site_scope(
-    request, tenant, principal, environment, site_key, site_generation, connector_registration,
+    request, namespace_id, principal, environment, site_key, site_generation, connector_registration,
     connector_revision, resource_origin, run_invocation_cid, dispatch_request_cid,
   )
 }

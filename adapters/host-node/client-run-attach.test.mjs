@@ -3,7 +3,7 @@ import test from 'node:test';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
 
 const scope = `sha256:${'a'.repeat(64)}`;
-const ref = {tenantId: 'tenant-a', authorityScopeCid: scope,
+const ref = {namespaceId: 'namespace-a', authorityScopeCid: scope,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
 const requestControl = {clientRequestAdmitRecord() {}};
 const publicationControl = {admit() {}};
@@ -20,18 +20,18 @@ test('attach denies foreign scope, absent Run and current policy revocation',
     const install = (authorizedScope, authorizeRun = () => true) =>
       installNodeClientRunAttach({journal, requestControl,
         publicationControl, authorizedScope, authorizeRun});
-    await assert.rejects(install(() => ({tenantId: 'tenant-b',
+    await assert.rejects(install(() => ({namespaceId: 'namespace-b',
       authorityScopeCid: scope}))(request),
     {code: 'ClientRunAttachDenied'});
     assert.equal(reads, 0);
-    await assert.rejects(install(() => ({tenantId: 'tenant-a',
+    await assert.rejects(install(() => ({namespaceId: 'namespace-a',
       authorityScopeCid: scope}), () => false)(request),
     {code: 'ClientRunAttachDenied'});
     assert.equal(reads, 1);
     const absent = installNodeClientRunAttach({
       journal: {lookupRunDefinition: () => undefined}, requestControl,
       publicationControl,
-      authorizedScope: () => ({tenantId: 'tenant-a',
+      authorizedScope: () => ({namespaceId: 'namespace-a',
         authorityScopeCid: scope}),
       authorizeRun: () => assert.fail('absent Run reached policy'),
     });
@@ -45,7 +45,7 @@ test('attach returns only the original Run reference and durability',
       journal: {lookupRunDefinition: () => ({ref,
         durability: 'durable', revision: 4, runDefinition: definition})},
       requestControl, publicationControl,
-      authorizedScope: () => ({tenantId: 'tenant-a',
+      authorizedScope: () => ({namespaceId: 'namespace-a',
         authorityScopeCid: scope}),
       authorizeRun: ({runDefinition}) => runDefinition === definition,
     });

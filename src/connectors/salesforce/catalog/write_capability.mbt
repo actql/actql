@@ -123,7 +123,7 @@ pub fn prepare_write_capability_evidence(
     @encode.key(writer, "site_generation")
     @encode.number_value(writer, binding.site_generation.to_double())
     observation_field(writer, "site_key", binding.site_key)
-    observation_field(writer, "tenant", binding.tenant)
+    observation_field(writer, "namespace_id", binding.namespace_id)
     @encode.end_object(writer)
     @encode.key(writer, "external_target")
     match plan.external_target {

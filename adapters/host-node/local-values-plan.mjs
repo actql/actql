@@ -29,7 +29,7 @@ const instant = value => new Date(value).toISOString();
 
 function localPublicationPlan({control, admission, runDefinition, invocation,
   observation, compiledPlanCid, programDefinitionCid, inputRelationCids,
-  sourceEvidence, authorityScopeCid, tenantId, storeAuthorityCid,
+  sourceEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
   dataPolicyCid, createdAt, now, resultCount, retainUntil}) {
   const at = Date.parse(now());
   const availableAt = retainUntil === undefined ? at + 60 * 60 * 1000
@@ -69,7 +69,7 @@ function localPublicationPlan({control, admission, runDefinition, invocation,
       modelEvidence: [], barrierAttemptReceiptCids: []}),
     captureEvidence: Object.freeze({pendingSourceStateAdvances: [],
       modelEvidence: []}),
-    request: Object.freeze({tenantId, authorityScopeCid,
+    request: Object.freeze({namespaceId, authorityScopeCid,
       publicationPolicyCid: policyCid('local-publication'),
       publicationTargetCid: storeAuthorityCid, requestedAt: createdAt}),
     attempt: Object.freeze({attemptId: randomUUID(),
@@ -85,7 +85,7 @@ function localPublicationPlan({control, admission, runDefinition, invocation,
 // to reconstruct publication evidence. Captured inputs must outlive approval
 // waiting, so retention covers the admitted Run's validity window.
 export function sourceFreeEffectPublicationPlan({moon, control, prepared,
-  compilation, allowed, definition, authorityScopeCid, tenantId,
+  compilation, allowed, definition, authorityScopeCid, namespaceId,
   storeAuthorityCid, now}) {
   const template = control.admitRunEvidence('bound_invocation_template',
     moon.clientProgramEffectCompilationTemplateWire(compilation), limits);
@@ -115,7 +115,7 @@ export function sourceFreeEffectPublicationPlan({moon, control, prepared,
   const plan = localPublicationPlan({control, admission, runDefinition,
     invocation, observation, compiledPlanCid: compiledPlan.identity,
     programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
-    inputRelationCids: [], sourceEvidence: [], authorityScopeCid, tenantId,
+    inputRelationCids: [], sourceEvidence: [], authorityScopeCid, namespaceId,
     storeAuthorityCid, dataPolicyCid, createdAt: run.created_at, now,
     resultCount, retainUntil: run.valid_until});
   return Object.freeze({...plan, invocationOwner: sourceFree._1,
@@ -124,7 +124,7 @@ export function sourceFreeEffectPublicationPlan({moon, control, prepared,
 }
 
 export function sourceFreeValuesPlan({moon, control, preparedProgram,
-  authorityScopeCid, tenantId, storeAuthorityCid, now,
+  authorityScopeCid, namespaceId, storeAuthorityCid, now,
   retainedDefinitionWire}) {
   const at = Date.parse(now());
   if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
@@ -140,7 +140,7 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
       hostPolicyCid: policyCid('source-free-values'), expiresAt: validUntil});
   const {admission, compiledPlan} = compiled;
   const runDefinition = control.defineCheckedClientCompiledRun(compiled, {
-    tenantId, runId: randomUUID(), createdAt, validUntil,
+    namespaceId, runId: randomUUID(), createdAt, validUntil,
     retainedDefinitionWire,
   });
   const dataPolicyCid = policyCid('local-result-data');
@@ -150,7 +150,7 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
     observation, compiledPlanCid: compiledPlan.identity,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
     inputRelationCids: [], sourceEvidence: [], authorityScopeCid,
-    tenantId, storeAuthorityCid, dataPolicyCid, createdAt,
+    namespaceId, storeAuthorityCid, dataPolicyCid, createdAt,
     now, resultCount: 1});
 }
 
@@ -159,7 +159,7 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
 // acquisition and Source Evidence must still be established before this Run
 // can be published; this admission alone never authorizes provider I/O.
 export function acquiredTaskRunAdmission({moon, control, preparedProgram,
-  authorityScopeCid, tenantId, now, retainedDefinitionWire}) {
+  authorityScopeCid, namespaceId, now, retainedDefinitionWire}) {
   const at = Date.parse(now());
   if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
   const retained = retainedDefinitionWire === undefined ? undefined :
@@ -174,7 +174,7 @@ export function acquiredTaskRunAdmission({moon, control, preparedProgram,
       hostPolicyCid: policyCid('checked-tasks'), expiresAt: validUntil});
   const {admission, compiledPlan} = compiled;
   const runDefinition = control.defineCheckedClientCompiledRun(compiled, {
-    tenantId, runId: randomUUID(), createdAt, validUntil,
+    namespaceId, runId: randomUUID(), createdAt, validUntil,
     retainedDefinitionWire,
   });
   return Object.freeze({...compiled, compiled, runDefinition, createdAt});
@@ -184,7 +184,7 @@ export function acquiredTaskRunAdmission({moon, control, preparedProgram,
 // empty initial input set. No source observation is invented for Values roots.
 export function sourceFreeTaskPlan(options) {
   const acquired = acquiredTaskRunAdmission(options);
-  const {moon, control, preparedProgram, authorityScopeCid, tenantId,
+  const {moon, control, preparedProgram, authorityScopeCid, namespaceId,
     storeAuthorityCid, now} = options;
   const dataPolicyCid = policyCid('local-result-data');
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
@@ -193,7 +193,7 @@ export function sourceFreeTaskPlan(options) {
     runDefinition: acquired.runDefinition, invocation, observation,
     compiledPlanCid: acquired.compiledPlan.identity,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
-    inputRelationCids: [], sourceEvidence: [], authorityScopeCid, tenantId,
+    inputRelationCids: [], sourceEvidence: [], authorityScopeCid, namespaceId,
     storeAuthorityCid, dataPolicyCid, createdAt: acquired.createdAt, now,
     resultCount: moon.clientProgramResultCount(preparedProgram)});
 }
@@ -203,7 +203,7 @@ export function sourceFreeTaskPlan(options) {
 // the checked task Run and the captured relation before publication.
 export function acquiredTaskPublicationPlan({moon, control, acquired,
   preparedProgram, captured, sourceEvidenceWire, authorityScopeCid,
-  effectiveDataPolicyCid, captureStartedAt, captureCompletedAt, tenantId,
+  effectiveDataPolicyCid, captureStartedAt, captureCompletedAt, namespaceId,
   storeAuthorityCid, now}) {
   control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
   if (typeof sourceEvidenceWire !== 'string' ||
@@ -235,7 +235,7 @@ export function acquiredTaskPublicationPlan({moon, control, acquired,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
     inputRelationCids: [moon.clientProgramCapturedSourceLogicalCid(
       captured.identity)], sourceEvidence: [sourceEvidence],
-    authorityScopeCid, tenantId, storeAuthorityCid,
+    authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
     now, resultCount: moon.clientProgramResultCount(preparedProgram)});
 }

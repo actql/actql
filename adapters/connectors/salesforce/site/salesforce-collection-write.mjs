@@ -82,7 +82,7 @@ export async function sendRawSalesforceContinueCollection({
       moon.salesforceCollectionWriteRequestOrgId(request)) ||
       scope.operation !== operation ||
       !moon.salesforceCollectionWriteRequestScopeMatches(
-        request, scope.tenant, scope.principal, scope.environment,
+        request, scope.namespaceId, scope.principal, scope.environment,
         scope.siteKey, scope.siteGeneration, scope.connectorRegistration,
         scope.connectorRevision, scope.resourceOrigin, scope.runInvocationCid,
         scope.dispatchRequestCid)) {

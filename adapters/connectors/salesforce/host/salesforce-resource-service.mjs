@@ -35,12 +35,12 @@ export function installSalesforceResourceService({salesforceMoon, sites}) {
   }
   const current = new Map();
   // An observation answers current discovery only when it was observed for
-  // this Site as installed now. A snapshot of another tenant, principal,
+  // this Site as installed now. A snapshot of another namespace, principal,
   // environment, org, Site generation, connection revision, origin or
   // connector revision is refused and the current view is kept.
   const install = (site, catalog) => {
     const binding = JSON.parse(catalog.observationJson).binding;
-    const expected = {tenant: site.tenant, principal: site.principal,
+    const expected = {namespace_id: site.namespaceId, principal: site.principal,
       environment: site.environment, org_id: site.orgId,
       site_key: site.siteKey, site_generation: site.siteGeneration,
       connection_revision: site.connectionRevision,

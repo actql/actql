@@ -23,7 +23,7 @@ pub(all) struct NativeCredentialAuthority {
 ///|
 pub(all) struct NativeCredentialScope {
   principal : String
-  tenant : String
+  namespace_id : String
   environment : String
   site_key : String
   site_generation : Int
@@ -223,7 +223,7 @@ fn grant_matches_scope(
   let fields = @credential.credential_grant_projection(grant)
   guard fields.length() == 17 &&
     fields[2] == scope.principal &&
-    fields[3] == scope.tenant &&
+    fields[3] == scope.namespace_id &&
     fields[4] == scope.environment &&
     fields[5] == scope.site_key &&
     fields[6] == scope.site_generation.to_string() &&
@@ -423,7 +423,7 @@ pub fn call_native_credential_resource(
       ordinal - 1,
       revoked,
       scope.principal,
-      scope.tenant,
+      scope.namespace_id,
       scope.environment,
       scope.site_key,
       scope.site_generation,
@@ -480,7 +480,7 @@ pub fn call_native_credential_resource(
       send_time,
       revoked,
       scope.principal,
-      scope.tenant,
+      scope.namespace_id,
       scope.environment,
       scope.site_key,
       scope.site_generation,

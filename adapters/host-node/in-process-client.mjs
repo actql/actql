@@ -87,7 +87,7 @@ export function createNodeInProcessClientHost({
       if (operation === 'attach') {
         const admitted = await invoke(attach);
         if (!validClientAdmission(admitted, connection) ||
-            admitted.ref.tenantId !== ref.tenantId ||
+            admitted.ref.namespaceId !== ref.namespaceId ||
             admitted.ref.authorityScopeCid !== ref.authorityScopeCid ||
             admitted.ref.runDefinitionCid !== ref.runDefinitionCid) {
           fail('InvalidClientHostAdmission');

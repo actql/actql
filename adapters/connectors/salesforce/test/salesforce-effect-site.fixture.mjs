@@ -372,7 +372,7 @@ export async function openSalesforceEffectSiteFixture(t, {
     credentialPrivateKeyPath: join(root, 'credential.key'),
     environment: 'test', instanceOrigin: origin,
     journalRoot: join(root, 'journal'), orgId, siteGeneration: 4,
-    siteKey: 'site-a', tenant: 'tenant-a', caPath: join(root, 'org-ca.crt'),
+    siteKey: 'site-a', namespaceId: 'namespace-a', caPath: join(root, 'org-ca.crt'),
   }));
   const hostAuthorization = authorization ??
     await installSalesforceAuthorization({

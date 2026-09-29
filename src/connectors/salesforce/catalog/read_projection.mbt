@@ -308,7 +308,7 @@ pub fn recheck_read_projection(
 /// signed query grant and its current use conditions.
 pub fn read_projection_matches_site_scope(
   plan : ReadProjection,
-  tenant : String,
+  namespace_id : String,
   principal : String,
   environment : String,
   site_key : String,
@@ -320,7 +320,7 @@ pub fn read_projection_matches_site_scope(
   dispatch_request_cid : String,
 ) -> Bool {
   let binding = plan.binding
-  binding.tenant == tenant &&
+  binding.namespace_id == namespace_id &&
   binding.principal == principal &&
   binding.environment == environment &&
   binding.site_key == site_key &&

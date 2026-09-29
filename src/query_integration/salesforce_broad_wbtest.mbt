@@ -1,7 +1,7 @@
 ///|
 fn salesforce_broad_binding() -> @salesforce_catalog.CatalogObservationBinding {
   {
-    tenant: "tenant-a",
+    namespace_id: "namespace-a",
     principal: "principal-a",
     environment: "test",
     connection_revision: "connection-a",

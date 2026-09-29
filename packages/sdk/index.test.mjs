@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {connect, ClientError} from './index.mjs';
 
-const ref = Object.freeze({tenantId: 'tenant-a',
+const ref = Object.freeze({namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});
 const profile = Object.freeze({version: 'actql-client-host/0.1',
@@ -485,9 +485,9 @@ test('attach rejects each foreign Run reference before status or read',
     });
     t.after(() => mock.restoreAll());
     const client = await connect(options);
-    for (const field of ['tenantId', 'authorityScopeCid',
+    for (const field of ['namespaceId', 'authorityScopeCid',
       'runDefinitionCid']) {
-      returned = {...ref, [field]: field === 'tenantId' ? 'tenant-b' :
+      returned = {...ref, [field]: field === 'namespaceId' ? 'namespace-b' :
         `sha256:${'c'.repeat(64)}`};
       await assert.rejects(client.attach(ref),
         {code: 'ForeignHostAdmission'});
@@ -725,8 +725,8 @@ test('cancel validates the response and exact requested Run', async t => {
   assert.deepEqual(await execution.cancel(), reply);
   for (const invalid of [{}, {...reply, kind: 'stopped'},
     {...reply, revision: -1},
-    ...['tenantId', 'authorityScopeCid', 'runDefinitionCid'].map(key =>
-      ({...reply, ref: {...ref, [key]: key === 'tenantId' ? 'foreign' :
+    ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(key =>
+      ({...reply, ref: {...ref, [key]: key === 'namespaceId' ? 'foreign' :
         `sha256:${'c'.repeat(64)}`}}))]) {
     reply = invalid;
     await assert.rejects(execution.cancel(), {code: 'InvalidHostCancellation'});

@@ -4,13 +4,13 @@ const schemas = {
   "run_ref": {
     "type": "object",
     "required": [
-      "tenantId",
+      "namespaceId",
       "authorityScopeCid",
       "runDefinitionCid"
     ],
     "additionalProperties": false,
     "properties": {
-      "tenantId": {
+      "namespaceId": {
         "type": "string",
         "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
         "minLength": 1,
@@ -198,13 +198,13 @@ const schemas = {
       "ref": {
         "type": "object",
         "required": [
-          "tenantId",
+          "namespaceId",
           "authorityScopeCid",
           "runDefinitionCid"
         ],
         "additionalProperties": false,
         "properties": {
-          "tenantId": {
+          "namespaceId": {
             "type": "string",
             "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
             "minLength": 1,
@@ -255,13 +255,13 @@ const schemas = {
       "ref": {
         "type": "object",
         "required": [
-          "tenantId",
+          "namespaceId",
           "authorityScopeCid",
           "runDefinitionCid"
         ],
         "additionalProperties": false,
         "properties": {
-          "tenantId": {
+          "namespaceId": {
             "type": "string",
             "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
             "minLength": 1,
@@ -692,13 +692,13 @@ const schemas = {
       "ref": {
         "type": "object",
         "required": [
-          "tenantId",
+          "namespaceId",
           "authorityScopeCid",
           "runDefinitionCid"
         ],
         "additionalProperties": false,
         "properties": {
-          "tenantId": {
+          "namespaceId": {
             "type": "string",
             "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
             "minLength": 1,
@@ -752,13 +752,13 @@ const schemas = {
       "ref": {
         "type": "object",
         "required": [
-          "tenantId",
+          "namespaceId",
           "authorityScopeCid",
           "runDefinitionCid"
         ],
         "additionalProperties": false,
         "properties": {
-          "tenantId": {
+          "namespaceId": {
             "type": "string",
             "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
             "minLength": 1,

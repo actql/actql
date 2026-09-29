@@ -59,7 +59,7 @@ pub(all) enum ClientSalesforceIssue {
 }
 
 pub struct ClientSalesforceSite {
-  tenant : String
+  namespace_id : String
   principal : String
   environment : String
   connection_revision : String

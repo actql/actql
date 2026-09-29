@@ -217,7 +217,7 @@ export function createClientHttpHandler({
       } else if (operation === 'attach') {
         const admission = await invoke(attach);
         if (!validClientAdmission(admission, connection) ||
-            admission.ref.tenantId !== ref.tenantId ||
+            admission.ref.namespaceId !== ref.namespaceId ||
             admission.ref.authorityScopeCid !== ref.authorityScopeCid ||
             admission.ref.runDefinitionCid !== ref.runDefinitionCid) {
           invalid('InvalidClientHostAdmission');

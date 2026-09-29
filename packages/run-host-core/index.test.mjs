@@ -328,7 +328,7 @@ test('portable Host keeps publication absence and uncertainty distinct',
     assert.throws(() => projectPublicationSnapshot(record,
       {kind: 'unknown'}), {code: 'RunHostPublicationSnapshotRejected'});
     const index = admit('public_index_entry', {
-      version: 'actql-public-index-entry/0.1', tenant_id: 'tenant-a',
+      version: 'actql-public-index-entry/0.1', namespace_id: 'namespace-a',
       authority_scope_cid: fixed('b'), run_definition_cid: fixed('c'),
       invocation_cid: fixed('d'), result_manifest_cid: fixed('e'),
       run_receipt_cid: fixed('f'), captured_run_cid: fixed('0'),
@@ -350,16 +350,16 @@ test('portable Host keeps publication absence and uncertainty distinct',
 
 test('portable Host uses the registered one-index-per-Run Store key', () => {
   const limits = {maxWireBytes: 4096, maxNodes: 128, maxDepth: 16};
-  const ref = {tenantId: 'tenant-a',
+  const ref = {namespaceId: 'namespace-a',
     authorityScopeCid: `sha256:${'a'.repeat(64)}`,
     runDefinitionCid: `sha256:${'b'.repeat(64)}`};
   const expected = cid({version: 'actql-public-index-key/0.1',
-    tenant_id: ref.tenantId,
+    namespace_id: ref.namespaceId,
     authority_scope_cid: ref.authorityScopeCid,
     run_definition_cid: ref.runDefinitionCid}).slice(7);
   assert.equal(publicationIndexScopeKey(ref, limits), expected);
   assert.notEqual(publicationIndexScopeKey({...ref,
-    tenantId: 'tenant-b'}, limits), expected);
+    namespaceId: 'namespace-b'}, limits), expected);
   assert.throws(() => publicationIndexScopeKey({...ref,
     runDefinitionCid: 'invalid'}, limits),
   {code: 'RunHostPublicationIndexScopeRejected'});
@@ -413,7 +413,7 @@ test('source-free Invocation binds checked Template and Host data policy',
       expiresAt: '2099-01-01T00:00:00.000Z',
     });
     const definition = issueRunDefinition(allowed.admission,
-      'tenant-scope', 'values-run', `sha256:${'c'.repeat(64)}`,
+      'namespace-scope', 'values-run', `sha256:${'c'.repeat(64)}`,
       '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z');
     const dataPolicyCid = `sha256:${'d'.repeat(64)}`;
     const issued = issueSourceFreeInvocation(prepared, compilation,
@@ -526,7 +526,7 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
     const readControl = openResultDeliveryControl();
     const publicIndex = readControl.admit('public_index_entry', JSON.stringify({
       version: 'actql-public-index-entry/0.1',
-      tenant_id: 'tenant-a', authority_scope_cid: fixed('d'),
+      namespace_id: 'namespace-a', authority_scope_cid: fixed('d'),
       run_definition_cid: run.cid, invocation_cid: invocation.cid,
       result_manifest_cid: manifest.cid, run_receipt_cid: fixed('1'),
       captured_run_cid: fixed('2'),
@@ -536,7 +536,7 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
       committed_at: '2026-09-18T00:03:00.000Z',
       public_index_entry_cid: cid({
         version: 'actql-public-index-entry/0.1',
-        tenant_id: 'tenant-a', authority_scope_cid: fixed('d'),
+        namespace_id: 'namespace-a', authority_scope_cid: fixed('d'),
         run_definition_cid: run.cid, invocation_cid: invocation.cid,
         result_manifest_cid: manifest.cid, run_receipt_cid: fixed('1'),
         captured_run_cid: fixed('2'),
@@ -605,7 +605,7 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
       [definition], [artifact], definition, limits),
     {code: 'RunHostPublicationChainRejected'});
     const request = issuePublicationRequest(run, [definition], {
-      tenantId: 'tenant-a', authorityScopeCid: fixed('d'),
+      namespaceId: 'namespace-a', authorityScopeCid: fixed('d'),
       publicationPolicyCid: fixed('8'),
       publicationTargetCid: fixed('9'),
       requestedAt: '2026-09-18T00:01:00.000Z',
@@ -628,7 +628,7 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
     assert.equal(JSON.parse(preparing.wire).publication_attempt_cid,
       attempt.cid);
     assert.throws(() => issuePublicationRequest(run, [definition], {
-      tenantId: 'tenant-a', authorityScopeCid: fixed('d'),
+      namespaceId: 'namespace-a', authorityScopeCid: fixed('d'),
       publicationPolicyCid: 'invalid', publicationTargetCid: fixed('9'),
       requestedAt: '2026-09-18T00:01:00.000Z',
     }, limits), {code: 'RunHostPublicationRequestRejected'});
@@ -904,10 +904,10 @@ test('portable Host admits exact policy evidence before Run Definition', () => {
   assert.deepEqual(JSON.parse(issued.authorizationWire),
     JSON.parse(evidence(authorizationBody, 'run_authorization_cid')));
   assert.deepEqual(privateRunDefinition(issueRunDefinition(issued.admission,
-    'tenant-scope', 'values-run', `sha256:${'c'.repeat(64)}`,
+    'namespace-scope', 'values-run', `sha256:${'c'.repeat(64)}`,
     '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z')),
   privateRunDefinition(issueRunDefinition(admission,
-    'tenant-scope', 'values-run', `sha256:${'c'.repeat(64)}`,
+    'namespace-scope', 'values-run', `sha256:${'c'.repeat(64)}`,
     '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z')));
   assert.throws(() => issueAllowedRun(prepared, compilation, {
     executionContextCid: `sha256:${'0'.repeat(64)}`,
@@ -915,7 +915,7 @@ test('portable Host admits exact policy evidence before Run Definition', () => {
     expiresAt: '2099-01-01T00:00:00.000Z',
   }), {code: 'RunHostAdmissionRejected'});
   const definition = privateRunDefinition(issueRunDefinition(admission,
-    'tenant-scope', 'values-run', `sha256:${'c'.repeat(64)}`,
+    'namespace-scope', 'values-run', `sha256:${'c'.repeat(64)}`,
     '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z'));
   const body = JSON.parse(definition.wire);
   assert.equal(body.run_id, 'values-run');
@@ -953,10 +953,10 @@ test('portable Host admits exact policy evidence before Run Definition', () => {
   assert.throws(() => admit(preparedBody, {...authorizationBody,
     decision: 'denied'}), {code: 'RunHostAdmissionRejected'});
   assert.throws(() => issueRunDefinition(admission,
-    'tenant-scope', 'late-run', `sha256:${'c'.repeat(64)}`,
+    'namespace-scope', 'late-run', `sha256:${'c'.repeat(64)}`,
     '2099-01-01T00:00:00.000Z', '2100-01-01T00:00:00.000Z'),
   {code: 'RunHostDefinitionRejected'});
-  assert.throws(() => issueRunDefinition({}, 'tenant-scope', 'foreign',
+  assert.throws(() => issueRunDefinition({}, 'namespace-scope', 'foreign',
     `sha256:${'c'.repeat(64)}`, '2026-09-24T00:00:00.000Z',
     '2027-01-01T00:00:00.000Z'),
   {name: 'TypeError', message: 'ForeignRunHostHandle'});

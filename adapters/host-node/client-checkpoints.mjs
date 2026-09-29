@@ -78,7 +78,7 @@ function principals(values, code) {
 // {accountConfiguration, context}. With it, a request whose Program acquires
 // that source is decided for the Host-resolved read tuple before any Run or
 // provider I/O exists, and a delegated read is held like Run acceptance.
-export async function installRemoteCheckpoints({root, tenantId,
+export async function installRemoteCheckpoints({root, namespaceId,
   authorityScopeCid, ownerPrincipal, siteKey, realizationKey,
   environmentCid, contractControl, authorization, source,
   now = () => Date.now()}) {
@@ -281,7 +281,7 @@ export async function installRemoteCheckpoints({root, tenantId,
   const requestSubject = requested => Object.freeze({
     version: 'actql-remote-run-acceptance-request/0.1',
     authority_scope_cid: authorityScopeCid,
-    tenant_id: tenantId,
+    namespace_id: namespaceId,
     logical_request_scope_cid: requested.logicalRequestScopeCid,
     intent_fingerprint_cid: requested.intentFingerprintCid,
     site_key: siteKey,
@@ -290,7 +290,7 @@ export async function installRemoteCheckpoints({root, tenantId,
   // One prepare attempt per request of this installation scope, found again
   // from the request ID alone (a lookup has no Program).
   const prepareAttemptIdOf = requestId => `prepare-${hex(canonicalJson({
-    authority_scope_cid: authorityScopeCid, tenant_id: tenantId,
+    authority_scope_cid: authorityScopeCid, namespace_id: namespaceId,
     request_id: requestId})).slice(0, 40)}`;
 
   function deferralFor({prepareAttemptId, request, requestCid, captured,

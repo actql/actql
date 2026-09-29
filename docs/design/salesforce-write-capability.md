@@ -30,7 +30,7 @@ correctness of the loaded program or a malicious provider's computation.
 body, hashed with SHA-256. It is not a new portable wire artifact or a decoder
 for untrusted capability declarations. The body contains:
 
-- API version; tenant, principal, environment, connection revision, org,
+- API version; namespace, principal, environment, connection revision, org,
   Connector registration/revision, runtime bundle, origin, and Site generation.
 - Resource and operation; selected fields sorted by name and the external-ID
   target field, if applicable. Each field includes its admitted type, null and

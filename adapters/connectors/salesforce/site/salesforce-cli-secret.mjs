@@ -131,14 +131,14 @@ export async function inspectSalesforceCliConnection(alias, settings = {}) {
 /// Supply a token only to the Site credential boundary. A persisted connection
 /// must carry the exact org, user, and instance discovered at admission.
 export function createSalesforceCliSecretResolver({
-  connection, principal, tenant, environment, siteKey, siteGeneration,
+  connection, principal, namespaceId, environment, siteKey, siteGeneration,
   tokenReuseMs = 30_000, monotonicNow = () => performance.now(),
   ...settings
 } = {}) {
   const config = options(settings);
   if (!connection || !aliasPattern.test(connection.alias) ||
       !text(connection.orgId) || !text(connection.username) ||
-      !text(principal) || !text(tenant) || !text(environment) ||
+      !text(principal) || !text(namespaceId) || !text(environment) ||
       !text(siteKey) || !Number.isSafeInteger(siteGeneration) ||
       siteGeneration < 0 || !positive(tokenReuseMs) ||
       tokenReuseMs > 300_000 || typeof monotonicNow !== 'function') {
@@ -174,7 +174,7 @@ export function createSalesforceCliSecretResolver({
     return token;
   }
   async function resolveSecret(scope, signal) {
-    if (scope?.principal !== principal || scope?.tenant !== tenant ||
+    if (scope?.principal !== principal || scope?.namespaceId !== namespaceId ||
         scope?.environment !== environment ||
         scope?.siteKey !== siteKey ||
         scope?.siteGeneration !== siteGeneration ||

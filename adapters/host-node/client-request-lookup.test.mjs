@@ -3,7 +3,7 @@ import test from 'node:test';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 
 const authorityScopeCid = `sha256:${'a'.repeat(64)}`;
-const ref = {tenantId: 'tenant-a', authorityScopeCid,
+const ref = {namespaceId: 'namespace-a', authorityScopeCid,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
 const control = {clientRequestAdmitRecord() {}};
 const request = {principalId: 'principal-a', requestId: 'saved-request',
@@ -11,7 +11,7 @@ const request = {principalId: 'principal-a', requestId: 'saved-request',
 
 test('request lookup uses the authorized scope and projects retained Run',
   async () => {
-    const selected = {tenantId: 'tenant-a', authorityScopeCid};
+    const selected = {namespaceId: 'namespace-a', authorityScopeCid};
     const observed = [];
     const lookup = installNodeClientRequestLookup({control,
       authorizedScope: async () => selected,
@@ -24,12 +24,12 @@ test('request lookup uses the authorized scope and projects retained Run',
     assert.deepEqual(await lookup(request), {kind: 'found',
       requestId: 'saved-request', ref, durability: 'durable',
       lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
-    assert.deepEqual(observed, [{tenantId: 'tenant-a',
+    assert.deepEqual(observed, [{namespaceId: 'namespace-a',
       authorityScopeCid, requestId: 'saved-request'}]);
   });
 
 test('request lookup separates absent, unavailable, and denied', async () => {
-  const selected = {tenantId: 'tenant-a', authorityScopeCid};
+  const selected = {namespaceId: 'namespace-a', authorityScopeCid};
   const install = (journal, authorizedScope = () => selected) =>
     installNodeClientRequestLookup({journal, control, authorizedScope});
   assert.deepEqual(await install({lookup: () => undefined})(request),

@@ -423,7 +423,7 @@ reconciliation. Expired/missing history never establishes first-request status.
 ### Source-state operator claim
 
 The closed source_state_advance_authorized claim has separate operator authority
-and signs tenant/scope/policy/expiry/nonce, exact fenced graph state and commit
+and signs namespace/scope/policy/expiry/nonce, exact fenced graph state and commit
 scope, captured batch/pending checkpoint list/generations, all unmet obligation
 outcomes and dispositions, handoff ownership, and the operator review. It uses
 the common authenticated evidence envelope, not partial-application acceptance
@@ -564,7 +564,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_reconciliation_receipt sha256:abcfcc932af4c63ae91e9670d0cd41d2cd23a0e3bec25044cfa018cd2b5f3fb2
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_receipt sha256:d017cd0e95bce341edd4fabf859fc521588ee8d12eadfa9fd2704d8d8a94f526
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/runtime_error sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_context sha256:bce481b86ddcbd958ab98c54df73a7040d21ab8115088f25cb7552928cfb30de
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_context sha256:49bb0acf26e64ffc1d0802b03b251f27476732ad28c80f0c89b35c5cbf5734b2
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_policy sha256:d1c763d2ba8357fd33fa41afd690eed8088a310e4640fa615907c4866a125db6
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/prepared_invocation sha256:b3aa019105b4b6db51c69b2b96771ebe184f87c1f7eff3347bf5aef1cd9482f9
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_review_projection sha256:a883398aa5f831befbc132a18a48c4233b4596edcec616d5d3328aea62df8c38
@@ -589,7 +589,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/template_approval sha256:a55fff821004ba45c57bbc0e7910d2a1d23134f056ff9d2f2f8e7f6f43e96d2e
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/template_instantiation sha256:525028fdd701aab546c52f87aad69e008262f3107093d62361b8eadf2a2b0ac3
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/approval_renewal sha256:f3e64e5cab0b7b74b00224fcd8011c129438bc4ea7e4258a1010442065ecf1b5
-../../../spec/contracts/actql-stage-contracts.json#/schemas/source_advance_claim sha256:cbd592cd24ee74462fadf765ccf7354ba1dc64c376c476720a82508f6d01df51
+../../../spec/contracts/actql-stage-contracts.json#/schemas/source_advance_claim sha256:14ad763d0e911fadda97695d4ba50726ef9196a5ba41a6d3367295aaccd48c76
 ```
 <!-- stage-contract-pins:end -->
 

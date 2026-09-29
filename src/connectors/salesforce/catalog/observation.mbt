@@ -2,7 +2,7 @@
 /// This is the identity of one authorized catalog observation, not a static
 /// Connector Catalog or a grant to use the observed resources later.
 pub(all) struct CatalogObservationBinding {
-  tenant : String
+  namespace_id : String
   principal : String
   environment : String
   connection_revision : String
@@ -46,7 +46,7 @@ fn catalog_execution_binding_matches(
   prior : CatalogObservationBinding,
   current : CatalogObservationBinding,
 ) -> Bool {
-  prior.tenant == current.tenant &&
+  prior.namespace_id == current.namespace_id &&
   prior.principal == current.principal &&
   prior.environment == current.environment &&
   prior.connection_revision == current.connection_revision &&
@@ -104,7 +104,7 @@ pub fn catalog_response_sha256(bytes : Bytes) -> String {
 
 ///|
 fn observation_binding_valid(binding : CatalogObservationBinding) -> Bool {
-  !binding.tenant.is_empty() &&
+  !binding.namespace_id.is_empty() &&
   !binding.principal.is_empty() &&
   !binding.environment.is_empty() &&
   !binding.connection_revision.is_empty() &&
@@ -183,7 +183,7 @@ fn emit_observation(
     @encode.number_value(writer, binding.site_generation.to_double())
     observation_field(writer, "site_key", binding.site_key)
     observation_field(writer, "sync_occurrence", binding.sync_occurrence)
-    observation_field(writer, "tenant", binding.tenant)
+    observation_field(writer, "namespace_id", binding.namespace_id)
     @encode.end_object(writer)
     @encode.key(writer, "listed_resources")
     @encode.begin_array(writer)

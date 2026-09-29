@@ -9,7 +9,7 @@ test('owned invocation context snapshots scalar bindings and limits', () => {
   const journal = {};
   const resolveSecret = () => {};
   const authorize = () => {};
-  const scope = {tenant: 'first', principal: 'reader',
+  const scope = {namespaceId: 'first', principal: 'reader',
     siteGeneration: 4, operation: 'read',
     expiresUnixMilliseconds: 2000n};
   const limits = {maxBytes: 100};
@@ -18,11 +18,11 @@ test('owned invocation context snapshots scalar bindings and limits', () => {
     authorization: {grant, useId: 'use-1', scope},
     credential, limits, callbacks: {authorize},
   });
-  scope.tenant = 'second';
+  scope.namespaceId = 'second';
   scope.siteGeneration = 5;
   limits.maxBytes = 0;
   credential.resolveSecret = () => {};
-  assert.equal(context.scope.tenant, 'first');
+  assert.equal(context.scope.namespaceId, 'first');
   assert.equal(context.scope.siteGeneration, 4);
   assert.equal(context.scope.expiresUnixMilliseconds, 2000n);
   assert.equal(context.limits.maxBytes, 100);
@@ -32,7 +32,7 @@ test('owned invocation context snapshots scalar bindings and limits', () => {
   assert.equal(context.callbacks.authorize, authorize);
   assert.equal(invocationBindingsMatch(context.scope, scope), false);
   assert.equal(invocationBindingsMatch(context.scope,
-    {...scope, tenant: 'first', siteGeneration: 4}), true);
+    {...scope, namespaceId: 'first', siteGeneration: 4}), true);
   assert(Object.isFrozen(context.scope));
   assert(Object.isFrozen(context.limits));
 });
@@ -40,17 +40,17 @@ test('owned invocation context snapshots scalar bindings and limits', () => {
 test('scope ownership rejects nested caller data instead of retaining it',
   () => {
     assert.throws(() => ownInvocationAuthorization({
-      grant: {}, useId: 'use-1', scope: {tenant: {value: 'foreign'}},
+      grant: {}, useId: 'use-1', scope: {namespaceId: {value: 'foreign'}},
     }), {code: 'InvalidOwnedInvocationContext'});
   });
 
 test('scoped invoker owns the call and rejects a foreign operation',
   async () => {
-    const scope = {tenant: 'tenant-a', operation: 'read'};
+    const scope = {namespaceId: 'namespace-a', operation: 'read'};
     const calls = [];
     const callResource = async call => {
       calls.push(call);
-      scope.tenant = 'tenant-b';
+      scope.namespaceId = 'namespace-b';
       return {statusCode: 200};
     };
     await invokeScopedCredentialOperation({
@@ -59,7 +59,7 @@ test('scoped invoker owns the call and rejects a foreign operation',
       operation: 'read', method: 'GET', path: '/records',
       maxResponseBytes: 64,
     });
-    assert.equal(calls[0].scope.tenant, 'tenant-a');
+    assert.equal(calls[0].scope.namespaceId, 'namespace-a');
     assert.deepEqual(calls[0].operations.get('read'), {
       method: 'GET', path: '/records',
     });

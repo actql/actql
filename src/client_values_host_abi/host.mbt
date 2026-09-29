@@ -290,7 +290,7 @@ pub fn client_values_host_project_publication_snapshot(
 /// Shared Store slot identity for the one public index of an exact Run.
 #export_name("clientValuesHostPublicationIndexScopeKey")
 pub fn client_values_host_publication_index_scope_key(
-  tenant_id : String,
+  namespace_id : String,
   authority_scope_cid : String,
   run_definition_cid : String,
   max_wire_bytes : Int,
@@ -298,7 +298,7 @@ pub fn client_values_host_publication_index_scope_key(
   max_depth : Int,
 ) -> Result[String, @publication.PublicationCommitIssuanceIssue] {
   @publication.publication_index_scope_storage_key(
-    tenant_id, authority_scope_cid, run_definition_cid, max_wire_bytes, max_nodes,
+    namespace_id, authority_scope_cid, run_definition_cid, max_wire_bytes, max_nodes,
     max_depth,
   )
 }
@@ -1790,7 +1790,7 @@ pub fn client_values_host_validate_publication_record_transition(
 pub fn client_values_host_issue_publication_request(
   run_definition : @publication.PublicationContract,
   definitions : Array[@publication.PublicationContract],
-  tenant_id : String,
+  namespace_id : String,
   authority_scope_cid : String,
   publication_policy_cid : String,
   publication_target_cid : String,
@@ -1803,7 +1803,7 @@ pub fn client_values_host_issue_publication_request(
   @publication.PublicationCommitIssuanceIssue,
 ] {
   @publication.issue_publication_request(
-    run_definition, definitions, tenant_id, authority_scope_cid, publication_policy_cid,
+    run_definition, definitions, namespace_id, authority_scope_cid, publication_policy_cid,
     publication_target_cid, requested_at, max_wire_bytes, max_nodes, max_depth,
   )
 }

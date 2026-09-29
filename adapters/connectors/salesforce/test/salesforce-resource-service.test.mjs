@@ -51,7 +51,7 @@ async function discoveryHost(t) {
     credentialPrivateKeyPath: join(root, 'credential.key'),
     environment: 'test', instanceOrigin: org.origin,
     journalRoot: join(root, 'journal'), orgId: org.orgId, siteGeneration: 1,
-    siteKey: 'salesforce-site', tenant: 'tenant-a',
+    siteKey: 'salesforce-site', namespaceId: 'namespace-a',
     caPath: join(root, 'org-ca.crt')};
   const accountConfiguration = readable => canonicalJson({
     version: 'actql-execution-account-config/0.1',
@@ -217,7 +217,7 @@ test('a generation of another Site installation never becomes current discovery'
     await first.publish();
     first.site.close();
     for (const [name, options] of [
-      ['tenant', {changes: {tenant: 'tenant-other'}}],
+      ['namespace_id', {changes: {namespaceId: 'namespace-other'}}],
       ['environment', {changes: {environment: 'staging'}}],
       ['Site key', {changes: {siteKey: 'other-site'}}],
       ['Site generation', {changes: {siteGeneration: 99}}],

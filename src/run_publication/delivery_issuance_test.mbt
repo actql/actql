@@ -51,7 +51,7 @@ fn delivery_test_root() -> (
   let index = delivery_test_contract(
     "public_index_entry",
     "{\"version\":\"actql-public-index-entry/0.1\"," +
-    "\"tenant_id\":\"tenant\",\"authority_scope_cid\":\"" +
+    "\"namespace_id\":\"namespace_id\",\"authority_scope_cid\":\"" +
     delivery_test_cid("4") +
     "\",\"run_definition_cid\":\"" +
     delivery_test_cid("3") +
@@ -171,7 +171,7 @@ test "committed Result projection selects the exact indexed binding" {
   let index = delivery_test_contract(
     "public_index_entry",
     "{\"version\":\"actql-public-index-entry/0.1\"," +
-    "\"tenant_id\":\"tenant\",\"authority_scope_cid\":\"" +
+    "\"namespace_id\":\"namespace_id\",\"authority_scope_cid\":\"" +
     delivery_test_cid("e") +
     "\",\"run_definition_cid\":\"" +
     run_definition_cid +
@@ -435,7 +435,7 @@ test "delivery payload binding matches the committed logical Result" {
   let index = delivery_test_contract(
     "public_index_entry",
     "{\"version\":\"actql-public-index-entry/0.1\"," +
-    "\"tenant_id\":\"tenant\",\"authority_scope_cid\":\"" +
+    "\"namespace_id\":\"namespace_id\",\"authority_scope_cid\":\"" +
     delivery_test_cid("3") +
     "\",\"run_definition_cid\":\"" +
     run_definition_cid +

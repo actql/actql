@@ -100,6 +100,7 @@ if (!['direct', 'store'].includes(applicationOutputRoute)) {
 await mkdir(scratchRoot, {recursive: true});
 const root = await mkdtemp(join(scratchRoot, 'native-http-'));
 const storeRoot = join(root, 'store');
+const filesystemTestRoot = join(root, 'filesystem-test');
 const retainedTaskRoot = join(root, 'retained-task');
 const nativeTestDuckDBLibrary = process.env.ACTQL_TEST_DUCKDB_LIBRARY ?? join(
   fileURLToPath(new URL('../', import.meta.url)),
@@ -122,6 +123,7 @@ const standardRoot = join(root, 'standard');
 const transferStandardRoot = join(root, 'transfer-standard');
 const remotePublicationRoot = join(root, 'remote-publication');
 await mkdir(storeRoot, {recursive: true});
+await mkdir(filesystemTestRoot, {recursive: true});
 await mkdir(retainedTaskRoot, {recursive: true});
 await mkdir(multiBundleStoreRoot, {recursive: true});
 await mkdir(sqliteRoot, {recursive: true});
@@ -1018,7 +1020,7 @@ try {
   const credentialGrant = credentialControl.prepare({
     issuerAuthority: 'credential-authority-a',
     principal: 'principal-a',
-    tenant: 'tenant-a',
+    namespaceId: 'namespace-a',
     environment: 'test',
     siteKey: 'site-a',
     siteGeneration: 2,
@@ -1045,7 +1047,7 @@ try {
   const productCredentialGrant = credentialControl.prepare({
     issuerAuthority: 'credential-authority-a',
     principal: 'principal-a',
-    tenant: 'tenant-a',
+    namespaceId: 'namespace-a',
     environment: 'test',
     siteKey: 'site-a',
     siteGeneration: 2,
@@ -1169,7 +1171,9 @@ try {
     }
     const child = spawn(moon, ['test', packagePath, '--target', 'native'], {
       cwd: new URL('../', import.meta.url),
-      env: testEnvironment,
+      env: packagePath === 'src/platform_native/filesystem'
+        ? {...testEnvironment, ACTQL_TEST_NATIVE_STORE_ROOT: filesystemTestRoot}
+        : testEnvironment,
       stdio: 'inherit',
     });
     const [code, signal] = await once(child, 'exit');
@@ -1216,7 +1220,7 @@ try {
       '--resource-path', '/credential',
       '--operation', 'records:read',
       '--principal', 'principal-a',
-      '--tenant', 'tenant-a',
+      '--namespace', 'namespace-a',
       '--environment', 'test',
       '--site-key', 'site-a',
       '--site-generation', '2',

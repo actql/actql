@@ -13,7 +13,7 @@ semantic validation; the structural guard does not authorize either value.
 record and Host release receipt shapes and binds the reply to the requested
 attempt ID, Run definition and Result name. It also checks the shared artifact
 and serialization contract CIDs, record state, receipt reference, byte count
-and digest. The Host still authorizes lookup against tenant, scope and grant;
+and digest. The Host still authorizes lookup against namespace, scope and grant;
 those private grant facts are not present in this public response.
 The request keys, Client–Host response shapes, and their TypeScript types are
 generated from `spec/contracts/actql-client-host.json` with
