@@ -74,7 +74,7 @@ const observe = directory => () => {
       'SELECT COUNT(*) AS count FROM client_requests').get().count};
   } finally { journal.close(); }
 };
-const sgaCases = ['normalize-rows'];
+const sgaCases = ['normalize-rows', 'mean-graphs'];
 const sgaFixtureDirectory = resolve('sga-fixtures');
 await mkdir(sgaFixtureDirectory);
 for (const name of sgaCases) {
@@ -84,20 +84,22 @@ for (const name of sgaCases) {
   }
 }
 async function exerciseSga(mode, extraEnv) {
-  const child = spawn(process.execPath,
-    ['accept-sga-public-source.mjs', resolve('.'), sgaFixtureDirectory,
-      mode, sgaCases[0]],
-    {env: {...process.env, ...extraEnv}, stdio: ['ignore', 'pipe', 'pipe']});
-  const output = [];
-  for (const stream of [child.stdout, child.stderr]) {
-    stream.on('data', chunk => output.push(chunk));
+  for (const name of sgaCases) {
+    const child = spawn(process.execPath,
+      ['accept-sga-public-source.mjs', resolve('.'), sgaFixtureDirectory,
+        mode, name],
+      {env: {...process.env, ...extraEnv}, stdio: ['ignore', 'pipe', 'pipe']});
+    const output = [];
+    for (const stream of [child.stdout, child.stderr]) {
+      stream.on('data', chunk => output.push(chunk));
+    }
+    const code = await new Promise((resolve, reject) => {
+      child.once('error', reject);
+      child.once('close', resolve);
+    });
+    assert.equal(code, 0, `${name}: ${Buffer.concat(output).toString()}`);
+    console.log(Buffer.concat(output).toString().trimEnd());
   }
-  const code = await new Promise((resolve, reject) => {
-    child.once('error', reject);
-    child.once('close', resolve);
-  });
-  assert.equal(code, 0, Buffer.concat(output).toString());
-  console.log(Buffer.concat(output).toString().trimEnd());
 }
 await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
   durability: 'durable', installation: {directory: resolve('local-state'),
