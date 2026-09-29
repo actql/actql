@@ -4599,6 +4599,18 @@ async function exerciseStrategyGraph(
     managedStarts: 3,
     completedTasks: [1, 2],
     fields: ['query_id', 'candidate_id', 'score', 'rank'],
+  }, {
+    name: 'vector-nearest-carrier-inputs',
+    family: 'veca',
+    operation: 'nearest',
+    selectedCarrierNearest: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 0,
+    cancelOnManagedStart: 5,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
+    fields: ['query_id', 'candidate_id', 'score', 'rank'],
   }];
   for (const cancellationCase of graphCancellationCases) {
     const teaFamily = cancellationCase.family === 'tea' ||
@@ -5136,7 +5148,8 @@ async function exerciseStrategyGraph(
                   {select: ['id'], as: 'captured'},
                 ],
                 results: {r: {from: 'captured', fields: ['id']}},
-              }, ...['candidates', 'queries'].map(id => ({
+              }, ...(cancellationCase.selectedCarrierNearest
+                ? [] : ['candidates', 'queries'].map(id => ({
                 id,
                 inputs: {},
                 steps: [{
@@ -5162,14 +5175,34 @@ async function exerciseStrategyGraph(
                   as: 'out',
                 }],
                 results: {r: {from: 'out', fields: ['id', 'embedding']}},
-              })), {
+              }))), {
                 id: 'nearest',
-                inputs: {
+                inputs: cancellationCase.selectedCarrierNearest ? {} : {
                   candidates: {result: {stage: 'candidates', result: 'r'}},
                   queries: {result: {stage: 'queries', result: 'r'}},
                 },
                 steps: [
-                  ...(cancellationCase.fusedNearest ? [{
+                  ...(cancellationCase.selectedCarrierNearest
+                    ? ['candidates', 'queries'].map(id => ({
+                      values: {
+                        schema: {
+                          id: {type: 'number', nullable: false},
+                          embedding: {
+                            type: 'vector', dimensions: 2, nullable: false,
+                          },
+                        },
+                        rows: Array.from(
+                          {length: id === 'queries' ? 1 : cancellationCase.rows},
+                          (_, index) => ({
+                            id: index + 1,
+                            embedding: [index + 1, index + 2],
+                          }),
+                        ),
+                      },
+                      as: id,
+                    })) : []),
+                  ...(cancellationCase.fusedNearest ||
+                      cancellationCase.selectedCarrierNearest ? [{
                     from: 'candidates',
                     to_vectors: {id: 'id', vector: 'embedding'},
                     as: 'candidate_vectors',
@@ -5178,12 +5211,15 @@ async function exerciseStrategyGraph(
                     to_vectors: {id: 'id', vector: 'embedding'},
                     as: 'query_vectors',
                   }] : []), {
-                  from: cancellationCase.fusedNearest
+                  from: cancellationCase.fusedNearest ||
+                    cancellationCase.selectedCarrierNearest
                     ? 'candidate_vectors' : 'candidates',
                   nearest: {
-                    queries: cancellationCase.fusedNearest
+                    queries: cancellationCase.fusedNearest ||
+                      cancellationCase.selectedCarrierNearest
                       ? 'query_vectors' : 'queries',
-                    ...(cancellationCase.fusedNearest ? {} : {
+                    ...(cancellationCase.fusedNearest ||
+                        cancellationCase.selectedCarrierNearest ? {} : {
                       candidate_id: 'id',
                       candidate_vector: 'embedding',
                       query_id: 'id',

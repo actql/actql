@@ -2060,6 +2060,151 @@ fn direct_nearest_owner(
 }
 
 ///|
+fn reordered_nearest_owner(
+  candidates : @lower.BoundPrepared,
+  queries : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"from\":\"candidates\",\"nearest\":{\"queries\":\"queries\"," +
+        "\"metric\":\"dot\",\"k\":2}}]",
+      ),
+      [
+        (
+          "queries",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(queries)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "candidates",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(candidates)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      Some(input_cursor("\"candidates\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn mixed_step_nearest_owner(
+  candidate_rows : @lower.BoundPrepared,
+  queries : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"from\":\"candidate_rows\",\"to_vectors\":{\"id\":\"id\"," +
+        "\"vector\":\"embedding\"},\"as\":\"candidate_vectors\"}," +
+        "{\"from\":\"candidate_vectors\",\"nearest\":{\"queries\":\"queries\"," +
+        "\"metric\":\"dot\",\"k\":2}}]",
+      ),
+      [
+        (
+          "queries",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(queries)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        (
+          "candidate_rows",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(candidate_rows)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      Some(input_cursor("\"candidate_rows\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn run_selected_nearest_provider(
+  owner : @lower.BoundPrepared,
+  step : Int,
+  inputs : Array[@local_connector.ManagedProviderInput],
+  expected : Array[(Double, Double)],
+) -> Unit raise {
+  let generated = @execution.select_generated_sequence_step(
+    task_test_generated(owner),
+    step,
+  ).unwrap()
+  let limits = dispatch_test_limits()
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let execution = @local_connector.start_managed_provider_with_inputs(
+    provider, generated, inputs, 10, 1000,
+  ).unwrap()
+  let mut output = None
+  while output is None {
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+      @local_connector.Complete(value, ..) => output = Some(value)
+      @local_connector.CarrierComplete(_, ..) =>
+        fail("nearest returned a Carrier")
+      @local_connector.Failed(_, ..) => fail("selected nearest provider failed")
+      @local_connector.Stopped(..) => fail("selected nearest provider stopped")
+    }
+  }
+  let result = output.unwrap()
+  assert_eq(@execution.completed_row_count(result), expected.length())
+  for index, pair in expected {
+    assert_true(
+      @execution.completed_cell(result, index, 0) is Some(Number(value)) &&
+      value == pair.0,
+    )
+    assert_true(
+      @execution.completed_cell(result, index, 1) is Some(Number(value)) &&
+      value == pair.1,
+    )
+  }
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+}
+
+///|
 fn direct_nearest_relation_owner(rows : String) -> @lower.BoundPrepared {
   direct_nearest_bind(
     @pipeline.check(
@@ -4388,6 +4533,106 @@ fn direct_nearest_material(
     ]).unwrap()
   }
   @records.completed_material(@records.finish_output(output).unwrap()).unwrap()
+}
+
+///|
+test "selected nearest binds reordered Stage inputs by operation port" {
+  let candidates = direct_nearest_vector_owner()
+  let queries = direct_nearest_vector_owner()
+  let owner = reordered_nearest_owner(candidates, queries)
+  let candidate_material = direct_nearest_material(candidates, [
+    (2.0, "[1,0]"),
+    (1.0, "[1,0]"),
+    (3.0, "[0,1]"),
+  ])
+  let query_material = direct_nearest_material(queries, [
+    (20.0, "[1,0]"),
+    (10.0, "[0,1]"),
+  ])
+  let candidate_view = @carrier_runtime.material_prepare_view(
+    candidate_material, owner, 1, candidates,
+  ).unwrap()
+  let query_view = @carrier_runtime.material_prepare_view(
+    query_material, owner, 0, queries,
+  ).unwrap()
+  run_selected_nearest_provider(
+    owner,
+    0,
+    [
+      @local_connector.managed_provider_carrier_input(candidate_view),
+      @local_connector.managed_provider_carrier_input(query_view),
+    ],
+    [(3.0, 10.0), (1.0, 10.0), (1.0, 20.0), (2.0, 20.0)],
+  )
+  assert_true(@carrier_runtime.material_available(candidate_material))
+  assert_true(@carrier_runtime.material_available(query_material))
+  assert_true(@carrier_runtime.reclaim_material(candidate_material))
+  assert_true(@carrier_runtime.reclaim_material(query_material))
+}
+
+///|
+test "selected nearest retains both ports of one repeated producer" {
+  let source = direct_nearest_vector_owner()
+  let owner = reordered_nearest_owner(source, source)
+  let material = direct_nearest_material(source, [
+    (1.0, "[1,0]"),
+    (2.0, "[0,1]"),
+  ])
+  let candidate_view = @carrier_runtime.material_prepare_view(
+    material, owner, 1, source,
+  ).unwrap()
+  let query_view = @carrier_runtime.material_prepare_view(
+    material, owner, 0, source,
+  ).unwrap()
+  run_selected_nearest_provider(
+    owner,
+    0,
+    [
+      @local_connector.managed_provider_carrier_input(candidate_view),
+      @local_connector.managed_provider_carrier_input(query_view),
+    ],
+    [(1.0, 1.0), (2.0, 1.0), (2.0, 2.0), (1.0, 2.0)],
+  )
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.reclaim_material(material))
+}
+
+///|
+test "selected nearest binds mixed Step and Input by operation port" {
+  let candidate_rows = direct_nearest_relation_owner(
+    "[{\"id\":2,\"embedding\":[1,0]},{\"id\":1,\"embedding\":[1,0]}," +
+    "{\"id\":3,\"embedding\":[0,1]}]",
+  )
+  let queries = direct_nearest_vector_owner()
+  let owner = mixed_step_nearest_owner(candidate_rows, queries)
+  let candidate_material = direct_nearest_material(owner, [
+    (2.0, "[1,0]"),
+    (1.0, "[1,0]"),
+    (3.0, "[0,1]"),
+  ])
+  let query_material = direct_nearest_material(queries, [
+    (20.0, "[1,0]"),
+    (10.0, "[0,1]"),
+  ])
+  let candidate_view = @carrier_runtime.material_prepare_operation_view(
+    candidate_material, owner, 1, 0, owner,
+  ).unwrap()
+  let query_view = @carrier_runtime.material_prepare_view(
+    query_material, owner, 0, queries,
+  ).unwrap()
+  run_selected_nearest_provider(
+    owner,
+    1,
+    [
+      @local_connector.managed_provider_carrier_input(candidate_view),
+      @local_connector.managed_provider_carrier_input(query_view),
+    ],
+    [(3.0, 10.0), (1.0, 10.0), (1.0, 20.0), (2.0, 20.0)],
+  )
+  assert_true(@carrier_runtime.material_available(candidate_material))
+  assert_true(@carrier_runtime.material_available(query_material))
+  assert_true(@carrier_runtime.reclaim_material(candidate_material))
+  assert_true(@carrier_runtime.reclaim_material(query_material))
 }
 
 ///|
