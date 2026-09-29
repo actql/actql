@@ -4,7 +4,7 @@ fn slot_test_root() -> String? {
 }
 
 ///|
-/// Wait (bounded) until a fresh opener can take the slot.
+/// Wait (bounded, five seconds) until a fresh opener can take the slot.
 fn slot_becomes_free(path : String) -> Bool {
   for _attempt in 0..<100 {
     let probe = open_native_executor_slot(path).unwrap()
@@ -13,13 +13,7 @@ fn slot_becomes_free(path : String) -> Bool {
     if free {
       return true
     }
-    let child = open_native_executor_slot(path).unwrap()
-    ignore(child.close())
-    // Sleep 50 ms in a separate short-lived process without holding the slot.
-    let waiter = open_native_executor_slot(path + ".wait").unwrap()
-    ignore(waiter.try_acquire().unwrap())
-    let sleeper = waiter.spawn_holder("/bin/sh", ["-c", "sleep 0.05"]).unwrap()
-    ignore(sleeper.wait(true).unwrap())
+    native_wait_milliseconds(50)
   }
   false
 }
@@ -74,8 +68,10 @@ test "executor slot is kept by the caller when the holder cannot start" {
   let other = open_native_executor_slot(path).unwrap()
   assert_false(other.try_acquire().unwrap())
   assert_true(parent.close())
-  assert_true(other.try_acquire().unwrap())
   ignore(other.close())
+  // A process the failed spawn may have created briefly shares the
+  // description until it exits; the slot is then free.
+  assert_true(slot_becomes_free(path))
 }
 
 ///|
