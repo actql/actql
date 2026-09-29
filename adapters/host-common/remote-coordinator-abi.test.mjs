@@ -3,9 +3,12 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/remote_coordinator_abi/remote_coordinator_abi.js';
 import {checked} from './runtime-result.mjs';
-import {acceptedSiteOutput, admitDurableJson,
-  issueOutputPlanPollJson} from
+import * as bridge from
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {acceptedSiteOutput, admitDurableJson, admitPollNotSeen,
+  issueOutputPlanPollJson, pollQueryJson, pollReleaseJson} from
   '../../packages/coordinator-core/index.mjs';
+import {runtimeCore} from './runtime-core.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
@@ -105,3 +108,39 @@ test('common Coordinator owner survives durable dispatch recovery', () => {
   assert.throws(() => checked(moon.coordinatorAdmitDurableJson(
     `${persisted} `)), {code: 'MoonBitHostFailure'});
 });
+
+test('coordinator-core exposes the common release and not-seen owners unchanged',
+  () => {
+    const request = dispatch('dispatch-release');
+    const requestCid = moon.coordinatorDispatchCid(request);
+    const release = JSON.parse(pollReleaseJson(request));
+    assert.deepEqual(Object.keys(release).sort(),
+      ['dispatch_request_cid', 'request_json', 'version']);
+    assert.equal(release.version, 'actql-remote-poll-release/0.1');
+    assert.equal(release.dispatch_request_cid, requestCid);
+    // The same request body as the query of that dispatch.
+    assert.equal(release.request_json,
+      JSON.parse(pollQueryJson(request)).request_json);
+
+    const notSeen = cidValue => JSON.stringify({
+      dispatch_request_cid: cidValue,
+      version: 'actql-remote-dispatch-not-seen/0.1'});
+    assert.equal(admitPollNotSeen(notSeen(requestCid), request), true);
+    const other = moon.coordinatorDispatchCid(dispatch('dispatch-other'));
+    for (const body of [notSeen(other),
+      JSON.stringify({dispatch_request_cid: requestCid,
+        version: 'actql-remote-poll-query/0.1'}),
+      JSON.stringify({dispatch_request_cid: requestCid, extra: 1,
+        version: 'actql-remote-dispatch-not-seen/0.1'}),
+      'not json']) {
+      assert.throws(() => admitPollNotSeen(body, request),
+        {code: 'CoordinatorOwnerRejected'});
+    }
+
+    // The same bytes and decisions as the existing runtime-core owner.
+    const site = runtimeCore(bridge).remoteSiteControl;
+    assert.equal(pollReleaseJson(request), site.pollReleaseJson(request));
+    assert.equal(site.admitPollNotSeen(notSeen(requestCid), request), true);
+    assert.throws(() => site.admitPollNotSeen(notSeen(other), request));
+    assert.equal(admitPollNotSeen(site.pollNotSeenJson(request), request), true);
+  });
