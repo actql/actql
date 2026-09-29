@@ -581,6 +581,18 @@ test "Effectful compiler issues owner-bound Plan and Template" {
     owner, manifests, sequence, 1000, 10000, 1000000, 100000, 100,
   ).unwrap()
   assert_true(physical_equal(client_effect_compilation_owner(compiled), owner))
+  assert_true(
+    client_effect_compilation_result_transformation(compiled, owner, 0)
+    is Ok(None),
+  )
+  assert_true(
+    client_effect_compilation_result_transformation(compiled, owner, -1)
+    is Err(MismatchedCompilation),
+  )
+  assert_true(
+    client_effect_compilation_result_transformation(compiled, owner, 1)
+    is Err(MismatchedCompilation),
+  )
   let plan = client_effect_compilation_plan(compiled)
   let wire = client_task_executable_plan_wire(plan)
   let facts = client_task_executable_plan_fact_manifest_wire(plan)
@@ -682,6 +694,10 @@ test "Effectful compiler issues owner-bound Plan and Template" {
     client_effect_allowed_run_prepared(allowed),
     client_effect_allowed_run_authorization(allowed),
   ).unwrap()
+  assert_true(
+    client_effect_compilation_result_transformation(compiled, equal_owner, 0)
+    is Err(MismatchedCompilation),
+  )
   ignore(
     bind_client_effect_compiled_run(owner, restored_allowed, definition).unwrap(),
   )

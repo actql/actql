@@ -1,0 +1,224 @@
+///|
+fn test_context() -> @query.Context {
+  let parsed = @source.parse_json(
+    "{\"connector\":\"crm/main\",\"resource\":\"records\"}",
+    { max_input_bytes: 1024, max_nodes: 64, max_depth: 8, },
+  ).unwrap()
+  let declaration = @wire.admit(parsed, {
+    max_nodes: 64,
+    max_depth: 8,
+    max_string_bytes: 1024,
+    max_total_string_bytes: 1024,
+  }).unwrap()
+  {
+    program_id: "frontend.route",
+    stage_id: "main",
+    stage_result: "rows",
+    result_name: "answer",
+    captured_stage: Some("capture"),
+    parameter_declarations: None,
+    inputs: [
+      {
+        relation: [{ value: "records", quoted: false, }],
+        name: "source",
+        source: @query.Captured(declaration),
+        visible_fields: ["id"],
+        graph_bindings: [],
+      },
+    ],
+    graph_inputs: [],
+  }
+}
+
+///|
+fn test_declarations() -> @parameters.Declarations {
+  let parsed = @source.parse_json("{\"p\":{\"type\":\"number\"}}", {
+    max_input_bytes: 1024,
+    max_nodes: 64,
+    max_depth: 8,
+  }).unwrap()
+  let cursor = @wire.admit(parsed, {
+    max_nodes: 64,
+    max_depth: 8,
+    max_string_bytes: 1024,
+    max_total_string_bytes: 1024,
+  }).unwrap()
+  @parameters.read_declarations(Some(cursor), {
+    max_parameters: 10,
+    max_nodes: 64,
+    max_depth: 8,
+    max_text_bytes: 1024,
+  }).unwrap()
+}
+
+///|
+fn alias_limits() -> @syntax.LexicalLimits {
+  {
+    max_source_bytes: 256,
+    max_tokens: 32,
+    max_literal_bytes: 256,
+    max_work: 512,
+  }
+}
+
+///|
+test "explicit format aliases retain the structured route" {
+  assert_true(select_format("json") is Ok(Json))
+  assert_true(select_format("aql-json") is Ok(Json))
+  assert_true(select_format("yaml") is Ok(Yaml))
+  assert_true(select_format("aql-yaml") is Ok(Yaml))
+  assert_true(select_format("auto") is Err(InvalidFormat))
+}
+
+///|
+test "structural JSON escapes are admitted by the structural parser" {
+  let document =
+    #|AQL '0.1'; PROGRAM 'escaped' {
+    #| STAGE main {
+    #|  DATA source = OP values {"schema":{"id":{"type":"string","nullable":false}},"rows":[{"id":"\ud83d\ude00"}]};
+    #|  RESULT rows = {"from":"source"};
+    #| }
+    #| RESULT answer = {"from":{"stage":"main","result":"rows"}};
+    #|}
+  assert_true(lower(document, Text, None) is Ok(_))
+}
+
+///|
+test "structural AQL and query-only AQL use distinct parsers" {
+  let structural =
+    #|AQL '0.1'; PROGRAM 'frontend.route' {
+    #| STAGE main {
+    #|  DATA source = OP values {"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":2}]};
+    #|  RESULT rows = {"from":"source"};
+    #| }
+    #| RESULT answer = {"from":{"stage":"main","result":"rows"}};
+    #|}
+  let first = lower(structural, Text, None).unwrap()
+  assert_eq(first.format, @program.Json)
+  assert_true(first.document.contains("\"frontend.route\""))
+  let context = test_context()
+  let sql = lower("SELECT id FROM records WHERE id > 1", Sql, Some(context)).unwrap()
+  let pipe = lower(
+    "FROM records |> WHERE id > 1 |> SELECT id",
+    Text,
+    Some(context),
+  ).unwrap()
+  assert_eq(sql.document, pipe.document)
+  assert_true(
+    lower("SELECT id FROM", Sql, Some(context)) is Err(QuerySyntax(_)),
+  )
+  assert_true(
+    lower("SELECT id FROM records", Sql, None) is Err(MissingQueryContext),
+  )
+  assert_true(
+    lower("FROM records |> SELECT id", Sql, Some(context))
+    is Err(WrongQueryForm),
+  )
+  assert_true(
+    lower("AQL '0.1'; PROGRAM 'broken' {", Text, None) is Err(SourceSyntax(_)),
+  )
+  let declared = {
+    ..test_context(),
+    parameter_declarations: Some(test_declarations()),
+  }
+  assert_true(
+    lower(structural, Text, Some(declared))
+    is Err(ExternalDeclarationsOnProgram),
+  )
+  let declared_program = lower(
+    "SELECT id FROM records WHERE id = @p",
+    Sql,
+    Some(declared),
+  ).unwrap()
+  assert_true(
+    declared_program.document.contains(
+      "\"params\":{\"p\":{\"type\":\"number\"}}",
+    ),
+  )
+}
+
+///|
+test "published query names bind one environment generation" {
+  let input = test_context().inputs[0]
+  let parsed = @syntax.parse_relation_path("crm.`Records`", alias_limits()).unwrap()
+  assert_eq(parsed.length(), 2)
+  assert_eq(parsed[0].value, "crm")
+  assert_eq(parsed[1].value, "Records")
+  assert_true(parsed[1].quoted)
+  assert_true(
+    @syntax.parse_relation_path("records.extra more", alias_limits()) is Err(_),
+  )
+  assert_true(@syntax.parse_relation_path("records.", alias_limits()) is Err(_))
+  let entry : PublishedAlias = {
+    name: input.relation,
+    source_ref: "connector://crm/main/records#snapshot",
+    environment_cid: "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    input: Relation(input),
+  }
+  let accepted = bind_query_context([entry], entry.environment_cid).unwrap()
+  assert_eq(accepted.program_id, "adhoc.query")
+  assert_eq(accepted.inputs.length(), 1)
+  assert_true(
+    bind_query_context([entry], "sha256:other") is Err(EnvironmentMismatch),
+  )
+  let conflicting = { ..entry, name: [{ value: "RECORDS", quoted: false, }], }
+  assert_true(
+    bind_query_context([entry, conflicting], entry.environment_cid)
+    is Err(ConflictingName),
+  )
+  let wrong_input = { ..entry, name: [{ value: "other", quoted: false, }], }
+  assert_true(
+    bind_query_context([wrong_input], entry.environment_cid)
+    is Err(InputNameMismatch),
+  )
+  let quoted = {
+    ..entry,
+    name: [{ value: "RECORDS", quoted: true, }],
+    input: Relation({
+      ..input,
+      relation: [{ value: "RECORDS", quoted: true, }],
+    }),
+  }
+  assert_true(
+    bind_query_context([entry, quoted], entry.environment_cid) is Ok(_),
+  )
+}
+
+///|
+test "public Graph lowering rejects private star before Program preparation" {
+  let source = @wire.admit(
+    @source.parse_json("{\"connector\":\"crm/main\",\"resource\":\"graph\"}", {
+      max_input_bytes: 1024,
+      max_nodes: 64,
+      max_depth: 8,
+    }).unwrap(),
+    {
+      max_nodes: 64,
+      max_depth: 8,
+      max_string_bytes: 1024,
+      max_total_string_bytes: 1024,
+    },
+  ).unwrap()
+  let context = {
+    ..test_context(),
+    captured_stage: None,
+    inputs: [],
+    graph_inputs: [
+      {
+        relation: [{ value: "g", quoted: false, }],
+        name: "g",
+        source: @query.CapturedGraph(source),
+        node_fields: ["id", "name"],
+        edge_fields: ["src", "dst", "rel"],
+      },
+    ],
+  }
+  assert_true(
+    lower(
+      "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT *",
+      Text,
+      Some(context),
+    )
+    is Err(QueryLowering(@query.UnsupportedProjection)),
+  )
+}

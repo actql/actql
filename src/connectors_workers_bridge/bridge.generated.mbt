@@ -9,6 +9,9 @@ pub(all) suberror NodeHostFailure {
   Encoding(@encode.EncodeFailure)
   OutputExport(@execution.CompletedExportIssue)
   PublicationEvidence(@publication.ResultEvidenceIssuanceIssue)
+  ResultTransformation(
+    @publication_host.CapturedClientResultTransformationIssue
+  )
   EffectIdentity(@effect.EffectIdentityIssue)
   EffectSetProgress(@effect.EffectSetProgressIssue)
   EffectFootprint(@effect.EffectFootprintIssue)
@@ -39,6 +42,9 @@ struct StrategyHostOutputExport {
 /// Re-admission state for a retained managed Relation result. The environment
 /// may stream only the exact material bound to this completion.
 struct StrategyHostManagedResultImport {
+  run : @strategy.CapturedDAG
+  result : Int
+  output : @execution.ManagedCompletedOutput[Int]
   bridge : @execution.ManagedPublicationBridge[Int]
   occurrence : @execution.ManagedResultOccurrence
   definition : @publication.PublicationContract
@@ -2526,6 +2532,9 @@ pub fn strategy_host_managed_result_import_begin(
     bridge,
     occurrence,
     definition,
+    run,
+    result,
+    output,
     limits: {
       max_result_fields,
       max_result_mapping_work,
@@ -2610,6 +2619,170 @@ pub fn strategy_host_managed_result_import_finish(
       @execution.close_managed_publication_bridge(value.bridge)
       strategy_publication_output_result(Err(issue))
     }
+  }
+}
+
+///|
+struct StrategyHostResultTransformation {
+  core : @publication_host.CapturedClientResultTransformation
+  bridge : @execution.ManagedPublicationBridge[Int]?
+  mut open : Bool
+}
+
+///|
+#export_name("strategyHostResultTransformationBegin")
+pub fn strategy_host_result_transformation_begin(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  result : Int,
+  max_result_fields : Int,
+  max_result_mapping_work : Int,
+  max_result_order_work : Int,
+  max_result_workspace_entries : Int,
+  max_rows : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_value_depth : Int,
+  max_value_work : Int,
+  max_wire_bytes : Int,
+  max_wire_nodes : Int,
+  max_wire_depth : Int,
+  max_columns : Int,
+  max_order_work : Int,
+  max_logical_wire_bytes : Int,
+  max_logical_wire_nodes : Int,
+  max_logical_wire_depth : Int,
+  max_schema_fields : Int,
+  max_schema_bytes : Int,
+  max_schema_nodes : Int,
+  max_schema_depth : Int,
+  max_batch_bytes : Int,
+  converted_output : @execution.CompletedOutput?,
+  selection : @publication_host.ClientResultTransformation,
+) -> StrategyHostResultTransformation raise NodeHostFailure {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(host),
+  )
+  let limits : @publication_host.PublicationOutputExportLimits = {
+    max_result_fields,
+    max_result_mapping_work,
+    max_result_order_work,
+    max_result_workspace_entries,
+    max_rows,
+    values: {
+      max_nodes: max_value_nodes,
+      max_text_bytes: max_value_text_bytes,
+      max_depth: max_value_depth,
+      max_work: max_value_work,
+    },
+    payload_wire: {
+      max_columns,
+      max_order_work,
+      max_bytes: max_wire_bytes,
+      max_nodes: max_wire_nodes,
+      max_depth: max_wire_depth,
+    },
+    logical_wire: {
+      max_columns,
+      max_order_work,
+      max_bytes: max_logical_wire_bytes,
+      max_nodes: max_logical_wire_nodes,
+      max_depth: max_logical_wire_depth,
+    },
+    schema: {
+      max_fields: max_schema_fields,
+      max_bytes: max_schema_bytes,
+      max_nodes: max_schema_nodes,
+      max_depth: max_schema_depth,
+    },
+    max_batch_bytes,
+  }
+  match
+    @publication_host.start_captured_client_result_transformation(
+      selection,
+      run,
+      result,
+      limits,
+      converted_output?,
+    ) {
+    Ok(core) => { core, bridge: None, open: true, }
+    Err(issue) => raise ResultTransformation(issue)
+  }
+}
+
+///|
+#export_name("strategyHostManagedResultTransformationBegin")
+pub fn strategy_host_managed_result_transformation_begin(
+  value : StrategyHostManagedResultImport,
+  selection : @publication_host.ClientResultTransformation,
+) -> StrategyHostResultTransformation raise NodeHostFailure {
+  if !value.open {
+    raise InvalidCommand
+  }
+  let output = match
+    @execution.finish_managed_publication_bridge(value.bridge) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+  let core = match
+    @publication_host.start_captured_managed_result_transformation(
+      selection,
+      value.run,
+      value.result,
+      value.output,
+      value.bridge,
+      output,
+      value.limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise ResultTransformation(issue)
+  }
+  value.open = false
+  { core, bridge: Some(value.bridge), open: true, }
+}
+
+///|
+#export_name("strategyHostResultTransformationAdvance")
+pub fn strategy_host_result_transformation_advance(
+  value : StrategyHostResultTransformation,
+  quantum : Int,
+) -> Bool raise NodeHostFailure {
+  if !value.open {
+    raise InvalidCommand
+  }
+  match value.core.advance(quantum) {
+    Ok((done, _)) => done
+    Err(issue) => raise ResultTransformation(issue)
+  }
+}
+
+///|
+#export_name("strategyHostResultTransformationFinish")
+pub fn strategy_host_result_transformation_finish(
+  value : StrategyHostResultTransformation,
+) -> StrategyHostOutputExport raise NodeHostFailure {
+  if !value.open {
+    raise InvalidCommand
+  }
+  match value.core.finish() {
+    Ok(core) => {
+      value.open = false
+      { core, managed_import: value.bridge, }
+    }
+    Err(issue) => raise ResultTransformation(issue)
+  }
+}
+
+///|
+#export_name("strategyHostResultTransformationCancel")
+pub fn strategy_host_result_transformation_cancel(
+  value : StrategyHostResultTransformation,
+) -> Unit {
+  if value.open {
+    value.core.cancel()
+    if value.bridge is Some(bridge) {
+      @execution.close_managed_publication_bridge(bridge)
+    }
+    value.open = false
   }
 }
 

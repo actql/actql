@@ -29,6 +29,7 @@ import {
   "actql/actql/remote_transfer",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
+  "actql/actql/source_frontend",
   "actql/actql/source_value",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_results",
@@ -138,6 +139,8 @@ pub fn client_program_check_run_binding(@run_publication_host.PreparedClientProg
 
 pub fn client_program_check_source_free_local_effect_preview_identities(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[@run_publication_host.ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, @run_publication_host.ClientEffectLocalIdentityIssue]
 
+pub fn client_program_checking_environment_cid(@program_check.CheckEnvironment) -> String
+
 pub fn client_program_close_effect_source_port(@physical_strategy.CapturedEffectInputs, Int) -> Bool
 
 pub fn client_program_compilation_compiled_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
@@ -164,6 +167,8 @@ pub fn client_program_compiled_run_plan(@run_publication_host.ClientCompiledRun)
 
 pub fn client_program_compiled_run_prepared(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
+pub fn client_program_compiled_run_result_transformation(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientResultTransformation?, @run_publication_host.ClientCompiledRunIssue]
+
 pub fn client_program_compiled_run_template(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
 pub fn client_program_definition_cid(@run_publication_host.PreparedClientProgram) -> String
@@ -175,6 +180,8 @@ pub fn client_program_direct_values_result_root_plan_cid(@run_publication_host.C
 pub fn client_program_direct_values_result_root_row_contract_cid(@run_publication_host.ClientDirectResultRoot) -> String
 
 pub fn client_program_direct_values_result_root_wire(@run_publication_host.ClientDirectResultRoot) -> String
+
+pub fn client_program_duckdb_native_candidate_unavailable(Result[@actql/actql/connectors/duckdb/host.NativeHostConfiguration, @client_local_host.ClientDuckDBAcquisitionIssue]) -> Bool
 
 pub fn client_program_effect_apply_capability_from_codes(String, Int, Int, Int, Bool, Bool, Int, Int) -> Result[@effect_application.EffectApplyCapabilityObservation, @effect_application.EffectApplyCapabilityIssue]
 
@@ -199,6 +206,8 @@ pub fn client_program_effect_compilation_issue_code(Result[@run_publication_host
 pub fn client_program_effect_compilation_plan_wire(@run_publication_host.ClientEffectCompilation) -> String
 
 pub fn client_program_effect_compilation_result_names(@run_publication_host.ClientEffectCompilation) -> Array[String]
+
+pub fn client_program_effect_compilation_result_transformation(@run_publication_host.ClientEffectCompilation, @run_publication_host.PreparedClientEffectComputation, Int) -> Result[@run_publication_host.ClientResultTransformation?, @run_publication_host.ClientEffectCompilationAdmissionIssue]
 
 pub fn client_program_effect_compilation_template_wire(@run_publication_host.ClientEffectCompilation) -> String
 
@@ -552,6 +561,8 @@ pub fn client_program_preparation_ready(ClientProgramBridgeOutcome) -> @run_publ
 
 pub fn client_program_prepare_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@actql/actql/connectors/duckdb/host.NativeHostConfiguration, @client_local_host.ClientDuckDBAcquisitionIssue]
 
+pub fn client_program_prepare_duckdb_broad_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@actql/actql/connectors/duckdb/host.BroadHostConfiguration, @client_local_host.ClientDuckDBAcquisitionIssue]
+
 pub fn client_program_prepare_duckdb_source_evidence_context(@query_planning.QueryRequirement) -> Result[@actql/actql/connectors/duckdb/host.NativeSourceEvidenceContext, @actql/actql/connectors/duckdb/host.NativeSourceEvidenceIssue]
 
 pub fn client_program_prepare_effect_computation_with_parameters(String, String, @program_check.CheckEnvironment, String?, Array[@pipeline_check_context.StageCapacityInput]) -> ClientEffectProgramBridgeOutcome
@@ -565,6 +576,8 @@ pub fn client_program_prepare_local_query_requirement(@run_publication_host.Prep
 pub fn client_program_prepare_query_acquisition(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
 
 pub fn client_program_prepare_salesforce_acquisition(@client_salesforce_host.ClientSalesforceDeclaration, @query_planning.QueryRequirement, @catalog.CatalogObservation, String, String, Int) -> Result[@client_salesforce_host.ClientSalesforceAcquisition, @client_salesforce_host.ClientSalesforceIssue]
+
+pub fn client_program_prepare_source_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?) -> ClientProgramBridgeOutcome
 
 pub fn client_program_publication_bytes_binding_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationBindingIssue]
 
@@ -683,6 +696,8 @@ pub fn client_program_semantics_cid(@run_publication_host.PreparedClientProgram)
 pub fn client_program_semantics_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
 pub fn client_program_source_free_input_intent_cid() -> String
+
+pub fn client_program_source_publication_valid(@program_check.CheckEnvironment, String) -> Bool
 
 pub fn client_program_stage_semantics_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
@@ -974,6 +989,8 @@ pub fn strategy_host_managed_result_import_cancel(StrategyHostManagedResultImpor
 
 pub fn strategy_host_managed_result_import_finish(StrategyHostManagedResultImport) -> StrategyHostOutputExport raise NodeHostFailure
 
+pub fn strategy_host_managed_result_transformation_begin(StrategyHostManagedResultImport, @run_publication_host.ClientResultTransformation) -> StrategyHostResultTransformation raise NodeHostFailure
+
 pub fn strategy_host_modules(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
 
 pub fn strategy_host_next(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_host.PreparedTaskDispatch? raise NodeHostFailure
@@ -1107,6 +1124,14 @@ pub fn strategy_host_result_output_export_begin(@connectors_builtin.ConfiguredCo
 pub fn strategy_host_result_output_export_begin_converted(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.CompletedOutput?) -> StrategyHostOutputExport raise NodeHostFailure
 
 pub fn strategy_host_result_tasks(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
+
+pub fn strategy_host_result_transformation_advance(StrategyHostResultTransformation, Int) -> Bool raise NodeHostFailure
+
+pub fn strategy_host_result_transformation_begin(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.CompletedOutput?, @run_publication_host.ClientResultTransformation) -> StrategyHostResultTransformation raise NodeHostFailure
+
+pub fn strategy_host_result_transformation_cancel(StrategyHostResultTransformation) -> Unit
+
+pub fn strategy_host_result_transformation_finish(StrategyHostResultTransformation) -> StrategyHostOutputExport raise NodeHostFailure
 
 pub fn strategy_host_run(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_strategy.CapturedDAG
 
@@ -1998,6 +2023,7 @@ pub(all) suberror NodeHostFailure {
   Encoding(@encode_core.EncodeFailure)
   OutputExport(@execution_relation.CompletedExportIssue)
   PublicationEvidence(@run_publication.ResultEvidenceIssuanceIssue)
+  ResultTransformation(@run_publication_host.CapturedClientResultTransformationIssue)
   EffectIdentity(@effect_application.EffectIdentityIssue)
   EffectSetProgress(@effect_application.EffectSetProgressIssue)
   EffectFootprint(@effect_application.EffectFootprintIssue)
@@ -2092,6 +2118,7 @@ pub(all) enum ClientProgramBridgeIssue {
   SuppliedSyntax(@source_value.ParseError)
   SuppliedAdmission(@decode_core.Issue)
   Preparation(@run_publication_host.ClientProgramPreparationIssue)
+  SourcePreparation(ClientSourcePreparationIssue)
 }
 
 pub(all) enum ClientProgramBridgeOutcome {
@@ -2124,9 +2151,20 @@ pub(all) enum ClientProgramValuesPlanBridgeIssue {
   Plan(@run_publication_host.ClientValuesExecutablePlanIssue)
 }
 
+pub(all) enum ClientSourcePreparationIssue {
+  Publication
+  Limit
+  UnsupportedCarrier
+  Declarations
+  Alias(@source_frontend.AliasIssue)
+  Frontend(@source_frontend.Issue)
+}
+
 type StrategyHostManagedResultImport
 
 type StrategyHostOutputExport
+
+type StrategyHostResultTransformation
 
 // Type aliases
 

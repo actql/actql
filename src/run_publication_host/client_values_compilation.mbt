@@ -132,7 +132,11 @@ pub fn issue_prepared_client_values_compilation(
     "\",\"aoa_contract_cid\":\"" +
     @environment.compiler_aoa_contract_cid() +
     "\",\"aoa_logical_cid\":\"" +
-    client_values_aoa_identity_cid(aoa) +
+    (if plan.transformations.is_empty() {
+      client_values_aoa_identity_cid(aoa)
+    } else {
+      plan.graph_logical_cid.unwrap()
+    }) +
     "\"}"
   let compiled_plan = match
     @publication.seal_publication_contract(

@@ -7,6 +7,22 @@ import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
   './embedded-local.mjs';
 import {installedEffectIdentity} from './installed-effect.mjs';
 import {installedSourceIdentity} from './installed-source.mjs';
+import {splitSourceAliasProfile} from './source-alias-publication.mjs';
+
+test('source alias profiles own immutable metadata without widening provider input', () => {
+  const entry = {name: 'records', sourceRef: 'connector://crm/r#v',
+    sourceViewContractCid: `sha256:${'1'.repeat(64)}`,
+    schemaContractCid: `sha256:${'2'.repeat(64)}`};
+  const profile = {version: 'test', queryAliases: [entry]};
+  const owned = splitSourceAliasProfile(profile);
+  entry.name = 'changed';
+  assert.equal(owned.queryAliases[0].name, 'records');
+  assert.deepEqual(owned.providerProfile, {version: 'test'});
+  assert.equal(Object.isFrozen(owned.queryAliases[0]), true);
+  assert.throws(() => splitSourceAliasProfile({...profile,
+    queryAliases: [{...entry, schema: {id: 'untrusted'}}]}),
+  {message: 'InvalidPublicSourcePublication'});
+});
 
 test('public Host entrypoints reject an old root before modifying it',
   async t => {
@@ -89,6 +105,16 @@ test('installed source identity includes the published generation',
       resources: ['Test_Record__c'],
     }));
     const first = await installedSourceIdentity(profilePath);
+    const profile = JSON.parse(await readFile(profilePath, 'utf8'));
+    await writeFile(profilePath, JSON.stringify({...profile, queryAliases: []}));
+    assert.equal(await installedSourceIdentity(profilePath), first);
+    await writeFile(profilePath, JSON.stringify({...profile, queryAliases: [{
+      name: 'records', sourceRef: 'connector://crm-main/Test_Record__c#records',
+      sourceViewContractCid: `sha256:${'1'.repeat(64)}`,
+      schemaContractCid: `sha256:${'2'.repeat(64)}`,
+    }]}));
+    assert.notEqual(await installedSourceIdentity(profilePath), first);
+    await writeFile(profilePath, JSON.stringify(profile));
     await writeFile(publicationPath, '{\n "generation": "a"\n}');
     assert.equal(await installedSourceIdentity(profilePath), first);
     await writeFile(publicationPath, '{"generation":"b"}');
