@@ -3278,87 +3278,128 @@ async function exerciseStrategyGraph(
       consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
     },
   };
-  const nearestPublicationFixture = fixture.strategyFixtureVecaCreate(
-    ...args, JSON.stringify(nearestPublicationProgram), orderedContract,
-  );
-  const nearestCapture = await runNativeHostQuery(
-    grant,
-    fixture.strategyFixtureAcquisition(nearestPublicationFixture),
-    suppliedLimits,
-  );
-  const nearestPublicationDirectory = await mkdtemp(join(
-    root, '_build/duckdb-fixtures/nearest-publication-entry-',
-  ));
-  const nearestRetained = await createCarrierRetainedStore('nearest-filter');
-  let nearestPublicationOwner;
-  let nearestPublicationStore;
-  try {
-    assert.equal(fixture.strategyFixtureOpen(
-      nearestPublicationFixture, nearestCapture.source()), true);
-    const setup = fixture.strategyFixtureVecaRetainedSubset(
-      nearestPublicationFixture,
+  const nearestWithVectors = (candidateVectors, queryVectors) => ({
+    ...nearestPublicationProgram,
+    stages: nearestPublicationProgram.stages.map(stage =>
+      stage.id !== 'nearest' ? stage : {
+        ...stage,
+        steps: [
+          ...(candidateVectors ? [{
+            from: 'candidates',
+            to_vectors: {id: 'id', vector: 'embedding'},
+            as: 'candidate_vectors',
+          }] : []),
+          ...(queryVectors ? [{
+            from: 'queries',
+            to_vectors: {id: 'id', vector: 'embedding'},
+            as: 'query_vectors',
+          }] : []), {
+            from: candidateVectors ? 'candidate_vectors' : 'candidates',
+            nearest: {
+              queries: queryVectors ? 'query_vectors' : 'queries',
+              ...(candidateVectors ? {} : {
+                candidate_id: 'id', candidate_vector: 'embedding',
+              }),
+              ...(queryVectors ? {} : {
+                query_id: 'id', query_vector: 'embedding',
+              }),
+              metric: 'dot', k: 2,
+            },
+            as: 'ranked',
+          }, {
+            from: 'ranked', filter: 'query_id = 20', as: 'out',
+          },
+        ],
+      }),
+  });
+  for (const [name, program] of [
+    ['nearest-filter', nearestPublicationProgram],
+    ['nearest-candidate-vectors-filter', nearestWithVectors(true, false)],
+    ['nearest-query-vectors-filter', nearestWithVectors(false, true)],
+    ['nearest-both-vectors-filter', nearestWithVectors(true, true)],
+  ]) {
+    const nearestPublicationFixture = fixture.strategyFixtureVecaCreate(
+      ...args, JSON.stringify(program), orderedContract,
     );
-    const runtime = runtimeCore(hostRuntime);
-    const resultCount = runtime.resultInventory(setup).length;
-    assert.equal(resultCount, 3);
-    nearestPublicationStore = await openLocalPublicationStore({
-      directory: nearestPublicationDirectory,
-      storeAuthorityCid: hash('nearest-filter-publication-store'),
-      capacityBytes: 4 * 1024 * 1024,
-      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
-      maxObjects: 100,
-      maxContractNodes: 10000,
-      maxContractDepth: 64,
-    }, runtime.publicationControl);
-    const plan = standardPublicationPlan(
-      runtime,
-      runtime.programDefinitionCid(setup),
-      resultCount,
-      'nearest-filter-publication-attempt',
+    const nearestCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(nearestPublicationFixture),
+      suppliedLimits,
     );
-    nearestPublicationOwner = await runPublishedCapturedStrategy(
-      setup,
-      {store: nearestPublicationStore, plan},
-      {local: nearestRetained.configuration},
-      new AbortController().signal,
-    );
-    assert.equal(nearestPublicationOwner.status, 'published');
-    assert.equal(nearestPublicationOwner.publication.publication.state,
-      'succeeded');
-    assert(nearestRetained.leases.length > 0);
-    assert(nearestPublicationOwner.execution.completed.some(value =>
-      value.outputRepresentation === 'retained-file'));
-    const expectedRows = [
-      {candidate_id: 1, query_id: 20, rank: 1, score: 1},
-      {candidate_id: 2, query_id: 20, rank: 2, score: 1},
-    ];
-    for (const occurrence of nearestPublicationOwner.execution
-      .publicationInventory.occurrences) {
-      const received = [];
-      await nearestPublicationStore.consumeCommittedResult({
-        namespaceId: plan.request.namespaceId,
-        authorityScopeCid: plan.request.authorityScopeCid,
-        runDefinitionCid: plan.runDefinition.identity,
-      }, occurrence.definitionContract.identity, () => true,
-      chunk => received.push(Buffer.from(chunk)));
-      assert.deepEqual(
-        JSON.parse(Buffer.concat(received).toString('utf8')),
-        expectedRows,
+    const nearestPublicationDirectory = await mkdtemp(join(
+      root, `_build/duckdb-fixtures/${name}-publication-entry-`,
+    ));
+    const nearestRetained = await createCarrierRetainedStore(name);
+    let nearestPublicationOwner;
+    let nearestPublicationStore;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        nearestPublicationFixture, nearestCapture.source()), true);
+      const setup = fixture.strategyFixtureVecaRetainedSubset(
+        nearestPublicationFixture,
       );
+      const runtime = runtimeCore(hostRuntime);
+      const resultCount = runtime.resultInventory(setup).length;
+      assert.equal(resultCount, 3);
+      nearestPublicationStore = await openLocalPublicationStore({
+        directory: nearestPublicationDirectory,
+        storeAuthorityCid: hash(`${name}-publication-store`),
+        capacityBytes: 4 * 1024 * 1024,
+        maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+        maxObjects: 100,
+        maxContractNodes: 10000,
+        maxContractDepth: 64,
+      }, runtime.publicationControl);
+      const plan = standardPublicationPlan(
+        runtime,
+        runtime.programDefinitionCid(setup),
+        resultCount,
+        `${name}-publication-attempt`,
+      );
+      nearestPublicationOwner = await runPublishedCapturedStrategy(
+        setup,
+        {store: nearestPublicationStore, plan},
+        {local: nearestRetained.configuration},
+        new AbortController().signal,
+      );
+      assert.equal(nearestPublicationOwner.status, 'published');
+      assert.equal(nearestPublicationOwner.publication.publication.state,
+        'succeeded');
+      assert(nearestRetained.leases.length > 0);
+      assert(nearestPublicationOwner.execution.completed.some(value =>
+        value.outputRepresentation === 'retained-file'));
+      const expectedRows = [
+        {candidate_id: 1, query_id: 20, rank: 1, score: 1},
+        {candidate_id: 2, query_id: 20, rank: 2, score: 1},
+      ];
+      for (const occurrence of nearestPublicationOwner.execution
+        .publicationInventory.occurrences) {
+        const received = [];
+        await nearestPublicationStore.consumeCommittedResult({
+          namespaceId: plan.request.namespaceId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, occurrence.definitionContract.identity, () => true,
+        chunk => received.push(Buffer.from(chunk)));
+        assert.deepEqual(
+          JSON.parse(Buffer.concat(received).toString('utf8')),
+          expectedRows,
+        );
+      }
+    } finally {
+      if (nearestPublicationOwner !== undefined) {
+        await nearestPublicationOwner.close();
+        assert.equal(nearestPublicationOwner.cleanupPending(), false);
+        assert.equal(await nearestPublicationOwner.cleanup(), true);
+        assert.equal(nearestPublicationOwner.execution.usage().heldBytes, 0n);
+        assert.equal(nearestPublicationOwner.execution.usage()
+          .reservedExecutionBytes, 0n);
+      }
+      nearestCapture.close();
+      await nearestPublicationStore?.close();
+      await rm(nearestPublicationDirectory, {recursive: true, force: true});
+      await nearestRetained.close();
     }
-  } finally {
-    if (nearestPublicationOwner !== undefined) {
-      await nearestPublicationOwner.close();
-      assert.equal(nearestPublicationOwner.cleanupPending(), false);
-      assert.equal(await nearestPublicationOwner.cleanup(), true);
-      assert.equal(nearestPublicationOwner.execution.usage().heldBytes, 0n);
-      assert.equal(nearestPublicationOwner.execution.usage()
-        .reservedExecutionBytes, 0n);
-    }
-    nearestCapture.close();
-    await nearestPublicationStore?.close();
-    await rm(nearestPublicationDirectory, {recursive: true, force: true});
-    await nearestRetained.close();
   }
   // A zero-input row source and its Carrier Bridge share an authored Stage.
   // The physical split must retain the Events/Vectors generation for a later
