@@ -21,12 +21,11 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 const hash = body => `sha256:${createHash('sha256')
   .update(canonicalText(body)).digest('hex')}`;
 // Compatibility snapshots from the standalone compiler under this checkout's
-// pins (the Check Environment contract pin included).
-// These supplement,
-// not replace, the independent logical-plan vectors in run-host-core tests.
+// pins. The structural text grammar manifest changes both Plan identities.
+// These supplement the independent logical-plan vectors in run-host-core tests.
 const planCids = {
-  values: 'sha256:ed2bbd5b72820bade7130894feb86ef217df80ea8e8177f62c89e37e85947d11',
-  tasks: 'sha256:08951f2446dc13e0a5be863b44a93a44857fa6877075b6d42b1147d11ff05c92',
+  values: 'sha256:f1e774c7e8d87fd8e370b687254914f7a3adf2816baa8386505efefd03a2cf45',
+  tasks: 'sha256:a0f3e3bc153232741380f01f8dcac5f44b6e4fac39d340b4fae9edb4e786faba',
 };
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 const policy = Object.freeze({executionContextCid: cid('a'),
@@ -163,6 +162,16 @@ for (const kind of ['values', 'tasks']) {
       };
       assert.deepEqual(JSON.parse(compiled.template.wire), {...templateBody,
         bound_invocation_template_cid: hash(templateBody)});
+      const {compiled_plan_cid: compiledCid, ...compiledBody} =
+        JSON.parse(compiled.compiledPlan.wire);
+      assert.deepEqual(Object.keys(compiledBody).sort(), [
+        'aoa_contract_cid', 'aoa_ir_version', 'aoa_logical_cid',
+        'compiler_version', 'executable_plan_cid',
+        'program_definition_cid', 'program_semantics_cid', 'version',
+      ]);
+      assert.equal(compiledBody.version, 'actql-compiled-plan/0.1');
+      assert.equal(hash(compiledBody), compiledCid);
+      assert.equal(compiledCid, compiled.compiledPlan.identity);
       assert.equal(compiled.compiledPlan.identity, planCids[kind]);
       const definitionBody = {
         version: 'actql-run-definition/0.1',

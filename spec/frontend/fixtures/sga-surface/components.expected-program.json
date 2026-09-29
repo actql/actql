@@ -1,0 +1,17 @@
+{
+  "version": "actql/0.1", "id": "sga.components",
+  "stages": [{
+    "id": "main", "inputs": {},
+    "steps": [
+      {"values": {"schema": {"id": {"type": "string", "nullable": false}}, "rows": [{"id": "A"}, {"id": "B"}, {"id": "C"}]}, "as": "nodes"},
+      {"values": {"schema": {"src": {"type": "string", "nullable": false}, "dst": {"type": "string", "nullable": false}}, "rows": [{"src": "A", "dst": "B"}]}, "as": "edges"},
+      {"graph": {"nodes": {"from": "nodes", "id": "id", "fields": []}, "edges": {"from": "edges", "source": "src", "target": "dst", "fields": []}}, "as": "g"},
+      {"from": "g", "components": {"kind": "weak"}, "as": "groups"},
+      {"from": "groups", "select": ["node_id", "component_id", "component_size"], "as": "rows"}
+    ],
+    "results": {
+      "answer": {"from": "rows", "fields": ["node_id", "component_id", "component_size"], "order_by": [{"component_id": "asc"}, {"node_id": "asc"}]}
+    }
+  }],
+  "results": {"answer": {"from": {"stage": "main", "result": "answer"}}}
+}

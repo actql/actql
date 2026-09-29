@@ -1,0 +1,14 @@
+{
+  "answer": {
+    "schema": {
+      "node_id": {"type": "string", "nullable": false},
+      "component_id": {"type": "string", "nullable": false},
+      "component_size": {"type": "number", "nullable": false}
+    },
+    "rows": [
+      {"node_id": "A", "component_id": "A", "component_size": 2},
+      {"node_id": "B", "component_id": "A", "component_size": 2},
+      {"node_id": "C", "component_id": "C", "component_size": 1}
+    ]
+  }
+}

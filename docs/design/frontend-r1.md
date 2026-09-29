@@ -8,6 +8,10 @@ execution evidence. `supported` in the imported design means adoption, not
 installed functionality. The [baseline and acceptance index](../../spec/frontend/README.md)
 record delivery evidence separately.
 
+The accepted follow-on [SGA surface design](frontend-sga-surface.md) reuses
+logical DATA bindings and existing Graph operations. It remains separate from
+implemented syntax and public Host execution evidence.
+
 ## One Program and one operation vocabulary
 
 JSON and YAML remain compatible. Structural text represents the complete

@@ -3,6 +3,7 @@ priv struct NativeOp {
   name : String
   token : Token
   body : JsonBody
+  named : Bool
 }
 
 ///|
@@ -42,22 +43,36 @@ fn Parser::read_data(self : Parser) -> NativeData raise {
     }
     let pipe = self.take()
     if pipe.value != Pipe {
-      raise Abort(Expected("|> OP"), pipe.start)
+      raise Abort(Expected("|> operation"), pipe.start)
     }
   }
   let operations : Array[NativeOp] = []
   while true {
     self.scanner.budget.charge(SyntaxNodes, 1, self.scanner.byte_offset)
-    ignore(self.keyword("OP"))
+    let named = !(self.token().value is Word(word) && ascii_keyword(word, "OP"))
+    if !named {
+      ignore(self.take())
+    }
     let op = self.take()
     let operation = match op.value {
-      Word(name) if native_operation(name) => name
-      _ => raise Abort(Expected("registered native operation"), op.start)
+      Word(name) if (named && named_graph_operation(name)) ||
+        (!named && native_operation(name)) => name
+      _ => raise Abort(Expected("registered operation"), op.start)
     }
     if operations.is_empty() && input == None && !generator_operation(operation) {
       raise Abort(Expected("generator OP or explicit FROM"), op.start)
     }
-    let body = self.read_json(object_required=false)
+    let body = if named {
+      self.read_named_graph_arguments(operation)
+    } else {
+      self.read_json(object_required=false)
+    }
+    if named && input != None && raw_field(body.node, "from") is Some(_) {
+      raise Abort(
+        Expected("primary input already supplied by FROM"),
+        body.start,
+      )
+    }
     let generator = if operation == "graph" {
       raw_field(body.node, "nodes") is Some(_) ||
       raw_field(body.node, "edges") is Some(_)
@@ -70,13 +85,13 @@ fn Parser::read_data(self : Parser) -> NativeData raise {
     if (!operations.is_empty() || input != None) && generator {
       raise Abort(Expected("generator only at DATA start"), op.start)
     }
-    operations.push({ name: operation, token: op, body, })
+    operations.push({ name: operation, token: op, body, named, })
     let delimiter = self.take()
     if delimiter.value == Symbol(0x3b) {
       break
     }
     if delimiter.value != Pipe {
-      raise Abort(Expected("; or |> OP"), delimiter.start)
+      raise Abort(Expected("; or |> operation"), delimiter.start)
     }
   }
   { name, token, input, operations, }
@@ -272,18 +287,48 @@ fn rewrite_path(
 }
 
 ///|
+fn require_named_reference(
+  node : @source.Node,
+  aliases : Map[String, String],
+  body_start : Int,
+) -> Unit raise Abort {
+  match node.value {
+    String(name) =>
+      if !aliases.contains(name) {
+        raise Abort(
+          Expected("previously declared producer"),
+          body_start + node.span.start_byte,
+        )
+      }
+    Array(items) =>
+      for item in items {
+        require_named_reference(item, aliases, body_start)
+      }
+    _ =>
+      raise Abort(
+        Expected("producer reference"),
+        body_start + node.span.start_byte,
+      )
+  }
+}
+
+///|
 fn resolve_body(
   body : JsonBody,
   op : String?,
   aliases : Map[String, String],
   budget : Budget,
-) -> JsonBody raise LimitAbort {
+  strict_refs? : Bool = false,
+) -> JsonBody raise {
   budget.charge(LoweringWork, body.nodes, body.start)
   let changed : Map[Int, Bool] = Map([])
   let mut node = body.node
   for path in body_reference_paths(node, op) {
     for _ in 0..<4 {
       budget.charge(LoweringWork, body.nodes, body.start)
+    }
+    if strict_refs && at_path(node, path) is Some(reference) {
+      require_named_reference(reference, aliases, body.start)
     }
     node = rewrite_path(node, path, 0, aliases, changed)
   }
@@ -346,6 +391,7 @@ fn Parser::lower_steps(
                   Some(op.name),
                   aliases,
                   self.scanner.budget,
+                  strict_refs=op.named,
                 ),
               ),
               op.token,
