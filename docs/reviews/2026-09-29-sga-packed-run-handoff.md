@@ -5,7 +5,7 @@ connection is adopted, packed Local and HTTP acceptance. The Host connection
 owner retains the shared submit, planning, dispatch and publication files.
 This record separates checks that ran from the product acceptance still needed.
 
-At source `5acb8f04d659f67f9a1e6a60a25c3003830abdb4`, independently
+At the earlier source `5acb8f04d659f67f9a1e6a60a25c3003830abdb4`, independently
 authored `graphs-equal.named.aql` and `graphs-equal.expected-program.json`
 matched exactly after Frontend lowering. The ordinary checker admitted a
 source-free Program reusing its Graph producer. The separately authored Result
@@ -30,17 +30,25 @@ physical strategy and installed Host owners need to determine why this
 admitted Graph Program had no selected revision; the Frontend must not invent
 one or bypass the normal selection boundary.
 
-Reach's Relation start selector is a separate shared implementation gap.
-Frontend source now resolves `reach.start.from` through the existing producer
-table: named and OP spellings both produce the same Program, including DATA
-aliases that do not create physical steps. The current common checker still
-rejects that Program in pipeline typing. `graph_typing/reach.mbt::check_reach`
-admits `start` only as one scalar ID value, and the Local Reach owner retains a
-`SingleReachStart`. The language contract permits a Relation selector, but
-Frontend cannot make it executable by changing its spelling or substituting
-Traverse. Shared Graph typing and kernel support must land before this selector
-can pass the normal checker and packed execution; the literal-ID Reach path
-remains unaffected.
+The Reach Relation-selector gap above was subsequently closed on this branch:
+`reach.start.from` resolves through the ordinary producer table, the common
+checker accepts the shared selector, and Local Reach uses the existing bounded
+selector machinery. The source-free selector, duplicate, empty, missing-ID,
+nullable, capacity and cancellation cases have focused checker/kernel tests.
+Packed public-source Result acceptance for that selector remains unproved.
+
+At `ce66e22bece4582406ab41108175fb1669c4d637`, the independently authored
+`normalize-rows` source and Program match exactly and pass ordinary Program
+preparation under the Local Check Environment. The input nodes are B then A;
+the authored sort and Result order require A then B. Task compilation stops at
+`ClientDirectResultRootIssue::RequiresResultTransformation`. This is the
+existing Result Plan connection owned by the Host integration; the Frontend
+does not remove the declared order or publish the untransformed output.
+`graphs-equal` passes ordinary preparation but the earlier packed probe failed
+at `Dispatch(NoStrategy)`. These are separate blockers. The other authored
+fixtures still require their exact checker and packed execution evidence;
+`components` additionally needs its existing capacity application, and the
+edge-row fixtures need lawful order evidence for nullable edge identity.
 
 `scripts/reproduce-sga-baseline.mjs <packed-installation> --graphs-equal`
 replays the exact authored Program and reports public status and terminal error
