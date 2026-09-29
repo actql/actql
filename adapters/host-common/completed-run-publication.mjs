@@ -130,7 +130,7 @@ export async function releasePreparedResults(exported, primary, control) {
       preparedPending,
       preparedReleaseAttempted,
     );
-    if (action === 0) {
+    if (action === 'inspect') {
       try {
         preparedPending = prepared[currentPrepared].status()?.pending !== false;
       } catch (error) {
@@ -140,20 +140,20 @@ export async function releasePreparedResults(exported, primary, control) {
       preparedStatusChecked = true;
       continue;
     }
-    if (action === 1) {
+    if (action === 'release') {
       preparedReleaseAttempted = true;
       try { await prepared[currentPrepared].release(); }
       catch (error) { errors.push(error); }
       continue;
     }
-    if (action === 2) {
+    if (action === 'advance') {
       currentPrepared--;
       preparedStatusChecked = false;
       preparedPending = false;
       preparedReleaseAttempted = false;
       continue;
     }
-    if (action === 3) break;
+    if (action === 'finished') break;
     fail('InvalidCompletedRunPublicationReleaseProgress');
   }
   const owners = [];
@@ -216,7 +216,7 @@ export async function releasePreparedResults(exported, primary, control) {
           retryAvailable,
           retryAttempted,
         );
-        if (action === 0) {
+        if (action === 'inspect') {
           ownerPending = ownerState(owners[currentOwner]).pending;
           retryAvailable = typeof member(
             owners[currentOwner].handle, 'retry',
@@ -224,13 +224,13 @@ export async function releasePreparedResults(exported, primary, control) {
           ownerStatusChecked = true;
           continue;
         }
-        if (action === 1) {
+        if (action === 'retry') {
           retryAttempted = true;
           try { await owners[currentOwner].handle.retry(); }
           catch (error) { errors.push(error); }
           continue;
         }
-        if (action === 2) {
+        if (action === 'advance') {
           currentOwner++;
           ownerStatusChecked = false;
           ownerPending = false;
@@ -238,7 +238,7 @@ export async function releasePreparedResults(exported, primary, control) {
           retryAttempted = false;
           continue;
         }
-        if (action === 3) break;
+        if (action === 'finished') break;
         fail('InvalidCompletedRunPublicationCleanupProgress');
       }
       failure.cleanupPending = status().pending;
