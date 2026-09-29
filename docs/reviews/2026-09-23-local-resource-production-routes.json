@@ -120,6 +120,30 @@
         "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
         "fixture": "vector-score-selected-filter"
       }
+    },
+    {
+      "id": "vectors_pool_to_rows_filter",
+      "carrier": "Vectors",
+      "operations": ["pool_vectors", "vectors", "filter"],
+      "standalone_prefix_provider": true,
+      "standard_host": {
+        "suite": "moon:query_integration",
+        "targets": ["js", "wasm", "native"],
+        "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+        "fixture": "standard Host retains pooled Vectors before Relation filtering"
+      },
+      "in_flight_cancel": {
+        "suite": "node:duckdb_standard_host",
+        "targets": ["node"],
+        "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+        "fixture": "vector-pool-selected-filter"
+      },
+      "selected_in_flight_cancel": {
+        "suite": "node:duckdb_standard_host",
+        "targets": ["node"],
+        "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+        "fixture": "vector-pool-selected-filter"
+      }
     }
   ],
   "routes": [
@@ -8763,7 +8787,32 @@
         "path": "src/local_veca/pool.mbt",
         "symbol": "start_relation_pool"
       },
+      "view_entrypoint": {
+        "path": "src/local_veca/pool.mbt",
+        "symbol": "start_pool_view"
+      },
       "boundary_tests": [
+        {
+          "role": "pool_view_work_workspace_exact_one_short",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_wbtest.mbt",
+          "fixture": "pool view checks exact work and workspace before publication"
+        },
+        {
+          "role": "pool_view_cancel_cleanup",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_wbtest.mbt",
+          "fixture": "pool view cancellation retains its producer"
+        },
+        {
+          "role": "pool_view_host_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "standard Host retains pooled Vectors before Relation filtering"
+        },
         {
           "role": "pool_relation_work_exact_one_short",
           "suite": "moon:query_integration",
@@ -8849,6 +8898,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "vector-pool-relation"
+        },
+        {
+          "role": "pool_view_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "vector-pool-selected-filter"
         }
       ],
       "path_assurance": {
@@ -8863,6 +8919,12 @@
           "one_short_limit": "pool_relation_workspace_exact_one_short",
           "in_flight_cancel": "pool_relation_host_in_flight_cancel",
           "cleanup": "pool_relation_kernel_cancel_cleanup"
+        },
+        "view_entrypoint": {
+          "exact_limit": "pool_view_work_workspace_exact_one_short",
+          "one_short_limit": "pool_view_work_workspace_exact_one_short",
+          "in_flight_cancel": "pool_view_host_in_flight_cancel",
+          "cleanup": "pool_view_cancel_cleanup"
         }
       },
       "resource_assurance": {
@@ -8884,6 +8946,16 @@
           "workspace": {
             "exact_limit": "pool_relation_workspace_exact_one_short",
             "one_short_limit": "pool_relation_workspace_exact_one_short"
+          }
+        },
+        "view_entrypoint": {
+          "work": {
+            "exact_limit": "pool_view_work_workspace_exact_one_short",
+            "one_short_limit": "pool_view_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "pool_view_work_workspace_exact_one_short",
+            "one_short_limit": "pool_view_work_workspace_exact_one_short"
           }
         }
       }
