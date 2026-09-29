@@ -584,14 +584,18 @@ export async function startHttpsOutboundSiteGateway({
     withdraw({dispatch} = {}) {
       if (dispatch === undefined) fail('InvalidOutboundDispatch');
       const identity = control.identity(dispatch);
-      const entry = pending.get(`dispatch:${identity}`);
       materialsEnvelopes.delete(identity);
-      if (entry === undefined) return false;
-      settle(entry, 'reject', Object.assign(
-        new Error('RemoteDispatchWithdrawn'),
-        {code: 'RemoteDispatchWithdrawn'},
-      ));
-      return true;
+      // Every operation still pending for the dispatch is withdrawn, so an
+      // abandoned one is not served ahead of later work.
+      const entries = [...pending.values()]
+        .filter(entry => entry.identity === identity);
+      for (const entry of entries) {
+        settle(entry, 'reject', Object.assign(
+          new Error('RemoteDispatchWithdrawn'),
+          {code: 'RemoteDispatchWithdrawn'},
+        ));
+      }
+      return entries.length > 0;
     },
     pending() {
       return pending.size;

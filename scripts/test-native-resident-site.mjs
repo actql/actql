@@ -9,7 +9,9 @@ import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
 import {once} from 'node:events';
 import {chmod, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
+import {createServer} from 'node:net';
 import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {installNodeClientProgramPreparation} from
@@ -127,7 +129,8 @@ try {
   // The Cloud's Result ingress: a direct Transfer destination.
   const transferControl = portable.remoteTransferControl;
   receiverStore = await createLocalRetainedStore({parentDirectory: root,
-    capacityBytes: 1048576, maxFrameBytes: 65536, maxEntries: 16,
+    // The receiver keeps every Result it gets during the whole test.
+    capacityBytes: 1048576, maxFrameBytes: 65536, maxEntries: 64,
     maxReadersPerBody: 2});
   receiverJournal = openSqliteTransferJournal(join(root, 'receiver-journal'), {
     destinationSiteKey: 'cloud-results', destinationSiteGeneration: 1,
@@ -279,9 +282,20 @@ try {
     runHost.admitEnvironment(environmentWire, environmentCid, {rela: true}));
   const resultDefinitionCid = runHost.resultDefinitions(hostPrepared,
     runHost.compileValues(hostPrepared))[0].cid;
+  // The Coordinator queries until the execution settled and its output
+  // subject is observed; an executor entry is recorded before execution.
+  const settledQuery = async (dispatch, tag) => {
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const answer = await within(gateway.query({dispatch}), `${tag} query`);
+      if (answer.state[0] === 3 && answer.subject !== undefined) return answer;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    throw new Error(`${tag} did not settle`);
+  };
   // The Coordinator plans the output, has it delivered to its ingress over
   // the direct route, and releases the holder's retained output.
-  const deliverAndRelease = async (dispatch, terminal, tag) => {
+  const planOutput = async (dispatch, terminal, tag,
+    origin = receiver.origin) => {
     const intent = siteControl.prepareOutputIntent(dispatch, {
       storeAuthorityCid: physicalCid('resident-publication-store'),
       publicationAttemptCid: physicalCid(`resident-publication-${tag}`),
@@ -297,14 +311,19 @@ try {
       sourceGrantCid: physicalCid('resident-source-grant'),
       destinationGrantCid: physicalCid('resident-destination-grant'),
       routeCapabilityCid: physicalCid('resident-direct-route'),
-      transferOrigin: receiver.origin,
+      transferOrigin: origin,
     });
     const planned = await within(gateway.plan({dispatch, intent,
       subject: terminal.subject, maxChunks: 8, maxManifestBytes: 65536,
       maxReferencedBytes: 1048576n}), `${tag} plan`);
-    const delivered = await within(gateway.output({dispatch, intent,
-      payloadRequest: planned.payloadRequest,
-      transferRequest: planned.transferRequest}), `${tag} output`);
+    return {intent, planned};
+  };
+  const requestOutput = (dispatch, {intent, planned}) => gateway.output({
+    dispatch, intent, payloadRequest: planned.payloadRequest,
+    transferRequest: planned.transferRequest});
+  const deliverAndRelease = async (dispatch, terminal, tag) => {
+    const delivered = await within(requestOutput(dispatch,
+      await planOutput(dispatch, terminal, tag)), `${tag} output`);
     await within(gateway.release({dispatch}), `${tag} release`);
     return delivered;
   };
@@ -333,15 +352,18 @@ try {
     '--engine-root', engineRoot, '--executor-entry-log', entryLog,
     '--transfer-cert', join(root, 'transfer.crt'),
     '--transfer-key', join(root, 'transfer.key'),
-    '--transfer-origin', receiver.origin,
-    '--transfer-journal', join(root, 'site-transfer.sqlite3'),
     '--publication-root', join(root, 'publication'),
     '--publication-authority-cid', physicalCid('resident-publication-store'),
     '--idle-wait-ms', '50', '--min-backoff-ms', '50', '--max-backoff-ms', '200',
     '--shutdown-wait-ms', '10000',
   ];
-  const startSite = (extra = []) => {
-    const child = spawn(executable, ['run', ...common, ...extra], {
+  const startSite = (extra = [], {
+    origin = receiver.origin,
+    transferJournal = join(root, 'site-transfer.sqlite3'),
+  } = {}) => {
+    const child = spawn(executable, ['run', ...common,
+      '--transfer-origin', origin, '--transfer-journal', transferJournal,
+      ...extra], {
       cwd: root, stdio: ['ignore', 'pipe', 'pipe']});
     const lines = [];
     let buffer = '';
@@ -392,7 +414,7 @@ try {
   await waitFor(() => site.lines.some(line => line.kind === 'executed'),
     'holder execution');
   // The Coordinator's query is answered from the durable journal.
-  const terminal = await within(gateway.query({dispatch: first}), 'query');
+  const terminal = await settledQuery(first, 'first');
   assert.equal(terminal.state[0], 3, 'native settled');
   assert.equal((await entries()).length, 1);
   // O4: the holder's output reaches the Cloud's ingress and is released.
@@ -448,8 +470,7 @@ try {
   'second dispatch');
   assert.notEqual(secondSettled.state[0], 0);
   await waitFor(async () => (await entries()).length === 2, 'second entry');
-  const secondTerminal = await within(gateway.query({dispatch: second}),
-    'second query');
+  const secondTerminal = await settledQuery(second, 'second');
   assert.equal(secondTerminal.state[0], 3);
   await within(gateway.release({dispatch: second}), 'second release');
 
@@ -490,8 +511,7 @@ try {
   const thirdTerminal = await within(gateway.query({dispatch: third}),
     'third query');
   assert.equal(thirdTerminal.state[0], 3);
-  const fourthTerminal = await within(gateway.query({dispatch: fourth}),
-    'fourth query');
+  const fourthTerminal = await settledQuery(fourth, 'fourth');
   assert.equal(fourthTerminal.state[0], 3);
   await within(gateway.release({dispatch: fourth}), 'fourth release');
   restarted.child.kill('SIGTERM');
@@ -507,8 +527,7 @@ try {
     dispatchEnvelope: materialsEnvelope(fifth)}), 'fifth dispatch');
   await waitFor(async () => (await entries()).length === 5, 'fifth entry');
   await new Promise(resolve => setTimeout(resolve, 1500));
-  const fifthTerminal = await within(gateway.query({dispatch: fifth}),
-    'fifth query');
+  const fifthTerminal = await settledQuery(fifth, 'fifth');
   assert.equal(fifthTerminal.state[0], 3);
   await within(gateway.release({dispatch: fifth}), 'fifth release');
   assert.equal((await entries()).length, 5);
@@ -528,8 +547,7 @@ try {
     expectedEntries += 1;
     await waitFor(async () => (await entries()).length === expectedEntries,
       `bounded entry ${run}`);
-    const terminal = await within(gateway.query({dispatch}),
-      `bounded query ${run}`);
+    const terminal = await settledQuery(dispatch, `bounded ${run}`);
     await deliverAndRelease(dispatch, terminal, `bounded-${run}`);
     await waitFor(() => bounded.lines.filter(line =>
       line.kind === 'holder-released').length === run + 1,
@@ -554,8 +572,7 @@ try {
     'ninth entry');
   assert.equal(retrying.lines.filter(line =>
     line.kind === 'holder-request-unavailable').length, 3);
-  const ninthTerminal = await within(gateway.query({dispatch: ninth}),
-    'ninth query');
+  const ninthTerminal = await settledQuery(ninth, 'ninth');
   const publicationRoot = join(root, 'publication');
   const ninthIntentTag = 'ninth';
   const ninthRelease = (async () => {
@@ -607,7 +624,7 @@ try {
   expectedEntries += 1;
   await waitFor(async () => (await entries()).length === expectedEntries,
     'tenth entry');
-  await within(gateway.query({dispatch: tenth}), 'tenth query');
+  await settledQuery(tenth, 'tenth');
   await within(gateway.release({dispatch: tenth}), 'tenth release', 120_000);
   await waitFor(() => stubborn.lines.some(line =>
     line.kind === 'holder-released'), 'tenth released', 120_000);
@@ -616,6 +633,191 @@ try {
   assert.equal((await entries()).length, expectedEntries);
   stubborn.child.kill('SIGTERM');
   await stubborn.exited;
+
+  // Payload capacity still reserved in the Site's publication Store, read
+  // directly from its database.
+  const reservedPayloadBytes = () => {
+    const database = new DatabaseSync(join(publicationRoot,
+      '.actql-publication.sqlite3'), {readOnly: true});
+    try {
+      const row = database.prepare('SELECT COALESCE(SUM(reserved_bytes), 0) ' +
+        'AS bytes FROM actql_capacity WHERE namespace = ?')
+        .get('publication_payload');
+      return Number(row.bytes);
+    } finally {
+      database.close();
+    }
+  };
+  assert.equal(reservedPayloadBytes(), 0);
+  // One more Run through a Store sized for one payload: it succeeds only if
+  // no earlier payload is still reserved.
+  const provesCapacityFree = async (tag, attempt) => {
+    const proof = startSite(['--publication-capacity-bytes', '40']);
+    currentSite = proof;
+    const dispatch = dispatchFor(`resident-${tag}`, attempt);
+    await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
+      dispatchEnvelope: materialsEnvelope(dispatch)}), `${tag} dispatch`);
+    expectedEntries += 1;
+    await waitFor(async () => (await entries()).length === expectedEntries,
+      `${tag} entry`);
+    await deliverAndRelease(dispatch, await settledQuery(dispatch, tag), tag);
+    await waitFor(() => proof.lines.some(line =>
+      line.kind === 'holder-released' && line.payloads === '1'),
+    `${tag} released`);
+    assert.ok(!proof.lines.some(line => line.kind === 'output-failed'));
+    proof.child.kill('SIGTERM');
+    await proof.exited;
+    assert.equal(reservedPayloadBytes(), 0);
+  };
+  // An https origin nothing listens on.
+  const deadOrigin = await new Promise(resolve => {
+    const socket = createServer();
+    socket.listen(0, '127.0.0.1', () => {
+      const {port} = socket.address();
+      socket.close(() => resolve(`https://127.0.0.1:${port}`));
+    });
+  });
+
+  // 11. The payload is sealed but its transfer fails; then the control
+  //     process dies. The holder still owns the payload: on the channel's
+  //     end it reclaims it, and a Store sized for one payload takes the
+  //     next Run.
+  const unsent = startSite(['--publication-capacity-bytes', '40'],
+    {origin: deadOrigin});
+  currentSite = unsent;
+  const eleventh = dispatchFor('resident-dispatch-11', 40);
+  await within(gateway.dispatch({dispatch: eleventh, inputBindingBody: '{}',
+    dispatchEnvelope: materialsEnvelope(eleventh)}), 'eleventh dispatch');
+  expectedEntries += 1;
+  await waitFor(async () => (await entries()).length === expectedEntries,
+    'eleventh entry');
+  const eleventhOutput = requestOutput(eleventh, await planOutput(eleventh,
+    await settledQuery(eleventh, 'eleventh'), 'eleventh', deadOrigin))
+    .catch(error => error);
+  await waitFor(() => unsent.lines.some(line => line.kind === 'output-failed' &&
+    line.reason === 'transfer'), 'eleventh transfer failure');
+  assert.ok(reservedPayloadBytes() > 0, 'sealed payload before cleanup');
+  gateway.withdraw({dispatch: eleventh});
+  await eleventhOutput;
+  unsent.child.kill('SIGKILL');
+  await unsent.exited;
+  await waitFor(() => unsent.lines.some(line =>
+    line.kind === 'holder-released' && line.payloads === '1'),
+  'eleventh payload reclaimed on channel end');
+  assert.equal(reservedPayloadBytes(), 0);
+  assert.equal((await entries()).length, expectedEntries);
+  await provesCapacityFree('after-transfer-failure', 41);
+
+  // 12. The payload cannot be kept (the Store directory is read only while
+  //     the output is persisted). The holder still keeps the cleanup for
+  //     that exact request, finishes it at release once the directory is
+  //     writable again, and nothing stays reserved.
+  const unkept = startSite(['--publication-capacity-bytes', '40']);
+  currentSite = unkept;
+  const twelfth = dispatchFor('resident-dispatch-12', 42);
+  await within(gateway.dispatch({dispatch: twelfth, inputBindingBody: '{}',
+    dispatchEnvelope: materialsEnvelope(twelfth)}), 'twelfth dispatch');
+  expectedEntries += 1;
+  await waitFor(async () => (await entries()).length === expectedEntries,
+    'twelfth entry');
+  const twelfthPlan = await planOutput(twelfth,
+    await settledQuery(twelfth, 'twelfth'), 'twelfth');
+  await chmod(publicationRoot, 0o500);
+  const twelfthOutput = requestOutput(twelfth, twelfthPlan)
+    .catch(error => error);
+  await waitFor(() => unkept.lines.some(line => line.kind === 'output-failed'),
+    'twelfth persist failure');
+  assert.ok(!unkept.lines.some(line => line.kind === 'output-delivered'));
+  gateway.withdraw({dispatch: twelfth});
+  await twelfthOutput;
+  const twelfthRelease = within(gateway.release({dispatch: twelfth}),
+    'twelfth release', 120_000);
+  await new Promise(resolve => setTimeout(resolve, 500));
+  await chmod(publicationRoot, 0o700);
+  await twelfthRelease;
+  await waitFor(() => unkept.lines.some(line =>
+    line.kind === 'holder-released' && line.payloads === '1'),
+  'twelfth cleanup kept for the exact request');
+  assert.equal(reservedPayloadBytes(), 0);
+  unkept.child.kill('SIGTERM');
+  await unkept.exited;
+  assert.equal((await entries()).length, expectedEntries);
+  await provesCapacityFree('after-persist-failure', 43);
+
+  // 13. The payload is sent but its result is not reported (acceptance
+  //     hook: the report is withheld, not failed on the wire). The holder
+  //     still reclaims the payload at release.
+  const unreported = startSite(['--publication-capacity-bytes', '40',
+    '--holder-result-report-failures', '1']);
+  currentSite = unreported;
+  const thirteenth = dispatchFor('resident-dispatch-13', 44);
+  await within(gateway.dispatch({dispatch: thirteenth, inputBindingBody: '{}',
+    dispatchEnvelope: materialsEnvelope(thirteenth)}), 'thirteenth dispatch');
+  expectedEntries += 1;
+  await waitFor(async () => (await entries()).length === expectedEntries,
+    'thirteenth entry');
+  const thirteenthOutput = requestOutput(thirteenth, await planOutput(
+    thirteenth, await settledQuery(thirteenth, 'thirteenth'), 'thirteenth'))
+    .catch(error => error);
+  await waitFor(() => unreported.lines.some(line =>
+    line.kind === 'output-result-unreported' && line.reason === 'injected'),
+  'thirteenth result withheld');
+  gateway.withdraw({dispatch: thirteenth});
+  await thirteenthOutput;
+  await within(gateway.release({dispatch: thirteenth}), 'thirteenth release');
+  await waitFor(() => unreported.lines.some(line =>
+    line.kind === 'holder-released' && line.payloads === '1'),
+  'thirteenth payload reclaimed');
+  assert.equal(reservedPayloadBytes(), 0);
+  unreported.child.kill('SIGTERM');
+  await unreported.exited;
+  assert.equal((await entries()).length, expectedEntries);
+
+  // 14–15. A holder that cannot open the publication Store, or its Transfer
+  //     journal, ends before it claims: nothing executes and nothing is
+  //     reported settled. The attempt stays queued; once the resource opens
+  //     it executes exactly once.
+  const lockedJournalRoot = join(root, 'transfer-journal-locked');
+  await mkdir(lockedJournalRoot, {mode: 0o700});
+  for (const [tag, attempt, locked, options] of [
+    ['store-open', 45, publicationRoot, {}],
+    ['transfer-journal-open', 46, lockedJournalRoot, {transferJournal:
+      join(lockedJournalRoot, 'site-transfer.sqlite3')}],
+  ]) {
+    await chmod(locked, 0o000);
+    const blocked = startSite([], options);
+    currentSite = blocked;
+    const dispatch = dispatchFor(`resident-${tag}`, attempt);
+    // The gateway answers the dispatch once the attempt has started.
+    const started = within(gateway.dispatch({dispatch, inputBindingBody: '{}',
+      dispatchEnvelope: materialsEnvelope(dispatch)}), `${tag} dispatch`);
+    try {
+      await waitFor(() => blocked.lines.some(line => line.kind === 'accepted'),
+        `${tag} accepted`);
+      await waitFor(() => blocked.lines.filter(line =>
+        line.kind === 'holder-unclaimed').length >= 2, `${tag} requeued`);
+      assert.ok(blocked.lines.some(line => line.kind === 'setup-failed'));
+      assert.ok(!blocked.lines.some(line => line.kind === 'executed'));
+      assert.equal((await entries()).length, expectedEntries);
+    } finally {
+      await chmod(locked, 0o700);
+    }
+    const startedState = await started;
+    assert.notEqual(startedState.state[0], 0);
+    expectedEntries += 1;
+    await waitFor(async () => (await entries()).length === expectedEntries,
+      `${tag} entry after repair`);
+    await deliverAndRelease(dispatch, await settledQuery(dispatch, tag), tag);
+    await waitFor(() => blocked.lines.some(line =>
+      line.kind === 'holder-released' && line.payloads === '1'),
+    `${tag} released`);
+    assert.equal(blocked.lines.filter(line => line.kind === 'executed').length,
+      1);
+    blocked.child.kill('SIGTERM');
+    await blocked.exited;
+    assert.equal((await entries()).length, expectedEntries);
+    assert.equal(reservedPayloadBytes(), 0);
+  }
 
   // Each entry names one holder claimant and one attempt key; no attempt
   // key appears twice.

@@ -123,6 +123,17 @@ pub fn plan_resident_output(
 }
 
 ///|
+/// The outcome of one output poll. `payload` is the exact publication request
+/// whose payload may now exist in the Site's Store: it is set as soon as the
+/// Store can hold anything for this output, and stays set whatever happened
+/// afterwards, so the holder keeps the cleanup even when persisting, sending
+/// or reporting failed.
+pub(all) struct ResidentDelivery {
+  payload : @payload.PublicationPayloadRequest?
+  result : Result[@remote.RemoteOutputResult, ResidentOutputIssue]
+}
+
+///|
 /// Publish the holder's retained output for a Coordinator's output poll:
 /// the payload is kept in the Site's publication Store (an existing payload
 /// for the same request is reconciled, never written twice), then sent on
@@ -141,24 +152,23 @@ pub fn deliver_resident_output(
   transfer_journal : @transfer_journal.Journal,
   destination_origin : String,
   max_chunk_bytes : Int,
-) -> Result[
-  (@remote.RemoteOutputResult, @payload.PublicationPayloadRequest),
-  ResidentOutputIssue,
-] {
+) -> ResidentDelivery {
   let (request, completion, _, plan) = match
     observed_output(
       executed, journal, coordinator_authority, site_key, site_generation, output,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return { payload: None, result: Err(issue), }
   }
   let selected = @remote.remote_output_intent_projection(
     @remote.remote_poll_output_intent(output),
   )
   if selected.transfer_route != @transfer.DirectStream ||
     selected.transfer_origin != destination_origin {
-    return Err(OutputRouteRefused)
+    return { payload: None, result: Err(OutputRouteRefused), }
   }
+  // From here the Store may hold a payload for this exact request.
+  let owned = Some(plan.payload)
   let payload = match store.reconcile_payload(plan.payload) {
     Ok(Some(value)) => value
     Ok(None) =>
@@ -173,9 +183,11 @@ pub fn deliver_resident_output(
           max_chunk_bytes,
         ) {
         Ok(value) => value
-        Err(issue) => return Err(OutputPayload(issue))
+        Err(issue) =>
+          return { payload: owned, result: Err(OutputPayload(issue)), }
       }
-    Err(issue) => return Err(OutputPayloadStore(issue))
+    Err(issue) =>
+      return { payload: owned, result: Err(OutputPayloadStore(issue)), }
   }
   let record = match
     @output.send_native_remote_observed_output_direct(
@@ -190,20 +202,47 @@ pub fn deliver_resident_output(
       max_chunk_bytes,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(OutputTransfer(issue))
+    Err(issue) => return { payload: owned, result: Err(OutputTransfer(issue)), }
   }
-  // The payload kept in the Site's Store is returned with the result: its
-  // owner must reclaim it when the output is released.
-  match
-    @remote.prepare_remote_output_result(
+  {
+    payload: owned,
+    result: @remote.prepare_remote_output_result(
       output,
       plan.payload,
       payload.physical_digest,
       record,
-    ) {
-    Ok(result) => Ok((result, plan.payload))
-    Err(issue) => Err(OutputProtocol(issue))
+    ).map_err(issue => OutputProtocol(issue)),
   }
+}
+
+///|
+/// Whether a failed output still owns physical cleanup: an open payload
+/// reader or writer, a Store recovery, or an unstopped Transfer source.
+pub fn resident_output_cleanup_pending(issue : ResidentOutputIssue) -> Bool {
+  match issue {
+    OutputPayload(failure) =>
+      @output.native_remote_standard_payload_failure_cleanup_pending(failure)
+    OutputTransfer(@output.TransferSend(failure)) =>
+      @transfer_client.transfer_send_failure_cleanup_pending(failure)
+    _ => false
+  }
+}
+
+///|
+/// Retry only the physical cleanup a failed output retained. This never
+/// repeats payload creation, Transfer, or execution. It is done when nothing
+/// is left pending.
+pub fn retry_resident_output_cleanup(issue : ResidentOutputIssue) -> Bool {
+  match issue {
+    OutputPayload(failure) =>
+      ignore(
+        @output.retry_native_remote_standard_payload_failure_cleanup(failure),
+      )
+    OutputTransfer(@output.TransferSend(failure)) =>
+      ignore(@transfer_client.retry_transfer_send_failure_cleanup(failure))
+    _ => ()
+  }
+  !resident_output_cleanup_pending(issue)
 }
 
 ///|

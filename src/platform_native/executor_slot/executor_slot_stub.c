@@ -307,8 +307,10 @@ int32_t actql_executor_slot_append_line(
   return written ? 0 : -1;
 }
 
-// Writes one line to standard output unbuffered, so progress reaches a pipe
-// in order even when the process ends abnormally. 0 on success.
+// Writes one line, newline included by the caller, to standard output
+// unbuffered, so progress reaches a pipe in order even when the process ends
+// abnormally. A line within PIPE_BUF goes out in one atomic write, so another
+// process writing to the same pipe cannot split it. 0 on success.
 int32_t actql_executor_slot_write_stdout_line(
   moonbit_bytes_t line,
   int32_t line_length
@@ -322,7 +324,7 @@ int32_t actql_executor_slot_write_stdout_line(
     }
     offset += (int32_t)count;
   }
-  return write(1, "\n", 1) == 1 ? 0 : -1;
+  return 0;
 }
 
 // A one-way channel from the control process to a holder: returns

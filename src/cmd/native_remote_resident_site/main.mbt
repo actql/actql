@@ -579,6 +579,24 @@ fn settle_holder(
 }
 
 ///|
+/// Whether an ended holder left its attempt startable. A record that cannot
+/// be read counts as startable: starting again is safe, because a holder
+/// claims before it executes and a record that can no longer start is not
+/// claimed.
+fn holder_left_startable(
+  environment : ControlEnvironment,
+  request : @remote.DispatchRequest,
+) -> Bool {
+  guard fresh_journal(environment) is Some(journal) else { return true }
+  let record = journal.require(request)
+  ignore(journal.close())
+  match record {
+    Ok(value) => @remote.remote_runtime_record_startable(value)
+    Err(_) => true
+  }
+}
+
+///|
 /// The exact dispatch request kept for an accepted attempt, read from a
 /// fresh journal view. `failures` is an acceptance test hook: while it is
 /// positive, one read is reported as failed.
@@ -653,6 +671,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   // journal for the same dispatch reports them too.
   let unsettled : Array[RunningHolder] = []
   let mut backoff_ms = 0
+  let mut next_start_ms : UInt64 = 0
   let mut polls = 0
   let mut holders = 0
   while !@slot.native_termination_requested() {
@@ -662,9 +681,18 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         match current.child.wait(false) {
           Ok(Some(_)) => {
             ignore(current.channel.close())
-            ignore(queue.remove(current.attempt))
             holder = None
-            unsettled.push(current)
+            // A holder that ended without claiming (its setup failed) left
+            // the attempt startable: it stays queued and starts again after
+            // the error backoff. Only a record that can no longer start is
+            // reported and leaves the queue.
+            if holder_left_startable(environment, current.request) {
+              report("holder-unclaimed", [("attempt", current.attempt)])
+              next_start_ms = @env.now() + max_backoff_ms.to_uint64()
+            } else {
+              ignore(queue.remove(current.attempt))
+              unsettled.push(current)
+            }
           }
           Ok(None) => ()
           Err(_) => ()
@@ -688,7 +716,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     unsettled.append(still_unsettled)
     // Start the oldest accepted attempt when the slot is free. The lock is
     // taken here and passed to the holder without a gap.
-    if holder is None {
+    if holder is None && @env.now() >= next_start_ms {
       // A slot handed to an earlier holder is opened again; the same file is
       // always used.
       if !slot.is_open() {
@@ -967,62 +995,175 @@ fn output_code(issue : @resident_host.ResidentOutputIssue) -> String {
     OutputPlan(_) => "plan"
     OutputPayloadStore(_) => "payload-store"
     OutputPayload(_) => "payload"
-    OutputTransfer(_) => "transfer"
+    OutputTransfer(@output.TransferSend(failure)) =>
+      match @transfer_client.transfer_send_failure_issue(failure) {
+        Rejected(status) => "transfer-rejected-" + status.to_string()
+        Physical(_) => "transfer"
+        Durable(_) => "transfer-journal"
+        Protocol(_) => "transfer-protocol"
+        ReconciliationRequired => "transfer-reconciliation"
+        _ => "transfer-source"
+      }
+    OutputTransfer(_) => "transfer-setup"
     OutputProtocol(_) => "protocol"
   }
 }
 
 ///|
-/// After execution the holder keeps its output and serves the Coordinator's
-/// output operations, relayed by the control process over the holder's
-/// standard input. When the output is released, or the control process is
-/// gone, the holder releases the output and reclaims every payload it kept
-/// in the Site's publication Store, retrying each step until it is
-/// confirmed. It never ends while it still owns a cleanup: until then it
-/// keeps the executor slot and the capacity counted.
-fn serve_holder_output(
+/// Everything a holder needs to serve and clean up its output. It is opened
+/// before execution, so no fallible setup remains once the holder owns an
+/// output.
+priv struct HolderOutputResources {
+  control : @http.Client
+  transfer : @http.Client
+  store : @publication_store.Store
+  transfer_journal : @transfer_journal.Journal
+  observation_url : String
+  destination_origin : String
+  coordinator_authority : String
+  site_key : String
+  site_generation : Int
+  release_failures : Int
+  // Acceptance evidence only: result reports withheld after a delivery.
+  mut result_report_failures : Int
+}
+
+///|
+fn open_holder_output_resources(
   matches : @argparse.Matches,
   environment : SiteEnvironment,
-  executed : @resident_host.ResidentExecuted,
-) -> Unit raise CommandStop {
-  let runtime = executed.runtime
-  let request = executed.request
-  let coordinator_authority = required(matches, "coordinator-authority")
-  let control = authenticated_client(matches, "control")
-  let transfer = authenticated_client(matches, "transfer")
-  let observation_url = required(matches, "observation-url")
-  let destination_origin = required(matches, "transfer-origin")
-  let max_bytes = required_int64(matches, "max-bytes")
-  let max_record_bytes = required_int64(matches, "max-record-bytes")
+) -> Result[HolderOutputResources, String] {
+  let settings = (
+    required(matches, "observation-url"),
+    required(matches, "transfer-origin"),
+    required(matches, "coordinator-authority"),
+    required(matches, "site-key"),
+    required_int(matches, "site-generation"),
+    required_int(matches, "holder-release-failures"),
+    required_int(matches, "holder-result-report-failures"),
+    required_int64(matches, "max-bytes"),
+    required_int64(matches, "max-record-bytes"),
+    required_int64(matches, "publication-capacity-bytes"),
+    required_int(matches, "max-transfers"),
+    required(matches, "publication-root"),
+    required(matches, "publication-authority-cid"),
+    required(matches, "transfer-journal"),
+  ) catch {
+    CommandStop(issue) => return Err(issue)
+  }
+  let (
+    observation_url,
+    destination_origin,
+    coordinator_authority,
+    site_key,
+    site_generation,
+    release_failures,
+    result_report_failures,
+    max_bytes,
+    max_record_bytes,
+    publication_capacity,
+    max_transfers,
+    publication_root,
+    publication_authority,
+    transfer_journal_path,
+  ) = settings
+  let control = authenticated_client(matches, "control") catch {
+    CommandStop(issue) => return Err(issue)
+  }
+  let transfer = authenticated_client(matches, "transfer") catch {
+    CommandStop(issue) => {
+      ignore(control.close())
+      return Err(issue)
+    }
+  }
   let store = match
     @publication_store.open_store(
       environment.sqlite_library,
-      required(matches, "publication-root"),
-      required(matches, "publication-authority-cid"),
-      required_int64(matches, "publication-capacity-bytes"),
-      required_int(matches, "max-transfers").to_int64(),
+      publication_root,
+      publication_authority,
+      publication_capacity,
+      max_transfers.to_int64(),
       max_record_bytes,
     ) {
     Ok(value) => value
-    Err(_) => stop("publication Store open failed")
+    Err(_) => {
+      ignore(transfer.close())
+      ignore(control.close())
+      return Err("publication Store open failed")
+    }
   }
   let transfer_journal = match
     @transfer_journal.open_journal(
       environment.sqlite_library,
-      required(matches, "transfer-journal"),
+      transfer_journal_path,
       max_record_bytes,
       65536,
       1048576,
       max_bytes,
     ) {
     Ok(value) => value
-    Err(_) => stop("Transfer journal open failed")
+    Err(_) => {
+      ignore(store.close())
+      ignore(transfer.close())
+      ignore(control.close())
+      return Err("Transfer journal open failed")
+    }
   }
-  let site_key = required(matches, "site-key")
-  let site_generation = required_int(matches, "site-generation")
+  Ok({
+    control,
+    transfer,
+    store,
+    transfer_journal,
+    observation_url,
+    destination_origin,
+    coordinator_authority,
+    site_key,
+    site_generation,
+    release_failures,
+    result_report_failures,
+  })
+}
+
+///|
+/// Closes output resources when no output was produced, so nothing can be
+/// owned by them.
+fn close_holder_output_resources(resources : HolderOutputResources) -> Unit {
+  ignore(resources.transfer_journal.close())
+  ignore(resources.store.close())
+  ignore(resources.transfer.close())
+  ignore(resources.control.close())
+}
+
+///|
+/// After execution the holder keeps its output and serves the Coordinator's
+/// output operations, relayed by the control process over the holder's
+/// standard input. When the output is released, or the control process is
+/// gone, the holder releases the output and reclaims every payload the Store
+/// may hold for it, retrying each step until it is confirmed. It never ends
+/// while it still owns a cleanup: until then it keeps the executor slot and
+/// the capacity counted. Nothing here can fail before that cleanup.
+fn serve_holder_output(
+  resources : HolderOutputResources,
+  environment : SiteEnvironment,
+  executed : @resident_host.ResidentExecuted,
+) -> Unit {
+  let runtime = executed.runtime
+  let request = executed.request
+  let control = resources.control
+  let transfer = resources.transfer
+  let store = resources.store
+  let transfer_journal = resources.transfer_journal
+  let observation_url = resources.observation_url
+  let destination_origin = resources.destination_origin
+  let coordinator_authority = resources.coordinator_authority
+  let site_key = resources.site_key
+  let site_generation = resources.site_generation
   let identity = @remote.dispatch_request_identity(request)
   // Exact payloads this holder kept in the Store; it reclaims them.
   let payloads : Array[@payload.PublicationPayloadRequest] = []
+  // Failed outputs that still own physical cleanup (a payload reader or
+  // writer, a Store recovery, a Transfer source); retried until done.
+  let failed_cleanups : Array[@resident_host.ResidentOutputIssue] = []
   let mut serving = true
   while serving {
     match @slot.native_read_holder_input(2097152) {
@@ -1065,6 +1206,13 @@ fn serve_holder_output(
             Err(_) => report("holder-input-invalid", [])
           }
         } else if line.has_prefix("output ") {
+          // Cleanup kept by earlier failed outputs is retried first, so a
+          // repeated output never piles up open readers or sources.
+          let still_pending = failed_cleanups.filter(issue => {
+            !@resident_host.retry_resident_output_cleanup(issue)
+          })
+          failed_cleanups.clear()
+          failed_cleanups.append(still_pending)
           let envelope = line.unsafe_substring(start=7, end=line.length())
           match @remote.admit_remote_poll_output_json(envelope) {
             Ok(output) =>
@@ -1082,32 +1230,54 @@ fn serve_holder_output(
                   destination_origin,
                   65536,
                 ) {
-                Ok((result, payload)) => {
-                  let payload_identity = @payload.publication_payload_request_identity(
-                    payload,
-                  )
-                  if !payloads
-                    .iter()
-                    .any(kept => {
-                      @payload.publication_payload_request_identity(kept) ==
-                      payload_identity
-                    }) {
-                    payloads.push(payload)
+                delivery => {
+                  // Whatever happened, a payload the Store may hold for this
+                  // output is this holder's to reclaim.
+                  match delivery.payload {
+                    Some(payload) => {
+                      let payload_identity = @payload.publication_payload_request_identity(
+                        payload,
+                      )
+                      if !payloads
+                        .iter()
+                        .any(kept => {
+                          @payload.publication_payload_request_identity(kept) ==
+                          payload_identity
+                        }) {
+                        payloads.push(payload)
+                      }
+                    }
+                    None => ()
                   }
-                  match
-                    @client.acknowledge_output_result(
-                      control, observation_url, result,
-                    ) {
-                    Ok(_) =>
-                      report("output-delivered", [("request_cid", identity)])
-                    Err(issue) =>
+                  match delivery.result {
+                    Ok(_) if resources.result_report_failures > 0 => {
+                      // Acceptance hook: the delivered result is not
+                      // reported, as if the report had been lost.
+                      resources.result_report_failures -= 1
                       report("output-result-unreported", [
-                        ("reason", client_code(issue)),
+                        ("reason", "injected"),
                       ])
+                    }
+                    Ok(result) =>
+                      match
+                        @client.acknowledge_output_result(
+                          control, observation_url, result,
+                        ) {
+                        Ok(_) =>
+                          report("output-delivered", [("request_cid", identity)])
+                        Err(issue) =>
+                          report("output-result-unreported", [
+                            ("reason", client_code(issue)),
+                          ])
+                      }
+                    Err(issue) => {
+                      report("output-failed", [("reason", output_code(issue))])
+                      if !@resident_host.retry_resident_output_cleanup(issue) {
+                        failed_cleanups.push(issue)
+                      }
+                    }
                   }
                 }
-                Err(issue) =>
-                  report("output-failed", [("reason", output_code(issue))])
               }
             Err(_) => report("holder-input-invalid", [])
           }
@@ -1120,8 +1290,9 @@ fn serve_holder_output(
     runtime,
     request,
     store,
+    failed_cleanups,
     payloads,
-    required_int(matches, "holder-release-failures"),
+    resources.release_failures,
   )
   ignore(transfer_journal.close())
   ignore(transfer.close())
@@ -1136,6 +1307,7 @@ fn settle_holder_cleanup(
   runtime : @runtime.NativeRemoteRuntime,
   request : @remote.DispatchRequest,
   store : @publication_store.Store,
+  failed_cleanups : Array[@resident_host.ResidentOutputIssue],
   payloads : Array[@payload.PublicationPayloadRequest],
   injected_release_failures : Int,
 ) -> Unit {
@@ -1148,6 +1320,17 @@ fn settle_holder_cleanup(
       current * 2
     }
   }
+  // Readers and sources a failed output kept are stopped first: the output
+  // cannot be released while they are open.
+  for issue in failed_cleanups {
+    wait_ms = 50
+    while !@resident_host.retry_resident_output_cleanup(issue) {
+      report("cleanup-pending", [("step", "output"), ("request_cid", identity)])
+      @slot.native_wait_milliseconds(wait_ms)
+      wait_ms = next_wait(wait_ms)
+    }
+  }
+  wait_ms = 50
   let mut injected = injected_release_failures
   let mut attempts = 0
   while true {
@@ -1336,6 +1519,18 @@ fn run_holder(
       })
     None => None
   }
+  // Everything the output needs is opened before execution. A holder that
+  // cannot open it ends without claiming, so nothing is left to clean up and
+  // the attempt stays startable.
+  let resources = match open_holder_output_resources(matches, environment) {
+    Ok(value) => value
+    Err(issue) => {
+      report("setup-failed", [("reason", issue)])
+      close_site_environment(environment)
+      ignore(slot.close())
+      stop("holder setup failed before claim")
+    }
+  }
   let result = @resident_host.execute_resident_attempt(
     environment.journal,
     execution,
@@ -1353,11 +1548,12 @@ fn run_holder(
       ])
       // The output stays owned by this holder's runtime until the
       // Coordinator releases it; the holder serves its output meanwhile.
-      serve_holder_output(matches, environment, executed)
+      serve_holder_output(resources, environment, executed)
       0
     }
     Err(issue) => {
       report("execute-failed", [("reason", host_code(issue))])
+      close_holder_output_resources(resources)
       match issue {
         Runtime(@runtime.StartClaimLost(_))
         | Runtime(@runtime.StartCancelled) => 2
@@ -1440,6 +1636,7 @@ fn command() -> @argparse.Command {
       defaulted("holder-pause-ms", "0"),
       // Acceptance test hooks only.
       defaulted("holder-release-failures", "0"),
+      defaulted("holder-result-report-failures", "0"),
       defaulted("control-envelope-read-failures", "0"),
       defaulted("publication-capacity-bytes", "268435456"),
     ],
