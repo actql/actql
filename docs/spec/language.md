@@ -5442,19 +5442,28 @@ the AoA carrier name `id`, the compiler MUST restore that semantic name in the
 relation result. It MUST NOT require the author to route through carrier-only
 identity spellings.
 
-`reach` is the concise form of `traverse` with one start identity, no property
-filter, homogeneous edges, `min_hops: 0`, `emit: nodes`, and the authored
+`reach` is the concise form of `traverse` with a start selection, no property
+filter on traversed edges or nodes, homogeneous edges, `min_hops: 0`,
+`emit: nodes`, and the authored
 direction and `max_depth`. The compiler journals this expansion. There is no
 outgoing-direction default.
 
 <!-- requirement-block: reach.typed-result-and-semantic-alias -->
 The closed `reach` body admits only `start`, `direction` and `max_depth`.
-`start` is one explicit value admitted under the semantic node-ID contract;
-authored JSON cannot issue an opaque Ref. `max_depth` is a positive finite
+For compatibility, `start` can be one explicit value admitted under the
+semantic node-ID contract; authored JSON cannot issue an opaque Ref. It can
+also use the common Graph node selector: nonempty `ids`, a named Relation
+with an `id` field, or a node `where` predicate. A selector is not an implicit
+Source acquisition. The common selector's type, membership, deduplication,
+empty-selection and predicate rules apply before Reach expansion. A nullable
+Relation field is allowed when its non-null values match the semantic ID
+contract, but a selected NULL is an invalid identity. `max_depth` is a positive finite
 integer-valued number, not a resolved Host ceiling. The result follows the
 node-emitting traversal shape: `start_id` and `node_id` retain the semantic ID
-type, and `depth` is a non-null number holding the minimum hop count. The start
-node is included at depth zero. A declared semantic node name other than
+type, and `depth` is a non-null number holding the minimum hop count for each
+start/end pair. Every selected start node is included at depth zero; output is
+ordered by `start_id`, `node_id`, then `depth` using the common node-emission
+order. A declared semantic node name other than
 `node_id` is an additional alias of the reached `node_id`, not a renamed
 `start_id`; collisions with distinct fixed output columns MUST fail during
 check. No other node properties are implicitly projected. This output-shape
@@ -9103,7 +9112,7 @@ Meta := non-empty JSON object subject to Authoring Context (#authoring-context)
 EventsBody := true
 VectorsBody := true
 NormalizeGraphBody := true
-ReachBody := {start: WireValue, direction: in | out | both,
+ReachBody := {start: WireValue | GraphNodeSelector, direction: in | out | both,
   max_depth: positive finite integer-valued number}
 MatchNodesBody := {ids: [WireValue, ...], fields: [Field, ...]}
   | {where: Expression, fields: [Field, ...]}
@@ -9630,7 +9639,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:4b6f51d57ca1d3cb16e28e04eeef20bebee34d4d3b89271de84b982a8ac74005
+../../spec/contracts/actql-aoa.json# sha256:bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55

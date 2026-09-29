@@ -10,14 +10,20 @@ pub(all) enum ReachObligation {
 } derive(Eq, Debug)
 
 ///|
+pub(all) enum ReachStart {
+  SingleReachStart(@value.CheckedValue)
+  SelectedReachStarts(CheckedSelector)
+}
+
+///|
 struct CheckedReach {
   input : @carrier.Carrier
   source : @decode.Cursor
-  start : @value.CheckedValue
+  start : ReachStart
   direction : Direction
   max_depth : Double
   output : @carrier.Carrier
-  usage : Usage
+  usage : PredicateUsage
 }
 
 ///|
@@ -25,12 +31,16 @@ pub fn check_reach(
   source : @decode.Cursor,
   input : @carrier.Carrier,
   limits : Limits,
+  selector_relation? : @carrier.Carrier? = None,
+  parameters? : @parameter.Declarations? = None,
+  max_tokens? : Int = 0,
 ) -> Result[CheckedReach, MatchIssue] {
   try {
     if limits.max_work < 0 ||
       limits.max_nodes < 0 ||
       limits.max_depth < 0 ||
-      limits.max_text_bytes < 0 {
+      limits.max_text_bytes < 0 ||
+      max_tokens < 0 {
       fail(source, InvalidLimits)
     }
     let b : Budget = {
@@ -62,18 +72,42 @@ pub fn check_reach(
       fail(at, InvalidCount)
     }
     let at = decoded(@decode.required(root, "start"))
-    let before = b.nodes
-    let before_text = b.text
-    scan(b, at)
     let id = @carrier.graph_identity(g)
-    let start = match
-      @value.admit(id, at, {
-        max_nodes: before - b.nodes,
-        max_depth: limits.max_depth,
-        max_text_bytes: before_text - b.text,
-      }) {
-      Ok(v) => v
-      Err(e) => raise MatchStop(MatchIdentity(e))
+    let mut tokens = 0
+    let start = match @decode.view(at) {
+      ObjectValue(_) => {
+        let selected = match
+          check_selector(at, input, selector_relation, parameters, {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+            max_tokens,
+          }) {
+          Ok(v) => v
+          Err(e) => raise MatchStop(e)
+        }
+        b.work -= selected.usage.work
+        b.nodes -= selected.usage.nodes
+        b.text -= selected.usage.text_bytes
+        tokens = selected.usage.tokens
+        SelectedReachStarts(selected)
+      }
+      _ => {
+        let before = b.nodes
+        let before_text = b.text
+        scan(b, at)
+        let value = match
+          @value.admit(id, at, {
+            max_nodes: before - b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: before_text - b.text,
+          }) {
+          Ok(v) => v
+          Err(e) => raise MatchStop(MatchIdentity(e))
+        }
+        SingleReachStart(value)
+      }
     }
     let fields : Array[(@row.FieldName, @contract.Contract?)] = [
       (Unqualified("start_id"), Some(id)),
@@ -116,6 +150,7 @@ pub fn check_reach(
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
         text_bytes: limits.max_text_bytes - b.text,
+        tokens,
       },
     })
   } catch {
@@ -131,7 +166,7 @@ pub fn reach_source(c : CheckedReach) -> @decode.Cursor {
 }
 
 ///|
-pub fn reach_start(c : CheckedReach) -> @value.CheckedValue {
+pub fn reach_start(c : CheckedReach) -> ReachStart {
   c.start
 }
 
@@ -151,7 +186,7 @@ pub fn reach_output(c : CheckedReach) -> @carrier.Carrier {
 }
 
 ///|
-pub fn reach_usage(c : CheckedReach) -> Usage {
+pub fn reach_usage(c : CheckedReach) -> PredicateUsage {
   c.usage
 }
 
