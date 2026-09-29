@@ -74,3 +74,25 @@ response, terminal restart, and cleanup failure with retained owner. Public
 Remote HTTP, Embedded, and repository-external tarball acceptance can follow
 as a separate PR. D can use the fixed C boundary SHA to adapt Salesforce
 capture/recovery; D does not need to edit C's compiler or Host files.
+
+## Adjacent public Frontend handoff
+
+B's `feat/frontend-public-routing` at `8512d17d818e2d494011dfe6b95ed6242608500d`
+shares the same `4e5e5fea3de3902610b385e10f89a4539c4da706` base.
+Its current commits own `src/source_frontend`, query syntax/lowering, SDK
+wire/types, and the CLI; they do not edit C's compiler or installed Host.
+The agreed Host handoff is in B's
+`docs/reviews/2026-09-29-public-frontend-host-handoff.md`. C owns the
+installed source alias publication, the bounded lower-and-prepare bridge,
+`client-program-preparation.mjs`, and `embedded-local.mjs`. B must not add
+another Host checker, acquisition owner, or Run scheduler for this route.
+
+Merge B's pure Frontend and SDK change into `main` first, then rebase this
+branch once its API is fixed and connect the Host through the same checked
+preparation. Until then C's Source-to-Effect implementation and B's frontend
+change remain separate; no query-only source input is implicitly accepted by
+this branch. Alias generation/admission and query-only parameter failures
+are a distinct Host integration acceptance, not a reason to expand the first
+Source-to-Effect Program profile. If B needs a Host ABI adjustment before
+merging, agree on that exact bridge signature and test rather than editing
+the same Host files in parallel.
