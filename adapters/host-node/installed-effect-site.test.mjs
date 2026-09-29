@@ -5,6 +5,53 @@ import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
+test('Effect opening transfers physical custody before it can fail',
+  async () => {
+    let retained;
+    let opens = 0;
+    let cleanups = 0;
+    let pending = true;
+    const physical = {async close() {}, async cleanup() {
+      cleanups++;
+      if (cleanups === 1) return false;
+      pending = false;
+      return true;
+    }, cleanupPending: () => pending};
+    const site = createInstalledEffectSite({environmentWire: '{}',
+      prepareCaptured() { assert.fail('No completed computation'); },
+      prepareRecovered() { assert.fail('No automatic recovery'); }});
+    await assert.rejects(site.execute({
+      retainExecution(value) { retained = value; },
+      async openComputation({retainComputationOwner}) {
+        opens++;
+        assert.equal(retained.cleanupPending(), true);
+        retainComputationOwner(physical);
+        throw new Error('SourceEvidenceUnavailable');
+      },
+    }), {message: 'SourceEvidenceUnavailable'});
+    await retained.close();
+    assert.equal(await retained.cleanup(), false);
+    assert.equal(retained.cleanupPending(), true);
+    assert.equal(await retained.cleanup(), true);
+    assert.equal(retained.cleanupPending(), false);
+    assert.equal(opens, 1);
+  });
+
+test('Effect opening without a physical owner cannot claim cleanup completed',
+  async () => {
+    let retained;
+    const site = createInstalledEffectSite({environmentWire: '{}',
+      prepareCaptured() { assert.fail('No completed computation'); },
+      prepareRecovered() { assert.fail('No automatic recovery'); }});
+    await assert.rejects(site.execute({
+      retainExecution(value) { retained = value; },
+      async openComputation() { throw new Error('UnobservedPhysicalStop'); },
+    }), {message: 'UnobservedPhysicalStop'});
+    await retained.close();
+    assert.equal(await retained.cleanup(), false);
+    assert.equal(retained.cleanupPending(), true);
+  });
+
 test('installed Effect retains Compute before provider capture can fail',
   async () => {
     const execution = {async close() {}, async cleanup() { return true; },

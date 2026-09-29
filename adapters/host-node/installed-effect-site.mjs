@@ -114,7 +114,7 @@ function finishStatus(result) {
     ? 'failed_effect_set' : result.status, result});
 }
 
-function cleanupCustody(physical) {
+function cleanupCustody(physical, requirePhysical = false) {
   let stage;
   let disposed = false;
   let release;
@@ -141,6 +141,9 @@ function cleanupCustody(physical) {
     },
     async close() { await physical?.close(); },
     async cleanup() {
+      // Opening may have begun physical work before returning an owner.
+      // Missing custody is not evidence that the operation stopped.
+      if (requirePhysical && physical === undefined) return false;
       const cleaned = await physical?.cleanup() ?? true;
       if (cleaned === false || physical?.cleanupPending() === true) {
         return false;
@@ -156,7 +159,8 @@ function cleanupCustody(physical) {
       return true;
     },
     cleanupPending() {
-      return physical?.cleanupPending() === true ||
+      return requirePhysical && physical === undefined ||
+        physical?.cleanupPending() === true ||
         release !== undefined && !released ||
         !disposed && stage?.dispose !== undefined;
     },
@@ -204,16 +208,25 @@ export function createInstalledEffectSite({environmentWire,
       if (typeof facts.openComputation !== 'function') {
         fail('InvalidInstalledEffectComputationPort');
       }
+      const custody = cleanupCustody(undefined, true);
+      retainExecution(custody);
       facts.beginPhysicalWork?.();
-      const opened = await facts.openComputation();
+      const opened = await facts.openComputation(Object.freeze({
+        retainComputationOwner: owner => custody.attachPhysical(owner),
+      }));
       const {execution, checkedHost} = opened ?? {};
       if (execution === undefined || checkedHost === undefined) {
         fail('InvalidInstalledEffectComputationPort');
       }
       // A failed Preview or Store operation still belongs to the dispatch
       // cleanup owner. Retain before any provider callback can fail.
-      const custody = cleanupCustody(execution);
-      retainExecution(custody);
+      custody.attachPhysical(opened.cleanupOwner ?? execution);
+      // Acquired Runs can issue their Observation Set only after acquisition.
+      // The installed Host supplies this plan from the same checked owner.
+      if (opened.publicationPlan !== undefined) {
+        facts = Object.freeze({...facts,
+          publicationPlan: opened.publicationPlan});
+      }
       const stage = await prepareCaptured(Object.freeze({...facts,
         execution, checkedHost}));
       custody.attach(stage);

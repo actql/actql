@@ -35,6 +35,7 @@ import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan,
   acquiredEffectPublicationAdmission, acquiredEffectPublicationPlan} from
   './local-values-plan.mjs';
+import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
   './captured-duckdb-source.mjs';
@@ -2417,18 +2418,41 @@ test('one acquired Effect Program captures and computes from its owner',
         sourceEvidenceWire: canonicalJson(foreignSourceEvidence),
         captureStartedAt: '2026-09-29T00:00:00.000Z',
         captureCompletedAt: '2026-09-29T00:00:01.000Z'}));
-      const host = moon.clientProgramOpenCapturedLocalEffectHost(bound,
-        opened.capture.source(), registry, values, 1n, 0n, 0n, 0n,
-        fragment, ordered);
-      assert.ok(host);
-      const execution = await runCapturedEffectComputation(host);
+      let retained;
+      const instants = ['2026-09-29T00:00:00.000Z',
+        '2026-09-29T00:00:01.000Z'];
+      const computed = await openAcquiredEffectComputation({moon,
+        owner: bound, acquired: acquiredEffectPublicationAdmission({moon,
+          control: runtimeCore(moon).publicationControl, prepared,
+          compilation: compiled, allowed, definition,
+          authorityScopeCid: cid('a'), namespaceId: 'namespace-a',
+          storeAuthorityCid: cid('7'),
+          now: () => '2026-09-29T00:00:02.000Z'}),
+        sourceProfile: {
+          prepare(options) {
+            assert.equal(options.preparedEffect, prepared);
+            return preparedSource;
+          },
+          open() { return opened; },
+        }, registry, values, fragment, ordered,
+        sourceAccess: sourceOptions.sourceAccess,
+        now: () => instants.shift(),
+        retainComputationOwner(value) { retained = value; }});
+      const {execution, checkedHost: host} = computed;
+      assert.equal(computed.cleanupOwner, retained);
+      assert.equal(computed.publicationPlan.invocation.identity,
+        publication.invocation.identity);
       try {
         assert.equal(execution.status, 'host-tasks-completed');
         assert.equal(moon.clientProgramLocalEffectSourceCount(host), 1);
         assert.deepEqual(execution.completed.map(value => value.task), [1]);
         assert.deepEqual(execution.completed.map(value => value.outputRows),
           [1]);
-      } finally { await execution.close(); }
+      } finally {
+        await retained.close();
+        assert.equal(await retained.cleanup(), true);
+        assert.equal(retained.cleanupPending(), false);
+      }
     } finally { opened.close(); }
   });
 
