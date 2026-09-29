@@ -480,7 +480,7 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 68 |
 | Full route work/workspace assurance | 68 |
-| Path-scoped work/workspace assurance | 112 |
+| Path-scoped work/workspace assurance | 114 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -4012,10 +4012,13 @@ reads the producer and two consumer Named Results against independent ordered
 rows, and reclaims the inputs and outputs. The existing fused match path stays
 selected when no later Relation consumer requires a split. Portable matcher
 tests cover the same kernel logic on JS, Wasm, and native; the direct-view
-adapters add exact input binding and completion-input custody. View-specific
-exact/one-short and cancellation evidence is not yet registered in the
-production-route inventory, so this delivery does not claim complete resource
-assurance for every selected match path or every mixed Carrier failure mode.
+adapters add exact input binding and completion-input custody. Separate
+selected-view fixtures now exercise exact and one-short work/workspace limits,
+positive-progress cancellation, and cleanup for both match operations on JS,
+Wasm, and native. The standard Host delivers in-flight cancellation to each
+selected match task while the retained Graph remains owned, and the
+production-route inventory binds these checks to the selected entrypoints.
+This does not establish every mixed Carrier failure mode.
 
 The retained Relation path now also splits a checked finite-list
 `VEC.merge_rankings` occurrence from a later `filter` in the same Stage.

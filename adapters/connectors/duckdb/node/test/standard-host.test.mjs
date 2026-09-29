@@ -4614,6 +4614,27 @@ async function exerciseStrategyGraph(
     },
     fields: ['id', 'node_name'],
   }, {
+    name: 'retained-match-nodes-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{
+      from: 'g',
+      match_nodes: {
+        where: "node_name = 'node-39'",
+        fields: ['id', 'node_name'],
+      },
+      as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'match-edges-in-flight',
     rows: 40,
     step: {
@@ -4621,6 +4642,27 @@ async function exerciseStrategyGraph(
       match_edges: {fields: ['src', 'dst', 'weight']},
       as: 'out',
     },
+    fields: ['src', 'dst', 'weight'],
+  }, {
+    name: 'retained-match-edges-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{
+      from: 'g',
+      match_edges: {
+        where: 'weight > 10',
+        fields: ['src', 'dst', 'weight'],
+      },
+      as: 'out',
+    }],
     fields: ['src', 'dst', 'weight'],
   }, {
     name: 'match-edges-predicate-in-flight',
