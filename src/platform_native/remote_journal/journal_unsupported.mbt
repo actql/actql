@@ -180,3 +180,20 @@ pub fn Journal::claim_start(
 ) -> Result[NativeRemoteStartClaim, NativeRemoteJournalIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn Journal::retain_dispatch_envelope(
+  _self : Journal,
+  _request : @remote.DispatchRequest,
+  _envelope : String,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::dispatch_envelope(
+  _self : Journal,
+  _attempt_identity : String,
+) -> Result[String?, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}

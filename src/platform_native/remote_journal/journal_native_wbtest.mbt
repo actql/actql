@@ -839,3 +839,42 @@ test "native start claim and cancellation race on the Accepted state" {
   assert_true(journal.close())
   assert_true(canceller.close())
 }
+
+///|
+test "native journal keeps one exact dispatch envelope per attempt" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/remote-envelope-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let journal = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  let request = test_request("dispatch-envelope")
+  let key = @remote.dispatch_request_attempt_identity(request).unwrap()
+  assert_eq(journal.dispatch_envelope(key).unwrap(), None)
+  journal.retain_dispatch_envelope(request, "{\"envelope\":1}").unwrap()
+  journal.retain_dispatch_envelope(request, "{\"envelope\":1}").unwrap()
+  assert_true(
+    journal.retain_dispatch_envelope(request, "{\"envelope\":2}")
+    is Err(StateCollision),
+  )
+  let reader = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  assert_eq(reader.dispatch_envelope(key).unwrap(), Some("{\"envelope\":1}"))
+  assert_true(journal.close())
+  assert_true(reader.close())
+}

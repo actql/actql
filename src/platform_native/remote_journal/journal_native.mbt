@@ -744,6 +744,76 @@ pub fn Journal::claim_start(
 }
 
 ///|
+/// Durably keep the exact dispatch envelope a resident Site admitted (the
+/// dispatch request, its input binding and its run materials), keyed by the
+/// attempt, before the dispatch is accepted. The executing process reads the
+/// same bytes back; it never fetches them again. Keeping identical bytes again
+/// is idempotent; different bytes for the same attempt are refused.
+pub fn Journal::retain_dispatch_envelope(
+  self : Journal,
+  request : @remote.DispatchRequest,
+  envelope : String,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = match @remote.dispatch_request_attempt_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let body = @utf8.encode(envelope)
+  match self.begin_mutation(true) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match self.database.read("site_dispatch_envelope", key) {
+    Ok(value) => {
+      ignore(self.database.rollback())
+      return if value.body == body { Ok(()) } else { Err(StateCollision) }
+    }
+    Err(@sqlite.NotFound) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.insert("site_dispatch_envelope", key, body) {
+    Ok(0L) => ()
+    Ok(_) | Err(@sqlite.Collision) => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.commit() {
+    Ok(_) => Ok(())
+    Err(issue) => {
+      ignore(self.database.rollback())
+      Err(Physical(issue))
+    }
+  }
+}
+
+///|
+/// The dispatch envelope kept for one attempt identity, if any.
+pub fn Journal::dispatch_envelope(
+  self : Journal,
+  attempt_identity : String,
+) -> Result[String?, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  match self.database.read("site_dispatch_envelope", attempt_identity) {
+    Ok(value) => Ok(Some(@utf8.decode_lossy(value.body)))
+    Err(@sqlite.NotFound) => Ok(None)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
 pub fn Journal::commit_transition(
   self : Journal,
   transition : @remote.DispatchTransition,
