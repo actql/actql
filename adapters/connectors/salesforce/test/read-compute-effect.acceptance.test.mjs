@@ -373,6 +373,34 @@ test('a failure before the capture completes leaves no answerable Checkpoint',
     assert.equal(setup.writes().length, 0);
   });
 
+test('a missing or altered durable capture is refused before any write, never refilled',
+  async t => {
+    for (const kind of ['missing', 'altered']) {
+      const setup = await readComputeEffectInstallation(t);
+      const first = await setup.openHost();
+      const execution = await heldForApproval(setup, first,
+        `rce-capture-${kind}`);
+      await first.close();
+      const second = await setup.openHost();
+      await approveHeldSet(second, execution);
+      await second.close();
+      // While stopped, one captured input or dependency body is damaged.
+      await setup.damageCapture(kind);
+      const queries = setup.queries();
+      const {state} = await resumed(setup, execution);
+      // Refused before sending: the Source is not read again to refill it,
+      // and nothing is written.
+      assert.notEqual(state.status, 'succeeded', kind);
+      assert.equal(setup.queries(), queries, kind);
+      assert.equal(setup.writes().length, 0, kind);
+      assert.deepEqual(setup.org.records(), [
+        {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1'},
+        {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2'},
+        {Id: 'a00000000000003', Name: 'record-3', External_Key__c: 'key-3'},
+      ], kind);
+    }
+  });
+
 // --- Embedded Local: each step is its own process, so each is a restart ----
 
 // Submit on Embedded; not being connected is reported as such.

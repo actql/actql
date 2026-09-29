@@ -52,6 +52,7 @@ Expected values are written by hand in `read-compute-effect.fixture.mjs`:
 | Reply lost after the org applied the second write | Remote HTTP | That row stays unknown and is never resent. The Run is `needs_reconciliation`. The org shows both rows applied, and a restart sends nothing. |
 | Source read denied, or deferred (delegated), after publication | Remote HTTP | Refused before any provider request: no describe, query, target read or write, and no Checkpoint. Read deferral is not supported on this path. |
 | Failure before the capture completes (every source query answered 503) | Remote HTTP | The Run fails with no answerable Checkpoint and no write. A restart neither re-acquires nor writes. |
+| Durable capture missing or altered while stopped, after approval | Remote HTTP | Refused before any write; the Source is not queried again to refill it, and the org is unchanged. The damaged object is one the Store's own `effect-capture` holding manifest names. |
 | Halt: serial rows, the second of three rejected definitively | Remote HTTP | Applied, then failed, and the third never sent. The Run fails. Each row's outcome is kept, and a restart sends no row again. |
 | Continue: serial rows, the second of three rejected definitively | Remote HTTP | Applied, failed, then applied: each row sent once. The Run fails. Each row's outcome is kept, and a restart sends no row again. |
 
@@ -83,6 +84,22 @@ Expected values are written by hand in `read-compute-effect.fixture.mjs`:
     Source queries apart from target check reads.
 
 ## Conditions shared with the common side
+
+The common side's contract difference (PR #53 comment, "upstream dependency
+inventory") matches these conditions:
+- the checked owner selects the dependency closure;
+- the bodies, Captured Run and Preview are durable before the approval wait
+  is published;
+- limits are checked at issuance and recovery;
+- a missing, duplicate, mismatched or cyclic dependency is refused, never
+  refilled;
+- cleanup owners and unknown-write evidence are kept.
+
+**Open request to the common side: an observable for recomputation.** Source
+re-acquisition is counted through Source queries. A recomputation from the
+retained input, however, produces the same output and no provider request.
+D cannot see it from the public path, so D asks for a Host diagnostic (for
+example through the existing `observe` hook) that a test can count.
 
 - After a restart:
   - no Source re-acquisition or recomputation;

@@ -7,7 +7,8 @@
 import assert from 'node:assert/strict';
 import {execFile, execFileSync} from 'node:child_process';
 import {createHash, generateKeyPairSync, sign} from 'node:crypto';
-import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readdir, readFile, rm, unlink, writeFile} from
+  'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
@@ -299,7 +300,44 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
 
   const count = predicate => org.seen.filter(predicate).length;
   const prefix = '/services/data/v62.0/';
+  // The Store objects that the durable Effect capture holds (the captured
+  // input and its dependency bodies), found through the Store's own
+  // physical holding manifests, never by guessing file names.
+  const captureObjects = async () => {
+    const found = [];
+    const walk = async directory => {
+      for (const entry of await readdir(directory, {withFileTypes: true})) {
+        const path = join(directory, entry.name);
+        if (entry.isDirectory()) await walk(path);
+        else if (entry.name.endsWith('.json') &&
+            directory.includes('physical-holdings')) {
+          const holding = JSON.parse(await readFile(path, 'utf8'));
+          if (holding.namespace !== 'effect-capture') continue;
+          const store = directory.slice(0,
+            directory.indexOf('physical-holdings'));
+          for (const object of holding.objects) {
+            found.push(join(store, 'objects', object.cid.slice(7)));
+          }
+        }
+      }
+    };
+    await walk(hostRoot);
+    return found;
+  };
+  // Remove or alter one durable capture object while the Host is stopped.
+  const damageCapture = async kind => {
+    const [path] = await captureObjects();
+    assert.ok(path, 'no durable Effect capture object to damage');
+    if (kind === 'missing') {
+      await unlink(path);
+    } else {
+      const bytes = await readFile(path);
+      bytes[bytes.length - 1] ^= 0x01;
+      await writeFile(path, bytes);
+    }
+  };
   return {org, root, mappingRef, openHost, writeEffectProfile, embedded,
+    captureObjects, damageCapture,
     program: options => readComputeEffectProgram(mappingRef, options),
     // Source acquisitions (queries), target check reads, and writes are
     // counted apart.
