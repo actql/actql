@@ -1,0 +1,66 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/remote_resident_host"
+
+import {
+  "actql/actql/execution_site",
+  "actql/actql/pipeline_check_context",
+  "actql/actql/platform_native/http_client",
+  "actql/actql/platform_native/remote_client",
+  "actql/actql/platform_native/remote_journal",
+  "actql/actql/platform_native/remote_runtime",
+  "actql/actql/platform_native/remote_values_host",
+  "actql/actql/platform_native/runtime_bundle",
+  "actql/actql/remote_resident_site",
+  "actql/actql/remote_site_protocol",
+  "actql/actql/run_publication_host",
+}
+
+// Values
+pub fn accept_resident_dispatch(@remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, @remote_resident_site.ResidentAcceptedQueue, ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch, String) -> Result[ResidentAcceptance, ResidentHostIssue]
+
+pub fn execute_resident_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, String, String, String, ((String) -> Bool)?) -> Result[(@remote_runtime.NativeRemoteRuntime, @remote_runtime.NativeRemoteRuntimeCompletion), ResidentHostIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum ResidentAcceptance {
+  Accepted(String, @remote_site_protocol.DispatchRequest)
+  Refused(@remote_resident_site.ResidentDispatchRefusal)
+}
+
+pub(all) struct ResidentExecution {
+  site : @execution_site.ExecutionSite
+  active_runtime : @runtime_bundle.NativeActiveRuntimeBinding
+  operation_capability_cid : String
+  issuer_capability_cid : String
+  bundles : @runtime_bundle.NativeRuntimeBundleStore
+  budgets : Array[@remote_site_protocol.RemoteDispatchBudget]
+  registry_body : String
+  values_body : String
+  fixed_ms : Int64
+  per_row_ms : Int64
+  per_wire_byte_ms : Int64
+  per_pair_ms : Int64
+  limits : @remote_values_host.NativeRemoteValuesTaskLimits
+}
+
+pub(all) enum ResidentHostIssue {
+  Journal(@remote_journal.NativeRemoteJournalIssue)
+  Client(@remote_client.NativeRemoteClientIssue)
+  Protocol(@remote_site_protocol.DispatchIssue)
+  EnvelopeMissing
+  Refused(@remote_resident_site.ResidentDispatchRefusal)
+  Values(@remote_values_host.NativeRemoteValuesHostIssue)
+  Runtime(@remote_runtime.NativeRemoteRuntimeIssue)
+}
+
+pub(all) struct ResidentRunAdmission {
+  expressions : @pipeline_check_context.ExpressionProfiles
+  operations : @pipeline_check_context.PureOperationProfiles
+  manifests : @run_publication_host.ClientCompilationManifests
+  limits : @run_publication_host.ClientValuesRunMaterialsLimits
+}
+
+// Type aliases
+
+// Traits

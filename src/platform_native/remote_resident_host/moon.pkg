@@ -1,0 +1,15 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/execution_site" @site,
+  "actql/actql/pipeline_check_context" @context,
+  "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/remote_client" @client,
+  "actql/actql/platform_native/remote_journal" @journal,
+  "actql/actql/platform_native/remote_runtime" @runtime,
+  "actql/actql/platform_native/remote_values_host" @values,
+  "actql/actql/platform_native/runtime_bundle" @bundle,
+  "actql/actql/remote_resident_site" @resident,
+  "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/run_publication_host" @host,
+}
