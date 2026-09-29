@@ -40,7 +40,7 @@ for (const [source, destination] of [
   await writeFile(join(root, destination), await readFile(join(repository, source)));
 }
 await mkdir(join(root, 'sga-source-fixtures'));
-for (const name of ['normalize-rows', 'mean-graphs']) {
+for (const name of ['normalize-rows', 'mean-graphs', 'traverse-paths']) {
   for (const suffix of ['named.aql', 'expected-results.json']) {
     const file = `${name}.${suffix}`;
     await writeFile(join(root, 'sga-source-fixtures', file),

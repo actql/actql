@@ -96,6 +96,13 @@ test('graph_bounds retains two named Results without inventing an order', () => 
     fixture('graph-bounds.named.aql'))), JSON.parse(expected));
 });
 
+test('traverse paths retain a Relation seed and semantic edge identities', () => {
+  const expected = fixture('traverse-paths.expected-program.json');
+  assert.equal(jsonAdmissionDiagnostic(expected), '');
+  assert.deepEqual(JSON.parse(structuralToJson(
+    fixture('traverse-paths.named.aql'))), JSON.parse(expected));
+});
+
 const envelope = body => `AQL '0.1'; PROGRAM 'roles' { STAGE s {
   INPUT g = {"carrier":"graph"}; INPUT target = {"carrier":"graph"};
   DATA output = ${body}; RESULT r = {"from":"output"};

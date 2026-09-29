@@ -36,6 +36,11 @@ independently authored input lists B before A, while the expected Result is A,
 B. This checks that Frontend lowering adds no extra Program step and does not
 make Result ordering implicit. Physical task boundaries require separate
 planner and packed execution evidence.
+`traverse-paths.named.aql` uses a Relation selector for a bounded one-hop
+Graph path. The independent Program keeps the seed as one producer, and the
+Result fixture expects the semantic string IDs, node sequence, and closed
+`{src, dst, rel}` edge identity with an explicit null label. It declares no
+extra sort or materialization.
 `degree-rows.named.aql` computes out-degree from a Graph with two edges from A.
 The authored sort fixes A, B, C order; the independent Result fixture expects
 degrees 2, 0, 0 and keeps the `node`/`degree` schema from the existing contract.
@@ -44,14 +49,14 @@ the node-count violation before A's degree violation; the second is empty at
 inclusive limits. The independently authored expectations include a nullable
 `node_id` for whole-graph violations. Neither DATA expression adds a sort or
 Result order declaration.
-The normalize-rows expectation passed packed Local and HTTP execution from
-named source. The other named fixtures still need independent runtime
-acceptance. Separate small source cases have passed the common checker for
-reach/subgraph, diff/apply and mean. Components still needs its ordinary
-capacity evidence. Degree-rows passes preparation but its packed Run failed
-before publication; graph-bounds passes preparation but was rejected at Run
-compilation. These are distinct from the former Result transformation gap,
-which is connected for normalize-rows.
+The normalize-rows and mean-graphs expectations passed packed Local and HTTP
+execution from named source. Traverse-paths passed packed Local; HTTP is
+verified separately when the standard packed job runs with this fixture.
+The remaining named fixtures still need independent runtime acceptance.
+Common preparation admits reach/subgraph, diff/apply and components, but
+degree-rows and components currently end before publication and graph-bounds
+is rejected during Run compilation. These are distinct from the former Result
+transformation gap, which is connected for normalize-rows.
 The distribution Client job runs `scripts/sga-surface-checker.test.mjs`
 against common preparation. It admits the four source-free Graph fixtures that
 currently prepare and rejects a Relation passed to a Graph-only operation and

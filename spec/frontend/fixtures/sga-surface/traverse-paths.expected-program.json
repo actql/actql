@@ -1,0 +1,19 @@
+{
+  "version": "actql/0.1", "id": "sga.traverse_paths",
+  "stages": [{
+    "id": "main", "inputs": {},
+    "steps": [
+      {"values": {"schema": {"id": {"type": "string", "nullable": false}}, "rows": [{"id": "A"}, {"id": "B"}]}, "as": "nodes"},
+      {"values": {"schema": {"src": {"type": "string", "nullable": false}, "dst": {"type": "string", "nullable": false}}, "rows": [{"src": "A", "dst": "B"}]}, "as": "edges"},
+      {"values": {"schema": {"id": {"type": "string", "nullable": false}}, "rows": [{"id": "A"}]}, "as": "seeds"},
+      {"graph": {"nodes": {"from": "nodes", "id": "id", "fields": []}, "edges": {"from": "edges", "source": "src", "target": "dst", "fields": []}}, "as": "g"},
+      {"from": "g", "traverse": {"start": {"from": "seeds", "id": "id"}, "direction": "out", "min_hops": 1, "max_hops": 2, "max_output_rows": 4, "emit": "paths"}, "as": "paths"}
+    ],
+    "results": {
+      "answer": {"from": "paths", "fields": ["start_id", "end_id", "hop_count", "node_ids", "edge_ids"]}
+    }
+  }],
+  "results": {
+    "answer": {"from": {"stage": "main", "result": "answer"}}
+  }
+}

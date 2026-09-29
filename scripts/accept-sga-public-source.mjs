@@ -30,7 +30,7 @@ if (mode === 'remote' && (!options.endpoint || !options.token)) {
 
 const cases = ['components', 'reach-subgraph', 'diff-apply',
   'mean-graphs', 'graphs-equal', 'normalize-rows', 'degree-rows',
-  'graph-bounds'];
+  'graph-bounds', 'traverse-paths'];
 if (requestedCase && !cases.includes(requestedCase)) {
   throw new Error(`Unknown SGA acceptance case: ${requestedCase}`);
 }
