@@ -1,5 +1,5 @@
 // The transport Client delegates admission, state and delivery to the Host.
-import {checkpointLimits, isClientSubmitRejection, validCancellation, validCheckpointPage,
+import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCancellation, validCheckpointPage,
   validCheckpointReview, validClientAdmission, validClientConnection,
   validClientProfile, validDeliveryAttemptLookup, validRequestCancellation,
   validRequestLookup,
@@ -557,10 +557,16 @@ async function connectSelected(selected, port) {
     requestedDurability: selected.wire.durability ?? null,
     aql: (text, options = {}) => {
       if (typeof text !== 'string' || !text ||
-          !['json', 'yaml'].includes(options.format)) {
+          !clientSourceFormats.includes(options.format)) {
         return Promise.reject(new ClientError('InvalidAqlDocument'));
       }
-      return submit('aql', {text, format: options.format}, options);
+      if (options.parameterDeclarations !== undefined &&
+          !['aql-text', 'sql'].includes(options.format)) {
+        return Promise.reject(new ClientError('InvalidAqlDocument'));
+      }
+      return submit('aql', {text, format: options.format,
+        ...(options.parameterDeclarations === undefined ? {} :
+          {parameterDeclarations: options.parameterDeclarations})}, options);
     },
     start: (program, options = {}) => {
       if (program === null || typeof program !== 'object' ||
