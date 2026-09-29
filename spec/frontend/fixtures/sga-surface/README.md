@@ -33,8 +33,9 @@ Program and Result fixtures expect one `equal: true` row and no implicit sort.
 `normalize-rows.named.aql` normalizes a Graph, converts it to Relation rows,
 and explicitly sorts the rows before declaring an ordered Named Result. Its
 independently authored input lists B before A, while the expected Result is A,
-B. This checks that Graph composition does not silently add a physical boundary
-or make Result ordering implicit.
+B. This checks that Frontend lowering adds no extra Program step and does not
+make Result ordering implicit. Physical task boundaries require separate
+planner and packed execution evidence.
 `degree-rows.named.aql` computes out-degree from a Graph with two edges from A.
 The authored sort fixes A, B, C order; the independent Result fixture expects
 degrees 2, 0, 0 and keeps the `node`/`degree` schema from the existing contract.
