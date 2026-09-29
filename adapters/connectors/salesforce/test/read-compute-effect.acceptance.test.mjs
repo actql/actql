@@ -245,45 +245,77 @@ test('a reply lost after the org applied the write is unknown and never resent',
     assert.equal(setup.writes().length, 2);
   });
 
-test('halt: a failed row stops the Set after the earlier row was applied',
+// Serial rows over four records, three of them targets, in Id order: the
+// org rejects the second write definitively (400). The Collections route is
+// not used by the installed Effect; these rows are single-record writes.
+async function serialRejected(t, requestId, options) {
+  const setup = await readComputeEffectInstallation(t, {
+    records: fourRecords, org: {rejectWrites: [2]}});
+  const first = await setup.openHost();
+  const execution = await heldForApproval(setup, first, requestId, options);
+  await first.close();
+  const second = await setup.openHost();
+  await approveHeldSet(second, execution);
+  await second.close();
+  const {host, state} = await resumed(setup, execution);
+  return {setup, execution, host, state};
+}
+
+// A restart settles nothing new and sends no row again.
+async function restartSendsNothing(setup, execution, host, status) {
+  const sent = setup.writes().map(write => targetOf(write));
+  const records = setup.org.records();
+  await host.close();
+  const again = await setup.openHost();
+  const attached = await (await again.as('owner-token')).attach(execution.ref);
+  assert.equal((await attached.status()).status, status);
+  assert.deepEqual(setup.writes().map(write => targetOf(write)), sent);
+  assert.deepEqual(setup.org.records(), records);
+}
+
+test('halt: applied, then a definite failure, and the rest never sent',
   async t => {
-    // Three targets; the org rejects the second write.
-    const setup = await readComputeEffectInstallation(t, {
-      records: fourRecords, org: {rejectWrites: [2]}});
-    const first = await setup.openHost();
-    const execution = await heldForApproval(setup, first, 'rce-halt');
-    await first.close();
-    const second = await setup.openHost();
-    await approveHeldSet(second, execution);
-    await second.close();
-    const {state} = await resumed(setup, execution);
+    const {setup, execution, host, state} = await serialRejected(t,
+      'rce-halt');
     assert.equal(state.status, 'failed', JSON.stringify(state));
-    // First applied, second refused, third never sent.
+    // Rows in send order: the first applied, the second refused, the third
+    // never sent.
     const writes = setup.writes();
     assert.equal(writes.length, 2);
-    const names = setup.org.records().map(record => record.Name);
-    assert.equal(names.filter(name => name.endsWith('-processed')).length, 1);
-    assert.equal(names.filter(name => name.startsWith('record-')).length, 3);
+    const [appliedRow, failedRow] = writes.map(write => targetOf(write));
+    assert.equal(writes[0].body, expectedBodies[appliedRow]);
+    const names = new Map(setup.org.records().map(record =>
+      [record.Id, record.Name]));
+    assert.equal(names.get(appliedRow), JSON.parse(writes[0].body).Name);
+    assert.ok(names.get(failedRow).startsWith('record-'));
+    const unsent = ['a00000000000001', 'a00000000000003', 'a00000000000004']
+      .filter(id => id !== appliedRow && id !== failedRow);
+    assert.equal(unsent.length, 1);
+    assert.ok(names.get(unsent[0]).startsWith('record-'));
+    assert.equal(names.get('a00000000000002'), 'record-2');
+    await restartSendsNothing(setup, execution, host, 'failed');
   });
 
-test('continue: applied and failed rows are settled independently',
+test('continue: applied, a definite failure, then the rest applied',
   async t => {
-    // Three independent targets; the org rejects the second.
-    const setup = await readComputeEffectInstallation(t, {
-      records: fourRecords, org: {rejectWrites: [2]}});
-    const first = await setup.openHost();
-    const execution = await heldForApproval(setup, first, 'rce-continue',
-      {onItemFailure: 'continue'});
-    await first.close();
-    const second = await setup.openHost();
-    await approveHeldSet(second, execution);
-    await second.close();
-    const {state} = await resumed(setup, execution);
+    const {setup, execution, host, state} = await serialRejected(t,
+      'rce-continue', {onItemFailure: 'continue'});
     assert.equal(state.status, 'failed', JSON.stringify(state));
-    // Every row was sent once: two applied, one refused, none resent.
-    assert.equal(setup.writes().length, 3);
-    assert.equal(setup.org.records().filter(record =>
-      record.Name.endsWith('-processed')).length, 2);
+    // Every target sent once, in order: applied, refused, applied.
+    const writes = setup.writes();
+    assert.equal(writes.length, 3);
+    const order = writes.map(write => targetOf(write));
+    assert.deepEqual([...order].sort(),
+      ['a00000000000001', 'a00000000000003', 'a00000000000004']);
+    const names = new Map(setup.org.records().map(record =>
+      [record.Id, record.Name]));
+    assert.equal(names.get(order[0]), JSON.parse(writes[0].body).Name);
+    assert.ok(names.get(order[1]).startsWith('record-'));
+    assert.equal(names.get(order[2]), JSON.parse(writes[2].body).Name);
+    for (const write of writes) {
+      assert.equal(write.body, expectedBodies[targetOf(write)]);
+    }
+    await restartSendsNothing(setup, execution, host, 'failed');
   });
 
 test('a denied or deferred source read is refused before any provider request',

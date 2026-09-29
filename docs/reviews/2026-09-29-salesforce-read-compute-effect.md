@@ -52,8 +52,8 @@ Expected values are written by hand in `read-compute-effect.fixture.mjs`:
 | Reply lost after the org applied the second write | Remote HTTP | That row stays unknown and is never resent. The Run is `needs_reconciliation`. The org shows both rows applied, and a restart sends nothing. |
 | Source read denied, or deferred (delegated), after publication | Remote HTTP | Refused before any provider request: no describe, query, target read or write, and no Checkpoint. Read deferral is not supported on this path. |
 | Failure before the capture completes (every source query answered 503) | Remote HTTP | The Run fails with no answerable Checkpoint and no write. A restart neither re-acquires nor writes. |
-| Halt: the second of three rows is rejected | Remote HTTP | First applied, second failed, third never sent. The Run fails. |
-| Continue: the second of three rows is rejected | Remote HTTP | Every row sent once; two applied, one failed; none resent. The Run fails. |
+| Halt: serial rows, the second of three rejected definitively | Remote HTTP | Applied, then failed, and the third never sent. The Run fails. Each row's outcome is kept, and a restart sends no row again. |
+| Continue: serial rows, the second of three rejected definitively | Remote HTTP | Applied, failed, then applied: each row sent once. The Run fails. Each row's outcome is kept, and a restart sends no row again. |
 
 ## Findings for the Salesforce side
 
@@ -71,8 +71,10 @@ Expected values are written by hand in `read-compute-effect.fixture.mjs`:
     defaults to serial rows.
   - So `continue` sends single-record writes one by one. Each row is still
     settled independently.
-  - Collections partial results are covered by the provider tests
-    (`effect-run.integration`), not through the installed Effect.
+  - Collections partial results stay covered by the provider tests
+    (`effect-run.integration`). They are **not** verified through the public
+    Read→Compute→Effect path. Wiring Collections into the installed Effect
+    is a separate task.
 - **Source capture.**
   - It lives only in its process and is closed after compute
     (`client-dispatch-owner.mjs`).
