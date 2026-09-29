@@ -1,11 +1,11 @@
 // Evidence and scratch ownership for this packed-query acceptance only.
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {appendFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {basename, join} from 'node:path';
 
 export async function withPackedQueryEvidence({scratch, revision,
-  keepArtifacts = false}, body) {
+  keepArtifacts = false, githubOutput}, body) {
   mkdirSync(scratch, {recursive: true});
   const directory = mkdtempSync(join(scratch, 'public-query-evidence-'));
   const root = join(directory, 'artifacts');
@@ -17,6 +17,12 @@ export async function withPackedQueryEvidence({scratch, revision,
   persist();
   let failure;
   try {
+    // Publish before any child runs: failed and timed-out runs need the same
+    // evidence upload as successful runs. Never publish the artifact directory.
+    if (githubOutput !== undefined) {
+      if (/[\r\n]/u.test(directory)) throw new Error('InvalidEvidenceDirectory');
+      appendFileSync(githubOutput, `evidence-directory=${directory}\n`);
+    }
     await body({root, directory,
       recordTarball(path) {
         summary.tarballs.push({name: basename(path), sha256:

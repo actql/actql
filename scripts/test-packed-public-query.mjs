@@ -12,6 +12,7 @@ const revision = spawnSync('git', ['rev-parse', 'HEAD'], {cwd: repository,
   encoding: 'utf8'});
 if (revision.status !== 0) throw new Error('PackedQueryRevisionUnavailable');
 await withPackedQueryEvidence({scratch, revision: revision.stdout.trim(),
+  githubOutput: process.env.GITHUB_OUTPUT,
   keepArtifacts: process.argv.includes('--keep-artifacts')},
 async ({root, directory, run: capture, recordTarball}) => {
 const environment = {...process.env, npm_config_cache: join(root, 'npm-cache')};

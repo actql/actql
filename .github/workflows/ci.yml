@@ -133,9 +133,16 @@ jobs:
       - name: Test packed Embedded Local Checkpoint and Named Result
         run: npm run check:packed-embedded-checkpoint
       - name: Test raw public SQL and Pipe through packed Local and HTTP
+        id: packed-query
         run: |
           node --test scripts/packed-query-evidence.test.mjs
           node scripts/test-packed-public-query.mjs
+      - name: Retain packed public query evidence
+        if: always() && steps.packed-query.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-query.outputs.evidence-directory }}
+          name: packed-public-query-${{ github.sha }}
       - name: Test Salesforce Site Catalog and bounded query acquisition
         run: npm run check:salesforce-site
       - name: Count actual Effect Compute calls across recovery

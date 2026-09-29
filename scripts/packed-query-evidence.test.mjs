@@ -16,7 +16,9 @@ for (const scenario of ['success', 'nonzero', 'timeout', 'keep']) {
     mkdirSync(sibling);
     writeFileSync(join(sibling, 'keep'), 'untouched');
     let directory;
+    const githubOutput = join(root, 'step-output');
     const action = withPackedQueryEvidence({scratch: root, revision: 'fixed-sha',
+      githubOutput,
       keepArtifacts: scenario === 'keep'}, async evidence => {
       directory = evidence.directory;
       const tarball = join(evidence.root, 'fixture.tgz');
@@ -30,6 +32,8 @@ for (const scenario of ['success', 'nonzero', 'timeout', 'keep']) {
     if (['nonzero', 'timeout'].includes(scenario)) {
       await assert.rejects(action, {code: 'PackedQueryCommandFailed'});
     } else await action;
+    assert.equal(readFileSync(githubOutput, 'utf8'),
+      `evidence-directory=${directory}\n`);
     const summary = JSON.parse(readFileSync(join(directory, 'summary.json')));
     assert.equal(summary.revision, 'fixed-sha');
     assert.equal(summary.status, ['nonzero', 'timeout'].includes(scenario)
@@ -56,16 +60,21 @@ for (const scenario of ['nonzero', 'timeout']) {
 test(`recorded ${scenario} remains a failing process exit`, () => {
   const root = mkdtempSync(new URL('exit-', scratch));
   try {
+    const githubOutput = join(root, 'step-output');
     const result = spawnSync(process.execPath, ['--input-type=module', '-e',
       `import {withPackedQueryEvidence} from ${JSON.stringify(
         new URL('./packed-query-evidence.mjs', import.meta.url).href)};
        await withPackedQueryEvidence({scratch: ${JSON.stringify(root)},
+         githubOutput: ${JSON.stringify(githubOutput)},
          revision: 'fixed'}, ({run}) => run(process.execPath,
            ['-e', ${JSON.stringify(scenario === 'timeout'
              ? 'setInterval(() => {}, 1000)' : 'process.exit(9)')}],
            {timeout: 500}));`], {encoding: 'utf8'});
     assert.notEqual(result.status, 0);
-    const evidence = join(root, readdirSync(root)[0]);
+    const evidence = readFileSync(githubOutput, 'utf8')
+      .trim().slice('evidence-directory='.length);
+    assert.equal(readFileSync(join(evidence, '001.stdout.log'), 'utf8'), '');
+    assert.equal(readFileSync(join(evidence, '001.stderr.log'), 'utf8'), '');
     const observation = JSON.parse(readFileSync(join(evidence, 'summary.json')))
       .commands[0];
     if (scenario === 'timeout') assert.equal(observation.error.code, 'ETIMEDOUT');

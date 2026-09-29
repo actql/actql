@@ -1,0 +1,37 @@
+name: Packed query evidence failure probe
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  failure-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    strategy:
+      fail-fast: false
+      matrix:
+        fault: [nonzero, timeout]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Inject a failing child (job must remain failed)
+        id: probe
+        env:
+          FAULT: ${{ matrix.fault }}
+        run: |
+          node --input-type=module <<'JS'
+          import {withPackedQueryEvidence} from './scripts/packed-query-evidence.mjs';
+          await withPackedQueryEvidence({scratch: process.env.RUNNER_TEMP,
+            revision: process.env.GITHUB_SHA, githubOutput: process.env.GITHUB_OUTPUT},
+            ({run}) => run(process.execPath, ['-e',
+              "console.log('probe stdout'); console.error('probe stderr');" +
+              (process.env.FAULT === 'timeout' ? 'setInterval(() => {}, 1000)' : 'process.exit(7)')],
+              {timeout: 1000}));
+          JS
+      - name: Retain failed invocation evidence
+        if: always() && steps.probe.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.probe.outputs.evidence-directory }}
+          name: packed-query-probe-${{ matrix.fault }}-${{ github.sha }}
