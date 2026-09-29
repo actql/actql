@@ -182,6 +182,15 @@ pub(all) struct ResidentExecution {
 }
 
 ///|
+/// One executed attempt whose output the holder's runtime owns.
+pub(all) struct ResidentExecuted {
+  runtime : @runtime.NativeRemoteRuntime
+  completion : @runtime.NativeRemoteRuntimeCompletion
+  request : @remote.DispatchRequest
+  result_definition_cid : String
+}
+
+///|
 /// Run one accepted attempt in the executing process. The kept envelope is
 /// read back and the Run rebuilt again from its materials, its lifetime is
 /// checked at the Site's clock, and the start is an exclusive claim by
@@ -195,10 +204,7 @@ pub fn execute_resident_attempt(
   claimant : String,
   now : String,
   executor_entry : ((String) -> Bool)?,
-) -> Result[
-  (@runtime.NativeRemoteRuntime, @runtime.NativeRemoteRuntimeCompletion),
-  ResidentHostIssue,
-] {
+) -> Result[ResidentExecuted, ResidentHostIssue] {
   let envelope = match journal.dispatch_envelope(attempt_identity) {
     Ok(Some(value)) => value
     Ok(None) => return Err(EnvelopeMissing)
@@ -264,7 +270,13 @@ pub fn execute_resident_attempt(
     None => ()
   }
   match runtime.start(request, binding) {
-    Ok(completion) => Ok((runtime, completion))
+    Ok(completion) =>
+      Ok({
+        runtime,
+        completion,
+        request,
+        result_definition_cid: executor.result_definition_cid(),
+      })
     Err(issue) => {
       ignore(runtime.close())
       Err(Runtime(issue))

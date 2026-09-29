@@ -9,6 +9,8 @@ import {
   "actql/actql/platform_native/executor_slot" @slot,
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/process_image",
+  "actql/actql/platform_native/publication_store",
+  "actql/actql/platform_native/remote_transfer_journal" @transfer_journal,
   "actql/actql/platform_native/remote_client" @client,
   "actql/actql/platform_native/remote_journal" @journal,
   "actql/actql/platform_native/remote_resident_host" @resident_host,

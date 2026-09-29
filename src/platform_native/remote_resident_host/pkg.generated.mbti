@@ -5,9 +5,12 @@ import {
   "actql/actql/execution_site",
   "actql/actql/pipeline_check_context",
   "actql/actql/platform_native/http_client",
+  "actql/actql/platform_native/publication_store",
   "actql/actql/platform_native/remote_client",
   "actql/actql/platform_native/remote_journal",
   "actql/actql/platform_native/remote_runtime",
+  "actql/actql/platform_native/remote_standard_host",
+  "actql/actql/platform_native/remote_transfer_journal",
   "actql/actql/platform_native/remote_values_host",
   "actql/actql/platform_native/runtime_bundle",
   "actql/actql/remote_resident_site",
@@ -18,7 +21,11 @@ import {
 // Values
 pub fn accept_resident_dispatch(@remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, @remote_resident_site.ResidentAcceptedQueue, ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch, String) -> Result[ResidentAcceptance, ResidentHostIssue]
 
-pub fn execute_resident_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, String, String, String, ((String) -> Bool)?) -> Result[(@remote_runtime.NativeRemoteRuntime, @remote_runtime.NativeRemoteRuntimeCompletion), ResidentHostIssue]
+pub fn deliver_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput, @publication_store.Store, @http_client.Client, @remote_transfer_journal.Journal, String, Int) -> Result[@remote_site_protocol.RemoteOutputResult, ResidentOutputIssue]
+
+pub fn execute_resident_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, String, String, String, ((String) -> Bool)?) -> Result[ResidentExecuted, ResidentHostIssue]
+
+pub fn plan_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput) -> Result[@remote_site_protocol.RemoteOutputPlan, ResidentOutputIssue]
 
 // Errors
 
@@ -27,6 +34,13 @@ pub(all) enum ResidentAcceptance {
   Accepted(String, @remote_site_protocol.DispatchRequest)
   Refused(@remote_resident_site.ResidentDispatchRefusal)
   AlreadyStarted(String)
+}
+
+pub(all) struct ResidentExecuted {
+  runtime : @remote_runtime.NativeRemoteRuntime
+  completion : @remote_runtime.NativeRemoteRuntimeCompletion
+  request : @remote_site_protocol.DispatchRequest
+  result_definition_cid : String
 }
 
 pub(all) struct ResidentExecution {
@@ -53,6 +67,19 @@ pub(all) enum ResidentHostIssue {
   Refused(@remote_resident_site.ResidentDispatchRefusal)
   Values(@remote_values_host.NativeRemoteValuesHostIssue)
   Runtime(@remote_runtime.NativeRemoteRuntimeIssue)
+}
+
+pub(all) enum ResidentOutputIssue {
+  OutputForeign
+  OutputUnavailable
+  OutputRouteRefused
+  OutputJournal(@remote_journal.NativeRemoteJournalIssue)
+  OutputRuntime(@remote_runtime.NativeRemoteRuntimeIssue)
+  OutputPlan(@remote_standard_host.NativeRemoteObservedOutputPlanIssue)
+  OutputPayloadStore(@publication_store.NativePublicationStoreIssue)
+  OutputPayload(@remote_standard_host.NativeRemoteStandardPayloadFailure)
+  OutputTransfer(@remote_standard_host.NativeRemoteStandardSiteComponentIssue)
+  OutputProtocol(@remote_site_protocol.DispatchIssue)
 }
 
 pub(all) struct ResidentRunAdmission {

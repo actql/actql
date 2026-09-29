@@ -148,6 +148,7 @@ priv struct SiteEnvironment {
   site : @site.ExecutionSite
   journal : @journal.Journal
   runtime_bundle_cid : String
+  sqlite_library : @sqlite.Library
 }
 
 ///|
@@ -307,6 +308,7 @@ fn open_site_environment(
     site,
     journal,
     runtime_bundle_cid: active.runtime_bundle_cid,
+    sqlite_library,
   }
 }
 
@@ -524,6 +526,7 @@ fn holder_arguments(
 ///|
 priv struct RunningHolder {
   child : @slot.NativeExecutorSlotChild
+  channel : @slot.NativeHolderChannel
   attempt : String
   request : @remote.DispatchRequest
   mut next_report_ms : UInt64
@@ -623,6 +626,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       Some(current) =>
         match current.child.wait(false) {
           Ok(Some(_)) => {
+            ignore(current.channel.close())
             ignore(queue.remove(current.attempt))
             holder = None
             unsettled.push(current)
@@ -668,11 +672,11 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                 "-" +
                 holders.to_string()
               match
-                slot.spawn_holder(
+                slot.spawn_holder_with_channel(
                   executable,
                   holder_arguments(attempt, claimant),
                 ) {
-                Ok(child) => {
+                Ok((child, channel)) => {
                   let request = match
                     fresh_journal(environment).map(journal => {
                       let envelope = journal.dispatch_envelope(attempt)
@@ -691,6 +695,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                     Some(value) => {
                       holder = Some({
                         child,
+                        channel,
                         attempt,
                         request: value,
                         next_report_ms: 0,
@@ -796,6 +801,18 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       }
       Ok(Some(@remote.Release(request))) => {
         backoff_ms = 0
+        // A live holder owns this output: it releases it and then ends.
+        let identity = @remote.dispatch_request_identity(request)
+        if holder is Some(current) &&
+          @remote.dispatch_request_identity(current.request) == identity {
+          if current.channel.send("release") {
+            report("release-relayed", [("request_cid", identity)])
+          } else {
+            report("release-unrelayed", [("request_cid", identity)])
+          }
+          ignore(journal.close())
+          continue
+        }
         match
           @client.acknowledge_status(journal, client, observation_url, request) {
           Ok(_) =>
@@ -806,11 +823,33 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             report("release-failed", [("reason", client_code(issue))])
         }
       }
-      Ok(Some(@remote.Plan(_))) | Ok(Some(@remote.Output(_))) => {
+      Ok(Some(@remote.Plan(output))) | Ok(Some(@remote.Output(output))) => {
         backoff_ms = 0
-        // Output handover between the holder and this process is not
-        // implemented yet; nothing is claimed or sent.
-        report("output-unavailable", [])
+        // Only the live holder of the dispatch owns its output; the
+        // operation is relayed to it unchanged.
+        let request = @remote.remote_poll_output_request(output)
+        let identity = @remote.dispatch_request_identity(request)
+        let intent = @remote.remote_poll_output_intent(output)
+        let (kind, envelope) = if operation is Ok(Some(@remote.Plan(_))) {
+          ("plan", @remote.remote_poll_output_plan_json(request, intent))
+        } else {
+          ("output", @remote.remote_poll_output_json(request, intent))
+        }
+        match (holder, envelope) {
+          (Some(current), Ok(body)) if @remote.dispatch_request_identity(
+              current.request,
+            ) ==
+            identity =>
+            if current.channel.send(kind + " " + body) {
+              report("output-relayed", [
+                ("operation", kind),
+                ("request_cid", identity),
+              ])
+            } else {
+              report("output-unavailable", [("request_cid", identity)])
+            }
+          _ => report("output-unavailable", [("request_cid", identity)])
+        }
       }
       Err(issue) => {
         // Transport and authentication failures back off; no attempt,
@@ -856,6 +895,207 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   ignore(client.close())
   ignore(slot.close())
   report("stopped", [])
+}
+
+///|
+fn authenticated_client(
+  matches : @argparse.Matches,
+  prefix : String,
+) -> @http.Client raise CommandStop {
+  let library = match @http.load_library(required(matches, "http-library")) {
+    Ok(value) => value
+    Err(_) => stop("HTTP library load failed")
+  }
+  let authentication : @http.NativeHttpAuthentication = match
+    (
+      optional(matches, prefix + "-cert"),
+      optional(matches, prefix + "-key"),
+      optional(matches, prefix + "-bearer-file"),
+    ) {
+    (Some(cert), Some(key), Some(bearer)) =>
+      MutualTlsAndBearer(cert, key, bearer)
+    (Some(cert), Some(key), None) => MutualTls(cert, key)
+    (None, None, Some(bearer)) => Bearer(bearer)
+    _ =>
+      stop(
+        prefix + " authentication needs a bearer file or a certificate and key",
+      )
+  }
+  match
+    library.create_authenticated_client(
+      required(matches, "ca"),
+      authentication,
+      required_int64(matches, "max-response-bytes"),
+      required_int(matches, "connect-timeout-ms"),
+      required_int(matches, "total-timeout-ms"),
+    ) {
+    Ok(value) => value
+    Err(_) => stop("HTTP client creation failed")
+  }
+}
+
+///|
+fn output_code(issue : @resident_host.ResidentOutputIssue) -> String {
+  match issue {
+    OutputForeign => "foreign"
+    OutputUnavailable => "unavailable"
+    OutputRouteRefused => "route-refused"
+    OutputJournal(_) => "journal"
+    OutputRuntime(_) => "runtime"
+    OutputPlan(_) => "plan"
+    OutputPayloadStore(_) => "payload-store"
+    OutputPayload(_) => "payload"
+    OutputTransfer(_) => "transfer"
+    OutputProtocol(_) => "protocol"
+  }
+}
+
+///|
+/// After execution the holder keeps its output and serves the Coordinator's
+/// output operations, relayed by the control process over the holder's
+/// standard input, until the output is released or the control process is
+/// gone (then the output is released and becomes unavailable).
+fn serve_holder_output(
+  matches : @argparse.Matches,
+  environment : SiteEnvironment,
+  executed : @resident_host.ResidentExecuted,
+) -> Unit raise CommandStop {
+  let runtime = executed.runtime
+  let request = executed.request
+  let coordinator_authority = required(matches, "coordinator-authority")
+  let control = authenticated_client(matches, "control")
+  let transfer = authenticated_client(matches, "transfer")
+  let observation_url = required(matches, "observation-url")
+  let destination_origin = required(matches, "transfer-origin")
+  let max_bytes = required_int64(matches, "max-bytes")
+  let max_record_bytes = required_int64(matches, "max-record-bytes")
+  let store = match
+    @publication_store.open_store(
+      environment.sqlite_library,
+      required(matches, "publication-root"),
+      required(matches, "publication-authority-cid"),
+      max_bytes,
+      required_int(matches, "max-transfers").to_int64(),
+      max_record_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => stop("publication Store open failed")
+  }
+  let transfer_journal = match
+    @transfer_journal.open_journal(
+      environment.sqlite_library,
+      required(matches, "transfer-journal"),
+      max_record_bytes,
+      65536,
+      1048576,
+      max_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => stop("Transfer journal open failed")
+  }
+  let site_key = required(matches, "site-key")
+  let site_generation = required_int(matches, "site-generation")
+  let identity = @remote.dispatch_request_identity(request)
+  let mut serving = true
+  while serving {
+    match @slot.native_read_holder_input(2097152) {
+      InputEnded => {
+        report("holder-control-gone", [("request_cid", identity)])
+        serving = false
+      }
+      InputInvalid => report("holder-input-invalid", [])
+      InputLine(line) =>
+        if line == "release" {
+          let mut released = false
+          for _attempt in 0..<8 {
+            match runtime.release(request) {
+              Ok(true) => {
+                released = true
+                break
+              }
+              Ok(false) => @slot.native_wait_milliseconds(50)
+              Err(_) => @slot.native_wait_milliseconds(50)
+            }
+          }
+          report("holder-released", [
+            ("request_cid", identity),
+            ("confirmed", released.to_string()),
+          ])
+          serving = false
+        } else if line.has_prefix("plan ") {
+          let envelope = line.unsafe_substring(start=5, end=line.length())
+          match @remote.admit_remote_poll_output_plan_json(envelope) {
+            Ok(output) =>
+              match
+                @resident_host.plan_resident_output(
+                  executed,
+                  environment.journal,
+                  coordinator_authority,
+                  site_key,
+                  site_generation,
+                  output,
+                ) {
+                Ok(plan) =>
+                  match
+                    @client.acknowledge_output_plan(
+                      control, observation_url, plan,
+                    ) {
+                    Ok(_) =>
+                      report("output-planned", [("request_cid", identity)])
+                    Err(issue) =>
+                      report("output-plan-unreported", [
+                        ("reason", client_code(issue)),
+                      ])
+                  }
+                Err(issue) =>
+                  report("output-plan-failed", [("reason", output_code(issue))])
+              }
+            Err(_) => report("holder-input-invalid", [])
+          }
+        } else if line.has_prefix("output ") {
+          let envelope = line.unsafe_substring(start=7, end=line.length())
+          match @remote.admit_remote_poll_output_json(envelope) {
+            Ok(output) =>
+              match
+                @resident_host.deliver_resident_output(
+                  executed,
+                  environment.journal,
+                  coordinator_authority,
+                  site_key,
+                  site_generation,
+                  output,
+                  store,
+                  transfer,
+                  transfer_journal,
+                  destination_origin,
+                  65536,
+                ) {
+                Ok(result) =>
+                  match
+                    @client.acknowledge_output_result(
+                      control, observation_url, result,
+                    ) {
+                    Ok(_) =>
+                      report("output-delivered", [("request_cid", identity)])
+                    Err(issue) =>
+                      report("output-result-unreported", [
+                        ("reason", client_code(issue)),
+                      ])
+                  }
+                Err(issue) =>
+                  report("output-failed", [("reason", output_code(issue))])
+              }
+            Err(_) => report("holder-input-invalid", [])
+          }
+        } else {
+          report("holder-input-invalid", [])
+        }
+    }
+  }
+  ignore(transfer_journal.close())
+  ignore(store.close())
+  ignore(transfer.close())
+  ignore(control.close())
 }
 
 ///|
@@ -982,14 +1222,15 @@ fn run_holder(
     observer,
   )
   let code = match result {
-    Ok((runtime, completion)) => {
+    Ok(executed) => {
       report("executed", [
-        ("request_cid", completion.dispatch_request_cid),
-        ("revision", completion.revision.to_string()),
+        ("request_cid", executed.completion.dispatch_request_cid),
+        ("revision", executed.completion.revision.to_string()),
       ])
-      // The output stays owned by this holder's runtime. Handing it to the
-      // control process is not implemented yet, so it is released here.
-      ignore(runtime.close())
+      // The output stays owned by this holder's runtime until the
+      // Coordinator releases it; the holder serves its output meanwhile.
+      serve_holder_output(matches, environment, executed)
+      ignore(executed.runtime.close())
       0
     }
     Err(issue) => {
@@ -1038,6 +1279,13 @@ fn command() -> @argparse.Command {
       global("control-bearer-file"),
       global("control-cert"),
       global("control-key"),
+      global("transfer-bearer-file"),
+      global("transfer-cert"),
+      global("transfer-key"),
+      global("transfer-origin"),
+      global("transfer-journal"),
+      global("publication-root"),
+      global("publication-authority-cid"),
       global("poll-url"),
       global("observation-url"),
       global("coordinator-authority"),

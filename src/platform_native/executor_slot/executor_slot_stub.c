@@ -129,7 +129,8 @@ int32_t actql_executor_slot_spawn(
   moonbit_bytes_t arguments,
   int32_t arguments_length,
   int32_t descriptor,
-  int32_t target_descriptor
+  int32_t target_descriptor,
+  int32_t input_descriptor
 ) {
   if (descriptor < ACTQL_EXECUTOR_SLOT_FIRST_PRIVATE_FD ||
       target_descriptor < 3 ||
@@ -174,6 +175,11 @@ int32_t actql_executor_slot_spawn(
   bool configured =
     posix_spawn_file_actions_adddup2(&actions, descriptor, target_descriptor) ==
     0;
+  // An optional pipe read end becomes the holder's standard input.
+  if (configured && input_descriptor >= 0) {
+    configured =
+      posix_spawn_file_actions_adddup2(&actions, input_descriptor, 0) == 0;
+  }
   pid_t pid = -1;
   int spawned = configured
     ? posix_spawn(&pid, path, &actions, NULL, argv, environ)
@@ -232,6 +238,9 @@ static void actql_executor_slot_on_terminate(int signal_number) {
 }
 
 int32_t actql_executor_slot_install_termination(void) {
+  // A holder that ended closes its channel; a write to it must fail, not
+  // stop the control process.
+  signal(SIGPIPE, SIG_IGN);
   struct sigaction action;
   memset(&action, 0, sizeof(action));
   action.sa_handler = actql_executor_slot_on_terminate;
@@ -314,4 +323,90 @@ int32_t actql_executor_slot_write_stdout_line(
     offset += (int32_t)count;
   }
   return write(1, "\n", 1) == 1 ? 0 : -1;
+}
+
+// A one-way channel from the control process to a holder: returns
+// (read_fd << 16) | write_fd, both close-on-exec and above the private
+// range, or -1. The read end is installed as the holder's standard input.
+int32_t actql_executor_slot_open_channel(void) {
+  int ends[2];
+  if (pipe(ends) != 0) return -1;
+  int read_end = fcntl(ends[0], F_DUPFD_CLOEXEC,
+    ACTQL_EXECUTOR_SLOT_FIRST_PRIVATE_FD);
+  int write_end = fcntl(ends[1], F_DUPFD_CLOEXEC,
+    ACTQL_EXECUTOR_SLOT_FIRST_PRIVATE_FD);
+  close(ends[0]);
+  close(ends[1]);
+  if (read_end < 0 || write_end < 0 || read_end > 32767 || write_end > 32767) {
+    if (read_end >= 0) close(read_end);
+    if (write_end >= 0) close(write_end);
+    return -1;
+  }
+  return (read_end << 16) | write_end;
+}
+
+// Write one line to a channel. 0 on success, -1 when the holder is gone.
+int32_t actql_executor_slot_channel_write(
+  int32_t descriptor,
+  moonbit_bytes_t line,
+  int32_t line_length
+) {
+  if (descriptor < 0) return -1;
+  int32_t offset = 0;
+  while (offset < line_length) {
+    ssize_t count = write(descriptor, line + offset,
+      (size_t)(line_length - offset));
+    if (count < 0) {
+      if (errno == EINTR) continue;
+      return -1;
+    }
+    offset += (int32_t)count;
+  }
+  while (true) {
+    ssize_t count = write(descriptor, "\n", 1);
+    if (count == 1) return 0;
+    if (count < 0 && errno == EINTR) continue;
+    return -1;
+  }
+}
+
+// Read one line from standard input, at most max_bytes. The first byte of the
+// result is 'L' followed by the line, 'E' at end of input, or 'X' when the
+// line is too long or reading failed.
+moonbit_bytes_t actql_executor_slot_read_input_line(int32_t max_bytes) {
+  if (max_bytes < 1) max_bytes = 1;
+  char *buffer = malloc((size_t)max_bytes + 1);
+  if (buffer == NULL) {
+    moonbit_bytes_t failed = moonbit_make_bytes_raw(1);
+    failed[0] = 'X';
+    return failed;
+  }
+  int32_t length = 0;
+  char status = 'L';
+  while (true) {
+    char byte;
+    ssize_t count = read(0, &byte, 1);
+    if (count < 0) {
+      if (errno == EINTR) continue;
+      status = 'X';
+      break;
+    }
+    if (count == 0) {
+      if (length == 0) status = 'E';
+      break;
+    }
+    if (byte == '\n') break;
+    if (length == max_bytes) {
+      status = 'X';
+      break;
+    }
+    buffer[length] = byte;
+    length += 1;
+  }
+  int32_t returned = status == 'L' ? length : 0;
+  moonbit_bytes_t result = moonbit_make_bytes_raw(returned + 1);
+  result[0] = (uint8_t)status;
+  if (returned > 0) memcpy(result + 1, buffer, (size_t)returned);
+  free(buffer);
+  return result;
 }

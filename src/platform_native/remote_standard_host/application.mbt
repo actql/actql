@@ -303,11 +303,33 @@ pub fn NativeRemoteStandardSiteComponent::open_observed_output_reader(
   if self.closed {
     return Err(Closed)
   }
+  open_native_remote_observed_output_reader(
+    self.runtime,
+    self.journal,
+    request,
+    completion,
+    max_chunk_bytes,
+  )
+}
+
+///|
+/// The same observed-output reader, borrowing a runtime and journal the
+/// caller owns (for example an executor holder process).
+pub fn open_native_remote_observed_output_reader(
+  runtime : @runtime.NativeRemoteRuntime,
+  journal : @journal.Journal,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  max_chunk_bytes : Int,
+) -> Result[
+  @runtime.NativeRemoteOutputReader,
+  NativeRemoteStandardSiteComponentIssue,
+] {
   if completion.dispatch_request_cid !=
     @remote.dispatch_request_identity(request) {
     return Err(Runtime(@runtime.OutputReaderUnavailable))
   }
-  let observed = match self.journal.observation(request) {
+  let observed = match journal.observation(request) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }
@@ -322,7 +344,9 @@ pub fn NativeRemoteStandardSiteComponent::open_observed_output_reader(
   if projection.length() < 2 {
     return Err(Runtime(@runtime.OutputReaderUnavailable))
   }
-  self.open_output_reader(request, projection[1], max_chunk_bytes)
+  runtime
+  .open_output_reader(request, projection[1], max_chunk_bytes)
+  .map_err(issue => Runtime(issue))
 }
 
 ///|
@@ -437,11 +461,42 @@ pub fn NativeRemoteStandardSiteComponent::persist_observed_output_payload(
   @publication_store.NativePublicationPayloadInfo,
   NativeRemoteStandardPayloadFailure,
 ] {
-  if self.closed || max_chunk_bytes < 1 {
+  if self.closed {
+    return Err(failed_payload_stream(InvalidBinding, None, None, None, None))
+  }
+  persist_native_remote_observed_output_payload(
+    self.runtime,
+    self.journal,
+    request,
+    completion,
+    payload_request,
+    store,
+    max_chunk_bytes,
+  )
+}
+
+///|
+/// The same observed-output payload persistence, borrowing a runtime and
+/// journal the caller owns (for example an executor holder process).
+pub fn persist_native_remote_observed_output_payload(
+  runtime : @runtime.NativeRemoteRuntime,
+  journal : @journal.Journal,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  payload_request : @payload.PublicationPayloadRequest,
+  store : @publication_store.Store,
+  max_chunk_bytes : Int,
+) -> Result[
+  @publication_store.NativePublicationPayloadInfo,
+  NativeRemoteStandardPayloadFailure,
+] {
+  if max_chunk_bytes < 1 {
     return Err(failed_payload_stream(InvalidBinding, None, None, None, None))
   }
   let reader = match
-    self.open_observed_output_reader(request, completion, max_chunk_bytes) {
+    open_native_remote_observed_output_reader(
+      runtime, journal, request, completion, max_chunk_bytes,
+    ) {
     Ok(value) => value
     Err(Runtime(issue)) =>
       return Err(failed_payload_stream(Runtime(issue), None, None, None, None))

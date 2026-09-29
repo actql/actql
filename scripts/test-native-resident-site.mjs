@@ -5,7 +5,7 @@
 // read from a synced evidence file, never from transport logs.
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
-import {createHash, generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
 import {once} from 'node:events';
 import {chmod, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
@@ -20,6 +20,11 @@ import {signRemoteRuntimeBundle} from
   '../adapters/site-node/remote-bundle-signature.mjs';
 import {pinnedEngineContracts} from
   '../adapters/connectors/duckdb/node/test/pinned-engine-contracts.mjs';
+import {startHttpsDirectTransferReceiver} from
+  '../adapters/site-node/https-direct-transfer.mjs';
+import {openSqliteTransferJournal} from
+  '../adapters/site-node/sqlite-transfer-journal.mjs';
+import {createLocalRetainedStore} from '../adapters/store-local/files.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const scratchRoot = process.env.ACTQL_TEST_SCRATCH_ROOT;
@@ -56,6 +61,9 @@ const openssl = (...args) =>
   execFileSync('openssl', args, {cwd: root, stdio: 'ignore'});
 
 let gateway;
+let receiver;
+let receiverStore;
+let receiverJournal;
 let currentSite;
 const running = new Set();
 try {
@@ -66,7 +74,7 @@ try {
   execFileSync(moon, ['build', '--target', 'js', '--release',
     'src/connectors_builtin_node'], {cwd: repository, stdio: 'inherit'});
   execFileSync(process.execPath, ['scripts/build-runtime-packages.mjs',
-    'coordinator-core'], {cwd: repository, stdio: 'inherit'});
+    'coordinator-core', 'run-host-core'], {cwd: repository, stdio: 'inherit'});
   const executable = join(repository, '_build/native/debug/build/cmd/' +
     'native_remote_resident_site/native_remote_resident_site.exe');
   const bundleTool = join(repository, '_build/native/debug/build/cmd/' +
@@ -91,6 +99,14 @@ try {
   openssl('x509', '-req', '-in', 'server.csr', '-CA', 'ca.crt', '-CAkey',
     'ca.key', '-CAcreateserial', '-out', 'server.crt', '-days', '1',
     '-extfile', 'server.ext');
+  // The Site sends Results with its own transfer credential (mTLS here).
+  await writeFile(join(root, 'client.ext'), 'extendedKeyUsage=clientAuth\n');
+  openssl('genrsa', '-out', 'transfer.key', '2048');
+  openssl('req', '-new', '-key', 'transfer.key', '-out', 'transfer.csr',
+    '-subj', '/CN=resident-site-transfer');
+  openssl('x509', '-req', '-in', 'transfer.csr', '-CA', 'ca.crt', '-CAkey',
+    'ca.key', '-CAcreateserial', '-out', 'transfer.crt', '-days', '1',
+    '-extfile', 'client.ext');
   const token = 'resident-site-credential-a';
   const tokenFile = join(root, 'control.token');
   await writeFile(tokenFile, `${token}\n`, {mode: 0o600});
@@ -106,6 +122,35 @@ try {
     ]]),
     control: siteControl,
     idlePollMilliseconds: 200,
+  });
+
+  // The Cloud's Result ingress: a direct Transfer destination.
+  const transferControl = portable.remoteTransferControl;
+  receiverStore = await createLocalRetainedStore({parentDirectory: root,
+    capacityBytes: 1048576, maxFrameBytes: 65536, maxEntries: 16,
+    maxReadersPerBody: 2});
+  receiverJournal = openSqliteTransferJournal(join(root, 'receiver-journal'), {
+    destinationSiteKey: 'cloud-results', destinationSiteGeneration: 1,
+    maxChunks: 8, maxManifestBytes: 65536, maxReferencedBytes: 1048576n});
+  receiver = await startHttpsDirectTransferReceiver({
+    key: await readFile(join(root, 'server.key')),
+    cert: await readFile(join(root, 'server.crt')),
+    ca: await readFile(join(root, 'ca.crt')),
+    sourceAuthorities: new Map([[
+      new X509Certificate(await readFile(join(root, 'transfer.crt')))
+        .fingerprint256,
+      Object.freeze({siteKey, siteGeneration: 1}),
+    ]]),
+    destinationSiteKey: 'cloud-results',
+    destinationSiteGeneration: 1,
+    control: transferControl,
+    journal: receiverJournal,
+    store: receiverStore,
+    authorize: () => true,
+    maxManifestBytes: 65536,
+    maxChunks: 8,
+    maxReferencedBytes: 1048576n,
+    maxFrameBytes: 65536,
   });
 
   // The runtime bundle names this exact resident executable.
@@ -128,7 +173,8 @@ try {
   const bundleInput = join(root, 'bundle-input');
   const runtimeRoot = join(root, 'runtime');
   const engineRoot = join(root, 'engine');
-  await Promise.all([mkdir(bundleInput), mkdir(runtimeRoot), mkdir(engineRoot)]);
+  await Promise.all([mkdir(bundleInput), mkdir(runtimeRoot), mkdir(engineRoot),
+    mkdir(join(root, 'publication'), {mode: 0o700})]);
   await writeFile(join(bundleInput, 'runtime-public.pem'),
     runtimeKeys.publicKey.export({type: 'spki', format: 'pem'}), {mode: 0o600});
   await writeFile(join(bundleInput, 'trust.json'), JSON.stringify({
@@ -226,6 +272,42 @@ try {
   const materialsEnvelope = dispatch => coordinator.pollDispatchMaterialsJson(
     coordinator.admitDispatchJson(siteControl.requestJson(dispatch),
       siteControl.identity(dispatch)), '{}', 16, materials);
+  // The Result the Coordinator publishes, from the ordinary Client owners.
+  const runHost = await import(pathToFileURL(join(repository,
+    'packages/run-host-core/index.mjs')).href);
+  const hostPrepared = runHost.prepare(programText, 'json',
+    runHost.admitEnvironment(environmentWire, environmentCid, {rela: true}));
+  const resultDefinitionCid = runHost.resultDefinitions(hostPrepared,
+    runHost.compileValues(hostPrepared))[0].cid;
+  // The Coordinator plans the output, has it delivered to its ingress over
+  // the direct route, and releases the holder's retained output.
+  const deliverAndRelease = async (dispatch, terminal, tag) => {
+    const intent = siteControl.prepareOutputIntent(dispatch, {
+      storeAuthorityCid: physicalCid('resident-publication-store'),
+      publicationAttemptCid: physicalCid(`resident-publication-${tag}`),
+      resultDefinitionCid,
+      orderingEvidenceCid: physicalCid('resident-ordering'),
+      coordinatorAuthority: 'cloud-coordinator',
+      transferAttemptId: `resident-transfer-${tag}`,
+      transferRoute: 'direct',
+      destinationSite: 'cloud-results',
+      destinationSiteGeneration: 1,
+      transferMaxBytes: 1048576n,
+      transferExpiresAtMilliseconds: 4102444800000n,
+      sourceGrantCid: physicalCid('resident-source-grant'),
+      destinationGrantCid: physicalCid('resident-destination-grant'),
+      routeCapabilityCid: physicalCid('resident-direct-route'),
+      transferOrigin: receiver.origin,
+    });
+    const planned = await within(gateway.plan({dispatch, intent,
+      subject: terminal.subject, maxChunks: 8, maxManifestBytes: 65536,
+      maxReferencedBytes: 1048576n}), `${tag} plan`);
+    const delivered = await within(gateway.output({dispatch, intent,
+      payloadRequest: planned.payloadRequest,
+      transferRequest: planned.transferRequest}), `${tag} output`);
+    await within(gateway.release({dispatch}), `${tag} release`);
+    return delivered;
+  };
 
   const entryLog = join(root, 'executor-entry.log');
   const common = [
@@ -249,6 +331,12 @@ try {
     '--issuer-capability-cid', issuerCapability,
     '--budget-retained-bytes', '1048576', '--budget-execution-bytes', '1048576',
     '--engine-root', engineRoot, '--executor-entry-log', entryLog,
+    '--transfer-cert', join(root, 'transfer.crt'),
+    '--transfer-key', join(root, 'transfer.key'),
+    '--transfer-origin', receiver.origin,
+    '--transfer-journal', join(root, 'site-transfer.sqlite3'),
+    '--publication-root', join(root, 'publication'),
+    '--publication-authority-cid', physicalCid('resident-publication-store'),
     '--idle-wait-ms', '50', '--min-backoff-ms', '50', '--max-backoff-ms', '200',
     '--shutdown-wait-ms', '10000',
   ];
@@ -307,12 +395,21 @@ try {
   const terminal = await within(gateway.query({dispatch: first}), 'query');
   assert.equal(terminal.state[0], 3, 'native settled');
   assert.equal((await entries()).length, 1);
+  // O4: the holder's output reaches the Cloud's ingress and is released.
+  const delivered = await deliverAndRelease(first, terminal, 'first');
+  assert.ok(delivered);
+  assert.ok(site.lines.some(line => line.kind === 'output-relayed' &&
+    line.operation === 'output'));
+  await waitFor(() => site.lines.some(line => line.kind === 'holder-settled'),
+    'first holder ended after release');
+  assert.equal((await entries()).length, 1);
 
   // 2. The same attempt delivered again is never started again.
   const again = await within(gateway.dispatch({dispatch: first,
     inputBindingBody: '{}', dispatchEnvelope: materialsEnvelope(first)}),
   'redelivery');
-  assert.deepEqual(again.state, terminal.state);
+  // Same execution outcome; only its cleanup advanced after the release.
+  assert.equal(again.state[0], terminal.state[0]);
   assert.equal((await entries()).length, 1);
 
   // 3. Dispatches outside the Site's delegation or without run materials
@@ -354,6 +451,7 @@ try {
   const secondTerminal = await within(gateway.query({dispatch: second}),
     'second query');
   assert.equal(secondTerminal.state[0], 3);
+  await within(gateway.release({dispatch: second}), 'second release');
 
   // 5. A termination request stops the control process cleanly.
   site.child.kill('SIGTERM');
@@ -395,6 +493,7 @@ try {
   const fourthTerminal = await within(gateway.query({dispatch: fourth}),
     'fourth query');
   assert.equal(fourthTerminal.state[0], 3);
+  await within(gateway.release({dispatch: fourth}), 'fourth release');
   restarted.child.kill('SIGTERM');
   await restarted.exited;
 
@@ -411,6 +510,7 @@ try {
   const fifthTerminal = await within(gateway.query({dispatch: fifth}),
     'fifth query');
   assert.equal(fifthTerminal.state[0], 3);
+  await within(gateway.release({dispatch: fifth}), 'fifth release');
   assert.equal((await entries()).length, 5);
   left.child.kill('SIGTERM');
   right.child.kill('SIGTERM');
@@ -430,7 +530,11 @@ try {
   throw error;
 } finally {
   for (const child of running) child.kill('SIGKILL');
-  if (gateway !== undefined) await gateway.close();
+  if (gateway !== undefined) await gateway.close().catch(() => {});
+  if (receiver !== undefined) await receiver.close().catch(() => {});
+  receiverJournal?.close();
+  receiverStore?.close();
+  await receiverStore?.cleanup();
   if (process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
     await rm(root, {recursive: true, force: true});
   } else {

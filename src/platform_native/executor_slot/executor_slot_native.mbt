@@ -25,6 +25,7 @@ extern "C" fn slot_spawn_ffi(
   arguments_length : Int,
   descriptor : Int,
   target_descriptor : Int,
+  input_descriptor : Int,
 ) -> Int = "actql_executor_slot_spawn"
 
 ///|
@@ -99,6 +100,44 @@ pub fn NativeExecutorSlot::spawn_holder(
   executable : String,
   arguments : Array[String],
 ) -> Result[NativeExecutorSlotChild, NativeExecutorSlotIssue] {
+  self.spawn_holder_reading(executable, arguments, -1)
+}
+
+///|
+/// Start a holder whose standard input is the read end of a new channel.
+/// This process keeps only the write end, to send the holder its work.
+pub fn NativeExecutorSlot::spawn_holder_with_channel(
+  self : NativeExecutorSlot,
+  executable : String,
+  arguments : Array[String],
+) -> Result[
+  (NativeExecutorSlotChild, NativeHolderChannel),
+  NativeExecutorSlotIssue,
+] {
+  let ends = open_channel_ffi()
+  if ends < 0 {
+    return Err(SpawnFailed)
+  }
+  let read_end = ends >> 16
+  let write_end = ends & 0xFFFF
+  let spawned = self.spawn_holder_reading(executable, arguments, read_end)
+  ignore(slot_close_ffi(read_end))
+  match spawned {
+    Ok(child) => Ok((child, { descriptor: write_end, }))
+    Err(issue) => {
+      ignore(slot_close_ffi(write_end))
+      Err(issue)
+    }
+  }
+}
+
+///|
+fn NativeExecutorSlot::spawn_holder_reading(
+  self : NativeExecutorSlot,
+  executable : String,
+  arguments : Array[String],
+  input : Int,
+) -> Result[NativeExecutorSlotChild, NativeExecutorSlotIssue] {
   if self.descriptor < 0 {
     return Err(Closed)
   }
@@ -135,6 +174,7 @@ pub fn NativeExecutorSlot::spawn_holder(
     encoded_arguments.length(),
     self.descriptor,
     NATIVE_EXECUTOR_SLOT_INHERITED_FD,
+    input,
   )
   if pid <= 0 {
     return Err(SpawnFailed)
@@ -296,4 +336,74 @@ pub fn native_write_progress_line(line : String) -> Bool {
 /// False once this process handed the slot to a holder or closed it.
 pub fn NativeExecutorSlot::is_open(self : NativeExecutorSlot) -> Bool {
   self.descriptor >= 0
+}
+
+///|
+extern "C" fn open_channel_ffi() -> Int = "actql_executor_slot_open_channel"
+
+///|
+#borrow(line)
+extern "C" fn channel_write_ffi(
+  descriptor : Int,
+  line : Bytes,
+  length : Int,
+) -> Int = "actql_executor_slot_channel_write"
+
+///|
+extern "C" fn read_input_line_ffi(max_bytes : Int) -> Bytes = "actql_executor_slot_read_input_line"
+
+///|
+/// The control process's end of a channel to one holder.
+struct NativeHolderChannel {
+  mut descriptor : Int
+}
+
+///|
+/// Send one line. False when the holder is gone or the line is invalid.
+pub fn NativeHolderChannel::send(
+  self : NativeHolderChannel,
+  line : String,
+) -> Bool {
+  if self.descriptor < 0 || line.contains("\n") {
+    return false
+  }
+  let encoded = @utf8.encode(line)
+  channel_write_ffi(self.descriptor, encoded, encoded.length()) == 0
+}
+
+///|
+pub fn NativeHolderChannel::close(self : NativeHolderChannel) -> Bool {
+  if self.descriptor < 0 {
+    return false
+  }
+  let closed = slot_close_ffi(self.descriptor) == 0
+  self.descriptor = -1
+  closed
+}
+
+///|
+/// One line a holder read from its channel.
+pub(all) enum NativeHolderInput {
+  InputLine(String)
+  InputEnded
+  InputInvalid
+}
+
+///|
+/// In a holder: block until the next line from the control process.
+pub fn native_read_holder_input(max_bytes : Int) -> NativeHolderInput {
+  let bytes = read_input_line_ffi(max_bytes)
+  if bytes.length() < 1 {
+    return InputInvalid
+  }
+  match bytes[0] {
+    b'L' => {
+      let line = Bytes::from_array(
+        Array::makei(bytes.length() - 1, index => bytes[index + 1]),
+      )
+      InputLine(@utf8.decode_lossy(line))
+    }
+    b'E' => InputEnded
+    _ => InputInvalid
+  }
 }
