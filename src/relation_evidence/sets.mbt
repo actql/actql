@@ -126,6 +126,36 @@ fn eligible(field : KeyField, usage : KeyUse) -> Bool {
 }
 
 ///|
+/// A Graph edge's pinned identity includes an explicit null label. Only the
+/// third component of an admitted edge projection retains that exception;
+/// ordinary nullable Relation fields do not acquire canonical key status.
+fn graph_edge_label_eligible(
+  key : KeyedRelation,
+  index : Int,
+  field : KeyField,
+  usage : KeyUse,
+) -> Bool {
+  if usage != CanonicalOrder ||
+    key.origin != GraphProjectionResult ||
+    index != 2 ||
+    key.aliases.length() != 3 ||
+    key.declared_fields.length() != 3 ||
+    field.positional_identity is Some(_) {
+    return false
+  }
+  guard key.producer is Some(GraphProjectionProducer(projection)) &&
+    @projection.operation(projection) == @projection.EdgeRows &&
+    field.contract is Some(contract) &&
+    contract.nullable else {
+    return false
+  }
+  match contract.shape {
+    Text(_) => true
+    _ => false
+  }
+}
+
+///|
 fn tuple_compare(a : Array[KeyField], b : Array[KeyField]) -> Int {
   if a.length() != b.length() {
     return if a.length() < b.length() { -1 } else { 1 }
@@ -152,14 +182,22 @@ pub fn select_key(
   usage : KeyUse,
   limits : TransferLimits,
 ) -> Result[KeySelection, Issue] {
-  select_matching_key(source, value, field => eligible(field, usage), limits)
+  select_matching_key(
+    source,
+    value,
+    (key, index, field) => {
+      eligible(field, usage) ||
+      graph_edge_label_eligible(key, index, field, usage)
+    },
+    limits,
+  )
 }
 
 ///|
 fn select_matching_key(
   source : @decode.Cursor,
   value : KeySet,
-  accepts : (KeyField) -> Bool,
+  accepts : (KeyedRelation, Int, KeyField) -> Bool,
   limits : TransferLimits,
 ) -> Result[KeySelection, Issue] {
   try {
@@ -176,13 +214,13 @@ fn select_matching_key(
       let candidates : Array[(KeyField, Array[KeyField])] = []
       let mut valid = true
       spend(b, source, key.aliases.length())
-      for aliases in key.aliases {
+      for index, aliases in key.aliases {
         let mut best : KeyField? = None
         let surviving : Array[KeyField] = []
         spend(b, source, aliases.length())
         for field in aliases {
           charge(b, source, field.name)
-          if accepts(field) {
+          if accepts(key, index, field) {
             surviving.push(field)
             if best is None ||
               @canonical.compare_utf16(

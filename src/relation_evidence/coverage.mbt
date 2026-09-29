@@ -36,7 +36,7 @@ pub fn select_covered_key(
       select_matching_key(
         source,
         value,
-        field => covered.contains(coverage_name(field.name)),
+        (_, _, field) => covered.contains(coverage_name(field.name)),
         { max_work: b.work, max_name_bytes: b.text, },
       ) {
       Ok(v) => v
