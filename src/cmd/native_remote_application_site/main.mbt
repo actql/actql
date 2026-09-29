@@ -372,6 +372,17 @@ fn application_files() -> @application.NativeRemoteApplicationFiles {
 }
 
 ///|
+fn application_run_files() -> @application.NativeRemoteApplicationRunFiles {
+  {
+    run_definition: "run-definition.json",
+    compiled_plan: "compiled-plan.json",
+    invocation_template: "invocation-template.json",
+    prepared_invocation: "prepared-invocation.json",
+    run_authorization: "run-authorization.json",
+  }
+}
+
+///|
 fn execution_limits(
   max_rows : Int,
   max_bytes : Int64,
@@ -779,6 +790,25 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
       stop("application admission failed")
     }
   }
+  // Dispatches name the admitted Run by its Run definition CID.
+  let run_definition_cid = match
+    @application.admit_native_remote_application_run(
+      app,
+      application_root,
+      application_files(),
+      application_run_files(),
+      max_file_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => {
+      ignore(client.close())
+      ignore(transfer_journal.close())
+      ignore(dispatch_journal.close())
+      ignore(bundles.release(process_hold_id))
+      ignore(bundles.close())
+      stop("application Run admission failed")
+    }
+  }
   let codec = match
     @remote_standard.register_native_remote_standard_row_codec(
       input_schema_cid, input_view_cid, input_codec_cid,
@@ -829,6 +859,7 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
   let application_site = match
     @application.open_native_remote_application_store_site_distribution(
       app,
+      run_definition_cid,
       transfer_journal,
       transfer_root,
       codec,

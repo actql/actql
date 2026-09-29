@@ -22,6 +22,8 @@ import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
+import {installNodeClientProgramPreparation} from
+  '../adapters/host-node/client-program-preparation.mjs';
 import {startHttpsOutboundSiteGateway} from
   '../adapters/host-node/outbound-site-gateway.mjs';
 import {signRemoteRuntimeBundle} from
@@ -1972,6 +1974,38 @@ try {
     ['runtime-public.pem',
       testEnvironment.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY],
   ]);
+  // The Site executes one admitted Run, and a dispatch names it by its Run
+  // definition CID. Issue that Run for the same Program, environment and
+  // parameters through the common Client Program owners.
+  const applicationCheckEnvironment = moonModule.clientProgramCheckEnvironment(
+    canonical(environment), environment.evidence_bundle_cid,
+    false, false, true, false, false, false, false);
+  assert.ok(applicationCheckEnvironment);
+  const applicationProgram = installNodeClientProgramPreparation({
+    moon: moonModule, environment: applicationCheckEnvironment,
+  })({kind: 'aql', input: {text: applicationFiles.get('program.json'),
+    format: 'json'}, parameters: {minimum: 1}});
+  const applicationCompiled = portableRuntime.publicationControl
+    .prepareCheckedClientCompiledRun(applicationProgram, 'tasks', {
+      executionContextCid: physicalCid('native-application-execution-context'),
+      hostPolicyCid: physicalCid('native-application-host-policy'),
+      expiresAt: '2100-01-01T00:00:00.000Z',
+    });
+  const applicationRunDefinition = portableRuntime.publicationControl
+    .defineCheckedClientCompiledRun(applicationCompiled, {
+      namespaceId: 'native-application', runId: 'native-application-run',
+      createdAt: '2026-09-30T00:00:00.000Z',
+      validUntil: '2100-01-01T00:00:00.000Z',
+    });
+  applicationFiles.set('run-definition.json', applicationRunDefinition.wire);
+  applicationFiles.set('compiled-plan.json',
+    applicationCompiled.compiledPlan.wire);
+  applicationFiles.set('invocation-template.json',
+    applicationCompiled.template.wire);
+  applicationFiles.set('prepared-invocation.json',
+    applicationCompiled.preparedEvidence.wire);
+  applicationFiles.set('run-authorization.json',
+    applicationCompiled.authorization.wire);
   await Promise.all([...applicationFiles].map(([name, body_]) =>
     writeFile(join(applicationRoot, name), body_)));
 
@@ -1982,6 +2016,11 @@ try {
   assert.equal(inspected.code, 0, inspected.stderr);
   const applicationContract = JSON.parse(inspected.stdout);
   assert.equal(applicationContract.task_count, 4);
+  // The issued Run is for the same checked Program the Site loads.
+  assert.equal(JSON.parse(applicationCompiled.compiledPlan.wire)
+    .program_definition_cid, applicationContract.program_definition_cid);
+  assert.notEqual(applicationRunDefinition.identity,
+    applicationContract.program_definition_cid);
 
   nativeStoreTransferCid = undefined;
   nativeStoreTransferChunks = 0;
@@ -2085,7 +2124,7 @@ try {
   });
   const dispatch = remoteSiteControl.prepare({
     coordinatorAuthority: 'native-application-coordinator',
-    runDefinitionCid: applicationContract.program_definition_cid,
+    runDefinitionCid: applicationRunDefinition.identity,
     taskKey: 'application-task',
     taskAttempt: 1,
     dispatchId: 'native-application-dispatch',

@@ -1063,14 +1063,24 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
   ).unwrap()
   let (local_captured, local_run, local_query_issuer) = prepare_native_publication_local_run()
   let local_graph = @strategy.captured_dag_graph(local_captured)
-  let run_definition_cid = @strategy.graph_program_definition_cid(local_graph)
+  let program_definition_cid = @strategy.graph_program_definition_cid(
+    local_graph,
+  )
+  // Dispatches name the admitted Run by its Run definition CID.
+  let (standard_run_context, _, _, _) = native_publication_run_context(
+    program_definition_cid, "remote-standard-run",
+  )
+  let run_definition_cid = @publication.publication_contract_identity(
+    standard_run_context.run_definition,
+  )
+  assert_true(run_definition_cid != program_definition_cid)
   let (duckdb_captured, duckdb_run, duckdb_query_issuer) = prepare_native_publication_duckdb_run(
     duckdb_path,
   )
   let duckdb_graph = @strategy.captured_dag_graph(duckdb_captured)
   assert_eq(
     @strategy.graph_program_definition_cid(duckdb_graph),
-    run_definition_cid,
+    program_definition_cid,
   )
   let input_binding = @remote.prepare_remote_input_binding("{}", 16).unwrap()
   let local_run_owner = [Some(local_run)]
@@ -1260,6 +1270,34 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
   ).unwrap()
   let (connector_registration, connector_revision, strategy_revision) = @native_runtime_bundle.native_active_runtime_connector_scope(
     active_runtime,
+  )
+  // A Program definition CID has the same shape but names another contract;
+  // it never selects the executor of the Run.
+  let program_named_request = @remote.prepare_dispatch_request(
+    "native-standard-coordinator",
+    program_definition_cid,
+    "task-1-local",
+    1,
+    "native-standard-program-named-dispatch",
+    "native-standard-site",
+    1,
+    bundle_cid,
+    connector_registration,
+    connector_revision,
+    strategy_revision,
+    @remote.remote_input_binding_cid(input_binding),
+    native_publication_cid("remote-standard-obligations"),
+    @remote.remote_dispatch_budget_cid(local_budget),
+    issuer_capability,
+    operation_capability,
+  ).unwrap()
+  assert_true(
+    runtime.start(program_named_request, input_binding)
+    is Err(@native_remote_runtime.RuntimeUnsupported),
+  )
+  assert_true(
+    journal.require(program_named_request)
+    is Err(@native_remote_journal.MissingDispatch),
   )
   let local_request = @remote.prepare_dispatch_request(
     "native-standard-coordinator",
