@@ -1,7 +1,7 @@
 // Install outside the checkout, then run B's unchanged public acceptance
 // against Embedded Local and HTTP without a MoonBit toolchain at runtime.
 import {spawnSync} from 'node:child_process';
-import {readFile, writeFile} from 'node:fs/promises';
+import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
