@@ -721,7 +721,7 @@ test "graft resolves compatible identity and label contracts" {
   let right = compatible_text_graph(right_owner, ["aa", "bb", "long"], [
     ("aa", "bb", Some("x")),
     ("aa", "bb", Some("long")),
-    ("bb", "long", None),
+    ("aa", "bb", None),
   ])
   let execution = start_graft(
     @bounded.control(),
@@ -746,7 +746,7 @@ test "graft resolves compatible identity and label contracts" {
   }
   assert_eq(@storage.edge_endpoints(result, 0), Some((0, 1)))
   assert_eq(@storage.edge_endpoints(result, 1), Some((0, 1)))
-  assert_eq(@storage.edge_endpoints(result, 2), Some((1, 2)))
+  assert_eq(@storage.edge_endpoints(result, 2), Some((0, 1)))
   assert_eq(
     @value.canonical_scalar_text(
       @storage.edge_label(result, 0).unwrap().unwrap(),
