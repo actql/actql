@@ -80,6 +80,7 @@ pub fn node_accepts_managed_carrier_view(
     | "BRIDGE.vectors.to_rows"
     | "BRIDGE.graph.to_node_rows"
     | "BRIDGE.graph.to_edge_rows" => true
+    "SGA.subgraph" => index == 0
     "SGA.traverse" => index == 0
     "VEC.knn_join" => true
     _ => false
@@ -101,6 +102,7 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       node.input_targets.length() == 2
     BasicGraph(_) => operation(node) == "SGA.normalize"
     StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
+    GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     VectorValue(_) =>
       operation(node) == "BRIDGE.rows.to_vectors" ||
       operation(node) == "VEC.normalize_l2" ||
@@ -210,6 +212,7 @@ pub fn node_prefers_fused_without_relation_consumer(
   match node.payload {
     BasicGraph(_) => operation(node) == "SGA.normalize"
     StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
+    GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     EventValue(_) =>
       operation(node) == "TEA.watermark.label" ||
       operation(node) == "TEA.dedupe" ||
@@ -238,6 +241,7 @@ pub fn node_accepts_managed_relation_view(
     return match node.payload {
       GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
       GraphTraverseRows(_) => index == 1 && operation(node) == "SGA.traverse"
+      GraphSubgraphValue(_) => index == 1 && operation(node) == "SGA.subgraph"
       InnerJoin(_)
       | CrossJoinRows(_)
       | AppendRows(_)
