@@ -15,7 +15,7 @@ const cid = value => `sha256:${createHash('sha256')
   .update(canonicalText(value)).digest('hex')}`;
 
 const {evidence_bundle_cid: ignored, ...baseEnvironment} = readJson(
-  '../packages/local-node/spec/local-check-environment.json');
+  '../spec/local-check-environment.json');
 void ignored;
 baseEnvironment.host_policy_profile = {...baseEnvironment.host_policy_profile,
   capacity: {...baseEnvironment.host_policy_profile.capacity,
