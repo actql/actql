@@ -20,12 +20,13 @@ import {admitEnvironment as admitStandaloneEnvironment,
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const hash = body => `sha256:${createHash('sha256')
   .update(canonicalText(body)).digest('hex')}`;
-// Compatibility snapshots from the standalone compiler under this checkout's
-// pins. The structural text grammar manifest changes both Plan identities.
-// These supplement the independent logical-plan vectors in run-host-core tests.
+// Compatibility snapshots for the exact fixture Programs and current pins.
+// The AoA registry widens Reach's input carrier; its contract CID is part of
+// both Compiled Plan preimages, including Programs that do not use Reach.
+// The test also checks each complete preimage with canonical hashing below.
 const planCids = {
-  values: 'sha256:f1e774c7e8d87fd8e370b687254914f7a3adf2816baa8386505efefd03a2cf45',
-  tasks: 'sha256:a0f3e3bc153232741380f01f8dcac5f44b6e4fac39d340b4fae9edb4e786faba',
+  values: 'sha256:fc6cc72f2fe207114444c9663f5ba41ca4b3298e0e91984aa6d4252fbced6cde',
+  tasks: 'sha256:ac6d5874836c84421dff22cf3b67d5f06f03dab92ffc445c868ca8bfb1c2ab7f',
 };
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 const policy = Object.freeze({executionContextCid: cid('a'),
@@ -170,6 +171,11 @@ for (const kind of ['values', 'tasks']) {
         'program_definition_cid', 'program_semantics_cid', 'version',
       ]);
       assert.equal(compiledBody.version, 'actql-compiled-plan/0.1');
+      const aoaContract = JSON.parse(await read(
+        '../../spec/contracts/actql-aoa.json'));
+      assert.equal(compiledBody.aoa_contract_cid, hash(aoaContract));
+      assert.equal(compiledBody.aoa_ir_version,
+        aoaContract.pipeline_ir_version.replace('/', ':'));
       assert.equal(hash(compiledBody), compiledCid);
       assert.equal(compiledCid, compiled.compiledPlan.identity);
       assert.equal(compiled.compiledPlan.identity, planCids[kind]);

@@ -2358,7 +2358,7 @@
     },
     {
       "requirement_id": "actql.language/operation-inventory.family-operation-input-output",
-      "statement_sha256": "771315d3c642a7fc30ef9c2317078290e1e2bffcfc5565dcd0cc8f8edb808415",
+      "statement_sha256": "117cee600061a4b2e6c77897a1022d6b1c1f39c45308447f38e1fa7af6579adc",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
