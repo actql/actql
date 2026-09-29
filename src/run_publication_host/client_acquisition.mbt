@@ -40,6 +40,21 @@ pub fn prepare_client_query_acquisition(
 }
 
 ///|
+/// Derive the same checked acquisition from an Effectful Program without
+/// exposing its private Effect-free graph view to an installed adapter.
+pub fn prepare_client_effect_query_acquisition(
+  prepared : PreparedClientEffectComputation,
+  stage : Int,
+  source_index : Int,
+) -> Result[@acquisition.QueryAcquisition, ClientAcquisitionIssue] {
+  prepare_client_query_acquisition(
+    client_effect_program_view(prepared),
+    stage,
+    source_index,
+  )
+}
+
+///|
 /// Bind the selected source request to the exact checked generated sequence
 /// and Program identity before a physical Connector candidate is considered.
 pub fn prepare_client_query_requirement(
@@ -70,5 +85,26 @@ pub fn prepare_client_query_requirement(
   @planning.prepare_query_requirement(material, identity, guards, limits).map_err(issue => {
       Requirement(issue)
     },
+  )
+}
+
+///|
+/// Keep acquisition requirements and their generated sequence under the
+/// same checked Effect computation. This still grants no provider read.
+pub fn prepare_client_effect_query_requirement(
+  prepared : PreparedClientEffectComputation,
+  generated : @execution.GeneratedSequence,
+  stage : Int,
+  source_index : Int,
+  guards : @planning.QueryLogicalGuards,
+  limits : @planning.QueryMaterialLimits,
+) -> Result[@planning.QueryRequirement, ClientQueryRequirementIssue] {
+  prepare_client_query_requirement(
+    client_effect_program_view(prepared),
+    generated,
+    stage,
+    source_index,
+    guards,
+    limits,
   )
 }

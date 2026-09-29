@@ -1495,6 +1495,21 @@ pub fn client_program_prepare_query_acquisition(
 }
 
 ///|
+#export_name("clientProgramEffectPrepareQueryAcquisition")
+pub fn client_program_effect_prepare_query_acquisition(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  stage : Int,
+  source_index : Int,
+) -> Result[
+  @acquisition.QueryAcquisition,
+  @publication_host.ClientAcquisitionIssue,
+] {
+  @publication_host.prepare_client_effect_query_acquisition(
+    prepared, stage, source_index,
+  )
+}
+
+///|
 #export_name("clientProgramQueryAcquisitionSourceIndex")
 pub fn client_program_query_acquisition_source_index(
   acquisition : @acquisition.QueryAcquisition,
@@ -1517,6 +1532,25 @@ pub fn client_program_prepare_local_query_requirement(
   @client_local_host.ClientLocalQueryIssue,
 ] {
   @client_local_host.prepare_local_query_requirement(
+    prepared, stage, source_index, registry_body, values_body, fragment_body, ordered_body,
+  )
+}
+
+///|
+#export_name("clientProgramEffectPrepareLocalQueryRequirement")
+pub fn client_program_effect_prepare_local_query_requirement(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  stage : Int,
+  source_index : Int,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[
+  @planning.QueryRequirement,
+  @client_local_host.ClientLocalQueryIssue,
+] {
+  @client_local_host.prepare_effect_local_query_requirement(
     prepared, stage, source_index, registry_body, values_body, fragment_body, ordered_body,
   )
 }
@@ -1599,7 +1633,31 @@ pub fn client_program_captured_source_matches(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource,
 ) -> Bool {
-  let graph = @publication_host.prepared_client_graph(prepared)
+  captured_source_matches_graph(
+    @publication_host.prepared_client_graph(prepared),
+    source,
+  )
+}
+
+///|
+#export_name("clientProgramEffectCapturedSourceMatches")
+pub fn client_program_effect_captured_source_matches(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  source : @query.CapturedInputSource,
+) -> Bool {
+  captured_source_matches_graph(
+    @strategy.checked_effect_computation_graph(
+      @publication_host.prepared_client_effect_computation_graph(prepared),
+    ),
+    source,
+  )
+}
+
+///|
+fn captured_source_matches_graph(
+  graph : @strategy.CheckedDAG,
+  source : @query.CapturedInputSource,
+) -> Bool {
   guard @strategy.graph_task_owner(graph, 0) is Some(owner) else {
     return false
   }
@@ -1690,9 +1748,41 @@ pub fn client_program_issue_captured_source_logical(
   identity : @query.CapturedSourceRelationIdentity,
   requirement : @planning.QueryRequirement,
 ) -> Result[@publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue] {
-  let graph = @publication_host.prepared_client_graph(prepared)
+  issue_captured_source_logical_graph(
+    @publication_host.prepared_client_graph(prepared),
+    source,
+    identity,
+    requirement,
+  )
+}
+
+///|
+#export_name("clientProgramEffectIssueCapturedSourceLogical")
+pub fn client_program_effect_issue_captured_source_logical(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  source : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  requirement : @planning.QueryRequirement,
+) -> Result[@publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue] {
+  issue_captured_source_logical_graph(
+    @strategy.checked_effect_computation_graph(
+      @publication_host.prepared_client_effect_computation_graph(prepared),
+    ),
+    source,
+    identity,
+    requirement,
+  )
+}
+
+///|
+fn issue_captured_source_logical_graph(
+  graph : @strategy.CheckedDAG,
+  source : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  requirement : @planning.QueryRequirement,
+) -> Result[@publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue] {
   let program = @program_check.source_identity(@strategy.graph_program(graph))
-  if !client_program_captured_source_matches(prepared, source) {
+  if !captured_source_matches_graph(graph, source) {
     return Err(ForeignPrepared)
   }
   if !@query.captured_source_relation_identity_matches_source(identity, source) {
@@ -2794,6 +2884,7 @@ fn client_program_configure_local_host(
   run : @strategy.CapturedDAG,
   graph : @strategy.CheckedDAG,
   generated : Array[@execution.GeneratedSequence],
+  first_compute : Int,
   fixed_ms : Int64,
   per_row_ms : Int64,
   per_wire_byte_ms : Int64,
@@ -2971,7 +3062,10 @@ fn client_program_configure_local_host(
     Ok(value) => value
     Err(_) => return reject_client_local_run(run)
   }
-  let schedules = Array::make(@strategy.graph_task_count(graph), schedule)
+  let schedules = Array::make(
+    @strategy.graph_task_count(graph) - first_compute,
+    schedule,
+  )
   let estimate = match
     @local_driver.prepare_local_estimate_module(installed, schedules, 1000) {
     Ok(value) => value
@@ -4541,6 +4635,62 @@ pub fn client_program_open_source_free_local_effect_host(
   per_wire_byte_ms : Int64,
   per_pair_ms : Int64,
 ) -> ClientLocalEffectHost? {
+  open_client_local_effect_host(
+    prepared,
+    None,
+    registry_body,
+    values_body,
+    fixed_ms,
+    per_row_ms,
+    per_wire_byte_ms,
+    per_pair_ms,
+  )
+}
+
+///|
+/// The captured source is checked against the bound Effect Run before the
+/// acquisition root can feed any Local task. The physical source owner stays
+/// with the Host and is not reconstructed from an equal relation value.
+#export_name("clientProgramOpenCapturedLocalEffectHost")
+pub fn client_program_open_captured_local_effect_host(
+  prepared : @publication_host.PreparedClientEffectRun,
+  source : @query.CapturedInputSource,
+  registry_body : String,
+  values_body : String,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> ClientLocalEffectHost? {
+  open_client_local_effect_host(
+    prepared,
+    Some(source),
+    registry_body,
+    values_body,
+    fixed_ms,
+    per_row_ms,
+    per_wire_byte_ms,
+    per_pair_ms,
+    fragment_body~,
+    ordered_body~,
+  )
+}
+
+///|
+fn open_client_local_effect_host(
+  prepared : @publication_host.PreparedClientEffectRun,
+  source : @query.CapturedInputSource?,
+  registry_body : String,
+  values_body : String,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+) -> ClientLocalEffectHost? {
   if fixed_ms < 0L ||
     per_row_ms < 0L ||
     per_wire_byte_ms < 0L ||
@@ -4550,15 +4700,25 @@ pub fn client_program_open_source_free_local_effect_host(
   guard client_local_contracts(registry_body, values_body) is Some(contracts) else {
     return None
   }
-  let run = match
-    @publication_host.open_prepared_source_free_client_effect_run(prepared, {
-      planning_work: 100000,
-      attempts: 10,
-      holdings: 10,
-      transfer_bytes: 500000L,
-      retained_bytes: 200000000L,
-      execution_bytes: 268435456L,
-    }) {
+  let limits : @resources.LedgerLimits = {
+    planning_work: 100000,
+    attempts: 10,
+    holdings: 10,
+    transfer_bytes: 500000L,
+    retained_bytes: 200000000L,
+    execution_bytes: 268435456L,
+  }
+  let opened = match source {
+    None =>
+      @publication_host.open_prepared_source_free_client_effect_run(
+        prepared, limits,
+      )
+    Some(captured) =>
+      @publication_host.open_prepared_captured_client_effect_run(
+        prepared, captured, limits,
+      )
+  }
+  let run = match opened {
     Ok(value) => value
     Err(_) => return None
   }
@@ -4569,29 +4729,47 @@ pub fn client_program_open_source_free_local_effect_host(
   let graph = @strategy.checked_effect_run_graph(
     @publication_host.prepared_client_effect_run_graph(prepared),
   )
+  let first_compute = if source is None { 0 } else { 1 }
   let generated = []
-  for task in 0..<@strategy.graph_task_count(graph) {
-    let sequence = match
-      @publication_host.prepare_client_effect_task_sequence(
-        computation,
-        task,
-        contracts,
-        [],
-        client_local_sequence_limits(),
-        100000,
-        10000,
+  if source is Some(_) {
+    let sequences = match
+      @client_local_host.prepare_client_effect_local_sequences(
+        computation, registry_body, values_body, fragment_body, ordered_body,
       ) {
-      Ok(value) => value
-      Err(_) => {
+      Some(value) => value
+      None => {
         ignore(reject_client_local_run(captured))
         return None
       }
     }
-    generated.push(sequence)
+    for task in first_compute..<sequences.length() {
+      generated.push(sequences[task])
+    }
+  } else {
+    for task in first_compute..<@strategy.graph_task_count(graph) {
+      let sequence = match
+        @publication_host.prepare_client_effect_task_sequence(
+          computation,
+          task,
+          contracts,
+          [],
+          client_local_sequence_limits(),
+          100000,
+          10000,
+        ) {
+        Ok(value) => value
+        Err(_) => {
+          ignore(reject_client_local_run(captured))
+          return None
+        }
+      }
+      generated.push(sequence)
+    }
   }
   match
     client_program_configure_local_host(
-      captured, graph, generated, fixed_ms, per_row_ms, per_wire_byte_ms, per_pair_ms,
+      captured, graph, generated, first_compute, fixed_ms, per_row_ms, per_wire_byte_ms,
+      per_pair_ms,
     ) {
     Some(host) => Some({ host, run, })
     None => None

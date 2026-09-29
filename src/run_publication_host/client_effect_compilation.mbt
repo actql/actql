@@ -92,29 +92,14 @@ pub fn issue_prepared_client_effect_compilation(
     )
   let acquired = units == 2 &&
     @pipeline.input_count(pipeline) == 1 &&
-    @checked.source_execution_count(checked) == 1 &&
-    @checked.unit_pipeline(checked, 1) is Some(effect_pipeline) &&
-    @pipeline.input_count(effect_pipeline) == 1 &&
-    @checked.unit_result_import_count(checked, 1) == Some(1) &&
-    prepare_client_query_acquisition(
-      {
-        graph,
-        source: owner.source,
-        check_environment_cid: owner.check_environment_cid,
-      },
-      0,
-      0,
-    ) is Ok(_)
+    prepare_client_query_acquisition(client_effect_program_view(owner), 0, 0)
+    is Ok(_)
   if !source_free && !acquired {
     return Err(UnsupportedProgram)
   }
   // This private compiler view contains the same graph, source and Effects.
   // It is never returned as an Effect-free preparation or checked again.
-  let value : PreparedClientProgram = {
-    graph,
-    source: owner.source,
-    check_environment_cid: owner.check_environment_cid,
-  }
+  let value = client_effect_program_view(owner)
   let roots : Array[(String, Int)] = []
   let plan_cids : Array[(String, String)] = []
   let names : Array[String] = []

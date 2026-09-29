@@ -2260,8 +2260,8 @@ async function effectFixture({splitSource = false,
     mappingCid: mapping.mapping_contract_cid};
 }
 
-test('one acquired Effect Program compiles from its checked owner',
-  async () => {
+test('one acquired Effect Program captures and computes from its owner',
+  async t => {
     const effect = await effectFixture({writeKind: 'update'});
     const baseWire = await readFile(new URL(
       '../../spec/local-check-environment.json', import.meta.url), 'utf8');
@@ -2298,12 +2298,72 @@ test('one acquired Effect Program compiles from its checked owner',
     const prepared = moon.clientProgramEffectPreparationReady(outcome);
     assert.ok(prepared,
       moon.clientProgramEffectPreparationIssueCode(outcome));
+    checked(moon.clientProgramEffectPrepareQueryAcquisition(prepared, 0, 0));
     const compileOutcome = moon.clientProgramCompileLocalEffects(prepared);
     assert.equal(moon.clientProgramEffectCompilationIssueCode(compileOutcome),
       undefined);
     const compiled = checked(compileOutcome);
     assert.deepEqual(moon.clientProgramEffectCompilationResultNames(compiled),
       ['answer']);
+    const [registry, contracts] = await Promise.all([
+      readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
+        import.meta.url), 'utf8'),
+      readFile(new URL('../../spec/contracts/actql-aoa.json',
+        import.meta.url), 'utf8'),
+    ]);
+    const aoa = JSON.parse(contracts).execution_contracts;
+    const values = JSON.stringify(aoa['REL.values']);
+    const fragment = JSON.stringify(aoa['ACTQL.expression_fragment/0.1']);
+    const ordered = JSON.stringify(aoa['REL.derive.ordered']);
+    await mkdir(scratch, {recursive: true});
+    const directory = await mkdtemp(join(scratch.pathname,
+      'acquired-effect-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const databasePath = join(directory, 'records.duckdb');
+    const database = await DuckDBInstance.create(databasePath);
+    const connection = await database.connect();
+    try {
+      await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+      await connection.run('INSERT INTO records VALUES (1,10),(2,20),(3,30)');
+    } finally {
+      connection.closeSync();
+      database.closeSync();
+    }
+    const sourceOptions = {moon, preparedEffect: prepared, registry,
+      values, fragment, ordered, database: databasePath,
+      schema: 'main', table: 'records', sourceAccess: {
+        ...fixtureSourceAccess, sourceRef: 'connector://crm/main/r#v',
+      }, transportLimits: {maxRows: 100, maxCells: 1000,
+        maxTransportBytes: 100000, maxSqlBytes: 10000,
+        maxParameters: 10, maxColumns: 10,
+        memoryBytes: 128 * 1024 * 1024, threads: 1}};
+    const preparedSource = await prepareCapturedDuckDBSource(sourceOptions);
+    const opened = await openCapturedDuckDBSource({...sourceOptions,
+      preparedSource});
+    try {
+      assert.equal(opened.setup, undefined);
+      assert.equal(moon.clientProgramEffectCapturedSourceMatches(prepared,
+        opened.capture.source()), true);
+      const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
+        compiled, cid('a'), cid('b'), '2099-01-01T00:00:00.000Z'));
+      const definition = checked(moon.clientProgramIssueEffectRunDefinition(
+        allowed, 'namespace-a', 'acquired-effect-run',
+        '2026-09-29T00:00:00.000Z', '2099-01-01T00:00:00.000Z'));
+      const bound = checked(moon.clientProgramBindCompiledEffectRun(
+        prepared, allowed, definition));
+      const host = moon.clientProgramOpenCapturedLocalEffectHost(bound,
+        opened.capture.source(), registry, values, 1n, 0n, 0n, 0n,
+        fragment, ordered);
+      assert.ok(host);
+      const execution = await runCapturedEffectComputation(host);
+      try {
+        assert.equal(execution.status, 'host-tasks-completed');
+        assert.equal(moon.clientProgramLocalEffectSourceCount(host), 1);
+        assert.deepEqual(execution.completed.map(value => value.task), [1]);
+        assert.deepEqual(execution.completed.map(value => value.outputRows),
+          [1]);
+      } finally { await execution.close(); }
+    } finally { opened.close(); }
   });
 
 function effectInputPreview(prepared, evidence, definition, invocation,

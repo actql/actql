@@ -14,11 +14,12 @@ before provider I/O; Salesforce behavior stays in its installation adapter.
   `src/physical_strategy/graph.mbt` keep the computation and Effect in one
   checked owner and bind each Effect source to an exact Stage Result/task.
   `src/physical_strategy/captured_dag.mbt` can open an Effect DAG with a
-  captured input. The standard Effect compiler still refuses acquired
-  input in `client_effect_compilation.mbt`, and its local Invocation and
-  Artifact issuers currently assume a Values source and an empty observation
-  set. Extend those issuers from the same checked owner; do not recheck an
-  Effect-free copy of the Program or create another Effect engine.
+  captured input. The common compiler and installed DuckDB acquisition can
+  now prepare one acquired root and a downstream Effect Unit from that same
+  owner. The local Invocation and Artifact issuers still assume a Values
+  source and an empty observation set. Extend those issuers from the same
+  checked owner; do not recheck an Effect-free copy of the Program or create
+  another Effect engine.
 - `adapters/host-node/client-dispatch-owner.mjs` owns physical Source capture,
   Source Evidence, computation, cancellation, and cleanup for the current
   read-only path. The captured Source and Compute execution must remain owned
@@ -87,12 +88,12 @@ installed source alias publication, the bounded lower-and-prepare bridge,
 `client-program-preparation.mjs`, and `embedded-local.mjs`. B must not add
 another Host checker, acquisition owner, or Run scheduler for this route.
 
-Merge B's pure Frontend and SDK change into `main` first, then rebase this
-branch once its API is fixed and connect the Host through the same checked
-preparation. Until then C's Source-to-Effect implementation and B's frontend
-change remain separate; no query-only source input is implicitly accepted by
-this branch. Alias generation/admission and query-only parameter failures
-are a distinct Host integration acceptance, not a reason to expand the first
-Source-to-Effect Program profile. If B needs a Host ABI adjustment before
-merging, agree on that exact bridge signature and test rather than editing
-the same Host files in parallel.
+B's pure Frontend and SDK change can merge separately. C continues the
+Source-to-Effect Host connection without waiting for that Frontend acceptance;
+no query-only source input is implicitly accepted by this branch. After B's
+API is fixed, C can rebase and connect its Host bridge through the same
+checked preparation. Alias generation/admission and query-only parameter
+failures are a distinct Host integration acceptance, not a reason to expand
+the first Source-to-Effect Program profile. If B needs a Host ABI adjustment
+before merging, agree on that exact bridge signature and test rather than
+editing the same Host files in parallel.

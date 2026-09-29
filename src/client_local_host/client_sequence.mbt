@@ -9,6 +9,52 @@ pub fn prepare_client_local_sequences(
   ordered_body : String?,
   task_count? : Int? = None,
 ) -> Array[@execution.GeneratedSequence]? {
+  prepare_client_local_sequences_owned(
+    Pure(prepared),
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    task_count~,
+  )
+}
+
+///|
+/// The Effectful caller retains its checked Effect closure while the same
+/// physical sequence preparation handles the acquired root and Local tasks.
+pub fn prepare_client_effect_local_sequences(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  task_count? : Int? = None,
+) -> Array[@execution.GeneratedSequence]? {
+  prepare_client_local_sequences_owned(
+    Effect(prepared),
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    task_count~,
+  )
+}
+
+///|
+priv enum ClientLocalSequenceOwner {
+  Pure(@publication_host.PreparedClientProgram)
+  Effect(@publication_host.PreparedClientEffectComputation)
+}
+
+///|
+fn prepare_client_local_sequences_owned(
+  prepared : ClientLocalSequenceOwner,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  task_count? : Int? = None,
+) -> Array[@execution.GeneratedSequence]? {
   if registry_body.length() > 100000 || values_body.length() > 100000 {
     return None
   }
@@ -72,7 +118,13 @@ pub fn prepare_client_local_sequences(
       }
     }
   }
-  let graph = @publication_host.prepared_client_graph(prepared)
+  let graph = match prepared {
+    Pure(value) => @publication_host.prepared_client_graph(value)
+    Effect(value) =>
+      @strategy.checked_effect_computation_graph(
+        @publication_host.prepared_client_effect_computation_graph(value),
+      )
+  }
   let count = task_count.unwrap_or(@strategy.graph_task_count(graph))
   if count < 1 || count > @strategy.graph_task_count(graph) {
     return None
@@ -82,10 +134,16 @@ pub fn prepare_client_local_sequences(
     guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
       return None
     }
-    let acquiring = @publication_host.prepare_client_query_acquisition(
-        prepared, task, 0,
-      )
-      is Ok(_)
+    let acquiring = match prepared {
+      Pure(value) =>
+        @publication_host.prepare_client_query_acquisition(value, task, 0)
+        is Ok(_)
+      Effect(value) =>
+        @publication_host.prepare_client_effect_query_acquisition(
+          value, task, 0,
+        )
+        is Ok(_)
+    }
     let sequence = match
       @lower.prepare_sequence(
         owner,
@@ -186,17 +244,31 @@ pub fn prepare_client_local_sequences(
         _ => ()
       }
     }
-    let sequence = match
-      @publication_host.prepare_client_task_sequence(
-        prepared,
-        task,
-        contracts,
-        contexts,
-        @publication_host.client_standard_values_sequence_limits(),
-        100000,
-        10000,
-        prepared_sequence=Some(sequence),
-      ) {
+    let outcome = match prepared {
+      Pure(value) =>
+        @publication_host.prepare_client_task_sequence(
+          value,
+          task,
+          contracts,
+          contexts,
+          @publication_host.client_standard_values_sequence_limits(),
+          100000,
+          10000,
+          prepared_sequence=Some(sequence),
+        )
+      Effect(value) =>
+        @publication_host.prepare_client_effect_task_sequence(
+          value,
+          task,
+          contracts,
+          contexts,
+          @publication_host.client_standard_values_sequence_limits(),
+          100000,
+          10000,
+          prepared_sequence=Some(sequence),
+        )
+    }
+    let sequence = match outcome {
       Ok(value) => value
       Err(_) => return None
     }
