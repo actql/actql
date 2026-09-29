@@ -38,6 +38,31 @@ snapshot; a generation change requires a new published snapshot. Missing or
 ambiguous names are rejected without another Resource fallback. The alias
 selects a source; read authorization still runs on the ordinary acquisition
 path immediately before protected I/O.
+The Host parses each installed `name` through
+`query_syntax.parse_relation_path` before calling
+`source_frontend.bind_query_context`; it must not split quoted names itself.
+
+The smallest profile extension proposed for C's publication code is:
+
+```json
+{
+  "queryAliases": [
+    {
+      "name": "records",
+      "sourceRef": "connector://crm/main/records#snapshot",
+      "sourceViewContractCid": "sha256:<admitted Source View CID>",
+      "schemaContractCid": "sha256:<admitted output schema CID>"
+    }
+  ]
+}
+```
+
+This is installation input, not a new Client request field or a grant. The
+Host obtains it at profile installation, checks it against the composed
+environment, and retains the resulting immutable snapshot with the admitted
+`evidence_bundle_cid`. Submit reads that exact snapshot. The public `connect`
+profile can advertise source-format capability without exposing private
+Resource names or turning a capability snapshot into future authorization.
 
 `source_frontend.bind_query_context` accepts only an already validated,
 generation-bound in-process alias list and emits the existing

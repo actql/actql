@@ -52,12 +52,35 @@ fn test_declarations() -> @parameters.Declarations {
 }
 
 ///|
+fn alias_limits() -> @syntax.LexicalLimits {
+  {
+    max_source_bytes: 256,
+    max_tokens: 32,
+    max_literal_bytes: 256,
+    max_work: 512,
+  }
+}
+
+///|
 test "explicit format aliases retain the structured route" {
   assert_true(select_format("json") is Ok(Json))
   assert_true(select_format("aql-json") is Ok(Json))
   assert_true(select_format("yaml") is Ok(Yaml))
   assert_true(select_format("aql-yaml") is Ok(Yaml))
   assert_true(select_format("auto") is Err(InvalidFormat))
+}
+
+///|
+test "structural JSON escapes are admitted by the structural parser" {
+  let document =
+    #|AQL '0.1'; PROGRAM 'escaped' {
+    #| STAGE main {
+    #|  DATA source = OP values {"schema":{"id":{"type":"string","nullable":false}},"rows":[{"id":"\ud83d\ude00"}]};
+    #|  RESULT rows = {"from":"source"};
+    #| }
+    #| RESULT answer = {"from":{"stage":"main","result":"rows"}};
+    #|}
+  assert_true(lower(document, Text, None) is Ok(_))
 }
 
 ///|
@@ -102,14 +125,30 @@ test "structural AQL and query-only AQL use distinct parsers" {
     lower(structural, Text, Some(declared))
     is Err(ExternalDeclarationsOnProgram),
   )
+  let declared_program = lower(
+    "SELECT id FROM records WHERE id = @p",
+    Sql,
+    Some(declared),
+  ).unwrap()
   assert_true(
-    lower("SELECT id FROM records WHERE id = @p", Sql, Some(declared)) is Ok(_),
+    declared_program.document.contains(
+      "\"params\":{\"p\":{\"type\":\"number\"}}",
+    ),
   )
 }
 
 ///|
 test "published query names bind one environment generation" {
   let input = test_context().inputs[0]
+  let parsed = @syntax.parse_relation_path("crm.`Records`", alias_limits()).unwrap()
+  assert_eq(parsed.length(), 2)
+  assert_eq(parsed[0].value, "crm")
+  assert_eq(parsed[1].value, "Records")
+  assert_true(parsed[1].quoted)
+  assert_true(
+    @syntax.parse_relation_path("records.extra more", alias_limits()) is Err(_),
+  )
+  assert_true(@syntax.parse_relation_path("records.", alias_limits()) is Err(_))
   let entry : PublishedAlias = {
     name: input.relation,
     source_ref: "connector://crm/main/records#snapshot",
@@ -142,5 +181,44 @@ test "published query names bind one environment generation" {
   }
   assert_true(
     bind_query_context([entry, quoted], entry.environment_cid) is Ok(_),
+  )
+}
+
+///|
+test "public Graph lowering rejects private star before Program preparation" {
+  let source = @wire.admit(
+    @source.parse_json("{\"connector\":\"crm/main\",\"resource\":\"graph\"}", {
+      max_input_bytes: 1024,
+      max_nodes: 64,
+      max_depth: 8,
+    }).unwrap(),
+    {
+      max_nodes: 64,
+      max_depth: 8,
+      max_string_bytes: 1024,
+      max_total_string_bytes: 1024,
+    },
+  ).unwrap()
+  let context = {
+    ..test_context(),
+    captured_stage: None,
+    inputs: [],
+    graph_inputs: [
+      {
+        relation: [{ value: "g", quoted: false, }],
+        name: "g",
+        source: @query.CapturedGraph(source),
+        node_fields: ["id", "name"],
+        edge_fields: ["src", "dst", "rel"],
+      },
+    ],
+  }
+  assert_true(
+    lower(
+      "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT *",
+      Text,
+      Some(context),
+    )
+    is Err(QueryLowering(@query.UnsupportedProjection)),
   )
 }

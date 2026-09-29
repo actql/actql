@@ -12,6 +12,7 @@ import {canonicalText} from './check-canonical-json.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const graphOnly = process.argv.includes('--graph-only');
+const projectionOnly = process.argv.includes('--projection-only');
 const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
 const root = await mkdtemp(join(build, 'node-client-package-'));
@@ -144,6 +145,22 @@ const pathQuery = queryFrontend.compileGeneratedGraphQueryJson(
   JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_diamond');
 assert.notEqual(pathQuery, '');
 await writeFile(join(root, 'graph-path-query.json'), pathQuery);
+for (const [name, source] of [
+  ['node-star', 'FROM GRAPH g |> MATCH WALK (a) |> SELECT *'],
+  ['quoted-node-star', 'FROM GRAPH g |> MATCH WALK (`a`) |> SELECT *'],
+  ['projected-star', 'FROM GRAPH g |> MATCH WALK (a)-[]->(b) '
+    + '|> SELECT a.id AS id, b.name AS name |> SELECT *'],
+  ['quoted-projected-star', 'FROM GRAPH g |> MATCH WALK (`a`)-[]->(`b`) '
+    + '|> SELECT `a`.id AS id, `b`.name AS name |> SELECT *'],
+]) {
+  const program = queryFrontend.compileGeneratedGraphQueryJson(source,
+    'g', JSON.stringify(pathSteps), JSON.stringify(['id', 'name']),
+    JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_' + name);
+  assert.notEqual(program, '', name);
+  const result = JSON.parse(program).stages[0].results.rows;
+  assert.deepEqual(result.fields, ['id', 'name']);
+  await writeFile(join(root, 'graph-' + name + '.json'), program);
+}
 const macroQuery = queryFrontend.compileGeneratedGraphQueryJson(
   'FROM GRAPH g |> MATCH p = WALK (a)-[e]->(b) '
     + '|> SELECT NODE_ID(a) AS node_id, EDGE_SOURCE(e) AS source_id, '
@@ -343,6 +360,24 @@ const nestedQuery = queryFrontend.compileValuesQueryJson(
   JSON.stringify(['id', 'items', 'v']), 'fixture.nested_values_query');
 assert.notEqual(nestedQuery, '');
 await writeFile(join(root, 'query-nested-values.json'), nestedQuery);
+const projectionValues = {values: {schema: {
+  x: {type: 'number', nullable: false}}, rows: [{x: 2}, {x: 1}]}, as: 'rows'};
+for (const [name, source] of [
+  ['plain-select-where', 'FROM rows |> SELECT x |> WHERE x > 0 |> ORDER BY x'],
+  ['set-select-where', 'FROM rows |> SET x = x |> SELECT x '
+    + '|> WHERE x > 0 |> ORDER BY x'],
+  ['set-select-extend', 'FROM rows |> SET x = x |> SELECT x '
+    + '|> EXTEND x + 1 AS z |> SELECT z |> ORDER BY z'],
+  ['equal-selected-expressions',
+    'SELECT x + 1 AS a, x + 1 AS b FROM rows ORDER BY x + 1'],
+  ['distinct-equal-selected-expressions',
+    'SELECT DISTINCT x + 1 AS a, x + 1 AS b FROM rows ORDER BY x + 1'],
+]) {
+  const program = queryFrontend.compileValuesQueryJson(source, 'rows', 'rows',
+    JSON.stringify(projectionValues), '["x"]', 'fixture.' + name);
+  assert.notEqual(program, '', name);
+  await writeFile(join(root, name + '.json'), program);
+}
 const computedValuesQuery = queryFrontend.compileValuesQueryJson(
   'SELECT id FROM rows WHERE id > 1', 'rows', 'selected',
   JSON.stringify(valuesStep), JSON.stringify(['id']),
@@ -1214,6 +1249,26 @@ const pairQueryDocument = readFileSync('query-pair.json', 'utf8');
 const pairExpectedRows = JSON.parse(readFileSync(
   'query-pair.expected-rows.json', 'utf8'));
 async function checkGraphNodeQuery(client, suffix) {
+  for (const [name, expected] of [
+    ['node-star', [{id: 1, name: 'A'}, {id: 2, name: 'B'},
+      {id: 3, name: 'C'}, {id: 4, name: 'D'}]],
+    ['quoted-node-star', [{id: 1, name: 'A'}, {id: 2, name: 'B'},
+      {id: 3, name: 'C'}, {id: 4, name: 'D'}]],
+    ['projected-star', [{id: 1, name: 'B'}, {id: 1, name: 'C'},
+      {id: 2, name: 'D'}, {id: 3, name: 'D'}]],
+    ['quoted-projected-star', [{id: 1, name: 'B'}, {id: 1, name: 'C'},
+      {id: 2, name: 'D'}, {id: 3, name: 'D'}]],
+  ]) {
+    const execution = await client.aql(readFileSync('graph-' + name + '.json',
+      'utf8'), {format: 'json', requestId: 'packed-' + name + '-' + suffix});
+    const status = await execution.wait();
+    assert.equal(status.status, 'succeeded', JSON.stringify(status));
+    const rows = await execution.result('answer').all();
+    assert.deepEqual(rows, expected);
+    for (const row of rows) assert.deepEqual(Object.keys(row).sort(),
+      ['id', 'name']);
+  }
+
   const execution = await client.aql(readFileSync('graph-node-query.json',
     'utf8'), {format: 'json', requestId: 'packed-graph-node-' + suffix});
   const status = await execution.wait();
@@ -1341,6 +1396,20 @@ async function checkQueryPair(client, suffix) {
 const fullUsingValuesDocument = readFileSync('query-full-using-values.json',
   'utf8');
 async function checkOrderScopes(client, suffix) {
+  for (const [name, expected] of [
+    ['plain-select-where', [{x: 1}, {x: 2}]],
+    ['set-select-where', [{x: 1}, {x: 2}]],
+    ['set-select-extend', [{z: 2}, {z: 3}]],
+    ['equal-selected-expressions', [{a: 2, b: 2}, {a: 3, b: 3}]],
+    ['distinct-equal-selected-expressions', [{a: 2, b: 2}, {a: 3, b: 3}]],
+  ]) {
+    const execution = await client.aql(readFileSync(name + '.json', 'utf8'),
+      {format: 'json', requestId: 'packed-' + name + '-' + suffix});
+    const status = await execution.wait();
+    assert.equal(status.status, 'succeeded', JSON.stringify(status));
+    assert.deepEqual(await execution.result('answer').all(), expected);
+  }
+
   for (const [name, expected] of [
     ['alias-order', [{y: 1}, {y: 2}]],
     ['hidden-order', [{x: 2}, {x: 1}]],
@@ -1843,6 +1912,26 @@ async function runAcquiredApplication(options, requestId) {
   {code: 'ClientRequestIntentConflict'});
   return {client, execution, b, c};
 }
+// Focused review acceptance still uses packed artifacts and both real Hosts.
+// The default CI invocation continues to execute the full matrix.
+if (process.env.ACTQL_PROJECTION_ONLY === '1') {
+  const local = await connect({mode: 'local', owner: 'local',
+    durability: 'durable'});
+  await checkGraphNodeQuery(local, 'projection-local');
+  await checkOrderScopes(local, 'projection-local');
+  local.close();
+  globalThis.fetch = originalFetch;
+  const endpoint = process.env.ACTQL_TEST_REMOTE_ENDPOINT;
+  const released = await originalFetch(new URL('/__test/release-dispatch', endpoint),
+    {method: 'POST'});
+  assert.equal(released.status, 200);
+  const remote = await connect({mode: 'remote', endpoint,
+    token: 'packed-test-token', durability: 'durable'});
+  await checkGraphNodeQuery(remote, 'projection-remote');
+  await checkOrderScopes(remote, 'projection-remote');
+  remote.close();
+  process.exit(0);
+}
 const {client: installedLocal, execution, rows} = await runApplication(
   {mode: 'local', owner: 'local', durability: 'durable'},
   'packed-standard-values');
@@ -2107,7 +2196,9 @@ await checkGraphPredicateDemand(installedRemote, 'remote');
 await checkGraphIntermediateLimit(installedRemote, 'remote');
 if (process.env.ACTQL_GRAPH_ONLY === '1') {
   installedRemote.close();
-  console.log('packed Graph Local and HTTP smoke passed');
+  console.log(projectionOnly
+    ? 'packed projection Local and HTTP smoke passed'
+    : 'packed Graph Local and HTTP smoke passed');
   process.exit(0);
 }
 await checkValuesCte(installedRemote, 'remote');
@@ -2410,15 +2501,18 @@ try {
   await runAsync(process.execPath, ['smoke.mjs'], root, {
     ACTQL_TEST_REMOTE_ENDPOINT: endpoint,
     ACTQL_GRAPH_ONLY: graphOnly ? '1' : '0',
+    ACTQL_PROJECTION_ONLY: projectionOnly ? '1' : '0',
     NODE_EXTRA_CA_CERTS: join(root, 'remote.crt'),
   });
 } finally {
   releaseDispatch();
   await new Promise(resolve => remoteServer.close(resolve));
 }
-if (graphOnly) {
+if (graphOnly || projectionOnly) {
   await remoteHost.close();
-  console.log('packed Graph Local and HTTP smoke passed');
+  console.log(projectionOnly
+    ? 'packed projection Local and HTTP smoke passed'
+    : 'packed Graph Local and HTTP smoke passed');
   process.exit(0);
 }
 const acquiredRecoveryRequest = {requestId: 'packed-acquired-remote',
