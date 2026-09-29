@@ -297,3 +297,21 @@ int32_t actql_executor_slot_append_line(
   if (close(descriptor) != 0) written = false;
   return written ? 0 : -1;
 }
+
+// Writes one line to standard output unbuffered, so progress reaches a pipe
+// in order even when the process ends abnormally. 0 on success.
+int32_t actql_executor_slot_write_stdout_line(
+  moonbit_bytes_t line,
+  int32_t line_length
+) {
+  int32_t offset = 0;
+  while (offset < line_length) {
+    ssize_t count = write(1, line + offset, (size_t)(line_length - offset));
+    if (count < 0) {
+      if (errno == EINTR) continue;
+      return -1;
+    }
+    offset += (int32_t)count;
+  }
+  return write(1, "\n", 1) == 1 ? 0 : -1;
+}

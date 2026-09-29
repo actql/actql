@@ -69,7 +69,7 @@ fn load_text(
 
 ///|
 fn now_timestamp() -> String raise CommandStop {
-  match @resident.resident_utc_timestamp(@env.now().to_int64()) {
+  match @resident.resident_utc_timestamp(@env.now().reinterpret_as_int64()) {
     Some(value) => value
     None => stop("Site clock is out of range")
   }
@@ -84,7 +84,7 @@ fn report(kind : String, fields : Array[(String, String)]) -> Unit {
     text.write_string(",\"" + field.0 + "\":\"" + field.1 + "\"")
   }
   text.write_string("}")
-  println(text.to_string())
+  ignore(@slot.native_write_progress_line(text.to_string()))
 }
 
 ///|
@@ -148,6 +148,14 @@ priv struct SiteEnvironment {
   site : @site.ExecutionSite
   journal : @journal.Journal
   runtime_bundle_cid : String
+  sqlite_library : @sqlite.Library
+  journal_path : String
+  max_record_bytes : Int64
+  site_key : String
+  site_generation : Int
+  max_operations : Int
+  max_transfers : Int
+  max_bytes : Int64
 }
 
 ///|
@@ -202,7 +210,8 @@ fn open_site_environment(
       max_record_bytes,
     ) {
     Ok(value) => value
-    Err(_) => stop("runtime bundle Store open failed")
+    Err(issue) =>
+      stop("runtime bundle Store open failed: " + bundle_issue_code(issue))
   }
   let active = match bundles.active() {
     Ok(Some(value)) => value
@@ -268,6 +277,69 @@ fn open_site_environment(
     site,
     journal,
     runtime_bundle_cid: active.runtime_bundle_cid,
+    sqlite_library,
+    journal_path: required(matches, "journal"),
+    max_record_bytes,
+    site_key: required(matches, "site-key"),
+    site_generation: required_int(matches, "site-generation"),
+    max_operations: required_int(matches, "max-operations"),
+    max_transfers: required_int(matches, "max-transfers"),
+    max_bytes,
+  }
+}
+
+///|
+/// A fresh view of the shared dispatch journal. The holder advances records
+/// in its own process, so the control process reads the durable record anew
+/// for every operation instead of keeping an in-memory copy.
+fn fresh_journal(environment : SiteEnvironment) -> @journal.Journal? {
+  guard @site.create_site(
+      environment.site_key,
+      environment.site_generation,
+      environment.runtime_bundle_cid,
+      environment.max_operations,
+      environment.max_transfers,
+      environment.max_bytes,
+      environment.max_bytes,
+    )
+    is Some(site) else {
+    return None
+  }
+  match @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1") {
+    Ok(control) =>
+      @journal.open_journal(
+        environment.sqlite_library,
+        environment.journal_path,
+        environment.max_record_bytes,
+        control,
+      ).to_option()
+    Err(_) => None
+  }
+}
+
+///|
+fn bundle_issue_code(issue : @bundle.NativeRuntimeBundleStoreIssue) -> String {
+  match issue {
+    UnsupportedTarget => "unsupported-target"
+    Closed => "closed"
+    InvalidConfiguration => "invalid-configuration"
+    AdmissionRejected => "admission-rejected"
+    MissingBundle => "missing-bundle"
+    ExistingBundle => "existing-bundle"
+    BundleLimit => "bundle-limit"
+    CapacityExceeded => "capacity-exceeded"
+    HoldCollision => "hold-collision"
+    StateCollision => "state-collision"
+    UnsupportedCatalog => "unsupported-catalog"
+    ComponentMismatch => "component-mismatch"
+    RecoveryRequired => "recovery-required"
+    CleanupPending => "cleanup-pending"
+    Bundle(_) => "bundle"
+    Signature(_) => "signature"
+    Filesystem(RootOpen(detail)) => "filesystem-root: " + detail
+    Filesystem(Lock(detail)) => "filesystem-lock: " + detail
+    Filesystem(_) => "filesystem"
+    Database(_) => "database"
   }
 }
 
@@ -279,9 +351,7 @@ fn close_site_environment(environment : SiteEnvironment) -> Unit {
 }
 
 ///|
-fn run_admission(
-  matches : @argparse.Matches,
-) -> @resident_host.ResidentRunAdmission raise CommandStop {
+fn run_admission() -> @resident_host.ResidentRunAdmission raise CommandStop {
   let manifests = match
     @host.admit_client_compilation_manifests(
       @environment.compiler_grammar_manifest_wire(),
@@ -438,6 +508,7 @@ priv struct RunningHolder {
   child : @slot.NativeExecutorSlotChild
   attempt : String
   request : @remote.DispatchRequest
+  mut next_report_ms : UInt64
 }
 
 ///|
@@ -449,13 +520,21 @@ fn settle_holder(
   client : @http.Client,
   observation_url : String,
 ) -> Bool {
-  match
-    @client.acknowledge_status(
-      environment.journal,
-      client,
-      observation_url,
-      holder.request,
-    ) {
+  guard fresh_journal(environment) is Some(journal) else {
+    report("observation-pending", [
+      ("attempt", holder.attempt),
+      ("reason", "journal-open"),
+    ])
+    return false
+  }
+  let observed = @client.acknowledge_status(
+    journal,
+    client,
+    observation_url,
+    holder.request,
+  )
+  ignore(journal.close())
+  match observed {
     Ok(Some(record)) => {
       report("holder-settled", [
         ("attempt", holder.attempt),
@@ -487,8 +566,8 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     matches,
     "runtime-process:resident-control:" + required(matches, "site-key"),
   )
-  let slot = match
-    @slot.open_native_executor_slot(required(matches, "executor-slot")) {
+  let slot_path = required(matches, "executor-slot")
+  let mut slot = match @slot.open_native_executor_slot(slot_path) {
     Ok(value) => value
     Err(_) => {
       close_site_environment(environment)
@@ -500,7 +579,11 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   let observation_url = required(matches, "observation-url")
   let dispatch_budget = budget(matches)
   let site_delegation = delegation(matches, environment, dispatch_budget)
-  let admission = run_admission(matches)
+  // The holder owns the runtime bundle Store while it executes; the control
+  // process keeps only what it read at startup.
+  ignore(environment.bundles.release(environment.process_hold_id))
+  ignore(environment.bundles.close())
+  let admission = run_admission()
   let generation = required_int(matches, "site-generation")
   let queue = match
     @resident.ResidentAcceptedQueue::new(
@@ -519,7 +602,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   let max_backoff_ms = required_int(matches, "max-backoff-ms")
   let shutdown_wait_ms = required_int(matches, "shutdown-wait-ms")
   let mut holder : RunningHolder? = None
-  let mut unsettled : RunningHolder? = None
+  // Holder records not yet reported. They are kept and retried, never
+  // dropped, and do not hold back new work; a query answered from the
+  // journal for the same dispatch reports them too.
+  let unsettled : Array[RunningHolder] = []
   let mut backoff_ms = 0
   let mut polls = 0
   let mut holders = 0
@@ -531,23 +617,39 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           Ok(Some(_)) => {
             ignore(queue.remove(current.attempt))
             holder = None
-            unsettled = Some(current)
+            unsettled.push(current)
           }
           Ok(None) => ()
           Err(_) => ()
         }
       None => ()
     }
-    match unsettled {
-      Some(current) =>
-        if settle_holder(current, environment, client, observation_url) {
-          unsettled = None
-        }
-      None => ()
-    }
+    // Unreported records are retried with the error backoff, not on every
+    // pass.
+    let still_unsettled = unsettled.filter(current => {
+      if @env.now() < current.next_report_ms {
+        return true
+      }
+      if settle_holder(current, environment, client, observation_url) {
+        false
+      } else {
+        current.next_report_ms = @env.now() + max_backoff_ms.to_uint64()
+        true
+      }
+    })
+    unsettled.clear()
+    unsettled.append(still_unsettled)
     // Start the oldest accepted attempt when the slot is free. The lock is
     // taken here and passed to the holder without a gap.
-    if holder is None && unsettled is None {
+    if holder is None {
+      // A slot handed to an earlier holder is opened again; the same file is
+      // always used.
+      if !slot.is_open() {
+        slot = match @slot.open_native_executor_slot(slot_path) {
+          Ok(value) => value
+          Err(_) => stop("executor slot open failed")
+        }
+      }
       match queue.next() {
         Some(attempt) =>
           match slot.try_acquire() {
@@ -575,7 +677,12 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                   }
                   match request {
                     Some(value) => {
-                      holder = Some({ child, attempt, request: value, })
+                      holder = Some({
+                        child,
+                        attempt,
+                        request: value,
+                        next_report_ms: 0,
+                      })
                       report("holder-started", [
                         ("attempt", attempt),
                         ("claimant", claimant),
@@ -604,7 +711,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       }
     }
     if max_polls > 0 && polls >= max_polls {
-      if holder is None && unsettled is None {
+      if holder is None && unsettled.is_empty() {
         break
       }
       @slot.native_wait_milliseconds(idle_wait_ms)
@@ -612,7 +719,11 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     }
     polls += 1
     let started = @env.now()
-    match @client.poll_operation(client, poll_url) {
+    let operation = @client.poll_operation(client, poll_url)
+    guard fresh_journal(environment) is Some(journal) else {
+      stop("dispatch journal open failed")
+    }
+    match operation {
       Ok(None) => {
         backoff_ms = 0
         // A long poll that returned at once must not spin.
@@ -624,7 +735,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         backoff_ms = 0
         match
           @resident_host.accept_resident_dispatch(
-            environment.journal,
+            journal,
             client,
             observation_url,
             site_delegation,
@@ -649,17 +760,19 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       Ok(Some(@remote.Query(request))) => {
         backoff_ms = 0
         match
-          @client.acknowledge_status(
-            environment.journal,
-            client,
-            observation_url,
-            request,
-          ) {
-          Ok(Some(record)) =>
+          @client.acknowledge_status(journal, client, observation_url, request) {
+          Ok(Some(record)) => {
+            let identity = @remote.dispatch_request_identity(request)
+            let remaining = unsettled.filter(current => {
+              @remote.dispatch_request_identity(current.request) != identity
+            })
+            unsettled.clear()
+            unsettled.append(remaining)
             report("query", [
-              ("request_cid", @remote.dispatch_request_identity(request)),
+              ("request_cid", identity),
               ("revision", @remote.dispatch_record_revision(record).to_string()),
             ])
+          }
           Ok(None) =>
             report("not-seen", [
               ("request_cid", @remote.dispatch_request_identity(request)),
@@ -670,12 +783,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       Ok(Some(@remote.Release(request))) => {
         backoff_ms = 0
         match
-          @client.acknowledge_status(
-            environment.journal,
-            client,
-            observation_url,
-            request,
-          ) {
+          @client.acknowledge_status(journal, client, observation_url, request) {
           Ok(_) =>
             report("release-observed", [
               ("request_cid", @remote.dispatch_request_identity(request)),
@@ -707,6 +815,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         @slot.native_wait_milliseconds(backoff_ms)
       }
     }
+    ignore(journal.close())
   }
   // After a termination request no new work is taken. A running holder is
   // given a bounded time to finish; after it, the durable journal keeps its
@@ -724,17 +833,15 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       }
     }
   }
-  match unsettled {
-    Some(current) =>
-      ignore(settle_holder(current, environment, client, observation_url))
-    None => ()
+  for current in unsettled {
+    ignore(settle_holder(current, environment, client, observation_url))
   }
   if holder is Some(current) {
     report("holder-still-running", [("attempt", current.attempt)])
   }
   ignore(client.close())
   ignore(slot.close())
-  close_site_environment(environment)
+  ignore(environment.journal.close())
   report("stopped", [])
 }
 
@@ -834,7 +941,7 @@ fn run_holder(
   let result = @resident_host.execute_resident_attempt(
     environment.journal,
     execution,
-    run_admission(matches),
+    run_admission(),
     required(holder, "attempt"),
     claimant,
     now_timestamp(),

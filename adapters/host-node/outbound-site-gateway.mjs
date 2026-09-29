@@ -579,6 +579,20 @@ export async function startHttpsOutboundSiteGateway({
       if (dispatch === undefined) fail('InvalidOutboundDispatch');
       return waitFor(dispatch, signal, 'release', undefined);
     },
+    // Stop offering a dispatch the Site has not accepted; its waiters are
+    // rejected. The Coordinator then learns the outcome by query.
+    withdraw({dispatch} = {}) {
+      if (dispatch === undefined) fail('InvalidOutboundDispatch');
+      const identity = control.identity(dispatch);
+      const entry = pending.get(`dispatch:${identity}`);
+      materialsEnvelopes.delete(identity);
+      if (entry === undefined) return false;
+      settle(entry, 'reject', Object.assign(
+        new Error('RemoteDispatchWithdrawn'),
+        {code: 'RemoteDispatchWithdrawn'},
+      ));
+      return true;
+    },
     pending() {
       return pending.size;
     },

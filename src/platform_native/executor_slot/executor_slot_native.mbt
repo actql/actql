@@ -280,3 +280,20 @@ pub fn native_append_evidence_line(path : String, line : String) -> Bool {
   ) ==
   0
 }
+
+///|
+#borrow(line)
+extern "C" fn write_stdout_line_ffi(line : Bytes, length : Int) -> Int = "actql_executor_slot_write_stdout_line"
+
+///|
+/// Write one progress line to standard output without buffering.
+pub fn native_write_progress_line(line : String) -> Bool {
+  let encoded = @utf8.encode(line)
+  write_stdout_line_ffi(encoded, encoded.length()) == 0
+}
+
+///|
+/// False once this process handed the slot to a holder or closed it.
+pub fn NativeExecutorSlot::is_open(self : NativeExecutorSlot) -> Bool {
+  self.descriptor >= 0
+}

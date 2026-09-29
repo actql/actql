@@ -129,8 +129,10 @@ pub fn accept_resident_dispatch(
   }
   if !@remote.remote_runtime_record_startable(accepted) {
     ignore(queue.remove(attempt))
+    // The redelivery is answered with the attempt's current durable record,
+    // in the dispatch response it asked for; nothing starts again.
     return match
-      @client.acknowledge_status(journal, client, observation_url, request) {
+      @client.acknowledge_acceptance(journal, client, observation_url, request) {
       Ok(_) => Ok(AlreadyStarted(attempt))
       Err(issue) => Err(Client(issue))
     }
