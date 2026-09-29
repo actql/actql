@@ -538,7 +538,7 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     variant == "window_sliding" ||
     variant == "window_sliding_filter" ||
     variant == "window_parameter"
-  let sequence = variant == "sequence"
+  let sequence = variant == "sequence" || variant == "sequence_filter"
   let session = variant.has_prefix("session")
   let session_global = variant == "session_global"
   let session_parameter = variant == "session_parameter"
@@ -586,7 +586,11 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
     "\"where\":{\"literal\":true}},{\"as\":\"end\"," +
     "\"where\":{\"literal\":true}}],\"within\":10," +
     "\"overlap\":\"allow\",\"contiguity\":\"subsequence\"}," +
-    "\"as\":\"out\"}"
+    (if variant == "sequence_filter" {
+      "\"as\":\"matched\"}"
+    } else {
+      "\"as\":\"out\"}"
+    })
   } else if dedupe {
     "{\"dedupe_events\":{\"by\":[\"payload\"],\"order_by\":[{" +
     "\"field\":\"occurred_at\",\"dir\":\"asc\"," +
@@ -625,7 +629,12 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   } else if sequence {
     "{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
     "\"time\":\"occurred_at\"}}," +
-    transform
+    transform +
+    (if variant == "sequence_filter" {
+      ",{\"from\":\"matched\",\"filter\":\"true\",\"as\":\"out\"}"
+    } else {
+      ""
+    })
   } else {
     "{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
     "\"time\":\"occurred_at\"}}," +
@@ -4488,7 +4497,10 @@ fn query_checked_program_fixture(
       ),
     ]
   } else if local_carrier_events_chain &&
-    local_carrier_events_variant == "sequence" {
+    (
+      local_carrier_events_variant == "sequence" ||
+      local_carrier_events_variant == "sequence_filter"
+    ) {
     let input = query_capacity_proof(
       "actql.bound.values",
       3L,
