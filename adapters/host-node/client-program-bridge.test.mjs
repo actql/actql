@@ -32,7 +32,9 @@ import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {connect as connectClient} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
-import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan} from './local-values-plan.mjs';
+import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan,
+  acquiredEffectPublicationAdmission, acquiredEffectPublicationPlan} from
+  './local-values-plan.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
   './captured-duckdb-source.mjs';
@@ -2351,6 +2353,70 @@ test('one acquired Effect Program captures and computes from its owner',
         '2026-09-29T00:00:00.000Z', '2099-01-01T00:00:00.000Z'));
       const bound = checked(moon.clientProgramBindCompiledEffectRun(
         prepared, allowed, definition));
+      const template = checked(moon.strategyRunEvidenceAdmit(
+        'bound_invocation_template',
+        moon.clientProgramEffectCompilationTemplateWire(compiled),
+        1000000, 100000, 64));
+      const preparedEvidence = checked(moon.strategyRunEvidenceAdmit(
+        'prepared_invocation', moon.strategyRunEvidenceJson(
+          moon.clientProgramAllowedEffectRunPrepared(allowed)),
+        1000000, 100000, 64));
+      const authorization = checked(moon.strategyRunEvidenceAdmit(
+        'run_authorization', moon.strategyRunEvidenceJson(
+          moon.clientProgramAllowedEffectRunAuthorization(allowed)),
+        1000000, 100000, 64));
+      const compiledPlan = checked(moon.strategyPublicationAdmit(
+        'compiled_plan',
+        moon.clientProgramEffectCompilationCompiledPlanWire(compiled),
+        1000000, 100000, 64));
+      const admission = moon.clientProgramAdmitEffectPublication(prepared,
+        template, preparedEvidence, authorization, compiledPlan);
+      assert.ok(admission);
+      const sourceEvidenceWire = await opened.issueSourceEvidence({
+        authorityScopeCid: cid('a'),
+        effectiveDataPolicyCid:
+          opened.checkedSource.sourceDataPolicyCid});
+      const invoked = checked(moon.clientProgramIssueEffectCapturedInvocation(
+        prepared, compiled, admission, definition, opened.capture.source(),
+        sourceEvidenceWire,
+        moon.strategyRunEvidenceJson(opened.logicalInput),
+        opened.checkedSource.sourceRef,
+        opened.checkedSource.sourceContractCid, cid('a'),
+        opened.checkedSource.sourceDataPolicyCid,
+        '2026-09-29T00:00:00.000Z', '2026-09-29T00:00:01.000Z',
+        1000000, 100000, 64));
+      assert.deepEqual(JSON.parse(moon.strategyRunEvidenceJson(
+        invoked._0)).source_evidence_cids,
+      [JSON.parse(sourceEvidenceWire).source_evidence_cid]);
+      const publication = acquiredEffectPublicationPlan({
+        acquired: acquiredEffectPublicationAdmission({moon,
+          control: runtimeCore(moon).publicationControl, prepared,
+          compilation: compiled, allowed, definition,
+          authorityScopeCid: cid('a'), namespaceId: 'namespace-a',
+          storeAuthorityCid: cid('7'),
+          now: () => '2026-09-29T00:00:02.000Z'}),
+        captured: opened, sourceEvidenceWire,
+        captureStartedAt: '2026-09-29T00:00:00.000Z',
+        captureCompletedAt: '2026-09-29T00:00:01.000Z'});
+      assert.equal(publication.invocation.identity,
+        moon.strategyPublicationContractIdentity(invoked._1));
+      assert.equal(publication.receiptEvidence.sourceEvidence.length, 1);
+      const foreignSourceEvidence = JSON.parse(sourceEvidenceWire);
+      foreignSourceEvidence.source_contract_cid = cid('f');
+      foreignSourceEvidence.source_evidence_cid =
+        canonicalHashWithoutSelf(foreignSourceEvidence,
+          'source_evidence_cid');
+      assert.throws(() => acquiredEffectPublicationPlan({
+        acquired: acquiredEffectPublicationAdmission({moon,
+          control: runtimeCore(moon).publicationControl, prepared,
+          compilation: compiled, allowed, definition,
+          authorityScopeCid: cid('a'), namespaceId: 'namespace-a',
+          storeAuthorityCid: cid('7'),
+          now: () => '2026-09-29T00:00:02.000Z'}),
+        captured: opened,
+        sourceEvidenceWire: canonicalJson(foreignSourceEvidence),
+        captureStartedAt: '2026-09-29T00:00:00.000Z',
+        captureCompletedAt: '2026-09-29T00:00:01.000Z'}));
       const host = moon.clientProgramOpenCapturedLocalEffectHost(bound,
         opened.capture.source(), registry, values, 1n, 0n, 0n, 0n,
         fragment, ordered);

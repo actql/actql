@@ -84,7 +84,7 @@ function localPublicationPlan({control, admission, runDefinition, invocation,
 // Reuse its exact compiler outputs; do not prepare or compile another Program
 // to reconstruct publication evidence. Captured inputs must outlive approval
 // waiting, so retention covers the admitted Run's validity window.
-export function sourceFreeEffectPublicationPlan({moon, control, prepared,
+function effectPublicationAdmission({moon, control, prepared,
   compilation, allowed, definition, authorityScopeCid, namespaceId,
   storeAuthorityCid, now}) {
   const template = control.admitRunEvidence('bound_invocation_template',
@@ -102,6 +102,16 @@ export function sourceFreeEffectPublicationPlan({moon, control, prepared,
   const runDefinition = control.admit('run_definition',
     moon.strategyPublicationContractJson(definition), limits);
   const dataPolicyCid = policyCid('local-result-data');
+  return Object.freeze({moon, control, prepared, compilation, allowed,
+    definition, authorityScopeCid, namespaceId, storeAuthorityCid, now,
+    admission, runDefinition, compiledPlan, dataPolicyCid});
+}
+
+export function sourceFreeEffectPublicationPlan(options) {
+  const acquired = effectPublicationAdmission(options);
+  const {moon, control, prepared, compilation, admission, runDefinition,
+    compiledPlan, dataPolicyCid, authorityScopeCid, namespaceId,
+    storeAuthorityCid, now} = acquired;
   const sourceFree = checked(moon.clientProgramIssueEffectSourceFreeInvocation(
     compilation, dataPolicyCid, limits.maxWireBytes, limits.maxNodes,
     limits.maxDepth));
@@ -119,6 +129,56 @@ export function sourceFreeEffectPublicationPlan({moon, control, prepared,
     storeAuthorityCid, dataPolicyCid, createdAt: run.created_at, now,
     resultCount, retainUntil: run.valid_until});
   return Object.freeze({...plan, invocationOwner: sourceFree._1,
+    localEvidenceContext: Object.freeze({admission, runDefinition,
+      runInvocation: invocation, observation})});
+}
+
+// The accepted Effect Run can be admitted before provider I/O, but its
+// Observation Set cannot be issued until the exact acquired source exists.
+export function acquiredEffectPublicationAdmission(options) {
+  return effectPublicationAdmission(options);
+}
+
+export function acquiredEffectPublicationPlan({acquired, captured,
+  sourceEvidenceWire, captureStartedAt, captureCompletedAt}) {
+  const {moon, control, prepared, compilation, definition, admission,
+    runDefinition, compiledPlan, authorityScopeCid,
+    namespaceId, storeAuthorityCid, now} = acquired;
+  if (typeof sourceEvidenceWire !== 'string' ||
+      typeof captureStartedAt !== 'string' ||
+      typeof captureCompletedAt !== 'string' ||
+      captured?.logicalInput === undefined ||
+      captured?.checkedSource === undefined ||
+      captured?.identity === undefined ||
+      captured?.capture === undefined ||
+      moon.clientProgramEffectCapturedSourceMatches(prepared,
+        captured.capture.source()) !== true) {
+    throw new TypeError('InvalidAcquiredEffectPublication');
+  }
+  const source = captured.checkedSource;
+  const {observation, invocation, owner: invocationOwner} =
+    control.issueCheckedClientEffectCapturedInvocation(
+      prepared, compilation, admission, definition,
+      captured.capture.source(), {sourceEvidenceWire,
+        inputLogicalWire: moon.strategyRunEvidenceJson(captured.logicalInput),
+        sourceRef: source.sourceRef,
+        sourceContractCid: source.sourceContractCid,
+        authorityScopeCid, dataPolicyCid: source.sourceDataPolicyCid,
+        captureStartedAt, captureCompletedAt}, limits);
+  const sourceEvidence = control.admitRunEvidence('source_evidence',
+    sourceEvidenceWire, limits);
+  const run = JSON.parse(runDefinition.wire);
+  const resultCount = moon.clientProgramEffectCompilationResultNames(
+    compilation).length;
+  const plan = localPublicationPlan({control, admission, runDefinition,
+    invocation, observation, compiledPlanCid: compiledPlan.identity,
+    programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
+    inputRelationCids: [moon.clientProgramCapturedSourceLogicalCid(
+      captured.identity)], sourceEvidence: [sourceEvidence],
+    authorityScopeCid, namespaceId, storeAuthorityCid,
+    dataPolicyCid: source.sourceDataPolicyCid, createdAt: run.created_at,
+    now, resultCount, retainUntil: run.valid_until});
+  return Object.freeze({...plan, invocationOwner,
     localEvidenceContext: Object.freeze({admission, runDefinition,
       runInvocation: invocation, observation})});
 }

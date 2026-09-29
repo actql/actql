@@ -4890,6 +4890,38 @@ pub fn client_program_issue_effect_source_free_invocation(
 }
 
 ///|
+/// Issue the acquired observation and Run Invocation only from the admitted
+/// Effect owner and its exact captured source.
+#export_name("clientProgramIssueEffectCapturedInvocation")
+pub fn client_program_issue_effect_captured_invocation(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  compilation : @publication_host.ClientEffectCompilation,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  source : @query.CapturedInputSource,
+  source_evidence_wire : String,
+  input_logical_wire : String,
+  source_ref : String,
+  source_contract_cid : String,
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  @publication_host.issue_client_effect_captured_invocation(
+    prepared, compilation, admission, run_definition, source, source_evidence_wire,
+    input_logical_wire, source_ref, source_contract_cid, authority_scope_cid, data_policy_cid,
+    capture_started_at, capture_completed_at, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramEffectCompilationCompiledPlanWire")
 pub fn client_program_effect_compilation_compiled_plan_wire(
   value : @publication_host.ClientEffectCompilation,

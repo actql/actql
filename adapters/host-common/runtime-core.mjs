@@ -1931,7 +1931,7 @@ function publicationControl(moon) {
       source === undefined ? 'RunHostInvocationRejected'
         : 'RunHostTaskInvocationRejected');
       return Object.freeze({observation: inspectEvidence(issued._0),
-        invocation: inspect(issued._1)});
+        invocation: inspect(issued._1), owner: issued._1});
     },
     checkClientRunDefinitionBinding(checkedProgram, admission, definition) {
       if (typeof moon.clientProgramCheckRunBinding !== 'function' ||
@@ -1957,6 +1957,19 @@ function publicationControl(moon) {
         throw new TypeError('Publication evidence differs from checked Effect');
       }
       return inspectAdmission(admission);
+    },
+    issueCheckedClientEffectCapturedInvocation(checkedEffect, compilation,
+      admission, definition, capturedSource, source, limits) {
+      issuanceLimits(limits, 'Client Effect Invocation');
+      const issued = checked(moon.clientProgramIssueEffectCapturedInvocation(
+        checkedEffect, compilation, admissionToken(admission), definition,
+        capturedSource, source.sourceEvidenceWire, source.inputLogicalWire,
+        source.sourceRef, source.sourceContractCid,
+        source.authorityScopeCid, source.dataPolicyCid,
+        source.captureStartedAt, source.captureCompletedAt,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return Object.freeze({observation: inspectEvidence(issued._0),
+        invocation: inspect(issued._1)});
     },
     bindCheckedClientEffectRun(checkedEffect, admission, runDefinition) {
       if (typeof moon.clientProgramBindEffectRun !== 'function') {
