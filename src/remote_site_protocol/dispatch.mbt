@@ -286,6 +286,13 @@ fn attempt_key(request : DispatchRequest) -> String {
 }
 
 ///|
+/// The durable identity of one execution attempt: Coordinator authority, Run,
+/// task and attempt number. Redelivery of the same dispatch keeps this key.
+pub fn remote_dispatch_attempt_key(request : DispatchRequest) -> String {
+  attempt_key(request)
+}
+
+///|
 fn valid_request_fields(request : DispatchRequest) -> Bool {
   nonempty(request.coordinator_authority) &&
   valid_cid(request.run_definition_cid) &&

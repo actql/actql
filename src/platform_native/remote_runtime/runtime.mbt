@@ -160,6 +160,7 @@ struct NativeRemoteRuntime {
   admitting : Map[String, Bool]
   owners : Map[String, NativeRemoteRuntimeOwner]
   pending_cleanup : Map[String, NativeRemoteRuntimeOwner]
+  mut executor_entry : ((String) -> Bool)?
   mut closed : Bool
 }
 
@@ -195,6 +196,8 @@ pub(all) enum NativeRemoteRuntimeIssue {
   OutputReaderChunkExceeded
   OutputReaderPhysical(String)
   Physical(String)
+  /// The acceptance evidence hook could not record the executor entry.
+  ExecutorEntryUnrecorded
   CleanupPending(String)
   Protocol(@remote.DispatchIssue)
   Journal(@journal.NativeRemoteJournalIssue)
@@ -518,8 +521,33 @@ pub fn open_native_remote_runtime(
     admitting: Map([]),
     owners: Map([]),
     pending_cleanup: Map([]),
+    executor_entry: None,
     closed: false,
   })
+}
+
+///|
+/// Evidence hook for acceptance tests: called with the dispatch attempt key
+/// immediately before the physical executor, and only there. When it returns
+/// false the executor is not called and the dispatch fails with
+/// `ExecutorEntryUnrecorded`. A count of these calls is the number of times
+/// the pre-call boundary was reached, not proof that execution began. It can
+/// be installed once, before any dispatch starts.
+pub fn NativeRemoteRuntime::observe_executor_entry(
+  self : NativeRemoteRuntime,
+  observer : (String) -> Bool,
+) -> Result[Unit, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.executor_entry is Some(_) ||
+    !self.admitting.is_empty() ||
+    !self.owners.is_empty() ||
+    !self.pending_cleanup.is_empty() {
+    return Err(InvalidConfiguration)
+  }
+  self.executor_entry = Some(observer)
+  Ok(())
 }
 
 ///|
@@ -937,7 +965,20 @@ fn NativeRemoteRuntime::run_success(
             )
         }
       }
-      @remote.RuntimeExecutePhysical =>
+      @remote.RuntimeExecutePhysical => {
+        if self.executor_entry is Some(observe) &&
+          !observe(@remote.remote_dispatch_attempt_key(owner.request)) {
+          return Err(
+            self.retain_failed_owner(
+              identity,
+              owner,
+              ExecutorEntryUnrecorded,
+              false,
+              false,
+              true,
+            ),
+          )
+        }
         match
           (owner.registration.execute)(owner.request, owner.binding, budget) {
           NativeRemoteOutputReady(output) => {
@@ -982,6 +1023,7 @@ fn NativeRemoteRuntime::run_success(
             )
           }
         }
+      }
       @remote.RuntimeAcquireHolding => {
         guard owner.operation is Some(operation) else {
           return Err(

@@ -124,6 +124,8 @@ fn runtime_issue_message(issue : @runtime.NativeRemoteRuntimeIssue) -> String {
     @runtime.OutputReaderPhysical(message) =>
       "remote output reader failed: " + message
     @runtime.Physical(message) => "remote runtime failed: " + message
+    @runtime.ExecutorEntryUnrecorded =>
+      "remote runtime executor entry evidence was not recorded"
     @runtime.CleanupPending(message) =>
       "remote runtime cleanup remains pending: " + message
     @runtime.Protocol(_) => "remote runtime protocol rejected"

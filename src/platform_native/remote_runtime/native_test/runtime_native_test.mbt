@@ -253,6 +253,22 @@ test "native remote runtime owns success failure and cleanup progression" {
     [budget],
   ).unwrap()
   assert_false(runtime.retains_dispatch_resources())
+  // Acceptance evidence: every pre-call boundary of the physical executor.
+  let entries : Array[String] = []
+  let record_entries = [true]
+  runtime
+  .observe_executor_entry(key => {
+    if !record_entries[0] {
+      return false
+    }
+    entries.push(key)
+    true
+  })
+  .unwrap()
+  assert_true(
+    runtime.observe_executor_entry(_ => true)
+    is Err(@runtime.InvalidConfiguration),
+  )
   let request = fn(dispatch_id : String) {
     @remote.prepare_dispatch_request(
       "native-coordinator",
@@ -266,6 +282,7 @@ test "native remote runtime owns success failure and cleanup progression" {
         "dispatch-c" => 3
         "dispatch-over-budget" => 4
         "dispatch-d" => 5
+        "dispatch-unrecorded" => 7
         _ => 6
       },
       dispatch_id,
@@ -401,6 +418,7 @@ test "native remote runtime owns success failure and cleanup progression" {
   )
   assert_eq(accepted[0], 2)
   assert_eq(executions[0], 1)
+  assert_eq(entries, [@remote.remote_dispatch_attempt_key(first)])
   assert_true(runtime.retains_dispatch_resources())
   assert_eq(observed_budget[0], (128L, 128L))
   let reconciled_completion = runtime.observed_completion(first).unwrap()
@@ -507,6 +525,27 @@ test "native remote runtime owns success failure and cleanup progression" {
     runtime.cleanup(over_budget) is Err(@runtime.CleanupPending("output")),
   )
   assert_true(runtime.cleanup(over_budget).unwrap())
+  assert_false(runtime.cleanup_pending())
+  assert_eq(entries.length(), 3)
+  assert_eq(executions[0], 3)
+  // An unrecorded entry never reaches the executor.
+  record_entries[0] = false
+  let unrecorded = request("dispatch-unrecorded")
+  assert_true(
+    runtime.start(unrecorded, input_binding)
+    is Err(@runtime.ExecutorEntryUnrecorded),
+  )
+  assert_eq(executions[0], 3)
+  assert_eq(entries.length(), 3)
+  record_entries[0] = true
+  let cleaned = [false]
+  for _attempt in 0..<3 {
+    if runtime.cleanup(unrecorded).unwrap() {
+      cleaned[0] = true
+      break
+    }
+  }
+  assert_true(cleaned[0])
   assert_false(runtime.cleanup_pending())
   runtime.start(request("dispatch-c"), input_binding).unwrap() |> ignore
   runtime.start(request("dispatch-d"), input_binding).unwrap() |> ignore
