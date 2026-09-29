@@ -1004,6 +1004,10 @@ fn advance_execution(
       }
       StartNearest => {
         let prepared = @execution.generated_prepared_sequence(value.generated)
+        let selected = @execution.completion_preparation_selected_step(
+            @execution.generated_completion_preparation(value.generated),
+          )
+          is Some(_)
         guard @lower.sequence_step(prepared, value.nearest_step)
           is Some(@lower.VectorStep(_)) else {
           return fail_execution(value)
@@ -1019,14 +1023,16 @@ fn advance_execution(
         }
         for side in 0..<2 {
           if value.nearest_inputs[side] is None {
-            let input_index = match
-              @lower.node_input_target(nearest_node, side) {
-              Some(@pipeline.Input(index)) => Some(index)
-              Some(@pipeline.Step(_)) if @execution.completion_preparation_selected_step(
-                  @execution.generated_completion_preparation(value.generated),
-                )
-                is Some(_) => Some(side)
-              _ => None
+            let input_index = if selected {
+              match @lower.node_input_target(nearest_node, side) {
+                Some(@pipeline.Input(_)) | Some(@pipeline.Step(_)) => Some(side)
+                _ => None
+              }
+            } else {
+              match @lower.node_input_target(nearest_node, side) {
+                Some(@pipeline.Input(index)) => Some(index)
+                _ => None
+              }
             }
             guard input_index is Some(index) &&
               value.inputs.get(index) is Some(input) &&
