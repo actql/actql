@@ -2,8 +2,53 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
+import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+import {acquisitionFailure} from '../host-common/acquisition-outcome.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
+
+for (const outcome of ['not_started', 'stopped', 'unknown']) {
+  test(`Effect acquisition ${outcome} failure observes outcome after cleanup`,
+    async () => {
+      const ref = {runDefinitionCid: cid('b')};
+      const observations = [];
+      let opens = 0;
+      let cleanups = 0;
+      let pending = true;
+      const primary = new Error('SourceReadUnavailable');
+      const recovery = {async close() {}, async cleanup() {
+        cleanups++;
+        if (cleanups === 1) return false;
+        pending = false;
+        return true;
+      }, cleanupPending: () => pending};
+      const site = createInstalledEffectSite({environmentWire: '{}',
+        prepareCaptured() { assert.fail('No Preview or Effect may begin'); },
+        prepareRecovered() { assert.fail('No automatic reexecution'); }});
+      const dispatch = installNodeClientDispatchOwner({});
+      await assert.rejects(dispatch.track(ref, {
+        observeStopped: value => observations.push(value),
+        run: context => site.execute({...context,
+          openComputation: ({retainComputationOwner}) =>
+            openAcquiredEffectComputation({acquired: {prepared: {}},
+              now: () => '2026-09-29T00:00:00.000Z',
+              retainComputationOwner,
+              sourceProfile: {prepare() { return {}; }, open() {
+                opens++;
+                throw acquisitionFailure(primary, outcome,
+                  outcome === 'unknown' ? recovery : undefined);
+              }}}),
+        }),
+      }), error => error.cause === primary);
+      assert.deepEqual(observations, outcome === 'unknown' ? [] : ['failed']);
+      if (outcome === 'unknown') assert.notEqual(dispatch.operation(ref), undefined);
+      await dispatch.drain();
+      assert.deepEqual(observations, ['failed']);
+      assert.equal(dispatch.operation(ref), undefined);
+      assert.equal(opens, 1);
+      assert.equal(cleanups, outcome === 'unknown' ? 2 : 0);
+    });
+}
 
 test('Effect opening transfers physical custody before it can fail',
   async () => {

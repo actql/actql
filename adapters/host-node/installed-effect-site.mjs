@@ -211,9 +211,18 @@ export function createInstalledEffectSite({environmentWire,
       const custody = cleanupCustody(undefined, true);
       retainExecution(custody);
       facts.beginPhysicalWork?.();
-      const opened = await facts.openComputation(Object.freeze({
-        retainComputationOwner: owner => custody.attachPhysical(owner),
-      }));
+      let opened;
+      try {
+        opened = await facts.openComputation(Object.freeze({
+          retainComputationOwner: owner => custody.attachPhysical(owner),
+        }));
+      } catch (failure) {
+        // No Effect provider callback has run. The same failure remains the
+        // primary cause; the dispatch owner publishes this terminal outcome
+        // only after the physical owner confirms stop and cleanup.
+        facts.observePreEffectFailure?.();
+        throw failure;
+      }
       const {execution, checkedHost} = opened ?? {};
       if (execution === undefined || checkedHost === undefined) {
         fail('InvalidInstalledEffectComputationPort');

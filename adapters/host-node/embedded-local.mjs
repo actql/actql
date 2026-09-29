@@ -651,10 +651,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           : sourceFreeEffectPublicationPlan(options);
       },
       execute: facts => dispatchOwner.track(facts.ref, {
-        run: ({signal, retainExecution, beginPhysicalWork}) =>
+        run: ({signal, retainExecution, beginPhysicalWork,
+          observePreEffectFailure}) =>
           effectInstallation.execute(
           Object.freeze({...facts, signal, retainExecution,
-            beginPhysicalWork, moon, control,
+            beginPhysicalWork, observePreEffectFailure, moon, control,
             publicationPlan: facts.preparedExecution,
             store, storeAuthorityCid, authorityScopeCid,
             observeRun: ({ref}) => observeRun({ref, principalId}),

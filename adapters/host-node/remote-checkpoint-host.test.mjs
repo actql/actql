@@ -1103,6 +1103,62 @@ test('installed Effect allow publishes without a commit Checkpoint',
     await restarted.close();
   });
 
+for (const readDecision of ['deny', 'delegate']) {
+  test(`acquired Effect read ${readDecision} ends without Preview or write`,
+    async t => {
+      const directory = await mkdtemp(join(scratch, 'acquired-effect-refusal-'));
+      t.after(() => rm(directory, {recursive: true, force: true}));
+      const sourceProfilePath = await installedReadFixture(directory,
+        readDecision);
+      const fixture = await effectFixture();
+      const program = JSON.parse(readDocument);
+      delete program.params;
+      program.stages = program.stages.slice(0, 2);
+      program.stages[0].steps[0].filter = 'id > 1';
+      program.stages[1].effects = JSON.parse(fixture.document).stages[0].effects;
+      program.stages[1].effects.save.update.from.result = 'r';
+      program.results = {answer: {from: {stage: 'compute_a', result: 'r'}}};
+      let providerPreparations = 0;
+      const effectInstallation = createInstalledEffectSite({
+        environmentWire: fixture.environmentWire,
+        prepareCaptured() {
+          providerPreparations++;
+          assert.fail('Read refusal must precede Effect preparation');
+        },
+        prepareRecovered() { assert.fail('No resumable captured Effect'); },
+      });
+      const diagnostics = [];
+      const configuration = JSON.parse(effectCommitConfiguration());
+      configuration.entries[1].connection = {all: true};
+      configuration.entries[1].resource = {all: true};
+      const authorization = () => protectedHost(undefined, {
+        accountConfiguration: canonicalJson(configuration),
+        observe: (name, detail) => diagnostics.push({name, detail}),
+      });
+      const options = {directory, sourceProfilePath, effectInstallation};
+      const first = await remoteHost(t, authorization(), options);
+      const client = await first.as('owner-token');
+      const submitted = await client.aql(canonicalJson(program), {
+        format: 'json', requestId: `acquired-effect-${readDecision}`});
+      await waitFor(async () => (await submitted.status()).status === 'failed');
+      assert.equal(providerPreparations, 0);
+      assert.deepEqual((await (await first.as('reviewer-token'))
+        .checkpoints()).items, []);
+      assert.ok(diagnostics.some(({name, detail}) =>
+        name === 'effect_start_failed' && detail.code ===
+          (readDecision === 'deny' ? 'ExecutionAuthorizationDenied'
+            : 'ExecutionAuthorizationDeferralUnsupported')),
+      JSON.stringify(diagnostics));
+      await first.close();
+      const restarted = await remoteHost(t, authorization(), options);
+      const retained = await (await restarted.as('owner-token'))
+        .attach(submitted.ref);
+      assert.equal((await retained.status()).status, 'failed');
+      assert.equal(providerPreparations, 0);
+      await restarted.close();
+    });
+}
+
 test('one installed Host reads and applies independent Effects', async t => {
   const directory = await mkdtemp(join(scratch, 'source-effect-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
