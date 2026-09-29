@@ -66,7 +66,8 @@ A remote dispatch separates four identities:
 - transport nonce and sequence values protect one communication session.
 
 The canonical dispatch request binds the Coordinator authority, Run
-Definition, exact task and attempt, target Site and generation, runtime bundle,
+Definition (`run_definition_cid` is always the `actql-run-definition/0.1`
+CID, never a Program definition CID), exact task and attempt, target Site and generation, runtime bundle,
 Connector registration and revisions, input binding, obligations, budget, and
 grant. It excludes future execution results and transport nonces. Its identity
 is independent of the transport encoding.

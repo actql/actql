@@ -1997,6 +1997,27 @@ try {
       createdAt: '2026-09-30T00:00:00.000Z',
       validUntil: '2100-01-01T00:00:00.000Z',
     });
+  // The Run definition CID is assembled independently from its fields.
+  const expectedApplicationRun = {
+    version: 'actql-run-definition/0.1',
+    authorization_context_cid:
+      physicalCid('native-application-execution-context'),
+    compiled_plan_cid: applicationCompiled.compiledPlan.identity,
+    invocation_template_cid: applicationCompiled.template.identity,
+    input_artifact_set_cid: canonicalHash({
+      version: 'actql-initial-input-artifact-set/0.1',
+      captured_artifact_cids: [],
+    }),
+    scope_id: 'native-application', run_id: 'native-application-run',
+    created_at: '2026-09-30T00:00:00.000Z',
+    valid_until: '2100-01-01T00:00:00.000Z',
+  };
+  assert.equal(applicationRunDefinition.identity,
+    canonicalHash(expectedApplicationRun));
+  assert.deepEqual(JSON.parse(applicationRunDefinition.wire), {
+    ...expectedApplicationRun,
+    run_definition_cid: canonicalHash(expectedApplicationRun),
+  });
   applicationFiles.set('run-definition.json', applicationRunDefinition.wire);
   applicationFiles.set('compiled-plan.json',
     applicationCompiled.compiledPlan.wire);
