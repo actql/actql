@@ -341,3 +341,21 @@ use the exact checked operation inputs and bounded managed view, retain each
 output required by another task or Result, and avoid retrying a failed fused
 task as a second compute path. Frontend acceptance will merge a committed
 provider SHA and rerun the same packed Local/HTTP Named Result fixtures.
+
+At `12fb12ff686179591e191f92160d10eb2782e673`, the full Core JS job
+passed 7,021/7,021 tests. The nullable Graph edge ordering change also passed
+the existing two-consumer publication test with an independently calculated
+logical Relation CID for the declared four Result fields in canonical order.
+The same fixed source passed packed SQL/Pipe, `normalize-rows`, and
+`mean-graphs` Named Results on Embedded Local and HTTPS Remote, plus the
+Node-free native CLI. The optional six-case Local probe still failed all six
+cases and therefore exited nonzero. `graphs-equal`, `degree-rows`, and
+`components` were accepted then ended before publication; `graph-bounds`,
+`reach-subgraph`, and `diff-apply` were rejected during Run compilation.
+The common task compiler still forms one task for each of the latter three
+fixtures, since their full selected operation chains lack installed bounded
+candidate support. The B-owned intermediate-Result task split is verified in
+isolation with a fully selected GraphDiff/Select chain; it cannot substitute
+for the provider capabilities owned by A. The probe logs and tarball digests
+are in `worktrees/.codex-scratch/public-query-evidence-NWjb0m`; the generated
+installation and Store were removed. This is not a full SGA acceptance claim.
