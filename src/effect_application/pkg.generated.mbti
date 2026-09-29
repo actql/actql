@@ -36,6 +36,8 @@ pub fn check_effect_set_footprint_conflicts(Array[EffectMemberFootprint], Int, I
 
 pub fn check_effect_set_footprint_conflicts_from_codes(Array[String], Array[Int], Array[String], Array[String], Array[String], Array[String], Array[Array[String]], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
 
+pub fn check_recovered_effect_target_guards(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, RecoveredEffectTargetGuards, Array[EffectTargetVersionObservation], Int, Int) -> Result[Unit, EffectPreviewTargetGuardIssue]
+
 pub fn effect_apply_capability_idempotency_mode(EffectApplyCapabilityObservation) -> String
 
 pub fn effect_apply_capability_reconciliation_mode(EffectApplyCapabilityObservation) -> String
@@ -139,6 +141,8 @@ pub fn prepare_logical_request_scope(String, String, Int) -> Result[@logical_req
 pub fn recover_effect_claims_from_heads(Array[Array[EffectRecoveryBinding]], Array[Array[EffectLedgerEntry?]], Int) -> Result[Array[Array[EffectRecoveredClaim]], EffectRecoveredClaimIssue]
 
 pub fn recover_effect_preview_apply_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int) -> Result[Array[Array[EffectDispatchKey]], EffectPreviewRecoveryKeysIssue]
+
+pub fn recover_effect_target_guards(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[LogicalItemLocator]], Array[Array[EffectDispatchKey]], Array[Array[EffectLedgerBasis]], Array[Array[EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[RecoveredEffectTargetGuards, EffectSetProgressIssue]
 
 // Errors
 
@@ -365,6 +369,7 @@ pub(all) enum EffectPreviewTargetGuardIssue {
   MissingObservation(Int, Int)
   StalePreview(Int, Int)
   ForeignObservation
+  ForeignRecoveryEvidence
 } derive(Eq, @debug.Debug)
 
 pub struct EffectRecoveredClaim {
@@ -498,6 +503,8 @@ pub struct LogicalItemLocator {
   item_correlation_wire : String
   cid : String
 }
+
+type RecoveredEffectTargetGuards
 
 // Type aliases
 pub using @logical_request_scope {type LogicalRequestScope}

@@ -262,7 +262,7 @@ pub fn check_captured_effect_risk_acceptance_body(CapturedEffectPreviewInputs, @
 
 pub fn check_effect_preview_apply_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int) -> Result[Unit, CapturedEffectApplyKeyIssue]
 
-pub fn check_effect_preview_apply_semantics(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectTargetVersionObservation], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, CapturedEffectApplyPreflightIssue]
+pub fn check_effect_preview_apply_semantics(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectTargetVersionObservation], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int, recovery_guards? : @effect_application.RecoveredEffectTargetGuards) -> Result[Unit, CapturedEffectApplyPreflightIssue]
 
 pub fn check_effect_preview_current_bindings(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Array[String], Array[String], Int, Int) -> Result[Unit, CapturedEffectCurrentBindingIssue]
 

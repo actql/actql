@@ -3782,6 +3782,7 @@ pub fn client_program_check_effect_apply_preflight(
 #export_name("clientProgramCheckRecoveredEffectApplySemantics")
 pub fn client_program_check_recovered_effect_apply_semantics(
   preview : @publication.EffectPreviewIdentity,
+  recovered_guards : @effect.RecoveredEffectTargetGuards,
   source_binding_cids : Array[String],
   resolved_contract_cids : Array[String],
   capability_evidence_cids : Array[String],
@@ -3819,11 +3820,50 @@ pub fn client_program_check_recovered_effect_apply_semantics(
     version_cid: guard_version_cids[index],
   })
   @strategy.check_effect_preview_apply_semantics(
-    preview, source_binding_cids, resolved_contract_cids, capability_evidence_cids,
-    authority_scope_cids, guards, routes, risk, require_partial_application, review_projection_cid,
-    risk_authority_scope_cid, policy_cid, validity_evidence_cid, issuer_evidence_cid,
-    authentication_evidence_cid, issuer_kind, decision, request_scope, keys, max_members,
-    max_rows, max_targets, max_work,
+    preview,
+    source_binding_cids,
+    resolved_contract_cids,
+    capability_evidence_cids,
+    authority_scope_cids,
+    guards,
+    routes,
+    risk,
+    require_partial_application,
+    review_projection_cid,
+    risk_authority_scope_cid,
+    policy_cid,
+    validity_evidence_cid,
+    issuer_evidence_cid,
+    authentication_evidence_cid,
+    issuer_kind,
+    decision,
+    request_scope,
+    keys,
+    max_members,
+    max_rows,
+    max_targets,
+    max_work,
+    recovery_guards=recovered_guards,
+  )
+}
+
+///|
+#export_name("clientProgramRecoverEffectTargetGuards")
+pub fn client_program_recover_effect_target_guards(
+  preview : @publication.EffectPreviewIdentity,
+  scopes : Array[Array[@effect.LogicalRequestScope]],
+  locators : Array[Array[@effect.LogicalItemLocator]],
+  keys : Array[Array[@effect.EffectDispatchKey]],
+  bases : Array[Array[@effect.EffectLedgerBasis]],
+  heads : Array[Array[@effect.EffectLedgerEntry?]],
+  active_owners : Array[Array[Bool]],
+  max_members : Int,
+  max_rows : Int,
+  max_work : Int,
+) -> Result[@effect.RecoveredEffectTargetGuards, @effect.EffectSetProgressIssue] {
+  @effect.recover_effect_target_guards(
+    preview, scopes, locators, keys, bases, heads, active_owners, max_members, max_rows,
+    max_work,
   )
 }
 
