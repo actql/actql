@@ -131,7 +131,7 @@ DATA rows = FROM neighborhood |> node_rows() |> SELECT id;
 
 Existing steps: `from: g, reach: {start: A, direction: out, max_depth: 2},
 as: reached`; `from: g, subgraph: {nodes: {from: reached, id: node_id}},
-as: neighborhood`; `from: neighborhood, node_rows: {}`; then
+as: neighborhood`; `from: neighborhood, node_rows: true`; then
 `select: [id], as: rows`. Both uses of g reference the same producer. There
 is no direct Relation-to-subgraph coercion.
 
@@ -144,7 +144,7 @@ DATA rows = FROM restored |> node_rows() |> SELECT id;
 
 Existing steps: `from: base, graph_diff: {with: target}, as: changes`;
 `from: base, apply_graph_delta: {with: changes, field: delta}, as: restored`;
-`from: restored, node_rows: {}`; then `select: [id], as: rows`.
+`from: restored, node_rows: true`; then `select: [id], as: rows`.
 Keep the checked Delta evidence and exact base/target snapshot validation.
 A shape-compatible arbitrary JSON object does not replace this evidence.
 
@@ -159,9 +159,12 @@ DATA rows = FROM average |> node_rows() |> SELECT id;
 
 Existing steps: `mean_graphs: {with: [g1, g2], weights: [1, 1],
 support: {nodes: 0.5, edges: 0.5}, properties: {nodes: {}, edges: {}}},
-as: average`; `from: average, node_rows: {}`; then
+as: average`; `from: average, node_rows: true`; then
 `select: [id], as: rows`. Empty property maps require empty closed property
 domains; this example is not valid for arbitrary graph schemas.
+
+The zero-argument `node_rows()` surface maps to the existing boolean
+`node_rows: true`, not an empty object. The same applies to `edge_rows()`.
 
 Each example needs a separately authored Result declaration to publish a
 Named Result. For example, `from: rows, fields: [id], order_by: [{id: asc}]`
