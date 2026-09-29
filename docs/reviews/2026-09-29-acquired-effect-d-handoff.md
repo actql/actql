@@ -127,3 +127,41 @@ scenarios (success, unknown, cancel, reject, missing, corrupt) passed with
 one initial Source/Compute call each and zero restart calls. This is not
 best-effort telemetry and introduces no public instrumentation API.
 The unfinished capture crash-window P2 remains unresolved.
+
+## P2-2 process-stop reproduction
+
+The standalone `scripts/test-effect-capture-crash.mjs` regression intentionally
+asserts the required cleanup outcome, not the current leaking behavior. Until
+P2-2 is corrected, the first two commands below fail. They are not green-gate
+evidence. Each child executes the actual acquired bridge fixture and exits
+with code 77 immediately after the selected real Store commit, bypassing
+normal exception cleanup. The parent reopens that Store in a fresh process.
+
+```sh
+node scripts/test-effect-capture-crash.mjs effect-source
+node scripts/test-effect-capture-crash.mjs effect-capture
+node scripts/test-effect-capture-crash.mjs publication-private
+```
+
+Observed against the `f0e90ff5d` implementation:
+
+| Stop after | Recovery | Retirement | Remaining holdings / payloads |
+| --- | --- | --- | --- |
+| First Effect source holding | Capture unavailable | Returns false | 1 / 1 |
+| Capture holding | Capture record missing | Capture record missing | 2 / 2 |
+| Private capture record | Completed capture | Recovered owner cleanup succeeds | 0 / 0 |
+
+The successful control releases the prepared owners acquired by recovery;
+otherwise the harness itself would retain a payload and prevent Store close.
+Neither incomplete case is admitted as a completed computation. The earliest
+failure precedes any Checkpoint: enumerating only terminal Checkpoints cannot
+discover all unfinished capture custody. Merely swapping the capture holding
+and private-record writes also leaves the earlier member-holding window.
+
+The correction must durably associate exact member/capture holding custody
+with its Run before the first holding transfer. Completion evidence remains
+separate. Recovery of incomplete cleanup must use the existing Store owners
+and original Run state, must not authorize execution, and must not retire
+evidence needed for unknown writes. These three probes cover post-commit
+stops only; before-commit, shared-object, cleanup-failure and public Host
+recovery coverage still remain to be implemented with the correction.
