@@ -398,6 +398,52 @@ test('an unknown acquisition end stays with its recovery owner', async () => {
   assert.equal(dispatch.computes(), 0);
 });
 
+test('a wrapped acquisition error cannot hide an explicitly transferred owner',
+  async () => {
+    const {acquisitionFailure} = await import(
+      '../host-common/acquisition-outcome.mjs');
+    let opens = 0;
+    let released = false;
+    let closes = 0;
+    const recovery = {async close() { closes++; },
+      async cleanup() { return released; },
+      cleanupPending: () => !released};
+    const dispatch = acquiringOwner(async ({reportAcquisitionFailure}) => {
+      opens++;
+      const failure = acquisitionFailure(new Error('ReadLost'),
+        'unknown', recovery);
+      reportAcquisitionFailure(failure);
+      throw new Error('AdapterBoundaryFailed', {cause: failure});
+    });
+    await dispatch.run();
+    assert.deepEqual(dispatch.stopped, []);
+    await assert.rejects(dispatch.owner.drain(),
+      {code: 'ClientDispatchCleanupPending'});
+    assert.equal(opens, 1);
+    released = true;
+    await dispatch.owner.drain();
+    assert.deepEqual(dispatch.stopped, [[dispatch.ref, 'failed']]);
+    assert.equal(opens, 1);
+    assert.equal(dispatch.computes(), 0);
+    assert.equal(closes, 3);
+    await dispatch.owner.drain();
+    assert.equal(closes, 3);
+  });
+
+test('a wrapped confirmed acquisition end still records its stop', async () => {
+  const {acquisitionFailure} = await import(
+    '../host-common/acquisition-outcome.mjs');
+  const dispatch = acquiringOwner(async ({reportAcquisitionFailure}) => {
+    const failure = acquisitionFailure(new Error('ReadDenied'), 'not_started');
+    reportAcquisitionFailure(failure);
+    throw new Error('AdapterBoundaryFailed', {cause: failure});
+  });
+  await dispatch.run();
+  await dispatch.owner.drain();
+  assert.deepEqual(dispatch.stopped, [[dispatch.ref, 'failed']]);
+  assert.equal(dispatch.computes(), 0);
+});
+
 test('an acquisition failure without a stated end is never inferred stopped',
   async () => {
     const dispatch = acquiringOwner(async () => {

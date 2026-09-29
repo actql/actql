@@ -314,9 +314,13 @@ test('checked acquired source and downstream task emit their input ports',
       assert.deepEqual(preparedSource.readTuple, {connection:
         sourceAccess.connection ?? 'local-database',
       resource: sourceAccess.resource ?? path, operation: 'read'});
+      let handedOff;
       await assert.rejects(openCapturedDuckDBSource({...sourceOptions,
-        preparedSource: {...preparedSource}}),
+        preparedSource: {...preparedSource},
+        reportAcquisitionFailure(failure) { handedOff = failure; }}),
       {message: 'InstalledSourcePreparationMismatch'});
+      assert.equal(handedOff.outcome, 'not_started');
+      assert.equal(handedOff.message, 'InstalledSourcePreparationMismatch');
       const opened = await openCapturedDuckDBSource({...sourceOptions,
         preparedSource});
       const capturedSource = opened.capture.source();
