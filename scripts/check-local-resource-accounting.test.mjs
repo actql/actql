@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -13,41 +13,62 @@ const source = join(
   'docs/reviews/2026-09-23-local-resource-accounting-audit.json',
 );
 
-function run(mutator, routeMutator, args = [], gapsText) {
+function run(mutator, routeMutator, args = [], gapsText, observeDirectory) {
   const manifest = JSON.parse(readFileSync(source, 'utf8'));
   mutator?.(manifest);
   const directory = mkdtempSync(join(tmpdir(), 'actql-resource-audit-'));
-  let gapsTarget;
-  if (gapsText !== undefined) {
-    gapsTarget = join(directory, 'gaps.md');
-    writeFileSync(gapsTarget, gapsText);
-  }
-  if (routeMutator) {
-    const routes = JSON.parse(readFileSync(join(
-      root, manifest.production_routes,
-    ), 'utf8'));
-    routeMutator(routes);
-    const routesTarget = join(directory, 'routes.json');
-    writeFileSync(routesTarget, JSON.stringify(routes));
-    manifest.production_routes = routesTarget;
-  }
-  const target = join(directory, 'manifest.json');
-  writeFileSync(target, JSON.stringify(manifest));
   try {
-    return execFileSync(process.execPath, [script, ...args], {
-      cwd: root,
-      env: {
-        ...process.env,
-        ACTQL_LOCAL_RESOURCE_AUDIT: target,
-        ...(gapsTarget ? {ACTQL_LOCAL_RESOURCE_GAPS: gapsTarget} : {}),
-      },
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-  } catch (error) {
-    return String(error.stderr);
+    observeDirectory?.(directory);
+    let gapsTarget;
+    if (gapsText !== undefined) {
+      gapsTarget = join(directory, 'gaps.md');
+      writeFileSync(gapsTarget, gapsText);
+    }
+    if (routeMutator) {
+      const routes = JSON.parse(readFileSync(join(
+        root, manifest.production_routes,
+      ), 'utf8'));
+      routeMutator(routes);
+      const routesTarget = join(directory, 'routes.json');
+      writeFileSync(routesTarget, JSON.stringify(routes));
+      manifest.production_routes = routesTarget;
+    }
+    const target = join(directory, 'manifest.json');
+    writeFileSync(target, JSON.stringify(manifest));
+    try {
+      return execFileSync(process.execPath, [script, ...args], {
+        cwd: root,
+        env: {
+          ...process.env,
+          ACTQL_LOCAL_RESOURCE_AUDIT: target,
+          ...(gapsTarget ? {ACTQL_LOCAL_RESOURCE_GAPS: gapsTarget} : {}),
+        },
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    } catch (error) {
+      return String(error.stderr);
+    }
+  } finally {
+    rmSync(directory, {recursive: true, force: true});
   }
 }
+
+test('resource audit fixtures are reclaimed on success, rejection, and setup failure', () => {
+  const directories = [];
+  const observe = directory => directories.push(directory);
+  assert.match(run(undefined, undefined, [], undefined, observe),
+    /68 operations, 5 implementation profiles/u);
+  assert.match(run(manifest => { manifest.operations = []; },
+    undefined, [], undefined, observe), /operation/u);
+  assert.throws(() => run(undefined,
+    () => { throw new Error('route fixture failure'); },
+    [], 'partial fixture', observe), /route fixture failure/u);
+  assert.throws(() => run(undefined, undefined, [], Symbol('invalid'), observe),
+    {code: 'ERR_INVALID_ARG_TYPE'});
+  assert.equal(directories.length, 4);
+  for (const directory of directories) assert.equal(existsSync(directory), false);
+});
 
 test('resource gate accepts every normative Local operation', () => {
   assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 68 with four-role boundary evidence, 68 with full work\/workspace assurance, 112 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
