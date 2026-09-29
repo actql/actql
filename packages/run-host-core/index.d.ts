@@ -56,11 +56,20 @@ export interface RunDefinition {
   readonly [definitionBrand]: true;
 }
 
-export interface PublicationContract {
-  readonly token: {readonly [publicationBrand]: true};
+export interface PublicationContract<Kind extends string = string> {
+  readonly token: {readonly [publicationBrand]: Kind};
   readonly cid: string;
   readonly wire: string;
 }
+
+export type PublicationRequestContract =
+  PublicationContract<'publication_request'>;
+export type PublicationAttemptContract =
+  PublicationContract<'publication_attempt'>;
+export type PublicationRecordContract =
+  PublicationContract<'publication_record'>;
+export type PublicIndexEntryContract =
+  PublicationContract<'public_index_entry'>;
 
 export interface DeliveryContractView<Kind extends string = string> {
   readonly [deliveryContractBrand]: Kind;
@@ -480,8 +489,8 @@ export function issueSourceFreeDispatch(prepared: PreparedProgram,
   definition: RunDefinition, request: RequestIdentity,
   selection: ValuesSiteSelection): Readonly<{cid: string; wire: string}>;
 /** Canonical contract admission is not publication or read authorization. */
-export function admitPublicationContract(name: string, wire: string,
-  limits: PublicationLimits): PublicationContract;
+export function admitPublicationContract<Name extends string>(name: Name,
+  wire: string, limits: PublicationLimits): PublicationContract<Name>;
 export function admitRunEvidenceValue(name: string, wire: string,
   limits: PublicationLimits): RunEvidence;
 /** Seal registered evidence without granting authority or publication. */
@@ -545,7 +554,8 @@ export function validatePublicationChain(runDefinition: PublicationContract,
   limits: PublicationLimits): void;
 /** Physical CAS and durable persistence remain Store effects. */
 export function validatePublicationRecordTransition(
-  previous: PublicationContract | undefined, next: PublicationContract,
+  previous: PublicationRecordContract | undefined,
+  next: PublicationRecordContract,
   uncommittedConfirmed: boolean): void;
 /** Immutable request for the full checked Named Result inventory. */
 export function issuePublicationRequest(runDefinition: PublicationContract,
@@ -555,22 +565,22 @@ export function issuePublicationRequest(runDefinition: PublicationContract,
     publicationPolicyCid: string;
     publicationTargetCid: string;
     requestedAt: string;
-  }>, limits: PublicationLimits): PublicationContract;
+  }>, limits: PublicationLimits): PublicationRequestContract;
 /** One attempt identity, separate from Store effects and outcome. */
-export function issuePublicationAttempt(request: PublicationContract,
+export function issuePublicationAttempt(request: PublicationRequestContract,
   runDefinition: PublicationContract, facts: Readonly<{
     attemptId: string;
     fenceCid: string;
     externalIdempotencyKey?: string;
     startedAt: string;
-  }>, limits: PublicationLimits): PublicationContract;
+  }>, limits: PublicationLimits): PublicationAttemptContract;
 /** Candidate entry; the Store must atomically validate and install it. */
 export function issuePublicIndexEntry(runDefinition: PublicationContract,
   invocation: PublicationContract, manifest: PublicationContract,
   receipt: PublicationContract, capturedRun: PublicationContract,
   durableBindings: readonly PublicationContract[],
-  request: PublicationContract, attempt: PublicationContract,
-  committedAt: string, limits: PublicationLimits): PublicationContract;
+  request: PublicationRequestContract, attempt: PublicationAttemptContract,
+  committedAt: string, limits: PublicationLimits): PublicIndexEntryContract;
 /** Validate full captured evidence and index binding before Store commit. */
 export function validateEffectFreePublicationCommit(evidence: Readonly<{
   runDefinition: PublicationContract;
@@ -584,18 +594,19 @@ export function validateEffectFreePublicationCommit(evidence: Readonly<{
   manifest: PublicationContract;
   receipt: PublicationContract;
   capturedRun: PublicationContract;
-}>, request: PublicationContract, attempt: PublicationContract,
-  indexEntry: PublicationContract, limits: PublicationLimits): void;
+}>, request: PublicationRequestContract,
+  attempt: PublicationAttemptContract,
+  indexEntry: PublicIndexEntryContract, limits: PublicationLimits): void;
 /** Sequence and predecessor come from the shared publication owner. */
-export function issuePublicationRecord(attempt: PublicationContract,
-  previous: PublicationContract | undefined, facts: Readonly<{
+export function issuePublicationRecord(attempt: PublicationAttemptContract,
+  previous: PublicationRecordContract | undefined, facts: Readonly<{
     state: string;
     observedAt: string;
-    publicIndexEntry?: PublicationContract;
+    publicIndexEntry?: PublicIndexEntryContract;
     failureCid?: string;
     cleanupOwnerCids: readonly string[];
     uncommittedConfirmed: boolean;
-  }>, limits: PublicationLimits): PublicationContract;
+  }>, limits: PublicationLimits): PublicationRecordContract;
 /** The shared owner checks the full Effect-free completion chain. */
 export function issueEffectFreeRunReceipt(admission: RunAdmission,
   runDefinition: PublicationContract, invocation: PublicationContract,
