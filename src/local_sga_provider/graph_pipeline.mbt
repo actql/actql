@@ -68,6 +68,7 @@ priv struct Execution {
   mut stage_progress : Int64
   mut stage_work : Int64
   mut completed_work : Int64
+  mut cancel_requested : Bool
   mut terminal : Bool
   mut reclaimed : Bool
 }
@@ -1029,6 +1030,11 @@ fn advance_execution(
         }
       }
       CleanupKernel => {
+        if value.cancel_requested {
+          value.terminal = true
+          value.phase = Terminal
+          return Ok(@local.managed_provider_stopped_poll(0L, 0L))
+        }
         guard value.kernel is Some(active) &&
           value.pending_graph is Some(completed) else {
           return fail_execution(value)
@@ -1815,8 +1821,13 @@ fn cleanup_execution(
     discard(Some(graph)) |> ignore
   }
   value.graphs.clear()
-  discard(value.pending_graph) |> ignore
-  value.pending_graph = None
+  if value.pending_graph is Some(pending) {
+    if discard(Some(pending)) {
+      value.pending_graph = None
+    } else {
+      failed = true
+    }
+  }
   let mut construction_pending = false
   for active in value.constructions {
     if @bridge.rows_to_graph_cleanup_pending(active) {
@@ -2028,13 +2039,17 @@ pub fn provider(
         stage_progress: 0L,
         stage_work: 0L,
         completed_work: 0L,
+        cancel_requested: false,
         terminal: false,
         reclaimed: false,
       }
       Ok(
         @local.managed_provider_execution(
           quantum => advance_execution(state, quantum),
-          fn() { @bounded.request_cancel(state.control) },
+          fn() {
+            state.cancel_requested = true
+            @bounded.request_cancel(state.control)
+          },
           fn() { state.terminal },
           fn() { cleanup_execution(state) },
         ),
