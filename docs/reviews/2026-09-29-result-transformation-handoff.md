@@ -148,3 +148,10 @@ The new Result module test uses test authority CIDs when exercising the
 existing evidence encoder/validator. It does not claim a formally connected
 Executable Plan, a durable Run admission, or a Store publication. Those remain
 C's connection and packed acceptance obligations above.
+
+On clean commit `689e41ee9f966415beb90b73bb653d33a4f64155`, the local
+`lint` job (including public MoonBit interfaces) and `spec` job both passed
+through `scripts/local-checks.mjs`. The latter includes the version, schema,
+pin and generated-artifact checks. This final evidence update changes only
+this document; no product source or generated interface changed after those
+checks. Linux CI was not checked.
