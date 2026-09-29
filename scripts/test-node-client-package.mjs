@@ -144,6 +144,22 @@ const pathQuery = queryFrontend.compileGeneratedGraphQueryJson(
   JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_diamond');
 assert.notEqual(pathQuery, '');
 await writeFile(join(root, 'graph-path-query.json'), pathQuery);
+for (const [name, source] of [
+  ['node-star', 'FROM GRAPH g |> MATCH WALK (a) |> SELECT *'],
+  ['quoted-node-star', 'FROM GRAPH g |> MATCH WALK (`a`) |> SELECT *'],
+  ['projected-star', 'FROM GRAPH g |> MATCH WALK (a)-[]->(b) '
+    + '|> SELECT a.id AS id, b.name AS name |> SELECT *'],
+  ['quoted-projected-star', 'FROM GRAPH g |> MATCH WALK (`a`)-[]->(`b`) '
+    + '|> SELECT `a`.id AS id, `b`.name AS name |> SELECT *'],
+]) {
+  const program = queryFrontend.compileGeneratedGraphQueryJson(source,
+    'g', JSON.stringify(pathSteps), JSON.stringify(['id', 'name']),
+    JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_' + name);
+  assert.notEqual(program, '', name);
+  const result = JSON.parse(program).stages[0].results.rows;
+  assert.deepEqual(result.fields, ['id', 'name']);
+  await writeFile(join(root, 'graph-' + name + '.json'), program);
+}
 const macroQuery = queryFrontend.compileGeneratedGraphQueryJson(
   'FROM GRAPH g |> MATCH p = WALK (a)-[e]->(b) '
     + '|> SELECT NODE_ID(a) AS node_id, EDGE_SOURCE(e) AS source_id, '
@@ -1232,6 +1248,26 @@ const pairQueryDocument = readFileSync('query-pair.json', 'utf8');
 const pairExpectedRows = JSON.parse(readFileSync(
   'query-pair.expected-rows.json', 'utf8'));
 async function checkGraphNodeQuery(client, suffix) {
+  for (const [name, expected] of [
+    ['node-star', [{id: 1, name: 'A'}, {id: 2, name: 'B'},
+      {id: 3, name: 'C'}, {id: 4, name: 'D'}]],
+    ['quoted-node-star', [{id: 1, name: 'A'}, {id: 2, name: 'B'},
+      {id: 3, name: 'C'}, {id: 4, name: 'D'}]],
+    ['projected-star', [{id: 1, name: 'B'}, {id: 1, name: 'C'},
+      {id: 2, name: 'D'}, {id: 3, name: 'D'}]],
+    ['quoted-projected-star', [{id: 1, name: 'B'}, {id: 1, name: 'C'},
+      {id: 2, name: 'D'}, {id: 3, name: 'D'}]],
+  ]) {
+    const execution = await client.aql(readFileSync('graph-' + name + '.json',
+      'utf8'), {format: 'json', requestId: 'packed-' + name + '-' + suffix});
+    const status = await execution.wait();
+    assert.equal(status.status, 'succeeded', JSON.stringify(status));
+    const rows = await execution.result('answer').all();
+    assert.deepEqual(rows, expected);
+    for (const row of rows) assert.deepEqual(Object.keys(row).sort(),
+      ['id', 'name']);
+  }
+
   const execution = await client.aql(readFileSync('graph-node-query.json',
     'utf8'), {format: 'json', requestId: 'packed-graph-node-' + suffix});
   const status = await execution.wait();

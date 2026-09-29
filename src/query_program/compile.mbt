@@ -1176,9 +1176,11 @@ fn compile_steps(
   start_at : Int,
   preserve_identity_select : Bool,
   final_alias : String,
+  graph_bindings_only? : Bool = false,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
+  let mut requires_graph_projection = graph_bindings_only
   let mut active_fields = fields.copy()
   let mut grouped = false
   let grouped_keys : Array[(@query.Expression, String)] = []
@@ -1193,6 +1195,15 @@ fn compile_steps(
   let mut pipe_selected = false
   for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
+    // Graph occurrence slots are an implementation detail, not a public
+    // Relation schema. An explicit projection establishes that schema.
+    if operation is Select(projections, _) {
+      if requires_graph_projection &&
+        projections.any(projection => projection.star is Some(_)) {
+        raise Abort(UnsupportedProjection)
+      }
+      requires_graph_projection = false
+    }
     if pipe_selected && !(operation is Order(_) || operation is Limit(_, _)) {
       // SELECT has materialized its output. Later operators consume that
       // Relation, irrespective of whether SET introduced private slots.
