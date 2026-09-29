@@ -4005,6 +4005,18 @@ full Node standard-Host test passed locally. Same-SHA Linux CI remains
 unverified; these cases do not establish every Graph selector variant or every
 mixed Carrier failure mode.
 
+Selected `SGA.match_nodes` and `SGA.match_edges` now read an exact managed
+Graph view through their existing bounded match kernels. The Node standard
+Host retains and publishes each match-then-filter Relation in a real Store,
+reads the producer and two consumer Named Results against independent ordered
+rows, and reclaims the inputs and outputs. The existing fused match path stays
+selected when no later Relation consumer requires a split. Portable matcher
+tests cover the same kernel logic on JS, Wasm, and native; the direct-view
+adapters add exact input binding and completion-input custody. View-specific
+exact/one-short and cancellation evidence is not yet registered in the
+production-route inventory, so this delivery does not claim complete resource
+assurance for every selected match path or every mixed Carrier failure mode.
+
 The retained Relation path now also splits a checked finite-list
 `VEC.merge_rankings` occurrence from a later `filter` in the same Stage.
 The selected ranking task receives its own ordered operation ports rather than

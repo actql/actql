@@ -2014,6 +2014,21 @@ async function exerciseStrategyGraph(
       {id: 2, node_name: 'second'},
     ],
   }, {
+    name: 'retained-match-nodes-filter',
+    retainedOutput: true,
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized',
+      match_nodes: {ids: [2, 1, 2], fields: ['id', 'node_name']},
+      as: 'matched',
+    }, {
+      from: 'matched', filter: 'id > 1', as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [{id: 2, node_name: 'second'}],
+  }, {
     name: 'match-nodes-predicate',
     step: {
       from: 'g',
@@ -2039,6 +2054,21 @@ async function exerciseStrategyGraph(
       {src: 1, dst: 2, weight: 10},
       {src: 2, dst: 1, weight: 20},
     ],
+  }, {
+    name: 'retained-match-edges-filter',
+    retainedOutput: true,
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized',
+      match_edges: {fields: ['src', 'dst', 'weight']},
+      as: 'matched',
+    }, {
+      from: 'matched', filter: 'weight > 10', as: 'out',
+    }],
+    fields: ['src', 'dst', 'weight'],
+    secondFields: ['weight', 'src'],
+    expected: [{src: 2, dst: 1, weight: 20}],
   }, {
     name: 'match-edges-predicate',
     step: {
