@@ -20,11 +20,15 @@ direct `match_nodes` variant reached the same failed state; a `node_rows`
 variant was rejected at compilation with `RunHostTaskCompilationRejected`.
 These variants are diagnostic probes, not new language expectations or proof
 that the Graph kernels failed. An ignored installed copy with logging only
-showed `runInstalledStrategy` returning `host-tasks-failed` with
-`MoonBitHostFailure`; subsequent publication rejected `StrategyNotComplete`.
-The latter is a consequence of failed execution, not the root cause. The
-public status does not expose that internal cause, so the Host-to-kernel
-failure still needs isolation before assigning the product fix.
+showed the first call to `core.next` failing before any Compute task completed.
+The common `strategyHostNext` bridge returned `Dispatch(NoStrategy)` from
+`prepare_next_compute_task` / `prepare_next_installed_task`: the captured DAG
+had no selected strategy revision. The Host then reported
+`host-tasks-failed`, and publication rejected `StrategyNotComplete`. That
+publication rejection is a consequence, not a Graph kernel failure. The
+physical strategy and installed Host owners need to determine why this
+admitted Graph Program had no selected revision; the Frontend must not invent
+one or bypass the normal selection boundary.
 
 `scripts/reproduce-sga-baseline.mjs <packed-installation> --graphs-equal`
 replays the exact authored Program and reports public status and terminal error
