@@ -116,5 +116,14 @@ payload integrity; metadata-format and authority failures remain distinct.
 New real-Store tests first reproduced missing/corrupt input preventing open,
 then passed with healthy input readable and damaged input rejected without
 discarding its holding. The entire Store test file passed 64/64.
-Two-Run public Host acceptance remains to be added before closing P2-1.
+Two-Run public HTTP acceptance now passes for deletion and one-byte damage
+of an upstream-only dependency. The healthy Run's Named Result remains
+readable before and after answering the damaged Run's Checkpoint. The latter
+rejects with `PublicationObjectMissing` or `PublicationObjectCorrupt` before
+provider recovery, sends nothing and retains its holding records.
+The module probe now wraps both the real Source capture entry and the real
+Effect Compute entry, forwarding to the original implementations. All six
+scenarios (success, unknown, cancel, reject, missing, corrupt) passed with
+one initial Source/Compute call each and zero restart calls. This is not
+best-effort telemetry and introduces no public instrumentation API.
 The unfinished capture crash-window P2 remains unresolved.

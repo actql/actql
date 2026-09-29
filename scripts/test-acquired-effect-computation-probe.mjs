@@ -15,6 +15,8 @@ const cases = [
   'acquired Effect preserves unknown across Host restart',
   'acquired Effect cancel retires upstream payloads after restart',
   'acquired Effect reject retires upstream payloads after restart',
+  'a missing acquired input rejects only its Run after Host restart',
+  'a corrupt acquired input rejects only its Run after Host restart',
 ];
 for (const [index, name] of cases.entries()) {
 const log = join(root, `calls-${index}.txt`);
@@ -28,12 +30,17 @@ const result = spawnSync(process.execPath, [
   env: {...process.env,
     ACTQL_TEST_EFFECT_ENTRY:
       new URL('../adapters/host-node/entry.mjs', import.meta.url).href,
+    ACTQL_TEST_ACQUIRED_SOURCE_ENTRY:
+      new URL('../adapters/host-node/captured-duckdb-source.mjs', import.meta.url).href,
     ACTQL_TEST_EFFECT_CALL_LOG: log}});
 assert.equal(result.status, 0,
   `${result.error ?? ''}\n${result.stdout}\n${result.stderr}`);
 const events = (await readFile(log, 'utf8')).trim().split('\n');
 assert.ok(events.includes('probe'), 'the actual Host entry must be wrapped');
+assert.ok(events.includes('source-probe'), 'the actual Source entry must be wrapped');
+assert.equal(events.filter(event => event === 'source').length, 1,
+  'initial acquisition must run; recovery must not reacquire Source input');
 assert.equal(events.filter(event => event === 'compute').length, 1,
   'initial Compute must run; approval and terminal restarts must not recompute');
-console.log(`${name}: initial Compute 1, restart Compute 0`);
+console.log(`${name}: initial Source/Compute 1, restart Source/Compute 0`);
 }
