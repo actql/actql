@@ -16,7 +16,17 @@ step = "STEP", json_object, ";" ;
 data = "DATA", name, "=", native_query, ";" ;
 native_query = "FROM", name, { "|>", native_op }
              | native_op, { "|>", native_op } ;
-native_op = "OP", operation_name, json_value ;
+native_op = "OP", operation_name, json_value | graph_call ;
+graph_call = graph_operation_name, "(", [ named_argument,
+             { ",", named_argument } ], ")" ;
+named_argument = argument_name, ":", named_value ;
+named_value = json_scalar | producer_name | named_object | named_list ;
+named_object = "{", [ named_argument, { ",", named_argument } ], "}" ;
+named_list = "[", [ named_value, { ",", named_value } ], "]" ;
+argument_name = identifier | quoted_identifier | string ;
+producer_name = identifier | quoted_identifier ;
+json_scalar = ? RFC 8259 scalar; bare names only at declared producer positions ? ;
+graph_operation_name = ? Closed SGA named-call inventory in structural-text.md ? ;
 result = "RESULT", name, "=", json_object, ";" ;
 effect = "EFFECT", name, "=", json_object, ";" ;
 empty_effects = "EFFECTS", "{", "}", ";" ;

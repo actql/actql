@@ -1,12 +1,11 @@
 # SGA surface syntax over the existing Program
 
-This is the accepted design for a subsequent Frontend increment. It does not
-register new grammar productions or claim implemented syntax. The current
-contract baseline remains 0.1. Public SDK/CLI source routing is completed and integrated
-before this syntax reaches product acceptance. Independent syntax and lowering
-work may proceed while that routing is being connected. Exploration/analysis and graph
-composition/Delta are separate implementation units; construction, bridges,
-normalization and aggregation remain explicit items in the inventory.
+This is the accepted design for the SGA Frontend increment. Named Graph calls
+in structural DATA now lower to the existing Program; the current contract
+baseline remains 0.1. Public SDK/CLI source routing and packed Local/HTTP
+execution remain required for product acceptance. The Frontend owns those
+packed acceptance tests after the Host connection. Graph execution support
+continues to be measured per operation and profile.
 
 ## Meaning and placement
 
@@ -71,8 +70,9 @@ its declared list, and is rejected after `FROM` or another Pipe operation.
 
 ## Complete Graph operation inventory
 
-All rows already have structural STEP/OP forms. None has a dedicated
-named-argument production yet. MATCH is separate: fixed patterns lower through
+All rows already have structural STEP/OP forms. Named calls now cover the 19
+operations other than graph construction; those calls remain subject to the
+ordinary checked operation contracts. MATCH is separate: fixed patterns lower through
 Graph-to-Relation bridges and relational steps; bounded patterns also use
 traverse. MATCH coverage does not imply natural syntax for every SGA operation.
 
@@ -108,8 +108,9 @@ Relation-returning operation. Reject incompatible chaining without conversion.
 
 ## Concrete lowering examples
 
-These are proposed syntax and corresponding Stage step fragments, not admitted
-complete Programs or executed fixtures. `g`, `base`, `target`, `g1` and `g2`
+These combine admitted named SGA calls with planned SQL/Pipe sugar and show
+corresponding Stage step fragments. They are not complete Programs or executed
+fixtures. `g`, `base`, `target`, `g1` and `g2`
 denote existing Graph producers. No example invents a source, grant or schema.
 
 ```text
@@ -208,9 +209,9 @@ records operation-level Host/kernel evidence with shared limitations. The
 [resource audit](../reviews/2026-09-23-local-resource-accounting-audit.json)
 tracks additional resource boundaries. Graph tests in
 `scripts/test-node-client-package.mjs` execute generated Program JSON from
-packed Local/HTTP packages; they do not prove public ingestion of the new
-surface. No execution of this proposed syntax is claimed here.
+packed Local/HTTP packages; they do not prove public ingestion of the named
+surface. The named source has not yet passed packed execution acceptance.
 
 Report underlying operation gaps to the Compute owner; do not implement a
-second Graph runtime or approximate the meaning in Frontend. Update grammar,
-manifest and dependent pins with the eventual implementation, on version 0.1.
+second Graph runtime or approximate the meaning in Frontend. The grammar,
+manifest and dependent pin remain on version 0.1.

@@ -222,7 +222,8 @@ fn Scanner::next(self : Scanner) -> Token raise {
       ignore(self.advance())
       Pipe
     }
-    Some(0x7b | 0x7d | 0x3d | 0x3b) => Symbol(self.advance())
+    Some(0x7b | 0x7d | 0x3d | 0x3b | 0x28 | 0x29 | 0x3a | 0x2c | 0x5b | 0x5d) =>
+      Symbol(self.advance())
     _ => raise LexicalAbort(UnexpectedToken, start)
   }
   { value, start, end: self.byte_offset, }
