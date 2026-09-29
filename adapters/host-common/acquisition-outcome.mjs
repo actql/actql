@@ -39,3 +39,28 @@ export function acquisitionOutcome(error) {
     ? Object.freeze({outcome: error.outcome, recovery: error.recovery})
     : Object.freeze({outcome: 'unknown', recovery: undefined});
 }
+
+// An installed adapter transfers its end observation before another boundary
+// can wrap the thrown error. The receiving Run owner retains this statement
+// separately from the exception chain; a missing statement remains unknown.
+export function acquisitionEndHandoff() {
+  let failure;
+  return Object.freeze({
+    retain(error) {
+      if (!(error instanceof AcquisitionOpenError) ||
+          !outcomes.has(error.outcome) ||
+          (error.recovery !== undefined && (error.outcome !== 'unknown' ||
+            typeof error.recovery?.close !== 'function' ||
+            typeof error.recovery?.cleanup !== 'function' ||
+            typeof error.recovery?.cleanupPending !== 'function')) ||
+          (failure !== undefined && failure !== error)) {
+        throw new TypeError('InvalidAcquisitionEndHandoff');
+      }
+      failure = error;
+      return error;
+    },
+    outcome(error) {
+      return acquisitionOutcome(failure ?? error);
+    },
+  });
+}
