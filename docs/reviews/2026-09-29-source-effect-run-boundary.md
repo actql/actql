@@ -85,21 +85,22 @@ capture/recovery; D does not need to edit C's compiler or Host files.
 
 ## Adjacent public Frontend handoff
 
-B's `feat/frontend-public-routing` at `8512d17d818e2d494011dfe6b95ed6242608500d`
+B's `feat/frontend-public-routing` at `ba34b719516f108f80e78cf7d5024f30c7a86c31`
 shares the same `4e5e5fea3de3902610b385e10f89a4539c4da706` base.
-Its current commits own `src/source_frontend`, query syntax/lowering, SDK
-wire/types, and the CLI; they do not edit C's compiler or installed Host.
+Its handoff owns `src/source_frontend`, query syntax/lowering and SDK
+wire/types; CLI completion is not a dependency. It does not edit C's compiler
+or installed Host. Merge this fixed series, including its Graph integration,
+rather than cherry-picking individual commits.
 The agreed Host handoff is in B's
 `docs/reviews/2026-09-29-public-frontend-host-handoff.md`. C owns the
 installed source alias publication, the bounded lower-and-prepare bridge,
 `client-program-preparation.mjs`, and `embedded-local.mjs`. B must not add
 another Host checker, acquisition owner, or Run scheduler for this route.
 
-B's pure Frontend and SDK change can merge separately. C continues the
-Source-to-Effect Host connection without waiting for that Frontend acceptance;
-no query-only source input is implicitly accepted by this branch. After B's
-API is fixed, C can rebase and connect its Host bridge through the same
-checked preparation. Alias generation/admission and query-only parameter
+C continues the Source-to-Effect Host connection without waiting for Frontend
+acceptance; no query-only source input is implicitly accepted by this branch.
+After the acquired-input and partial-apply recovery handoff, connect B's Host
+bridge through the same checked preparation. Alias generation/admission and query-only parameter
 failures are a distinct Host integration acceptance, not a reason to expand
 the first Source-to-Effect Program profile. If B needs a Host ABI adjustment
 before merging, agree on that exact bridge signature and test rather than
@@ -127,3 +128,26 @@ The contract delta was shared with D in
 That handoff is not an executable acquired-Effect acceptance SHA. The new
 dependency graph checks cover bounds and topology locally; product issuance,
 durable storage and recovery admission still need to use them.
+
+## Acquired root local Invocation
+
+The acquired publication preparation now issues the root Unit's local
+Invocation through `issue_acquired_client_effect_local_invocation`. Its
+observation is the admitted Source Evidence, not the Run-wide Observation Set.
+The issuer checks the exact prepared graph/task, live capture, captured Relation
+identity, and Query requirement owner, then matches the logical input and
+observation using the existing common admission rules. No new Relation scan,
+source acquisition, compile, or grant is performed by this issuer.
+
+The existing real-DuckDB acquired Effect test covers successful issuance,
+distinct checked owner rejection, changed logical input and authority evidence,
+and rejection after capture release. The admitted altered evidence is constructed
+before each negative assertion so a malformed envelope cannot stand in for the
+owner/binding check. The common Host package's 15 JS tests also pass, including
+the existing independent source-free Invocation preimage expectation.
+
+This closes root identity issuance only. Imported Stage Results still require
+their complete local Manifest and typed upstream dependency inventory. Durable
+storage, restore admission, and approval-wait acceptance are not established by
+this test; the new root owner is retained in the publication context for that
+connection. No executable acquired-Effect handoff is claimed yet.

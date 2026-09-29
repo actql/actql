@@ -2502,6 +2502,30 @@ pub fn client_program_issue_source_free_local_effect_invocation(
 }
 
 ///|
+#export_name("clientProgramIssueAcquiredLocalEffectInvocation")
+pub fn client_program_issue_acquired_local_effect_invocation(
+  owner : @publication_host.PreparedClientEffectComputation,
+  captured : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  requirement : @planning.QueryRequirement,
+  input : @publication.RunEvidenceValue,
+  observation : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalInvocation,
+  @publication_host.ClientEffectLocalInvocationIssue,
+] {
+  @publication_host.issue_acquired_client_effect_local_invocation(
+    owner, captured, identity, requirement, input, observation, authority_scope_cid,
+    data_policy_cid, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramIssueCapturedEffectInputLocalInvocation")
 pub fn client_program_issue_captured_effect_input_local_invocation(
   owner : @publication_host.PreparedClientEffectComputation,

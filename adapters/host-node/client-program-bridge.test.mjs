@@ -2377,6 +2377,48 @@ test('one acquired Effect Program captures and computes from its owner',
         authorityScopeCid: cid('a'),
         effectiveDataPolicyCid:
           opened.checkedSource.sourceDataPolicyCid});
+      const sourceRequirement = checked(
+        moon.clientProgramEffectPrepareLocalQueryRequirement(prepared,
+          0, 0, registry, values, fragment, ordered));
+      const sourceObservation = checked(moon.strategyRunEvidenceAdmit(
+        'source_evidence', sourceEvidenceWire, 1000000, 100000, 64));
+      const capturedSourceHandle = opened.capture.source();
+      const localInvocation = (owner = prepared, input = opened.logicalInput,
+        observation = sourceObservation) => checked(
+        moon.clientProgramIssueAcquiredLocalEffectInvocation(owner,
+          capturedSourceHandle, opened.identity, sourceRequirement,
+          input, observation, cid('a'),
+          opened.checkedSource.sourceDataPolicyCid, 1000000, 100000, 64));
+      const local = localInvocation();
+      const localBody = JSON.parse(moon.clientProgramLocalEffectInvocationJson(
+        local));
+      assert.deepEqual(localBody.observation_cids,
+        [JSON.parse(sourceEvidenceWire).source_evidence_cid]);
+      assert.equal(moon.clientProgramLocalEffectInvocationCid(local),
+        canonicalHashWithoutSelf(localBody, 'self_cid'));
+      const foreignPrepared = moon.clientProgramEffectPreparationReady(
+        moon.clientProgramPrepareEffectComputationWithParameters(
+          canonicalJson(document), 'json', environment, undefined, []));
+      assert.ok(foreignPrepared);
+      assert.throws(() => localInvocation(foreignPrepared));
+      const alteredInput = JSON.parse(moon.strategyRunEvidenceJson(
+        opened.logicalInput));
+      alteredInput.logical_relation_cid = cid('e');
+      alteredInput.input_logical_cid = canonicalHashWithoutSelf(alteredInput,
+        'input_logical_cid');
+      const admittedAlteredInput = checked(moon.strategyRunEvidenceAdmit(
+        'source_input_logical', canonicalJson(alteredInput),
+        1000000, 100000, 64));
+      assert.throws(() => localInvocation(prepared, admittedAlteredInput));
+      const alteredObservation = JSON.parse(sourceEvidenceWire);
+      alteredObservation.authority_scope_cid = cid('e');
+      alteredObservation.source_evidence_cid = canonicalHashWithoutSelf(
+        alteredObservation, 'source_evidence_cid');
+      const admittedAlteredObservation = checked(moon.strategyRunEvidenceAdmit(
+        'source_evidence', canonicalJson(alteredObservation),
+        1000000, 100000, 64));
+      assert.throws(() => localInvocation(prepared, opened.logicalInput,
+        admittedAlteredObservation));
       const invoked = checked(moon.clientProgramIssueEffectCapturedInvocation(
         prepared, compiled, admission, definition, opened.capture.source(),
         sourceEvidenceWire,
@@ -2402,6 +2444,9 @@ test('one acquired Effect Program captures and computes from its owner',
       assert.equal(publication.invocation.identity,
         moon.strategyPublicationContractIdentity(invoked._1));
       assert.equal(publication.receiptEvidence.sourceEvidence.length, 1);
+      assert.equal(moon.clientProgramLocalEffectInvocationCid(
+        publication.localEvidenceContext.sourceLocalInvocation),
+      moon.clientProgramLocalEffectInvocationCid(local));
       const foreignSourceEvidence = JSON.parse(sourceEvidenceWire);
       foreignSourceEvidence.source_contract_cid = cid('f');
       foreignSourceEvidence.source_evidence_cid =
@@ -2453,6 +2498,7 @@ test('one acquired Effect Program captures and computes from its owner',
         assert.equal(await retained.cleanup(), true);
         assert.equal(retained.cleanupPending(), false);
       }
+      assert.throws(() => localInvocation(), 'released capture is rejected');
     } finally { opened.close(); }
   });
 

@@ -150,6 +150,7 @@ export function acquiredEffectPublicationPlan({acquired, captured,
       captured?.logicalInput === undefined ||
       captured?.checkedSource === undefined ||
       captured?.identity === undefined ||
+      captured?.requirement === undefined ||
       captured?.capture === undefined ||
       moon.clientProgramEffectCapturedSourceMatches(prepared,
         captured.capture.source()) !== true) {
@@ -167,6 +168,10 @@ export function acquiredEffectPublicationPlan({acquired, captured,
         captureStartedAt, captureCompletedAt}, limits);
   const sourceEvidence = control.admitRunEvidence('source_evidence',
     sourceEvidenceWire, limits);
+  const sourceLocalInvocation = control.issueCheckedAcquiredLocalEffectInvocation(
+    prepared, captured.capture.source(), captured.identity,
+    captured.requirement, captured.logicalInput, sourceEvidence,
+    authorityScopeCid, source.sourceDataPolicyCid, limits);
   const run = JSON.parse(runDefinition.wire);
   const resultCount = moon.clientProgramEffectCompilationResultNames(
     compilation).length;
@@ -180,6 +185,7 @@ export function acquiredEffectPublicationPlan({acquired, captured,
     now, resultCount, retainUntil: run.valid_until});
   return Object.freeze({...plan, invocationOwner,
     localEvidenceContext: Object.freeze({admission, runDefinition,
+      sourceLocalInvocation,
       runInvocation: invocation, observation})});
 }
 

@@ -163,7 +163,8 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
     if (!owner.effectful && setup === undefined) {
       throw new Error('InstalledSourceHostUnavailable');
     }
-    return Object.freeze({capture, identity, logicalInput, checkedSource, setup,
+    return Object.freeze({capture, identity, logicalInput, requirement,
+      checkedSource, setup,
       issueSourceEvidence: options => issueNativeSourceEvidence(capture,
         {...options, context: evidenceContext, identity, logicalInput}),
       close: () => capture.close()});

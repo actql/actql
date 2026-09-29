@@ -1973,6 +1973,15 @@ function publicationControl(moon) {
       return Object.freeze({observation: inspectEvidence(issued._0),
         invocation: inspect(issued._1)});
     },
+    issueCheckedAcquiredLocalEffectInvocation(checkedEffect, capturedSource,
+      identity, requirement, input, observation, authorityScopeCid,
+      dataPolicyCid, limits) {
+      issuanceLimits(limits, 'Acquired local Effect Invocation');
+      return checked(moon.clientProgramIssueAcquiredLocalEffectInvocation(
+        checkedEffect, capturedSource, identity, requirement, input,
+        evidenceToken(observation), authorityScopeCid, dataPolicyCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
     bindCheckedClientEffectRun(checkedEffect, admission, runDefinition) {
       if (typeof moon.clientProgramBindEffectRun !== 'function') {
         throw new TypeError('Client Effect Run binding is unavailable');
