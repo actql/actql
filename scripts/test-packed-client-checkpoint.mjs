@@ -15,7 +15,11 @@ import {canonicalText} from './check-canonical-json.mjs';
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
-const root = await mkdtemp(join(build, 'client-checkpoint-package-'));
+// The installed application must not resolve files from the source checkout.
+const externalScratch = join(repository, '..', '.codex-scratch');
+await mkdir(externalScratch, {recursive: true});
+const root = await mkdtemp(join(externalScratch,
+  'client-checkpoint-package-'));
 const environment = {...process.env,
   npm_config_cache: join(root, 'npm-cache'),
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
