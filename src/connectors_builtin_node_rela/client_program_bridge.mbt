@@ -381,14 +381,14 @@ pub fn client_run_control_observation(
   physically_unstarted : Bool,
   pre_dispatch_failure_confirmed : Bool,
   physical_close_confirmed : Bool,
-) -> String? {
+) -> String raise ClientProgramRunStateIssue {
   match
     @publication.issue_run_control_observation_wire(
       revision, cancellation_requested, physically_unstarted, pre_dispatch_failure_confirmed,
       physical_close_confirmed,
     ) {
-    Ok(value) => Some(value)
-    Err(_) => None
+    Ok(value) => value
+    Err(issue) => raise Projection(issue)
   }
 }
 
