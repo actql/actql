@@ -99,7 +99,7 @@ column order require separate publication-boundary verification until the
 public Result API exposes them. The existing client request, cancellation,
 authorization and Result delivery semantics remain owned by the common Host.
 
-`scripts/accept-sga-public-source.mjs` is the pending packed acceptance
+`scripts/accept-sga-public-source.mjs` is the packed acceptance
 application. Copy it and `spec/frontend/fixtures/sga-surface` into a clean
 packed installation, then run it with the installation directory, copied
 fixture directory, and `local` or `remote`. Remote mode requires
@@ -113,9 +113,9 @@ independently authored rows and nonempty row shapes, and reads
 each Result to normal stream termination. The public Result API does not expose
 the published schema, so this script does not verify schema types, nullability,
 or column order; empty Results have no row-shape evidence. Publication boundary
-tests must verify those schema properties separately. The script is not a passing test or a
-claim of public source support until the Host connection and physical
-strategy selection are fixed and both modes complete.
+tests must verify those schema properties separately. A passing named-source
+case proves only that operation and its checked Result contract; other SGA
+operations retain separate Host and physical execution obligations.
 
 ## Public Host connection evidence
 
@@ -174,3 +174,58 @@ were removed. The evidence-helper tests separately passed for success,
 nonzero exit, timeout and explicit artifact retention. This cleanup applies
 to the passing `normalize-rows` acceptance, not to the earlier diagnostic
 Store needed for unresolved SGA cases.
+
+## Main integration and packed public-source evidence
+
+The development integration branch merged `origin/main` at
+`08052fd34f62472a39fa107e236afc6f59800e75`, including the public Host
+source connection, without a source conflict. The tested commit is
+`d14b53a9f167f7831be9eb82ff20d39519a7034d`. This is not a merge-ready
+claim for all named SGA operations.
+
+`node scripts/test-packed-public-query.mjs` installed the five packages into
+a clean directory. The same application accepted five independently expected
+SQL/Pipe queries through Embedded Local and HTTPS Remote, including duplicate
+rows, NULL, an empty Result, typed and nullable parameters, request lookup,
+attach, same-intent resubmission, a second reader, and a read limit. Six
+syntax, declaration, value, alias and language refusals had zero new Run
+acceptances and zero source reads. The named `normalize_graph` then
+`node_rows` source returned `[{"id":"A"},{"id":"B"}]` in the declared
+order through both Host profiles. The Node-free native CLI submitted the same
+named source through the packed HTTPS Host and read the same Named Result.
+Its binary digest was
+`sha256:b735ac546176230bfa8d5daffa9e358fb51da64ad2664d0ab7117dcc1e1588e8`.
+The driver records stdout, stderr, exit status, signal, elapsed time and
+digests before deleting only its own installation, npm cache, tarballs and
+Host Store. The separate evidence-helper success, nonzero and timeout tests
+passed 6/6. The Frontend source tests passed 115/115, named SGA baseline
+20/20, and common preparation 3/3 at this merged source.
+
+| Packed artifact | SHA-256 |
+| --- | --- |
+| `client-wire` | `8e09005f4aac5063c1f6f8e4680dbb778a00e5c098126a85283e1f07685a76e5` |
+| `sdk` | `1e4e83612b9c965388795f066be8cf24b0358feb46bd2335c8d98c36e83ed515` |
+| `run-host-core` | `591cc67b13f69bb83220ab74264cf02f49ae0497d4dfc9031ea4b364d4155687` |
+| `local-node` | `4864c6285892471b5d9c9fdf9fc3da423f7a1004986747d95c5a56ae808a2deb` |
+| `node` | `c72364973dd1ed42faea32425632b314de037c9b92035c9f5ec35b875914f225` |
+
+`node scripts/test-packed-public-query.mjs --probe-sga` then ran the seven
+other independently authored fixtures through the same installed Local API.
+It intentionally exited nonzero, preserved a per-command log and removed its
+own installation. The failures are not silently excluded from SGA coverage:
+
+| Fixture | Observed boundary | Next owner and file |
+| --- | --- | --- |
+| `graphs-equal`, `degree-rows` | Run accepted, then failed before publication with `ACTQL_E_UNPUBLISHED_RUN` | Physical strategy / Host dispatch: `src/physical_strategy/captured_dag.mbt` and `adapters/host-node/client-dispatch-owner.mjs`; confirm the precise dispatch cause for each. |
+| `graph-bounds` | Run compilation rejected before acceptance | Host compilation/profile: `adapters/host-node/local-values-plan.mjs` and `src/run_publication_host/client_values_compilation.mbt`. |
+| `components` | Common preparation failed before acceptance | Compute capacity: `src/pipeline_check_context/program_capacity_preparation.mbt` must supply the existing two Components application claims. |
+| `reach-subgraph`, `diff-apply`, `mean-graphs` | Checked preparation rejected before acceptance | The prior source-level trace reached `UnresolvedOrder` for nullable `rel`; order-evidence owner should inspect `src/relation_evidence/sets.mbt` and the Result transformation boundary. The packed error does not itself expose that inner reason. |
+
+For the preparation/compilation failures, the installed Local facade returned
+`SubmissionUnknown` in some cases despite an apparent pre-Run failure.
+`packages/client-wire/index.mjs` and Host submit error classification need an
+exact acceptance-boundary check before any code is added to the typed refusal
+set. Do not infer safe resubmission from this diagnostic. The current probe
+covers Local only for these seven failures; their Remote success is untested.
+The passed `normalize-rows` case has no public schema type/nullability/column
+order observation, so publication-boundary tests retain that obligation.
