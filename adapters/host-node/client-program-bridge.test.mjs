@@ -4325,12 +4325,31 @@ test('owned update Plan matches approved rows and rejects altered intent',
         return checked(result);
       };
       assert.doesNotThrow(() => preflight());
+      const recoveryPreview = moon.clientProgramEffectPreviewLedgerIdentity(
+        previewInputs);
+      const recoveryRoot = join(directory, 'recovered-preflight-ledger');
+      await mkdir(recoveryRoot);
+      const recoveryLedger = openEffectLedger({moon, root: recoveryRoot,
+        authorityScopeCid: cid('e'), callerRequestId: 'two-effect-request',
+        maxEntryBytes: 4096});
+      let recoveryGuards;
+      try {
+        // Missing durable row heads cannot waive target validation. Build
+        // the proof from real prepared entries, without claiming or sending.
+        assert.throws(() => recoveryLedger.recoveredTargetGuards(
+          recoveryPreview, progressMembers, 64));
+        recoveryLedger.prepareSetIntents(recoveryPreview, progressMembers, 64);
+        recoveryGuards = recoveryLedger.recoveredTargetGuards(
+          recoveryPreview, progressMembers, 64);
+      } finally {
+        recoveryLedger.close();
+      }
       const recoveredPreflight = ({sources = [cid('c'), cid('c')],
         observedRows = guardRows,
         guardVersions = guardRows.map(() => cid('6')),
         keys = preview.keys} = {}) => checked(
         moon.clientProgramCheckRecoveredEffectApplySemantics(
-          moon.clientProgramEffectPreviewLedgerIdentity(previewInputs),
+          recoveryPreview, recoveryGuards,
           sources, [mappingCid, mappingCid], [cid('d'), cid('d')],
           [cid('e'), cid('e')], observedRows, guardVersions,
           selectedRoutes, risk ?? undefined, false,

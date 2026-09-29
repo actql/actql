@@ -40,6 +40,16 @@ also passed 6,995 tests (791.4 seconds for the test step). Full affected
 Host/Client jobs and pushed-SHA CI are not established by these results.
 The acquired dependency inventory remains separate work in progress.
 
+The Client job at `db8e27a36919e94c4a09babd17fc60bc4b57b48b` completed
+253/254 initial Node tests, then stopped before packed/native/provider steps.
+The failing direct bridge test still called the recovered semantic preflight
+without its new required Ledger-derived guard owner. Its correction prepares
+real durable row intents in a separate SQLite Ledger and passes the admitted
+owner; it also checks that missing heads cannot issue this owner. The existing
+positive, changed-source and stale-target expectations remain unchanged.
+The corrected `owned update Plan matches approved rows and rejects altered
+intent` test passes in isolation. This is not a successful full Client job.
+
 ## Actual Compute call probe
 
 Run, after building the release runtimes used by the provider suite:
