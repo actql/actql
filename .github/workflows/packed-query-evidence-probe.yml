@@ -1,6 +1,6 @@
 name: Packed query evidence failure probe
 on:
-  workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 jobs:

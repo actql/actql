@@ -79,8 +79,9 @@ and timed-out child exits. These do not replace final-HEAD Linux CI.
 The Client step now publishes its exact evidence directory before invoking
 children. An `always()` upload retains only summary JSON and stdout/stderr
 logs for seven days, excluding packages, cache, Store and sibling scratch.
-The manual `Packed query evidence failure probe` workflow injects nonzero and
-timeout failures and uses the same upload action. Both jobs must remain failed;
+The CI manual input `packed_query_evidence_probe=true` invokes only the
+`Packed query evidence failure probe` workflow, injecting nonzero and timeout
+failures with the same upload action. Both jobs must remain failed;
 downloaded artifacts, not just runner-local paths, are the acceptance evidence.
 
 ### Separate follow-up: JS Host composition and environment verification
