@@ -2014,6 +2014,21 @@ async function exerciseStrategyGraph(
       {id: 2, node_name: 'second'},
     ],
   }, {
+    name: 'retained-match-nodes-filter',
+    retainedOutput: true,
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized',
+      match_nodes: {ids: [2, 1, 2], fields: ['id', 'node_name']},
+      as: 'matched',
+    }, {
+      from: 'matched', filter: 'id > 1', as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [{id: 2, node_name: 'second'}],
+  }, {
     name: 'match-nodes-predicate',
     step: {
       from: 'g',
@@ -2039,6 +2054,21 @@ async function exerciseStrategyGraph(
       {src: 1, dst: 2, weight: 10},
       {src: 2, dst: 1, weight: 20},
     ],
+  }, {
+    name: 'retained-match-edges-filter',
+    retainedOutput: true,
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized',
+      match_edges: {fields: ['src', 'dst', 'weight']},
+      as: 'matched',
+    }, {
+      from: 'matched', filter: 'weight > 10', as: 'out',
+    }],
+    fields: ['src', 'dst', 'weight'],
+    secondFields: ['weight', 'src'],
+    expected: [{src: 2, dst: 1, weight: 20}],
   }, {
     name: 'match-edges-predicate',
     step: {
@@ -4584,6 +4614,27 @@ async function exerciseStrategyGraph(
     },
     fields: ['id', 'node_name'],
   }, {
+    name: 'retained-match-nodes-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{
+      from: 'g',
+      match_nodes: {
+        where: "node_name = 'node-39'",
+        fields: ['id', 'node_name'],
+      },
+      as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'match-edges-in-flight',
     rows: 40,
     step: {
@@ -4591,6 +4642,27 @@ async function exerciseStrategyGraph(
       match_edges: {fields: ['src', 'dst', 'weight']},
       as: 'out',
     },
+    fields: ['src', 'dst', 'weight'],
+  }, {
+    name: 'retained-match-edges-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{
+      from: 'g',
+      match_edges: {
+        where: 'weight > 10',
+        fields: ['src', 'dst', 'weight'],
+      },
+      as: 'out',
+    }],
     fields: ['src', 'dst', 'weight'],
   }, {
     name: 'match-edges-predicate-in-flight',

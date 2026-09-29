@@ -18,9 +18,9 @@ priv enum MatchEdgesPhase {
 
 ///|
 priv struct MatchEdgesState {
-  input : @graph.ProducerRead
-  source : @storage.Storage
+  source : GraphReadSource
   graph : @carrier.Graph
+  edge_count : Int
   prepared : @lower.PreparedGraphMatch
   schema : @schema.Schema
   value_limits : @value.Limits
@@ -178,7 +178,7 @@ fn edge_predicate_binding(
   edge : Int,
   index : Int,
 ) -> (String, @execution.Value)? {
-  graph_edge_predicate_binding(state.graph, state.source, edge, index)
+  graph_edge_predicate_binding_read(state.graph, state.source, edge, index)
 }
 
 ///|
@@ -187,18 +187,18 @@ fn match_edge_field(
   edge : Int,
   expected : @schema.Field,
 ) -> @value.CheckedValue? {
-  guard @storage.edge_endpoints(state.source, edge) is Some((source, target)) else {
+  guard graph_read_edge_endpoints(state.source, edge) is Some((source, target)) else {
     return None
   }
   let (source_alias, target_alias, label_alias) = graph_edge_aliases(
     state.graph,
   )
   let checked = if source_alias == Some(expected.name) {
-    @storage.node_identity(state.source, source)
+    graph_read_node_identity(state.source, source)
   } else if target_alias == Some(expected.name) {
-    @storage.node_identity(state.source, target)
+    graph_read_node_identity(state.source, target)
   } else if label_alias == Some(expected.name) {
-    return match @storage.edge_label(state.source, edge) {
+    return match graph_read_edge_label(state.source, edge) {
       Some(Some(label)) =>
         @value.recheck_runtime_value(
           label.value,
@@ -210,7 +210,7 @@ fn match_edge_field(
     }
   } else {
     match graph_edge_property_index(state.graph, expected.name) {
-      Some(property) => @storage.edge_property(state.source, edge, property)
+      Some(property) => graph_read_edge_property(state.source, edge, property)
       None => None
     }
   }
@@ -229,16 +229,18 @@ fn compare_selected_edges_step(
   left : Int,
   right : Int,
 ) -> Result[Int?, MatchEdgesIssue] {
-  guard @storage.edge_endpoints(state.source, left)
+  guard graph_read_edge_endpoints(state.source, left)
     is Some((left_source, left_target)) &&
-    @storage.edge_endpoints(state.source, right)
+    graph_read_edge_endpoints(state.source, right)
     is Some((right_source, right_target)) &&
-    @storage.node_identity(state.source, left_source) is Some(left_source_id) &&
-    @storage.node_identity(state.source, right_source) is Some(right_source_id) &&
-    @storage.node_identity(state.source, left_target) is Some(left_target_id) &&
-    @storage.node_identity(state.source, right_target) is Some(right_target_id) &&
-    @storage.edge_label(state.source, left) is Some(left_label) &&
-    @storage.edge_label(state.source, right) is Some(right_label) else {
+    graph_read_node_identity(state.source, left_source) is Some(left_source_id) &&
+    graph_read_node_identity(state.source, right_source)
+    is Some(right_source_id) &&
+    graph_read_node_identity(state.source, left_target) is Some(left_target_id) &&
+    graph_read_node_identity(state.source, right_target)
+    is Some(right_target_id) &&
+    graph_read_edge_label(state.source, left) is Some(left_label) &&
+    graph_read_edge_label(state.source, right) is Some(right_label) else {
     return Err(MatchEdgesInputUnavailable)
   }
   while state.key_component < 3 {
@@ -312,7 +314,7 @@ fn edge_matches_types(state : MatchEdgesState, edge : Int) -> Bool {
     None => true
     Some(0) => false
     Some(_) =>
-      match @storage.edge_label(state.source, edge) {
+      match graph_read_edge_label(state.source, edge) {
         Some(Some(label)) =>
           match label.value {
             @value.Text(text) => state.type_index.contains(text)
@@ -385,7 +387,7 @@ fn match_edges_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@graph.producer_read_available(state.input) {
+    if !graph_read_available(state.source) {
       return @bounded.Failed(MatchEdgesInputUnavailable, progress, used)
     }
     if used >= state.control_work_remaining {
@@ -418,7 +420,7 @@ fn match_edges_step(
         progress += 1
       }
       SelectEdges =>
-        if state.source_index < @storage.edge_count(state.source) {
+        if state.source_index < state.edge_count {
           if edge_matches_types(state, state.source_index) {
             match state.predicate {
               Some(_) => {
@@ -661,16 +663,103 @@ pub fn start_match_edges(
   control_work_limit? : Int? = None,
 ) -> Result[MatchEdgesExecution, MatchEdgesIssue] {
   let owner = @lower.sequence_owner(sequence)
+  guard @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
+    @graph.producer_read_storage(input) is Some(storage) &&
+    @storage.carrier(storage) is @carrier.GraphValue(graph) else {
+    return Err(InvalidMatchEdgesKernel)
+  }
+  start_match_edges_read(
+    control,
+    preparation,
+    sequence,
+    step,
+    Stored(input),
+    graph,
+    @storage.edge_count(storage),
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    control_work_limit~,
+  )
+}
+
+///|
+/// Read an exact managed Graph input through the same bounded match kernel.
+pub fn start_match_edges_view(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
+) -> Result[MatchEdgesExecution, MatchEdgesIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+    is Some(@carrier.GraphValue(graph)) &&
+    @lifecycle.producer_view_kind(input) == @carrier.GraphKind &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(input),
+      owner,
+      step,
+      0,
+    ) &&
+    @lifecycle.producer_view_edge_count(input) is Some(edge_count) else {
+    return Err(InvalidMatchEdgesKernel)
+  }
+  start_match_edges_read(
+    control,
+    preparation,
+    sequence,
+    step,
+    Viewed(input),
+    graph,
+    edge_count,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    control_work_limit~,
+  )
+}
+
+///|
+fn start_match_edges_read(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  source : GraphReadSource,
+  graph : @carrier.Graph,
+  edge_count : Int,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
+) -> Result[MatchEdgesExecution, MatchEdgesIssue] {
+  let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),
       owner,
     ) &&
     @lower.sequence_step(sequence, step)
     is Some(@lower.GraphMatchStep(prepared)) &&
-    !@lower.graph_match_nodes(prepared) &&
-    @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
-    @graph.producer_read_storage(input) is Some(source) &&
-    @storage.carrier(source) is @carrier.GraphValue(graph) else {
+    !@lower.graph_match_nodes(prepared) else {
     return Err(InvalidMatchEdgesKernel)
   }
   let select_all = !@lower.graph_match_has_predicate(prepared) ||
@@ -681,7 +770,7 @@ pub fn start_match_edges(
   } else {
     None
   }
-  let count = @storage.edge_count(source)
+  let count = edge_count
   let type_count = @lower.graph_match_type_count(prepared)
   let schema = @lower.graph_match_output_schema(prepared)
   let width = @schema.field_count(schema)
@@ -722,15 +811,36 @@ pub fn start_match_edges(
   let accepted = Ref(false)
   let scratch_slots = Ref(0)
   let type_probes = Ref(0)
-  let port = match
-    @execution.prepare_trusted_output_port(
-      preparation,
-      @pipeline.Step(step),
-      max_entries,
-      max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs~,
-    ) {
+  let port_result = match source {
+    Stored(_) =>
+      @execution.prepare_trusted_output_port(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs~,
+      )
+    Viewed(view) => {
+      guard inputs.is_empty() else {
+        @execution.cancel_admitted_output(output) |> ignore
+        return Err(InvalidMatchEdgesKernel)
+      }
+      @execution.prepare_trusted_output_port_with_inputs(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs=[
+          @execution.trusted_output_carrier_input(
+            @lifecycle.producer_view_read_reference(view),
+          ),
+        ],
+      )
+    }
+  }
+  let port = match port_result {
     Ok(value) => value
     Err(issue) => {
       @execution.cancel_admitted_output(output) |> ignore
@@ -738,9 +848,9 @@ pub fn start_match_edges(
     }
   }
   let state : MatchEdgesState = {
-    input,
     source,
     graph,
+    edge_count,
     prepared,
     schema,
     value_limits: {
