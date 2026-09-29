@@ -62,6 +62,28 @@ also check each member's admitted Source View and schema, parse alias names
 with `query_syntax.parse_relation_path`, and reject same-rule collisions.
 Neither the Node shape check nor an alias CID alone grants source read access.
 
+## Checked Result transformation
+
+This integration branch also adopts the independent B-owned
+`run_publication_host/client_result_transformation.mbt` module. Its
+`prepare_client_result_transformation(prepared, resultIndex, bytes, nodes,
+depth)` selects the checked Result occurrence and existing logical Result
+Plan. `start_client_result_transformation(selection, completedOutput,
+limits)` drives the existing bounded projection/order export. The direct-root
+path remains valid only when no Result transformation is required; its
+`RequiresResultTransformation` refusal must not be removed to publish raw
+producer output under an ordered Result identity.
+
+C connects the selected transformation in
+`client_values_plan_graph.mbt` and `client_task_plan_graph.mbt`, retains the
+exact completed producer through export, and uses the existing publication
+receipt/evidence/Store owner. `client_program_bridge.mbt` exposes the narrow
+selection and bounded export controls needed by the installed Host. B owns
+the separate transformation module and regression; the JS targeted test
+passes on this combined source, while packed Result acceptance awaits those
+call sites. The [detailed handoff](https://github.com/actql/actql/blob/06472a38cb36785a5475df22f5b51bf8fa37a198/docs/reviews/2026-09-29-result-transformation-handoff.md)
+records the module's ownership and cleanup rules.
+
 ## File ownership and acceptance
 
 B edits `adapters/host-node/client-program-preparation.mjs`, a new
