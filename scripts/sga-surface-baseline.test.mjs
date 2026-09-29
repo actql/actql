@@ -168,6 +168,56 @@ test('quoted DATA aliases reuse one logical Graph producer', () => {
   assert.deepEqual(JSON.parse(structuralToJson(source)), expected);
 });
 
+test('a quoted producer name stays literal in value and field positions', () => {
+  const source = `AQL '0.1'; PROGRAM 'roles' { STAGE s {
+    INPUT g = {"carrier":"graph"};
+    DATA \`peer graph\` = FROM g;
+    DATA reached = FROM g |>
+      reach(start: "peer graph", direction: "out", max_depth: 1);
+    DATA restored = FROM g |>
+      apply_graph_delta(with: \`peer graph\`, field: "peer graph");
+    RESULT r = {"from":"restored"};
+  } RESULT r = {"from":{"stage":"s","result":"r"}}; }`;
+  const program = JSON.parse(structuralToJson(source));
+  assert.deepEqual(program.stages[0].steps, [
+    {from: 'g', reach: {start: 'peer graph', direction: 'out',
+      max_depth: 1}, as: 'reached'},
+    {from: 'g', apply_graph_delta: {with: 'g', field: 'peer graph'},
+      as: 'restored'},
+  ]);
+});
+
+test('DATA scope rejects forward and duplicate Graph producers', () => {
+  const source = declarations => `AQL '0.1'; PROGRAM 'scope' { STAGE s {
+    INPUT g = {"carrier":"graph"};
+    ${declarations}
+    RESULT r = {"from":"output"};
+  } RESULT r = {"from":{"stage":"s","result":"r"}}; }`;
+  for (const declarations of [
+    'DATA output = FROM later; DATA later = FROM g;',
+    'DATA output = FROM g; DATA output = FROM g;',
+    'DATA output = FROM g; DATA g = FROM output;',
+    'DATA output = FROM later; DATA later = FROM output;',
+  ]) {
+    assert.equal(structuralToJson(source(declarations)), '', declarations);
+  }
+});
+
+test('mean_graphs never adds a Pipe current Graph to its explicit list', () => {
+  const namedArgs = 'with: [target], weights: [1], ' +
+    'support: {nodes: 0.5, edges: 0.5}, ' +
+    'properties: {nodes: {}, edges: {}}';
+  assert.equal(structuralToJson(envelope(
+    `FROM g |> mean_graphs(${namedArgs})`)), '');
+  const generated = JSON.parse(structuralToJson(envelope(
+    `mean_graphs(${namedArgs})`)));
+  assert.deepEqual(generated.stages[0].steps, [{
+    mean_graphs: {with: ['target'], weights: [1],
+      support: {nodes: 0.5, edges: 0.5},
+      properties: {nodes: {}, edges: {}}}, as: 'output',
+  }]);
+});
+
 test('named Graph arguments reject duplicates and incomplete syntax', () => {
   for (const source of [
     'FROM g |> reach(start: "A", start: "B", direction: "out", max_depth: 2)',
