@@ -35,6 +35,8 @@ for untrusted capability declarations. The body contains:
 - Resource and operation; selected fields sorted by name and the external-ID
   target field, if applicable. Each field includes its admitted type, null and
   default constraints, write/read flags, identity flags, and sorted references.
+  Both sorts use UTF-16 code-unit order, the canonical lexicographic order
+  (language.md, "Every lexicographic ordering"); not length first.
 - Implemented route and profile: per-item mutation/failure, exact row errors,
   serial request ordering only for single-record execution, unavailable
   idempotency, and manual unknown reconciliation.

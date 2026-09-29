@@ -63,8 +63,10 @@ fn capability_field(
   capability_flag(writer, "nullable", field.nullable)
   @encode.key(writer, "reference_to")
   @encode.begin_array(writer)
+  // Canonical lexicographic order: UTF-16 code units, not length first
+  // (MoonBit's `String::compare` orders by length first).
   let references = field.reference_to.copy()
-  references.sort()
+  references.sort_by((a, b) => @canonical.compare_utf16(a, b))
   for reference in references {
     @encode.string_value(writer, reference)
   }
@@ -134,7 +136,7 @@ pub fn prepare_write_capability_evidence(
     @encode.key(writer, "fields")
     @encode.begin_array(writer)
     let fields = plan.fields.copy()
-    fields.sort_by((a, b) => a.name.compare(b.name))
+    fields.sort_by((a, b) => @canonical.compare_utf16(a.name, b.name))
     for field in fields {
       capability_field(writer, field)
     }
