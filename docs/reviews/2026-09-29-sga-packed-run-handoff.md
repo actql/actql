@@ -19,9 +19,12 @@ journal recorded a reserved physical start and confirmed physical close. A
 direct `match_nodes` variant reached the same failed state; a `node_rows`
 variant was rejected at compilation with `RunHostTaskCompilationRejected`.
 These variants are diagnostic probes, not new language expectations or proof
-that the Graph kernels failed. The public status does not expose the internal
-cause, so ownership of the underlying fix remains to be established at the
-Host-to-kernel boundary.
+that the Graph kernels failed. An ignored installed copy with logging only
+showed `runInstalledStrategy` returning `host-tasks-failed` with
+`MoonBitHostFailure`; subsequent publication rejected `StrategyNotComplete`.
+The latter is a consequence of failed execution, not the root cause. The
+public status does not expose that internal cause, so the Host-to-kernel
+failure still needs isolation before assigning the product fix.
 
 `scripts/reproduce-sga-baseline.mjs <packed-installation> --graphs-equal`
 replays the exact authored Program and reports public status and terminal error
