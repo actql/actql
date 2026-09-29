@@ -129,11 +129,19 @@ pub fn accept_resident_dispatch(
   }
   if !@remote.remote_runtime_record_startable(accepted) {
     ignore(queue.remove(attempt))
-    // The redelivery is answered with the attempt's current durable record,
-    // in the dispatch response it asked for; nothing starts again.
+    // The redelivery is answered with the attempt's current durable record;
+    // nothing starts again. Until the common redelivery rules (O5) fix which
+    // form a Coordinator admits for an already acknowledged attempt, the
+    // dispatch response is tried first and the status form after a 404.
     return match
       @client.acknowledge_acceptance(journal, client, observation_url, request) {
       Ok(_) => Ok(AlreadyStarted(attempt))
+      Err(@client.HttpStatus(404)) =>
+        match
+          @client.acknowledge_status(journal, client, observation_url, request) {
+          Ok(_) => Ok(AlreadyStarted(attempt))
+          Err(issue) => Err(Client(issue))
+        }
       Err(issue) => Err(Client(issue))
     }
   }

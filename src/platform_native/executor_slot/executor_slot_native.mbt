@@ -102,7 +102,7 @@ pub fn NativeExecutorSlot::spawn_holder(
   if self.descriptor < 0 {
     return Err(Closed)
   }
-  if !valid_path(executable) || arguments.length() > 63 {
+  if !valid_path(executable) || arguments.length() > 255 {
     return Err(InvalidConfiguration)
   }
   match

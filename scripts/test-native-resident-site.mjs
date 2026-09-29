@@ -237,6 +237,9 @@ try {
     '--observation-url',
     `${gateway.origin}/v1/sites/${siteKey}/generations/1/outbound/observations`,
     '--coordinator-authority', 'cloud-coordinator',
+    '--runtime-bundle-cid', envelope.runtimeBundleCid,
+    '--connector-registration', 'local', '--connector-revision', 'local/1',
+    '--strategy-revision', 'strategy/1',
     '--operation-capability-cid', operationCapability,
     '--issuer-capability-cid', issuerCapability,
     '--budget-retained-bytes', '1048576', '--budget-execution-bytes', '1048576',
@@ -356,12 +359,65 @@ try {
   void refusedForeign;
   void refusedPlain;
 
+  // 6. The control process dies right after starting a holder. The holder
+  //    keeps the slot; a restarted control process accepts new work but
+  //    starts no executor until the old holder is gone, and the attempt the
+  //    old holder ran is never started again.
+  const dying = startSite(['--holder-pause-ms', '3000']);
+  currentSite = dying;
+  const third = dispatchFor('resident-dispatch-3', 5);
+  const thirdSettled = within(gateway.dispatch({dispatch: third,
+    inputBindingBody: '{}', dispatchEnvelope: materialsEnvelope(third)}),
+  'third dispatch').catch(error => error);
+  await waitFor(() => dying.lines.some(line => line.kind === 'holder-started'),
+    'third holder');
+  dying.child.kill('SIGKILL');
+  await dying.exited;
+  const restarted = startSite();
+  currentSite = restarted;
+  const fourth = dispatchFor('resident-dispatch-4', 6);
+  const fourthSettled = within(gateway.dispatch({dispatch: fourth,
+    inputBindingBody: '{}', dispatchEnvelope: materialsEnvelope(fourth)}),
+  'fourth dispatch');
+  await waitFor(() => restarted.lines.some(line => line.kind === 'slot-busy'),
+    'slot held by the old holder');
+  await fourthSettled;
+  void thirdSettled;
+  await waitFor(async () => (await entries()).length === 4, 'fourth entry');
+  const thirdTerminal = await within(gateway.query({dispatch: third}),
+    'third query');
+  assert.equal(thirdTerminal.state[0], 3);
+  const fourthTerminal = await within(gateway.query({dispatch: fourth}),
+    'fourth query');
+  assert.equal(fourthTerminal.state[0], 3);
+  restarted.child.kill('SIGTERM');
+  await restarted.exited;
+
+  // 7. Two control processes of the same Site run at once; one attempt still
+  //    reaches the executor once.
+  const left = startSite(['--holder-pause-ms', '500']);
+  const right = startSite(['--holder-pause-ms', '500']);
+  currentSite = left;
+  const fifth = dispatchFor('resident-dispatch-5', 7);
+  await within(gateway.dispatch({dispatch: fifth, inputBindingBody: '{}',
+    dispatchEnvelope: materialsEnvelope(fifth)}), 'fifth dispatch');
+  await waitFor(async () => (await entries()).length === 5, 'fifth entry');
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  const fifthTerminal = await within(gateway.query({dispatch: fifth}),
+    'fifth query');
+  assert.equal(fifthTerminal.state[0], 3);
+  assert.equal((await entries()).length, 5);
+  left.child.kill('SIGTERM');
+  right.child.kill('SIGTERM');
+  await Promise.all([left.exited, right.exited]);
+
   // Each entry names one holder claimant and one attempt key; no attempt
   // key appears twice.
   const keys = (await entries()).map(line => line.split(' ')[1]);
   assert.equal(new Set(keys).size, keys.length);
   console.log('native resident Site acceptance passed');
 } catch (error) {
+  console.error('resident Site test failed:', error);
   if (currentSite !== undefined) {
     console.error('resident Site output:', JSON.stringify(currentSite.lines));
     console.error('resident Site stderr:', currentSite.stderr());

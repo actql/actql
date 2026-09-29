@@ -148,14 +148,44 @@ priv struct SiteEnvironment {
   site : @site.ExecutionSite
   journal : @journal.Journal
   runtime_bundle_cid : String
+}
+
+///|
+/// What the control process uses. It never opens the runtime bundle Store,
+/// which only a holder holds while it executes; the installed runtime and
+/// Connector it delegates are Site configuration.
+priv struct ControlEnvironment {
   sqlite_library : @sqlite.Library
   journal_path : String
   max_record_bytes : Int64
   site_key : String
   site_generation : Int
+  runtime_bundle_cid : String
   max_operations : Int
   max_transfers : Int
   max_bytes : Int64
+}
+
+///|
+fn open_control_environment(
+  matches : @argparse.Matches,
+) -> ControlEnvironment raise CommandStop {
+  let sqlite_library = match
+    @sqlite.load_library(required(matches, "sqlite-library")) {
+    Ok(value) => value
+    Err(_) => stop("SQLite library load failed")
+  }
+  {
+    sqlite_library,
+    journal_path: required(matches, "journal"),
+    max_record_bytes: required_int64(matches, "max-record-bytes"),
+    site_key: required(matches, "site-key"),
+    site_generation: required_int(matches, "site-generation"),
+    runtime_bundle_cid: required(matches, "runtime-bundle-cid"),
+    max_operations: required_int(matches, "max-operations"),
+    max_transfers: required_int(matches, "max-transfers"),
+    max_bytes: required_int64(matches, "max-bytes"),
+  }
 }
 
 ///|
@@ -277,14 +307,6 @@ fn open_site_environment(
     site,
     journal,
     runtime_bundle_cid: active.runtime_bundle_cid,
-    sqlite_library,
-    journal_path: required(matches, "journal"),
-    max_record_bytes,
-    site_key: required(matches, "site-key"),
-    site_generation: required_int(matches, "site-generation"),
-    max_operations: required_int(matches, "max-operations"),
-    max_transfers: required_int(matches, "max-transfers"),
-    max_bytes,
   }
 }
 
@@ -292,7 +314,7 @@ fn open_site_environment(
 /// A fresh view of the shared dispatch journal. The holder advances records
 /// in its own process, so the control process reads the durable record anew
 /// for every operation instead of keeping an in-memory copy.
-fn fresh_journal(environment : SiteEnvironment) -> @journal.Journal? {
+fn fresh_journal(environment : ControlEnvironment) -> @journal.Journal? {
   guard @site.create_site(
       environment.site_key,
       environment.site_generation,
@@ -403,19 +425,15 @@ fn run_admission() -> @resident_host.ResidentRunAdmission raise CommandStop {
 ///|
 fn delegation(
   matches : @argparse.Matches,
-  environment : SiteEnvironment,
   budget : @remote.RemoteDispatchBudget,
 ) -> @resident.ResidentSiteDelegation raise CommandStop {
-  let (connector_registration, connector_revision, strategy_revision) = @bundle.native_active_runtime_connector_scope(
-    environment.active_runtime,
-  )
   {
     coordinator_authority: required(matches, "coordinator-authority"),
     site_key: required(matches, "site-key"),
-    runtime_bundle_cid: environment.runtime_bundle_cid,
-    connector_registration,
-    connector_revision,
-    strategy_revision,
+    runtime_bundle_cid: required(matches, "runtime-bundle-cid"),
+    connector_registration: required(matches, "connector-registration"),
+    connector_revision: required(matches, "connector-revision"),
+    strategy_revision: required(matches, "strategy-revision"),
     grant_cid: required(matches, "operation-capability-cid"),
     evidence_issuer_capability_cid: required(matches, "issuer-capability-cid"),
     budget_cids: [@remote.remote_dispatch_budget_cid(budget)],
@@ -516,7 +534,7 @@ priv struct RunningHolder {
 /// lost report is retried on the next pass; the journal keeps the record.
 fn settle_holder(
   holder : RunningHolder,
-  environment : SiteEnvironment,
+  environment : ControlEnvironment,
   client : @http.Client,
   observation_url : String,
 ) -> Bool {
@@ -562,27 +580,17 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   if !@slot.install_native_termination_request() {
     stop("termination handling could not be installed")
   }
-  let environment = open_site_environment(
-    matches,
-    "runtime-process:resident-control:" + required(matches, "site-key"),
-  )
+  let environment = open_control_environment(matches)
   let slot_path = required(matches, "executor-slot")
   let mut slot = match @slot.open_native_executor_slot(slot_path) {
     Ok(value) => value
-    Err(_) => {
-      close_site_environment(environment)
-      stop("executor slot open failed")
-    }
+    Err(_) => stop("executor slot open failed")
   }
   let client = control_client(matches)
   let poll_url = required(matches, "poll-url")
   let observation_url = required(matches, "observation-url")
   let dispatch_budget = budget(matches)
-  let site_delegation = delegation(matches, environment, dispatch_budget)
-  // The holder owns the runtime bundle Store while it executes; the control
-  // process keeps only what it read at startup.
-  ignore(environment.bundles.release(environment.process_hold_id))
-  ignore(environment.bundles.close())
+  let site_delegation = delegation(matches, dispatch_budget)
   let admission = run_admission()
   let generation = required_int(matches, "site-generation")
   let queue = match
@@ -666,8 +674,12 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                 ) {
                 Ok(child) => {
                   let request = match
-                    environment.journal.dispatch_envelope(attempt) {
-                    Ok(Some(envelope)) =>
+                    fresh_journal(environment).map(journal => {
+                      let envelope = journal.dispatch_envelope(attempt)
+                      ignore(journal.close())
+                      envelope
+                    }) {
+                    Some(Ok(Some(envelope))) =>
                       match @remote.admit_remote_poll_dispatch_json(envelope) {
                         Ok(dispatch) =>
                           Some(@remote.remote_poll_dispatch_request(dispatch))
@@ -698,9 +710,11 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                   }
                 }
                 Err(_) => {
+                  // Nothing started; the slot is released and the attempt
+                  // stays queued for a later pass.
                   ignore(slot.close())
                   report("holder-spawn-failed", [("attempt", attempt)])
-                  stop("executor holder could not be started")
+                  @slot.native_wait_milliseconds(max_backoff_ms)
                 }
               }
             }
@@ -841,7 +855,6 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   }
   ignore(client.close())
   ignore(slot.close())
-  ignore(environment.journal.close())
   report("stopped", [])
 }
 
@@ -861,6 +874,17 @@ fn run_holder(
     matches,
     "runtime-process:resident-holder:" + claimant,
   )
+  // The installed runtime must be the one the Site delegates.
+  let (registration, revision, strategy) = @bundle.native_active_runtime_connector_scope(
+    environment.active_runtime,
+  )
+  if environment.runtime_bundle_cid != required(matches, "runtime-bundle-cid") ||
+    registration != required(matches, "connector-registration") ||
+    revision != required(matches, "connector-revision") ||
+    strategy != required(matches, "strategy-revision") {
+    close_site_environment(environment)
+    stop("installed runtime differs from the Site delegation")
+  }
   let max_file_bytes = required_int64(matches, "max-file-bytes")
   let values_root = required(matches, "engine-root")
   let registry_body = load_text(values_root, "registry.json", max_file_bytes)
@@ -930,11 +954,21 @@ fn run_holder(
       },
     },
   }
+  // Acceptance evidence only: record each executor entry, and optionally
+  // hold the slot for a while after it so process tests can act meanwhile.
   let entry_log = optional(matches, "executor-entry-log")
+  let pause_ms = required_int(matches, "holder-pause-ms")
   let observer = match entry_log {
     Some(path) =>
       Some(fn(key : String) -> Bool {
-        @slot.native_append_evidence_line(path, claimant + " " + key)
+        let recorded = @slot.native_append_evidence_line(
+          path,
+          claimant + " " + key,
+        )
+        if recorded && pause_ms > 0 {
+          @slot.native_wait_milliseconds(pause_ms)
+        }
+        recorded
       })
     None => None
   }
@@ -1007,6 +1041,10 @@ fn command() -> @argparse.Command {
       global("poll-url"),
       global("observation-url"),
       global("coordinator-authority"),
+      global("runtime-bundle-cid"),
+      global("connector-registration"),
+      global("connector-revision"),
+      global("strategy-revision"),
       global("operation-capability-cid"),
       global("issuer-capability-cid"),
       global("budget-retained-bytes"),
@@ -1028,6 +1066,7 @@ fn command() -> @argparse.Command {
       defaulted("min-backoff-ms", "250"),
       defaulted("max-backoff-ms", "30000"),
       defaulted("shutdown-wait-ms", "30000"),
+      defaulted("holder-pause-ms", "0"),
     ],
     subcommands=[
       @argparse.Command("run"),

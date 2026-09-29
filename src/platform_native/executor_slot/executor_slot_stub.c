@@ -32,7 +32,7 @@ extern char **environ;
 
 enum {
   ACTQL_EXECUTOR_SLOT_FIRST_PRIVATE_FD = 10,
-  ACTQL_EXECUTOR_SLOT_MAX_ARGUMENTS = 64,
+  ACTQL_EXECUTOR_SLOT_MAX_ARGUMENTS = 256,
 };
 
 static char *actql_executor_slot_text(moonbit_bytes_t bytes, int32_t length) {
