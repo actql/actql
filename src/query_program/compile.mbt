@@ -2326,6 +2326,53 @@ fn compile_steps(
 }
 
 ///|
+// Reuse the same explicit acquisition boundary for ordinary and CTE sources.
+// Downstream projection and shared CTE references consume the captured Result.
+fn capture_source_boundary(
+  construction : Construction,
+  stage_id : String,
+  input_name : String,
+  imported : @builder.Node,
+  fields : Array[String],
+  predicate : @builder.Node,
+) -> (@builder.Node, @builder.Node) raise Abort {
+  let capture_filter = construction.object([
+    ("from", construction.text(input_name)),
+    ("filter", predicate),
+  ])
+  let capture_step = construction.object([
+    (
+      "select",
+      construction.array(fields.map(field => construction.text(field))),
+    ),
+    ("as", construction.text("aql_capture_0")),
+  ])
+  let capture_result = construction.object([
+    ("from", construction.text("aql_capture_0")),
+    (
+      "fields",
+      construction.array(fields.map(field => construction.text(field))),
+    ),
+  ])
+  let capture = construction.object([
+    ("id", construction.text(stage_id)),
+    ("inputs", construction.object([(input_name, imported)])),
+    ("steps", construction.array([capture_filter, capture_step])),
+    ("results", construction.object([("source", capture_result)])),
+  ])
+  let source_ref = construction.object([
+    (
+      "result",
+      construction.object([
+        ("stage", construction.text(stage_id)),
+        ("result", construction.text("source")),
+      ]),
+    ),
+  ])
+  (capture, source_ref)
+}
+
+///|
 // Supplied source fragments are admitted projections of a compile context.
 // This frontend does not ask a provider for rows or infer schema during check.
 pub fn compile(
@@ -2395,43 +2442,14 @@ pub fn compile(
               _ =>
                 construction.object([("literal", construction.add(Bool(true)))])
             }
-            let capture_filter = construction.object([
-              ("from", construction.text(input.name)),
-              ("filter", predicate),
-            ])
-            let capture_step = construction.object([
-              (
-                "select",
-                construction.array(
-                  fields.map(field => construction.text(field)),
-                ),
-              ),
-              ("as", construction.text("aql_capture_0")),
-            ])
-            let capture_result = construction.object([
-              ("from", construction.text("aql_capture_0")),
-              (
-                "fields",
-                construction.array(
-                  fields.map(field => construction.text(field)),
-                ),
-              ),
-            ])
-            let capture = construction.object([
-              ("id", construction.text(stage_id)),
-              ("inputs", construction.object([(input.name, imported)])),
-              ("steps", construction.array([capture_filter, capture_step])),
-              ("results", construction.object([("source", capture_result)])),
-            ])
-            let source_ref = construction.object([
-              (
-                "result",
-                construction.object([
-                  ("stage", construction.text(stage_id)),
-                  ("result", construction.text("source")),
-                ]),
-              ),
-            ])
+            let (capture, source_ref) = capture_source_boundary(
+              construction,
+              stage_id,
+              input.name,
+              imported,
+              fields,
+              predicate,
+            )
             ([(input.name, source_ref)], [], Some(capture))
           }
           None => ([(input.name, imported)], [], None)
@@ -2638,11 +2656,46 @@ fn compile_cte_query(
       if captures_source {
         captured_owner = true
       }
-      let stage_name = if captures_source {
-        context.captured_stage.unwrap_or("aql_cte_" + index.to_string())
-      } else {
-        "aql_cte_" + index.to_string()
+      if captures_source && context.captured_stage is Some(capture_name) {
+        if capture_name == context.stage_id ||
+          capture_name == "" ||
+          used_stage_names.contains(capture_name) {
+          raise Abort(InvalidContext)
+        }
+        let input = selected_relation(body_relation, {
+          ..context,
+          inputs: known,
+        })
+        guard input.source is Captured(declaration) else {
+          raise Abort(InvalidContext)
+        }
+        let imported = match
+          @builder.import_cursor(builder, declaration, generated) {
+          Ok(node) => node
+          Err(issue) => raise Abort(Construction(issue))
+        }
+        let predicate = construction.object([
+          ("literal", construction.add(Bool(true))),
+        ])
+        let (capture, _) = capture_source_boundary(
+          construction,
+          capture_name,
+          input.name,
+          imported,
+          columns(input),
+          predicate,
+        )
+        stages.push(capture)
+        used_stage_names.push(capture_name)
+        known = known.map(value => {
+          if same_relation_path(value.relation, input.relation) {
+            { ..value, source: StageResult(capture_name, "source"), }
+          } else {
+            value
+          }
+        })
       }
+      let stage_name = "aql_cte_" + index.to_string()
       if stage_name == context.stage_id || used_stage_names.contains(stage_name) {
         raise Abort(InvalidContext)
       }

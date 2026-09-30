@@ -30,7 +30,8 @@
             "nullable": false
           }
         }
-      ]
+      ],
+      "sourceReadCount": 1
     },
     {
       "name": "select-qualified-input",
@@ -62,7 +63,8 @@
             "nullable": false
           }
         }
-      ]
+      ],
+      "sourceReadCount": 1
     },
     {
       "name": "select-computed-alias",
@@ -94,7 +96,8 @@
             "nullable": false
           }
         }
-      ]
+      ],
+      "sourceReadCount": 1
     },
     {
       "name": "select-equal-aliases",
@@ -135,7 +138,8 @@
             "nullable": false
           }
         }
-      ]
+      ],
+      "sourceReadCount": 1
     },
     {
       "name": "select-rebound-expression",
@@ -167,7 +171,8 @@
             "nullable": false
           }
         }
-      ]
+      ],
+      "sourceReadCount": 1
     },
     {
       "name": "join-alias-collision",
@@ -199,7 +204,8 @@
             "nullable": false
           }
         }
-      ]
+      ],
+      "sourceReadCount": 1
     },
     {
       "name": "join-qualified-input",
@@ -231,7 +237,8 @@
             "nullable": false
           }
         }
-      ]
+      ],
+      "sourceReadCount": 1
     },
     {
       "name": "join-computed-alias",
@@ -263,7 +270,8 @@
             "nullable": false
           }
         }
-      ]
+      ],
+      "sourceReadCount": 1
     },
     {
       "name": "join-equal-aliases",
@@ -304,7 +312,8 @@
             "nullable": false
           }
         }
-      ]
+      ],
+      "sourceReadCount": 1
     },
     {
       "name": "join-distinct-equal-aliases",
@@ -345,7 +354,8 @@
             "nullable": false
           }
         }
-      ]
+      ],
+      "sourceReadCount": 1
     },
     {
       "name": "join-rebound-expression",
@@ -377,7 +387,8 @@
             "nullable": false
           }
         }
-      ]
+      ],
+      "sourceReadCount": 1
     },
     {
       "name": "pipe-join-alias",
@@ -409,7 +420,8 @@
             "nullable": false
           }
         }
-      ]
+      ],
+      "sourceReadCount": 1
     }
   ],
   "refusals": [

@@ -75,13 +75,18 @@ export async function exercisePublicQueryInput(connect, options,
   };
   const client = await connect(options);
   try {
-    for (const {name, text, expected, columns, sourceRows, ...input} of successes) {
+    for (const {name, text, expected, columns, sourceRows, sourceReadCount, ...input} of successes) {
       await prepareCase?.(sourceRows);
       const requestId = requestPrefix + '-' + name;
+      const beforeSubmit = await counters();
       const execution = await client.aql(text, {...input, requestId});
       const state = await execution.wait();
       assert.equal(state.status, 'succeeded', JSON.stringify({name, state}));
       const beforeRead = await counters();
+      if (sourceReadCount !== undefined) {
+        assert.equal(beforeRead.sourceIo - beforeSubmit.sourceIo, sourceReadCount,
+          'shared producers acquire once per authored source');
+      }
       assert.deepEqual(await execution.result('answer').all(), expected);
       if (columns !== undefined) {
         assert.deepEqual((await execution.result('answer').describe()).columns,

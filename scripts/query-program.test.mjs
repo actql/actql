@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
-import {compileGeneratedGraphQueryJson, compileQueryJson,
+import {compileCapturedQueryJson, compileGeneratedGraphQueryJson, compileQueryJson,
   compileValuesQueryJson} from
   '../_build/js/debug/build/query_program_test_bridge/query_program_test_bridge.js';
 
@@ -142,4 +142,33 @@ test('INFER KEEP and omitted KEEP match independent complete Program fixtures', 
     assert.deepEqual(expected.stages[0].steps.find(step => step.infer).infer.input,
       {text: {field: 'text'}});
   }
+});
+
+test('real-source CTE JOIN preserves one normal acquisition and shared producer', () => {
+  const expected = {version: 'actql/0.1', id: 'fixture.cte_capture',
+    stages: [
+      {id: 'capture', inputs: {orders: input}, steps: [
+        {from: 'orders', filter: {literal: true}},
+        {select: fields, as: 'aql_capture_0'}],
+      results: {source: {from: 'aql_capture_0', fields}}},
+      {id: 'aql_cte_0', inputs: {orders: {result: {stage: 'capture', result: 'source'}}},
+        steps: [{from: 'orders', select: ['id', 'amount'], as: 'aql_cte_final'}],
+        results: {rows: {from: 'aql_cte_final', fields: ['id', 'amount']}}},
+      {id: 'main', inputs: {
+        l: {result: {stage: 'aql_cte_0', result: 'rows'}},
+        r: {result: {stage: 'aql_cte_0', result: 'rows'}}},
+      steps: [{from: 'l', join: {with: 'r', kind: 'inner',
+        on: [{left: 'id', right: 'id'}], max_output_rows: 1000,
+        select: {id: 'left.id'}}, as: 'aql_join_output'},
+      {from: 'aql_join_output', sort: [{field: 'id', dir: 'asc', nulls: 'first'}],
+        as: 'aql_join_sorted'}],
+      results: {rows: {from: 'aql_join_sorted', fields: ['id']}}}],
+    results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+  const wire = compileCapturedQueryJson(
+    'WITH seed AS (SELECT id, amount FROM orders) '
+      + 'SELECT l.id AS id FROM seed l JOIN seed r ON l.id = r.id ORDER BY id',
+    'orders', 'orders', JSON.stringify(input), JSON.stringify(fields),
+    'fixture.cte_capture');
+  assert.notEqual(wire, '');
+  assert.deepEqual(JSON.parse(wire), expected);
 });

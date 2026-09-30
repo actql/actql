@@ -19,6 +19,20 @@ Private slots are removed before the Named Result and never enter DISTINCT.
 Independently declared SELECT occurrences keep their original evaluation
 count. Existing unsupported DISTINCT orderings remain rejected.
 
+## CTE acquisition connection
+
+The first packed probe found an existing Frontend capture-shape gap, also
+present without ORDER BY: a source CTE started with SELECT and could not
+satisfy the common scan/filter/select acquisition contract. It fell through
+to source-free Invocation admission and was correctly rejected by the issuer.
+
+The Frontend now uses the same explicit capture builder as ordinary SELECT,
+then evaluates the CTE over that captured Stage Result. Repeated CTE references
+share the one producer. This preserves Source Evidence admission and does not
+add a Host fallback or a second acquisition owner. The independent Program
+fixture checks the capture and both producer references; the packed fixtures
+require exactly one physical source read per Run.
+
 ## Independent acceptance fixtures
 
 `spec/frontend/fixtures/join-order/cases.json` contains authored source rows,
