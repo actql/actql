@@ -17,7 +17,8 @@ const projected = {programDefinitionCid: cid('c'), resultDefinitionCid: cid('d')
 // These test doubles verify adapter sequencing, not publication semantics.
 // Packed acceptance separately exercises the real MoonBit and Store owners.
 function fixture({authorize = async () => true, admit,
-  retained = () => true, committed = () => true} = {}) {
+  retained = () => true, committed = () => true,
+  grantValid = () => true} = {}) {
   const calls = [];
   const index = {public_index_entry_cid: cid('2'), result_manifest_cid: cid('3')};
   const store = {
@@ -45,7 +46,7 @@ function fixture({authorize = async () => true, admit,
     resultMetadataRetentionState: () => retained() ? 'retained' : 'delete_due',
     issueManifestReadGrant: () => ({wire: 'manifest grant'}),
     manifestReadGrantAllowsBytes: () => true,
-    manifestReadGrantValidAt: () => true,
+    manifestReadGrantValidAt: grantValid,
     describeCommittedResult: () => projected,
   };
   const admission = {authorizationContextCid: cid('6'), dataCeilingCid: cid('7'),
@@ -116,6 +117,26 @@ test('expiry after async authorization never returns retained metadata', async (
     }});
   await assert.rejects(describeAuthorizedResult(service, request()),
     {code: 'ResultDescriptionUnavailable'});
+});
+
+test('grant expiry after response authorization remains access denial', async () => {
+  let valid = true;
+  const {service} = fixture({grantValid: () => valid,
+    authorize: async value => {
+      if (value.stage === 'response') valid = false;
+      return true;
+    }});
+  await assert.rejects(describeAuthorizedResult(service, request()),
+    {code: 'ResultAccessDenied'});
+});
+
+test('uncertain commit confirmation exposes no description and is not absence', async () => {
+  const failure = Object.assign(new Error('confirmation unavailable'),
+    {code: 'PublicationCommitUnknown'});
+  const {service, calls} = fixture({committed: () => { throw failure; }});
+  await assert.rejects(describeAuthorizedResult(service, request()),
+    error => error === failure);
+  assert.deepEqual(calls.map(([name]) => name), ['index']);
 });
 
 test('oversized descriptions fail before consuming the Manifest grant', async () => {

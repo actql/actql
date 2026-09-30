@@ -28,6 +28,14 @@ test('public wire accepts the exact connected request shapes', () => {
     parameters: null}), true);
   assert.equal(validClientBody('read', {connection, ref,
     resultName: 'answer', format: 'jsonl', attemptId: 'read-a'}), true);
+  const description = {connection, ref, resultName: 'answer', format: 'jsonl',
+    attemptId: 'metadata-a', maxWireBytes: 1048576, maxNodes: 10000, maxDepth: 64};
+  assert.equal(validClientBody('result-describe', description), true);
+  for (const invalid of [{format: 'parquet'}, {maxWireBytes: 0},
+    {maxNodes: 10001}, {maxDepth: 65}, {extra: true}]) {
+    assert.equal(validClientBody('result-describe',
+      {...description, ...invalid}), false);
+  }
 });
 
 test('source format selection is explicit and bounded', () => {

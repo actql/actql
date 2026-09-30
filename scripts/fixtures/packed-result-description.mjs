@@ -56,6 +56,10 @@ const code = expected => error => error?.code === expected;
 const observations = [];
 for (const mode of ['local', 'remote']) {
   offset = 0;
+  const fetch = globalThis.fetch;
+  if (mode === 'local') globalThis.fetch = () => {
+    throw new Error('LocalDescriptionUnexpectedNetwork');
+  };
   let host, server, release;
   const directory = resolve(`description-${mode}`);
   await mkdir(directory, {recursive: true});
@@ -155,6 +159,7 @@ for (const mode of ['local', 'remote']) {
   } finally {
     release?.resolve();
     client.close();
+    globalThis.fetch = fetch;
     if (server) await new Promise(resolve => server.close(resolve));
     await host?.close();
   }

@@ -107,7 +107,11 @@ export async function describeAuthorizedResult(service, input, signal) {
   if (typeof authority.authorizeResultDescription !== 'function' ||
       typeof authority.admitResultDescription !== 'function' ||
       typeof store.readCommittedResultDescriptionEvidence !== 'function' ||
-      typeof control.describeCommittedResult !== 'function') {
+      typeof store.consumeManifestReadGrant !== 'function' ||
+      ['describeCommittedResult', 'resultMetadataRetentionState',
+        'issueManifestReadGrant', 'manifestReadGrantAllowsBytes',
+        'manifestReadGrantValidAt'].some(name =>
+        typeof control[name] !== 'function')) {
     fail('ClientOperationUnavailable');
   }
   signal?.throwIfAborted();
@@ -191,8 +195,10 @@ export async function describeAuthorizedResult(service, input, signal) {
   }
   await store.consumeManifestReadGrant(grant.wire, request.attemptId);
   await authorize(Object.freeze({...authorizedFacts, stage: 'response'}));
-  if (!control.manifestReadGrantValidAt(grant, await checkRetained()) ||
-      (await store.confirmCommittedIndex(request.indexKey))
+  if (!control.manifestReadGrantValidAt(grant, await checkRetained())) {
+    fail('ResultAccessDenied');
+  }
+  if ((await store.confirmCommittedIndex(request.indexKey))
         ?.public_index_entry_cid !== entry.public_index_entry_cid) {
     fail('ResultDescriptionUnavailable');
   }
