@@ -1,0 +1,111 @@
+{
+  "version": "actql/0.1",
+  "id": "reach_selector_empty",
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {},
+      "steps": [
+        {
+          "values": {
+            "schema": {
+              "id": {
+                "type": "string",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "id": "A"
+              },
+              {
+                "id": "B"
+              }
+            ]
+          },
+          "as": "nodes"
+        },
+        {
+          "values": {
+            "schema": {
+              "src": {
+                "type": "string",
+                "nullable": false
+              },
+              "dst": {
+                "type": "string",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "src": "A",
+                "dst": "B"
+              }
+            ]
+          },
+          "as": "edges"
+        },
+        {
+          "graph": {
+            "nodes": {
+              "from": "nodes",
+              "id": "id",
+              "fields": []
+            },
+            "edges": {
+              "from": "edges",
+              "source": "src",
+              "target": "dst",
+              "fields": []
+            }
+          },
+          "as": "g"
+        },
+        {
+          "values": {
+            "schema": {
+              "id": {
+                "type": "string",
+                "nullable": false
+              }
+            },
+            "rows": []
+          },
+          "as": "seeds"
+        },
+        {
+          "from": "g",
+          "reach": {
+            "start": {
+              "from": "seeds",
+              "id": "id"
+            },
+            "direction": "out",
+            "max_depth": 2
+          },
+          "as": "reached"
+        }
+      ],
+      "results": {
+        "answer": {
+          "from": "reached",
+          "fields": [
+            "start_id",
+            "node_id",
+            "depth",
+            "id"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "answer"
+      }
+    }
+  }
+}

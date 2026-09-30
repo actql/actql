@@ -1452,9 +1452,31 @@ fn start_reach_state(
         inputs~,
       )
     Viewed(view) => {
-      guard inputs.is_empty() else {
+      guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+        inputs.length() + 1 == @lower.node_input_count(node) else {
         @execution.cancel_admitted_output(output) |> ignore
         return Err(InvalidReachKernel)
+      }
+      let bound = [
+        @execution.trusted_output_carrier_input(
+          @lifecycle.producer_view_read_reference(view),
+        ),
+      ]
+      for port in 1..<@lower.node_input_count(node) {
+        let mut found = None
+        for read in inputs {
+          if @execution.producer_read_matches_operation_input(
+              read, owner, step, port,
+            ) {
+            found = Some(read)
+            break
+          }
+        }
+        guard found is Some(read) else {
+          @execution.cancel_admitted_output(output) |> ignore
+          return Err(InvalidReachKernel)
+        }
+        bound.push(@execution.trusted_output_relation_input(read))
       }
       @execution.prepare_trusted_output_port_with_inputs(
         preparation,
@@ -1462,11 +1484,7 @@ fn start_reach_state(
         max_entries,
         max_name_bytes,
         fn(_) { if live.val { rows.val } else { None } },
-        inputs=[
-          @execution.trusted_output_carrier_input(
-            @lifecycle.producer_view_read_reference(view),
-          ),
-        ],
+        inputs=bound,
       )
     }
   }

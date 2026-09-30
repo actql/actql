@@ -807,8 +807,16 @@ test "standard Local reads the exact committed Transfer destination" {
       }
     },
   ).unwrap()
-  let executor = @native_remote_standard.install_native_remote_standard_store_task_executor(
+  // Dispatches name the admitted Run by its Run definition CID.
+  let (transfer_run_context, _, _, _) = native_publication_run_context(
     @strategy.graph_program_definition_cid(graph),
+    "remote-standard-transfer-run",
+  )
+  let transfer_run_definition_cid = @publication.publication_contract_identity(
+    transfer_run_context.run_definition,
+  )
+  let executor = @native_remote_standard.install_native_remote_standard_store_task_executor(
+    transfer_run_definition_cid,
     "task-1-transfer-local",
     1,
     task_factory,
@@ -848,7 +856,7 @@ test "standard Local reads the exact committed Transfer destination" {
   )
   let dispatch = @remote.prepare_dispatch_request(
     "native-standard-transfer-coordinator",
-    @strategy.graph_program_definition_cid(graph),
+    transfer_run_definition_cid,
     "task-1-transfer-local",
     1,
     "native-standard-transfer-dispatch-1",

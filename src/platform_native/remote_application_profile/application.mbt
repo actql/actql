@@ -334,6 +334,184 @@ pub fn native_remote_application_program_definition_cid(
 }
 
 ///|
+/// Files of the admitted Run this application Site executes. A dispatch names
+/// that Run by its `actql-run-definition/0.1` CID, never by the Program CID.
+pub(all) struct NativeRemoteApplicationRunFiles {
+  run_definition : String
+  compiled_plan : String
+  invocation_template : String
+  prepared_invocation : String
+  run_authorization : String
+}
+
+///|
+pub(all) enum NativeRemoteApplicationRunDefinitionIssue {
+  RunFile(String, @bounded_files.NativeBoundedTextIssue)
+  /// A body is not the named publication contract or Run evidence.
+  RunContract(String)
+  RunAdmission(@publication.RunPublicationAdmissionIssue)
+  RunBinding(@publication.RunProgramBindingIssue)
+}
+
+///|
+fn read_run_file(
+  root : String,
+  name : String,
+  max_file_bytes : Int64,
+  trim : Bool,
+) -> Result[String, NativeRemoteApplicationRunDefinitionIssue] {
+  @bounded_files.read_bounded_text_file(
+    root,
+    name,
+    max_file_bytes,
+    trim_newline=trim,
+  ).map_err(issue => RunFile(name, issue))
+}
+
+///|
+fn admit_run_contract(
+  root : String,
+  name : String,
+  file : String,
+  max_file_bytes : Int64,
+) -> Result[
+  @publication.PublicationContract,
+  NativeRemoteApplicationRunDefinitionIssue,
+] {
+  match read_run_file(root, file, max_file_bytes, false) {
+    Ok(wire) =>
+      @publication.admit_publication_contract(name, wire, 100000, 10000, 100).map_err(_ => {
+          RunContract(name)
+        },
+      )
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn admit_run_evidence(
+  root : String,
+  name : String,
+  file : String,
+  max_file_bytes : Int64,
+) -> Result[
+  @publication.RunEvidenceValue,
+  NativeRemoteApplicationRunDefinitionIssue,
+] {
+  match read_run_file(root, file, max_file_bytes, false) {
+    Ok(wire) =>
+      @publication.admit_run_evidence_value(name, wire, 100000, 10000, 100).map_err(_ => {
+          RunContract(name)
+        },
+      )
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Admit the exact Run this Site executes: the Run definition, its compiled
+/// Plan and invocation template, and the prepared invocation and Run
+/// authorization issued for it. Every link is checked through the common
+/// admission owners against this application's checked Program, parameter
+/// values and check environment. The result is the Run definition CID that
+/// keys the executor.
+pub fn admit_native_remote_application_run(
+  app : @application.Application,
+  root : String,
+  files : NativeRemoteApplicationFiles,
+  run_files : NativeRemoteApplicationRunFiles,
+  max_file_bytes : Int64,
+) -> Result[String, NativeRemoteApplicationRunDefinitionIssue] {
+  let check_environment_cid = match
+    read_run_file(root, files.environment_cid, max_file_bytes, true) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let compiled_plan = match
+    admit_run_contract(
+      root,
+      "compiled_plan",
+      run_files.compiled_plan,
+      max_file_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let run_definition = match
+    admit_run_contract(
+      root,
+      "run_definition",
+      run_files.run_definition,
+      max_file_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let template = match
+    admit_run_evidence(
+      root,
+      "bound_invocation_template",
+      run_files.invocation_template,
+      max_file_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let prepared = match
+    admit_run_evidence(
+      root,
+      "prepared_invocation",
+      run_files.prepared_invocation,
+      max_file_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let authorization = match
+    admit_run_evidence(
+      root,
+      "run_authorization",
+      run_files.run_authorization,
+      max_file_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let identity = @application.application_program_identity(app)
+  let program_definition_cid = @strategy.graph_program_definition_cid(
+    @application.application_graph(app),
+  )
+  if @context.program_identity_definition_cid(identity) !=
+    program_definition_cid {
+    return Err(RunContract("program_definition"))
+  }
+  let program_semantics_cid = @program_refs.program_definition_semantics_cid(
+    @context.program_identity_definition(identity),
+  )
+  let admission = match
+    @publication.admit_checked_run_publication(
+      template,
+      prepared,
+      authorization,
+      compiled_plan,
+      program_definition_cid,
+      @context.program_identity_parameter_values_cid(identity),
+      program_semantics_cid,
+      check_environment_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(RunAdmission(issue))
+  }
+  match
+    @publication.check_run_publication_program_binding(
+      admission, run_definition, program_definition_cid, program_semantics_cid, check_environment_cid,
+    ) {
+    Ok(_) => Ok(@publication.publication_contract_identity(run_definition))
+    Err(issue) => Err(RunBinding(issue))
+  }
+}
+
+///|
 /// Projects the checked task count for configuration and diagnostics.
 pub fn native_remote_application_task_count(
   app : @application.Application,
@@ -521,6 +699,7 @@ pub fn register_native_remote_application_direct_run_factory(
 /// shutdown ordering after this product composition boundary returns.
 pub fn open_native_remote_application_store_site_distribution(
   app : @application.Application,
+  run_definition_cid : String,
   transfer_journal : @transfer_journal.Journal,
   transfer_root : @filesystem.Root,
   codec : @remote_standard.NativeRemoteStandardRowCodec,
@@ -558,9 +737,7 @@ pub fn open_native_remote_application_store_site_distribution(
   }
   let executor = match
     @remote_standard.install_native_remote_standard_store_task_executor(
-      @strategy.graph_program_definition_cid(
-        @application.application_graph(app),
-      ),
+      run_definition_cid,
       task.task_key,
       task.expected_task,
       factory,

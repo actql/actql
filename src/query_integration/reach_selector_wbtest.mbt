@@ -180,6 +180,7 @@ fn reach_relation_owner(
 fn reach_relation_output(
   rows : String,
   nullable? : Bool = false,
+  max_rows? : Int = 12,
 ) -> Result[@execution.CompletedOutput, @local_sga.ReachIssue] raise {
   let source_owner = carrier_graph_components_source_owner()
   let source = carrier_events_source_output(source_owner)
@@ -228,7 +229,7 @@ fn reach_relation_output(
     sequence,
     1,
     @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
-    12,
+    max_rows,
     { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
     100,
     1000,
@@ -273,6 +274,104 @@ test "Reach Relation selector uses retained values and rejects invalid identitie
     reach_relation_output("[{\"key\":999}]")
     is Err(@local_sga.ReachStartMissing),
   )
+}
+
+///|
+test "Reach Relation selector applies the output bound after deduplication" {
+  let rows = "[{\"key\":2},{\"key\":1},{\"key\":2}]"
+  // These two unique starts each reach the three-node cycle. The repeated
+  // selector ID contributes no additional output rows or capacity demand.
+  let exact = reach_relation_output(rows, max_rows=6).unwrap()
+  assert_eq(@execution.completed_row_count(exact), 6)
+  assert_true(
+    reach_relation_output(rows, max_rows=5)
+    is Err(@local_sga.ReachOutput(@execution.CaptureLimit)),
+  )
+  assert_eq(
+    @execution.completed_row_count(
+      reach_relation_output("[]", max_rows=0).unwrap(),
+    ),
+    0,
+  )
+}
+
+///|
+test "Reach Relation selector cancellation preserves both retained inputs" {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let selector_owner = carrier_graph_selector_source_owner(
+    "[{\"key\":2},{\"key\":1},{\"key\":2}]",
+  )
+  let selector = carrier_events_source_output(selector_owner)
+  let owner = reach_relation_owner(source_owner, selector_owner)
+  let sequence = prepared_sequence(owner)
+  let source_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let selector_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 1, selector_owner, selector).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [source_read, source_read],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let control = @bounded.control()
+  let run = @local_sga.start_reach(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    6,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [source_read, selector_read],
+  ).unwrap()
+  assert_true(
+    @local_sga.advance_reach(run, 1).unwrap() is @local_sga.ReachContinue(..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_reach(run, 1).unwrap() is @local_sga.ReachStopped(_, ..),
+  )
+  assert_true(@local_sga.reach_cleanup_pending(run))
+  assert_eq(@local_sga.cleanup_reach(run), Ok(true))
+  assert_false(@local_sga.reach_cleanup_pending(run))
+  assert_true(@execution.producer_read_available(source_read))
+  assert_true(@execution.producer_read_available(selector_read))
+  // Cancellation must not reclaim the caller's retained Graph or Relation.
+  let retry = @local_sga.start_reach(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+    6,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    100,
+    1000,
+    1000,
+    [source_read, selector_read],
+  ).unwrap()
+  assert_eq(@execution.completed_row_count(finish_reach(retry).unwrap()), 6)
+  assert_eq(@local_sga.cleanup_reach(retry), Ok(true))
+  assert_true(@graphs.discard_completed(graph))
 }
 
 ///|

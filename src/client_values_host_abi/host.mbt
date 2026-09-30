@@ -1189,6 +1189,25 @@ pub fn client_values_host_admit_source_free_run_definition(
 }
 
 ///|
+/// Project retained source-free Run materials through the existing owner.
+#export_name("clientValuesHostIssueSourceFreeRunMaterials")
+pub fn client_values_host_issue_source_free_run_materials(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientValuesCompilation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  environment : @checked.CheckEnvironment,
+  environment_wire : String,
+  program : String,
+  parameters_wire : String?,
+) -> Result[String, @host.ClientValuesRunMaterialsIssue] {
+  @host.issue_client_values_run_materials(
+    prepared, compilation, admission, definition, environment, environment_wire,
+    program, parameters_wire,
+  )
+}
+
+///|
 pub(all) enum ClientValuesHostTaskAdmissionIssue {
   Contract(@publication.PublicationContractIssue)
   Binding(@host.ClientTaskRunBindingIssue)

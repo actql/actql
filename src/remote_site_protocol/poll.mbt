@@ -44,7 +44,16 @@ pub fn remote_input_binding_matches_dispatch(
 struct RemotePollDispatch {
   request : DispatchRequest
   binding : RemoteInputBinding
+  /// Typed run materials for a Site that did not install this Run. The
+  /// protocol bounds and carries the bytes; the Site admits their meaning by
+  /// rebuilding the Run and matching `run_definition_cid`. They carry no
+  /// execution authority of their own.
+  materials : String?
 }
+
+///|
+/// Upper bound of the run materials carried in one dispatch envelope.
+pub const REMOTE_RUN_MATERIALS_MAX_BYTES : Int = 262144
 
 ///|
 struct RemotePollOutput {
@@ -118,6 +127,53 @@ pub fn remote_poll_dispatch_json(
     @encode.string_value(writer, request_json)
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-remote-poll-dispatch/0.1")
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(InvalidDispatch)
+  }
+  Ok(@encode.finish(writer) catch { _ => return Err(InvalidDispatch) })
+}
+
+///|
+/// A dispatch envelope that also carries the typed run materials. The binding
+/// keeps its Connector-owned meaning; the materials are a separate body.
+pub fn remote_poll_dispatch_materials_json(
+  request : DispatchRequest,
+  binding : RemoteInputBinding,
+  materials : String,
+) -> Result[String, DispatchIssue] {
+  if request.input_binding_cid != binding.cid {
+    return Err(DispatchIdentityMismatch)
+  }
+  let size = @utf8.encode(materials).length()
+  if size == 0 || size > REMOTE_RUN_MATERIALS_MAX_BYTES {
+    return Err(InvalidDispatch)
+  }
+  let request_json = match dispatch_request_json(request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let writer = @encode.writer(
+    1179648 + REMOTE_RUN_MATERIALS_MAX_BYTES + 1024,
+    16,
+    2,
+  ) catch {
+    _ => return Err(InvalidDispatch)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "dispatch_request_cid")
+    @encode.string_value(writer, request.dispatch_request_cid)
+    @encode.key(writer, "input_binding_cid")
+    @encode.string_value(writer, binding.cid)
+    @encode.key(writer, "input_binding_json")
+    @encode.string_value(writer, binding.body)
+    @encode.key(writer, "request_json")
+    @encode.string_value(writer, request_json)
+    @encode.key(writer, "run_materials_json")
+    @encode.string_value(writer, materials)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-remote-poll-dispatch-materials/0.1")
     @encode.end_object(writer)
   } catch {
     _ => return Err(InvalidDispatch)
@@ -233,12 +289,43 @@ fn admit_remote_poll_request_json(
 pub fn admit_remote_poll_dispatch_json(
   body : String,
 ) -> Result[RemotePollDispatch, DispatchIssue] {
+  match admit_remote_poll_dispatch_fields(body, false) {
+    Ok(value) => Ok(value)
+    Err(_) => admit_remote_poll_dispatch_fields(body, true)
+  }
+}
+
+///|
+fn admit_remote_poll_dispatch_fields(
+  body : String,
+  with_materials : Bool,
+) -> Result[RemotePollDispatch, DispatchIssue] {
   try {
-    let object = evidence_object(evidence_root(body, 1179648, 16, 2), [
-      "dispatch_request_cid", "input_binding_cid", "input_binding_json", "request_json",
-      "version",
-    ])
-    if evidence_text(object, "version") != "actql-remote-poll-dispatch/0.1" {
+    let object = if with_materials {
+      evidence_object(
+        evidence_root(
+          body,
+          1179648 + REMOTE_RUN_MATERIALS_MAX_BYTES + 1024,
+          16,
+          2,
+        ),
+        [
+          "dispatch_request_cid", "input_binding_cid", "input_binding_json", "request_json",
+          "run_materials_json", "version",
+        ],
+      )
+    } else {
+      evidence_object(evidence_root(body, 1179648, 16, 2), [
+        "dispatch_request_cid", "input_binding_cid", "input_binding_json", "request_json",
+        "version",
+      ])
+    }
+    let expected = if with_materials {
+      "actql-remote-poll-dispatch-materials/0.1"
+    } else {
+      "actql-remote-poll-dispatch/0.1"
+    }
+    if evidence_text(object, "version") != expected {
       raise EvidenceJsonStop
     }
     let request = match
@@ -261,7 +348,17 @@ pub fn admit_remote_poll_dispatch_json(
       binding.cid != request.input_binding_cid {
       raise EvidenceJsonStop
     }
-    Ok({ request, binding, })
+    let materials = if with_materials {
+      let text = evidence_text(object, "run_materials_json")
+      let size = @utf8.encode(text).length()
+      if size == 0 || size > REMOTE_RUN_MATERIALS_MAX_BYTES {
+        raise EvidenceJsonStop
+      }
+      Some(text)
+    } else {
+      None
+    }
+    Ok({ request, binding, materials, })
   } catch {
     EvidenceJsonStop => Err(InvalidDispatch)
   }
@@ -398,6 +495,13 @@ pub fn remote_poll_dispatch_request(
   dispatch : RemotePollDispatch,
 ) -> DispatchRequest {
   dispatch.request
+}
+
+///|
+pub fn remote_poll_dispatch_run_materials(
+  dispatch : RemotePollDispatch,
+) -> String? {
+  dispatch.materials
 }
 
 ///|

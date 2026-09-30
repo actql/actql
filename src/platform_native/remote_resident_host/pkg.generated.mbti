@@ -1,0 +1,120 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/remote_resident_host"
+
+import {
+  "actql/actql/execution_site",
+  "actql/actql/pipeline_check_context",
+  "actql/actql/platform_native/http_client",
+  "actql/actql/platform_native/publication_store",
+  "actql/actql/platform_native/remote_client",
+  "actql/actql/platform_native/remote_journal",
+  "actql/actql/platform_native/remote_runtime",
+  "actql/actql/platform_native/remote_standard_host",
+  "actql/actql/platform_native/remote_transfer_journal",
+  "actql/actql/platform_native/remote_values_host",
+  "actql/actql/platform_native/runtime_bundle",
+  "actql/actql/publication_payload",
+  "actql/actql/remote_resident_site",
+  "actql/actql/remote_site_protocol",
+  "actql/actql/run_publication_host",
+}
+
+// Values
+pub fn accept_resident_dispatch(@remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, @remote_resident_site.ResidentAcceptedQueue, ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch, String) -> Result[ResidentAcceptance, ResidentHostIssue]
+
+pub fn complete_resident_output_intent(@remote_journal.Journal, @publication_payload.PublicationPayloadRequest) -> Result[Unit, ResidentOutputIssue]
+
+pub fn deliver_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput, @publication_store.Store, @http_client.Client, @remote_transfer_journal.Journal, String, String, Int, (String) -> Unit) -> ResidentDelivery
+
+pub fn execute_resident_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, String, String, () -> String, ((String) -> Bool)?) -> Result[ResidentExecuted, ResidentExecutionFailure]
+
+pub fn plan_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput) -> Result[@remote_site_protocol.RemoteOutputPlan, ResidentOutputIssue]
+
+pub fn reclaim_resident_output_intents(@remote_journal.Journal, @publication_store.Store) -> Result[Int, ResidentOutputIssue]
+
+pub fn reclaim_resident_payload(@publication_store.Store, @publication_payload.PublicationPayloadRequest) -> Result[Bool, ResidentOutputIssue]
+
+pub fn resident_output_checkpoints() -> Array[String]
+
+pub fn resident_output_cleanup_pending(ResidentOutputIssue) -> Bool
+
+pub fn retry_resident_output_cleanup(ResidentOutputIssue) -> Bool
+
+// Errors
+
+// Types and methods
+pub(all) enum ResidentAcceptance {
+  Accepted(String, @remote_site_protocol.DispatchRequest)
+  Refused(@remote_resident_site.ResidentDispatchRefusal)
+  AlreadyStarted(String)
+}
+
+pub(all) struct ResidentDelivery {
+  payload : @publication_payload.PublicationPayloadRequest?
+  result : Result[@remote_site_protocol.RemoteOutputResult, ResidentOutputIssue]
+}
+
+pub(all) struct ResidentExecuted {
+  runtime : @remote_runtime.NativeRemoteRuntime
+  completion : @remote_runtime.NativeRemoteRuntimeCompletion
+  request : @remote_site_protocol.DispatchRequest
+  result_definition_cid : String
+}
+
+pub(all) struct ResidentExecution {
+  site : @execution_site.ExecutionSite
+  active_runtime : @runtime_bundle.NativeActiveRuntimeBinding
+  operation_capability_cid : String
+  issuer_capability_cid : String
+  bundles : @runtime_bundle.NativeRuntimeBundleStore
+  budgets : Array[@remote_site_protocol.RemoteDispatchBudget]
+  registry_body : String
+  values_body : String
+  fixed_ms : Int64
+  per_row_ms : Int64
+  per_wire_byte_ms : Int64
+  per_pair_ms : Int64
+  limits : @remote_values_host.NativeRemoteValuesTaskLimits
+}
+
+pub(all) struct ResidentExecutionFailure {
+  issue : ResidentHostIssue
+  pending_runtime : @remote_runtime.NativeRemoteRuntime?
+}
+
+pub(all) enum ResidentHostIssue {
+  Journal(@remote_journal.NativeRemoteJournalIssue)
+  Client(@remote_client.NativeRemoteClientIssue)
+  Protocol(@remote_site_protocol.DispatchIssue)
+  EnvelopeMissing
+  Refused(@remote_resident_site.ResidentDispatchRefusal)
+  Values(@remote_values_host.NativeRemoteValuesHostIssue)
+  Runtime(@remote_runtime.NativeRemoteRuntimeIssue)
+}
+
+pub(all) enum ResidentOutputIssue {
+  OutputForeign
+  OutputUnavailable
+  OutputRouteRefused
+  OutputJournal(@remote_journal.NativeRemoteJournalIssue)
+  OutputRuntime(@remote_runtime.NativeRemoteRuntimeIssue)
+  OutputPlan(@remote_standard_host.NativeRemoteObservedOutputPlanIssue)
+  OutputPayloadStore(@publication_store.NativePublicationStoreIssue)
+  OutputPayload(@remote_standard_host.NativeRemoteStandardPayloadFailure)
+  OutputTransfer(@remote_standard_host.NativeRemoteStandardSiteComponentIssue)
+  OutputProtocol(@remote_site_protocol.DispatchIssue)
+  OutputStoreRefused
+  OutputIntent(@remote_journal.NativeRemoteJournalIssue)
+  OutputIntentInvalid
+}
+
+pub(all) struct ResidentRunAdmission {
+  expressions : @pipeline_check_context.ExpressionProfiles
+  operations : @pipeline_check_context.PureOperationProfiles
+  manifests : @run_publication_host.ClientCompilationManifests
+  limits : @run_publication_host.ClientValuesRunMaterialsLimits
+}
+
+// Type aliases
+
+// Traits

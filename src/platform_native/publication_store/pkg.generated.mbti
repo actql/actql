@@ -158,6 +158,7 @@ pub fn Store::commit_publication(Self, @run_publication.PublicationContract, @ru
 pub fn Store::inspect_committed_publication(Self, String, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract?, NativePublicationStoreIssue]
 pub fn Store::inspect_payload(Self, String) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue]
 pub fn Store::inspect_result_delivery(Self, String) -> Result[NativeResultDeliveryStatus, NativePublicationStoreIssue]
+pub fn Store::observe_allocation(Self, (String) -> Unit) -> Unit
 pub fn Store::observe_trusted_clock(Self, String, String) -> Result[String, NativePublicationStoreIssue]
 pub fn Store::open_confirmed_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[ConfirmedPayloadDelivery, NativePublicationStoreIssue]
 pub fn Store::open_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[PayloadDelivery, NativePublicationStoreIssue]

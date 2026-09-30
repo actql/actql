@@ -75,6 +75,9 @@ const observe = directory => () => {
   } finally { journal.close(); }
 };
 const sgaCases = ['normalize-rows', 'mean-graphs', 'traverse-paths',
+  'shortest-path',
+  'reach-selector', 'reach-selector-duplicates', 'reach-selector-empty',
+  'reach-selector-nullable',
   'union-graphs', 'graft-graphs', 'subtract-graphs', 'degree-rows',
   'components', 'graph-bounds', 'match-projections', 'reach-subgraph',
   'graphs-equal', 'diff-apply'];
@@ -84,6 +87,15 @@ if (selectedSgaCases.length === 0 ||
     new Set(selectedSgaCases).size !== selectedSgaCases.length ||
     selectedSgaCases.some(name => !sgaCases.includes(name))) {
   throw new Error('Invalid selected SGA acceptance cases');
+}
+// Nullable selector acceptance also starts two well-typed failing Runs.
+// Its schema-type refusal must not add a third Run.
+const expectedSgaRuns = selectedSgaCases.length +
+  (selectedSgaCases.includes('reach-selector-nullable') ? 2 : 0) +
+  (selectedSgaCases.includes('reach-selector') ? 2 : 0);
+if (selectedSgaCases.includes('reach-selector')) {
+  assert.equal(environment.host_policy_profile.capacity.max_graph_output_rows,
+    1000, 'Reach capacity acceptance requires the actual 1,000-row Host ceiling');
 }
 const sgaFixtureDirectory = resolve('sga-fixtures');
 await mkdir(sgaFixtureDirectory);
@@ -126,6 +138,7 @@ assert.ok(sourceIo >= 5);
 console.log('packed raw SQL/Pipe Embedded Local acceptance passed');
 await exerciseSga('local', {ACTQL_LOCAL_STATE_DIR: resolve('sga-local-state'),
   ACTQL_TEST_LOCAL_SOURCE_PROFILE: sourceProfilePath});
+assert.equal(observe('sga-local-state')().acceptedRuns, expectedSgaRuns);
 const beforeRemote = sourceIo;
 const host = await openInstalledRemoteHttpHost({
   directory: resolve('remote-state'), sourceProfilePath,
@@ -143,10 +156,15 @@ try {
   assert.equal(observe('remote-state')().acceptedRuns, 5);
   assert.ok(sourceIo >= beforeRemote + 5);
   console.log('packed raw SQL/Pipe HTTP acceptance passed');
+  const beforeSga = observe('remote-state')();
   await exerciseSga('remote', {
     ACTQL_TEST_REMOTE_ENDPOINT: `https://127.0.0.1:${server.address().port}/`,
     ACTQL_TEST_REMOTE_TOKEN: 'fixture-token',
   });
+  const afterSga = observe('remote-state')();
+  assert.equal(afterSga.acceptedRuns - beforeSga.acceptedRuns,
+    expectedSgaRuns);
+  assert.equal(afterSga.sourceIo, beforeSga.sourceIo);
 } finally {
   server.closeAllConnections();
   await new Promise(resolve => server.close(resolve));

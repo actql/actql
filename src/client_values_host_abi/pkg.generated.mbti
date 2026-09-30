@@ -131,6 +131,8 @@ pub fn client_values_host_issue_source_free_invocation(@run_publication_host.Cli
 
 pub fn client_values_host_issue_source_free_run_definition(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientValuesHostSourceFreeDefinitionIssue]
 
+pub fn client_values_host_issue_source_free_run_materials(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @program_check.CheckEnvironment, String, String, String?) -> Result[String, @run_publication_host.ClientValuesRunMaterialsIssue]
+
 pub fn client_values_host_issue_source_free_task_invocation(@run_publication_host.ClientTaskCompilation, String, Int, Int, Int) -> Result[Array[String], @run_publication.RunEvidenceValueIssue]
 
 pub fn client_values_host_issue_succeeded_run_state_wire(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, Array[String], Array[String], Array[String], Array[String]) -> String?
