@@ -3438,6 +3438,17 @@
       },
       "boundary_tests": [
         {
+          "role": "nest_retained_linear_task_shape",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_retained_family_chains_wbtest.mbt",
+          "fixture": "physical DAG retains linear Relation family chains in one task"
+        },
+        {
           "role": "nest_empty_work_workspace_independent_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -3483,6 +3494,15 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "nest_retained_chain_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "nest-filter-derive-chain"
+        },
         {
           "role": "nest_ordinary_host_timer",
           "suite": "node:duckdb_standard_host",
@@ -8322,6 +8342,17 @@
       },
       "boundary_tests": [
         {
+          "role": "time_series_retained_linear_task_shape",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_retained_family_chains_wbtest.mbt",
+          "fixture": "physical DAG retains linear Relation family chains in one task"
+        },
+        {
           "role": "time_series_retained_provider_ownership",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -8366,6 +8397,15 @@
       ],
       "environment_tests": [
         {
+          "role": "time_series_retained_chain_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "time-series-filter-select-chain"
+        },
+        {
           "role": "time_series_host_timer",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
@@ -8409,6 +8449,17 @@
       },
       "boundary_tests": [
         {
+          "role": "interval_join_retained_linear_task_shape",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_retained_family_chains_wbtest.mbt",
+          "fixture": "physical DAG retains linear Relation family chains in one task"
+        },
+        {
           "role": "interval_retained_provider_ownership",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -8445,6 +8496,15 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "interval_join_retained_chain_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "interval-filter-derive-chain"
+        },
         {
           "role": "interval_join_host_in_flight_cancel",
           "suite": "node:duckdb_standard_host",
@@ -8562,6 +8622,17 @@
       },
       "boundary_tests": [
         {
+          "role": "asof_join_retained_linear_task_shape",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_retained_family_chains_wbtest.mbt",
+          "fixture": "physical DAG retains linear Relation family chains in one task"
+        },
+        {
           "role": "asof_retained_provider_ownership",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -8627,6 +8698,15 @@
       ],
       "environment_tests": [
         {
+          "role": "asof_join_retained_chain_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "asof-filter-select-chain"
+        },
+        {
           "role": "asof_join_host_in_flight_cancel",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
@@ -8669,6 +8749,17 @@
         "symbol": "start_bounded_sequence_match"
       },
       "boundary_tests": [
+        {
+          "role": "sequence_retained_linear_task_shape",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_retained_family_chains_wbtest.mbt",
+          "fixture": "physical DAG retains linear Relation family chains in one task"
+        },
         {
           "role": "sequence_quantum_one_output_and_cleanup",
           "suite": "moon:execution_relation",
@@ -8748,6 +8839,15 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "sequence_retained_chain_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "sequence-filter-sort-chain"
+        },
         {
           "role": "sequence_host_in_flight_cancel",
           "suite": "node:duckdb_standard_host",
