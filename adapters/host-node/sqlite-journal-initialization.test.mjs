@@ -23,7 +23,9 @@ const openers = [
   ['transfer-journal', root => openSqliteTransferJournal(root,
     {destinationSiteKey: 'site-a', destinationSiteGeneration: 1})],
   ['checkpoint-journal', root => openSqliteCheckpointJournal(root,
-    {runtime: checkpointRuntime, authorizeResolution() {},
+    {runtime: checkpointRuntime,
+      expectedAuthorityScopeCid: `sha256:${'a'.repeat(64)}`,
+      authorizeResolution() {},
       attestResolution() {}})],
   ['credential-journal', root => openSqliteCredentialJournal(root,
     {credentialAuthorities: new Map([['authority-a', new Map()]])})],
@@ -163,7 +165,9 @@ test('Host initialization retains the transaction cause and cleanup owner',
     let inner;
     try {
       assert.throws(() => openSqliteCheckpointJournal(root,
-        {runtime: checkpointRuntime, authorizeResolution() {},
+        {runtime: checkpointRuntime,
+          expectedAuthorityScopeCid: `sha256:${'a'.repeat(64)}`,
+          authorizeResolution() {},
           attestResolution() {}}), error => {
         inner = error;
         return true;
@@ -183,7 +187,9 @@ test('Host initialization retains the transaction cause and cleanup owner',
       DatabaseSync.prototype.close = close;
     }
     const reopened = openSqliteCheckpointJournal(root,
-      {runtime: checkpointRuntime, authorizeResolution() {},
+      {runtime: checkpointRuntime,
+        expectedAuthorityScopeCid: `sha256:${'a'.repeat(64)}`,
+        authorizeResolution() {},
         attestResolution() {}});
     reopened.close();
   });

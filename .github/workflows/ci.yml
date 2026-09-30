@@ -105,6 +105,8 @@ jobs:
         run: node --test adapters/store-local/object-writer-owner.test.mjs
       - name: Test retired Result cleanup owner
         run: node --test adapters/store-local/result-deletion-owner.test.mjs
+      - name: Test retired metadata cleanup owner
+        run: node --test adapters/store-local/metadata-deletion-owner.test.mjs
       - name: Test publication commit custody owner
         run: node --test adapters/store-local/publication-commit-owner.test.mjs
       - name: Test portable publication control with the durable Store

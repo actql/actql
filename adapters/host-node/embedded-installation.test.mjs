@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
+import {createServer} from 'node:http';
+import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
@@ -8,6 +10,32 @@ import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
 import {installedEffectIdentity} from './installed-effect.mjs';
 import {installedSourceIdentity} from './installed-source.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
+
+test('installed HTTP status denies an unregistered Run with a public code',
+  async t => {
+    const directory = await mkdtemp(join(tmpdir(), 'actql-status-denied-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const principalId = userInfo().username;
+    const host = await openInstalledRemoteHttpHost({directory,
+      authenticate: () => principalId});
+    t.after(async () => { await host.close(); });
+    const server = createServer(host.handler);
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    t.after(() => new Promise(resolve => server.close(resolve)));
+    const authorityScopeCid = `sha256:${createHash('sha256')
+      .update(JSON.stringify({version: 'actql-local-owner-scope/0.1',
+        root: directory, principalId})).digest('hex')}`;
+    const response = await fetch(
+      `http://127.0.0.1:${server.address().port}/actql/client/0.1/status`,
+      {method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
+          runners: [], consentRefs: []}, ref: {namespaceId: 'local',
+          authorityScopeCid,
+          runDefinitionCid: `sha256:${'a'.repeat(64)}`}})},
+    );
+    assert.equal(response.status, 403);
+    assert.deepEqual(await response.json(), {code: 'RunStateAccessDenied'});
+  });
 
 test('source alias profiles own immutable metadata without widening provider input', () => {
   const entry = {name: 'records', sourceRef: 'connector://crm/r#v',

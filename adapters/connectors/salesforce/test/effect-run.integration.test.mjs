@@ -645,10 +645,12 @@ const commitBinding = Object.freeze({
   environmentBindingCid: cid('e'),
 });
 const commitRunDefinitionCid = cid('1');
+const commitAuthorityScopeCid = cid('5');
 
 async function openCommitJournal(root, clock) {
   return openSqliteCheckpointJournal(root, {
     runtime: await loadCheckpointRuntime(),
+    expectedAuthorityScopeCid: commitAuthorityScopeCid,
     authorizeResolution({resolutionWire, proofPreimage}) {
       const resolution = JSON.parse(resolutionWire);
       if (resolution.proof.key_id !== 'reviewer-key' ||
@@ -706,7 +708,8 @@ async function answerCommitCheckpoint(journal, checkpointCid, decision,
       effect_preview_cid: view.requiredArtifact.cid,
       review_projection_cid: view.reviewProjectionCid,
       approver: 'reviewer', approved_at: commitIso(clock.ms),
-      authority_scope_cid: cid('5'), claims: [...view.requirements],
+      authority_scope_cid: commitAuthorityScopeCid,
+      claims: [...view.requirements],
       proof: {scheme: 'ed25519-v1', key_id: 'reviewer-key',
         signature: 'c2lnbmF0dXJl'},
     };
