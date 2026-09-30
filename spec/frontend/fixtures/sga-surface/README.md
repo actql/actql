@@ -120,10 +120,14 @@ by that refusal. See the
 for source inputs, package digests and verification limits.
 
 These results use the prior Graph provider, not the newer PR #92 semantics.
-The separate #92 integration still rejects authored edge Result order in
+The initial separate #92 integration rejected authored edge Result order in
 `diff-apply` and `mean-graphs`; its successful `graphs-equal` result does not
-close that regression. The original eight-case milestone remains incomplete
-on that newer integration until the order witness is corrected.
+close that regression. The subsequent checked Graph order correction is now
+merged with PR #63. At `64812d8eff6d16414c4e894d5845e2f44d8b21c7`, all
+original eight cases passed packed Embedded Local, HTTPS Remote and the
+Node-free native CLI. See the
+[follow-up record](../../../../docs/reviews/2026-09-30-sga-selector-host-followup.md)
+for artifact correspondence and the separate Reach selector provider gap.
 
 The zero-argument node_rows/edge_rows syntax emits boolean `true` in
 the existing Program. An empty object is not the registered operation body.

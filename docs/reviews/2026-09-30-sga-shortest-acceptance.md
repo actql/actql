@@ -92,7 +92,7 @@ Both retain source revision, tarball digests, command outcomes and logs;
 their installed artifacts were removed after preservation. Gate logs remain
 under the worktree's `_build/local-checks/sga-5835-*.log`.
 
-## Remaining integration obligation
+## Integration status at the recorded source
 
 This branch has not adopted PR #92's
 `682ebfb4f45943dc30480d6263fe9b173620d61c`. The isolated A/B integration
@@ -101,8 +101,9 @@ verified at `70730f963681b7294139171d8e2954d5c45835c6` passes
 `mean-graphs` has the same independently diagnosed edge Result order gap.
 Neither authored order nor expected rows have been weakened.
 
-PR #63 stays Draft. After a contract-compatible order witness is available,
-adopt its fixed SHA and rerun the original eight sources through the same
+At that recorded source, PR #63 stayed Draft. The required next step was to
+adopt a contract-compatible order witness and
+rerun the original eight sources through the same
 packed public Local/HTTP path. Current-main acceptance and a new Linux CI result
 are not established by this record. The requested public Host Reach
 Relation-selector cases (duplicates, empty selection, missing IDs, capacity
@@ -110,3 +111,9 @@ excess and cancellation) still need their own packed evidence; focused
 checker/kernel tests are not substitutes. Real external Graph providers and
 broader profile combinations also remain outside the evidence above. The
 fourteen passing cases do not prove the full SGA goal complete.
+
+The subsequent main integration includes the checked Graph order correction
+and merged PR #63. Its original eight packed Local/HTTP/native CLI results
+and the remaining Reach selector boundary are recorded in the
+[follow-up](2026-09-30-sga-selector-host-followup.md). The earlier rejection
+and Draft status above are historical, not current integration blockers.
