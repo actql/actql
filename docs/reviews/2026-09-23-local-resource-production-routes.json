@@ -6563,7 +6563,25 @@
         "path": "src/local_sga/shortest.mbt",
         "symbol": "start_shortest"
       },
+      "selected_entrypoint": {
+        "path": "src/local_sga/shortest.mbt",
+        "symbol": "start_shortest_view"
+      },
       "boundary_tests": [
+        {
+          "role": "shortest_selected_exact_one_short_cancel_binding",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "selected Graph shortest view preserves exact limits and binding"
+        },
+        {
+          "role": "shortest_selected_relation_selector_ports",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "selected Graph shortest path binds both Relation selector ports"
+        },
         {
           "role": "shortest_workspace_exact_one_short",
           "suite": "moon:query_integration",
@@ -6677,6 +6695,13 @@
       ],
       "environment_tests": [
         {
+          "role": "shortest_selected_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-shortest-filter-in-flight"
+        },
+        {
           "role": "shortest_host_in_flight_cancel_cleanup",
           "suite": "node:duckdb_standard_host",
           "targets": [
@@ -6692,6 +6717,12 @@
           "one_short_limit": "shortest_variant_workspace_exact_one_short",
           "in_flight_cancel": "shortest_host_in_flight_cancel_cleanup",
           "cleanup": "shortest_variant_cancel_cleanup"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "shortest_selected_exact_one_short_cancel_binding",
+          "one_short_limit": "shortest_selected_exact_one_short_cancel_binding",
+          "in_flight_cancel": "shortest_selected_host_in_flight_cancel",
+          "cleanup": "shortest_selected_exact_one_short_cancel_binding"
         }
       },
       "resource_assurance": {
@@ -6703,6 +6734,16 @@
           "workspace": {
             "exact_limit": "shortest_variant_workspace_exact_one_short",
             "one_short_limit": "shortest_variant_workspace_exact_one_short"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "shortest_selected_exact_one_short_cancel_binding",
+            "one_short_limit": "shortest_selected_exact_one_short_cancel_binding"
+          },
+          "workspace": {
+            "exact_limit": "shortest_selected_exact_one_short_cancel_binding",
+            "one_short_limit": "shortest_selected_exact_one_short_cancel_binding"
           }
         }
       }
@@ -6827,7 +6868,18 @@
         "path": "src/local_sga/reach.mbt",
         "symbol": "start_reach"
       },
+      "selected_entrypoint": {
+        "path": "src/local_sga/reach.mbt",
+        "symbol": "start_reach_view"
+      },
       "boundary_tests": [
+        {
+          "role": "reach_selected_exact_one_short_cancel_binding",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "selected Graph reach view preserves exact limits and binding"
+        },
         {
           "role": "reach_prefix_work_workspace_active_cancel",
           "suite": "moon:query_integration",
@@ -6852,6 +6904,13 @@
       ],
       "environment_tests": [
         {
+          "role": "reach_selected_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-reach-filter-in-flight"
+        },
+        {
           "role": "reach_out_host_in_flight_cancel",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
@@ -6865,6 +6924,12 @@
           "one_short_limit": "reach_nonempty_exact_work_workspace",
           "in_flight_cancel": "reach_out_host_in_flight_cancel",
           "cleanup": "reach_prefix_work_workspace_active_cancel"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "reach_selected_exact_one_short_cancel_binding",
+          "one_short_limit": "reach_selected_exact_one_short_cancel_binding",
+          "in_flight_cancel": "reach_selected_host_in_flight_cancel",
+          "cleanup": "reach_selected_exact_one_short_cancel_binding"
         }
       },
       "resource_assurance": {
@@ -6876,6 +6941,16 @@
           "workspace": {
             "exact_limit": "reach_nonempty_exact_work_workspace",
             "one_short_limit": "reach_nonempty_exact_work_workspace"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "reach_selected_exact_one_short_cancel_binding",
+            "one_short_limit": "reach_selected_exact_one_short_cancel_binding"
+          },
+          "workspace": {
+            "exact_limit": "reach_selected_exact_one_short_cancel_binding",
+            "one_short_limit": "reach_selected_exact_one_short_cancel_binding"
           }
         }
       }

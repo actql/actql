@@ -1294,17 +1294,19 @@ for (const [index, route] of routeEntries.entries()) {
     }
   }
   if (route.family === 'SGA' && [
-    'graph_bounds', 'degree', 'components',
+    'graph_bounds', 'degree', 'components', 'reach', 'shortest_path',
   ].includes(route.operation)) {
     const selectedSymbol = {
       graph_bounds: 'start_graph_bounds_view',
       degree: 'start_graph_degree_view',
       components: 'start_components_view',
+      reach: 'start_reach_view',
+      shortest_path: 'start_shortest_view',
     }[route.operation];
     const provider = fs.readFileSync(path.join(root, route.dispatch.path), 'utf8');
     if (route.selected_entrypoint?.symbol !== selectedSymbol ||
       !provider.includes(`@sga.${selectedSymbol}(`)) {
-      fail(`${label}: selected Graph diagnostic does not reach its view kernel`);
+      fail(`${label}: selected Graph operation does not reach its view kernel`);
     }
   }
   if (route.family === 'SGA' && route.operation === 'components') {

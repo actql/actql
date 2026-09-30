@@ -480,7 +480,7 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 68 |
 | Full route work/workspace assurance | 68 |
-| Path-scoped work/workspace assurance | 117 |
+| Path-scoped work/workspace assurance | 119 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -4035,6 +4035,20 @@ Wasm, and native. The standard Host delivers in-flight cancellation to each
 selected match task while the retained Graph remains owned, and the
 production-route inventory binds these checks to the selected entrypoints.
 This does not establish every mixed Carrier failure mode.
+
+Selected `SGA.reachable` and `SGA.shortest_path` now consume exact retained
+Graph views through their existing bounded traversal kernels. The checked
+Graph input port remains distinct from optional Relation endpoint ports;
+shortest-path selectors are bound by operation position even when the authored
+Stage has a different input order. Portable tests cover selected dispatch,
+foreign binding rejection, fixed exact/one-short work and workspace limits,
+in-flight stop, and cleanup. A separate selector fixture checks both Relation
+endpoint ports and their result values. The Node standard Host retains and
+publishes reach-then-filter and shortest-path-then-filter results in the real
+Store, compares producer and two consumer Named Results with independent
+expected rows, and delivers in-flight cancellation to each selected query.
+The fused paths remain available where splitting is unnecessary. These proofs
+do not establish every endpoint variant or mixed Carrier failure path.
 
 The retained Relation path now also splits a checked finite-list
 `VEC.merge_rankings` occurrence from a later `filter` in the same Stage.
