@@ -158,3 +158,29 @@ test('Reach selector ID types are checked before Run preparation', () => {
   assert.equal(moon.clientProgramPreparationIssueCode(outcome),
     'check_invalid_input');
 });
+
+test('Reach selector tasks retain distinct Graph and Relation input ports', () => {
+  for (const name of ['reach-selector', 'reach-selector-duplicates',
+    'reach-selector-empty', 'reach-selector-nullable']) {
+    const outcome = prepare(fixture(name));
+    const ready = moon.clientProgramPreparationReady(outcome);
+    assert.ok(ready, name);
+    const aliased = name === 'reach-selector';
+    assert.equal(moon.clientProgramTaskCount(ready), aliased ? 4 : 5, name);
+    const compiled = moon.clientProgramCompileLocalTasks(ready);
+    assert.equal(compiled.$tag, 1, name);
+    const plan = JSON.parse(moon.clientProgramTaskCompilationPlanWire(compiled._0));
+    const reachTask = aliased ? 'task_3' : 'task_4';
+    const reachOutput = aliased ? 'reach_3' : 'reach_4';
+    assert.deepEqual(plan.data_edges.filter(edge => edge.to.node_id === reachTask)
+      .map(edge => [edge.carrier, edge.from, edge.to]), [
+      ['graph', {node_id: 'task_2', port: 'graph_2'},
+        {node_id: reachTask, port: 'input_0'}],
+      ['relation', {node_id: aliased ? 'task_0' : 'task_3',
+        port: aliased ? 'values_0' : 'values_3'},
+      {node_id: reachTask, port: 'input_1'}],
+    ], name);
+    assert.deepEqual(plan.root_refs.map(root => [root.name, root.ref]),
+      [['answer', {node_id: reachTask, port: reachOutput}]], name);
+  }
+});
