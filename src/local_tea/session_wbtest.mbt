@@ -405,7 +405,7 @@ test "session admits exact and one-short cumulative control work" {
 }
 
 ///|
-test "empty session input fails on the first bounded resume" {
+test "empty session input completes on the first bounded resume" {
   let producer = event_window_producer()
   let owner = session_owner(producer, "[\"payload\"]")
   let live = Ref(true)
@@ -420,11 +420,72 @@ test "empty session input fails on the first bounded resume" {
     4096L,
     fn() { live.val },
   ).unwrap()
-  assert_true(
-    advance_session(execution, 1).unwrap()
-    is SessionFailed(EmptySessionInput, progress=0L, work=1L),
+  let output = match advance_session(execution, 1).unwrap() {
+    SessionComplete(output, progress=0L, work=1L) => output
+    _ => fail("empty session did not complete with bounded work")
+  }
+  assert_eq(
+    @storage.record_count(@records.completed_storage(output).unwrap()),
+    0,
   )
   assert_true(cleanup_session(execution).unwrap())
+  assert_true(@records.discard_completed(output))
+  assert_true(@records.producer_read_available(input))
+  assert_true(@records.discard_completed(source))
+}
+
+///|
+test "empty session retains its metadata and finish limits" {
+  let producer = event_window_producer()
+  let owner = session_owner(producer, "[\"payload\"]")
+  let live = Ref(true)
+  let source = event_window_source(producer, [], live)
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  // No row scratch is needed. Three terms plus their metadata marker need
+  // four slots; completing the empty generation costs one finish unit.
+  for (workspace, work) in [(4, 1), (3, 1), (4, 0)] {
+    let started = start_session(
+      @bounded.control(),
+      event_window_sequence(owner),
+      0,
+      input,
+      { ..event_window_limits(), max_workspace_slots: workspace, },
+      4096L,
+      fn() { live.val },
+      control_work_limit=Some(work),
+    )
+    if workspace == 3 {
+      assert_true(started is Err(SessionWorkspaceLimit))
+    } else if work == 0 {
+      assert_true(started is Err(SessionControlWorkLimit))
+    } else {
+      let execution = started.unwrap()
+      let output = match advance_session(execution, 1).unwrap() {
+        SessionComplete(output, progress=0L, work=1L) => output
+        _ => fail("exact empty session limits did not complete")
+      }
+      assert_true(cleanup_session(execution).unwrap())
+      assert_true(@records.completed_available(output))
+      assert_true(@records.discard_completed(output))
+    }
+    assert_true(@records.producer_read_available(input))
+  }
+  let control = @bounded.control()
+  let cancelled = start_session(
+    control,
+    event_window_sequence(owner),
+    0,
+    input,
+    { ..event_window_limits(), max_workspace_slots: 4, },
+    4096L,
+    fn() { live.val },
+    control_work_limit=Some(1),
+  ).unwrap()
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_session(cancelled, 1).unwrap() is SessionStopped(_, work=0L, ..),
+  )
+  assert_true(cleanup_session(cancelled).unwrap())
   assert_true(@records.producer_read_available(input))
   assert_true(@records.discard_completed(source))
 }

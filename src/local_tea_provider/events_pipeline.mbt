@@ -394,6 +394,10 @@ fn advance_execution(
                     value.limits,
                     value.storage_bytes,
                     fn() { true },
+                    output_record_limit=@execution.generated_session_output_ceiling(
+                      value.generated,
+                      value.event_step,
+                    ),
                   )
                 } else {
                   return fail_execution(value)
@@ -653,11 +657,12 @@ fn advance_execution(
                 value.projection = Some(started)
                 value.phase = Projection
                 reset_stage(value)
-                if work_delta > 0L {
-                  return Ok(
-                    @local.managed_provider_continue(progress_delta, work_delta),
-                  )
-                }
+                // The projection now owns the completed Relation records.
+                // Do not replace this handoff with the Events Bridge phase,
+                // including when completion itself reported no new work.
+                return Ok(
+                  @local.managed_provider_continue(progress_delta, work_delta),
+                )
               } else if value.projection_step is None {
                 let material = match @records.completed_material(output) {
                   Ok(value) => value
@@ -685,9 +690,22 @@ fn advance_execution(
                 return Ok(poll)
               }
             }
-            Ok(@tea.SessionFailed(_, progress~, work~)) => {
+            Ok(@tea.SessionFailed(failure, progress~, work~)) => {
               guard terminal_poll(value, progress, work, false) is Some(poll) else {
                 return fail_execution(value)
+              }
+              if failure
+                is @tea.SessionOutput(@records.Storage(@storage.RecordLimit)) &&
+                poll is @local.Failed(_, progress~, work~) {
+                return Ok(
+                  @local.managed_provider_failed(
+                    @connector.Execution(
+                      @execution.Rows(value.event_step, RowLimit),
+                    ),
+                    progress,
+                    work,
+                  ),
+                )
               }
               return Ok(poll)
             }

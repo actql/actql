@@ -303,7 +303,12 @@ pub fn node_accepts_managed_relation_view(
     return false
   }
   match node.payload {
-    EventValue(_) => operation(node) == "BRIDGE.rows.to_events"
+    EventValue(_) =>
+      operation(node) == "BRIDGE.rows.to_events" ||
+      (
+        operation(node) == "TEA.window.session_assign" &&
+        @carrier.kind(node.output_carrier) == @carrier.RelationKind
+      )
     VectorValue(_) => operation(node) == "BRIDGE.rows.to_vectors"
     PoolValue(_) => operation(node) == "VEC.pool"
     Where(_)

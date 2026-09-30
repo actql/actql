@@ -45,6 +45,7 @@ priv struct SessionState {
   limits : @storage.Limits
   prepared : @lower.PreparedEvent
   records : Int
+  output_record_limit : Int64?
   cell_count : Int
   keys : Int
   terms : Int
@@ -311,7 +312,8 @@ fn session_load_step(state : SessionState) -> Result[Unit, SessionIssue] {
     LoadBegin => {
       if state.record >= state.records {
         if state.records == 0 {
-          return Err(EmptySessionInput)
+          state.phase = Finish
+          return Ok(())
         }
         state.sort_identity = true
         state.width = 1
@@ -740,6 +742,10 @@ fn session_emit_step(state : SessionState) -> Result[Bool, SessionIssue] {
         state.phase = GroupBegin
         return Ok(false)
       }
+      if state.output_record_limit is Some(limit) &&
+        state.emit.to_int64() >= limit {
+        return Err(SessionOutput(@records.Storage(@storage.RecordLimit)))
+      }
       let record = state.source_order[state.emit]
       guard session_source_field_count(state.source, record) is Some(fields) &&
         session_checked_multiply(fields + 3, 2) is Some(temporary) else {
@@ -926,8 +932,10 @@ fn start_session_with_source(
   storage_bytes : Int64,
   available : () -> Bool,
   control_work_limit : Int,
+  output_record_limit? : Int64? = None,
 ) -> Result[SessionExecution, SessionIssue] {
-  if control_work_limit < 0 {
+  if control_work_limit < 0 ||
+    (output_record_limit is Some(limit) && limit < 0L) {
     return Err(InvalidSessionLimits)
   }
   if control_work_limit == 0 {
@@ -973,6 +981,7 @@ fn start_session_with_source(
     limits,
     prepared: event,
     records,
+    output_record_limit,
     cell_count,
     keys: keys.length(),
     terms,
@@ -985,7 +994,7 @@ fn start_session_with_source(
     end_contract,
     id_contract,
     phase: if records == 0 {
-      LoadBegin
+      Finish
     } else {
       InitializeCells
     },
@@ -1095,6 +1104,7 @@ pub fn start_session_relation(
   storage_bytes : Int64,
   available : () -> Bool,
   control_work_limit? : Int? = None,
+  output_record_limit? : Int64? = None,
 ) -> Result[SessionExecution, SessionIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
@@ -1126,6 +1136,7 @@ pub fn start_session_relation(
     storage_bytes,
     available,
     control_work_limit.unwrap_or(limits.max_work),
+    output_record_limit~,
   )
 }
 
