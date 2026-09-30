@@ -4071,6 +4071,8 @@ or a preceding step, while preserving the fused route when no later Relation
 consumer requires a split. The original `graphs-equal` and `diff-apply` JSON
 Programs from the Frontend handoff produced their independent Named Result
 rows through packed Embedded Local on the combined Frontend/Local source.
+The retained Node Host also delivers cancellation after selected diff work,
+then confirms stop, noncompletion of the diff task, and final reclamation.
 This is two of the three previously blocked examples; `reach-subgraph` also
 passed on that combined source. It is not evidence that all eight original
 Frontend examples passed packed Embedded Local and HTTP. That broader check
