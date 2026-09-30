@@ -26,6 +26,7 @@ import {
 } from 'node:crypto';
 import {resolve} from 'node:path';
 import {createObjectWriterOwner} from './object-writer-owner.mjs';
+import {createResultDeletionOwner} from './result-deletion-owner.mjs';
 import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
@@ -4615,83 +4616,53 @@ export async function openLocalPublicationStore(
     if (existing !== undefined) {
       return Object.freeze({marker, cleanup: existing, deleted: false});
     }
-    let pending = true;
-    let unlinked = false;
-    let accounted = false;
-    const errors = [];
-    const status = () => Object.freeze({
-      pending,
-      errors: Object.freeze([...errors]),
-    });
-    const cleanup = Object.freeze({
-      status,
-      async retry() {
-        if (!pending) return status();
-        const operation = materialRetentionBusy.then(async () => {
-          await ensureResultDeletionMarker(
-            keyHash, resultDefinitionCid, marker,
-          );
-          if ((activeResultReaders.get(materialCid) ?? 0) !== 0) return;
-          const prepared = preparedObjects.get(materialCid);
-          if (prepared !== undefined &&
-              (prepared.holders.size !== 0 ||
-                prepared.commitOwners.size !== 0)) return;
-          if (await materialHasLiveReference(materialCid)) {
-            pending = false;
-            pendingResultDeletions.delete(deletionKey);
-            return;
-          }
-          const currentPrepared = preparedObjects.get(materialCid);
-          if (currentPrepared !== undefined &&
-              (currentPrepared.holders.size !== 0 ||
-                currentPrepared.commitOwners.size !== 0)) return;
-          reclaimingMaterialCids.add(materialCid);
-          const path = objectPath(materialCid);
-          if (!unlinked) {
-            let state;
-            try { state = await lstat(path); }
-            catch (error) {
-              if (error?.code !== 'ENOENT') throw error;
-            }
-            if (state === undefined) {
-              pending = false;
-              pendingResultDeletions.delete(deletionKey);
-              reclaimingMaterialCids.delete(materialCid);
-              return;
-            }
-            if (!state.isFile() || state.size !== expectedBytes) {
-              fail('PublicationDurableBindingMismatch');
-            }
-            // A semantic contract or another Store-owned physical reference
-            // can share this inode without appearing in the Result index.
-            // Removing the base name would not reclaim that allocation, so
-            // retain both the object path and its capacity charge.
-            if (state.nlink > 1) {
-              pending = false;
-              pendingResultDeletions.delete(deletionKey);
-              reclaimingMaterialCids.delete(materialCid);
-              return;
-            }
-            await unlink(path);
-            unlinked = true;
-          }
-          await syncDirectory(objectsDirectory);
-          if (!accounted) {
-            storedBytes -= expectedBytes;
-            objectCount--;
-            accounted = true;
-          }
-          pending = false;
-          pendingResultDeletions.delete(deletionKey);
-          reclaimingMaterialCids.delete(materialCid);
-        });
+    const cleanup = createResultDeletionOwner({
+      serialize(run) {
+        const operation = materialRetentionBusy.then(run);
         materialRetentionBusy = operation.catch(() => {});
-        try { await operation; }
-        catch (error) {
-          errors.push(error);
-          throw error;
+        return operation;
+      },
+      ensureMarker: () => ensureResultDeletionMarker(
+        keyHash, resultDefinitionCid, marker,
+      ),
+      async retention() {
+        if ((activeResultReaders.get(materialCid) ?? 0) !== 0) return 'wait';
+        const prepared = preparedObjects.get(materialCid);
+        if (prepared !== undefined &&
+            (prepared.holders.size !== 0 ||
+              prepared.commitOwners.size !== 0)) return 'wait';
+        if (await materialHasLiveReference(materialCid)) {
+          return 'settled';
         }
-        return status();
+        const currentPrepared = preparedObjects.get(materialCid);
+        return currentPrepared !== undefined &&
+          (currentPrepared.holders.size !== 0 ||
+            currentPrepared.commitOwners.size !== 0) ? 'wait' : 'free';
+      },
+      markReclaiming() { reclaimingMaterialCids.add(materialCid); },
+      async inspectAllocation() {
+        let state;
+        try { state = await lstat(objectPath(materialCid)); }
+        catch (error) {
+          if (error?.code !== 'ENOENT') throw error;
+        }
+        if (state === undefined) return 'missing';
+        if (!state.isFile() || state.size !== expectedBytes) {
+          fail('PublicationDurableBindingMismatch');
+        }
+        // Other Store-owned references can share this inode. Keep the base
+        // name and capacity charge while any physical link remains.
+        return state.nlink > 1 ? 'shared' : 'exclusive';
+      },
+      unlink: () => unlink(objectPath(materialCid)),
+      syncObjects: () => syncDirectory(objectsDirectory),
+      releaseCapacity() {
+        storedBytes -= expectedBytes;
+        objectCount--;
+      },
+      settle(clearReclaiming) {
+        pendingResultDeletions.delete(deletionKey);
+        if (clearReclaiming) reclaimingMaterialCids.delete(materialCid);
       },
     });
     pendingResultDeletions.set(deletionKey, cleanup);
