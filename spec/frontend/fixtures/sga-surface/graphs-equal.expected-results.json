@@ -1,0 +1,3 @@
+{
+  "answer": {"schema": {"equal": {"type": "boolean", "nullable": false}}, "rows": [{"equal": true}]}
+}

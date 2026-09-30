@@ -212,7 +212,9 @@ fn derive_logical_orders(
       Pool(_) => true
       GraphEquality(..) | GraphDiff(..) => true
       GraphMatch(_) | Reach(_) | Traverse(..) | Shortest(..) => true
-      Graph(op) => @graph.operation(op) == @graph.Components
+      Graph(op) =>
+        @graph.operation(op) == @graph.Components ||
+        @graph.operation(op) == @graph.GraphBounds
       Vector(op) => @vector.operation(op) == @vector.ScoreVectors
       Unary(op) | WindowGroup(op) =>
         match @relation.operation(op) {

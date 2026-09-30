@@ -1,8 +1,8 @@
 // Copied unchanged into the external tarball installation by the driver.
 import assert from 'node:assert/strict';
-import {spawnSync} from 'node:child_process';
+import {spawn, spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {readFile, writeFile} from 'node:fs/promises';
+import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
 import {userInfo} from 'node:os';
@@ -74,6 +74,49 @@ const observe = directory => () => {
       'SELECT COUNT(*) AS count FROM client_requests').get().count};
   } finally { journal.close(); }
 };
+const sgaCases = ['normalize-rows', 'mean-graphs', 'traverse-paths',
+  'union-graphs', 'graft-graphs', 'subtract-graphs', 'degree-rows',
+  'components', 'graph-bounds', 'match-projections', 'reach-subgraph',
+  'graphs-equal', 'diff-apply'];
+const selectedSgaCases = process.env.ACTQL_TEST_SGA_CASES === undefined
+  ? sgaCases : process.env.ACTQL_TEST_SGA_CASES.split(',');
+if (selectedSgaCases.length === 0 ||
+    new Set(selectedSgaCases).size !== selectedSgaCases.length ||
+    selectedSgaCases.some(name => !sgaCases.includes(name))) {
+  throw new Error('Invalid selected SGA acceptance cases');
+}
+const sgaFixtureDirectory = resolve('sga-fixtures');
+await mkdir(sgaFixtureDirectory);
+for (const name of sgaCases) {
+  for (const suffix of ['named.aql', 'expected-results.json']) {
+    await writeFile(resolve(sgaFixtureDirectory, `${name}.${suffix}`),
+      await readFile(resolve('sga-source-fixtures', `${name}.${suffix}`)));
+  }
+}
+const sgaFailures = [];
+async function exerciseSga(mode, extraEnv) {
+  for (const name of selectedSgaCases) {
+    const child = spawn(process.execPath,
+      ['accept-sga-public-source.mjs', resolve('.'), sgaFixtureDirectory,
+        mode, name],
+      {env: {...process.env, ...extraEnv}, stdio: ['ignore', 'pipe', 'pipe']});
+    const output = [];
+    for (const stream of [child.stdout, child.stderr]) {
+      stream.on('data', chunk => output.push(chunk));
+    }
+    const code = await new Promise((resolve, reject) => {
+      child.once('error', reject);
+      child.once('close', resolve);
+    });
+    const diagnostic = Buffer.concat(output).toString();
+    if (code !== 0) {
+      sgaFailures.push({mode, name, code});
+      console.error(`packed SGA ${mode}/${name} failed (${code}): ${diagnostic}`);
+    } else {
+      console.log(diagnostic.trimEnd());
+    }
+  }
+}
 await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
   durability: 'durable', installation: {directory: resolve('local-state'),
     sourceProfilePath}}, {requestPrefix: 'packed-local',
@@ -81,6 +124,8 @@ await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
 assert.equal(observe('local-state')().acceptedRuns, 5);
 assert.ok(sourceIo >= 5);
 console.log('packed raw SQL/Pipe Embedded Local acceptance passed');
+await exerciseSga('local', {ACTQL_LOCAL_STATE_DIR: resolve('sga-local-state'),
+  ACTQL_TEST_LOCAL_SOURCE_PROFILE: sourceProfilePath});
 const beforeRemote = sourceIo;
 const host = await openInstalledRemoteHttpHost({
   directory: resolve('remote-state'), sourceProfilePath,
@@ -98,9 +143,16 @@ try {
   assert.equal(observe('remote-state')().acceptedRuns, 5);
   assert.ok(sourceIo >= beforeRemote + 5);
   console.log('packed raw SQL/Pipe HTTP acceptance passed');
+  await exerciseSga('remote', {
+    ACTQL_TEST_REMOTE_ENDPOINT: `https://127.0.0.1:${server.address().port}/`,
+    ACTQL_TEST_REMOTE_TOKEN: 'fixture-token',
+  });
 } finally {
   server.closeAllConnections();
   await new Promise(resolve => server.close(resolve));
   await host.close();
   DuckDBPreparedStatement.prototype.stream = stream;
 }
+// Exercise both transports before rejecting the acceptance run. A failed
+// case remains a failure; the other transport provides independent evidence.
+assert.deepEqual(sgaFailures, [], 'Packed SGA acceptance failures');

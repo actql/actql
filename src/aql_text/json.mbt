@@ -19,6 +19,7 @@ priv struct JsonBody {
 fn Parser::read_json(
   self : Parser,
   object_required? : Bool = true,
+  argument_value? : Bool = false,
 ) -> JsonBody raise {
   if self.lookahead != None {
     raise Abort(Expected("JSON body"), self.scanner.byte_offset)
@@ -59,6 +60,9 @@ fn Parser::read_json(
       )
       stack.push(if n == 0x7b { 0x7d } else { 0x5d })
     } else if n == 0x7d || n == 0x5d {
+      if argument_value && stack.is_empty() {
+        break
+      }
       if stack.pop() != Some(n) {
         raise Abort(Json(@source.UnexpectedToken), self.scanner.byte_offset)
       }
@@ -71,6 +75,7 @@ fn Parser::read_json(
       (
         n == 0x3b ||
         n == 0x7c ||
+        (argument_value && (n == 0x2c || n == 0x29 || n == 0x5d || n == 0x7d)) ||
         (n == 0x2f && self.scanner.peek(ahead=1) == Some(0x2a)) ||
         (n == 0x2d && self.scanner.peek(ahead=1) == Some(0x2d)) ||
         n == 0x20 ||

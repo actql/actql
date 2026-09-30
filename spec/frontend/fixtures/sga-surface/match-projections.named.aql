@@ -1,0 +1,30 @@
+AQL '0.1';
+PROGRAM 'sga.match_projections' {
+  STAGE main {
+    DATA nodes = OP values {
+      "schema": {"id": {"type": "string", "nullable": false}},
+      "rows": [{"id": "B"}, {"id": "C"}, {"id": "A"}]
+    };
+    DATA edges = OP values {
+      "schema": {
+        "src": {"type": "string", "nullable": false},
+        "dst": {"type": "string", "nullable": false}
+      },
+      "rows": [{"src": "B", "dst": "C"}, {"src": "A", "dst": "B"}]
+    };
+    DATA g = OP graph {
+      "nodes": {"from": "nodes", "id": "id", "fields": []},
+      "edges": {"from": "edges", "source": "src", "target": "dst", "fields": []}
+    };
+    DATA selected_nodes = FROM g |>
+      match_nodes(ids: ["C", "A", "C"], fields: ["id"]);
+    DATA selected_edges = FROM g |>
+      match_edges(fields: ["src", "dst"]);
+    RESULT nodes = {"from": "selected_nodes", "fields": ["id"]};
+    RESULT edges = {
+      "from": "selected_edges", "fields": ["src", "dst"]
+    };
+  }
+  RESULT nodes = {"from": {"stage": "main", "result": "nodes"}};
+  RESULT edges = {"from": {"stage": "main", "result": "edges"}};
+}

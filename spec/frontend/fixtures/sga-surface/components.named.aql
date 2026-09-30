@@ -1,0 +1,28 @@
+AQL '0.1';
+PROGRAM 'sga.components' {
+  STAGE main {
+    DATA nodes = OP values {
+      "schema": {"id": {"type": "string", "nullable": false}},
+      "rows": [{"id": "A"}, {"id": "B"}, {"id": "C"}]
+    };
+    DATA edges = OP values {
+      "schema": {
+        "src": {"type": "string", "nullable": false},
+        "dst": {"type": "string", "nullable": false}
+      },
+      "rows": [{"src": "A", "dst": "B"}]
+    };
+    DATA g = OP graph {
+      "nodes": {"from": "nodes", "id": "id", "fields": []},
+      "edges": {"from": "edges", "source": "src", "target": "dst", "fields": []}
+    };
+    DATA groups = FROM g |> components(kind: "weak");
+    DATA rows = FROM groups |> OP select ["node_id", "component_id", "component_size"];
+    RESULT answer = {
+      "from": "rows",
+      "fields": ["node_id", "component_id", "component_size"],
+      "order_by": [{"component_id": "asc"}, {"node_id": "asc"}]
+    };
+  }
+  RESULT answer = {"from": {"stage": "main", "result": "answer"}};
+}

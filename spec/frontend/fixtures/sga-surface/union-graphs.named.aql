@@ -1,0 +1,47 @@
+AQL '0.1';
+PROGRAM 'sga.union_graphs' {
+  STAGE main {
+    DATA first_nodes = OP values {
+      "schema": {"id": {"type": "string", "nullable": false}},
+      "rows": [{"id": "A"}, {"id": "B"}]
+    };
+    DATA first_edges = OP values {
+      "schema": {
+        "src": {"type": "string", "nullable": false},
+        "dst": {"type": "string", "nullable": false}
+      },
+      "rows": [{"src": "A", "dst": "B"}]
+    };
+    DATA second_nodes = OP values {
+      "schema": {"id": {"type": "string", "nullable": false}},
+      "rows": [{"id": "B"}, {"id": "C"}]
+    };
+    DATA second_edges = OP values {
+      "schema": {
+        "src": {"type": "string", "nullable": false},
+        "dst": {"type": "string", "nullable": false}
+      },
+      "rows": [{"src": "B", "dst": "C"}]
+    };
+    DATA first = OP graph {
+      "nodes": {"from": "first_nodes", "id": "id", "fields": []},
+      "edges": {"from": "first_edges", "source": "src", "target": "dst", "fields": []}
+    };
+    DATA second = OP graph {
+      "nodes": {"from": "second_nodes", "id": "id", "fields": []},
+      "edges": {"from": "second_edges", "source": "src", "target": "dst", "fields": []}
+    };
+    DATA combined = FROM first |> union_graphs(with: [second]);
+    DATA node_output = FROM combined |> node_rows();
+    DATA edge_output = FROM combined |> edge_rows();
+    RESULT nodes = {
+      "from": "node_output", "fields": ["id"], "order_by": [{"id": "asc"}]
+    };
+    RESULT edges = {
+      "from": "edge_output", "fields": ["src", "dst", "rel"],
+      "order_by": [{"src": "asc"}, {"dst": "asc"}, {"rel": "asc"}]
+    };
+  }
+  RESULT nodes = {"from": {"stage": "main", "result": "nodes"}};
+  RESULT edges = {"from": {"stage": "main", "result": "edges"}};
+}

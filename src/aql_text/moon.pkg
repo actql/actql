@@ -5,6 +5,7 @@ formatter(ignore: [ "vocabulary.generated.mbt" ])
 import {
   "actql/actql/actsql",
   "actql/actql/sha256" @sha,
+  "moonbitlang/core/debug",
 } for "test"
 
 import {

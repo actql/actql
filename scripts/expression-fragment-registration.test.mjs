@@ -16,7 +16,7 @@ const canonical = v => Array.isArray(v) ? `[${v.map(canonical)}]`
     : JSON.stringify(v);
 const cid = v => 'sha256:' + createHash('sha256').update(canonical(v)).digest('hex');
 const currentCid =
-  'sha256:9824889f4b22df1bd7086959df4b2cc5d32971d29a4239852d8fe24df4ff459c';
+  'sha256:fda8b3f12e5a42673160163c097f9626b09d999ee3f4889b96e549c6e5e24332';
 const contractCid = 'sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60';
 
 function resolve(body, selected, owner = aoa, expr = expressions) {
@@ -59,8 +59,13 @@ test('extensions preserve historical primitives except explicitly revised values
     'SGA.union_structural',
     'SGA.traverse',
     'SGA.shortest_path',
+    'SGA.reachable',
     'VEC.merge_rankings',
   ]) retained[operation] = historical[operation];
+  assert.deepEqual(registry['SGA.reachable'], {
+    input_alternatives: [['graph'], ['graph', 'relation']],
+    output: 'relation',
+  });
   assert.equal(retained['REL.values'].execution_contract.cid,
     cid(aoa.execution_contracts['REL.values']));
   assert.notEqual(retained['REL.values'].execution_contract.cid,

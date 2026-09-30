@@ -1,0 +1,17 @@
+{
+  "nodes": {
+    "schema": {"id": {"type": "string", "nullable": false}},
+    "rows": [{"id": "A"}, {"id": "B"}, {"id": "C"}]
+  },
+  "edges": {
+    "schema": {
+      "src": {"type": "string", "nullable": false},
+      "dst": {"type": "string", "nullable": false},
+      "rel": {"type": "string", "nullable": true}
+    },
+    "rows": [
+      {"src": "A", "dst": "B", "rel": null},
+      {"src": "B", "dst": "C", "rel": null}
+    ]
+  }
+}

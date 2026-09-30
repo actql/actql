@@ -20,13 +20,13 @@ import {admitEnvironment as admitStandaloneEnvironment,
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const hash = body => `sha256:${createHash('sha256')
   .update(canonicalText(body)).digest('hex')}`;
-// Compatibility snapshots from the standalone compiler under this checkout's
-// pins (the Check Environment contract pin included).
-// These supplement,
-// not replace, the independent logical-plan vectors in run-host-core tests.
+// Compatibility snapshots for the exact fixture Programs and current pins.
+// The AoA registry widens Reach's input carrier; its contract CID is part of
+// both Compiled Plan preimages, including Programs that do not use Reach.
+// The test also checks each complete preimage with canonical hashing below.
 const planCids = {
-  values: 'sha256:ed2bbd5b72820bade7130894feb86ef217df80ea8e8177f62c89e37e85947d11',
-  tasks: 'sha256:08951f2446dc13e0a5be863b44a93a44857fa6877075b6d42b1147d11ff05c92',
+  values: 'sha256:fc6cc72f2fe207114444c9663f5ba41ca4b3298e0e91984aa6d4252fbced6cde',
+  tasks: 'sha256:ac6d5874836c84421dff22cf3b67d5f06f03dab92ffc445c868ca8bfb1c2ab7f',
 };
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 const policy = Object.freeze({executionContextCid: cid('a'),
@@ -163,6 +163,21 @@ for (const kind of ['values', 'tasks']) {
       };
       assert.deepEqual(JSON.parse(compiled.template.wire), {...templateBody,
         bound_invocation_template_cid: hash(templateBody)});
+      const {compiled_plan_cid: compiledCid, ...compiledBody} =
+        JSON.parse(compiled.compiledPlan.wire);
+      assert.deepEqual(Object.keys(compiledBody).sort(), [
+        'aoa_contract_cid', 'aoa_ir_version', 'aoa_logical_cid',
+        'compiler_version', 'executable_plan_cid',
+        'program_definition_cid', 'program_semantics_cid', 'version',
+      ]);
+      assert.equal(compiledBody.version, 'actql-compiled-plan/0.1');
+      const aoaContract = JSON.parse(await read(
+        '../../spec/contracts/actql-aoa.json'));
+      assert.equal(compiledBody.aoa_contract_cid, hash(aoaContract));
+      assert.equal(compiledBody.aoa_ir_version,
+        aoaContract.pipeline_ir_version.replace('/', ':'));
+      assert.equal(hash(compiledBody), compiledCid);
+      assert.equal(compiledCid, compiled.compiledPlan.identity);
       assert.equal(compiled.compiledPlan.identity, planCids[kind]);
       const definitionBody = {
         version: 'actql-run-definition/0.1',

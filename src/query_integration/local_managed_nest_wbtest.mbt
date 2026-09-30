@@ -14,6 +14,65 @@ test "nest output feeds a checked unnest filter task" {
 }
 
 ///|
+test "retained nest offer binds checked item and value ceilings" {
+  let (run, issuer) = captured_graph_fixture(local_values_nest_chain=true)
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  let wire = {
+    ..retained_attempt_wire_limits(),
+    max_bytes: 10000,
+    max_columns: 10,
+  }
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire,
+      row: {
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 10,
+        max_text_bytes: 1000,
+      },
+      max_batch_bytes: 1024,
+    },
+    None,
+  ).unwrap()
+  @local_driver.configure_local_retained_output(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.output_values,
+      wire,
+      max_batch_bytes: 1024,
+    },
+    None,
+  ).unwrap()
+  assert_eq(@local_driver.local_dispatch_rejection(installed, 3), None)
+  assert_true(
+    @local_driver.estimate_local_dispatch_offer(
+      installed,
+      3,
+      [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
+      100,
+    )
+    is Ok(_),
+  )
+  @strategy.stop_captured_dag(run)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
 fn run_local_managed_nest_case(unwrap : Bool) -> Unit raise {
   let ledger_limits : @resources.LedgerLimits = {
     planning_work: 10000,
