@@ -226,3 +226,32 @@ unconnected, so the capacity controls and runtime invalid-member/NULL checks
 remain pending. The scoped provider patch has been prepared and passes
 `git apply --check`, but is not applied while the file's A ownership remains
 in force. No replacement provider or private Host change was introduced.
+
+## Related gates on the fixed follow-up source
+
+At clean `1e43b45c12fe4d78eff8e4ade4dda846f6655535`,
+`node scripts/local-checks.mjs run spec` passed every configured step,
+including specification checks, strict resource evidence, authorization
+vectors and read-only metadata checks. The resource-audit regression suite
+passed 206/206. Logs remain in `_build/local-checks/sga-selector-spec.log`.
+
+`node scripts/local-checks.mjs run lint` also passed every configured step:
+owned versions, format, public MoonBit interfaces, SDK declarations,
+environment guards, portable dependency inspection, and the actual Node
+subset without DuckDB (62 passing tests and one configured skip). Logs
+remain in `_build/local-checks/sga-selector-lint-isolated.log`.
+
+The first lint run put its isolated installation inside the worktree via
+`TMPDIR`. Node then resolved DuckDB from the worktree's ancestor
+`node_modules`, correctly failing the dependency-absence assertion. The
+successful rerun used a workspace scratch directory outside that ancestry;
+the assertion, imported product code, and gate commands were unchanged.
+The failed run is retained in `_build/local-checks/sga-selector-lint.log`.
+No files were written to `/tmp`.
+
+These gates do not close the selected Reach provider connection. The default
+Client acceptance includes the four still-failing positive Relation-selector
+sources, so neither a complete current Client gate nor a Linux CI result is
+claimed. After the scoped provider change is adopted, rerun those sources,
+their membership/NULL refusals and output-capacity controls through the
+packed Local/HTTP path before declaring that boundary complete.
