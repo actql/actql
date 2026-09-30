@@ -1,0 +1,12 @@
+AQL '0.1';
+PROGRAM 'sga.reach_selector' {
+  STAGE main {
+    DATA nodes = OP values {"schema":{"id":{"type":"string","nullable":false}},"rows":[{"id":"A"},{"id":"B"}]};
+    DATA edges = OP values {"schema":{"src":{"type":"string","nullable":false},"dst":{"type":"string","nullable":false}},"rows":[{"src":"A","dst":"B"}]};
+    DATA g = OP graph {"nodes":{"from":"nodes","id":"id","fields":[]},"edges":{"from":"edges","source":"src","target":"dst","fields":[]}};
+    DATA seeds = FROM nodes;
+    DATA reached = FROM g |> reach(start: {from: seeds, id: "id"}, direction: "out", max_depth: 2);
+    RESULT answer = {"from":"reached"};
+  }
+  RESULT answer = {"from":{"stage":"main","result":"answer"}};
+}

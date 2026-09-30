@@ -9,6 +9,7 @@ pub(all) enum ExpressionConsumer {
   AnalyticArgument(String)
   SequencePredicate(Int)
   GraphMatchPredicate
+  ReachStart
   SubgraphNodes
   SubgraphEdges
   TraverseStart
@@ -258,6 +259,17 @@ pub fn collect_expression_slots(
             @graph.match_predicate(operation),
             GraphMatchPredicate,
           )
+        Reach(operation) =>
+          match @graph.reach_start(operation) {
+            @graph.SelectedReachStarts(selector) =>
+              slot_predicate(
+                c,
+                step,
+                @graph.selector_predicate(selector),
+                ReachStart,
+              )
+            _ => ()
+          }
         Subgraph(checked~, ..) => {
           slot_predicate(
             c,
@@ -313,7 +325,6 @@ pub fn collect_expression_slots(
         | Window(_)
         | Projection(_)
         | Graph(_)
-        | Reach(_)
         | GraphEquality(..)
         | GraphDiff(..)
         | GraphApply(..)

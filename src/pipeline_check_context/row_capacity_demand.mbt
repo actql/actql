@@ -27,7 +27,7 @@ priv struct RowCapacityStage {
   pipeline : @pipeline.CheckedPipeline
   bindings : @step_bounds.CountBindings?
   material : CapacityMaterial
-  roots : Array[@pipeline.Target]
+  roots : Array[(@pipeline.Target, @derivation.BoundUnit)]
   quantities : Array[CapacityQuantityStates]
   known : Map[String, Bool]
   supplied : Map[String, Array[@wire.ProgramProofClaim]]
@@ -276,8 +276,11 @@ fn derive_row_capacity(
       }
       for i in 0..<@results.port_count(ports) {
         roots.push(
-          @results.target(
-            @results.port_result(@results.port_at(ports, i).unwrap()),
+          (
+            @results.target(
+              @results.port_result(@results.port_at(ports, i).unwrap()),
+            ),
+            @derivation.Rows,
           ),
         )
       }
@@ -294,6 +297,11 @@ fn derive_row_capacity(
       for index in 0..<steps {
         spend(1)
         let step = @pipeline.step_at(pipeline, index).unwrap()
+        if step.operation is @pipeline.Graph(graph) &&
+          @graph.operation(graph) == @graph.Components {
+          spend(1)
+          roots.push((@pipeline.Step(index), @derivation.Nodes))
+        }
         match step.operation {
           @pipeline.Join(..)
           | @pipeline.CrossJoin(..)
@@ -302,7 +310,7 @@ fn derive_row_capacity(
             // The selected output limit must include every applicable local
             // Program candidate, including for an unpublished branch.
             spend(1)
-            roots.push(@pipeline.Step(index))
+            roots.push((@pipeline.Step(index), @derivation.Rows))
           }
           _ => ()
         }
@@ -312,7 +320,7 @@ fn derive_row_capacity(
           // Same JoinRight role as source request classification. This demand
           // is not admission of the keyed request, mode or access policy.
           spend(1)
-          roots.push(input)
+          roots.push((input, @derivation.Rows))
           continue
         }
         match step.operation {
@@ -320,8 +328,8 @@ fn derive_row_capacity(
             // Search work depends on both operands, independently of whether
             // the output count rule needs both or the output is published.
             spend(2)
-            roots.push(input)
-            roots.push(right)
+            roots.push((input, @derivation.Rows))
+            roots.push((right, @derivation.Rows))
             continue
           }
           _ => ()
@@ -330,15 +338,15 @@ fn derive_row_capacity(
           // Membership envelopes consume input counts even if no Result reads
           // the expanded output. The window-specific factor is resolved later.
           spend(1)
-          roots.push(input)
+          roots.push((input, @derivation.Rows))
           continue
         }
         if step.operation is @pipeline.Nest(right=child, ..) {
           // Child rows bound each grouped array; parent rows bound attachment
           // copies. Neither demand depends on publishing the nest output.
           spend(2)
-          roots.push(input)
-          roots.push(child)
+          roots.push((input, @derivation.Rows))
+          roots.push((child, @derivation.Rows))
           continue
         }
         let operation = match step.operation {
@@ -371,7 +379,7 @@ fn derive_row_capacity(
         }
         if needed {
           spend(1)
-          roots.push(input)
+          roots.push((input, @derivation.Rows))
         }
       }
       let claims = @host.source_claims(materials[stage].sources)
@@ -435,8 +443,8 @@ fn derive_row_capacity(
       }
     }
     for root_stage in 0..<stages.length() {
-      for root in stages[root_stage].roots {
-        let stack = [Visit(root_stage, root, @derivation.Rows)]
+      for (root, unit) in stages[root_stage].roots {
+        let stack = [Visit(root_stage, root, unit)]
         while !stack.is_empty() {
           spend(1)
           match stack.pop().unwrap() {

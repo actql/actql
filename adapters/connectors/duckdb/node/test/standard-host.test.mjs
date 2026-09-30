@@ -2131,11 +2131,12 @@ async function exerciseStrategyGraph(
     },
     fields: ['kind', 'node_id', 'actual', 'max'],
     secondFields: ['kind', 'node_id'],
+    // The structural Graph bounds contract emits totals before per-node degree.
     expected: [
+      {kind: 'nodes', node_id: null, actual: 2, max: 1},
+      {kind: 'edges', node_id: null, actual: 2, max: 1},
       {kind: 'degree', node_id: 1, actual: 2, max: 1},
       {kind: 'degree', node_id: 2, actual: 2, max: 1},
-      {kind: 'edges', node_id: null, actual: 2, max: 1},
-      {kind: 'nodes', node_id: null, actual: 2, max: 1},
     ],
   }, {
     name: 'degree-both',

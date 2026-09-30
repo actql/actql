@@ -1,0 +1,16 @@
+{
+  "answer": {
+    "schema": {
+      "start_id": {"type": "string", "nullable": false},
+      "end_id": {"type": "string", "nullable": false},
+      "hop_count": {"type": "number", "nullable": false},
+      "node_ids": {"type": "object", "nullable": false},
+      "edge_ids": {"type": "object", "nullable": false}
+    },
+    "rows": [{
+      "start_id": "A", "end_id": "B", "hop_count": 1,
+      "node_ids": ["A", "B"],
+      "edge_ids": [{"src": "A", "dst": "B", "rel": null}]
+    }]
+  }
+}

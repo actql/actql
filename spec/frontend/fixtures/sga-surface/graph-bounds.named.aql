@@ -1,0 +1,33 @@
+AQL '0.1';
+PROGRAM 'sga.graph_bounds' {
+  STAGE main {
+    DATA nodes = OP values {
+      "schema": {"id": {"type": "string", "nullable": false}},
+      "rows": [{"id": "B"}, {"id": "A"}, {"id": "C"}]
+    };
+    DATA edges = OP values {
+      "schema": {
+        "src": {"type": "string", "nullable": false},
+        "dst": {"type": "string", "nullable": false}
+      },
+      "rows": [{"src": "A", "dst": "B"}, {"src": "A", "dst": "C"}]
+    };
+    DATA g = OP graph {
+      "nodes": {"from": "nodes", "id": "id", "fields": []},
+      "edges": {"from": "edges", "source": "src", "target": "dst", "fields": []}
+    };
+    DATA exceeded = FROM g |> graph_bounds(max_nodes: 2, max_degree: 1);
+    DATA satisfied = FROM g |> graph_bounds(
+      max_nodes: 3, max_edges: 2, max_degree: 2);
+    RESULT violations = {
+      "from": "exceeded", "fields": ["kind", "node_id", "actual", "max"]
+    };
+    RESULT within = {
+      "from": "satisfied", "fields": ["kind", "node_id", "actual", "max"]
+    };
+  }
+  RESULT violations = {
+    "from": {"stage": "main", "result": "violations"}
+  };
+  RESULT within = {"from": {"stage": "main", "result": "within"}};
+}

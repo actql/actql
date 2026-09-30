@@ -180,8 +180,14 @@
     "output": "graph"
   },
   "SGA.reachable": {
-    "inputs": [
-      "graph"
+    "input_alternatives": [
+      [
+        "graph"
+      ],
+      [
+        "graph",
+        "relation"
+      ]
     ],
     "output": "relation"
   },

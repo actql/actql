@@ -271,20 +271,20 @@ pub fn prepare_sequence(
         GraphMatchStep(prepared)
       }
       GraphReachRows(_) => {
-        let (prepared, used_entries, used_work) = match
+        let (prepared, used_entries, used_names, remaining) = match
           prepare_graph_reach_node(
-            owner.prepared.nodes[i],
+            owner,
+            i,
             max_entries=bindings,
-            max_work=expressions.max_work,
+            max_name_bytes=names,
+            expressions~,
           ) {
           Ok(value) => value
           Err(issue) => return Err(GraphReachFailure(i, issue))
         }
         bindings -= used_entries
-        expressions = {
-          ..expressions,
-          max_work: expressions.max_work - used_work,
-        }
+        names -= used_names
+        expressions = remaining
         GraphReachStep(prepared)
       }
       GraphSubgraphValue(_) => {

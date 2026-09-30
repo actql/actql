@@ -213,6 +213,35 @@ pub fn extend_resolved_limits(
   enforcement : @wire.Enforcement,
   limits : ResolvedLimitLimits,
 ) -> Result[ResolvedLimitExtension, ResolvedLimitIssue] {
+  extend_resolved_limits_internal(
+    original,
+    Some(selected_ceiling),
+    requests,
+    enforcement,
+    limits,
+  )
+}
+
+///|
+/// Resolve limits from exact Program proofs already owned by the collection.
+/// A Program-only limit does not manufacture a Host ceiling or Host witness.
+pub fn extend_program_resolved_limits(
+  original : HostSources,
+  requests : Array[ResolvedLimitRequest],
+  enforcement : @wire.Enforcement,
+  limits : ResolvedLimitLimits,
+) -> Result[ResolvedLimitExtension, ResolvedLimitIssue] {
+  extend_resolved_limits_internal(original, None, requests, enforcement, limits)
+}
+
+///|
+fn extend_resolved_limits_internal(
+  original : HostSources,
+  selected_ceiling : @policy.Ceiling?,
+  requests : Array[ResolvedLimitRequest],
+  enforcement : @wire.Enforcement,
+  limits : ResolvedLimitLimits,
+) -> Result[ResolvedLimitExtension, ResolvedLimitIssue] {
   if limits.max_work < 0 ||
     limits.max_bytes < 0 ||
     limits.max_nodes < 0 ||
@@ -237,17 +266,23 @@ pub fn extend_resolved_limits(
     remaining -= amount
   }
   try {
-    spend(1)
-    let host = match
-      create(selected_ceiling, {
-        max_bytes: limits.max_bytes,
-        max_nodes: limits.max_nodes,
-        max_depth: limits.max_depth,
-      }) {
-      Ok(value) => value
-      Err(issue) => raise ResolvedLimitStop(Host(issue))
+    let host = match selected_ceiling {
+      Some(ceiling) => {
+        spend(1)
+        let value = match
+          create(ceiling, {
+            max_bytes: limits.max_bytes,
+            max_nodes: limits.max_nodes,
+            max_depth: limits.max_depth,
+          }) {
+          Ok(value) => value
+          Err(issue) => raise ResolvedLimitStop(Host(issue))
+        }
+        let (wire, bytes, nodes) = host_wire(value, limits)
+        Some((value, wire, bytes, nodes))
+      }
+      None => None
     }
-    let (wire_host, host_bytes, host_nodes) = host_wire(host, limits)
     let prior = original.claims
     let arithmetic = @wire.program_claim_arithmetic(prior)
     let count = @wire.claim_count(arithmetic)
@@ -256,28 +291,35 @@ pub fn extend_resolved_limits(
     for index in 0..<count {
       witnesses.push(@wire.claim_at(arithmetic, index).unwrap())
     }
-    let host_index = @wire.claim_index(arithmetic, @wire.cid(wire_host))
     let mut added_host = false
-    match host_index {
-      Some(index) => {
-        guard source_at(original, index) is Some(existing) &&
-          physical_equal(
-            @policy.ceiling_policy(ceiling(existing)),
-            @policy.ceiling_policy(selected_ceiling),
-          ) else {
-          raise ResolvedLimitStop(ConflictingHostClaim)
+    if host is Some((_, wire_host, _, _)) && selected_ceiling is Some(selected) {
+      match @wire.claim_index(arithmetic, @wire.cid(wire_host)) {
+        Some(index) => {
+          guard source_at(original, index) is Some(existing) &&
+            physical_equal(
+              @policy.ceiling_policy(ceiling(existing)),
+              @policy.ceiling_policy(selected),
+            ) else {
+            raise ResolvedLimitStop(ConflictingHostClaim)
+          }
         }
-      }
-      None => {
-        witnesses.push(wire_host)
-        added_host = true
+        None => {
+          witnesses.push(wire_host)
+          added_host = true
+        }
       }
     }
     let candidate_sets : Array[Array[@wire.WireWitness]] = []
     for request_index, request in requests {
       spend(1)
       spend(request.subject.length())
-      let candidates = [wire_host]
+      let candidates = []
+      if host is Some((_, wire_host, _, _)) {
+        candidates.push(wire_host)
+      }
+      if candidates.is_empty() && request.candidates.is_empty() {
+        raise ResolvedLimitStop(MissingCandidate(request_index, 0))
+      }
       for candidate_index, proof in request.candidates {
         spend(1)
         let wire = @wire.program_proof_witness(proof)
@@ -288,8 +330,12 @@ pub fn extend_resolved_limits(
             MissingCandidate(request_index, candidate_index),
           )
         }
-        if @wire.unit(wire) != unit(host) ||
-          @wire.role(wire) != @derivation.ProvenUpperBound {
+        if @wire.role(wire) != @derivation.ProvenUpperBound ||
+          (host is Some((host, _, _, _)) && @wire.unit(wire) != unit(host)) ||
+          (
+            !candidates.is_empty() &&
+            @wire.unit(wire) != @wire.unit(candidates[0])
+          ) {
           raise ResolvedLimitStop(
             InvalidCandidate(request_index, candidate_index),
           )
@@ -324,8 +370,14 @@ pub fn extend_resolved_limits(
       }
       artifacts.push((bytes, @wire.limit_cid(prior_limit)))
     }
-    let mut metadata_bytes = if added_host { host_bytes } else { 0 }
-    let mut metadata_nodes = if added_host { host_nodes } else { 0 }
+    let mut metadata_bytes = match host {
+      Some((_, _, host_bytes, _)) if added_host => host_bytes
+      _ => 0
+    }
+    let mut metadata_nodes = match host {
+      Some((_, _, _, host_nodes)) if added_host => host_nodes
+      _ => 0
+    }
     for index, request in requests {
       let (bytes, identity, used_bytes, used_nodes) = emit_limit_bytes(
         candidate_sets[index],
@@ -384,8 +436,16 @@ pub fn extend_resolved_limits(
       Err(issue) => raise ResolvedLimitStop(Program(issue))
     }
     let retained = original.sources.copy()
-    if added_host {
-      retained.push(Some(host))
+    if added_host && host is Some((value, _, _, _)) {
+      retained.push(Some(value))
+    }
+    let retained_host_bytes = match host {
+      Some((_, _, value, _)) if added_host => value
+      _ => 0
+    }
+    let retained_host_nodes = match host {
+      Some((_, _, _, value)) if added_host => value
+      _ => 0
     }
     let resolved : Array[@wire.LimitClaim] = []
     for index in 0..<requests.length() {
@@ -399,8 +459,8 @@ pub fn extend_resolved_limits(
         claims,
         sources: retained,
         count: original.count + (if added_host { 1 } else { 0 }),
-        bytes: original.bytes + (if added_host { host_bytes } else { 0 }),
-        nodes: original.nodes + (if added_host { host_nodes } else { 0 }),
+        bytes: original.bytes + retained_host_bytes,
+        nodes: original.nodes + retained_host_nodes,
         local_limits: original.local_limits + requests.length(),
       },
       limits: resolved,

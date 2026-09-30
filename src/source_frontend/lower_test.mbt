@@ -138,6 +138,37 @@ test "structural AQL and query-only AQL use distinct parsers" {
 }
 
 ///|
+test "public text routing preserves named SGA Program meaning" {
+  let named =
+    #|AQL '0.1'; PROGRAM 'sga.route' { STAGE main {
+    #|  INPUT g = {"carrier":"graph"};
+    #|  DATA same = FROM g |> graphs_equal(with: g);
+    #|  RESULT rows = {"from":"same"};
+    #|} RESULT answer = {"from":{"stage":"main","result":"rows"}}; }
+  let existing =
+    #|AQL '0.1'; PROGRAM 'sga.route' { STAGE main {
+    #|  INPUT g = {"carrier":"graph"};
+    #|  DATA same = FROM g |> OP graphs_equal {"with":"g"};
+    #|  RESULT rows = {"from":"same"};
+    #|} RESULT answer = {"from":{"stage":"main","result":"rows"}}; }
+  let lowered = lower(named, Text, None).unwrap()
+  assert_eq(lowered.format, @program.Json)
+  assert_eq(lowered.document, lower(existing, Text, None).unwrap().document)
+  assert_true(lower(named, Sql, None) is Err(WrongQueryForm))
+  assert_true(
+    lower(
+      named,
+      Text,
+      Some({
+        ..test_context(),
+        parameter_declarations: Some(test_declarations()),
+      }),
+    )
+    is Err(ExternalDeclarationsOnProgram),
+  )
+}
+
+///|
 test "published query names bind one environment generation" {
   let input = test_context().inputs[0]
   let parsed = @syntax.parse_relation_path("crm.`Records`", alias_limits()).unwrap()

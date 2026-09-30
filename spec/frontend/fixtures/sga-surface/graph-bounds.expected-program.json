@@ -1,0 +1,21 @@
+{
+  "version": "actql/0.1", "id": "sga.graph_bounds",
+  "stages": [{
+    "id": "main", "inputs": {},
+    "steps": [
+      {"values": {"schema": {"id": {"type": "string", "nullable": false}}, "rows": [{"id": "B"}, {"id": "A"}, {"id": "C"}]}, "as": "nodes"},
+      {"values": {"schema": {"src": {"type": "string", "nullable": false}, "dst": {"type": "string", "nullable": false}}, "rows": [{"src": "A", "dst": "B"}, {"src": "A", "dst": "C"}]}, "as": "edges"},
+      {"graph": {"nodes": {"from": "nodes", "id": "id", "fields": []}, "edges": {"from": "edges", "source": "src", "target": "dst", "fields": []}}, "as": "g"},
+      {"from": "g", "graph_bounds": {"max_nodes": 2, "max_degree": 1}, "as": "exceeded"},
+      {"from": "g", "graph_bounds": {"max_nodes": 3, "max_edges": 2, "max_degree": 2}, "as": "satisfied"}
+    ],
+    "results": {
+      "violations": {"from": "exceeded", "fields": ["kind", "node_id", "actual", "max"]},
+      "within": {"from": "satisfied", "fields": ["kind", "node_id", "actual", "max"]}
+    }
+  }],
+  "results": {
+    "violations": {"from": {"stage": "main", "result": "violations"}},
+    "within": {"from": {"stage": "main", "result": "within"}}
+  }
+}

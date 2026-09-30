@@ -1323,6 +1323,8 @@ pub enum CapacityStageIssue {
   MissingJoinCeiling(Int)
   ResolvedTraversalLimits(Int, Int, @capacity_host_witness.ResolvedLimitIssue)
   MissingTraversalCeiling(Int, String)
+  ResolvedComponentsLimits(Int, Int, @capacity_host_witness.ResolvedLimitIssue)
+  MissingComponentsCeiling(Int)
   StageCount
   VisitCount(Int)
   BudgetExceeded
@@ -3018,7 +3020,7 @@ pub struct ReachExpansion {
   step : @pipeline_typing.CheckedStep
   input : @pipeline_typing.Target
   operation : @graph_typing.CheckedReach
-  start : @value_admission.CheckedValue
+  start : @graph_typing.ReachStart
   direction : @graph_typing.Direction
   minimum_hops : Double
   maximum_hops : Double

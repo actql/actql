@@ -55,12 +55,16 @@ fn derive_traversal_limits(
       if !spend(1) {
         return Err(BudgetExceeded)
       }
-      if covered.contains(step) ||
-        !(@pipeline.step_at(pipeline, step).unwrap().operation
-        is @pipeline.Traverse(..)) {
+      if covered.contains(step) {
         continue
       }
-      let subject = "traverse:checked-step:" + step.to_string()
+      let operation = match
+        @pipeline.step_at(pipeline, step).unwrap().operation {
+        @pipeline.Traverse(..) => "traverse"
+        @pipeline.Reach(_) => "reach"
+        _ => continue
+      }
+      let subject = operation + ":checked-step:" + step.to_string()
       if !spend(subject.length()) {
         return Err(BudgetExceeded)
       }

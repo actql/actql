@@ -7,7 +7,7 @@ pub struct ReachExpansion {
   step : @pipeline.CheckedStep
   input : @pipeline.Target
   operation : @graph.CheckedReach
-  start : @value.CheckedValue
+  start : @graph.ReachStart
   direction : @graph.Direction
   minimum_hops : Double
   maximum_hops : Double
@@ -30,12 +30,24 @@ fn reach_expansion(
     @pipeline.operation_obligations_scope(site.obligations) == @pipeline.Body &&
     @graph.reach_pending_at(operation, site.index) ==
     Some(JournalReachExpansion) &&
-    @pipeline.input_occurrence_count(step) == 1 else {
+    @pipeline.input_occurrence_count(step) ==
+    (if @graph.reach_start(operation) is @graph.SelectedReachStarts(selector) &&
+      @graph.selector_form(selector) is @graph.RelationIds(..) {
+      2
+    } else {
+      1
+    }) else {
     return Err(ForeignOccurrence(site.step))
   }
   let edge = @pipeline.input_occurrence_at(step, 0).unwrap()
   if edge.role != @pipeline.Primary || edge.target != input {
     return Err(ForeignOccurrence(site.step))
+  }
+  if @pipeline.input_occurrence_count(step) == 2 {
+    let selector = @pipeline.input_occurrence_at(step, 1).unwrap()
+    if selector.role != @pipeline.Right {
+      return Err(ForeignOccurrence(site.step))
+    }
   }
   Ok(
     Some({

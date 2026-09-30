@@ -1,0 +1,19 @@
+{
+  "version": "actql/0.1", "id": "sga.degree_rows",
+  "stages": [{
+    "id": "main", "inputs": {},
+    "steps": [
+      {"values": {"schema": {"id": {"type": "string", "nullable": false}}, "rows": [{"id": "B"}, {"id": "A"}, {"id": "C"}]}, "as": "nodes"},
+      {"values": {"schema": {"src": {"type": "string", "nullable": false}, "dst": {"type": "string", "nullable": false}}, "rows": [{"src": "A", "dst": "B"}, {"src": "A", "dst": "C"}]}, "as": "edges"},
+      {"graph": {"nodes": {"from": "nodes", "id": "id", "fields": []}, "edges": {"from": "edges", "source": "src", "target": "dst", "fields": []}}, "as": "g"},
+      {"from": "g", "degree": {"direction": "out"}, "as": "degrees"},
+      {"from": "degrees", "sort": [{"node": "asc"}], "as": "rows"}
+    ],
+    "results": {
+      "answer": {"from": "rows", "fields": ["node", "degree"], "order_by": [{"node": "asc"}]}
+    }
+  }],
+  "results": {
+    "answer": {"from": {"stage": "main", "result": "answer"}}
+  }
+}

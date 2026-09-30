@@ -1,0 +1,6 @@
+{
+  "answer": {
+    "schema": {"id": {"type": "string", "nullable": false}},
+    "rows": [{"id": "A"}, {"id": "B"}]
+  }
+}

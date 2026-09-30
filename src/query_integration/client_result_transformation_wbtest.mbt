@@ -269,8 +269,8 @@ test "checked Client Result transformation orders before identity and evidence" 
   assert_true(cancelled.cancel())
   assert_false(cancelled.cancel())
   assert_true(cancelled.advance(1) is Err(Output(Closed)))
-  // C's captured export boundary must retain a separate Result borrow while
-  // B's bounded transform is in flight. Equal content is not another owner.
+  // The captured export retains its own Result borrow while the bounded
+  // transformation is in flight. Equal content is not another owner.
   assert_true(
     @publication_host.start_captured_managed_result_transformation(
       foreign, run, 0, completed, bridge, output, export_limits,
