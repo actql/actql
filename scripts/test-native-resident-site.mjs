@@ -903,12 +903,14 @@ try {
     gateway.withdraw({dispatch});
     await output;
     await release;
+    // The Site reports the reclaim after its database writes; the line is
+    // awaited first so the checks below are not ahead of it.
+    if (point !== 'before-intent') {
+      await waitFor(() => killed.lines.some(line =>
+        line.kind === 'orphans-reclaimed'), `${tag} reclaimed by the Site`);
+    }
     await waitFor(() => pendingIntents().length === 0 &&
       reservedPayloadBytes() === 0, `${tag} reclaimed after the holder died`);
-    if (point !== 'before-intent') {
-      assert.ok(killed.lines.some(line => line.kind === 'orphans-reclaimed'),
-        `${tag} reclaimed by the Site`);
-    }
     const after = payloadRecords();
     for (const [key, revision] of others) {
       assert.equal(after.get(key), revision, `${tag} other payload unchanged`);
