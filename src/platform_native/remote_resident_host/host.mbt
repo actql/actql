@@ -227,7 +227,7 @@ pub fn execute_resident_attempt(
   admission : ResidentRunAdmission,
   attempt_identity : String,
   claimant : String,
-  now : String,
+  current_time : () -> String,
   executor_entry : ((String) -> Bool)?,
 ) -> Result[ResidentExecuted, ResidentExecutionFailure] {
   let envelope = match journal.dispatch_envelope(attempt_identity) {
@@ -246,7 +246,8 @@ pub fn execute_resident_attempt(
     identity == attempt_identity else {
     return Err(failed(EnvelopeMissing))
   }
-  let rebuilt = match admit_materials(admission, request, materials, now) {
+  let rebuilt = match
+    admit_materials(admission, request, materials, current_time()) {
     Ok(value) => value
     Err(refusal) => return Err(failed(Refused(refusal)))
   }
@@ -284,6 +285,13 @@ pub fn execute_resident_attempt(
   }
   // From here the runtime may own cleanup: every failure keeps it until its
   // close is confirmed.
+  match
+    runtime.guard_executor_start(() => {
+      @resident.check_resident_run_current(rebuilt, current_time()) is Ok(_)
+    }) {
+    Ok(_) => ()
+    Err(issue) => return failed_after_runtime(runtime, Runtime(issue))
+  }
   match runtime.claim_starts_as(claimant) {
     Ok(_) => ()
     Err(issue) => return failed_after_runtime(runtime, Runtime(issue))
@@ -304,6 +312,8 @@ pub fn execute_resident_attempt(
         request,
         result_definition_cid: executor.result_definition_cid(),
       })
+    Err(@runtime.StartAuthorizationRejected) =>
+      failed_after_runtime(runtime, Refused(@resident.NotCurrent))
     Err(issue) => failed_after_runtime(runtime, Runtime(issue))
   }
 }

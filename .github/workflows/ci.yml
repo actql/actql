@@ -84,6 +84,8 @@ jobs:
           python: 'true'
       - name: Check common core
         run: moon check --target "${{ matrix.target }}" --deny-warn
+      - name: Check independent fixed Run materials identity
+        run: node --test scripts/client-values-run-materials-vector.test.mjs
       # Measured on these 2-vCPU runners: the default left native test
       # execution on about one CPU; one job per CPU shortened execution on
       # every target with no change in memory. Building is unaffected.

@@ -1256,6 +1256,84 @@ try {
     }
   }
 
+  // 23. A locally controlled clock advances at observed boundaries, not after
+  // a guessed startup sleep. The executor evidence hook is not the barrier.
+  // Receipt expiry, expiry after acceptance/before rebuilding, and expiry
+  // after the durable start claim all start zero physical executors.
+  for (const [index, point] of ['receipt', 'before-start', 'before-physical-start'].entries()) {
+    const clockRoot = join(root, `expiry-clock-${index}`);
+    await mkdir(clockRoot);
+    const clockPath = join(clockRoot, 'clock.txt');
+    // An expired, unclaimed acceptance remains queued by the existing owner
+    // rules. Isolate each case so that restoring another case's clock cannot
+    // revive that older queued acceptance.
+    const siteJournal = join(clockRoot, 'journal.sqlite3');
+    const publication = join(clockRoot, 'publication');
+    await mkdir(publication);
+    await writeFile(clockPath, point === 'receipt' ? validUntil : new Date(now).toISOString());
+    const expiredSite = startSite(['--test-clock-root', clockRoot,
+      '--holder-pause-at', point, '--holder-pause-ms', '1000'], {
+      siteJournal, publication, transferJournal: join(clockRoot, 'transfer.sqlite3'),
+    });
+    currentSite = expiredSite;
+    const expired = dispatchFor(`resident-expiry-${index}`, 210 + index);
+    const outcome = gateway.dispatch({dispatch: expired, inputBindingBody: '{}',
+      dispatchEnvelope: materialsEnvelope(expired)}).catch(error => error);
+    if (point === 'receipt') {
+      await waitFor(() => expiredSite.lines.some(line =>
+        line.kind === 'refused' && line.reason === 'not-current'), 'expired receipt refusal');
+      assert.equal(expiredSite.lines.some(line => line.kind === 'accepted'), false);
+      // Remove the rejected stand-in dispatch offer before querying: otherwise
+      // the gateway keeps offering it at the front of its poll queue. This
+      // does not cancel or alter a Site journal record.
+      assert.equal(gateway.withdraw({dispatch: expired}), true);
+      await outcome;
+      assert.equal((await within(gateway.query({dispatch: expired}).catch(error => error),
+        'expired receipt query')).code, 'RemoteDispatchNotSeen');
+    } else {
+      await waitFor(() => expiredSite.lines.some(line =>
+        line.kind === 'holder-paused' && line.point === point), `${point} barrier`);
+      const acceptance = expiredSite.lines.find(line => line.kind === 'accepted' &&
+        line.request_cid === siteControl.identity(expired));
+      assert.ok(acceptance);
+      if (point === 'before-physical-start') {
+        const database = new DatabaseSync(siteJournal, {readOnly: true});
+        try {
+          const claims = database.prepare('SELECT body FROM actql_records WHERE namespace = ?')
+            .all('site_start_claim').map(row => JSON.parse(Buffer.from(row.body).toString('utf8')));
+          assert.ok(claims.some(claim => claim.dispatch_request_cid === siteControl.identity(expired)),
+            'deadline advanced only after this attempt acquired its durable claim');
+        } finally { database.close(); }
+      }
+      await writeFile(clockPath, validUntil);
+      await waitFor(() => expiredSite.lines.some(line => line.kind === 'execute-failed' &&
+        line.reason === 'refused-not-current'), `${point} expiry refusal`);
+      if (point === 'before-physical-start') {
+        await waitFor(() => expiredSite.lines.some(line => line.kind === 'holder-exited' &&
+          line.attempt === acceptance.attempt), `${point} physical holder exit`);
+        // A duplicate Accepted observation can already resolve the stand-in
+        // dispatch waiter. Query the durable failure/cleanup, independently
+        // of whether the stand-in still accepts an unsolicited status ACK.
+        const stopped = await within(gateway.query({dispatch: expired}), 'expired claimed status');
+        // Failed, NoEvidence, CleanupReleased, no material, no quarantine.
+        assert.deepEqual(stopped.state, [4, 0, 2, 0, 0],
+          'claimed expiry is stopped-before-start, with cleanup confirmed');
+      } else {
+        await waitFor(() => expiredSite.lines.some(line => line.kind === 'holder-unclaimed'),
+          `${point} cleanup and holder exit`);
+      }
+    }
+    gateway.withdraw({dispatch: expired});
+    await outcome;
+    assert.equal((await entries()).length, expectedEntries, `${point}: zero executor entries`);
+    assert.equal(pendingIntents(siteJournal).length, 0);
+    if (point !== 'receipt') assert.equal(reservedPayloadBytes(publication), 0);
+    else assert.deepEqual(await readdir(publication), [], 'receipt refusal never opened the Store');
+    assert.equal(expiredSite.lines.some(line => line.kind === 'cleanup-pending'), false);
+    expiredSite.child.kill('SIGTERM');
+    await expiredSite.exited;
+  }
+
   // Each entry names one holder claimant and one attempt key; no attempt
   // key appears twice.
   const keys = (await entries()).map(line => line.split(' ')[1]);

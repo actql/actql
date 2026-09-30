@@ -68,10 +68,20 @@ fn load_text(
 }
 
 ///|
-fn now_timestamp() -> String raise CommandStop {
-  match @resident.resident_utc_timestamp(@env.now().reinterpret_as_int64()) {
-    Some(value) => value
-    None => stop("Site clock is out of range")
+/// The normal path always reads the current system clock. The optional root
+/// is an acceptance-test clock, owned by the local test (never dispatch data).
+/// Missing/invalid clock bytes fail the existing lifetime check closed.
+fn start_timestamp(matches : @argparse.Matches) -> String {
+  match optional(matches, "test-clock-root") {
+    Some(root) =>
+      match @bounded_files.read_bounded_text_file(root, "clock.txt", 64L) {
+        Ok(value) => value
+        Err(_) => ""
+      }
+    None =>
+      @resident.resident_utc_timestamp(@env.now().reinterpret_as_int64()).unwrap_or(
+        "",
+      )
   }
 }
 
@@ -850,6 +860,9 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           Ok(Some(_)) => {
             ignore(current.channel.close())
             holder = None
+            // Physical child exit is separate from the Coordinator's ACK of
+            // its durable status (which may be unavailable or already read).
+            report("holder-exited", [("attempt", current.attempt)])
             // A holder that died may have left output intents behind.
             reclaim_due = true
             // A holder that ended without claiming (its setup failed) left
@@ -1016,7 +1029,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             queue,
             admission,
             dispatch,
-            now_timestamp(),
+            start_timestamp(matches),
           ) {
           Ok(Accepted(attempt, request)) =>
             report("accepted", [
@@ -1803,13 +1816,26 @@ fn run_holder(
       stop("holder setup failed before claim")
     }
   }
+  holder_checkpoint(resources)("before-start")
+  let start_checks = [0]
   let result = @resident_host.execute_resident_attempt(
     environment.journal,
     execution,
     run_admission(),
     required(holder, "attempt"),
     claimant,
-    now_timestamp(),
+    // Read the holder clock at each authority check, not before rebuilding
+    // materials/claiming. An invalid clock is fail-closed, without throwing
+    // past the runtime's cleanup owner.
+    () => {
+      start_checks[0] += 1
+      if start_checks[0] == 2 {
+        // This point is reached by the runtime's mandatory barrier after
+        // claim/Running persistence, not by the executor evidence observer.
+        holder_checkpoint(resources)("before-physical-start")
+      }
+      start_timestamp(matches)
+    },
     observer,
   )
   let code = match result {
@@ -1919,6 +1945,7 @@ fn command() -> @argparse.Command {
       global("budget-execution-bytes"),
       global("engine-root"),
       global("executor-entry-log"),
+      global("test-clock-root"),
       defaulted("queue-capacity", "4"),
       defaulted("max-operations", "4"),
       defaulted("max-transfers", "4"),

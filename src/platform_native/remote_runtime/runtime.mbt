@@ -161,6 +161,7 @@ struct NativeRemoteRuntime {
   owners : Map[String, NativeRemoteRuntimeOwner]
   pending_cleanup : Map[String, NativeRemoteRuntimeOwner]
   mut executor_entry : ((String) -> Bool)?
+  mut executor_start_guard : (() -> Bool)?
   mut start_claimant : String?
   mut closed : Bool
 }
@@ -199,6 +200,8 @@ pub(all) enum NativeRemoteRuntimeIssue {
   Physical(String)
   /// The acceptance evidence hook could not record the executor entry.
   ExecutorEntryUnrecorded
+  /// The execution authority is no longer current at physical start.
+  StartAuthorizationRejected
   /// Another claimant began this attempt; this runtime did not execute.
   StartClaimLost(String)
   /// Cancellation won the Accepted state; this runtime did not execute.
@@ -527,6 +530,7 @@ pub fn open_native_remote_runtime(
     owners: Map([]),
     pending_cleanup: Map([]),
     executor_entry: None,
+    executor_start_guard: None,
     start_claimant: None,
     closed: false,
   })
@@ -575,6 +579,27 @@ pub fn NativeRemoteRuntime::observe_executor_entry(
     return Err(InvalidConfiguration)
   }
   self.executor_entry = Some(observer)
+  Ok(())
+}
+
+///|
+/// A mandatory execution barrier, distinct from diagnostic/evidence hooks.
+/// Re-evaluated after claim and Running persistence, immediately before the
+/// physical call. Rejection uses the ordinary stopped-before-start cleanup.
+pub fn NativeRemoteRuntime::guard_executor_start(
+  self : NativeRemoteRuntime,
+  guard_start : () -> Bool,
+) -> Result[Unit, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.executor_start_guard is Some(_) ||
+    !self.admitting.is_empty() ||
+    !self.owners.is_empty() ||
+    !self.pending_cleanup.is_empty() {
+    return Err(InvalidConfiguration)
+  }
+  self.executor_start_guard = Some(guard_start)
   Ok(())
 }
 
@@ -1015,6 +1040,18 @@ fn NativeRemoteRuntime::run_success(
         }
       }
       @remote.RuntimeExecutePhysical => {
+        if self.executor_start_guard is Some(check) && !check() {
+          return Err(
+            self.retain_failed_owner(
+              identity,
+              owner,
+              StartAuthorizationRejected,
+              false,
+              false,
+              true,
+            ),
+          )
+        }
         if self.executor_entry is Some(observe) &&
           !observe(@remote.remote_dispatch_attempt_key(owner.request)) {
           return Err(
@@ -1022,6 +1059,20 @@ fn NativeRemoteRuntime::run_success(
               identity,
               owner,
               ExecutorEntryUnrecorded,
+              false,
+              false,
+              true,
+            ),
+          )
+        }
+        // Evidence recording may itself wait. It cannot supply execution
+        // permission, and expiry during it must still prevent the call.
+        if self.executor_start_guard is Some(check) && !check() {
+          return Err(
+            self.retain_failed_owner(
+              identity,
+              owner,
+              StartAuthorizationRejected,
               false,
               false,
               true,

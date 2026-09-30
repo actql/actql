@@ -126,6 +126,8 @@ fn runtime_issue_message(issue : @runtime.NativeRemoteRuntimeIssue) -> String {
     @runtime.Physical(message) => "remote runtime failed: " + message
     @runtime.ExecutorEntryUnrecorded =>
       "remote runtime executor entry evidence was not recorded"
+    @runtime.StartAuthorizationRejected =>
+      "remote runtime execution authority is not current"
     @runtime.StartClaimLost(_) =>
       "remote runtime start was claimed by another executor"
     @runtime.StartCancelled => "remote runtime start lost to cancellation"

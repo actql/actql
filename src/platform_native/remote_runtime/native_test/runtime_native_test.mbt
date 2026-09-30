@@ -253,6 +253,19 @@ test "native remote runtime owns success failure and cleanup progression" {
     [budget],
   ).unwrap()
   assert_false(runtime.retains_dispatch_resources())
+  let current_authority = [true]
+  let start_checks = [0]
+  runtime
+  .guard_executor_start(() => {
+    start_checks[0] += 1
+    current_authority[0]
+  })
+  .unwrap()
+  runtime.claim_starts_as("native-runtime-test-holder").unwrap()
+  assert_true(
+    runtime.guard_executor_start(() => true)
+    is Err(@runtime.InvalidConfiguration),
+  )
   // Acceptance evidence: every pre-call boundary of the physical executor.
   let entries : Array[String] = []
   let record_entries = [true]
@@ -283,6 +296,7 @@ test "native remote runtime owns success failure and cleanup progression" {
         "dispatch-over-budget" => 4
         "dispatch-d" => 5
         "dispatch-unrecorded" => 7
+        "dispatch-expired" => 8
         _ => 6
       },
       dispatch_id,
@@ -372,6 +386,29 @@ test "native remote runtime owns success failure and cleanup progression" {
   )
   assert_eq(executions[0], 0)
   assert_true(journal.require(unsupported) is Err(@journal.MissingDispatch))
+  // Acceptance succeeds, but authority expires while starting. The mandatory
+  // guard runs only after the durable claim and Running transition; neither
+  // the evidence hook nor the real executor may be called on rejection.
+  let expired = request("dispatch-expired")
+  current_authority[0] = false
+  assert_true(
+    runtime.start(expired, input_binding)
+    is Err(@runtime.StartAuthorizationRejected),
+  )
+  assert_eq(start_checks[0], 1)
+  assert_eq(executions[0], 0)
+  assert_eq(entries.length(), 0)
+  assert_false(
+    @remote.remote_runtime_record_startable(journal.require(expired).unwrap()),
+  )
+  assert_true(runtime.cleanup(expired).unwrap())
+  assert_false(runtime.cleanup_pending())
+  assert_false(runtime.retains_dispatch_resources())
+  let expired_status = @site.site_status(site)
+  assert_eq(expired_status[2], 0L)
+  assert_eq(expired_status[4], 0L)
+  assert_false(runtime.cleanup(expired).unwrap())
+  current_authority[0] = true
   let first = request("dispatch-a")
   let accepted = [0]
   let accepted_execution = [-1]
