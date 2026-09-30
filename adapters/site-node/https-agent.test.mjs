@@ -217,8 +217,14 @@ test('authenticated cancellation waits for physical handler exit', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-remote-cancel-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const material = await certificates(root);
-  const fixture = await startFixture(root, material, {delayMs: 10_000});
-  t.after(() => fixture.close());
+  const fixture = await startFixture(root, material, {
+    delayMs: 10_000,
+    holdCancellationExit: true,
+  });
+  t.after(async () => {
+    await fixture.releaseExecutionStop();
+    await fixture.close();
+  });
   const request = fixture.dispatch('dispatch-cancel');
   const options = {
     origin: fixture.origin,
@@ -230,6 +236,8 @@ test('authenticated cancellation waits for physical handler exit', async t => {
     inputBindingBody: '{}',
   };
   await sendRemoteDispatch(options);
+  await fixture.waitForExecutionStarts(1);
+  assert.equal(fixture.executionStarts(), 1);
   await assert.rejects(
     cancelRemoteDispatch({
       ...options,
@@ -244,6 +252,10 @@ test('authenticated cancellation waits for physical handler exit', async t => {
     cancellation.dispatchRequestCid,
     runtime.remoteSiteControl.identity(request),
   );
+  await fixture.waitForExecutionStopPending(1);
+  assert.deepEqual((await queryRemoteDispatch(options)).state,
+    [2, 0, 0, 0, 0]);
+  assert.equal(await fixture.releaseExecutionStop(), true);
   const terminal = await terminalStatus(options);
   assert.deepEqual(terminal.state, [5, 0, 2, 0, 0]);
   assert.equal(terminal.evidence, undefined);
