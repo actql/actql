@@ -521,6 +521,60 @@ test('Client Host validates custom status and wait replies', async () => {
   });
 });
 
+test('known status refusal and unknown faults classify equally on both ports',
+  async () => {
+    const connection = {mode: 'remote', owner: 'remote',
+      runners: [], consentRefs: []};
+    let cause = Object.assign(new Error('RunStateAccessDenied'),
+      {code: 'RunStateAccessDenied'});
+    const options = {authenticate: () => 'principal-a',
+      authorizeConnection: () => true,
+      negotiate: () => ({version: 'actql-client-host/0.1',
+        mode: 'remote', owner: 'remote', durability: 'volatile',
+        scopeRef: 'principal-a', capabilities: [], limits: {
+          maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+          maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
+          maxRows: 10, maxBatchRows: 10,
+          maxBatchRetainedValueBytes: 2048}}),
+      observeRun: () => { throw cause; },
+      cancel: () => { throw cause; }, maxRowBytes: 1024};
+    const port = createNodeInProcessClientHost(options);
+    await withServer(createClientHttpHandler(options), async base => {
+      const send = () => fetch(`${base}/actql/client/0.1/status`, {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({connection, ref}),
+      });
+      for (const [error, status, code] of [
+        [cause, 403, 'RunStateAccessDenied'],
+        [Object.assign(new Error('InvalidWaitCondition'),
+          {code: 'InvalidWaitCondition'}), 400, 'InvalidWaitCondition'],
+        [Object.assign(new Error('WaitAborted'),
+          {code: 'WaitAborted'}), 408, 'WaitAborted'],
+        [Object.assign(new Error('Storage detail'),
+          {code: 'PrivateStorageFailure'}), 500, 'ClientHostFailure'],
+        [new Error('Unclassified failure'), 500, 'ClientHostFailure'],
+      ]) {
+        cause = error;
+        const response = await send();
+        assert.equal(response.status, status);
+        assert.deepEqual(await response.json(), {code});
+        await assert.rejects(port.perform('status', {connection, ref}),
+          {code});
+      }
+      cause = Object.assign(new Error('ClientRunCancellationDenied'),
+        {code: 'ClientRunCancellationDenied'});
+      const denied = await fetch(`${base}/actql/client/0.1/cancel`, {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({connection, ref}),
+      });
+      assert.equal(denied.status, 403);
+      assert.deepEqual(await denied.json(),
+        {code: 'ClientRunCancellationDenied'});
+      await assert.rejects(port.perform('cancel', {connection, ref}),
+        {code: 'ClientRunCancellationDenied'});
+    });
+  });
+
 test('local-owned Hybrid Cloud ref reaches Host authorization before use',
   async () => {
     const authorized = [];

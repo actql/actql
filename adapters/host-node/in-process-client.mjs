@@ -17,7 +17,6 @@ import {authorizedLocalResultFrames} from './in-process-result.mjs';
 import {publicClientErrorCode} from './client-http.mjs';
 
 const fail = code => { throw new ClientError(code); };
-const publicCode = /^[A-Za-z][A-Za-z0-9_]{0,79}$/u;
 
 export function createNodeInProcessClientHost({
   authenticate, authorizeConnection, negotiate, prepareSubmit, submit,
@@ -183,11 +182,7 @@ export function createNodeInProcessClientHost({
       fail('UnknownClientOperation');
     } catch (error) {
       if (error instanceof ClientError) throw error;
-      if (typeof error?.code === 'string' &&
-          publicCode.test(error.code)) {
-        throw new ClientError(error.code, {cause: error});
-      }
-      throw new ClientError('ClientHostFailure', {cause: error});
+      throw new ClientError(publicClientErrorCode(error), {cause: error});
     }
   }});
 }
