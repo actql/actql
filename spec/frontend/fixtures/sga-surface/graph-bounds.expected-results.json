@@ -1,0 +1,23 @@
+{
+  "violations": {
+    "schema": {
+      "kind": {"type": "string", "nullable": false},
+      "node_id": {"type": "string", "nullable": true},
+      "actual": {"type": "number", "nullable": false},
+      "max": {"type": "number", "nullable": false}
+    },
+    "rows": [
+      {"kind": "nodes", "node_id": null, "actual": 3, "max": 2},
+      {"kind": "degree", "node_id": "A", "actual": 2, "max": 1}
+    ]
+  },
+  "within": {
+    "schema": {
+      "kind": {"type": "string", "nullable": false},
+      "node_id": {"type": "string", "nullable": true},
+      "actual": {"type": "number", "nullable": false},
+      "max": {"type": "number", "nullable": false}
+    },
+    "rows": []
+  }
+}

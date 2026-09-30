@@ -7,8 +7,8 @@ relationships and required evidence. Parsing does not authorize execution or
 perform provider I/O. JSON and YAML retain their existing meanings.
 
 The [grammar](../../spec/grammar/actql-text-0.1.ebnf) covers the structural
-surface only. SQL, WHERE/SELECT query sugar, MATCH, domain aliases, INSERT and
-new source-format routing are outside this implementation unit.
+surface and named SGA calls in DATA. SQL, WHERE/SELECT query sugar, MATCH,
+domain aliases, INSERT and new source-format routing are separate surfaces.
 
 ## Lexical rules
 
@@ -71,6 +71,44 @@ identity select, additional operation or repeated computation. Alias references
 are rewritten only at producer-reference positions, including native peer inputs
 and stage Result sources. Literal values, metadata, expression field names and
 Result names are not rewritten. Self, forward and duplicate DATA names fail.
+
+### Named SGA calls
+
+DATA also accepts a direct call to these existing operation names:
+`reach`, `traverse`, `shortest_path`, `components`, `degree`, `graph_bounds`,
+`match_nodes`, `match_edges`, `normalize_graph`, `subgraph`, `graft_graph`,
+`union_graphs`, `subtract_graphs`, `graphs_equal`, `graph_diff`,
+`apply_graph_delta`, `mean_graphs`, `node_rows`, and `edge_rows`. A call has
+typed named arguments, for example `FROM g |> reach(start: "A", direction:
+"out", max_depth: 2)`. It lowers to the same existing step as `OP reach
+{"start":"A","direction":"out","max_depth":2}`. The operation name and
+argument keys are case-sensitive and have no synonyms. Duplicate keys and
+trailing commas fail before Program admission. The common checker validates
+the closed operation body, input/output Carrier and type requirements.
+
+The Pipe left operand supplies the current step input. A call cannot specify
+another top-level `from` at the same time. `mean_graphs` is a generator with
+only its explicit ordered `with` list and cannot follow a Pipe input.
+`node_rows()`, `edge_rows()` and `normalize_graph()` lower to their existing
+boolean `true` bodies. Other empty calls retain an empty object for ordinary
+checker validation.
+
+An unquoted or backtick-quoted name is a producer reference only at the
+operation's declared reference positions (`with`, selector `from`, and the
+existing peer-list positions). A JSON string is a value, so `start: "A"` is a
+node identity value, while `with: target` is a producer reference and
+`with: "target"` is rejected. `field: "delta"` is a column designation.
+Quoted DATA names retain exact spelling at producer positions. Nested named
+objects and lists use the same argument roles; repeated members of an
+explicit Graph list remain repeated. Unknown or forward producer references
+are rejected. DATA aliases are resolved at reference positions without adding
+steps or physical acquisition.
+
+Named calls use the existing lexical, source builder and frontend limits.
+Their nested arguments count toward syntax nodes, depth, names and lowering
+work. Source spans are retained for each argument and value. The resulting
+Program goes through ordinary admission and checking. No Result, ordering,
+materialization, acquisition or execution placement is implied by DATA.
 
 Intermediate generators that require names receive deterministic
 `__aql_native_N` names. Allocation excludes authored input/producer declarations

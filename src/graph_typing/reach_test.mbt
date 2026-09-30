@@ -89,3 +89,86 @@ test "reach rejects semantic alias collisions and retains large integer depth" {
   ).unwrap()
   assert_eq(@graph_typing.reach_max_depth(c), 9007199254740992.0)
 }
+
+///|
+test "Reach admits the common selector without weakening typed starts" {
+  let graph = match_graph()
+  let body = fn(start : String) {
+    cursor("{\"start\":" + start + ",\"direction\":\"out\",\"max_depth\":2}")
+  }
+  let explicit = @graph_typing.check_reach(
+    body("{\"ids\":[2,10,2]}"),
+    graph,
+    limits(),
+  ).unwrap()
+  assert_true(
+    @graph_typing.reach_start(explicit) is SelectedReachStarts(selector) &&
+    @graph_typing.selector_id_count(selector) == 3,
+  )
+  let relation = @carrier.relation(
+    @carrier.rows(
+      [
+        (
+          Unqualified("key"),
+          Some(@contract.primitive(NumberType, nullable=true)),
+        ),
+      ],
+      field_set=Closed,
+      max_fields=1,
+      max_name_bytes=16,
+    ).unwrap(),
+  )
+  assert_true(
+    @graph_typing.check_reach(
+      body("{\"from\":\"seeds\",\"id\":\"key\"}"),
+      graph,
+      limits(),
+      selector_relation=Some(relation),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @graph_typing.check_reach(
+      body("{\"from\":\"seeds\",\"id\":\"key\"}"),
+      graph,
+      limits(),
+    )
+    is Err(_),
+  )
+  let wrong = @carrier.relation(
+    @carrier.rows(
+      [
+        (
+          Unqualified("key"),
+          Some(@contract.primitive(StringType, nullable=false)),
+        ),
+      ],
+      field_set=Closed,
+      max_fields=1,
+      max_name_bytes=16,
+    ).unwrap(),
+  )
+  assert_true(
+    @graph_typing.check_reach(
+      body("{\"from\":\"seeds\",\"id\":\"key\"}"),
+      graph,
+      limits(),
+      selector_relation=Some(wrong),
+    )
+    is Err(_),
+  )
+  assert_true(
+    @graph_typing.check_reach(
+      body("{\"where\":{\"literal\":false}}"),
+      graph,
+      limits(),
+      max_tokens=100,
+    )
+    is Ok(_),
+  )
+  for invalid in ["{\"ids\":[]}", "{\"ids\":[\"2\"]}"] {
+    assert_true(
+      @graph_typing.check_reach(body(invalid), graph, limits()) is Err(_),
+    )
+  }
+}

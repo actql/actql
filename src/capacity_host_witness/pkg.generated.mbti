@@ -24,6 +24,8 @@ pub fn create(@capacity_policy.Ceiling, Limits) -> Result[Witness, Issue]
 
 pub fn emit(Witness, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn extend_program_resolved_limits(HostSources, Array[ResolvedLimitRequest], @capacity_witness.Enforcement, ResolvedLimitLimits) -> Result[ResolvedLimitExtension, ResolvedLimitIssue]
+
 pub fn extend_program_sources(HostSources, Array[@capacity_witness.ProgramProofClaim], @capacity_witness.ClosureLimits) -> Result[HostSources, @capacity_witness.ProgramExtensionIssue]
 
 pub fn extend_resolved_limits(HostSources, @capacity_policy.Ceiling, Array[ResolvedLimitRequest], @capacity_witness.Enforcement, ResolvedLimitLimits) -> Result[ResolvedLimitExtension, ResolvedLimitIssue]

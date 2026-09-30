@@ -135,6 +135,23 @@ pub fn strategy_fixture_retained_row_limit(
 }
 
 ///|
+/// Match the retained nest provider's per-parent item limit without relying
+/// on JavaScript's representation of the typed failure.
+#export_name("strategyFixtureRetainedNestItemLimit")
+pub fn strategy_fixture_retained_nest_item_limit(
+  issue : @local_driver.LocalDispatchIssue,
+) -> Bool {
+  issue
+  is @local_driver.Preparation(
+    @local_connector.Materializing(
+      @local_connector.Candidate(
+        @connector.Execution(@execution.Rows(_, @execution.NestItemLimit(_)))
+      )
+    )
+  )
+}
+
+///|
 #export_name("strategyFixtureRetainedInputLimit")
 pub fn strategy_fixture_retained_input_limit(
   issue : @local_driver.LocalDispatchIssue,

@@ -1,0 +1,20 @@
+{
+  "version": "actql/0.1", "id": "sga.normalize_rows",
+  "stages": [{
+    "id": "main", "inputs": {},
+    "steps": [
+      {"values": {"schema": {"id": {"type": "string", "nullable": false}}, "rows": [{"id": "B"}, {"id": "A"}]}, "as": "nodes"},
+      {"values": {"schema": {"src": {"type": "string", "nullable": false}, "dst": {"type": "string", "nullable": false}}, "rows": [{"src": "A", "dst": "B"}]}, "as": "edges"},
+      {"graph": {"nodes": {"from": "nodes", "id": "id", "fields": []}, "edges": {"from": "edges", "source": "src", "target": "dst", "fields": []}}, "as": "g"},
+      {"from": "g", "normalize_graph": true, "as": "normalized"},
+      {"from": "normalized", "node_rows": true},
+      {"sort": [{"id": "asc"}], "as": "rows"}
+    ],
+    "results": {
+      "answer": {"from": "rows", "fields": ["id"], "order_by": [{"id": "asc"}]}
+    }
+  }],
+  "results": {
+    "answer": {"from": {"stage": "main", "result": "answer"}}
+  }
+}

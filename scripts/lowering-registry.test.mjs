@@ -18,7 +18,7 @@ const cid = (v) => `sha256:${createHash('sha256').update(canonical(v)).digest('h
 test('current registry and historical preimages keep distinct identities', () => {
   assert.equal(cid(registry), contract.pipeline_registry_cid);
   assert.equal(cid(registry),
-    'sha256:9824889f4b22df1bd7086959df4b2cc5d32971d29a4239852d8fe24df4ff459c');
+    'sha256:fda8b3f12e5a42673160163c097f9626b09d999ee3f4889b96e549c6e5e24332');
   const fragmentRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-fragment.json'));
   assert.equal(cid(fragmentRegistry), 'sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816');
   const valuesRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-values.json'));
@@ -47,8 +47,13 @@ test('current registry and historical preimages keep distinct identities', () =>
     'SGA.union_structural',
     'SGA.traverse',
     'SGA.shortest_path',
+    'SGA.reachable',
     'VEC.merge_rankings',
   ]) primitive[operation] = valuesRegistry[operation];
+  assert.deepEqual(registry['SGA.reachable'], {
+    input_alternatives: [['graph'], ['graph', 'relation']],
+    output: 'relation',
+  });
   primitive['REL.values'] = valuesRegistry['REL.values'];
   assert.deepEqual(primitive, valuesRegistry);
   assert.equal(cid(fixtures.registry), 'sha256:00ac46baefe7fa34412ad83beb85cf1899b906e792d74fa89211a7c4972f0d5a');

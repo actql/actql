@@ -1,0 +1,21 @@
+{
+  "version": "actql/0.1", "id": "sga.match_projections",
+  "stages": [{
+    "id": "main", "inputs": {},
+    "steps": [
+      {"values": {"schema": {"id": {"type": "string", "nullable": false}}, "rows": [{"id": "B"}, {"id": "C"}, {"id": "A"}]}, "as": "nodes"},
+      {"values": {"schema": {"src": {"type": "string", "nullable": false}, "dst": {"type": "string", "nullable": false}}, "rows": [{"src": "B", "dst": "C"}, {"src": "A", "dst": "B"}]}, "as": "edges"},
+      {"graph": {"nodes": {"from": "nodes", "id": "id", "fields": []}, "edges": {"from": "edges", "source": "src", "target": "dst", "fields": []}}, "as": "g"},
+      {"from": "g", "match_nodes": {"ids": ["C", "A", "C"], "fields": ["id"]}, "as": "selected_nodes"},
+      {"from": "g", "match_edges": {"fields": ["src", "dst"]}, "as": "selected_edges"}
+    ],
+    "results": {
+      "nodes": {"from": "selected_nodes", "fields": ["id"]},
+      "edges": {"from": "selected_edges", "fields": ["src", "dst"]}
+    }
+  }],
+  "results": {
+    "nodes": {"from": {"stage": "main", "result": "nodes"}},
+    "edges": {"from": {"stage": "main", "result": "edges"}}
+  }
+}

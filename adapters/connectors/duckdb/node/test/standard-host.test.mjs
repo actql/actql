@@ -2131,11 +2131,12 @@ async function exerciseStrategyGraph(
     },
     fields: ['kind', 'node_id', 'actual', 'max'],
     secondFields: ['kind', 'node_id'],
+    // The structural Graph bounds contract emits totals before per-node degree.
     expected: [
+      {kind: 'nodes', node_id: null, actual: 2, max: 1},
+      {kind: 'edges', node_id: null, actual: 2, max: 1},
       {kind: 'degree', node_id: 1, actual: 2, max: 1},
       {kind: 'degree', node_id: 2, actual: 2, max: 1},
-      {kind: 'edges', node_id: null, actual: 2, max: 1},
-      {kind: 'nodes', node_id: null, actual: 2, max: 1},
     ],
   }, {
     name: 'degree-both',
@@ -8801,6 +8802,7 @@ async function exerciseStrategyGraph(
       ['dedupe/filter', dedupeFilterProgram, [4, 2, 1, 1, 1, 1]],
       ['count/filter', capturedCountChainProgram, [1, 1, 1]],
       ['unpivot/filter', capturedUnpivotChainProgram, [2, 2, 2]],
+      ['nest', nestProgram, [4, 3, 4, 4, 4]],
     ]) {
       const f = fixture.strategyFixtureAccounted(
         fixture.strategyFixtureCreate(...args, JSON.stringify(program)),
@@ -9500,6 +9502,16 @@ async function exerciseStrategyGraph(
         {id: 1, tag: 'a'}, {id: 1, tag: 'b'}, {id: 1, tag: 'c'},
         {id: 2, tag: 'a'}, {id: 2, tag: 'b'}, {id: 2, tag: 'c'},
       ], fields: ['id', 'tag']},
+    {name: 'nest', source: nestProgram,
+      producerStage: 'nested',
+      firstStage: 'nest_consumer_a',
+      secondStage: 'nest_consumer_b',
+      expected: [
+        {id: 1, items: [{amount: null}, {amount: 10}], key: 1},
+        {id: 2, items: [{amount: null}, {amount: 10}], key: 1},
+        {id: 3, items: [], key: null},
+        {id: 4, items: [], key: 2},
+      ], fields: ['id', 'items', 'key']},
     {name: 'singleton-cross-join', source: retainedSingletonCross,
       expected: [{id: 1, tag: 'a'}, {id: 2, tag: 'a'}], fields: ['id', 'tag']},
     {name: 'append-filter-select', source: retainedBinaryChain(
@@ -9995,6 +10007,7 @@ async function exerciseStrategyGraph(
   }
   for (const {name: mode, temporal} of [
     {name: 'cancel'}, {name: 'cancel-after-filter'},
+    {name: 'nest-cancel'},
     {name: 'cancel-after-group'},
     {name: 'cancel-after-numeric-group'},
     {name: 'compute-failure'},
@@ -10011,9 +10024,12 @@ async function exerciseStrategyGraph(
     const priorTasks = series ? [] : [1, 2];
     const numericGroup = mode === 'cancel-after-numeric-group';
     const grouped = mode === 'cancel-after-group' || numericGroup;
-    const cancelling = mode === 'cancel' || mode === 'cancel-after-filter' || grouped;
+    const nestCancel = mode === 'nest-cancel';
+    const cancelling = mode === 'cancel' ||
+      mode === 'cancel-after-filter' || grouped || nestCancel;
     const program = temporal ? structuredClone(series
       ? retainedTimeSeriesProgram : retainedTemporalJoinProgram(temporal))
+      : nestCancel ? structuredClone(nestProgram)
       : retainedBinaryChain(externalAppendProgram,
       grouped
         ? [{group: {by: ['id'], aggregates: {
@@ -10023,7 +10039,11 @@ async function exerciseStrategyGraph(
         : [{filter: mode === 'compute-failure'
           ? '1 / (id - id) > 0' : 'id >= 10'}],
       grouped ? ['id', 'n'] : ['id']);
-    program.results = {
+    program.results = nestCancel ? {
+      producer: {from: {stage: 'nested', result: 'r'}},
+      first: {from: {stage: 'nest_consumer_a', result: 'r'}},
+      second: {from: {stage: 'nest_consumer_b', result: 'r'}},
+    } : {
       producer: {from: {stage: series ? 'values_a' : 'crossed', result: 'r'}},
       first: {from: {stage: series ? 'consumer_a' : 'external_cross_consumer_a', result: 'r'}},
       second: {from: {stage: series ? 'consumer_b' : 'external_cross_consumer_b', result: 'r'}},
@@ -10035,7 +10055,7 @@ async function exerciseStrategyGraph(
         .steps[0].values.rows = [{id: 1}];
       program.stages.find(stage => stage.id === 'cross_right')
         .steps[0].values.rows = [{id: 2}, {id: 3}];
-    } else if (!temporal && mode !== 'compute-failure') {
+    } else if (!temporal && mode !== 'compute-failure' && !nestCancel) {
       program.stages.find(stage => stage.id === 'cross_left').steps[0]
         .values.rows = Array.from({length: 30}, (_, id) => ({id}));
       program.stages.find(stage => stage.id === 'cross_right').steps[0]
@@ -10147,7 +10167,7 @@ async function exerciseStrategyGraph(
                   if (!poll.complete && poll.progress > 0n) {
                     sawWork = true;
                   }
-                  if (cancelling && !scheduled && (mode === 'cancel'
+                  if (cancelling && !scheduled && (mode === 'cancel' || nestCancel
                     ? sawWork : sawLaterWork)) {
                     scheduled = true;
                     setTimeout(() => cancellation.abort(), 0);
@@ -10470,6 +10490,83 @@ async function exerciseStrategyGraph(
     expansionPolicyStore.close();
     await expansionPolicyStore.cleanup();
     await rm(expansionPolicyDirectory, {recursive: true, force: true});
+  }
+  const nestPolicyProgram = structuredClone(nestProgram);
+  nestPolicyProgram.stages = nestPolicyProgram.stages.filter(stage =>
+    !stage.id.startsWith('nest_consumer_'));
+  nestPolicyProgram.stages.find(stage => stage.id === 'nested')
+    .steps[0].nest.max_items = 1;
+  nestPolicyProgram.results = {
+    producer: {from: {stage: 'nested', result: 'r'}},
+  };
+  const nestPolicyFixture = fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(nestPolicyProgram));
+  const nestPolicyCapture = await runNativeHostQuery(grant,
+    fixture.strategyFixtureAcquisition(nestPolicyFixture), suppliedLimits);
+  const nestPolicyDirectory = await mkdtemp(join(
+    tmpdir(), 'actql-retained-nest-policy-'));
+  const nestPolicyStore = await createLocalRetainedStore({
+    parentDirectory: nestPolicyDirectory,
+    capacityBytes: 8 * 1024 * 1024,
+    maxFrameBytes: 1024 * 1024,
+  });
+  const nestPublicationStore = await openLocalPublicationStore({
+    directory: join(nestPolicyDirectory, 'publication'),
+    storeAuthorityCid: hash('retained-nest-policy-store'),
+    capacityBytes: 4 * 1024 * 1024,
+    maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+    maxObjects: 100, maxContractNodes: 10000, maxContractDepth: 64,
+  }, runtimeCore(hostRuntime).publicationControl);
+  let nestPolicyLeases = 0, nestPolicyFailure;
+  const nestPolicyConfiguration = installLocalRetainedStore((key, bytes) => {
+    nestPolicyLeases++;
+    let writer, closed = false;
+    return {
+      status: () => ({reservedBytes: writer && !closed ? bytes : 0,
+        cleanupPending: writer?.cleanupHandle?.status?.().pending ?? false}),
+      reserve: value => (writer = nestPolicyStore.reserve(value)),
+      close() { closed = true; writer?.cancel(); },
+      async cleanup() { await writer?.cleanupHandle?.retry?.(); },
+    };
+  });
+  try {
+    assert.equal(fixture.strategyFixtureOpen(nestPolicyFixture,
+      nestPolicyCapture.source()), true);
+    const setup = fixture.strategyFixtureRetainedLocalSubset(nestPolicyFixture);
+    const runtime = runtimeCore(hostRuntime);
+    const plan = standardPublicationPlan(runtime,
+      runtime.programDefinitionCid(setup), runtime.resultInventory(setup).length,
+      'retained-nest-policy-attempt');
+    await assert.rejects(runPublishedCapturedStrategy(
+      setup, {store: nestPublicationStore, plan},
+      {local: nestPolicyConfiguration}, new AbortController().signal),
+    error => {
+      nestPolicyFailure = error.execution;
+      return error.code === 'CapturedRunPublicationFailed';
+    });
+    assert.equal(nestPolicyFailure.status, 'host-tasks-failed');
+    assert.deepEqual(nestPolicyFailure.completed.map(item => item.task), [1, 2]);
+    assert.equal(nestPolicyLeases, 2, 'no partial nest output is retained');
+    assert.equal(nestPolicyFailure.failure?.code, 'MoonBitHostFailure');
+    assert.equal(fixture.strategyFixtureRetainedNestItemLimit(
+      nestPolicyFailure.failure.cause), true);
+    await assert.rejects(nestPublicationStore.lookupCommittedIndex({
+      namespaceId: plan.request.namespaceId,
+      authorityScopeCid: plan.request.authorityScopeCid,
+      runDefinitionCid: plan.runDefinition.identity,
+    }, () => true), /PublicationLookupDenied/);
+  } finally {
+    nestPolicyCapture.close();
+    await nestPolicyFailure?.close();
+    if (nestPolicyFailure) {
+      assert.equal(await nestPolicyFailure.cleanup(), true);
+      assert.equal(nestPolicyFailure.usage().heldBytes, 0n);
+      assert.equal(nestPolicyFailure.usage().reservedExecutionBytes, 0n);
+    }
+    await nestPublicationStore.close();
+    nestPolicyStore.close();
+    await nestPolicyStore.cleanup();
+    await rm(nestPolicyDirectory, {recursive: true, force: true});
   }
   const cancelledValuesFixture = fixture.strategyFixtureCreate(
     ...args, JSON.stringify(retainedValuesProgram));
