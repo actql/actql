@@ -68,6 +68,7 @@ pub fn node_accepts_managed_carrier_view(
     | "SGA.components"
     | "SGA.reachable"
     | "SGA.equal"
+    | "SGA.diff"
     | "SGA.graft"
     | "SGA.union_structural"
     | "SGA.diff_structural"
@@ -85,6 +86,7 @@ pub fn node_accepts_managed_carrier_view(
     | "BRIDGE.vectors.to_rows"
     | "BRIDGE.graph.to_node_rows"
     | "BRIDGE.graph.to_edge_rows" => true
+    "SGA.apply_delta" => index == 0
     "SGA.shortest_path" => index == 0
     "SGA.subgraph" => index == 0
     "SGA.traverse" => index == 0
@@ -113,6 +115,8 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     GraphReachRows(_) => operation(node) == "SGA.reachable"
     GraphShortestRows(_) => operation(node) == "SGA.shortest_path"
     GraphEqualityRows(_) => operation(node) == "SGA.equal"
+    GraphDiffRows(_) => operation(node) == "SGA.diff"
+    GraphApplyValue(_) => operation(node) == "SGA.apply_delta"
     BasicGraph(_) =>
       operation(node) == "SGA.normalize" ||
       operation(node) == "SGA.bounds_check" ||
@@ -279,6 +283,7 @@ pub fn node_accepts_managed_relation_view(
       GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
       GraphTraverseRows(_) => index == 1 && operation(node) == "SGA.traverse"
       GraphSubgraphValue(_) => index == 1 && operation(node) == "SGA.subgraph"
+      GraphApplyValue(_) => index == 1 && operation(node) == "SGA.apply_delta"
       InnerJoin(_)
       | CrossJoinRows(_)
       | AppendRows(_)

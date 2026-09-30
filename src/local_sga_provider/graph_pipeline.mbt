@@ -290,8 +290,18 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         accepts_shortest_endpoint(shortest, @schema.Right) &&
         @lower.graph_shortest_max_hops(shortest) is Some(_)
       @lower.GraphRelationStep(relation) =>
-        @lower.operation(node) == "SGA.equal" &&
-        @lower.graph_relation_kind(relation) == @lower.GraphsEqualRelation
+        (
+          @lower.operation(node) == "SGA.equal" &&
+          @lower.graph_relation_kind(relation) == @lower.GraphsEqualRelation
+        ) ||
+        (
+          @lower.operation(node) == "SGA.diff" &&
+          @lower.graph_relation_kind(relation) == @lower.GraphDiffRelation
+        ) ||
+        (
+          @lower.operation(node) == "SGA.apply_delta" &&
+          @lower.graph_relation_kind(relation) == @lower.ApplyGraphRelation
+        )
       _ => false
     }
   }
@@ -1658,34 +1668,69 @@ fn advance_execution(
           }
           Some(@lower.GraphRelationStep(relation)) =>
             if value.selected_step is Some(_) {
-              guard @lower.graph_relation_kind(relation) ==
-                @lower.GraphsEqualRelation &&
+              guard (
+                  @lower.graph_relation_kind(relation) ==
+                  @lower.GraphsEqualRelation ||
+                  @lower.graph_relation_kind(relation) ==
+                  @lower.GraphDiffRelation
+                ) &&
                 value.carrier_inputs.get(0) is Some(left_view) &&
                 value.carrier_inputs.get(1) is Some(right_view) else {
                 return fail_execution(value)
               }
-              match
-                @sga.start_graphs_equal_view(
-                  value.control,
-                  @execution.generated_completion_preparation(value.generated),
-                  value.sequence,
-                  value.projection_step,
-                  left_view,
-                  right_view,
-                  value.max_rows,
-                  {
-                    max_nodes: value.limits.max_value_nodes,
-                    max_text_bytes: value.max_value_bytes,
-                    max_depth: value.limits.max_value_depth,
-                    max_work: value.limits.max_work,
-                  },
-                  value.limits.max_value_bytes,
-                  value.limits.max_value_bytes,
-                  value.inputs,
-                  control_work_limit=Some(value.limits.max_work),
-                ) {
-                Ok(execution) => GraphsEqualExecution(execution)
-                Err(_) => return fail_execution(value)
+              match @lower.graph_relation_kind(relation) {
+                @lower.GraphsEqualRelation =>
+                  match
+                    @sga.start_graphs_equal_view(
+                      value.control,
+                      @execution.generated_completion_preparation(
+                        value.generated,
+                      ),
+                      value.sequence,
+                      value.projection_step,
+                      left_view,
+                      right_view,
+                      value.max_rows,
+                      {
+                        max_nodes: value.limits.max_value_nodes,
+                        max_text_bytes: value.max_value_bytes,
+                        max_depth: value.limits.max_value_depth,
+                        max_work: value.limits.max_work,
+                      },
+                      value.limits.max_value_bytes,
+                      value.limits.max_value_bytes,
+                      value.inputs,
+                      control_work_limit=Some(value.limits.max_work),
+                    ) {
+                    Ok(execution) => GraphsEqualExecution(execution)
+                    Err(_) => return fail_execution(value)
+                  }
+                @lower.GraphDiffRelation =>
+                  match
+                    @sga.start_graph_diff_view(
+                      value.control,
+                      @execution.generated_completion_preparation(
+                        value.generated,
+                      ),
+                      value.sequence,
+                      value.projection_step,
+                      left_view,
+                      right_view,
+                      value.max_rows,
+                      {
+                        max_nodes: value.limits.max_value_nodes,
+                        max_text_bytes: value.max_value_bytes,
+                        max_depth: value.limits.max_value_depth,
+                        max_work: value.limits.max_work,
+                      },
+                      value.limits.max_workspace_slots,
+                      value.limits.max_value_bytes,
+                      value.limits.max_value_bytes,
+                    ) {
+                    Ok(execution) => GraphDiffExecution(execution)
+                    Err(_) => return fail_execution(value)
+                  }
+                _ => return fail_execution(value)
               }
             } else {
               guard (
@@ -2226,6 +2271,16 @@ pub fn provider(
           @lower.graph_relation_kind(relation) == @lower.GraphsEqualRelation
         _ => false
       }
+      let direct_diff = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphRelationStep(relation)) =>
+          selected_step is Some(_) &&
+          @lower.graph_relation_kind(relation) == @lower.GraphDiffRelation
+        _ => false
+      }
       let shortest_relation_count = if direct_shortest {
         match
           @lower.node_at(
@@ -2322,6 +2377,7 @@ pub fn provider(
           )
         ) ||
         (direct_equal && (relations.length() != 0 || carriers.length() != 2)) ||
+        (direct_diff && (relations.length() != 0 || carriers.length() != 2)) ||
         (
           !direct_structural &&
           !direct_projection &&
@@ -2330,6 +2386,7 @@ pub fn provider(
           !direct_reach &&
           !direct_shortest &&
           !direct_equal &&
+          !direct_diff &&
           !direct_apply &&
           !direct_subgraph &&
           !direct_traverse &&
@@ -2380,6 +2437,7 @@ pub fn provider(
           direct_reach ||
           direct_shortest ||
           direct_equal ||
+          direct_diff ||
           direct_projection ||
           direct_traverse ||
           direct_match {

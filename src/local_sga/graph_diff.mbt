@@ -7,8 +7,8 @@ priv enum GraphDiffPhase {
 
 ///|
 priv struct GraphDiffState {
-  left_read : @graph.ProducerRead
-  right_read : @graph.ProducerRead
+  left : GraphReadSource
+  right : GraphReadSource
   core : @diff.Preparation
   mut phase : GraphDiffPhase
   mut pending : @value.CheckedValue?
@@ -82,8 +82,7 @@ fn graph_diff_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@graph.producer_read_available(state.left_read) ||
-      !@graph.producer_read_available(state.right_read) {
+    if !graph_read_available(state.left) || !graph_read_available(state.right) {
       return @bounded.Failed(GraphDiffInputUnavailable, progress, used)
     }
     match state.phase {
@@ -265,8 +264,158 @@ pub fn start_graph_diff(
     }
   }
   let state : GraphDiffState = {
-    left_read,
-    right_read,
+    left: Stored(left_read),
+    right: Stored(right_read),
+    core,
+    phase: Kernel,
+    pending: None,
+    output: Some(output),
+    rows,
+    live,
+    accepted,
+    port,
+    remaining_work: limits.max_work,
+  }
+  let (session, token) = @bounded.start(
+    control,
+    state,
+    graph_diff_step,
+    cleanup_graph_diff_state,
+    _output => {
+      state.live.val = false
+      true
+    },
+  )
+  Ok({
+    session,
+    token: Some(token),
+    accepted,
+    max_noninterruptible_value_nodes: limits.max_nodes,
+    max_noninterruptible_value_bytes: limits.max_text_bytes,
+  })
+}
+
+///|
+/// Execute the same bounded diff kernel over two exact retained Graph reads.
+pub fn start_graph_diff_view(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  left : @lifecycle.ProducerView,
+  right : @lifecycle.ProducerView,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[GraphDiffExecution, GraphDiffIssue] {
+  if limits.max_work < 0 {
+    return Err(GraphDiffWorkLimit)
+  }
+  let owner = @lower.sequence_owner(sequence)
+  guard physical_equal(
+      @execution.completion_preparation_owner(preparation),
+      owner,
+    ) &&
+    @lower.sequence_step(sequence, step)
+    is Some(@lower.GraphRelationStep(prepared)) &&
+    @lower.graph_relation_kind(prepared) == @lower.GraphDiffRelation &&
+    @lower.graph_relation_diff_contract(prepared) is Some(delta_contract) &&
+    @lower.graph_relation_graph_contract_cid(prepared)
+    is Some(graph_contract_cid) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.node_input_count(node) == 2 &&
+    @lower.node_input_target(node, 0) is Some(left_target) &&
+    @lower.node_input_target(node, 1) is Some(right_target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), left_target)
+    is Some(@carrier.GraphValue(left_graph)) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), right_target)
+    is Some(@carrier.GraphValue(right_graph)) &&
+    @lifecycle.producer_view_kind(left) == @carrier.GraphKind &&
+    @lifecycle.producer_view_kind(right) == @carrier.GraphKind &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(left),
+      owner,
+      step,
+      0,
+    ) &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(right),
+      owner,
+      step,
+      1,
+    ) else {
+    return Err(InvalidGraphDiffKernel)
+  }
+  let output = match
+    @execution.prepare_admitted_output(
+      owner,
+      @pipeline.Step(step),
+      max_rows,
+      limits,
+    ) {
+    Ok(output) => output
+    Err(issue) => return Err(GraphDiffOutput(issue))
+  }
+  let core = match
+    @diff.prepare_view(
+      left,
+      left_graph,
+      right,
+      right_graph,
+      delta_contract,
+      graph_contract_cid,
+      {
+        max_workspace_slots,
+        max_output_nodes: limits.max_nodes,
+        max_output_text_bytes: limits.max_text_bytes,
+        max_output_depth: limits.max_depth,
+        max_identity_bytes: limits.max_text_bytes,
+        max_identity_nodes: limits.max_nodes,
+        max_identity_depth: limits.max_depth,
+        value_limits: {
+          max_nodes: limits.max_nodes,
+          max_depth: limits.max_depth,
+          max_text_bytes: limits.max_text_bytes,
+        },
+      },
+    ) {
+    Ok(core) => core
+    Err(issue) => {
+      @execution.cancel_admitted_output(output) |> ignore
+      return Err(GraphDiffCore(issue))
+    }
+  }
+  let rows : Ref[@execution.AdmittedOutputRows?] = Ref(None)
+  let live = Ref(true)
+  let accepted = Ref(false)
+  let port = match
+    @execution.prepare_trusted_output_port_with_inputs(
+      preparation,
+      @pipeline.Step(step),
+      max_entries,
+      max_name_bytes,
+      fn(_) { if live.val { rows.val } else { None } },
+      inputs=[
+        @execution.trusted_output_carrier_input(
+          @lifecycle.producer_view_read_reference(left),
+        ),
+        @execution.trusted_output_carrier_input(
+          @lifecycle.producer_view_read_reference(right),
+        ),
+      ],
+    ) {
+    Ok(port) => port
+    Err(issue) => {
+      @diff.cleanup(core) |> ignore
+      @execution.cancel_admitted_output(output) |> ignore
+      return Err(GraphDiffCompletion(issue))
+    }
+  }
+  let state : GraphDiffState = {
+    left: Viewed(left),
+    right: Viewed(right),
     core,
     phase: Kernel,
     pending: None,
