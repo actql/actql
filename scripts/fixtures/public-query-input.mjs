@@ -49,7 +49,7 @@ const inputCodes = new Set(['ClientProgramInvalidInput',
 // does not lower source, manufacture schema, or call a test compiler bridge.
 export async function exercisePublicQueryInput(connect, options,
   {requestPrefix, observe, successes = querySuccesses,
-    refusals = queryRefusals}) {
+    refusals = queryRefusals, prepareCase}) {
   assert.equal(typeof observe, 'function');
   const counters = async () => {
     const current = await observe();
@@ -59,11 +59,12 @@ export async function exercisePublicQueryInput(connect, options,
   };
   const client = await connect(options);
   try {
-    for (const {name, text, expected, columns, ...input} of successes) {
+    for (const {name, text, expected, columns, sourceRows, ...input} of successes) {
+      await prepareCase?.(sourceRows);
       const requestId = requestPrefix + '-' + name;
       const execution = await client.aql(text, {...input, requestId});
       const state = await execution.wait();
-      assert.equal(state.status, 'succeeded', JSON.stringify(state));
+      assert.equal(state.status, 'succeeded', JSON.stringify({name, state}));
       const beforeRead = await counters();
       assert.deepEqual(await execution.result('answer').all(), expected);
       if (columns !== undefined) {
@@ -87,6 +88,7 @@ export async function exercisePublicQueryInput(connect, options,
       }
     }
     for (const {name, text, ...input} of refusals) {
+      await prepareCase?.();
       const requestId = requestPrefix + '-reject-' + name;
       const before = await counters();
       await assert.rejects(client.aql(text, {...input, requestId}), error => {

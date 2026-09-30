@@ -69,7 +69,8 @@
     },
     {
       "name":"as-repeated-select-order-expression", "format":"aql-text",
-      "text":"FROM records |> WHERE id < 3 |> ORDER BY id DESC |> SELECT id AS x |> AS t |> SELECT x |> WHERE x > 0 |> SELECT x |> ORDER BY x + 1",
+      "sourceRows":[{"id":2,"amount":null},{"id":1,"amount":null}],
+      "text":"FROM records |> RENAME id AS x |> DROP amount |> AS t |> SELECT x |> WHERE x > 0 |> SELECT x |> ORDER BY x + 1",
       "columns":[{"name":"x","contract":{"type":"number","nullable":false}}],
       "expected":[{"x":1},{"x":2}]
     },

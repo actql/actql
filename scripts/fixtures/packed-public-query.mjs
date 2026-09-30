@@ -53,6 +53,25 @@ try {
   connection.closeSync();
   instance.closeSync();
 }
+// Install hand-authored rows in the real DuckDB source before each case.
+// Source identity/schema stay fixed; the ordinary acquisition captures the
+// current contents. No rows are injected into the Client or frontend.
+let installedRows = sourceRows;
+async function prepareCase(rows = sourceRows) {
+  if (JSON.stringify(rows) === JSON.stringify(installedRows)) return;
+  const instance = await DuckDBInstance.create(database);
+  const connection = await instance.connect();
+  try {
+    await connection.run('DELETE FROM records');
+    for (const row of rows) {
+      await connection.run('INSERT INTO records VALUES (?, ?)', [row.id, row.amount]);
+    }
+    installedRows = rows;
+  } finally {
+    connection.closeSync();
+    instance.closeSync();
+  }
+}
 const view = environment.source_views[0];
 const sourceProfilePath = resolve('source-profile.json');
 await writeFile(sourceProfilePath, canonical({
@@ -142,7 +161,7 @@ async function exerciseSga(mode, extraEnv) {
 await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
   durability: 'durable', installation: {directory: resolve('local-state'),
     sourceProfilePath}}, {requestPrefix: 'packed-local',
-  observe: observe('local-state'), ...scopeInputs});
+  observe: observe('local-state'), prepareCase, ...scopeInputs});
 assert.equal(observe('local-state')().acceptedRuns, expectedQueryRuns);
 assert.ok(sourceIo >= expectedQueryRuns);
 console.log('packed raw SQL/Pipe Embedded Local acceptance passed');
@@ -162,7 +181,7 @@ try {
   await exercisePublicQueryInput(connect, {mode: 'remote',
     endpoint: `https://127.0.0.1:${server.address().port}/`,
     token: 'fixture-token', durability: 'durable'},
-  {requestPrefix: 'packed-http', observe: observe('remote-state'), ...scopeInputs});
+  {requestPrefix: 'packed-http', observe: observe('remote-state'), prepareCase, ...scopeInputs});
   assert.equal(observe('remote-state')().acceptedRuns, expectedQueryRuns);
   assert.ok(sourceIo >= beforeRemote + expectedQueryRuns);
   console.log('packed raw SQL/Pipe HTTP acceptance passed');
