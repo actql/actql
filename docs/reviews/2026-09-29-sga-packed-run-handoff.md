@@ -559,3 +559,42 @@ must be merged into this integration branch, then both named sources must pass
 the same external packed Embedded Local and HTTP acceptance. Until then PR #63
 remains Draft. The Frontend must not add a second execution path or silently
 weaken these expectations.
+
+## Integrated retained Graph acceptance
+
+Local provider commit `bf9813c65d423ee3fa854036868fd80dd7a783bb`
+adds bounded selected execution for Graph equality, diff and apply. It was
+merged after the earlier Frontend HEAD and before main
+`311ad785a4f87c61994c4fdbb40d2a182168e23a`. The only content conflict
+was in `src/physical_strategy/carrier_tasks.mbt`: the merged condition uses
+the checked Graph-to-Relation consumer and intermediate Result, and retains
+fused Graph-only prefixes. The superseded terminal-Relation shortcut was
+removed because it did not inspect the typed producer edge.
+
+At `0601a0f02f99e23cb38b908f2d0955a96339b50f`, clean packed installation
+passed all original eight SGA cases through Embedded Local and HTTPS Remote,
+including `graphs-equal`, `reach-subgraph` and `diff-apply`. Five additional
+named-source cases passed, for thirteen standard cases in total. Each case
+used the same public Client entry, reached the authored Named Result, matched
+the separately authored expected rows, and reached normal stream termination.
+The native CLI representative SGA Result and packed SQL/Pipe cases also
+passed. `scripts/sga-surface-baseline.test.mjs` and
+`scripts/sga-surface-checker.test.mjs` passed 30/30; the latter checks the
+typed Graph and Delta task handoffs and separate Result roots. This source
+contains the latest main integration. The temporary installed packages,
+cache and Stores were removed after logs and digests were preserved in
+`worktrees/.codex-scratch/public-query-evidence-MWm1pF/summary.json`.
+
+| Packed package | SHA-256 |
+| --- | --- |
+| `client-wire` | `8e09005f4aac5063c1f6f8e4680dbb778a00e5c098126a85283e1f07685a76e5` |
+| `sdk` | `8831e97c0f431c0d0e60c52ba1b0eebad755f2fd2403963912daf82862cbfd8b` |
+| `run-host-core` | `199ab4d890df7786ba46d315f1b7f2aab931ea3094e809144527fbbc587d2348` |
+| `local-node` | `9b9761319d4b609b86eee663766795ee732d54f56f97506615199f4da61e75ef` |
+| `node` | `c72364973dd1ed42faea32425632b314de037c9b92035c9f5ec35b875914f225` |
+
+The packed Result API exposes values and normal stream completion, but not
+schema type, nullability or field order. Those properties are checked by the
+separate Program and common-checker fixtures and are not claimed as packed
+Result evidence. Other SGA operations, external Graph sources and Graph
+pushdown retain their separately recorded acceptance scope.

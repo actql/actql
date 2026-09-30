@@ -67,30 +67,25 @@ the node-count violation before A's degree violation; the second is empty at
 inclusive limits. The independently authored expectations include a nullable
 `node_id` for whole-graph violations. Neither DATA expression adds a sort or
 Result order declaration.
-At `8aa414c4ee90aa6247a7e49b4383b7b82e9d7be9`, the standard clean packed
+At `0601a0f02f99e23cb38b908f2d0955a96339b50f`, the standard clean packed
 installation passed `normalize-rows`, `mean-graphs`, `traverse-paths`,
 `union-graphs`, `graft-graphs`, `subtract-graphs`, `degree-rows`, `components`,
-`graph-bounds`, `match-projections` and `reach-subgraph` through both Embedded
-Local and HTTP.
+`graph-bounds`, `match-projections`, `reach-subgraph`, `graphs-equal` and
+`diff-apply` through both Embedded Local and HTTP.
 The same source passed the Node-free native CLI's
 representative SGA Result. The driver checked independently authored rows and
 stream termination; the public Result API does not expose schema type,
 nullability or column order.
-The original eight-case acceptance set still has two unproved cases.
-Common preparation admits graphs-equal and diff-apply, and their named source
-matches the independently authored Programs. In the latest packed Local probe,
-graphs-equal is accepted but ends before publication with
-`ACTQL_E_UNPUBLISHED_RUN`; diff-apply is refused during Run compilation.
-See the current handoff in
-`docs/reviews/2026-09-29-sga-packed-run-handoff.md`. These failures are not
-successful Result evidence.
+All original eight cases now pass packed Embedded Local and HTTP. The five
+additional cases above also pass, for thirteen standard named-source cases.
+The earlier failed probes and their repaired provider boundaries are recorded
+in `docs/reviews/2026-09-29-sga-packed-run-handoff.md`.
 The distribution Client job runs `scripts/sga-surface-checker.test.mjs`
-against common preparation. It admits the four source-free Graph fixtures that
-currently prepare and rejects a Relation passed to a Graph-only operation and
-a bounds call without a threshold. This is checker evidence, not packed
-runtime or publication evidence.
-Source authorization, packed public-input acceptance and independent
-positive, rejection and boundary fixtures for other operations remain required.
+against common preparation. It admits all thirteen source-free Graph fixtures,
+checks typed Graph/Delta task edges and Result roots, and rejects a Relation
+passed to a Graph-only operation and a bounds call without a threshold.
+Source authorization and independent positive, rejection and boundary
+fixtures for other Graph operations remain separate work.
 
 The zero-argument node_rows/edge_rows syntax emits boolean `true` in
 the existing Program. An empty object is not the registered operation body.
