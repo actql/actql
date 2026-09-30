@@ -10491,8 +10491,9 @@ async function exerciseStrategyGraph(
   }
   // Checked match-per-key and output-row ceilings are separate from the
   // generous provider work/workspace envelope, and each can reject this input.
-  for (const [name, matches, output] of [
-    ['matches-per-key', 1, 3], ['output-rows', 2, 2],
+  for (const {name, matches, output} of [
+    {name: 'matches-per-key', matches: 1, output: 3},
+    {name: 'output-rows', matches: 2, output: 2},
   ]) {
     const program = structuredClone(retainedRelationSequenceProgram);
     program.results = {producer: {from: {stage: 'matched', result: 'r'}}};
