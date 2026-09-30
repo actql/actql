@@ -36,7 +36,12 @@ export async function loadCheckpointRuntime() {
 
 function core(result, code) {
   const value = JSON.parse(result);
-  if (value.ok !== true) fail(code, value.issue);
+  if (value.ok !== true) {
+    const error = Object.assign(new Error(code, {
+      cause: value.detail ?? value.issue,
+    }), {code, issueCode: value.issue});
+    throw error;
+  }
   return value;
 }
 
