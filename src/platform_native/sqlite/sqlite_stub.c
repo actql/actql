@@ -4,12 +4,18 @@
 #include "moonbit.h"
 
 #include <dlfcn.h>
+#include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sqlite3.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 typedef const char *(*actql_sqlite_libversion_fn)(void);
 typedef int (*actql_sqlite_libversion_number_fn)(void);
@@ -77,6 +83,8 @@ typedef struct {
   int64_t result_capacity_objects;
   int64_t max_body_bytes;
   bool opened;
+  int test_close_failures;
+  int test_checked_close_count;
 } actql_native_sqlite_database;
 
 static void actql_replace_error(char **target, const char *message) {
@@ -156,11 +164,78 @@ static void actql_native_sqlite_library_finalize(void *value) {
 static void actql_native_sqlite_database_close(
   actql_native_sqlite_database *database
 ) {
-  if (!database->opened) return;
-  database->library->close_v2(database->database);
+  if (database->database == NULL) return;
+  if (database->library->close_v2(database->database) != SQLITE_OK) return;
   database->database = NULL;
   database->opened = false;
 }
+
+// Inspection callers retain this database even if open failed, and close it
+// explicitly through the retryable cleanup boundary. Only the private copy is
+// opened. No schema creation, WAL mode change or migration is performed here.
+static void actql_native_sqlite_database_finalize(void *value);
+
+void *actql_native_sqlite_open_inspection_database(
+  actql_native_sqlite_library *library,
+  moonbit_bytes_t path,
+  int32_t length,
+  int64_t max_body_bytes
+) {
+  actql_native_sqlite_database *database = moonbit_make_external_object(
+    actql_native_sqlite_database_finalize,
+    sizeof(actql_native_sqlite_database)
+  );
+  memset(database, 0, sizeof(*database));
+  database->library = library;
+  if (library != NULL) moonbit_incref(library);
+  database->max_body_bytes = max_body_bytes;
+  if (library == NULL || library->dynamic_library == NULL) {
+    actql_replace_error(&database->error, "SQLite library is unavailable");
+    return database;
+  }
+  char *text = actql_copy_text(path, length);
+  if (text == NULL) {
+    actql_replace_error(&database->error, "inspection path allocation failed");
+    return database;
+  }
+  int code = library->open_v2(text, &database->database,
+    SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL);
+  free(text);
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "open inspection database failed");
+  } else database->opened = true;
+  return database;
+}
+
+int32_t actql_native_sqlite_close_checked(
+  actql_native_sqlite_database *database
+) {
+  if (database->database == NULL) return 1;
+  database->test_checked_close_count++;
+  if (database->test_close_failures > 0) {
+    database->test_close_failures--;
+    actql_replace_error(&database->error, "injected inspection close failure");
+    return 0;
+  }
+  int code = database->library->close_v2(database->database);
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "close SQLite database failed");
+    return 0;
+  }
+  database->database = NULL;
+  database->opened = false;
+  return 1;
+}
+
+// Whitebox-only callers inject a physical close failure on their own database;
+// no environment setting or public execution/authorization API enables it.
+void actql_native_sqlite_test_fail_close(
+  actql_native_sqlite_database *database, int32_t failures
+) { database->test_close_failures = failures; }
+
+int32_t actql_native_sqlite_test_checked_close_count(
+  actql_native_sqlite_database *database
+) { return database->test_checked_close_count; }
 
 static void actql_native_sqlite_database_finalize(void *value) {
   actql_native_sqlite_database *database = value;
@@ -240,6 +315,63 @@ static int actql_user_version(actql_native_sqlite_database *database) {
   return version;
 }
 
+#define ACTQL_RECORDS_FIELDS \
+  "namespace TEXT NOT NULL," \
+  "record_key TEXT NOT NULL," \
+  "revision INTEGER NOT NULL CHECK(revision >= 0)," \
+  "body BLOB NOT NULL," \
+  "PRIMARY KEY(namespace, record_key)"
+#define ACTQL_CAPACITY_FIELDS \
+  "namespace TEXT NOT NULL," \
+  "reservation_key TEXT NOT NULL," \
+  "reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes >= 0)," \
+  "reserved_objects INTEGER NOT NULL CHECK(reserved_objects >= 0)," \
+  "PRIMARY KEY(namespace, reservation_key)"
+#define ACTQL_CLAIMS_FIELDS \
+  "namespace TEXT NOT NULL," \
+  "claim_key TEXT NOT NULL," \
+  "ordinal INTEGER NOT NULL CHECK(ordinal > 0)," \
+  "PRIMARY KEY(namespace, claim_key)," \
+  "UNIQUE(namespace, ordinal)"
+
+int32_t actql_native_sqlite_inspection_schema(
+  actql_native_sqlite_database *database
+) {
+  if (!database->opened || actql_user_version(database) != 3) {
+    actql_replace_error(&database->error, "unsupported inspection SQLite schema");
+    return 0;
+  }
+  const char *names[] = {"actql_records", "actql_capacity", "actql_claims"};
+  const char *definitions[] = {
+    "CREATE TABLE actql_records(" ACTQL_RECORDS_FIELDS ") STRICT",
+    "CREATE TABLE actql_capacity(" ACTQL_CAPACITY_FIELDS ") STRICT",
+    "CREATE TABLE actql_claims(" ACTQL_CLAIMS_FIELDS ") STRICT"
+  };
+  for (int index = 0; index < 3; index++) {
+    sqlite3_stmt *statement = NULL;
+    int code = database->library->prepare_v2(database->database,
+      "SELECT sql FROM sqlite_schema WHERE type='table' AND name=?1", -1,
+      &statement, NULL);
+    if (code == SQLITE_OK) code = database->library->bind_text(statement, 1,
+      names[index], -1, SQLITE_STATIC);
+    if (code == SQLITE_OK) code = database->library->step(statement);
+    int matches = 0;
+    if (code == SQLITE_ROW) {
+      int length = database->library->column_bytes(statement, 0);
+      const void *sql = database->library->column_blob(statement, 0);
+      matches = length == (int)strlen(definitions[index]) && sql != NULL &&
+        memcmp(sql, definitions[index], (size_t)length) == 0;
+    }
+    if (statement != NULL && database->library->finalize(statement) != SQLITE_OK)
+      matches = 0;
+    if (!matches) {
+      actql_replace_error(&database->error, "unknown inspection SQLite schema");
+      return 0;
+    }
+  }
+  return 1;
+}
+
 static bool actql_initialize_schema(
   actql_native_sqlite_database *database
 ) {
@@ -257,25 +389,13 @@ static bool actql_initialize_schema(
   const char *schema =
     "BEGIN IMMEDIATE;"
     "CREATE TABLE IF NOT EXISTS actql_records("
-    "namespace TEXT NOT NULL,"
-    "record_key TEXT NOT NULL,"
-    "revision INTEGER NOT NULL CHECK(revision >= 0),"
-    "body BLOB NOT NULL,"
-    "PRIMARY KEY(namespace, record_key)"
+    ACTQL_RECORDS_FIELDS
     ") STRICT;"
     "CREATE TABLE IF NOT EXISTS actql_capacity("
-    "namespace TEXT NOT NULL,"
-    "reservation_key TEXT NOT NULL,"
-    "reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes >= 0),"
-    "reserved_objects INTEGER NOT NULL CHECK(reserved_objects >= 0),"
-    "PRIMARY KEY(namespace, reservation_key)"
+    ACTQL_CAPACITY_FIELDS
     ") STRICT;"
     "CREATE TABLE IF NOT EXISTS actql_claims("
-    "namespace TEXT NOT NULL,"
-    "claim_key TEXT NOT NULL,"
-    "ordinal INTEGER NOT NULL CHECK(ordinal > 0),"
-    "PRIMARY KEY(namespace, claim_key),"
-    "UNIQUE(namespace, ordinal)"
+    ACTQL_CLAIMS_FIELDS
     ") STRICT;"
     "PRAGMA user_version=3;"
     "COMMIT;";
@@ -301,6 +421,87 @@ static bool actql_initialize_schema(
     return false;
   }
   return true;
+}
+
+// Whitebox fixture: the child commits and exits without SQLite close, leaving
+// the complete schema/record in WAL. The parent removes only this fixture's
+// SHM, so an inspector that ignores WAL or opens the source is detectable.
+int32_t actql_native_sqlite_test_unclosed_coordinator(
+  actql_native_sqlite_library *library,
+  moonbit_bytes_t path, int32_t path_length,
+  moonbit_bytes_t key, int32_t key_length,
+  moonbit_bytes_t body, int32_t body_length,
+  int32_t missing_schema
+) {
+  char *text = actql_copy_text(path, path_length);
+  if (text == NULL) return 0;
+  pid_t child = fork();
+  if (child < 0) { free(text); return 0; }
+  if (child == 0) {
+    actql_native_sqlite_database database;
+    memset(&database, 0, sizeof(database));
+    database.library = library;
+    if (library->open_v2(text, &database.database,
+        SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL) != SQLITE_OK ||
+        !actql_initialize_schema(&database) ||
+        actql_exec(&database, "PRAGMA wal_autocheckpoint=0") != SQLITE_OK)
+      _exit(1);
+    sqlite3_stmt *statement = NULL;
+    int code = library->prepare_v2(database.database,
+      "INSERT INTO actql_records VALUES('coordinator_dispatch',?1,0,?2)",
+      -1, &statement, NULL);
+    if (code == SQLITE_OK) code = library->bind_text(statement, 1,
+      (const char *)key, key_length, SQLITE_TRANSIENT);
+    if (code == SQLITE_OK) code = library->bind_blob(statement, 2,
+      body, body_length, SQLITE_TRANSIENT);
+    if (code == SQLITE_OK) code = library->step(statement);
+    if (code != SQLITE_DONE) _exit(2);
+    if (library->finalize(statement) != SQLITE_OK) _exit(3);
+    if (missing_schema && actql_exec(&database,
+        "DROP TABLE actql_capacity") != SQLITE_OK) _exit(4);
+    _exit(0);
+  }
+  int status = -1;
+  int waited;
+  do { waited = waitpid(child, &status, 0); } while (waited < 0 && errno == EINTR);
+  size_t length = strlen(text);
+  char *shm = malloc(length + 5);
+  int result = child > 0 && waited == child && WIFEXITED(status) &&
+    WEXITSTATUS(status) == 0 && shm != NULL;
+  if (result) {
+    snprintf(shm, length + 5, "%s-shm", text);
+    result = unlink(shm) == 0;
+  }
+  free(shm);
+  free(text);
+  return result;
+}
+
+moonbit_bytes_t actql_native_sqlite_test_file_bytes(
+  moonbit_bytes_t path, int32_t length
+) {
+  char *text = actql_copy_text(path, length);
+  if (text == NULL) return actql_copy_bytes(NULL, 0);
+  int descriptor = open(text, O_RDONLY | O_NOFOLLOW);
+  free(text);
+  struct stat info;
+  if (descriptor < 0 || fstat(descriptor, &info) != 0 ||
+      info.st_size < 0 || info.st_size > 1048576) {
+    if (descriptor >= 0) close(descriptor);
+    return actql_copy_bytes(NULL, 0);
+  }
+  moonbit_bytes_t bytes = moonbit_make_bytes_raw((int32_t)info.st_size);
+  off_t position = 0;
+  while (position < info.st_size) {
+    ssize_t count = pread(descriptor, bytes + position,
+      (size_t)(info.st_size - position), position);
+    if (count < 0 && errno == EINTR) continue;
+    if (count <= 0) break;
+    position += count;
+  }
+  close(descriptor);
+  if (position != info.st_size) return actql_copy_bytes(NULL, 0);
+  return bytes;
 }
 
 static int32_t actql_bind_key(

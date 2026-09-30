@@ -3,6 +3,7 @@ import {
   queryRemoteDispatch,
   releaseRemoteDispatch,
   sendRemoteDispatch,
+  projectRemoteDispatchResponse,
 } from './remote-site-client.mjs';
 import {
   ExecutionAuthorizationError,
@@ -12,6 +13,7 @@ import {
 const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
+const text = value => typeof value === 'string' && value.length > 0;
 
 const member = (value, name) => {
   try {
@@ -65,6 +67,7 @@ export function createRemoteSiteCoordinator({
       typeof control.prepareCoordinatorIntent !== 'function' ||
       typeof control.prepareCoordinatorUnknown !== 'function' ||
       typeof control.prepareCoordinatorObservation !== 'function' ||
+      typeof control.coordinatorTransitionIsReplay !== 'function' ||
       typeof control.coordinatorCompletionEvidenceAvailable !== 'function' ||
       journal === undefined || store === null || typeof store !== 'object' ||
       typeof store.accept !== 'function' ||
@@ -108,7 +111,7 @@ export function createRemoteSiteCoordinator({
   const recovered = store.recoverJournal(journal, control);
   const records = new Map(recovered.map(value => [
     control.identity(value.request),
-    value.record,
+    Object.freeze({dispatch: value.request, record: value.record}),
   ]));
   const recoveredOutputs = outputEnabled
     ? store.recoverOutputs(journal, control, transferControl)
@@ -138,7 +141,7 @@ export function createRemoteSiteCoordinator({
   const recordFor = dispatch => {
     const record = records.get(control.identity(dispatch));
     if (record === undefined) fail('RemoteDispatchIntentMissing');
-    return record;
+    return record.record;
   };
   const observe = (dispatch, response) => {
     const record = recordFor(dispatch);
@@ -150,7 +153,8 @@ export function createRemoteSiteCoordinator({
         response.measurement === undefined) {
       store.advance(transition, record, control);
     } else if (response.evidence !== undefined &&
-        response.subject !== undefined && response.measurement !== undefined) {
+        ((response.subject === undefined && response.measurement === undefined) ||
+        (response.subject !== undefined && response.measurement !== undefined))) {
       store.advanceEvidence(
         transition,
         response.evidence,
@@ -162,17 +166,22 @@ export function createRemoteSiteCoordinator({
     } else {
       fail('RemoteManagedOutputEvidenceIncomplete');
     }
-    return response;
+    return Object.freeze({observation: response,
+      replay: control.coordinatorTransitionIsReplay(transition)});
   };
   const exchange = async (request, operation) => {
     const record = recordFor(request.dispatch);
+    let response;
     try {
-      return observe(request.dispatch, await operation(request));
+      response = await operation(request);
     } catch (error) {
       const transition = control.prepareCoordinatorUnknown(record);
       store.advance(transition, record, control);
       throw error;
     }
+    // Semantic rejection and failed/unknown durable admission are not a new
+    // transport outcome. In particular, a rejected replay must not revise state.
+    return observe(request.dispatch, response).observation;
   };
   const projectOutputRecord = record => {
     const projection = control.coordinatorOutputRecordResultProjection(record);
@@ -444,6 +453,38 @@ export function createRemoteSiteCoordinator({
   return Object.freeze({
     recovered,
     recoveredOutputs,
+    // The Host supplies its currently authenticated Site/generation binding.
+    // Received identity is only a lookup hint; the typed existing admitter
+    // checks the whole response against the exact durable request below.
+    receiveObservation({body, binding} = {}) {
+      if (typeof body !== 'string' || Buffer.byteLength(body) > 65_536 ||
+          !text(binding?.siteKey) || !Number.isSafeInteger(binding?.siteGeneration)) {
+        fail('InvalidRemoteCoordinatorObservation');
+      }
+      let hint;
+      try { hint = JSON.parse(body); }
+      catch (cause) {
+        throw Object.assign(new Error('RemoteCoordinatorObservationRejected', {cause}),
+          {code: 'RemoteCoordinatorObservationRejected', issueCode: 'InvalidDispatch'});
+      }
+      const retained = records.get(hint?.dispatch_request_cid);
+      if (retained === undefined) fail('RemoteDispatchIntentMissing');
+      const key = control.journalKey(retained.dispatch);
+      if (key[1] !== binding.siteKey || Number(key[2]) !== binding.siteGeneration) {
+        fail('RemoteCoordinatorObservationScopeMismatch');
+      }
+      try {
+        const statusReply = hint.version === 'actql-remote-dispatch-status/0.1';
+        const admitted = control.admitResponseJson(body, retained.dispatch, statusReply);
+        return observe(retained.dispatch, projectRemoteDispatchResponse(
+          control, retained.dispatch, admitted, {statusReply}));
+      } catch (cause) {
+        const issueCode = control.coordinatorObservationIssueCode?.(cause);
+        if (!issueCode) throw cause;
+        throw Object.assign(new Error('RemoteCoordinatorObservationRejected', {cause}),
+          {code: 'RemoteCoordinatorObservationRejected', issueCode});
+      }
+    },
     async dispatch(value) {
       const request = options(value);
       // Before the durable intent and before any send: a deny, failure,
@@ -469,7 +510,8 @@ export function createRemoteSiteCoordinator({
         request.dispatch,
       );
       const record = store.accept(admission, request.dispatch, control);
-      records.set(control.identity(request.dispatch), record);
+      records.set(control.identity(request.dispatch),
+        Object.freeze({dispatch: request.dispatch, record}));
       return exchange(request, send);
     },
     query(value) {

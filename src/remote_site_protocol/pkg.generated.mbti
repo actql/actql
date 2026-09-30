@@ -89,6 +89,8 @@ pub fn coordinator_dispatch_intent_kind(CoordinatorDispatchIntentAdmission) -> D
 
 pub fn coordinator_dispatch_intent_matches_request(CoordinatorDispatchIntentRecord, DispatchRequest) -> Bool
 
+pub fn coordinator_dispatch_record_history_json(CoordinatorDispatchIntentRecord) -> Result[String, DispatchIssue]
+
 pub fn coordinator_dispatch_record_revision(CoordinatorDispatchIntentRecord) -> Int
 
 pub fn coordinator_dispatch_record_state_codes(CoordinatorDispatchIntentRecord) -> Array[String]
@@ -97,7 +99,13 @@ pub fn coordinator_dispatch_transition_attempt_identity(CoordinatorDispatchTrans
 
 pub fn coordinator_dispatch_transition_durable_json(DurableCoordinatorDispatchRecord, CoordinatorDispatchTransition, evidence? : RemoteExecutionEvidence?, subject? : RemoteManagedOutputSubject?, measurement? : RemoteManagedOutputMeasurement?) -> Result[String, DispatchIssue]
 
+pub fn coordinator_dispatch_transition_expected_history_json(CoordinatorDispatchTransition) -> Result[String, DispatchIssue]
+
 pub fn coordinator_dispatch_transition_expected_revision(CoordinatorDispatchTransition) -> Int
+
+pub fn coordinator_dispatch_transition_history_json(CoordinatorDispatchTransition) -> Result[String, DispatchIssue]
+
+pub fn coordinator_dispatch_transition_is_replay(CoordinatorDispatchTransition) -> Bool
 
 pub fn coordinator_dispatch_transition_journal_key(CoordinatorDispatchTransition) -> Array[String]
 
@@ -523,6 +531,8 @@ pub fn remote_runtime_step_transition(RemoteRuntimeStep) -> Result[DispatchTrans
 
 pub fn remote_runtime_success_action_code(RemoteRuntimeSuccessAction) -> Int
 
+pub fn restore_coordinator_dispatch_history_json(CoordinatorDispatchIntentRecord, String, RemoteExecutionEvidence?) -> Result[Unit, DispatchIssue]
+
 pub fn restore_coordinator_dispatch_intent(CoordinatorDispatchJournal, DispatchRequest) -> Result[CoordinatorDispatchIntentRecord, DispatchIssue]
 
 pub fn restore_coordinator_dispatch_record(CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Result[Unit, DispatchIssue]
@@ -614,6 +624,9 @@ pub(all) enum DispatchIssue {
   DurabilityUnconfirmed
   StateCollision
   QuarantinedCapacity
+  ObservationHistoryCapacityExceeded
+  ObservationAdmissionClosed
+  ObservationHistoryRequired
 } derive(Eq, @debug.Debug)
 
 type DispatchRecord

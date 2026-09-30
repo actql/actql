@@ -19,6 +19,7 @@ struct DurableCoordinatorDispatchRecord {
   evidence : RemoteExecutionEvidence?
   subject : RemoteManagedOutputSubject?
   measurement : RemoteManagedOutputMeasurement?
+  observation_history_json : String
   body : String
 }
 
@@ -39,6 +40,7 @@ fn emit_durable_coordinator_record(
   accepted_subject_json : String,
   accepted_measurement_cid : String,
   accepted_measurement_json : String,
+  observation_history_json : String,
 ) -> Result[String, DispatchIssue] {
   if revision < 0 {
     return Err(InvalidJournal)
@@ -66,6 +68,8 @@ fn emit_durable_coordinator_record(
     @encode.string_value(writer, accepted_subject_json)
     @encode.key(writer, "dispatch_request_cid")
     @encode.string_value(writer, request.dispatch_request_cid)
+    @encode.key(writer, "observation_history_json")
+    @encode.string_value(writer, observation_history_json)
     @encode.key(writer, "progress_state")
     @encode.number_value(writer, progress_code.to_double())
     @encode.key(writer, "request_json")
@@ -85,7 +89,7 @@ fn emit_durable_coordinator_record(
     @encode.key(writer, "site_revision")
     @encode.number_value(writer, site_revision.to_double())
     @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-remote-coordinator-record/0.1")
+    @encode.string_value(writer, "actql-remote-coordinator-history-record/0.1")
     @encode.end_object(writer)
   } catch {
     _ => return Err(InvalidJournal)
@@ -113,6 +117,7 @@ pub fn coordinator_dispatch_admission_durable_json(
     "",
     "",
     "",
+    "[]",
   )
 }
 
@@ -263,7 +268,10 @@ pub fn coordinator_dispatch_transition_durable_json(
   if current.request.dispatch_request_cid !=
     transition.record.request.dispatch_request_cid ||
     durable_coordinator_projection(current) != transition.expected ||
-    coordinator_record_projection(transition.record) != transition.expected {
+    coordinator_record_projection(transition.record) != transition.expected ||
+    current.observation_history_json !=
+    emit_coordinator_history(transition.expected_history).unwrap() ||
+    transition.record.observation_history != transition.expected_history {
     return Err(StateCollision)
   }
   let next_evidence = match
@@ -310,7 +318,11 @@ pub fn coordinator_dispatch_transition_durable_json(
   }
   emit_durable_coordinator_record(
     current.request,
-    current.revision + 1,
+    if transition.replay {
+      current.revision
+    } else {
+      current.revision + 1
+    },
     coordinator_progress_code(transition.next_progress),
     transition.next_site_revision,
     transition.next_site_execution,
@@ -324,6 +336,7 @@ pub fn coordinator_dispatch_transition_durable_json(
     next_subject.1,
     next_measurement.0,
     next_measurement.1,
+    emit_coordinator_history(transition.next_history).unwrap(),
   )
 }
 
@@ -371,14 +384,20 @@ pub fn admit_durable_coordinator_dispatch_record(
 ) -> Result[DurableCoordinatorDispatchRecord, DispatchIssue] {
   try {
     let body = @utf8.decode(bytes) catch { _ => raise EvidenceJsonStop }
-    let object = evidence_object(evidence_root(body, 1048576, 64, 2), [
+    let root = evidence_root(body, 1048576, 64, 2)
+    let header = evidence_decoded(@decode.open_object(root))
+    if evidence_text(header, "version") == "actql-remote-coordinator-record/0.1" {
+      return Err(ObservationHistoryRequired)
+    }
+    let object = evidence_object(root, [
       "accepted_evidence_cid", "accepted_evidence_json", "accepted_measurement_cid",
       "accepted_measurement_json", "accepted_subject_cid", "accepted_subject_json",
-      "dispatch_request_cid", "progress_state", "request_json", "revision", "site_cleanup",
-      "site_evidence", "site_execution", "site_material_available", "site_quarantined_capacity",
-      "site_revision", "version",
+      "dispatch_request_cid", "observation_history_json", "progress_state", "request_json",
+      "revision", "site_cleanup", "site_evidence", "site_execution", "site_material_available",
+      "site_quarantined_capacity", "site_revision", "version",
     ])
-    if evidence_text(object, "version") != "actql-remote-coordinator-record/0.1" {
+    if evidence_text(object, "version") !=
+      "actql-remote-coordinator-history-record/0.1" {
       raise EvidenceJsonStop
     }
     let request = admit_dispatch_request_body(
@@ -487,12 +506,21 @@ pub fn admit_durable_coordinator_dispatch_record(
       is Err(_) {
       raise EvidenceJsonStop
     }
+    let observation_history_json = evidence_text(
+      object, "observation_history_json",
+    )
+    if restore_coordinator_dispatch_history_json(
+        record, observation_history_json, evidence,
+      )
+      is Err(_) {
+      raise EvidenceJsonStop
+    }
     let canonical = match
       emit_durable_coordinator_record(
         request, revision, progress_code, site_revision, site_execution, site_evidence,
         site_cleanup, site_material_available, site_quarantined_capacity, accepted_evidence_cid,
         accepted_evidence_json, accepted_subject_cid, accepted_subject_json, accepted_measurement_cid,
-        accepted_measurement_json,
+        accepted_measurement_json, observation_history_json,
       ) {
       Ok(value) => value
       Err(_) => raise EvidenceJsonStop
@@ -519,6 +547,7 @@ pub fn admit_durable_coordinator_dispatch_record(
       evidence,
       subject,
       measurement,
+      observation_history_json,
       body,
     })
   } catch {
@@ -538,6 +567,10 @@ pub fn restore_durable_coordinator_dispatch_record(
   }
   if coordinator_record_projection(record) ==
     durable_coordinator_projection(durable) {
+    if emit_coordinator_history(record.observation_history).unwrap() !=
+      durable.observation_history_json {
+      return Err(StateCollision)
+    }
     return Ok(record)
   }
   match
@@ -555,7 +588,16 @@ pub fn restore_durable_coordinator_dispatch_record(
       durable.accepted_subject_cid,
       durable.accepted_measurement_cid,
     ) {
-    Ok(_) => Ok(record)
+    Ok(_) =>
+      match
+        restore_coordinator_dispatch_history_json(
+          record,
+          durable.observation_history_json,
+          durable.evidence,
+        ) {
+        Ok(_) => Ok(record)
+        Err(issue) => Err(issue)
+      }
     Err(issue) => Err(issue)
   }
 }

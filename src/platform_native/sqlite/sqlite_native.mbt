@@ -30,6 +30,23 @@ extern "C" fn open_database_ffi(
 ) -> Database = "actql_native_sqlite_open_database"
 
 ///|
+#borrow(library, path)
+extern "C" fn open_inspection_database_ffi(
+  library : Library,
+  path : Bytes,
+  length : Int,
+  max_body_bytes : Int64,
+) -> Database = "actql_native_sqlite_open_inspection_database"
+
+///|
+#borrow(database)
+extern "C" fn close_checked_ffi(database : Database) -> Bool = "actql_native_sqlite_close_checked"
+
+///|
+#borrow(database)
+extern "C" fn inspection_schema_ffi(database : Database) -> Bool = "actql_native_sqlite_inspection_schema"
+
+///|
 #borrow(database)
 extern "C" fn database_ready_ffi(database : Database) -> Bool = "actql_native_sqlite_database_ready"
 
@@ -252,6 +269,42 @@ pub fn Database::read(
     })
   } else {
     Err(operation_issue(self, code))
+  }
+}
+
+///|
+/// Open only an isolated inspection copy. The caller always receives the
+/// cleanup owner, including when SQLite open failed; inspect status before use.
+pub fn Library::open_inspection_database(
+  self : Library,
+  path : String,
+  max_body_bytes : Int64,
+) -> Database {
+  let bytes = @utf8.encode(path)
+  open_inspection_database_ffi(self, bytes, bytes.length(), max_body_bytes)
+}
+
+///|
+pub fn Database::inspection_status(
+  self : Database,
+) -> Result[Unit, NativeSqliteIssue] {
+  if database_ready_ffi(self) && inspection_schema_ffi(self) {
+    Ok(())
+  } else {
+    Err(DatabaseOpen(decode_message(database_error_ffi(self))))
+  }
+}
+
+///|
+/// Failure leaves the physical owner intact. A retry never reopens SQLite or
+/// repeats inspection/initialization; success is idempotent.
+pub fn Database::close_checked(
+  self : Database,
+) -> Result[Unit, NativeSqliteIssue] {
+  if close_checked_ffi(self) {
+    Ok(())
+  } else {
+    Err(Physical(decode_message(database_error_ffi(self))))
   }
 }
 

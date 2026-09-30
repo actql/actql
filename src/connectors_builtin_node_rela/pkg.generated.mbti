@@ -1371,6 +1371,8 @@ pub fn strategy_remote_bundle_transition_projection(@remote_bundle.RemoteBundleT
 
 pub fn strategy_remote_coordinator_completion_evidence_available(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Bool
 
+pub fn strategy_remote_coordinator_history_restore(@remote_site_protocol.CoordinatorDispatchIntentRecord, String, @remote_site_protocol.RemoteExecutionEvidence?) -> Unit raise NodeHostFailure
+
 pub fn strategy_remote_coordinator_intent_commit(@remote_site_protocol.CoordinatorDispatchIntentAdmission, Bool) -> @remote_site_protocol.CoordinatorDispatchIntentRecord raise NodeHostFailure
 
 pub fn strategy_remote_coordinator_intent_is_new(@remote_site_protocol.CoordinatorDispatchIntentAdmission) -> Bool
@@ -1384,6 +1386,8 @@ pub fn strategy_remote_coordinator_intent_prepare(@remote_site_protocol.Coordina
 pub fn strategy_remote_coordinator_intent_restore(@remote_site_protocol.CoordinatorDispatchJournal, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.CoordinatorDispatchIntentRecord raise NodeHostFailure
 
 pub fn strategy_remote_coordinator_journal_create(String) -> @remote_site_protocol.CoordinatorDispatchJournal raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_observation_issue_code(NodeHostFailure) -> String
 
 pub fn strategy_remote_coordinator_output_admission_json(@remote_site_protocol.CoordinatorOutputAdmission) -> String raise NodeHostFailure
 
@@ -1427,6 +1431,8 @@ pub fn strategy_remote_coordinator_prepare_observation_without_evidence(@remote_
 
 pub fn strategy_remote_coordinator_prepare_unknown(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> @remote_site_protocol.CoordinatorDispatchTransition raise NodeHostFailure
 
+pub fn strategy_remote_coordinator_record_history_json(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> String raise NodeHostFailure
+
 pub fn strategy_remote_coordinator_record_restore(@remote_site_protocol.CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Unit raise NodeHostFailure
 
 pub fn strategy_remote_coordinator_record_revision(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Int
@@ -1434,6 +1440,12 @@ pub fn strategy_remote_coordinator_record_revision(@remote_site_protocol.Coordin
 pub fn strategy_remote_coordinator_record_status(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Array[String]
 
 pub fn strategy_remote_coordinator_transition_commit(@remote_site_protocol.CoordinatorDispatchTransition, Bool) -> Unit raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_transition_expected_history_json(@remote_site_protocol.CoordinatorDispatchTransition) -> String raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_transition_history_json(@remote_site_protocol.CoordinatorDispatchTransition) -> String raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_transition_is_replay(@remote_site_protocol.CoordinatorDispatchTransition) -> Bool
 
 pub fn strategy_remote_coordinator_transition_key(@remote_site_protocol.CoordinatorDispatchTransition) -> Array[String]
 

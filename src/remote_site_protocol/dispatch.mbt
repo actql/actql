@@ -173,6 +173,9 @@ pub(all) enum DispatchIssue {
   DurabilityUnconfirmed
   StateCollision
   QuarantinedCapacity
+  ObservationHistoryCapacityExceeded
+  ObservationAdmissionClosed
+  ObservationHistoryRequired
 } derive(Eq, Debug)
 
 ///|

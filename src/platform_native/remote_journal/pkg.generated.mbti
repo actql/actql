@@ -34,6 +34,10 @@ pub fn recovered_site_dispatch_subject(RecoveredSiteDispatch) -> @remote_site_pr
 // Errors
 
 // Types and methods
+type CoordinatorInitializationCleanup
+pub fn CoordinatorInitializationCleanup::pending(Self) -> Bool
+pub fn CoordinatorInitializationCleanup::retry(Self) -> Result[Unit, NativeRemoteJournalIssue]
+
 type CoordinatorJournal
 pub fn CoordinatorJournal::accept(Self, @remote_site_protocol.DispatchRequest) -> Result[(@remote_site_protocol.DispatchAcceptance, @remote_site_protocol.CoordinatorDispatchIntentRecord), NativeRemoteJournalIssue]
 pub fn CoordinatorJournal::close(Self) -> Bool
@@ -66,6 +70,7 @@ pub(all) enum NativeRemoteJournalIssue {
   StaleSiteBinding
   MissingDispatch
   StateCollision
+  InitializationCleanupPending(NativeRemoteJournalIssue?, NativeRemoteJournalIssue, CoordinatorInitializationCleanup)
 }
 
 pub(all) enum NativeRemoteStartClaim {

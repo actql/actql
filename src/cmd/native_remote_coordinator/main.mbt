@@ -72,8 +72,12 @@ fn coordinator_issue(issue : @journal.NativeRemoteJournalIssue) -> String {
     @journal.MissingDispatch => "Coordinator dispatch is missing"
     @journal.StateCollision => "Coordinator journal state collided"
     @journal.StaleSiteBinding => "Coordinator Site binding is stale"
+    @journal.Protocol(@remote.ObservationHistoryRequired) =>
+      "Coordinator journal observation history required"
     @journal.Protocol(_) => "Coordinator protocol state was rejected"
     @journal.Physical(_) => "Coordinator journal persistence failed"
+    @journal.InitializationCleanupPending(_, _, _) =>
+      "Coordinator journal inspection cleanup pending"
   }
 }
 
