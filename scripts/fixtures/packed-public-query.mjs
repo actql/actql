@@ -93,6 +93,7 @@ for (const name of sgaCases) {
       await readFile(resolve('sga-source-fixtures', `${name}.${suffix}`)));
   }
 }
+const sgaFailures = [];
 async function exerciseSga(mode, extraEnv) {
   for (const name of selectedSgaCases) {
     const child = spawn(process.execPath,
@@ -107,8 +108,13 @@ async function exerciseSga(mode, extraEnv) {
       child.once('error', reject);
       child.once('close', resolve);
     });
-    assert.equal(code, 0, `${name}: ${Buffer.concat(output).toString()}`);
-    console.log(Buffer.concat(output).toString().trimEnd());
+    const diagnostic = Buffer.concat(output).toString();
+    if (code !== 0) {
+      sgaFailures.push({mode, name, code});
+      console.error(`packed SGA ${mode}/${name} failed (${code}): ${diagnostic}`);
+    } else {
+      console.log(diagnostic.trimEnd());
+    }
   }
 }
 await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
@@ -147,3 +153,6 @@ try {
   await host.close();
   DuckDBPreparedStatement.prototype.stream = stream;
 }
+// Exercise both transports before rejecting the acceptance run. A failed
+// case remains a failure; the other transport provides independent evidence.
+assert.deepEqual(sgaFailures, [], 'Packed SGA acceptance failures');
