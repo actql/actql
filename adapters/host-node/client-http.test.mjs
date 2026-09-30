@@ -552,6 +552,8 @@ test('known status refusal and unknown faults classify equally on both ports',
           {code: 'WaitAborted'}), 408, 'WaitAborted'],
         [Object.assign(new Error('Storage detail'),
           {code: 'PrivateStorageFailure'}), 500, 'ClientHostFailure'],
+        [new ClientError('PrivateStorageFailure'),
+          500, 'ClientHostFailure'],
         [new Error('Unclassified failure'), 500, 'ClientHostFailure'],
       ]) {
         cause = error;
@@ -559,7 +561,13 @@ test('known status refusal and unknown faults classify equally on both ports',
         assert.equal(response.status, status);
         assert.deepEqual(await response.json(), {code});
         await assert.rejects(port.perform('status', {connection, ref}),
-          {code});
+          error => {
+            assert.ok(error instanceof ClientError);
+            assert.equal(error.code, code);
+            assert.equal(error.message, code);
+            assert.equal(error.cause, cause);
+            return true;
+          });
       }
       cause = Object.assign(new Error('ClientRunCancellationDenied'),
         {code: 'ClientRunCancellationDenied'});
@@ -572,6 +580,58 @@ test('known status refusal and unknown faults classify equally on both ports',
         {code: 'ClientRunCancellationDenied'});
       await assert.rejects(port.perform('cancel', {connection, ref}),
         {code: 'ClientRunCancellationDenied'});
+    });
+  });
+
+test('cancel and reconcile classify synchronous and asynchronous Host faults',
+  async () => {
+    const connection = {mode: 'remote', owner: 'remote',
+      runners: [], consentRefs: []};
+    let fault = () => {};
+    const options = {authenticate: () => 'principal-a',
+      authorizeConnection: () => true,
+      negotiate: () => ({version: 'actql-client-host/0.1',
+        mode: 'remote', owner: 'remote', durability: 'volatile',
+        scopeRef: 'principal-a', capabilities: [], limits: {
+          maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+          maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
+          maxRows: 10, maxBatchRows: 10,
+          maxBatchRetainedValueBytes: 2048}}),
+      cancel: () => fault(), reconcile: () => fault(), maxRowBytes: 1024};
+    const port = createNodeInProcessClientHost(options);
+    await withServer(createClientHttpHandler(options), async base => {
+      for (const operation of ['cancel', 'reconcile']) {
+        for (const ErrorType of [Error, ClientError]) {
+          for (const asynchronous of [false, true]) {
+            for (const [sourceCode, publicCode, status] of [
+              ['RunStateAccessDenied', 'RunStateAccessDenied', 403],
+              ['PrivateStorageFailure', 'ClientHostFailure', 500],
+            ]) {
+              const cause = ErrorType === ClientError
+                ? new ClientError(sourceCode)
+                : Object.assign(new Error(sourceCode), {code: sourceCode});
+              fault = asynchronous ? () => Promise.reject(cause)
+                : () => { throw cause; };
+              const response = await fetch(
+                `${base}/actql/client/0.1/${operation}`, {
+                  method: 'POST',
+                  headers: {'content-type': 'application/json'},
+                  body: JSON.stringify({connection, ref}),
+                });
+              assert.equal(response.status, status);
+              assert.deepEqual(await response.json(), {code: publicCode});
+              await assert.rejects(
+                port.perform(operation, {connection, ref}), error => {
+                  assert.ok(error instanceof ClientError);
+                  assert.equal(error.code, publicCode);
+                  assert.equal(error.message, publicCode);
+                  assert.equal(error.cause, cause);
+                  return true;
+                });
+            }
+          }
+        }
+      }
     });
   });
 

@@ -16,7 +16,12 @@ import {inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
 import {authorizedLocalResultFrames} from './in-process-result.mjs';
 import {publicClientErrorCode} from './client-http.mjs';
 
-const fail = code => { throw new ClientError(code); };
+const localErrors = new WeakSet();
+const fail = code => {
+  const error = new ClientError(code);
+  localErrors.add(error);
+  throw error;
+};
 
 export function createNodeInProcessClientHost({
   authenticate, authorizeConnection, negotiate, prepareSubmit, submit,
@@ -139,15 +144,9 @@ export function createNodeInProcessClientHost({
       // Discovery shares the HTTP ingress's handlers and reply validation.
       if (operation === 'resources' || operation === 'resource-inspect' ||
           operation === 'resource-peek') {
-        let answer;
-        try {
-          answer = await invoke(operation === 'resources' ? resources
-            : operation === 'resource-inspect' ? inspectResource
-              : peekResource);
-        } catch (error) {
-          if (error instanceof ClientError) throw error;
-          throw new ClientError(publicClientErrorCode(error), {cause: error});
-        }
+        const answer = await invoke(operation === 'resources' ? resources
+          : operation === 'resource-inspect' ? inspectResource
+            : peekResource);
         const {connection: _connection, ...expected} = body;
         if (!(operation === 'resources'
           ? validResourceListing(answer, {
@@ -159,8 +158,8 @@ export function createNodeInProcessClientHost({
         }
         return answer;
       }
-      if (operation === 'cancel') return invoke(cancel);
-      if (operation === 'reconcile') return invoke(reconcile);
+      if (operation === 'cancel') return await invoke(cancel);
+      if (operation === 'reconcile') return await invoke(reconcile);
       if (operation === 'delivery-attempt') {
         const found = await inspectAuthorizedDeliveryAttempt(resultService, {
           indexKey: ref, principalId, purpose: 'download',
@@ -181,7 +180,10 @@ export function createNodeInProcessClientHost({
       }
       fail('UnknownClientOperation');
     } catch (error) {
-      if (error instanceof ClientError) throw error;
+      // Input and reply diagnostics created by this ingress are already
+      // public Client errors. A handler-supplied ClientError is not proof
+      // that its code is public; classify it like any other Host failure.
+      if (localErrors.has(error)) throw error;
       throw new ClientError(publicClientErrorCode(error), {cause: error});
     }
   }});
