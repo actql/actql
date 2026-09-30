@@ -10167,7 +10167,13 @@ fn graph_relation_publication_cid(variant : String) -> String {
   } else if variant == "subtract" {
     "sha256:581c1ad7ac48237df5c669e328275ed013a700f7308143a32557810117210089"
   } else if variant == "graph_bounds" {
-    "sha256:17d576d1679a19ebaa39babfe25c6922f65888c29781f7ea73b3f2af674b13c7"
+    // The bounds kernel emits the whole-Graph rows before per-node rows.
+    // Independent CID preimage: {"sort":"relation","value":[
+    // {"actual":2,"kind":"nodes","max":1,"node_id":null},
+    // {"actual":2,"kind":"edges","max":1,"node_id":null},
+    // {"actual":2,"kind":"degree","max":1,"node_id":1},
+    // {"actual":2,"kind":"degree","max":1,"node_id":2}]}.
+    "sha256:ef020b0f84c290dff499e09e66f810128a9a64ec49b5f579f034c58fb2b22eaa"
   } else if variant == "match_edges" ||
     variant == "edge_projection" ||
     variant == "union_numeric" {
