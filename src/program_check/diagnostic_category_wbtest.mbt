@@ -1,4 +1,37 @@
 ///|
+test "Graph query categories retain typed input limits and unknown failures" {
+  let cases : Array[(@graph.MatchIssueKind, DiagnosticCategory)] = [
+    (Structure(InvalidCount), InvalidInput),
+    (Structure(InvalidBody), InvalidInput),
+    (Structure(InvalidWeight), InvalidInput),
+    (Structure(UnknownParameter("p")), InvalidInput),
+    (
+      Structure(ContractMismatch(IncompatibleContracts(Unqualified("id"), []))),
+      InvalidInput,
+    ),
+    (Structure(ContractMismatch(InvalidBody)), UnclassifiedFailure),
+    (Decode(MissingField), InvalidInput),
+    (UnknownField("missing"), InvalidInput),
+    (UntypedField("missing"), InvalidInput),
+    (ExpectedBoolean, InvalidInput),
+    (Typing(UnknownParameter("p")), InvalidInput),
+    (Value(WrongType), InvalidInput),
+    (Structure(InvalidLimits), InvalidConfiguration),
+    (Typing(InvalidLimits), InvalidConfiguration),
+    (Value(InvalidLimits), InvalidConfiguration),
+    (Structure(BudgetExceeded), CompileLimit),
+    (Typing(BudgetExceeded), CompileLimit),
+    (Value(BudgetExceeded), CompileLimit),
+    (Value(UnsupportedReference), UnsupportedImplementation),
+    (Structure(IncompleteGraph), UnclassifiedFailure),
+    (Typing(InvalidScope("internal")), UnclassifiedFailure),
+  ]
+  for (kind, expected) in cases {
+    assert_eq(graph_match_diagnostic_category(kind), expected)
+  }
+}
+
+///|
 test "diagnostic categories preserve limit meaning across preparation wrappers" {
   let failures : Array[LocalConstructionFailure] = [
     Environment(BudgetExceeded),

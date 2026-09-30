@@ -1,5 +1,5 @@
 ///|
-/// Supply the two independent engine-atomic limits for local path traversal.
+/// Supply the two independent engine-atomic limits for local path queries.
 /// The selected Host policy owns the ceilings; authored output guards can only
 /// narrow them during checked application.
 fn derive_traversal_limits(
@@ -58,15 +58,34 @@ fn derive_traversal_limits(
       if covered.contains(step) {
         continue
       }
-      let operation = match
+      let (operation, output_law) = match
         @pipeline.step_at(pipeline, step).unwrap().operation {
-        @pipeline.Traverse(..) => "traverse"
-        @pipeline.Reach(_) => "reach"
+        @pipeline.Traverse(..) =>
+          ("traverse", Some("actql.bound.traverse-nodes"))
+        @pipeline.Reach(_) => ("reach", None)
+        @pipeline.Shortest(..) =>
+          ("shortest_path", Some("actql.bound.shortest-path"))
         _ => continue
       }
       let subject = operation + ":checked-step:" + step.to_string()
       if !spend(subject.length()) {
         return Err(BudgetExceeded)
+      }
+      let output_candidates : Array[@wire.ProgramProofClaim] = []
+      for bound in derived.applications[stage] {
+        if !spend(1) {
+          return Err(BudgetExceeded)
+        }
+        if @step_bounds.checked_step(bound) != step ||
+          !physical_equal(@step_bounds.checked_pipeline(bound), pipeline) {
+          continue
+        }
+        let proof = @step_bounds.checked_proof(bound)
+        let witness = @wire.program_proof_witness(proof)
+        if @wire.unit(witness) == @derivation.Rows &&
+          output_law == Some(@law.name(@wire.law(witness))) {
+          output_candidates.push(proof)
+        }
       }
       let mut path_index = None
       let mut output_index = None
@@ -79,7 +98,14 @@ fn derive_traversal_limits(
           return Err(MissingTraversalCeiling(stage, field))
         }
         let requests : Array[@host.ResolvedLimitRequest] = [
-          { subject: subject + suffix, candidates: [], },
+          {
+            subject: subject + suffix,
+            candidates: if suffix == "" {
+              output_candidates
+            } else {
+              []
+            },
+          },
         ]
         let extended = match
           @host.extend_resolved_limits(

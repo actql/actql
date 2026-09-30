@@ -1,0 +1,36 @@
+{
+  "answer": {
+    "schema": {
+      "start_id": {
+        "type": "string",
+        "nullable": false
+      },
+      "node_id": {
+        "type": "string",
+        "nullable": false
+      },
+      "id": {
+        "type": "string",
+        "nullable": false
+      },
+      "depth": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "rows": [
+      {
+        "start_id": "A",
+        "node_id": "A",
+        "id": "A",
+        "depth": 0
+      },
+      {
+        "start_id": "A",
+        "node_id": "B",
+        "id": "B",
+        "depth": 1
+      }
+    ]
+  }
+}

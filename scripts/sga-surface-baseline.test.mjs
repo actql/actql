@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {structuralToJson, jsonAdmissionDiagnostic} from
   '../_build/js/debug/build/aql_text_test_bridge/aql_text_test_bridge.js';
+import {reachSelectorChainSource} from './reach-selector-capacity-fixture.mjs';
 const fixture = name => readFileSync(new URL(
   `../spec/frontend/fixtures/sga-surface/${name}`, import.meta.url), 'utf8');
 
@@ -44,6 +45,40 @@ test('Reach selector rejects missing, forward and JSON-string references', () =>
     source.replace('from: seeds', 'from: "seeds"'),
   ]) {
     assert.equal(structuralToJson(text), '', text);
+  }
+});
+
+test('Reach selector fixtures preserve duplicate, empty and nullable inputs', () => {
+  for (const name of ['reach-selector-duplicates', 'reach-selector-empty',
+    'reach-selector-nullable']) {
+    const expected = fixture(`${name}.expected-program.json`);
+    assert.equal(jsonAdmissionDiagnostic(expected), '', name);
+    assert.deepEqual(JSON.parse(structuralToJson(fixture(`${name}.named.aql`))),
+      JSON.parse(expected), name);
+  }
+});
+
+test('Reach capacity sources preserve independently declared chain Programs', () => {
+  const source = fixture('reach-selector.named.aql');
+  for (const count of [44, 45]) {
+    const expected = JSON.parse(fixture(
+      'reach-selector.expected-program.json'));
+    const steps = expected.stages[0].steps;
+    const nodes = [];
+    const edges = [];
+    for (let node = count - 1; node >= 0; node--) {
+      nodes.push({id: `N${String(node).padStart(2, '0')}`});
+    }
+    for (let edge = 0; edge < count - 1; edge++) {
+      edges.push({src: `N${String(edge).padStart(2, '0')}`,
+        dst: `N${String(edge + 1).padStart(2, '0')}`});
+    }
+    steps[0].values.rows = nodes;
+    steps[1].values.rows = edges;
+    steps[3].reach.max_depth = count - 1;
+    assert.deepEqual(JSON.parse(structuralToJson(
+      reachSelectorChainSource(source, count))), expected);
+    assert.equal(jsonAdmissionDiagnostic(JSON.stringify(expected)), '');
   }
 });
 
@@ -101,6 +136,13 @@ test('traverse paths retain a Relation seed and semantic edge identities', () =>
   assert.equal(jsonAdmissionDiagnostic(expected), '');
   assert.deepEqual(JSON.parse(structuralToJson(
     fixture('traverse-paths.named.aql'))), JSON.parse(expected));
+});
+
+test('shortest path retains explicit endpoints and the authored hop bound', () => {
+  const expected = fixture('shortest-path.expected-program.json');
+  assert.equal(jsonAdmissionDiagnostic(expected), '');
+  assert.deepEqual(JSON.parse(structuralToJson(
+    fixture('shortest-path.named.aql'))), JSON.parse(expected));
 });
 
 test('structural Graph union preserves both producers and Results', () => {
