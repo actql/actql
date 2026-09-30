@@ -632,7 +632,11 @@ test('outbound gateway durably dispatches without an inbound Site listener',
     assert.deepEqual((await terminalCompletion).state, [3, 0, 0, 0, 0]);
     assert.equal(siteAcceptCount, 1);
 
-    const releaseCompletion = gateway.release({dispatch: request});
+    let releaseFinished = false;
+    const releaseCompletion = gateway.release({dispatch: request}).then(value => {
+      releaseFinished = true;
+      return value;
+    }, error => error);
     const releasePoll = await post(
       gateway.origin,
       `${path}/poll`,
@@ -643,6 +647,13 @@ test('outbound gateway durably dispatches without an inbound Site listener',
       JSON.parse(releasePoll.body).version,
       'actql-remote-poll-release/0.1',
     );
+    // A later query has not been offered to the Site. The response to the
+    // already-delivered release must still complete the release waiter first.
+    let lateQueryFinished = false;
+    const lateQuery = gateway.query({dispatch: request}).then(value => {
+      lateQueryFinished = true;
+      return value;
+    }, error => error);
     siteStore.advance(control.prepareRelease(record), record, control);
     siteStore.advance(control.prepareReleased(record), record, control);
     const releaseObservation = await post(
@@ -652,8 +663,21 @@ test('outbound gateway durably dispatches without an inbound Site listener',
       control.statusJson(record, undefined, undefined, undefined),
     );
     assert.equal(releaseObservation.status, 200);
+    // Waiters settle before the HTTP ACK; no sleep or timeout is needed to
+    // distinguish an uncompleted release from the physical released state.
+    assert.equal(releaseFinished, true);
+    assert.equal(lateQueryFinished, false);
     assert.deepEqual((await releaseCompletion).state, [3, 0, 2, 0, 0]);
     assert.equal(siteAcceptCount, 1);
+    assert.equal(gateway.pending(), 1);
+    const lateQueryPoll = await post(gateway.origin, `${path}/poll`, siteMaterial);
+    assert.equal(lateQueryPoll.status, 200);
+    assert.equal(JSON.parse(lateQueryPoll.body).version,
+      'actql-remote-poll-query/0.1');
+    assert.equal((await post(gateway.origin, `${path}/observations`, siteMaterial,
+      control.statusJson(record, undefined, undefined, undefined))).status, 200);
+    assert.equal(lateQueryFinished, true);
+    assert.deepEqual((await lateQuery).state, [3, 0, 2, 0, 0]);
     assert.equal(gateway.pending(), 0);
 
     const unseen = dispatch({
@@ -935,6 +959,15 @@ test('exact query is delivered and answered ahead of an unresolved dispatch',
           'actql-remote-poll-query/0.1');
         assert.equal(JSON.parse(offered.body).dispatch_request_cid,
           control.identity(request));
+        if (!acceptanceAcknowledged && pass === 0) {
+          // Query admission requires a status response. A delayed acceptance
+          // reply still falls back to the exact dispatch waiter; it must not
+          // complete or remove the query.
+          assert.equal((await post(gateway.origin, `${path}/observations`,
+            siteMaterial, control.replyJson(accepted))).status, 200);
+          assert.equal(queryFinished, false);
+          assert.equal(gateway.pending(), 2);
+        }
         const foreign = dispatch({dispatchId: 'unrelated-query-response'});
         assert.equal((await post(gateway.origin, `${path}/observations`,
           siteMaterial, control.pollNotSeenJson(foreign))).status, 404);
