@@ -105,9 +105,9 @@ fn classify_diagnostic_cause(
       | Vector(Decode(kind))
       | Event(Decode(kind))
       | KeyEvidence(Decode(kind)) => decode_diagnostic_category(kind)
-      // An unprojected composite or ownership failure must not blame the author.
-      GraphMatch(_)
-      | KeyEvidence(InputContractMismatch)
+      GraphMatch(kind) => graph_match_diagnostic_category(kind)
+      // An ownership failure must not blame the author.
+      KeyEvidence(InputContractMismatch)
       | Vector(RankingInputMismatch)
       | Calendar(MissingProfile) => UnclassifiedFailure
       _ => InvalidInput
@@ -168,6 +168,34 @@ fn classify_diagnostic_cause(
 }
 
 ///|
+// Graph predicates and path queries retain typed causes. Project only known
+// input/limit errors; unavailable evidence and internal scope failures remain
+// unclassified rather than becoming a definitive author error.
+fn graph_match_diagnostic_category(
+  kind : @graph.MatchIssueKind,
+) -> DiagnosticCategory {
+  match kind {
+    Structure(InvalidLimits | ContractMismatch(InvalidLimits))
+    | Typing(InvalidLimits)
+    | Value(InvalidLimits) => InvalidConfiguration
+    Structure(BudgetExceeded | ContractMismatch(BudgetExceeded))
+    | Typing(BudgetExceeded)
+    | Value(BudgetExceeded) => CompileLimit
+    Structure(Decode(kind)) | Decode(kind) => decode_diagnostic_category(kind)
+    Syntax(kind) => expression_syntax_diagnostic_category(kind)
+    Structure(IncompleteGraph | ContractMismatch(_))
+    | Typing(InvalidScope(_)) => UnclassifiedFailure
+    Value(UnsupportedReference) => UnsupportedImplementation
+    Structure(_)
+    | Typing(_)
+    | Value(_)
+    | UnknownField(_)
+    | UntypedField(_)
+    | ExpectedBoolean => InvalidInput
+  }
+}
+
+///|
 // Conversion preserves errors raised inside its encoding callback. Only typed
 // resource failures retain the limit classification through this Error wrapper.
 fn proof_conversion_diagnostic_category(error : Error) -> DiagnosticCategory {
@@ -188,21 +216,27 @@ fn relation_diagnostic_category(
   match kind {
     InvalidLimits | Expression(InvalidLimits) => InvalidConfiguration
     BudgetExceeded | Expression(BudgetExceeded) => CompileLimit
-    Syntax(issue) =>
-      match issue.kind {
-        InvalidLimits => InvalidConfiguration
-        BudgetExceeded => CompileLimit
-        Decode(kind) => decode_diagnostic_category(kind)
-        Text(InvalidLimits) => InvalidConfiguration
-        Text(CapacityExceeded | Lexical(ByteLimit | TokenLimit)) => CompileLimit
-        Text(Lexical(InvalidLimits)) => InvalidConfiguration
-        Text(TreeAdmission(kind)) => decode_diagnostic_category(kind)
-        _ => InvalidInput
-      }
+    Syntax(issue) => expression_syntax_diagnostic_category(issue.kind)
     FillValue(Decode(error)) => decode_diagnostic_category(error.kind)
     FillValue(ValueIssue(InvalidLimits, ..)) => InvalidConfiguration
     FillValue(ValueIssue(BudgetExceeded, ..)) => CompileLimit
     Temporal(_) => UnclassifiedFailure
+    _ => InvalidInput
+  }
+}
+
+///|
+fn expression_syntax_diagnostic_category(
+  kind : @expression_syntax.IssueKind,
+) -> DiagnosticCategory {
+  match kind {
+    InvalidLimits => InvalidConfiguration
+    BudgetExceeded => CompileLimit
+    Decode(kind) => decode_diagnostic_category(kind)
+    Text(InvalidLimits) => InvalidConfiguration
+    Text(CapacityExceeded | Lexical(ByteLimit | TokenLimit)) => CompileLimit
+    Text(Lexical(InvalidLimits)) => InvalidConfiguration
+    Text(TreeAdmission(kind)) => decode_diagnostic_category(kind)
     _ => InvalidInput
   }
 }

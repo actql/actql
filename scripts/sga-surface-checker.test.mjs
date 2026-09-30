@@ -135,3 +135,13 @@ test('graph_bounds requires an authored bound in common preparation', () => {
     'check_invalid_input');
   assert.ok(moon.clientProgramPreparationIssue(outcome));
 });
+
+test('invalid shortest path bounds retain a definitive input rejection', () => {
+  const program = fixture('shortest-path');
+  program.stages[0].steps.at(-1).shortest_path.max_hops = 0;
+  const outcome = prepare(program);
+  assert.equal(moon.clientProgramPreparationReady(outcome), undefined);
+  assert.equal(moon.clientProgramPreparationIssueCode(outcome),
+    'check_invalid_input');
+  assert.ok(moon.clientProgramPreparationIssue(outcome));
+});
