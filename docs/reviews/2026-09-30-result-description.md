@@ -86,6 +86,56 @@ its evidence even on failure.
 
 ## Verification record
 
-Implementation and targeted verification are in progress. Fixed source SHA,
-packed artifact digests, completed gates and exact-SHA CI will be recorded after
-the completion unit is committed. This paragraph is not a claim of CI success.
+The initial implementation is `6d65670f499bf7f611982ee666a291cb0e217060`.
+The grant-expiration and authority-capability correction is
+`04949b37dc43ca5d8d496560dc9525cfb278bb21`.
+Merged main (including PR #97) is
+`a9c1798153f2f30381eb3735c15dc18062a0fafe`.
+The combined source, clean throughout the Client gate, is
+`2d1c5553dfc70ac0d9f4ca1edad6d615fd36ff5a`. Integration had no conflicts.
+The later acceptance-record edit changes documentation only.
+
+| Local verification | Source | Executed result |
+| --- | --- | --- |
+| `node scripts/local-checks.mjs run lint` | `6d65670f4` | Passed version, formatting, public MoonBit/TypeScript API and portable dependency checks; no-DuckDB: 62 passed, one configured skip |
+| `node scripts/local-checks.mjs run spec` | `6d65670f4` | Passed contracts, generated artifacts, examples, links, resource/authorization vectors and metadata freshness |
+| `node scripts/local-checks.mjs run core --target js` | `04949b37d` | 7,054/7,054 and independent Run CID vector passed |
+| `node scripts/local-checks.mjs run core --target wasm` | `04949b37d` | 7,050/7,050 and independent Run CID vector passed |
+| `node scripts/local-checks.mjs run core --target native` | `04949b37d` | 7,132/7,132 and independent Run CID vector passed |
+| `node scripts/local-checks.mjs run host` | `04949b37d` | Passed Store/publication/Checkpoint, portable packages, clean runtime packing and installed Local assets |
+| `node scripts/local-checks.mjs run client` | `2d1c5553d` | 311/311 Client/Host checks, packed Node/browser, Checkpoint, native mTLS, SQL/Pipe/SGA, description and existing simulated Effect/capture recovery passed |
+
+Native compilation initially ran out of disk space; the recorded success is the
+subsequent completed run. The Host job initially could not write npm's external
+cache and passed with a workspace cache. The first combined Client attempt
+lacked the locked native DuckDB transport dependency; the complete rerun used
+the same dependency installation as CI. These environment failures and their
+logs remain distinguishable from the successful runs.
+
+The dedicated metadata acceptance repacked `2d1c5553d` and passed all eight
+recorded child commands. Evidence is retained as
+`worktrees/.codex-scratch/public-query-evidence-RRKAXY`: source SHA, digests,
+stdout/stderr, status, signal and duration. Only that run's expanded installation
+was removed. The actual app passed on embedded Local and TLS HTTP without
+fixture providers. Local was also tested with network access forbidden.
+
+| Packed package | SHA-256 |
+| --- | --- |
+| `client-wire` | `c9882e6300c184e7086e86a56cc70b1be3f65e059d0b97364ea49b379eac3a86` |
+| `sdk` | `823149a8d04223425d9752b29596b72e72d3401ef168e6d164b7ec1557b38cf3` |
+| `run-host-core` | `e3efe03ade3d248133f0694df488beaa4f9b3468fff529c24b529adffc411f73` |
+| `local-node` | `805874d6eb12f545c62cc7506746fc3311d1cfd288304daa294003753f0e092e` |
+| `node` | `c72364973dd1ed42faea32425632b314de037c9b92035c9f5ec35b875914f225` |
+
+Physical payload deletion plus Store restart, followed by metadata reclamation,
+passed the separate real filesystem Store test. Metadata authority revocation,
+grant expiration after asynchronous authorization, uncertain commit lookup and
+malformed remote descriptions have separate sequencing/validator tests; these
+use explicit test doubles and are not crash or external-provider acceptance.
+The portable Host package test uses actual MoonBit publication owners and fixed
+independent schema/profile identities.
+
+This record is local evidence. Exact-SHA CI is recorded in the independent PR's
+Validation section and checks, rather than inferred from PR #97 or another SHA.
+No external deployment or follow-on environment adapter implementation is
+claimed. Owner F still implements that adapter using the handoff above.

@@ -25,6 +25,11 @@ The publication exporter preserves the checked occurrence's declaration order
 in the existing durable binding's `result_fields`. Payload row keys and the
 execution receipt's canonical schema enumeration are unchanged.
 
+Existing immutable bindings are not rewritten. Descriptions use each retained
+binding's field order. New exports with a noncanonical declaration order have
+different binding and dependent publication CIDs; the canonical schema map and
+its CID are unchanged by this presentation-order correction.
+
 The common publication owner checks the index, Manifest, exact durable binding,
 Result Definition, and schema body. The SDK checks the requested Run/name/profile
 and recomputes the schema, Definition, and serialization contract identities.
@@ -64,8 +69,9 @@ nodes. Root depth is one. Oversized responses fail without truncating columns or
 contracts. These limits do not constitute a general process-memory guarantee.
 Aborting description stops that metadata request and never cancels the Run.
 
-Confirmed denial is `ResultAccessDenied`. Metadata expiration or loss is
-`ResultDescriptionUnavailable`; caller bounds produce
+Confirmed denial, including an absent or reclaimed public index, is
+`ResultAccessDenied`. Expired metadata or missing evidence behind a retained
+index is `ResultDescriptionUnavailable`; caller bounds produce
 `ResultDescriptionTooLarge`. Unsupported caller formats produce
 `UnsupportedResultDescriptionFormat`. Malformed or mismatched Host responses
 produce `InvalidHostResultDescription`. Transport failures remain read failures;
