@@ -136,6 +136,63 @@ test "run materials rebuild exactly the dispatched source-free Values Run" {
       limits,
     )
   }
+  let projected = issue_client_values_run_materials(
+    issuer_prepared,
+    issuer_compilation,
+    client_compiled_run_admission(allowed),
+    issued,
+    environment,
+    run_materials_environment_wire,
+    run_materials_document,
+    None,
+  ).unwrap()
+  // Independently assembled fields, not a snapshot copied from the issuer.
+  assert_eq(projected, run_materials_json(fields))
+  assert_eq(
+    @publication.publication_contract_identity(
+      admit(projected, issued_cid).unwrap().run_definition,
+    ),
+    issued_cid,
+  )
+  assert_true(
+    issue_client_values_run_materials(
+      issuer_prepared,
+      issuer_compilation,
+      client_compiled_run_admission(allowed),
+      issued,
+      environment,
+      run_materials_environment_wire,
+      run_materials_document.replace(old="{\"id\":2}", new="{\"id\":3}"),
+      None,
+    )
+    is Err(MaterialsRunMismatch),
+  )
+  assert_true(
+    issue_client_values_run_materials(
+      issuer_prepared,
+      issuer_compilation,
+      client_compiled_run_admission(allowed),
+      issued,
+      environment,
+      "{}",
+      run_materials_document,
+      None,
+    )
+    is Err(MaterialsEnvironment),
+  )
+  assert_true(
+    issue_client_values_run_materials(
+      issuer_prepared,
+      issuer_compilation,
+      client_compiled_run_admission(allowed),
+      issued,
+      environment,
+      run_materials_environment_wire,
+      run_materials_document,
+      Some(" ".repeat(65537)),
+    )
+    is Err(MaterialsParameters),
+  )
   // The Run definition CID of this fixed fixture, pinned independently of
   // the issuer: a change in what the CID covers, or in how the Site
   // rebuilds the Run, moves it. The Program definition CID has the same

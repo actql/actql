@@ -393,6 +393,8 @@ pub fn issue_client_task_source_free_invocation(ClientTaskCompilation, String, I
 
 pub fn issue_client_values_compiled_run(PreparedClientProgram, ClientValuesCompilation, String, String, String) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
+pub fn issue_client_values_run_materials(PreparedClientProgram, ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @program_check.CheckEnvironment, String, String, String?) -> Result[String, ClientValuesRunMaterialsIssue]
+
 pub fn issue_client_values_source_free_invocation(ClientValuesCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn issue_imported_client_effect_local_invocation(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Array[ClientEffectResultImportObservation], Int, Int, Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]

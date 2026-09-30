@@ -49,6 +49,162 @@ let client_values_run_materials_fields : Array[String] = [
 ]
 
 ///|
+/// Project an existing source-free Run, never compile a replacement Plan or
+/// issue new authority. The retained input is checked against the original
+/// checked identity; the existing compilation, admission and definition remain
+/// the only owners of the executable Run. JSON quoting counts against the wire
+/// cap, independently of the bounds of each retained input body.
+pub fn issue_client_values_run_materials(
+  prepared : PreparedClientProgram,
+  compilation : ClientValuesCompilation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  environment : @checked.CheckEnvironment,
+  environment_wire : String,
+  program : String,
+  parameters_wire : String?,
+) -> Result[String, ClientValuesRunMaterialsIssue] {
+  match
+    bind_source_free_client_values_run(
+      prepared, compilation, admission, definition,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(MaterialsBinding(issue))
+  }
+  let environment_cid = @checked.checking_environment_cid(environment)
+  guard environment_cid == prepared_client_check_environment_cid(prepared) &&
+    @environment.read(@utf8.encode(environment_wire), environment_cid, {
+      max_bytes: 65536,
+      max_nodes: 4096,
+      max_depth: 64,
+      max_members: 256,
+    })
+    is Ok(_) else {
+    return Err(MaterialsEnvironment)
+  }
+  let parameters = match parameters_wire {
+    None => None
+    Some(body) => {
+      let parsed = match
+        @source.parse_json_bytes(
+          @utf8.encode(body),
+          { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
+          source_path="Retained Run Parameters",
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(MaterialsParameters)
+      }
+      match
+        @decode.admit(parsed, {
+          max_nodes: 8192,
+          max_depth: 64,
+          max_string_bytes: 65536,
+          max_total_string_bytes: 65536,
+        }) {
+        Ok(value) => Some(value)
+        Err(_) => return Err(MaterialsParameters)
+      }
+    }
+  }
+  let checked_input = match
+    prepare_effect_free_client_program(
+      program,
+      Json,
+      environment,
+      parameters,
+      client_standard_program_preparation_limits(),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(MaterialsProgram(issue))
+  }
+  guard prepared_client_identity(checked_input) ==
+    prepared_client_identity(prepared) else {
+    return Err(MaterialsRunMismatch)
+  }
+  // This is a read-only projection of an already admitted definition. It does
+  // not reissue it (nor extend its original lifetime).
+  let parsed = match
+    @source.parse_json_bytes(
+      @utf8.encode(@publication.publication_contract_json(definition)),
+      { max_input_bytes: 100000, max_nodes: 10000, max_depth: 100, },
+      source_path="Owned Run Definition",
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(MaterialsMalformed)
+  }
+  let root = match
+    @decode.admit(parsed, {
+      max_nodes: 10000,
+      max_depth: 100,
+      max_string_bytes: 100000,
+      max_total_string_bytes: 100000,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(MaterialsMalformed)
+  }
+  let object = match @decode.open_object(root) {
+    Ok(value) => value
+    Err(_) => return Err(MaterialsMalformed)
+  }
+  let text = fn(name : String) -> String? {
+    match @decode.lookup(object, name) {
+      Some(cursor) => @decode.text(cursor).to_option()
+      None => None
+    }
+  }
+  let fields : Array[(String, String?)] = [
+    ("check_environment", Some(environment_wire)),
+    ("check_environment_cid", Some(environment_cid)),
+    ("created_at", text("created_at")),
+    ("parameters", parameters_wire),
+    (
+      "prepared_invocation",
+      Some(
+        @publication.run_evidence_value_json(
+          @publication.run_publication_prepared(admission),
+        ),
+      ),
+    ),
+    ("program", Some(program)),
+    ("program_format", Some("json")),
+    (
+      "run_authorization",
+      Some(
+        @publication.run_evidence_value_json(
+          @publication.run_publication_authorization(admission),
+        ),
+      ),
+    ),
+    ("run_id", text("run_id")),
+    ("scope_id", text("scope_id")),
+    ("valid_until", text("valid_until")),
+    ("version", Some("actql-remote-run-materials/0.1")),
+  ]
+  let writer = @encode.writer(@remote.REMOTE_RUN_MATERIALS_MAX_BYTES, 32, 2) catch {
+    _ => return Err(MaterialsMalformed)
+  }
+  try {
+    @encode.begin_object(writer)
+    for field in fields {
+      @encode.key(writer, field.0)
+      match field.1 {
+        Some(value) => @encode.string_value(writer, value)
+        None =>
+          if field.0 == "parameters" {
+            @encode.null_value(writer)
+          } else {
+            return Err(MaterialsMalformed)
+          }
+      }
+    }
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => Err(MaterialsMalformed)
+  }
+}
+
+///|
 /// Rebuild a source-free Values Run from `actql-remote-run-materials/0.1`
 /// and admit it only when its Run definition CID equals
 /// `expected_run_definition_cid`.
