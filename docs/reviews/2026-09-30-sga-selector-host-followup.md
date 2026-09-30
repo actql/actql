@@ -198,7 +198,7 @@ not cancellation during Graph execution. The in-flight retained-input kernel
 tests and the still-pending positive selector/Host capacity acceptance remain
 separate evidence.
 
-## Current integration: fourteen named-source cases
+## Prior integration: fourteen named-source cases
 
 At `13b35d7bfcc00d11de8cb0afb4e83d768236a2ff`, all original eight
 cases plus `shortest-path`, `traverse-paths`, `union-graphs`, `graft-graphs`,
@@ -220,7 +220,7 @@ binary CID match the tables above. The run removes its installed artifacts
 after preserving logs and observations. These are current integrated
 artifacts, not a carry-forward claim from the earlier Shortest-only source.
 
-The four positive Reach Relation-selector fixtures are not included in those
+At that source, the four positive Reach Relation-selector fixtures were not included in those
 fourteen successes. Their selected provider input-count boundary remains
 unconnected, so the capacity controls and runtime invalid-member/NULL checks
 remain pending. The scoped provider patch has been prepared and passes
@@ -249,9 +249,49 @@ the assertion, imported product code, and gate commands were unchanged.
 The failed run is retained in `_build/local-checks/sga-selector-lint.log`.
 No files were written to `/tmp`.
 
-These gates do not close the selected Reach provider connection. The default
+Those gates did not close the selected Reach provider connection. The default
 Client acceptance includes the four still-failing positive Relation-selector
 sources, so neither a complete current Client gate nor a Linux CI result is
 claimed. After the scoped provider change is adopted, rerun those sources,
 their membership/NULL refusals and output-capacity controls through the
 packed Local/HTTP path before declaring that boundary complete.
+
+## Retained Reach selector connection
+
+The scoped provider ownership restriction was lifted for the Reach input-count
+check. The integration retains A's `5a258f5cf700a813bc119e47f47dd642a535a75e`
+and adopted main `dae737a195ba2174eda6598d12b9c13f86efbed1` through merge
+`1e00bee6f10b49650f5f42e557631beafa77b9c4`. No A worktree was changed.
+
+At `db1eff6f290e9a46b5a7db65b98cc0883c94b788`, selected Reach requires
+exactly one Graph and, only for a checked Relation selector, one Relation.
+Scalar, IDs and predicate starts still reject an extra Relation. The shared
+Reach view path also binds its trusted output proof to the exact checked
+Graph and Relation input ports, using the existing owner/generation checks.
+The old unary output-proof guard had prevented the accepted selector from
+executing. No contract, version, limit or alternate kernel was added.
+
+Dedicated managed-provider tests check correct output, duplicate/empty seeds,
+nullable declarations with valid values, invalid cardinality, swapped Carrier
+types, foreign owners and cancellation with live retained inputs. They pass
+4/4 on JS and Wasm. The existing `query_integration` JS package passes 820/820,
+including the existing Traverse and retained-input coverage. Native and the
+final packed/Client acceptance are recorded separately in the PR validation.
+
+The first new packed probe passed the duplicate/empty sources but failed two
+test expectations. An unpublished, access-controlled failed Run returns
+`ResultAccessDenied`, as the prior cancellation acceptance already established.
+The capacity fixture had incorrectly expected 990 rows to succeed: besides
+the 1,000-row Host policy ceiling, the installed execution profile already
+limits sequence output to 100 rows. Neither limit is increased. The corrected
+independent chain oracle uses 13 starts (91 endpoint pairs) for success and
+14 starts (105 pairs) for failure. This exercises the installed profile's
+effective bound; it does not claim a public exact-boundary proof at 1,000 rows.
+The retained kernel's separately recorded exact/one-short ceiling checks
+remain distinct evidence.
+
+Diagnostic evidence is retained under
+`worktrees/.codex-scratch/public-query-evidence-p7hH15`. It is a failed probe,
+not a fixed clean-source acceptance. A targeted rerun with unchanged product
+artifacts confirms the corrected Local capacity expectations. Final packed
+acceptance repacks the committed source and covers both Local and HTTP.

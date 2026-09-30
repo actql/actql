@@ -122,34 +122,35 @@ try {
         const restored = await client.attach(rejected.ref);
         assert.equal((await restored.status()).status, 'failed', label);
         await assert.rejects(restored.result('answer').all(),
-          error => error.code === 'ResultUnavailable');
+          error => error.code === 'ResultAccessDenied');
         assert.deepEqual((await client.aql(badSource, {format: 'aql-text',
           requestId: id})).ref, rejected.ref);
       }
       console.log(`packed ${mode} selector membership and NULL failures passed`);
     }
     if (name === 'reach-selector') {
-      // The installed Host profile has a 1,000-row Graph output ceiling.
+      // Host policy permits 1,000 rows, but the installed execution profile
+      // also has a stricter 100-row sequence-output limit. Preserve both.
       // In a directed chain, all starts reach exactly n(n+1)/2 endpoint pairs.
       // This oracle comes from the Reach law, not compiler or kernel output.
-      const bounded = reachSelectorChainSource(source, 44);
+      const bounded = reachSelectorChainSource(source, 13);
       assert.notEqual(bounded, source);
       const within = await client.aql(bounded, {format: 'aql-text',
         requestId: `sga-selector-capacity-within-${randomUUID()}`});
-      assert.equal((await within.wait({signal: AbortSignal.timeout(120000)}))
-        .status, 'succeeded');
+      const withinState = await within.wait({signal: AbortSignal.timeout(120000)});
+      assert.equal(withinState.status, 'succeeded', JSON.stringify(withinState));
       const expectedRows = [];
-      for (let start = 0; start < 44; start++) {
-        for (let endpoint = start; endpoint < 44; endpoint++) {
+      for (let start = 0; start < 13; start++) {
+        for (let endpoint = start; endpoint < 13; endpoint++) {
           const startId = `N${String(start).padStart(2, '0')}`;
           const nodeId = `N${String(endpoint).padStart(2, '0')}`;
           expectedRows.push({start_id: startId, node_id: nodeId,
             depth: endpoint - start, id: nodeId});
         }
       }
-      assert.equal(expectedRows.length, 990);
+      assert.equal(expectedRows.length, 91);
       assert.deepEqual(await within.result('answer').all(), expectedRows);
-      const overflowing = reachSelectorChainSource(source, 45); // 1,035 pairs.
+      const overflowing = reachSelectorChainSource(source, 14); // 105 pairs.
       const overflowId = `sga-selector-capacity-overflow-${randomUUID()}`;
       const over = await client.aql(overflowing, {format: 'aql-text',
         requestId: overflowId});
@@ -160,7 +161,7 @@ try {
       const restored = await client.attach(over.ref);
       assert.equal((await restored.status()).status, 'failed');
       await assert.rejects(restored.result('answer').all(),
-        error => error.code === 'ResultUnavailable');
+        error => error.code === 'ResultAccessDenied');
       assert.deepEqual((await client.aql(overflowing, {format: 'aql-text',
         requestId: overflowId})).ref, over.ref);
       console.log(`packed ${mode} selector capacity boundary passed`);
