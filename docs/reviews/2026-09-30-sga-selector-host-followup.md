@@ -197,3 +197,32 @@ after observations and logs are saved. This proves pre-start Run cancellation,
 not cancellation during Graph execution. The in-flight retained-input kernel
 tests and the still-pending positive selector/Host capacity acceptance remain
 separate evidence.
+
+## Current integration: fourteen named-source cases
+
+At `13b35d7bfcc00d11de8cb0afb4e83d768236a2ff`, all original eight
+cases plus `shortest-path`, `traverse-paths`, `union-graphs`, `graft-graphs`,
+`subtract-graphs` and `match-projections` pass through clean packed Embedded
+Local, HTTPS Remote and the native CLI. Each reads the independent Named
+Results, including authored edge identity, NULL labels, path contents and
+order. The SDK run also passes SQL/Pipe controls, typed invalid-hop refusal,
+lookup, attach, idempotent resubmission, reread and stream completion. The
+packed pre-start cancellation acceptance runs in that same command.
+
+```sh
+ACTQL_TEST_SGA_CASES=components,reach-subgraph,diff-apply,mean-graphs,graphs-equal,normalize-rows,degree-rows,graph-bounds,shortest-path,traverse-paths,union-graphs,graft-graphs,subtract-graphs,match-projections node scripts/test-packed-public-query.mjs
+```
+
+Evidence: `worktrees/.codex-scratch/public-query-evidence-E9MzDs`.
+All eleven commands exit zero, without timeout or signal. Command 011 logs
+all fourteen native case names. The five tarball digests and the native
+binary CID match the tables above. The run removes its installed artifacts
+after preserving logs and observations. These are current integrated
+artifacts, not a carry-forward claim from the earlier Shortest-only source.
+
+The four positive Reach Relation-selector fixtures are not included in those
+fourteen successes. Their selected provider input-count boundary remains
+unconnected, so the capacity controls and runtime invalid-member/NULL checks
+remain pending. The scoped provider patch has been prepared and passes
+`git apply --check`, but is not applied while the file's A ownership remains
+in force. No replacement provider or private Host change was introduced.
