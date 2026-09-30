@@ -21,6 +21,9 @@ import {
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
+import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
+import {installNodeClientProgramPreparation} from
+  '../adapters/host-node/client-program-preparation.mjs';
 import {startHttpsOutboundSiteGateway} from
   '../adapters/host-node/outbound-site-gateway.mjs';
 import {signRemoteRuntimeBundle} from
@@ -195,6 +198,7 @@ const remoteInputBindingCid = `sha256:${createHash('sha256')
   .update(remoteInputBindingBody).digest('hex')}`;
 
 let server;
+let bearerServers;
 let applicationControlProxy;
 let standardGateway;
 let remoteSiteControl;
@@ -321,6 +325,17 @@ try {
       }
       response.writeHead(200, {'content-type': 'application/octet-stream'});
       response.end('chunk-b');
+      return;
+    }
+    if (request.url === '/both') {
+      // Mutual TLS was already required by this server; the bearer
+      // credential is checked in addition.
+      request.resume();
+      const authorized = request.method === 'POST' &&
+        request.headers.authorization === bearerServers?.controlAuthorization;
+      response.writeHead(authorized ? 200 : 401,
+        {'content-type': 'application/json'});
+      response.end(JSON.stringify({both: authorized}));
       return;
     }
     if (request.url === '/credential') {
@@ -976,6 +991,12 @@ try {
     throw new Error('native HTTP test listener has no TCP address');
   }
   const nativeHttpOrigin = `https://${nativeHttpHost}:${address.port}`;
+  bearerServers = await startNativeBearerServers({
+    host: nativeHttpHost,
+    key: await readFile(join(root, 'server.key')),
+    cert: await readFile(join(root, 'server.crt')),
+    root,
+  });
   const moon = join(
     process.env.MOON_HOME ?? '',
     'bin',
@@ -1107,6 +1128,9 @@ try {
     ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
     ACTQL_TEST_NATIVE_POLICY_CLOCK: join(root, 'placement-policy-clock.sqlite'),
     ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
+    ACTQL_TEST_NATIVE_HTTP_BEARER_URL: bearerServers.origin,
+    ACTQL_TEST_NATIVE_HTTP_BEARER_FOREIGN_URL: bearerServers.foreignOrigin,
+    ACTQL_TEST_NATIVE_HTTP_BEARER_ROOT: bearerServers.directory,
     ACTQL_TEST_NATIVE_HTTP_BAD_CERT: join(root, 'foreign-client.crt'),
     ACTQL_TEST_NATIVE_HTTP_BAD_KEY: join(root, 'foreign-client.key'),
     ACTQL_TEST_NATIVE_SQLITE_LIBRARY:
@@ -1950,6 +1974,59 @@ try {
     ['runtime-public.pem',
       testEnvironment.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY],
   ]);
+  // The Site executes one admitted Run, and a dispatch names it by its Run
+  // definition CID. Issue that Run for the same Program, environment and
+  // parameters through the common Client Program owners.
+  const applicationCheckEnvironment = moonModule.clientProgramCheckEnvironment(
+    canonical(environment), environment.evidence_bundle_cid,
+    false, false, true, false, false, false, false);
+  assert.ok(applicationCheckEnvironment);
+  const applicationProgram = installNodeClientProgramPreparation({
+    moon: moonModule, environment: applicationCheckEnvironment,
+  })({kind: 'aql', input: {text: applicationFiles.get('program.json'),
+    format: 'json'}, parameters: {minimum: 1}});
+  const applicationCompiled = portableRuntime.publicationControl
+    .prepareCheckedClientCompiledRun(applicationProgram, 'tasks', {
+      executionContextCid: physicalCid('native-application-execution-context'),
+      hostPolicyCid: physicalCid('native-application-host-policy'),
+      expiresAt: '2100-01-01T00:00:00.000Z',
+    });
+  const applicationRunDefinition = portableRuntime.publicationControl
+    .defineCheckedClientCompiledRun(applicationCompiled, {
+      namespaceId: 'native-application', runId: 'native-application-run',
+      createdAt: '2026-09-30T00:00:00.000Z',
+      validUntil: '2100-01-01T00:00:00.000Z',
+    });
+  // The Run definition CID is assembled independently from its fields.
+  const expectedApplicationRun = {
+    version: 'actql-run-definition/0.1',
+    authorization_context_cid:
+      physicalCid('native-application-execution-context'),
+    compiled_plan_cid: applicationCompiled.compiledPlan.identity,
+    invocation_template_cid: applicationCompiled.template.identity,
+    input_artifact_set_cid: canonicalHash({
+      version: 'actql-initial-input-artifact-set/0.1',
+      captured_artifact_cids: [],
+    }),
+    scope_id: 'native-application', run_id: 'native-application-run',
+    created_at: '2026-09-30T00:00:00.000Z',
+    valid_until: '2100-01-01T00:00:00.000Z',
+  };
+  assert.equal(applicationRunDefinition.identity,
+    canonicalHash(expectedApplicationRun));
+  assert.deepEqual(JSON.parse(applicationRunDefinition.wire), {
+    ...expectedApplicationRun,
+    run_definition_cid: canonicalHash(expectedApplicationRun),
+  });
+  applicationFiles.set('run-definition.json', applicationRunDefinition.wire);
+  applicationFiles.set('compiled-plan.json',
+    applicationCompiled.compiledPlan.wire);
+  applicationFiles.set('invocation-template.json',
+    applicationCompiled.template.wire);
+  applicationFiles.set('prepared-invocation.json',
+    applicationCompiled.preparedEvidence.wire);
+  applicationFiles.set('run-authorization.json',
+    applicationCompiled.authorization.wire);
   await Promise.all([...applicationFiles].map(([name, body_]) =>
     writeFile(join(applicationRoot, name), body_)));
 
@@ -1960,6 +2037,11 @@ try {
   assert.equal(inspected.code, 0, inspected.stderr);
   const applicationContract = JSON.parse(inspected.stdout);
   assert.equal(applicationContract.task_count, 4);
+  // The issued Run is for the same checked Program the Site loads.
+  assert.equal(JSON.parse(applicationCompiled.compiledPlan.wire)
+    .program_definition_cid, applicationContract.program_definition_cid);
+  assert.notEqual(applicationRunDefinition.identity,
+    applicationContract.program_definition_cid);
 
   nativeStoreTransferCid = undefined;
   nativeStoreTransferChunks = 0;
@@ -2063,7 +2145,7 @@ try {
   });
   const dispatch = remoteSiteControl.prepare({
     coordinatorAuthority: 'native-application-coordinator',
-    runDefinitionCid: applicationContract.program_definition_cid,
+    runDefinitionCid: applicationRunDefinition.identity,
     taskKey: 'application-task',
     taskAttempt: 1,
     dispatchId: 'native-application-dispatch',
@@ -2662,6 +2744,9 @@ try {
   }
   if (standardGateway !== undefined) {
     await standardGateway.close();
+  }
+  if (bearerServers !== undefined) {
+    await bearerServers.close();
   }
   if (server !== undefined) {
     server.close();

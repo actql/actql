@@ -171,3 +171,53 @@ pub fn CoordinatorJournal::close(_self : CoordinatorJournal) -> Bool {
 fn retain_native_import() -> Unit {
   ignore(@utf8.decode_lossy(b""))
 }
+
+///|
+pub fn Journal::claim_start(
+  _self : Journal,
+  _transition : @remote.DispatchTransition,
+  _claimant : String,
+) -> Result[NativeRemoteStartClaim, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::retain_dispatch_envelope(
+  _self : Journal,
+  _request : @remote.DispatchRequest,
+  _envelope : String,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::dispatch_envelope(
+  _self : Journal,
+  _attempt_identity : String,
+) -> Result[String?, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::retain_output_intent(
+  _self : Journal,
+  _key : String,
+  _body : String,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::pending_output_intents(
+  _self : Journal,
+) -> Result[Array[(String, String)], NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::complete_output_intent(
+  _self : Journal,
+  _key : String,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}

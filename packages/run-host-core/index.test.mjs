@@ -10,6 +10,7 @@ import {admitDispatchJson, dispatchCid, createJournal, prepareIntent,
   from '../coordinator-core/index.mjs';
 import {admitEnvironment, admitRequestFields, admitRunDefinition,
   admitSourceFreeRunDefinition,
+  issueSourceFreeRunMaterials,
   admitPublicationContract, admitRunEvidenceValue, sealRunEvidenceValue,
   validatePublicationChain,
   validatePublicationRecordTransition,
@@ -62,6 +63,84 @@ const without = (value, key) => {
   delete body[key];
   return cid(body);
 };
+
+test('Run materials project the original owner and retained input, not new authority', () => {
+  const document = read('values.json');
+  const environment = admitEnvironment(environmentWire, evidenceCid, {rela: true});
+  const prepared = prepare(document, 'json', environment);
+  const compilation = compileValues(prepared);
+  const authority = {executionContextCid: 'sha256:' + 'a'.repeat(64),
+    hostPolicyCid: 'sha256:' + 'b'.repeat(64), expiresAt: '2099-01-01T00:00:00.000Z'};
+  const allowed = issueAllowedRun(prepared, compilation, authority);
+  const definition = issueSourceFreeRunDefinition(prepared, compilation,
+    allowed.admission, 'original-scope', 'original-run',
+    '2026-09-30T00:00:00.000Z', '2098-01-01T00:00:00.000Z');
+  const retained = {document, format: 'json', environment, environmentWire};
+  const emit = (input = retained, run = definition) => issueSourceFreeRunMaterials(
+    prepared, compilation, allowed.admission, run, input);
+  const expected = {check_environment: environmentWire,
+    check_environment_cid: evidenceCid, created_at: '2026-09-30T00:00:00.000Z',
+    parameters: null, prepared_invocation: allowed.preparedInvocationWire,
+    program: document, program_format: 'json',
+    run_authorization: allowed.authorizationWire, run_id: 'original-run',
+    scope_id: 'original-scope', valid_until: '2098-01-01T00:00:00.000Z',
+    version: 'actql-remote-run-materials/0.1'};
+  assert.deepEqual(JSON.parse(emit()), expected);
+  const before = privateRunDefinition(definition);
+  assert.equal(emit(), emit());
+  assert.deepEqual(privateRunDefinition(definition), before);
+  const changedInput = JSON.parse(document);
+  changedInput.stages[0].steps[0].values.rows[1].id = 3;
+  assert.throws(() => emit({...retained, document: JSON.stringify(changedInput)}),
+    {code: 'RunHostRunMaterialsRejected'});
+  assert.throws(() => emit({...retained, environmentWire: '{}'}),
+    {code: 'RunHostRunMaterialsRejected'});
+  assert.throws(() => emit({...retained, parametersWire: ' '.repeat(65537)}),
+    {code: 'RunHostRunMaterialsRejected'});
+  assert.throws(() => emit({...retained, format: 'yaml'}),
+    {message: 'InvalidRunHostRunMaterialsInput'});
+  assert.throws(() => emit({...retained, run_id: 'replacement'}),
+    {message: 'InvalidRunHostRunMaterialsInput'});
+  const other = prepare(document, 'json', environment);
+  assert.throws(() => issueSourceFreeRunMaterials(other, compilation,
+    allowed.admission, definition, retained), {message: 'ForeignRunHostCompilation'});
+  // Both raw bodies fit their individual 64KiB bounds. Outer JSON quoting
+  // nevertheless exceeds 262144 bytes and must be bounded by the issuer.
+  const parametersWire = '\t'.repeat(65534) + '{}';
+  const paddedDocument = '\t'.repeat(65536 - Buffer.byteLength(document)) + document;
+  const paddedInput = {...retained, document: paddedDocument, parametersWire};
+  // Establish that input/parameters are individually admitted and unchanged.
+  assert.deepEqual(requestFields(prepareRequest(prepare(paddedDocument, 'json',
+    environment, parametersWire), 'sha256:' + 'c'.repeat(64), 'padding',
+  'sha256:' + 'd'.repeat(64))),
+  requestFields(prepareRequest(prepared, 'sha256:' + 'c'.repeat(64), 'padding',
+    'sha256:' + 'd'.repeat(64))));
+  assert.ok(Buffer.byteLength(JSON.stringify({...expected,
+    program: paddedDocument, parameters: parametersWire})) > 262144);
+  assert.throws(() => emit(paddedInput), {code: 'RunHostRunMaterialsRejected'});
+});
+
+test('Run materials preserve separately supplied parameter identity', () => {
+  const document = read('parameter-values.json');
+  const environment = admitEnvironment(environmentWire, evidenceCid, {rela: true});
+  const parametersWire = '{"n":3}';
+  const prepared = prepare(document, 'json', environment, parametersWire);
+  const compilation = compileValues(prepared);
+  const allowed = issueAllowedRun(prepared, compilation, {
+    executionContextCid: 'sha256:' + 'a'.repeat(64),
+    hostPolicyCid: 'sha256:' + 'b'.repeat(64), expiresAt: '2099-01-01T00:00:00.000Z'});
+  const definition = issueSourceFreeRunDefinition(prepared, compilation,
+    allowed.admission, 'original-scope', 'parameter-run',
+    '2026-09-30T00:00:00.000Z', '2098-01-01T00:00:00.000Z');
+  const retained = {document, format: 'json', environment, environmentWire, parametersWire};
+  const emit = input => issueSourceFreeRunMaterials(prepared, compilation,
+    allowed.admission, definition, input);
+  assert.equal(JSON.parse(emit(retained)).parameters, parametersWire);
+  assert.throws(() => emit({...retained, parametersWire: '{"n":4}'}),
+    {code: 'RunHostRunMaterialsRejected'});
+  assert.throws(() => emit({...retained, parametersWire: undefined}),
+    {code: 'RunHostRunMaterialsRejected'});
+});
 
 test('acquired observation binds the checked source and completed input',
   () => {

@@ -420,6 +420,20 @@ export function admitRunDefinition(wire: string): RunDefinition;
 export function admitSourceFreeRunDefinition(prepared: PreparedProgram,
   compilation: ValuesCompilation, admission: RunAdmission,
   wire: string): RunDefinition;
+/** Original JSON input retained alongside a Run; not new authority. */
+export interface SourceFreeRunMaterialsInput {
+  readonly document: string;
+  readonly format: 'json';
+  readonly environment: CheckEnvironment;
+  readonly environmentWire: string;
+  readonly parametersWire?: string;
+}
+/** Projects the existing Run and evidence. Does not compile, authorize or
+ * extend expiry. The encoded body is bounded to 262144 UTF-8 bytes. */
+export function issueSourceFreeRunMaterials(prepared: PreparedProgram,
+  compilation: ValuesCompilation, admission: RunAdmission,
+  definition: RunDefinition, retained: SourceFreeRunMaterialsInput): string;
+
 export function prepareRunStart(requested: RequestIdentity,
   retained: RequestIdentity, definition: RunDefinition,
   retainedRunDefinitionCid: string, dispatchReserved: boolean,

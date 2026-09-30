@@ -1,0 +1,30 @@
+supported_targets = "native"
+
+pkgtype(kind: "executable")
+
+import {
+  "actql/actql/check_environment" @environment,
+  "actql/actql/execution_site" @site,
+  "actql/actql/platform_native/bounded_files",
+  "actql/actql/platform_native/executor_slot" @slot,
+  "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/process_image",
+  "actql/actql/platform_native/publication_store",
+  "actql/actql/publication_payload" @payload,
+  "actql/actql/platform_native/remote_standard_host" @output,
+  "actql/actql/platform_native/remote_transfer_client" @transfer_client,
+  "actql/actql/platform_native/remote_transfer_journal" @transfer_journal,
+  "actql/actql/platform_native/remote_client" @client,
+  "actql/actql/platform_native/remote_journal" @journal,
+  "actql/actql/platform_native/remote_resident_host" @resident_host,
+  "actql/actql/platform_native/runtime_bundle" @bundle,
+  "actql/actql/platform_native/signature",
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/remote_resident_site" @resident,
+  "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/run_publication_host" @host,
+  "moonbitlang/core/argparse",
+  "moonbitlang/core/env",
+  "moonbitlang/core/string",
+  "actql/actql/platform_native/remote_runtime" @runtime,
+}

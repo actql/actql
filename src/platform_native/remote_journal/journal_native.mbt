@@ -587,6 +587,384 @@ fn Journal::persist_transition(
 }
 
 ///|
+fn valid_start_claimant(claimant : String) -> Bool {
+  if claimant.is_empty() || claimant.length() > 128 {
+    return false
+  }
+  for character in claimant {
+    let code = character.to_int()
+    if !((code >= 48 && code <= 57) ||
+      (code >= 65 && code <= 90) ||
+      (code >= 97 && code <= 122) ||
+      code == 45 ||
+      code == 46 ||
+      code == 58 ||
+      code == 95) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn start_claim_body(claimant : String, request_identity : String) -> String {
+  "{\"claimant\":\"" +
+  claimant +
+  "\",\"dispatch_request_cid\":\"" +
+  request_identity +
+  "\",\"version\":\"actql-remote-start-claim/0.1\"}"
+}
+
+///|
+fn start_claimant_of(body : Bytes) -> String {
+  let text = @utf8.decode_lossy(body)
+  let prefix = "{\"claimant\":\""
+  guard text.has_prefix(prefix) else { return "" }
+  let rest = text.unsafe_substring(start=prefix.length(), end=text.length())
+  match rest.find("\"") {
+    Some(end) => rest.unsafe_substring(start=0, end~)
+    None => ""
+  }
+}
+
+///|
+/// Exclusively claim the start of one dispatch attempt. The Accepted to
+/// Provisioning transition and a start-claim record naming `claimant` are
+/// written in one transaction fenced by the current Site binding. This is
+/// distinct from `commit_transition`, whose idempotent retry of an identical
+/// body would let two executors both succeed. A retried claim by the same
+/// claimant after a lost reply is `AlreadyMine`; a claim by anyone else is
+/// `LostTo`; a cancellation that won the Accepted state first is `Cancelled`.
+pub fn Journal::claim_start(
+  self : Journal,
+  transition : @remote.DispatchTransition,
+  claimant : String,
+) -> Result[NativeRemoteStartClaim, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if !@remote.dispatch_transition_starts_execution(transition) ||
+    !valid_start_claimant(claimant) {
+    return Err(Protocol(@remote.InvalidTransition))
+  }
+  let key = match @remote.dispatch_transition_attempt_identity(transition) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let claim = @utf8.encode(
+    start_claim_body(
+      claimant,
+      @remote.dispatch_transition_request_identity(transition),
+    ),
+  )
+  let expected = @remote.dispatch_transition_expected_revision(transition)
+  let next = match @remote.dispatch_transition_durable_json(transition) {
+    Ok(value) => @utf8.encode(value)
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match self.begin_mutation(true) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match self.database.read("site_start_claim", key) {
+    Ok(value) => {
+      ignore(self.database.rollback())
+      if value.body == claim {
+        // The durable claim is ours; bring this process's view up to date
+        // when the reply of the earlier claim was lost.
+        ignore(@remote.commit_dispatch_transition(transition, true))
+        return Ok(AlreadyMine)
+      }
+      return Ok(LostTo(start_claimant_of(value.body)))
+    }
+    Err(@sqlite.NotFound) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match
+    self.database.compare_exchange(
+      "site_dispatch",
+      key,
+      expected.to_int64(),
+      next,
+    ) {
+    Ok(revision) if revision == expected.to_int64() + 1L => ()
+    Ok(_) => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+    Err(@sqlite.Collision) => {
+      let current = match self.database.read("site_dispatch", key) {
+        Ok(value) => value
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Physical(issue))
+        }
+      }
+      ignore(self.database.rollback())
+      return match @remote.admit_durable_dispatch_record(current.body) {
+        Ok(record) =>
+          if @remote.durable_dispatch_record_execution_cancelled(record) {
+            Ok(Cancelled)
+          } else {
+            Ok(LostTo(""))
+          }
+        Err(issue) => Err(Protocol(issue))
+      }
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.insert("site_start_claim", key, claim) {
+    Ok(0L) => ()
+    Ok(_) | Err(@sqlite.Collision) => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.commit() {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match @remote.commit_dispatch_transition(transition, true) {
+    Ok(_) => Ok(Won)
+    Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
+/// Durably keep the exact dispatch envelope a resident Site admitted (the
+/// dispatch request, its input binding and its run materials), keyed by the
+/// attempt, before the dispatch is accepted. The executing process reads the
+/// same bytes back; it never fetches them again. Keeping identical bytes again
+/// is idempotent; different bytes for the same attempt are refused.
+pub fn Journal::retain_dispatch_envelope(
+  self : Journal,
+  request : @remote.DispatchRequest,
+  envelope : String,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = match @remote.dispatch_request_attempt_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let body = @utf8.encode(envelope)
+  match self.begin_mutation(true) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match self.database.read("site_dispatch_envelope", key) {
+    Ok(value) => {
+      ignore(self.database.rollback())
+      return if value.body == body { Ok(()) } else { Err(StateCollision) }
+    }
+    Err(@sqlite.NotFound) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.insert("site_dispatch_envelope", key, body) {
+    Ok(0L) => ()
+    Ok(_) | Err(@sqlite.Collision) => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.commit() {
+    Ok(_) => Ok(())
+    Err(issue) => {
+      ignore(self.database.rollback())
+      Err(Physical(issue))
+    }
+  }
+}
+
+///|
+/// Durably keep one output intent before any payload can exist for it: `key`
+/// names the exact payload request and `body` binds it to its dispatch
+/// attempt. It is written under the current Site binding, so a holder of an
+/// older generation cannot add one. Keeping identical bytes again is
+/// idempotent; different bytes for the same key, or an intent that was
+/// already completed, are refused, so a completed cleanup is never reopened.
+pub fn Journal::retain_output_intent(
+  self : Journal,
+  key : String,
+  body : String,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let bytes = @utf8.encode(body)
+  match self.begin_mutation(true) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match self.database.read("site_output_intent_done", key) {
+    Ok(_) => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+    Err(@sqlite.NotFound) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.read("site_output_intent", key) {
+    Ok(value) => {
+      ignore(self.database.rollback())
+      return if value.body == bytes { Ok(()) } else { Err(StateCollision) }
+    }
+    Err(@sqlite.NotFound) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.insert("site_output_intent", key, bytes) {
+    Ok(0L) => ()
+    Ok(_) | Err(@sqlite.Collision) => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.commit() {
+    Ok(_) => Ok(())
+    Err(issue) => {
+      ignore(self.database.rollback())
+      Err(Physical(issue))
+    }
+  }
+}
+
+///|
+/// Output intents whose cleanup is not yet recorded complete, as `(key,
+/// body)` pairs in key order.
+pub fn Journal::pending_output_intents(
+  self : Journal,
+) -> Result[Array[(String, String)], NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let pending : Array[(String, String)] = []
+  let mut cursor = ""
+  while true {
+    let entry = match self.database.scan_after("site_output_intent", cursor) {
+      Ok(value) => value
+      Err(@sqlite.NotFound) => break
+      Err(issue) => return Err(Physical(issue))
+    }
+    cursor = entry.key
+    match self.database.read("site_output_intent_done", entry.key) {
+      Ok(_) => ()
+      Err(@sqlite.NotFound) =>
+        pending.push((entry.key, @utf8.decode_lossy(entry.body)))
+      Err(issue) => return Err(Physical(issue))
+    }
+  }
+  Ok(pending)
+}
+
+///|
+/// Record that the cleanup of one output intent is confirmed. Only an
+/// existing intent can be completed; completing it again is idempotent.
+pub fn Journal::complete_output_intent(
+  self : Journal,
+  key : String,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  match self.begin_mutation(false) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match self.database.read("site_output_intent", key) {
+    Ok(_) => ()
+    Err(@sqlite.NotFound) => {
+      ignore(self.database.rollback())
+      return Err(MissingDispatch)
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.read("site_output_intent_done", key) {
+    Ok(_) => {
+      ignore(self.database.rollback())
+      return Ok(())
+    }
+    Err(@sqlite.NotFound) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match
+    self.database.insert(
+      "site_output_intent_done",
+      key,
+      @utf8.encode("{\"version\":\"actql-remote-output-intent-done/0.1\"}"),
+    ) {
+    Ok(0L) => ()
+    Ok(_) | Err(@sqlite.Collision) => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.commit() {
+    Ok(_) => Ok(())
+    Err(issue) => {
+      ignore(self.database.rollback())
+      Err(Physical(issue))
+    }
+  }
+}
+
+///|
+/// The dispatch envelope kept for one attempt identity, if any.
+pub fn Journal::dispatch_envelope(
+  self : Journal,
+  attempt_identity : String,
+) -> Result[String?, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  match self.database.read("site_dispatch_envelope", attempt_identity) {
+    Ok(value) => Ok(Some(@utf8.decode_lossy(value.body)))
+    Err(@sqlite.NotFound) => Ok(None)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
 pub fn Journal::commit_transition(
   self : Journal,
   transition : @remote.DispatchTransition,

@@ -2,9 +2,10 @@ import type {DeliveryContractView, PublicationContract,
   PublicationRequestContract, PublicationAttemptContract,
   PublicationRecordContract, PublicIndexEntryContract,
   ResultDeliveryControl, PreparedProgram, ValuesCompilation,
-  RunAdmission, RunDefinition} from '@actql/run-host-core';
+  RunAdmission, RunDefinition, CheckEnvironment} from '@actql/run-host-core';
 import {issueUnpublishedRunStateWire, issuePublicationAttempt,
-  issuePublicationRecord, validatePublicationRecordTransition} from
+  issuePublicationRecord, validatePublicationRecordTransition,
+  issueSourceFreeRunMaterials} from
   '@actql/run-host-core';
 
 declare const control: ResultDeliveryControl;
@@ -21,6 +22,15 @@ declare const prepared: PreparedProgram;
 declare const compilation: ValuesCompilation;
 declare const admission: RunAdmission;
 declare const definition: RunDefinition;
+declare const environment: CheckEnvironment;
+issueSourceFreeRunMaterials(prepared, compilation, admission, definition,
+  {document: '{}', format: 'json', environment, environmentWire: '{}'});
+// @ts-expect-error Raw received JSON cannot replace the admitted Run owner.
+issueSourceFreeRunMaterials(prepared, compilation, admission, '{}',
+  {document: '{}', format: 'json', environment, environmentWire: '{}'});
+issueSourceFreeRunMaterials(prepared, compilation, admission, definition,
+  // @ts-expect-error The currently admitted materials wire requires JSON.
+  {document: '{}', format: 'yaml', environment, environmentWire: '{}'});
 
 control.resultReadDefinitionCid(manifest, 'answer');
 control.resultRetentionClockContractCid(retention);

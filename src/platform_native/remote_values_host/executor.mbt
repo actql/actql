@@ -212,3 +212,11 @@ pub fn open_native_remote_values_site_runtime(
     Err(issue) => Err(Runtime(issue))
   }
 }
+
+///|
+/// The Result definition this executor's Values task publishes.
+pub fn NativeRemoteValuesTaskExecutor::result_definition_cid(
+  self : NativeRemoteValuesTaskExecutor,
+) -> String {
+  self.result_definition_cid
+}

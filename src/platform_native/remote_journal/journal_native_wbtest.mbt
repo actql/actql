@@ -679,3 +679,277 @@ test "native Coordinator journal restores typed completion evidence" {
   assert_true(recovered_coordinator_dispatch_measurement(recovered) is Some(_))
   assert_true(reopened.close())
 }
+
+///|
+test "native start claim lets exactly one executor begin an attempt" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/remote-start-claim-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let first_site = test_site()
+  let second_site = test_site()
+  let first = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(first_site),
+  ).unwrap()
+  let second = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(second_site),
+  ).unwrap()
+  let request = test_request("dispatch-claim")
+  let (_, first_record) = first.accept(request).unwrap()
+  let (_, second_record) = second.accept(request).unwrap()
+  let first_start = @remote.prepare_begin_provisioning(
+    first_record,
+    test_capability(first_site),
+  ).unwrap()
+  let second_start = @remote.prepare_begin_provisioning(
+    second_record,
+    test_capability(second_site),
+  ).unwrap()
+  // Both transitions have identical bodies; only the claim decides.
+  assert_eq(first.claim_start(first_start, "executor-a").unwrap(), Won)
+  assert_eq(
+    second.claim_start(second_start, "executor-b").unwrap(),
+    LostTo("executor-a"),
+  )
+  // A retry by the winner, as after a lost reply, is recognised.
+  assert_eq(
+    second.claim_start(second_start, "executor-a").unwrap(),
+    AlreadyMine,
+  )
+  assert_eq(@remote.dispatch_record_state_codes(first_record)[0], 1)
+  // Only the start transition can be claimed, by a well-formed claimant.
+  assert_true(
+    first.claim_start(
+      @remote.prepare_begin_remote_execution(first_record).unwrap(),
+      "executor-a",
+    )
+    is Err(Protocol(@remote.InvalidTransition)),
+  )
+  let other = test_request_for(
+    "dispatch-claim-invalid",
+    9,
+    4,
+    test_cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+  )
+  let (_, other_record) = first.accept(other).unwrap()
+  assert_true(
+    first.claim_start(
+      @remote.prepare_begin_provisioning(
+        other_record,
+        test_capability(first_site),
+      ).unwrap(),
+      "executor a",
+    )
+    is Err(Protocol(@remote.InvalidTransition)),
+  )
+  assert_true(first.close())
+  assert_true(second.close())
+}
+
+///|
+test "native start claim and cancellation race on the Accepted state" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/remote-start-cancel-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let site = test_site()
+  let journal = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(site),
+  ).unwrap()
+  let canceller_site = test_site()
+  let canceller = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(canceller_site),
+  ).unwrap()
+  // Cancellation first: the claim loses and nothing starts.
+  let cancelled_request = test_request("dispatch-cancel-first")
+  let (_, record) = journal.accept(cancelled_request).unwrap()
+  let (_, cancel_record) = canceller.accept(cancelled_request).unwrap()
+  let resender = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  let (_, resend_record) = resender.accept(cancelled_request).unwrap()
+  let cancel = @remote.prepare_confirm_execution_cancelled(cancel_record).unwrap()
+  let resent = @remote.prepare_confirm_execution_cancelled(resend_record).unwrap()
+  canceller.commit_transition(cancel).unwrap()
+  // The same cancellation sent again is idempotent.
+  resender.commit_transition(resent).unwrap()
+  assert_true(resender.close())
+  assert_eq(
+    journal
+    .claim_start(
+      @remote.prepare_begin_provisioning(record, test_capability(site)).unwrap(),
+      "executor-a",
+    )
+    .unwrap(),
+    Cancelled,
+  )
+  // Claim first: a later cancellation of Accepted cannot apply.
+  let started_request = test_request_for(
+    "dispatch-claim-first",
+    8,
+    4,
+    test_cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+  )
+  let (_, started) = journal.accept(started_request).unwrap()
+  let (_, late) = canceller.accept(started_request).unwrap()
+  assert_eq(
+    journal
+    .claim_start(
+      @remote.prepare_begin_provisioning(started, test_capability(site)).unwrap(),
+      "executor-a",
+    )
+    .unwrap(),
+    Won,
+  )
+  assert_true(
+    canceller.commit_transition(
+      @remote.prepare_confirm_execution_cancelled(late).unwrap(),
+    )
+    is Err(StateCollision),
+  )
+  assert_true(journal.close())
+  assert_true(canceller.close())
+}
+
+///|
+test "native journal keeps one exact dispatch envelope per attempt" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/remote-envelope-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let journal = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  let request = test_request("dispatch-envelope")
+  let key = @remote.dispatch_request_attempt_identity(request).unwrap()
+  assert_eq(journal.dispatch_envelope(key).unwrap(), None)
+  journal.retain_dispatch_envelope(request, "{\"envelope\":1}").unwrap()
+  journal.retain_dispatch_envelope(request, "{\"envelope\":1}").unwrap()
+  assert_true(
+    journal.retain_dispatch_envelope(request, "{\"envelope\":2}")
+    is Err(StateCollision),
+  )
+  let reader = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  assert_eq(reader.dispatch_envelope(key).unwrap(), Some("{\"envelope\":1}"))
+  // An envelope past the journal's record bound is refused; nothing is kept.
+  let other = test_request_for(
+    "dispatch-envelope-large",
+    8,
+    4,
+    test_cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+  )
+  assert_true(
+    journal.retain_dispatch_envelope(other, "x".repeat(262145))
+    is Err(Physical(@sqlite.BodyTooLarge)),
+  )
+  assert_eq(
+    journal
+    .dispatch_envelope(
+      @remote.dispatch_request_attempt_identity(other).unwrap(),
+    )
+    .unwrap(),
+    None,
+  )
+  assert_true(journal.close())
+  assert_true(reader.close())
+}
+
+///|
+test "native journal keeps output intents until their cleanup is complete" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/remote-output-intent-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let journal = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  assert_eq(journal.pending_output_intents().unwrap().length(), 0)
+  journal.retain_output_intent("sha256:a", "{\"intent\":\"a\"}").unwrap()
+  // A retry after a lost reply is idempotent; other bytes are refused.
+  journal.retain_output_intent("sha256:a", "{\"intent\":\"a\"}").unwrap()
+  assert_true(
+    journal.retain_output_intent("sha256:a", "{\"intent\":\"x\"}")
+    is Err(StateCollision),
+  )
+  journal.retain_output_intent("sha256:b", "{\"intent\":\"b\"}").unwrap()
+  // Another process sees both, in key order.
+  let reader = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  assert_eq(reader.pending_output_intents().unwrap(), [
+    ("sha256:a", "{\"intent\":\"a\"}"),
+    ("sha256:b", "{\"intent\":\"b\"}"),
+  ])
+  // Completion is recorded once, repeats are idempotent, and only an
+  // existing intent can be completed.
+  reader.complete_output_intent("sha256:a").unwrap()
+  reader.complete_output_intent("sha256:a").unwrap()
+  assert_true(reader.complete_output_intent("sha256:c") is Err(MissingDispatch))
+  assert_eq(journal.pending_output_intents().unwrap(), [
+    ("sha256:b", "{\"intent\":\"b\"}"),
+  ])
+  // A completed intent is never reopened.
+  assert_true(
+    journal.retain_output_intent("sha256:a", "{\"intent\":\"a\"}")
+    is Err(StateCollision),
+  )
+  assert_true(journal.close())
+  assert_true(reader.close())
+}

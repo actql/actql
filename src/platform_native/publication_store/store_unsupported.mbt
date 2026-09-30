@@ -408,6 +408,14 @@ pub fn Store::capacity_usage(
 }
 
 ///|
+pub fn Store::observe_allocation(
+  _self : Store,
+  _observer : (String) -> Unit,
+) -> Unit {
+  ()
+}
+
+///|
 pub fn Store::close(_self : Store) -> Result[Bool, NativePublicationStoreIssue] {
   Err(UnsupportedTarget)
 }

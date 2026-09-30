@@ -90,6 +90,24 @@ pub fn coordinator_poll_dispatch_json(
 }
 
 ///|
+/// A dispatch that also offers typed run materials to a Site that did not
+/// install the Run. The Site rebuilds and admits them; they grant nothing.
+#export_name("coordinatorPollDispatchMaterialsJson")
+pub fn coordinator_poll_dispatch_materials_json(
+  request : @remote.DispatchRequest,
+  input_binding_body : String,
+  max_binding_bytes : Int,
+  run_materials : String,
+) -> Result[String, @remote.DispatchIssue] {
+  let binding = match
+    @remote.prepare_remote_input_binding(input_binding_body, max_binding_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @remote.remote_poll_dispatch_materials_json(request, binding, run_materials)
+}
+
+///|
 #export_name("coordinatorPollQueryJson")
 pub fn coordinator_poll_query_json(
   request : @remote.DispatchRequest,

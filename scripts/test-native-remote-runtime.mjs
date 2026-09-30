@@ -475,6 +475,18 @@ try {
     keyId: 'key-a',
     privateKey: keys.privateKey,
   });
+  if (!valuesHttpsOnly) {
+    // Real processes hold and hand over the Site executor slot lock.
+    const slotRoot = join(root, 'executor-slot');
+    await mkdir(slotRoot, {recursive: true, mode: 0o700});
+    execFileSync(moon, [
+      'test', 'src/platform_native/executor_slot', '--target', 'native',
+    ], {
+      cwd: repositoryRoot,
+      env: {...process.env, ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: slotRoot},
+      stdio: 'inherit',
+    });
+  }
   if (!valuesHttpsOnly) execFileSync(moon, [
     'test', 'src/platform_native/remote_runtime/native_test',
     '--target', 'native',
