@@ -126,36 +126,6 @@ fn eligible(field : KeyField, usage : KeyUse) -> Bool {
 }
 
 ///|
-/// A Graph edge's pinned identity includes an explicit null label. Only the
-/// third component of an admitted edge projection retains that exception;
-/// ordinary nullable Relation fields do not acquire canonical key status.
-fn graph_edge_label_eligible(
-  key : KeyedRelation,
-  index : Int,
-  field : KeyField,
-  usage : KeyUse,
-) -> Bool {
-  if usage != CanonicalOrder ||
-    key.origin != GraphProjectionResult ||
-    index != 2 ||
-    key.aliases.length() != 3 ||
-    key.declared_fields.length() != 3 ||
-    field.positional_identity is Some(_) {
-    return false
-  }
-  guard key.producer is Some(GraphProjectionProducer(projection)) &&
-    @projection.operation(projection) == @projection.EdgeRows &&
-    field.contract is Some(contract) &&
-    contract.nullable else {
-    return false
-  }
-  match contract.shape {
-    Text(_) => true
-    _ => false
-  }
-}
-
-///|
 fn tuple_compare(a : Array[KeyField], b : Array[KeyField]) -> Int {
   if a.length() != b.length() {
     return if a.length() < b.length() { -1 } else { 1 }
@@ -185,9 +155,33 @@ pub fn select_key(
   select_matching_key(
     source,
     value,
-    (key, index, field) => {
-      eligible(field, usage) ||
-      graph_edge_label_eligible(key, index, field, usage)
+    (_, _, field) => eligible(field, usage),
+    limits,
+  )
+}
+
+///|
+/// A Graph edge identity may complete authored Result order, but is not a
+/// non-null Relation key. Its nullable label uses the order's explicit null
+/// placement. The checked Graph producer and all surviving identity components
+/// remain required; a matching row shape or a declaration is not this evidence.
+pub fn select_graph_order_identity(
+  source : @decode.Cursor,
+  value : KeySet,
+  limits : TransferLimits,
+) -> Result[KeySelection, Issue] {
+  select_matching_key(
+    source,
+    value,
+    (key, _, field) => {
+      guard key.origin == GraphProjectionResult &&
+        key.producer is Some(GraphProjectionProducer(projection)) &&
+        @projection.operation(projection) == @projection.EdgeRows else {
+        return false
+      }
+      guard field.contract is Some(contract) else { return false }
+      eligible(field, CanonicalOrder) ||
+      (contract.nullable && contract.shape is Text(_))
     },
     limits,
   )

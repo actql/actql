@@ -670,6 +670,7 @@ the same evidence used to constrain the bounded evaluator.
 | `assert_rows` with a predicate or unique key | Selected assertion child | Exact row assertion requirement |
 | Dedupe with a top-tie check | Selected dedupe child | Exact dedupe top-tie requirement |
 | `unpivot` and `unnest` | Selected expansion child | Exact expansion execution and output envelope |
+| Single-step `nest` | Selected bounded nest provider | Exact nest execution, per-parent item limit and nested-value envelope |
 | `group`, `analytic`, and `pivot` with binary64 SUM/AVG | Selected bounded aggregate child | Exact numeric profile member and per-step/slot occurrence seals |
 
 The ordinary Host fixture keeps Append and each following operation in one
@@ -721,6 +722,19 @@ and final reclamation. The common selected chain retains its existing
 exact/one-short budgets and Store failure/cleanup controls; numeric reduction
 and aggregate children retain their independent boundary tests. Final
 same-SHA CI evidence is still required for this branch.
+
+The single-step `nest` route now binds its three checked obligations only when
+the exact installed sequence is accepted by the bounded nest provider. It does
+not admit an arbitrary chain containing `nest`, nor let a Carrier-family
+provider discharge a retained Relation obligation. The ordinary Host fixture
+selects the nest task with retained inputs and output, reads its published
+Named Result and two consumer results from a real Store against independent
+ordered values, and cancels after positive provider work while retaining the
+inputs until stop. A separate real-Store fixture sets `max_items` below the
+required count and verifies the typed `NestItemLimit` failure, nonpublication,
+and final cleanup. The bounded nest kernel's exact/one-short work and
+workspace, item-limit, and phase-cleanup tests remain the shared resource
+proofs; the retained Host cases establish that this route reaches that kernel.
 
 This does not enable nonlinear tasks or arbitrary Carrier-family output. The
 existing selected Relation provider refuses a nonlinear sequence during planning.
@@ -4071,6 +4085,8 @@ or a preceding step, while preserving the fused route when no later Relation
 consumer requires a split. The original `graphs-equal` and `diff-apply` JSON
 Programs from the Frontend handoff produced their independent Named Result
 rows through packed Embedded Local on the combined Frontend/Local source.
+The retained Node Host also delivers cancellation after selected diff work,
+then confirms stop, noncompletion of the diff task, and final reclamation.
 This is two of the three previously blocked examples; `reach-subgraph` also
 passed on that combined source. It is not evidence that all eight original
 Frontend examples passed packed Embedded Local and HTTP. That broader check

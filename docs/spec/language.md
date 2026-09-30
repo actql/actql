@@ -7456,7 +7456,18 @@ For authored Result order, checking MUST first apply eligible candidate-key comp
 eligible key is available, a retained total stable ordering witness MAY resolve
 ties by stable sorting: authored terms remain primary and the witness orders
 only rows equal on all those terms. This does not replace authored order with
-the inherited sequence. Without either witness, reject; projected-field fallback
+the inherited sequence. If neither is available, a retained, checked Graph edge
+identity from `edge_rows` MAY complete authored Result order. All three identity
+components (`src`, `dst`, `rel`), or their provenance-preserving aliases, must
+remain available. Select and append missing components by the canonical
+completion algorithm, ascending with nulls last; authored terms remain primary.
+The nullable label is part of Graph identity, not a non-null Relation candidate
+key. This evidence is conditional on the exact Graph producer's successful
+admission and whole-edge identity uniqueness; a row schema or physical edge
+enumeration cannot supply it. Projection that loses an identity component loses
+this completion evidence. This rule does not apply to Results without authored
+order, scalar identity selection or omitted `infer.key`.
+Without any of these witnesses, reject; projected-field fallback
 applies only when authored `order_by` is absent. Retained execution and admission
 obligations of the supporting witness still apply.
 

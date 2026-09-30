@@ -16,7 +16,7 @@ fn graph_order_cursor(text : String) -> @decode.Cursor {
 }
 
 ///|
-test "only admitted Graph edge labels use nullable canonical identity" {
+test "nullable Graph edge labels are not Relation ordering keys" {
   let graph = @carrier.graph(
     @contract.primitive(StringType, nullable=false),
     @carrier.unknown_rows(),
@@ -36,12 +36,11 @@ test "only admitted Graph edge labels use nullable canonical identity" {
     max_name_bytes: 1000,
   }).unwrap()
   let limit : TransferLimits = { max_work: 100, max_name_bytes: 1000, }
-  let selected = select_key(
-    graph_order_cursor("null"),
-    transfer.keys,
-    CanonicalOrder,
-    limit,
-  ).unwrap().key.unwrap()
+  let selected = key_witness_at(transfer.keys, 0).unwrap()
+  assert_true(
+    select_key(graph_order_cursor("null"), transfer.keys, CanonicalOrder, limit).unwrap().key
+    is None,
+  )
   assert_eq(selected.origin, GraphProjectionResult)
   assert_eq(selected.fields.length(), 3)
   let mut saw_nullable_label = false
@@ -51,14 +50,42 @@ test "only admitted Graph edge labels use nullable canonical identity" {
     }
   }
   assert_true(saw_nullable_label)
+  let ordered = select_graph_order_identity(
+    graph_order_cursor("null"),
+    transfer.keys,
+    limit,
+  ).unwrap().key.unwrap()
+  assert_eq(key_pending(ordered), [ValidateKeyProducer])
+  assert_eq(ordered.fields.length(), 3)
+  assert_true(key_graph_projection_producer(ordered) is Some(_))
+  assert_true(
+    select_graph_order_identity(graph_order_cursor("null"), transfer.keys, {
+      max_work: 0,
+      max_name_bytes: 1000,
+    })
+    is Err(_),
+  )
   assert_true(
     select_key(graph_order_cursor("null"), transfer.keys, ScalarIdentity, limit).unwrap().key
+    is None,
+  )
+  assert_true(
+    select_key(
+      graph_order_cursor("null"),
+      singleton_key(selected),
+      CanonicalOrder,
+      limit,
+    ).unwrap().key
     is None,
   )
   let forged = { ..selected, producer: None, }
   let unrelated = { ..selected, origin: InputDeclaration, }
   for witness in [forged, unrelated] {
     let keys = singleton_key(witness)
+    assert_true(
+      select_graph_order_identity(graph_order_cursor("null"), keys, limit).unwrap().key
+      is None,
+    )
     assert_true(
       select_key(graph_order_cursor("null"), keys, CanonicalOrder, limit).unwrap().key
       is None,

@@ -458,6 +458,31 @@ pub fn local_module_bounded_relation_obligation(
 }
 
 ///|
+/// Nest output checks belong to the exact one-step bounded nest provider.
+/// A family provider cannot discharge these retained Relation obligations.
+pub fn local_module_bounded_nest_obligation(
+  installed : LocalComputeModule,
+  slot : Int,
+  step : Int,
+) -> Bool {
+  guard installed.sequences.get(slot) is Some(sequence) &&
+    @execution.generated_sequence_step_count(sequence) == 1 &&
+    @execution.generated_sequence_step_index_at(sequence, 0) == Some(step) &&
+    @execution.generated_sequence_step_at(sequence, 0)
+    is Some(@lower.NestStep(_)) else {
+    return false
+  }
+  for provider in installed.managed_providers {
+    if managed_provider_accepts(provider, sequence) {
+      return false
+    }
+  }
+  let provider = nest_provider(installed.execution, installed.measurement)
+  managed_provider_accepts(provider, sequence) &&
+  managed_provider_capacity(provider, sequence) is Some(_)
+}
+
+///|
 /// The bounded provider owning `sequence`: a registered family provider first,
 /// then the built-in relation providers bound to the module limits.
 fn local_managed_provider_for(
