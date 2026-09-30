@@ -91,7 +91,7 @@ async function directory(t) {
   return path;
 }
 
-test('rollback failure retains the primary acceptance error', async t => {
+test('automatic rollback retains the primary acceptance error', async t => {
   const path = await directory(t);
   const journal = openClientRequestJournal(path);
   t.after(() => journal.close());
@@ -107,9 +107,10 @@ test('rollback failure retains the primary acceptance error', async t => {
   }, moon), error => {
     assert.equal(error.code, 'ClientRequestAcceptanceUnknown');
     assert.equal(error.operation, 'accept');
-    assert.equal(error.outcome, 'unknown');
+    assert.equal(error.outcome, 'failed');
     assert.match(error.cause.message, /PrimaryAcceptanceFailure/u);
-    assert.match(error.rollbackCause.message, /rollback/u);
+    assert.equal(error.rollbackCause, undefined);
+    assert.equal(error.connectionUsable, true);
     return true;
   });
   assert.equal(journal.lookup({namespaceId: 'namespace-a',
@@ -117,7 +118,7 @@ test('rollback failure retains the primary acceptance error', async t => {
   undefined);
 });
 
-test('rollback failure retains the primary Run-start error', async t => {
+test('automatic rollback retains the primary Run-start error', async t => {
   const path = await directory(t);
   const journal = openClientRequestJournal(path);
   t.after(() => journal.close());
@@ -137,14 +138,57 @@ test('rollback failure retains the primary Run-start error', async t => {
   }, moon, publicationControl), error => {
     assert.equal(error.code, 'ClientRunStartUnknown');
     assert.equal(error.operation, 'start');
-    assert.equal(error.outcome, 'unknown');
+    assert.equal(error.outcome, 'failed');
     assert.match(error.cause.message, /PrimaryStartFailure/u);
-    assert.match(error.rollbackCause.message, /rollback/u);
+    assert.equal(error.rollbackCause, undefined);
+    assert.equal(error.connectionUsable, true);
     return true;
   });
   assert.equal(journal.lookupRunDefinition(accepted.ref, moon,
     publicationControl).dispatchReserved, false);
 });
+
+test('COMMIT and rollback loss retain both causes and fence the journal',
+  async t => {
+    const path = await directory(t);
+    const journal = openClientRequestJournal(path);
+    const exec = DatabaseSync.prototype.exec;
+    let commitFailure = true;
+    let rollbackFailure = true;
+    t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+      if (sql === 'COMMIT' && commitFailure) {
+        commitFailure = false;
+        throw new Error('COMMIT_RESULT_LOST');
+      }
+      if (sql === 'ROLLBACK' && rollbackFailure) {
+        rollbackFailure = false;
+        throw new Error('ROLLBACK_FAILED');
+      }
+      return exec.call(this, sql);
+    });
+    assert.throws(() => journal.accept(identity(), {
+      namespaceId: 'namespace-a', runDefinitionCid: cid('d'),
+      lookupExpiresAt: expires,
+    }, moon), error => {
+      assert.equal(error.code, 'ClientRequestAcceptanceUnknown');
+      assert.equal(error.outcome, 'unknown');
+      assert.equal(error.operation, 'accept');
+      assert.match(error.cause.message, /COMMIT_RESULT_LOST/u);
+      assert.match(error.rollbackCause.message, /ROLLBACK_FAILED/u);
+      assert.equal(error.connectionUsable, false);
+      return true;
+    });
+    assert.throws(() => journal.lookup({namespaceId: 'namespace-a',
+      authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon),
+    {code: 'ClientRequestJournalConnectionUnusable'});
+    t.mock.restoreAll();
+    journal.close();
+    const reopened = openClientRequestJournal(path);
+    t.after(() => reopened.close());
+    assert.equal(reopened.lookup({namespaceId: 'namespace-a',
+      authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon),
+    undefined);
+  });
 
 test('durable Client request survives ACK loss and restart without a new Run',
   async t => {

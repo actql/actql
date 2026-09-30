@@ -66,6 +66,8 @@ const cid = value => `sha256:${createHash('sha256')
   .update(JSON.stringify(value)).digest('hex')}`;
 const plus = (date, milliseconds) => new Date(Date.parse(date) +
   milliseconds).toISOString();
+const clientOperationError = (code, cause) => Object.assign(
+  new Error(code, cause === undefined ? undefined : {cause}), {code});
 const profiles = new Map();
 
 const bytesCid = bytes => `sha256:${createHash('sha256')
@@ -333,13 +335,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const observeRun = async ({ref, principalId: actual}) => {
     if (actual !== principalId || ref.namespaceId !== namespaceId ||
         ref.authorityScopeCid !== authorityScopeCid) {
-      throw new Error('RunStateAccessDenied');
+      throw clientOperationError('RunStateAccessDenied');
     }
     // Recheck the journal revision after asynchronous Store observation so
     // control facts never combine observations from two journal revisions.
     for (let attempt = 0; attempt < 8; attempt++) {
       const retained = journal.lookupRunDefinition(ref, moon, control);
-      if (retained === undefined) throw new Error('RunStateAccessDenied');
+      if (retained === undefined) {
+        throw clientOperationError('RunStateAccessDenied');
+      }
       const runId = control.runDefinitionRunId(retained.runDefinition);
       let state;
       let continuation;
@@ -427,7 +431,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   };
   const cancel = async ({ref, principalId: actual, connection}) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
-      throw new Error('ClientRunCancellationDenied');
+      throw clientOperationError('ClientRunCancellationDenied');
     }
     // Authorization precedes existence queries. A late publication remains a
     // successful Run even if cancellation was accepted while it committed.
@@ -452,8 +456,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const cancelRequest = async ({principalId: actual, connection,
     requestId}) => {
     if (!hostConnection({principalId: actual, connection})) {
-      throw Object.assign(new Error('ClientRequestCancellationDenied'),
-        {code: 'ClientRequestCancellationDenied'});
+      throw clientOperationError('ClientRequestCancellationDenied');
     }
     const held = checkpoints?.heldOrigin(requestId)
       ? checkpoints.cancelHeld(requestId) : undefined;
@@ -468,15 +471,14 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           ? 'accepted' : run.kind};
     }
     if (held === undefined) {
-      throw Object.assign(new Error('ClientRequestNotFound'),
-        {code: 'ClientRequestNotFound'});
+      throw clientOperationError('ClientRequestNotFound');
     }
     void checkpoints.sweep();
     return {requestId, kind: held.outcome};
   };
   const wait = async ({ref, principalId: actual, until, signal}) => {
     if (until !== null && until !== 'terminal') {
-      throw new Error('InvalidWaitCondition');
+      throw clientOperationError('InvalidWaitCondition');
     }
     const current = await observeRun({ref, principalId: actual});
     if (['succeeded', 'failed', 'cancelled'].includes(current.status)) {
@@ -484,10 +486,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     const operation = dispatchOwner.operation(ref);
     if (operation === undefined) return current;
-    if (signal?.aborted) throw new Error('WaitAborted');
+    if (signal?.aborted) throw clientOperationError('WaitAborted');
     let abort;
     const interrupted = new Promise((_, reject) => {
-      abort = () => reject(new Error('WaitAborted'));
+      abort = () => reject(clientOperationError('WaitAborted'));
       signal?.addEventListener('abort', abort, {once: true});
     });
     try {
@@ -504,7 +506,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         preparedProgram, 0, 0)?.$tag === 1;
       if (acquired) {
         if (sourceProfile === undefined) {
-          throw new Error('ClientProgramNeedsInputs');
+          throw clientOperationError('ClientProgramNeedsInputs');
         }
         let requirement;
         try {
@@ -512,19 +514,19 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             moon.clientProgramEffectPrepareLocalQueryRequirement(
               preparedProgram, 0, 0, registry, values, fragment, ordered));
         } catch (cause) {
-          throw Object.assign(new Error('ClientProgramUnsupported', {cause}),
-            {code: 'ClientProgramUnsupported'});
+          throw clientOperationError('ClientProgramUnsupported', cause);
         }
         if (!sourceProfile.admitsSource(
           moon.clientProgramQueryRequirementSourceRef(requirement))) {
-          throw new Error('InstalledSourceProgramMismatch');
+          throw clientOperationError('ClientProgramUnsupported',
+            new Error('InstalledSourceProgramMismatch'));
         }
       }
       const requested = moon.clientProgramEffectRequestIdentity(
         preparedProgram, authorityScopeCid, requestId,
         moon.clientProgramSourceFreeInputIntentCid());
       if (requested === undefined) {
-        throw new Error('ClientProgramNeedsInputs');
+        throw clientOperationError('ClientProgramNeedsInputs');
       }
       const resultNames = [];
       for (let index = 0;
@@ -544,7 +546,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const acquired = acquisition?.$tag === 1;
     if (acquired) {
       if (sourceProfile === undefined) {
-        throw new Error('ClientProgramNeedsInputs');
+        throw clientOperationError('ClientProgramNeedsInputs');
       }
       // A checked acquisition the local planner cannot generate is an
       // unsupported Program: refused before any Run exists.
@@ -554,19 +556,19 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           moon.clientProgramPrepareLocalQueryRequirement(preparedProgram,
             0, 0, registry, values, fragment, ordered));
       } catch (cause) {
-        throw Object.assign(new Error('ClientProgramUnsupported', {cause}),
-          {code: 'ClientProgramUnsupported'});
+        throw clientOperationError('ClientProgramUnsupported', cause);
       }
       if (!sourceProfile.admitsSource(
         moon.clientProgramQueryRequirementSourceRef(requirement))) {
-        throw new Error('InstalledSourceProgramMismatch');
+        throw clientOperationError('ClientProgramUnsupported',
+          new Error('InstalledSourceProgramMismatch'));
       }
     }
     const requested = moon.clientProgramRequestIdentity(preparedProgram,
       authorityScopeCid, requestId,
       moon.clientProgramSourceFreeInputIntentCid());
     if (requested === undefined) {
-      throw new Error('ClientProgramNeedsInputs');
+      throw clientOperationError('ClientProgramNeedsInputs');
     }
     const resultNames = [];
     for (let index = 0;
@@ -772,7 +774,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const {requestId, principalId: actual, connection, kind, input,
       parameters} = submission;
     if (!hostConnection({principalId: actual, connection})) {
-      throw new Error('ClientConnectionDenied');
+      throw clientOperationError('ClientConnectionDenied');
     }
     const {requested, resultNames, acquired, effectful} =
       requestOf(submission);
