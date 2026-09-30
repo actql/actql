@@ -71,7 +71,8 @@ export async function exercisePublicQueryInput(connect, options,
     const current = await observe();
     assert.ok(Number.isSafeInteger(current.acceptedRuns));
     assert.ok(Number.isSafeInteger(current.sourceIo));
-    return {acceptedRuns: current.acceptedRuns, sourceIo: current.sourceIo};
+    return {acceptedRuns: current.acceptedRuns, sourceIo: current.sourceIo,
+      ...(current.sourceReads === undefined ? {} : {sourceReads: current.sourceReads})};
   };
   const client = await connect(options);
   try {
@@ -84,7 +85,7 @@ export async function exercisePublicQueryInput(connect, options,
       assert.equal(state.status, 'succeeded', JSON.stringify({name, state}));
       const beforeRead = await counters();
       if (sourceReadCount !== undefined) {
-        assert.equal(beforeRead.sourceIo - beforeSubmit.sourceIo, sourceReadCount,
+        assert.equal(beforeRead.sourceReads - beforeSubmit.sourceReads, sourceReadCount,
           'shared producers acquire once per authored source');
       }
       assert.deepEqual(await execution.result('answer').all(), expected);

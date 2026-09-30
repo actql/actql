@@ -2656,6 +2656,7 @@ fn compile_cte_query(
       if captures_source {
         captured_owner = true
       }
+      let mut body_start = 0
       if captures_source && context.captured_stage is Some(capture_name) {
         if capture_name == context.stage_id ||
           capture_name == "" ||
@@ -2674,9 +2675,20 @@ fn compile_cte_query(
           Ok(node) => node
           Err(issue) => raise Abort(Construction(issue))
         }
-        let predicate = construction.object([
-          ("literal", construction.add(Bool(true))),
-        ])
+        let predicate = match @query.operation_at(cte.query, 0) {
+          Some(Where(expression)) => {
+            body_start = 1
+            append_expression(
+              construction,
+              expression,
+              cte.query,
+              input,
+              columns(input),
+              limits.max_expression_work,
+            )
+          }
+          _ => construction.object([("literal", construction.add(Bool(true)))])
+        }
         let (capture, _) = capture_source_boundary(
           construction,
           capture_name,
@@ -2701,7 +2713,7 @@ fn compile_cte_query(
       }
       used_stage_names.push(stage_name)
       let (stage, binding) = compile_cte_stage(
-        construction, cte, known, context, limits, stage_name,
+        construction, cte, known, context, limits, stage_name, body_start,
       )
       stages.push(stage)
       known = known.filter(input => {
@@ -2828,6 +2840,7 @@ fn compile_cte_stage(
   context : Context,
   limits : Limits,
   stage_name : String,
+  body_start : Int,
 ) -> (@builder.Node, Input) raise Abort {
   let body = cte.query
   if @query.set_part_count(body) != 0 ||
@@ -2960,7 +2973,7 @@ fn compile_cte_stage(
     limits.max_expression_work,
     limits.max_collection_items,
     limits.max_collection_bytes,
-    0,
+    body_start,
     input.source is Captured(_),
     final_alias,
   )

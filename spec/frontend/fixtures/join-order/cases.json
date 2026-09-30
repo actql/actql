@@ -422,6 +422,36 @@
         }
       ],
       "sourceReadCount": 1
+    },
+    {
+      "name": "join-filtered-capture",
+      "format": "sql",
+      "text": "WITH seed AS (SELECT id AS x, amount AS y FROM records WHERE amount > 15) SELECT l.x AS y FROM seed AS l JOIN seed AS r ON l.x = r.x ORDER BY y + 1",
+      "sourceRows": [
+        {
+          "id": 2,
+          "amount": 10
+        },
+        {
+          "id": 1,
+          "amount": 20
+        }
+      ],
+      "expected": [
+        {
+          "y": 1
+        }
+      ],
+      "columns": [
+        {
+          "name": "y",
+          "contract": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      ],
+      "sourceReadCount": 1
     }
   ],
   "refusals": [

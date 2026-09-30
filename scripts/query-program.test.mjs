@@ -164,11 +164,16 @@ test('real-source CTE JOIN preserves one normal acquisition and shared producer'
         as: 'aql_join_sorted'}],
       results: {rows: {from: 'aql_join_sorted', fields: ['id']}}}],
     results: {answer: {from: {stage: 'main', result: 'rows'}}}};
-  const wire = compileCapturedQueryJson(
-    'WITH seed AS (SELECT id, amount FROM orders) '
-      + 'SELECT l.id AS id FROM seed l JOIN seed r ON l.id = r.id ORDER BY id',
-    'orders', 'orders', JSON.stringify(input), JSON.stringify(fields),
-    'fixture.cte_capture');
-  assert.notEqual(wire, '');
-  assert.deepEqual(JSON.parse(wire), expected);
+  for (const predicate of ['', ' WHERE amount > 0']) {
+    const authored = structuredClone(expected);
+    if (predicate !== '') authored.stages[0].steps[0].filter =
+      {gt: [{field: 'amount'}, {literal: 0}]};
+    const wire = compileCapturedQueryJson(
+      'WITH seed AS (SELECT id, amount FROM orders' + predicate + ') '
+        + 'SELECT l.id AS id FROM seed l JOIN seed r ON l.id = r.id ORDER BY id',
+      'orders', 'orders', JSON.stringify(input), JSON.stringify(fields),
+      'fixture.cte_capture');
+    assert.notEqual(wire, '');
+    assert.deepEqual(JSON.parse(wire), authored);
+  }
 });
