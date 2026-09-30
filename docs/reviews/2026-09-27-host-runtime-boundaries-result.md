@@ -1,5 +1,11 @@
 # Host runtime boundary result
 
+Terminology note (2026-09-30): this historical review uses “ABI” for several
+MoonBit-to-JS connections. In current terms, generated function calls are
+internal JS bridges, Host invocation contracts are Host APIs, and persisted or
+transmitted records are wire formats. The original review wording is retained
+to preserve its contemporary record; native FFI ABI references remain literal.
+
 ## Scope
 
 This change keeps the existing ActQL 0.1 wire and CID contracts. It connects

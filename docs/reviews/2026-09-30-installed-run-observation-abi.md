@@ -1,5 +1,9 @@
 # Installed Run observation ABI follow-up
 
+Terminology note (2026-09-30): “ABI” in this historical title and report
+refers to the internal MoonBit-to-JS bridge, not a native binary ABI or a
+change to the public wire format. The original wording is retained.
+
 The common Run-state issuer already distinguishes a live operation, a
 confirmed terminal outcome, and an unobserved physical start. The installed
 Host now supplies those facts through named internal arguments. Its control

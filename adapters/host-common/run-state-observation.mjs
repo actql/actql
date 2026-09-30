@@ -1,4 +1,4 @@
-// Named arguments at the installed Host's Run-state ABI. The common MoonBit
+// Named arguments at the installed Host's Run-state JS bridge. The common MoonBit
 // issuer remains the only owner of the state and physical-stop rules.
 import {checked} from './runtime-result.mjs';
 

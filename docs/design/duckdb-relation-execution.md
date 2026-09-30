@@ -273,8 +273,9 @@ the fixed `connectors/duckdb/host_node` product module, not a caller-selected ru
 conformance fixture. Neither ordinary Connector registration nor Program inputs
 can replace this wiring. The JS facade decodes raw transport frames using the
 adapter's bounded physical decoders; type interpretation remains in MoonBit.
-Typed failure results use the pinned compiler's JS ABI inside this private
-facade only; this ABI is not a published cross-version Connector contract.
+Typed failure results use the pinned MoonBit compiler's JS representation
+inside this private facade only; that representation is not a published
+cross-version Connector contract.
 This restricts the standard entry, not arbitrary malicious code in the Host TCB.
 The connector-owned Node bridge also drives fixed Compute and resident transport.
 It does not depend on Local Compute or the standard multi-connector composition;

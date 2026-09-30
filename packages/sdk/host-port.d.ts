@@ -12,7 +12,7 @@ export type EmbeddedLocalOptions = Readonly<{
 
 export type LocalResultFrame = Readonly<{
   value: Record<string, unknown>;
-  /** Bytes transferred by this in-process ABI, measured by the provider. */
+  /** Bytes transferred by this in-process Host API, measured by the provider. */
   byteLength: number;
 }>;
 

@@ -1,6 +1,8 @@
 ///|
 /// The shared checked Program and compiler owner for Host adapters. Handles
 /// remain in process; serialized CIDs never serve as execution authority.
+/// The historical package name contains `abi`; this is an internal JS bridge,
+/// not a native binary ABI or the public Client wire format.
 #export_name("clientValuesHostEnvironment")
 pub fn client_values_host_environment(
   body : String,
@@ -89,7 +91,7 @@ pub(all) enum ClientValuesHostCompilationIssue {
 
 ///|
 /// Compile only the admitted direct Values profile. Other Programs stay with
-/// the ordinary checker but cannot receive an unsupported Plan from this ABI.
+/// the ordinary checker but cannot receive an unsupported Plan from this bridge.
 #export_name("clientValuesHostCompile")
 pub fn client_values_host_compile(
   prepared : @host.PreparedClientProgram,

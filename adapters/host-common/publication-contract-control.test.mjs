@@ -56,7 +56,7 @@ const limits = Object.freeze({
   maxDepth: 64,
 });
 
-test('generated publication owner crosses the ABI as named actions', () => {
+test('generated publication owner crosses the JS bridge as named actions', () => {
   const core = runtimeCore(moon);
   const control = core.publicationControl;
   assert.equal(control.publicationSetupAction(false, false, false, false,
