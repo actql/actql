@@ -5,6 +5,11 @@ test "Graph query categories retain typed input limits and unknown failures" {
     (Structure(InvalidBody), InvalidInput),
     (Structure(InvalidWeight), InvalidInput),
     (Structure(UnknownParameter("p")), InvalidInput),
+    (
+      Structure(ContractMismatch(IncompatibleContracts(Unqualified("id"), []))),
+      InvalidInput,
+    ),
+    (Structure(ContractMismatch(InvalidBody)), UnclassifiedFailure),
     (Decode(MissingField), InvalidInput),
     (UnknownField("missing"), InvalidInput),
     (UntypedField("missing"), InvalidInput),

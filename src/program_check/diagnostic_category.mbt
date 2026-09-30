@@ -183,6 +183,8 @@ fn graph_match_diagnostic_category(
     | Value(BudgetExceeded) => CompileLimit
     Structure(Decode(kind)) | Decode(kind) => decode_diagnostic_category(kind)
     Syntax(kind) => expression_syntax_diagnostic_category(kind)
+    // This is the checked schema-domain mismatch, not an owner binding error.
+    Structure(ContractMismatch(IncompatibleContracts(_, _))) => InvalidInput
     Structure(IncompleteGraph | ContractMismatch(_))
     | Typing(InvalidScope(_)) => UnclassifiedFailure
     Value(UnsupportedReference) => UnsupportedImplementation
