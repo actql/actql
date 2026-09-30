@@ -36,6 +36,7 @@ for (const [source, destination] of [
   ['adapters/host-node/fixtures/query-amount-environment.json', 'source-environment.json'],
   ['spec/local-check-environment.json', 'base-environment.json'],
   ['spec/frontend/fixtures/pipe-scope/cases.json', 'pipe-scope-cases.json'],
+  ['spec/frontend/fixtures/join-order/cases.json', 'join-order-cases.json'],
   ['scripts/accept-sga-public-source.mjs', 'accept-sga-public-source.mjs'],
   ['scripts/reach-selector-capacity-fixture.mjs', 'reach-selector-capacity-fixture.mjs'],
   ['scripts/fixtures/packed-sga-cancellation.mjs', 'sga-cancellation.mjs'],
@@ -64,6 +65,9 @@ run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
 const runtimeEnvironment = {...environment,
   PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
+if (process.argv.includes('--join-order-only')) {
+  runtimeEnvironment.ACTQL_TEST_JOIN_ORDER_ONLY = '1';
+}
 if (process.argv.includes('--alias-scope-only')) {
   runtimeEnvironment.ACTQL_TEST_PIPE_SCOPE_ONLY = '1';
 }
@@ -83,7 +87,8 @@ const output = run(process.execPath, ['acceptance.mjs'], root,
   runtimeEnvironment, 900_000);
 console.log(output.trimEnd());
 if (process.argv.includes('--alias-scope-only') ||
-  process.argv.includes('--infer-refusal-only')) return;
+  process.argv.includes('--infer-refusal-only') ||
+  process.argv.includes('--join-order-only')) return;
 console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
   runtimeEnvironment, 120000).trimEnd());
 run('moon', ['build', '--target', 'native', '--release',

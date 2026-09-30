@@ -15,13 +15,15 @@ import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, 
   from './public-query-input.mjs';
 
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly;
+const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly;
+const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
 const scopeInputs = inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
-  : scopeOnly ? {successes: scope.successes,
-  refusals: scope.refusals} : {successes: [...querySuccesses, ...scope.successes],
-  refusals: [...queryRefusals, ...scope.refusals, ...inferRefusals]};
+  : joinOnly ? joinOrder : scopeOnly ? {successes: scope.successes,
+  refusals: scope.refusals} : {successes: [...querySuccesses, ...scope.successes, ...joinOrder.successes],
+  refusals: [...queryRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals]};
 const expectedQueryRuns = scopeInputs.successes.length;
 
 assert.equal(spawnSync('moon', ['version']).error?.code, 'ENOENT');
