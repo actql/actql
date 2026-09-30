@@ -15,9 +15,12 @@ import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
 import { exerciseManagedExample } from './managed-example.mjs';
 import { exerciseNativeFilePlan } from './native-file-plan.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
-import {runCapturedInternalStrategy,
+import {createNodeHostEntry,
+  runCapturedInternalStrategy,
   runCapturedStrategy,
   runPublishedCapturedStrategy} from '../../../../host-node/entry.mjs';
+import {installStrategyContributions} from
+  '../../../../connectors-builtin/strategy.generated.mjs';
 import {runInstalledStrategy} from '../../../../host-common/strategy.mjs';
 import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
 import {duckdbStrategyContribution} from '../strategy-bundle.mjs';
@@ -3421,32 +3424,191 @@ async function exerciseStrategyGraph(
       consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
     },
   };
-  const nearestPublicationFixture = fixture.strategyFixtureVecaCreate(
-    ...args, JSON.stringify(nearestPublicationProgram), orderedContract,
+  const nearestWithVectors = (candidateVectors, queryVectors) => ({
+    ...nearestPublicationProgram,
+    stages: nearestPublicationProgram.stages.map(stage =>
+      stage.id !== 'nearest' ? stage : {
+        ...stage,
+        steps: [
+          ...(candidateVectors ? [{
+            from: 'candidates',
+            to_vectors: {id: 'id', vector: 'embedding'},
+            as: 'candidate_vectors',
+          }] : []),
+          ...(queryVectors ? [{
+            from: 'queries',
+            to_vectors: {id: 'id', vector: 'embedding'},
+            as: 'query_vectors',
+          }] : []), {
+            from: candidateVectors ? 'candidate_vectors' : 'candidates',
+            nearest: {
+              queries: queryVectors ? 'query_vectors' : 'queries',
+              ...(candidateVectors ? {} : {
+                candidate_id: 'id', candidate_vector: 'embedding',
+              }),
+              ...(queryVectors ? {} : {
+                query_id: 'id', query_vector: 'embedding',
+              }),
+              metric: 'dot', k: 2,
+            },
+            as: 'ranked',
+          }, {
+            from: 'ranked', filter: 'query_id = 20', as: 'out',
+          },
+        ],
+      }),
+  });
+  for (const [name, program] of [
+    ['nearest-filter', nearestPublicationProgram],
+    ['nearest-candidate-vectors-filter', nearestWithVectors(true, false)],
+    ['nearest-query-vectors-filter', nearestWithVectors(false, true)],
+    ['nearest-both-vectors-filter', nearestWithVectors(true, true)],
+  ]) {
+    const nearestPublicationFixture = fixture.strategyFixtureVecaCreate(
+      ...args, JSON.stringify(program), orderedContract,
+    );
+    const nearestCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(nearestPublicationFixture),
+      suppliedLimits,
+    );
+    const nearestPublicationDirectory = await mkdtemp(join(
+      root, `_build/duckdb-fixtures/${name}-publication-entry-`,
+    ));
+    const nearestRetained = await createCarrierRetainedStore(name);
+    let nearestPublicationOwner;
+    let nearestPublicationStore;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        nearestPublicationFixture, nearestCapture.source()), true);
+      const setup = fixture.strategyFixtureVecaRetainedSubset(
+        nearestPublicationFixture,
+      );
+      const runtime = runtimeCore(hostRuntime);
+      const resultCount = runtime.resultInventory(setup).length;
+      assert.equal(resultCount, 3);
+      nearestPublicationStore = await openLocalPublicationStore({
+        directory: nearestPublicationDirectory,
+        storeAuthorityCid: hash(`${name}-publication-store`),
+        capacityBytes: 4 * 1024 * 1024,
+        maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+        maxObjects: 100,
+        maxContractNodes: 10000,
+        maxContractDepth: 64,
+      }, runtime.publicationControl);
+      const plan = standardPublicationPlan(
+        runtime,
+        runtime.programDefinitionCid(setup),
+        resultCount,
+        `${name}-publication-attempt`,
+      );
+      nearestPublicationOwner = await runPublishedCapturedStrategy(
+        setup,
+        {store: nearestPublicationStore, plan},
+        {local: nearestRetained.configuration},
+        new AbortController().signal,
+      );
+      assert.equal(nearestPublicationOwner.status, 'published');
+      assert.equal(nearestPublicationOwner.publication.publication.state,
+        'succeeded');
+      assert(nearestRetained.leases.length > 0);
+      assert(nearestPublicationOwner.execution.completed.some(value =>
+        value.outputRepresentation === 'retained-file'));
+      const expectedRows = [
+        {candidate_id: 1, query_id: 20, rank: 1, score: 1},
+        {candidate_id: 2, query_id: 20, rank: 2, score: 1},
+      ];
+      const publicationKey = {
+        namespaceId: plan.request.namespaceId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      };
+      const committedIndex = await nearestPublicationStore
+        .lookupCommittedIndex(publicationKey, () => true);
+      const committedManifest = JSON.parse((await nearestPublicationStore
+        .readPublicationContract(committedIndex.result_manifest_cid,
+          'result_manifest')).wire);
+      assert.deepEqual(Object.keys(committedManifest.results).sort(),
+        ['consumed_a', 'consumed_b', 'published']);
+      for (const resultName of ['published', 'consumed_a', 'consumed_b']) {
+        const resultDefinitionCid = committedManifest.results[resultName]
+          .result_definition_cid;
+        const received = [];
+        await nearestPublicationStore.consumeCommittedResult(
+          publicationKey, resultDefinitionCid, () => true,
+        chunk => received.push(Buffer.from(chunk)));
+        assert.deepEqual(
+          JSON.parse(Buffer.concat(received).toString('utf8')),
+          expectedRows,
+        );
+      }
+    } finally {
+      if (nearestPublicationOwner !== undefined) {
+        await nearestPublicationOwner.close();
+        assert.equal(nearestPublicationOwner.cleanupPending(), false);
+        assert.equal(await nearestPublicationOwner.cleanup(), true);
+        assert.equal(nearestPublicationOwner.execution.usage().heldBytes, 0n);
+        assert.equal(nearestPublicationOwner.execution.usage()
+          .reservedExecutionBytes, 0n);
+      }
+      nearestCapture.close();
+      await nearestPublicationStore?.close();
+      await rm(nearestPublicationDirectory, {recursive: true, force: true});
+      await nearestRetained.close();
+    }
+  }
+  const nearestFailureProgram = nearestWithVectors(true, true);
+  nearestFailureProgram.stages.find(stage =>
+    stage.id === 'consumer_a').steps = [{
+    filter: '1 / (candidate_id - candidate_id) > 0', as: 'filtered',
+  }, {
+    from: 'filtered', select: nearestFields, as: 'out',
+  }];
+  const nearestFailureFixture = fixture.strategyFixtureVecaCreate(
+    ...args, JSON.stringify(nearestFailureProgram), orderedContract,
   );
-  const nearestCapture = await runNativeHostQuery(
+  const nearestFailureCapture = await runNativeHostQuery(
     grant,
-    fixture.strategyFixtureAcquisition(nearestPublicationFixture),
+    fixture.strategyFixtureAcquisition(nearestFailureFixture),
     suppliedLimits,
   );
-  const nearestPublicationDirectory = await mkdtemp(join(
-    root, '_build/duckdb-fixtures/nearest-publication-entry-',
+  const nearestFailureDirectory = await mkdtemp(join(
+    root, '_build/duckdb-fixtures/nearest-carrier-failure-entry-',
   ));
-  const nearestRetained = await createCarrierRetainedStore('nearest-filter');
-  let nearestPublicationOwner;
-  let nearestPublicationStore;
+  const nearestFailureRetained = await createCarrierRetainedStore(
+    'nearest-carrier-failure', {failCleanupLease: 1},
+  );
+  let computeEntrances = 0;
+  const countedHost = createNodeHostEntry(() => hostRuntime,
+    async (...installationArgs) => {
+      const contributions = await installStrategyContributions(
+        ...installationArgs);
+      return contributions.map(contribution => ({
+        ...contribution,
+        run(...args) {
+          computeEntrances++;
+          return contribution.run(...args);
+        },
+        ...(typeof contribution.runPrepared === 'function' ? {
+          runPrepared(...args) {
+            computeEntrances++;
+            return contribution.runPrepared(...args);
+          },
+        } : {}),
+      }));
+    });
+  let nearestFailureExecution, nearestFailurePublicationStore;
+  let computeEntrancesAtFailure;
   try {
     assert.equal(fixture.strategyFixtureOpen(
-      nearestPublicationFixture, nearestCapture.source()), true);
+      nearestFailureFixture, nearestFailureCapture.source()), true);
     const setup = fixture.strategyFixtureVecaRetainedSubset(
-      nearestPublicationFixture,
+      nearestFailureFixture,
     );
     const runtime = runtimeCore(hostRuntime);
-    const resultCount = runtime.resultInventory(setup).length;
-    assert.equal(resultCount, 3);
-    nearestPublicationStore = await openLocalPublicationStore({
-      directory: nearestPublicationDirectory,
-      storeAuthorityCid: hash('nearest-filter-publication-store'),
+    nearestFailurePublicationStore = await openLocalPublicationStore({
+      directory: nearestFailureDirectory,
+      storeAuthorityCid: hash('nearest-carrier-failure-store'),
       capacityBytes: 4 * 1024 * 1024,
       maxObjectBytes: publicationResultExportLimits.maxWireBytes,
       maxObjects: 100,
@@ -3456,52 +3618,53 @@ async function exerciseStrategyGraph(
     const plan = standardPublicationPlan(
       runtime,
       runtime.programDefinitionCid(setup),
-      resultCount,
-      'nearest-filter-publication-attempt',
+      runtime.resultInventory(setup).length,
+      'nearest-carrier-failure-attempt',
     );
-    nearestPublicationOwner = await runPublishedCapturedStrategy(
+    await assert.rejects(countedHost.runPublishedCapturedStrategy(
       setup,
-      {store: nearestPublicationStore, plan},
-      {local: nearestRetained.configuration},
+      {store: nearestFailurePublicationStore, plan},
+      {local: nearestFailureRetained.configuration},
       new AbortController().signal,
-    );
-    assert.equal(nearestPublicationOwner.status, 'published');
-    assert.equal(nearestPublicationOwner.publication.publication.state,
-      'succeeded');
-    assert(nearestRetained.leases.length > 0);
-    assert(nearestPublicationOwner.execution.completed.some(value =>
+    ), error => {
+      nearestFailureExecution = error.execution;
+      return error.code === 'CapturedRunPublicationFailed';
+    });
+    assert(computeEntrances > 0);
+    computeEntrancesAtFailure = computeEntrances;
+    assert.equal(nearestFailureExecution.status, 'host-tasks-failed');
+    assert(nearestFailureRetained.leases.length > 0);
+    assert(nearestFailureExecution.completed.some(value =>
+      value.outputRepresentation === 'managed-local-carrier'));
+    assert(nearestFailureExecution.completed.some(value =>
       value.outputRepresentation === 'retained-file'));
-    const expectedRows = [
-      {candidate_id: 1, query_id: 20, rank: 1, score: 1},
-      {candidate_id: 2, query_id: 20, rank: 2, score: 1},
-    ];
-    for (const occurrence of nearestPublicationOwner.execution
-      .publicationInventory.occurrences) {
-      const received = [];
-      await nearestPublicationStore.consumeCommittedResult({
-        namespaceId: plan.request.namespaceId,
-        authorityScopeCid: plan.request.authorityScopeCid,
-        runDefinitionCid: plan.runDefinition.identity,
-      }, occurrence.definitionContract.identity, () => true,
-      chunk => received.push(Buffer.from(chunk)));
-      assert.deepEqual(
-        JSON.parse(Buffer.concat(received).toString('utf8')),
-        expectedRows,
-      );
-    }
+    assert.equal(nearestFailureExecution.failure?.code, 'MoonBitHostFailure');
+    assert.equal(fixture.strategyFixtureVecaConsumerFilterArithmetic(
+      nearestFailureExecution.failure.cause,
+    ), true);
+    await assert.rejects(nearestFailurePublicationStore.lookupCommittedIndex({
+      namespaceId: plan.request.namespaceId,
+      authorityScopeCid: plan.request.authorityScopeCid,
+      runDefinitionCid: plan.runDefinition.identity,
+    }, () => true), /PublicationLookupDenied/);
   } finally {
-    if (nearestPublicationOwner !== undefined) {
-      await nearestPublicationOwner.close();
-      assert.equal(nearestPublicationOwner.cleanupPending(), false);
-      assert.equal(await nearestPublicationOwner.cleanup(), true);
-      assert.equal(nearestPublicationOwner.execution.usage().heldBytes, 0n);
-      assert.equal(nearestPublicationOwner.execution.usage()
-        .reservedExecutionBytes, 0n);
+    if (nearestFailureExecution !== undefined) {
+      await assert.rejects(async () => nearestFailureExecution.close(),
+        /InjectedCarrierRetainedCleanupPending/);
+      assert.equal(computeEntrances, computeEntrancesAtFailure);
+      assert.equal(nearestFailureExecution.cleanupPending(), true);
+      assert.equal(nearestFailureRetained.cleanupFailures(), 1);
+      nearestFailureRetained.permitCleanup();
+      assert.equal(await nearestFailureExecution.cleanup(), true);
+      assert.equal(computeEntrances, computeEntrancesAtFailure);
+      assert.equal(nearestFailureExecution.cleanupPending(), false);
+      assert.equal(nearestFailureExecution.usage().heldBytes, 0n);
+      assert.equal(nearestFailureExecution.usage().reservedExecutionBytes, 0n);
     }
-    nearestCapture.close();
-    await nearestPublicationStore?.close();
-    await rm(nearestPublicationDirectory, {recursive: true, force: true});
-    await nearestRetained.close();
+    nearestFailureCapture.close();
+    await nearestFailurePublicationStore?.close();
+    await rm(nearestFailureDirectory, {recursive: true, force: true});
+    await nearestFailureRetained.close();
   }
   // A zero-input row source and its Carrier Bridge share an authored Stage.
   // The physical split must retain the Events/Vectors generation for a later

@@ -79,6 +79,7 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   if variant == "nearest" ||
     variant == "nearest_filter" ||
     variant == "nearest_filter_reversed" ||
+    variant == "nearest_vectors_filter" ||
     variant == "nearest_vectors" ||
     variant == "nearest_relation_vectors" ||
     variant == "nearest_vectors_relation" ||
@@ -431,10 +432,13 @@ fn local_vector_ranking_program(variant : String) -> String {
 fn local_vector_nearest_program(variant : String) -> String {
   let inferred = variant == "nearest_inferred"
   let filtered = variant == "nearest_filter" ||
-    variant == "nearest_filter_reversed"
+    variant == "nearest_filter_reversed" ||
+    variant == "nearest_vectors_filter"
   let candidate_vectors = variant == "nearest_vectors" ||
+    variant == "nearest_vectors_filter" ||
     variant == "nearest_vectors_relation"
   let query_vectors = variant == "nearest_vectors" ||
+    variant == "nearest_vectors_filter" ||
     variant == "nearest_relation_vectors"
   let identity_type = if inferred { "string" } else { "number" }
   let vector_schema = "{\"id\":{\"type\":\"" +
@@ -1296,9 +1300,11 @@ test "standard Host composes Vectors projection and Relation take" {
 fn run_standard_nearest_provider(variant : String) -> Unit raise {
   let inferred = variant == "nearest_inferred"
   let filtered_variant = variant == "nearest_filter" ||
-    variant == "nearest_filter_reversed"
+    variant == "nearest_filter_reversed" ||
+    variant == "nearest_vectors_filter"
+  let carrier_filtered = variant == "nearest_vectors_filter"
   let query_values_task = if inferred { 3 } else { 2 }
-  let nearest_task = if inferred { 5 } else { 3 }
+  let nearest_task = if inferred || carrier_filtered { 5 } else { 3 }
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
     local_carrier_vectors_variant=variant,
@@ -1317,6 +1323,9 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
       execution_bytes: 134217728L,
     }),
   )
+  if carrier_filtered {
+    assert_eq(@strategy.graph_task_count(@strategy.captured_dag_graph(run)), 9)
+  }
   assert_true(
     @strategy.configure_captured_managed_identity_policy(
       run, true, false, false, false,
@@ -1470,6 +1479,27 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   } else {
     query_values_rows
   }
+  let carrier_bridges = if carrier_filtered {
+    let candidate_bridge = run_local_managed_carrier_test_task(
+      installed,
+      run,
+      3,
+      [@local_driver.local_managed_relation_output(candidates)],
+      [candidate_rows],
+      obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+    )
+    let query_bridge = run_local_managed_carrier_test_task(
+      installed,
+      run,
+      4,
+      [@local_driver.local_managed_relation_output(queries)],
+      [query_rows],
+      obligations=@strategy.captured_next_managed_obligations(run, 10).unwrap(),
+    )
+    Some((candidate_bridge, query_bridge))
+  } else {
+    None
+  }
   let nearest_live = Ref(true)
   let nearest_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let nearest_outputs = if variant == "nearest_filter_reversed" {
@@ -1482,16 +1512,34 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   } else {
     [candidate_rows, query_rows]
   }
-  let (nearest_ops, nearest) = run_local_managed_test_task(
-    installed,
-    run,
-    nearest_task,
-    nearest_outputs,
-    nearest_input_rows,
-    nearest_task,
-    nearest_live,
-    obligations=nearest_obligations,
-  )
+  let (nearest_ops, nearest) = match carrier_bridges {
+    Some((candidate_bridge, query_bridge)) =>
+      run_local_managed_test_task(
+        installed,
+        run,
+        nearest_task,
+        [],
+        [],
+        nearest_task,
+        nearest_live,
+        obligations=nearest_obligations,
+        carrier_inputs=[
+          (candidate_bridge.1, candidate_bridge.2),
+          (query_bridge.1, query_bridge.2),
+        ],
+      )
+    None =>
+      run_local_managed_test_task(
+        installed,
+        run,
+        nearest_task,
+        nearest_outputs,
+        nearest_input_rows,
+        nearest_task,
+        nearest_live,
+        obligations=nearest_obligations,
+      )
+  }
   let nearest_rows = local_managed_test_rows(nearest_ops)
   let expected = if variant == "nearest_empty" ||
     variant == "nearest_empty_queries" {
@@ -1645,6 +1693,14 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
     @strategy.close_captured_task_output(run, 4)
     (ops.close)()
     (ops.cleanup_refresh)() |> ignore
+  }
+  if carrier_bridges is Some((candidate_bridge, query_bridge)) {
+    @strategy.close_captured_task_output(run, 4)
+    (query_bridge.0.close)()
+    (query_bridge.0.cleanup_refresh)() |> ignore
+    @strategy.close_captured_task_output(run, 3)
+    (candidate_bridge.0.close)()
+    (candidate_bridge.0.cleanup_refresh)() |> ignore
   }
   queries_live.val = false
   @strategy.close_captured_task_output(run, query_values_task)
@@ -2031,6 +2087,11 @@ test "standard Host keeps reversed selected nearest input ports" {
 ///|
 test "standard Host runs nearest with two Vectors inputs" {
   run_standard_nearest_provider("nearest_vectors")
+}
+
+///|
+test "standard Host retains selected nearest from two Vectors inputs" {
+  run_standard_nearest_provider("nearest_vectors_filter")
 }
 
 ///|
