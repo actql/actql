@@ -70,7 +70,7 @@ try {
     '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')).href)});
   const {durableOutputRecordFixture} = await import(${JSON.stringify(
     pathToFileURL(join(repository,
-      'adapters/host-common/remote-output-record-fixture.mjs')).href)});
+      'scripts/fixtures/remote-output-record-fixture.mjs')).href)});
   const fixture = durableOutputRecordFixture(coordinator, runtimeCore(bridge));
   const outputRequest = JSON.parse(
     coordinator.durableOutputRequestJson(fixture.outputDurable));

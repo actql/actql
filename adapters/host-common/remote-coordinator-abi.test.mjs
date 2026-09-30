@@ -11,7 +11,8 @@ import {acceptedSiteOutput, admitDurableJson, admitPollNotSeen,
   pollQueryJson, pollReleaseJson} from
   '../../packages/coordinator-core/index.mjs';
 import {runtimeCore} from './runtime-core.mjs';
-import {durableOutputRecordFixture} from './remote-output-record-fixture.mjs';
+import {durableOutputRecordFixture} from
+  '../../scripts/fixtures/remote-output-record-fixture.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 

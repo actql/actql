@@ -5,7 +5,8 @@ import {createHash} from 'node:crypto';
 // evidence; the Coordinator observes that reply, issues the output plan poll,
 // admits the Site's plan and keeps the durable Output record. `coordinator`
 // is `@actql/coordinator-core` (repository or packed) and `runtime` is
-// `runtimeCore(bridge)`.
+// `runtimeCore(bridge)`. Test-only: it names a concrete Connector, so it lives
+// with the test fixtures, not in the common adapters.
 export function durableOutputRecordFixture(coordinator, runtime,
   {dispatchId = 'dispatch-output'} = {}) {
   const cid = digit => `sha256:${digit.repeat(64)}`;
