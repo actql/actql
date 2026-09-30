@@ -1342,7 +1342,8 @@
       ],
       "status": "not_run",
       "evidence": [],
-      "expectation": "Reject non-success infer value access before outcome refinement."
+      "superseded_imported_expectation": "Reject non-success infer value access before outcome refinement.",
+      "expectation": "Accept known-field access on a non-success nullable infer value as typed NULL; reject unknown fields. Outcome/value predicates in one AND must preserve common three-valued semantics without depending on short-circuit evaluation."
     },
     {
       "id": "FX-04",

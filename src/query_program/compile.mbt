@@ -1192,6 +1192,10 @@ fn compile_steps(
   let initial_range = query_range_name(query)
   let mut pipe_ranges = [(initial_range, pipe_visible.copy())]
   let mut pipe_changed = false
+  // Materializing a SELECT resets private slots, not the replacement of
+  // range variables. Never resolve subsequent operators through the source
+  // alias again after Pipe AS has established a new scope.
+  let mut pipe_rebound = false
   let mut pipe_selected = false
   for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
@@ -1218,7 +1222,7 @@ fn compile_steps(
       first = false
     }
     match operation {
-      Where(predicate) if pipe_changed =>
+      Where(predicate) if pipe_changed || pipe_rebound =>
         entries.push(
           (
             "filter",
@@ -1236,7 +1240,7 @@ fn compile_steps(
             ),
           ),
         )
-      Extend(projections) if pipe_changed => {
+      Extend(projections) if pipe_changed || pipe_rebound => {
         let snapshot = pipe_visible.copy()
         let derived : Array[(String, @builder.Node)] = []
         let next = snapshot.copy()
@@ -1264,6 +1268,7 @@ fn compile_steps(
         entries.push(("derive", construction.object(derived)))
         pipe_visible = next
         output = next.map(entry => entry.0)
+        pipe_changed = true
       }
       Extend(projections) => {
         let derived : Array[(String, @builder.Node)] = []
@@ -1394,15 +1399,15 @@ fn compile_steps(
         deferred = true
       }
       Alias(name) => {
-        if pipe_ranges.any(range => same_name(range.0, name)) {
-          raise Abort(AmbiguousRelation)
-        }
-        pipe_ranges.push((name, pipe_visible.copy()))
+        // Pipe AS replaces every preceding range variable with the current
+        // visible row. Reusing the same name binds its current value slots.
+        pipe_ranges = [(name, pipe_visible.copy())]
+        pipe_rebound = true
         pipe_changed = true
         deferred = true
       }
       Group(keys, projections) => {
-        let scoped = pipe_changed
+        let scoped = pipe_changed || pipe_rebound
         if scoped {
           let materialize : Array[(String, @builder.Node)] = []
           if entries.length() == 1 && entries[0].0 == "from" {
@@ -1640,12 +1645,12 @@ fn compile_steps(
             groups.push([projection])
           }
           active_fields.push(name)
-          if pipe_changed {
+          if pipe_changed || pipe_rebound {
             pipe_visible.push((name, name))
           }
         }
         let resolve = fn(path : Array[@query.NamePart]) -> String? {
-          if pipe_changed {
+          if pipe_changed || pipe_rebound {
             pipe_slot(path, analytic_visible, pipe_ranges)
           } else {
             resolve_column(path, query, input, snapshot)
@@ -1664,7 +1669,7 @@ fn compile_steps(
         output = active_fields.copy()
         deferred = true
       }
-      Select(projections, distinct) if pipe_changed => {
+      Select(projections, distinct) if pipe_changed || pipe_rebound => {
         let names : Array[String] = []
         let selected : Array[@builder.Node] = []
         let derives : Array[(String, @builder.Node)] = []
@@ -2024,7 +2029,7 @@ fn compile_steps(
         }
         entries.push(("sort", construction.array(sort)))
       }
-      Order(terms) if pipe_changed => {
+      Order(terms) if pipe_changed || pipe_rebound => {
         let sort : Array[@builder.Node] = []
         for term in terms {
           let name = match

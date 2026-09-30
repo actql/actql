@@ -10,6 +10,21 @@ fn query_limits() -> QueryLimits {
 }
 
 ///|
+test "Pipe current range syntax remains available after projection" {
+  for
+    text in [
+      "FROM records AS old |> AS current |> SELECT current.id AS id |> WHERE id > 1 |> EXTEND id + 1 AS next |> SELECT next, id |> ORDER BY id",
+      "FROM records AS old |> SET id = amount, amount = id |> SELECT id AS new_id, amount AS new_amount, old.id AS original_id, old.amount AS original_amount |> ORDER BY original_id",
+    ] {
+    match parse_query(text, query_limits()) {
+      Ok(_) => ()
+      Err({ issue: Syntax(message), .. }) => fail(message)
+      Err(_) => fail("query limit")
+    }
+  }
+}
+
+///|
 test "SQL and Pipe query pair preserves ordered operations" {
   let sql = parse_query(
     "SELECT id, customer_id, amount FROM orders WHERE status = 'open' ORDER BY amount DESC, id ASC;",
@@ -70,6 +85,30 @@ test "query source clauses reject partial and unsupported input" {
     ] {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
+}
+
+///|
+test "adopted KEEP operators are explicitly unimplemented with original spans" {
+  for
+    source in [
+      "FROM records |> INFER score KEEP (id) AS assessment", "FROM records |> NEAREST records KEEP (id) AS neighbor",
+      "FROM records |> KEEP (id)",
+    ] {
+    match parse_query(source, query_limits(), source_path="scope.pipe") {
+      Err({ issue: Syntax(message), span: Some(span), }) => {
+        assert_true(message.contains("adopted but not implemented"))
+        assert_eq(span.source_path, "scope.pipe")
+        assert_eq(span.start_line, 1)
+        assert_eq(span.start_column, 17)
+      }
+      _ => fail("KEEP must not produce an unchecked Program")
+    }
+  }
+  // These words are not newly reserved identifiers outside operator position.
+  assert_true(
+    parse_query("SELECT infer, nearest, keep FROM records", query_limits())
+    is Ok(_),
+  )
 }
 
 ///|

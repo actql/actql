@@ -20,15 +20,38 @@ import {admitEnvironment as admitStandaloneEnvironment,
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const hash = body => `sha256:${createHash('sha256')
   .update(canonicalText(body)).digest('hex')}`;
-// Compatibility snapshots for the exact fixture Programs and current pins.
-// The AoA registry widens Reach's input carrier; its contract CID is part of
-// both Compiled Plan preimages, including Programs that do not use Reach.
-// The test also checks each complete preimage with canonical hashing below.
-const planCids = {
+// Retained pre-change preimages, verified against the existing compatibility
+// CIDs. Rebind only the normative Grammar Manifest and its dependent bodies;
+// expectations never come from the new compiler's output.
+const baselinePlanCids = {
   values: 'sha256:fc6cc72f2fe207114444c9663f5ba41ca4b3298e0e91984aa6d4252fbced6cde',
   tasks: 'sha256:ac6d5874836c84421dff22cf3b67d5f06f03dab92ffc445c868ca8bfb1c2ab7f',
 };
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
+const grammar = JSON.parse(await read('../../spec/manifests/actql-grammar-0.1.json'));
+const expectedPlans = {};
+for (const kind of ['values', 'tasks']) {
+  const baseline = JSON.parse(await read(`./fixtures/${kind}-compiled-plan-baseline.json`));
+  const verify = (body, field) => {
+    const {[field]: identity, ...preimage} = body;
+    assert.equal(hash(preimage), identity);
+    return preimage;
+  };
+  const template = verify(baseline.boundTemplate, 'bound_invocation_template_cid');
+  const executable = verify(baseline.executablePlan, 'executable_plan_cid');
+  const compiled = verify(baseline.compiledPlan, 'compiled_plan_cid');
+  assert.equal(baseline.compiledPlan.compiled_plan_cid, baselinePlanCids[kind]);
+  assert.equal(compiled.executable_plan_cid, baseline.executablePlan.executable_plan_cid);
+  assert.equal(executable.execution_material.invocation_template_cid,
+    baseline.boundTemplate.bound_invocation_template_cid);
+  template.grammar_manifest_cid = grammar.grammar_manifest_cid;
+  executable.execution_material.grammar_manifest_cid = grammar.grammar_manifest_cid;
+  executable.execution_material.invocation_template_cid = hash(template);
+  compiled.executable_plan_cid = hash(executable);
+  expectedPlans[kind] = {...compiled, compiled_plan_cid: hash(compiled)};
+}
+const planCids = Object.fromEntries(Object.entries(expectedPlans)
+  .map(([kind, body]) => [kind, body.compiled_plan_cid]));
 const policy = Object.freeze({executionContextCid: cid('a'),
   hostPolicyCid: cid('b'), expiresAt: '2027-01-01T00:00:00.000Z'});
 
@@ -179,6 +202,7 @@ for (const kind of ['values', 'tasks']) {
       assert.equal(hash(compiledBody), compiledCid);
       assert.equal(compiledCid, compiled.compiledPlan.identity);
       assert.equal(compiled.compiledPlan.identity, planCids[kind]);
+      assert.deepEqual(JSON.parse(compiled.compiledPlan.wire), expectedPlans[kind]);
       const definitionBody = {
         version: 'actql-run-definition/0.1',
         authorization_context_cid: policy.executionContextCid,
