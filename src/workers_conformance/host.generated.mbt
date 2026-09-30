@@ -4791,6 +4791,84 @@ pub fn strategy_remote_coordinator_transition_key(
 }
 
 ///|
+#export_name("strategyRemoteCoordinatorTransitionExpectedHistoryJson")
+pub fn strategy_remote_coordinator_transition_expected_history_json(
+  transition : @remote.CoordinatorDispatchTransition,
+) -> String raise NodeHostFailure {
+  match
+    @remote.coordinator_dispatch_transition_expected_history_json(transition) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorTransitionHistoryJson")
+pub fn strategy_remote_coordinator_transition_history_json(
+  transition : @remote.CoordinatorDispatchTransition,
+) -> String raise NodeHostFailure {
+  match @remote.coordinator_dispatch_transition_history_json(transition) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorTransitionIsReplay")
+pub fn strategy_remote_coordinator_transition_is_replay(
+  transition : @remote.CoordinatorDispatchTransition,
+) -> Bool {
+  @remote.coordinator_dispatch_transition_is_replay(transition)
+}
+
+///|
+/// Classify only enumerated observation-admission refusals. Unknown bridge
+/// failures are not semantic rejection and must not be acknowledged.
+#export_name("strategyRemoteCoordinatorObservationIssueCode")
+pub fn strategy_remote_coordinator_observation_issue_code(
+  failure : NodeHostFailure,
+) -> String {
+  match failure {
+    RemoteDispatch(issue) =>
+      match issue {
+        @remote.StateCollision => "StateCollision"
+        @remote.InvalidDispatch => "InvalidDispatch"
+        @remote.ObservationHistoryCapacityExceeded =>
+          "ObservationHistoryCapacityExceeded"
+        @remote.ObservationAdmissionClosed => "ObservationAdmissionClosed"
+        @remote.ObservationHistoryRequired => "ObservationHistoryRequired"
+        _ => ""
+      }
+    _ => ""
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorRecordHistoryJson")
+pub fn strategy_remote_coordinator_record_history_json(
+  record : @remote.CoordinatorDispatchIntentRecord,
+) -> String raise NodeHostFailure {
+  match @remote.coordinator_dispatch_record_history_json(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorHistoryRestore")
+pub fn strategy_remote_coordinator_history_restore(
+  record : @remote.CoordinatorDispatchIntentRecord,
+  body : String,
+  evidence : @remote.RemoteExecutionEvidence?,
+) -> Unit raise NodeHostFailure {
+  match
+    @remote.restore_coordinator_dispatch_history_json(record, body, evidence) {
+    Ok(_) => ()
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteCoordinatorTransitionCommit")
 pub fn strategy_remote_coordinator_transition_commit(
   transition : @remote.CoordinatorDispatchTransition,
@@ -13482,6 +13560,84 @@ pub fn async_strategy_remote_coordinator_transition_key(
   transition : @remote.CoordinatorDispatchTransition,
 ) -> Array[String] {
   @remote.coordinator_dispatch_transition_journal_key(transition)
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorTransitionExpectedHistoryJson")
+pub fn async_strategy_remote_coordinator_transition_expected_history_json(
+  transition : @remote.CoordinatorDispatchTransition,
+) -> String raise AsyncHostFailure {
+  match
+    @remote.coordinator_dispatch_transition_expected_history_json(transition) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorTransitionHistoryJson")
+pub fn async_strategy_remote_coordinator_transition_history_json(
+  transition : @remote.CoordinatorDispatchTransition,
+) -> String raise AsyncHostFailure {
+  match @remote.coordinator_dispatch_transition_history_json(transition) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorTransitionIsReplay")
+pub fn async_strategy_remote_coordinator_transition_is_replay(
+  transition : @remote.CoordinatorDispatchTransition,
+) -> Bool {
+  @remote.coordinator_dispatch_transition_is_replay(transition)
+}
+
+///|
+/// Classify only enumerated observation-admission refusals. Unknown bridge
+/// failures are not semantic rejection and must not be acknowledged.
+#export_name("asyncStrategyRemoteCoordinatorObservationIssueCode")
+pub fn async_strategy_remote_coordinator_observation_issue_code(
+  failure : AsyncHostFailure,
+) -> String {
+  match failure {
+    RemoteDispatch(issue) =>
+      match issue {
+        @remote.StateCollision => "StateCollision"
+        @remote.InvalidDispatch => "InvalidDispatch"
+        @remote.ObservationHistoryCapacityExceeded =>
+          "ObservationHistoryCapacityExceeded"
+        @remote.ObservationAdmissionClosed => "ObservationAdmissionClosed"
+        @remote.ObservationHistoryRequired => "ObservationHistoryRequired"
+        _ => ""
+      }
+    _ => ""
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorRecordHistoryJson")
+pub fn async_strategy_remote_coordinator_record_history_json(
+  record : @remote.CoordinatorDispatchIntentRecord,
+) -> String raise AsyncHostFailure {
+  match @remote.coordinator_dispatch_record_history_json(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorHistoryRestore")
+pub fn async_strategy_remote_coordinator_history_restore(
+  record : @remote.CoordinatorDispatchIntentRecord,
+  body : String,
+  evidence : @remote.RemoteExecutionEvidence?,
+) -> Unit raise AsyncHostFailure {
+  match
+    @remote.restore_coordinator_dispatch_history_json(record, body, evidence) {
+    Ok(_) => ()
+    Err(issue) => raise RemoteDispatch(issue)
+  }
 }
 
 ///|

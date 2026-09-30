@@ -102,6 +102,13 @@ Use the repository's pinned MoonBit environment and dependencies.
   tree's declared Client wire package resolved that environmental mismatch.
   No product declaration or check was weakened. The lint job's JS-only subset
   has its existing intentional MoonBit-source test exclusion.
+- Workers: the first PR CI refused stale generated bridge projections. Both
+  product JS projections and their conformance projection were regenerated
+  from the shared source (no verifier bypass). After regeneration the local
+  `workers` job passed, including the isolated Core closure and 27/27
+  Node/workerd boundary tests, with no skips. The local attempt before resolving
+  the Workers dependency reference lacked `acorn`; that environment failure
+  is separate from the reproduced generated-source freshness failure.
 
 For the fixed old-owner continuation check, create an unmodified checkout of
 `8028e8a708db6a5ef2b82f6d559b3d2bf7e55041`, build its Node release bridge,
