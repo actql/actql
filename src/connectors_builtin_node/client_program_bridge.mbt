@@ -2285,6 +2285,37 @@ pub fn client_program_open_captured_local_host(
 }
 
 ///|
+/// The acquired source retains its exact owner while downstream Local tasks
+/// use the existing retained Store completion and publication boundary.
+#export_name("clientProgramOpenCapturedLocalRetainedHost")
+pub fn client_program_open_captured_local_retained_host(
+  prepared : @publication_host.PreparedClientProgram,
+  source : @query.CapturedInputSource,
+  registry_body : String,
+  values_body : String,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  @client_local_host.open_captured_local_retained_host(
+    prepared,
+    source,
+    registry_body,
+    values_body,
+    fixed_ms,
+    per_row_ms,
+    per_wire_byte_ms,
+    per_pair_ms,
+    fragment_body~,
+    ordered_body~,
+    provider_factory=installed_client_graph_providers,
+  )
+}
+
+///|
 /// Document format and Parameter Values are admitted once for either
 /// computation kind. Neither branch may reinterpret the supplied JSON.
 fn client_program_input(
