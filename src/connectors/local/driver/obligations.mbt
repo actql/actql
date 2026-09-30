@@ -111,9 +111,10 @@ pub fn local_dispatch_rejection(
             return Some("unsupported_execution_obligation")
           }
         ValuesPublication(_) =>
-          if !@local.local_module_bounded_values_publication(
+          if !@local.local_module_bounded_values_obligation(
               installed.implementation,
               local_task_slot(installed, task),
+              requirement.site.step,
             ) {
             return Some("unsupported_execution_obligation")
           }
