@@ -31,6 +31,15 @@ fn register_used_provider(
       providers.push(provider)
       return
     }
+    for index in 0..<@execution.generated_sequence_step_count(sequence) {
+      if @execution.generated_sequence_step_index_at(sequence, index)
+        is Some(step) &&
+        @execution.select_generated_sequence_step(sequence, step) is Some(child) &&
+        @local_connector.managed_provider_accepts(provider, child) {
+        providers.push(provider)
+        return
+      }
+    }
   }
 }
 
@@ -193,14 +202,24 @@ pub fn strategy_fixture_retained_chain_filter_arithmetic(
 }
 
 ///|
-/// The authored Stage must remain one physical task with all checked steps.
+/// Count the physical task, not all steps retained by its source owner.
 #export_name("strategyFixtureTaskStepCount")
 pub fn strategy_fixture_task_step_count(
   f : StrategyFixture,
   task : Int,
 ) -> Int? {
   @strategy.graph_task_owner(f.graph, task).map(owner => {
-    @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner)))
+    match @strategy.graph_task_selected_step(f.graph, task) {
+      Some(_) => 1
+      None =>
+        match @strategy.graph_task_prefix_end(f.graph, task) {
+          Some(end) => end + 1
+          None =>
+            @pipeline.step_count(
+              @lower.pipeline(@lower.bound_preparation(owner)),
+            )
+        }
+    }
   })
 }
 

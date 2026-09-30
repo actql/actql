@@ -213,8 +213,23 @@ pub(all) enum LocalBoundedTemporalRelationCheck {
 }
 
 ///|
-/// Temporal Relation obligations require the registered bounded family
-/// provider for the exact one-step occurrence, with an admitted capacity.
+fn local_sequence_contains_exact_step(
+  sequence : @execution.GeneratedSequence,
+  step : Int,
+) -> Bool {
+  let mut occurrences = 0
+  for index in 0..<@execution.generated_sequence_step_count(sequence) {
+    if @execution.generated_sequence_step_index_at(sequence, index) ==
+      Some(step) {
+      occurrences += 1
+    }
+  }
+  occurrences == 1
+}
+
+///|
+/// Temporal Relation obligations require the registered bounded family child,
+/// either alone or inside the selected linear Relation-chain owner.
 pub fn local_module_bounded_temporal_relation_obligation(
   installed : LocalComputeModule,
   slot : Int,
@@ -222,23 +237,43 @@ pub fn local_module_bounded_temporal_relation_obligation(
   check : LocalBoundedTemporalRelationCheck,
 ) -> Bool {
   guard installed.sequences.get(slot) is Some(sequence) &&
-    @execution.generated_sequence_step_index_at(sequence, 0) == Some(step) &&
-    @execution.generated_sequence_step_index_at(sequence, 1) is None else {
+    local_sequence_contains_exact_step(sequence, step) &&
+    @execution.select_generated_sequence_step(sequence, step) is Some(selected) &&
+    !local_sequence_outputs_carrier(selected) else {
     return false
   }
   let matches = match
-    (@execution.generated_sequence_step_at(sequence, 0), check) {
+    (@execution.generated_sequence_step_at(selected, 0), check) {
     (Some(@lower.TimeSeriesStep(_)), TimeSeries)
     | (Some(@lower.IntervalJoinStep(_)), IntervalJoin)
     | (Some(@lower.AsOfJoinStep(_)), AsOfJoin)
     | (Some(@lower.SequenceMatchStep(_)), SequenceMatch) => true
     _ => false
   }
-  matches &&
-  installed.managed_providers.any(provider => {
-    managed_provider_accepts(provider, sequence) &&
-    managed_provider_capacity(provider, sequence) is Some(_)
-  })
+  if !matches ||
+    !installed.managed_providers.any(provider => {
+      managed_provider_accepts(provider, selected) &&
+      managed_provider_capacity(provider, selected) is Some(_)
+    }) {
+    return false
+  }
+  if @execution.generated_sequence_step_count(sequence) == 1 {
+    return @execution.generated_sequence_step_index_at(sequence, 0) ==
+      Some(step)
+  }
+  // A different fused family provider cannot prove this child's execution.
+  if installed.managed_providers.any(provider => {
+      managed_provider_accepts(provider, sequence)
+    }) {
+    return false
+  }
+  let provider = selected_relation_provider(
+    installed.execution,
+    installed.measurement,
+    family=installed.managed_providers,
+  )
+  managed_provider_accepts(provider, sequence) &&
+  managed_provider_capacity(provider, sequence) is Some(_)
 }
 
 ///|
@@ -345,7 +380,11 @@ fn local_bounded_binary_relation_step(
   }
   if count > 1 &&
     !managed_provider_accepts(
-      selected_relation_provider(installed.execution, installed.measurement),
+      selected_relation_provider(
+        installed.execution,
+        installed.measurement,
+        family=installed.managed_providers,
+      ),
       sequence,
     ) {
     return false
@@ -483,7 +522,11 @@ fn local_bounded_relation_check(
   }
   if count > 1 &&
     !managed_provider_accepts(
-      selected_relation_provider(installed.execution, installed.measurement),
+      selected_relation_provider(
+        installed.execution,
+        installed.measurement,
+        family=installed.managed_providers,
+      ),
       sequence,
     ) {
     return false
@@ -507,7 +550,7 @@ pub fn local_module_bounded_relation_obligation(
 }
 
 ///|
-/// Nest output checks belong to the exact one-step bounded nest provider.
+/// Nest output checks belong to the exact bounded child of the selected task.
 /// A family provider cannot discharge these retained Relation obligations.
 pub fn local_module_bounded_nest_obligation(
   installed : LocalComputeModule,
@@ -515,9 +558,9 @@ pub fn local_module_bounded_nest_obligation(
   step : Int,
 ) -> Bool {
   guard installed.sequences.get(slot) is Some(sequence) &&
-    @execution.generated_sequence_step_count(sequence) == 1 &&
-    @execution.generated_sequence_step_index_at(sequence, 0) == Some(step) &&
-    @execution.generated_sequence_step_at(sequence, 0)
+    local_sequence_contains_exact_step(sequence, step) &&
+    @execution.select_generated_sequence_step(sequence, step) is Some(selected) &&
+    @execution.generated_sequence_step_at(selected, 0)
     is Some(@lower.NestStep(_)) else {
     return false
   }
@@ -526,9 +569,20 @@ pub fn local_module_bounded_nest_obligation(
       return false
     }
   }
+  if @execution.generated_sequence_step_count(sequence) > 1 &&
+    !managed_provider_accepts(
+      selected_relation_provider(
+        installed.execution,
+        installed.measurement,
+        family=installed.managed_providers,
+      ),
+      sequence,
+    ) {
+    return false
+  }
   let provider = nest_provider(installed.execution, installed.measurement)
-  managed_provider_accepts(provider, sequence) &&
-  managed_provider_capacity(provider, sequence) is Some(_)
+  managed_provider_accepts(provider, selected) &&
+  managed_provider_capacity(provider, selected) is Some(_)
 }
 
 ///|
@@ -545,7 +599,7 @@ fn local_managed_provider_for(
       return Some(provider)
     }
   }
-  let relation = selected_relation_provider(execution, measurement)
+  let relation = selected_relation_provider(execution, measurement, family~)
   if managed_provider_accepts(relation, sequence) {
     return Some(relation)
   }

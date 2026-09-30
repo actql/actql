@@ -177,7 +177,29 @@ fn bounded_relation_step_provider(
   selected : @execution.GeneratedSequence,
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
+  family? : Array[ManagedProvider] = [],
 ) -> ManagedProvider? {
+  // Only these Relation-valued family operations use this row-chain owner.
+  // A Carrier constructor is not a private Relation output.
+  let family_step = match @execution.generated_sequence_step_at(selected, 0) {
+    Some(@lower.TimeSeriesStep(_))
+    | Some(@lower.IntervalJoinStep(_))
+    | Some(@lower.AsOfJoinStep(_))
+    | Some(@lower.SequenceMatchStep(_)) => true
+    _ => false
+  }
+  if family_step {
+    if @execution.generated_sequence_step_count(selected) != 1 ||
+      local_sequence_outputs_carrier(selected) {
+      return None
+    }
+    for provider in family {
+      if managed_provider_accepts(provider, selected) {
+        return Some(provider)
+      }
+    }
+    return None
+  }
   for
     provider in [
       selected_relation_provider(execution, measurement),
@@ -208,9 +230,10 @@ fn start_bounded_relation_step(
   max_value_bytes : Int,
   remaining_work : Int,
   numeric : @execution.NumericAggregateExecution?,
+  family : Array[ManagedProvider],
 ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
   guard remaining_work > 0 &&
-    bounded_relation_step_provider(selected, execution, measurement)
+    bounded_relation_step_provider(selected, execution, measurement, family~)
     is Some(provider) else {
     return Err(@connector.Execution(@execution.InputSet))
   }
@@ -316,6 +339,7 @@ fn bounded_relation_chain_capacity(
   sequence : @execution.GeneratedSequence,
   limits : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
+  family : Array[ManagedProvider],
 ) -> @execution.ExecutionCapacity? {
   guard @execution.generated_sequence_capacity(sequence, limits, measurement)
     is Some(base) else {
@@ -331,7 +355,7 @@ fn bounded_relation_chain_capacity(
       is Some(step) &&
       @execution.select_generated_sequence_step(sequence, step)
       is Some(selected) &&
-      bounded_relation_step_provider(selected, limits, measurement)
+      bounded_relation_step_provider(selected, limits, measurement, family~)
       is Some(provider) &&
       managed_provider_capacity(provider, selected) is Some(child) else {
       return None
@@ -363,6 +387,7 @@ fn bounded_relation_chain_execution(
   measurement : @execution.FixedInputGuardMeasureLimits,
   max_value_bytes : Int,
   numeric : @execution.NumericAggregateExecution?,
+  family : Array[ManagedProvider],
 ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
   let count = @execution.generated_sequence_step_count(sequence)
   guard count > 1 &&
@@ -392,6 +417,7 @@ fn bounded_relation_chain_execution(
       max_value_bytes,
       execution.max_work,
       numeric,
+      family,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -441,6 +467,7 @@ fn bounded_relation_chain_execution(
         max_value_bytes,
         remaining.to_int(),
         numeric,
+        family,
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
@@ -646,6 +673,7 @@ fn bounded_relation_chain_execution(
 fn selected_relation_provider(
   limits : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
+  family? : Array[ManagedProvider] = [],
 ) -> ManagedProvider {
   managed_provider_with_numeric(
     sequence => {
@@ -683,7 +711,13 @@ fn selected_relation_provider(
         let chain_unsupported = if count > 1 {
           match selected {
             Some(value) =>
-              bounded_relation_step_provider(value, limits, measurement) is None
+              bounded_relation_step_provider(
+                value,
+                limits,
+                measurement,
+                family~,
+              )
+              is None
             None => true
           }
         } else {
@@ -701,6 +735,11 @@ fn selected_relation_provider(
         let mut prior_inputs = 0
         for port in 0..<input_count {
           if !@lower.node_accepts_managed_relation_view(node, port) {
+            return false
+          }
+          guard @lower.node_input_target(node, port) is Some(target) &&
+            @lower.preparation_carrier_at(prepared, target) is Some(carrier) &&
+            @carrier.kind(carrier) == @carrier.RelationKind else {
             return false
           }
           if count > 1 {
@@ -734,11 +773,13 @@ fn selected_relation_provider(
         None => true
       }
     },
-    sequence => bounded_relation_chain_capacity(sequence, limits, measurement),
+    sequence => {
+      bounded_relation_chain_capacity(sequence, limits, measurement, family)
+    },
     (sequence, inputs, _max_rows, max_value_bytes, execution, numeric) => {
       if @execution.generated_sequence_step_count(sequence) > 1 {
         return bounded_relation_chain_execution(
-          sequence, inputs, execution, measurement, max_value_bytes, numeric,
+          sequence, inputs, execution, measurement, max_value_bytes, numeric, family,
         )
       }
       guard @execution.generated_sequence_step_index_at(sequence, 0)

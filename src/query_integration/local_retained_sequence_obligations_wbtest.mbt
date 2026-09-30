@@ -1,6 +1,12 @@
 ///|
-fn check_retained_sequence_offer(registered : Bool) -> Unit raise {
-  let (run, issuer) = captured_graph_fixture(local_values_sequence_chain=true)
+fn check_retained_sequence_offer(
+  registered : Bool,
+  suffix? : Bool = false,
+) -> Unit raise {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_sequence_chain=true,
+    local_relation_family_suffix=suffix,
+  )
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let generated = dispatch_test_generated(run)
@@ -68,7 +74,7 @@ fn check_retained_sequence_offer(registered : Bool) -> Unit raise {
     @local_connector.local_module_bounded_temporal_relation_obligation(
       implementation,
       1,
-      1,
+      9,
       @local_connector.SequenceMatch,
     ),
   )
@@ -109,4 +115,10 @@ test "retained sequence rejects a missing bounded matcher" {
 ///|
 test "retained sequence admits its registered bounded matcher" {
   check_retained_sequence_offer(true)
+}
+
+///|
+test "retained sequence chain requires its registered bounded matcher" {
+  check_retained_sequence_offer(false, suffix=true)
+  check_retained_sequence_offer(true, suffix=true)
 }

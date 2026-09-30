@@ -66,6 +66,7 @@ fn query_checked_program_fixture(
   local_values_sequence_chain? : Bool = false,
   local_values_nest_chain? : Bool = false,
   local_values_nest_unwrap_chain? : Bool = false,
+  local_relation_family_suffix? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   linear_compute_stages? : Int = 0,
@@ -613,6 +614,11 @@ fn query_checked_program_fixture(
   }
   let text = text.replace(old="id > $minimum", new=acquisition_filter)
   let text = text.replace(old="id > 2", new=compute_filter)
+  let text = if local_relation_family_suffix {
+    retained_relation_family_suffix(text)
+  } else {
+    text
+  }
   let input_limits : @syntax.Limits = {
     source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
     tree: {

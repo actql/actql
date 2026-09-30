@@ -292,6 +292,8 @@ pub fn node_accepts_managed_relation_view(
       | AppendRows(_)
       | SetRows(_)
       | NestRows(_)
+      | IntervalJoinRows(_)
+      | AsOfJoinRows(_)
       | NearestValue(_) => true
       _ => false
     }
@@ -316,7 +318,12 @@ pub fn node_accepts_managed_relation_view(
     | Watermark(_)
     | Lag(_)
     | JsonPick(_) => true
-    Pivot(_) | Unpivot(_) | Unnest(_) | WindowGroup(_) | Analytic(_) => true
+    Pivot(_)
+    | Unpivot(_)
+    | Unnest(_)
+    | WindowGroup(_)
+    | Analytic(_)
+    | SequenceRows(_) => true
     AssertRows(_) =>
       operation(node) == "REL.assert_all" ||
       operation(node) == "REL.assert_unique"

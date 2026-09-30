@@ -6,11 +6,15 @@ priv enum RetainedTemporalFixture {
 }
 
 ///|
-fn check_retained_temporal_offer(kind : RetainedTemporalFixture) -> Unit raise {
+fn check_retained_temporal_offer(
+  kind : RetainedTemporalFixture,
+  suffix? : Bool = false,
+) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_time_series_chain=kind is Series,
     local_values_interval_chain=kind is Interval,
     local_values_asof_chain=kind is AsOf,
+    local_relation_family_suffix=suffix,
   )
   let task = if kind is Series { 1 } else { 3 }
   let registry = search_registry()
@@ -94,6 +98,23 @@ fn check_retained_temporal_offer(kind : RetainedTemporalFixture) -> Unit raise {
       generated[task - 1],
       0,
     ).unwrap()
+    if registered && suffix {
+      let selected = @execution.select_generated_sequence_step(
+        generated[task - 1],
+        step,
+      ).unwrap()
+      assert_true(@local_connector.managed_provider_accepts(provider, selected))
+      assert_true(
+        @local_connector.managed_provider_capacity(provider, selected)
+        is Some(_),
+      )
+      assert_true(
+        @local_connector.local_module_managed_sequence_supported(
+          implementation,
+          task - 1,
+        ),
+      )
+    }
     let check = match kind {
       Series => @local_connector.TimeSeries
       Interval => @local_connector.IntervalJoin
@@ -155,4 +176,11 @@ test "retained interval join requires its registered bounded provider" {
 ///|
 test "retained as-of join requires its registered bounded provider" {
   check_retained_temporal_offer(AsOf)
+}
+
+///|
+test "retained temporal Relation chains require their exact bounded children" {
+  check_retained_temporal_offer(Series, suffix=true)
+  check_retained_temporal_offer(Interval, suffix=true)
+  check_retained_temporal_offer(AsOf, suffix=true)
 }

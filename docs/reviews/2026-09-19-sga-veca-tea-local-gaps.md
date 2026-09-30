@@ -723,10 +723,11 @@ exact/one-short budgets and Store failure/cleanup controls; numeric reduction
 and aggregate children retain their independent boundary tests. Final
 same-SHA CI evidence is still required for this branch.
 
-The single-step `nest` route now binds its three checked obligations only when
-the exact installed sequence is accepted by the bounded nest provider. It does
-not admit an arbitrary chain containing `nest`, nor let a Carrier-family
-provider discharge a retained Relation obligation. The ordinary Host fixture
+The `nest` route binds its three checked obligations only when the exact
+installed occurrence is accepted by the bounded nest provider, alone or as a
+child of the linear Relation chain described below. It does not admit an
+arbitrary chain containing `nest`, nor let a Carrier-family provider discharge
+a retained Relation obligation. The ordinary Host fixture
 selects the nest task with retained inputs and output, reads its published
 Named Result and two consumer results from a real Store against independent
 ordered values, and cancels after positive provider work while retaining the
@@ -742,9 +743,10 @@ The remaining Relation work is to cover checked forms outside the table.
 
 #### Retained temporal Relation connection
 
-The retained obligation reader now admits the exact single-step temporal
-Relation forms below only when their registered bounded TEA provider accepts
-the installed sequence and supplies its capacity. Generic Relation support,
+The retained obligation reader admits the exact temporal Relation forms below
+only when their registered bounded TEA provider accepts the selected child and
+supplies its capacity, alone or inside the linear Relation chain below.
+Generic Relation support,
 a foreign step, another temporal operation, or an absent provider does not
 discharge the requirement. The existing prepared execution retains the checked
 interval/as-of search ceiling, output limit, input-port binding, and completion
@@ -782,8 +784,8 @@ proofs differ from the retained publication examples. They prove the same
 registered computation, not independently measured Host-wide budgets.
 
 This connection does not claim arbitrary same-task temporal/Relation chains.
-The registered temporal providers currently accept one step; any broader
-shape must retain a valid selected or fused bounded provider before execution.
+The registered temporal providers accept one step; a supported linear chain
+uses each as a child of the existing Relation owner, not a fused TEA algorithm.
 Native Host in-flight cancellation remains outside this completion unit.
 
 #### Retained Relation sequence matching
@@ -820,11 +822,57 @@ kernel fixtures retain work 621/620 and workspace 58/57 boundaries. Portable
 tests additionally check independent selected ceilings, guard preservation,
 immutable earlier configurations, and rejection of synchronous execution.
 
-This closes the single-step Relation-input matcher connection, not arbitrary
-same-task matcher chains. An Events-to-matcher-to-filter selected path has
+This closes the Relation-input matcher connection, including the linear
+Relation suffix below, not arbitrary matcher chains. An
+Events-to-matcher-to-filter selected path has
 separate existing evidence above. Other shapes still need a matching bounded
 provider and checked task binding; generic Relation support does not discharge
 their temporal duties. Native Host in-flight cancellation remains separate.
+
+#### Retained linear Relation family chains
+
+The ordinary DAG keeps a Relation-valued Nest, time series, interval join,
+as-of join, or Relation-input sequence matcher with a linear bounded row suffix
+inside one physical task. All inputs must be Relations. An intermediate Result
+root, a nonlinear dependency, or a Carrier input still requires the existing
+segmented/fused path; this connection does not relabel a Carrier as rows.
+
+| Ordinary producer Program | Selected execution |
+| --- | --- |
+| `sequence -> filter -> sort -> select` | Registered matcher child, then bounded row children |
+| `time_series -> filter -> select` | Registered series child, then bounded row children |
+| `interval_join -> filter -> derive -> select` | Registered interval child, then bounded row children |
+| `asof_join -> filter -> select` | Registered as-of child, then bounded row children |
+| `nest -> filter -> derive -> select` | Built-in Nest child, then bounded row children |
+| `nest -> unnest -> filter -> select` | Built-in Nest and expansion children, then bounded row children |
+
+The existing chain owner retains every child and its private output until
+reverse-order cleanup. It supplies the remaining cumulative work to each
+child and charges the handoff; budgets do not reset between operations. The
+capacity envelope includes all simultaneously retained child capacities.
+Temporal search/match ceilings remain attached to the original checked step.
+Interval/as-of starts read the exact selected occurrence, rather than requiring
+its entire source Stage to contain one operation. No algorithm is duplicated.
+Obligation readers reject steps outside the selected task view and reject an
+absent or shadowing family provider before execution.
+
+The shared acceptance harness checks the real retained Store, three explicit
+Named Results, independent ordered values, and independent consumer release.
+It includes cancellation after the series-to-filter handoff, a typed arithmetic
+failure in a later as-of filter with a successful control, interval append
+failure, and matcher finalize/cleanup retry without another Compute dispatch.
+A matcher producing three intermediate rows followed by a two-row filter must
+still fail a two-row matcher policy ceiling with typed `RowLimit` and no Result.
+
+Physical task size is now distinguished from the original Stage size in the
+fixture readers. The chain cases assert the actual task size; retaining the
+complete source owner alone is not evidence that the Stage stayed one task.
+Portable task-shape and quantum-one/child-handoff cleanup tests are recorded in
+the production route inventory alongside the real-Store fixture names.
+Independent kernel exact/one-short limits and existing shared-chain budget
+tests remain the resource proofs for the unchanged implementations. These are
+not newly measured Host-wide exact budgets. Final-SHA local validation and
+Linux CI remain separate evidence; Native Host cancellation remains separate.
 
 #### Mixed retained Store and typed Carrier paths
 

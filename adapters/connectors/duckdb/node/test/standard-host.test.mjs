@@ -9490,6 +9490,24 @@ async function exerciseStrategyGraph(
     return [canonical(environment), environment.evidence_bundle_cid,
       ...args.slice(2)];
   };
+  const retainedFamilyChain = (source, producerId, suffix, fields) => {
+    const program = structuredClone(source);
+    const producer = program.stages.find(stage => stage.id === producerId);
+    producer.steps[0].as = 'family';
+    let from = 'family';
+    for (const [index, step] of suffix.entries()) {
+      const as = index === suffix.length - 1 ? 'out' : `family_${index}`;
+      producer.steps.push({from, ...step, as});
+      from = as;
+    }
+    producer.results.r.fields = fields;
+    for (const consumer of program.stages.filter(stage =>
+      stage.inputs?.x?.result?.stage === producerId)) {
+      consumer.steps[0].select = fields;
+      consumer.results.r.fields = fields;
+    }
+    return program;
+  };
   for (const {
     name, source, expected, producerCidRows, fields,
     temporal = false, sequence = false, fixtureArgs = args,
@@ -9497,6 +9515,56 @@ async function exerciseStrategyGraph(
     firstStage = 'external_cross_consumer_a',
     secondStage = 'external_cross_consumer_b',
   } of [
+    {name: 'sequence-filter-sort-chain', source: retainedFamilyChain(
+      retainedRelationSequenceProgram, 'matched',
+      [{filter: 'key = 1'}, {sort: [{end_id: 'desc'}]},
+        {select: relationSequenceFields}], relationSequenceFields),
+    temporal: true, sequence: true,
+    producerStage: 'matched', producerTask: 2, totalTasks: 4,
+    firstStage: 'consumer_a', secondStage: 'consumer_b',
+    expected: [sequenceExpected[1], sequenceExpected[0]],
+    fields: relationSequenceFields, fixtureArgs: sequencePolicyArgs(2, 3)},
+    {name: 'time-series-filter-select-chain', source: retainedFamilyChain(
+      retainedTimeSeriesProgram, 'values_a',
+      [{filter: 'true'}, {select: ['time']}], ['time']),
+    temporal: true, producerStage: 'values_a', producerTask: 1, totalTasks: 3,
+    firstStage: 'consumer_a', secondStage: 'consumer_b',
+    expected: [
+      {time: '1969-12-31T23:59:59.999Z'},
+      {time: '1970-01-01T00:00:00.001Z'},
+      {time: '1970-01-01T00:00:00.003Z'},
+    ], fields: ['time']},
+    {name: 'interval-filter-derive-chain', source: retainedFamilyChain(
+      retainedTemporalJoinProgram('interval'), 'crossed',
+      [{filter: 'right_value > 20'}, {derive: {total: 'left_value + right_value'}},
+        {select: ['left_value', 'right_value', 'total']}],
+      ['left_value', 'right_value', 'total']), temporal: true,
+    expected: [{left_value: 10, right_value: 21, total: 31}],
+    fields: ['left_value', 'right_value', 'total']},
+    {name: 'asof-filter-select-chain', source: retainedFamilyChain(
+      retainedTemporalJoinProgram('asof'), 'crossed',
+      [{filter: 'value > 200'}, {select: ['id', 'value']}], ['id', 'value']),
+    temporal: true, expected: [{id: 1, value: 300}], fields: ['id', 'value']},
+    {name: 'asof-arithmetic-control-chain', source: retainedFamilyChain(
+      retainedTemporalJoinProgram('asof'), 'crossed',
+      [{filter: 'id >= 1'}], ['id', 'value']),
+    temporal: true, expected: [{id: 1, value: 300}], fields: ['id', 'value']},
+    {name: 'nest-filter-derive-chain', source: retainedFamilyChain(
+      nestProgram, 'nested', [{filter: 'id > 1'}, {derive: {copy: 'id'}},
+        {select: ['copy', 'id', 'items', 'key']}], ['copy', 'id', 'items', 'key']),
+    producerStage: 'nested', firstStage: 'nest_consumer_a',
+    secondStage: 'nest_consumer_b', expected: [
+      {copy: 2, id: 2, items: [{amount: null}, {amount: 10}], key: 1},
+      {copy: 3, id: 3, items: [], key: null},
+      {copy: 4, id: 4, items: [], key: 2},
+    ], fields: ['copy', 'id', 'items', 'key']},
+    {name: 'nest-unnest-filter-chain', source: retainedFamilyChain(
+      nestProgram, 'nested', [{unnest: {column: 'items', as: 'item', outer: false}},
+        {filter: 'id > 1'}, {select: ['id', 'item']}], ['id', 'item']),
+    producerStage: 'nested', firstStage: 'nest_consumer_a',
+    secondStage: 'nest_consumer_b', expected: [
+      {id: 2, item: {amount: null}}, {id: 2, item: {amount: 10}},
+    ], fields: ['id', 'item']},
     {name: 'sequence', source: retainedRelationSequenceProgram, temporal: true,
       sequence: true, producerStage: 'matched', producerTask: 2, totalTasks: 4,
       firstStage: 'consumer_a', secondStage: 'consumer_b',
@@ -10087,7 +10155,7 @@ async function exerciseStrategyGraph(
       await rm(publicationDirectory, {recursive: true, force: true});
     }
   }
-  for (const {name: mode, temporal} of [
+  for (const {name: mode, temporal, chain = false} of [
     {name: 'cancel'}, {name: 'cancel-after-filter'},
     {name: 'nest-cancel'},
     {name: 'cancel-after-group'},
@@ -10102,8 +10170,13 @@ async function exerciseStrategyGraph(
     {name: 'cancel', temporal: 'sequence'},
     {name: 'store-failure', temporal: 'sequence'},
     {name: 'finalize-failure', temporal: 'sequence'},
+    {name: 'cancel-after-filter', temporal: 'series', chain: true},
+    {name: 'compute-failure', temporal: 'asof', chain: true},
+    {name: 'store-failure', temporal: 'interval', chain: true},
+    {name: 'finalize-failure', temporal: 'sequence', chain: true},
   ]) {
-    const caseName = temporal ? `${temporal}-${mode}` : mode;
+    const caseName = (temporal ? `${temporal}-${mode}` : mode) +
+      (chain ? '-chain' : '');
     const series = temporal === 'series';
     const sequence = temporal === 'sequence';
     const producerTask = series ? 1 : sequence ? 2 : 3;
@@ -10113,7 +10186,7 @@ async function exerciseStrategyGraph(
     const nestCancel = mode === 'nest-cancel';
     const cancelling = mode === 'cancel' ||
       mode === 'cancel-after-filter' || grouped || nestCancel;
-    const program = temporal ? structuredClone(series
+    let program = temporal ? structuredClone(series
       ? retainedTimeSeriesProgram : sequence
       ? retainedRelationSequenceProgram : retainedTemporalJoinProgram(temporal))
       : nestCancel ? structuredClone(nestProgram)
@@ -10126,6 +10199,14 @@ async function exerciseStrategyGraph(
         : [{filter: mode === 'compute-failure'
           ? '1 / (id - id) > 0' : 'id >= 10'}],
       grouped ? ['id', 'n'] : ['id']);
+    if (chain) {
+      const producerId = series ? 'values_a' : sequence ? 'matched' : 'crossed';
+      const fields = program.stages.find(stage => stage.id === producerId)
+        .results.r.fields;
+      program = retainedFamilyChain(program, producerId,
+        [{filter: mode === 'compute-failure'
+          ? '1 / (id - id) > 0' : 'true'}], fields);
+    }
     program.results = nestCancel ? {
       producer: {from: {stage: 'nested', result: 'r'}},
       first: {from: {stage: 'nest_consumer_a', result: 'r'}},
@@ -10250,7 +10331,8 @@ async function exerciseStrategyGraph(
                   const poll = checked(result);
                   producerWork += poll.work;
                   if ((mode === 'cancel-after-filter' || grouped) &&
-                      producerWork > 29n && !poll.complete) {
+                      producerWork > (chain && series ? 5n : 29n) &&
+                      !poll.complete) {
                     sawLaterWork = true;
                   }
                   if (!poll.complete && poll.progress > 0n) {
@@ -10278,6 +10360,11 @@ async function exerciseStrategyGraph(
       const setup = temporal
         ? fixture.strategyFixtureTeaRetainedSubset(binaryFixture)
         : fixture.strategyFixtureRetainedLocalSubset(binaryFixture);
+      assert.equal(fixture.strategyFixtureTaskStepCount(binaryFixture, producerTask),
+        program.stages.find(stage => stage.id ===
+          (series ? 'values_a' : sequence ? 'matched' : nestCancel
+            ? 'nested' : 'crossed')).steps.length,
+        `${caseName}: cancellation and failures keep the authored task intact`);
       if (mode === 'finalize-failure') {
         const runtime = runtimeCore(observedRuntime);
         failurePublicationStore = await openLocalPublicationStore({
@@ -10491,11 +10578,16 @@ async function exerciseStrategyGraph(
   }
   // Checked match-per-key and output-row ceilings are separate from the
   // generous provider work/workspace envelope, and each can reject this input.
-  for (const {name, matches, output} of [
+  for (const {name, matches, output, chain = false} of [
     {name: 'matches-per-key', matches: 1, output: 3},
     {name: 'output-rows', matches: 2, output: 2},
+    {name: 'sequence-chain-intermediate-limit', matches: 2, output: 2, chain: true},
   ]) {
-    const program = structuredClone(retainedRelationSequenceProgram);
+    // The suffix would leave only two rows, but its predecessor still needs
+    // three output rows. A final-output-only ceiling would incorrectly pass.
+    const program = chain ? retainedFamilyChain(retainedRelationSequenceProgram,
+      'matched', [{filter: 'key = 1'}], relationSequenceFields)
+      : structuredClone(retainedRelationSequenceProgram);
     program.results = {producer: {from: {stage: 'matched', result: 'r'}}};
     const selectedFixture = fixture.strategyFixtureTeaSequenceCreate(
       ...sequencePolicyArgs(matches, output), JSON.stringify(program));

@@ -66,6 +66,7 @@ fn captured_graph_fixture(
   local_values_sequence_chain? : Bool = false,
   local_values_nest_chain? : Bool = false,
   local_values_nest_unwrap_chain? : Bool = false,
+  local_relation_family_suffix? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   linear_compute_stages? : Int = 0,
@@ -143,6 +144,7 @@ fn captured_graph_fixture(
     local_values_interval_chain~,
     local_values_asof_chain~,
     local_values_sequence_chain~,
+    local_relation_family_suffix~,
     local_values_nest_chain~,
     local_values_nest_unwrap_chain~,
     local_values_unary_chain~,
@@ -3774,6 +3776,7 @@ fn query_checked_program_fixture(
   local_values_sequence_chain? : Bool = false,
   local_values_nest_chain? : Bool = false,
   local_values_nest_unwrap_chain? : Bool = false,
+  local_relation_family_suffix? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   linear_compute_stages? : Int = 0,
@@ -4321,6 +4324,11 @@ fn query_checked_program_fixture(
   }
   let text = text.replace(old="id > $minimum", new=acquisition_filter)
   let text = text.replace(old="id > 2", new=compute_filter)
+  let text = if local_relation_family_suffix {
+    retained_relation_family_suffix(text)
+  } else {
+    text
+  }
   let input_limits : @syntax.Limits = {
     source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
     tree: {
@@ -5019,6 +5027,35 @@ fn registered_values() -> @identity.CanonicalValue raise {
 /// Fixture owner: query_integration/engine_fixtures_wbtest.mbt
 fn registry_limits() -> @execution.RegistryLimits {
   { max_body_bytes: 100000, max_body_nodes: 10000, max_body_depth: 100, }
+}
+
+///|
+/// Fixture owner: query_integration/local_retained_family_chains_wbtest.mbt
+/// Keep the family operation and its suffix inside the original producer Stage.
+fn retained_relation_family_suffix(text : String) -> String raise {
+  let document = @json.parse(text)
+  guard document is Object(program) &&
+    program.get("stages") is Some(Array(stages)) else {
+    abort("invalid family fixture")
+  }
+  let mut modified = 0
+  for stage in stages {
+    if stage is Object(fields) &&
+      fields.get("id") is Some(String(id)) &&
+      (id == "series" || id == "joined" || id == "matched" || id == "nested") {
+      guard fields.get("steps") is Some(Array(steps)) &&
+        steps.last() is Some(Object(operation)) else {
+        abort("missing family producer")
+      }
+      operation["as"] = @json.parse("\"family\"")
+      steps.push(
+        @json.parse("{\"from\":\"family\",\"filter\":\"true\",\"as\":\"out\"}"),
+      )
+      modified += 1
+    }
+  }
+  guard modified == 1 else { abort("ambiguous family producer") }
+  document.stringify()
 }
 
 ///|
