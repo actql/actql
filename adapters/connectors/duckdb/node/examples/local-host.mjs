@@ -223,6 +223,9 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
   const journal = openSqliteCheckpointJournal(join(state, 'journal'), {
     runtime,
     now,
+    // This Host-owned principal/account context is fixed before any answer is
+    // admitted; it is never inferred from a caller's approval evidence.
+    expectedAuthorityScopeCid: context.context.contextCid,
     // Host authorization port: Host-trusted keys only; the Resolution and
     // its run-scope approval must be signed by the same trusted key.
     authorizeResolution({resolutionWire, approvalEvidenceWire, proofPreimage}) {

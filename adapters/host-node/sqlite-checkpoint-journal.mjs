@@ -27,6 +27,8 @@ const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
 const text = value => typeof value === 'string' && value.length > 0;
+const cid = value => typeof value === 'string' &&
+  /^sha256:[0-9a-f]{64}$/u.test(value);
 
 export async function loadCheckpointRuntime() {
   return import(runtimeUrl.href);
@@ -34,7 +36,12 @@ export async function loadCheckpointRuntime() {
 
 function core(result, code) {
   const value = JSON.parse(result);
-  if (value.ok !== true) fail(code, value.issue);
+  if (value.ok !== true) {
+    const error = Object.assign(new Error(code, {
+      cause: value.detail ?? value.issue,
+    }), {code, issueCode: value.issue});
+    throw error;
+  }
   return value;
 }
 
@@ -183,12 +190,14 @@ function preparationView(row) {
 
 export function openSqliteCheckpointJournal(root, {
   runtime,
+  expectedAuthorityScopeCid,
   authorizeResolution,
   attestResolution,
   now = () => Date.now(),
   faults = {},
 } = {}) {
-  if (!text(root) || runtime === null || typeof runtime !== 'object' ||
+  if (!text(root) || !cid(expectedAuthorityScopeCid) ||
+      runtime === null || typeof runtime !== 'object' ||
       typeof runtime.checkpointSealBody !== 'function' ||
       typeof authorizeResolution !== 'function' ||
       typeof attestResolution !== 'function' || typeof now !== 'function') {
@@ -675,6 +684,7 @@ export function openSqliteCheckpointJournal(root, {
     return JSON.stringify({
       key_id: authentication.keyId,
       reviewer_id: authentication.reviewerId,
+      expected_authority_scope_cid: expectedAuthorityScopeCid,
       authority_context_cid: authentication.authorityContextCid,
       policy_cid: authentication.policyCid,
       proof_preimage: authentication.verifiedPreimage,
