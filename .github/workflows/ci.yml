@@ -151,6 +151,8 @@ jobs:
         run: npm run check:process-capacity
       - name: Test durable Remote Site dispatch admission
         run: npm run check:remote-site-runtime
+      - name: Test non-destructive SQLite format inspection
+        run: node --test adapters/host-common/sqlite-format-inspection.test.mjs
       - name: Test durable Checkpoint journal and resumed dispatch admission
         run: npm run check:checkpoint-runtime
       - name: Test native retained task file ownership

@@ -574,6 +574,17 @@ function remoteSiteControl(moon) {
     coordinatorTransitionProjection:
       moon.strategyRemoteCoordinatorTransitionProjection,
     coordinatorTransitionKey: moon.strategyRemoteCoordinatorTransitionKey,
+    coordinatorTransitionExpectedHistoryJson: transition => checked(
+      moon.strategyRemoteCoordinatorTransitionExpectedHistoryJson(transition)),
+    coordinatorTransitionHistoryJson: transition => checked(
+      moon.strategyRemoteCoordinatorTransitionHistoryJson(transition)),
+    coordinatorTransitionIsReplay: moon.strategyRemoteCoordinatorTransitionIsReplay,
+    coordinatorObservationIssueCode: error => error?.code === 'MoonBitHostFailure'
+      ? moon.strategyRemoteCoordinatorObservationIssueCode(error.cause) : '',
+    coordinatorRecordHistoryJson: record => checked(
+      moon.strategyRemoteCoordinatorRecordHistoryJson(record)),
+    restoreCoordinatorHistoryJson: (record, body, evidence) => checked(
+      moon.strategyRemoteCoordinatorHistoryRestore(record, body, evidence)),
     commitCoordinatorTransition: (transition, durable) => checked(
       moon.strategyRemoteCoordinatorTransitionCommit(transition, durable),
     ),

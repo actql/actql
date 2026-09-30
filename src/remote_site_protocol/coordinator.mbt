@@ -24,6 +24,9 @@ struct CoordinatorDispatchIntentRecord {
   mut accepted_evidence_cid : String
   mut accepted_subject_cid : String
   mut accepted_measurement_cid : String
+  mut observation_history : Array[Array[String]]
+  // Derived only from admitted evidence, never from a transport kind hint.
+  mut accepted_evidence_kind : String
 }
 
 ///|
@@ -39,6 +42,7 @@ pub(all) enum CoordinatorDispatchProgress {
 struct CoordinatorDispatchTransition {
   record : CoordinatorDispatchIntentRecord
   expected : Array[String]
+  expected_history : Array[Array[String]]
   next : Array[String]
   next_progress : CoordinatorDispatchProgress
   next_site_revision : Int
@@ -50,6 +54,9 @@ struct CoordinatorDispatchTransition {
   next_accepted_evidence_cid : String
   next_accepted_subject_cid : String
   next_accepted_measurement_cid : String
+  mut next_history : Array[Array[String]]
+  mut next_evidence_kind : String
+  mut replay : Bool
   mut consumed : Bool
 }
 
@@ -162,6 +169,8 @@ pub fn commit_coordinator_dispatch_intent(
         accepted_evidence_cid: "",
         accepted_subject_cid: "",
         accepted_measurement_cid: "",
+        observation_history: [],
+        accepted_evidence_kind: "",
       }
       journal.dispatches[key] = record
       journal.attempts[occurrence] = key
@@ -284,6 +293,7 @@ fn coordinator_prepare_transition(
   {
     record,
     expected,
+    expected_history: record.observation_history,
     next,
     next_progress: progress,
     next_site_revision: site_revision,
@@ -295,6 +305,9 @@ fn coordinator_prepare_transition(
     next_accepted_evidence_cid: accepted_evidence_cid,
     next_accepted_subject_cid: accepted_subject_cid,
     next_accepted_measurement_cid: accepted_measurement_cid,
+    next_history: record.observation_history,
+    next_evidence_kind: record.accepted_evidence_kind,
+    replay: false,
     consumed: false,
   }
 }
@@ -336,7 +349,9 @@ fn valid_site_observation(
     cleanup > 5 {
     return false
   }
-  if (evidence == 1 || evidence == 2) && execution != 3 {
+  if (evidence == 1 || evidence == 2) &&
+    execution != 3 &&
+    !(execution == 6 && (cleanup == 4 || cleanup == 5)) {
     return false
   }
   if material_available &&
@@ -389,6 +404,9 @@ pub fn prepare_coordinator_observation(
   subject : RemoteManagedOutputSubject?,
   measurement : RemoteManagedOutputMeasurement?,
 ) -> Result[CoordinatorDispatchTransition, DispatchIssue] {
+  if record.site_revision >= 0 && record.observation_history.is_empty() {
+    return Err(ObservationHistoryRequired)
+  }
   match (evidence, subject, measurement) {
     (None, None, None) | (Some(_), None, None) | (Some(_), Some(_), Some(_)) =>
       ()
@@ -399,9 +417,6 @@ pub fn prepare_coordinator_observation(
       site_execution, site_evidence, site_cleanup, site_material_available, site_quarantined_capacity,
     ) {
     return Err(InvalidDispatch)
-  }
-  if record.site_revision > site_revision {
-    return Err(StateCollision)
   }
   if record.site_revision == site_revision &&
     record.site_revision >= 0 &&
@@ -479,21 +494,102 @@ pub fn prepare_coordinator_observation(
     }
     None => record.accepted_measurement_cid
   }
-  Ok(
-    coordinator_prepare_transition(
+  let observed = [
+    site_revision.to_string(),
+    site_execution.to_string(),
+    site_evidence.to_string(),
+    site_cleanup.to_string(),
+    bool_code(site_material_available),
+    bool_code(site_quarantined_capacity),
+    match evidence {
+      Some(value) => remote_execution_evidence_cid(value)
+      None => ""
+    },
+    match subject {
+      Some(value) => remote_managed_output_subject_cid(value)
+      None => ""
+    },
+    match measurement {
+      Some(value) => remote_managed_output_measurement_cid(value)
+      None => ""
+    },
+  ]
+  let evidence_kind = match evidence {
+    Some(value) => value.evidence_kind
+    None => record.accepted_evidence_kind
+  }
+  let (history, replay) = match
+    coordinator_prepare_history(
+      record.observation_history,
+      observed,
+      evidence_kind,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if replay {
+    let transition = coordinator_prepare_transition(
       record,
-      CoordinatorSiteObserved,
-      site_revision,
-      site_execution,
-      site_evidence,
-      site_cleanup,
-      site_material_available,
-      site_quarantined_capacity,
-      accepted_evidence_cid,
-      accepted_subject_cid,
-      accepted_measurement_cid,
-    ),
+      record.progress,
+      record.site_revision,
+      record.site_execution,
+      record.site_evidence,
+      record.site_cleanup,
+      record.site_material_available,
+      record.site_quarantined_capacity,
+      record.accepted_evidence_cid,
+      record.accepted_subject_cid,
+      record.accepted_measurement_cid,
+    )
+    transition.next[0] = record.revision.to_string()
+    transition.replay = true
+    return Ok(transition)
+  }
+  let older = site_revision < record.site_revision
+  let transition = coordinator_prepare_transition(
+    record,
+    if older {
+      record.progress
+    } else {
+      CoordinatorSiteObserved
+    },
+    if older {
+      record.site_revision
+    } else {
+      site_revision
+    },
+    if older {
+      record.site_execution
+    } else {
+      site_execution
+    },
+    if older {
+      record.site_evidence
+    } else {
+      site_evidence
+    },
+    if older {
+      record.site_cleanup
+    } else {
+      site_cleanup
+    },
+    if older {
+      record.site_material_available
+    } else {
+      site_material_available
+    },
+    if older {
+      record.site_quarantined_capacity
+    } else {
+      site_quarantined_capacity
+    },
+    accepted_evidence_cid,
+    accepted_subject_cid,
+    accepted_measurement_cid,
   )
+  transition.next_history = history
+  transition.next_evidence_kind = evidence_kind
+  Ok(transition)
 }
 
 ///|
@@ -577,10 +673,13 @@ pub fn commit_coordinator_dispatch_transition(
   if !durable {
     return Err(DurabilityUnconfirmed)
   }
-  if coordinator_record_projection(transition.record) != transition.expected {
+  if coordinator_record_projection(transition.record) != transition.expected ||
+    transition.record.observation_history != transition.expected_history {
     return Err(StateCollision)
   }
-  transition.record.revision += 1
+  if !transition.replay {
+    transition.record.revision += 1
+  }
   transition.record.progress = transition.next_progress
   transition.record.site_revision = transition.next_site_revision
   transition.record.site_execution = transition.next_site_execution
@@ -591,6 +690,8 @@ pub fn commit_coordinator_dispatch_transition(
   transition.record.accepted_evidence_cid = transition.next_accepted_evidence_cid
   transition.record.accepted_subject_cid = transition.next_accepted_subject_cid
   transition.record.accepted_measurement_cid = transition.next_accepted_measurement_cid
+  transition.record.observation_history = transition.next_history
+  transition.record.accepted_evidence_kind = transition.next_evidence_kind
   transition.consumed = true
   Ok(())
 }

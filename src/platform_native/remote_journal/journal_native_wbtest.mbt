@@ -4,6 +4,181 @@ fn test_cid(fill : String) -> String {
 }
 
 ///|
+#borrow(library, path, key, body)
+extern "C" fn test_unclosed_coordinator(
+  library : @sqlite.Library,
+  path : Bytes,
+  path_length : Int,
+  key : Bytes,
+  key_length : Int,
+  body : Bytes,
+  body_length : Int,
+  missing_schema : Bool,
+) -> Bool = "actql_native_sqlite_test_unclosed_coordinator"
+
+///|
+#borrow(path)
+extern "C" fn test_file_bytes(path : Bytes, length : Int) -> Bytes = "actql_native_sqlite_test_file_bytes"
+
+///|
+#borrow(database)
+extern "C" fn test_fail_inspection_close(
+  database : @sqlite.Database,
+  failures : Int,
+) -> Unit = "actql_native_sqlite_test_fail_close"
+
+///|
+#borrow(database)
+extern "C" fn test_checked_close_count(database : @sqlite.Database) -> Int = "actql_native_sqlite_test_checked_close_count"
+
+///|
+fn test_source_bytes(path : String) -> Array[Bytes] {
+  ["", "-wal", "-shm", "-journal"].map(suffix => {
+    let bytes = @utf8.encode(path + suffix)
+    test_file_bytes(bytes, bytes.length())
+  })
+}
+
+///|
+fn test_historyless_body(request : @remote.DispatchRequest) -> Bytes {
+  let admission = @remote.prepare_coordinator_dispatch_intent(
+    @remote.create_coordinator_dispatch_journal("native-coordinator").unwrap(),
+    request,
+  ).unwrap()
+  @utf8.encode(
+    @remote.coordinator_dispatch_admission_durable_json(admission)
+    .unwrap()
+    .replace(
+      old="actql-remote-coordinator-history-record/0.1",
+      new="actql-remote-coordinator-record/0.1",
+    )
+    .replace(old="\"observation_history_json\":\"[]\",", new=""),
+  )
+}
+
+///|
+test "native Coordinator refuses old and unknown WAL formats before source writes" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(library_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(library_path).unwrap()
+  for missing_schema in [false, true] {
+    let request = test_request("format-refusal")
+    let key = @utf8.encode(
+      @remote.dispatch_request_attempt_identity(request).unwrap(),
+    )
+    let body = test_historyless_body(request)
+    let path = root +
+      "/coordinator-format-" +
+      @env.now().to_string() +
+      "-" +
+      missing_schema.to_string() +
+      ".sqlite3"
+    let encoded = @utf8.encode(path)
+    assert_true(
+      test_unclosed_coordinator(
+        library,
+        encoded,
+        encoded.length(),
+        key,
+        key.length(),
+        body,
+        body.length(),
+        missing_schema,
+      ),
+    )
+    let before = test_source_bytes(path)
+    assert_true(before[0].length() > 0)
+    assert_true(before[1].length() > 0)
+    assert_eq(before[2].length(), 0)
+    let refused = open_coordinator_journal(
+      library,
+      path,
+      1048576L,
+      @remote.create_coordinator_dispatch_journal("native-coordinator").unwrap(),
+    )
+    if missing_schema {
+      assert_true(refused is Err(Physical(@sqlite.DatabaseOpen(_))))
+    } else {
+      assert_true(refused is Err(Protocol(@remote.ObservationHistoryRequired)))
+    }
+    assert_eq(test_source_bytes(path), before)
+  }
+}
+
+///|
+test "native Coordinator inspection retains primary and retry-only physical cleanup" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(library_path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(library_path).unwrap()
+  let request = test_request("inspection-cleanup")
+  let key = @utf8.encode(
+    @remote.dispatch_request_attempt_identity(request).unwrap(),
+  )
+  let body = test_historyless_body(request)
+  let path = root +
+    "/coordinator-inspection-cleanup-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let encoded = @utf8.encode(path)
+  assert_true(
+    test_unclosed_coordinator(
+      library,
+      encoded,
+      encoded.length(),
+      key,
+      key.length(),
+      body,
+      body.length(),
+      false,
+    ),
+  )
+  let before = test_source_bytes(path)
+  let cleanup : CoordinatorInitializationCleanup = {
+    inspection: inspection_open(encoded, encoded.length()),
+    database: None,
+    pending: true,
+  }
+  let primary = inspect_coordinator_copy(
+    library,
+    1048576L,
+    cleanup,
+    @remote.create_coordinator_dispatch_journal("native-coordinator").unwrap(),
+  )
+  assert_true(primary is Err(Protocol(@remote.ObservationHistoryRequired)))
+  let database = cleanup.database.unwrap()
+  test_fail_inspection_close(database, 1)
+  guard finish_coordinator_inspection(cleanup, primary)
+    is Err(
+      InitializationCleanupPending(
+        Some(Protocol(@remote.ObservationHistoryRequired)),
+        Physical(@sqlite.Physical(_)),
+        retained
+      )
+    ) else {
+    fail("inspection lost its primary failure or cleanup owner")
+  }
+  assert_true(retained.pending())
+  assert_eq(test_checked_close_count(database), 1)
+  retained.retry().unwrap()
+  assert_false(retained.pending())
+  assert_true(retained.database is None)
+  assert_eq(test_checked_close_count(database), 2)
+  retained.retry().unwrap()
+  assert_eq(test_checked_close_count(database), 2)
+  assert_eq(test_source_bytes(path), before)
+}
+
+///|
 fn test_site() -> @site.ExecutionSite {
   @site.create_site(
     "native-site",
@@ -625,6 +800,106 @@ test "native Coordinator journal restores intent and uncertainty" {
   let (retry_kind, retry_record) = reopened.accept(request).unwrap()
   assert_eq(retry_kind, @remote.ExistingDispatch)
   assert_eq(@remote.coordinator_dispatch_record_revision(retry_record), 1)
+  assert_true(reopened.close())
+}
+
+///|
+test "native Coordinator journal retains exact observation receipts without revising replay" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/coordinator-replay-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let coordinator = open_coordinator_journal(
+    library,
+    database_path,
+    1048576L,
+    @remote.create_coordinator_dispatch_journal("native-coordinator").unwrap(),
+  ).unwrap()
+  let request = test_request("coordinator-replay")
+  let (_, record) = coordinator.accept(request).unwrap()
+  for revision in [1, 3] {
+    coordinator
+    .commit_transition(
+      @remote.prepare_coordinator_site_observation(
+        record,
+        revision,
+        2,
+        0,
+        0,
+        false,
+        false,
+        None,
+      ).unwrap(),
+    )
+    .unwrap()
+  }
+  let key = @remote.dispatch_request_attempt_identity(request).unwrap()
+  let before = coordinator.database.read("coordinator_dispatch", key).unwrap()
+  assert_eq(before.revision, 2L)
+  assert_true(coordinator.close())
+  let reopened = open_coordinator_journal(
+    library,
+    database_path,
+    1048576L,
+    @remote.create_coordinator_dispatch_journal("native-coordinator").unwrap(),
+  ).unwrap()
+  let restored = recovered_coordinator_dispatch_record(
+    reopened.recover_after("").unwrap().unwrap(),
+  )
+  for revision in [3, 1] {
+    let replay = @remote.prepare_coordinator_site_observation(
+      restored,
+      revision,
+      2,
+      0,
+      0,
+      false,
+      false,
+      None,
+    ).unwrap()
+    assert_true(@remote.coordinator_dispatch_transition_is_replay(replay))
+    reopened.commit_transition(replay).unwrap()
+    let after = reopened.database.read("coordinator_dispatch", key).unwrap()
+    assert_eq(after.revision, before.revision)
+    assert_eq(after.body, before.body)
+    assert_eq(@remote.coordinator_dispatch_record_revision(restored), 2)
+    assert_false(
+      @remote.coordinator_exact_retransmission_eligible(restored, request),
+    )
+  }
+  assert_true(
+    @remote.prepare_coordinator_site_observation(
+      restored,
+      2,
+      2,
+      0,
+      0,
+      false,
+      false,
+      None,
+    )
+    is Err(@remote.StateCollision),
+  )
+  assert_true(
+    @remote.prepare_coordinator_site_observation(
+      restored,
+      1,
+      4,
+      0,
+      0,
+      false,
+      false,
+      None,
+    )
+    is Err(@remote.StateCollision),
+  )
   assert_true(reopened.close())
 }
 

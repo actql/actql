@@ -433,3 +433,422 @@ test "Coordinator unknown execution is not a failed or released Run" {
   assert_false(observation.execution_terminal)
   assert_false(observation.cleanup_complete)
 }
+
+///|
+test "Coordinator admitted replay is ACK only including historical observations" {
+  let request = coordinator_request("replay", 1)
+  let record = restore_coordinator_dispatch_intent(
+    create_coordinator_dispatch_journal("coordinator-a").unwrap(),
+    request,
+  ).unwrap()
+  for revision in [1, 3] {
+    commit_coordinator_dispatch_transition(
+      prepare_coordinator_site_observation(
+        record,
+        revision,
+        2,
+        0,
+        0,
+        false,
+        false,
+        None,
+      ).unwrap(),
+      true,
+    ).unwrap()
+  }
+  let state = coordinator_dispatch_record_state_codes(record)
+  let history = coordinator_dispatch_record_history_json(record).unwrap()
+  assert_eq(
+    history, "[[\"1\",\"2\",\"0\",\"0\",\"0\",\"0\",\"\",\"\",\"\"],[\"3\",\"2\",\"0\",\"0\",\"0\",\"0\",\"\",\"\",\"\"]]",
+  )
+  for revision in [3, 1] {
+    let replay = prepare_coordinator_site_observation(
+      record,
+      revision,
+      2,
+      0,
+      0,
+      false,
+      false,
+      None,
+    ).unwrap()
+    assert_true(coordinator_dispatch_transition_is_replay(replay))
+    assert_true(
+      commit_coordinator_dispatch_transition(replay, false)
+      is Err(DurabilityUnconfirmed),
+    )
+    commit_coordinator_dispatch_transition(replay, true).unwrap()
+    assert_eq(coordinator_dispatch_record_state_codes(record), state)
+    assert_eq(
+      coordinator_dispatch_record_history_json(record).unwrap(),
+      history,
+    )
+    assert_false(coordinator_exact_retransmission_eligible(record, request))
+  }
+  assert_true(
+    prepare_coordinator_site_observation(record, 2, 2, 0, 0, false, false, None)
+    is Err(StateCollision),
+  )
+  assert_true(
+    prepare_coordinator_site_observation(record, 1, 4, 0, 0, false, false, None)
+    is Err(StateCollision),
+  )
+}
+
+///|
+test "Coordinator historical evidence completion does not restore reclaimed material" {
+  let request = coordinator_request("historical-evidence", 1)
+  let record = restore_coordinator_dispatch_intent(
+    create_coordinator_dispatch_journal("coordinator-a").unwrap(),
+    request,
+  ).unwrap()
+  let (evidence, subject, measurement) = managed_output_for_coordinator(request)
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_site_observation(record, 5, 3, 2, 0, true, false, None).unwrap(),
+    true,
+  ).unwrap()
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_site_observation(record, 6, 3, 2, 2, false, false, None).unwrap(),
+    true,
+  ).unwrap()
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_managed_output_observation(
+      record, 5, 3, 2, 0, true, false, evidence, subject, measurement,
+    ).unwrap(),
+    true,
+  ).unwrap()
+  let state = coordinator_dispatch_record_state_codes(record)
+  assert_eq(state[2], "6")
+  assert_eq(state[5], "2")
+  assert_eq(state[6], "0")
+  assert_false(coordinator_completion_evidence_available(record))
+  let replay = prepare_coordinator_site_observation(
+    record,
+    5,
+    3,
+    2,
+    0,
+    true,
+    false,
+    None,
+  ).unwrap()
+  assert_true(coordinator_dispatch_transition_is_replay(replay))
+  commit_coordinator_dispatch_transition(replay, true).unwrap()
+  assert_eq(coordinator_dispatch_record_state_codes(record), state)
+  assert_true(
+    prepare_coordinator_site_observation(record, 7, 3, 2, 2, false, false, None)
+    is Err(ObservationAdmissionClosed),
+  )
+}
+
+///|
+test "Coordinator ordinary history capacity does not prevent final evidence and reclaim" {
+  let request = coordinator_request("bounded-history", 1)
+  let record = restore_coordinator_dispatch_intent(
+    create_coordinator_dispatch_journal("coordinator-a").unwrap(),
+    request,
+  ).unwrap()
+  for revision in 0..<64 {
+    commit_coordinator_dispatch_transition(
+      prepare_coordinator_site_observation(
+        record,
+        revision,
+        2,
+        0,
+        0,
+        false,
+        false,
+        None,
+      ).unwrap(),
+      true,
+    ).unwrap()
+  }
+  assert_true(
+    prepare_coordinator_site_observation(
+      record,
+      64,
+      2,
+      0,
+      0,
+      false,
+      false,
+      None,
+    )
+    is Err(ObservationHistoryCapacityExceeded),
+  )
+  let (evidence, subject, measurement) = managed_output_for_coordinator(request)
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_site_observation(record, 65, 3, 1, 0, true, false, None).unwrap(),
+    true,
+  ).unwrap()
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_site_observation(record, 66, 3, 2, 1, true, false, None).unwrap(),
+    true,
+  ).unwrap()
+  assert_true(
+    prepare_coordinator_site_observation(record, 67, 3, 2, 3, true, false, None)
+    is Err(ObservationHistoryCapacityExceeded),
+  )
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_site_observation(
+      record,
+      68,
+      3,
+      2,
+      2,
+      false,
+      false,
+      None,
+    ).unwrap(),
+    true,
+  ).unwrap()
+  // Physical reclaim does not close admission before final evidence arrives.
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_managed_output_observation(
+      record, 69, 3, 2, 2, false, false, evidence, subject, measurement,
+    ).unwrap(),
+    true,
+  ).unwrap()
+  let state = coordinator_dispatch_record_state_codes(record)
+  let replay = prepare_coordinator_site_observation(
+    record,
+    0,
+    2,
+    0,
+    0,
+    false,
+    false,
+    None,
+  ).unwrap()
+  commit_coordinator_dispatch_transition(replay, true).unwrap()
+  assert_eq(coordinator_dispatch_record_state_codes(record), state)
+  assert_eq(coordinator_dispatch_record_revision(record), 68)
+  assert_false(coordinator_exact_retransmission_eligible(record, request))
+  assert_true(
+    prepare_coordinator_site_observation(
+      record,
+      70,
+      3,
+      2,
+      2,
+      false,
+      false,
+      None,
+    )
+    is Err(ObservationAdmissionClosed),
+  )
+}
+
+///|
+test "Coordinator history restoration preserves exact admissions without inventing stale ACKs" {
+  let request = coordinator_request("restored-history", 1)
+  let record = restore_coordinator_dispatch_intent(
+    create_coordinator_dispatch_journal("coordinator-a").unwrap(),
+    request,
+  ).unwrap()
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_site_observation(record, 3, 2, 0, 0, false, false, None).unwrap(),
+    true,
+  ).unwrap()
+  let restored = restore_coordinator_dispatch_intent(
+    create_coordinator_dispatch_journal("coordinator-a").unwrap(),
+    request,
+  ).unwrap()
+  restore_coordinator_dispatch_record(
+    restored, 1, 2, 3, 2, 0, 0, false, false, "", "", "",
+  ).unwrap()
+  assert_true(
+    prepare_coordinator_site_observation(
+      restored,
+      3,
+      2,
+      0,
+      0,
+      false,
+      false,
+      None,
+    )
+    is Err(ObservationHistoryRequired),
+  )
+  assert_true(
+    restore_coordinator_dispatch_history_json(restored, "[]", None)
+    is Err(InvalidJournal),
+  )
+  restore_coordinator_dispatch_history_json(
+    restored,
+    coordinator_dispatch_record_history_json(record).unwrap(),
+    None,
+  ).unwrap()
+  let replay = prepare_coordinator_site_observation(
+    restored,
+    3,
+    2,
+    0,
+    0,
+    false,
+    false,
+    None,
+  ).unwrap()
+  assert_true(coordinator_dispatch_transition_is_replay(replay))
+  commit_coordinator_dispatch_transition(replay, true).unwrap()
+  assert_true(
+    prepare_coordinator_site_observation(
+      restored,
+      2,
+      2,
+      0,
+      0,
+      false,
+      false,
+      None,
+    )
+    is Err(StateCollision),
+  )
+}
+
+///|
+test "Coordinator evidence-only completion closes by its admitted typed kind" {
+  let request = coordinator_request("generic-evidence-close", 1)
+  let record = restore_coordinator_dispatch_intent(
+    create_coordinator_dispatch_journal("coordinator-a").unwrap(),
+    request,
+  ).unwrap()
+  let site_journal = journal()
+  let (_, site_record) = accept(site_journal, request)
+  provision(site_record)
+  execute(site_record)
+  settle(site_record)
+  commit_dispatch_transition(
+    prepare_retain_remote_output(
+      site_record,
+      "generic-material",
+      cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+    ).unwrap(),
+    true,
+  ).unwrap()
+  let evidence = issue_remote_execution_evidence(
+    issuer(site_journal),
+    site_record,
+    cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+  ).unwrap()
+  assert_true(remote_execution_evidence_matches_dispatch(evidence, request))
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_site_observation(
+      record,
+      5,
+      3,
+      2,
+      0,
+      true,
+      false,
+      Some(evidence),
+    ).unwrap(),
+    true,
+  ).unwrap()
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_site_observation(record, 6, 3, 2, 2, false, false, None).unwrap(),
+    true,
+  ).unwrap()
+  assert_true(
+    prepare_coordinator_site_observation(record, 7, 3, 2, 2, false, false, None)
+    is Err(ObservationAdmissionClosed),
+  )
+  let restored = restore_coordinator_dispatch_intent(
+    create_coordinator_dispatch_journal("coordinator-a").unwrap(),
+    request,
+  ).unwrap()
+  restore_coordinator_dispatch_record(
+    restored,
+    2,
+    2,
+    6,
+    3,
+    2,
+    2,
+    false,
+    false,
+    remote_execution_evidence_cid(evidence),
+    "",
+    "",
+  ).unwrap()
+  assert_true(
+    restore_coordinator_dispatch_history_json(
+      restored,
+      coordinator_dispatch_record_history_json(record).unwrap(),
+      None,
+    )
+    is Err(InvalidJournal),
+  )
+  restore_coordinator_dispatch_history_json(
+    restored,
+    coordinator_dispatch_record_history_json(record).unwrap(),
+    Some(evidence),
+  ).unwrap()
+  assert_true(
+    prepare_coordinator_site_observation(
+      restored,
+      7,
+      3,
+      2,
+      2,
+      false,
+      false,
+      None,
+    )
+    is Err(ObservationAdmissionClosed),
+  )
+}
+
+///|
+test "Coordinator reverse profile arrival remains bounded after final reclaim" {
+  let request = coordinator_request("reverse-profiles", 1)
+  let record = restore_coordinator_dispatch_intent(
+    create_coordinator_dispatch_journal("coordinator-a").unwrap(),
+    request,
+  ).unwrap()
+  let (evidence, subject, measurement) = managed_output_for_coordinator(request)
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_managed_output_observation(
+      record, 5, 3, 2, 0, true, false, evidence, subject, measurement,
+    ).unwrap(),
+    true,
+  ).unwrap()
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_site_observation(record, 6, 3, 2, 2, false, false, None).unwrap(),
+    true,
+  ).unwrap()
+  for profile in [Some(evidence), None] {
+    commit_coordinator_dispatch_transition(
+      prepare_coordinator_site_observation(
+        record, 5, 3, 2, 0, true, false, profile,
+      ).unwrap(),
+      true,
+    ).unwrap()
+  }
+  let state = coordinator_dispatch_record_state_codes(record)
+  assert_eq(state[2], "6")
+  assert_eq(state[6], "0")
+  assert_eq(coordinator_dispatch_record_revision(record), 4)
+  for profile in [Some(evidence), None] {
+    let replay = prepare_coordinator_site_observation(
+      record, 5, 3, 2, 0, true, false, profile,
+    ).unwrap()
+    assert_true(coordinator_dispatch_transition_is_replay(replay))
+    commit_coordinator_dispatch_transition(replay, true).unwrap()
+    assert_eq(coordinator_dispatch_record_state_codes(record), state)
+  }
+  let (different, different_subject, different_measurement) = managed_output_for_coordinator(
+    request,
+    column_bytes=3,
+  )
+  assert_true(
+    prepare_coordinator_managed_output_observation(
+      record, 5, 3, 2, 0, true, false, different, different_subject, different_measurement,
+    )
+    is Err(StateCollision),
+  )
+  assert_true(
+    prepare_coordinator_site_observation(record, 4, 3, 2, 0, true, false, None)
+    is Err(ObservationAdmissionClosed),
+  )
+}

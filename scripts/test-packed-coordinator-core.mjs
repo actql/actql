@@ -72,6 +72,29 @@ try {
     pathToFileURL(join(repository,
       'scripts/fixtures/remote-output-record-fixture.mjs')).href)});
   const fixture = durableOutputRecordFixture(coordinator, runtimeCore(bridge));
+  // The installed package restores the admitted receipt, without transport
+  // pending state. A replay's durable body/revision and start eligibility are
+  // unchanged; this does not claim a native executor ran in this fixture.
+  const replayRecord = coordinator.restoreDurable(
+    coordinator.createJournal('coordinator-a'), fixture.durable);
+  const replayResponse = coordinator.admitResponseJson(
+    fixture.reply, fixture.request, true);
+  const stateBeforeReplay = coordinator.recordStateCodes(replayRecord);
+  const replay = coordinator.prepareResponseObservation(replayRecord, replayResponse);
+  assert.equal(coordinator.transitionIsReplay(replay), true);
+  assert.equal(coordinator.transitionExpectedRevision(replay), 1);
+  const replayBody = coordinator.responseDurableJson(
+    fixture.durable, replay, replayResponse);
+  assert.equal(JSON.parse(replayBody).version,
+    'actql-remote-coordinator-history-record/0.1');
+  assert.equal(JSON.parse(replayBody).revision, 1);
+  assert.equal(JSON.parse(JSON.parse(replayBody).observation_history_json).length, 1);
+  coordinator.commitTransition(replay);
+  assert.deepEqual(coordinator.recordStateCodes(replayRecord), stateBeforeReplay);
+  assert.equal(coordinator.exactRetransmissionEligible(replayRecord, fixture.request), false);
+  const replayAgain = coordinator.prepareResponseObservation(replayRecord, replayResponse);
+  assert.equal(coordinator.responseDurableJson(
+    fixture.durable, replayAgain, replayResponse), replayBody);
   const outputRequest = JSON.parse(
     coordinator.durableOutputRequestJson(fixture.outputDurable));
   assert.equal(outputRequest.version, 'actql-remote-poll-output/0.1');
@@ -79,7 +102,7 @@ try {
   assert.equal(outputRequest.intent_json,
     JSON.parse(coordinator.durableOutputPollJson(fixture.outputDurable))
       .intent_json);
-  console.log('packed coordinator-core release, not-seen and output request');
+  console.log('packed coordinator-core release, not-seen, output request and durable replay');
   `);
   process.stdout.write(run(process.execPath, ['smoke.mjs'], installation));
 } finally {

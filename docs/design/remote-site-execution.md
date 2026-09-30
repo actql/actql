@@ -179,10 +179,110 @@ The Coordinator journal records transport uncertainty, the last exact Site
 revision, and admitted evidence separately. A Site status that reports durable
 evidence does not make common completion eligible unless the corresponding
 canonical evidence body has been received, re-admitted, and durably associated
-with that observation. A lost response advances the Coordinator observation to
-unknown without inventing a Site fact. A later authenticated query may reconcile
-the same dispatch. A lower Site revision, or different state at the same Site
-revision, is a collision rather than a last-writer-wins update.
+with that observation. A lost transport response advances the Coordinator
+observation to unknown without inventing a Site fact. A semantic refusal or
+failed/unknown observation commit does not manufacture another transport
+transition. A later authenticated query may reconcile the same dispatch.
+
+### Durable observation replay
+
+The existing Coordinator owner records the typed state and the evidence
+identities actually supplied by each admitted observation, atomically with its
+state update. This is not a transport pending queue or a CID-only receipt.
+Current authentication and the expected authority, Run, dispatch, Site and
+generation binding remain necessary on every request, including a replay.
+
+A recorded exact observation is ACK-only: it does not increase the Coordinator
+revision, restore an earlier Site state, confer execution permission or issue a
+new dispatch. An unadmitted lower Site revision is refused. Different state at
+the same position, or replacement of an accepted evidence identity, is a
+collision. Reply/status is not an independent receipt namespace. The existing
+typed owner may monotonically supplement missing execution evidence, or the
+complete managed-output evidence/subject/measurement profile, at a known
+position without restoring that position's availability or cleanup state.
+
+Ordinary admission permits 64 distinct Site revision positions per dispatch.
+After exhaustion, a new position requires an as-yet unseen closing fact:
+
+| Closing fact or evidence slot | Consumed by | Retry/replay |
+| --- | --- | --- |
+| Terminal execution disposition | Settled, failed or cancelled | Cannot replace another terminal disposition |
+| Final evidence disposition | Durable or rejected evidence | Cannot replace another final disposition |
+| Management loss | Force-lost or recovered-after-loss custody | Repeated loss consumes no new slot |
+| Confirmed physical reclaim | Released/recovered-after-loss with no material or quarantine | Cleanup attempts alone do not consume it |
+| Execution-evidence identity | First typed admitted evidence CID | Filled identity is immutable |
+| Managed subject identity | First typed admitted subject CID | Filled identity is immutable |
+| Managed measurement identity | First typed admitted measurement CID | Filled identity is immutable |
+
+These are seven finite facts/slots, not a budget of retry revisions. Every
+position has at most three existing evidence profiles (none, execution evidence
+only, or the complete managed triple), so at most 71 positions and 213 profiles
+can be retained. The canonical history is limited to 131,072 UTF-8 bytes, 4,096
+JSON nodes and depth 3. Exact accepted replay allocates no slot. A retry-only
+new revision after ordinary exhaustion is refused without changing either
+state or history; Site physical stop/cleanup remains independent and its final
+facts can still be admitted. No admission failure authorizes force-loss,
+capacity refund or re-execution. These bounds do not prove a bound on every
+Site `prepare_*` transition or complete O5/O2/O6 history.
+
+For managed completion, physical reclaim alone does not close evidence
+admission. The final evidence disposition and the required typed final profile
+must also be received. Generic evidence-only completion requires its admitted
+execution evidence, not a managed subject/measurement it cannot supply. The
+required profile is derived from the admitted typed evidence body, never a
+sender's transport-kind hint. Once admission is closed, existing exact receipts
+remain replayable. Another of the three bounded profiles at an already admitted
+position may arrive in reverse order, but no new position is admitted and no
+observation can undo physical reclaim or resurrect output.
+
+The wire observation contracts remain 0.1. History-bearing persistent records
+use the distinguishable `actql-remote-coordinator-history-record/0.1`, and the
+Node journal uses `actql-remote-coordinator-history-journal/0.1`. An old
+Coordinator journal cannot provide R1 replay guarantees and is refused with
+`CoordinatorJournalObservationHistoryRequired`; an old canonical record is
+refused with `ObservationHistoryRequired`. Historical admissions are never
+invented from its latest state or accumulated evidence. Refusal preserves the
+original DB, WAL and unfinished cleanup custody; it is not cancellation,
+reclaim, failure confirmation, or permission to resend work. No automatic
+migration is provided.
+
+An operator retaining an old journal must use a separately pinned matching
+implementation, rather than deleting its root or asking the new writer to
+invent receipts. With the same configured authority, the old owner recovers
+the exact dispatch and its outstanding custody, then reconciles and releases
+it using that version's ordinary rules. Returning to the new writer requires
+a separate empty root; rejection alone never terminates the old obligation.
+The fixed-baseline compatibility check in
+`scripts/test-coordinator-legacy-custody.mjs` verifies old-owner continuation
+after a DB+WAL/no-SHM refusal, and that the old writer rejects the new format
+without changing its logical state/history. This is Coordinator custody
+evidence, not a claim that replaying a release observation proves physical Site
+cleanup. Site physical release requires its normal independent evidence.
+
+Before opening an unclassified Node database normally, the adapter inspects a
+private DB+WAL snapshot using read-only source descriptors, retaining file
+identity and rejecting changes during inspection. SQLite never opens the
+unsupported source itself. A classification failure and an isolated database
+close failure preserve separate causes and a retryable cleanup owner. Retrying
+that owner only releases the inspection resources; it does not reclassify or
+initialize the original journal.
+
+The native Coordinator applies the same boundary with a pinned read-only
+DB+WAL copy. It checks the SQLite schema and re-admits every Coordinator record
+through the existing typed owner before opening the source normally. Authority
+comes from the caller-owned Coordinator, not from the stored record. It neither
+initializes nor migrates the source during inspection. Failed inspection and
+failed release of the isolated database preserve separate typed causes in
+`InitializationCleanupPending` and a `CoordinatorInitializationCleanup` owner.
+Its `retry()` is cleanup-only; `pending()` becomes false only after both SQLite
+and the private copy are released. A successful retry does not retry admission.
+
+An outbound gateway connected to the Coordinator's observation receiver waits
+for durable admission before ACK or waiter resolution. A receiver may reconcile
+an exact accepted replay even with no pending waiter, including after restart.
+Failed/unknown storage returns a retryable failure rather than a successful
+ACK. A transport-only gateway without that receiver does not offer R1 durable
+ACK guarantees.
 
 ## Independent state planes
 

@@ -301,6 +301,16 @@ pub fn coordinator_transition_expected_revision(
 }
 
 ///|
+/// True only for an exact, durably recorded observation. Persist/reconcile the
+/// unchanged response body before ACK; never CAS-increment its revision.
+#export_name("coordinatorTransitionIsReplay")
+pub fn coordinator_transition_is_replay(
+  transition : @remote.CoordinatorDispatchTransition,
+) -> Bool {
+  @remote.coordinator_dispatch_transition_is_replay(transition)
+}
+
+///|
 #export_name("coordinatorTransitionDurableJson")
 pub fn coordinator_transition_durable_json(
   durable : @remote.DurableCoordinatorDispatchRecord,

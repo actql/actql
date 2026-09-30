@@ -5,11 +5,13 @@ import {
   fsyncSync,
   mkdirSync,
   openSync,
+  readdirSync,
   realpathSync,
 } from 'node:fs';
 import {join} from 'node:path';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
+import {inspectSqliteSnapshot} from '../host-common/sqlite-format-inspection.mjs';
 import {
   admitRemoteDispatchJson,
   admitRemoteExecutionEvidenceJson,
@@ -23,52 +25,9 @@ const fail = (code, cause) => {
 };
 const text = value => typeof value === 'string' && value.length > 0;
 const count = value => Number.isSafeInteger(value) && value >= 0;
-
-function syncDirectory(path) {
-  const descriptor = openSync(path, 'r');
-  try { fsyncSync(descriptor); }
-  finally { closeSync(descriptor); }
-}
-
-export function openSqliteCoordinatorDispatchJournal(root, {
-  coordinatorAuthority,
-  maxDispatches = 100_000,
-  maxRequestBytes = 65_536,
-  maxEvidenceBytes = 65_536,
-  maxOutputOperations = 100_000,
-  maxOutputBytes = 1_048_576,
-  maxTransferChunks = 65_536,
-  maxTransferManifestBytes = 16_777_216,
-  maxTransferReferencedBytes = Number.MAX_SAFE_INTEGER,
-} = {}) {
-  if (!text(root) || !text(coordinatorAuthority) || !count(maxDispatches) ||
-      maxDispatches === 0 || !count(maxRequestBytes) ||
-      maxRequestBytes === 0 || !count(maxEvidenceBytes) ||
-      maxEvidenceBytes === 0 || !count(maxOutputOperations) ||
-      maxOutputOperations === 0 || !count(maxOutputBytes) ||
-      maxOutputBytes === 0 || !count(maxTransferChunks) ||
-      maxTransferChunks === 0 || !count(maxTransferManifestBytes) ||
-      maxTransferManifestBytes === 0 ||
-      !count(maxTransferReferencedBytes) ||
-      maxTransferReferencedBytes === 0) {
-    fail('InvalidCoordinatorJournalConfiguration');
-  }
-  mkdirSync(root, {recursive: true, mode: 0o700});
-  const directory = realpathSync(root);
-  const path = join(directory, 'coordinator-dispatch-journal.sqlite3');
-  const existed = existsSync(path);
-  const database = new DatabaseSync(path, {
-    open: true,
-    readOnly: false,
-    enableForeignKeyConstraints: true,
-  });
-  const transaction = createSqliteTransaction(database, 'CoordinatorJournal');
-  let closed = false;
-  let databaseClosed = false;
-  try {
-    database.exec('PRAGMA journal_mode = WAL');
-    database.exec('PRAGMA synchronous = FULL');
-    database.exec(`
+const journalVersion = 'actql-remote-coordinator-history-journal/0.1';
+const historyBytes = 131_072;
+const schemaSql = `
       CREATE TABLE IF NOT EXISTS journal_metadata (
         key TEXT PRIMARY KEY NOT NULL,
         value TEXT NOT NULL
@@ -97,6 +56,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         accepted_subject_json TEXT NOT NULL DEFAULT '',
         accepted_measurement_cid TEXT NOT NULL DEFAULT '',
         accepted_measurement_json TEXT NOT NULL DEFAULT '',
+        observation_history_json TEXT NOT NULL DEFAULT '[]',
         PRIMARY KEY (
           coordinator_authority,
           site_key,
@@ -150,7 +110,93 @@ export function openSqliteCoordinatorDispatchJournal(root, {
           dispatch_id
         )
       ) STRICT;
-    `);
+    `;
+// The new persistent format is the schema emitted by this owner, including
+// strict types, primary/unique keys and foreign keys, not just column names.
+const tableDefinitions = [...schemaSql.matchAll(
+  /CREATE TABLE IF NOT EXISTS (\w+) \([\s\S]*?\) STRICT;/gu,
+)].map(([sql, name]) => [name,
+  sql.replace(' IF NOT EXISTS', '').replace(/;$/u, '')]);
+
+function inspectCoordinatorFormat(root, coordinatorAuthority) {
+  const path = join(root, 'coordinator-dispatch-journal.sqlite3');
+  if (!existsSync(root)) return false;
+  const entries = readdirSync(root).sort();
+  if (!existsSync(path)) {
+    if (entries.length !== 0) fail('UnknownCoordinatorJournalFormat');
+    return false;
+  }
+  inspectSqliteSnapshot(path, database => {
+    const metadata = database.prepare(
+      'SELECT value FROM journal_metadata WHERE key = ?');
+    const version = metadata.get('schema_version')?.value;
+    if (typeof version === 'string' &&
+        /^actql-remote-coordinator-journal\/0\.[1-5]$/u.test(version)) {
+      fail('CoordinatorJournalObservationHistoryRequired');
+    }
+    if (version !== journalVersion) fail('UnsupportedCoordinatorJournalVersion');
+    if (metadata.get('coordinator_authority')?.value !== coordinatorAuthority) {
+      fail('CoordinatorJournalAuthorityMismatch');
+    }
+    for (const [name, expected] of tableDefinitions) {
+      const actual = database.prepare(
+        "SELECT sql FROM sqlite_schema WHERE type = 'table' AND name = ?",
+      ).get(name)?.sql;
+      if (actual !== expected) fail('UnknownCoordinatorJournalFormat');
+    }
+  }, {code: 'UnknownCoordinatorJournalFormat',
+    validateSource: () => JSON.stringify(readdirSync(root).sort()) ===
+      JSON.stringify(entries)});
+  return true;
+}
+
+function syncDirectory(path) {
+  const descriptor = openSync(path, 'r');
+  try { fsyncSync(descriptor); }
+  finally { closeSync(descriptor); }
+}
+
+export function openSqliteCoordinatorDispatchJournal(root, {
+  coordinatorAuthority,
+  maxDispatches = 100_000,
+  maxRequestBytes = 65_536,
+  maxEvidenceBytes = 65_536,
+  maxOutputOperations = 100_000,
+  maxOutputBytes = 1_048_576,
+  maxTransferChunks = 65_536,
+  maxTransferManifestBytes = 16_777_216,
+  maxTransferReferencedBytes = Number.MAX_SAFE_INTEGER,
+} = {}) {
+  if (!text(root) || !text(coordinatorAuthority) || !count(maxDispatches) ||
+      maxDispatches === 0 || !count(maxRequestBytes) ||
+      maxRequestBytes === 0 || !count(maxEvidenceBytes) ||
+      maxEvidenceBytes === 0 || !count(maxOutputOperations) ||
+      maxOutputOperations === 0 || !count(maxOutputBytes) ||
+      maxOutputBytes === 0 || !count(maxTransferChunks) ||
+      maxTransferChunks === 0 || !count(maxTransferManifestBytes) ||
+      maxTransferManifestBytes === 0 ||
+      !count(maxTransferReferencedBytes) ||
+      maxTransferReferencedBytes === 0) {
+    fail('InvalidCoordinatorJournalConfiguration');
+  }
+  const current = inspectCoordinatorFormat(root, coordinatorAuthority);
+  mkdirSync(root, {recursive: true, mode: 0o700});
+  const directory = realpathSync(root);
+  const path = join(directory, 'coordinator-dispatch-journal.sqlite3');
+  const existed = existsSync(path);
+  if (current !== existed) fail('UnknownCoordinatorJournalFormat');
+  const database = new DatabaseSync(path, {
+    open: true,
+    readOnly: false,
+    enableForeignKeyConstraints: true,
+  });
+  const transaction = createSqliteTransaction(database, 'CoordinatorJournal');
+  let closed = false;
+  let databaseClosed = false;
+  try {
+    database.exec('PRAGMA journal_mode = WAL');
+    database.exec('PRAGMA synchronous = FULL');
+    database.exec(schemaSql);
     transaction.run(() => {
       const version = database.prepare(
         'SELECT value FROM journal_metadata WHERE key = ?',
@@ -159,83 +205,9 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         const insert = database.prepare(
           'INSERT INTO journal_metadata (key, value) VALUES (?, ?)',
         );
-        insert.run('schema_version', 'actql-remote-coordinator-journal/0.5');
+        insert.run('schema_version', journalVersion);
         insert.run('coordinator_authority', coordinatorAuthority);
-      } else if (version.value ===
-          'actql-remote-coordinator-journal/0.1') {
-        database.exec(`
-          ALTER TABLE dispatch_intents ADD COLUMN revision INTEGER NOT NULL
-            DEFAULT 0 CHECK (revision >= 0);
-          ALTER TABLE dispatch_intents ADD COLUMN progress_state INTEGER
-            NOT NULL DEFAULT 0;
-          ALTER TABLE dispatch_intents ADD COLUMN site_revision INTEGER
-            NOT NULL DEFAULT -1;
-          ALTER TABLE dispatch_intents ADD COLUMN site_execution INTEGER
-            NOT NULL DEFAULT -1;
-          ALTER TABLE dispatch_intents ADD COLUMN site_evidence INTEGER
-            NOT NULL DEFAULT -1;
-          ALTER TABLE dispatch_intents ADD COLUMN site_cleanup INTEGER
-            NOT NULL DEFAULT -1;
-          ALTER TABLE dispatch_intents ADD COLUMN site_material_available
-            INTEGER NOT NULL DEFAULT 0;
-          ALTER TABLE dispatch_intents ADD COLUMN
-            site_quarantined_capacity INTEGER NOT NULL DEFAULT 0;
-          ALTER TABLE dispatch_intents ADD COLUMN accepted_evidence_cid TEXT
-            NOT NULL DEFAULT '';
-          ALTER TABLE dispatch_intents ADD COLUMN accepted_evidence_json TEXT
-            NOT NULL DEFAULT '';
-          ALTER TABLE dispatch_intents ADD COLUMN accepted_subject_cid TEXT
-            NOT NULL DEFAULT '';
-          ALTER TABLE dispatch_intents ADD COLUMN accepted_subject_json TEXT
-            NOT NULL DEFAULT '';
-          ALTER TABLE dispatch_intents ADD COLUMN accepted_measurement_cid TEXT
-            NOT NULL DEFAULT '';
-          ALTER TABLE dispatch_intents ADD COLUMN accepted_measurement_json TEXT
-            NOT NULL DEFAULT '';
-        `);
-        database.prepare(
-          'UPDATE journal_metadata SET value = ? WHERE key = ?',
-        ).run('actql-remote-coordinator-journal/0.5', 'schema_version');
-      } else if (version.value ===
-          'actql-remote-coordinator-journal/0.2') {
-        database.exec(`
-          ALTER TABLE dispatch_intents ADD COLUMN accepted_subject_cid TEXT
-            NOT NULL DEFAULT '';
-          ALTER TABLE dispatch_intents ADD COLUMN accepted_subject_json TEXT
-            NOT NULL DEFAULT '';
-          ALTER TABLE dispatch_intents ADD COLUMN accepted_measurement_cid TEXT
-            NOT NULL DEFAULT '';
-          ALTER TABLE dispatch_intents ADD COLUMN accepted_measurement_json TEXT
-            NOT NULL DEFAULT '';
-        `);
-        database.prepare(
-          'UPDATE journal_metadata SET value = ? WHERE key = ?',
-        ).run('actql-remote-coordinator-journal/0.5', 'schema_version');
-      } else if (version.value ===
-          'actql-remote-coordinator-journal/0.3') {
-        const unverifiable = database.prepare(`
-          SELECT COUNT(*) AS count FROM dispatch_intents
-          WHERE accepted_subject_cid != '' OR accepted_subject_json != ''
-        `).get();
-        if (Number(unverifiable.count) !== 0) {
-          fail('CoordinatorJournalMeasurementMigrationRequired');
-        }
-        database.exec(`
-          ALTER TABLE dispatch_intents ADD COLUMN accepted_measurement_cid TEXT
-            NOT NULL DEFAULT '';
-          ALTER TABLE dispatch_intents ADD COLUMN accepted_measurement_json TEXT
-            NOT NULL DEFAULT ''
-        `);
-        database.prepare(
-          'UPDATE journal_metadata SET value = ? WHERE key = ?',
-        ).run('actql-remote-coordinator-journal/0.5', 'schema_version');
-      } else if (version.value ===
-          'actql-remote-coordinator-journal/0.4') {
-        database.prepare(
-          'UPDATE journal_metadata SET value = ? WHERE key = ?',
-        ).run('actql-remote-coordinator-journal/0.5', 'schema_version');
-      } else if (version.value !==
-          'actql-remote-coordinator-journal/0.5') {
+      } else if (version.value !== journalVersion) {
         fail('UnsupportedCoordinatorJournalVersion');
       }
       const authority = database.prepare(
@@ -257,7 +229,8 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       site_material_available, site_quarantined_capacity,
       accepted_evidence_cid, accepted_evidence_json,
       accepted_subject_cid, accepted_subject_json,
-      accepted_measurement_cid, accepted_measurement_json
+      accepted_measurement_cid, accepted_measurement_json,
+      observation_history_json
     FROM dispatch_intents
     WHERE coordinator_authority = ? AND site_key = ?
       AND site_generation = ? AND dispatch_id = ?
@@ -274,7 +247,8 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       site_material_available, site_quarantined_capacity,
       accepted_evidence_cid, accepted_evidence_json,
       accepted_subject_cid, accepted_subject_json,
-      accepted_measurement_cid, accepted_measurement_json
+      accepted_measurement_cid, accepted_measurement_json,
+      observation_history_json
     FROM dispatch_intents
     ORDER BY run_definition_cid, task_key, task_attempt
   `);
@@ -302,7 +276,8 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       site_material_available = ?, site_quarantined_capacity = ?,
       accepted_evidence_cid = ?, accepted_evidence_json = ?,
       accepted_subject_cid = ?, accepted_subject_json = ?,
-      accepted_measurement_cid = ?, accepted_measurement_json = ?
+      accepted_measurement_cid = ?, accepted_measurement_json = ?,
+      observation_history_json = ?
     WHERE coordinator_authority = ? AND site_key = ?
       AND site_generation = ? AND dispatch_id = ?
       AND revision = ? AND progress_state = ? AND site_revision = ?
@@ -311,6 +286,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       AND accepted_evidence_cid = ? AND accepted_evidence_json = ?
       AND accepted_subject_cid = ? AND accepted_subject_json = ?
       AND accepted_measurement_cid = ? AND accepted_measurement_json = ?
+      AND observation_history_json = ?
   `);
   const selectOutput = database.prepare(`
     SELECT dispatch_request_cid, output_intent_cid, output_json,
@@ -437,7 +413,9 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         typeof control.coordinatorTransitionKey !== 'function' ||
         typeof control.coordinatorTransitionProjection !== 'function' ||
         typeof control.commitCoordinatorTransition !== 'function' ||
-        typeof control.coordinatorRecordRevision !== 'function') {
+        typeof control.coordinatorRecordRevision !== 'function' ||
+        typeof control.coordinatorTransitionExpectedHistoryJson !== 'function' ||
+        typeof control.coordinatorTransitionHistoryJson !== 'function') {
       fail('MissingRemoteCoordinatorControl');
     }
     const key = control.coordinatorTransitionKey(transition);
@@ -453,7 +431,13 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     if (control.coordinatorRecordRevision(record) !== states.expected[0]) {
       fail('CoordinatorDispatchStateCollision');
     }
-    return Object.freeze({key, generation, states});
+    const expectedHistory = control.coordinatorTransitionExpectedHistoryJson(transition);
+    const nextHistory = control.coordinatorTransitionHistoryJson(transition);
+    if (![expectedHistory, nextHistory].every(body => typeof body === 'string' &&
+        Buffer.byteLength(body) <= historyBytes)) {
+      fail('InvalidCoordinatorJournalHistory');
+    }
+    return Object.freeze({key, generation, states, expectedHistory, nextHistory});
   };
   const persistTransition = (
     prepared,
@@ -461,11 +445,14 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     subjectJson,
     measurementJson,
   ) => {
-    const {key, generation, states} = prepared;
+    const {key, generation, states, expectedHistory, nextHistory} = prepared;
     const found = selectDispatch.get(key[0], key[1], generation, key[3]);
     if (found === undefined) fail('CoordinatorJournalRecordMissing');
     const current = rowState(found);
     if (sameState(current, states.next)) {
+      if (found.observation_history_json !== nextHistory) {
+        fail('CoordinatorDispatchStateCollision');
+      }
       if (evidenceJson !== undefined &&
           found.accepted_evidence_json !== evidenceJson) {
         fail('CoordinatorDispatchStateCollision');
@@ -480,7 +467,8 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       }
       return states;
     }
-    if (!sameState(current, states.expected)) {
+    if (!sameState(current, states.expected) ||
+        found.observation_history_json !== expectedHistory) {
       fail('CoordinatorDispatchStateCollision');
     }
     let nextEvidenceJson = found.accepted_evidence_json;
@@ -520,10 +508,12 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       ...states.next.slice(0, 9), nextEvidenceJson,
       states.next[9], nextSubjectJson,
       states.next[10], nextMeasurementJson,
+      nextHistory,
       key[0], key[1], generation, key[3],
       ...states.expected.slice(0, 9), found.accepted_evidence_json,
       states.expected[9], found.accepted_subject_json,
       states.expected[10], found.accepted_measurement_json,
+      expectedHistory,
     );
     if (result.changes !== 1) fail('CoordinatorDispatchStateCollision');
     return states;
@@ -834,7 +824,8 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       ensureOpen();
       if (control === null || typeof control !== 'object' ||
           typeof control.restoreCoordinatorIntent !== 'function' ||
-          typeof control.restoreCoordinatorRecord !== 'function') {
+          typeof control.restoreCoordinatorRecord !== 'function' ||
+          typeof control.restoreCoordinatorHistoryJson !== 'function') {
         fail('MissingRemoteCoordinatorControl');
       }
       const recovered = [];
@@ -922,6 +913,12 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         } else if (row.accepted_measurement_json !== '') {
           fail('InvalidCoordinatorJournalMeasurement');
         }
+        if (typeof row.observation_history_json !== 'string' ||
+            Buffer.byteLength(row.observation_history_json) > historyBytes) {
+          fail('InvalidCoordinatorJournalHistory');
+        }
+        try { control.restoreCoordinatorHistoryJson(record, row.observation_history_json, evidence); }
+        catch (cause) { fail('InvalidCoordinatorJournalHistory', cause); }
         recovered.push(Object.freeze({
           request,
           record,
