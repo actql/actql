@@ -116,3 +116,136 @@ test "nullable Graph edge labels use projected Result order" {
     assert_eq(@relation_results.publication_term_nulls(term), Last)
   }
 }
+
+///|
+test "authored edge Result order retains the Graph identity without a non-null key" {
+  for
+    suffix in [
+      "", "},{\"select\":[{\"source\":\"src\"},{\"target\":\"dst\"},{\"label\":\"rel\"}],\"as\":\"aliased\"",
+    ] {
+    let renamed = suffix != ""
+    let p = @pipeline.check_carriers(
+      cursor(ordered_graph_source("\"edge_rows\":true,\"as\":\"out\"" + suffix)),
+      [],
+      None,
+      None,
+      ranking_limits(),
+    ).unwrap()
+    let from = if renamed { "aliased" } else { "out" }
+    let src = if renamed { "source" } else { "src" }
+    let dst = if renamed { "target" } else { "dst" }
+    let rel = if renamed { "label" } else { "rel" }
+    for complete in [false, true] {
+      let order = if complete {
+        "[{\"" +
+        src +
+        "\":\"desc\"},{\"" +
+        dst +
+        "\":\"asc\"},{\"" +
+        rel +
+        "\":\"asc\"}]"
+      } else {
+        "[{\"" + src + "\":\"desc\"}]"
+      }
+      let results = @relation_results.check(
+        p,
+        cursor(
+          "{\"out\":{\"from\":\"" +
+          from +
+          "\",\"fields\":[\"" +
+          src +
+          "\",\"" +
+          dst +
+          "\",\"" +
+          rel +
+          "\"],\"order_by\":" +
+          order +
+          "}}",
+        ),
+        limits(),
+      ).unwrap()
+      let resolved = resolve(results)
+      assert_eq(@relation_results.publication_strategy(resolved), Authored)
+      assert_eq(@relation_results.publication_term_count(resolved), 3)
+      let first = @relation_results.publication_term_at(resolved, 0).unwrap()
+      assert_eq(first.field, Unqualified(src))
+      assert_eq(first.direction, Desc)
+      assert_true(first.authored)
+      let identity = @relation_results.publication_key(resolved).unwrap()
+      assert_eq(@evidence.key_origin(identity), GraphProjectionResult)
+      assert_eq(@evidence.key_pending(identity), [ValidateKeyProducer])
+      for usage in [@evidence.CanonicalOrder, @evidence.ScalarIdentity] {
+        assert_true(
+          @evidence.select_key(
+            cursor("null"),
+            @evidence.singleton_key(identity),
+            usage,
+            { max_work: 1000, max_name_bytes: 1000, },
+          ).unwrap().key
+          is None,
+        )
+      }
+    }
+    // The same shape, without the producer, cannot authorize completion.
+    let plain = @pipeline.check_carriers(
+      cursor("[]"),
+      [(from, @pipeline.output_carrier(p).unwrap())],
+      None,
+      None,
+      ranking_limits(),
+    ).unwrap()
+    let results = @relation_results.check(
+      plain,
+      cursor(
+        "{\"out\":{\"from\":\"" +
+        from +
+        "\",\"fields\":[\"" +
+        src +
+        "\"],\"order_by\":[{\"" +
+        src +
+        "\":\"asc\"}]}}",
+      ),
+      limits(),
+    ).unwrap()
+    assert_eq(
+      @relation_results.resolve_publication_order(
+        results,
+        0,
+        max_work=10000,
+        max_text_bytes=10000,
+      ).unwrap_err().kind,
+      UnresolvedOrder,
+    )
+  }
+}
+
+///|
+test "dropping a Graph identity component refuses authored edge order" {
+  let p = @pipeline.check_carriers(
+    cursor(
+      ordered_graph_source(
+        "\"edge_rows\":true},{\"drop\":[\"rel\"],\"as\":\"out\"",
+      ),
+    ),
+    [],
+    None,
+    None,
+    ranking_limits(),
+  ).unwrap()
+  let results = @relation_results.check(
+    p,
+    cursor(
+      "{\"out\":{\"from\":\"out\",\"fields\":[\"src\",\"dst\"],\"order_by\":[{\"src\":\"asc\"},{\"dst\":\"asc\"}]}}",
+    ),
+    limits(),
+  ).unwrap()
+  assert_eq(
+    @relation_results.resolve_publication_order(
+      results,
+      0,
+      max_work=10000,
+      max_text_bytes=10000,
+    ).unwrap_err().kind,
+    UnresolvedOrder,
+  )
+}
