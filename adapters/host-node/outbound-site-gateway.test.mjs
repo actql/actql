@@ -632,7 +632,11 @@ test('outbound gateway durably dispatches without an inbound Site listener',
     assert.deepEqual((await terminalCompletion).state, [3, 0, 0, 0, 0]);
     assert.equal(siteAcceptCount, 1);
 
-    const releaseCompletion = gateway.release({dispatch: request});
+    let releaseFinished = false;
+    const releaseCompletion = gateway.release({dispatch: request}).then(value => {
+      releaseFinished = true;
+      return value;
+    }, error => error);
     const releasePoll = await post(
       gateway.origin,
       `${path}/poll`,
@@ -643,6 +647,13 @@ test('outbound gateway durably dispatches without an inbound Site listener',
       JSON.parse(releasePoll.body).version,
       'actql-remote-poll-release/0.1',
     );
+    // A later query has not been offered to the Site. The response to the
+    // already-delivered release must still complete the release waiter first.
+    let lateQueryFinished = false;
+    const lateQuery = gateway.query({dispatch: request}).then(value => {
+      lateQueryFinished = true;
+      return value;
+    }, error => error);
     siteStore.advance(control.prepareRelease(record), record, control);
     siteStore.advance(control.prepareReleased(record), record, control);
     const releaseObservation = await post(
@@ -652,8 +663,21 @@ test('outbound gateway durably dispatches without an inbound Site listener',
       control.statusJson(record, undefined, undefined, undefined),
     );
     assert.equal(releaseObservation.status, 200);
+    // Waiters settle before the HTTP ACK; no sleep or timeout is needed to
+    // distinguish an uncompleted release from the physical released state.
+    assert.equal(releaseFinished, true);
+    assert.equal(lateQueryFinished, false);
     assert.deepEqual((await releaseCompletion).state, [3, 0, 2, 0, 0]);
     assert.equal(siteAcceptCount, 1);
+    assert.equal(gateway.pending(), 1);
+    const lateQueryPoll = await post(gateway.origin, `${path}/poll`, siteMaterial);
+    assert.equal(lateQueryPoll.status, 200);
+    assert.equal(JSON.parse(lateQueryPoll.body).version,
+      'actql-remote-poll-query/0.1');
+    assert.equal((await post(gateway.origin, `${path}/observations`, siteMaterial,
+      control.statusJson(record, undefined, undefined, undefined))).status, 200);
+    assert.equal(lateQueryFinished, true);
+    assert.deepEqual((await lateQuery).state, [3, 0, 2, 0, 0]);
     assert.equal(gateway.pending(), 0);
 
     const unseen = dispatch({
@@ -855,6 +879,134 @@ test('Coordinator restores a committed output without repeating transport',
     });
     assert.deepEqual(restored, first);
     assert.equal(repeated, false);
+  });
+
+test('exact query is delivered and answered ahead of an unresolved dispatch',
+  {timeout: 30_000}, async t => {
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch, 'outbound-query-priority-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const certificates_ = await certificates(root);
+    const gateway = await startHttpsOutboundSiteGateway({
+      key: certificates_.serverKey,
+      cert: certificates_.serverCertificate,
+      ca: certificates_.ca,
+      siteAuthorities: new Map([[
+        certificates_.siteFingerprint,
+        {siteKey: 'site-a', siteGeneration: 1},
+      ]]),
+      control,
+    });
+    t.after(() => gateway.close());
+    const path = '/v1/sites/site-a/generations/1/outbound';
+    const siteMaterial = {
+      ca: certificates_.ca,
+      cert: certificates_.siteCertificate,
+      key: certificates_.siteKey,
+    };
+    const site = runtime.siteControl.create({
+      key: 'site-a', generation: 1, runtimeRevision: cid('a'),
+      maxConcurrentOperations: 4, maxConcurrentTransfers: 4,
+      maxRetainedBytes: 1_048_576n, maxExecutionBytes: 1_048_576n,
+    });
+    const siteJournal = control.createJournal(site);
+    const siteStore = openSqliteDispatchJournal(join(root, 'site'), {
+      siteKey: 'site-a', siteGeneration: 1, runtimeRevision: cid('a'),
+    });
+    t.after(() => siteStore.close());
+
+    for (const acceptanceAcknowledged of [false, true]) {
+      const request = dispatch({
+        dispatchId: `dispatch-query-priority-${acceptanceAcknowledged}`,
+        taskAttempt: acceptanceAcknowledged ? 2 : 1,
+      });
+      const dispatched = gateway.dispatch({dispatch: request,
+        inputBindingBody: '{}'}).catch(error => error);
+      const firstOffer = await post(gateway.origin, `${path}/poll`, siteMaterial);
+      assert.equal(firstOffer.status, 200);
+      if (!acceptanceAcknowledged) {
+        const notSeen = gateway.query({dispatch: request}).catch(error => error);
+        const queryOffer = await post(gateway.origin, `${path}/poll`, siteMaterial);
+        assert.equal(JSON.parse(queryOffer.body).version,
+          'actql-remote-poll-query/0.1');
+        assert.equal((await post(gateway.origin, `${path}/observations`,
+          siteMaterial, control.pollNotSeenJson(request))).status, 200);
+        assert.equal((await notSeen).code, 'RemoteDispatchNotSeen');
+        assert.equal(gateway.pending(), 1);
+        const originalOffer = await post(gateway.origin, `${path}/poll`, siteMaterial);
+        assert.equal(originalOffer.body, firstOffer.body);
+      }
+      const accepted = siteStore.accept(
+        control.prepareAdmission(siteJournal, request), request, control);
+      if (acceptanceAcknowledged) {
+        assert.equal((await post(gateway.origin, `${path}/observations`,
+          siteMaterial, control.replyJson(accepted))).status, 200);
+      }
+      const originalRevision = control.revision(accepted);
+      // The old dispatch remains pending across multiple queries. A latest
+      // state/status response must complete the query, not steal it for that
+      // older waiter. No sleep or accepted-as-terminal expectation is used.
+      for (let pass = 0; pass < 3; pass++) {
+        let queryFinished = false;
+        const queried = gateway.query({dispatch: request}).then(result => {
+          queryFinished = true;
+          return result;
+        }, error => error);
+        assert.equal(gateway.pending(), 2);
+        const offered = await post(gateway.origin, `${path}/poll`, siteMaterial);
+        assert.equal(offered.status, 200);
+        assert.equal(JSON.parse(offered.body).version,
+          'actql-remote-poll-query/0.1');
+        assert.equal(JSON.parse(offered.body).dispatch_request_cid,
+          control.identity(request));
+        if (!acceptanceAcknowledged && pass === 0) {
+          // Query admission requires a status response. A delayed acceptance
+          // reply still falls back to the exact dispatch waiter; it must not
+          // complete or remove the query.
+          assert.equal((await post(gateway.origin, `${path}/observations`,
+            siteMaterial, control.replyJson(accepted))).status, 200);
+          assert.equal(queryFinished, false);
+          assert.equal(gateway.pending(), 2);
+        }
+        const foreign = dispatch({dispatchId: 'unrelated-query-response'});
+        assert.equal((await post(gateway.origin, `${path}/observations`,
+          siteMaterial, control.pollNotSeenJson(foreign))).status, 404);
+        assert.equal(gateway.pending(), 2);
+        assert.equal((await post(gateway.origin, `${path}/observations`,
+          siteMaterial, control.statusJson(accepted,
+            undefined, undefined, undefined))).status, 200);
+        // Routing settles the waiter before sending the HTTP ACK. Checking
+        // here detects a stolen reply without waiting for a test timeout.
+        assert.equal(queryFinished, true);
+        const result = await queried;
+        assert.equal(result.dispatchRequestCid, control.identity(request));
+        assert.deepEqual(result.state, [0, 0, 0, 0, 0]);
+        assert.equal(control.revision(accepted), originalRevision);
+        assert.equal(gateway.pending(), 1);
+      }
+      const unrelated = dispatch({dispatchId: `fifo-${acceptanceAcknowledged}`,
+        taskAttempt: acceptanceAcknowledged ? 4 : 3});
+      const unrelatedSend = gateway.dispatch({dispatch: unrelated,
+        inputBindingBody: '{}'}).catch(error => error);
+      const queried = gateway.query({dispatch: request}).catch(error => error);
+      const fifoOffer = await post(gateway.origin, `${path}/poll`, siteMaterial);
+      assert.equal(JSON.parse(fifoOffer.body).version,
+        'actql-remote-poll-dispatch/0.1');
+      assert.equal(control.identity(control.pollDispatchRequest(
+        control.admitPollDispatch(fifoOffer.body))), control.identity(unrelated));
+      gateway.withdraw({dispatch: unrelated});
+      assert.equal((await unrelatedSend).code, 'RemoteDispatchWithdrawn');
+      assert.equal(JSON.parse((await post(gateway.origin, `${path}/poll`,
+        siteMaterial)).body).version, 'actql-remote-poll-query/0.1');
+      assert.equal((await post(gateway.origin, `${path}/observations`, siteMaterial,
+        control.statusJson(accepted, undefined, undefined, undefined))).status, 200);
+      assert.equal((await queried).dispatchRequestCid, control.identity(request));
+      // This transport change does not silently drop or complete the original
+      // dispatch waiter. Its existing explicit withdrawal path still owns it.
+      assert.equal(gateway.withdraw({dispatch: request}), true);
+      assert.equal((await dispatched).code, 'RemoteDispatchWithdrawn');
+      assert.equal(gateway.pending(), 0);
+    }
   });
 
 test('outbound cancellation cannot admit work before dispatch', async t => {
