@@ -68,3 +68,42 @@ Local and HTTP. The earlier #63 source
 `2e21a039245ba681a90a7f18a3fd6e2797265107` passed 8/8 with the
 previous Graph provider SHA, but that result does not validate #92's new
 ordering semantics.
+
+## Both-transport follow-up
+
+The isolated integration branch is `integration/frontend-sga-a-682`.
+Source SHA `70730f963681b7294139171d8e2954d5c45835c6` contains the
+same fixed A and B inputs listed above. Its only additional executable
+change collects SGA failures until both transports have been exercised,
+then fails the run. Runtime code and expected results are unchanged.
+
+The clean packed command was:
+
+```sh
+ACTQL_TEST_SGA_CASES=graphs-equal,diff-apply \
+  node scripts/test-packed-public-query.mjs
+```
+
+| Source | Embedded Local | HTTPS Remote |
+| --- | --- | --- |
+| `graphs-equal` | Named Result matched independent expected rows | Named Result matched independent expected rows |
+| `diff-apply` | Preparation rejected: `ClientProgramRejected` | Preparation rejected: HTTP 422, `ClientProgramRejected` |
+
+The successful case also verified lookup, same-request resubmission,
+attach, reread, normal stream termination, and an already-terminal cancel.
+Source and expected Result order were unchanged. Row shape and values
+were checked; the public Result API does not expose schema metadata.
+Raw SQL/Pipe acceptance controls passed on both transports.
+
+The overall command exited 1 because `diff-apply` remains unmet on both
+transports. The existing direct JSON preparation diagnosis above remains
+applicable: this run's `run-host-core` and `local-node` tarball SHA-256 values
+exactly match those listed above. Command outcomes, stdout, stderr, source
+revision and all five tarball digests are preserved under
+`worktrees/.codex-scratch/public-query-evidence-X5B73z`. Installed packages
+and Stores were removed after evidence preservation.
+
+Native CLI acceptance was not reached because the public-query phase failed.
+Linux CI and full Core gates were not rerun for this focused probe.
+PR #63 remains Draft pending a valid Graph edge Result order witness and
+reacceptance of the original eight cases.
