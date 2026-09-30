@@ -47,9 +47,10 @@ fn register_used_provider(
 fn fixture_task_sequences(
   graph : @strategy.CheckedDAG,
   generated : Array[@execution.GeneratedSequence],
+  first_task? : Int = 1,
 ) -> Array[@execution.GeneratedSequence] {
   Array::makei(generated.length(), index => {
-    let task = index + 1
+    let task = index + first_task
     match @strategy.graph_task_prefix_end(graph, task) {
       Some(end) =>
         @execution.select_generated_sequence_prefix(generated[index], end).unwrap()
@@ -58,6 +59,77 @@ fn fixture_task_sequences(
           Some(step) =>
             @execution.select_generated_sequence_step(generated[index], step).unwrap()
           None => generated[index]
+        }
+    }
+  })
+}
+
+///|
+/// Reuse the checked source-free Program and the installed retained driver.
+/// The fixture configures Compute only; the standard Host owns publication.
+#export_name("strategyFixtureSourceFreeRetainedSubset")
+pub fn strategy_fixture_source_free_retained_subset(
+  prepared : @publication_host.PreparedClientProgram,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  execution_work : Int,
+  operation_entries : Int,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  let run = @publication_host.open_prepared_source_free_client_run(prepared, {
+    planning_work: 100000,
+    attempts: 100,
+    holdings: 100,
+    transfer_bytes: 10000000L,
+    retained_bytes: 200000000L,
+    execution_bytes: 268435456L,
+  }).unwrap()
+  let graph = @strategy.captured_dag_graph(run)
+  let generated = Array::makei(@strategy.graph_task_count(graph), task => {
+    fixture_generated_with_ordered(
+      @strategy.graph_task_owner(graph, task).unwrap(),
+      registry_json,
+      values_json,
+      fragment_json,
+      true,
+      None,
+    ) catch {
+      _ =>
+        abort(
+          "invalid source-free fixture generation for task " + task.to_string(),
+        )
+    }
+  })
+  @connector_gate.configure_subset(
+    run,
+    fixture_task_sequences(graph, generated, first_task=0),
+    0,
+    retained_output=true,
+    execution_work~,
+    operation_entries~,
+  )
+}
+
+///|
+/// Observe physical task boundaries without substituting a fixture DAG.
+#export_name("strategyFixtureConfiguredTaskStepCount")
+pub fn strategy_fixture_configured_task_step_count(
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  task : Int,
+) -> Int? {
+  let graph = @strategy.captured_dag_graph(
+    @physical_host.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+  )
+  @strategy.graph_task_owner(graph, task).map(owner => {
+    match @strategy.graph_task_selected_step(graph, task) {
+      Some(_) => 1
+      None =>
+        match @strategy.graph_task_prefix_end(graph, task) {
+          Some(end) => end + 1
+          None =>
+            @pipeline.step_count(
+              @lower.pipeline(@lower.bound_preparation(owner)),
+            )
         }
     }
   })

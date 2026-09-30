@@ -14,6 +14,9 @@ pub fn configure_subset(
   if mode < 0 || mode > 2 {
     abort("invalid conformance configuration")
   }
+  if @strategy.captured_compute_first_task(run) == 0 && mode != 0 {
+    abort("source-free conformance requires the Local-only subset")
+  }
   let count = if mode == 2 { 2 } else { 1 }
   let registry = @connector.prepare_capability_registry(
     Array::makei(count, i => {
@@ -200,16 +203,47 @@ pub fn configure_subset(
     10000,
     count,
   ).unwrap()
-  @host.configure_compute_host_estimates(
-    @builtin.configured_host_runtime(installed),
-    Array::make(sequences.length(), Some(1000)),
-    {
-      max_offers: sequences.length() * count,
+  // Adaptive input statistics describe a captured acquisition root. A
+  // source-free root uses the installed Compute estimates, as in the
+  // ordinary source-free Local Host, without inventing an acquisition.
+  if @strategy.captured_compute_first_task(run) == 1 {
+    @host.configure_compute_host_estimates(
+      @builtin.configured_host_runtime(installed),
+      Array::make(sequences.length(), Some(1000)),
+      {
+        max_offers: sequences.length() * count,
+        max_strategies: 8,
+        max_work: 10000,
+        max_revisions: sequences.length(),
+      },
+      0,
+    ).unwrap()
+  } else {
+    // Retained output uses materializing tickets, including the zero-input
+    // root. Resolve their real installed offers through common selection;
+    // managed input selection may subsequently refine the same revision.
+    let installed_local = @builtin.configured_local_module(modules).unwrap()
+    let offers = Array::makei(sequences.length(), task => {
+      @local_driver.estimate_local_dispatch_offer(
+        installed_local,
+        task,
+        [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(10L), }],
+        1000,
+      ).unwrap()
+    })
+    @strategy.configure_strategy_search(run, {
+      max_offers: sequences.length(),
       max_strategies: 8,
       max_work: 10000,
       max_revisions: sequences.length(),
-    },
-    0,
-  ).unwrap()
+    }).unwrap()
+    let choices = @strategy.prepare_strategy_choices(
+      run,
+      offers,
+      registry,
+      None,
+    ).unwrap()
+    @strategy.commit_strategy_choice(choices, None).unwrap() |> ignore
+  }
   installed
 }

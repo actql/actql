@@ -452,6 +452,8 @@ for (const [index, route] of routeEntries.entries()) {
       'zero_input_derive_two_consumers',
       'zero_input_sort_take_two_consumers',
       'zero_input_unique_two_consumers',
+      'retained_source_free_chain_admission',
+      'retained_source_free_chain_rejection',
     ];
     if (route.zero_input_entrypoint?.symbol !== 'values_provider' ||
       requiredValuesRoles.some(role => !boundaryRoles.has(role))) {
@@ -820,6 +822,8 @@ for (const [index, route] of routeEntries.entries()) {
     const suitePath = {
       'node:duckdb_standard_host':
         'adapters/connectors/duckdb/node/test/standard-host.test.mjs',
+      'node:duckdb_retained_values_chain':
+        'adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs',
     }[item.suite];
     if (!suitePath || item.path !== suitePath ||
       JSON.stringify(item.targets) !== JSON.stringify(['node']) ||
@@ -991,6 +995,18 @@ for (const [index, route] of routeEntries.entries()) {
   if (route.family === 'RelA' && route.operation === 'values' &&
     !environmentRoles.has('zero_input_derive_timer_cancel_cleanup')) {
     fail(`${label}: same-stage derive timer evidence is missing`);
+  }
+  if (route.family === 'RelA' && route.operation === 'values') {
+    for (const role of [
+      'retained_source_free_named_results', 'retained_source_free_empty_input',
+      'retained_source_free_empty_output', 'retained_source_free_filter_timer_cleanup',
+      'retained_source_free_filter_arithmetic', 'retained_source_free_append_cleanup',
+      'retained_source_free_finalize_cleanup_retry',
+    ]) {
+      if (!environmentRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
   }
   if (route.family === 'RelA' && route.operation === 'cross_join' &&
     !environmentRoles.has('direct_product_node_timer_cancel_cleanup')) {

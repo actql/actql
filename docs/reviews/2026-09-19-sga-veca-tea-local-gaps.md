@@ -912,6 +912,37 @@ retry without redispatch. These are the acceptance cases; executed local and
 Linux CI evidence remain separate. They do not certify Host-wide exact budgets,
 arbitrary nonlinear chains, Events serialization or Native Host cancellation.
 
+#### Retained source-free Values chains
+
+`ValuesPublication` now checks the exact Values occurrence and its installed
+bounded child, then the selected linear Relation chain. The earlier one-step
+publication reader remains a one-step compatibility reader. A filter-only
+view, a foreign occurrence, a nonlinear suffix or a shadowing provider does
+not acquire this obligation. The execution algorithms and CID rules do not
+change.
+
+The source-free checked Program fixture keeps `values -> filter -> select`
+in task zero, with no dummy Acquisition and no test-only task split. The
+standard Node Host uses a real retained Store, publishes the producer and
+two downstream Compute Results, and compares all three independently named
+committed Results against literal ordered expectations. Empty input and
+filter-to-empty output use the same path. Quantum-one advancement delivers
+timer cancellation after the Values-to-filter handoff; arithmetic failure
+checks the typed filter cause and original expression. Append failure and
+acknowledgement loss after real file finalization preserve nonpublication
+and cleanup custody. Cleanup retry must not increment actual Compute entry
+calls, and final reservations, holdings and read buffers must be zero.
+
+The conformance factory assembles the existing installed module and resolves
+its real offers through common strategy selection. It does not introduce a
+Run state machine or adaptive Acquisition statistics for a source-free root.
+This proves the configured standard-Host path, not automatic retained-output
+configuration of the public source-free Client factory. That factory still
+needs a product configuration handoff; it currently installs import limits
+without an output policy. Independently derived whole-chain retained Host
+exact/one-short budgets also remain to be connected. Existing per-child
+resource proofs do not by themselves certify those two remaining boundaries.
+
 #### Mixed retained Store and typed Carrier paths
 
 Relation-input `pool_vectors` can now execute as a selected one-step task
