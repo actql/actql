@@ -4071,5 +4071,14 @@ exercise both matching and reversed Stage input declarations, the split
 physical graph, ordered results, two consumers, and reclamation. The Node
 standard Host uses the reversed declaration, retains the filtered result in
 a real Store, and compares three published Named Results with independent
-expected rows. This route does not claim all nearest input Carrier variants
-or later Relation operations beyond the checked filter shape.
+expected rows. Selected nearest now also receives Vectors views from one or
+both formal `to_vectors` Bridges before the same-Stage filter. The portable
+Host checks the two-Vectors task handoff and independent consumers; the Node
+standard Host runs all four Relation/Vectors input combinations through a
+real retained Store, then compares the producer and both consumer Named
+Results with fixed expected rows and checks final reclamation. These checks
+also force a later consumer's typed arithmetic failure after the two Vectors
+Bridges, reject publication, and retain cleanup responsibility through one
+injected cleanup failure before a successful retry. They do not cover later
+Relation operations beyond the filter shape or every mixed-Carrier failure
+boundary.

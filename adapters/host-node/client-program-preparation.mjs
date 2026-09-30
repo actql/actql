@@ -1,4 +1,4 @@
-// Translate the public submit body into the installed MoonBit checker ABI.
+// Translate the public submit body into the installed MoonBit checker JS bridge.
 // The returned prepared handle is in-process only and cannot authorize a Run.
 import {validSubmitPreparationError} from
   '../../packages/client-wire/index.mjs';

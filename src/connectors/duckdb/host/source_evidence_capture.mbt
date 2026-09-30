@@ -71,7 +71,7 @@ pub(all) enum NativeSourceEvidenceIssue {
 
 ///|
 /// Resolve checked Catalog maps in the runtime that owns the Query. The
-/// opaque context crosses the in-process ABI without re-reading a Map using
+/// opaque context crosses the in-process JS bridge without re-reading a Map using
 /// another compiled runtime's hash seed. It grants no physical read authority.
 pub struct NativeSourceEvidenceContext {
   requirement : @planning.QueryRequirement

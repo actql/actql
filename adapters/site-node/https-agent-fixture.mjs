@@ -25,6 +25,7 @@ const configuration = JSON.parse(await readFile(configurationPath, 'utf8'));
 // process's HTTPS server (after the TLS handshake, before any routing or
 // admission), keyed by path suffix, and every dispatch runtime start.
 const stats = {requests: {}, runtimeStarts: 0};
+let releaseExecutionStop;
 const emit = https.Server.prototype.emit;
 https.Server.prototype.emit = function countRequest(event, request, ...rest) {
   if (event === 'request') {
@@ -95,13 +96,25 @@ const registration = await prepareInstalledRemoteRuntimeRegistration({
         await new Promise((resolve, reject) => {
           const abort = () => {
             clearTimeout(timer);
-            // Clearing this timer ends the fixture's only physical work.
-            // A rejected Promise alone does not certify native stop.
-            reject(Object.assign(new Error('Fixture execution stopped'), {
-              cleanupHandle: {
-                status: () => ({pending: false, errors: []}),
+            const stopped = () => reject(Object.assign(
+              new Error('Fixture execution stopped'),
+              {
+                cleanupHandle: {
+                  status: () => ({pending: false, errors: []}),
+                },
               },
-            }));
+            ));
+            if (configuration.runtime.holdCancellationExit) {
+              releaseExecutionStop = () => {
+                releaseExecutionStop = undefined;
+                stopped();
+              };
+              process.send?.({type: 'execution-stop-pending'});
+            } else {
+              // Clearing this timer ends the fixture's only physical work.
+              // A rejected Promise alone does not certify native stop.
+              stopped();
+            }
           };
           const timer = setTimeout(() => {
             signal.removeEventListener('abort', abort);
@@ -160,6 +173,7 @@ async function close() {
   if (closing) return;
   closing = true;
   try {
+    releaseExecutionStop?.();
     await agent.close();
     bundleStore.close();
     store.close();
@@ -183,6 +197,12 @@ process.on('message', message => {
       type: 'admission-stopped',
       changed: agent.stopAdmission(),
     });
+    return;
+  }
+  if (message?.type === 'release-execution-stop') {
+    const released = releaseExecutionStop !== undefined;
+    releaseExecutionStop?.();
+    process.send?.({type: 'execution-stop-released', released});
     return;
   }
   if (message?.type === 'close') void close();

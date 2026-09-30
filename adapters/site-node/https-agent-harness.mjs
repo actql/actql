@@ -123,7 +123,7 @@ export async function startFixture(
   root,
   material,
   {delayMs = 0, maxConcurrentOperations = 4, siteKey = 'site-a',
-    preacceptDispatchId} = {},
+    preacceptDispatchId, holdCancellationExit = false} = {},
 ) {
   const configurationPath = join(root, `agent-${siteKey}.json`);
   const targetTriple = 'test-native-target';
@@ -200,6 +200,7 @@ export async function startFixture(
       evidenceKind: runtime.remoteSiteControl.managedOutputEvidenceKind,
       issuerCapabilityCid: cid('b'),
       delayMs,
+      holdCancellationExit,
       output: {
         materialGeneration: 'material-generation-a',
         managedProfileCid: cid('3'),
@@ -236,8 +237,40 @@ export async function startFixture(
   );
   let errors = '';
   let executionStarts = 0;
+  let executionStopsPending = 0;
   child.stderr.setEncoding('utf8');
   child.stderr.on('data', value => { errors += value; });
+  const waitForObservation = (count, expected, label) => {
+    if (count() >= expected) return Promise.resolve();
+    if (child.exitCode !== null) {
+      return Promise.reject(new Error(
+        `Remote Site fixture exited before ${label}: ${errors}`,
+      ));
+    }
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = error => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        child.off('message', onMessage);
+        child.off('exit', onExit);
+        if (error === undefined) resolve();
+        else reject(error);
+      };
+      const onMessage = () => {
+        if (count() >= expected) finish();
+      };
+      const onExit = code => finish(
+        new Error(`Remote Site fixture exited ${code} before ${label}: ${errors}`),
+      );
+      const timeout = setTimeout(() => finish(
+        new Error(`Remote Site fixture did not report ${label}: ${errors}`),
+      ), 10_000);
+      child.on('message', onMessage);
+      child.once('exit', onExit);
+    });
+  };
   const ready = await new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new Error(`Remote Site fixture timeout: ${errors}`));
@@ -248,6 +281,7 @@ export async function startFixture(
     });
     child.on('message', message => {
       if (message?.type === 'execution-started') executionStarts++;
+      if (message?.type === 'execution-stop-pending') executionStopsPending++;
       if (message?.type === 'ready') {
         clearTimeout(timeout);
         resolve(message);
@@ -288,6 +322,43 @@ export async function startFixture(
       });
     },
     executionStarts: () => executionStarts,
+    waitForExecutionStarts: (expected = 1) => waitForObservation(
+      () => executionStarts, expected, 'execution start',
+    ),
+    waitForExecutionStopPending: (expected = 1) => waitForObservation(
+      () => executionStopsPending, expected, 'pending physical stop',
+    ),
+    releaseExecutionStop() {
+      if (child.exitCode !== null) return Promise.resolve(false);
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        const finish = (error, released) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          child.off('message', onMessage);
+          child.off('exit', onExit);
+          if (error === undefined) resolve(released);
+          else reject(error);
+        };
+        const onMessage = message => {
+          if (message?.type !== 'execution-stop-released') return;
+          finish(undefined, message.released);
+        };
+        const onExit = code => finish(new Error(
+          `Remote Site fixture exited ${code} before stop release: ${errors}`,
+        ));
+        const timeout = setTimeout(() => finish(new Error(
+          `Remote Site fixture did not release physical stop: ${errors}`,
+        )), 10_000);
+        child.on('message', onMessage);
+        child.once('exit', onExit);
+        child.send({type: 'release-execution-stop'}, error => {
+          if (error === null || error === undefined) return;
+          finish(error);
+        });
+      });
+    },
     stopAdmission() {
       return new Promise((resolve, reject) => {
         const onMessage = message => {

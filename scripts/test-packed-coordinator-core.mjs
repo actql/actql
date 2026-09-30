@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {mkdir, mkdtemp, readdir, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 
 // The Coordinator owners a Cloud adopts are called through the packed
 // @actql/coordinator-core, not the repository sources.
@@ -61,7 +61,25 @@ try {
   assert.throws(() => admitPollNotSeen(
     notSeen(dispatchCid(dispatch('dispatch-b'))), request),
   {code: 'CoordinatorOwnerRejected'});
-  console.log('packed coordinator-core release and not-seen');
+  // The poll Output request for a retained Output Plan, from the packed
+  // package, on a record built through its public owners.
+  const coordinator = await import('@actql/coordinator-core');
+  const {runtimeCore} = await import(${JSON.stringify(
+    pathToFileURL(join(repository, 'adapters/host-common/runtime-core.mjs')).href)});
+  const bridge = await import(${JSON.stringify(pathToFileURL(join(repository,
+    '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')).href)});
+  const {durableOutputRecordFixture} = await import(${JSON.stringify(
+    pathToFileURL(join(repository,
+      'scripts/fixtures/remote-output-record-fixture.mjs')).href)});
+  const fixture = durableOutputRecordFixture(coordinator, runtimeCore(bridge));
+  const outputRequest = JSON.parse(
+    coordinator.durableOutputRequestJson(fixture.outputDurable));
+  assert.equal(outputRequest.version, 'actql-remote-poll-output/0.1');
+  assert.equal(outputRequest.dispatch_request_cid, fixture.requestCid);
+  assert.equal(outputRequest.intent_json,
+    JSON.parse(coordinator.durableOutputPollJson(fixture.outputDurable))
+      .intent_json);
+  console.log('packed coordinator-core release, not-seen and output request');
   `);
   process.stdout.write(run(process.execPath, ['smoke.mjs'], installation));
 } finally {

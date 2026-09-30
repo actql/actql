@@ -1,5 +1,5 @@
 ///|
-/// In-process ABI for the physical Client request journal. A handle is never
+/// Internal JS bridge for the physical Client request journal. A handle is never
 /// serialized as a wire credential; retained fields are rechecked by MoonBit.
 #export_name("clientRequestAdmitRecord")
 pub fn client_request_admit_record(

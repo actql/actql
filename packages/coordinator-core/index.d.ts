@@ -200,6 +200,9 @@ export function restoreDurableOutput(journal: Journal,
 export function durableOutputRevision(durable: DurableOutputRecord): number;
 export function durableOutputJson(durable: DurableOutputRecord): string;
 export function durableOutputPollJson(durable: DurableOutputRecord): string;
+/** The poll Output request (`actql-remote-poll-output/0.1`) for the retained
+ * Output Plan; an outbound Site admits it with `admitPollOutput`. */
+export function durableOutputRequestJson(durable: DurableOutputRecord): string;
 /** Binds a destination-committed reply to the retained Transfer request. */
 export function admitOutputTransferReplyJson(durable: DurableOutputRecord,
   reply: string): string;

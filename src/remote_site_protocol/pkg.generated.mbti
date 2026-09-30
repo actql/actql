@@ -225,6 +225,8 @@ pub fn durable_coordinator_output_record_poll_json(DurableCoordinatorOutputRecor
 
 pub fn durable_coordinator_output_record_revision(DurableCoordinatorOutputRecord) -> Int
 
+pub fn durable_coordinator_output_request_json(DurableCoordinatorOutputRecord) -> Result[String, DispatchIssue]
+
 pub fn durable_coordinator_output_transfer_request_cid(DurableCoordinatorOutputRecord) -> String
 
 pub fn durable_dispatch_record_attempt_identity(DurableDispatchRecord) -> Result[String, DispatchIssue]
