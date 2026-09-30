@@ -38,6 +38,8 @@ pub fn prepare_view(@managed_carrier_runtime.ProducerView, @carrier_contract.Gra
 
 pub fn workspace_slots(@managed_graph_storage.Storage) -> Int?
 
+pub fn workspace_slots_view(@managed_carrier_runtime.ProducerView, @carrier_contract.Graph) -> Int?
+
 // Errors
 
 // Types and methods

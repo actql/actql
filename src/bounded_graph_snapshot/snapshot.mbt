@@ -201,6 +201,14 @@ pub fn workspace_slots(storage : @storage.Storage) -> Int? {
 }
 
 ///|
+pub fn workspace_slots_view(
+  view : @lifecycle.ProducerView,
+  graph : @carrier.Graph,
+) -> Int? {
+  required_workspace(Viewed(view, graph))
+}
+
+///|
 fn graph(value : @storage.Storage) -> @carrier.Graph? {
   match @storage.carrier(value) {
     @carrier.GraphValue(graph) => Some(graph)

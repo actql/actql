@@ -1448,12 +1448,9 @@ pub fn start_graph_apply_view(
       0,
     ) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.node_input_target(node, 0) is Some(@pipeline.Input(base_index)) &&
+    @lower.node_input_target(node, 0) is Some(base_target) &&
     @execution.producer_read_matches_operation_input(delta_read, owner, step, 1) &&
-    @lower.preparation_carrier_at(
-      @lower.bound_preparation(owner),
-      @pipeline.Input(base_index),
-    )
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), base_target)
     is Some(@carrier.GraphValue(graph)) &&
     @execution.producer_read_row_count(delta_read) == 1 else {
     return Err(InvalidGraphApplyKernel)

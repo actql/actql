@@ -327,6 +327,29 @@ pub fn strategy_fixture_sga_consumer_filter_arithmetic(
 }
 
 ///|
+#export_name("strategyFixtureVecaConsumerFilterArithmetic")
+pub fn strategy_fixture_veca_consumer_filter_arithmetic(
+  issue : @local_driver.LocalDispatchIssue,
+) -> Bool {
+  guard issue
+    is @local_driver.Configuration(
+      @connector.Execution(
+        @execution.Rows(0, @execution.Evaluation(0, 0, evaluation))
+      )
+    ) &&
+    evaluation.kind is @execution.Scalar(@execution.ArithmeticFailure) else {
+    return false
+  }
+  let location = @lower.expression_location(evaluation.expression)
+  guard @decode.text(location.source)
+    is Ok("1 / (candidate_id - candidate_id) > 0") &&
+    location.range is Some(range) else {
+    return false
+  }
+  range.start == 0 && range.end == 33
+}
+
+///|
 /// Explicit TEA-enabled conformance artifact. The ordinary module subset does
 /// not import or install this family provider.
 fn strategy_fixture_tea_subset_with_retention(

@@ -1337,6 +1337,88 @@ fn carrier_graph_binary_relation_owner(
 }
 
 ///|
+fn carrier_selected_graph_equal_owner(
+  graph_owner : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let graph_input = @pipeline.ProducedInput(
+    @pipeline.produced_input(
+      @lower.pipeline(@lower.bound_preparation(graph_owner)),
+      @pipeline.Step(0),
+    ).unwrap(),
+  )
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"left\",\"graphs_equal\":{\"with\":\"right\"}," +
+      "\"as\":\"compared\"},{\"from\":\"compared\"," +
+      "\"filter\":\"true\",\"as\":\"out\"}]",
+    ),
+    [("left", graph_input), ("right", graph_input)],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn carrier_selected_graph_diff_owner(
+  graph_owner : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let graph_input = @pipeline.ProducedInput(
+    @pipeline.produced_input(
+      @lower.pipeline(@lower.bound_preparation(graph_owner)),
+      @pipeline.Step(0),
+    ).unwrap(),
+  )
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"left\",\"graph_diff\":{\"with\":\"right\"}," +
+      "\"as\":\"changes\"},{\"from\":\"changes\"," +
+      "\"filter\":\"true\",\"as\":\"out\"}]",
+    ),
+    [("left", graph_input), ("right", graph_input)],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graph_diff_owner(
   source : @lower.BoundPrepared,
 ) -> @lower.BoundPrepared {
@@ -10646,6 +10728,175 @@ fn graph_relation_publication_cid(variant : String) -> String {
   } else {
     "sha256:61658ff21fd18cc3b110c965c92422c813ef6e76d1aef0415841101c72e8f576"
   }
+}
+
+///|
+test "selected Graph equality keeps repeated input occurrences and exact work" {
+  let source_owner = carrier_graph_source_owner_with_rows("[]")
+  let graph_owner = carrier_graph_material_owner(source_owner)
+  let material = carrier_graph_diagnostic_material(graph_owner, source_owner)
+  let owner = carrier_selected_graph_equal_owner(graph_owner)
+  let generated = @execution.select_generated_sequence_step(
+    task_test_generated(owner),
+    0,
+  ).unwrap()
+  let wrong_port = @carrier_runtime.material_prepare_view(
+    material, owner, 0, graph_owner,
+  ).unwrap()
+  assert_true(
+    @local_sga.start_graphs_equal_view(
+      @bounded.control(),
+      @execution.generated_completion_preparation(generated),
+      @execution.generated_prepared_sequence(generated),
+      0,
+      wrong_port,
+      wrong_port,
+      1,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      2,
+      1000,
+      [],
+    )
+    is Err(@local_sga.InvalidGraphsEqualKernel),
+  )
+  let start = fn(control, work, entries) {
+    let left = @carrier_runtime.material_prepare_view(
+      material, owner, 0, graph_owner,
+    ).unwrap()
+    let right = @carrier_runtime.material_prepare_view(
+      material, owner, 1, graph_owner,
+    ).unwrap()
+    @local_sga.start_graphs_equal_view(
+      control,
+      @execution.generated_completion_preparation(generated),
+      @execution.generated_prepared_sequence(generated),
+      0,
+      left,
+      right,
+      1,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      entries,
+      1000,
+      [],
+      control_work_limit=Some(work),
+    )
+  }
+  assert_true(
+    start(@bounded.control(), 3, 1)
+    is Err(@local_sga.GraphsEqualCompletion(@execution.Limit)),
+  )
+  let exact = start(@bounded.control(), 3, 2).unwrap()
+  let mut completed = None
+  let mut polls = 0
+  while completed is None {
+    polls += 1
+    assert_true(polls <= 3)
+    match @local_sga.advance_graphs_equal(exact, 1).unwrap() {
+      @local_sga.GraphsEqualContinue(..) => ()
+      @local_sga.GraphsEqualComplete(output, ..) => completed = Some(output)
+      _ => abort("selected Graph equality failed")
+    }
+  }
+  let output = completed.unwrap()
+  assert_true(@execution.completed_cell(output, 0, 0) is Some(Boolean(true)))
+  assert_eq(@local_sga.cleanup_graphs_equal(exact), Ok(true))
+  let short = start(@bounded.control(), 2, 2).unwrap()
+  assert_true(
+    @local_sga.advance_graphs_equal(short, 1).unwrap()
+    is @local_sga.GraphsEqualContinue(progress=0L, work=1L),
+  )
+  assert_true(
+    @local_sga.advance_graphs_equal(short, 1).unwrap()
+    is @local_sga.GraphsEqualContinue(progress=1L, work=2L),
+  )
+  assert_true(
+    @local_sga.advance_graphs_equal(short, 1).unwrap()
+    is @local_sga.GraphsEqualFailed(@local_sga.GraphsEqualWorkLimit, ..),
+  )
+  assert_eq(@local_sga.cleanup_graphs_equal(short), Ok(true))
+  let control = @bounded.control()
+  let cancelled = start(control, 3, 2).unwrap()
+  assert_true(
+    @local_sga.advance_graphs_equal(cancelled, 1).unwrap()
+    is @local_sga.GraphsEqualContinue(progress=0L, work=1L),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_graphs_equal(cancelled, 1).unwrap()
+    is @local_sga.GraphsEqualStopped(_, progress=0L, work=1L),
+  )
+  assert_eq(@local_sga.cleanup_graphs_equal(cancelled), Ok(true))
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.reclaim_material(material))
+}
+
+///|
+test "selected Graph diff reads exact retained input occurrences" {
+  let source_owner = carrier_graph_source_owner_with_rows("[]")
+  let graph_owner = carrier_graph_material_owner(source_owner)
+  let material = carrier_graph_diagnostic_material(graph_owner, source_owner)
+  let owner = carrier_selected_graph_diff_owner(graph_owner)
+  let generated = @execution.select_generated_sequence_step(
+    task_test_generated(owner),
+    0,
+  ).unwrap()
+  let left = @carrier_runtime.material_prepare_view(
+    material, owner, 0, graph_owner,
+  ).unwrap()
+  assert_true(
+    @local_sga.start_graph_diff_view(
+      @bounded.control(),
+      @execution.generated_completion_preparation(generated),
+      @execution.generated_prepared_sequence(generated),
+      0,
+      left,
+      left,
+      1,
+      {
+        max_nodes: 10000,
+        max_text_bytes: 10000,
+        max_depth: 20,
+        max_work: 10000,
+      },
+      10000,
+      2,
+      10000,
+    )
+    is Err(@local_sga.InvalidGraphDiffKernel),
+  )
+  let right = @carrier_runtime.material_prepare_view(
+    material, owner, 1, graph_owner,
+  ).unwrap()
+  let execution = @local_sga.start_graph_diff_view(
+    @bounded.control(),
+    @execution.generated_completion_preparation(generated),
+    @execution.generated_prepared_sequence(generated),
+    0,
+    left,
+    right,
+    1,
+    { max_nodes: 10000, max_text_bytes: 10000, max_depth: 20, max_work: 10000, },
+    10000,
+    2,
+    10000,
+  ).unwrap()
+  let mut completed = None
+  let mut polls = 0
+  while completed is None {
+    polls += 1
+    assert_true(polls < 1000)
+    match @local_sga.advance_graph_diff(execution, 1).unwrap() {
+      @local_sga.GraphDiffContinue(..) => ()
+      @local_sga.GraphDiffComplete(output, ..) => completed = Some(output)
+      _ => abort("selected Graph diff failed")
+    }
+  }
+  assert_true(
+    @execution.completed_cell(completed.unwrap(), 0, 0) is Some(Captured(_)),
+  )
+  assert_eq(@local_sga.cleanup_graph_diff(execution), Ok(true))
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.reclaim_material(material))
 }
 
 ///|

@@ -1600,6 +1600,7 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   if variant == "nearest" ||
     variant == "nearest_filter" ||
     variant == "nearest_filter_reversed" ||
+    variant == "nearest_vectors_filter" ||
     variant == "nearest_vectors" ||
     variant == "nearest_relation_vectors" ||
     variant == "nearest_vectors_relation" ||
@@ -3183,10 +3184,13 @@ fn local_vector_expression_program() -> String {
 fn local_vector_nearest_program(variant : String) -> String {
   let inferred = variant == "nearest_inferred"
   let filtered = variant == "nearest_filter" ||
-    variant == "nearest_filter_reversed"
+    variant == "nearest_filter_reversed" ||
+    variant == "nearest_vectors_filter"
   let candidate_vectors = variant == "nearest_vectors" ||
+    variant == "nearest_vectors_filter" ||
     variant == "nearest_vectors_relation"
   let query_vectors = variant == "nearest_vectors" ||
+    variant == "nearest_vectors_filter" ||
     variant == "nearest_relation_vectors"
   let identity_type = if inferred { "string" } else { "number" }
   let vector_schema = "{\"id\":{\"type\":\"" +

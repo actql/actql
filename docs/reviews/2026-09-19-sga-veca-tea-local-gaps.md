@@ -480,7 +480,7 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 68 |
 | Full route work/workspace assurance | 68 |
-| Path-scoped work/workspace assurance | 119 |
+| Path-scoped work/workspace assurance | 120 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -4050,6 +4050,32 @@ expected rows, and delivers in-flight cancellation to each selected query.
 The fused paths remain available where splitting is unnecessary. These proofs
 do not establish every endpoint variant or mixed Carrier failure path.
 
+Selected `SGA.equal` now accepts two exact managed Graph views when a later
+Relation operation splits the authored Stage. Each operation input position
+has its own binding and completion obligation, including when both positions
+refer to the same material. The existing bounded comparison kernel is shared
+with the fused route; the latter remains preferred without a later Relation
+consumer. A portable fixture checks repeated input positions, foreign-port
+rejection, exact and one-short work and workspace limits, positive-work
+cancellation, and input custody. The Node standard Host retains and publishes
+equal-then-filter and unequal-then-filter results in a real Store, compares
+their Named Results and two consumer results with independent expected rows,
+and delivers cancellation after selected comparison begins. This selected
+route does not establish the remaining Graph comparison or diff routes.
+
+Selected `SGA.diff` now reads two exact retained Graph views through the
+existing bounded snapshot and diff kernel. A following Relation step can use
+the Delta output without a synchronous Graph fallback. Selected
+`SGA.apply` accepts an exact Graph target from either an authored Stage input
+or a preceding step, while preserving the fused route when no later Relation
+consumer requires a split. The original `graphs-equal` and `diff-apply` JSON
+Programs from the Frontend handoff produced their independent Named Result
+rows through packed Embedded Local on the combined Frontend/Local source.
+This is two of the three previously blocked examples; `reach-subgraph` also
+passed on that combined source. It is not evidence that all eight original
+Frontend examples passed packed Embedded Local and HTTP. That broader check
+remains with the Frontend PR, separate from its eleven newer examples.
+
 The retained Relation path now also splits a checked finite-list
 `VEC.merge_rankings` occurrence from a later `filter` in the same Stage.
 The selected ranking task receives its own ordered operation ports rather than
@@ -4071,5 +4097,14 @@ exercise both matching and reversed Stage input declarations, the split
 physical graph, ordered results, two consumers, and reclamation. The Node
 standard Host uses the reversed declaration, retains the filtered result in
 a real Store, and compares three published Named Results with independent
-expected rows. This route does not claim all nearest input Carrier variants
-or later Relation operations beyond the checked filter shape.
+expected rows. Selected nearest now also receives Vectors views from one or
+both formal `to_vectors` Bridges before the same-Stage filter. The portable
+Host checks the two-Vectors task handoff and independent consumers; the Node
+standard Host runs all four Relation/Vectors input combinations through a
+real retained Store, then compares the producer and both consumer Named
+Results with fixed expected rows and checks final reclamation. These checks
+also force a later consumer's typed arithmetic failure after the two Vectors
+Bridges, reject publication, and retain cleanup responsibility through one
+injected cleanup failure before a successful retry. They do not cover later
+Relation operations beyond the filter shape or every mixed-Carrier failure
+boundary.

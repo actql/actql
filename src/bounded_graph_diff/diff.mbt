@@ -67,9 +67,15 @@ priv enum ComparePropertyPoll {
 }
 
 ///|
+priv enum DiffSource {
+  Stored(@storage.Storage)
+  Viewed(@lifecycle.ProducerView, @carrier.Graph)
+}
+
+///|
 struct Preparation {
-  left : @storage.Storage
-  right : @storage.Storage
+  left : DiffSource
+  right : DiffSource
   delta_contract : @contract.Contract
   graph_contract_cid : String
   limits : Limits
@@ -113,6 +119,107 @@ fn graph(value : @storage.Storage) -> @carrier.Graph? {
   match @storage.carrier(value) {
     @carrier.GraphValue(graph) => Some(graph)
     _ => None
+  }
+}
+
+///|
+fn source_graph(source : DiffSource) -> @carrier.Graph? {
+  match source {
+    Stored(storage) => graph(storage)
+    Viewed(_, graph) => Some(graph)
+  }
+}
+
+///|
+fn source_node_count(source : DiffSource) -> Int? {
+  match source {
+    Stored(storage) => Some(@storage.node_count(storage))
+    Viewed(view, _) => @lifecycle.producer_view_node_count(view)
+  }
+}
+
+///|
+fn source_edge_count(source : DiffSource) -> Int? {
+  match source {
+    Stored(storage) => Some(@storage.edge_count(storage))
+    Viewed(view, _) => @lifecycle.producer_view_edge_count(view)
+  }
+}
+
+///|
+fn source_node_identity(
+  source : DiffSource,
+  index : Int,
+) -> @value.CheckedValue? {
+  match source {
+    Stored(storage) => @storage.node_identity(storage, index)
+    Viewed(view, _) =>
+      @lifecycle.producer_view_node_identity(view, index).to_option()
+  }
+}
+
+///|
+fn source_node_property(
+  source : DiffSource,
+  node : Int,
+  property : Int,
+) -> @value.CheckedValue? {
+  match source {
+    Stored(storage) => @storage.node_property(storage, node, property)
+    Viewed(view, _) =>
+      @lifecycle.producer_view_node_property(view, node, property).to_option()
+  }
+}
+
+///|
+fn source_edge_endpoints(source : DiffSource, index : Int) -> (Int, Int)? {
+  match source {
+    Stored(storage) => @storage.edge_endpoints(storage, index)
+    Viewed(view, _) =>
+      @lifecycle.producer_view_edge_endpoints(view, index).to_option()
+  }
+}
+
+///|
+fn source_edge_label(source : DiffSource, index : Int) -> @value.CheckedValue?? {
+  match source {
+    Stored(storage) => @storage.edge_label(storage, index)
+    Viewed(view, _) =>
+      @lifecycle.producer_view_edge_label(view, index).to_option()
+  }
+}
+
+///|
+fn source_edge_property(
+  source : DiffSource,
+  edge : Int,
+  property : Int,
+) -> @value.CheckedValue? {
+  match source {
+    Stored(storage) => @storage.edge_property(storage, edge, property)
+    Viewed(view, _) =>
+      @lifecycle.producer_view_edge_property(view, edge, property).to_option()
+  }
+}
+
+///|
+fn source_workspace_slots(source : DiffSource) -> Int? {
+  match source {
+    Stored(storage) => @snapshot.workspace_slots(storage)
+    Viewed(view, graph) => @snapshot.workspace_slots_view(view, graph)
+  }
+}
+
+///|
+fn prepare_snapshot(
+  source : DiffSource,
+  graph_contract_cid : String,
+  limits : @snapshot.Limits,
+) -> Result[@snapshot.Preparation, @snapshot.Issue] {
+  match source {
+    Stored(storage) => @snapshot.prepare(storage, graph_contract_cid, limits)
+    Viewed(view, graph) =>
+      @snapshot.prepare_view(view, graph, graph_contract_cid, limits)
   }
 }
 
@@ -229,6 +336,42 @@ pub fn prepare(
   graph_contract_cid : String,
   limits : Limits,
 ) -> Result[Preparation, Issue] {
+  prepare_source(
+    Stored(left),
+    Stored(right),
+    delta_contract,
+    graph_contract_cid,
+    limits,
+  )
+}
+
+///|
+pub fn prepare_view(
+  left : @lifecycle.ProducerView,
+  left_graph : @carrier.Graph,
+  right : @lifecycle.ProducerView,
+  right_graph : @carrier.Graph,
+  delta_contract : @contract.Contract,
+  graph_contract_cid : String,
+  limits : Limits,
+) -> Result[Preparation, Issue] {
+  prepare_source(
+    Viewed(left, left_graph),
+    Viewed(right, right_graph),
+    delta_contract,
+    graph_contract_cid,
+    limits,
+  )
+}
+
+///|
+fn prepare_source(
+  left : DiffSource,
+  right : DiffSource,
+  delta_contract : @contract.Contract,
+  graph_contract_cid : String,
+  limits : Limits,
+) -> Result[Preparation, Issue] {
   if limits.max_workspace_slots < 0 ||
     limits.max_output_nodes < 0 ||
     limits.max_output_text_bytes < 0 ||
@@ -238,22 +381,24 @@ pub fn prepare(
     limits.max_identity_depth < 0 {
     return Err(InvalidLimits)
   }
-  guard graph(left) is Some(_) &&
-    graph(right) is Some(_) &&
+  guard source_graph(left) is Some(_) &&
+    source_graph(right) is Some(_) &&
     action_contracts(delta_contract, "nodes")
     is Some((node_record_contract, node_update_contract)) &&
     action_contracts(delta_contract, "edges")
     is Some((edge_record_contract, edge_update_contract)) &&
-    @snapshot.workspace_slots(left) is Some(left_slots) &&
-    @snapshot.workspace_slots(right) is Some(right_slots) &&
-    checked_add(@storage.node_count(left), @storage.node_count(right))
-    is Some(node_actions) &&
-    checked_add(@storage.edge_count(left), @storage.edge_count(right))
-    is Some(edge_actions) &&
+    source_workspace_slots(left) is Some(left_slots) &&
+    source_workspace_slots(right) is Some(right_slots) &&
+    source_node_count(left) is Some(left_nodes) &&
+    source_node_count(right) is Some(right_nodes) &&
+    source_edge_count(left) is Some(left_edges) &&
+    source_edge_count(right) is Some(right_edges) &&
+    checked_add(left_nodes, right_nodes) is Some(node_actions) &&
+    checked_add(left_edges, right_edges) is Some(edge_actions) &&
     checked_add(left_slots, right_slots) is Some(snapshot_slots) &&
     checked_add(snapshot_slots, node_actions) is Some(with_nodes) &&
     checked_add(with_nodes, edge_actions) is Some(action_slots) &&
-    graph(left) is Some(common) &&
+    source_graph(left) is Some(common) &&
     checked_add(
       @carrier.field_count(@carrier.graph_node_properties(common)),
       @carrier.field_count(@carrier.graph_edge_properties(common)),
@@ -279,7 +424,7 @@ pub fn prepare(
     value_limits: limits.value_limits,
   }
   let left_preparation = match
-    @snapshot.prepare(left, graph_contract_cid, snapshot_limits) {
+    prepare_snapshot(left, graph_contract_cid, snapshot_limits) {
     Ok(value) => value
     Err(issue) => return Err(Snapshot(issue))
   }
@@ -351,20 +496,20 @@ fn schedule(value : Preparation, pending : PendingAction) -> Unit {
 
 ///|
 fn node_property_count(value : Preparation) -> Int {
-  graph(value.left)
+  source_graph(value.left)
   .map(graph => @carrier.field_count(@carrier.graph_node_properties(graph)))
   .unwrap_or(0)
 }
 
 ///|
 fn edge_property_count(value : Preparation) -> Int {
-  graph(value.left)
+  source_graph(value.left)
   .map(graph => @carrier.field_count(@carrier.graph_edge_properties(graph)))
   .unwrap_or(0)
 }
 
 ///|
-fn pending_record(value : Preparation) -> (@storage.Storage, Int, Bool, Bool)? {
+fn pending_record(value : Preparation) -> (DiffSource, Int, Bool, Bool)? {
   match value.pending {
     Some(NodeAdd(index)) => Some((value.right, index, false, false))
     Some(NodeRemove(index)) => Some((value.left, index, false, false))
@@ -387,11 +532,8 @@ fn pending_record(value : Preparation) -> (@storage.Storage, Int, Bool, Bool)? {
 }
 
 ///|
-fn property_knowledge(
-  storage : @storage.Storage,
-  edge : Bool,
-) -> @carrier.Knowledge? {
-  guard graph(storage) is Some(graph) else { return None }
+fn property_knowledge(storage : DiffSource, edge : Bool) -> @carrier.Knowledge? {
+  guard source_graph(storage) is Some(graph) else { return None }
   if edge {
     Some(@carrier.graph_edge_properties(graph))
   } else {
@@ -401,22 +543,22 @@ fn property_knowledge(
 
 ///|
 fn property_value(
-  storage : @storage.Storage,
+  storage : DiffSource,
   record : Int,
   property : Int,
   edge : Bool,
 ) -> @value.CheckedValue? {
   if edge {
-    @storage.edge_property(storage, record, property)
+    source_edge_property(storage, record, property)
   } else {
-    @storage.node_property(storage, record, property)
+    source_node_property(storage, record, property)
   }
 }
 
 ///|
 fn finish_record(
   value : Preparation,
-  storage : @storage.Storage,
+  storage : DiffSource,
   record : Int,
   edge : Bool,
 ) -> @value.Value? {
@@ -426,10 +568,10 @@ fn finish_record(
   }
   value.properties = None
   if edge {
-    guard @storage.edge_endpoints(storage, record) is Some((source, target)) &&
-      @storage.node_identity(storage, source) is Some(source_id) &&
-      @storage.node_identity(storage, target) is Some(target_id) &&
-      @storage.edge_label(storage, record) is Some(label) else {
+    guard source_edge_endpoints(storage, record) is Some((source, target)) &&
+      source_node_identity(storage, source) is Some(source_id) &&
+      source_node_identity(storage, target) is Some(target_id) &&
+      source_edge_label(storage, record) is Some(label) else {
       return None
     }
     @value.object_value([
@@ -445,7 +587,7 @@ fn finish_record(
       ("src", source_id.value),
     ])
   } else {
-    @storage.node_identity(storage, record).bind(identity => {
+    source_node_identity(storage, record).bind(identity => {
       @value.object_value([("id", identity.value), ("props", props)])
     })
   }
@@ -751,7 +893,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
               value_limits: value.limits.value_limits,
             }
             value.right_preparation = match
-              @snapshot.prepare(
+              prepare_snapshot(
                 value.right,
                 value.graph_contract_cid,
                 snapshot_limits,
@@ -829,9 +971,9 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
           value.phase = SelectNode
           continue
         }
-        guard @storage.node_property(value.left, left_index, value.property)
+        guard source_node_property(value.left, left_index, value.property)
           is Some(left) &&
-          @storage.node_property(value.right, right_index, value.property)
+          source_node_property(value.right, right_index, value.property)
           is Some(right) else {
           return Err(InvalidGraph)
         }
@@ -878,9 +1020,9 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
           value.phase = SelectEdge
           continue
         }
-        guard @storage.edge_property(value.left, left_index, value.property)
+        guard source_edge_property(value.left, left_index, value.property)
           is Some(left) &&
-          @storage.edge_property(value.right, right_index, value.property)
+          source_edge_property(value.right, right_index, value.property)
           is Some(right) else {
           return Err(InvalidGraph)
         }

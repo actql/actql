@@ -71,7 +71,7 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 68 with four-role boundary evidence, 68 with full work\/workspace assurance, 119 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 68 with four-role boundary evidence, 68 with full work\/workspace assurance, 120 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('selected Graph diagnostics require their own route and boundary proof', () => {
@@ -81,6 +81,7 @@ test('selected Graph diagnostics require their own route and boundary proof', ()
     ['components', 'components_selected_exact_one_short_and_cancel'],
     ['reach', 'reach_selected_exact_one_short_cancel_binding'],
     ['shortest_path', 'shortest_selected_exact_one_short_cancel_binding'],
+    ['graphs_equal', 'graphs_equal_selected_exact_one_short_cancel'],
   ]) {
     const graphRoute = routes => routes.routes.find(entry =>
       entry.family === 'SGA' && entry.operation === operation);
@@ -98,6 +99,7 @@ test('selected Graph path queries require a delivered Host stop', () => {
   for (const [operation, role] of [
     ['reach', 'reach_selected_host_in_flight_cancel'],
     ['shortest_path', 'shortest_selected_host_in_flight_cancel'],
+    ['graphs_equal', 'graphs_equal_selected_host_in_flight_cancel'],
   ]) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry =>
@@ -942,7 +944,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 119 |',
+    '| Path-scoped work/workspace assurance | 120 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);
