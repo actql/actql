@@ -1,0 +1,23 @@
+{
+  "answer": {
+    "schema": {
+      "start_id": {
+        "type": "string",
+        "nullable": false
+      },
+      "node_id": {
+        "type": "string",
+        "nullable": false
+      },
+      "id": {
+        "type": "string",
+        "nullable": false
+      },
+      "depth": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "rows": []
+  }
+}

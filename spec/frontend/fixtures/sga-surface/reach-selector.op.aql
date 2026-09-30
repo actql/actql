@@ -6,7 +6,7 @@ PROGRAM 'sga.reach_selector' {
     DATA g = OP graph {"nodes":{"from":"nodes","id":"id","fields":[]},"edges":{"from":"edges","source":"src","target":"dst","fields":[]}};
     DATA seeds = FROM nodes;
     DATA reached = FROM g |> OP reach {"start":{"from":"seeds","id":"id"},"direction":"out","max_depth":2};
-    RESULT answer = {"from":"reached"};
+    RESULT answer = {"from":"reached","fields":["start_id","node_id","depth","id"]};
   }
   RESULT answer = {"from":{"stage":"main","result":"answer"}};
 }

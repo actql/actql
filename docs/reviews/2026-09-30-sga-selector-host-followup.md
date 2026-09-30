@@ -1,0 +1,297 @@
+# SGA integration and Reach selector follow-up
+
+## Fixed source and executed public acceptance
+
+The original eight SGA cases pass at
+`64812d8eff6d16414c4e894d5845e2f44d8b21c7` through clean packed Embedded
+Local, HTTPS Remote, and the Node-free native CLI. The cases are `components`,
+`reach-subgraph`, `diff-apply`, `mean-graphs`, `graphs-equal`, `normalize-rows`,
+`degree-rows`, and `graph-bounds`. Each transport reads the independently
+authored Named Results. Source ordering and expected rows are unchanged.
+SDK acceptance also checks lookup, exact attach, same-request resubmission,
+reread and normal stream termination. SQL/Pipe controls pass on both SDK
+transports. Source-free SGA adds no external source reads.
+
+| Adopted input | Full SHA |
+| --- | --- |
+| B Frontend baseline | `2e21a039245ba681a90a7f18a3fd6e2797265107` |
+| A retained Graph comparisons | `682ebfb4f45943dc30480d6263fe9b173620d61c` |
+| Checked Graph order correction | `20e09070c98072c9a732fec72668eeebafa16aeb` |
+| Merged PR #63 head | `e1f7d333b702613336739798e3c9cdc41cb5a3d6` |
+| Adopted main | `d22e53fc5fc9a96018044c424f4ad8c7e9830295` |
+| Follow-up integration commit | `fed6ec2e2c4d5e3bbfb7372ebcb23abc97c16ab5` |
+| Verified follow-up source | `64812d8eff6d16414c4e894d5845e2f44d8b21c7` |
+
+PR #63 is merged. Its earlier Draft status and the failed A/B order probe
+are historical evidence, not current blockers. The later checked Graph
+identity order witness permits the authored edge ordering without calling a
+nullable Relation field a candidate key. No Frontend sort or Local-only
+execution path was introduced.
+
+Reproduction, with the pinned MoonBit toolchain and Node 22:
+
+```sh
+ACTQL_TEST_SGA_CASES=components,reach-subgraph,diff-apply,mean-graphs,graphs-equal,normalize-rows,degree-rows,graph-bounds node scripts/test-packed-public-query.mjs
+```
+
+Evidence: `worktrees/.codex-scratch/public-query-evidence-0UZBXE`.
+All ten recorded commands exited zero. The installed artifacts were removed
+after saving command observations, logs, source SHA and digests.
+
+| Packed artifact | SHA-256 |
+| --- | --- |
+| `client-wire` | `8e09005f4aac5063c1f6f8e4680dbb778a00e5c098126a85283e1f07685a76e5` |
+| `sdk` | `8831e97c0f431c0d0e60c52ba1b0eebad755f2fd2403963912daf82862cbfd8b` |
+| `run-host-core` | `1938f3fee2d0c820350b3748aad9cb8e211d126ee6200237097d6eb1d8901325` |
+| `local-node` | `7c2b19fbfa42d01f731b10927a9b2a3ada163138ac34bb3914634c7e14b65b82` |
+| `node` | `c72364973dd1ed42faea32425632b314de037c9b92035c9f5ec35b875914f225` |
+| Native CLI binary | `919d05e1d5728e2d40825f4d830a5a3a75f63056b32a0e5cc34c5fd8dbe770d4` |
+
+The public Result API exposes rows, not schema type/nullability/column order.
+These packed expectations prove row shape, values and order; common typed
+Program tests remain separate schema evidence. No external Graph service or
+pushdown was tested. Linux CI for this follow-up source is not yet verified.
+
+## Reach selector changes and failure boundary
+
+The existing Reach contract admits a retained Relation selector. Its selected
+IDs are deduplicated, every ID must exist, and an empty selection is valid.
+A nullable field may supply non-null IDs; an actual selected NULL is invalid.
+The independent fixtures now explicitly declare the full Result projection,
+including semantic `id`, rather than asking the Host to infer open fields.
+
+The follow-up commits are:
+
+- `f8cb0299fc8fe486035f8205519b5d8e552ed93b`: classify checked Graph
+  schema-domain incompatibility as invalid input. Keep owner and unavailable
+  evidence failures unclassified. Focused `program_check` JS passed 343/343.
+- `c1ff7d4fd2224dce73547b5cb2bbb5a0279a703a`: independent duplicate,
+  empty and nullable seed fixtures, public type refusal, selected NULL and
+  missing-member failure assertions. These are tests, not passing public
+  selector execution evidence.
+- `64812d8eff6d16414c4e894d5845e2f44d8b21c7`: declare the checked Graph
+  port at input zero and Relation selector at input one. Compiler tests prove
+  exact task edges and Result roots for the shared alias and separate seed
+  producers. Source/Program plus common preparation tests passed 35/35;
+  `lowering_relation` JS passed 219/219. Format and diff checks passed.
+
+The first selector packed probe at `c1ff7d4fd` failed before Run acceptance:
+`RunHostCompilationRejected`, exposed as `SubmissionUnknown`. Its evidence
+is `worktrees/.codex-scratch/public-query-evidence-Sgk984`; no positive
+selector public execution is claimed. Common task preparation subsequently
+identified the missing managed Relation input declaration and now emits four
+tasks for the alias case, or five for a separate seed producer.
+
+The remaining provider boundary is
+`src/local_sga_provider/graph_pipeline.mbt`, in `provider`'s selected-input
+cardinality validation. It currently groups `direct_reach` with unary Graph
+diagnostics and requires zero Relations. The already existing Reach view
+kernel accepts the checked Relation selector through `value.inputs`.
+
+The required local provider change is to derive the Reach Relation count
+from `graph_reach_start_relation_field` on the selected checked operation:
+one when present, zero otherwise, with exactly one Graph in either case.
+Keep the exact selected owner/generation checks and existing input binding.
+Do not change the Reach kernel, resource ceilings, task owner or cleanup
+implementation. Unsolicited, missing and wrong-generation inputs must still
+fail. The file remains A-owned under the existing editing agreement; the
+scoped ownership question has been presented before editing it.
+
+After that connection, B must run the four positive selector sources and
+the typed refusal/runtime membership tests through both packed SDK
+transports, then close the requested capacity-excess and cancellation
+acceptance. Neither the eight-case success nor the compiler port tests
+substitute for those remaining checks. The SGA goal is still active.
+
+## Follow-up verification and current public failure
+
+The retained selector capacity and cancellation tests are committed in
+`ec6c924ec159c3a1dd66ba658e3f7a3a9487840b`. The three-node cycle has
+two unique starts and exactly six output rows, despite a duplicated selector
+ID. Six rows succeed, five fail with `CaptureLimit`, and an empty selector
+fits a zero-row allowance. In-flight Relation-selector cancellation stops
+the kernel, releases its private work, and preserves both retained inputs.
+An explicit separate kernel execution can still use those same inputs after
+cleanup. This is kernel evidence, not a public Run retry or Host cancellation
+claim.
+
+| Verification | Source SHA | Result |
+| --- | --- | --- |
+| `local-checks.mjs run core --target js` | `4de0ed5f5166e5d0c57cde954ce110a4d333513d` | 7,042/7,042 |
+| `moon test --target js src/query_integration/reach_selector_wbtest.mbt` | `ec6c924ec159c3a1dd66ba658e3f7a3a9487840b` | 6/6 |
+| `local-checks.mjs run core --target wasm` | `ec6c924ec159c3a1dd66ba658e3f7a3a9487840b` | 7,040/7,040 |
+| `local-checks.mjs run core --target native` | `ec6c924ec159c3a1dd66ba658e3f7a3a9487840b` | 7,102/7,102 |
+
+The later commit adds tests only; production sources are unchanged from the
+full JS check. Format and whitespace checks pass. Linux CI for these newer
+SHAs remains unverified; the successful earlier Shortest CI must not be
+attributed to this integration.
+
+At the same fixed `ec6c924ec` source, the minimal packed command was:
+
+```sh
+ACTQL_TEST_SGA_CASES=reach-selector node scripts/test-packed-public-query.mjs
+```
+
+Both Embedded Local and HTTPS Remote accepted the Run, then reported
+`failed`, `ACTQL_E_UNPUBLISHED_RUN`, unavailable `answer`, and confirmed
+physical stop. Neither returned the expected three rows. This is a runtime
+failure after the corrected compiler ports, not the earlier
+`RunHostCompilationRejected` probe. The exact provider input cardinality
+check described above still rejects the one retained selector Relation.
+
+Evidence: `worktrees/.codex-scratch/public-query-evidence-hDstqT`.
+Command 008 exited one, without a timeout or signal. The recorded five
+tarball digests match the successful original-eight acceptance artifacts in
+the table above. Failure logs and observations were saved before removing
+the run's installed artifacts. Native CLI selector acceptance did not run
+after this SDK failure. No positive public selector, Host capacity-excess,
+or in-flight Run cancellation completion is claimed.
+
+The next packed selector acceptance now includes independent output-capacity
+controls. A directed 44-node chain with every node selected has 990 reachable
+start/endpoint pairs; a 45-node chain has 1,035. Both reuse the node producer
+through the existing DATA alias, and use fewer than the unchanged cumulative
+100 Values-row compilation allowance. The installed Host's actual Graph
+output ceiling must equal 1,000; the test does not raise it. The first case
+requires all independent rows and depths, and the second requires a failed
+Run with no Result, exact attach, and idempotent request lookup behavior.
+
+Source-to-independent-Program and common preparation/compilation checks pass
+for both controls (37/37 combined source/checker tests). These are prepared
+acceptance assertions; their packed runtime outcome remains unverified until
+the provider input connection is fixed. The capacity-input helper is copied
+only into the external acceptance installation, not an OSS product package.
+
+## Public cancellation before physical start
+
+At `b558f87583fb65567bf0647a8767dfb9b09487c5`, this fixed-source
+packed acceptance passes on both Embedded Local and HTTPS Remote:
+
+```sh
+node scripts/test-packed-public-query.mjs --cancellation-only
+```
+
+The unchanged named Reach Relation-selector source is submitted through the
+installed `@actql/node`. The existing awaited Host test hook holds dispatch
+after its durable reservation and before any physical start. The application
+looks up the original request, attaches its actual RunRef, requests Run
+cancellation, and releases the hook. It observes `cancelled`, confirmed
+physical stop, and no available Result. This access-controlled profile has no
+committed publication index, so Result read correctly returns
+`ResultAccessDenied`; no payload is returned. The account permits read and
+write, and is not used to manufacture that refusal.
+
+Same-request resubmission, lookup and attach keep the original cancelled Run.
+Embedded Local additionally closes its last Client, reopens the installed
+Host from its durable state, and confirms cancellation without new dispatch.
+Each mode records one dispatch reservation, zero physical start reservations
+and zero Compute completions. The test uses the installed provider and common
+Run owner, with no alternate scheduler, compiler or cancellation state machine.
+It runs in the normal packed acceptance command as well as the narrow probe.
+
+Evidence: `worktrees/.codex-scratch/public-query-evidence-T8G1Gl`.
+All eight recorded commands exit zero; command 008 runs both modes. The five
+tarball digests equal the artifact table above. Installed artifacts are removed
+after observations and logs are saved. This proves pre-start Run cancellation,
+not cancellation during Graph execution. The in-flight retained-input kernel
+tests and the still-pending positive selector/Host capacity acceptance remain
+separate evidence.
+
+## Prior integration: fourteen named-source cases
+
+At `13b35d7bfcc00d11de8cb0afb4e83d768236a2ff`, all original eight
+cases plus `shortest-path`, `traverse-paths`, `union-graphs`, `graft-graphs`,
+`subtract-graphs` and `match-projections` pass through clean packed Embedded
+Local, HTTPS Remote and the native CLI. Each reads the independent Named
+Results, including authored edge identity, NULL labels, path contents and
+order. The SDK run also passes SQL/Pipe controls, typed invalid-hop refusal,
+lookup, attach, idempotent resubmission, reread and stream completion. The
+packed pre-start cancellation acceptance runs in that same command.
+
+```sh
+ACTQL_TEST_SGA_CASES=components,reach-subgraph,diff-apply,mean-graphs,graphs-equal,normalize-rows,degree-rows,graph-bounds,shortest-path,traverse-paths,union-graphs,graft-graphs,subtract-graphs,match-projections node scripts/test-packed-public-query.mjs
+```
+
+Evidence: `worktrees/.codex-scratch/public-query-evidence-E9MzDs`.
+All eleven commands exit zero, without timeout or signal. Command 011 logs
+all fourteen native case names. The five tarball digests and the native
+binary CID match the tables above. The run removes its installed artifacts
+after preserving logs and observations. These are current integrated
+artifacts, not a carry-forward claim from the earlier Shortest-only source.
+
+At that source, the four positive Reach Relation-selector fixtures were not included in those
+fourteen successes. Their selected provider input-count boundary remains
+unconnected, so the capacity controls and runtime invalid-member/NULL checks
+remain pending. The scoped provider patch has been prepared and passes
+`git apply --check`, but is not applied while the file's A ownership remains
+in force. No replacement provider or private Host change was introduced.
+
+## Related gates on the fixed follow-up source
+
+At clean `1e43b45c12fe4d78eff8e4ade4dda846f6655535`,
+`node scripts/local-checks.mjs run spec` passed every configured step,
+including specification checks, strict resource evidence, authorization
+vectors and read-only metadata checks. The resource-audit regression suite
+passed 206/206. Logs remain in `_build/local-checks/sga-selector-spec.log`.
+
+`node scripts/local-checks.mjs run lint` also passed every configured step:
+owned versions, format, public MoonBit interfaces, SDK declarations,
+environment guards, portable dependency inspection, and the actual Node
+subset without DuckDB (62 passing tests and one configured skip). Logs
+remain in `_build/local-checks/sga-selector-lint-isolated.log`.
+
+The first lint run put its isolated installation inside the worktree via
+`TMPDIR`. Node then resolved DuckDB from the worktree's ancestor
+`node_modules`, correctly failing the dependency-absence assertion. The
+successful rerun used a workspace scratch directory outside that ancestry;
+the assertion, imported product code, and gate commands were unchanged.
+The failed run is retained in `_build/local-checks/sga-selector-lint.log`.
+No files were written to `/tmp`.
+
+Those gates did not close the selected Reach provider connection. The default
+Client acceptance includes the four still-failing positive Relation-selector
+sources, so neither a complete current Client gate nor a Linux CI result is
+claimed. After the scoped provider change is adopted, rerun those sources,
+their membership/NULL refusals and output-capacity controls through the
+packed Local/HTTP path before declaring that boundary complete.
+
+## Retained Reach selector connection
+
+The scoped provider ownership restriction was lifted for the Reach input-count
+check. The integration retains A's `5a258f5cf700a813bc119e47f47dd642a535a75e`
+and adopted main `dae737a195ba2174eda6598d12b9c13f86efbed1` through merge
+`1e00bee6f10b49650f5f42e557631beafa77b9c4`. No A worktree was changed.
+
+At `db1eff6f290e9a46b5a7db65b98cc0883c94b788`, selected Reach requires
+exactly one Graph and, only for a checked Relation selector, one Relation.
+Scalar, IDs and predicate starts still reject an extra Relation. The shared
+Reach view path also binds its trusted output proof to the exact checked
+Graph and Relation input ports, using the existing owner/generation checks.
+The old unary output-proof guard had prevented the accepted selector from
+executing. No contract, version, limit or alternate kernel was added.
+
+Dedicated managed-provider tests check correct output, duplicate/empty seeds,
+nullable declarations with valid values, invalid cardinality, swapped Carrier
+types, foreign owners and cancellation with live retained inputs. They pass
+4/4 on JS and Wasm. The existing `query_integration` JS package passes 820/820,
+including the existing Traverse and retained-input coverage. Native and the
+final packed/Client acceptance are recorded separately in the PR validation.
+
+The first new packed probe passed the duplicate/empty sources but failed two
+test expectations. An unpublished, access-controlled failed Run returns
+`ResultAccessDenied`, as the prior cancellation acceptance already established.
+The capacity fixture had incorrectly expected 990 rows to succeed: besides
+the 1,000-row Host policy ceiling, the installed execution profile already
+limits sequence output to 100 rows. Neither limit is increased. The corrected
+independent chain oracle uses 13 starts (91 endpoint pairs) for success and
+14 starts (105 pairs) for failure. This exercises the installed profile's
+effective bound; it does not claim a public exact-boundary proof at 1,000 rows.
+The retained kernel's separately recorded exact/one-short ceiling checks
+remain distinct evidence.
+
+Diagnostic evidence is retained under
+`worktrees/.codex-scratch/public-query-evidence-p7hH15`. It is a failed probe,
+not a fixed clean-source acceptance. A targeted rerun with unchanged product
+artifacts confirms the corrected Local capacity expectations. Final packed
+acceptance repacks the committed source and covers both Local and HTTP.

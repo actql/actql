@@ -1,22 +1,44 @@
 ///|
-test "derived Reach and Traverse limits retain exact subjects and Host ceilings" {
-  for operation in ["reach", "traverse"] {
+test "derived path limits retain exact subjects and Host ceilings" {
+  for operation in ["reach", "traverse", "traverse_nodes", "shortest_path"] {
     let selected_policy = sequence_limit_policy(false)
     let traversal = if operation == "reach" {
       (
         #|{"reach":{"start":1,"direction":"out","max_depth":2},"as":"out"}
+      )
+    } else if operation == "shortest_path" {
+      (
+        #|{"shortest_path":{"source":1,"target":2,"direction":"out","max_hops":2},"as":"out"}
+      )
+    } else if operation == "traverse_nodes" {
+      (
+        #|{"traverse":{"start":{"ids":[1]},"direction":"out","min_hops":0,"max_hops":2,"emit":"nodes"},"as":"out"}
       )
     } else {
       (
         #|{"traverse":{"start":{"ids":[1]},"direction":"out","min_hops":0,"max_hops":2,"emit":"paths"},"as":"out"}
       )
     }
+    let result_field = if operation == "shortest_path" {
+      "source_id"
+    } else {
+      "start_id"
+    }
+    let subject_name = if operation == "traverse_nodes" {
+      "traverse"
+    } else {
+      operation
+    }
     let text = (
         #|{"version":"actql/0.1","id":"derived-reach","stages":[{"id":"s","inputs":{},"steps":[{"values":{"schema":{"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false}},"rows":[{"src":1,"dst":2}]},"as":"seed"},{"graph":{"source":"src","target":"dst"},"as":"g"},
       ) +
       traversal +
       (
-        #|],"results":{"answer":{"from":"out","fields":["start_id"]}}}],"results":{"answer":{"from":{"stage":"s","result":"answer"}}}}
+        #|],"results":{"answer":{"from":"out","fields":["
+      ) +
+      result_field +
+      (
+        #|"]}}}],"results":{"answer":{"from":{"stage":"s","result":"answer"}}}}
       )
     let program = @syntax.parse(
       text,
@@ -102,11 +124,18 @@ test "derived Reach and Traverse limits retain exact subjects and Host ceilings"
             @wire.limit_subject(
               @step_bounds.traversal_limit_claim(limits, scope),
             ),
-            operation + ":checked-step:2" + suffix,
+            subject_name + ":checked-step:2" + suffix,
           )
           assert_eq(
             @step_bounds.traversal_limit_effective_maximum(limits, scope),
-            7L,
+            if operation == "shortest_path" && scope == @step_bounds.OutputRows {
+              1L
+            } else if operation == "traverse_nodes" &&
+              scope == @step_bounds.OutputRows {
+              2L
+            } else {
+              7L
+            },
           )
         }
         assert_true(
