@@ -675,6 +675,87 @@ int32_t actql_native_filesystem_writer_seal(
   return 0;
 }
 
+// Gives the open staging file a second name and drops its private one: the
+// new name is linked exclusively (an existing file is a conflict and is never
+// replaced), verified as the same generation, and only then is the private
+// name removed and the root synchronized. 0 on success, 1 on conflict, 2 when
+// the generation changed, 3 when the writer cannot be renamed, -1 otherwise.
+int32_t actql_native_filesystem_writer_adopt_name(
+  actql_native_filesystem_writer *writer,
+  moonbit_bytes_t name,
+  int32_t length
+) {
+  if (writer == NULL || !writer->ready || writer->cancelled ||
+      writer->cleanup_requested || writer->sealed || writer->fd < 0 ||
+      !writer->staging_present) {
+    return 3;
+  }
+  char *adopted = actql_copy_text(name, length);
+  if (adopted == NULL) {
+    actql_replace_error(&writer->error, "adopted name allocation failed");
+    return -1;
+  }
+  if (!actql_valid_name(adopted, (size_t)length) ||
+      strcmp(adopted, writer->staging_name) == 0) {
+    free(adopted);
+    actql_replace_error(&writer->error, "invalid adopted name");
+    return -1;
+  }
+  actql_replace_error(&writer->error, NULL);
+  if (linkat(
+        writer->root->fd,
+        writer->staging_name,
+        writer->root->fd,
+        adopted,
+        0
+      ) != 0) {
+    int link_error = errno;
+    free(adopted);
+    if (link_error == EEXIST) return 1;
+    actql_replace_errno_error(&writer->error, "link adopted name", link_error);
+    return -1;
+  }
+  struct stat status;
+  if (fstatat(writer->root->fd, adopted, &status, AT_SYMLINK_NOFOLLOW) != 0) {
+    int stat_error = errno;
+    unlinkat(writer->root->fd, adopted, 0);
+    free(adopted);
+    actql_replace_errno_error(&writer->error, "inspect adopted name", stat_error);
+    return -1;
+  }
+  if (!S_ISREG(status.st_mode) || !actql_exact_generation(
+        &status,
+        writer->device,
+        writer->inode,
+        writer->written
+      )) {
+    unlinkat(writer->root->fd, adopted, 0);
+    free(adopted);
+    actql_replace_error(&writer->error, "adopted name generation changed");
+    return 2;
+  }
+  char *private_name = writer->staging_name;
+  bool private_present = writer->staging_present;
+  writer->staging_name = adopted;
+  int remove_result = actql_remove_owned_name(
+    writer,
+    private_name,
+    &private_present
+  );
+  if (remove_result != 0) {
+    // The adopted name is kept: the file now has two names, and cleanup of
+    // either finds the same generation.
+    free(private_name);
+    return remove_result;
+  }
+  free(private_name);
+  if (actql_sync_root(writer->root) != 0) {
+    actql_replace_errno_error(&writer->error, "sync Store root", errno);
+    return -1;
+  }
+  return 0;
+}
+
 int32_t actql_native_filesystem_writer_cancel(
   actql_native_filesystem_writer *writer
 ) {

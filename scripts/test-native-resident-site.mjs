@@ -7,7 +7,8 @@ import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
 import {once} from 'node:events';
-import {chmod, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {chmod, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile} from
+  'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {createServer} from 'node:net';
 import {join} from 'node:path';
@@ -877,8 +878,13 @@ try {
   //     (holding the slot), completes the intent, changes no other payload
   //     record and never executes again; a Store sized for one payload then
   //     takes the next Run.
-  const killPoints = ['before-intent', 'after-intent', 'payload-written',
-    'sealed', 'reclaimed'];
+  // A staging file nobody's record owns stays untouched by every reclaim.
+  const foreignStaging = join(publicationRoot,
+    `stage-${'f'.repeat(64)}`);
+  await writeFile(foreignStaging, 'foreign', {mode: 0o600});
+  const foreignStagingBefore = JSON.stringify(await stat(foreignStaging));
+  const killPoints = ['before-intent', 'after-intent', 'allocated', 'owned',
+    'payload-written', 'sealed', 'reclaimed'];
   for (const [index, point] of killPoints.entries()) {
     const tag = `killed-${point}`;
     const killed = startSite(['--publication-capacity-bytes', '40',
@@ -915,6 +921,11 @@ try {
     for (const [key, revision] of others) {
       assert.equal(after.get(key), revision, `${tag} other payload unchanged`);
     }
+    assert.equal(JSON.stringify(await stat(foreignStaging)),
+      foreignStagingBefore, `${tag} foreign staging untouched`);
+    // No private allocation file is left behind.
+    assert.deepEqual((await readdir(publicationRoot))
+      .filter(name => name.startsWith('alloc-')), [], `${tag} allocation gone`);
     assert.equal((await entries()).length, expectedEntries);
     killed.child.kill('SIGTERM');
     await killed.exited;

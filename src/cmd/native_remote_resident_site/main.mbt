@@ -1378,6 +1378,7 @@ fn serve_holder_output(
   let site_key = resources.site_key
   let site_generation = resources.site_generation
   let identity = @remote.dispatch_request_identity(request)
+  store.observe_allocation(holder_checkpoint(resources))
   // Exact payloads this holder kept in the Store; it reclaims them.
   let payloads : Array[@payload.PublicationPayloadRequest] = []
   // Failed outputs that still own physical cleanup (a payload reader or

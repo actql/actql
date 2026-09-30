@@ -58,6 +58,14 @@ pub fn Writer::seal(
 }
 
 ///|
+pub fn Writer::adopt_name(
+  _self : Writer,
+  _name : String,
+) -> Result[Unit, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Writer::cancel(_self : Writer) -> Result[Unit, NativeFilesystemIssue] {
   Err(UnsupportedTarget)
 }

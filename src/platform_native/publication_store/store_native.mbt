@@ -11,6 +11,143 @@ struct Store {
   pending_writers : Map[String, PendingPayloadCleanup]
   active_readers : Map[String, Int]
   mut closed : Bool
+  // Acceptance evidence only: called at the steps of a payload allocation.
+  mut allocation_observer : ((String) -> Unit)?
+}
+
+///|
+/// Acceptance evidence only: `observer` is called with `"allocated"` once the
+/// private staging file exists and before its ownership is durable, and with
+/// `"owned"` once the ownership is durable and before the file gets its
+/// public name.
+pub fn Store::observe_allocation(
+  self : Store,
+  observer : (String) -> Unit,
+) -> Unit {
+  self.allocation_observer = Some(observer)
+}
+
+///|
+fn observe(store : Store, step : String) -> Unit {
+  match store.allocation_observer {
+    Some(observer) => observer(step)
+    None => ()
+  }
+}
+
+///|
+/// The private name a payload is first created under. It is derived from an
+/// allocation ordinal the Store recorded durably before the file existed, so
+/// a file found there was created by that exact allocation: nothing else is
+/// created under it, and it is never a name a foreign writer uses.
+fn allocation_name(
+  request : @payload.PublicationPayloadRequest,
+  ordinal : Int64,
+) -> String {
+  "alloc-" + record_key(request)[7:].to_owned() + "-" + ordinal.to_string()
+}
+
+///|
+/// The private allocation name recorded for a request, if one was ever
+/// recorded. A recorded name that is not an allocation name of this request
+/// is a collision, never a name to touch.
+fn recorded_allocation(
+  store : Store,
+  request : @payload.PublicationPayloadRequest,
+) -> Result[String?, NativePublicationStoreIssue] {
+  match
+    store.database.read("publication_payload_allocation", record_key(request)) {
+    Ok(value) => {
+      let name = @utf8.decode_lossy(value.body)
+      if name.has_prefix("alloc-" + record_key(request)[7:].to_owned() + "-") {
+        Ok(Some(name))
+      } else {
+        Err(StateCollision)
+      }
+    }
+    Err(@sqlite.NotFound) => Ok(None)
+    Err(issue) => Err(Database(issue))
+  }
+}
+
+///|
+/// The ordinal of the next allocation for a request: one more than the last
+/// recorded one, so every allocation of a key has its own private name.
+fn next_allocation_ordinal(
+  store : Store,
+  request : @payload.PublicationPayloadRequest,
+) -> Result[Int64, NativePublicationStoreIssue] {
+  match recorded_allocation(store, request) {
+    Ok(None) => Ok(1L)
+    Ok(Some(name)) => {
+      let prefix = "alloc-" + record_key(request)[7:].to_owned() + "-"
+      let digits = name.unsafe_substring(
+        start=prefix.length(),
+        end=name.length(),
+      )
+      let mut ordinal = 0L
+      for character in digits {
+        let code = character.to_int()
+        if code < 48 || code > 57 || ordinal > 100000000000000L {
+          return Err(StateCollision)
+        }
+        ordinal = ordinal * 10L + (code - 48).to_int64()
+      }
+      if digits.is_empty() {
+        return Err(StateCollision)
+      }
+      Ok(ordinal + 1L)
+    }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Record the allocation ordinal for a request durably. A later allocation
+/// for the same key replaces an earlier one, whose file is gone by then.
+fn record_allocation(
+  store : Store,
+  key : String,
+  name : String,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  let body = @utf8.encode(name)
+  match store.database.insert("publication_payload_allocation", key, body) {
+    Ok(_) => return Ok(())
+    Err(@sqlite.Collision) => ()
+    Err(issue) => return Err(Database(issue))
+  }
+  let current = match
+    store.database.read("publication_payload_allocation", key) {
+    Ok(value) => value
+    Err(issue) => return Err(Database(issue))
+  }
+  match
+    store.database.compare_exchange(
+      "publication_payload_allocation",
+      key,
+      current.revision,
+      body,
+    ) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(Database(issue))
+  }
+}
+
+///|
+/// Whether a file at the private allocation name belongs to this record.
+/// Before the ownership is durable it does, by construction of the name;
+/// afterwards it must be the owned generation.
+fn reclaimable_allocation(
+  record : @payload.PublicationPayloadRecord,
+  actual : @filesystem.NativeFileGeneration,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  guard @payload.publication_payload_record_ownership(record) is Some(owner) else {
+    return Ok(true)
+  }
+  if !allocation_matches(actual, owner) {
+    return Err(Filesystem(@filesystem.GenerationMismatch))
+  }
+  Ok(true)
 }
 
 ///|
@@ -209,6 +346,7 @@ pub fn open_store(
     pending_writers: Map([]),
     active_readers: Map([]),
     closed: false,
+    allocation_observer: None,
   })
 }
 
@@ -307,9 +445,24 @@ fn discovered_generations(
   store : Store,
   request : @payload.PublicationPayloadRequest,
 ) -> Result[
-  (@filesystem.NativeFileGeneration?, @filesystem.NativeFileGeneration?),
+  (
+    @filesystem.NativeFileGeneration?,
+    @filesystem.NativeFileGeneration?,
+    (String, @filesystem.NativeFileGeneration)?,
+  ),
   NativePublicationStoreIssue,
 ] {
+  // The private allocation name, when an allocation was recorded.
+  let allocation = match recorded_allocation(store, request) {
+    Ok(Some(name)) =>
+      match store.root.inspect_generation(name) {
+        Ok(Some(generation)) => Some((name, generation))
+        Ok(None) => None
+        Err(issue) => return Err(Filesystem(issue))
+      }
+    Ok(None) => None
+    Err(issue) => return Err(issue)
+  }
   let staging = match
     store.root.inspect_generation(
       @payload.publication_payload_staging_name(request),
@@ -324,7 +477,7 @@ fn discovered_generations(
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
-  Ok((staging, committed))
+  Ok((staging, committed, allocation))
 }
 
 ///|
@@ -333,11 +486,19 @@ fn reclaimable_generation(
   actual : @filesystem.NativeFileGeneration,
   committed_name : Bool,
 ) -> Result[Bool, NativePublicationStoreIssue] {
+  // A record without durable ownership never reached a public name: the
+  // file is created under the private allocation name and linked to its
+  // public name only after the ownership is durable. A file found at a
+  // public name is then foreign and is left alone.
   guard @payload.publication_payload_record_ownership(record) is Some(owner) else {
-    return if committed_name { Ok(false) } else { Err(RecoveryRequired) }
+    return Ok(false)
   }
   if !allocation_matches(actual, owner) {
-    return if committed_name &&
+    // The owned generation is known: another generation at the public
+    // staging name is a foreign file (the owned one never got that name, or
+    // lost it), and at the committed name it is foreign as long as nothing
+    // was committed. Both are left alone.
+    return if !committed_name ||
       @payload.publication_payload_record_generation(record) is None {
       Ok(false)
     } else {
@@ -391,6 +552,7 @@ fn reclaim_record_internal(
   }
   let mut reclaim_staging = false
   let mut reclaim_committed = false
+  let mut reclaim_allocation = false
   if !known_unallocated {
     if found.0 is Some(value) {
       reclaim_staging = match reclaimable_generation(record, value, false) {
@@ -400,6 +562,12 @@ fn reclaim_record_internal(
     }
     if found.1 is Some(value) {
       reclaim_committed = match reclaimable_generation(record, value, true) {
+        Ok(result) => result
+        Err(issue) => return Err(issue)
+      }
+    }
+    if found.2 is Some((_, value)) {
+      reclaim_allocation = match reclaimable_allocation(record, value) {
         Ok(result) => result
         Err(issue) => return Err(issue)
       }
@@ -431,8 +599,20 @@ fn reclaim_record_internal(
         Err(issue) => return Err(issue)
       }
     }
+    if found.2 is Some((_, value)) {
+      reclaim_allocation = match reclaimable_allocation(record, value) {
+        Ok(result) => result
+        Err(issue) => return Err(issue)
+      }
+    }
   }
   if !known_unallocated {
+    if reclaim_allocation && found.2 is Some((name, generation)) {
+      match filesystem(store.root.reclaim_generation(name, generation)) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    }
     if reclaim_staging && found.0 is Some(generation) {
       match
         filesystem(
@@ -714,9 +894,30 @@ pub fn Store::begin_payload(
       }
     Err(issue) => return Err(issue)
   }
+  // The allocation is recorded durably before any file exists, and the file
+  // is created under the private name that record names. A stop before the
+  // ownership is durable still leaves a file only this allocation created.
+  let ordinal = match next_allocation_ordinal(self, request) {
+    Ok(value) => value
+    Err(issue) => {
+      if !cleanup_after_begin_failure(self, writing) {
+        return Err(CleanupPending)
+      }
+      return Err(issue)
+    }
+  }
+  match record_allocation(self, key, allocation_name(request, ordinal)) {
+    Ok(_) => ()
+    Err(issue) => {
+      if !cleanup_after_begin_failure(self, writing) {
+        return Err(CleanupPending)
+      }
+      return Err(issue)
+    }
+  }
   let physical = match
     self.root.create_writer(
-      @payload.publication_payload_staging_name(request),
+      allocation_name(request, ordinal),
       @payload.publication_payload_request_max_bytes(request),
     ) {
     Ok(value) => value
@@ -727,6 +928,7 @@ pub fn Store::begin_payload(
       return Err(Filesystem(issue))
     }
   }
+  observe(self, "allocated")
   let owned = match
     protocol(
       @payload.prepare_publication_payload_owned(
@@ -755,6 +957,25 @@ pub fn Store::begin_payload(
         return Err(issue)
       }
       match retain_pending_writer(self, writing, physical, stopped) {
+        Ok(_) => return Err(CleanupPending)
+        Err(_) => return Err(CleanupPending)
+      }
+    }
+  }
+  observe(self, "owned")
+  // Only now does the file get its public staging name, exclusively: a
+  // foreign file there is a conflict, is never replaced, and this owned
+  // allocation is reclaimed by its record.
+  match
+    physical.adopt_name(@payload.publication_payload_staging_name(request)) {
+    Ok(_) => ()
+    Err(issue) => {
+      let stopped = physical.cancel() is Ok(_)
+      let current = load_record(self, key).unwrap_or(owned)
+      if stopped && reclaim_record(self, current) is Ok(_) {
+        return Err(Filesystem(issue))
+      }
+      match retain_pending_writer(self, current, physical, stopped) {
         Ok(_) => return Err(CleanupPending)
         Err(_) => return Err(CleanupPending)
       }

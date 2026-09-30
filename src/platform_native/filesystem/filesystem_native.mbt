@@ -309,6 +309,36 @@ pub fn Writer::seal(
 }
 
 ///|
+#borrow(writer, name)
+extern "C" fn writer_adopt_name_ffi(
+  writer : Writer,
+  name : Bytes,
+  length : Int,
+) -> Int = "actql_native_filesystem_writer_adopt_name"
+
+///|
+/// Give the open staging file its public name and drop its private one. The
+/// public name is linked exclusively: an existing file there is a conflict
+/// and is never replaced or removed. The generation is verified before the
+/// private name goes.
+pub fn Writer::adopt_name(
+  self : Writer,
+  name : String,
+) -> Result[Unit, NativeFilesystemIssue] {
+  if !valid_object_name(name) {
+    return Err(InvalidName)
+  }
+  let encoded = @utf8.encode(name)
+  match writer_adopt_name_ffi(self, encoded, encoded.length()) {
+    0 => Ok(())
+    1 => Err(Conflict)
+    2 => Err(GenerationMismatch)
+    3 => Err(WriterClosed)
+    _ => Err(Write(writer_message(self)))
+  }
+}
+
+///|
 pub fn Writer::cancel(self : Writer) -> Result[Unit, NativeFilesystemIssue] {
   match writer_cancel_ffi(self) {
     0 => Ok(())

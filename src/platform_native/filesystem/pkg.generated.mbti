@@ -65,6 +65,7 @@ pub fn Root::sync_directory(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::verify_generation(Self, String, NativeFileGeneration) -> Bool
 
 type Writer
+pub fn Writer::adopt_name(Self, String) -> Result[Unit, NativeFilesystemIssue]
 pub fn Writer::append(Self, Bytes) -> Result[Unit, NativeFilesystemIssue]
 pub fn Writer::cancel(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Writer::cleanup_pending(Self) -> Bool

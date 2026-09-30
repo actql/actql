@@ -161,3 +161,46 @@ test "native filesystem retries directory sync after unlink" {
   root.reclaim_generation(name, generation).unwrap()
   root.sync_directory().unwrap()
 }
+
+///|
+test "native filesystem adopts a public name exclusively and keeps the generation" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
+    return
+  }
+  let root = open_root(path).unwrap()
+  let token = @env.now().to_string()
+  let private_name = "alloc-" + token
+  let public_name = "stage-adopt-" + token
+  let final_name = "object-adopt-" + token
+  let writer = root.create_writer(private_name, 8L).unwrap()
+  let ownership = writer.ownership()
+  writer.append(b"ab").unwrap()
+  // A foreign file at the public name is a conflict and is never replaced.
+  let foreign = root.create_writer(public_name, 8L).unwrap()
+  foreign.append(b"foreign").unwrap()
+  let foreign_generation = root
+    .inspect_generation(public_name)
+    .unwrap()
+    .unwrap()
+  assert_true(writer.adopt_name(public_name) is Err(Conflict))
+  assert_eq(
+    root.inspect_generation(public_name).unwrap(),
+    Some(foreign_generation),
+  )
+  assert_true(root.inspect_generation(private_name).unwrap() is Some(_))
+  foreign.cancel().unwrap()
+  // Without a conflict the same generation gains the public name and loses
+  // the private one; writing and sealing continue under the public name.
+  writer.adopt_name(public_name).unwrap()
+  assert_eq(root.inspect_generation(private_name).unwrap(), None)
+  let adopted = root.inspect_generation(public_name).unwrap().unwrap()
+  assert_eq(adopted.device, ownership.device)
+  assert_eq(adopted.inode, ownership.inode)
+  writer.append(b"cd").unwrap()
+  let generation = writer.seal(final_name).unwrap()
+  assert_eq(generation.inode, ownership.inode)
+  assert_eq(root.inspect_generation(public_name).unwrap(), None)
+  assert_true(root.verify_generation(final_name, generation))
+  writer.cancel().unwrap()
+  assert_false(root.verify_generation(final_name, generation))
+}
