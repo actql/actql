@@ -14,7 +14,7 @@ operator attempts receive an original-source frontend diagnostic and a typed
 Host input refusal before Run acceptance or source acquisition. The corrected
 FX-03 expectation does not mark its imported acceptance case executed.
 
-## Fixed source
+## Original fixed source
 
 - Worktree creation baseline: `7b5bd1678757896fa3f18fc6825ff2e309f2dd15`.
 - Adopted main, including Result.describe: `8028e8a708db6a5ef2b82f6d559b3d2bf7e55041`.
@@ -81,7 +81,7 @@ regenerated from sources. Workers and Node fixture generators were run in
 dependency order and required no fixture changes. Runtime JavaScript is not
 committed.
 
-## Executed validation
+## Original executed validation
 
 All final local commands below ran on the clean implementation SHA above,
 through `scripts/local-checks.mjs`:
@@ -106,7 +106,7 @@ artifact evidence. Full frontend imported cases, KEEP execution, the wider
 numeric/STRUCT/CAST/NULL/order matrix and public STEP/OP removal were not run or
 implemented here. No real Salesforce org or Cloud deployment was tested.
 
-## Fixed-SHA packed artifacts
+## Original fixed-SHA packed artifacts
 
 The successful Client gate recorded these SHA-256 values. Its summary binds the
 source revision, command outcomes and durations; stdout/stderr and native
@@ -127,3 +127,52 @@ Pinned build dependencies are producer requirements; installed consumers need
 no MoonBit toolchain. Linux CI is recorded on the PR's final HEAD, independently
 of these local results. Main merge, package publication and deployment are not
 performed by this unit.
+
+## Review regression: ORDER expressions after SELECT
+
+The review reproduced a regression introduced by persistent AS scope tracking:
+`FROM pair |> AS t |> SELECT x |> WHERE x > 0 |> SELECT x |> ORDER BY x + 1`
+was rejected, although every reference addresses the current row. The new
+MoonBit regression failed before the correction and passes afterward.
+
+Correction commit: `9e277663ecaa96606454d1f1fc89c0634e89e6a5`.
+Fixed acceptance source: `f44e0b52e0fa368ed7ceaf4f1e35eeb1aa78186a`.
+The scoped ORDER branch lowers expressions through the common expression
+builder using current visible slots and already-computed SELECT bindings.
+Identical ORDER expressions share one derived slot. A deferred SELECT, or an
+immediate cleanup projection, removes sort-only fields. Persistent AS scope
+tracking remains enabled; references never return to the initial FROM alias.
+DISTINCT cannot read an omitted input column.
+
+The independent Program fixture uses exactly `x = [2, 1]`, one derived ORDER
+slot and an explicit final projection of `x`. Packed acceptance installs
+`id = [2, 1]` in the real DuckDB source, then explicitly renames it to `x` and
+drops `amount` before the reviewed AS/SELECT/WHERE/SELECT/ORDER sequence.
+The expected Named Result is `[{x:1},{x:2}]`, with one nonnullable number column
+named `x`. The removed `records` alias in an ORDER expression is rejected
+before admission or acquisition. A separate same-name input/output collision
+checks that an ORDER expression uses the already-computed output alias.
+
+The first packed fixture tried to manufacture reverse order with extra
+operators and reached the existing physical execution limit. This was an
+unsuitable fixture setup, not successful acceptance. Diagnostic copies confirmed
+the failure as `Execution(Physical(ExecutionLimit))`; they are not acceptance
+artifacts. The final fixture installs the required rows directly, and no
+capacity ceiling, authorization, provider or strategy is changed.
+
+On the fixed acceptance source, the focused packed runner passed all 13 normal
+cases and 16 refusals in each Embedded Local/TLS HTTP profile. Expected rows
+and public describe columns are independently authored. Its generated package
+tree was reclaimed after recording command output and tarball hashes. The
+local-node tarball digest is
+`93ffe1bb5ea627f00c72f0196e6c521243614a28901f3cca99d58cc010be04bf`;
+the other four tarball digests match the original table above.
+
+Related frontend tests passed 75/75 on each JS, Wasm and native target. The
+independent query Program tests passed 5/5. Formatting and diff checks passed.
+The new local lint attempt passed its preceding steps but stopped while
+copying the isolated Node module fixture with `ENOSPC`; it is not recorded as
+a completed gate. Full local Client/spec/Core jobs are not claimed rerun on
+this correction. Required jobs are checked on the final PR HEAD in CI.
+The original final-HEAD CI passed on `40ee88e9e`, before this review correction;
+it is distinct from the corrected HEAD's CI result recorded in PR #107.
