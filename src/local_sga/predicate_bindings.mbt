@@ -5,37 +5,6 @@ fn graph_node_predicate_binding_count(graph : @carrier.Graph) -> Int {
 }
 
 ///|
-fn graph_node_predicate_binding(
-  graph : @carrier.Graph,
-  source : @storage.Storage,
-  node : Int,
-  index : Int,
-) -> (String, @execution.Value)? {
-  let mut property = index
-  match @carrier.graph_names(graph) {
-    Some(names) => {
-      let (identity_name, _, _, _) = @carrier.graph_row_fields(names)
-      if property == 0 {
-        return @storage.node_identity(source, node).map(value => {
-          (
-            @schema.reference_name(identity_name),
-            @execution.capture(value.value),
-          )
-        })
-      }
-      property -= 1
-    }
-    None => ()
-  }
-  let properties = @carrier.graph_node_properties(graph)
-  guard @carrier.field_at(properties, property) is Some(field) &&
-    @storage.node_property(source, node, property) is Some(value) else {
-    return None
-  }
-  Some((@schema.reference_name(field.name), @execution.capture(value.value)))
-}
-
-///|
 fn graph_node_predicate_binding_read(
   graph : @carrier.Graph,
   source : GraphReadSource,
@@ -80,65 +49,6 @@ fn graph_edge_predicate_binding_count(graph : @carrier.Graph) -> Int {
     None => 0
   }
   aliases + @carrier.field_count(@carrier.graph_edge_properties(graph))
-}
-
-///|
-fn graph_edge_predicate_binding(
-  graph : @carrier.Graph,
-  source : @storage.Storage,
-  edge : Int,
-  index : Int,
-) -> (String, @execution.Value)? {
-  let mut remaining = index
-  match @carrier.graph_names(graph) {
-    Some(names) => {
-      let (_, source_name, target_name, label_name) = @carrier.graph_row_fields(
-        names,
-      )
-      guard @storage.edge_endpoints(source, edge) is Some((from, to)) else {
-        return None
-      }
-      if remaining == 0 {
-        return @storage.node_identity(source, from).map(value => {
-          (@schema.reference_name(source_name), @execution.capture(value.value))
-        })
-      }
-      remaining -= 1
-      if remaining == 0 {
-        return @storage.node_identity(source, to).map(value => {
-          (@schema.reference_name(target_name), @execution.capture(value.value))
-        })
-      }
-      remaining -= 1
-      match label_name {
-        Some(name) => {
-          if remaining == 0 {
-            return match @storage.edge_label(source, edge) {
-              Some(Some(value)) =>
-                Some(
-                  (
-                    @schema.reference_name(name),
-                    @execution.capture(value.value),
-                  ),
-                )
-              Some(None) =>
-                Some((@schema.reference_name(name), @execution.Null))
-              None => None
-            }
-          }
-          remaining -= 1
-        }
-        None => ()
-      }
-    }
-    None => ()
-  }
-  let properties = @carrier.graph_edge_properties(graph)
-  guard @carrier.field_at(properties, remaining) is Some(field) &&
-    @storage.edge_property(source, edge, remaining) is Some(value) else {
-    return None
-  }
-  Some((@schema.reference_name(field.name), @execution.capture(value.value)))
 }
 
 ///|

@@ -6,7 +6,7 @@ import {closeSync, constants, existsSync, fstatSync, fsyncSync, lstatSync,
   realpathSync, rmSync, writeFileSync, writeSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {throwSqliteInitializationFailure} from
+import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
 
 const cid = value => typeof value === 'string' &&
@@ -22,12 +22,6 @@ const instant = value => typeof value === 'string' &&
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
-const failRollback = (code, operation, cause, rollbackCause) => {
-  throw Object.assign(new Error(code, {cause}), {
-    code, operation, rollbackCause, outcome: 'unknown',
-  });
-};
-
 function syncDirectory(path) {
   const descriptor = openSync(path, 'r');
   try { fsyncSync(descriptor); }
@@ -340,6 +334,8 @@ export function openClientRequestJournal(directory, {
     readOnly: false,
     enableForeignKeyConstraints: true,
   });
+  const transaction = createSqliteTransaction(database,
+    'ClientRequestJournal');
   let closed = false;
   let databaseClosed = false;
   try {
@@ -392,6 +388,29 @@ export function openClientRequestJournal(directory, {
   // been returned yet. Keep it under the same single cleanup boundary.
   const ensureOpen = () => {
     if (closed) fail('ClientRequestJournalClosed');
+    transaction.assertUsable();
+  };
+  const transact = (operation, unknownCode, known, action) => {
+    try { return transaction.run(action); }
+    catch (error) {
+      const transactionFailure = [
+        'ClientRequestJournalCommitOutcomeUnknown',
+        'ClientRequestJournalRollbackFailed',
+        'ClientRequestJournalConnectionUnusable',
+      ].includes(error?.code);
+      if (!transactionFailure && known(error) &&
+          error.outcome !== 'unknown' &&
+          transaction.connectionUsable) throw error;
+      throw Object.assign(new Error(unknownCode, {
+        cause: error.cause ?? error,
+      }), {
+        code: unknownCode, operation,
+        outcome: error.outcome ?? 'failed',
+        rollbackCause: error.rollbackCause,
+        stateCause: error.stateCause,
+        connectionUsable: transaction.connectionUsable,
+      });
+    }
   };
   const select = database.prepare(`SELECT ${selectColumns} FROM client_requests
     WHERE authority_scope_cid = ? AND caller_request_id = ?`);
@@ -445,8 +464,9 @@ export function openClientRequestJournal(directory, {
     }
     const admissionEvidence = evidenceJson(runAdmissionEvidence,
       maxRunDefinitionWireBytes);
-    database.exec('BEGIN IMMEDIATE');
-    try {
+    return transact('accept', 'ClientRequestAcceptanceUnknown',
+      error => typeof error?.code === 'string' &&
+        error.code.startsWith('ClientRequest'), () => {
       const existing = select.get(fields.authorityScopeCid,
         fields.requestId);
       if (existing !== undefined) {
@@ -468,7 +488,6 @@ export function openClientRequestJournal(directory, {
             existing.result_names_json !== JSON.stringify(resultNames)) {
           fail('ClientRequestResultInventoryMismatch');
         }
-        database.exec('COMMIT');
         return Object.freeze({inserted: false, ...admission(existing),
           runAdmissionEvidence: retainedEvidence(existing),
           ...(runDefinitionWire === undefined ? {} :
@@ -488,7 +507,6 @@ export function openClientRequestJournal(directory, {
         runDefinitionWire ?? null, revision, lookupExpiresAt,
         resultNames === undefined ? null : JSON.stringify(resultNames),
         admissionEvidence);
-      database.exec('COMMIT');
       return Object.freeze({inserted: true, ref: Object.freeze({
         namespaceId, authorityScopeCid: fields.authorityScopeCid,
         runDefinitionCid,
@@ -496,16 +514,7 @@ export function openClientRequestJournal(directory, {
       ...(runDefinitionWire === undefined ? {} : {runDefinitionWire}),
       resultNames, runAdmissionEvidence: admissionEvidence === null ? undefined :
         Object.freeze(JSON.parse(admissionEvidence))});
-    } catch (error) {
-      try { database.exec('ROLLBACK'); }
-      catch (rollback) {
-        failRollback('ClientRequestAcceptanceUnknown', 'accept', error,
-          rollback);
-      }
-      if (typeof error?.code === 'string' &&
-          error.code.startsWith('ClientRequest')) throw error;
-      fail('ClientRequestAcceptanceUnknown', error);
-    }
+    });
   };
 
   const lookupRecord = ({namespaceId, authorityScopeCid, requestId}, control) => {
@@ -680,8 +689,10 @@ export function openClientRequestJournal(directory, {
         fail('InvalidClientRunStart');
       }
       const fields = checkedIdentity(identity, requestControl);
-      database.exec('BEGIN IMMEDIATE');
-      try {
+      return transact('start', 'ClientRunStartUnknown',
+        error => typeof error?.code === 'string' &&
+          (error.code.startsWith('ClientRequest') ||
+            error.code.startsWith('ClientRun')), () => {
         const row = select.get(fields.authorityScopeCid, fields.requestId);
         if (row === undefined || row.namespace_id !== namespaceId) {
           fail('ClientRunStartDenied');
@@ -697,27 +708,16 @@ export function openClientRequestJournal(directory, {
             .changes !== 1) {
             fail('ClientRequestJournalCorrupt');
           }
-          database.exec('COMMIT');
           return Object.freeze({kind: 'reserved',
             ...admission({...row, revision: Number(row.revision) + 1})});
         }
         if (action === 1) {
-          database.exec('COMMIT');
           return Object.freeze({kind: 'reconcile', ...admission(row)});
         }
         fail(action === 3 ? 'ClientRequestIntentConflict' :
           action === 5 ? 'ClientRunStartDenied' :
           'ClientRequestJournalCorrupt');
-      } catch (error) {
-        try { database.exec('ROLLBACK'); }
-        catch (rollback) {
-          failRollback('ClientRunStartUnknown', 'start', error, rollback);
-        }
-        if (typeof error?.code === 'string' &&
-            (error.code.startsWith('ClientRequest') ||
-              error.code.startsWith('ClientRun'))) throw error;
-        fail('ClientRunStartUnknown', error);
-      }
+      });
     },
     // The exact durable claim precedes the call that can start physical
     // Compute. A missing claim is safe to resume; a claim or legacy unknown
@@ -733,8 +733,10 @@ export function openClientRequestJournal(directory, {
         fail('InvalidClientRunPhysicalStart');
       }
       const fields = checkedIdentity(identity, requestControl);
-      database.exec('BEGIN IMMEDIATE');
-      try {
+      return transact('physical_start', 'ClientRunPhysicalStartUnknown',
+        error => typeof error?.code === 'string' &&
+          (error.code.startsWith('ClientRun') ||
+            error.code.startsWith('ClientRequest')), () => {
         const row = select.get(fields.authorityScopeCid, fields.requestId);
         if (row === undefined || row.namespace_id !== namespaceId ||
             ref.namespaceId !== namespaceId ||
@@ -752,7 +754,6 @@ export function openClientRequestJournal(directory, {
             row.physical_start_reserved === 0,
           currentAuthorization, row.cancellation_requested === 1);
         if (action === 0) {
-          database.exec('COMMIT');
           return false;
         }
         if (action !== 1) {
@@ -764,19 +765,8 @@ export function openClientRequestJournal(directory, {
           ref.authorityScopeCid, ref.runDefinitionCid).changes !== 1) {
           fail('ClientRequestJournalCorrupt');
         }
-        database.exec('COMMIT');
         return true;
-      } catch (error) {
-        try { database.exec('ROLLBACK'); }
-        catch (rollback) {
-          failRollback('ClientRunPhysicalStartUnknown', 'physical_start',
-            error, rollback);
-        }
-        if (typeof error?.code === 'string' &&
-            (error.code.startsWith('ClientRun') ||
-              error.code.startsWith('ClientRequest'))) throw error;
-        fail('ClientRunPhysicalStartUnknown', error);
-      }
+      });
     },
     // Persist the common cancellation decision under the physical-start lock.
     // The Host observes publication separately; a racing commit can still win.
@@ -789,8 +779,8 @@ export function openClientRequestJournal(directory, {
           typeof publicationCommitted !== 'boolean') {
         fail('InvalidClientRunCancellation');
       }
-      database.exec('BEGIN IMMEDIATE');
-      try {
+      return transact('cancel', 'ClientRunCancellationUnknown',
+        error => error?.code === 'ClientRunCancellationDenied', () => {
         const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid,
           ref.runDefinitionCid);
         if (row === undefined) fail('ClientRunCancellationDenied');
@@ -811,19 +801,10 @@ export function openClientRequestJournal(directory, {
               run_definition_cid = ?`).run(ref.namespaceId,
             ref.authorityScopeCid, ref.runDefinitionCid);
         }
-        database.exec('COMMIT');
         return Object.freeze({ref: admission(row).ref,
           kind: ['accepted', 'already_requested', 'already_terminal'][action],
           revision: Number(row.revision) + (action === 0 ? 1 : 0)});
-      } catch (error) {
-        try { database.exec('ROLLBACK'); }
-        catch (rollback) {
-          failRollback('ClientRunCancellationUnknown', 'cancel', error,
-            rollback);
-        }
-        if (error?.code === 'ClientRunCancellationDenied') throw error;
-        fail('ClientRunCancellationUnknown', error);
-      }
+      });
     },
     // Only the live execution owner may report a completed physical close.
     // A restarted process cannot infer this from its empty worker map.
@@ -835,8 +816,8 @@ export function openClientRequestJournal(directory, {
             !['failed', 'cancelled'].includes(terminalOutcome)) {
         fail('InvalidClientRunStopObservation');
       }
-      database.exec('BEGIN IMMEDIATE');
-      try {
+      return transact('stop_observation', 'ClientRunStopObservationUnknown',
+        error => error?.code === 'ClientRunStopObservationDenied', () => {
         const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid,
           ref.runDefinitionCid);
         if (row === undefined || row.physical_start_reserved !== 1 ||
@@ -853,16 +834,7 @@ export function openClientRequestJournal(directory, {
               physical_close_confirmed = 0`).run(terminalOutcome,
             ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
         }
-        database.exec('COMMIT');
-      } catch (error) {
-        try { database.exec('ROLLBACK'); }
-        catch (rollback) {
-          failRollback('ClientRunStopObservationUnknown',
-            'stop_observation', error, rollback);
-        }
-        if (error?.code === 'ClientRunStopObservationDenied') throw error;
-        fail('ClientRunStopObservationUnknown', error);
-      }
+      });
     },
     // Physical Host evidence only: a failure before invoking Site execution
     // is confirmed. A lost reply or absent worker cannot call this method.
@@ -872,8 +844,11 @@ export function openClientRequestJournal(directory, {
           !cid(ref?.runDefinitionCid)) {
         fail('InvalidClientRunFailureObservation');
       }
-      database.exec('BEGIN IMMEDIATE');
-      try {
+      return transact('failure_observation',
+        'ClientRunFailureObservationUnknown',
+        error => typeof error?.code === 'string' &&
+          (error.code.startsWith('ClientRun') ||
+            error.code.startsWith('ClientRequest')), () => {
         const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid,
           ref.runDefinitionCid);
         if (row === undefined || row.dispatch_reserved !== 1 ||
@@ -886,18 +861,7 @@ export function openClientRequestJournal(directory, {
               ref.authorityScopeCid, ref.runDefinitionCid).changes !== 1) {
           fail('ClientRequestJournalCorrupt');
         }
-        database.exec('COMMIT');
-      } catch (error) {
-        try { database.exec('ROLLBACK'); }
-        catch (rollback) {
-          failRollback('ClientRunFailureObservationUnknown',
-            'failure_observation', error, rollback);
-        }
-        if (typeof error?.code === 'string' &&
-            (error.code.startsWith('ClientRun') ||
-              error.code.startsWith('ClientRequest'))) throw error;
-        fail('ClientRunFailureObservationUnknown', error);
-      }
+      });
     },
     // Keep the owner-issued `needs_reconciliation` state of a started Run
     // whose Effect outcomes are unknown. It is recorded once and never
@@ -916,8 +880,9 @@ export function openClientRequestJournal(directory, {
           state?.next_action?.kind !== 'reconcile') {
         fail('InvalidClientRunReconciliation');
       }
-      database.exec('BEGIN IMMEDIATE');
-      try {
+      return transact('reconciliation', 'ClientRunReconciliationUnknown',
+        error => typeof error?.code === 'string' &&
+          error.code.startsWith('ClientRun'), () => {
         const row = database.prepare(`SELECT physical_start_reserved,
           reconciliation_state_wire FROM client_requests
           WHERE namespace_id = ? AND authority_scope_cid = ? AND
@@ -937,17 +902,7 @@ export function openClientRequestJournal(directory, {
               run_definition_cid = ?`).run(wire, ref.namespaceId,
             ref.authorityScopeCid, ref.runDefinitionCid);
         }
-        database.exec('COMMIT');
-      } catch (error) {
-        try { database.exec('ROLLBACK'); }
-        catch (rollback) {
-          failRollback('ClientRunReconciliationUnknown', 'reconciliation',
-            error, rollback);
-        }
-        if (typeof error?.code === 'string' &&
-            error.code.startsWith('ClientRun')) throw error;
-        fail('ClientRunReconciliationUnknown', error);
-      }
+      });
     },
     lookupReconciliationState(ref) {
       ensureOpen();

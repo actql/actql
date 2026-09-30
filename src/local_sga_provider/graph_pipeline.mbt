@@ -283,6 +283,12 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         } else {
           @lower.operation(node) == "SGA.match_edges"
         }
+      @lower.GraphReachStep(_) => @lower.operation(node) == "SGA.reachable"
+      @lower.GraphShortestStep(shortest) =>
+        @lower.operation(node) == "SGA.shortest_path" &&
+        accepts_shortest_endpoint(shortest, @schema.Left) &&
+        accepts_shortest_endpoint(shortest, @schema.Right) &&
+        @lower.graph_shortest_max_hops(shortest) is Some(_)
       _ => false
     }
   }
@@ -1503,8 +1509,28 @@ fn advance_execution(
               return fail_execution(value)
             }
           Some(@lower.GraphReachStep(_)) => {
-            guard input is Some(input) else { return fail_execution(value) }
-            match
+            let started = if direct_view is Some(view) {
+              @sga.start_reach_view(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.projection_step,
+                view,
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                value.limits.max_value_bytes,
+                value.inputs,
+                control_work_limit=Some(value.limits.max_work),
+              )
+            } else {
+              guard input is Some(input) else { return fail_execution(value) }
               @sga.start_reach(
                 value.control,
                 @execution.generated_completion_preparation(value.generated),
@@ -1523,7 +1549,9 @@ fn advance_execution(
                 value.limits.max_value_bytes,
                 value.inputs,
                 control_work_limit=Some(value.limits.max_work),
-              ) {
+              )
+            }
+            match started {
               Ok(execution) => ReachExecution(execution)
               Err(_) => return fail_execution(value)
             }
@@ -1575,11 +1603,31 @@ fn advance_execution(
             }
           }
           Some(@lower.GraphShortestStep(_)) => {
-            guard input is Some(input) else { return fail_execution(value) }
             guard remaining_control_work(value) is Some(work_limit) else {
               return fail_execution(value)
             }
-            match
+            let started = if direct_view is Some(view) {
+              @sga.start_shortest_view(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.projection_step,
+                view,
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                value.limits.max_value_bytes,
+                value.inputs,
+                control_work_limit=Some(work_limit),
+              )
+            } else {
+              guard input is Some(input) else { return fail_execution(value) }
               @sga.start_shortest(
                 value.control,
                 @execution.generated_completion_preparation(value.generated),
@@ -1598,7 +1646,9 @@ fn advance_execution(
                 value.limits.max_value_bytes,
                 value.inputs,
                 control_work_limit=Some(work_limit),
-              ) {
+              )
+            }
+            match started {
               Ok(execution) => ShortestExecution(execution)
               Err(_) => return fail_execution(value)
             }
@@ -2111,6 +2161,36 @@ pub fn provider(
           )
         _ => false
       }
+      let direct_reach = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphReachStep(_)) => selected_step is Some(_)
+        _ => false
+      }
+      let direct_shortest = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphShortestStep(_)) => selected_step is Some(_)
+        _ => false
+      }
+      let shortest_relation_count = if direct_shortest {
+        match
+          @lower.node_at(
+            @lower.bound_preparation(
+              @execution.generated_sequence_owner(sequence),
+            ),
+            selected_step.unwrap_or(0),
+          ) {
+          Some(node) => @lower.node_input_count(node) - 1
+          None => -1
+        }
+      } else {
+        -1
+      }
       let direct_apply = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
@@ -2171,7 +2251,7 @@ pub fn provider(
           (relations.length() != 0 || carriers.length() != 1)
         ) ||
         (
-          (direct_normalize || direct_diagnostic) &&
+          (direct_normalize || direct_diagnostic || direct_reach) &&
           (relations.length() != 0 || carriers.length() != 1)
         ) ||
         (direct_apply && (relations.length() != 1 || carriers.length() != 1)) ||
@@ -2186,10 +2266,19 @@ pub fn provider(
         (direct_traverse && (relations.length() != 1 || carriers.length() != 1)) ||
         (direct_match && (relations.length() != 0 || carriers.length() != 1)) ||
         (
+          direct_shortest &&
+          (
+            relations.length() != shortest_relation_count ||
+            carriers.length() != 1
+          )
+        ) ||
+        (
           !direct_structural &&
           !direct_projection &&
           !direct_normalize &&
           !direct_diagnostic &&
+          !direct_reach &&
+          !direct_shortest &&
           !direct_apply &&
           !direct_subgraph &&
           !direct_traverse &&
@@ -2237,6 +2326,8 @@ pub fn provider(
         } else if direct_normalize {
           StartKernel
         } else if direct_diagnostic ||
+          direct_reach ||
+          direct_shortest ||
           direct_projection ||
           direct_traverse ||
           direct_match {

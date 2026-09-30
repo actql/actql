@@ -62,8 +62,9 @@ priv enum ShortestEndpoints {
 
 ///|
 priv struct ShortestState {
-  input : @graph.ProducerRead
-  source : @storage.Storage
+  source : GraphReadSource
+  node_count : Int
+  edge_count : Int
   schema : @schema.Schema
   value_limits : @value.Limits
   prepared : @lower.PreparedGraphShortest
@@ -292,7 +293,7 @@ fn shortest_endpoint_count(state : ShortestState, side : @schema.Side) -> Int {
       @lower.graph_shortest_endpoint_id_count(state.prepared, side)
     RelationShortestEndpoints(input, _) =>
       @execution.producer_read_row_count(input)
-    PredicateShortestEndpoints(_) => @storage.node_count(state.source)
+    PredicateShortestEndpoints(_) => state.node_count
   }
 }
 
@@ -427,16 +428,18 @@ fn shortest_compare_edge_identities_step(
   left : Int,
   right : Int,
 ) -> Result[Int?, ShortestIssue] {
-  guard @storage.edge_endpoints(state.source, left)
+  guard graph_read_edge_endpoints(state.source, left)
     is Some((left_source, left_target)) &&
-    @storage.edge_endpoints(state.source, right)
+    graph_read_edge_endpoints(state.source, right)
     is Some((right_source, right_target)) &&
-    @storage.node_identity(state.source, left_source) is Some(left_source_id) &&
-    @storage.node_identity(state.source, right_source) is Some(right_source_id) &&
-    @storage.node_identity(state.source, left_target) is Some(left_target_id) &&
-    @storage.node_identity(state.source, right_target) is Some(right_target_id) &&
-    @storage.edge_label(state.source, left) is Some(left_label) &&
-    @storage.edge_label(state.source, right) is Some(right_label) else {
+    graph_read_node_identity(state.source, left_source) is Some(left_source_id) &&
+    graph_read_node_identity(state.source, right_source)
+    is Some(right_source_id) &&
+    graph_read_node_identity(state.source, left_target) is Some(left_target_id) &&
+    graph_read_node_identity(state.source, right_target)
+    is Some(right_target_id) &&
+    graph_read_edge_label(state.source, left) is Some(left_label) &&
+    graph_read_edge_label(state.source, right) is Some(right_label) else {
     return Err(ShortestInputUnavailable)
   }
   let pair = match state.key_component {
@@ -516,8 +519,8 @@ fn shortest_compare_nodes_step(
   left : Int,
   right : Int,
 ) -> Result[Int?, ShortestIssue] {
-  guard @storage.node_identity(state.source, left) is Some(left_id) &&
-    @storage.node_identity(state.source, right) is Some(right_id) else {
+  guard graph_read_node_identity(state.source, left) is Some(left_id) &&
+    graph_read_node_identity(state.source, right) is Some(right_id) else {
     return Err(ShortestInputUnavailable)
   }
   shortest_compare_values_step(state, left_id, right_id, present=false)
@@ -610,8 +613,8 @@ fn shortest_compare_edges_step(
 ) -> Result[Int?, ShortestIssue] {
   let left_node = state.neighbor[left_at]
   let right_node = state.neighbor[right_at]
-  guard @storage.node_identity(state.source, left_node) is Some(left_id) &&
-    @storage.node_identity(state.source, right_node) is Some(right_id) else {
+  guard graph_read_node_identity(state.source, left_node) is Some(left_id) &&
+    graph_read_node_identity(state.source, right_node) is Some(right_id) else {
     return Err(ShortestInputUnavailable)
   }
   if state.key_component == 0 {
@@ -623,16 +626,18 @@ fn shortest_compare_edges_step(
   }
   let left_edge = state.edge[left_at]
   let right_edge = state.edge[right_at]
-  guard @storage.edge_endpoints(state.source, left_edge)
+  guard graph_read_edge_endpoints(state.source, left_edge)
     is Some((left_source, left_target)) &&
-    @storage.edge_endpoints(state.source, right_edge)
+    graph_read_edge_endpoints(state.source, right_edge)
     is Some((right_source, right_target)) &&
-    @storage.node_identity(state.source, left_source) is Some(left_source_id) &&
-    @storage.node_identity(state.source, right_source) is Some(right_source_id) &&
-    @storage.node_identity(state.source, left_target) is Some(left_target_id) &&
-    @storage.node_identity(state.source, right_target) is Some(right_target_id) &&
-    @storage.edge_label(state.source, left_edge) is Some(left_label) &&
-    @storage.edge_label(state.source, right_edge) is Some(right_label) else {
+    graph_read_node_identity(state.source, left_source) is Some(left_source_id) &&
+    graph_read_node_identity(state.source, right_source)
+    is Some(right_source_id) &&
+    graph_read_node_identity(state.source, left_target) is Some(left_target_id) &&
+    graph_read_node_identity(state.source, right_target)
+    is Some(right_target_id) &&
+    graph_read_edge_label(state.source, left_edge) is Some(left_label) &&
+    graph_read_edge_label(state.source, right_edge) is Some(right_label) else {
     return Err(ShortestInputUnavailable)
   }
   let pair = match state.key_component {
@@ -675,9 +680,9 @@ fn shortest_emit_sorted_edge(state : ShortestState, take_left : Bool) -> Unit {
 ///|
 fn shortest_edge_count(state : ShortestState) -> Int {
   if state.direction == @graph_type.Both {
-    @storage.edge_count(state.source) * 2
+    state.edge_count * 2
   } else {
-    @storage.edge_count(state.source)
+    state.edge_count
   }
 }
 
@@ -696,7 +701,7 @@ fn shortest_edge_type_matches(
     is Some(expected) else {
     return false
   }
-  match @storage.edge_label(state.source, edge) {
+  match graph_read_edge_label(state.source, edge) {
     Some(Some({ value: @value.Text(actual), .. })) => actual == expected
     _ => false
   }
@@ -707,11 +712,11 @@ fn shortest_oriented_endpoints(
   state : ShortestState,
   occurrence : Int,
 ) -> (Int, Int, Int)? {
-  let count = @storage.edge_count(state.source)
+  let count = state.edge_count
   let edge = if occurrence < count { occurrence } else { occurrence - count }
   guard edge >= 0 &&
     edge < count &&
-    @storage.edge_endpoints(state.source, edge) is Some((source, target)) else {
+    graph_read_edge_endpoints(state.source, edge) is Some((source, target)) else {
     return None
   }
   if state.direction == @graph_type.Incoming || occurrence >= count {
@@ -728,7 +733,7 @@ fn shortest_path_value(
 ) -> @value.CheckedValue? {
   match field.name {
     @schema.Unqualified("source_id") =>
-      @storage.node_identity(state.source, state.source_node).bind(identity => {
+      graph_read_node_identity(state.source, state.source_node).bind(identity => {
         @value.recheck_runtime_value(
           identity.value,
           field.contract,
@@ -736,7 +741,7 @@ fn shortest_path_value(
         )
       })
     @schema.Unqualified("target_id") =>
-      @storage.node_identity(state.source, state.target_node).bind(identity => {
+      graph_read_node_identity(state.source, state.target_node).bind(identity => {
         @value.recheck_runtime_value(
           identity.value,
           field.contract,
@@ -776,6 +781,27 @@ fn shortest_path_value_minimum_nodes(
 }
 
 ///|
+fn shortest_node_index(
+  state : ShortestState,
+  identity : @value.CheckedValue,
+) -> Result[Int?, ShortestIssue] {
+  match state.source {
+    Stored(read) =>
+      match @graph.producer_read_storage(read) {
+        Some(storage) =>
+          @storage.node_index(storage, identity).map_err(issue => {
+            ShortestStorage(issue)
+          })
+        None => Err(ShortestInputUnavailable)
+      }
+    Viewed(_) =>
+      graph_read_node_index(state.source, identity).map_err(_ => {
+        ShortestInputUnavailable
+      })
+  }
+}
+
+///|
 fn shortest_step(
   state : ShortestState,
   quantum : Int,
@@ -787,7 +813,7 @@ fn shortest_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@graph.producer_read_available(state.input) ||
+    if !graph_read_available(state.source) ||
       !shortest_endpoints_available(state.sources) ||
       !shortest_endpoints_available(state.targets) {
       return @bounded.Failed(ShortestInputUnavailable, progress, used)
@@ -797,7 +823,7 @@ fn shortest_step(
     }
     match state.phase {
       InitializeEndpointSelection =>
-        if state.index < @storage.node_count(state.source) {
+        if state.index < state.node_count {
           state.source_selected.push(false)
           state.target_selected.push(false)
           state.index += 1
@@ -824,9 +850,8 @@ fn shortest_step(
               used,
             )
           }
-          match @storage.node_index(state.source, identity) {
-            Err(issue) =>
-              return @bounded.Failed(ShortestStorage(issue), progress, used)
+          match shortest_node_index(state, identity) {
+            Err(issue) => return @bounded.Failed(issue, progress, used)
             Ok(None) =>
               return @bounded.Failed(ShortestEndpointMissing, progress, used)
             Ok(Some(node)) => state.source_selected[node] = true
@@ -854,9 +879,8 @@ fn shortest_step(
               used,
             )
           }
-          match @storage.node_index(state.source, identity) {
-            Err(issue) =>
-              return @bounded.Failed(ShortestStorage(issue), progress, used)
+          match shortest_node_index(state, identity) {
+            Err(issue) => return @bounded.Failed(issue, progress, used)
             Ok(None) =>
               return @bounded.Failed(ShortestEndpointMissing, progress, used)
             Ok(Some(node)) => state.target_selected[node] = true
@@ -866,12 +890,12 @@ fn shortest_step(
           shortest_finish_endpoint_side(state)
         }
       PrepareEndpointPredicate =>
-        if state.index >= @storage.node_count(state.source) {
+        if state.index >= state.node_count {
           shortest_finish_endpoint_side(state)
         } else if state.predicate_field <
           graph_node_predicate_binding_count(state.graph) {
           used += 1
-          guard graph_node_predicate_binding(
+          guard graph_node_predicate_binding_read(
               state.graph,
               state.source,
               state.index,
@@ -1045,7 +1069,7 @@ fn shortest_step(
         }
       }
       InitializeNodes =>
-        if state.index < @storage.node_count(state.source) {
+        if state.index < state.node_count {
           state.degree.push(0)
           state.start.push(0)
           state.cursor.push(0)
@@ -1111,7 +1135,7 @@ fn shortest_step(
         }
       }
       BuildOffsets =>
-        if state.index < @storage.node_count(state.source) {
+        if state.index < state.node_count {
           state.start[state.index + 1] = state.start[state.index] +
             state.degree[state.index]
           state.index += 1
@@ -1131,7 +1155,7 @@ fn shortest_step(
           state.phase = CopyCursors
         }
       CopyCursors =>
-        if state.index < @storage.node_count(state.source) {
+        if state.index < state.node_count {
           state.cursor[state.index] = state.start[state.index]
           state.index += 1
           used += 1
@@ -1200,7 +1224,7 @@ fn shortest_step(
           state.phase = PrepareSortNode
         }
       PrepareSortNode =>
-        if state.sort_node >= @storage.node_count(state.source) {
+        if state.sort_node >= state.node_count {
           if state.weight_property is Some(_) {
             state.index = 0
             state.phase = ValidateWeight
@@ -1295,9 +1319,9 @@ fn shortest_step(
         guard state.weight_property is Some(property) else {
           return @bounded.Failed(UnsupportedShortestKernel, progress, used)
         }
-        if state.index < @storage.edge_count(state.source) {
+        if state.index < state.edge_count {
           used += 1
-          guard @storage.edge_property(state.source, state.index, property)
+          guard graph_read_edge_property(state.source, state.index, property)
             is Some({ value: @value.Number(weight), .. }) &&
             !weight.is_nan() &&
             !weight.is_inf() &&
@@ -1701,7 +1725,7 @@ fn shortest_step(
         }
         let node = state.path_nodes[state.value_item]
         guard state.value_items is Some(builder) &&
-          @storage.node_identity(state.source, node) is Some(identity) &&
+          graph_read_node_identity(state.source, node) is Some(identity) &&
           @value.append_array_item(builder, identity.value) else {
           return @bounded.Failed(ShortestInputUnavailable, progress, used)
         }
@@ -1722,10 +1746,11 @@ fn shortest_step(
         }
         let edge = state.path_edges[state.value_item]
         guard state.value_items is Some(builder) &&
-          @storage.edge_endpoints(state.source, edge) is Some((source, target)) &&
-          @storage.node_identity(state.source, source) is Some(source_id) &&
-          @storage.node_identity(state.source, target) is Some(target_id) &&
-          @storage.edge_label(state.source, edge) is Some(label) &&
+          graph_read_edge_endpoints(state.source, edge)
+          is Some((source, target)) &&
+          graph_read_node_identity(state.source, source) is Some(source_id) &&
+          graph_read_node_identity(state.source, target) is Some(target_id) &&
+          graph_read_edge_label(state.source, edge) is Some(label) &&
           @value.object_value([
             ("src", source_id.value),
             ("dst", target_id.value),
@@ -1918,14 +1943,14 @@ fn prepare_shortest_endpoints(
 }
 
 ///|
-/// Start the bounded shortest-path kernel for scalar, literal,
-/// Relation-backed, or predicate-selected endpoints.
-pub fn start_shortest(
+/// Start the bounded shortest-path kernel over either exact Graph read form.
+fn start_shortest_read(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
   sequence : @lower.PreparedSequence,
   step : Int,
-  input : @graph.ProducerRead,
+  source : GraphReadSource,
+  graph : @carrier.Graph,
   max_rows : Int,
   limits : @execution.ValueLimits,
   max_workspace_slots : Int,
@@ -1939,14 +1964,25 @@ pub fn start_shortest(
     return Err(ShortestWorkLimit)
   }
   let owner = @lower.sequence_owner(sequence)
+  let source_matches = match source {
+    Stored(read) =>
+      @graph.producer_read_matches_operation_input(read, owner, step, 0)
+    Viewed(view) =>
+      @lifecycle.producer_view_kind(view) == @carrier.GraphKind &&
+      @lifecycle.producer_read_reference_matches_operation_input(
+        @lifecycle.producer_view_read_reference(view),
+        owner,
+        step,
+        0,
+      )
+  }
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),
       owner,
     ) &&
     @lower.sequence_step(sequence, step)
     is Some(@lower.GraphShortestStep(prepared)) &&
-    @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
-    @graph.producer_read_storage(input) is Some(source) &&
+    source_matches &&
     @lower.graph_shortest_max_hops(prepared) is Some(max_hops) else {
     return Err(UnsupportedShortestKernel)
   }
@@ -1960,13 +1996,12 @@ pub fn start_shortest(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let nodes = @storage.node_count(source)
-  let edges = @storage.edge_count(source)
-  let direction = @lower.graph_shortest_direction(prepared)
-  let selection = @lower.graph_shortest_selection(prepared)
-  guard @storage.carrier(source) is @carrier.GraphValue(graph) else {
+  guard graph_read_node_count(source) is Some(nodes) &&
+    graph_read_edge_count(source) is Some(edges) else {
     return Err(ShortestInputUnavailable)
   }
+  let direction = @lower.graph_shortest_direction(prepared)
+  let selection = @lower.graph_shortest_selection(prepared)
   let weight_property = match @lower.graph_shortest_weight(prepared) {
     None => None
     Some(name) =>
@@ -2011,15 +2046,54 @@ pub fn start_shortest(
   let live = Ref(true)
   let accepted = Ref(false)
   let value_item_attempts = Ref(0)
-  let port = match
-    @execution.prepare_trusted_output_port(
-      preparation,
-      @pipeline.Step(step),
-      max_entries,
-      max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs~,
-    ) {
+  let port_result = match source {
+    Stored(_) =>
+      @execution.prepare_trusted_output_port(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs~,
+      )
+    Viewed(view) => {
+      guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+        inputs.length() + 1 == @lower.node_input_count(node) else {
+        @execution.cancel_admitted_output(output) |> ignore
+        return Err(UnsupportedShortestKernel)
+      }
+      let bound = [
+        @execution.trusted_output_carrier_input(
+          @lifecycle.producer_view_read_reference(view),
+        ),
+      ]
+      for port in 1..<@lower.node_input_count(node) {
+        let mut found = None
+        for read in inputs {
+          if @execution.producer_read_matches_operation_input(
+              read, owner, step, port,
+            ) {
+            found = Some(read)
+            break
+          }
+        }
+        guard found is Some(read) else {
+          @execution.cancel_admitted_output(output) |> ignore
+          return Err(UnsupportedShortestKernel)
+        }
+        bound.push(@execution.trusted_output_relation_input(read))
+      }
+      @execution.prepare_trusted_output_port_with_inputs(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs=bound,
+      )
+    }
+  }
+  let port = match port_result {
     Ok(value) => value
     Err(issue) => {
       @execution.cancel_admitted_output(output) |> ignore
@@ -2027,8 +2101,9 @@ pub fn start_shortest(
     }
   }
   let state : ShortestState = {
-    input,
     source,
+    node_count: nodes,
+    edge_count: edges,
     schema: @lower.graph_shortest_output_schema(prepared),
     prepared,
     value_limits: {
@@ -2144,6 +2219,83 @@ pub fn start_shortest(
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
+}
+
+///|
+/// Start the bounded shortest-path kernel for stored Graph input.
+pub fn start_shortest(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @graph.ProducerRead,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
+) -> Result[ShortestExecution, ShortestIssue] {
+  guard @graph.producer_read_storage(input) is Some(storage) &&
+    @storage.carrier(storage) is @carrier.GraphValue(graph) else {
+    return Err(ShortestInputUnavailable)
+  }
+  start_shortest_read(
+    control,
+    preparation,
+    sequence,
+    step,
+    Stored(input),
+    graph,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    control_work_limit~,
+  )
+}
+
+///|
+/// Start the same bounded kernel from an exact managed Graph generation.
+pub fn start_shortest_view(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
+) -> Result[ShortestExecution, ShortestIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+    is Some(@carrier.GraphValue(graph)) else {
+    return Err(UnsupportedShortestKernel)
+  }
+  start_shortest_read(
+    control,
+    preparation,
+    sequence,
+    step,
+    Viewed(input),
+    graph,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    control_work_limit~,
+  )
 }
 
 ///|
