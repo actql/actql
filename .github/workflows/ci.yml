@@ -111,12 +111,14 @@ jobs:
         run: node proofs/bounded-session/run.mjs all
       - name: Detect representative production mutations with replacement tests
         run: node proofs/bounded-session/mutations.mjs
-      - name: Restore and verify final production artifacts after mutations
-        run: node proofs/bounded-session/run.mjs js
       - name: Reject invalid serial chain derivations and weakened claims
         run: node --test proofs/relation-chain/evidence.test.mjs proofs/relation-chain/proof-check.test.mjs
       - name: Detect serial chain accounting and ownership mutations
         run: node proofs/relation-chain/mutations.mjs
+      # Keep both evidence sets fresh: either mutation batch can invalidate
+      # another target's incremental artifacts even after source restoration.
+      - name: Restore and verify final common-mechanism artifacts on all targets
+        run: node proofs/bounded-session/run.mjs all
       - name: Produce final serial chain evidence on all targets
         run: node proofs/relation-chain/run.mjs all
       - name: Retain exact-source evidence and mutation results
