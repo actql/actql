@@ -205,7 +205,11 @@ pub fn start_graph_degree_view(@bounded_execution.Control, @execution_relation.C
 
 pub fn start_graph_diff(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphDiffExecution, GraphDiffIssue]
 
+pub fn start_graph_diff_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int) -> Result[GraphDiffExecution, GraphDiffIssue]
+
 pub fn start_graphs_equal(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphsEqualExecution, GraphsEqualIssue]
+
+pub fn start_graphs_equal_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphsEqualExecution, GraphsEqualIssue]
 
 pub fn start_match_edges(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchEdgesExecution, MatchEdgesIssue]
 
