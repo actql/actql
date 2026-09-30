@@ -61,12 +61,30 @@ fn issued_fixture_checked(
   ).unwrap()
   let evidence = if sequence_match {
     let mut sequence_step = -1
+    let mut input_rows : Int64? = None
     for stage in @syntax.stages(program) {
       let body = @decode.open_object(@syntax.stage_body(stage)).unwrap()
+      // This fixture has one literal source. Its proof counts authored rows,
+      // including zero rows, rather than observing any executed output.
+      let steps = @decode.lookup(body, "steps").unwrap()
+      for index in 0..<@decode.array_length(steps).unwrap() {
+        let step = @decode.open_object(
+          @decode.element_at(steps, index).unwrap(),
+        ).unwrap()
+        if @decode.lookup(step, "values") is Some(values) {
+          if input_rows is Some(_) {
+            fail("sequence fixture has multiple literal sources")
+          }
+          let rows = @decode.lookup(
+            @decode.open_object(values).unwrap(),
+            "rows",
+          ).unwrap()
+          input_rows = Some(@decode.array_length(rows).unwrap().to_int64())
+        }
+      }
       if @decode.text(@decode.lookup(body, "id").unwrap()).unwrap() != "matched" {
         continue
       }
-      let steps = @decode.lookup(body, "steps").unwrap()
       for index in 0..<@decode.array_length(steps).unwrap() {
         let step = @decode.element_at(steps, index).unwrap()
         if @decode.lookup(@decode.open_object(step).unwrap(), "sequence")
@@ -78,10 +96,17 @@ fn issued_fixture_checked(
         }
       }
     }
-    if sequence_step < 0 {
-      fail("sequence fixture has no match step")
+    guard sequence_step >= 0 && input_rows is Some(input_rows) else {
+      fail("sequence fixture requires one literal source and a match step")
     }
-    [sequence_fixture_capacity(environment, "matched", step=sequence_step)]
+    [
+      sequence_fixture_capacity(
+        environment,
+        "matched",
+        step=sequence_step,
+        input_rows~,
+      ),
+    ]
   } else if components {
     [components_fixture_capacity(environment, "graph", rows=components_rows)]
   } else if reach {

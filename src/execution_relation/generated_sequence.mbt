@@ -12,6 +12,7 @@ struct GeneratedSequence {
   expansion_ceilings : Array[(Int, Int64)]
   interval_search_ceilings : Array[(Int, Int64)]
   asof_search_ceilings : Array[(Int, Int64)]
+  sequence_match_ceilings : Array[(Int, Int64, Int64)]
   aggregate_outputs : Array[SelectedAggregateOutput]
   analytic_envelopes : Array[SelectedAnalyticEnvelope]
   nest_item_ceilings : Array[(Int, Int64)]
@@ -102,6 +103,7 @@ pub fn prepare_generated_sequence(
         expansion_ceilings: [],
         interval_search_ceilings: [],
         asof_search_ceilings: [],
+        sequence_match_ceilings: [],
         aggregate_outputs: [],
         analytic_envelopes: [],
         nest_item_ceilings: [],
@@ -123,7 +125,8 @@ pub fn execute_generated_sequence(
   produced? : Array[BoundProducerInput] = [],
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   if generated.selected_steps is Some(_) ||
-    generated.selected_prefix_end is Some(_) {
+    generated.selected_prefix_end is Some(_) ||
+    !generated.sequence_match_ceilings.is_empty() {
     return Err(InputSet)
   }
   evaluate_sequence_components(
@@ -186,6 +189,51 @@ pub fn bind_generated_numeric_execution(
   numeric : NumericAggregateExecution,
 ) -> GeneratedSequence {
   { ..generated, numeric: Some(numeric), }
+}
+
+///|
+/// Bind independently scoped Host ceilings to one bounded matcher occurrence.
+/// A later binding can only narrow the earlier limits. Synchronous sequence
+/// execution cannot consume this bounded-provider configuration.
+pub fn constrain_generated_sequence_match_limits(
+  generated : GeneratedSequence,
+  step : Int,
+  matches_per_key : Int64,
+  output_rows : Int64,
+) -> Result[GeneratedSequence, SequenceRunIssue] {
+  if matches_per_key < 0L || output_rows < 0L {
+    return Err(InvalidLimits)
+  }
+  guard @lower.sequence_step(generated.sequence, step)
+    is Some(@lower.SequenceMatchStep(_)) else {
+    return Err(InputSet)
+  }
+  let ceilings = generated.sequence_match_ceilings.copy()
+  for index, (prior_step, prior_matches, prior_output) in ceilings {
+    if prior_step == step {
+      ceilings[index] = (
+        step,
+        Int64::min(prior_matches, matches_per_key),
+        Int64::min(prior_output, output_rows),
+      )
+      return Ok({ ..generated, sequence_match_ceilings: ceilings, })
+    }
+  }
+  ceilings.push((step, matches_per_key, output_rows))
+  Ok({ ..generated, sequence_match_ceilings: ceilings, })
+}
+
+///|
+pub fn generated_sequence_match_limits(
+  generated : GeneratedSequence,
+  step : Int,
+) -> (Int64, Int64)? {
+  for (candidate, matches, output) in generated.sequence_match_ceilings {
+    if candidate == step {
+      return Some((matches, output))
+    }
+  }
+  None
 }
 
 ///|

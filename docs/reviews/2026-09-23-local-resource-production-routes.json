@@ -8731,6 +8731,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_events_wbtest.mbt",
           "fixture": "standard Host matches retained Events before Relation filtering"
+        },
+        {
+          "role": "sequence_retained_matcher_registration",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_retained_sequence_obligations_wbtest.mbt",
+          "fixture": "retained sequence admits its registered bounded matcher"
+        },
+        {
+          "role": "sequence_selected_scope_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_sequence_match_wbtest.mbt",
+          "fixture": "bounded sequence enforces independent selected match and output ceilings"
         }
       ],
       "environment_tests": [
@@ -8747,6 +8761,34 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "events-sequence-filter"
+        },
+        {
+          "role": "sequence_retained_relation_variants",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "sequence-adjacent-disallow"
+        },
+        {
+          "role": "sequence_retained_scope_limit_failure",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "matches-per-key"
+        },
+        {
+          "role": "sequence_retained_output_limit_failure",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "output-rows"
+        },
+        {
+          "role": "sequence_retained_finalize_cleanup_retry",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "finalize-failure"
         }
       ],
       "path_assurance": {

@@ -380,6 +380,8 @@ pub fn constrain_generated_join_output(GeneratedSequence, Int, Int64) -> Result[
 
 pub fn constrain_generated_nest_items(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
+pub fn constrain_generated_sequence_match_limits(GeneratedSequence, Int, Int64, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
+
 pub fn copy_completed_output_independent(CompletedOutput, Int, Int) -> Result[CompletedOutput, ManagedIndependentOutputIssue]
 
 pub fn discard_managed_output_measurement_index(ManagedOutputValueReceipt) -> Bool
@@ -493,6 +495,8 @@ pub fn generated_sequence_all_steps(GeneratedSequence, (@lowering_relation.Prepa
 pub fn generated_sequence_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits) -> ExecutionCapacity?
 
 pub fn generated_sequence_is_projection_only(GeneratedSequence) -> Bool
+
+pub fn generated_sequence_match_limits(GeneratedSequence, Int) -> (Int64, Int64)?
 
 pub fn generated_sequence_owner(GeneratedSequence) -> @lowering_relation.BoundPrepared
 

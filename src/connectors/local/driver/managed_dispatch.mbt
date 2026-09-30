@@ -18,6 +18,7 @@ struct LocalManagedDispatchConfiguration[T] {
   join_output_ceilings : Array[(Int, Int64)]
   interval_search_ceilings : Array[(Int, Int64)]
   asof_search_ceilings : Array[(Int, Int64)]
+  sequence_match_ceilings : Array[(Int, Int64, Int64)]
   aggregate_output_ceilings : Array[@connector.AggregateOutputCeiling]
   analytic_envelopes : Array[@connector.AnalyticEnvelope]
 }
@@ -352,6 +353,10 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     is Some(asof_search_ceilings) else {
     return Err(Configuration(InvalidLimits))
   }
+  guard local_task_sequence_match_ceilings(installed.run, task)
+    is Some(sequence_match_ceilings) else {
+    return Err(Configuration(InvalidLimits))
+  }
   let graph = @strategy.captured_dag_graph(installed.run)
   let selected_operation = @strategy.graph_task_selected_step(graph, task)
     is Some(_) ||
@@ -415,6 +420,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
       estimates,
       interval_search_ceilings~,
       asof_search_ceilings~,
+      sequence_match_ceilings~,
     ) {
     Ok(value) => value
     Err(
@@ -530,6 +536,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
       join_output_ceilings,
       interval_search_ceilings,
       asof_search_ceilings,
+      sequence_match_ceilings,
       aggregate_output_ceilings,
       analytic_envelopes,
     }),
@@ -927,6 +934,7 @@ pub fn[T] start_local_managed_dispatch(
                 join_output_ceilings=setup.join_output_ceilings,
                 interval_search_ceilings=setup.interval_search_ceilings,
                 asof_search_ceilings=setup.asof_search_ceilings,
+                sequence_match_ceilings=setup.sequence_match_ceilings,
                 aggregate_output_ceilings=setup.aggregate_output_ceilings,
                 analytic_envelopes=setup.analytic_envelopes,
                 numeric~,

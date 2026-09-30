@@ -1297,16 +1297,20 @@ fn start_bounded_sequence_match_input(
     return Err(Rows(RowLimit))
   }
   let key_columns : Array[Int] = []
-  let output_limit = match @lower.sequence_match_output_limit(kernel) {
+  let mut output_limit = match @lower.sequence_match_output_limit(kernel) {
     Some(value) => Int64::min(value, max_rows.to_int64()).to_int()
     None => max_rows
   }
-  let per_key_limit = match @lower.sequence_match_per_key_limit(kernel) {
+  let mut per_key_limit = match @lower.sequence_match_per_key_limit(kernel) {
     Some(value) => Int64::min(value, max_rows.to_int64()).to_int()
     None => max_rows
   }
   if output_limit < 0 || per_key_limit < 0 {
     return Err(InvalidExecution)
+  }
+  if generated_sequence_match_limits(generated, step) is Some((matches, output)) {
+    per_key_limit = Int64::min(per_key_limit.to_int64(), matches).to_int()
+    output_limit = Int64::min(output_limit.to_int64(), output).to_int()
   }
   let output = match
     prepare_admitted_output(owner, @pipeline.Step(step), output_limit, values) {

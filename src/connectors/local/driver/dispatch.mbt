@@ -282,6 +282,8 @@ pub fn prepare_local_dispatch(
     is Some(interval_search_ceilings) &&
     local_task_asof_search_ceilings(installed.run, task)
     is Some(asof_search_ceilings) &&
+    local_task_sequence_match_ceilings(installed.run, task)
+    is Some(sequence_match_ceilings) &&
     local_task_aggregate_output_ceilings(installed.run, task)
     is Some(aggregate_output_ceilings) &&
     local_task_analytic_envelopes(installed.run, task)
@@ -305,6 +307,7 @@ pub fn prepare_local_dispatch(
       expansion_output_ceilings~,
       interval_search_ceilings~,
       asof_search_ceilings~,
+      sequence_match_ceilings~,
       aggregate_output_ceilings~,
       analytic_envelopes~,
     ) {
