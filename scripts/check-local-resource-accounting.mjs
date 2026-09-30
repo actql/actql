@@ -1375,6 +1375,7 @@ for (const [index, route] of routeEntries.entries()) {
     }
     for (const role of [
       'ordinary_filter_quantum_and_lifetime',
+      'retained_captured_factory_binding',
       'filter_mixed_stage_lifetime',
       'filter_input_exact',
       'filter_input_one_short',
@@ -1386,6 +1387,15 @@ for (const [index, route] of routeEntries.entries()) {
     }
     if (!environmentRoles.has('filter_in_flight_host_timer')) {
       fail(`${label}: in-flight Host cancellation fixture is missing`);
+    }
+    for (const role of [
+      'retained_captured_named_results', 'retained_captured_empty_input',
+      'retained_captured_empty_output', 'retained_captured_host_exact_budgets',
+      'retained_captured_host_work_short', 'retained_captured_host_workspace_short',
+      'retained_captured_progress_timer_cleanup', 'retained_captured_filter_arithmetic',
+      'retained_captured_append_cleanup', 'retained_captured_finalize_cleanup_retry',
+    ]) {
+      if (!environmentRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
     }
   }
   if (route.family === 'RelA' && route.operation === 'select') {

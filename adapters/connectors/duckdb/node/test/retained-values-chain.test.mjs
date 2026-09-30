@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {inspect} from 'node:util';
+import {DuckDBInstance} from '@duckdb/node-api';
 import * as moon from '../../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as fixture from '../../../../../_build/js/release/build/connectors/duckdb/conformance/conformance.js';
 import {canonicalText} from '../../../../../scripts/check-canonical-json.mjs';
@@ -13,7 +14,12 @@ import {installNodeClientProgramPreparation} from '../../../../host-node/client-
 import {createNodeHostEntry} from '../../../../host-node/entry.mjs';
 import {installStrategyContributions} from '../../../../connectors-builtin/strategy.generated.mjs';
 import {checked} from '../../../../host-common/runtime-result.mjs';
-import {sourceFreeTaskPlan} from '../../../../host-node/local-values-plan.mjs';
+import {sourceFreeTaskPlan, acquiredTaskRunAdmission,
+  acquiredTaskPublicationPlan} from '../../../../host-node/local-values-plan.mjs';
+import {authorizeLocalDatabase} from '../session.mjs';
+import {runNativeHostQuery, nativeSourceIdentityMatches,
+  issueNativeSourceEvidence} from '../host.mjs';
+import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 import {installLocalRetainedStore} from '../../../../local-node/retained-store.mjs';
 import {createLocalRetainedStore} from '../../../../store-local/files.mjs';
 import {openLocalPublicationStore} from '../../../../store-local/publication-store.mjs';
@@ -43,38 +49,129 @@ function program(rows, filter = 'id >= 2') {
   });
 }
 
-async function retainedRun(document, use, mode = 'success', budgets) {
+function capturedProgram(filter = 'id >= 2', sort = true) {
+  const document = JSON.parse(program([]));
+  document.id = 'retained-captured-chain';
+  document.params = {minimum: {type: 'number', nullable: false}};
+  document.stages.unshift({id: 'acquire',
+    inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+    steps: [{filter: 'id > $minimum', as: 'scanned'},
+      {select: ['id'], as: 'captured'}],
+    results: {out: {from: 'captured', fields: ['id']}},
+  });
+  document.stages[1].inputs = {r: {result: {stage: 'acquire', result: 'out'}}};
+  document.stages[1].steps = [{from: 'r', filter, as: 'kept'},
+    ...(sort ? [{from: 'kept', sort: [{id: 'asc'}], as: 'ordered'}] : []),
+    {from: sort ? 'ordered' : 'kept', select: ['id'], as: 'selected'}];
+  return JSON.stringify(document);
+}
+
+// Use the checked acquisition planner and real native capture. The
+// test installs Compute configuration directly; public Client dispatch mode
+// selection remains with its Host owner.
+async function openCapturedRetained(prepared, contracts, directory, rows, budgets) {
+  const [registry, values, fragment, ordered] = contracts;
+  const planned = moon.clientProgramPrepareLocalQueryRequirement(
+    prepared, 0, 0, registry, values, fragment, ordered);
+  assert.equal(planned?.$tag, 1, `captured requirement: ${inspect(planned, {depth: 8})}`);
+  const requirement = checked(planned);
+  const facts = checked(moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
+  const [sourceRef, sourceContractCid, carrierSchemaContractCid,
+    sourceDataPolicyCid, dataClassification, sourceViewContractCid] = facts;
+  const context = checked(moon.clientProgramPrepareDuckDBSourceEvidenceContext(requirement));
+  const bodies = await Promise.all(['actql-query-acquisition.json',
+    'actql-query-process-evidence.json', 'actql-query-two-receipt.json']
+    .map(name => readFile(join(root, 'spec/contracts', name), 'utf8')));
+  const acquisition = checked(moon.clientProgramPrepareDuckDBAcquisition(
+    requirement, 'main', 'records', ...bodies));
+  const databasePath = join(directory, 'records.duckdb');
+  const database = await DuckDBInstance.create(databasePath);
+  const connection = await database.connect();
+  try {
+    await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+    for (const row of rows) {
+      await connection.run('INSERT INTO records VALUES ($1, NULL)', [row.id]);
+    }
+  } finally {
+    connection.closeSync();
+    database.closeSync();
+  }
+  const grant = await authorizeLocalDatabase(databasePath, {
+    ...fixtureSourceAccess, sourceRef,
+  });
+  const captureStartedAt = new Date().toISOString();
+  const capture = await runNativeHostQuery(grant, acquisition, {
+    maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
+    maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
+    memoryBytes: 128 * 1024 * 1024, threads: 1,
+  });
+  try {
+    const captureCompletedAt = new Date().toISOString();
+    const source = capture.source();
+    assert.equal(moon.clientProgramCapturedSourceMatches(prepared, source), true);
+    const identified = moon.clientProgramIdentifyCapturedSourceRelation(source);
+    assert.equal(identified?.$tag, 1, `captured identity: ${inspect(identified, {depth: 8})}`);
+    const identity = checked(identified);
+    assert.equal(nativeSourceIdentityMatches(capture, identity), true);
+    const logicalInput = checked(moon.clientProgramIssueCapturedSourceLogical(
+      prepared, source, identity, requirement));
+    const setup = budgets
+      ? fixture.strategyFixtureCapturedRetainedSubset(prepared, source,
+        registry, values, fragment, budgets.work, budgets.workspace)
+      : moon.clientProgramOpenCapturedLocalRetainedHost(prepared,
+        source, registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
+    assert.ok(setup, 'the product captured factory must install retained output');
+    return {setup, capture, identity, logicalInput,
+      checkedSource: {sourceRef, sourceContractCid, carrierSchemaContractCid,
+        sourceDataPolicyCid, dataClassification, sourceViewContractCid},
+      captureStartedAt, captureCompletedAt,
+      issueSourceEvidence: options => issueNativeSourceEvidence(capture,
+        {...options, context, identity, logicalInput})};
+  } catch (error) {
+    capture.close();
+    await capture.cleanupHandle?.retry();
+    throw error;
+  }
+}
+
+async function retainedRun(document, use, mode = 'success', budgets, captureRows) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-retained-values-chain-'));
-  let retained, publication, owner, execution;
+  let retained, publication, owner, execution, captured;
   let permitCleanup = mode !== 'finalize-failure';
   let dispatches = 0, appendsFailed = 0, finalizationsFailed = 0;
   let producerWork = 0n, sawStop = false, scheduled = false;
   const cancellation = new AbortController();
   try {
-    const body = JSON.parse(await readFile(join(root,
-      'packages/sdk/fixtures/values.environment.json'), 'utf8'));
+    const body = JSON.parse(await readFile(join(root, captureRows
+      ? 'adapters/host-node/fixtures/query-amount-environment.json'
+      : 'packages/sdk/fixtures/values.environment.json'), 'utf8'));
     const environment = moon.clientProgramCheckEnvironment(canonicalText(body),
       body.evidence_bundle_cid, false, false, true, false, false, false, false);
     assert.ok(environment);
     const prepare = installNodeClientProgramPreparation({moon, environment});
     const prepared = prepare({kind: 'aql',
-      input: {text: document, format: 'json'}, parameters: null});
-    const contracts = await pinnedEngineContracts(root);
+      input: {text: document, format: 'json'},
+      parameters: captureRows ? {minimum: 0} : null});
+    const contracts = await pinnedEngineContracts(root, ['registered_body',
+      'registered_values', 'registered_fragment', 'registered_ordered']);
     const [registry, values, fragment] = contracts;
+    if (captureRows) captured = await openCapturedRetained(prepared,
+      contracts, directory, captureRows, budgets);
     // Boundary injection uses the same checked owner, installed provider and
     // retained driver. Ordinary success/fault cases use the product factory.
-    const setup = budgets
+    const setup = captured?.setup ?? (budgets
       ? fixture.strategyFixtureSourceFreeRetainedSubset(prepared,
         registry, values, fragment, budgets.work, budgets.workspace)
       : moon.clientProgramOpenSourceFreeLocalRetainedHost(
-        prepared, registry, values, 1n, 0n, 0n, 0n, fragment, undefined);
-    assert.ok(setup, 'the product source-free factory must admit this chain');
-    // The source-free root is one physical task with three checked steps,
-    // not a test-only acquisition task or an artificially split chain.
-    assert.equal(fixture.strategyFixtureConfiguredTaskStepCount(setup, 0), 3);
-    assert.equal(fixture.strategyFixtureConfiguredTaskStepCount(setup, 1), 1);
-    assert.equal(fixture.strategyFixtureConfiguredTaskStepCount(setup, 2), 1);
-    assert.equal(fixture.strategyFixtureConfiguredTaskStepCount(setup, 3), undefined);
+        prepared, registry, values, 1n, 0n, 0n, 0n, fragment, undefined));
+    assert.ok(setup, 'the checked retained factory must admit this chain');
+    // The declared producer remains one physical task, not a fixture split.
+    const first = captured ? 1 : 0;
+    assert.equal(fixture.strategyFixtureConfiguredTaskStepCount(setup, first),
+      JSON.parse(document).stages[first].steps.length);
+    assert.equal(fixture.strategyFixtureConfiguredTaskStepCount(setup, first + 1), 1);
+    assert.equal(fixture.strategyFixtureConfiguredTaskStepCount(setup, first + 2), 1);
+    assert.equal(fixture.strategyFixtureConfiguredTaskStepCount(setup, first + 3), undefined);
     const observedMoon = new Proxy(moon, {
       get(target, property, receiver) {
         if (property !== 'strategyModule_local_Dispatch' &&
@@ -99,9 +196,9 @@ async function retainedRun(document, use, mode = 'success', budgets) {
                 const result = operation.advance(Math.min(quantum, 1));
                 if (dispatch === 1 && result.$tag === 1) {
                   producerWork += result._0.work;
-                  // Three scalar Values rows take eleven polls, followed by
-                  // one handoff. Work thirteen is inside the filter child.
-                  if (mode === 'cancel-after-filter' && !scheduled &&
+                  // For Values, eleven polls and one handoff precede Filter.
+                  // Captured mode proves positive Compute progress only.
+                  if (['cancel-after-filter', 'cancel-after-progress'].includes(mode) && !scheduled &&
                       producerWork >= 13n && !result._0.complete) {
                     scheduled = true;
                     setTimeout(() => cancellation.abort(), 0);
@@ -116,9 +213,18 @@ async function retainedRun(document, use, mode = 'success', budgets) {
     });
     const host = createNodeHostEntry(() => observedMoon, installStrategyContributions);
     const runtime = runtimeCore(observedMoon);
-    const plan = sourceFreeTaskPlan({moon, control: runtime.publicationControl,
+    const options = {moon, control: runtime.publicationControl,
       preparedProgram: prepared, authorityScopeCid: cid('a'), namespaceId: 'local',
-      storeAuthorityCid: cid('c'), now: () => '2026-09-30T00:00:00.000Z'});
+      storeAuthorityCid: cid('c'), now: () => captured
+        ? new Date().toISOString() : '2026-09-30T00:00:00.000Z'};
+    const plan = captured ? acquiredTaskPublicationPlan({...options,
+      acquired: acquiredTaskRunAdmission(options), captured,
+      sourceEvidenceWire: await captured.issueSourceEvidence({
+        authorityScopeCid: options.authorityScopeCid,
+        effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid}),
+      effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid,
+      captureStartedAt: captured.captureStartedAt,
+      captureCompletedAt: captured.captureCompletedAt}) : sourceFreeTaskPlan(options);
     retained = await createLocalRetainedStore({parentDirectory: directory,
       capacityBytes: 8 * 1024 * 1024, maxFrameBytes: 1024 * 1024});
     publication = await openLocalPublicationStore({
@@ -166,7 +272,7 @@ async function retainedRun(document, use, mode = 'success', budgets) {
         },
       });
     });
-    await use({setup, plan, retained, publication, leases,
+    await use({setup, plan, retained, publication, leases, captured,
       observations: () => ({dispatches, producerWork, sawStop, scheduled,
         appendsFailed, finalizationsFailed}),
       permitCleanup() { permitCleanup = true; },
@@ -206,11 +312,23 @@ async function retainedRun(document, use, mode = 'success', budgets) {
         assert.equal(retained.status().holdings, 0);
         assert.equal(retained.status().reservedReadBufferBytes, 0);
       }
+      if (captured) {
+        assert.equal(nativeSourceIdentityMatches(captured.capture,
+          captured.identity), true, 'Compute cleanup must not retire the acquisition');
+      }
     } finally {
-      await retained?.close();
-      await retained?.cleanup();
-      await publication?.close();
-      await rm(directory, {recursive: true, force: true});
+      try {
+        await retained?.close();
+        await retained?.cleanup();
+        await publication?.close();
+      } finally {
+        try {
+          captured?.capture.close();
+          await captured?.capture.cleanupHandle?.retry();
+        } finally {
+          await rm(directory, {recursive: true, force: true});
+        }
+      }
     }
   }
 }
@@ -348,4 +466,135 @@ for (const {name, rows, expected} of [
         assert.deepEqual(JSON.parse(Buffer.concat(chunks).toString('utf8')), expected);
       }
     }));
+}
+
+for (const {name, rows, expected} of [
+  {name: 'ordered acquired chain',
+    rows: [{id: 3}, {id: 1}, {id: 2}], expected: [{id: 2}, {id: 3}]},
+  {name: 'empty acquired chain', rows: [], expected: []},
+  {name: 'empty acquired filtered output', rows: [{id: 1}], expected: []},
+]) {
+  test(`product captured retained Host publishes ${name} and two consumers`,
+    async () => retainedRun(capturedProgram(),
+      async ({run, plan, publication, leases, captured}) => {
+        const owner = await run();
+        assert.equal(owner.status, 'published');
+        assert.deepEqual(owner.execution.completed.map(value => value.task), [1, 2, 3]);
+        assert.ok(owner.execution.completed.every(value =>
+          value.realization === 'local' && value.outputRepresentation === 'retained-file'));
+        assert.equal(leases.length, 3);
+        assert.equal(nativeSourceIdentityMatches(captured.capture, captured.identity), true);
+        const inventory = owner.execution.publicationInventory.occurrences;
+        assert.deepEqual(inventory.map(value => value.name).sort(), [...resultNames].sort());
+        for (const name of resultNames) {
+          const occurrence = inventory.find(value => value.name === name);
+          const chunks = [];
+          const result = await publication.consumeCommittedResult({
+            namespaceId: plan.request.namespaceId,
+            authorityScopeCid: plan.request.authorityScopeCid,
+            runDefinitionCid: plan.runDefinition.identity,
+          }, occurrence.definitionContract.identity, () => true,
+          chunk => chunks.push(Buffer.from(chunk)));
+          assert.equal(result.rowCount, expected.length);
+          assert.deepEqual(JSON.parse(Buffer.concat(chunks).toString('utf8')), expected);
+        }
+      }, 'success', undefined, rows));
+}
+
+// The same three-row Filter (31), Select (19), and one handoff (1) require
+// 51 work units and nine peak workspace entries. No Values child runs here.
+for (const {name, work, workspace, failure} of [
+  {name: 'exact captured scalar budgets', work: 51, workspace: 9},
+  {name: 'one-short captured scalar work', work: 50, workspace: 9, failure: 'work'},
+  {name: 'one-short captured scalar workspace', work: 51, workspace: 8,
+    failure: 'workspace'},
+]) {
+  test(`product captured retained Host honors ${name}`, async () => retainedRun(
+    capturedProgram('true', false),
+    async ({run, plan, publication, captured, observations}) => {
+      if (!failure) {
+        const owner = await run();
+        assert.equal(owner.status, 'published');
+        assert.equal(observations().producerWork, 51n);
+        const inventory = owner.execution.publicationInventory.occurrences;
+        assert.deepEqual(inventory.map(value => value.name).sort(), [...resultNames].sort());
+        for (const name of resultNames) {
+          const occurrence = inventory.find(value => value.name === name);
+          const chunks = [];
+          await publication.consumeCommittedResult({
+            namespaceId: plan.request.namespaceId,
+            authorityScopeCid: plan.request.authorityScopeCid,
+            runDefinitionCid: plan.runDefinition.identity,
+          }, occurrence.definitionContract.identity, () => true,
+          chunk => chunks.push(Buffer.from(chunk)));
+          assert.deepEqual(JSON.parse(Buffer.concat(chunks).toString('utf8')),
+            [{id: 1}, {id: 2}, {id: 3}]);
+        }
+      } else {
+        let execution;
+        await assert.rejects(run(), error => {
+          assert.equal(error.code, 'CapturedRunPublicationFailed');
+          execution = error.execution;
+          return true;
+        });
+        assert.deepEqual(execution.completed, []);
+        assert.equal(execution.failure.code, 'MoonBitHostFailure');
+        assert.equal(failure === 'work'
+          ? fixture.strategyFixtureRetainedInputLimit(execution.failure.cause)
+          : fixture.strategyFixtureRetainedRowLimit(execution.failure.cause), true);
+        assert.equal(observations().dispatches, 1);
+        await assert.rejects(publication.lookupCommittedIndex({
+          namespaceId: plan.request.namespaceId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, () => true), /PublicationLookupDenied/);
+      }
+      assert.equal(nativeSourceIdentityMatches(captured.capture, captured.identity), true);
+    }, failure ?? 'success', {work, workspace}, [{id: 1}, {id: 2}, {id: 3}]));
+}
+
+for (const {name, mode} of [
+  {name: 'captured progress cancellation', mode: 'cancel-after-progress'},
+  {name: 'captured filter arithmetic', mode: 'arithmetic'},
+  {name: 'captured append failure', mode: 'append-failure'},
+  {name: 'captured finalize cleanup retry', mode: 'finalize-failure'},
+]) {
+  test(`product captured retained Host keeps source and cleanup after ${name}`,
+    async () => retainedRun(capturedProgram(mode === 'arithmetic'
+      ? '1 / (id - id) > 0' : 'id >= 2'),
+    async ({run, plan, publication, captured, observations, permitCleanup}) => {
+      let execution;
+      await assert.rejects(run(), error => {
+        assert.equal(error.code, 'CapturedRunPublicationFailed');
+        execution = error.execution;
+        return true;
+      });
+      assert.deepEqual(execution.completed, []);
+      assert.equal(observations().dispatches, 1);
+      assert.equal(nativeSourceIdentityMatches(captured.capture, captured.identity), true);
+      await assert.rejects(publication.lookupCommittedIndex({
+        namespaceId: plan.request.namespaceId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, () => true), /PublicationLookupDenied/);
+      if (mode === 'cancel-after-progress') {
+        assert.equal(execution.failure.name, 'AbortError');
+        assert.equal(observations().scheduled, true);
+        assert.equal(observations().sawStop, true);
+      } else if (mode === 'arithmetic') {
+        assert.equal(execution.failure.code, 'MoonBitHostFailure');
+        assert.equal(fixture.strategyFixtureRetainedCapturedFilterArithmetic(
+          execution.failure.cause), true);
+      } else if (mode === 'append-failure') {
+        assert.equal(observations().appendsFailed, 1);
+      } else {
+        assert.equal(observations().finalizationsFailed, 1);
+        assert.equal(execution.cleanupPending(), true);
+        assert.equal(await execution.cleanup(), false);
+        assert.ok(execution.usage().heldBytes > 0n ||
+          execution.usage().reservedExecutionBytes > 0n);
+        assert.equal(observations().dispatches, 1);
+        permitCleanup();
+      }
+    }, mode, undefined, [{id: 3}, {id: 1}, {id: 2}]));
 }

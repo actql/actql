@@ -103,6 +103,32 @@ test('retained source-free Values requires exact admission and Host evidence', (
   }), /missing environment fixture absent-values-fixture/u);
 });
 
+test('captured retained Host requires acquisition binding and executable fault evidence', () => {
+  const filter = routes => routes.routes.find(route =>
+    route.family === 'RelA' && route.operation === 'filter');
+  assert.match(run(undefined, routes => {
+    const route = filter(routes);
+    route.boundary_tests = route.boundary_tests.filter(item =>
+      item.role !== 'retained_captured_factory_binding');
+  }), /reviewed retained_captured_factory_binding fixture is missing/u);
+  for (const role of [
+    'retained_captured_named_results', 'retained_captured_empty_input',
+    'retained_captured_empty_output', 'retained_captured_host_exact_budgets',
+    'retained_captured_host_work_short', 'retained_captured_host_workspace_short',
+    'retained_captured_progress_timer_cleanup', 'retained_captured_filter_arithmetic',
+    'retained_captured_append_cleanup', 'retained_captured_finalize_cleanup_retry',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = filter(routes);
+      route.environment_tests = route.environment_tests.filter(item => item.role !== role);
+    }), new RegExp(`${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    filter(routes).environment_tests.find(item =>
+      item.role === 'retained_captured_named_results').fixture = 'missing-captured-case';
+  }), /missing environment fixture missing-captured-case/u);
+});
+
 test('Events as-of view requires its own limits, delivered stop and cleanup proof', () => {
   const asof = routes => routes.routes.find(entry =>
     entry.family === 'TEA' && entry.operation === 'asof_join');

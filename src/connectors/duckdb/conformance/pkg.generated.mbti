@@ -271,6 +271,8 @@ pub fn strategy_fixture_attach(StrategyFixture, @physical_strategy.CapturedDAG) 
 
 pub fn strategy_fixture_can_bind(StrategyFixture, Int) -> Bool
 
+pub fn strategy_fixture_captured_retained_subset(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, String, Int, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
 pub fn strategy_fixture_cid(StrategyFixture, Int) -> String
 
 pub fn strategy_fixture_close_output(StrategyFixture, Int) -> Unit
@@ -356,6 +358,8 @@ pub fn strategy_fixture_replan(StrategyFixture, Int64) -> Bool
 pub fn strategy_fixture_resident_cleanup_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_resident_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
+pub fn strategy_fixture_retained_captured_filter_arithmetic(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
 
 pub fn strategy_fixture_retained_chain_filter_arithmetic(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
 

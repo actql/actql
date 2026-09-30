@@ -174,6 +174,13 @@
           "fixture": "ordinary Local filters resume within quantum"
         },
         {
+          "role": "retained_captured_factory_binding",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_retained_captured_host_wbtest.mbt",
+          "fixture": "product captured retained factory preserves exact acquisition and bounded offers"
+        },
+        {
           "role": "filter_mixed_stage_lifetime",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -251,6 +258,76 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "ordinary-filter-in-flight"
+        },
+        {
+          "role": "retained_captured_named_results",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "ordered acquired chain"
+        },
+        {
+          "role": "retained_captured_empty_input",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "empty acquired chain"
+        },
+        {
+          "role": "retained_captured_empty_output",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "empty acquired filtered output"
+        },
+        {
+          "role": "retained_captured_host_exact_budgets",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "exact captured scalar budgets"
+        },
+        {
+          "role": "retained_captured_host_work_short",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "one-short captured scalar work"
+        },
+        {
+          "role": "retained_captured_host_workspace_short",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "one-short captured scalar workspace"
+        },
+        {
+          "role": "retained_captured_progress_timer_cleanup",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "captured progress cancellation"
+        },
+        {
+          "role": "retained_captured_filter_arithmetic",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "captured filter arithmetic"
+        },
+        {
+          "role": "retained_captured_append_cleanup",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "captured append failure"
+        },
+        {
+          "role": "retained_captured_finalize_cleanup_retry",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "captured finalize cleanup retry"
         }
       ],
       "path_assurance": {
