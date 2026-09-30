@@ -109,6 +109,40 @@ pub fn open_captured_local_host(
 }
 
 ///|
+/// Keep a verified acquisition bound to the checked retained Compute Host.
+/// The acquisition owner must outlive every consumer of its captured source.
+pub fn open_captured_local_retained_host(
+  prepared : @publication_host.PreparedClientProgram,
+  source : @query.CapturedInputSource,
+  registry_body : String,
+  values_body : String,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+  provider_factory? : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ] = _ => [],
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  open_checked_local_host(
+    prepared,
+    Some(source),
+    registry_body,
+    values_body,
+    fixed_ms,
+    per_row_ms,
+    per_wire_byte_ms,
+    per_pair_ms,
+    fragment_body~,
+    ordered_body~,
+    provider_factory~,
+    retained_output=true,
+  )
+}
+
+///|
 fn open_checked_local_host(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource?,
