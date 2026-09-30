@@ -7,14 +7,17 @@ import {pathToFileURL} from 'node:url';
 // Diagnostic application using installed packages. No test compiler, provider,
 // or manufactured checker evidence participates in submission.
 const installation = process.argv[2];
-if (!installation) throw new Error('Usage: node scripts/reproduce-sga-baseline.mjs <packed-installation> [--inherited-order | --graphs-equal]');
+if (!installation) throw new Error('Usage: node scripts/reproduce-sga-baseline.mjs <packed-installation> [--inherited-order | --graphs-equal | --diff-apply]');
 const requireInstalled = createRequire(join(resolve(installation), 'package.json'));
 const {connect} = await import(pathToFileURL(requireInstalled.resolve('@actql/node')));
 const fixture = new URL('../spec/frontend/fixtures/sga-surface/', import.meta.url);
 const equal = process.argv.includes('--graphs-equal');
 const inherited = process.argv.includes('--inherited-order');
-if (equal && inherited) throw new Error('Select one SGA probe');
-const name = equal ? 'graphs-equal' : 'reach-subgraph';
+const diff = process.argv.includes('--diff-apply');
+if (Number(equal) + Number(inherited) + Number(diff) > 1) {
+  throw new Error('Select one SGA probe');
+}
+const name = equal ? 'graphs-equal' : diff ? 'diff-apply' : 'reach-subgraph';
 let document = await readFile(new URL(`${name}.expected-program.json`, fixture), 'utf8');
 const expected = JSON.parse(await readFile(new URL(
   `${name}.expected-results.json`, fixture), 'utf8'));
@@ -27,8 +30,7 @@ const client = await connect({mode: 'local', owner: 'local', durability: 'durabl
 let observedState;
 try {
   const run = await client.aql(document, {format: 'json',
-    requestId: 'sga-baseline-' + (equal ? 'graphs-equal'
-      : inherited ? 'inherited' : 'explicit')});
+    requestId: 'sga-baseline-' + (inherited ? 'inherited' : name)});
   observedState = await run.wait();
   assert.equal(observedState.status, 'succeeded',
     JSON.stringify(observedState));
