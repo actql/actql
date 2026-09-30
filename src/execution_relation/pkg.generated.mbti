@@ -806,6 +806,8 @@ pub fn prepare_retained_content_read(CompletionPreparation, RetainedCompletionDe
 
 pub fn prepare_retained_producer_scan(ProducerRead, Int, ValueLimits, RowWireLimits, Int) -> Result[RetainedProducerScan, CompletedImportIssue]
 
+pub fn prepare_retained_relation_identity_scan(ProducerStorage, Int, ValueLimits, RowWireLimits, RowWireLimits, Int) -> Result[RetainedStorageScan, CompletedImportIssue]
+
 pub fn prepare_retained_storage_scan(ProducerStorage, Int, ValueLimits, RowWireLimits, Int) -> Result[RetainedStorageScan, CompletedImportIssue]
 
 pub fn prepare_reused_managed_output_values(ManagedProducerMeasurement, ValueLimits) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
@@ -1049,6 +1051,8 @@ pub fn validate_fixed_join_inputs(@lowering_relation.BoundPrepared, @lowering_re
 pub fn verified_producer_scan_matches(VerifiedProducerScan, ProducerRead) -> Bool
 
 pub fn verified_storage_scan_matches(VerifiedStorageScan, ProducerStorage) -> Bool
+
+pub fn verified_storage_scan_relation_identity(VerifiedStorageScan) -> LogicalRelationIdentity?
 
 // Errors
 
