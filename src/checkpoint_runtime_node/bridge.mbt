@@ -245,6 +245,7 @@ fn authentication(text : String) -> @checkpoint.HostAuthentication? {
     (
       text_member(value, "key_id"),
       text_member(value, "reviewer_id"),
+      text_member(value, "expected_authority_scope_cid"),
       text_member(value, "authority_context_cid"),
       text_member(value, "policy_cid"),
       text_member(value, "proof_preimage"),
@@ -252,6 +253,7 @@ fn authentication(text : String) -> @checkpoint.HostAuthentication? {
     (
       Some(key_id),
       Some(reviewer_id),
+      Some(expected_authority_scope_cid),
       Some(authority_context_cid),
       Some(policy_cid),
       Some(proof_preimage),
@@ -259,6 +261,7 @@ fn authentication(text : String) -> @checkpoint.HostAuthentication? {
       Some({
         key_id,
         reviewer_id,
+        expected_authority_scope_cid,
         authority_context_cid,
         policy_cid,
         proof_preimage,

@@ -188,7 +188,8 @@ async function workspace(t) {
   const opened = [];
   const open = (faults = {}) => {
     const journal = openSqliteCheckpointJournal(root, {
-      runtime, authorizeResolution, attestResolution,
+      runtime, expectedAuthorityScopeCid: cid('5'),
+      authorizeResolution, attestResolution,
       now: () => clock.ms, faults,
     });
     opened.push(journal);
@@ -555,6 +556,31 @@ test('invalid or unauthorized Resolutions change nothing', async t => {
     body: effectBody({runId: 'run-9'}), priorStatus: 'resuming',
     declaredResults: ['tickets'], authorities, binding,
   }), {code: 'RunTransitionRejected'});
+});
+
+test('journal passes its trusted scope to common Effect admission', async t => {
+  const {open} = await workspace(t);
+  const journal = open();
+  const waiting = persist(journal);
+  const checkpoint = stored(journal);
+  const answer = resolve(checkpoint, 'approved');
+  const evidence = JSON.parse(answer.approvalEvidenceWire);
+  evidence.compatibility_approval.authority_scope_cid = cid('8');
+  evidence.compatibility_approval.attestation_cid = cidOf(
+    Object.fromEntries(Object.entries(evidence.compatibility_approval)
+      .filter(([key]) => key !== 'attestation_cid')));
+  const resolution = JSON.parse(answer.resolutionWire);
+  delete resolution.proof;
+  delete resolution.resolution_cid;
+  resolution.approval_evidence_cid = cidOf(evidence);
+  signResolution(resolution, 'alice');
+  await assert.rejects(journal.submitResolution({
+    checkpointCid: waiting.checkpointCid,
+    resolutionWire: JSON.stringify(resolution),
+    approvalEvidenceWire: JSON.stringify(evidence),
+  }), {code: 'InvalidResolution',
+    cause: 'EvidenceMismatch("authority_scope_cid")'});
+  assert.equal(journal.resolutionOf(waiting.checkpointCid), undefined);
 });
 
 test('changed binding fails the resumed Run before dispatch', async t => {
@@ -1532,7 +1558,7 @@ test('the commit decision rereads trusted time after slow authentication',
     t.after(() => { for (const journal of opened) journal.close(); });
     const slow = ({authorizeMs = 0, attestMs = 0}) => {
       const journal = openSqliteCheckpointJournal(root, {
-        runtime,
+        runtime, expectedAuthorityScopeCid: cid('5'),
         now: () => clock.ms,
         async authorizeResolution(request) {
           await new Promise(resolve => setImmediate(resolve));

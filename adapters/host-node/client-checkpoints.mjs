@@ -190,6 +190,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
 
   const journal = openSqliteCheckpointJournal(join(state, 'journal'), {
     runtime: await loadCheckpointRuntime(),
+    expectedAuthorityScopeCid: authorityScopeCid,
     now,
     // Host authorization port: Host-trusted reviewer keys only; the
     // Resolution and its run-scope approval must be signed by the same key.

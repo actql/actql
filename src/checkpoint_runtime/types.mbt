@@ -111,6 +111,7 @@ pub(all) enum ResolutionDecision {
 pub(all) struct HostAuthentication {
   key_id : String
   reviewer_id : String
+  expected_authority_scope_cid : String
   authority_context_cid : String
   policy_cid : String
   proof_preimage : String
