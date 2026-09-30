@@ -44,6 +44,58 @@ fn segmentable_relation_source(graph : CheckedDAG, start : Int) -> Bool {
 }
 
 ///|
+/// Keep a Relation family child and its linear bounded suffix under one owner.
+/// This is a shape decision, not provider registration or execution authority.
+fn bounded_family_relation_chain(graph : CheckedDAG, stage : Int) -> Bool {
+  let prepared = @lower.bound_preparation(graph.owners[stage])
+  let count = @pipeline.step_count(@lower.pipeline(prepared))
+  guard count > 1 && @lower.node_at(prepared, 0) is Some(first) else {
+    return false
+  }
+  match @lower.payload(first) {
+    @lower.NestRows(_)
+    | @lower.TimeSeriesValue(_)
+    | @lower.IntervalJoinRows(_)
+    | @lower.AsOfJoinRows(_)
+    | @lower.SequenceRows(_) => ()
+    _ => return false
+  }
+  for step in 0..<count {
+    guard @lower.node_at(prepared, step) is Some(node) &&
+      @carrier.kind(@lower.node_output_carrier(node)) == @carrier.RelationKind else {
+      return false
+    }
+    if step > 0 &&
+      (
+        !@lower.node_supports_selected_managed_execution(node) ||
+        @lower.node_input_count(node) != 1 ||
+        @lower.node_input_target(node, 0) != Some(@pipeline.Step(step - 1))
+      ) {
+      return false
+    }
+    for port in 0..<@lower.node_input_count(node) {
+      guard @lower.node_accepts_managed_relation_view(node, port) &&
+        @lower.node_input_target(node, port) is Some(target) &&
+        @lower.preparation_carrier_at(prepared, target) is Some(input) &&
+        @carrier.kind(input) == @carrier.RelationKind else {
+        return false
+      }
+    }
+  }
+  // Intermediate Result roots need independently owned task outputs.
+  for result in graph.results {
+    if result.task == stage &&
+      @ports.port_target(
+        @execution.managed_result_occurrence_port(result.occurrence),
+      ) !=
+      @pipeline.Step(count - 1) {
+      return false
+    }
+  }
+  true
+}
+
+///|
 /// Split a mixed sequence at checked managed read boundaries. A prefix without
 /// standalone providers remains one fused task through its Relation bridge;
 /// later row operations use their own selected tasks.
@@ -113,6 +165,11 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     }
   }
   if count < 2 {
+    return None
+  }
+  // The registered family child and bounded row suffix share one chain owner.
+  // Carrier-valued inputs and intermediate Result roots still use segmentation.
+  if bounded_family_relation_chain(graph, stage) {
     return None
   }
   let mut found_carrier = false

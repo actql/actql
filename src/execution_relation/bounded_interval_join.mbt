@@ -483,22 +483,25 @@ pub fn start_bounded_interval_join(
   }
   let sequence = generated.sequence
   let owner = @lower.sequence_owner(sequence)
-  guard @lower.sequence_count(sequence) == 1 &&
-    @lower.sequence_step(sequence, 0) is Some(@lower.IntervalJoinStep(kernel)) &&
-    producer_read_matches_operation_input(left, owner, 0, 0) &&
-    producer_read_matches_operation_input(right, owner, 0, 1) &&
+  guard generated_sequence_step_count(generated) == 1 &&
+    generated_sequence_step_index_at(generated, 0) is Some(step) &&
+    generated_sequence_step_at(generated, 0)
+    is Some(@lower.IntervalJoinStep(kernel)) &&
+    producer_read_matches_operation_input(left, owner, step, 0) &&
+    producer_read_matches_operation_input(right, owner, step, 1) &&
     producer_read_has_cell_access(left) &&
     producer_read_has_cell_access(right) &&
     producer_read_row_count(left) <= max_rows &&
     producer_read_row_count(right) <= max_rows &&
     @lower.preparation_schema_at(
       @lower.bound_preparation(owner),
-      @pipeline.Step(0),
+      @pipeline.Step(step),
     )
     is Some(output_schema) else {
     return Err(InvalidExecution)
   }
-  let search_ceiling = match generated_interval_search_ceiling(generated, 0) {
+  let search_ceiling = match
+    generated_interval_search_ceiling(generated, step) {
     Some(value) if value >= 0L => value
     _ => return Err(InvalidExecution)
   }
@@ -534,7 +537,7 @@ pub fn start_bounded_interval_join(
     }
     output_ceiling = value.to_int()
   }
-  if generated_join_output_ceiling(generated, 0) is Some(value) &&
+  if generated_join_output_ceiling(generated, step) is Some(value) &&
     value < output_ceiling.to_int64() {
     if value < 0L {
       return Err(InvalidExecution)
@@ -624,7 +627,7 @@ pub fn start_bounded_interval_join(
     return Err(Rows(RowLimit))
   }
   let output = match
-    prepare_admitted_output(owner, @pipeline.Step(0), output_ceiling, values) {
+    prepare_admitted_output(owner, @pipeline.Step(step), output_ceiling, values) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
@@ -634,7 +637,7 @@ pub fn start_bounded_interval_join(
   let port = match
     prepare_trusted_output_port(
       generated_completion_preparation(generated),
-      @pipeline.Step(0),
+      @pipeline.Step(step),
       max_entries,
       max_name_bytes,
       fn(_) { if live.val { rows.val } else { None } },
