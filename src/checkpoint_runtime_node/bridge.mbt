@@ -1,6 +1,7 @@
 ///|
 /// Every export returns one JSON text: `{"ok":true,...}` or
-/// `{"ok":false,"issue":"..."}`. The adapter never decides semantics.
+/// `{"ok":false,"issue":"stable-code","detail":"diagnostic"}`.
+/// The adapter never decides semantics.
 fn limits() -> @checkpoint.WireLimits {
   { max_wire_bytes: 1048576, max_nodes: 65536, max_depth: 64, }
 }
@@ -14,6 +15,110 @@ fn ok(fields : Map[String, Json]) -> String {
 ///|
 fn fail(issue : String) -> String {
   Json::object({ "ok": Json::boolean(false), "issue": Json::string(issue) }).stringify()
+}
+
+///|
+fn fail_detail(issue : String, detail : String) -> String {
+  Json::object({
+    "ok": Json::boolean(false),
+    "issue": Json::string(issue),
+    "detail": Json::string(detail),
+  }).stringify()
+}
+
+///|
+priv struct BridgeFailure {
+  code : String
+  detail : String
+}
+
+///|
+fn bridge_failure(code : String, detail : String) -> BridgeFailure {
+  { code, detail, }
+}
+
+///|
+fn checkpoint_issue_code(issue : @checkpoint.CheckpointIssue) -> String {
+  match issue {
+    InvalidLimits => "InvalidLimits"
+    InvalidWire => "InvalidWire"
+    InvalidObject => "InvalidObject"
+    MissingField(_) => "MissingField"
+    UnknownField(_) => "UnknownField"
+    InvalidField(_) => "InvalidField"
+    UnsupportedCombination => "UnsupportedCombination"
+    InvalidRequirements => "InvalidRequirements"
+    InvalidTimeWindow => "InvalidTimeWindow"
+    IdentityMismatch => "IdentityMismatch"
+    PersistedWireMismatch => "PersistedWireMismatch"
+    Encoding => "Encoding"
+  }
+}
+
+///|
+fn resolution_issue_code(issue : @checkpoint.ResolutionIssue) -> String {
+  match issue {
+    ResolutionInvalidLimits => "ResolutionInvalidLimits"
+    ResolutionInvalidWire => "ResolutionInvalidWire"
+    ResolutionInvalidObject => "ResolutionInvalidObject"
+    ResolutionMissingField(_) => "ResolutionMissingField"
+    ResolutionUnknownField(_) => "ResolutionUnknownField"
+    ResolutionInvalidField(_) => "ResolutionInvalidField"
+    ResolutionIdentityMismatch => "ResolutionIdentityMismatch"
+    CheckpointBindingMismatch(_) => "CheckpointBindingMismatch"
+    DecisionOutsideWindow => "DecisionOutsideWindow"
+    DecisionAfterVerification => "DecisionAfterVerification"
+    EvidenceRequired => "EvidenceRequired"
+    EvidenceForbidden => "EvidenceForbidden"
+    EvidenceMismatch(_) => "EvidenceMismatch"
+    AuthenticationMismatch(_) => "AuthenticationMismatch"
+    AuthorityNotPermitted => "AuthorityNotPermitted"
+    InvalidAttestation => "InvalidAttestation"
+    ResolutionEncoding => "ResolutionEncoding"
+  }
+}
+
+///|
+fn resume_issue_code(issue : @checkpoint.ResumeIssue) -> String {
+  match issue {
+    InvalidClaimant => "InvalidClaimant"
+    InvalidLease => "InvalidLease"
+    InvalidClock => "InvalidClock"
+    InvalidBinding => "InvalidBinding"
+    InvalidIntent => "InvalidIntent"
+  }
+}
+
+///|
+fn run_state_issue_code(issue : @checkpoint.RunStateWireIssue) -> String {
+  match issue {
+    RunStateInvalidWire => "RunStateInvalidWire"
+    RunStateInvalidField(_) => "RunStateInvalidField"
+    RunStateUnknownField(_) => "RunStateUnknownField"
+    RunStateMissingField(_) => "RunStateMissingField"
+    RunStateRelation(_) => "RunStateRelation"
+    RunStateEncoding => "RunStateEncoding"
+  }
+}
+
+///|
+fn fail_checkpoint(issue : @checkpoint.CheckpointIssue) -> String {
+  fail_detail(checkpoint_issue_code(issue), @debug.to_string(issue))
+}
+
+///|
+fn fail_resolution(issue : @checkpoint.ResolutionIssue) -> String {
+  fail_detail(resolution_issue_code(issue), @debug.to_string(issue))
+}
+
+///|
+fn fail_resume(issue : @checkpoint.ResumeIssue) -> String {
+  fail_detail(resume_issue_code(issue), @debug.to_string(issue))
+}
+
+///|
+fn fail_run_state(issue : @checkpoint.RunStateWireIssue) -> String {
+  fail_detail(run_state_issue_code(issue), @debug.to_string(issue))
 }
 
 ///|
@@ -111,7 +216,7 @@ fn checkpoint_fields(
 pub fn checkpoint_seal_body(body_wire : String) -> String {
   match @checkpoint.seal_checkpoint_body(body_wire, limits()) {
     Ok(checkpoint) => ok(checkpoint_fields(checkpoint))
-    Err(issue) => fail(@debug.to_string(issue))
+    Err(issue) => fail_checkpoint(issue)
   }
 }
 
@@ -120,7 +225,7 @@ pub fn checkpoint_seal_body(body_wire : String) -> String {
 pub fn checkpoint_admit(wire : String) -> String {
   match @checkpoint.admit_checkpoint_wire(wire, limits()) {
     Ok(checkpoint) => ok(checkpoint_fields(checkpoint))
-    Err(issue) => fail(@debug.to_string(issue))
+    Err(issue) => fail_checkpoint(issue)
   }
 }
 
@@ -136,12 +241,12 @@ pub fn checkpoint_waiting_state(
   let checkpoint = match
     @checkpoint.admit_checkpoint_wire(sealed_wire, limits()) {
     Ok(value) => value
-    Err(issue) => return fail(@debug.to_string(issue))
+    Err(issue) => return fail_checkpoint(issue)
   }
   let persisted = match
     @checkpoint.confirm_checkpoint_persisted(checkpoint, stored_wire) {
     Ok(value) => value
-    Err(issue) => return fail(@debug.to_string(issue))
+    Err(issue) => return fail_checkpoint(issue)
   }
   let declared = match text_list(declared_results_json) {
     Some(values) => values
@@ -155,7 +260,7 @@ pub fn checkpoint_waiting_state(
       limits(),
     ) {
     Ok(wire) => ok({ "run_state_wire": Json::string(wire) })
-    Err(issue) => fail(@debug.to_string(issue))
+    Err(issue) => fail_run_state(issue)
   }
 }
 
@@ -184,7 +289,7 @@ pub fn checkpoint_lifecycle_state(
       limits(),
     ) {
     Ok(wire) => ok({ "run_state_wire": Json::string(wire) })
-    Err(issue) => fail(@debug.to_string(issue))
+    Err(issue) => fail_run_state(issue)
   }
 }
 
@@ -199,7 +304,7 @@ pub fn run_state_admit(wire : String) -> String {
         "checkpoint_cid": optional_text(view.checkpoint_cid),
         "run_state_wire": Json::string(view.wire),
       })
-    Err(issue) => fail(@debug.to_string(issue))
+    Err(issue) => fail_run_state(issue)
   }
 }
 
@@ -227,11 +332,11 @@ pub fn checkpoint_expired_at(checkpoint_wire : String, now : String) -> String {
   let checkpoint = match
     @checkpoint.admit_checkpoint_wire(checkpoint_wire, limits()) {
     Ok(value) => value
-    Err(issue) => return fail(@debug.to_string(issue))
+    Err(issue) => return fail_checkpoint(issue)
   }
   match @checkpoint.checkpoint_expired_at(checkpoint, now) {
     Ok(expired) => ok({ "expired": Json::boolean(expired) })
-    Err(issue) => fail(@debug.to_string(issue))
+    Err(issue) => fail_checkpoint(issue)
   }
 }
 
@@ -295,20 +400,27 @@ fn admit_resolution(
   verified_at : String,
 ) -> Result[
   (@checkpoint.SealedCheckpoint, @checkpoint.AdmittedResolution),
-  String,
+  BridgeFailure,
 ] {
   let checkpoint = match
     @checkpoint.admit_checkpoint_wire(checkpoint_wire, limits()) {
     Ok(value) => value
-    Err(issue) => return Err(@debug.to_string(issue))
+    Err(issue) =>
+      return Err(
+        bridge_failure(checkpoint_issue_code(issue), @debug.to_string(issue)),
+      )
   }
   let auth = match authentication(authentication_json) {
     Some(value) => value
-    None => return Err("InvalidAuthentication")
+    None =>
+      return Err(
+        bridge_failure("InvalidAuthentication", "InvalidAuthentication"),
+      )
   }
   let allowed = match authorities(authorities_json) {
     Some(value) => value
-    None => return Err("InvalidAuthorities")
+    None =>
+      return Err(bridge_failure("InvalidAuthorities", "InvalidAuthorities"))
   }
   let evidence = if evidence_wire == "" { None } else { Some(evidence_wire) }
   match
@@ -322,7 +434,8 @@ fn admit_resolution(
       limits(),
     ) {
     Ok(admitted) => Ok((checkpoint, admitted))
-    Err(issue) => Err(@debug.to_string(issue))
+    Err(issue) =>
+      Err(bridge_failure(resolution_issue_code(issue), @debug.to_string(issue)))
   }
 }
 
@@ -358,7 +471,7 @@ pub fn resolution_admit(
         "decision": Json::string(decision_token(admitted.decision)),
         "attestation_preimage": Json::string(admitted.attestation_preimage),
       })
-    Err(issue) => fail(issue)
+    Err(issue) => fail_detail(issue.code, issue.detail)
   }
 }
 
@@ -412,7 +525,7 @@ pub fn resolution_decide(
       verified_at,
     ) {
     Ok(value) => value
-    Err(issue) => return fail(issue)
+    Err(issue) => return fail_detail(issue.code, issue.detail)
   }
   let verified = match
     @checkpoint.seal_verified_resolution(
@@ -422,7 +535,7 @@ pub fn resolution_decide(
       limits(),
     ) {
     Ok(value) => value
-    Err(issue) => return fail(@debug.to_string(issue))
+    Err(issue) => return fail_resolution(issue)
   }
   let current = match closure(closure_state, closure_resolution_cid) {
     Some(value) => value
@@ -540,7 +653,7 @@ pub fn resume_claim_decide(
         "generation": Json::number(generation.to_double()),
         "run_status": Json::string("failed"),
       })
-    Err(issue) => fail(@debug.to_string(issue))
+    Err(issue) => fail_resume(issue)
   }
 }
 
@@ -593,7 +706,7 @@ pub fn resumed_approval_at(verified_wire : String, at : String) -> String {
           @checkpoint.resumed_approval_current(approval, at),
         ),
       })
-    Err(issue) => fail(@debug.to_string(issue))
+    Err(issue) => fail_resolution(issue)
   }
 }
 
@@ -604,7 +717,7 @@ pub fn resumed_approval_at(verified_wire : String, at : String) -> String {
 pub fn resolution_proof_preimage(resolution_wire : String) -> String {
   match @checkpoint.resolution_proof_preimage(resolution_wire, limits()) {
     Ok(preimage) => ok({ "preimage": Json::string(preimage) })
-    Err(issue) => fail(@debug.to_string(issue))
+    Err(issue) => fail_resolution(issue)
   }
 }
 
@@ -619,7 +732,7 @@ pub fn verified_attestation_preimage(verified_wire : String) -> String {
       limits(),
     ) {
     Ok(preimage) => ok({ "preimage": Json::string(preimage) })
-    Err(issue) => fail(@debug.to_string(issue))
+    Err(issue) => fail_resolution(issue)
   }
 }
 
@@ -631,18 +744,25 @@ fn admit_immediate(
   authentication_json : String,
   authorities_json : String,
   verified_at : String,
-) -> Result[@checkpoint.ImmediateAdmittedResolution, String] {
+) -> Result[@checkpoint.ImmediateAdmittedResolution, BridgeFailure] {
   let subject = match @checkpoint.seal_checkpoint_body(body_wire, limits()) {
     Ok(value) => value
-    Err(issue) => return Err(@debug.to_string(issue))
+    Err(issue) =>
+      return Err(
+        bridge_failure(checkpoint_issue_code(issue), @debug.to_string(issue)),
+      )
   }
   let auth = match authentication(authentication_json) {
     Some(value) => value
-    None => return Err("InvalidAuthentication")
+    None =>
+      return Err(
+        bridge_failure("InvalidAuthentication", "InvalidAuthentication"),
+      )
   }
   let allowed = match authorities(authorities_json) {
     Some(value) => value
-    None => return Err("InvalidAuthorities")
+    None =>
+      return Err(bridge_failure("InvalidAuthorities", "InvalidAuthorities"))
   }
   let evidence = if evidence_wire == "" { None } else { Some(evidence_wire) }
   match
@@ -656,7 +776,8 @@ fn admit_immediate(
       limits(),
     ) {
     Ok(admitted) => Ok(admitted)
-    Err(issue) => Err(@debug.to_string(issue))
+    Err(issue) =>
+      Err(bridge_failure(resolution_issue_code(issue), @debug.to_string(issue)))
   }
 }
 
@@ -684,7 +805,7 @@ pub fn resolution_admit_immediate(
         "decision": Json::string(decision_token(admitted.decision())),
         "attestation_preimage": Json::string(admitted.attestation_preimage()),
       })
-    Err(issue) => fail(issue)
+    Err(issue) => fail_detail(issue.code, issue.detail)
   }
 }
 
@@ -708,7 +829,7 @@ pub fn resolution_seal_immediate(
       verified_at,
     ) {
     Ok(value) => value
-    Err(issue) => return fail(issue)
+    Err(issue) => return fail_detail(issue.code, issue.detail)
   }
   match
     @checkpoint.seal_immediate_resolution(
@@ -727,7 +848,7 @@ pub fn resolution_seal_immediate(
         ),
         "verified_resolution_wire": Json::string(immediate.wire),
       })
-    Err(issue) => fail(@debug.to_string(issue))
+    Err(issue) => fail_resolution(issue)
   }
 }
 
@@ -770,7 +891,7 @@ pub fn revalidation_failed_state(
         ),
         "run_state_wire": Json::string(wire),
       })
-    Err(issue) => fail(@debug.to_string(issue))
+    Err(issue) => fail_run_state(issue)
   }
 }
 
@@ -808,7 +929,7 @@ pub fn waiting_exit_state(
         ),
         "run_state_wire": Json::string(wire),
       })
-    Err(issue) => fail(@debug.to_string(issue))
+    Err(issue) => fail_run_state(issue)
   }
 }
 

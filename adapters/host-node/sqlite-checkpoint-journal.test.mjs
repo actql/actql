@@ -772,8 +772,12 @@ test('a preparation Checkpoint is persisted without a Run until the Run is creat
     await assert.rejects(journal.submitResolution({
       checkpointCid: waiting.checkpointCid,
       resolutionWire: JSON.stringify(wrong),
-    }), {code: 'InvalidResolution',
-      cause: 'CheckpointBindingMismatch("run_id")'});
+    }), error => {
+      assert.equal(error.code, 'InvalidResolution');
+      assert.equal(error.issueCode, 'CheckpointBindingMismatch');
+      assert.equal(error.cause, 'CheckpointBindingMismatch("run_id")');
+      return true;
+    });
     journal.close();
 
     journal = open();
