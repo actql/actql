@@ -49,14 +49,20 @@ The relevant boundary is `src/relation_evidence/sets.mbt` and
 candidate-key exception. The existing language contract requires an eligible
 key or a retained total sequence to complete ties in an authored
 `order_by`; the projected-field fallback is reserved for Results without
-authored order. Both failing fixtures explicitly order their edge Result by
+authored order. The Graph row contract also states that projection alone does
+not prove row order or unique keys. A physical edge enumeration or the
+projected-field fallback therefore cannot be relabeled as a retained order
+witness. Both failing fixtures explicitly order their edge Result by
 `src`, `dst`, and nullable `rel`. The Frontend emits the expected Program;
 the authored JSON Program fails at the same boundary. The order terms and
 expected rows must remain intact. Do not drop `order_by`, sort rows in the
 Frontend, or treat a nullable label as a non-null Relation key.
 
 The owner of the Graph order evidence should identify a valid existing witness
-or a contract-compatible correction at this boundary. After a fixed SHA is
+with its checked producer and runtime obligation, or a contract-compatible
+correction at this boundary. If the current contract cannot represent the
+necessary proof, the missing public meaning must be decided explicitly before
+changing the checker. After a fixed SHA is
 available, rerun the original eight named SGA sources through both packed
 Local and HTTP. The earlier #63 source
 `2e21a039245ba681a90a7f18a3fd6e2797265107` passed 8/8 with the
