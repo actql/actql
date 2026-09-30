@@ -10,6 +10,41 @@ const actions = Object.freeze({
   ]),
   failureTerminal: Object.freeze(['failed', 'cancelled']),
   recordRetry: Object.freeze(['append_next_record', 'finished', 'invalid']),
+  setup: Object.freeze([
+    'check_existing_commit', 'validate_existing_evidence',
+    'finalize_existing_commit', 'return_existing_commit',
+    'check_initial_active', 'persist_contracts', 'create_attempt',
+    'enter_attempt_progress', 'invalid',
+  ]),
+  attempt: Object.freeze([
+    'append_preparing', 'check_active', 'append_committing',
+    'issue_index', 'commit_index', 'require_reconciliation',
+    'reject_missing_index', 'reject_terminal', 'invalid',
+  ]),
+  cancellation: Object.freeze([
+    'rethrow', 'cancel_preparing', 'cancel_committing',
+  ]),
+  finalization: Object.freeze([
+    'finished', 'append_succeeded', 'append_superseded',
+    'superseded_confirmed', 'invalid',
+  ]),
+  commitFailure: Object.freeze([
+    'reconcile_commit', 'append_unknown', 'return_unknown',
+    'confirm_uncommitted_failure', 'adopt_committed_index', 'invalid',
+  ]),
+  unknownRetry: Object.freeze([
+    'reconcile', 'retry_upstream_cleanup', 'finished', 'invalid',
+  ]),
+  preparedRelease: Object.freeze([
+    'inspect', 'release', 'advance', 'finished', 'invalid',
+  ]),
+  cleanupOwner: Object.freeze([
+    'inspect', 'retry', 'advance', 'finished', 'invalid',
+  ]),
+  durablePayloadFailure: Object.freeze([
+    'cancel_writer', 'release_prepared', 'cancel_export', 'finished',
+    'invalid',
+  ]),
 });
 
 export function publicationAction(kind, code) {

@@ -55,6 +55,29 @@ const limits = Object.freeze({
   maxNodes: 4096,
   maxDepth: 64,
 });
+
+test('generated publication owner crosses the ABI as named actions', () => {
+  const core = runtimeCore(moon);
+  const control = core.publicationControl;
+  assert.equal(control.publicationSetupAction(false, false, false, false,
+    false, false, false), 'check_existing_commit');
+  assert.equal(control.publicationAttemptAction(undefined, false, false),
+    'append_preparing');
+  assert.equal(control.publicationCancellationAction(undefined), 'rethrow');
+  assert.equal(control.committedPublicationFinalizationAction(undefined),
+    'invalid');
+  assert.equal(control.publicationCommitFailureAction(false, false, false,
+    false), 'reconcile_commit');
+  assert.equal(control.publicationUnknownRetryAction(false, false, false,
+    false), 'reconcile');
+  assert.equal(control.publicationPreparedReleaseAction(-1, 0, false, false,
+    false), 'finished');
+  assert.equal(control.publicationCleanupOwnerAction(0, 0, false, false,
+    false, false), 'finished');
+  assert.equal(core.outputExportControl.payloadFailureAction(false, false,
+    false, false, false, false, false, false), 'finished');
+});
+
 const publicationOutputLimits = Object.freeze({
   maxResultFields: 10,
   maxResultMappingWork: 100,

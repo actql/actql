@@ -10,13 +10,23 @@ fn start_local_managed_test_task_operations(
   carrier_inputs? : Array[
     (@execution.CarrierManagedCompletedOutput, @carrier_runtime.Material),
   ] = [],
+  ordered_outputs? : Array[@local_driver.LocalManagedAvailableOutput[Int]]? = None,
   grant? : @strategy.TaskActivationGrant,
 ) -> @local_driver.LocalManagedDispatchOperations[Int] raise {
   let owner = @strategy.graph_task_owner(
     @strategy.captured_dag_graph(run),
     task,
   ).unwrap()
-  let prepared = if carrier_inputs.is_empty() {
+  let prepared = if ordered_outputs is Some(outputs) {
+    @local_driver.prepare_local_managed_dispatch_with_outputs(
+      installed,
+      outputs,
+      obligations.unwrap_or_else(() => {
+        @execution.process_managed_obligations(owner)
+      }),
+      0L,
+    )
+  } else if carrier_inputs.is_empty() {
     @local_driver.prepare_local_managed_dispatch(
       installed,
       inputs,
@@ -158,6 +168,7 @@ fn run_local_managed_test_task(
   carrier_inputs? : Array[
     (@execution.CarrierManagedCompletedOutput, @carrier_runtime.Material),
   ] = [],
+  ordered_outputs? : Array[@local_driver.LocalManagedAvailableOutput[Int]]? = None,
   grant? : @strategy.TaskActivationGrant,
   finalization_failure? : Ref[@local_driver.LocalDispatchIssue?],
 ) -> (
@@ -173,6 +184,7 @@ fn run_local_managed_test_task(
     obligations?,
     require_provider~,
     carrier_inputs~,
+    ordered_outputs~,
     grant?,
   )
   fn execute_with_quantum() -> Result[Unit, @local_driver.LocalDispatchIssue] raise {

@@ -11,6 +11,8 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {issueInstalledRunControlObservation} from
+  '../host-common/run-state-observation.mjs';
 
 const root = new URL('../../_build/client-request-journal-tests/', import.meta.url);
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -28,6 +30,21 @@ const fixture = Object.freeze({
     'sha256:d526e372e357f6bbd1d804e385fc8d88fad9e538ec5a70058f1205af9a0a7d9d',
 });
 const expires = '2099-01-01T00:00:00.000Z';
+
+test('Run-control issuer failure retains its typed reason across the Host ABI',
+  () => {
+    assert.throws(() => issueInstalledRunControlObservation(moon, {
+      revision: -1, cancellationRequested: false,
+      physicallyUnstarted: false, preDispatchFailureConfirmed: false,
+      physicalCloseConfirmed: false,
+    }), error => {
+      assert.equal(error.message, 'InvalidRunControl');
+      assert.equal(error.cause.code, 'MoonBitHostFailure');
+      assert.equal(error.primaryFailure, error.cause.cause);
+      assert.equal(typeof error.primaryFailure?.$tag, 'number');
+      return true;
+    });
+  });
 const publicationControl = runtimeCore(moon).publicationControl;
 const contractLimits = Object.freeze({
   maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64,
@@ -74,7 +91,7 @@ async function directory(t) {
   return path;
 }
 
-test('rollback failure retains the primary acceptance error', async t => {
+test('automatic rollback retains the primary acceptance error', async t => {
   const path = await directory(t);
   const journal = openClientRequestJournal(path);
   t.after(() => journal.close());
@@ -90,9 +107,10 @@ test('rollback failure retains the primary acceptance error', async t => {
   }, moon), error => {
     assert.equal(error.code, 'ClientRequestAcceptanceUnknown');
     assert.equal(error.operation, 'accept');
-    assert.equal(error.outcome, 'unknown');
+    assert.equal(error.outcome, 'failed');
     assert.match(error.cause.message, /PrimaryAcceptanceFailure/u);
-    assert.match(error.rollbackCause.message, /rollback/u);
+    assert.equal(error.rollbackCause, undefined);
+    assert.equal(error.connectionUsable, true);
     return true;
   });
   assert.equal(journal.lookup({namespaceId: 'namespace-a',
@@ -100,7 +118,7 @@ test('rollback failure retains the primary acceptance error', async t => {
   undefined);
 });
 
-test('rollback failure retains the primary Run-start error', async t => {
+test('automatic rollback retains the primary Run-start error', async t => {
   const path = await directory(t);
   const journal = openClientRequestJournal(path);
   t.after(() => journal.close());
@@ -120,14 +138,57 @@ test('rollback failure retains the primary Run-start error', async t => {
   }, moon, publicationControl), error => {
     assert.equal(error.code, 'ClientRunStartUnknown');
     assert.equal(error.operation, 'start');
-    assert.equal(error.outcome, 'unknown');
+    assert.equal(error.outcome, 'failed');
     assert.match(error.cause.message, /PrimaryStartFailure/u);
-    assert.match(error.rollbackCause.message, /rollback/u);
+    assert.equal(error.rollbackCause, undefined);
+    assert.equal(error.connectionUsable, true);
     return true;
   });
   assert.equal(journal.lookupRunDefinition(accepted.ref, moon,
     publicationControl).dispatchReserved, false);
 });
+
+test('COMMIT and rollback loss retain both causes and fence the journal',
+  async t => {
+    const path = await directory(t);
+    const journal = openClientRequestJournal(path);
+    const exec = DatabaseSync.prototype.exec;
+    let commitFailure = true;
+    let rollbackFailure = true;
+    t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+      if (sql === 'COMMIT' && commitFailure) {
+        commitFailure = false;
+        throw new Error('COMMIT_RESULT_LOST');
+      }
+      if (sql === 'ROLLBACK' && rollbackFailure) {
+        rollbackFailure = false;
+        throw new Error('ROLLBACK_FAILED');
+      }
+      return exec.call(this, sql);
+    });
+    assert.throws(() => journal.accept(identity(), {
+      namespaceId: 'namespace-a', runDefinitionCid: cid('d'),
+      lookupExpiresAt: expires,
+    }, moon), error => {
+      assert.equal(error.code, 'ClientRequestAcceptanceUnknown');
+      assert.equal(error.outcome, 'unknown');
+      assert.equal(error.operation, 'accept');
+      assert.match(error.cause.message, /COMMIT_RESULT_LOST/u);
+      assert.match(error.rollbackCause.message, /ROLLBACK_FAILED/u);
+      assert.equal(error.connectionUsable, false);
+      return true;
+    });
+    assert.throws(() => journal.lookup({namespaceId: 'namespace-a',
+      authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon),
+    {code: 'ClientRequestJournalConnectionUnusable'});
+    t.mock.restoreAll();
+    journal.close();
+    const reopened = openClientRequestJournal(path);
+    t.after(() => reopened.close());
+    assert.equal(reopened.lookup({namespaceId: 'namespace-a',
+      authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon),
+    undefined);
+  });
 
 test('durable Client request survives ACK loss and restart without a new Run',
   async t => {
@@ -817,8 +878,8 @@ test('durable cancellation excludes physical start after restart', async t => {
     publicationControl);
   assert.equal(retained.cancellationRequested, true);
   assert.equal(retained.physicalStartReserved, false);
-  assert.deepEqual(JSON.parse(moon.clientRunControlObservation(
-    retained.revision, true, true, false, false)), {
+  assert.deepEqual(JSON.parse(checked(moon.clientRunControlObservation(
+    retained.revision, true, true, false, false))), {
     cancellation_requested: true, physical_stop: 'confirmed',
     revision: cancelled.revision,
   });
@@ -842,8 +903,8 @@ test('started cancellation never invents stop and terminal completion wins',
     const cancelled = journal.requestCancellation(accepted.ref, {
       currentAuthorization: true, publicationCommitted: false,
     }, moon, publicationControl);
-    assert.equal(JSON.parse(moon.clientRunControlObservation(
-      cancelled.revision, true, false, false, false)).physical_stop, 'unknown');
+    assert.equal(JSON.parse(checked(moon.clientRunControlObservation(
+      cancelled.revision, true, false, false, false))).physical_stop, 'unknown');
     assert.equal(claimPhysicalStart(journal, accepted.ref), false);
     journal.markPhysicalClose(accepted.ref);
     const retained = journal.lookupRunDefinition(accepted.ref, moon,

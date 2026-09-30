@@ -239,8 +239,29 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       @lower.GraphConstructionStep(_) =>
         @lower.operation(node) == "BRIDGE.rows.to_graph"
       @lower.GraphBasicStep(basic) =>
-        @lower.operation(node) == "SGA.normalize" &&
-        @lower.graph_basic_kind(basic) == @lower.NormalizeBasic
+        (
+          @lower.operation(node) == "SGA.normalize" &&
+          @lower.graph_basic_kind(basic) == @lower.NormalizeBasic
+        ) ||
+        (
+          @lower.operation(node) == "SGA.bounds_check" &&
+          @lower.graph_basic_kind(basic) == @lower.BoundsBasic
+        ) ||
+        (
+          @lower.operation(node) == "SGA.degree_metrics" &&
+          (
+            @lower.graph_basic_kind(basic) == @lower.DegreeIncomingBasic ||
+            @lower.graph_basic_kind(basic) == @lower.DegreeOutgoingBasic ||
+            @lower.graph_basic_kind(basic) == @lower.DegreeBothBasic
+          )
+        ) ||
+        (
+          @lower.operation(node) == "SGA.components" &&
+          (
+            @lower.graph_basic_kind(basic) == @lower.ComponentsWeakBasic ||
+            @lower.graph_basic_kind(basic) == @lower.ComponentsStrongBasic
+          )
+        )
       @lower.CarrierProjectionStep(projection) =>
         (
           @lower.operation(node) == "BRIDGE.graph.to_node_rows" &&
@@ -256,6 +277,18 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "SGA.traverse" &&
         @lower.graph_traverse_emits_paths(traverse) &&
         accepts_traverse(traverse)
+      @lower.GraphMatchStep(matched) =>
+        if @lower.graph_match_nodes(matched) {
+          @lower.operation(node) == "SGA.match_nodes"
+        } else {
+          @lower.operation(node) == "SGA.match_edges"
+        }
+      @lower.GraphReachStep(_) => @lower.operation(node) == "SGA.reachable"
+      @lower.GraphShortestStep(shortest) =>
+        @lower.operation(node) == "SGA.shortest_path" &&
+        accepts_shortest_endpoint(shortest, @schema.Left) &&
+        accepts_shortest_endpoint(shortest, @schema.Right) &&
+        @lower.graph_shortest_max_hops(shortest) is Some(_)
       _ => false
     }
   }
@@ -1233,16 +1266,36 @@ fn advance_execution(
               Err(_) => return fail_execution(value)
             }
           }
-          Some(@lower.GraphMatchStep(matched)) => {
-            guard input is Some(input) else { return fail_execution(value) }
+          Some(@lower.GraphMatchStep(matched)) =>
             if @lower.graph_match_nodes(matched) {
-              match
+              let started = if direct_view is Some(view) {
+                @sga.start_match_nodes_view(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  value.projection_step,
+                  view,
+                  value.max_rows,
+                  {
+                    max_nodes: value.limits.max_value_nodes,
+                    max_text_bytes: value.max_value_bytes,
+                    max_depth: value.limits.max_value_depth,
+                    max_work: value.limits.max_work,
+                  },
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
+                )
+              } else {
+                guard input is Some(read) else { return fail_execution(value) }
                 @sga.start_match_nodes(
                   value.control,
                   @execution.generated_completion_preparation(value.generated),
                   value.sequence,
                   value.projection_step,
-                  input,
+                  read,
                   value.max_rows,
                   {
                     max_nodes: value.limits.max_value_nodes,
@@ -1255,18 +1308,41 @@ fn advance_execution(
                   value.limits.max_value_bytes,
                   value.inputs,
                   control_work_limit=Some(value.limits.max_work),
-                ) {
+                )
+              }
+              match started {
                 Ok(execution) => MatchNodesExecution(execution)
                 Err(_) => return fail_execution(value)
               }
             } else {
-              match
+              let started = if direct_view is Some(view) {
+                @sga.start_match_edges_view(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  value.projection_step,
+                  view,
+                  value.max_rows,
+                  {
+                    max_nodes: value.limits.max_value_nodes,
+                    max_text_bytes: value.max_value_bytes,
+                    max_depth: value.limits.max_value_depth,
+                    max_work: value.limits.max_work,
+                  },
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
+                )
+              } else {
+                guard input is Some(read) else { return fail_execution(value) }
                 @sga.start_match_edges(
                   value.control,
                   @execution.generated_completion_preparation(value.generated),
                   value.sequence,
                   value.projection_step,
-                  input,
+                  read,
                   value.max_rows,
                   {
                     max_nodes: value.limits.max_value_nodes,
@@ -1279,16 +1355,36 @@ fn advance_execution(
                   value.limits.max_value_bytes,
                   value.inputs,
                   control_work_limit=Some(value.limits.max_work),
-                ) {
+                )
+              }
+              match started {
                 Ok(execution) => MatchEdgesExecution(execution)
                 Err(_) => return fail_execution(value)
               }
             }
-          }
-          Some(@lower.GraphBasicStep(basic)) => {
-            guard input is Some(input) else { return fail_execution(value) }
+          Some(@lower.GraphBasicStep(basic)) =>
             if @lower.graph_basic_kind(basic) == @lower.BoundsBasic {
-              match
+              let started = if direct_view is Some(view) {
+                @sga.start_graph_bounds_view(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  value.projection_step,
+                  view,
+                  value.max_rows,
+                  {
+                    max_nodes: value.limits.max_value_nodes,
+                    max_text_bytes: value.max_value_bytes,
+                    max_depth: value.limits.max_value_depth,
+                    max_work: value.limits.max_work,
+                  },
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                )
+              } else {
+                guard input is Some(input) else { return fail_execution(value) }
                 @sga.start_graph_bounds(
                   value.control,
                   @execution.generated_completion_preparation(value.generated),
@@ -1306,7 +1402,9 @@ fn advance_execution(
                   value.limits.max_value_bytes,
                   value.limits.max_value_bytes,
                   value.inputs,
-                ) {
+                )
+              }
+              match started {
                 Ok(execution) => GraphBoundsExecution(execution)
                 Err(_) => return fail_execution(value)
               }
@@ -1314,7 +1412,27 @@ fn advance_execution(
               @lower.DegreeIncomingBasic ||
               @lower.graph_basic_kind(basic) == @lower.DegreeOutgoingBasic ||
               @lower.graph_basic_kind(basic) == @lower.DegreeBothBasic {
-              match
+              let started = if direct_view is Some(view) {
+                @sga.start_graph_degree_view(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  value.projection_step,
+                  view,
+                  value.max_rows,
+                  {
+                    max_nodes: value.limits.max_value_nodes,
+                    max_text_bytes: value.max_value_bytes,
+                    max_depth: value.limits.max_value_depth,
+                    max_work: value.limits.max_work,
+                  },
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                )
+              } else {
+                guard input is Some(input) else { return fail_execution(value) }
                 @sga.start_graph_degree(
                   value.control,
                   @execution.generated_completion_preparation(value.generated),
@@ -1332,14 +1450,37 @@ fn advance_execution(
                   value.limits.max_value_bytes,
                   value.limits.max_value_bytes,
                   value.inputs,
-                ) {
+                )
+              }
+              match started {
                 Ok(execution) => GraphDegreeExecution(execution)
                 Err(_) => return fail_execution(value)
               }
             } else if @lower.graph_basic_kind(basic) ==
               @lower.ComponentsWeakBasic ||
               @lower.graph_basic_kind(basic) == @lower.ComponentsStrongBasic {
-              match
+              let started = if direct_view is Some(view) {
+                @sga.start_components_view(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  value.projection_step,
+                  view,
+                  value.max_rows,
+                  {
+                    max_nodes: value.limits.max_value_nodes,
+                    max_text_bytes: value.max_value_bytes,
+                    max_depth: value.limits.max_value_depth,
+                    max_work: value.limits.max_work,
+                  },
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
+                )
+              } else {
+                guard input is Some(input) else { return fail_execution(value) }
                 @sga.start_components(
                   value.control,
                   @execution.generated_completion_preparation(value.generated),
@@ -1358,17 +1499,38 @@ fn advance_execution(
                   value.limits.max_value_bytes,
                   value.inputs,
                   control_work_limit=Some(value.limits.max_work),
-                ) {
+                )
+              }
+              match started {
                 Ok(execution) => ComponentsExecution(execution)
                 Err(_) => return fail_execution(value)
               }
             } else {
               return fail_execution(value)
             }
-          }
           Some(@lower.GraphReachStep(_)) => {
-            guard input is Some(input) else { return fail_execution(value) }
-            match
+            let started = if direct_view is Some(view) {
+              @sga.start_reach_view(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.projection_step,
+                view,
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                value.limits.max_value_bytes,
+                value.inputs,
+                control_work_limit=Some(value.limits.max_work),
+              )
+            } else {
+              guard input is Some(input) else { return fail_execution(value) }
               @sga.start_reach(
                 value.control,
                 @execution.generated_completion_preparation(value.generated),
@@ -1387,7 +1549,9 @@ fn advance_execution(
                 value.limits.max_value_bytes,
                 value.inputs,
                 control_work_limit=Some(value.limits.max_work),
-              ) {
+              )
+            }
+            match started {
               Ok(execution) => ReachExecution(execution)
               Err(_) => return fail_execution(value)
             }
@@ -1439,11 +1603,31 @@ fn advance_execution(
             }
           }
           Some(@lower.GraphShortestStep(_)) => {
-            guard input is Some(input) else { return fail_execution(value) }
             guard remaining_control_work(value) is Some(work_limit) else {
               return fail_execution(value)
             }
-            match
+            let started = if direct_view is Some(view) {
+              @sga.start_shortest_view(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.projection_step,
+                view,
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                value.limits.max_value_bytes,
+                value.inputs,
+                control_work_limit=Some(work_limit),
+              )
+            } else {
+              guard input is Some(input) else { return fail_execution(value) }
               @sga.start_shortest(
                 value.control,
                 @execution.generated_completion_preparation(value.generated),
@@ -1462,7 +1646,9 @@ fn advance_execution(
                 value.limits.max_value_bytes,
                 value.inputs,
                 control_work_limit=Some(work_limit),
-              ) {
+              )
+            }
+            match started {
               Ok(execution) => ShortestExecution(execution)
               Err(_) => return fail_execution(value)
             }
@@ -1958,6 +2144,53 @@ pub fn provider(
           @lower.graph_basic_kind(basic) == @lower.NormalizeBasic
         _ => false
       }
+      let direct_diagnostic = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphBasicStep(basic)) =>
+          selected_step is Some(_) &&
+          (
+            @lower.graph_basic_kind(basic) == @lower.BoundsBasic ||
+            @lower.graph_basic_kind(basic) == @lower.DegreeIncomingBasic ||
+            @lower.graph_basic_kind(basic) == @lower.DegreeOutgoingBasic ||
+            @lower.graph_basic_kind(basic) == @lower.DegreeBothBasic ||
+            @lower.graph_basic_kind(basic) == @lower.ComponentsWeakBasic ||
+            @lower.graph_basic_kind(basic) == @lower.ComponentsStrongBasic
+          )
+        _ => false
+      }
+      let direct_reach = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphReachStep(_)) => selected_step is Some(_)
+        _ => false
+      }
+      let direct_shortest = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphShortestStep(_)) => selected_step is Some(_)
+        _ => false
+      }
+      let shortest_relation_count = if direct_shortest {
+        match
+          @lower.node_at(
+            @lower.bound_preparation(
+              @execution.generated_sequence_owner(sequence),
+            ),
+            selected_step.unwrap_or(0),
+          ) {
+          Some(node) => @lower.node_input_count(node) - 1
+          None => -1
+        }
+      } else {
+        -1
+      }
       let direct_apply = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
@@ -1989,6 +2222,14 @@ pub fn provider(
           @lower.graph_traverse_emits_paths(traverse)
         _ => false
       }
+      let direct_match = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphMatchStep(_)) => selected_step is Some(_)
+        _ => false
+      }
       let direct_structural_inputs = if selected_step is Some(_) {
         direct_structural_input_count(sequence).unwrap_or(-1)
       } else {
@@ -2010,7 +2251,7 @@ pub fn provider(
           (relations.length() != 0 || carriers.length() != 1)
         ) ||
         (
-          direct_normalize &&
+          (direct_normalize || direct_diagnostic || direct_reach) &&
           (relations.length() != 0 || carriers.length() != 1)
         ) ||
         (direct_apply && (relations.length() != 1 || carriers.length() != 1)) ||
@@ -2023,13 +2264,25 @@ pub fn provider(
           )
         ) ||
         (direct_traverse && (relations.length() != 1 || carriers.length() != 1)) ||
+        (direct_match && (relations.length() != 0 || carriers.length() != 1)) ||
+        (
+          direct_shortest &&
+          (
+            relations.length() != shortest_relation_count ||
+            carriers.length() != 1
+          )
+        ) ||
         (
           !direct_structural &&
           !direct_projection &&
           !direct_normalize &&
+          !direct_diagnostic &&
+          !direct_reach &&
+          !direct_shortest &&
           !direct_apply &&
           !direct_subgraph &&
           !direct_traverse &&
+          !direct_match &&
           carriers.length() != 0
         ) {
         return Err(@connector.Execution(@execution.InputSet))
@@ -2072,7 +2325,12 @@ pub fn provider(
           StartKernel
         } else if direct_normalize {
           StartKernel
-        } else if direct_projection || direct_traverse {
+        } else if direct_diagnostic ||
+          direct_reach ||
+          direct_shortest ||
+          direct_projection ||
+          direct_traverse ||
+          direct_match {
           StartProjection
         } else {
           StartConstruction

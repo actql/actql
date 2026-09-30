@@ -25,6 +25,10 @@ import {
   randomUUID,
 } from 'node:crypto';
 import {resolve} from 'node:path';
+import {createObjectWriterOwner} from './object-writer-owner.mjs';
+import {createResultDeletionOwner} from './result-deletion-owner.mjs';
+import {createMetadataDeletionOwner} from './metadata-deletion-owner.mjs';
+import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
 // Physical holdings: Transfer material, Effect source/capture custody,
@@ -1061,7 +1065,7 @@ export async function openLocalPublicationStore(
     return operation;
   };
 
-  const createObjectWriter = (maxBytes, trackCustody = false) => {
+  const reserveObjectCapacity = maxBytes => {
     active();
     if (!quantity(maxBytes) || maxBytes > configuration.maxObjectBytes) {
       fail('PublicationObjectLimit');
@@ -1075,203 +1079,44 @@ export async function openLocalPublicationStore(
     }
     reservedBytes += maxBytes;
     reservedObjects++;
-    const temporary = resolve(stagingDirectory, `object-${randomUUID()}`);
-    const hash = createHash('sha256');
-    let bytes = 0;
-    let acceptedBytes = 0;
-    let handle;
-    let finished = false;
-    let cleanupPending = false;
-    let reservationHeld = true;
-    let custody;
-    let busy = Promise.resolve();
-    const releaseReservation = () => {
-      if (!reservationHeld) return;
-      reservedBytes -= maxBytes;
-      reservedObjects--;
-      reservationHeld = false;
-    };
-    const start = async () => {
-      try {
-        handle = await open(
-          temporary,
-          constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY,
-          0o600,
-        );
-      } catch (error) {
-        finished = true;
-        releaseReservation();
-        throw error;
-      }
-    };
-    const ready = start();
-    const queue = operation => {
-      const result = busy.then(operation);
-      busy = result.catch(() => {});
-      return result;
-    };
-    const cleanupTemporary = async () => {
-      if (handle) {
-        await handle.close();
-        handle = undefined;
-      }
-      try { await unlink(temporary); }
-      catch (error) { if (error?.code !== 'ENOENT') throw error; }
-      await syncDirectory(stagingDirectory);
-    };
-    const cleanupAndRelease = async () => {
-      try {
-        await cleanupTemporary();
-        cleanupPending = false;
-        releaseReservation();
-      } catch (error) {
-        cleanupPending = true;
-        throw error;
-      }
-    };
+    let held = true;
     return Object.freeze({
-      append(frame) {
-        let length;
-        if (Buffer.isBuffer(frame) || frame instanceof Uint8Array) {
-          length = frame.byteLength;
-        } else if (typeof frame === 'string') {
-          length = Buffer.byteLength(frame, 'utf8');
-        } else {
-          return queue(async () => fail('PublicationObjectLimit'));
-        }
-        if (finished || length > maxBytes - acceptedBytes) {
-          return queue(async () => {
-            if (finished) fail('PublicationObjectWriterClosed');
-            fail('PublicationObjectLimit');
-          });
-        }
-        // Snapshot caller-owned mutable input only after its exact size is
-        // known to fit. No rejected frame can force an unbounded copy.
-        const buffer = Buffer.isBuffer(frame) ? Buffer.from(frame) :
-          frame instanceof Uint8Array ? Buffer.from(frame) :
-            Buffer.from(frame, 'utf8');
-        acceptedBytes += length;
-        return queue(async () => {
-          await ready;
-          if (finished) fail('PublicationObjectWriterClosed');
-          try {
-            let offset = 0;
-            while (offset < buffer.byteLength) {
-              const result = await handle.write(
-                buffer, offset, buffer.byteLength - offset, bytes + offset,
-              );
-              if (result.bytesWritten === 0) {
-                fail('IncompletePublicationWrite');
-              }
-              offset += result.bytesWritten;
-            }
-            hash.update(buffer);
-            bytes += buffer.byteLength;
-          } catch (error) {
-            finished = true;
-            throw error;
-          }
-        });
+      get held() { return held; },
+      release() {
+        if (!held) return false;
+        reservedBytes -= maxBytes;
+        reservedObjects--;
+        held = false;
+        return true;
       },
-      seal(expectedCid) {
-        return queue(async () => {
-          await ready;
-          if (finished) fail('PublicationObjectWriterClosed');
-          finished = true;
-          let installed = false;
-          let result;
-          let failed = false;
-          let primaryFailure;
-          try {
-            await handle.sync();
-            const state = await handle.stat();
-            if (!state.isFile() || state.size !== bytes) {
-              fail('IncompletePublicationWrite');
-            }
-            await handle.close();
-            handle = undefined;
-            const cid = `sha256:${hash.digest('hex')}`;
-            if (expectedCid !== undefined && expectedCid !== cid) {
-              fail('PublicationObjectIdentityMismatch');
-            }
-            if (reclaimingMaterialCids.has(cid)) {
-              fail('PublicationObjectReclamationPending');
-            }
-            if (trackCustody) {
-              custody = await registerCustody(cid, bytes, state);
-            }
-            const finalPath = objectPath(cid);
-            try {
-              await link(temporary, finalPath);
-              installed = true;
-              storedBytes += bytes;
-              objectCount++;
-              if (custody !== undefined) custody.accounted = true;
-              await syncDirectory(objectsDirectory);
-            } catch (error) {
-              if (error?.code !== 'EEXIST') throw error;
-              const existing = await verifyObject(cid);
-              if (existing.bytes !== bytes) {
-                fail('PublicationObjectIdentityMismatch');
-              }
-            }
-            result = custody === undefined
-              ? Object.freeze({cid, bytes, created: installed})
-              : Object.freeze({cid, bytes, created: installed, custody});
-          } catch (error) {
-            failed = true;
-            primaryFailure = error;
-          }
-          if (failed) {
-            try { await cleanupAndRelease(); }
-            catch { cleanupPending = true; }
-            if (!reservationHeld && custody !== undefined) {
-              try {
-                if (await reclaimCustody(custody)) custody = undefined;
-                else cleanupPending = true;
-              } catch { cleanupPending = true; }
-            }
-            throw primaryFailure;
-          }
-          await cleanupAndRelease();
-          custody = undefined;
-          return result;
-        });
-      },
-      cancel() {
-        return queue(async () => {
-          try { await ready; }
-          catch (error) {
-            if (!reservationHeld) return false;
-            throw error;
-          }
-          if (finished && !reservationHeld && custody === undefined) {
-            return false;
-          }
-          finished = true;
-          if (reservationHeld) await cleanupAndRelease();
-          if (custody !== undefined) {
-            if (await reclaimCustody(custody)) {
-              custody = undefined;
-              cleanupPending = false;
-            } else {
-              cleanupPending = true;
-              fail('PublicationPreparedCustodyPending');
-            }
-          }
-          return true;
-        });
-      },
-      status: () => Object.freeze({
-        maxBytes,
-        bytes,
-        finished,
-        cleanupPending,
-        reservationHeld,
-        custodyPending: custody !== undefined,
-      }),
     });
   };
+
+  const createObjectWriter = (maxBytes, trackCustody = false) =>
+    createObjectWriterOwner(
+      maxBytes,
+      trackCustody,
+      reserveObjectCapacity(maxBytes),
+      {
+        stagingDirectory,
+        objectsDirectory,
+        open,
+        link,
+        unlink,
+        syncDirectory,
+        fail,
+        objectPath,
+        isReclaiming: cid => reclaimingMaterialCids.has(cid),
+        registerCustody,
+        reclaimCustody,
+        verifyObject,
+        accountInstalled(bytes, custody) {
+          storedBytes += bytes;
+          objectCount++;
+          if (custody !== undefined) custody.accounted = true;
+        },
+      },
+    );
 
   const createPreparedObjectWriter = maxBytes => {
     const writer = createObjectWriter(maxBytes, true);
@@ -1480,21 +1325,6 @@ export async function openLocalPublicationStore(
         }
       },
     });
-  };
-
-  const commitCustodyFailure = (primary, custody, reconciliation) => {
-    if (custody.status().pending !== true) return primary;
-    const code = typeof primary?.code === 'string'
-      ? primary.code : 'PublicationCommitUnknown';
-    const failure = new PublicationStoreError(code, primary);
-    failure.primaryFailure = primary;
-    failure.reconciliationFailure = reconciliation;
-    failure.cleanupPending = true;
-    failure.cleanupErrors = Object.freeze(
-      reconciliation === undefined ? [] : [reconciliation],
-    );
-    failure.cleanupHandle = custody;
-    return failure;
   };
 
   const putBytesInternal = async (value, expectedCid, trackCustody) => {
@@ -3177,121 +3007,87 @@ export async function openLocalPublicationStore(
         contractControl.recordAllowsCommit(previous) !== true) {
       fail('PublicationAttemptNotCommitting');
     }
-    const existingCommit = await confirmCommittedIndex(key);
-    if (existingCommit !== undefined) {
-      if (contractControl.publicIndexSameCommittedContent(
-        (await readContract(existingCommit.public_index_entry_cid,
-          'public_index_entry')).contract, admitted,
-      ) !== true) {
-        fail('PublicationCommitConflict');
-      }
-      const inventory = await readMetadataInventory(
-        existingCommit.public_index_entry_cid,
-      );
-      const directlyRequired = [
-        existingCommit.public_index_entry_cid,
-        existingCommit.invocation_cid,
-        existingCommit.result_manifest_cid,
-        existingCommit.run_receipt_cid,
-        existingCommit.captured_run_cid,
-        ...existingCommit.durable_result_binding_cids,
-        existingCommit.publication_request_cid,
-        existingCommit.publication_attempt_cid,
-      ];
-      for (const bindingCid of
-        existingCommit.durable_result_binding_cids) {
-        const binding = (await readContract(
-          bindingCid, 'durable_result_binding',
-        )).value;
-        directlyRequired.push(binding.result_schema_cid);
-      }
-      if (inventory === undefined ||
-          inventory.public_index_entry_cid !==
-            existingCommit.public_index_entry_cid ||
-          inventory.physical_holding_cids.join('\0') !==
-            physicalHoldingCids.join('\0') ||
-          directlyRequired.some(cid =>
-            !inventory.contract_objects.some(object =>
-              object.semantic_cid === cid))) {
-        fail('InvalidPublicationMetadataInventoryStore');
-      }
-      await adoptPreparedObjects(boundPhysicalCids);
-      await adoptPreparedSchemas(
-        inventorySemanticCids, entry.run_definition_cid,
-      );
-      return Object.freeze({
-        entry: existingCommit,
-        committed: false,
-        idempotent: true,
-      });
-    }
-    await putPublicationContract('public_index_entry', admitted.wire);
-    const inventoryContractObjects = await bindMetadataContractObjects(
-      inventorySemanticCids,
+    const adoptObjects = () => adoptPreparedObjects(boundPhysicalCids);
+    const adoptSchemas = () => adoptPreparedSchemas(
+      inventorySemanticCids, entry.run_definition_cid,
     );
-    await ensureMetadataInventory(Object.freeze({
-      version: 'actql-local-publication-metadata-inventory/0.1',
-      namespace_id: entry.namespace_id,
-      authority_scope_cid: entry.authority_scope_cid,
-      run_definition_cid: entry.run_definition_cid,
-      public_index_entry_cid: admitted.identity,
-      publication_attempt_cid: entry.publication_attempt_cid,
-      contract_objects: inventoryContractObjects,
-      physical_holding_cids: physicalHoldingCids,
-    }));
-    const target = resolve(indexesDirectory, `${keyHash}.json`);
-    const custody = beginPreparedCommit(
-      boundPhysicalCids, key, entry.public_index_entry_cid,
-    );
-    let installed = false;
-    try {
-      await link(contractPath(entry.public_index_entry_cid), target);
-      installed = true;
-      await syncDirectory(indexesDirectory);
-      durablyConfirmedIndexes.set(
-        keyHash, entry.public_index_entry_cid,
-      );
-      await adoptPreparedObjects(boundPhysicalCids);
-      await adoptPreparedSchemas(
-        inventorySemanticCids, entry.run_definition_cid,
-      );
-      return Object.freeze({entry, committed: true, idempotent: false});
-    } catch (error) {
-      let existing;
-      try { existing = await confirmCommittedIndex(key); }
-      catch (reconciliation) {
-        throw commitCustodyFailure(error, custody, reconciliation);
-      }
-      if (existing === undefined) {
-        await custody.resolveConfirmed(undefined);
-        throw error;
-      }
-      let sameContent;
-      try {
-        sameContent = contractControl.publicIndexSameCommittedContent(
+    return createPublicationCommitOwner({entry, admitted, key}, {
+      confirm: confirmCommittedIndex,
+      async sameContent(existing, candidate) {
+        return contractControl.publicIndexSameCommittedContent(
           (await readContract(existing.public_index_entry_cid,
-            'public_index_entry')).contract, admitted,
+            'public_index_entry')).contract, candidate,
         );
-      } catch (reconciliation) {
-        throw commitCustodyFailure(error, custody, reconciliation);
-      }
-      if (sameContent !== true) {
-        await custody.resolveConfirmed(existing);
-        fail('PublicationCommitConflict');
-      }
-      try { await adoptPreparedObjects(boundPhysicalCids); }
-      catch (reconciliation) {
-        throw commitCustodyFailure(error, custody, reconciliation);
-      }
-      await adoptPreparedSchemas(
-        inventorySemanticCids, entry.run_definition_cid,
-      );
-      return Object.freeze({
-        entry: existing,
-        committed: installed,
-        idempotent: !installed,
-      });
-    }
+      },
+      conflict() { fail('PublicationCommitConflict'); },
+      async verifyExistingInventory(existingCommit) {
+        const inventory = await readMetadataInventory(
+          existingCommit.public_index_entry_cid,
+        );
+        const directlyRequired = [
+          existingCommit.public_index_entry_cid,
+          existingCommit.invocation_cid,
+          existingCommit.result_manifest_cid,
+          existingCommit.run_receipt_cid,
+          existingCommit.captured_run_cid,
+          ...existingCommit.durable_result_binding_cids,
+          existingCommit.publication_request_cid,
+          existingCommit.publication_attempt_cid,
+        ];
+        for (const bindingCid of
+          existingCommit.durable_result_binding_cids) {
+          const binding = (await readContract(
+            bindingCid, 'durable_result_binding',
+          )).value;
+          directlyRequired.push(binding.result_schema_cid);
+        }
+        if (inventory === undefined ||
+            inventory.public_index_entry_cid !==
+              existingCommit.public_index_entry_cid ||
+            inventory.physical_holding_cids.join('\0') !==
+              physicalHoldingCids.join('\0') ||
+            directlyRequired.some(cid =>
+              !inventory.contract_objects.some(object =>
+                object.semantic_cid === cid))) {
+          fail('InvalidPublicationMetadataInventoryStore');
+        }
+      },
+      async stage() {
+        await putPublicationContract('public_index_entry', admitted.wire);
+        const inventoryContractObjects = await bindMetadataContractObjects(
+          inventorySemanticCids,
+        );
+        await ensureMetadataInventory(Object.freeze({
+          version: 'actql-local-publication-metadata-inventory/0.1',
+          namespace_id: entry.namespace_id,
+          authority_scope_cid: entry.authority_scope_cid,
+          run_definition_cid: entry.run_definition_cid,
+          public_index_entry_cid: admitted.identity,
+          publication_attempt_cid: entry.publication_attempt_cid,
+          contract_objects: inventoryContractObjects,
+          physical_holding_cids: physicalHoldingCids,
+        }));
+      },
+      beginCustody() {
+        return beginPreparedCommit(
+          boundPhysicalCids, key, entry.public_index_entry_cid,
+        );
+      },
+      async install(markInstalled) {
+        const target = resolve(indexesDirectory, `${keyHash}.json`);
+        await link(contractPath(entry.public_index_entry_cid), target);
+        markInstalled();
+        await syncDirectory(indexesDirectory);
+        durablyConfirmedIndexes.set(keyHash, entry.public_index_entry_cid);
+      },
+      adoptObjects,
+      adoptSchemas,
+      async adopt() {
+        await adoptObjects();
+        await adoptSchemas();
+      },
+      makeFailure: (code, cause) => new PublicationStoreError(code, cause),
+    }).commit();
   };
 
   // A prepared schema cannot be retired between commit evidence validation
@@ -4821,83 +4617,53 @@ export async function openLocalPublicationStore(
     if (existing !== undefined) {
       return Object.freeze({marker, cleanup: existing, deleted: false});
     }
-    let pending = true;
-    let unlinked = false;
-    let accounted = false;
-    const errors = [];
-    const status = () => Object.freeze({
-      pending,
-      errors: Object.freeze([...errors]),
-    });
-    const cleanup = Object.freeze({
-      status,
-      async retry() {
-        if (!pending) return status();
-        const operation = materialRetentionBusy.then(async () => {
-          await ensureResultDeletionMarker(
-            keyHash, resultDefinitionCid, marker,
-          );
-          if ((activeResultReaders.get(materialCid) ?? 0) !== 0) return;
-          const prepared = preparedObjects.get(materialCid);
-          if (prepared !== undefined &&
-              (prepared.holders.size !== 0 ||
-                prepared.commitOwners.size !== 0)) return;
-          if (await materialHasLiveReference(materialCid)) {
-            pending = false;
-            pendingResultDeletions.delete(deletionKey);
-            return;
-          }
-          const currentPrepared = preparedObjects.get(materialCid);
-          if (currentPrepared !== undefined &&
-              (currentPrepared.holders.size !== 0 ||
-                currentPrepared.commitOwners.size !== 0)) return;
-          reclaimingMaterialCids.add(materialCid);
-          const path = objectPath(materialCid);
-          if (!unlinked) {
-            let state;
-            try { state = await lstat(path); }
-            catch (error) {
-              if (error?.code !== 'ENOENT') throw error;
-            }
-            if (state === undefined) {
-              pending = false;
-              pendingResultDeletions.delete(deletionKey);
-              reclaimingMaterialCids.delete(materialCid);
-              return;
-            }
-            if (!state.isFile() || state.size !== expectedBytes) {
-              fail('PublicationDurableBindingMismatch');
-            }
-            // A semantic contract or another Store-owned physical reference
-            // can share this inode without appearing in the Result index.
-            // Removing the base name would not reclaim that allocation, so
-            // retain both the object path and its capacity charge.
-            if (state.nlink > 1) {
-              pending = false;
-              pendingResultDeletions.delete(deletionKey);
-              reclaimingMaterialCids.delete(materialCid);
-              return;
-            }
-            await unlink(path);
-            unlinked = true;
-          }
-          await syncDirectory(objectsDirectory);
-          if (!accounted) {
-            storedBytes -= expectedBytes;
-            objectCount--;
-            accounted = true;
-          }
-          pending = false;
-          pendingResultDeletions.delete(deletionKey);
-          reclaimingMaterialCids.delete(materialCid);
-        });
+    const cleanup = createResultDeletionOwner({
+      serialize(run) {
+        const operation = materialRetentionBusy.then(run);
         materialRetentionBusy = operation.catch(() => {});
-        try { await operation; }
-        catch (error) {
-          errors.push(error);
-          throw error;
+        return operation;
+      },
+      ensureMarker: () => ensureResultDeletionMarker(
+        keyHash, resultDefinitionCid, marker,
+      ),
+      async retention() {
+        if ((activeResultReaders.get(materialCid) ?? 0) !== 0) return 'wait';
+        const prepared = preparedObjects.get(materialCid);
+        if (prepared !== undefined &&
+            (prepared.holders.size !== 0 ||
+              prepared.commitOwners.size !== 0)) return 'wait';
+        if (await materialHasLiveReference(materialCid)) {
+          return 'settled';
         }
-        return status();
+        const currentPrepared = preparedObjects.get(materialCid);
+        return currentPrepared !== undefined &&
+          (currentPrepared.holders.size !== 0 ||
+            currentPrepared.commitOwners.size !== 0) ? 'wait' : 'free';
+      },
+      markReclaiming() { reclaimingMaterialCids.add(materialCid); },
+      async inspectAllocation() {
+        let state;
+        try { state = await lstat(objectPath(materialCid)); }
+        catch (error) {
+          if (error?.code !== 'ENOENT') throw error;
+        }
+        if (state === undefined) return 'missing';
+        if (!state.isFile() || state.size !== expectedBytes) {
+          fail('PublicationDurableBindingMismatch');
+        }
+        // Other Store-owned references can share this inode. Keep the base
+        // name and capacity charge while any physical link remains.
+        return state.nlink > 1 ? 'shared' : 'exclusive';
+      },
+      unlink: () => unlink(objectPath(materialCid)),
+      syncObjects: () => syncDirectory(objectsDirectory),
+      releaseCapacity() {
+        storedBytes -= expectedBytes;
+        objectCount--;
+      },
+      settle(clearReclaiming) {
+        pendingResultDeletions.delete(deletionKey);
+        if (clearReclaiming) reclaimingMaterialCids.delete(materialCid);
       },
     });
     pendingResultDeletions.set(deletionKey, cleanup);
@@ -4994,112 +4760,92 @@ export async function openLocalPublicationStore(
     if (existing !== undefined) {
       return Object.freeze({marker, cleanup: existing, deleted: false});
     }
-    let pending = true;
-    const errors = [];
-    const unconfirmedObjects = new Map();
-    const status = () => Object.freeze({
-      pending,
-      errors: Object.freeze([...errors]),
-    });
-    const cleanup = Object.freeze({
-      status,
-      async retry() {
-        if (!pending) return status();
-        const operation = metadataRetentionBusy.then(async () => {
-          if (unconfirmedObjects.size !== 0) {
-            await syncDirectory(objectsDirectory);
-            for (const bytes of unconfirmedObjects.values()) {
-              storedBytes -= bytes;
-              objectCount--;
-            }
-            unconfirmedObjects.clear();
-          }
-          for (const result of marker.results) {
-            const retired = await createResultDeletionCleanup(
-              keyHash,
-              result.result_definition_cid,
-              Object.freeze({
-                version: 'actql-local-result-deletion/0.1',
-                public_index_entry_cid: marker.public_index_entry_cid,
-                result_definition_cid: result.result_definition_cid,
-                material_generation_cid: result.material_generation_cid,
-              }),
-              result.byte_count,
-            );
-            if (retired.cleanup.status().pending) {
-              await retired.cleanup.retry();
-            }
-            if (retired.cleanup.status().pending) return;
-          }
-          for (const holdingCid of marker.physical_holding_cids) {
-            if (await metadataHoldingHasOtherOwner(
-              holdingCid, marker.public_index_entry_cid,
-            )) continue;
-            const retired = await retirePhysicalHolding(holdingCid);
-            if (retired.cleanup.status().pending) return;
-          }
-          await removeRunMetadataDirectories(
-            marker.run_definition_cid, keyHash,
-          );
-          const indexPath = resolve(indexesDirectory, `${keyHash}.json`);
-          let indexBytes;
-          try {
-            indexBytes = await readBounded(
-              indexPath, configuration.maxObjectBytes,
-            );
-          } catch (error) {
-            if (error?.code !== 'ENOENT') throw error;
-          }
-          if (indexBytes !== undefined) {
-            const index = admitContract(
-              'public_index_entry', indexBytes.toString('utf8'),
-            );
-            if (index.identity !== marker.public_index_entry_cid) {
-              fail('InvalidPublicationMetadataDeletionStore');
-            }
-            await unlink(indexPath);
-            await syncDirectory(indexesDirectory);
-          }
-          durablyConfirmedIndexes.delete(keyHash);
-          for (const object of marker.contract_objects) {
-            await reclaimMetadataContract(
-              marker.public_index_entry_cid, object, unconfirmedObjects,
-            );
-          }
-          if (unconfirmedObjects.size !== 0) {
-            await syncDirectory(objectsDirectory);
-            for (const bytes of unconfirmedObjects.values()) {
-              storedBytes -= bytes;
-              objectCount--;
-            }
-            unconfirmedObjects.clear();
-          }
-          try {
-            await rm(resultDeletionDirectory(keyHash), {
-              recursive: true, force: false,
-            });
-            await syncDirectory(deletionsDirectory);
-          } catch (error) {
-            if (error?.code !== 'ENOENT') throw error;
-          }
-          try {
-            await unlink(metadataInventoryPath(marker.public_index_entry_cid));
-            await syncDirectory(metadataInventoriesDirectory);
-          } catch (error) {
-            if (error?.code !== 'ENOENT') throw error;
-          }
-          await compactMetadataDeletion(keyHash, marker.run_definition_cid);
-          pending = false;
-          pendingMetadataDeletions.delete(keyHash);
-        });
+    const cleanup = createMetadataDeletionOwner(marker, {
+      serialize(run) {
+        const operation = metadataRetentionBusy.then(run);
         metadataRetentionBusy = operation.catch(() => {});
-        try { await operation; }
-        catch (error) {
-          errors.push(error);
-          throw error;
-        }
-        return status();
+        return operation;
       },
+      syncObjects: () => syncDirectory(objectsDirectory),
+      releaseUnconfirmed(objects) {
+        for (const bytes of objects.values()) {
+          storedBytes -= bytes;
+          objectCount--;
+        }
+      },
+      async retireResult(result) {
+        const retired = await createResultDeletionCleanup(
+          keyHash,
+          result.result_definition_cid,
+          Object.freeze({
+            version: 'actql-local-result-deletion/0.1',
+            public_index_entry_cid: marker.public_index_entry_cid,
+            result_definition_cid: result.result_definition_cid,
+            material_generation_cid: result.material_generation_cid,
+          }),
+          result.byte_count,
+        );
+        if (retired.cleanup.status().pending) await retired.cleanup.retry();
+        return !retired.cleanup.status().pending;
+      },
+      async retireHolding(holdingCid) {
+        if (await metadataHoldingHasOtherOwner(
+          holdingCid, marker.public_index_entry_cid,
+        )) return true;
+        const retired = await retirePhysicalHolding(holdingCid);
+        return !retired.cleanup.status().pending;
+      },
+      removeRunDirectories: () => removeRunMetadataDirectories(
+        marker.run_definition_cid, keyHash,
+      ),
+      async removeIndex() {
+        const indexPath = resolve(indexesDirectory, `${keyHash}.json`);
+        let indexBytes;
+        try {
+          indexBytes = await readBounded(
+            indexPath, configuration.maxObjectBytes,
+          );
+        } catch (error) {
+          if (error?.code !== 'ENOENT') throw error;
+        }
+        if (indexBytes !== undefined) {
+          const index = admitContract(
+            'public_index_entry', indexBytes.toString('utf8'),
+          );
+          if (index.identity !== marker.public_index_entry_cid) {
+            fail('InvalidPublicationMetadataDeletionStore');
+          }
+          await unlink(indexPath);
+          await syncDirectory(indexesDirectory);
+        }
+        durablyConfirmedIndexes.delete(keyHash);
+      },
+      reclaimContract: (object, unconfirmedObjects) =>
+        reclaimMetadataContract(
+          marker.public_index_entry_cid, object, unconfirmedObjects,
+        ),
+      async removeResultDeletionDirectory() {
+        try {
+          await rm(resultDeletionDirectory(keyHash), {
+            recursive: true, force: false,
+          });
+          await syncDirectory(deletionsDirectory);
+        } catch (error) {
+          if (error?.code !== 'ENOENT') throw error;
+        }
+      },
+      async removeInventory() {
+        try {
+          await unlink(metadataInventoryPath(marker.public_index_entry_cid));
+          await syncDirectory(metadataInventoriesDirectory);
+        } catch (error) {
+          if (error?.code !== 'ENOENT') throw error;
+        }
+      },
+      compactMarker: () => compactMetadataDeletion(
+        keyHash, marker.run_definition_cid,
+      ),
+      settle() { pendingMetadataDeletions.delete(keyHash); },
     });
     pendingMetadataDeletions.set(keyHash, cleanup);
     try { await cleanup.retry(); }

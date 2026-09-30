@@ -44,6 +44,7 @@ function responseCode(error) {
       error?.code === 'ClientConnectionDenied' ||
       error?.code === 'ClientRequestLookupDenied' ||
       error?.code === 'ClientRunStartDenied' ||
+      error?.code === 'ClientRunCancellationDenied' ||
       error?.code === 'ClientRunAttachDenied' ||
       error?.code === 'CheckpointListDenied' ||
       error?.code === 'CheckpointReviewDenied' ||
@@ -54,6 +55,7 @@ function responseCode(error) {
       /^ACTQL_E_(ACCOUNT_[A-Z_]+|DELEGATION_[A-Z_]+)$/u
         .test(error?.code ?? '')) return 403;
   if (error?.code === 'CheckpointReviewUnavailable') return 410;
+  if (error?.code === 'WaitAborted') return 408;
   if (error?.code === 'ClientRequestNotFound' ||
       error?.code === 'ResourceConnectionNotFound') return 404;
   if (error?.code === 'ResourceCatalogUnavailable') return 503;
@@ -67,6 +69,7 @@ function responseCode(error) {
       error?.code === 'ClientProgramInvalidInput' ||
       error?.code === 'ClientParametersInvalid' ||
       error?.code === 'InvalidRunStateRequest' ||
+      error?.code === 'InvalidWaitCondition' ||
       error?.code === 'InvalidResultAccessRequest' ||
       error?.code === 'InvalidCheckpointPage') return 400;
   if (error?.code === 'ClientProgramNeedsInputs' ||

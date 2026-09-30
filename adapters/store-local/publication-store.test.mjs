@@ -1124,6 +1124,42 @@ test('writer retains capacity and cleanup identity until unlink succeeds',
     });
   });
 
+test('concurrent writers share one Store capacity and release exactly once',
+  async t => {
+    const {store} = await fixture(t, {
+      capacityBytes: 10,
+      maxObjectBytes: 10,
+      maxObjects: 3,
+    });
+    const first = store.createObjectWriter(6);
+    const second = store.createObjectWriter(4);
+    assert.equal(store.status().reservedBytes, 10);
+    assert.equal(store.status().reservedObjects, 2);
+    assert.throws(() => store.createObjectWriter(1),
+      code('PublicationStoreCapacity'));
+    await assert.rejects(store.close(),
+      code('PublicationStoreCleanupPending'));
+    await Promise.all([first.append('aaaaaa'), second.append('bbbb')]);
+    assert.deepEqual(await first.seal(digest('aaaaaa')), {
+      cid: digest('aaaaaa'), bytes: 6, created: true,
+    });
+    assert.equal(await first.cancel(), false);
+    assert.equal(store.status().storedBytes, 6);
+    assert.equal(store.status().reservedBytes, 4);
+    assert.throws(() => store.createObjectWriter(1),
+      code('PublicationStoreCapacity'));
+    assert.equal(await second.cancel(), true);
+    assert.equal(await second.cancel(), false);
+    assert.equal(store.status().reservedBytes, 0);
+    const third = store.createObjectWriter(4);
+    await third.append('cccc');
+    await third.seal(digest('cccc'));
+    assert.equal(store.status().storedBytes, 10);
+    assert.equal(store.status().reservedBytes, 0);
+    assert.equal(store.status().reservedObjects, 0);
+    assert.equal(await store.close(), true);
+  });
+
 test('writer checks exact byte length before copying caller-owned input',
   async t => {
     const {store} = await fixture(t, {
@@ -2860,6 +2896,32 @@ test('same intent is idempotent while conflicting commit is rejected',
       wire(conflictingEntry), conflict.required, conflict.evidence,
     ), code('PublicationCommitConflict'));
     assert.equal(await conflict.prepared.release(), true);
+  });
+
+test('concurrent public commits serialize one installation and one replay',
+  async t => {
+    const {store} = await fixture(t);
+    const invocationValue = invocation();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(
+      store, request, attempt, invocationValue,
+    );
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    const results = await Promise.all([
+      store.commitIndex(wire(entry), prepared.required, prepared.evidence),
+      store.commitIndex(wire(entry), prepared.required, prepared.evidence),
+    ]);
+    assert.deepEqual(results.map(result => [
+      result.committed, result.idempotent,
+    ]), [[true, false], [false, true]]);
+    assert.deepEqual(await store.confirmCommittedIndex(indexKeyFor(request)),
+      entry);
+    assert.equal(prepared.prepared.status().pending, false);
   });
 
 test('lookup hides absence and verifies current authorization', async t => {

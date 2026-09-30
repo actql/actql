@@ -2017,6 +2017,21 @@ async function exerciseStrategyGraph(
       {id: 2, node_name: 'second'},
     ],
   }, {
+    name: 'retained-match-nodes-filter',
+    retainedOutput: true,
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized',
+      match_nodes: {ids: [2, 1, 2], fields: ['id', 'node_name']},
+      as: 'matched',
+    }, {
+      from: 'matched', filter: 'id > 1', as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [{id: 2, node_name: 'second'}],
+  }, {
     name: 'match-nodes-predicate',
     step: {
       from: 'g',
@@ -2042,6 +2057,21 @@ async function exerciseStrategyGraph(
       {src: 1, dst: 2, weight: 10},
       {src: 2, dst: 1, weight: 20},
     ],
+  }, {
+    name: 'retained-match-edges-filter',
+    retainedOutput: true,
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized',
+      match_edges: {fields: ['src', 'dst', 'weight']},
+      as: 'matched',
+    }, {
+      from: 'matched', filter: 'weight > 10', as: 'out',
+    }],
+    fields: ['src', 'dst', 'weight'],
+    secondFields: ['weight', 'src'],
+    expected: [{src: 2, dst: 1, weight: 20}],
   }, {
     name: 'match-edges-predicate',
     step: {
@@ -2078,6 +2108,7 @@ async function exerciseStrategyGraph(
     expected: [{node: 1, degree: 2}, {node: 2, degree: 2}],
   }, {
     name: 'reach-out',
+    completedTasks: 6,
     step: {
       from: 'g',
       reach: {start: 1, direction: 'out', max_depth: 2},
@@ -2091,6 +2122,7 @@ async function exerciseStrategyGraph(
     ],
   }, {
     name: 'reach-in',
+    completedTasks: 6,
     step: {
       from: 'g',
       reach: {start: 1, direction: 'in', max_depth: 2},
@@ -2104,6 +2136,7 @@ async function exerciseStrategyGraph(
     ],
   }, {
     name: 'reach-both',
+    completedTasks: 6,
     step: {
       from: 'g',
       reach: {start: 1, direction: 'both', max_depth: 2},
@@ -2127,6 +2160,68 @@ async function exerciseStrategyGraph(
   }, {
     name: 'components-strong',
     step: {from: 'g', components: {kind: 'strong'}, as: 'out'},
+    fields: ['node_id', 'component_id', 'component_size'],
+    secondFields: ['component_id', 'component_size'],
+    expected: [
+      {node_id: 1, component_id: 1, component_size: 2},
+      {node_id: 2, component_id: 1, component_size: 2},
+    ],
+  }, {
+    name: 'retained-bounds-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    step: {
+      from: 'g',
+      graph_bounds: {max_nodes: 1},
+      as: 'out',
+    },
+    fields: ['kind', 'node_id', 'actual', 'max'],
+    secondFields: ['kind', 'node_id'],
+    expected: [
+      {kind: 'nodes', node_id: null, actual: 2, max: 1},
+    ],
+  }, {
+    name: 'retained-degree-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    step: {from: 'g', degree: {direction: 'both'}, as: 'out'},
+    fields: ['node', 'degree'],
+    secondFields: ['degree'],
+    expected: [{node: 1, degree: 2}, {node: 2, degree: 2}],
+  }, {
+    name: 'retained-reach-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    step: {
+      from: 'g',
+      reach: {start: 1, direction: 'out', max_depth: 2},
+      as: 'out',
+    },
+    fields: ['start_id', 'node_id', 'depth'],
+    secondFields: ['node_id', 'depth'],
+    expected: [
+      {start_id: 1, node_id: 1, depth: 0},
+      {start_id: 1, node_id: 2, depth: 1},
+    ],
+  }, {
+    name: 'retained-shortest-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    step: {
+      from: 'g',
+      shortest_path: {
+        source: 1, target: 2, direction: 'out', max_hops: 2,
+      },
+      as: 'out',
+    },
+    fields: ['source_id', 'target_id', 'hop_count'],
+    secondFields: ['target_id', 'hop_count'],
+    expected: [{source_id: 1, target_id: 2, hop_count: 1}],
+  }, {
+    name: 'components-retained-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    step: {from: 'g', components: {kind: 'weak'}, as: 'out'},
     fields: ['node_id', 'component_id', 'component_size'],
     secondFields: ['component_id', 'component_size'],
     expected: [
@@ -2276,13 +2371,23 @@ async function exerciseStrategyGraph(
     }
     const createSgaFixture = publicationCase.name.startsWith('components-')
       ? fixture.strategyFixtureSgaComponentsCreate
-      : publicationCase.name.startsWith('reach-')
+      : publicationCase.name.startsWith('reach-') ||
+          publicationCase.name === 'retained-reach-filter'
         ? fixture.strategyFixtureSgaReachCreate
+        : publicationCase.name === 'retained-shortest-filter'
+          ? fixture.strategyFixtureSgaShortestSizedCreate
         : fixture.strategyFixtureSgaCreate;
-    const sgaFixture = createSgaFixture(
-      ...sgaEnvironmentArguments(args),
-      JSON.stringify(graphProgram),
-    );
+    let sgaFixture;
+    try {
+      sgaFixture = createSgaFixture(
+        ...sgaEnvironmentArguments(args),
+        JSON.stringify(graphProgram),
+        ...(publicationCase.name === 'retained-shortest-filter' ? [2n] : []),
+      );
+    } catch (error) {
+      throw new Error(`SGA fixture ${publicationCase.name} failed to check`,
+        {cause: error});
+    }
     const sgaCapture = await runNativeHostQuery(
       grant,
       fixture.strategyFixtureAcquisition(sgaFixture),
@@ -2350,6 +2455,7 @@ async function exerciseStrategyGraph(
           Array(publicationCase.completedTasks ??
             (publicationCase.name === 'node-rows' ? 6 : 5))
             .fill('local-managed'),
+          publicationCase.name,
         );
       } else {
         assert(sgaRetained.leases.length > 0);
@@ -4735,6 +4841,86 @@ async function exerciseStrategyGraph(
     },
     fields: ['kind', 'node_id', 'actual', 'max'],
   }, {
+    name: 'retained-bounds-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{from: 'g', graph_bounds: {max_nodes: 1}, as: 'out'}],
+    fields: ['kind', 'node_id', 'actual', 'max'],
+  }, {
+    name: 'retained-degree-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{from: 'g', degree: {direction: 'both'}, as: 'out'}],
+    fields: ['node', 'degree'],
+  }, {
+    name: 'retained-reach-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{
+      from: 'g',
+      reach: {start: 1, direction: 'out', max_depth: 2},
+      as: 'out',
+    }],
+    fields: ['start_id', 'node_id', 'depth'],
+  }, {
+    name: 'retained-shortest-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{
+      from: 'g',
+      shortest_path: {
+        source: 1, target: 2, direction: 'out', max_hops: 2,
+      },
+      as: 'out',
+    }],
+    fields: ['source_id', 'target_id', 'hop_count'],
+  }, {
+    name: 'components-retained-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{from: 'g', components: {kind: 'weak'}, as: 'out'}],
+    fields: ['node_id', 'component_id', 'component_size'],
+  }, {
     name: 'match-nodes-predicate-in-flight',
     rows: 40,
     step: {
@@ -4747,6 +4933,27 @@ async function exerciseStrategyGraph(
     },
     fields: ['id', 'node_name'],
   }, {
+    name: 'retained-match-nodes-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{
+      from: 'g',
+      match_nodes: {
+        where: "node_name = 'node-39'",
+        fields: ['id', 'node_name'],
+      },
+      as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'match-edges-in-flight',
     rows: 40,
     step: {
@@ -4754,6 +4961,27 @@ async function exerciseStrategyGraph(
       match_edges: {fields: ['src', 'dst', 'weight']},
       as: 'out',
     },
+    fields: ['src', 'dst', 'weight'],
+  }, {
+    name: 'retained-match-edges-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{
+      from: 'g',
+      match_edges: {
+        where: 'weight > 10',
+        fields: ['src', 'dst', 'weight'],
+      },
+      as: 'out',
+    }],
     fields: ['src', 'dst', 'weight'],
   }, {
     name: 'match-edges-predicate-in-flight',
@@ -4776,7 +5004,12 @@ async function exerciseStrategyGraph(
     name: 'reach-out',
     rows: 40,
     advanceQuantum: 1,
-    constructionProgress: 80,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 2,
+    completedTasks: [1],
     step: {
       from: 'g',
       reach: {start: 1, direction: 'out', max_depth: 40},
@@ -4787,7 +5020,12 @@ async function exerciseStrategyGraph(
     name: 'shortest-out',
     rows: 40,
     advanceQuantum: 1,
-    constructionProgress: 80,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 2,
+    completedTasks: [1],
     step: {
       from: 'g',
       shortest_path: {
@@ -6200,15 +6438,17 @@ async function exerciseStrategyGraph(
         ? fixture.strategyFixtureVecaCreate
       : unsizedGraph
         ? fixture.strategyFixtureSgaCreate
-      : cancellationCase.name === 'components-strong'
+      : cancellationCase.name.startsWith('components-')
         ? fixture.strategyFixtureSgaComponentsSizedCreate
         : cancellationCase.name === 'traverse-paths'
           ? fixture.strategyFixtureSgaTraversePathsSizedCreate
         : cancellationCase.name === 'traverse-out'
           ? fixture.strategyFixtureSgaTraverseSizedCreate
-        : cancellationCase.name === 'reach-out'
+        : cancellationCase.name === 'reach-out' ||
+          cancellationCase.name === 'retained-reach-filter-in-flight'
           ? fixture.strategyFixtureSgaReachSizedCreate
-        : cancellationCase.name === 'shortest-out'
+        : cancellationCase.name === 'shortest-out' ||
+          cancellationCase.name === 'retained-shortest-filter-in-flight'
           ? fixture.strategyFixtureSgaShortestSizedCreate
         : cancellationCase.concise === true
           ? fixture.strategyFixtureSgaDerivedCreate

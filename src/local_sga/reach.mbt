@@ -56,9 +56,10 @@ priv enum ReachEdgeFilter {
 
 ///|
 priv struct ReachState {
-  input : @graph.ProducerRead
-  source : @storage.Storage
+  source : GraphReadSource
   graph : @carrier.Graph
+  node_count : Int
+  edge_count : Int
   schema : @schema.Schema
   starts : ReachStarts
   pattern : @lower.PreparedGraphTraverse?
@@ -194,7 +195,7 @@ fn reach_start_count(state : ReachState) -> Int {
       @lower.graph_traverse_start_id_count(prepared)
     TraversalRelationStarts(input, _) =>
       @execution.producer_read_row_count(input)
-    TraversalPredicateStarts(_) => @storage.node_count(state.source)
+    TraversalPredicateStarts(_) => state.node_count
   }
 }
 
@@ -332,8 +333,8 @@ fn compare_reach_nodes_step(
   left : Int,
   right : Int,
 ) -> Result[Int?, ReachIssue] {
-  guard @storage.node_identity(state.source, left) is Some(left_value) &&
-    @storage.node_identity(state.source, right) is Some(right_value) else {
+  guard graph_read_node_identity(state.source, left) is Some(left_value) &&
+    graph_read_node_identity(state.source, right) is Some(right_value) else {
     return Err(ReachInputUnavailable)
   }
   let comparison = match state.key_comparison {
@@ -437,7 +438,7 @@ fn reach_pattern_hop_type_matches(
     is Some(expected) else {
     return false
   }
-  match @storage.edge_label(state.source, edge) {
+  match graph_read_edge_label(state.source, edge) {
     Some(Some({ value: @value.Text(actual), .. })) => actual == expected
     _ => false
   }
@@ -502,7 +503,7 @@ fn reach_edge_type_matches(
     is Some(expected) else {
     return false
   }
-  match @storage.edge_label(state.source, edge) {
+  match graph_read_edge_label(state.source, edge) {
     Some(Some({ value: @value.Text(actual), .. })) => actual == expected
     _ => false
   }
@@ -514,13 +515,14 @@ fn checked_reach_value(
   field : @schema.Field,
 ) -> @value.CheckedValue? {
   if field.name == @schema.Unqualified("start_id") {
-    return @storage.node_identity(state.source, state.current_start_node).bind(value => {
-      @value.recheck_runtime_value(
-        value.value,
-        field.contract,
-        state.value_limits,
-      )
-    })
+    return graph_read_node_identity(state.source, state.current_start_node).bind(value => {
+        @value.recheck_runtime_value(
+          value.value,
+          field.contract,
+          state.value_limits,
+        )
+      },
+    )
   }
   if field.name == @schema.Unqualified("depth") {
     return @value.checked_number_value(
@@ -528,7 +530,7 @@ fn checked_reach_value(
       field.contract,
     )
   }
-  @storage.node_identity(state.source, state.current_node).bind(value => {
+  graph_read_node_identity(state.source, state.current_node).bind(value => {
     @value.recheck_runtime_value(
       value.value,
       field.contract,
@@ -549,8 +551,7 @@ fn reach_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@graph.producer_read_available(state.input) ||
-      !reach_starts_available(state) {
+    if !graph_read_available(state.source) || !reach_starts_available(state) {
       return @bounded.Failed(ReachInputUnavailable, progress, used)
     }
     if used >= state.control_work_remaining {
@@ -558,7 +559,7 @@ fn reach_step(
     }
     match state.phase {
       InitializeStartSelection =>
-        if state.index < @storage.node_count(state.source) {
+        if state.index < state.node_count {
           state.start_selected.push(false)
           state.index += 1
           used += 1
@@ -588,9 +589,23 @@ fn reach_step(
               used,
             )
           }
-          match @storage.node_index(state.source, start) {
-            Err(issue) =>
-              return @bounded.Failed(ReachGraph(issue), progress, used)
+          let found = match state.source {
+            Stored(read) =>
+              match @graph.producer_read_storage(read) {
+                Some(storage) =>
+                  match @storage.node_index(storage, start) {
+                    Ok(found) => Ok(found)
+                    Err(issue) => Err(ReachGraph(issue))
+                  }
+                None => Err(ReachInputUnavailable)
+              }
+            Viewed(_) =>
+              graph_read_node_index(state.source, start).map_err(_ => {
+                ReachInputUnavailable
+              })
+          }
+          match found {
+            Err(issue) => return @bounded.Failed(issue, progress, used)
             Ok(None) =>
               return @bounded.Failed(ReachStartMissing, progress, used)
             Ok(Some(node)) => state.start_selected[node] = true
@@ -601,12 +616,12 @@ fn reach_step(
           state.phase = CollectStarts
         }
       PrepareStartPredicate =>
-        if state.index >= @storage.node_count(state.source) {
+        if state.index >= state.node_count {
           state.index = 0
           state.phase = CollectStarts
         } else if state.predicate_field < state.start_predicate_fields {
           used += 1
-          guard graph_node_predicate_binding(
+          guard graph_node_predicate_binding_read(
               state.graph,
               state.source,
               state.index,
@@ -677,7 +692,7 @@ fn reach_step(
           state.phase = InitializeNodes
         }
       InitializeNodes =>
-        if state.index < @storage.node_count(state.source) {
+        if state.index < state.node_count {
           state.out_degree.push(0)
           state.in_degree.push(0)
           state.depth.push(-1)
@@ -688,8 +703,8 @@ fn reach_step(
           state.phase = ScanDegrees
         }
       ScanDegrees =>
-        if state.index < @storage.edge_count(state.source) {
-          guard @storage.edge_endpoints(state.source, state.index)
+        if state.index < state.edge_count {
+          guard graph_read_edge_endpoints(state.source, state.index)
             is Some((source, target)) else {
             return @bounded.Failed(ReachInputUnavailable, progress, used)
           }
@@ -713,7 +728,7 @@ fn reach_step(
           state.phase = BuildOffsets
         }
       ScanDegreeTypes => {
-        guard @storage.edge_endpoints(state.source, state.index)
+        guard graph_read_edge_endpoints(state.source, state.index)
           is Some((source, target)) &&
           reach_edge_type_count(state) is Some(type_count) else {
           return @bounded.Failed(ReachInputUnavailable, progress, used)
@@ -736,7 +751,7 @@ fn reach_step(
         }
       }
       BuildOffsets =>
-        if state.index < @storage.node_count(state.source) {
+        if state.index < state.node_count {
           state.out_start.push(
             state.out_start[state.index] + state.out_degree[state.index],
           )
@@ -752,7 +767,7 @@ fn reach_step(
           state.phase = InitializeEdges
         }
       InitializeEdges =>
-        if state.index < @storage.edge_count(state.source) {
+        if state.index < state.edge_count {
           state.out_edges.push(-1)
           state.in_edges.push(-1)
           state.index += 1
@@ -762,8 +777,8 @@ fn reach_step(
           state.phase = FillEdges
         }
       FillEdges =>
-        if state.index < @storage.edge_count(state.source) {
-          guard @storage.edge_endpoints(state.source, state.index)
+        if state.index < state.edge_count {
+          guard graph_read_edge_endpoints(state.source, state.index)
             is Some((source, target)) else {
             return @bounded.Failed(ReachInputUnavailable, progress, used)
           }
@@ -790,7 +805,7 @@ fn reach_step(
           state.phase = PrepareStartSort
         }
       FillEdgeTypes => {
-        guard @storage.edge_endpoints(state.source, state.index)
+        guard graph_read_edge_endpoints(state.source, state.index)
           is Some((source, target)) &&
           reach_edge_type_count(state) is Some(type_count) else {
           return @bounded.Failed(ReachInputUnavailable, progress, used)
@@ -949,7 +964,7 @@ fn reach_step(
           let edge = state.out_edges[state.neighbor_index]
           state.neighbor_index += 1
           used += 1
-          guard @storage.edge_endpoints(state.source, edge) is Some((_, node)) else {
+          guard graph_read_edge_endpoints(state.source, edge) is Some((_, node)) else {
             return @bounded.Failed(ReachInputUnavailable, progress, used)
           }
           prepare_reach_neighbor(state, edge, node, ScanOutgoing)
@@ -967,7 +982,7 @@ fn reach_step(
           let edge = state.in_edges[state.neighbor_index]
           state.neighbor_index += 1
           used += 1
-          guard @storage.edge_endpoints(state.source, edge) is Some((node, _)) else {
+          guard graph_read_edge_endpoints(state.source, edge) is Some((node, _)) else {
             return @bounded.Failed(ReachInputUnavailable, progress, used)
           }
           prepare_reach_neighbor(state, edge, node, ScanIncoming)
@@ -998,7 +1013,7 @@ fn reach_step(
       PrepareHopEdgePredicate =>
         if state.predicate_field < state.edge_predicate_fields {
           used += 1
-          guard graph_edge_predicate_binding(
+          guard graph_edge_predicate_binding_read(
               state.graph,
               state.source,
               state.candidate_edge,
@@ -1063,7 +1078,7 @@ fn reach_step(
       PrepareHopNodePredicate =>
         if state.predicate_field < state.node_predicate_fields {
           used += 1
-          guard graph_node_predicate_binding(
+          guard graph_node_predicate_binding_read(
               state.graph,
               state.source,
               state.candidate_node,
@@ -1286,8 +1301,8 @@ fn start_reach_state(
   preparation : @execution.CompletionPreparation,
   sequence : @lower.PreparedSequence,
   step : Int,
-  input : @graph.ProducerRead,
-  source : @storage.Storage,
+  source : GraphReadSource,
+  graph : @carrier.Graph,
   schema : @schema.Schema,
   starts : ReachStarts,
   pattern : @lower.PreparedGraphTraverse?,
@@ -1309,17 +1324,28 @@ fn start_reach_state(
   if control_work_limit < 0 {
     return Err(ReachWorkLimit)
   }
+  let source_matches = match source {
+    Stored(read) =>
+      @graph.producer_read_matches_operation_input(read, owner, step, 0)
+    Viewed(view) =>
+      @lifecycle.producer_view_kind(view) == @carrier.GraphKind &&
+      @lifecycle.producer_read_reference_matches_operation_input(
+        @lifecycle.producer_view_read_reference(view),
+        owner,
+        step,
+        0,
+      )
+  }
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),
       owner,
     ) &&
-    @graph.producer_read_matches_operation_input(input, owner, step, 0) else {
+    source_matches else {
     return Err(InvalidReachKernel)
   }
-  let nodes = @storage.node_count(source)
-  let edges = @storage.edge_count(source)
-  guard @storage.carrier(source) is @carrier.GraphValue(graph) else {
-    return Err(InvalidReachKernel)
+  guard graph_read_node_count(source) is Some(nodes) &&
+    graph_read_edge_count(source) is Some(edges) else {
+    return Err(ReachInputUnavailable)
   }
   let start_count = match starts {
     SingleReachStart(_) => 1
@@ -1391,15 +1417,36 @@ fn start_reach_state(
   let rows : Ref[@execution.AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    @execution.prepare_trusted_output_port(
-      preparation,
-      @pipeline.Step(step),
-      max_entries,
-      max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs~,
-    ) {
+  let port_result = match source {
+    Stored(_) =>
+      @execution.prepare_trusted_output_port(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs~,
+      )
+    Viewed(view) => {
+      guard inputs.is_empty() else {
+        @execution.cancel_admitted_output(output) |> ignore
+        return Err(InvalidReachKernel)
+      }
+      @execution.prepare_trusted_output_port_with_inputs(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs=[
+          @execution.trusted_output_carrier_input(
+            @lifecycle.producer_view_read_reference(view),
+          ),
+        ],
+      )
+    }
+  }
+  let port = match port_result {
     Ok(value) => value
     Err(issue) => {
       @execution.cancel_admitted_output(output) |> ignore
@@ -1407,9 +1454,10 @@ fn start_reach_state(
     }
   }
   let state : ReachState = {
-    input,
     source,
     graph,
+    node_count: nodes,
+    edge_count: edges,
     schema,
     starts,
     pattern,
@@ -1514,7 +1562,8 @@ pub fn start_reach(
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphReachStep(prepared)) &&
     @lower.graph_reach_max_depth(prepared) is Some(max_depth) &&
-    @graph.producer_read_storage(input) is Some(source) else {
+    @graph.producer_read_storage(input) is Some(source) &&
+    @storage.carrier(source) is @carrier.GraphValue(graph) else {
     return Err(InvalidReachKernel)
   }
   start_reach_state(
@@ -1522,8 +1571,60 @@ pub fn start_reach(
     preparation,
     sequence,
     step,
-    input,
-    source,
+    Stored(input),
+    graph,
+    @lower.graph_reach_output_schema(prepared),
+    SingleReachStart(@lower.graph_reach_start(prepared)),
+    None,
+    @lower.graph_reach_direction(prepared),
+    AllReachEdges,
+    None,
+    None,
+    0,
+    max_depth,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    control_work_limit.unwrap_or(limits.max_work),
+  )
+}
+
+///|
+/// Start a bounded reach task from an exact managed Graph generation.
+pub fn start_reach_view(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
+) -> Result[ReachExecution, ReachIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step)
+    is Some(@lower.GraphReachStep(prepared)) &&
+    @lower.graph_reach_max_depth(prepared) is Some(max_depth) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+    is Some(@carrier.GraphValue(graph)) else {
+    return Err(InvalidReachKernel)
+  }
+  start_reach_state(
+    control,
+    preparation,
+    sequence,
+    step,
+    Viewed(input),
+    graph,
     @lower.graph_reach_output_schema(prepared),
     SingleReachStart(@lower.graph_reach_start(prepared)),
     None,

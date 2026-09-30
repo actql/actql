@@ -1,6 +1,6 @@
 // Physical custody while one admitted Effect Run acquires its source and
 // computes. This does not retry acquisition, Compute, or an Effect dispatch.
-import {acquisitionOutcome} from '../host-common/acquisition-outcome.mjs';
+import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {acquiredEffectPublicationPlan} from './local-values-plan.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 
@@ -54,12 +54,13 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       sourceAccess});
     signal?.throwIfAborted();
     const captureStartedAt = now();
+    const acquisition = acquisitionEndHandoff();
     try {
       captured = await sourceProfile.open({preparedEffect: acquired.prepared,
         registry, values, fragment, ordered, sourceAccess, signal,
-        preparedSource});
+        preparedSource, reportAcquisitionFailure: acquisition.retain});
     } catch (error) {
-      const ended = acquisitionOutcome(error);
+      const ended = acquisition.outcome(error);
       recovery = ended.recovery;
       unresolved = ended.outcome === 'unknown' && recovery === undefined;
       throw error;
