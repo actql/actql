@@ -431,7 +431,7 @@ fn advance_execution(
             @veca.start_relation_pool(
               value.control,
               value.sequence,
-              0,
+              value.row_step,
               inputs[0],
               value.limits,
               value.storage_bytes,
@@ -1381,7 +1381,22 @@ pub fn provider(
         @lower.bound_preparation(@execution.generated_sequence_owner(sequence)),
         first_step,
       ).map(node => @lower.operation(node))
-      let relation_pool = count == 2 && first_operation == Some("VEC.pool")
+      let relation_pool = (count == 1 || count == 2) &&
+        first_operation == Some("VEC.pool") &&
+        @lower.node_at(
+          @lower.bound_preparation(
+            @execution.generated_sequence_owner(sequence),
+          ),
+          first_step,
+        ).map(node => @lower.node_input_target(node, 0))
+        is Some(Some(target)) &&
+        @lower.preparation_carrier_at(
+          @lower.bound_preparation(
+            @execution.generated_sequence_owner(sequence),
+          ),
+          target,
+        )
+        is Some(@carrier.Relation(_))
       let binding_rows = count == 1 &&
         !selected &&
         @lower.sequence_step(
@@ -1406,15 +1421,20 @@ pub fn provider(
       let direct_projection = direct_operation == Some("BRIDGE.vectors.to_rows")
       let direct_normalize = direct_operation == Some("VEC.normalize_l2")
       let direct_score = selected && direct_operation == Some("VEC.score_sort")
-      let direct_pool = selected && direct_operation == Some("VEC.pool")
+      let direct_pool = direct_operation == Some("VEC.pool")
       let carrier_input = match inputs {
         [@local.CarrierInput(view)] if direct_projection ||
           direct_normalize ||
           direct_score ||
-          direct_pool => Some(view)
+          (direct_pool && !relation_pool) => Some(view)
         _ => None
       }
-      if (direct_projection || direct_normalize || direct_score || direct_pool) &&
+      if (
+          direct_projection ||
+          direct_normalize ||
+          direct_score ||
+          (direct_pool && !relation_pool)
+        ) &&
         carrier_input is None {
         return Err(@connector.Execution(@execution.InputSet))
       }
@@ -1455,6 +1475,8 @@ pub fn provider(
         relation_pool,
         phase: if direct_projection {
           StartProjection
+        } else if relation_pool {
+          StartRows
         } else if direct_normalize || direct_score || direct_pool {
           StartKernel
         } else if binding_rows {

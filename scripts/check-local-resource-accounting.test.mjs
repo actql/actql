@@ -92,6 +92,26 @@ test('Events as-of view requires its own limits, delivered stop and cleanup proo
   }), /TEA asof_join: view_entrypoint cleanup lacks an executable fixture/u);
 });
 
+test('standalone Relation pooling requires registered limits and retained stop evidence', () => {
+  const pool = routes => routes.routes.find(entry =>
+    entry.family === 'VecA' && entry.operation === 'pool_vectors');
+  assert.match(run(undefined, routes => {
+    const route = pool(routes);
+    route.boundary_tests = route.boundary_tests.filter(item =>
+      item.role !== 'pool_relation_registered_generation');
+  }), /VecA pool_vectors: relation_entrypoint operation work lacks an executable fixture/u);
+  assert.match(run(undefined, routes => {
+    const route = pool(routes);
+    route.boundary_tests = route.boundary_tests.filter(item =>
+      item.role !== 'pool_relation_registered_limits_stop_cleanup');
+  }), /VecA pool_vectors: relation_entrypoint cleanup lacks an executable fixture/u);
+  assert.match(run(undefined, routes => {
+    const route = pool(routes);
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_relation_host_in_flight_cancel');
+  }), /VecA pool_vectors: relation_entrypoint in_flight_cancel lacks an executable fixture/u);
+});
+
 test('selected Graph diagnostics require their own route and boundary proof', () => {
   for (const [operation, role] of [
     ['graph_bounds', 'graph_bounds_selected_exact_one_short_and_cancel'],

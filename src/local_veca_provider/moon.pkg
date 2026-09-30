@@ -4,6 +4,7 @@ import {
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/carrier_projection",
   "actql/actql/connector_sdk" @connector,
+  "actql/actql/carrier_contract" @carrier,
   "actql/actql/connectors/local",
   "actql/actql/execution_relation" @execution,
   "actql/actql/local_bridge" @bridge,

@@ -5169,11 +5169,19 @@ fn direct_relation_pool_source_owner() -> @lower.BoundPrepared {
 ///|
 fn direct_relation_pool_owner(
   source : @lower.BoundPrepared,
+  prefix? : Bool = false,
 ) -> @lower.BoundPrepared {
   direct_nearest_bind(
     @pipeline.check_with_evidence(
       input_cursor(
-        "[{\"from\":\"rows\",\"pool_vectors\":{\"vector\":\"embedding\"," +
+        "[" +
+        (if prefix {
+          "{\"values\":{\"schema\":{\"unused\":{\"type\":\"number\"," +
+          "\"nullable\":false}},\"rows\":[]},\"as\":\"unused\"},"
+        } else {
+          ""
+        }) +
+        "{\"from\":\"rows\",\"pool_vectors\":{\"vector\":\"embedding\"," +
         "\"by\":[\"group\"],\"method\":\"sum\"}}]",
       ),
       [
@@ -5219,6 +5227,198 @@ fn direct_relation_pool_limits(
     max_work: work,
     max_workspace_slots: workspace,
   }
+}
+
+///|
+test "registered Relation pool returns a standalone Vectors generation" {
+  let source = direct_relation_pool_source_owner()
+  let completed = @execution.execute_generated_sequence(
+    task_test_generated(source),
+    [],
+    compute_test_limits(),
+  ).unwrap()
+  let source_output = @execution.completed_output(completed, @pipeline.Step(1)).unwrap()
+  for (selected, prefix) in [(false, false), (true, false), (true, true)] {
+    let owner = direct_relation_pool_owner(source, prefix~)
+    let read = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, source, source_output).unwrap(),
+      10,
+      1000,
+    ).unwrap()
+    let generated = if selected {
+      @execution.select_generated_sequence_step(
+        task_test_generated(owner),
+        if prefix {
+          1
+        } else {
+          0
+        },
+      ).unwrap()
+    } else {
+      task_test_generated(owner)
+    }
+    let limits = dispatch_test_limits()
+    let provider = @local_veca_provider.provider(
+      direct_relation_pool_limits(18, 32),
+      4096L,
+      @execution.generated_sequence_capacity(
+        generated,
+        limits.local_execution,
+        limits.guards,
+      ).unwrap(),
+    )
+    let execution = @local_connector.start_managed_provider_with_inputs(
+      provider,
+      generated,
+      [@local_connector.managed_provider_relation_input(read)],
+      10,
+      1000,
+    ).unwrap()
+    let mut material = None
+    let mut charged = 0L
+    for _ in 0..<40 {
+      if material is None {
+        match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+          @local_connector.Continue(work~, ..) => {
+            assert_true(work <= 1L)
+            charged += work
+          }
+          @local_connector.CarrierComplete(output, work~, ..) => {
+            charged += work
+            material = Some(output)
+          }
+          _ => fail("standalone Relation pool did not return Vectors")
+        }
+      }
+    }
+    let material = material.unwrap()
+    assert_eq(charged, 32L)
+    assert_true(@carrier_runtime.material_available(material))
+    assert_true(@local_connector.managed_provider_stopped(execution))
+    assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
+    assert_true(@carrier_runtime.material_available(material))
+    assert_true(@execution.producer_read_available(read))
+    assert_true(@carrier_runtime.reclaim_material(material))
+  }
+}
+
+///|
+test "registered Relation pool retains exact limits and stopped cleanup" {
+  let source = direct_relation_pool_source_owner()
+  let owner = direct_relation_pool_owner(source)
+  let completed = @execution.execute_generated_sequence(
+    task_test_generated(source),
+    [],
+    compute_test_limits(),
+  ).unwrap()
+  let source_output = @execution.completed_output(completed, @pipeline.Step(1)).unwrap()
+  let read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source, source_output).unwrap(),
+    10,
+    1000,
+  ).unwrap()
+  let generated = @execution.select_generated_sequence_step(
+    task_test_generated(owner),
+    0,
+  ).unwrap()
+  let limits = dispatch_test_limits()
+  let capacity = @execution.generated_sequence_capacity(
+    generated,
+    limits.local_execution,
+    limits.guards,
+  ).unwrap()
+  // The same Relation kernel requires 32 work units and 18 workspace slots,
+  // independently itemized in the adjacent direct-kernel boundary fixture.
+  for
+    (work, workspace, stopping) in [
+      (31, 18, false),
+      (32, 17, false),
+      (32, 18, true),
+    ] {
+    let provider = @local_veca_provider.provider(
+      direct_relation_pool_limits(workspace, work),
+      4096L,
+      capacity,
+    )
+    let execution = @local_connector.start_managed_provider_with_inputs(
+      provider,
+      generated,
+      [@local_connector.managed_provider_relation_input(read)],
+      10,
+      1000,
+    ).unwrap()
+    let mut charged = 0L
+    let mut terminal = false
+    for _ in 0..<40 {
+      if !terminal {
+        match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+          @local_connector.Continue(work~, ..) => {
+            assert_true(work <= 1L)
+            charged += work
+            if stopping {
+              assert_true(@local_connector.cancel_managed_provider(execution))
+              assert_false(@local_connector.managed_provider_stopped(execution))
+              assert_false(
+                @local_connector.cleanup_managed_provider(execution).unwrap(),
+              )
+              assert_true(@execution.producer_read_available(read))
+            }
+          }
+          @local_connector.Failed(_, work~, ..) => {
+            assert_false(stopping)
+            charged += work
+            terminal = true
+          }
+          @local_connector.Stopped(work~, ..) => {
+            assert_true(stopping)
+            charged += work
+            terminal = true
+          }
+          _ => fail("Relation pool boundary exposed a completion")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(
+      charged,
+      if workspace == 17 {
+        0L
+      } else if stopping {
+        1L
+      } else {
+        31L
+      },
+    )
+    assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
+    assert_true(@execution.producer_read_available(read))
+  }
+  let foreign = direct_relation_pool_owner(source)
+  let foreign_read = @execution.prepare_producer_read(
+    foreign,
+    @execution.bind_completed_input(foreign, 0, source, source_output).unwrap(),
+    10,
+    1000,
+  ).unwrap()
+  let provider = @local_veca_provider.provider(
+    direct_relation_pool_limits(18, 32),
+    4096L,
+    capacity,
+  )
+  let execution = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    generated,
+    [@local_connector.managed_provider_relation_input(foreign_read)],
+    10,
+    1000,
+  ).unwrap()
+  assert_true(
+    @local_connector.advance_managed_provider(execution, 1).unwrap()
+    is @local_connector.Failed(_, work=0L, ..),
+  )
+  assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
+  assert_true(@execution.producer_read_available(read))
 }
 
 ///|
