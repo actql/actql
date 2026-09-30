@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
-import { artifacts, checkBindings, checkRetirements, graph, snapshot, targets, validate } from './evidence.mjs';
+import { artifacts, checkBindings, checkRetirements, executedConnectionCoverage, graph, snapshot, targets, validate } from './evidence.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const selected = process.argv[2] ?? 'all';
@@ -51,6 +51,9 @@ for (const target of selected === 'all' ? targets : [selected]) {
     ['test', 'src/connectors/local', '--target', target, '--deny-warn'], target, 'connectors/local');
   runs[`connection-${target}`] = run(`connection-${target}`, moon,
     ['test', 'src/query_integration/local_managed_set_wbtest.mbt', '--target', target, '--deny-warn'], target, 'query_integration');
+  // Record the fixture's reviewed scope after executing it. Never derive this
+  // witness from the caller's requested binding or the resulting claim graph.
+  runs[`connection-${target}`].coverage = executedConnectionCoverage();
   const report = {
     version: 'actql-bounded-session-evidence/0.1', mode: 'report-only', revision, worktreeDirty,
     source, toolchain: pin, target, runs, claims: graph(bindings, target), retirements,
