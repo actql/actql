@@ -244,6 +244,14 @@ pub fn coordinator_durable_output_poll_json(
 }
 
 ///|
+#export_name("coordinatorDurableOutputRequestJson")
+pub fn coordinator_durable_output_request_json(
+  durable : @remote.DurableCoordinatorOutputRecord,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.durable_coordinator_output_request_json(durable)
+}
+
+///|
 #export_name("coordinatorAdmitOutputTransferReplyJson")
 pub fn coordinator_admit_output_transfer_reply_json(
   durable : @remote.DurableCoordinatorOutputRecord,

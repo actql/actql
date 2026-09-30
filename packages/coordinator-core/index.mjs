@@ -236,6 +236,8 @@ export const durableOutputRevision = owner.coordinatorDurableOutputRevision;
 export const durableOutputJson = owner.coordinatorDurableOutputJson;
 export const durableOutputPollJson = durable =>
   checked(owner.coordinatorDurableOutputPollJson(durable));
+export const durableOutputRequestJson = durable =>
+  checked(owner.coordinatorDurableOutputRequestJson(durable));
 export const admitOutputTransferReplyJson = (durable, reply) =>
   checked(owner.coordinatorAdmitOutputTransferReplyJson(durable, reply));
 export const outputTransferRequestCid = durable =>

@@ -5,10 +5,14 @@ import * as moon from
 import {checked} from './runtime-result.mjs';
 import * as bridge from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import * as coordinator from '../../packages/coordinator-core/index.mjs';
 import {acceptedSiteOutput, admitDurableJson, admitPollNotSeen,
-  issueOutputPlanPollJson, pollQueryJson, pollReleaseJson} from
+  durableOutputPollJson, durableOutputRequestJson, issueOutputPlanPollJson,
+  pollQueryJson, pollReleaseJson} from
   '../../packages/coordinator-core/index.mjs';
 import {runtimeCore} from './runtime-core.mjs';
+import {durableOutputRecordFixture} from
+  '../../scripts/fixtures/remote-output-record-fixture.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
@@ -143,4 +147,36 @@ test('coordinator-core exposes the common release and not-seen owners unchanged'
     assert.equal(site.admitPollNotSeen(notSeen(requestCid), request), true);
     assert.throws(() => site.admitPollNotSeen(notSeen(other), request));
     assert.equal(admitPollNotSeen(site.pollNotSeenJson(request), request), true);
+  });
+
+test('coordinator-core issues the poll Output request for a retained Output Plan',
+  () => {
+    const runtime = runtimeCore(bridge);
+    const fixture = durableOutputRecordFixture(coordinator, runtime);
+    const {outputDurable, requestCid, control, siteRequest, siteIntent} =
+      fixture;
+    const body = durableOutputRequestJson(outputDurable);
+    const plan = JSON.parse(durableOutputPollJson(outputDurable));
+    const output = JSON.parse(body);
+    assert.equal(output.version, 'actql-remote-poll-output/0.1');
+    assert.equal(plan.version, 'actql-remote-poll-output-plan/0.1');
+    // The same request and intent as the plan poll; only the version differs.
+    assert.deepEqual(Object.keys(output).sort(), Object.keys(plan).sort());
+    assert.equal(output.dispatch_request_cid, requestCid);
+    for (const key of Object.keys(plan)) {
+      if (key !== 'version') assert.deepEqual(output[key], plan[key], key);
+    }
+    // Deterministic bytes.
+    assert.equal(durableOutputRequestJson(outputDurable), body);
+    // The same bytes as the existing runtime-core owner issues for that
+    // dispatch and intent, and an outbound Site admits them as the Output
+    // operation, not as a plan.
+    assert.equal(body, control.pollOutputJson(siteRequest, siteIntent));
+    assert.ok(control.admitPollOutput(body));
+    assert.throws(() => control.admitPollOutputPlan(body));
+    assert.throws(() => control.admitPollOutput(durableOutputPollJson(
+      outputDurable)));
+    // A record that is not an admitted Output record is refused before
+    // anything is issued.
+    assert.throws(() => durableOutputRequestJson(fixture.durable));
   });

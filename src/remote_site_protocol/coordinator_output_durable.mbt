@@ -355,6 +355,17 @@ pub fn durable_coordinator_output_record_poll_json(
 }
 
 ///|
+/// Issue the poll protocol's Output request for this retained Output Plan:
+/// the same request and intent as the plan poll, under
+/// `actql-remote-poll-output/0.1`. An outbound Site admits it with
+/// `admit_remote_poll_output_json`.
+pub fn durable_coordinator_output_request_json(
+  durable : DurableCoordinatorOutputRecord,
+) -> Result[String, DispatchIssue] {
+  remote_poll_output_json(durable.output.request, durable.output.intent)
+}
+
+///|
 /// Re-admit a physical reply only against the Transfer request in this
 /// retained Output Plan. This is evidence, not proof of local payload custody.
 pub fn durable_coordinator_output_admit_transfer_reply_json(
