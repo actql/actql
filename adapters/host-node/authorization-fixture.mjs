@@ -123,6 +123,7 @@ export async function sqliteDeferral(root, {now = () => Date.now(),
   const host = generateKeyPairSync('ed25519');
   const journal = openSqliteCheckpointJournal(root, {
     runtime: await loadCheckpointRuntime(),
+    expectedAuthorityScopeCid: fixtureCid('7'),
     async authorizeResolution({resolutionWire, proofPreimage}) {
       await hooks.authorize?.();
       const resolution = JSON.parse(resolutionWire);

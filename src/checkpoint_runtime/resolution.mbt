@@ -381,6 +381,7 @@ fn check_evidence(
   expected_cid : String,
   checkpoint : SealedCheckpoint,
   actor : String,
+  expected_authority_scope_cid : String,
   limits : WireLimits,
 ) -> @json.CanonicalValue raise ResolutionFailure {
   let value = match parse_wire(wire, limits) {
@@ -421,7 +422,10 @@ fn check_evidence(
         request.required_artifact_cid {
         raise ResolutionFailed(EvidenceMismatch("effect_preview_cid"))
       }
-      ignore(cid_field(approval, "authority_scope_cid", nested))
+      if cid_field(approval, "authority_scope_cid", nested) !=
+        expected_authority_scope_cid {
+        raise ResolutionFailed(EvidenceMismatch("authority_scope_cid"))
+      }
       let claims = match string_list_field(approval, "claims") {
         Some(claims) => claims
         None =>
@@ -541,6 +545,11 @@ fn admit_resolution_body(
   if !valid_cid(authentication.authority_context_cid) {
     raise ResolutionFailed(AuthenticationMismatch("authority_context_cid"))
   }
+  if !valid_cid(authentication.expected_authority_scope_cid) {
+    raise ResolutionFailed(
+      AuthenticationMismatch("expected_authority_scope_cid"),
+    )
+  }
   if !valid_cid(authentication.policy_cid) {
     raise ResolutionFailed(AuthenticationMismatch("policy_cid"))
   }
@@ -554,7 +563,16 @@ fn admit_resolution_body(
   let evidence = match
     (resolution.approval_evidence_cid, approval_evidence_wire) {
     (Some(cid), Some(wire)) =>
-      Some(check_evidence(wire, cid, checkpoint, resolution.actor, limits))
+      Some(
+        check_evidence(
+          wire,
+          cid,
+          checkpoint,
+          resolution.actor,
+          authentication.expected_authority_scope_cid,
+          limits,
+        ),
+      )
     (Some(_), None) => raise ResolutionFailed(EvidenceRequired)
     (None, Some(_)) => raise ResolutionFailed(EvidenceForbidden)
     (None, None) => None

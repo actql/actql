@@ -80,6 +80,7 @@ fn effect_evidence(
   checkpoint : SealedCheckpoint,
   claims : Array[String],
   approver : String,
+  authority_scope_cid? : String = cid("5"),
 ) -> String {
   let attestation = canonical_of(
     Json::object({
@@ -92,7 +93,7 @@ fn effect_evidence(
       ),
       "approver": Json::string(approver),
       "approved_at": Json::string("2026-09-25T11:00:00.000Z"),
-      "authority_scope_cid": Json::string(cid("5")),
+      "authority_scope_cid": Json::string(authority_scope_cid),
       "claims": string_array_json(claims),
       "proof": proof("reviewer-key"),
     }),
@@ -200,6 +201,7 @@ fn authentication(resolution : String) -> HostAuthentication {
   {
     key_id: "reviewer-key",
     reviewer_id: "alice",
+    expected_authority_scope_cid: cid("5"),
     authority_context_cid: cid("6"),
     policy_cid: cid("7"),
     proof_preimage: resolution_proof_preimage(resolution, limits()).unwrap(),
@@ -794,6 +796,25 @@ test "approval evidence bytes must hash to the authored evidence cid" {
   assert_eq(
     issue_of(admit(checkpoint, impostor_resolution, Some(impostor))),
     Some(EvidenceMismatch("approver")),
+  )
+}
+
+///|
+test "effect approval cannot substitute another Host authority scope" {
+  let checkpoint = sealed_of(effect_request())
+  let evidence = effect_evidence(
+    checkpoint,
+    ["effect_scope_approved", "partial_application_accepted"],
+    "alice",
+    authority_scope_cid=cid("8"),
+  )
+  let resolution = with_self_cid(
+    resolution_fields_for(checkpoint, "approved", Some(canonical_cid(evidence))),
+    "resolution_cid",
+  )
+  assert_eq(
+    issue_of(admit(checkpoint, resolution, Some(evidence))),
+    Some(EvidenceMismatch("authority_scope_cid")),
   )
 }
 
