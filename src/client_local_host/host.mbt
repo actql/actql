@@ -43,6 +43,39 @@ pub fn open_source_free_local_host(
 }
 
 ///|
+/// Install retained Relation output on the same checked source-free Host.
+/// This is trusted Compute configuration, not permission to start a Run.
+pub fn open_source_free_local_retained_host(
+  prepared : @publication_host.PreparedClientProgram,
+  registry_body : String,
+  values_body : String,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+  provider_factory? : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ] = _ => [],
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  open_checked_local_host(
+    prepared,
+    None,
+    registry_body,
+    values_body,
+    fixed_ms,
+    per_row_ms,
+    per_wire_byte_ms,
+    per_pair_ms,
+    fragment_body~,
+    ordered_body~,
+    provider_factory~,
+    retained_output=true,
+  )
+}
+
+///|
 /// The same installed compute Host can receive a verified physical capture.
 /// The caller must retain the acquisition owner through the last consumer.
 pub fn open_captured_local_host(
@@ -90,6 +123,7 @@ fn open_checked_local_host(
   provider_factory? : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ] = _ => [],
+  retained_output? : Bool = false,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   if registry_body.length() > 100000 ||
     values_body.length() > 100000 ||
@@ -299,6 +333,28 @@ fn open_checked_local_host(
     Err(_) => return reject_client_local_run(run)
   }
   let slots = @local_driver.local_dispatch_work_slots()
+  if retained_output {
+    match
+      @local_driver.configure_local_retained_output(
+        installed,
+        {
+          max_rows: capacity.max_rows,
+          values,
+          wire: {
+            max_columns: 100,
+            max_order_work: 1000000,
+            max_bytes: 1000000,
+            max_nodes: 100000,
+            max_depth: 64,
+          },
+          max_batch_bytes: 65536,
+        },
+        Some(0L),
+      ) {
+      Ok(_) => ()
+      Err(_) => return reject_client_local_run(run)
+    }
+  }
   let schedule = match
     @cost.prepare_rate_schedule(
       slots,
@@ -353,6 +409,46 @@ fn open_checked_local_host(
           ) {
           Ok(_) => ()
           Err(_) => return reject_client_local_run(run)
+        }
+      } else if retained_output {
+        // The root has no observed Acquisition statistics. Use installed
+        // offers with unknown quantities and existing common selection.
+        let offers = []
+        for task in 0..<task_count {
+          let proposed = match
+            @local_driver.estimate_local_installed_offers(installed, task, {
+              rows: None,
+              wire_bytes: None,
+              pairs: None,
+            }) {
+            Ok(value) => value
+            Err(_) => return reject_client_local_run(run)
+          }
+          guard !proposed.is_empty() else {
+            return reject_client_local_run(run)
+          }
+          for offer in proposed {
+            offers.push(offer)
+          }
+        }
+        match
+          @strategy.configure_strategy_search(run, {
+            max_offers: 100,
+            max_strategies: 100,
+            max_work: 10000,
+            max_revisions: 100,
+          }) {
+          Ok(_) => ()
+          Err(_) => return reject_client_local_run(run)
+        }
+        let choices = match
+          @strategy.prepare_strategy_choices(run, offers, registry, None) {
+          Ok(value) => value
+          Err(_) => return reject_client_local_run(run)
+        }
+        match @strategy.commit_strategy_choice(choices, None) {
+          Ok(@strategy.Selected(_)) => ()
+          _ => return reject_client_local_run(run)
         }
       }
       Some(value)

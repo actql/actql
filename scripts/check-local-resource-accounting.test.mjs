@@ -74,6 +74,35 @@ test('resource gate accepts every normative Local operation', () => {
   assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 68 with four-role boundary evidence, 68 with full work\/workspace assurance, 121 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
+test('retained source-free Values requires exact admission and Host evidence', () => {
+  const values = routes => routes.routes.find(route =>
+    route.family === 'RelA' && route.operation === 'values');
+  for (const role of ['retained_source_free_chain_admission',
+    'retained_source_free_chain_rejection',
+    'retained_source_free_product_configuration',
+    'retained_source_free_product_rejection', 'retained_source_free_chain_budgets']) {
+    assert.match(run(undefined, routes => {
+      const route = values(routes);
+      route.boundary_tests = route.boundary_tests.filter(test => test.role !== role);
+    }), /bounded zero-input Values route lacks its production evidence/u);
+  }
+  for (const role of ['retained_source_free_named_results',
+    'retained_source_free_empty_input', 'retained_source_free_empty_output',
+    'retained_source_free_filter_timer_cleanup', 'retained_source_free_filter_arithmetic',
+    'retained_source_free_append_cleanup', 'retained_source_free_finalize_cleanup_retry',
+    'retained_source_free_host_exact_budgets', 'retained_source_free_host_work_short',
+    'retained_source_free_host_workspace_short']) {
+    assert.match(run(undefined, routes => {
+      const route = values(routes);
+      route.environment_tests = route.environment_tests.filter(test => test.role !== role);
+    }), new RegExp(`${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    values(routes).environment_tests.find(test =>
+      test.role === 'retained_source_free_named_results').fixture = 'absent-values-fixture';
+  }), /missing environment fixture absent-values-fixture/u);
+});
+
 test('Events as-of view requires its own limits, delivered stop and cleanup proof', () => {
   const asof = routes => routes.routes.find(entry =>
     entry.family === 'TEA' && entry.operation === 'asof_join');

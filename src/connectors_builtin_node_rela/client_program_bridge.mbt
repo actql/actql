@@ -2227,6 +2227,35 @@ pub fn client_program_open_source_free_local_host(
 }
 
 ///|
+/// Open the same source-free Compute owner with retained Relation output.
+/// The installed Host still owns Run admission, dispatch and publication.
+#export_name("clientProgramOpenSourceFreeLocalRetainedHost")
+pub fn client_program_open_source_free_local_retained_host(
+  prepared : @publication_host.PreparedClientProgram,
+  registry_body : String,
+  values_body : String,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  @client_local_host.open_source_free_local_retained_host(
+    prepared,
+    registry_body,
+    values_body,
+    fixed_ms,
+    per_row_ms,
+    per_wire_byte_ms,
+    per_pair_ms,
+    fragment_body~,
+    ordered_body~,
+    provider_factory=installed_client_graph_providers,
+  )
+}
+
+///|
 /// The Local compute owner consumes a verified source from the installed
 /// physical acquisition adapter, preserving the checked Program graph.
 #export_name("clientProgramOpenCapturedLocalHost")

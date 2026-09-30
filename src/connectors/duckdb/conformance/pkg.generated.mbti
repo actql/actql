@@ -13,6 +13,7 @@ import {
   "actql/actql/lowering_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
+  "actql/actql/run_publication_host",
 }
 
 // Values
@@ -276,6 +277,8 @@ pub fn strategy_fixture_close_output(StrategyFixture, Int) -> Unit
 
 pub fn strategy_fixture_compute(StrategyFixture, Int) -> @actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration
 
+pub fn strategy_fixture_configured_task_step_count(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Int?
+
 pub fn strategy_fixture_consume(StrategyFixture, Int, String) -> String
 
 pub fn strategy_fixture_costed_dispatch(StrategyFixture, Int64) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
@@ -401,6 +404,8 @@ pub fn strategy_fixture_sga_subset(StrategyFixture) -> @connectors_builtin.Confi
 pub fn strategy_fixture_sga_traverse_paths_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
 
 pub fn strategy_fixture_sga_traverse_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
+
+pub fn strategy_fixture_source_free_retained_subset(@run_publication_host.PreparedClientProgram, String, String, String, Int, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_task_step_count(StrategyFixture, Int) -> Int?
 
