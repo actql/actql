@@ -166,6 +166,14 @@ pub fn local_dispatch_rejection(
             ) {
             return Some("unsupported_execution_obligation")
           }
+        NestExecution(_) | NestItems(_) | NestValues(_) =>
+          if !@local.local_module_bounded_nest_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
         _ => return Some("unsupported_execution_obligation")
       }
     }
