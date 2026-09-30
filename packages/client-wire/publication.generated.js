@@ -256,12 +256,16 @@ const schemas = {
 };
 
 function valid(value, schema) {
+  if (schema.$ref) return valid(value, schemas[schema.$ref]);
   if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;
   if (schema.not && valid(value, schema.not)) return false;
   if (schema.if && valid(value, schema.if) && !valid(value, schema.then)) return false;
   if (schema.allOf && !schema.allOf.every(rule => valid(value, rule))) return false;
   if (Object.hasOwn(schema, 'const') && value !== schema.const) return false;
   if (schema.enum && !schema.enum.includes(value)) return false;
+  if (typeof value === 'number' &&
+      (schema.minimum !== undefined && value < schema.minimum ||
+       schema.maximum !== undefined && value > schema.maximum)) return false;
   if (typeof value === 'string' &&
       ((schema.minLength !== undefined && [...value].length < schema.minLength) ||
         (schema.maxLength !== undefined && value.length > schema.maxLength) ||

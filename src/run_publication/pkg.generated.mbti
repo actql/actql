@@ -137,6 +137,8 @@ pub fn derive_effect_preview_identities(String, Int, Int, Int) -> Result[(String
 
 pub fn derive_effect_preview_row_identities(String, Int, Int, Int) -> Result[Array[Array[String]], EffectPreviewIdentityIssue]
 
+pub fn describe_committed_result(PublicationContract, PublicationContract, String, Array[PublicationContract], PublicationContract, String, String, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
+
 pub fn durable_payload_failure_action_code(DurablePayloadFailureAction) -> Int
 
 pub fn effect_apply_receipt_row_attempt_sequence(PublicationContract, String) -> Int64?

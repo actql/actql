@@ -73,6 +73,8 @@ pub fn client_values_host_delivery_result_definition_cid(@run_publication.Public
 
 pub fn client_values_host_delivery_success_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Bool
 
+pub fn client_values_host_describe_committed_result(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[@run_publication.PublicationContract], @run_publication.PublicationContract, String, String, Int, Int, Int) -> String?
+
 pub fn client_values_host_dispatch_cid(@remote_site_protocol.DispatchRequest) -> String
 
 pub fn client_values_host_dispatch_wire(@remote_site_protocol.DispatchRequest) -> Result[String, @remote_site_protocol.DispatchIssue]
@@ -106,6 +108,8 @@ pub fn client_values_host_issue_delivery_record(@run_publication.PublicationCont
 pub fn client_values_host_issue_durable_result_binding(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], String, String, String, Int, Int, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.DurableResultBindingIssue]
 
 pub fn client_values_host_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.RunReceiptIssuanceIssue]
+
+pub fn client_values_host_issue_manifest_read_grant(@run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String, Int, Int, String, String, Int, Int, Int) -> @run_publication.PublicationContract raise ClientValuesHostDeliveryIssue
 
 pub fn client_values_host_issue_public_index_entry(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationCommitIssuanceIssue]
 
@@ -142,6 +146,10 @@ pub fn client_values_host_issue_task_invocation(@run_publication_host.PreparedCl
 pub fn client_values_host_issue_task_run_definition(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientValuesHostTaskDefinitionIssue]
 
 pub fn client_values_host_issue_unpublished_run_state_wire(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, Bool, Bool, Bool, Bool) -> String?
+
+pub fn client_values_host_manifest_read_grant_allows_bytes(@run_publication.PublicationContract, Int) -> Bool
+
+pub fn client_values_host_manifest_read_grant_valid_at(@run_publication.PublicationContract, String) -> Bool
 
 pub fn client_values_host_next_result_delivery_row(@run_publication.ResultDeliverySerializer, String) -> String raise ClientValuesHostDeliveryIssue
 
@@ -228,6 +236,8 @@ pub fn client_values_host_result_material_holds_reclaimable(@run_publication.Res
 pub fn client_values_host_result_material_holds_revision(@run_publication.ResultMaterialHolds) -> Int
 
 pub fn client_values_host_result_material_holds_wire(@run_publication.ResultMaterialHolds) -> String raise ClientValuesHostDeliveryIssue
+
+pub fn client_values_host_result_metadata_retention_state(@run_publication.PublicationContract, String) -> String?
 
 pub fn client_values_host_result_names(@run_publication_host.ClientValuesCompilation) -> Array[String]
 

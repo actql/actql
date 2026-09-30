@@ -1887,6 +1887,39 @@ test('durable Result retirement blocks new reads and waits for active readers',
     ), code('PublicationObjectMissing'));
   });
 
+test('description evidence survives payload deletion and restart, not metadata deletion',
+  async t => {
+    const {store, configuration} = await fixture(t);
+    const invocationValue = invocation();
+    const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+    await store.putPublicationContract('result_definition', wire(resultDefinition()));
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(store, request, attempt, invocationValue);
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+    const key = indexKeyFor(request);
+    const definitionCid = request.inventory[0].result_definition_cid;
+    const before = await store.readCommittedResultDescriptionEvidence(key, definitionCid);
+    assert.equal(before.schemaWire, resultSchemaWire);
+    assert.equal(before.definition.identity, definitionCid);
+    assert.deepEqual(before.bindings.map(value => value.identity), [prepared.binding.identity]);
+    const retired = await store.retireCommittedResult(key, definitionCid);
+    assert.equal(retired.cleanup.status().pending, false);
+    assert.deepEqual(await store.readCommittedResultDescriptionEvidence(key, definitionCid), before);
+    await store.close();
+    const reopened = await openLocalPublicationStore(configuration, contractControl);
+    t.after(async () => { await reopened.close(); });
+    assert.deepEqual(await reopened.readCommittedResultDescriptionEvidence(key, definitionCid), before);
+    await assert.rejects(reopened.consumeCommittedResult(key, definitionCid,
+      () => true, () => assert.fail('deleted payload was reopened')),
+    code('PublicationObjectMissing'));
+    await reopened.retireCommittedPublicationMetadata(key, '2026-09-18T04:00:00.000Z');
+    await assert.rejects(reopened.readCommittedResultDescriptionEvidence(key, definitionCid),
+      code('PublicationLookupDenied'));
+  });
+
 test('metadata retirement hides the Run and reclaims its durable chain',
   async t => {
     const {store, configuration} = await fixture(t);

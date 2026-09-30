@@ -9,7 +9,7 @@ const sources = [
   ['spec/contracts/actql-protocol-schemas.json',
     'artifact_schemas', ['result_delivery_receipt']],
 ];
-const allowed = new Set(['$schema', '$id', 'title', 'type',
+const allowed = new Set(['$schema', '$id', '$ref', 'title', 'type',
   'additionalProperties', 'required', 'properties', 'items', 'uniqueItems',
   'const', 'enum', 'pattern', 'minLength', 'maxLength', 'minimum', 'maximum', 'allOf',
   'if', 'then', 'not', 'oneOf', 'minItems', 'minProperties', 'propertyNames']);
@@ -29,6 +29,12 @@ export function project(schema) {
     throw new Error('UnsupportedPublicationUniqueItems');
   }
   const result = {};
+  if (schema.$ref !== undefined) {
+    if (!['#/$defs/value_contract',
+      'actql-protocol-schemas.json#/schemas/canonical_value_contract']
+      .includes(schema.$ref)) throw new Error('UnsupportedPublicationReference');
+    result.$ref = 'value_contract';
+  }
   for (const key of ['type', 'required',
     'uniqueItems', 'const', 'enum', 'pattern', 'minLength', 'maxLength', 'minimum',
     'maximum', 'minItems', 'minProperties']) {
@@ -53,6 +59,7 @@ export function project(schema) {
 }
 
 export function typeOf(schema) {
+  if (schema.$ref === 'value_contract') return 'WireValueContractShape';
   if (schema.oneOf) return schema.oneOf.map(typeOf).join(' | ');
   if (Object.hasOwn(schema, 'const')) return JSON.stringify(schema.const);
   if (schema.enum) return schema.enum.map(JSON.stringify).join(' | ');
@@ -77,12 +84,16 @@ export function typeOf(schema) {
 
 export function structuralValidatorSource() {
   return `function valid(value, schema) {\n` +
+`  if (schema.$ref) return valid(value, schemas[schema.$ref]);\n` +
 `  if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;\n` +
 `  if (schema.not && valid(value, schema.not)) return false;\n` +
 `  if (schema.if && valid(value, schema.if) && !valid(value, schema.then)) return false;\n` +
 `  if (schema.allOf && !schema.allOf.every(rule => valid(value, rule))) return false;\n` +
 `  if (Object.hasOwn(schema, 'const') && value !== schema.const) return false;\n` +
 `  if (schema.enum && !schema.enum.includes(value)) return false;\n` +
+`  if (typeof value === 'number' &&\n` +
+`      (schema.minimum !== undefined && value < schema.minimum ||\n` +
+`       schema.maximum !== undefined && value > schema.maximum)) return false;\n` +
 `  if (typeof value === 'string' &&\n` +
 `      ((schema.minLength !== undefined && [...value].length < schema.minLength) ||\n` +
 `        (schema.maxLength !== undefined && value.length > schema.maxLength) ||\n` +
