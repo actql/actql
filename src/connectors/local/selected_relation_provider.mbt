@@ -186,6 +186,19 @@ fn bounded_relation_step_provider(
     | Some(@lower.IntervalJoinStep(_))
     | Some(@lower.AsOfJoinStep(_))
     | Some(@lower.SequenceMatchStep(_)) => true
+    Some(@lower.EventStep(event)) =>
+      @carrier.kind(@lower.event_output_carrier(event)) == @carrier.RelationKind &&
+      @execution.generated_sequence_step_index_at(selected, 0)
+      .bind(step => {
+        @lower.node_at(
+          @lower.bound_preparation(
+            @execution.generated_sequence_owner(selected),
+          ),
+          step,
+        )
+      })
+      .map(node => @lower.operation(node)) ==
+      Some("TEA.window.session_assign")
     _ => false
   }
   if family_step {

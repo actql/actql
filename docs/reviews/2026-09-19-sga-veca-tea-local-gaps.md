@@ -832,7 +832,7 @@ their temporal duties. Native Host in-flight cancellation remains separate.
 #### Retained linear Relation family chains
 
 The ordinary DAG keeps a Relation-valued Nest, time series, interval join,
-as-of join, or Relation-input sequence matcher with a linear bounded row suffix
+as-of join, Relation-input session, or sequence matcher with a linear row suffix
 inside one physical task. All inputs must be Relations. An intermediate Result
 root, a nonlinear dependency, or a Carrier input still requires the existing
 segmented/fused path; this connection does not relabel a Carrier as rows.
@@ -840,6 +840,7 @@ segmented/fused path; this connection does not relabel a Carrier as rows.
 | Ordinary producer Program | Selected execution |
 | --- | --- |
 | `sequence -> filter -> sort -> select` | Registered matcher child, then bounded row children |
+| `session -> filter -> select` | Registered Relation session child, then bounded row children |
 | `time_series -> filter -> select` | Registered series child, then bounded row children |
 | `interval_join -> filter -> derive -> select` | Registered interval child, then bounded row children |
 | `asof_join -> filter -> select` | Registered as-of child, then bounded row children |
@@ -873,6 +874,43 @@ Independent kernel exact/one-short limits and existing shared-chain budget
 tests remain the resource proofs for the unchanged implementations. These are
 not newly measured Host-wide exact budgets. Final-SHA local validation and
 Linux CI remain separate evidence; Native Host cancellation remains separate.
+
+#### Retained Relation session chains
+
+A Relation-input `session` now reaches the registered TEA child inside the
+same physical task as a linear bounded row suffix. Its exact occurrence must
+have a Relation output and an unshadowed provider with declared capacity.
+`SessionExecution`, applicable value/identity/clock checks, and `EventEnvelope`
+are admitted only for that occurrence. Other Events-producing operations do
+not gain row-only retained eligibility from this connection.
+
+The checked output ceiling stays attached to the session step. The kernel
+checks it before building each output record, after validating the source,
+identities and clocks. A later filter cannot hide excessive private output.
+Repeated constraint attachment can narrow but not widen the limit; a foreign
+step or negative ceiling is rejected. The provider retains typed `RowLimit`
+and the original step. The completed records transfer to the existing bounded
+row projection even when the terminal session poll reports zero new work.
+The shared chain owner retains children and intermediate custody through stop
+and reverse-order cleanup; no synchronous fallback or new ledger is added.
+
+Empty input now completes with empty output, as already required by the
+normative session specification. Earlier `EmptySessionInput` failures recorded
+below are historical, not the current acceptance rule. This fixes execution
+against the existing contract; it does not change the canonical body or pins.
+The independent empty-kernel proof requires four metadata workspace slots and
+one finish work unit, with one-short checks and cancellation before finish.
+Nonempty session proofs retain work 44/43 and workspace 22/21.
+
+The production route inventory binds the normal retained offer, quantum-one
+child execution, cumulative work, original-step output ceiling and child
+handoff cancellation to executable portable fixtures. The shared real-Store
+Host harness additionally covers independent ordered Named Results for the
+producer and two consumers, empty input, cancellation after the filter starts,
+typed later-filter arithmetic failure, append/finalize failure and cleanup
+retry without redispatch. These are the acceptance cases; executed local and
+Linux CI evidence remain separate. They do not certify Host-wide exact budgets,
+arbitrary nonlinear chains, Events serialization or Native Host cancellation.
 
 #### Mixed retained Store and typed Carrier paths
 

@@ -236,21 +236,50 @@ pub fn local_module_bounded_temporal_relation_obligation(
   step : Int,
   check : LocalBoundedTemporalRelationCheck,
 ) -> Bool {
+  local_module_bounded_family_relation_obligation(installed, slot, step, selected => {
+    match (@execution.generated_sequence_step_at(selected, 0), check) {
+      (Some(@lower.TimeSeriesStep(_)), TimeSeries)
+      | (Some(@lower.IntervalJoinStep(_)), IntervalJoin)
+      | (Some(@lower.AsOfJoinStep(_)), AsOfJoin)
+      | (Some(@lower.SequenceMatchStep(_)), SequenceMatch) => true
+      _ => false
+    }
+  })
+}
+
+///|
+/// Session-only Relation admission leaves the public temporal selector enum
+/// unchanged. Events-producing occurrences keep their managed Carrier route.
+pub fn local_module_bounded_session_relation_obligation(
+  installed : LocalComputeModule,
+  slot : Int,
+  step : Int,
+) -> Bool {
+  local_module_bounded_family_relation_obligation(installed, slot, step, selected => {
+    @execution.generated_sequence_step_at(selected, 0)
+    is Some(@lower.EventStep(_)) &&
+    @lower.node_at(
+      @lower.bound_preparation(@execution.generated_sequence_owner(selected)),
+      step,
+    ).map(node => @lower.operation(node)) ==
+    Some("TEA.window.session_assign")
+  })
+}
+
+///|
+fn local_module_bounded_family_relation_obligation(
+  installed : LocalComputeModule,
+  slot : Int,
+  step : Int,
+  matches : (@execution.GeneratedSequence) -> Bool,
+) -> Bool {
   guard installed.sequences.get(slot) is Some(sequence) &&
     local_sequence_contains_exact_step(sequence, step) &&
     @execution.select_generated_sequence_step(sequence, step) is Some(selected) &&
     !local_sequence_outputs_carrier(selected) else {
     return false
   }
-  let matches = match
-    (@execution.generated_sequence_step_at(selected, 0), check) {
-    (Some(@lower.TimeSeriesStep(_)), TimeSeries)
-    | (Some(@lower.IntervalJoinStep(_)), IntervalJoin)
-    | (Some(@lower.AsOfJoinStep(_)), AsOfJoin)
-    | (Some(@lower.SequenceMatchStep(_)), SequenceMatch) => true
-    _ => false
-  }
-  if !matches ||
+  if !matches(selected) ||
     !installed.managed_providers.any(provider => {
       managed_provider_accepts(provider, selected) &&
       managed_provider_capacity(provider, selected) is Some(_)
@@ -801,6 +830,7 @@ pub fn[E] prepare_local_module_materializing_compute(
   output_limits? : LocalExportLimits? = None,
   join_output_ceilings? : Array[(Int, Int64)] = [],
   expansion_output_ceilings? : Array[(Int, Int64)] = [],
+  session_output_ceilings? : Array[(Int, Int64)] = [],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
   asof_search_ceilings? : Array[(Int, Int64)] = [],
   sequence_match_ceilings? : Array[(Int, Int64, Int64)] = [],
@@ -826,6 +856,7 @@ pub fn[E] prepare_local_module_materializing_compute(
     output_limits~,
     join_output_ceilings~,
     expansion_output_ceilings~,
+    session_output_ceilings~,
     interval_search_ceilings~,
     asof_search_ceilings~,
     sequence_match_ceilings~,

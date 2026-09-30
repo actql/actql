@@ -60,7 +60,7 @@ pub fn start_event_window_view(@bounded_execution.Control, @lowering_relation.Pr
 
 pub fn start_session(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[SessionExecution, SessionIssue]
 
-pub fn start_session_relation(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[SessionExecution, SessionIssue]
+pub fn start_session_relation(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?, output_record_limit? : Int64?) -> Result[SessionExecution, SessionIssue]
 
 pub fn start_session_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[SessionExecution, SessionIssue]
 

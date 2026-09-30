@@ -58,6 +58,8 @@ fn bounded_family_relation_chain(graph : CheckedDAG, stage : Int) -> Bool {
     | @lower.IntervalJoinRows(_)
     | @lower.AsOfJoinRows(_)
     | @lower.SequenceRows(_) => ()
+    @lower.EventValue(_) if @lower.operation(first) ==
+      "TEA.window.session_assign" => ()
     _ => return false
   }
   for step in 0..<count {

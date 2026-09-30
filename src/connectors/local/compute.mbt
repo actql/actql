@@ -325,6 +325,7 @@ pub fn constrain_local_managed_sequence(
   sequence : @execution.GeneratedSequence,
   join_output_ceilings? : Array[(Int, Int64)] = [],
   expansion_output_ceilings? : Array[(Int, Int64)] = [],
+  session_output_ceilings? : Array[(Int, Int64)] = [],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
   asof_search_ceilings? : Array[(Int, Int64)] = [],
   sequence_match_ceilings? : Array[(Int, Int64, Int64)] = [],
@@ -350,6 +351,13 @@ pub fn constrain_local_managed_sequence(
       @execution.constrain_generated_expansion_output(
         constrained, step, ceiling,
       ) {
+      Ok(value) => value
+      Err(issue) => return Err(Execution(issue))
+    }
+  }
+  for (step, ceiling) in session_output_ceilings {
+    constrained = match
+      @execution.constrain_generated_session_output(constrained, step, ceiling) {
       Ok(value) => value
       Err(issue) => return Err(Execution(issue))
     }

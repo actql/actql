@@ -9736,6 +9736,46 @@ async function exerciseStrategyGraph(
     }
     return program;
   };
+  const relationSessionFields = ['id', 'session_start_ms', 'session_end_ms'];
+  const retainedRelationSessionProgram = structuredClone(zeroInputProgram);
+  const sessionInput = retainedRelationSessionProgram.stages.find(stage =>
+    stage.id === 'values_a');
+  sessionInput.steps[0].values = {
+    schema: {
+      id: {type: 'number', nullable: false},
+      clock: {type: 'number', nullable: false},
+      payload: {type: 'string', nullable: false},
+    },
+    rows: [
+      {id: 1, clock: 3, payload: 'x'},
+      {id: 2, clock: 1, payload: 'x'},
+      {id: 3, clock: 13, payload: 'x'},
+    ],
+  };
+  sessionInput.results.r.fields = ['id', 'clock', 'payload'];
+  retainedRelationSessionProgram.stages.splice(2, 0, {
+    id: 'sessionized', inputs: {x: {result: {stage: 'values_a', result: 'r'}}},
+    steps: [{from: 'x', session: {
+      by: ['payload'], id: 'id', time: 'clock', gap: 10,
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: [
+      'id', 'clock', 'payload', 'session_id', 'session_start_ms', 'session_end_ms',
+    ]}},
+  });
+  for (const consumer of retainedRelationSessionProgram.stages.filter(stage =>
+    stage.id.startsWith('consumer_'))) {
+    consumer.inputs.x.result.stage = 'sessionized';
+    consumer.steps[0].select = relationSessionFields;
+    consumer.results.r.fields = relationSessionFields;
+  }
+  const sessionExpected = [
+    {id: 2, session_start_ms: 1, session_end_ms: 13},
+    {id: 1, session_start_ms: 1, session_end_ms: 13},
+    {id: 3, session_start_ms: 13, session_end_ms: 23},
+  ];
+  const retainedRelationSessionChain = retainedFamilyChain(
+    retainedRelationSessionProgram, 'sessionized',
+    [{filter: 'true'}, {select: relationSessionFields}], relationSessionFields);
   for (const {
     name, source, expected, producerCidRows, fields,
     temporal = false, sequence = false, fixtureArgs = args,
@@ -9743,6 +9783,22 @@ async function exerciseStrategyGraph(
     firstStage = 'external_cross_consumer_a',
     secondStage = 'external_cross_consumer_b',
   } of [
+    {name: 'session-filter-select-chain', source: retainedRelationSessionChain,
+      temporal: true, producerStage: 'sessionized', producerTask: 2, totalTasks: 4,
+      firstStage: 'consumer_a', secondStage: 'consumer_b',
+      expected: sessionExpected, fields: relationSessionFields,
+      producerCidRows: sessionExpected.map(row => ({
+        id: row.id, session_end_ms: row.session_end_ms,
+        session_start_ms: row.session_start_ms,
+      }))},
+    {name: 'session-empty-filter-select-chain', source: (() => {
+      const program = structuredClone(retainedRelationSessionChain);
+      program.stages.find(stage => stage.id === 'values_a').steps[0].values.rows = [];
+      return program;
+    })(), temporal: true,
+      producerStage: 'sessionized', producerTask: 2, totalTasks: 4,
+      firstStage: 'consumer_a', secondStage: 'consumer_b',
+      expected: [], fields: relationSessionFields},
     {name: 'sequence-filter-sort-chain', source: retainedFamilyChain(
       retainedRelationSequenceProgram, 'matched',
       [{filter: 'key = 1'}, {sort: [{end_id: 'desc'}]},
@@ -10403,6 +10459,16 @@ async function exerciseStrategyGraph(
     {name: 'compute-failure', temporal: 'asof', chain: true},
     {name: 'store-failure', temporal: 'interval', chain: true},
     {name: 'finalize-failure', temporal: 'sequence', chain: true},
+    {name: 'session-in-flight-filter-cancel', mode: 'cancel-after-filter',
+      temporal: 'session', chain: true},
+    {name: 'session-later-arithmetic', mode: 'compute-failure',
+      temporal: 'session', chain: true},
+    {name: 'session-store-append-failure', mode: 'store-failure',
+      temporal: 'session', chain: true},
+    {name: 'session-store-finalize-failure', mode: 'finalize-failure',
+      temporal: 'session', chain: true},
+    {name: 'session-cleanup-retry', mode: 'compute-cleanup-failure',
+      temporal: 'session', chain: true},
     {name: 'events-asof-in-flight-cancel', mode: 'cancel',
       temporal: 'asof', eventsAsOf: true},
     {name: 'events-asof-later-arithmetic', mode: 'compute-failure',
@@ -10416,14 +10482,15 @@ async function exerciseStrategyGraph(
       : name;
     const series = temporal === 'series';
     const sequence = temporal === 'sequence';
+    const session = temporal === 'session';
     const computeFailure = mode === 'compute-failure' ||
       mode === 'compute-cleanup-failure';
     // Events construction is task 3; as-of and the later row filter own
     // separate checked generations. Neither is disguised as a row file.
     const producerTask = eventsAsOf ? (computeFailure ? 5 : 4)
-      : series ? 1 : sequence ? 2 : 3;
+      : series ? 1 : sequence || session ? 2 : 3;
     const priorTasks = eventsAsOf ? (computeFailure ? [1, 2, 3, 4] : [1, 2, 3])
-      : series ? [] : sequence ? [1] : [1, 2];
+      : series ? [] : sequence || session ? [1] : [1, 2];
     const numericGroup = mode === 'cancel-after-numeric-group';
     const grouped = mode === 'cancel-after-group' || numericGroup;
     const nestCancel = mode === 'nest-cancel';
@@ -10431,7 +10498,8 @@ async function exerciseStrategyGraph(
       mode === 'cancel-after-filter' || grouped || nestCancel;
     let program = temporal ? structuredClone(series
       ? retainedTimeSeriesProgram : sequence
-      ? retainedRelationSequenceProgram : retainedTemporalJoinProgram(temporal))
+      ? retainedRelationSequenceProgram : session
+      ? retainedRelationSessionProgram : retainedTemporalJoinProgram(temporal))
       : nestCancel ? structuredClone(nestProgram)
       : retainedBinaryChain(externalAppendProgram,
       grouped
@@ -10443,12 +10511,19 @@ async function exerciseStrategyGraph(
           ? '1 / (id - id) > 0' : 'id >= 10'}],
       grouped ? ['id', 'n'] : ['id']);
     if (chain) {
-      const producerId = series ? 'values_a' : sequence ? 'matched' : 'crossed';
+      const producerId = series ? 'values_a' : sequence ? 'matched'
+        : session ? 'sessionized' : 'crossed';
       const fields = program.stages.find(stage => stage.id === producerId)
         .results.r.fields;
       program = retainedFamilyChain(program, producerId,
-        [{filter: mode === 'compute-failure'
+        [{filter: computeFailure
           ? '1 / (id - id) > 0' : 'true'}], fields);
+    }
+    if (session) {
+      // One record costs 44 session work units, 13 projection units, and
+      // one chain handoff. Work above 58 reaches the following filter.
+      program.stages.find(stage => stage.id === 'values_a').steps[0].values.rows =
+        [{id: 1, clock: 0, payload: 'a'}];
     }
     if (eventsAsOf) {
       const joined = program.stages.find(stage => stage.id === 'crossed');
@@ -10464,9 +10539,10 @@ async function exerciseStrategyGraph(
       first: {from: {stage: 'nest_consumer_a', result: 'r'}},
       second: {from: {stage: 'nest_consumer_b', result: 'r'}},
     } : {
-      producer: {from: {stage: series ? 'values_a' : sequence ? 'matched' : 'crossed', result: 'r'}},
-      first: {from: {stage: series || sequence ? 'consumer_a' : 'external_cross_consumer_a', result: 'r'}},
-      second: {from: {stage: series || sequence ? 'consumer_b' : 'external_cross_consumer_b', result: 'r'}},
+      producer: {from: {stage: series ? 'values_a' : sequence ? 'matched'
+        : session ? 'sessionized' : 'crossed', result: 'r'}},
+      first: {from: {stage: series || sequence || session ? 'consumer_a' : 'external_cross_consumer_a', result: 'r'}},
+      second: {from: {stage: series || sequence || session ? 'consumer_b' : 'external_cross_consumer_b', result: 'r'}},
     };
     if (!temporal && (mode === 'cancel-after-filter' || grouped)) {
       // Three rows give the Append child exactly 28 work units. Its bounded
@@ -10586,7 +10662,8 @@ async function exerciseStrategyGraph(
                   const poll = checked(result);
                   producerWork += poll.work;
                   if ((mode === 'cancel-after-filter' || grouped) &&
-                      producerWork > (chain && series ? 5n : 29n) &&
+                      producerWork > (chain && series ? 5n
+                        : chain && session ? 58n : 29n) &&
                       !poll.complete) {
                     sawLaterWork = true;
                   }
@@ -10618,7 +10695,7 @@ async function exerciseStrategyGraph(
         : fixture.strategyFixtureRetainedLocalSubset(binaryFixture);
       assert.equal(fixture.strategyFixtureTaskStepCount(binaryFixture, producerTask),
         eventsAsOf ? 1 : program.stages.find(stage => stage.id ===
-          (series ? 'values_a' : sequence ? 'matched' : nestCancel
+          (series ? 'values_a' : sequence ? 'matched' : session ? 'sessionized' : nestCancel
             ? 'nested' : 'crossed')).steps.length,
         `${caseName}: cancellation and failures preserve the selected task shape`);
       if (mode === 'finalize-failure') {
@@ -10664,7 +10741,7 @@ async function exerciseStrategyGraph(
         assert.equal(execution.failure?.name, 'AbortError');
         assert.equal(leases, eventsAsOf ? 2 : priorTasks.length);
       } else if (computeFailure) {
-        assert.equal(leases, 2);
+        assert.equal(leases, session ? 1 : 2);
         assert.equal(execution.failure?.code, 'MoonBitHostFailure');
         const arithmeticFailure = eventsAsOf
           ? fixture.strategyFixtureRetainedEventsAsOfArithmetic

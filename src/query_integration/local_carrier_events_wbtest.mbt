@@ -70,7 +70,7 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let session = variant.has_prefix("session")
   let session_global = variant == "session_global"
   let session_parameter = variant == "session_parameter"
-  let session_relation = variant == "session_relation"
+  let session_relation = variant.has_prefix("session_relation")
   let fields = if sequence {
     "[\"match_start_ms\",\"match_end_ms\",\"start_id\"," +
     "\"start_time_ms\",\"end_id\",\"end_time_ms\"]"
@@ -153,7 +153,15 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let event_steps = if session_relation {
     "{\"from\":\"rows\",\"session\":{\"id\":\"event_id\"," +
     "\"time\":\"occurred_at\",\"by\":[\"payload\"],\"gap\":10}," +
-    "\"as\":\"out\"}"
+    (if variant == "session_relation_chain" {
+      "\"as\":\"sessionized\"},{\"from\":\"sessionized\"," +
+      "\"filter\":\"true\",\"as\":\"filtered\"},{\"from\":\"filtered\"," +
+      "\"select\":" +
+      fields +
+      ",\"as\":\"out\"}"
+    } else {
+      "\"as\":\"out\"}"
+    })
   } else if sequence {
     "{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
     "\"time\":\"occurred_at\"}}," +
@@ -671,11 +679,14 @@ fn carrier_events_source_output(
 ///|
 fn carrier_events_relation_session_owner(
   source : @lower.BoundPrepared,
+  suffix? : String = "",
 ) -> @lower.BoundPrepared {
   let checked = @pipeline.check_with_evidence(
     input_cursor(
       "[{\"from\":\"rows\",\"session\":{\"id\":\"event_id\"," +
-      "\"time\":\"occurred_at\",\"by\":[\"payload\"],\"gap\":10}}]",
+      "\"time\":\"occurred_at\",\"by\":[\"payload\"],\"gap\":10}}" +
+      suffix +
+      "]",
     ),
     [
       (
@@ -755,7 +766,7 @@ test "Relation-backed session rejects duplicate IDs across groups" {
 }
 
 ///|
-test "Relation-backed session rejects empty input before publication" {
+test "Relation-backed session preserves empty input at completion" {
   let producer = carrier_events_source_owner_with("number", "[]")
   let source = carrier_events_source_output(producer)
   let owner = carrier_events_relation_session_owner(producer)
@@ -774,13 +785,18 @@ test "Relation-backed session rejects empty input before publication" {
     4096L,
     fn() { true },
   ).unwrap()
-  assert_true(
-    @local_tea.advance_session(execution, 1).unwrap()
-    is @local_tea.SessionFailed(@local_tea.EmptySessionInput, ..),
+  let output = match @local_tea.advance_session(execution, 1).unwrap() {
+    @local_tea.SessionComplete(output, progress=0L, work=1L) => output
+    _ => fail("empty Relation session did not complete")
+  }
+  assert_eq(
+    @record_storage.record_count(@records.completed_storage(output).unwrap()),
+    0,
   )
   assert_true(@local_tea.session_cleanup_pending(execution))
   assert_eq(@local_tea.cleanup_session(execution), Ok(true))
   assert_true(@execution.producer_read_available(input))
+  assert_true(@records.discard_completed(output))
 }
 
 ///|
@@ -2553,8 +2569,7 @@ test "standard Host runs registered bounded Events provider" {
       2,
       events_live,
       obligations?=event_obligations,
-      require_provider=variant.has_prefix("session") &&
-        variant != "session_relation",
+      require_provider=variant.has_prefix("session"),
     )
     let event_rows = local_managed_test_rows(events_ops)
     let expected_rows = if variant == "dedupe" {

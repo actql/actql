@@ -153,6 +153,30 @@ pub fn local_dispatch_rejection(
             ) {
             return Some("unsupported_execution_obligation")
           }
+        SessionExecution(_) | EventEnvelope(_) =>
+          if !@local.local_module_bounded_session_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
+        EventExecution(check) => {
+          // The Relation session child admits its role values, converts the
+          // clock, and verifies identity uniqueness before emitting records.
+          let session_check = match check.rule {
+            AdmitEventValues | ValidateEventIdentities | ConvertEventClock =>
+              @local.local_module_bounded_session_relation_obligation(
+                installed.implementation,
+                local_task_slot(installed, task),
+                requirement.site.step,
+              )
+            _ => false
+          }
+          if !session_check {
+            return Some("unsupported_execution_obligation")
+          }
+        }
         RankingExecution(_) =>
           if !@local.local_module_bounded_ranking_obligation(
               installed.implementation,
@@ -255,6 +279,32 @@ fn local_task_expansion_output_ceilings(
   for step in expansion_steps {
     if !ceilings.any(entry => entry.0 == step) {
       return None
+    }
+  }
+  Some(ceilings)
+}
+
+///|
+/// Session envelopes bind to their exact checked operation, not a final
+/// projection that could discard rows after the private output was built.
+fn local_task_session_output_ceilings(
+  run : @strategy.CapturedDAG,
+  task : Int,
+) -> Array[(Int, Int64)]? {
+  let graph = @strategy.captured_dag_graph(run)
+  guard @strategy.graph_task_operation_count(graph, task) is Some(count) else {
+    return None
+  }
+  let ceilings : Array[(Int, Int64)] = []
+  for index in 0..<count {
+    let requirement = @strategy.graph_task_operation_at(graph, task, index).unwrap()
+    if requirement.disposition is ExecutionCheck(EventEnvelope(check)) {
+      let maximum = @policy.ceiling_value(check.ceiling)
+      let step = requirement.site.step
+      if maximum < 0L || ceilings.any(entry => entry.0 == step) {
+        return None
+      }
+      ceilings.push((step, maximum))
     }
   }
   Some(ceilings)

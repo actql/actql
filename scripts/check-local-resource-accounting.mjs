@@ -952,6 +952,24 @@ for (const [index, route] of routeEntries.entries()) {
     !environmentRoles.has('session_host_timer')) {
     fail(`${label}: session_host_timer fixture is missing`);
   }
+  if (route.family === 'TEA' && route.operation === 'session') {
+    for (const role of [
+      'session_relation_retained_offer', 'session_relation_bounded_chain',
+      'session_relation_child_cancel_cleanup', 'session_relation_cumulative_work',
+      'session_relation_output_envelope', 'session_empty_finish_limits',
+    ]) {
+      if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+    }
+    for (const role of [
+      'session_relation_retained_publication', 'session_relation_retained_empty',
+      'session_relation_retained_chain_stop', 'session_relation_retained_arithmetic',
+      'session_relation_retained_append_failure',
+      'session_relation_retained_finalize_failure',
+      'session_relation_retained_cleanup_retry',
+    ]) {
+      if (!environmentRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+    }
+  }
   if (route.family === 'TEA' && route.operation === 'time_series' &&
     !environmentRoles.has('time_series_host_timer')) {
     fail(`${label}: time_series_host_timer fixture is missing`);
