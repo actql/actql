@@ -442,11 +442,7 @@ pub fn emit_prepared_client_task_pipeline(
       guard @pipeline.input_at(pipeline, index) is Some((name, carrier)) else {
         return Err(Encoding)
       }
-      let sort = match @carrier.kind(carrier) {
-        RelationKind => "relation"
-        GraphKind => "graph"
-        _ => return Err(UnsupportedCarrier)
-      }
+      let sort = client_task_carrier_sort(carrier)
       @encode.key(writer, name)
       @encode.begin_object(writer)
       @encode.key(writer, "sort")
@@ -521,11 +517,7 @@ pub fn emit_prepared_client_task_pipeline(
           is Some(carrier) else {
           return Err(UnsupportedCarrier)
         }
-        let sort = match @carrier.kind(carrier) {
-          RelationKind => "relation"
-          GraphKind => "graph"
-          _ => return Err(UnsupportedCarrier)
-        }
+        let sort = client_task_carrier_sort(carrier)
         @encode.key(task_writer, "input_" + input.to_string())
         @encode.begin_object(task_writer)
         @encode.key(task_writer, "sort")
@@ -537,11 +529,7 @@ pub fn emit_prepared_client_task_pipeline(
         guard @pipeline.input_at(pipeline, input) is Some((name, carrier)) else {
           return Err(UnsupportedCarrier)
         }
-        let sort = match @carrier.kind(carrier) {
-          RelationKind => "relation"
-          GraphKind => "graph"
-          _ => return Err(UnsupportedCarrier)
-        }
+        let sort = client_task_carrier_sort(carrier)
         @encode.key(task_writer, name)
         @encode.begin_object(task_writer)
         @encode.key(task_writer, "sort")
