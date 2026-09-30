@@ -2538,9 +2538,9 @@ async function exerciseStrategyGraph(
         if (publicationCase.name === 'edge-rows' &&
             occurrence.name === 'published') {
           assert.throws(
-            () => assert.deepEqual([...expected].reverse(), expected),
+            () => assert.deepEqual([...actual].reverse(), expected),
             {code: 'ERR_ASSERTION'},
-            'the published edge-row oracle must reject reversed row order',
+            'the published edge-row assertion must reject reversed output',
           );
         }
       }
