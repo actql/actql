@@ -1822,6 +1822,7 @@ async function exerciseStrategyGraph(
   }, {
     name: 'concise-edge-rows',
     concise: true,
+    unordered: true,
     step: {from: 'g', edge_rows: true, as: 'out'},
     fields: ['src', 'dst', 'id', 'weight'],
     secondFields: ['id', 'weight'],
@@ -1831,6 +1832,7 @@ async function exerciseStrategyGraph(
     ],
   }, {
     name: 'edge-rows',
+    unordered: true,
     step: {from: 'g', edge_rows: true, as: 'out'},
     fields: ['src', 'dst', 'weight'],
     secondFields: ['weight', 'src'],
@@ -1909,6 +1911,7 @@ async function exerciseStrategyGraph(
     name: 'mean',
     retainedOutput: true,
     selectedStructural: true,
+    unordered: true,
     rightRows: weightedRightRows,
     steps: [{
       graph: {
@@ -2342,6 +2345,7 @@ async function exerciseStrategyGraph(
     publicationCase.steps.at(-1).edge_rows = true;
     publicationCase.fields = ['src', 'dst', 'weight'];
     publicationCase.secondFields = ['weight', 'src'];
+    publicationCase.unordered = true;
     publicationCase.expected = edgeCase.expected;
     graphPublicationCases.push(publicationCase);
   }
@@ -2528,9 +2532,14 @@ async function exerciseStrategyGraph(
           runDefinitionCid: plan.runDefinition.identity,
         }, occurrence.definitionContract.identity, () => true,
         chunk => received.push(Buffer.from(chunk)));
+        const actual = JSON.parse(Buffer.concat(received).toString('utf8'));
+        const expected = expectedResults[occurrence.name];
+        // Graph row projection does not establish Relation order. Keep every
+        // row and duplicate in the comparison, but ignore physical row order.
         assert.deepEqual(
-          JSON.parse(Buffer.concat(received).toString('utf8')),
-          expectedResults[occurrence.name],
+          publicationCase.unordered ? actual.map(canonical).sort() : actual,
+          publicationCase.unordered ? expected.map(canonical).sort() : expected,
+          `${publicationCase.name}/${occurrence.name}`,
         );
       }
     } finally {
