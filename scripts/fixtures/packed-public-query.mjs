@@ -11,7 +11,16 @@ import {DatabaseSync} from 'node:sqlite';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
   './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
-import {exercisePublicQueryInput, sourceRows} from './public-query-input.mjs';
+import {exercisePublicQueryInput, querySuccesses, queryRefusals, sourceRows}
+  from './public-query-input.mjs';
+
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1';
+const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
+assert.deepEqual(scope.source_rows, sourceRows);
+const scopeInputs = scopeOnly ? {successes: scope.successes,
+  refusals: scope.refusals} : {successes: [...querySuccesses, ...scope.successes],
+  refusals: [...queryRefusals, ...scope.refusals]};
+const expectedQueryRuns = scopeInputs.successes.length;
 
 assert.equal(spawnSync('moon', ['version']).error?.code, 'ENOENT');
 const canonical = value => Array.isArray(value)
@@ -43,6 +52,25 @@ try {
 } finally {
   connection.closeSync();
   instance.closeSync();
+}
+// Install hand-authored rows in the real DuckDB source before each case.
+// Source identity/schema stay fixed; the ordinary acquisition captures the
+// current contents. No rows are injected into the Client or frontend.
+let installedRows = sourceRows;
+async function prepareCase(rows = sourceRows) {
+  if (JSON.stringify(rows) === JSON.stringify(installedRows)) return;
+  const instance = await DuckDBInstance.create(database);
+  const connection = await instance.connect();
+  try {
+    await connection.run('DELETE FROM records');
+    for (const row of rows) {
+      await connection.run('INSERT INTO records VALUES (?, ?)', [row.id, row.amount]);
+    }
+    installedRows = rows;
+  } finally {
+    connection.closeSync();
+    instance.closeSync();
+  }
 }
 const view = environment.source_views[0];
 const sourceProfilePath = resolve('source-profile.json');
@@ -107,6 +135,7 @@ for (const name of sgaCases) {
 }
 const sgaFailures = [];
 async function exerciseSga(mode, extraEnv) {
+  if (scopeOnly) return;
   for (const name of selectedSgaCases) {
     const child = spawn(process.execPath,
       ['accept-sga-public-source.mjs', resolve('.'), sgaFixtureDirectory,
@@ -132,13 +161,13 @@ async function exerciseSga(mode, extraEnv) {
 await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
   durability: 'durable', installation: {directory: resolve('local-state'),
     sourceProfilePath}}, {requestPrefix: 'packed-local',
-  observe: observe('local-state')});
-assert.equal(observe('local-state')().acceptedRuns, 5);
-assert.ok(sourceIo >= 5);
+  observe: observe('local-state'), prepareCase, ...scopeInputs});
+assert.equal(observe('local-state')().acceptedRuns, expectedQueryRuns);
+assert.ok(sourceIo >= expectedQueryRuns);
 console.log('packed raw SQL/Pipe Embedded Local acceptance passed');
 await exerciseSga('local', {ACTQL_LOCAL_STATE_DIR: resolve('sga-local-state'),
   ACTQL_TEST_LOCAL_SOURCE_PROFILE: sourceProfilePath});
-assert.equal(observe('sga-local-state')().acceptedRuns, expectedSgaRuns);
+if (!scopeOnly) assert.equal(observe('sga-local-state')().acceptedRuns, expectedSgaRuns);
 const beforeRemote = sourceIo;
 const host = await openInstalledRemoteHttpHost({
   directory: resolve('remote-state'), sourceProfilePath,
@@ -152,9 +181,9 @@ try {
   await exercisePublicQueryInput(connect, {mode: 'remote',
     endpoint: `https://127.0.0.1:${server.address().port}/`,
     token: 'fixture-token', durability: 'durable'},
-  {requestPrefix: 'packed-http', observe: observe('remote-state')});
-  assert.equal(observe('remote-state')().acceptedRuns, 5);
-  assert.ok(sourceIo >= beforeRemote + 5);
+  {requestPrefix: 'packed-http', observe: observe('remote-state'), prepareCase, ...scopeInputs});
+  assert.equal(observe('remote-state')().acceptedRuns, expectedQueryRuns);
+  assert.ok(sourceIo >= beforeRemote + expectedQueryRuns);
   console.log('packed raw SQL/Pipe HTTP acceptance passed');
   const beforeSga = observe('remote-state')();
   await exerciseSga('remote', {
@@ -163,7 +192,7 @@ try {
   });
   const afterSga = observe('remote-state')();
   assert.equal(afterSga.acceptedRuns - beforeSga.acceptedRuns,
-    expectedSgaRuns);
+    scopeOnly ? 0 : expectedSgaRuns);
   assert.equal(afterSga.sourceIo, beforeSga.sourceIo);
 } finally {
   server.closeAllConnections();

@@ -1,0 +1,102 @@
+{
+  "source_rows": [{"id":3,"amount":30},{"id":1,"amount":null},{"id":2,"amount":20},{"id":3,"amount":30}],
+  "successes": [
+    {
+      "name":"as-after-select", "format":"aql-text",
+      "text":"FROM records AS old |> AS current |> SELECT current.id AS id |> WHERE id > 1 |> EXTEND id + 1 AS next |> SELECT next, id |> ORDER BY id",
+      "columns":[{"name":"next","contract":{"type":"number","nullable":false}},{"name":"id","contract":{"type":"number","nullable":false}}],
+      "expected":[{"next":3,"id":2},{"next":4,"id":3},{"next":4,"id":3}]
+    },
+    {
+      "name":"set-snapshot", "format":"aql-text",
+      "text":"FROM records AS old |> SET id = amount, amount = id |> SELECT id AS new_id, amount AS new_amount, old.id AS original_id, old.amount AS original_amount |> ORDER BY original_id",
+      "columns":[{"name":"new_id","contract":{"type":"number","nullable":true}},{"name":"new_amount","contract":{"type":"number","nullable":false}},{"name":"original_id","contract":{"type":"number","nullable":false}},{"name":"original_amount","contract":{"type":"number","nullable":true}}],
+      "expected":[{"new_id":null,"new_amount":1,"original_id":1,"original_amount":null},{"new_id":20,"new_amount":2,"original_id":2,"original_amount":20},{"new_id":30,"new_amount":3,"original_id":3,"original_amount":30},{"new_id":30,"new_amount":3,"original_id":3,"original_amount":30}]
+    },
+    {
+      "name":"drop-snapshot", "format":"aql-text",
+      "text":"FROM records AS old |> DROP amount |> SELECT old.amount AS original_amount, id |> ORDER BY id",
+      "columns":[{"name":"original_amount","contract":{"type":"number","nullable":true}},{"name":"id","contract":{"type":"number","nullable":false}}],
+      "expected":[{"original_amount":null,"id":1},{"original_amount":20,"id":2},{"original_amount":30,"id":3},{"original_amount":30,"id":3}]
+    },
+    {
+      "name":"rename-snapshot", "format":"aql-text",
+      "text":"FROM records AS old |> RENAME amount AS renamed |> SELECT id, renamed, old.amount AS original_amount |> ORDER BY id",
+      "columns":[{"name":"id","contract":{"type":"number","nullable":false}},{"name":"renamed","contract":{"type":"number","nullable":true}},{"name":"original_amount","contract":{"type":"number","nullable":true}}],
+      "expected":[{"id":1,"renamed":null,"original_amount":null},{"id":2,"renamed":20,"original_amount":20},{"id":3,"renamed":30,"original_amount":30},{"id":3,"renamed":30,"original_amount":30}]
+    },
+    {
+      "name":"as-current", "format":"aql-text",
+      "text":"FROM records AS old |> SET amount = id |> AS current |> SELECT current.amount AS changed, current.id AS id |> ORDER BY id",
+      "columns":[{"name":"changed","contract":{"type":"number","nullable":false}},{"name":"id","contract":{"type":"number","nullable":false}}],
+      "expected":[{"changed":1,"id":1},{"changed":2,"id":2},{"changed":3,"id":3},{"changed":3,"id":3}]
+    },
+    {
+      "name":"as-same-name", "format":"aql-text",
+      "text":"FROM records AS old |> SET amount = id |> AS old |> SELECT old.amount AS changed, old.id AS id |> ORDER BY id",
+      "columns":[{"name":"changed","contract":{"type":"number","nullable":false}},{"name":"id","contract":{"type":"number","nullable":false}}],
+      "expected":[{"changed":1,"id":1},{"changed":2,"id":2},{"changed":3,"id":3},{"changed":3,"id":3}]
+    },
+    {
+      "name":"as-quoted-case", "format":"aql-text",
+      "text":"FROM records AS old |> SET amount = id |> AS `OLD` |> SELECT `old`.`AMOUNT` AS changed, `Old`.`ID` AS id |> ORDER BY id",
+      "columns":[{"name":"changed","contract":{"type":"number","nullable":false}},{"name":"id","contract":{"type":"number","nullable":false}}],
+      "expected":[{"changed":1,"id":1},{"changed":2,"id":2},{"changed":3,"id":3},{"changed":3,"id":3}]
+    },
+    {
+      "name":"as-after-drop-rename", "format":"aql-text",
+      "text":"FROM records AS old |> DROP amount |> RENAME id AS key |> AS current |> SELECT current.key AS key |> ORDER BY key",
+      "columns":[{"name":"key","contract":{"type":"number","nullable":false}}],
+      "expected":[{"key":1},{"key":2},{"key":3},{"key":3}]
+    },
+    {
+      "name":"sql-alias-projection", "format":"sql",
+      "text":"SELECT old.amount AS original_amount, old.id AS id FROM records AS old ORDER BY id",
+      "columns":[{"name":"original_amount","contract":{"type":"number","nullable":true}},{"name":"id","contract":{"type":"number","nullable":false}}],
+      "expected":[{"original_amount":null,"id":1},{"original_amount":20,"id":2},{"original_amount":30,"id":3},{"original_amount":30,"id":3}]
+    },
+    {
+      "name":"as-current-star", "format":"aql-text",
+      "text":"FROM records AS old |> DROP amount |> RENAME id AS key |> AS current |> SELECT * |> ORDER BY key",
+      "columns":[{"name":"key","contract":{"type":"number","nullable":false}}],
+      "expected":[{"key":1},{"key":2},{"key":3},{"key":3}]
+    },
+    {
+      "name":"as-empty", "format":"aql-text",
+      "text":"FROM records AS old |> SET amount = id |> AS current |> WHERE current.id > 100 |> SELECT current.amount AS changed, current.id AS id |> ORDER BY id",
+      "columns":[{"name":"changed","contract":{"type":"number","nullable":false}},{"name":"id","contract":{"type":"number","nullable":false}}],
+      "expected":[]
+    },
+    {
+      "name":"as-repeated-select-order-expression", "format":"aql-text",
+      "sourceRows":[{"id":2,"amount":null},{"id":1,"amount":null}],
+      "text":"FROM records |> RENAME id AS x |> DROP amount |> AS t |> SELECT x |> WHERE x > 0 |> SELECT x |> ORDER BY x + 1",
+      "columns":[{"name":"x","contract":{"type":"number","nullable":false}}],
+      "expected":[{"x":1},{"x":2}]
+    },
+    {
+      "name":"as-order-output-alias", "format":"aql-text",
+      "text":"FROM records |> AS t |> SELECT id AS amount, amount AS id |> ORDER BY amount + 1",
+      "columns":[{"name":"amount","contract":{"type":"number","nullable":false}},{"name":"id","contract":{"type":"number","nullable":true}}],
+      "expected":[{"amount":1,"id":null},{"amount":2,"id":20},{"amount":3,"id":30},{"amount":3,"id":30}]
+    }
+  ],
+  "refusals": [
+    {"name":"as-old-after-select-where","format":"aql-text","text":"FROM records AS old |> AS current |> SELECT id |> WHERE old.id = 1"},
+    {"name":"as-old-after-select-select","format":"aql-text","text":"FROM records AS old |> AS current |> SELECT id |> SELECT old.id"},
+    {"name":"as-old-after-select-extend","format":"aql-text","text":"FROM records AS old |> AS current |> SELECT id |> EXTEND old.id AS next"},
+    {"name":"as-removes-old-select","format":"aql-text","text":"FROM records AS old |> AS current |> SELECT old.id"},
+    {"name":"as-removes-old-expression","format":"aql-text","text":"FROM records AS old |> AS current |> SELECT old.id + 1 AS id"},
+    {"name":"as-removes-old-where","format":"aql-text","text":"FROM records AS old |> AS current |> WHERE old.id = 1 |> SELECT id"},
+    {"name":"as-removes-old-order","format":"aql-text","text":"FROM records AS old |> AS current |> SELECT id |> ORDER BY old.id"},
+    {"name":"as-removes-initial-name","format":"aql-text","text":"FROM records |> AS current |> SELECT records.id"},
+    {"name":"as-removes-intermediate","format":"aql-text","text":"FROM records AS old |> AS middle |> AS current |> SELECT middle.id"},
+    {"name":"drop-current","format":"aql-text","text":"FROM records AS old |> DROP amount |> SELECT amount"},
+    {"name":"rename-current","format":"aql-text","text":"FROM records AS old |> RENAME amount AS renamed |> SELECT amount"},
+    {"name":"as-does-not-recover-dropped","format":"aql-text","text":"FROM records AS old |> DROP amount |> AS current |> SELECT current.amount"},
+    {"name":"rename-collision","format":"aql-text","text":"FROM records |> RENAME amount AS id |> SELECT id"},
+    {"name":"infer-keep-unimplemented","format":"aql-text","text":"FROM records AS old |> INFER score ITEM KEY (id) INPUT (amount = amount) KEEP (old.id) AS assessment"},
+    {"name":"nearest-keep-unimplemented","format":"aql-text","text":"FROM records AS q |> NEAREST records AS c QUERY KEY (q.id) VECTOR q.amount CANDIDATE KEY (c.id) VECTOR c.amount METRIC cosine K 2 KEEP (q.id) AS neighbor"},
+    {"name":"as-old-repeated-select-order-expression","format":"aql-text","text":"FROM records |> AS t |> SELECT id |> WHERE id > 0 |> SELECT id |> ORDER BY records.id + 1"}
+  ]
+}

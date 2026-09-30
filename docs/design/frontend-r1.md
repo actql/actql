@@ -124,7 +124,7 @@ explicit NULL, numeric, acquisition and failure semantics.
 | Reference term | Frontend representation | Existing semantic representation | Difference or boundary |
 | --- | --- | --- | --- |
 | SELECT list | Ordered projection expressions | derive and select | Preserve evaluation once and output order; duplicate output names rejected |
-| Range variable / SELECT alias | Separate scope bindings | Resolved field slots | Pipe SET/DROP retain prior range slots; no helper egress |
+| Range variable / SELECT alias | Separate scope bindings | Resolved field slots | Pipe SET/DROP/RENAME retain prior range slots; Pipe AS replaces all old ranges with the current row; no helper egress |
 | WHERE / HAVING | Pre-/post-aggregate predicate | filter plus existing expression tree | Eager boolean and failure rules remain ActQL's |
 | GROUP BY / aggregate call | Group keys and aggregate expressions | group | Not an analytic partition; canonical aggregate failure order retained |
 | Analytic partition / window frame | OVER partition, order and ROWS frame | analytic | Not TEA event-time windows; only adopted signatures/frames |

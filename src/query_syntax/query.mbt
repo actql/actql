@@ -1301,6 +1301,11 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
       } else {
         final_operations.push(operation)
       }
+    } else if self.has("INFER") || self.has("NEAREST") || self.has("KEEP") {
+      raise QueryAbort(
+        "INFER/NEAREST KEEP is adopted but not implemented in the query frontend",
+        self.peek().start,
+      )
     } else {
       raise QueryAbort("Unknown Pipe operation", self.peek().start)
     }

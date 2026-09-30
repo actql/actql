@@ -300,8 +300,14 @@ export async function startHttpsOutboundSiteGateway({
   const endpoint = (binding, suffix) =>
     `/v1/sites/${encodeURIComponent(binding.siteKey)}/generations/` +
     `${binding.siteGeneration}/outbound/${suffix}`;
+  const queryPreemptsDispatch = entry => entry.operation === 'dispatch' &&
+    pending.has(`query:${entry.identity}`);
+  // These are transport waiters, not execution or redelivery permission.
+  // An explicit query of the same exact dispatch must not sit behind its
+  // unresolved send (for example, after the acceptance response was lost).
+  // Keep FIFO ordering for unrelated work and for release/output custody.
   const nextEntry = binding => [...pending.values()]
-    .filter(entry => entry.binding === binding)
+    .filter(entry => entry.binding === binding && !queryPreemptsDispatch(entry))
     .sort((left, right) => left.sequence - right.sequence)[0];
 
   const server = createServer({
@@ -416,7 +422,17 @@ export async function startHttpsOutboundSiteGateway({
         replyJson(response, 200, {accepted: true});
         return;
       }
-      for (const entry of pending.values()) {
+      // Defer only dispatch waiters with an explicit query for that exact
+      // request. Preserve registration order among queries and releases: a
+      // later, unoffered query must not steal an earlier release's status.
+      // If query admission rejects an acceptance reply, the deferred dispatch
+      // still gets its ordinary exact-request/reply-kind admission attempt.
+      const candidates = [...pending.values()];
+      const responseEntries = [
+        ...candidates.filter(entry => !queryPreemptsDispatch(entry)),
+        ...candidates.filter(queryPreemptsDispatch),
+      ];
+      for (const entry of responseEntries) {
         if (entry.binding !== binding ||
             !genericResponseOperations.has(entry.operation)) {
           continue;

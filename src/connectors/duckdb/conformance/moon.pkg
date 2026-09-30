@@ -36,6 +36,7 @@ import {
   "actql/actql/check_environment" @environment,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/program_check",
+  "actql/actql/run_publication_host" @publication_host,
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/capacity_witness" @wire,
   "actql/actql/capacity_host_witness" @host,

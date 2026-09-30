@@ -452,6 +452,11 @@ for (const [index, route] of routeEntries.entries()) {
       'zero_input_derive_two_consumers',
       'zero_input_sort_take_two_consumers',
       'zero_input_unique_two_consumers',
+      'retained_source_free_chain_admission',
+      'retained_source_free_chain_rejection',
+      'retained_source_free_product_configuration',
+      'retained_source_free_product_rejection',
+      'retained_source_free_chain_budgets',
     ];
     if (route.zero_input_entrypoint?.symbol !== 'values_provider' ||
       requiredValuesRoles.some(role => !boundaryRoles.has(role))) {
@@ -820,6 +825,8 @@ for (const [index, route] of routeEntries.entries()) {
     const suitePath = {
       'node:duckdb_standard_host':
         'adapters/connectors/duckdb/node/test/standard-host.test.mjs',
+      'node:duckdb_retained_values_chain':
+        'adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs',
     }[item.suite];
     if (!suitePath || item.path !== suitePath ||
       JSON.stringify(item.targets) !== JSON.stringify(['node']) ||
@@ -991,6 +998,21 @@ for (const [index, route] of routeEntries.entries()) {
   if (route.family === 'RelA' && route.operation === 'values' &&
     !environmentRoles.has('zero_input_derive_timer_cancel_cleanup')) {
     fail(`${label}: same-stage derive timer evidence is missing`);
+  }
+  if (route.family === 'RelA' && route.operation === 'values') {
+    for (const role of [
+      'retained_source_free_named_results', 'retained_source_free_empty_input',
+      'retained_source_free_empty_output', 'retained_source_free_filter_timer_cleanup',
+      'retained_source_free_filter_arithmetic', 'retained_source_free_append_cleanup',
+      'retained_source_free_finalize_cleanup_retry',
+      'retained_source_free_host_exact_budgets',
+      'retained_source_free_host_work_short',
+      'retained_source_free_host_workspace_short',
+    ]) {
+      if (!environmentRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
   }
   if (route.family === 'RelA' && route.operation === 'cross_join' &&
     !environmentRoles.has('direct_product_node_timer_cancel_cleanup')) {
@@ -1353,6 +1375,7 @@ for (const [index, route] of routeEntries.entries()) {
     }
     for (const role of [
       'ordinary_filter_quantum_and_lifetime',
+      'retained_captured_factory_binding',
       'filter_mixed_stage_lifetime',
       'filter_input_exact',
       'filter_input_one_short',
@@ -1364,6 +1387,15 @@ for (const [index, route] of routeEntries.entries()) {
     }
     if (!environmentRoles.has('filter_in_flight_host_timer')) {
       fail(`${label}: in-flight Host cancellation fixture is missing`);
+    }
+    for (const role of [
+      'retained_captured_named_results', 'retained_captured_empty_input',
+      'retained_captured_empty_output', 'retained_captured_host_exact_budgets',
+      'retained_captured_host_work_short', 'retained_captured_host_workspace_short',
+      'retained_captured_progress_timer_cleanup', 'retained_captured_filter_arithmetic',
+      'retained_captured_append_cleanup', 'retained_captured_finalize_cleanup_retry',
+    ]) {
+      if (!environmentRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
     }
   }
   if (route.family === 'RelA' && route.operation === 'select') {

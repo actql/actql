@@ -199,9 +199,51 @@ pub fn local_module_bounded_values_publication(
   guard installed.sequences.get(slot) is Some(sequence) else { return false }
   @execution.generated_sequence_step_index_at(sequence, 0) is Some(_) &&
   @execution.generated_sequence_step_index_at(sequence, 1) is None &&
-  @execution.generated_sequence_step_at(sequence, 0)
-  is Some(@lower.ValuesStep(_)) &&
-  local_module_managed_provider(installed, sequence) is Some(_)
+  local_module_bounded_values_obligation(
+    installed,
+    slot,
+    @execution.generated_sequence_step_index_at(sequence, 0).unwrap(),
+  )
+}
+
+///|
+/// Values publication belongs to the exact bounded source child, including
+/// a source-free task executed by the existing linear Relation-chain owner.
+pub fn local_module_bounded_values_obligation(
+  installed : LocalComputeModule,
+  slot : Int,
+  step : Int,
+) -> Bool {
+  guard installed.sequences.get(slot) is Some(sequence) &&
+    local_sequence_contains_exact_step(sequence, step) &&
+    @execution.select_generated_sequence_step(sequence, step) is Some(selected) &&
+    @execution.generated_sequence_step_at(selected, 0)
+    is Some(@lower.ValuesStep(_)) else {
+    return false
+  }
+  // Registered family providers take precedence over the built-in chain.
+  // Their acceptance alone does not prove bounded Values publication.
+  if installed.managed_providers.any(provider => {
+      managed_provider_accepts(provider, sequence)
+    }) {
+    return false
+  }
+  let child = values_provider(installed.execution, installed.measurement)
+  if !managed_provider_accepts(child, selected) ||
+    managed_provider_capacity(child, selected) is None {
+    return false
+  }
+  if @execution.generated_sequence_step_count(sequence) == 1 {
+    return @execution.generated_sequence_step_index_at(sequence, 0) ==
+      Some(step)
+  }
+  let owner = selected_relation_provider(
+    installed.execution,
+    installed.measurement,
+    family=installed.managed_providers,
+  )
+  managed_provider_accepts(owner, sequence) &&
+  managed_provider_capacity(owner, sequence) is Some(_)
 }
 
 ///|

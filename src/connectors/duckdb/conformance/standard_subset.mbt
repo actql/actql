@@ -47,9 +47,10 @@ fn register_used_provider(
 fn fixture_task_sequences(
   graph : @strategy.CheckedDAG,
   generated : Array[@execution.GeneratedSequence],
+  first_task? : Int = 1,
 ) -> Array[@execution.GeneratedSequence] {
   Array::makei(generated.length(), index => {
-    let task = index + 1
+    let task = index + first_task
     match @strategy.graph_task_prefix_end(graph, task) {
       Some(end) =>
         @execution.select_generated_sequence_prefix(generated[index], end).unwrap()
@@ -58,6 +59,124 @@ fn fixture_task_sequences(
           Some(step) =>
             @execution.select_generated_sequence_step(generated[index], step).unwrap()
           None => generated[index]
+        }
+    }
+  })
+}
+
+///|
+/// Reuse the checked source-free Program and the installed retained driver.
+/// The fixture configures Compute only; the standard Host owns publication.
+#export_name("strategyFixtureSourceFreeRetainedSubset")
+pub fn strategy_fixture_source_free_retained_subset(
+  prepared : @publication_host.PreparedClientProgram,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  execution_work : Int,
+  operation_entries : Int,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  let run = @publication_host.open_prepared_source_free_client_run(prepared, {
+    planning_work: 100000,
+    attempts: 100,
+    holdings: 100,
+    transfer_bytes: 10000000L,
+    retained_bytes: 200000000L,
+    execution_bytes: 268435456L,
+  }).unwrap()
+  fixture_retained_client_subset(
+    run, registry_json, values_json, fragment_json, execution_work, operation_entries,
+    0,
+  )
+}
+
+///|
+/// Bind budget injection to the same checked acquisition and retained owner.
+#export_name("strategyFixtureCapturedRetainedSubset")
+pub fn strategy_fixture_captured_retained_subset(
+  prepared : @publication_host.PreparedClientProgram,
+  source : @query.CapturedInputSource,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  execution_work : Int,
+  operation_entries : Int,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  let run = @publication_host.open_prepared_captured_client_run(
+    prepared,
+    source,
+    {
+      planning_work: 100000,
+      attempts: 100,
+      holdings: 100,
+      transfer_bytes: 10000000L,
+      retained_bytes: 200000000L,
+      execution_bytes: 268435456L,
+    },
+  ).unwrap()
+  fixture_retained_client_subset(
+    run, registry_json, values_json, fragment_json, execution_work, operation_entries,
+    1,
+  )
+}
+
+///|
+fn fixture_retained_client_subset(
+  run : @strategy.CapturedDAG,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  execution_work : Int,
+  operation_entries : Int,
+  first_task : Int,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  let graph = @strategy.captured_dag_graph(run)
+  let generated = Array::makei(@strategy.graph_task_count(graph) - first_task, index => {
+    let task = index + first_task
+    fixture_generated_with_ordered(
+      @strategy.graph_task_owner(graph, task).unwrap(),
+      registry_json,
+      values_json,
+      fragment_json,
+      true,
+      None,
+    ) catch {
+      _ =>
+        abort(
+          "invalid retained fixture generation for task " + task.to_string(),
+        )
+    }
+  })
+  @connector_gate.configure_subset(
+    run,
+    fixture_task_sequences(graph, generated, first_task~),
+    0,
+    retained_output=true,
+    execution_work~,
+    operation_entries~,
+  )
+}
+
+///|
+/// Observe physical task boundaries without substituting a fixture DAG.
+#export_name("strategyFixtureConfiguredTaskStepCount")
+pub fn strategy_fixture_configured_task_step_count(
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  task : Int,
+) -> Int? {
+  let graph = @strategy.captured_dag_graph(
+    @physical_host.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+  )
+  @strategy.graph_task_owner(graph, task).map(owner => {
+    match @strategy.graph_task_selected_step(graph, task) {
+      Some(_) => 1
+      None =>
+        match @strategy.graph_task_prefix_end(graph, task) {
+          Some(end) => end + 1
+          None =>
+            @pipeline.step_count(
+              @lower.pipeline(@lower.bound_preparation(owner)),
+            )
         }
     }
   })
@@ -180,16 +299,34 @@ pub fn strategy_fixture_retained_input_limit(
 pub fn strategy_fixture_retained_chain_filter_arithmetic(
   issue : @local_driver.LocalDispatchIssue,
 ) -> Bool {
+  retained_filter_arithmetic_at(issue, 1)
+}
+
+///|
+/// The acquired producer begins with the filter, not a Values child.
+#export_name("strategyFixtureRetainedCapturedFilterArithmetic")
+pub fn strategy_fixture_retained_captured_filter_arithmetic(
+  issue : @local_driver.LocalDispatchIssue,
+) -> Bool {
+  retained_filter_arithmetic_at(issue, 0)
+}
+
+///|
+fn retained_filter_arithmetic_at(
+  issue : @local_driver.LocalDispatchIssue,
+  expected_step : Int,
+) -> Bool {
   guard issue
     is @local_driver.Preparation(
       @local_connector.Materializing(
         @local_connector.Candidate(
           @connector.Execution(
-            @execution.Rows(1, @execution.Evaluation(0, 0, evaluation))
+            @execution.Rows(step, @execution.Evaluation(0, 0, evaluation))
           )
         )
       )
     ) &&
+    step == expected_step &&
     evaluation.kind is @execution.Scalar(@execution.ArithmeticFailure) else {
     return false
   }

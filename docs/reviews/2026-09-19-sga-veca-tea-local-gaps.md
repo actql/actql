@@ -912,6 +912,110 @@ retry without redispatch. These are the acceptance cases; executed local and
 Linux CI evidence remain separate. They do not certify Host-wide exact budgets,
 arbitrary nonlinear chains, Events serialization or Native Host cancellation.
 
+#### Retained source-free Values chains
+
+`ValuesPublication` now checks the exact Values occurrence and its installed
+bounded child, then the selected linear Relation chain. The earlier one-step
+publication reader remains a one-step compatibility reader. A filter-only
+view, a foreign occurrence, a nonlinear suffix or a shadowing provider does
+not acquire this obligation. The execution algorithms and CID rules do not
+change.
+
+The source-free checked Program fixture keeps `values -> filter -> select`
+in task zero, with no dummy Acquisition and no test-only task split. The
+standard Node Host uses a real retained Store, publishes the producer and
+two downstream Compute Results, and compares all three independently named
+committed Results against literal ordered expectations. Empty input and
+filter-to-empty output use the same path. Quantum-one advancement delivers
+timer cancellation after the Values-to-filter handoff; arithmetic failure
+checks the typed filter cause and original expression. Append failure and
+acknowledgement loss after real file finalization preserve nonpublication
+and cleanup custody. Cleanup retry must not increment actual Compute entry
+calls, and final reservations, holdings and read buffers must be zero.
+
+The additive `client_local_host.open_source_free_local_retained_host` product
+factory installs retained output before sealing policy, and resolves actual
+installed offers with unknown source statistics through the existing common
+selection owner. The Node bridge is
+`clientProgramOpenSourceFreeLocalRetainedHost`; the selected and RelA-only
+configurations expose the same entry. The seven success/fault Host cases use
+this product factory, not a conformance-only provider assembly. The previous
+memory-output factory is unchanged. Unsupported nonlinear suffixes are refused
+before Compute or Store acquisition. No new Run state machine, synthetic
+Acquisition statistics, wire, language or CID rule is introduced.
+
+The scalar `Values -> filter true -> select` fixture fixes independent whole
+chain bounds: Values 11 steps, Filter 31, Select 19 and two handoffs require
+63 work units. Filter's three metadata entries, three input roots, one snapshot
+and two predicate slots peak at nine workspace entries. The portable provider
+and real retained Host both test 63/9 success, 62/9 typed `InputLimit` and
+63/8 typed `RowLimit`. Successful metering does not supply the expected bounds.
+The exact Host case reads all three named Results in literal input order;
+both rejected cases remain unpublished and release all retained resources.
+Budget injection uses the same checked Program and retained driver through a
+conformance configuration; the ordinary success/fault cases use product limits.
+
+Public Client dispatch wiring remains a distinct shared integration item.
+`adapters/host-node/client-dispatch-owner.mjs` still chooses
+`clientProgramOpenSourceFreeLocalHost` for its memory-output configuration.
+The Host owner must explicitly select the additive retained factory and carry
+the existing retained Store configuration through dispatch; Local does not
+replace that owner's admission, journal or Run state. This section certifies
+the configured standard-Host path, not an implicit retained mode in every
+public Client configuration. Linux CI evidence is recorded separately from
+local execution, and Native Host in-flight cancellation remains a separate unit.
+
+#### Retained captured-input Host configuration
+
+`client_local_host.open_captured_local_retained_host` is the additive trusted
+Compute factory for a verified acquisition. It delegates to the same checked
+Host owner as the memory-output factory, installs retained output before
+policy sealing, and preserves acquisition binding, estimates, task activation
+and execution control. The Node and RelA-only bridges expose
+`clientProgramOpenCapturedLocalRetainedHost`. No provider algorithm, Run owner,
+ledger, language, wire or identity rule is replaced.
+
+The normal Program fixture acquires `filter -> select` from a real DuckDB
+file, then runs `filter -> sort -> select` as one physical Local task and
+passes its retained output to two downstream Compute tasks. All three explicit
+Named Results are read from the committed publication index and compared in
+literal order. Empty acquisition and filter-to-empty output use the same
+product configuration. Quantum-one advancement delivers a timer cancellation
+after positive Compute work, observes physical stop before releasing Store
+custody, and leaves the acquisition owner alive through Compute cleanup.
+This timer proves in-flight Compute cancellation, not Native acquisition
+cancellation or entry into a particular child phase.
+
+Typed later-filter arithmetic failure, append failure, acknowledgement loss
+after real file finalization, and cleanup failure/retry remain unpublished.
+Actual Compute entry counts must not increase during close or retry; final
+holdings, reservations and read buffers must be zero. Acquisition custody is
+closed separately after the last Compute cleanup. The portable factory test
+also rejects a foreign checked Program and a closed acquisition without
+starting Compute or retaining an output.
+
+The scalar captured `filter true -> select` chain has an independent kernel
+bound of 31 Filter work units, 19 Select units and one handoff: 51 total.
+Its peak operation workspace is nine entries. Real retained Host tests use
+51/9 success, 50/9 typed `InputLimit`, and 51/8 typed `RowLimit`, with independent
+Named Result expectations and nonpublication on refusal. Budget injection
+reuses the same checked capture and retained driver; ordinary success and
+fault cases use the product factory. These kernel budgets do not assert an
+exact bound for physical acquisition or the complete Host reservation ledger.
+
+The verified acquisition here has the existing cell/memory representation;
+the Compute outputs use real retained files. File-represented acquisition is
+not certified by these tests: `identify_captured_source_relation` currently
+requires a cell export and rejects it with `NotCellRepresentation`.
+Supporting that representation requires an owned identity/measurement path
+that can consume retained input without synchronous materialization, followed
+by source evidence and the existing publication admission. Public Client
+dispatch still chooses the memory-output captured factory; its Host owner
+must explicitly connect the additive retained factory and Store configuration.
+These two concrete connection gaps remain, rather than being hidden by the
+configured standard-Host proof. Linux CI and Native Host in-flight cancellation
+are separate evidence and completion units.
+
 #### Mixed retained Store and typed Carrier paths
 
 Relation-input `pool_vectors` can now execute as a selected one-step task
