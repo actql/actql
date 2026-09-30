@@ -1569,6 +1569,57 @@ fn start_reach_state(
 }
 
 ///|
+fn resolve_reach_starts(
+  prepared : @lower.PreparedGraphReach,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  inputs : Array[@execution.ProducerRead],
+) -> ReachStarts? {
+  let starts = match @lower.graph_reach_start(prepared) {
+    @graph_type.SingleReachStart(value) => SingleReachStart(value)
+    @graph_type.SelectedReachStarts(selector) =>
+      match @graph_type.selector_form(selector) {
+        @graph_type.ExplicitIds => SelectedReachIds(prepared)
+        @graph_type.PredicateNodes =>
+          match @lower.graph_reach_start_predicate(prepared) {
+            Some(expression) => TraversalPredicateStarts(expression)
+            None => return None
+          }
+        @graph_type.RelationIds(..) => {
+          let mut selected = None
+          for candidate in inputs {
+            if @execution.producer_read_matches_operation_input(
+                candidate,
+                @lower.sequence_owner(sequence),
+                step,
+                1,
+              ) {
+              selected = Some(candidate)
+              break
+            }
+          }
+          guard selected is Some(selected) &&
+            @lower.graph_reach_start_relation_field(prepared) is Some(field) else {
+            return None
+          }
+          let schema = @execution.producer_read_schema(selected)
+          let mut column = -1
+          for index in 0..<@schema.field_count(schema) {
+            if @schema.field_at(schema, index).map(value => value.name) ==
+              Some(field) {
+              column = index
+              break
+            }
+          }
+          guard column >= 0 else { return None }
+          TraversalRelationStarts(selected, column)
+        }
+      }
+  }
+  Some(starts)
+}
+
+///|
 pub fn start_reach(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
@@ -1587,49 +1638,9 @@ pub fn start_reach(
     is Some(@lower.GraphReachStep(prepared)) &&
     @lower.graph_reach_max_depth(prepared) is Some(max_depth) &&
     @graph.producer_read_storage(input) is Some(source) &&
-    @storage.carrier(source) is @carrier.GraphValue(graph) else {
+    @storage.carrier(source) is @carrier.GraphValue(graph) &&
+    resolve_reach_starts(prepared, sequence, step, inputs) is Some(starts) else {
     return Err(InvalidReachKernel)
-  }
-  let starts = match @lower.graph_reach_start(prepared) {
-    @graph_type.SingleReachStart(value) => SingleReachStart(value)
-    @graph_type.SelectedReachStarts(selector) =>
-      match @graph_type.selector_form(selector) {
-        @graph_type.ExplicitIds => SelectedReachIds(prepared)
-        @graph_type.PredicateNodes =>
-          match @lower.graph_reach_start_predicate(prepared) {
-            Some(expression) => TraversalPredicateStarts(expression)
-            None => return Err(InvalidReachKernel)
-          }
-        @graph_type.RelationIds(..) => {
-          let mut selected = None
-          for candidate in inputs {
-            if @execution.producer_read_matches_operation_input(
-                candidate,
-                @lower.sequence_owner(sequence),
-                step,
-                1,
-              ) {
-              selected = Some(candidate)
-              break
-            }
-          }
-          guard selected is Some(selected) &&
-            @lower.graph_reach_start_relation_field(prepared) is Some(field) else {
-            return Err(InvalidReachKernel)
-          }
-          let schema = @execution.producer_read_schema(selected)
-          let mut column = -1
-          for index in 0..<@schema.field_count(schema) {
-            if @schema.field_at(schema, index).map(value => value.name) ==
-              Some(field) {
-              column = index
-              break
-            }
-          }
-          guard column >= 0 else { return Err(InvalidReachKernel) }
-          TraversalRelationStarts(selected, column)
-        }
-      }
   }
   start_reach_state(
     control,
@@ -1639,7 +1650,7 @@ pub fn start_reach(
     Stored(input),
     graph,
     @lower.graph_reach_output_schema(prepared),
-    SingleReachStart(@lower.graph_reach_start(prepared)),
+    starts,
     None,
     @lower.graph_reach_direction(prepared),
     AllReachEdges,
@@ -1680,7 +1691,8 @@ pub fn start_reach_view(
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.node_input_target(node, 0) is Some(target) &&
     @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
-    is Some(@carrier.GraphValue(graph)) else {
+    is Some(@carrier.GraphValue(graph)) &&
+    resolve_reach_starts(prepared, sequence, step, inputs) is Some(starts) else {
     return Err(InvalidReachKernel)
   }
   start_reach_state(
