@@ -627,6 +627,20 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
     assert.equal(JSON.parse(preparing.wire).sequence, 0);
     assert.equal(JSON.parse(preparing.wire).publication_attempt_cid,
       attempt.cid);
+    assert.throws(() => issuePublicationAttempt(attempt, run, {
+      attemptId: 'attempt-2', fenceCid: fixed('a'),
+      startedAt: '2026-09-18T00:02:00.000Z',
+    }, limits));
+    assert.throws(() => issuePublicationRecord(request, undefined, {
+      state: 'preparing', observedAt: '2026-09-18T00:02:00.000Z',
+      cleanupOwnerCids: [], uncommittedConfirmed: false,
+    }, limits));
+    assert.throws(() => issuePublicationAttempt({
+      token: {}, cid: request.cid, wire: request.wire,
+    }, run, {
+      attemptId: 'attempt-2', fenceCid: fixed('a'),
+      startedAt: '2026-09-18T00:02:00.000Z',
+    }, limits));
     assert.throws(() => issuePublicationRequest(run, [definition], {
       namespaceId: 'namespace-a', authorityScopeCid: fixed('d'),
       publicationPolicyCid: 'invalid', publicationTargetCid: fixed('9'),

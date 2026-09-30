@@ -238,8 +238,8 @@ async function finishCommittedAttempt(
 ) {
   const previous = await store.latestRecordContract(attempt.identity);
   const action = control.committedPublicationFinalizationAction(previous);
-  if (action === 0) return;
-  if (action !== 1) {
+  if (action === 'finished') return;
+  if (action !== 'append_succeeded') {
     fail('InvalidCommittedPublicationAttempt');
   }
   try {
@@ -249,7 +249,8 @@ async function finishCommittedAttempt(
   } catch (error) {
     const current = await store.latestRecordContract(attempt.identity);
     if (error?.code !== 'PublicationRecordConflict' ||
-        control.committedPublicationFinalizationAction(current) !== 0) {
+        control.committedPublicationFinalizationAction(current) !==
+          'finished') {
       throw error;
     }
   }
@@ -260,8 +261,8 @@ async function finishSupersededAttempt(
 ) {
   const previous = await store.latestRecordContract(attempt.identity);
   const action = control.supersededPublicationFinalizationAction(previous);
-  if (action === 0 || action === 3) return;
-  if (action !== 2) {
+  if (action === 'finished' || action === 'superseded_confirmed') return;
+  if (action !== 'append_superseded') {
     fail('InvalidSupersededPublicationAttempt');
   }
   try {
@@ -279,7 +280,8 @@ async function finishSupersededAttempt(
   } catch (error) {
     const current = await store.latestRecordContract(attempt.identity);
     if (error?.code !== 'PublicationRecordConflict' ||
-        control.supersededPublicationFinalizationAction(current) !== 3) {
+        control.supersededPublicationFinalizationAction(current) !==
+          'superseded_confirmed') {
       throw error;
     }
   }
@@ -321,7 +323,7 @@ async function requireActiveAttempt(
   catch (reason) {
     const previous = await store.latestRecordContract(attempt.identity);
     const action = control.publicationCancellationAction(previous);
-    if (action === 1 || action === 2) {
+    if (action === 'cancel_preparing' || action === 'cancel_committing') {
       await appendState(
         store,
         control,
@@ -331,7 +333,7 @@ async function requireActiveAttempt(
         now(),
         limits,
         undefined,
-        action === 2,
+        action === 'cancel_committing',
       );
     }
     throw reason;
@@ -384,7 +386,7 @@ function uncertainFailure(
           typeof member(upstream, 'retry') === 'function',
           upstreamRetryAttempted,
         );
-        if (action === 0) {
+        if (action === 'reconcile') {
           try {
             result = await reconcile(upstream);
             resolved = true;
@@ -395,13 +397,13 @@ function uncertainFailure(
           }
           continue;
         }
-        if (action === 1) {
+        if (action === 'retry_upstream_cleanup') {
           upstreamRetryAttempted = true;
           try { await upstream.retry(); }
           catch (error) { errors.push(error); }
           continue;
         }
-        if (action === 2) break;
+        if (action === 'finished') break;
         fail('InvalidRunPublicationUnknownRetry');
       }
       failure.cleanupPending = status().pending;
@@ -479,24 +481,24 @@ async function publishRun(options, effectful) {
       contractsPersisted,
       attemptCreated,
     );
-    if (action === 0) {
+    if (action === 'check_existing_commit') {
       existing = await lookupCommit();
       existingChecked = true;
       continue;
     }
-    if (action === 1) {
+    if (action === 'validate_existing_evidence') {
       await validateCommit(existing.index);
       existingEvidenceValidated = true;
       continue;
     }
-    if (action === 2) {
+    if (action === 'finalize_existing_commit') {
       await finishCommittedAttempt(
         store, control, existing.attempt, existing.index, now, limits,
       );
       existingFinalized = true;
       continue;
     }
-    if (action === 3) {
+    if (action === 'return_existing_commit') {
       return Object.freeze({
         state: 'succeeded',
         committed: false,
@@ -506,24 +508,24 @@ async function publishRun(options, effectful) {
         index: existing.index,
       });
     }
-    if (action === 4) {
+    if (action === 'check_initial_active') {
       signal?.throwIfAborted();
       initialActiveChecked = true;
       continue;
     }
-    if (action === 5) {
+    if (action === 'persist_contracts') {
       await persistContracts(store, [
         ...contracts, ...(effectful?.contracts ?? []), publicationRequest,
       ]);
       contractsPersisted = true;
       continue;
     }
-    if (action === 6) {
+    if (action === 'create_attempt') {
       await store.createAttempt(publicationAttempt.wire);
       attemptCreated = true;
       continue;
     }
-    if (action === 7) break;
+    if (action === 'enter_attempt_progress') break;
     fail('InvalidRunPublicationSetupProgress');
   }
   let record = await store.latestRecordContract(publicationAttempt.identity);
@@ -533,7 +535,7 @@ async function publishRun(options, effectful) {
     const action = control.publicationAttemptAction(
       record, activeChecked, index !== undefined,
     );
-    if (action === 0) {
+    if (action === 'append_preparing') {
       record = await appendState(
         store, control, publicationAttempt, undefined, 'preparing', now(),
         limits,
@@ -541,14 +543,14 @@ async function publishRun(options, effectful) {
       activeChecked = false;
       continue;
     }
-    if (action === 1) {
+    if (action === 'check_active') {
       await requireActiveAttempt(
         signal, store, control, publicationAttempt, now, limits,
       );
       activeChecked = true;
       continue;
     }
-    if (action === 2) {
+    if (action === 'append_committing') {
       record = await appendState(
         store, control, publicationAttempt, record, 'committing', now(),
         limits,
@@ -556,7 +558,7 @@ async function publishRun(options, effectful) {
       activeChecked = false;
       continue;
     }
-    if (action === 3) {
+    if (action === 'issue_index') {
       index = control.issuePublicIndexEntry({
         runDefinition: evidence.runDefinition,
         invocation: evidence.invocation,
@@ -569,10 +571,14 @@ async function publishRun(options, effectful) {
       }, now(), limits);
       continue;
     }
-    if (action === 4) break;
-    if (action === 5) fail('RunPublicationReconciliationRequired');
-    if (action === 6) fail('CommittedPublicationIndexMissing');
-    if (action === 7) fail('RunPublicationAttemptTerminal');
+    if (action === 'commit_index') break;
+    if (action === 'require_reconciliation') {
+      fail('RunPublicationReconciliationRequired');
+    }
+    if (action === 'reject_missing_index') {
+      fail('CommittedPublicationIndexMissing');
+    }
+    if (action === 'reject_terminal') fail('RunPublicationAttemptTerminal');
     fail('InvalidRunPublicationProgress');
   }
   let committed;
@@ -601,7 +607,7 @@ async function publishRun(options, effectful) {
         reconciled !== undefined,
         unknownAppendAttempted,
       );
-      if (action === 0) {
+      if (action === 'reconcile_commit') {
         reconciliationAttempted = true;
         try {
           reconciled = await lookupCommit();
@@ -611,7 +617,7 @@ async function publishRun(options, effectful) {
         }
         continue;
       }
-      if (action === 1) {
+      if (action === 'append_unknown') {
         unknownAppendAttempted = true;
         try {
           await appendState(
@@ -621,7 +627,7 @@ async function publishRun(options, effectful) {
         } catch (error) { recordFailure = error; }
         continue;
       }
-      if (action === 2) {
+      if (action === 'return_unknown') {
         const reconcile = async upstream => {
           const resolved = await lookupCommit();
           if (resolved === undefined) {
@@ -660,7 +666,7 @@ async function publishRun(options, effectful) {
           reconcile,
         );
       }
-      if (action === 3) {
+      if (action === 'confirm_uncommitted_failure') {
         const cleanup = member(primary, 'cleanupHandle');
         if (member(primary, 'cleanupPending') === true &&
             typeof member(cleanup, 'resolveConfirmed') === 'function') {
@@ -668,7 +674,9 @@ async function publishRun(options, effectful) {
         }
         throw primary;
       }
-      if (action !== 4) fail('InvalidRunPublicationCommitFailure');
+      if (action !== 'adopt_committed_index') {
+        fail('InvalidRunPublicationCommitFailure');
+      }
       await validateCommit(reconciled.index);
       committed = Object.freeze({
         entry: JSON.parse(reconciled.index.wire),

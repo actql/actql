@@ -2014,6 +2014,21 @@ async function exerciseStrategyGraph(
       {id: 2, node_name: 'second'},
     ],
   }, {
+    name: 'retained-match-nodes-filter',
+    retainedOutput: true,
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized',
+      match_nodes: {ids: [2, 1, 2], fields: ['id', 'node_name']},
+      as: 'matched',
+    }, {
+      from: 'matched', filter: 'id > 1', as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [{id: 2, node_name: 'second'}],
+  }, {
     name: 'match-nodes-predicate',
     step: {
       from: 'g',
@@ -2039,6 +2054,21 @@ async function exerciseStrategyGraph(
       {src: 1, dst: 2, weight: 10},
       {src: 2, dst: 1, weight: 20},
     ],
+  }, {
+    name: 'retained-match-edges-filter',
+    retainedOutput: true,
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized',
+      match_edges: {fields: ['src', 'dst', 'weight']},
+      as: 'matched',
+    }, {
+      from: 'matched', filter: 'weight > 10', as: 'out',
+    }],
+    fields: ['src', 'dst', 'weight'],
+    secondFields: ['weight', 'src'],
+    expected: [{src: 2, dst: 1, weight: 20}],
   }, {
     name: 'match-edges-predicate',
     step: {
@@ -2124,6 +2154,39 @@ async function exerciseStrategyGraph(
   }, {
     name: 'components-strong',
     step: {from: 'g', components: {kind: 'strong'}, as: 'out'},
+    fields: ['node_id', 'component_id', 'component_size'],
+    secondFields: ['component_id', 'component_size'],
+    expected: [
+      {node_id: 1, component_id: 1, component_size: 2},
+      {node_id: 2, component_id: 1, component_size: 2},
+    ],
+  }, {
+    name: 'retained-bounds-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    step: {
+      from: 'g',
+      graph_bounds: {max_nodes: 1},
+      as: 'out',
+    },
+    fields: ['kind', 'node_id', 'actual', 'max'],
+    secondFields: ['kind', 'node_id'],
+    expected: [
+      {kind: 'nodes', node_id: null, actual: 2, max: 1},
+    ],
+  }, {
+    name: 'retained-degree-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    step: {from: 'g', degree: {direction: 'both'}, as: 'out'},
+    fields: ['node', 'degree'],
+    secondFields: ['degree'],
+    expected: [{node: 1, degree: 2}, {node: 2, degree: 2}],
+  }, {
+    name: 'components-retained-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    step: {from: 'g', components: {kind: 'weak'}, as: 'out'},
     fields: ['node_id', 'component_id', 'component_size'],
     secondFields: ['component_id', 'component_size'],
     expected: [
@@ -4578,6 +4641,48 @@ async function exerciseStrategyGraph(
     },
     fields: ['kind', 'node_id', 'actual', 'max'],
   }, {
+    name: 'retained-bounds-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{from: 'g', graph_bounds: {max_nodes: 1}, as: 'out'}],
+    fields: ['kind', 'node_id', 'actual', 'max'],
+  }, {
+    name: 'retained-degree-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{from: 'g', degree: {direction: 'both'}, as: 'out'}],
+    fields: ['node', 'degree'],
+  }, {
+    name: 'components-retained-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{from: 'g', components: {kind: 'weak'}, as: 'out'}],
+    fields: ['node_id', 'component_id', 'component_size'],
+  }, {
     name: 'match-nodes-predicate-in-flight',
     rows: 40,
     step: {
@@ -4590,6 +4695,27 @@ async function exerciseStrategyGraph(
     },
     fields: ['id', 'node_name'],
   }, {
+    name: 'retained-match-nodes-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{
+      from: 'g',
+      match_nodes: {
+        where: "node_name = 'node-39'",
+        fields: ['id', 'node_name'],
+      },
+      as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'match-edges-in-flight',
     rows: 40,
     step: {
@@ -4597,6 +4723,27 @@ async function exerciseStrategyGraph(
       match_edges: {fields: ['src', 'dst', 'weight']},
       as: 'out',
     },
+    fields: ['src', 'dst', 'weight'],
+  }, {
+    name: 'retained-match-edges-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{
+      from: 'g',
+      match_edges: {
+        where: 'weight > 10',
+        fields: ['src', 'dst', 'weight'],
+      },
+      as: 'out',
+    }],
     fields: ['src', 'dst', 'weight'],
   }, {
     name: 'match-edges-predicate-in-flight',
@@ -6043,7 +6190,7 @@ async function exerciseStrategyGraph(
         ? fixture.strategyFixtureVecaCreate
       : unsizedGraph
         ? fixture.strategyFixtureSgaCreate
-      : cancellationCase.name === 'components-strong'
+      : cancellationCase.name.startsWith('components-')
         ? fixture.strategyFixtureSgaComponentsSizedCreate
         : cancellationCase.name === 'traverse-paths'
           ? fixture.strategyFixtureSgaTraversePathsSizedCreate

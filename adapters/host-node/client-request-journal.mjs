@@ -6,6 +6,8 @@ import {closeSync, constants, existsSync, fstatSync, fsyncSync, lstatSync,
   realpathSync, rmSync, writeFileSync, writeSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {throwSqliteInitializationFailure} from
+  '../host-common/sqlite-transaction.mjs';
 
 const cid = value => typeof value === 'string' &&
   /^sha256:[0-9a-f]{64}$/u.test(value);
@@ -386,10 +388,8 @@ export function openClientRequestJournal(directory, {
       }
       syncDirectory(root);
     }
-  } catch (error) {
-    database.close();
-    throw error;
-  }
+  // Statement preparation is part of initialization: no journal owner has
+  // been returned yet. Keep it under the same single cleanup boundary.
   const ensureOpen = () => {
     if (closed) fail('ClientRequestJournalClosed');
   };
@@ -969,4 +969,7 @@ export function openClientRequestJournal(directory, {
     },
   });
   return journal;
+  } catch (error) {
+    throwSqliteInitializationFailure(database, error, 'client-request-journal');
+  }
 }

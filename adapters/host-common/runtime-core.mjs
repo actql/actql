@@ -2701,11 +2701,11 @@ function publicationControl(moon) {
       return moon.strategyPublicationRecordAllowsCommit(token(record));
     },
     publicationAttemptAction(record, activeChecked, indexIssued) {
-      return moon.strategyPublicationAttemptAction(
+      return publicationAction('attempt', moon.strategyPublicationAttemptAction(
         record === undefined ? undefined : token(record),
         activeChecked,
         indexIssued,
-      );
+      ));
     },
     publicationSetupAction(
       existingChecked,
@@ -2716,7 +2716,7 @@ function publicationControl(moon) {
       contractsPersisted,
       attemptCreated,
     ) {
-      return moon.strategyPublicationSetupAction(
+      return publicationAction('setup', moon.strategyPublicationSetupAction(
         existingChecked,
         existingFound,
         existingEvidenceValidated,
@@ -2724,22 +2724,25 @@ function publicationControl(moon) {
         initialActiveChecked,
         contractsPersisted,
         attemptCreated,
-      );
+      ));
     },
     publicationCancellationAction(record) {
-      return moon.strategyPublicationCancellationAction(
-        record === undefined ? undefined : token(record),
-      );
+      return publicationAction('cancellation',
+        moon.strategyPublicationCancellationAction(
+          record === undefined ? undefined : token(record),
+        ));
     },
     committedPublicationFinalizationAction(record) {
-      return moon.strategyCommittedPublicationFinalizationAction(
-        record === undefined ? undefined : token(record),
-      );
+      return publicationAction('finalization',
+        moon.strategyCommittedPublicationFinalizationAction(
+          record === undefined ? undefined : token(record),
+        ));
     },
     supersededPublicationFinalizationAction(record) {
-      return moon.strategySupersededPublicationFinalizationAction(
-        record === undefined ? undefined : token(record),
-      );
+      return publicationAction('finalization',
+        moon.strategySupersededPublicationFinalizationAction(
+          record === undefined ? undefined : token(record),
+        ));
     },
     publicationCommitFailureAction(
       reconciliationAttempted,
@@ -2747,12 +2750,13 @@ function publicationControl(moon) {
       committedFound,
       unknownAppendAttempted,
     ) {
-      return moon.strategyPublicationCommitFailureAction(
-        reconciliationAttempted,
-        reconciliationFailed,
-        committedFound,
-        unknownAppendAttempted,
-      );
+      return publicationAction('commitFailure',
+        moon.strategyPublicationCommitFailureAction(
+          reconciliationAttempted,
+          reconciliationFailed,
+          committedFound,
+          unknownAppendAttempted,
+        ));
     },
     publicationUnknownRetryAction(
       reconciliationResolved,
@@ -2760,12 +2764,13 @@ function publicationControl(moon) {
       upstreamRetryAvailable,
       upstreamRetryAttempted,
     ) {
-      return moon.strategyPublicationUnknownRetryAction(
-        reconciliationResolved,
-        upstreamPending,
-        upstreamRetryAvailable,
-        upstreamRetryAttempted,
-      );
+      return publicationAction('unknownRetry',
+        moon.strategyPublicationUnknownRetryAction(
+          reconciliationResolved,
+          upstreamPending,
+          upstreamRetryAvailable,
+          upstreamRetryAttempted,
+        ));
     },
     existingDeliveryAttemptAction(record) {
       return publicationAction('existingDelivery',
@@ -2820,13 +2825,14 @@ function publicationControl(moon) {
       pending,
       releaseAttempted,
     ) {
-      return moon.strategyPublicationPreparedReleaseAction(
-        currentIndex,
-        ownerCount,
-        statusChecked,
-        pending,
-        releaseAttempted,
-      );
+      return publicationAction('preparedRelease',
+        moon.strategyPublicationPreparedReleaseAction(
+          currentIndex,
+          ownerCount,
+          statusChecked,
+          pending,
+          releaseAttempted,
+        ));
     },
     publicationCleanupOwnerAction(
       currentIndex,
@@ -2836,14 +2842,15 @@ function publicationControl(moon) {
       retryAvailable,
       retryAttempted,
     ) {
-      return moon.strategyPublicationCleanupOwnerAction(
-        currentIndex,
-        ownerCount,
-        statusChecked,
-        pending,
-        retryAvailable,
-        retryAttempted,
-      );
+      return publicationAction('cleanupOwner',
+        moon.strategyPublicationCleanupOwnerAction(
+          currentIndex,
+          ownerCount,
+          statusChecked,
+          pending,
+          retryAvailable,
+          retryAttempted,
+        ));
     },
     runChainValid(runDefinition, invocation, definitions, artifacts,
       manifest, limits) {
@@ -3686,16 +3693,17 @@ function outputExportControl(moon, publications) {
       exportReleased,
       exportCancelAttempted,
     ) {
-      return moon.strategyDurablePayloadFailureAction(
-        writerExists,
-        writerSealed,
-        writerCancelAttempted,
-        preparedPending,
-        preparedReleaseAttempted,
-        exportExists,
-        exportReleased,
-        exportCancelAttempted,
-      );
+      return publicationAction('durablePayloadFailure',
+        moon.strategyDurablePayloadFailureAction(
+          writerExists,
+          writerSealed,
+          writerCancelAttempted,
+          preparedPending,
+          preparedReleaseAttempted,
+          exportExists,
+          exportReleased,
+          exportCancelAttempted,
+        ));
     },
     cleanupOwnerAction:
       publications.publicationCleanupOwnerAction,

@@ -11,7 +11,7 @@ Effectful Program execution, a new scheduler, or a new cleanup policy.
 
 | Owner | ABI or retained boundary | Host wrapper and type |
 | --- | --- | --- |
-| `run_publication` Run-state issuer | `client_program_issue_controlled_unpublished_run_state` carries physical-start uncertainty and confirmed terminal outcome | `issueUnpublishedRunStateWire` accepts a named observation; the installed Host supplies durable journal facts and live-owner observation |
+| `run_publication` Run-state issuer | `client_program_issue_controlled_unpublished_run_state` carries physical-start uncertainty and confirmed terminal outcome | The standalone `issueUnpublishedRunStateWire` accepts a named observation; the installed Host supplies durable journal facts and live-owner observation directly through the positional ABI (remaining adapter work below) |
 | Common Run-start and cancellation control | `client-request-journal` serializes claims and projects validated retained Run facts | `client-dispatch-owner` owns physical dispatch, cancellation delivery, stop observation, and cleanup; `embedded-local` connects the public ports |
 | `run_publication` delivery control | Generated Node ABI returns bounded numeric actions | `publicationAction` rejects unknown codes and returns named actions to result access and delivery |
 | `run_publication` contract admission | Runtime handles remain checked against their issuing owner | `DeliveryContractView<Kind>` distinguishes roles at the TypeScript boundary; runtime ownership checks remain in place |
@@ -105,3 +105,43 @@ Public wire versions and CID preimages are unchanged. The run-host-core
 TypeScript surface now requires named observation objects and branded delivery
 views; internal callers and generated package assets were updated together.
 The broader Connector SDK type surface is outside this change.
+
+## Remaining-work audit, 2026-09-30
+
+Baseline: main `b1f6dcd6fe29f13b2f98102df02e710b98d2acd1`, including
+#66 and #67. #68's small shared-JS extraction is separate and does not close
+this work order. The earlier completion evidence remains evidence for its
+specific boundaries, not for every later caller.
+
+| Unit | Implemented; do not repeat | Remaining bounded work |
+| --- | --- | --- |
+| H1 | Durable Run unknown/terminal observations, publication precedence, primary plus rollback causes, private authorization diagnostics | This follow-up closes request-journal initialization and post-schema prepare cleanup. `clientRunControlObservation` still erases the owner's issuance error as absence; retain that cause in a separate ABI follow-up. |
+| H2 | Dispatch owner, explicit publication execution handoff, shared retained journal facts, independent shutdown/initialization cleanup | Acquisition recovery custody still relies on the outer `AcquisitionOpenError`; an ordinary cause wrapper hides its recovery owner. Close that explicit handoff separately. Installed Run observation/cancellation composition can then be narrowed without inventing another state machine. |
+| H3 | Branded delivery views and runtime ownership checks, four named delivery action families, independent acquisition fixture, controlled expiry clock | Apply named observation arguments to the installed Host's actual calls; distinguish the targeted publication contract roles; translate remaining publication lifecycle actions at the ABI boundary. Do not redo delivery branding or redesign Connector SDK. |
+
+### Request-journal initialization follow-up
+
+The request journal previously closed directly in its schema catch, losing
+the initiating error if close also failed. Statement preparation was outside
+that catch and could leave the database open without returning an owner.
+
+The single initialization boundary now extends through statement preparation
+and journal construction. It uses the existing
+`throwSqliteInitializationFailure`; no new cleanup framework or transaction
+semantics are introduced. Successful cleanup rethrows the original failure.
+Failed cleanup preserves both causes and the existing retry/status owner.
+The installed Host's existing initialization wrapper retains that owner.
+
+`installed-host-cleanup.test.mjs` injects schema and prepare faults into real
+SQLite connections, with and without close failure. It also enters through
+`openInstalledRemoteHttpHost`, fails both initial close attempts, and recovers
+through the returned Host error's cleanup handle. Counters require schema
+and prepare to run once, retry to call only close, repeated completed retry
+to do nothing, and the failed database to be physically closed. Reopening
+the existing journal/Host succeeds without repairing its format.
+
+Run/Effect execution, wire, CID inputs, stored format, and the existing
+non-destructive format inspection are unchanged. Outbound implementation and
+cross-team contract review remain outside this follow-up. Exact verification
+SHA and CI results are recorded in the independent PR, not inferred from the
+older runs above.

@@ -11,6 +11,8 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {issueInstalledRunControlObservation} from
+  '../host-common/run-state-observation.mjs';
 
 const root = new URL('../../_build/client-request-journal-tests/', import.meta.url);
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -28,6 +30,21 @@ const fixture = Object.freeze({
     'sha256:d526e372e357f6bbd1d804e385fc8d88fad9e538ec5a70058f1205af9a0a7d9d',
 });
 const expires = '2099-01-01T00:00:00.000Z';
+
+test('Run-control issuer failure retains its typed reason across the Host ABI',
+  () => {
+    assert.throws(() => issueInstalledRunControlObservation(moon, {
+      revision: -1, cancellationRequested: false,
+      physicallyUnstarted: false, preDispatchFailureConfirmed: false,
+      physicalCloseConfirmed: false,
+    }), error => {
+      assert.equal(error.message, 'InvalidRunControl');
+      assert.equal(error.cause.code, 'MoonBitHostFailure');
+      assert.equal(error.primaryFailure, error.cause.cause);
+      assert.equal(typeof error.primaryFailure?.$tag, 'number');
+      return true;
+    });
+  });
 const publicationControl = runtimeCore(moon).publicationControl;
 const contractLimits = Object.freeze({
   maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64,
@@ -817,8 +834,8 @@ test('durable cancellation excludes physical start after restart', async t => {
     publicationControl);
   assert.equal(retained.cancellationRequested, true);
   assert.equal(retained.physicalStartReserved, false);
-  assert.deepEqual(JSON.parse(moon.clientRunControlObservation(
-    retained.revision, true, true, false, false)), {
+  assert.deepEqual(JSON.parse(checked(moon.clientRunControlObservation(
+    retained.revision, true, true, false, false))), {
     cancellation_requested: true, physical_stop: 'confirmed',
     revision: cancelled.revision,
   });
@@ -842,8 +859,8 @@ test('started cancellation never invents stop and terminal completion wins',
     const cancelled = journal.requestCancellation(accepted.ref, {
       currentAuthorization: true, publicationCommitted: false,
     }, moon, publicationControl);
-    assert.equal(JSON.parse(moon.clientRunControlObservation(
-      cancelled.revision, true, false, false, false)).physical_stop, 'unknown');
+    assert.equal(JSON.parse(checked(moon.clientRunControlObservation(
+      cancelled.revision, true, false, false, false))).physical_stop, 'unknown');
     assert.equal(claimPhysicalStart(journal, accepted.ref), false);
     journal.markPhysicalClose(accepted.ref);
     const retained = journal.lookupRunDefinition(accepted.ref, moon,

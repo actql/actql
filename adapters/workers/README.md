@@ -1,7 +1,8 @@
 # Workers boundary verification
 
-This directory owns a thin Workers Host and the Node-side workerd test harness,
-not Core I/O or a deployed Cloudflare service. Runtime-startup tests are separate
+This directory owns a thin generated-profile connection and the Node-side
+workerd test harness, not Core I/O or a deployed Cloudflare service. The product
+connection uses generic JS, not Cloudflare APIs. Runtime-startup tests are separate
 from the public-checker/Local-DAG execution tests; passing startup alone does not
 establish ActQL Workers conformance.
 
@@ -54,6 +55,19 @@ projected from existing integration builders; expected result CIDs are computed
 independently from literal expected rows, never from product results.
 
 ### Product Host and initialization
+
+Generic JS composition lives in `adapters/host-common/local-js-host.mjs`;
+invocation-scoped consumption, cancellation and cleanup ownership live in
+`adapters/host-common/scoped-strategy.mjs`. Both reuse the existing common
+runtime/strategy owner. `host.mjs` supplies the generated runtime and selected
+contributions; `invocation.mjs` re-exports the same scoped function for existing
+imports. Neither contains a second lifecycle implementation.
+
+The public Workers entry names and historical diagnostic messages are preserved.
+Workerd compatibility flags, Miniflare, transport/audit fixtures and environment
+verification remain here. This extraction does not establish support for any
+additional environment: Node/workerd evidence below is limited to the tested
+profiles, not a claim of a deployed Cloudflare service or another runtime.
 
 `bindWorkersHost(runtime)` from `host.mjs` binds the generated Local-only Host
 operations to a trusted, invocation-created MoonBit runtime. Application

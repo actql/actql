@@ -26,8 +26,9 @@ priv enum ComponentsPhase {
 
 ///|
 priv struct ComponentsState {
-  input : @graph.ProducerRead
-  source : @storage.Storage
+  source : GraphReadSource
+  node_count : Int
+  edge_count : Int
   schema : @schema.Schema
   value_limits : @value.Limits
   strong : Bool
@@ -162,8 +163,9 @@ fn compare_component_nodes_step(
     state.component.get(right) is Some(right_component) &&
     state.component_min.get(left_component) is Some(left_min) &&
     state.component_min.get(right_component) is Some(right_min) &&
-    @storage.node_identity(state.source, left_min) is Some(left_component_id) &&
-    @storage.node_identity(state.source, right_min) is Some(right_component_id) else {
+    graph_read_node_identity(state.source, left_min) is Some(left_component_id) &&
+    graph_read_node_identity(state.source, right_min)
+    is Some(right_component_id) else {
     return Err(ComponentsInputUnavailable)
   }
   let comparison = match state.key_comparison {
@@ -172,8 +174,8 @@ fn compare_component_nodes_step(
       let (a, b) = if state.key_component == 0 {
         (left_component_id, right_component_id)
       } else {
-        guard @storage.node_identity(state.source, left) is Some(left_id) &&
-          @storage.node_identity(state.source, right) is Some(right_id) else {
+        guard graph_read_node_identity(state.source, left) is Some(left_id) &&
+          graph_read_node_identity(state.source, right) is Some(right_id) else {
           return Err(ComponentsInputUnavailable)
         }
         (left_id, right_id)
@@ -295,8 +297,8 @@ fn push_component_node_step(
     state.phase = WalkComponent
     return Ok(())
   }
-  guard @storage.node_identity(state.source, node) is Some(node_id) &&
-    @storage.node_identity(state.source, minimum) is Some(minimum_id) else {
+  guard graph_read_node_identity(state.source, node) is Some(node_id) &&
+    graph_read_node_identity(state.source, minimum) is Some(minimum_id) else {
     return Err(ComponentsInputUnavailable)
   }
   let comparison = match
@@ -379,7 +381,7 @@ fn checked_component_value(
   }
   match field.name {
     @schema.Unqualified("node_id") =>
-      @storage.node_identity(state.source, node).bind(value => {
+      graph_read_node_identity(state.source, node).bind(value => {
         @value.recheck_runtime_value(
           value.value,
           field.contract,
@@ -387,7 +389,7 @@ fn checked_component_value(
         )
       })
     @schema.Unqualified("component_id") =>
-      @storage.node_identity(state.source, minimum).bind(value => {
+      graph_read_node_identity(state.source, minimum).bind(value => {
         @value.recheck_runtime_value(
           value.value,
           field.contract,
@@ -412,7 +414,7 @@ fn components_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@graph.producer_read_available(state.input) {
+    if !graph_read_available(state.source) {
       return @bounded.Failed(ComponentsInputUnavailable, progress, used)
     }
     if used >= state.control_work_remaining {
@@ -420,7 +422,7 @@ fn components_step(
     }
     match state.phase {
       InitializeNodes =>
-        if state.index < @storage.node_count(state.source) {
+        if state.index < state.node_count {
           state.out_degree.push(0)
           state.in_degree.push(0)
           state.out_start.push(0)
@@ -446,8 +448,8 @@ fn components_step(
         used += 1
       }
       ScanDegrees =>
-        if state.index < @storage.edge_count(state.source) {
-          guard @storage.edge_endpoints(state.source, state.index)
+        if state.index < state.edge_count {
+          guard graph_read_edge_endpoints(state.source, state.index)
             is Some((source, target)) &&
             state.out_degree.get(source) is Some(outgoing) &&
             state.in_degree.get(target) is Some(incoming) else {
@@ -462,7 +464,7 @@ fn components_step(
           state.phase = BuildOffsets
         }
       BuildOffsets =>
-        if state.index < @storage.node_count(state.source) {
+        if state.index < state.node_count {
           state.out_start[state.index + 1] = state.out_start[state.index] +
             state.out_degree[state.index]
           state.in_start[state.index + 1] = state.in_start[state.index] +
@@ -474,7 +476,7 @@ fn components_step(
           state.phase = InitializeEdges
         }
       InitializeEdges =>
-        if state.index < @storage.edge_count(state.source) {
+        if state.index < state.edge_count {
           state.out_edges.push(-1)
           state.in_edges.push(-1)
           state.index += 1
@@ -484,7 +486,7 @@ fn components_step(
           state.phase = CopyCursors
         }
       CopyCursors =>
-        if state.index < @storage.node_count(state.source) {
+        if state.index < state.node_count {
           state.out_cursor[state.index] = state.out_start[state.index]
           state.in_cursor[state.index] = state.in_start[state.index]
           state.index += 1
@@ -494,8 +496,8 @@ fn components_step(
           state.phase = FillEdges
         }
       FillEdges =>
-        if state.index < @storage.edge_count(state.source) {
-          guard @storage.edge_endpoints(state.source, state.index)
+        if state.index < state.edge_count {
+          guard graph_read_edge_endpoints(state.source, state.index)
             is Some((source, target)) else {
             return @bounded.Failed(ComponentsInputUnavailable, progress, used)
           }
@@ -518,7 +520,7 @@ fn components_step(
       StartFirstPass =>
         if !state.stack_nodes.is_empty() {
           state.phase = WalkFirstPass
-        } else if state.index >= @storage.node_count(state.source) {
+        } else if state.index >= state.node_count {
           state.index = 0
           state.phase = ResetVisited
         } else {
@@ -578,8 +580,7 @@ fn components_step(
         } else if state.strong && state.index < 0 {
           state.width = 1
           state.phase = PrepareSort
-        } else if !state.strong &&
-          state.index >= @storage.node_count(state.source) {
+        } else if !state.strong && state.index >= state.node_count {
           state.width = 1
           state.phase = PrepareSort
         } else {
@@ -837,7 +838,7 @@ pub fn start_components(
     @lower.sequence_step(sequence, step)
     is Some(@lower.GraphBasicStep(prepared)) &&
     @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
-    @graph.producer_read_storage(input) is Some(source) else {
+    @graph.producer_read_storage(input) is Some(_) else {
     return Err(InvalidComponentsKernel)
   }
   let kind = @lower.graph_basic_kind(prepared)
@@ -845,15 +846,109 @@ pub fn start_components(
     kind == @lower.ComponentsStrongBasic else {
     return Err(InvalidComponentsKernel)
   }
-  let nodes = @storage.node_count(source)
-  let edges = @storage.edge_count(source)
-  let schema = @lower.graph_basic_output_schema(prepared)
+  start_components_source(
+    control,
+    preparation,
+    owner,
+    step,
+    kind,
+    @lower.graph_basic_output_schema(prepared),
+    @lower.graph_basic_component_max_output_rows(prepared),
+    Stored(input),
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    control_work_limit,
+  )
+}
+
+///|
+/// Run the bounded component kernel over an exact managed Graph generation.
+pub fn start_components_view(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
+) -> Result[ComponentsExecution, ComponentsIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
+  guard physical_equal(
+      @execution.completion_preparation_owner(preparation),
+      owner,
+    ) &&
+    @lower.sequence_step(sequence, step)
+    is Some(@lower.GraphBasicStep(prepared)) &&
+    @lifecycle.producer_view_kind(input) == @carrier.GraphKind &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(input),
+      owner,
+      step,
+      0,
+    ) else {
+    return Err(InvalidComponentsKernel)
+  }
+  let kind = @lower.graph_basic_kind(prepared)
+  guard kind == @lower.ComponentsWeakBasic ||
+    kind == @lower.ComponentsStrongBasic else {
+    return Err(InvalidComponentsKernel)
+  }
+  start_components_source(
+    control,
+    preparation,
+    owner,
+    step,
+    kind,
+    @lower.graph_basic_output_schema(prepared),
+    @lower.graph_basic_component_max_output_rows(prepared),
+    Viewed(input),
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    control_work_limit,
+  )
+}
+
+///|
+fn start_components_source(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  owner : @lower.BoundPrepared,
+  step : Int,
+  kind : @lower.GraphBasicKind,
+  schema : @schema.Schema,
+  authored_max_rows : Int64?,
+  source : GraphReadSource,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+  control_work_limit : Int,
+) -> Result[ComponentsExecution, ComponentsIssue] {
+  guard graph_read_node_count(source) is Some(nodes) &&
+    graph_read_edge_count(source) is Some(edges) else {
+    return Err(ComponentsInputUnavailable)
+  }
   let width = @schema.field_count(schema)
   guard max_rows >= 0 && nodes <= max_rows else {
     return Err(ComponentsOutputLimit)
   }
-  if @lower.graph_basic_component_max_output_rows(prepared) is Some(authored) &&
-    nodes.to_int64() > authored {
+  if authored_max_rows is Some(authored) && nodes.to_int64() > authored {
     return Err(ComponentsOutputLimit)
   }
   guard components_workspace(nodes, edges, width) is Some(workspace) &&
@@ -873,15 +968,36 @@ pub fn start_components(
   let rows : Ref[@execution.AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    @execution.prepare_trusted_output_port(
-      preparation,
-      @pipeline.Step(step),
-      max_entries,
-      max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs~,
-    ) {
+  let port_result = match source {
+    Stored(_) =>
+      @execution.prepare_trusted_output_port(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs~,
+      )
+    Viewed(view) => {
+      guard inputs.is_empty() else {
+        @execution.cancel_admitted_output(output) |> ignore
+        return Err(InvalidComponentsKernel)
+      }
+      @execution.prepare_trusted_output_port_with_inputs(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs=[
+          @execution.trusted_output_carrier_input(
+            @lifecycle.producer_view_read_reference(view),
+          ),
+        ],
+      )
+    }
+  }
+  let port = match port_result {
     Ok(value) => value
     Err(issue) => {
       @execution.cancel_admitted_output(output) |> ignore
@@ -889,8 +1005,9 @@ pub fn start_components(
     }
   }
   let state : ComponentsState = {
-    input,
     source,
+    node_count: nodes,
+    edge_count: edges,
     schema,
     value_limits: {
       max_nodes: limits.max_nodes,

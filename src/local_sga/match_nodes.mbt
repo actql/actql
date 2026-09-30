@@ -18,9 +18,9 @@ priv enum MatchNodesPhase {
 
 ///|
 priv struct MatchNodesState {
-  input : @graph.ProducerRead
-  source : @storage.Storage
+  source : GraphReadSource
   graph : @carrier.Graph
+  node_count : Int
   prepared : @lower.PreparedGraphMatch
   schema : @schema.Schema
   value_limits : @value.Limits
@@ -171,7 +171,7 @@ fn node_predicate_binding(
   node : Int,
   index : Int,
 ) -> (String, @execution.Value)? {
-  graph_node_predicate_binding(state.graph, state.source, node, index)
+  graph_node_predicate_binding_read(state.graph, state.source, node, index)
 }
 
 ///|
@@ -181,10 +181,10 @@ fn match_node_field(
   expected : @schema.Field,
 ) -> @value.CheckedValue? {
   let source = if graph_node_alias(state.graph) == Some(expected.name) {
-    @storage.node_identity(state.source, node)
+    graph_read_node_identity(state.source, node)
   } else {
     match graph_node_property_index(state.graph, expected.name) {
-      Some(property) => @storage.node_property(state.source, node, property)
+      Some(property) => graph_read_node_property(state.source, node, property)
       None => None
     }
   }
@@ -206,8 +206,8 @@ fn compare_selected_nodes_step(
   let active = match state.key_comparison {
     Some(value) => value
     None => {
-      guard @storage.node_identity(state.source, left) is Some(left_value) &&
-        @storage.node_identity(state.source, right) is Some(right_value) else {
+      guard graph_read_node_identity(state.source, left) is Some(left_value) &&
+        graph_read_node_identity(state.source, right) is Some(right_value) else {
         return Err(MatchNodesInputUnavailable)
       }
       let value = match
@@ -294,7 +294,7 @@ fn match_nodes_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@graph.producer_read_available(state.input) {
+    if !graph_read_available(state.source) {
       return @bounded.Failed(MatchNodesInputUnavailable, progress, used)
     }
     if used >= state.control_work_remaining {
@@ -313,7 +313,7 @@ fn match_nodes_step(
       }
       ResolveIdentities =>
         if state.predicate is Some(_) {
-          if state.identity_index < @storage.node_count(state.source) {
+          if state.identity_index < state.node_count {
             state.predicate_field = 0
             state.predicate_input.clear()
             state.phase = PreparePredicate
@@ -322,7 +322,7 @@ fn match_nodes_step(
             state.phase = PrepareSort
           }
         } else if state.select_all_nodes is Some(select_all) {
-          if state.identity_index < @storage.node_count(state.source) {
+          if state.identity_index < state.node_count {
             if select_all {
               state.selected.push(state.identity_index)
             }
@@ -340,7 +340,7 @@ fn match_nodes_step(
             is Some(identity) else {
             return @bounded.Failed(InvalidMatchNodesKernel, progress, used)
           }
-          match @storage.node_index(state.source, identity) {
+          match graph_read_node_index(state.source, identity) {
             Ok(Some(node)) => {
               state.selected.push(node)
               state.identity_index += 1
@@ -599,6 +599,96 @@ pub fn start_match_nodes(
   control_work_limit? : Int? = None,
 ) -> Result[MatchNodesExecution, MatchNodesIssue] {
   let owner = @lower.sequence_owner(sequence)
+  guard @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
+    @graph.producer_read_storage(input) is Some(storage) &&
+    @storage.carrier(storage) is @carrier.GraphValue(graph) else {
+    return Err(InvalidMatchNodesKernel)
+  }
+  start_match_nodes_read(
+    control,
+    preparation,
+    sequence,
+    step,
+    Stored(input),
+    graph,
+    @storage.node_count(storage),
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    control_work_limit~,
+  )
+}
+
+///|
+/// Read an exact managed Graph input through the same bounded match kernel.
+pub fn start_match_nodes_view(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
+) -> Result[MatchNodesExecution, MatchNodesIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+    is Some(@carrier.GraphValue(graph)) &&
+    @lifecycle.producer_view_kind(input) == @carrier.GraphKind &&
+    @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(input),
+      owner,
+      step,
+      0,
+    ) &&
+    @lifecycle.producer_view_node_count(input) is Some(node_count) else {
+    return Err(InvalidMatchNodesKernel)
+  }
+  start_match_nodes_read(
+    control,
+    preparation,
+    sequence,
+    step,
+    Viewed(input),
+    graph,
+    node_count,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    control_work_limit~,
+  )
+}
+
+///|
+fn start_match_nodes_read(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  source : GraphReadSource,
+  graph : @carrier.Graph,
+  node_count : Int,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
+) -> Result[MatchNodesExecution, MatchNodesIssue] {
+  let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),
       owner,
@@ -609,10 +699,7 @@ pub fn start_match_nodes(
     (
       @lower.graph_match_id_count(prepared) > 0 ||
       @lower.graph_match_has_predicate(prepared)
-    ) &&
-    @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
-    @graph.producer_read_storage(input) is Some(source) &&
-    @storage.carrier(source) is @carrier.GraphValue(graph) else {
+    ) else {
     return Err(InvalidMatchNodesKernel)
   }
   let literal = @lower.graph_match_literal_selection(prepared)
@@ -628,10 +715,10 @@ pub fn start_match_nodes(
     None
   }
   let count = if predicate is Some(_) {
-    @storage.node_count(source)
+    node_count
   } else {
     match select_all_nodes {
-      Some(true) => @storage.node_count(source)
+      Some(true) => node_count
       Some(false) => 0
       None => @lower.graph_match_id_count(prepared)
     }
@@ -669,15 +756,36 @@ pub fn start_match_nodes(
   let live = Ref(true)
   let accepted = Ref(false)
   let scratch_slots = Ref(0)
-  let port = match
-    @execution.prepare_trusted_output_port(
-      preparation,
-      @pipeline.Step(step),
-      max_entries,
-      max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs~,
-    ) {
+  let port_result = match source {
+    Stored(_) =>
+      @execution.prepare_trusted_output_port(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs~,
+      )
+    Viewed(view) => {
+      guard inputs.is_empty() else {
+        @execution.cancel_admitted_output(output) |> ignore
+        return Err(InvalidMatchNodesKernel)
+      }
+      @execution.prepare_trusted_output_port_with_inputs(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs=[
+          @execution.trusted_output_carrier_input(
+            @lifecycle.producer_view_read_reference(view),
+          ),
+        ],
+      )
+    }
+  }
+  let port = match port_result {
     Ok(value) => value
     Err(issue) => {
       @execution.cancel_admitted_output(output) |> ignore
@@ -685,9 +793,9 @@ pub fn start_match_nodes(
     }
   }
   let state : MatchNodesState = {
-    input,
     source,
     graph,
+    node_count,
     prepared,
     schema,
     value_limits: {
